@@ -111,6 +111,24 @@ namespace MGUI.Core.UI.Docking.Controls
         /// </summary>
         private Point _lastPreviewCalculation;
 
+        private int _dragThreshold = 5;
+        /// <summary>
+        /// Distance in pixels the mouse must move before drag visuals activate.
+        /// Default: 5 pixels.
+        /// </summary>
+        public int DragThreshold
+        {
+            get => _dragThreshold;
+            set
+            {
+                if (_dragThreshold != value)
+                {
+                    _dragThreshold = value;
+                    NPC(nameof(DragThreshold));
+                }
+            }
+        }
+
         #endregion Drag & Drop State
 
         /// <summary>
@@ -148,6 +166,13 @@ namespace MGUI.Core.UI.Docking.Controls
             // Handle drag operation via polling
             if (IsDragging)
             {
+                // Check for ESC key to cancel drag
+                if (ParentWindow.Desktop.InputTracker.Keyboard.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
+                {
+                    CancelDrag();
+                    return;
+                }
+
                 // Check if mouse button is still pressed
                 bool isStillPressed = ParentWindow.Desktop.InputTracker.Mouse.CurrentState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
 
@@ -160,6 +185,29 @@ namespace MGUI.Core.UI.Docking.Controls
 
                 // Get current mouse position
                 Point currentMousePosition = ParentWindow.Desktop.InputTracker.Mouse.CurrentPosition;
+
+                // Check if drag threshold has been exceeded
+                if (!CurrentDrag.HasExceededThreshold)
+                {
+                    double distance = Math.Sqrt(
+                        Math.Pow(currentMousePosition.X - CurrentDrag.DragStartPosition.X, 2) +
+                        Math.Pow(currentMousePosition.Y - CurrentDrag.DragStartPosition.Y, 2));
+
+                    if (distance >= DragThreshold)
+                    {
+                        // Threshold exceeded - activate drag visuals
+                        CurrentDrag.HasExceededThreshold = true;
+                        if (CurrentDrag.SourceTabItem != null)
+                        {
+                            CurrentDrag.SourceTabItem.Opacity = 0.5f;
+                        }
+                    }
+                    else
+                    {
+                        // Not yet moved enough, don't show preview
+                        return;
+                    }
+                }
 
                 // Update drop preview
                 UpdateDragPreview(currentMousePosition);
@@ -242,11 +290,14 @@ namespace MGUI.Core.UI.Docking.Controls
             if (sourceItem == null)
                 throw new ArgumentNullException(nameof(sourceItem));
 
-            // Create drag data
-            CurrentDrag = new DockDragData(panel, sourceGroup, startPos, sourceItem);
+            // Create drag data (visuals will activate after threshold is exceeded)
+            CurrentDrag = new DockDragData(panel, sourceGroup, startPos, sourceItem)
+            {
+                HasExceededThreshold = false
+            };
 
-            // Provide visual feedback on the source tab item
-            sourceItem.Opacity = 0.5f;
+            // Don't provide visual feedback yet - wait for threshold
+            // sourceItem.Opacity will be set when threshold is exceeded
 
             // Initialize preview calculation position
             _lastPreviewCalculation = startPos;

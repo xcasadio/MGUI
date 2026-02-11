@@ -31,6 +31,12 @@ namespace MGUI.Core.UI.Docking
         public MGDockTabItem SourceTabItem { get; set; }
 
         /// <summary>
+        /// Whether the drag threshold has been exceeded.
+        /// Drag visuals only activate after moving beyond the threshold distance.
+        /// </summary>
+        public bool HasExceededThreshold { get; set; }
+
+        /// <summary>
         /// Creates a new DockDragData.
         /// </summary>
         public DockDragData()
@@ -40,6 +46,10 @@ namespace MGUI.Core.UI.Docking
         /// <summary>
         /// Creates a new DockDragData with specified values.
         /// </summary>
+        /// <param name="draggedPanel">The panel being dragged.</param>
+        /// <param name="sourceGroup">The source tab group.</param>
+        /// <param name="dragStartPosition">Start position of the drag.</param>
+        /// <param name="sourceTabItem">The source tab item.</param>
         public DockDragData(DockPanelNode draggedPanel, DockTabGroupNode sourceGroup, 
                             Point dragStartPosition, MGDockTabItem sourceTabItem)
         {
