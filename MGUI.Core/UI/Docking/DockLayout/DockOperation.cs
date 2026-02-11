@@ -79,13 +79,36 @@ namespace MGUI.Core.UI.Docking.DockLayout
 
             // Remove panel from current parent if it has one
             DockTabGroupNode emptyGroupToCleanup = null;
+            bool draggingFromTargetGroup = false;
             
             if (panel.Parent is DockTabGroupNode currentGroup)
             {
+                // Check if we're dragging from the target group itself
+                if (currentGroup == targetNode)
+                {
+                    draggingFromTargetGroup = true;
+                    
+                    // If this is the only panel in the target group, we cannot split-dock
+                    // because removing it would make the target empty
+                    if (currentGroup.Panels.Count <= 1)
+                    {
+                        // Cannot split-dock the last panel from the target itself
+                        // This would create a split with an empty group on one side
+                        return;
+                    }
+                }
+                
+                // Check if targetNode is a descendant of currentGroup
+                // If so, we need to be careful as removing the panel might affect the tree
+                bool targetIsDescendant = IsDescendant(currentGroup, targetNode);
+                
                 currentGroup.RemovePanel(panel);
                 
                 // Mark for cleanup later, after the new split is inserted
-                if (currentGroup.IsEmpty && currentGroup != targetNode)
+                // Skip cleanup if:
+                // - The empty group is the target itself
+                // - The target is a descendant of the current group (structure changes could be complex)
+                if (currentGroup.IsEmpty && !draggingFromTargetGroup && !targetIsDescendant)
                 {
                     emptyGroupToCleanup = currentGroup;
                 }
@@ -134,11 +157,28 @@ namespace MGUI.Core.UI.Docking.DockLayout
                     throw new ArgumentException($"Invalid zone for splitting: {zone}", nameof(zone));
             }
 
-            // IMPORTANT: Save the parent reference BEFORE creating the split node
-            // When we assign FirstChild/SecondChild, the setter will change targetNode.Parent
+            // IMPORTANT: Save the parent reference AND detach targetNode BEFORE creating the split
+            // This prevents parent reference corruption when the split's setter tries to clear the old child
             var targetNodeParent = targetNode.Parent;
+            bool wasFirstChild = false;
+            bool wasSecondChild = false;
             
-            // Create the split node
+            // Temporarily detach targetNode from its parent to avoid conflicts
+            if (targetNodeParent is DockSplitNode tempSplitParent)
+            {
+                if (tempSplitParent.FirstChild == targetNode)
+                {
+                    tempSplitParent.FirstChild = null;
+                    wasFirstChild = true;
+                }
+                else if (tempSplitParent.SecondChild == targetNode)
+                {
+                    tempSplitParent.SecondChild = null;
+                    wasSecondChild = true;
+                }
+            }
+            
+            // Create the split node - now targetNode is free to be assigned
             var splitNode = new DockSplitNode
             {
                 Orientation = orientation,
@@ -147,7 +187,7 @@ namespace MGUI.Core.UI.Docking.DockLayout
                 SecondChild = secondChild
             };
 
-            // Replace targetNode with splitNode in the tree using the saved parent
+            // Replace targetNode with splitNode in the tree using the saved parent  
             if (targetNodeParent == null)
             {
                 // targetNode was the root
@@ -155,14 +195,11 @@ namespace MGUI.Core.UI.Docking.DockLayout
             }
             else if (targetNodeParent is DockSplitNode splitParent)
             {
-                if (splitParent.FirstChild == targetNode)
-                {
+                // Assign to the same position where targetNode was
+                if (wasFirstChild)
                     splitParent.FirstChild = splitNode;
-                }
-                else if (splitParent.SecondChild == targetNode)
-                {
+                else if (wasSecondChild)
                     splitParent.SecondChild = splitNode;
-                }
             }
             
             // NOW cleanup the empty group after the new split is inserted
@@ -419,6 +456,26 @@ namespace MGUI.Core.UI.Docking.DockLayout
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Checks if a node is a descendant of another node (child, grandchild, etc.)
+        /// </summary>
+        private static bool IsDescendant(DockNode ancestor, DockNode potentialDescendant)
+        {
+            if (ancestor == null || potentialDescendant == null)
+                return false;
+
+            // Walk up from potentialDescendant to see if we reach ancestor
+            var current = potentialDescendant.Parent;
+            while (current != null)
+            {
+                if (current == ancestor)
+                    return true;
+                current = current.Parent;
+            }
+
+            return false;
         }
     }
 }

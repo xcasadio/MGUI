@@ -101,7 +101,8 @@ namespace MGUI.Core.UI.Docking.Controls
         }
 
         private MGTextBlock _titleText;
-        private MGButton _closeButton;
+        private MGBorder _closeButton;
+        private MGTextBlock _closeButtonText;
 
         private int _tabHeight = 30;
         /// <summary>
@@ -174,24 +175,32 @@ namespace MGUI.Core.UI.Docking.Controls
                 };
                 _titleText.SetParent(this);
 
-                // Create close button
-                _closeButton = new MGButton(window, btn =>
-                {
-                    CloseRequested?.Invoke(this, Panel);
-                })
+                // Create simple close button element (MGBorder without actual border, just for click handling)
+                _closeButton = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
                 {
                     HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Padding = new XAML.Thickness(4, 2, 4, 2).ToThickness(),
-                    MinWidth = 20,
-                    MinHeight = 20
-                };
-                _closeButton.SetContent(new MGTextBlock(window, "×") 
-                { 
-                    FontSize = 16,
-                    HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
-                });
+                };
+                
+                _closeButtonText = new MGTextBlock(window, "×")
+                {
+                    FontSize = 14,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Padding = new XAML.Thickness(4, 2, 4, 2).ToThickness()
+                };
+                _closeButton.SetContent(_closeButtonText);
+                
+                // Handle close button click
+                _closeButton.MouseHandler.LMBReleasedInside += (sender, e) =>
+                {
+                    if (!e.IsHandled)
+                    {
+                        CloseRequested?.Invoke(this, Panel);
+                        e.SetHandledBy(_closeButton, false);
+                    }
+                };
+                
                 _closeButton.SetParent(this);
 
                 // Subscribe to mouse click
@@ -307,11 +316,13 @@ namespace MGUI.Core.UI.Docking.Controls
                 return;
 
             // Layout title text (takes most of the space)
-            int closeWidth = (Panel?.CanClose == true && _closeButton != null) ? 20 : 0;
+            int closeWidth = (Panel?.CanClose == true && _closeButton != null) ? 18 : 0;
+            int padding = closeWidth > 0 ? 2 : 0; // Small gap between title and close button
+            
             Rectangle titleBounds = new Rectangle(
                 Bounds.X,
                 Bounds.Y,
-                Bounds.Width - closeWidth,
+                Bounds.Width - closeWidth - padding,
                 Bounds.Height
             );
             _titleText.UpdateLayout(titleBounds);
@@ -321,9 +332,9 @@ namespace MGUI.Core.UI.Docking.Controls
             {
                 Rectangle closeBounds = new Rectangle(
                     Bounds.Right - closeWidth,
-                    Bounds.Y,
+                    Bounds.Y + (Bounds.Height - 18) / 2, // Center vertically
                     closeWidth,
-                    Bounds.Height
+                    18
                 );
                 _closeButton.UpdateLayout(closeBounds);
             }
