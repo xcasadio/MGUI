@@ -153,6 +153,7 @@ namespace MGUI.Samples
         public DataBindingSamples DataBindingSamples { get; }
         public IFillBrushSamples IFillBrushSamples { get; }
         public IBorderBrushSamples IBorderBrushSamples { get; }
+        public DockingDemo DockingDemo { get; }
         #endregion Features
 
         #region Dialogs
@@ -206,6 +207,7 @@ namespace MGUI.Samples
             DataBindingSamples = new(Content, Desktop);
             IFillBrushSamples = new(Content, Desktop);
             IBorderBrushSamples = new(Content, Desktop, this);
+            DockingDemo = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs
@@ -220,6 +222,7 @@ namespace MGUI.Samples
 
 #if DEBUG
             //HUD.Show();
+            DockingDemo.Show();
 #endif
 
             Window.WindowDataContext = this;
