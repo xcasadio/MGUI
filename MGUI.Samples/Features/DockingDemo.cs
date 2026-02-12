@@ -101,7 +101,7 @@ namespace MGUI.Samples.Features
             {
                 Title = "Document1.cs",
                 Icon = null,
-                CanClose = true,
+                CanClose = false,
                 CanFloat = false,
                 ContentFactory = () => CreateDocumentContent("Document1.cs")
             };
