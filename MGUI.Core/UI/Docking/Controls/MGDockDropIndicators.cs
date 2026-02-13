@@ -1,7 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -12,17 +11,14 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockDropIndicators : MGElement
 {
-    // Indicator dimensions
     private const int ZoneSize = 40;      // Size of each zone square
     private const int ZoneSpacing = 4;    // Spacing between zones
     private const int BorderWidth = 2;
 
-    // Colors
     private static readonly Color InactiveColor = new Color(100, 100, 100, 180);
     private static readonly Color ActiveColor = new Color(0, 122, 204, 230);
     private static readonly Color BorderColor = new Color(255, 255, 255, 200);
 
-    // Zone rectangles (screen space, updated when target bounds change)
     private Rectangle _leftZoneRect;
     private Rectangle _rightZoneRect;
     private Rectangle _topZoneRect;
@@ -131,23 +127,35 @@ public class MGDockDropIndicators : MGElement
             return DockZone.None;
         }
 
-        // Check if mouse is within indicator bounds at all
         if (!_indicatorBounds.Contains(screenPosition))
         {
             return DockZone.None;
         }
 
-        // Check each zone
         if (_leftZoneRect.Contains(screenPosition))
+        {
             return DockZone.Left;
+        }
+
         if (_rightZoneRect.Contains(screenPosition))
+        {
             return DockZone.Right;
+        }
+
         if (_topZoneRect.Contains(screenPosition))
+        {
             return DockZone.Top;
+        }
+
         if (_bottomZoneRect.Contains(screenPosition))
+        {
             return DockZone.Bottom;
+        }
+
         if (_centerZoneRect.Contains(screenPosition))
+        {
             return DockZone.Center;
+        }
 
         return DockZone.None;
     }
@@ -172,7 +180,6 @@ public class MGDockDropIndicators : MGElement
             return;
         }
 
-        // Calculate center of target bounds
         int centerX = _targetBounds.X + _targetBounds.Width / 2;
         int centerY = _targetBounds.Y + _targetBounds.Height / 2;
 
@@ -181,35 +188,30 @@ public class MGDockDropIndicators : MGElement
         // [Left][Center][Right]
         //      [Bottom]
 
-        // Center zone
         _centerZoneRect = new Rectangle(
             centerX - ZoneSize / 2,
             centerY - ZoneSize / 2,
             ZoneSize,
             ZoneSize);
 
-        // Left zone
         _leftZoneRect = new Rectangle(
             _centerZoneRect.Left - ZoneSize - ZoneSpacing,
             centerY - ZoneSize / 2,
             ZoneSize,
             ZoneSize);
 
-        // Right zone
         _rightZoneRect = new Rectangle(
             _centerZoneRect.Right + ZoneSpacing,
             centerY - ZoneSize / 2,
             ZoneSize,
             ZoneSize);
 
-        // Top zone
         _topZoneRect = new Rectangle(
             centerX - ZoneSize / 2,
             _centerZoneRect.Top - ZoneSize - ZoneSpacing,
             ZoneSize,
             ZoneSize);
 
-        // Bottom zone
         _bottomZoneRect = new Rectangle(
             centerX - ZoneSize / 2,
             _centerZoneRect.Bottom + ZoneSpacing,
@@ -233,7 +235,6 @@ public class MGDockDropIndicators : MGElement
             return;
         }
 
-        // Draw each zone
         DrawZoneIndicator(DA, _leftZoneRect, DockZone.Left);
         DrawZoneIndicator(DA, _rightZoneRect, DockZone.Right);
         DrawZoneIndicator(DA, _topZoneRect, DockZone.Top);
@@ -251,17 +252,13 @@ public class MGDockDropIndicators : MGElement
         bool isActive = (zone == ActiveZone);
         Color fillColor = isActive ? ActiveColor : InactiveColor;
 
-        // Draw fill
         DA.DT.FillRectangle(
             Vector2.Zero,
             new RectangleF(rect.X, rect.Y, rect.Width, rect.Height),
             fillColor
         );
 
-        // Draw border
         DrawBorder(DA, rect, BorderColor, BorderWidth);
-
-        // Draw symbol
         DrawZoneSymbol(DA, rect, zone, Color.White);
     }
 
@@ -354,10 +351,6 @@ public class MGDockDropIndicators : MGElement
         int stemWidth = 3;
         int headSize = size / 2;
 
-        // Calculate rotation (0 = right, 90 = down, 180 = left, 270 = up)
-        double angleRad = angleDegrees * Math.PI / 180.0;
-        
-        // For simplicity, draw arrows facing specific directions without rotation
         switch ((int)angleDegrees)
         {
             case 0: // Right

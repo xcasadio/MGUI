@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.Controls;
@@ -19,6 +20,7 @@ namespace MGUI.Samples.Features
         public MGDesktop Desktop { get; }
         public MGWindow Window { get; }
         private MGDockHost _dockHost;
+        private const string LayoutFilePath = "docking_layout.json";
 
         private bool _IsVisible;
         public bool IsVisible
@@ -44,8 +46,8 @@ namespace MGUI.Samples.Features
 
         public DockingDemo(ContentManager content, MGDesktop desktop)
         {
-            this.Content = content;
-            this.Desktop = desktop;
+            Content = content;
+            Desktop = desktop;
 
             // Create window programmatically
             Window = new MGWindow(desktop, 100, 100, 1200, 800);
@@ -69,8 +71,8 @@ namespace MGUI.Samples.Features
         /// </summary>
         private void SetupInitialLayout()
         {
-            // Create demo panels
-            var solutionExplorerPanel = new DockPanelNode
+            // Create demo panels with specific IDs for save/load
+            var solutionExplorerPanel = new DockPanelNode("panel_solution_explorer")
             {
                 Title = "Solution Explorer",
                 Icon = null,
@@ -79,7 +81,7 @@ namespace MGUI.Samples.Features
                 ContentFactory = () => CreateSolutionExplorerContent()
             };
 
-            var propertiesPanel = new DockPanelNode
+            var propertiesPanel = new DockPanelNode("panel_properties")
             {
                 Title = "Properties",
                 Icon = null,
@@ -88,7 +90,7 @@ namespace MGUI.Samples.Features
                 ContentFactory = () => CreatePropertiesContent()
             };
 
-            var outputPanel = new DockPanelNode
+            var outputPanel = new DockPanelNode("panel_output")
             {
                 Title = "Output",
                 Icon = null,
@@ -97,7 +99,16 @@ namespace MGUI.Samples.Features
                 ContentFactory = () => CreateOutputContent()
             };
 
-            var document1Panel = new DockPanelNode
+            var layoutManagerPanel = new DockPanelNode("panel_layout_manager")
+            {
+                Title = "Layout Manager",
+                Icon = null,
+                CanClose = false, // Cannot be closed
+                CanFloat = false,
+                ContentFactory = () => CreateLayoutManagerContent()
+            };
+
+            var document1Panel = new DockPanelNode("panel_document1")
             {
                 Title = "Document1.cs",
                 Icon = null,
@@ -106,7 +117,7 @@ namespace MGUI.Samples.Features
                 ContentFactory = () => CreateDocumentContent("Document1.cs")
             };
 
-            var document2Panel = new DockPanelNode
+            var document2Panel = new DockPanelNode("panel_readme")
             {
                 Title = "README.md",
                 Icon = null,
@@ -119,6 +130,7 @@ namespace MGUI.Samples.Features
             var leftGroup = new DockTabGroupNode();
             leftGroup.AddPanel(solutionExplorerPanel, -1);
             leftGroup.AddPanel(propertiesPanel, -1);
+            leftGroup.AddPanel(layoutManagerPanel, -1);
             leftGroup.SetActivePanel(solutionExplorerPanel.Id);
 
             var bottomGroup = new DockTabGroupNode();
@@ -164,7 +176,7 @@ namespace MGUI.Samples.Features
             var stackPanel = new MGStackPanel(Window, Orientation.Vertical)
             {
                 Spacing = 8,
-                Padding = new MGUI.Core.UI.XAML.Thickness(10).ToThickness()
+                Padding = new Core.UI.XAML.Thickness(10).ToThickness()
             };
 
             var header = new MGTextBlock(Window, "[b]Solution Explorer[/b]")
@@ -200,16 +212,16 @@ namespace MGUI.Samples.Features
             var stackPanel = new MGStackPanel(Window, Orientation.Vertical)
             {
                 Spacing = 4,
-                Padding = new MGUI.Core.UI.XAML.Thickness(10).ToThickness()
+                Padding = new Core.UI.XAML.Thickness(10).ToThickness()
             };
 
             stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Properties[/b]") { FontSize = 14 });
-            stackPanel.TryAddChild(new MGSeparator(Window, Orientation.Horizontal) { Margin = new MGUI.Core.UI.XAML.Thickness(0, 4).ToThickness() });
-            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Name:[/b] MyProject") { Margin = new MGUI.Core.UI.XAML.Thickness(0, 2).ToThickness() });
-            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Type:[/b] C# Project") { Margin = new MGUI.Core.UI.XAML.Thickness(0, 2).ToThickness() });
-            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Framework:[/b] .NET 9.0") { Margin = new MGUI.Core.UI.XAML.Thickness(0, 2).ToThickness() });
-            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Platform:[/b] Windows") { Margin = new MGUI.Core.UI.XAML.Thickness(0, 2).ToThickness() });
-            stackPanel.TryAddChild(new MGSeparator(Window, Orientation.Horizontal) { Margin = new MGUI.Core.UI.XAML.Thickness(0, 8, 0, 4).ToThickness() });
+            stackPanel.TryAddChild(new MGSeparator(Window, Orientation.Horizontal) { Margin = new Core.UI.XAML.Thickness(0, 4).ToThickness() });
+            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Name:[/b] MyProject") { Margin = new Core.UI.XAML.Thickness(0, 2).ToThickness() });
+            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Type:[/b] C# Project") { Margin = new Core.UI.XAML.Thickness(0, 2).ToThickness() });
+            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Framework:[/b] .NET 9.0") { Margin = new Core.UI.XAML.Thickness(0, 2).ToThickness() });
+            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Platform:[/b] Windows") { Margin = new Core.UI.XAML.Thickness(0, 2).ToThickness() });
+            stackPanel.TryAddChild(new MGSeparator(Window, Orientation.Horizontal) { Margin = new Core.UI.XAML.Thickness(0, 8, 0, 4).ToThickness() });
             stackPanel.TryAddChild(new MGTextBlock(Window, "[i]Select an item to view its properties[/i]") { Opacity = 0.7f });
 
             return stackPanel;
@@ -224,7 +236,7 @@ namespace MGUI.Samples.Features
             
             var textBlock = new MGTextBlock(Window, "")
             {
-                Padding = new MGUI.Core.UI.XAML.Thickness(10).ToThickness(),
+                Padding = new Core.UI.XAML.Thickness(10).ToThickness(),
                 FontSize = 11
             };
 
@@ -259,7 +271,7 @@ namespace MGUI.Samples.Features
             
             var textBlock = new MGTextBlock(Window, "")
             {
-                Padding = new MGUI.Core.UI.XAML.Thickness(10).ToThickness(),
+                Padding = new Core.UI.XAML.Thickness(10).ToThickness(),
                 FontSize = 11
             };
 
@@ -304,6 +316,171 @@ namespace MGUI.Samples.Features
             scrollViewer.SetContent(textBlock);
 
             return scrollViewer;
+        }
+
+        /// <summary>
+        /// Creates content for the Layout Manager panel with Save/Load buttons.
+        /// </summary>
+        private MGElement CreateLayoutManagerContent()
+        {
+            var stackPanel = new MGStackPanel(Window, Orientation.Vertical)
+            {
+                Spacing = 12,
+                Padding = new Core.UI.XAML.Thickness(10).ToThickness()
+            };
+
+            // Header
+            var header = new MGTextBlock(Window, "[b]Layout Manager[/b]")
+            {
+                FontSize = 14,
+                Margin = new Core.UI.XAML.Thickness(0, 0, 0, 8).ToThickness()
+            };
+            stackPanel.TryAddChild(header);
+
+            // Description
+            var description = new MGTextBlock(Window, 
+                "[i]This panel cannot be closed.[/i]\n\n" +
+                "Use the buttons below to save and load\nthe current docking layout.")
+            {
+                FontSize = 10,
+                Opacity = 0.8f,
+                Margin = new Core.UI.XAML.Thickness(0, 0, 0, 8).ToThickness()
+            };
+            stackPanel.TryAddChild(description);
+
+            stackPanel.TryAddChild(new MGSeparator(Window, Orientation.Horizontal) 
+            { 
+                Margin = new Core.UI.XAML.Thickness(0, 4, 0, 8).ToThickness() 
+            });
+
+            // Save Layout Button
+            var saveButton = new MGButton(Window, (btn) =>
+            {
+                try
+                {
+                    SaveLayout();
+                    ShowNotification("✓ Layout saved successfully!", Color.LightGreen);
+                }
+                catch (Exception ex)
+                {
+                    ShowNotification($"✗ Error saving layout:\n{ex.Message}", Color.OrangeRed);
+                }
+            })
+            {
+                MinWidth = 150,
+                Padding = new Core.UI.XAML.Thickness(12, 8).ToThickness()
+            };
+            saveButton.SetContent(new MGTextBlock(Window, "💾 Save Layout"));
+            stackPanel.TryAddChild(saveButton);
+
+            // Load Layout Button
+            var loadButton = new MGButton(Window, (btn) =>
+            {
+                try
+                {
+                    LoadLayout();
+                    ShowNotification("✓ Layout loaded successfully!", Color.LightGreen);
+                }
+                catch (Exception ex)
+                {
+                    ShowNotification($"✗ Error loading layout:\n{ex.Message}", Color.OrangeRed);
+                }
+            })
+            {
+                MinWidth = 150,
+                Padding = new Core.UI.XAML.Thickness(12, 8).ToThickness(),
+                Margin = new Core.UI.XAML.Thickness(0, 8, 0, 0).ToThickness()
+            };
+            loadButton.SetContent(new MGTextBlock(Window, "📂 Load Layout"));
+            stackPanel.TryAddChild(loadButton);
+
+            stackPanel.TryAddChild(new MGSeparator(Window, Orientation.Horizontal) 
+            { 
+                Margin = new Core.UI.XAML.Thickness(0, 12, 0, 8).ToThickness() 
+            });
+
+            // Status info
+            var statusText = new MGTextBlock(Window, 
+                $"[c=Gray]Layout file:[/c]\n{LayoutFilePath}")
+            {
+                FontSize = 9,
+                Opacity = 0.7f
+            };
+            stackPanel.TryAddChild(statusText);
+
+            // Instructions
+            var instructions = new MGTextBlock(Window,
+                "[b]Testing Instructions:[/b]\n" +
+                "1. Rearrange the panels by dragging\n" +
+                "2. Click 'Save Layout'\n" +
+                "3. Close and restart the app\n" +
+                "4. Click 'Load Layout'\n" +
+                "5. Your layout is restored!")
+            {
+                FontSize = 9,
+                Opacity = 0.7f,
+                Margin = new Core.UI.XAML.Thickness(0, 12, 0, 0).ToThickness()
+            };
+            stackPanel.TryAddChild(instructions);
+
+            return stackPanel;
+        }
+
+        /// <summary>
+        /// Saves the current docking layout to a JSON file.
+        /// </summary>
+        private void SaveLayout()
+        {
+            string json = _dockHost.SaveLayoutToJson(indented: true);
+            File.WriteAllText(LayoutFilePath, json);
+            System.Diagnostics.Debug.WriteLine($"[DockingDemo] Layout saved to: {Path.GetFullPath(LayoutFilePath)}");
+        }
+
+        /// <summary>
+        /// Loads the docking layout from a JSON file.
+        /// </summary>
+        private void LoadLayout()
+        {
+            if (!File.Exists(LayoutFilePath))
+            {
+                throw new FileNotFoundException($"Layout file not found: {LayoutFilePath}");
+            }
+
+            string json = File.ReadAllText(LayoutFilePath);
+            
+            // Load with a factory that recreates panel content based on panel ID
+            _dockHost.LoadLayoutFromJson(json, panelFactory: panelId =>
+            {
+                // Map panel IDs to their content factories
+                Func<MGElement> factory = panelId switch
+                {
+                    "panel_solution_explorer" => () => CreateSolutionExplorerContent(),
+                    "panel_properties" => () => CreatePropertiesContent(),
+                    "panel_output" => () => CreateOutputContent(),
+                    "panel_layout_manager" => () => CreateLayoutManagerContent(),
+                    "panel_document1" => () => CreateDocumentContent("Document1.cs"),
+                    "panel_readme" => () => CreateDocumentContent("README.md"),
+                    _ => null
+                };
+                
+                if (factory == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DockingDemo] Warning: Unknown panel ID '{panelId}'");
+                }
+                
+                return factory;
+            });
+
+            System.Diagnostics.Debug.WriteLine($"[DockingDemo] Layout loaded from: {Path.GetFullPath(LayoutFilePath)}");
+        }
+
+        /// <summary>
+        /// Shows a temporary notification message in the output window.
+        /// </summary>
+        private void ShowNotification(string message, Color color)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DockingDemo] {message}");
+            // In a real app, you might show this in a status bar or toast notification
         }
     }
 }
