@@ -153,6 +153,16 @@ public class MGDockHost : MGSingleContentHost
                 (AvailableBounds, ComponentSize) => AvailableBounds);
             AddComponent(_previewOverlayComponent);
 
+            // Initialize drop indicators overlay
+            _dropIndicators = new MGDockDropIndicators(window);
+            _dropIndicatorsComponent = new MGComponent<MGDockDropIndicators>(
+                _dropIndicators,
+                ComponentUpdatePriority.AfterContents,
+                ComponentDrawPriority.AfterContents,
+                true, true, false, false, false, false, false,
+                (AvailableBounds, ComponentSize) => AvailableBounds);
+            AddComponent(_dropIndicatorsComponent);
+
             // Set default styling
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
@@ -231,20 +241,58 @@ public class MGDockHost : MGSingleContentHost
 
         _lastPreviewCalculation = mousePosition;
 
-        // Calculate drop target at current mouse position
-        var dropTarget = GetDropTarget(mousePosition);
-
-        // Update CurrentDropTarget so PerformDrop can use it
-        CurrentDropTarget = dropTarget;
-
-        if (dropTarget != null && dropTarget.Zone != DockZone.None)
+        // Find which group we're hovering over
+        MGDockTabGroup hoveredGroup = null;
+        foreach (var tabGroup in GetAllVisibleTabGroups())
         {
-            // Valid drop target found - show preview
-            ShowPreview(dropTarget.PreviewRect);
+            if (tabGroup != null && tabGroup.LayoutBounds.Contains(mousePosition))
+            {
+                hoveredGroup = tabGroup;
+                break;
+            }
+        }
+
+        // Show/hide indicators based on hovered group
+        if (hoveredGroup != null && hoveredGroup != _lastHoveredGroup)
+        {
+            // Show indicators for the new group
+            _dropIndicators.Show(hoveredGroup.LayoutBounds);
+            _lastHoveredGroup = hoveredGroup;
+        }
+        else if (hoveredGroup == null && _lastHoveredGroup != null)
+        {
+            // Mouse left all groups - hide indicators
+            _dropIndicators.Hide();
+            _lastHoveredGroup = null;
+        }
+
+        // Update active zone based on mouse position over indicators
+        _dropIndicators.UpdateActiveZone(mousePosition);
+        
+        // Get the zone detected by the indicator (None if not hovering the indicator)
+        DockZone detectedZone = _dropIndicators.GetZoneAtPosition(mousePosition);
+
+        if (detectedZone != DockZone.None && hoveredGroup != null)
+        {
+            // Mouse is over a zone indicator - calculate drop target for that zone
+            var dropTarget = GetDropTargetForZone(hoveredGroup, detectedZone, mousePosition);
+            
+            CurrentDropTarget = dropTarget;
+
+            if (dropTarget != null && dropTarget.PreviewRect != default(Microsoft.Xna.Framework.Rectangle))
+            {
+                // Show preview for the detected zone
+                ShowPreview(dropTarget.PreviewRect);
+            }
+            else
+            {
+                HidePreview();
+            }
         }
         else
         {
-            // No valid drop target - hide preview
+            // Not hovering an indicator zone - no preview, no drop target
+            CurrentDropTarget = null;
             HidePreview();
         }
     }
@@ -347,6 +395,10 @@ public class MGDockHost : MGSingleContentHost
         // Hide preview
         HidePreview();
 
+        // Hide drop indicators
+        _dropIndicators.Hide();
+        _lastHoveredGroup = null;
+
         // Clear drag state
         CurrentDrag = null;
         CurrentDropTarget = null;
@@ -370,6 +422,10 @@ public class MGDockHost : MGSingleContentHost
 
         // Hide preview
         HidePreview();
+
+        // Hide drop indicators
+        _dropIndicators.Hide();
+        _lastHoveredGroup = null;
 
         // Clear drag state
         CurrentDrag = null;
@@ -763,6 +819,9 @@ public class MGDockHost : MGSingleContentHost
     private DockDropTarget _currentDropTarget;
     private MGDockPreviewOverlay _previewOverlay;
     private MGComponentBase _previewOverlayComponent;
+    private MGDockDropIndicators _dropIndicators;
+    private MGComponentBase _dropIndicatorsComponent;
+    private MGDockTabGroup _lastHoveredGroup; // Track which group we're hovering for indicators
 
     /// <summary>
     /// The current drop target based on the last mouse position.
@@ -871,6 +930,69 @@ public class MGDockHost : MGSingleContentHost
 
         CurrentDropTarget = bestTarget;
         return bestTarget;
+    }
+
+    /// <summary>
+    /// Calculates a drop target for a specific zone on a specific tab group.
+    /// Used when the zone is already determined by indicator hover (VS-style).
+    /// </summary>
+    /// <param name="targetGroup">The tab group to dock to.</param>
+    /// <param name="zone">The zone to dock in (determined by indicator hover).</param>
+    /// <param name="mousePosition">The current mouse position.</param>
+    /// <returns>A DockDropTarget with preview rectangle, or null if invalid.</returns>
+    private DockDropTarget GetDropTargetForZone(MGDockTabGroup targetGroup, DockZone zone, Point mousePosition)
+    {
+        if (targetGroup == null || zone == DockZone.None)
+        {
+            return null;
+        }
+
+        bool isDraggingFromSameGroup = IsDragging && CurrentDrag != null && 
+                                       CurrentDrag.SourceGroup == targetGroup.GroupNode;
+
+        // Handle Center zone (tab merge or reorder)
+        if (zone == DockZone.Center)
+        {
+            var centerTarget = new DockDropTarget
+            {
+                TargetNode = targetGroup.GroupNode,
+                Zone = DockZone.Center,
+                HitRect = targetGroup.LayoutBounds,
+                PreviewRect = targetGroup.LayoutBounds
+            };
+
+            // Calculate tab index for positioning
+            if (IsDragging && CurrentDrag != null)
+            {
+                centerTarget.TabIndex = DockDropCalculator.CalculateTabIndex(
+                    targetGroup, 
+                    mousePosition.X, 
+                    CurrentDrag.DraggedPanel);
+
+                // If reordering in same group, calculate preview line position
+                if (isDraggingFromSameGroup && centerTarget.TabIndex >= 0)
+                {
+                    centerTarget.PreviewRect = DockDropCalculator.CalculateTabReorderPreviewRect(
+                        targetGroup, 
+                        centerTarget.TabIndex,
+                        CurrentDrag.DraggedPanel);
+                }
+            }
+
+            return centerTarget;
+        }
+
+        // Handle split zones (Left, Right, Top, Bottom)
+        // Calculate all drop zones and find the one matching the specified zone
+        var zones = DockDropCalculator.CalculateDropZones(
+            targetGroup, 
+            targetGroup.LayoutBounds, 
+            DockDropCalculator.DefaultMarginPercent);
+
+        // Find the target matching the specified zone
+        var matchingTarget = zones.FirstOrDefault(z => z.Zone == zone);
+        
+        return matchingTarget;
     }
 
     /// <summary>
