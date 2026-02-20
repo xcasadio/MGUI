@@ -151,6 +151,16 @@ public class MGDockTabItem : MGElement
     public event EventHandler<DockPanelNode> CloseRequested;
 
     /// <summary>
+    /// Event raised when the user selects "Close Others" from the context menu.
+    /// </summary>
+    public event EventHandler<DockPanelNode> CloseOthersRequested;
+
+    /// <summary>
+    /// Event raised when the user selects "Close All" from the context menu.
+    /// </summary>
+    public event EventHandler<DockPanelNode> CloseAllRequested;
+
+    /// <summary>
     /// Creates a new MGDockTabItem.
     /// </summary>
     /// <param name="window">The parent window.</param>
@@ -215,9 +225,43 @@ public class MGDockTabItem : MGElement
             // Subscribe to drag start
             MouseHandler.DragStart += OnDragStart;
 
+            // ── Context menu (right-click) ─────────────────────────────────
+            BuildContextMenu(window);
+
             HorizontalAlignment = HorizontalAlignment.Left;
             VerticalAlignment = VerticalAlignment.Top;
         }
+    }
+
+    /// <summary>
+    /// Creates and assigns the right-click context menu for this tab.
+    /// Called once from the constructor; the menu is rebuilt lazily on open
+    /// so it always reflects the current CanClose / CanFloat state.
+    /// </summary>
+    private void BuildContextMenu(MGWindow window)
+    {
+        var menu = new MGContextMenu(window, "");
+
+        menu.CanContextMenuOpen = true;
+
+        // We rebuild items every time the menu opens so they are always fresh.
+        menu.ContextMenuOpening += (_, __) =>
+        {
+            // Clear existing items and rebuild
+            menu.Items.Clear();
+
+            // Close — only shown if the panel allows it
+            if (Panel?.CanClose == true)
+            {
+                menu.AddButton("Close", _ => CloseRequested?.Invoke(this, Panel));
+                menu.AddSeparator();
+            }
+
+            menu.AddButton("Close Others", _ => CloseOthersRequested?.Invoke(this, Panel));
+            menu.AddButton("Close All",    _ => CloseAllRequested?.Invoke(this, Panel));
+        };
+
+        ContextMenu = menu;
     }
 
     /// <summary>

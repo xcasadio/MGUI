@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
+using MGUI.Core.UI;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.DockLayout;
 
@@ -53,6 +55,19 @@ public class MGDockTabGroup : MGElement
     private MGStackPanel _tabHeadersPanel;
     private MGElement _activeContentContainer;
     private readonly Dictionary<string, MGDockTabItem> _tabItems = new Dictionary<string, MGDockTabItem>();
+
+    // ── Overflow / scroll state ────────────────────────────────────────
+    private int _tabScrollIndex = 0;
+    private bool _isOverflowing = false;
+    private int _visibleTabCount = 0;
+
+    // Compact strip buttons created in the constructor
+    private MGBorder _scrollLeftBtn;
+    private MGBorder _scrollRightBtn;
+    private MGBorder _dropdownBtn;
+
+    private const int ScrollBtnWidth   = 22;
+    private const int DropdownBtnWidth = 22;
 
     private int _tabHeaderHeight = 30;
     /// <summary>
@@ -118,7 +133,58 @@ public class MGDockTabGroup : MGElement
 
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
+
+            // ── Overflow buttons (always present, collapsed until needed) ─────
+            _scrollLeftBtn = CreateCompactButton(window, "‹", () => ScrollLeft());
+            _scrollLeftBtn.Visibility = Visibility.Collapsed;
+            _scrollLeftBtn.SetParent(this);
+
+            _scrollRightBtn = CreateCompactButton(window, "›", () => ScrollRight());
+            _scrollRightBtn.Visibility = Visibility.Collapsed;
+            _scrollRightBtn.SetParent(this);
+
+            _dropdownBtn = CreateCompactButton(window, "▾", () => ShowDropdown());
+            _dropdownBtn.SetParent(this);
         }
+    }
+
+    /// <summary>
+    /// Creates a small borderless button with a text glyph for the tab header strip.
+    /// </summary>
+    private static MGBorder CreateCompactButton(MGWindow window, string glyph, Action onClick)
+    {
+        var body = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment   = VerticalAlignment.Top
+        };
+
+        // Use the visual-state brush system for hover / press highlighting
+        body.BackgroundBrush = new VisualStateFillBrush(
+            (IFillBrush)null,
+            new Color(70, 70, 74),
+            PressedModifierType.Darken,
+            0.10f);
+
+        var label = new MGTextBlock(window, glyph)
+        {
+            FontSize             = 14,
+            HorizontalAlignment  = HorizontalAlignment.Center,
+            VerticalAlignment    = VerticalAlignment.Center,
+            Padding              = new XAML.Thickness(4, 2, 4, 2).ToThickness()
+        };
+
+        body.MouseHandler.LMBReleasedInside += (_, e) =>
+        {
+            if (!e.IsHandled)
+            {
+                onClick();
+                e.SetHandledBy(body, false);
+            }
+        };
+
+        body.SetContent(label);
+        return body;
     }
 
     /// <summary>
@@ -135,7 +201,7 @@ public class MGDockTabGroup : MGElement
             return;
         }
 
-        // Create tab item for each panel
+        // Create tab item for each panel (all are added; overflow logic controls visibility)
         foreach (var panel in GroupNode.Panels)
         {
             var tabItem = new MGDockTabItem(ParentWindow, panel)
@@ -158,12 +224,47 @@ public class MGDockTabGroup : MGElement
                 PanelCloseRequested?.Invoke(this, panelToClose);
             };
 
+            // Context-menu extra events
+            tabItem.CloseOthersRequested += (sender, panelToKeep) => OnCloseOthers(panelToKeep);
+            tabItem.CloseAllRequested    += (sender, _)           => OnCloseAll();
+
             _tabHeadersPanel.TryAddChild(tabItem);
             _tabItems[panel.Id] = tabItem;
         }
-            
+
+        // Clamp scroll after panels changed
+        ClampScrollIndex();
+
         // Force layout update for tab headers panel
         _tabHeadersPanel.InvalidateLayout();
+    }
+
+    /// <summary>Handles "Close Others" from a tab context-menu.</summary>
+    private void OnCloseOthers(DockPanelNode panelToKeep)
+    {
+        if (GroupNode == null)
+            return;
+
+        var toClose = GroupNode.Panels
+            .Where(p => p.Id != panelToKeep.Id && p.CanClose)
+            .ToList(); // snapshot
+
+        foreach (var p in toClose)
+            PanelCloseRequested?.Invoke(this, p);
+    }
+
+    /// <summary>Handles "Close All" from a tab context-menu.</summary>
+    private void OnCloseAll()
+    {
+        if (GroupNode == null)
+            return;
+
+        var toClose = GroupNode.Panels
+            .Where(p => p.CanClose)
+            .ToList(); // snapshot
+
+        foreach (var p in toClose)
+            PanelCloseRequested?.Invoke(this, p);
     }
 
     /// <summary>
@@ -270,80 +371,266 @@ public class MGDockTabGroup : MGElement
         {
             UpdateTabActiveStates();
             UpdateActiveContent();
+
+            // Ensure the newly active tab is inside the visible scroll window
+            if (GroupNode?.ActivePanelId != null)
+                EnsureTabVisible(GroupNode.ActivePanelId);
         }
     }
 
     public override IEnumerable<MGElement> GetChildren()
     {
+        // header-strip elements (tab panel + chromeless buttons)
         if (_tabHeadersPanel != null)
-        {
             yield return _tabHeadersPanel;
-        }
+        if (_scrollLeftBtn  != null)
+            yield return _scrollLeftBtn;
+        if (_scrollRightBtn != null)
+            yield return _scrollRightBtn;
+        if (_dropdownBtn    != null)
+            yield return _dropdownBtn;
 
         if (_activeContentContainer != null)
-        {
             yield return _activeContentContainer;
-        }
     }
 
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
-            
-        Thickness headerSize = new Thickness(0);
-        Thickness contentSize = new Thickness(0);
+        // ── Header row: tabs + optional scroll buttons + dropdown ──────────
+        int headerWidth  = AvailableSize.Width;
+        int headerHeight = TabHeaderHeight;
 
-        // Measure tab headers
+        // Measure tab-strip (collapsed tabs contribute 0 width)
         if (_tabHeadersPanel != null)
         {
-            Size headerAvailableSize = new Size(AvailableSize.Width, TabHeaderHeight);
-            _tabHeadersPanel.UpdateMeasurement(headerAvailableSize, out _, out headerSize, out _, out _);
+            _tabHeadersPanel.UpdateMeasurement(
+                new Size(headerWidth, headerHeight),
+                out _, out _, out _, out _);
         }
 
-        // Measure active content
+        // Measure content
+        Thickness contentSize = new Thickness(0);
         if (_activeContentContainer != null)
         {
-            Size contentAvailableSize = new Size(AvailableSize.Width, Math.Max(0, AvailableSize.Height - TabHeaderHeight));
+            Size contentAvailableSize = new Size(headerWidth, Math.Max(0, AvailableSize.Height - headerHeight));
             _activeContentContainer.UpdateMeasurement(contentAvailableSize, out _, out contentSize, out _, out _);
         }
 
-        // Total size: headers on top, content below
-        int maxWidth = Math.Max(headerSize.Width, contentSize.Width);
-        int totalHeight = headerSize.Height + contentSize.Height;
-            
+        int maxWidth   = Math.Max(headerWidth, contentSize.Width);
+        int totalHeight = headerHeight + contentSize.Height;
         return new Thickness(maxWidth, totalHeight, 0, 0);
     }
 
     protected override void UpdateContentLayout(Rectangle Bounds)
     {
-            
         if (_tabHeadersPanel == null)
-        {
             return;
+
+        int panelCount = GroupNode?.Panels.Count ?? 0;
+
+        // ── Determine overflow ────────────────────────────────────────────
+        // Reserve room for the dropdown button on the right edge at all times.
+        int headerAvailableWidth = Bounds.Width - DropdownBtnWidth;
+
+        // Estimate total tabs width using the per-tab minimum (conservative).
+        // On subsequent frames tab LayoutBounds are valid; use the larger value.
+        int totalEstimated = 0;
+        if (_tabItems.Count > 0)
+        {
+            foreach (var tab in _tabItems.Values)
+            {
+                int w = Math.Max(tab.MinTabWidth, tab.LayoutBounds.Width);
+                totalEstimated += w;
+            }
         }
 
-        // Layout tab headers at the top
-        Rectangle headerBounds = new Rectangle(
-            Bounds.X,
-            Bounds.Y,
-            Bounds.Width,
-            TabHeaderHeight
-        );
-        TabHeadersBounds = headerBounds; // Store for drop zone calculation
-        System.Diagnostics.Debug.WriteLine($"[MGDockTabGroup] Calling _tabHeadersPanel.UpdateLayout with bounds: {headerBounds}");
-        _tabHeadersPanel.UpdateLayout(headerBounds);
+        bool newOverflowing = totalEstimated > headerAvailableWidth;
 
-        // Layout active content below headers
+        // Width available for the tab strip itself
+        int tabStripWidth = headerAvailableWidth - (newOverflowing ? ScrollBtnWidth * 2 : 0);
+        tabStripWidth = Math.Max(0, tabStripWidth);
+
+        // How many tabs fit inside tabStripWidth?
+        int newVisibleCount;
+        if (!newOverflowing)
+        {
+            newVisibleCount = panelCount;
+        }
+        else
+        {
+            newVisibleCount = 0;
+            int accumulated = 0;
+            var panels = GroupNode?.Panels;
+            if (panels != null)
+            {
+                for (int i = _tabScrollIndex; i < panels.Count; i++)
+                {
+                    if (!_tabItems.TryGetValue(panels[i].Id, out var tab))
+                        continue;
+                    int w = Math.Max(tab.MinTabWidth, tab.LayoutBounds.Width);
+                    if (accumulated + w > tabStripWidth && newVisibleCount > 0)
+                        break;
+                    accumulated += w;
+                    newVisibleCount++;
+                }
+            }
+            newVisibleCount = Math.Max(1, newVisibleCount);
+            // Clamp scroll so the last valid window is used
+            ClampScrollIndex(panelCount, newVisibleCount);
+        }
+
+        // Apply visibility to each tab item
+        if (GroupNode?.Panels != null)
+        {
+            for (int i = 0; i < GroupNode.Panels.Count; i++)
+            {
+                if (_tabItems.TryGetValue(GroupNode.Panels[i].Id, out var tab))
+                {
+                    bool show = !newOverflowing || (i >= _tabScrollIndex && i < _tabScrollIndex + newVisibleCount);
+                    tab.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+        }
+
+        _isOverflowing    = newOverflowing;
+        _visibleTabCount  = newVisibleCount;
+
+        // ── Layout header row ─────────────────────────────────────────────
+        int x = Bounds.X;
+
+        // Scroll-left button
+        if (_scrollLeftBtn != null)
+        {
+            _scrollLeftBtn.Visibility = newOverflowing ? Visibility.Visible : Visibility.Collapsed;
+            if (newOverflowing)
+            {
+                _scrollLeftBtn.UpdateLayout(new Rectangle(x, Bounds.Y, ScrollBtnWidth, TabHeaderHeight));
+                x += ScrollBtnWidth;
+            }
+        }
+
+        // Tab strip
+        _tabHeadersPanel.UpdateLayout(new Rectangle(x, Bounds.Y, tabStripWidth, TabHeaderHeight));
+        x += tabStripWidth;
+
+        // Scroll-right button
+        if (_scrollRightBtn != null)
+        {
+            _scrollRightBtn.Visibility = newOverflowing ? Visibility.Visible : Visibility.Collapsed;
+            if (newOverflowing)
+            {
+                _scrollRightBtn.UpdateLayout(new Rectangle(x, Bounds.Y, ScrollBtnWidth, TabHeaderHeight));
+                x += ScrollBtnWidth;
+            }
+        }
+
+        // Dropdown button (always visible, right-aligned)
+        if (_dropdownBtn != null)
+        {
+            _dropdownBtn.UpdateLayout(new Rectangle(
+                Bounds.Right - DropdownBtnWidth, Bounds.Y,
+                DropdownBtnWidth, TabHeaderHeight));
+        }
+
+        TabHeadersBounds = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, TabHeaderHeight);
+        System.Diagnostics.Debug.WriteLine(
+            $"[MGDockTabGroup] header={TabHeadersBounds}, overflow={_isOverflowing}, scrollIdx={_tabScrollIndex}");
+
+        // ── Layout content area ───────────────────────────────────────────
         if (_activeContentContainer != null)
         {
             Rectangle contentBounds = new Rectangle(
                 Bounds.X,
                 Bounds.Y + TabHeaderHeight,
                 Bounds.Width,
-                Math.Max(0, Bounds.Height - TabHeaderHeight)
-            );
-            System.Diagnostics.Debug.WriteLine($"[MGDockTabGroup] Content bounds: {contentBounds}, ActiveContent type: {_activeContentContainer?.GetType().Name}");
+                Math.Max(0, Bounds.Height - TabHeaderHeight));
             _activeContentContainer.UpdateLayout(contentBounds);
         }
+    }
+
+    // ── Scroll / dropdown helpers ─────────────────────────────────────────
+
+    /// <summary>Scroll the visible tab window one step to the left.</summary>
+    public void ScrollLeft()
+    {
+        if (_tabScrollIndex > 0)
+        {
+            _tabScrollIndex--;
+            InvalidateLayout();
+        }
+    }
+
+    /// <summary>Scroll the visible tab window one step to the right.</summary>
+    public void ScrollRight()
+    {
+        int panelCount = GroupNode?.Panels.Count ?? 0;
+        int maxIndex   = Math.Max(0, panelCount - _visibleTabCount);
+        if (_tabScrollIndex < maxIndex)
+        {
+            _tabScrollIndex++;
+            InvalidateLayout();
+        }
+    }
+
+    /// <summary>Open a dropdown listing all panels so the user can jump to any tab.</summary>
+    public void ShowDropdown()
+    {
+        if (GroupNode == null || GroupNode.IsEmpty)
+            return;
+
+        // Build a context menu containing one button per panel
+        var menu = new MGContextMenu(ParentWindow, "");
+
+        foreach (var panel in GroupNode.Panels)
+        {
+            var capturedPanel = panel;
+            var item = menu.AddButton(capturedPanel.Title, _ =>
+            {
+                GroupNode.SetActivePanel(capturedPanel.Id);
+                // Ensure the tab is visible by scrolling to it
+                EnsureTabVisible(capturedPanel.Id);
+            });
+        }
+
+        // Open the menu anchored below the dropdown button
+        if (_dropdownBtn != null)
+        {
+            var anchor = _dropdownBtn.LayoutBounds;
+            ParentWindow.Desktop.TryOpenContextMenu(menu, new Rectangle(
+                anchor.X, anchor.Bottom, anchor.Width, 1));
+        }
+    }
+
+    /// <summary>
+    /// Adjusts <see cref="_tabScrollIndex"/> so that the panel with the given id is in the visible range.
+    /// </summary>
+    public void EnsureTabVisible(string panelId)
+    {
+        if (GroupNode == null)
+            return;
+
+        int idx = GroupNode.Panels.IndexOf(GroupNode.Panels.FirstOrDefault(p => p.Id == panelId));
+        if (idx < 0)
+            return;
+
+        if (idx < _tabScrollIndex)
+        {
+            _tabScrollIndex = idx;
+            InvalidateLayout();
+        }
+        else if (idx >= _tabScrollIndex + Math.Max(1, _visibleTabCount))
+        {
+            _tabScrollIndex = Math.Max(0, idx - _visibleTabCount + 1);
+            InvalidateLayout();
+        }
+    }
+
+    private void ClampScrollIndex(int panelCount = -1, int visibleCount = -1)
+    {
+        if (panelCount < 0)  panelCount  = GroupNode?.Panels.Count ?? 0;
+        if (visibleCount < 0) visibleCount = Math.Max(1, _visibleTabCount);
+        int maxIndex = Math.Max(0, panelCount - visibleCount);
+        _tabScrollIndex = Math.Clamp(_tabScrollIndex, 0, maxIndex);
     }
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
