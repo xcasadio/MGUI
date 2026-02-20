@@ -116,30 +116,30 @@ Cette liste organise les tâches restantes en phases MVP → V2 → V3.
 ## 🚀 V2 (Niveau IDE)
 
 ### 6. Registre des Dockables
-- [ ] **6.1** Créer `DockableDefinition` avec métadonnées
+- [x] **6.1** Créer `DockableDefinition` avec métadonnées ✅
   - DockableId (string unique)
   - Title, Icon, CanClose, CanFloat, CanAutoHide
   - DockableType (Document / Tool)
 
-- [ ] **6.2** Registre centralisé `DockableRegistry`
+- [x] **6.2** Registre centralisé `DockableRegistry` ✅
   - `Register(DockableDefinition)`
   - `GetById(string id)`
   - `GetAll()`, `GetVisible()`, `GetHidden()`
 
-- [ ] **6.3** Lifecycle events
+- [x] **6.3** Lifecycle events ✅
   - `OnShown`, `OnHidden`, `OnClosed`, `OnActivated`
   - Invoquer depuis MGDockHost aux moments appropriés
 
-- [ ] **6.4** Menu "View/Window" pour réafficher les panels cachés
+- [x] **6.4** Menu "View/Window" pour réafficher les panels cachés ✅
   - Lister les panels enregistrés mais non visibles
   - Permettre de les ajouter au layout
 
 ### 7. Document vs Tool
-- [ ] **7.1** Ajouter `DockableType` enum (Document / Tool)
+- [x] **7.1** Ajouter `DockableType` enum (Document / Tool) ✅
   - Les Documents vont au centre
   - Les Tools vont sur les côtés
 
-- [ ] **7.2** Zone centrale "DocumentArea"
+- [x] **7.2** Zone centrale "DocumentArea" ✅
   - Désigner une zone pour les documents
   - Les tools ne peuvent pas y aller
 
@@ -175,18 +175,18 @@ Cette liste organise les tâches restantes en phases MVP → V2 → V3.
   - Désactiver les indicateurs des zones interdites
 
 ### 10. Overflow Tabs & Menus
-- [ ] **10.1** Détection overflow (trop d'onglets)
+- [x] **10.1** Détection overflow (trop d'onglets) ✅
   - Mesurer la largeur totale vs disponible
 
-- [ ] **10.2** Chevrons gauche/droite pour scroller
-  - Boutons < > pour scroll horizontal
+- [x] **10.2** Chevrons gauche/droite pour scroller ✅
+  - Boutons ‹ › pour scroll horizontal
 
-- [ ] **10.3** Dropdown "liste des tabs"
-  - Icône dropdown à droite
+- [x] **10.3** Dropdown "liste des tabs" ✅
+  - Icône ▾ dropdown à droite
   - Popup avec tous les onglets
   - Clic = sélectionner
 
-- [ ] **10.4** Menu contextuel sur tab
+- [x] **10.4** Menu contextuel sur tab ✅
   - Close, Close Others, Close All
   - Float, Dock (si floating)
   - Pin (si auto-hide activé)
