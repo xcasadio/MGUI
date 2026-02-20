@@ -403,11 +403,7 @@ public class MGDockTabGroup : MGElement
             e.PropertyName == nameof(DockTabGroupNode.ActivePanel))
         {
             UpdateTabActiveStates();
-            UpdateActiveContent();
-
-            // Ensure the newly active tab is inside the visible scroll window
-            if (GroupNode?.ActivePanelId != null)
-                EnsureTabVisible(GroupNode.ActivePanelId);
+            UpdateActiveContent(); // triggers LayoutChanged -> layout pass enforces active-tab-visible
         }
     }
 
@@ -630,8 +626,8 @@ public class MGDockTabGroup : MGElement
             var capturedPanel = panel;
             menu.AddButton(capturedPanel.Title, _ =>
             {
-                // SetActivePanel triggers OnGroupNodePropertyChanged which calls
-                // EnsureTabVisible and invalidates the layout — no extra call needed.
+                // SetActivePanel -> PropertyChanged -> UpdateActiveContent -> LayoutChanged
+                // The next layout pass enforces the active-tab-visible invariant.
                 GroupNode.SetActivePanel(capturedPanel.Id);
             });
         }
@@ -643,38 +639,6 @@ public class MGDockTabGroup : MGElement
             ParentWindow.Desktop.TryOpenContextMenu(menu, new Rectangle(
                 anchor.X, anchor.Bottom, anchor.Width, 1));
         }
-    }
-
-    /// <summary>
-    /// Nudges <see cref="_tabScrollIndex"/> toward the panel with the given id and
-    /// invalidates layout.  The layout pass itself then clamps and enforces the
-    /// active-tab-always-visible invariant with fresh measurements.
-    /// </summary>
-    public void EnsureTabVisible(string panelId)
-    {
-        if (GroupNode == null)
-            return;
-
-        int idx = -1;
-        for (int i = 0; i < GroupNode.Panels.Count; i++)
-        {
-            if (GroupNode.Panels[i].Id == panelId)
-            {
-                idx = i;
-                break;
-            }
-        }
-        if (idx < 0)
-            return;
-
-        // Nudge the scroll window toward idx; the layout pass will do the
-        // precise clamping and active-tab enforcement.
-        if (idx < _tabScrollIndex)
-            _tabScrollIndex = idx;
-        else if (idx > _tabScrollIndex)
-            _tabScrollIndex = idx;   // layout pass will back-off if needed
-
-        InvalidateLayout();
     }
 
     private void ClampScrollIndex(int panelCount = -1, int visibleCount = -1)
