@@ -263,6 +263,107 @@ public static class DockOperation
     }
 
     /// <summary>
+    /// Docks a panel by inserting it into a brand-new split at the root level of the layout.
+    /// The existing root becomes one child of the new split and a fresh tab group
+    /// containing <paramref name="panel"/> becomes the other child.
+    /// </summary>
+    /// <param name="model">The layout model to operate on.</param>
+    /// <param name="panel">The panel to dock at the host edge.</param>
+    /// <param name="zone">
+    /// The edge where the panel will appear (<see cref="DockZone.Left"/>,
+    /// <see cref="DockZone.Right"/>, <see cref="DockZone.Top"/>, or
+    /// <see cref="DockZone.Bottom"/>).
+    /// </param>
+    /// <param name="ratio">
+    /// Fraction of the host dimension allocated to the new panel (default 0.25).
+    /// </param>
+    public static void SplitDockAtRoot(DockLayoutModel model, DockPanelNode panel,
+        DockZone zone, float ratio = 0.25f)
+    {
+        if (model == null)  throw new ArgumentNullException(nameof(model));
+        if (panel  == null) throw new ArgumentNullException(nameof(panel));
+
+        if (zone == DockZone.None || zone == DockZone.Center)
+        {
+            throw new ArgumentException("SplitDockAtRoot requires Left/Right/Top/Bottom.", nameof(zone));
+        }
+
+        // Remove panel from its current parent, if any
+        DockTabGroupNode emptyGroupToCleanup = null;
+        if (panel.Parent is DockTabGroupNode currentGroup)
+        {
+            currentGroup.RemovePanel(panel);
+            if (currentGroup.IsEmpty)
+            {
+                emptyGroupToCleanup = currentGroup;
+            }
+        }
+
+        // The existing root — may be null if the layout is empty
+        DockNode existingRoot = model.RootNode;
+
+        // Create a new tab group for the dropped panel
+        var newTabGroup = new DockTabGroupNode();
+        newTabGroup.AddPanel(panel, -1);
+
+        // Determine orientation and placement
+        Orientation orientation;
+        DockNode firstChild, secondChild;
+        float splitRatio;
+
+        switch (zone)
+        {
+            case DockZone.Left:
+                orientation  = Orientation.Horizontal;
+                firstChild   = newTabGroup;
+                secondChild  = existingRoot ?? (DockNode)new DockTabGroupNode();
+                splitRatio   = ratio;
+                break;
+
+            case DockZone.Right:
+                orientation  = Orientation.Horizontal;
+                firstChild   = existingRoot ?? (DockNode)new DockTabGroupNode();
+                secondChild  = newTabGroup;
+                splitRatio   = 1.0f - ratio;
+                break;
+
+            case DockZone.Top:
+                orientation  = Orientation.Vertical;
+                firstChild   = newTabGroup;
+                secondChild  = existingRoot ?? (DockNode)new DockTabGroupNode();
+                splitRatio   = ratio;
+                break;
+
+            default: // Bottom
+                orientation  = Orientation.Vertical;
+                firstChild   = existingRoot ?? (DockNode)new DockTabGroupNode();
+                secondChild  = newTabGroup;
+                splitRatio   = 1.0f - ratio;
+                break;
+        }
+
+        // Detach the existing root from any parent reference first
+        // (model.RootNode setter will re-assign, but we temporarily clear it)
+        model.RootNode = null;
+
+        var newRoot = new DockSplitNode
+        {
+            Orientation = orientation,
+            SplitRatio  = splitRatio,
+            FirstChild  = firstChild,
+            SecondChild = secondChild,
+        };
+
+        model.RootNode = newRoot;
+
+        // Cleanup the (now-empty) source group after the tree is consistent
+        if (emptyGroupToCleanup != null)
+        {
+            CleanupEmptyTabGroup(model, emptyGroupToCleanup);
+        }
+    }
+
+    /// <summary>
     /// Moves a panel from its current tab group to a target tab group.
     /// </summary>
     /// <param name="model">The layout model to operate on.</param>
