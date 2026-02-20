@@ -146,13 +146,15 @@ public class MGDockSplitterBar : MGElement
             {
                 // Mouse button released, end drag
                 IsDragging = false;
-                    
-                // NOW sync the final ratio to the model
-                if (ParentSplitContainer != null)
-                {
-                    float finalRatio = ParentSplitContainer.SplitRatio;
-                    ParentSplitContainer.SetSplitRatio(finalRatio, clamp: false);
-                }
+
+                // Commit the final ratio to the model.
+                // We must use CommitRatioToModel() instead of SetSplitRatio() because
+                // SetSplitRatioWithoutSync() already wrote the current value into _splitRatio
+                // during the drag, so SetSplitRatio()'s "!= check" would silently no-op
+                // and the model (DockSplitNode.SplitRatio) would remain stale — causing a
+                // full RebuildVisualTree() triggered by any subsequent property change (e.g.
+                // a tab click) to reset the split to its pre-drag ratio.
+                ParentSplitContainer?.CommitRatioToModel();
                 return;
             }
 

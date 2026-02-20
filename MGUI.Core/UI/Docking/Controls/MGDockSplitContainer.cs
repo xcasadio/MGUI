@@ -227,7 +227,7 @@ public class MGDockSplitContainer : MGElement
     /// <summary>
     /// Sets the split ratio without triggering model synchronization.
     /// Used during drag operations to avoid rebuilding the visual tree.
-    /// Call <see cref="SetSplitRatio"/> after drag ends to sync to model.
+    /// Call <see cref="CommitRatioToModel"/> after drag ends to sync to model.
     /// </summary>
     public void SetSplitRatioWithoutSync(float newRatio, bool clamp = true)
     {
@@ -242,6 +242,19 @@ public class MGDockSplitContainer : MGElement
             LayoutChanged(this, true);
             // DO NOT trigger NPC or SplitRatioChanged - no model sync during drag
         }
+    }
+
+    /// <summary>
+    /// Commits the current split ratio to the model by unconditionally firing
+    /// <see cref="SplitRatioChanged"/>.
+    /// Must be called at the end of a drag operation because
+    /// <see cref="SetSplitRatioWithoutSync"/> already wrote the final value into
+    /// <see cref="_splitRatio"/>, making the normal equality guard in
+    /// <see cref="SetSplitRatio"/> silently skip the model update.
+    /// </summary>
+    public void CommitRatioToModel()
+    {
+        SplitRatioChanged?.Invoke(this, _splitRatio);
     }
 
     /// <summary>

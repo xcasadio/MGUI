@@ -937,9 +937,20 @@ public class MGDockHost : MGSingleContentHost
 
     private void OnNodePropertyChanged(object sender, PropertyChangedEventArgs e)
     {
-        // Node property changed, may need to rebuild
-        // For now, just trigger a full rebuild
-        // TODO: Optimize to do partial updates
+        // ActivePanelId / ActivePanel changes on a tab group do NOT require a visual-tree
+        // rebuild: the tab strip already handles them in OnGroupNodePropertyChanged and
+        // OnTabGroupPropertyChanged above.  Triggering a full rebuild here would recreate
+        // every MGDockSplitContainer from the model — resetting any split ratio that was
+        // still in-flight (e.g. if CommitRatioToModel fired its own PropertyChanged before
+        // the model write completed).
+        if (sender is DockTabGroupNode &&
+            (e.PropertyName == nameof(DockTabGroupNode.ActivePanelId) ||
+             e.PropertyName == nameof(DockTabGroupNode.ActivePanel)))
+        {
+            return;
+        }
+
+        // TODO: Replace the full rebuild with targeted partial updates for other changes.
         RebuildVisualTree();
     }
 
