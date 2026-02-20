@@ -115,6 +115,37 @@ Cette liste organise les tâches restantes en phases MVP → V2 → V3.
 
 ## 🚀 V2 (Niveau IDE)
 
+### 4+ Edge Docking (Drop aux bords du Host)
+Extension de la section 4 (Preview & Indicateurs de Drop).
+Permet de docker un panel sur les bords **du Host entier** (et non d'un panel existant),
+créant un split au niveau racine qui occupe toute la largeur ou hauteur.
+
+- [ ] **4.3** Zones de drop sur les bords du Host
+  - Détecter quand la souris est dans une bande le long des bords du MGDockHost (ex: < 30px)
+  - Calculer 4 zones : Left, Right, Top, Bottom couvrant toute la largeur/hauteur du Host
+  - Ces zones sont distinctes des zones per-panel (joystick central)
+
+- [ ] **4.4** Indicateurs visuels aux bords du Host
+  - Afficher 4 petits indicateurs (flèches / rectangles) fixés aux bords du Host pendant un drag
+  - Style VS : petite icône sur chaque bord, highlight au survol
+  - Les indicateurs n'apparaissent que pendant un drag actif
+
+- [ ] **4.5** Preview pour edge drop
+  - Rectangle de prévisualisation couvrant toute la largeur (Top/Bottom) ou hauteur (Left/Right)
+  - Ratio de la preview configurable (ex: 25% pour un tool latéral)
+  - La preview montre clairement qu'il s'agit d'un split root-level
+
+- [ ] **4.6** Exécution du edge drop
+  - Au drop sur un bord du Host : créer un nouveau `DockSplitNode` à la racine
+  - L'ancien `RootNode` devient un enfant, le nouveau panel l'autre enfant
+  - Orientation et ordre des enfants selon le bord (Left → Horizontal, panel en First ; Right → panel en Second, etc.)
+  - Ratio initial configurable (défaut: 0.25 pour tools, 0.5 pour documents)
+
+- [ ] **4.7** Priorité entre indicateurs Host vs Panel
+  - Les indicateurs per-panel (joystick) ont priorité quand la souris est au-dessus d'un joystick
+  - Les indicateurs Host sont actifs seulement dans la bande de bord ET hors d'un joystick actif
+  - Pas de conflit visuel : un seul jeu d'indicateurs highlight à la fois
+
 ### 6. Registre des Dockables
 - [x] **6.1** Créer `DockableDefinition` avec métadonnées ✅
   - DockableId (string unique)

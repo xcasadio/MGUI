@@ -40,6 +40,13 @@ public class DockDropTarget
     public int TabIndex { get; set; } = -1;
 
     /// <summary>
+    /// When true, this target represents a host-level edge drop (at the root of the layout).
+    /// The panel will be inserted as a new root split rather than relative to a specific node.
+    /// <see cref="TargetNode"/> is null for host-edge targets.
+    /// </summary>
+    public bool IsHostEdge { get; set; }
+
+    /// <summary>
     /// Creates a new DockDropTarget.
     /// </summary>
     public DockDropTarget()

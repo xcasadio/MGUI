@@ -19,6 +19,69 @@ public static class DockDropCalculator
     public const float DefaultMarginPercent = 0.25f;
 
     /// <summary>
+    /// Width in pixels of the edge detection band for host-level edge drops.
+    /// </summary>
+    public const int HostEdgeBandWidth = 40;
+
+    /// <summary>
+    /// Default fraction of the host dimension to reserve for a host-edge-docked panel.
+    /// </summary>
+    public const float HostEdgePreviewRatio = 0.25f;
+
+    /// <summary>
+    /// Calculates host-level drop zones along the four edges of the docking host.
+    /// Each zone covers a <paramref name="edgeBandWidth"/>-pixel band and produces a
+    /// preview rectangle that is <paramref name="previewRatio"/> of the host dimension.
+    /// The returned targets have <see cref="DockDropTarget.IsHostEdge"/> = true and
+    /// <see cref="DockDropTarget.TargetNode"/> = null (the existing root will be wrapped).
+    /// </summary>
+    /// <param name="hostBounds">Screen-space bounds of the MGDockHost.</param>
+    /// <param name="edgeBandWidth">Pixel width of the hit-test band at each edge.</param>
+    /// <param name="previewRatio">Fraction of the host to occupy in the drop preview.</param>
+    /// <returns>Four <see cref="DockDropTarget"/> objects (Left, Right, Top, Bottom).</returns>
+    public static List<DockDropTarget> CalculateHostEdgeZones(
+        Rectangle hostBounds,
+        int edgeBandWidth = HostEdgeBandWidth,
+        float previewRatio = HostEdgePreviewRatio)
+    {
+        var targets = new List<DockDropTarget>(4);
+
+        if (hostBounds.Width <= 0 || hostBounds.Height <= 0)
+        {
+            return targets;
+        }
+
+        int halfW = (int)(hostBounds.Width  * previewRatio);
+        int halfH = (int)(hostBounds.Height * previewRatio);
+
+        // Left edge
+        targets.Add(new DockDropTarget(null, DockZone.Left,
+            hitRect:     new Rectangle(hostBounds.X, hostBounds.Y, edgeBandWidth, hostBounds.Height),
+            previewRect: new Rectangle(hostBounds.X, hostBounds.Y, halfW, hostBounds.Height))
+        { IsHostEdge = true });
+
+        // Right edge
+        targets.Add(new DockDropTarget(null, DockZone.Right,
+            hitRect:     new Rectangle(hostBounds.Right - edgeBandWidth, hostBounds.Y, edgeBandWidth, hostBounds.Height),
+            previewRect: new Rectangle(hostBounds.Right - halfW, hostBounds.Y, halfW, hostBounds.Height))
+        { IsHostEdge = true });
+
+        // Top edge
+        targets.Add(new DockDropTarget(null, DockZone.Top,
+            hitRect:     new Rectangle(hostBounds.X, hostBounds.Y, hostBounds.Width, edgeBandWidth),
+            previewRect: new Rectangle(hostBounds.X, hostBounds.Y, hostBounds.Width, halfH))
+        { IsHostEdge = true });
+
+        // Bottom edge
+        targets.Add(new DockDropTarget(null, DockZone.Bottom,
+            hitRect:     new Rectangle(hostBounds.X, hostBounds.Bottom - edgeBandWidth, hostBounds.Width, edgeBandWidth),
+            previewRect: new Rectangle(hostBounds.X, hostBounds.Bottom - halfH, hostBounds.Width, halfH))
+        { IsHostEdge = true });
+
+        return targets;
+    }
+
+    /// <summary>
     /// Calculates all possible drop zones for a tab group.
     /// Returns 5 zones: Left, Right, Top, Bottom, and Center.
     /// </summary>
