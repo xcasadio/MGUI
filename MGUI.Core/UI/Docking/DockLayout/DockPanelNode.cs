@@ -104,6 +104,25 @@ public class DockPanelNode : DockNode
         }
     }
 
+    private DockableType _dockableType;
+    /// <summary>
+    /// The type of this dockable (Tool or Document).
+    /// Influences docking rules (e.g., Documents go to the center area, Tools to the sides).
+    /// Default: <see cref="DockableType.Tool"/>.
+    /// </summary>
+    public DockableType DockableType
+    {
+        get => _dockableType;
+        set
+        {
+            if (_dockableType != value)
+            {
+                _dockableType = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     // Cache for content instance
     private MGElement _cachedContent;
 
