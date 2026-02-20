@@ -294,6 +294,13 @@ public class MGDockHost : MGSingleContentHost
             _lastHoveredGroup = null;
         }
 
+        // Tell the joystick which zones are forbidden given current drag + target group
+        if (hoveredGroup != null && CurrentDrag?.DraggedPanel != null)
+        {
+            _dropIndicators.SetDisabledZones(
+                GetForbiddenZones(CurrentDrag.DraggedPanel, hoveredGroup.GroupNode));
+        }
+
         // ── PRIORITY 1: per-panel joystick ───────────────────────────────────────
         _dropIndicators.UpdateActiveZone(mousePosition);
         DockZone panelJoystickZone = _dropIndicators.GetZoneAtPosition(mousePosition);
@@ -750,6 +757,75 @@ public class MGDockHost : MGSingleContentHost
         return true;
     }
 
+    // All zones checked by docking rules
+    private static readonly DockZone[] _allDropZones =
+    {
+        DockZone.Left, DockZone.Right, DockZone.Top, DockZone.Bottom, DockZone.Center
+    };
+
+    /// <summary>
+    /// Checks all docking rules for the given panel dropped into <paramref name="targetGroup"/>
+    /// at <paramref name="zone"/>:
+    /// <list type="bullet">
+    ///   <item>Document / Tool area restrictions (<see cref="CanDockIntoGroup"/>).</item>
+    ///   <item><see cref="DockPanelNode.AllowedZones"/> allow-list.</item>
+    ///   <item><see cref="DockPanelNode.Family"/> same-family restriction for tab-docking.</item>
+    /// </list>
+    /// Returns <c>true</c> when the drop is permitted.
+    /// </summary>
+    public bool CanDockTo(DockPanelNode panel, DockTabGroupNode targetGroup, DockZone zone)
+    {
+        if (panel == null || targetGroup == null)
+            return true;
+
+        // 1. Document / Tool area rules (existing)
+        if (!CanDockIntoGroup(panel.DockableType, targetGroup, zone))
+            return false;
+
+        // 2. AllowedZones restriction
+        var allowedZones = panel.AllowedZones;
+        if (allowedZones != null && !allowedZones.Contains(zone))
+            return false;
+
+        // 3. Family restriction — only for tab-docking (Center)
+        if (zone == DockZone.Center)
+        {
+            string family = panel.Family;
+            if (family != null)
+            {
+                foreach (var p in targetGroup.Panels)
+                {
+                    if (p.Id == panel.Id)
+                        continue; // skip self
+                    if (p.Family != null && p.Family != family)
+                        return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the set of <see cref="DockZone"/>s that are forbidden for
+    /// <paramref name="panel"/> when hovering <paramref name="targetGroup"/>.
+    /// Used to disable visual indicators for illegal zones.
+    /// </summary>
+    private HashSet<DockZone> GetForbiddenZones(DockPanelNode panel, DockTabGroupNode targetGroup)
+    {
+        var forbidden = new HashSet<DockZone>();
+        if (panel == null || targetGroup == null)
+            return forbidden;
+
+        foreach (var z in _allDropZones)
+        {
+            if (!CanDockTo(panel, targetGroup, z))
+                forbidden.Add(z);
+        }
+
+        return forbidden;
+    }
+
     /// <summary>
     /// Rebuilds the entire visual tree from the layout model.
     /// Call this after making structural changes to the layout.
@@ -1144,6 +1220,13 @@ public class MGDockHost : MGSingleContentHost
     private DockDropTarget GetDropTargetForZone(MGDockTabGroup targetGroup, DockZone zone, Point mousePosition)
     {
         if (targetGroup == null || zone == DockZone.None)
+        {
+            return null;
+        }
+
+        // Respect docking rules: AllowedZones, Family, Document/Tool area
+        if (IsDragging && CurrentDrag?.DraggedPanel != null &&
+            !CanDockTo(CurrentDrag.DraggedPanel, targetGroup.GroupNode, zone))
         {
             return null;
         }

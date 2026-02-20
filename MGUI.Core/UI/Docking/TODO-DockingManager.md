@@ -190,17 +190,26 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
   - Pile d'ordre gérée
 
 ### 9. Règles de Docking
-- [ ] **9.1** Méthode `CanDockTo(DockableDefinition, DockNode, DockZone)`
-  - Retourne bool
-  - Basée sur DockableType et règles custom
+- [x] **9.1** Méthode `CanDockTo(DockableDefinition, DockNode, DockZone)` ✅ (Implémenté le 2026-02-20)
+  - ✅ `MGDockHost.CanDockTo(DockPanelNode, DockTabGroupNode, DockZone)` : bool
+  - ✅ Intègre les règles Document/Tool existantes (`CanDockIntoGroup`)
+  - ✅ Intègre AllowedZones (tache 9.3)
+  - ✅ Intègre Family (tache 9.2)
+  - ✅ `GetForbiddenZones()` helper pour calcul en lot
+  - ✅ Actif dans `GetDropTargetForZone` (retourne null si zone interdite)
+  - ✅ Actif dans `UpdateDragPreview` (transmet au joystick via `SetDisabledZones`)
 
-- [ ] **9.2** Familles de docking
-  - Grouper les dockables par famille
-  - Seuls les membres d'une même famille peuvent se tab ensemble
+- [x] **9.2** Familles de docking ✅ (Implémenté le 2026-02-20)
+  - ✅ `DockableDefinition.Family` (string?, null = sans restriction)
+  - ✅ `DockPanelNode.Family` : copié depuis la définition dans `CreatePanelNode()`
+  - ✅ Restriction : tab-dock uniquement avec panels de la même famille
+  - ✅ Les split-docks (L/R/T/B) ne sont pas restreints par famille
 
-- [ ] **9.3** Zones autorisées par dockable
-  - Liste des zones permises (Left, Right, etc.)
-  - Désactiver les indicateurs des zones interdites
+- [x] **9.3** Zones autorisées par dockable ✅ (Implémenté le 2026-02-20)
+  - ✅ `DockableDefinition.AllowedZones` (IReadOnlyList<DockZone>?, null = toutes)
+  - ✅ `DockPanelNode.AllowedZones` : copié depuis la définition
+  - ✅ Zones interdites grisées visuellement via `MGDockDropIndicators.SetDisabledZones()`
+  - ✅ Non-cliquables (skippées dans `GetZoneAtPosition`)
 
 ### 10. Overflow Tabs & Menus
 - [x] **10.1** Détection overflow (trop d'onglets) ✅

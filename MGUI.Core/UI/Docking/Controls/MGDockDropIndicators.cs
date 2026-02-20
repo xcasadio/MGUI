@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 
@@ -25,7 +26,12 @@ public class MGDockDropIndicators : MGElement
     // ── Host-edge indicator colours (slightly different tint) ────────────────
     private static readonly Color HostInactiveColor = new Color(80, 80, 120, 180);
     private static readonly Color HostActiveColor   = new Color(0, 160, 80, 230);
+    // ── Disabled zone colours (forbidden by docking rules) ───────────────────
+    private static readonly Color DisabledColor       = new Color(40, 40, 40, 100);
+    private static readonly Color DisabledBorderColor = new Color(70, 70, 70, 120);
 
+    /// <summary>Zones that are currently forbidden by docking rules and should be drawn grayed out.</summary>
+    private readonly HashSet<DockZone> _disabledZones = new HashSet<DockZone>();
     // ── Per-panel joystick state ─────────────────────────────────────────────
     private Rectangle _leftZoneRect;
     private Rectangle _rightZoneRect;
@@ -140,6 +146,22 @@ public class MGDockDropIndicators : MGElement
     {
         IsVisible = false;
         ActiveZone = DockZone.None;
+        _disabledZones.Clear();
+    }
+
+    /// <summary>
+    /// Sets the zones that are currently forbidden by docking rules.
+    /// Forbidden zones are drawn grayed out and are not returned by
+    /// <see cref="GetZoneAtPosition"/>. Pass null or an empty sequence to clear.
+    /// </summary>
+    public void SetDisabledZones(IEnumerable<DockZone> disabledZones)
+    {
+        _disabledZones.Clear();
+        if (disabledZones != null)
+        {
+            foreach (var z in disabledZones)
+                _disabledZones.Add(z);
+        }
     }
 
     // ── Host-edge indicator API ──────────────────────────────────────────────
@@ -215,30 +237,11 @@ public class MGDockDropIndicators : MGElement
             return DockZone.None;
         }
 
-        if (_leftZoneRect.Contains(screenPosition))
-        {
-            return DockZone.Left;
-        }
-
-        if (_rightZoneRect.Contains(screenPosition))
-        {
-            return DockZone.Right;
-        }
-
-        if (_topZoneRect.Contains(screenPosition))
-        {
-            return DockZone.Top;
-        }
-
-        if (_bottomZoneRect.Contains(screenPosition))
-        {
-            return DockZone.Bottom;
-        }
-
-        if (_centerZoneRect.Contains(screenPosition))
-        {
-            return DockZone.Center;
-        }
+        if (_leftZoneRect.Contains(screenPosition)   && !_disabledZones.Contains(DockZone.Left))   return DockZone.Left;
+        if (_rightZoneRect.Contains(screenPosition)  && !_disabledZones.Contains(DockZone.Right))  return DockZone.Right;
+        if (_topZoneRect.Contains(screenPosition)    && !_disabledZones.Contains(DockZone.Top))    return DockZone.Top;
+        if (_bottomZoneRect.Contains(screenPosition) && !_disabledZones.Contains(DockZone.Bottom)) return DockZone.Bottom;
+        if (_centerZoneRect.Contains(screenPosition) && !_disabledZones.Contains(DockZone.Center)) return DockZone.Center;
 
         return DockZone.None;
     }
@@ -383,13 +386,18 @@ public class MGDockDropIndicators : MGElement
     /// </param>
     private void DrawZoneIndicator(ElementDrawArgs DA, Rectangle rect, DockZone zone, bool isHostEdge)
     {
-        bool isActive = isHostEdge
+        bool isDisabled = !isHostEdge && _disabledZones.Contains(zone);
+        bool isActive   = !isDisabled && (isHostEdge
             ? (zone == _hostEdgeActiveZone)
-            : (zone == ActiveZone);
+            : (zone == ActiveZone));
 
-        Color fillColor   = isHostEdge
-            ? (isActive ? HostActiveColor   : HostInactiveColor)
-            : (isActive ? ActiveColor       : InactiveColor);
+        Color fillColor = isDisabled
+            ? DisabledColor
+            : (isHostEdge
+                ? (isActive ? HostActiveColor   : HostInactiveColor)
+                : (isActive ? ActiveColor       : InactiveColor));
+
+        Color borderCol = isDisabled ? DisabledBorderColor : BorderColor;
 
         DA.DT.FillRectangle(
             Vector2.Zero,
@@ -397,8 +405,11 @@ public class MGDockDropIndicators : MGElement
             fillColor
         );
 
-        DrawBorder(DA, rect, BorderColor, BorderWidth);
-        DrawZoneSymbol(DA, rect, zone, Color.White);
+        DrawBorder(DA, rect, borderCol, BorderWidth);
+        if (!isDisabled)
+            DrawZoneSymbol(DA, rect, zone, Color.White);
+        else
+            DrawZoneSymbol(DA, rect, zone, new Color(100, 100, 100, 150));
     }
 
     /// <summary>

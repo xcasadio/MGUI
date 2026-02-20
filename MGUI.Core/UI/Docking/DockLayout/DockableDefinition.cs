@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using MGUI.Core.UI.Docking;
 
 namespace MGUI.Core.UI.Docking.DockLayout;
@@ -69,6 +70,19 @@ public class DockableDefinition
     public DockZone? DefaultDockZone { get; set; }
 
     /// <summary>
+    /// Optional family tag. When set, this panel may only <em>tab-dock</em> (Center) alongside
+    /// panels that share the same family. Split-docking is never restricted by family.
+    /// Null = no family restriction.
+    /// </summary>
+    public string Family { get; set; }
+
+    /// <summary>
+    /// Explicit allow-list of drag zones. When non-null, the panel may only be dropped
+    /// into one of the listed zones. Null = all zones permitted.
+    /// </summary>
+    public IReadOnlyList<DockZone> AllowedZones { get; set; }
+
+    /// <summary>
     /// Creates a new DockableDefinition.
     /// </summary>
     /// <param name="dockableId">Unique, stable identifier for this dockable.</param>
@@ -97,7 +111,9 @@ public class DockableDefinition
             CanFloat = CanFloat,
             IsPinned = true,
             DockableType = DockableType,
-            ContentFactory = ContentFactory
+            ContentFactory = ContentFactory,
+            Family = Family,
+            AllowedZones = AllowedZones
         };
     }
 

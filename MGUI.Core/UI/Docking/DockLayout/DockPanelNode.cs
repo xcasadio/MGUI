@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MGUI.Core.UI.Docking;
 
 namespace MGUI.Core.UI.Docking.DockLayout;
 
@@ -118,6 +119,44 @@ public class DockPanelNode : DockNode
             if (_dockableType != value)
             {
                 _dockableType = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private string _family;
+    /// <summary>
+    /// Optional family tag inherited from <see cref="DockableDefinition.Family"/>.
+    /// When set, this panel can only tab-dock (Center zone) with panels that share the same family.
+    /// Null = no family restriction.
+    /// </summary>
+    public string Family
+    {
+        get => _family;
+        set
+        {
+            if (_family != value)
+            {
+                _family = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private IReadOnlyList<DockZone> _allowedZones;
+    /// <summary>
+    /// Optional allow-list of drag zones inherited from <see cref="DockableDefinition.AllowedZones"/>.
+    /// When non-null, the panel may only be dropped into one of the listed zones.
+    /// Null = all zones permitted.
+    /// </summary>
+    public IReadOnlyList<DockZone> AllowedZones
+    {
+        get => _allowedZones;
+        set
+        {
+            if (_allowedZones != value)
+            {
+                _allowedZones = value;
                 OnPropertyChanged();
             }
         }
