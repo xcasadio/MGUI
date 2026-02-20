@@ -189,11 +189,12 @@ public class MGDockTabItem : MGElement
             };
             _titleText.SetParent(this);
 
-            // Create simple close button element (MGBorder without actual border, just for click handling)
+            // Create simple close button element — Stretch fills the full reserved area so
+            // that the drawn X cross is centred correctly and the hit-test rect is correct.
             _closeButton = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
             {
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment   = VerticalAlignment.Stretch
             };
                 
             _closeButtonText = new MGTextBlock(window, "")

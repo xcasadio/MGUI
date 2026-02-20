@@ -133,8 +133,7 @@ public class MGDockTabGroup : MGElement
     /// <summary>Updates the maximize / restore button label to match <see cref="IsMaximized"/>.</summary>
     private void UpdateMaximizeButtonLabel()
     {
-        if (_maximizeBtn?.Content is MGTextBlock lbl)
-            lbl.Text = _isMaximized ? "-" : "+";
+        // Icon is drawn directly in DrawContents — no text label needed.
     }
 
     /// <summary>
@@ -177,11 +176,11 @@ public class MGDockTabGroup : MGElement
             _scrollRightBtn.Visibility = Visibility.Collapsed;
             _scrollRightBtn.SetParent(this);
 
-            _dropdownBtn = CreateCompactButton(window, "v", () => ShowDropdown());
+            _dropdownBtn = CreateCompactButton(window, "...", () => ShowDropdown());
             _dropdownBtn.SetParent(this);
 
-            // Maximize / restore toggle ─────────────────────────────────────
-            _maximizeBtn = CreateCompactButton(window, "+", () =>
+            // Maximize / restore toggle — icon is drawn directly in DrawContents
+            _maximizeBtn = CreateCompactButton(window, "", () =>
             {
                 if (_isMaximized)
                     RestoreRequested?.Invoke(this, GroupNode);
@@ -697,6 +696,44 @@ public class MGDockTabGroup : MGElement
         foreach (var child in GetChildren())
         {
             child?.Draw(DA);
+        }
+
+        // Draw maximize / restore icon directly over the button
+        DrawMaximizeIcon(DA);
+    }
+
+    /// <summary>
+    /// Draws a hollow square (maximize) or a short horizontal dash (restore) centred
+    /// over <see cref="_maximizeBtn"/>'s layout bounds.
+    /// </summary>
+    private void DrawMaximizeIcon(ElementDrawArgs DA)
+    {
+        if (_maximizeBtn == null)
+            return;
+
+        Rectangle b    = _maximizeBtn.LayoutBounds;
+        float     cx   = b.X + b.Width  * 0.5f;
+        float     cy   = b.Y + b.Height * 0.5f;
+        Color     col  = new Color(200, 200, 200);
+
+        if (_isMaximized)
+        {
+            // Restore: short horizontal dash  ─
+            const float halfW = 5f;
+            DA.DT.StrokeLineSegment(Vector2.Zero,
+                new Vector2(cx - halfW, cy),
+                new Vector2(cx + halfW, cy),
+                col, 1.5f);
+        }
+        else
+        {
+            // Maximize: hollow square  □
+            const float halfS = 5f;
+            DA.DT.StrokeRectangle(Vector2.Zero,
+                new RectangleF(cx - halfS, cy - halfS, halfS * 2f, halfS * 2f),
+                col,
+                new Thickness(1),
+                null);
         }
     }
 }
