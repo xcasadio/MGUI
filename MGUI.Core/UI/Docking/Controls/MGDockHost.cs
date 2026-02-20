@@ -60,6 +60,27 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private readonly Dictionary<string, DockPanelNode> _panelRegistry = new Dictionary<string, DockPanelNode>();
 
+    private DockableRegistry _dockableRegistry;
+    /// <summary>
+    /// Optional registry of <see cref="DockableDefinition"/>s.
+    /// When set, the host will automatically notify the registry of lifecycle events
+    /// (shown, hidden, closed, activated) for any registered dockable.
+    /// </summary>
+    public DockableRegistry DockableRegistry
+    {
+        get => _dockableRegistry;
+        set
+        {
+            if (_dockableRegistry != value)
+            {
+                _dockableRegistry = value;
+                // Sync current visibility to the new registry
+                if (_dockableRegistry != null)
+                    SyncRegistryVisibility();
+            }
+        }
+    }
+
     /// <summary>
     /// Event raised when a panel is added to the layout.
     /// </summary>
@@ -508,6 +529,7 @@ public class MGDockHost : MGSingleContentHost
 
         _panelRegistry[panel.Id] = panel;
         PanelAdded?.Invoke(this, panel);
+        _dockableRegistry?.NotifyShown(panel.Id);
     }
 
     /// <summary>
@@ -534,6 +556,8 @@ public class MGDockHost : MGSingleContentHost
         _panelRegistry.Remove(panelId);
             
         PanelRemoved?.Invoke(this, panel);
+        // Treat removal as close (user explicitly removed the panel)
+        _dockableRegistry?.NotifyClosed(panelId);
 
         return true;
     }
@@ -564,6 +588,61 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
+    /// Shows a registered dockable by its ID. If it is already visible, activates its tab.
+    /// If it is hidden, creates it and adds it to the layout next to the most recently used tab group,
+    /// or at the root if no group exists.
+    /// </summary>
+    /// <param name="dockableId">The ID of the dockable to show.</param>
+    /// <returns>True if the dockable was shown or activated, false if not found in the registry.</returns>
+    public bool ShowDockable(string dockableId)
+    {
+        if (string.IsNullOrWhiteSpace(dockableId))
+            return false;
+
+        // Check if it is already visible
+        if (_panelRegistry.TryGetValue(dockableId, out var existingPanel))
+        {
+            // Already in layout → activate it
+            var parentGroup = existingPanel.Parent as DockTabGroupNode;
+            if (parentGroup != null)
+            {
+                parentGroup.SetActivePanel(dockableId);
+            }
+            return true;
+        }
+
+        // Not visible → need to find definition and add it
+        if (_dockableRegistry == null || !_dockableRegistry.TryGetById(dockableId, out var definition))
+            return false;
+
+        var panel = definition.CreatePanelNode();
+
+        // Find a suitable tab group to add the panel into
+        var allGroups = GetAllTabGroups().ToList();
+        DockTabGroupNode targetGroup = allGroups.FirstOrDefault();
+
+        if (targetGroup != null)
+        {
+            DockOperation.DockAsTab(LayoutModel, panel, targetGroup);
+        }
+        else if (LayoutModel.RootNode == null)
+        {
+            // Empty layout, start fresh with this panel
+            var newGroup = new DockTabGroupNode();
+            newGroup.AddPanel(panel, -1);
+            LayoutModel.RootNode = newGroup;
+        }
+        else
+        {
+            // Layout exists but no tab group found → split the root
+            DockOperation.SplitDock(LayoutModel, panel, LayoutModel.RootNode, DockZone.Right);
+        }
+
+        RegisterPanel(panel);
+        return true;
+    }
+
+    /// <summary>
     /// Gets all tab groups currently in the layout.
     /// </summary>
     /// <returns>Collection of all DockTabGroupNode instances in the visual tree.</returns>
@@ -582,6 +661,7 @@ public class MGDockHost : MGSingleContentHost
         {
             // No layout defined, show placeholder or empty content
             SetContent(CreateEmptyPlaceholder());
+            SyncRegistryVisibility();
             return;
         }
 
@@ -590,12 +670,21 @@ public class MGDockHost : MGSingleContentHost
             // Build visual tree from model
             MGElement visualRoot = BuildVisualTree(LayoutModel.RootNode);
             SetContent(visualRoot);
+            SyncRegistryVisibility();
         }
         catch (Exception ex)
         {
             // If building fails, show error placeholder
             SetContent(CreateErrorPlaceholder(ex.Message));
         }
+    }
+
+    /// <summary>
+    /// Collects all panel IDs currently present in the layout and syncs them to the registry.
+    /// </summary>
+    private void SyncRegistryVisibility()
+    {
+        _dockableRegistry?.SyncVisibility(_panelRegistry.Keys);
     }
 
     /// <summary>
@@ -811,6 +900,7 @@ public class MGDockHost : MGSingleContentHost
             if (sender is DockTabGroupNode tabGroup && tabGroup.ActivePanel != null)
             {
                 ActivePanelChanged?.Invoke(this, tabGroup.ActivePanel);
+                _dockableRegistry?.NotifyActivated(tabGroup.ActivePanel.Id);
             }
         }
     }
