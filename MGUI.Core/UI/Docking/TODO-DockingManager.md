@@ -215,18 +215,45 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 - [x] **10.1** Détection overflow (trop d'onglets) ✅
   - Mesurer la largeur totale vs disponible
 
-- [x] **10.2** Chevrons gauche/droite pour scroller ✅
-  - Boutons ‹ › pour scroll horizontal
+- [x] **10.2** ~~Chevrons gauche/droite pour scroller~~ ✅ (Retiré le 2026-02-20)
+  - ✅ Boutons < > initialement implémentés
+  - ✅ Supprimés au profit du dropdown "..." seul (plus simple, plus proche de l'UX IDE)
 
-- [x] **10.3** Dropdown "liste des tabs" ✅
-  - Icône ▾ dropdown à droite
-  - Popup avec tous les onglets
-  - Clic = sélectionner
+- [x] **10.3** Dropdown "..." liste des tabs cachés ✅ (Amélioré le 2026-02-20)
+  - ✅ Bouton "..." avec 3 points dessinés (pas de glyph texte)
+  - ✅ Visible uniquement quand des onglets sont masqués (overflow)
+  - ✅ Positionné à gauche du bouton maximize (premier du groupe de boutons)
+  - ✅ Popup context menu avec tous les onglets
+  - ✅ Sélectionner un onglet caché → il devient actif et son header visible
+  - ✅ Les onglets qui ne tiennent plus sont automatiquement masqués
 
 - [x] **10.4** Menu contextuel sur tab ✅
   - Close, Close Others, Close All
   - Float, Dock (si floating)
   - Pin (si auto-hide activé)
+
+### 15. Corrections visuelles boutons tab header ✅ (Complété le 2026-02-20)
+- [x] **15.1** Remplacer les glyphes Unicode non supportés par la police ✅
+  - ✅ ` ‹ › ▾ □ ⊡ × ` → remplacés par du dessin programmatique ou ASCII
+  - ✅ Cause : la SpriteFont de MGUI ne contient pas ces code points (→ affichage `*`)
+
+- [x] **15.2** Icone X dessinée pour le bouton close ✅
+  - ✅ Deux `StrokeLineSegment` diagonaux (1.5 px) centrés sur le bouton
+  - ✅ Couleur : blanc si onglet actif, grisé sinon
+
+- [x] **15.3** Icône carré / tiret dessinés pour maximize/restore ✅
+  - ✅ Maximize : carré creux via `StrokeRectangle`
+  - ✅ Restore : tiret horizontal via `StrokeLineSegment`
+  - ✅ Boutons en `VerticalAlignment.Stretch` pour remplir toute la hauteur du header
+
+- [x] **15.4** Bouton "..." avec trois points dessinés ✅
+  - ✅ Trois petits carrés remplis centrés horizontalement via `FillRectangle`
+  - ✅ Remplacement du texte "..." qui s'affichait ".-" à petite taille
+
+- [x] **15.5** Correction X coupé sur la droite ✅
+  - ✅ Cause : `_closeButton` avait `HorizontalAlignment.Right` → se redimensionnait au contenu (~8px)
+  - ✅ Fix : `HorizontalAlignment.Stretch` + `VerticalAlignment.Stretch` sur le bouton close
+  - ✅ `CloseButtonSize = 22` utilisé par mesure ET layout
 
 ---
 
@@ -300,12 +327,9 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 
 | Phase | Features Principales | État |
 |-------|---------------------|------|
-| MVP   | Bugs fix, tabs close/reorder, save/load | 🔴 À faire |
-| V2    | Registry, floating, rules, overflow menus | 🔴 À faire |
-| V3x] ~~Bug : Headers des tabs avec bordures visibles sur le bouton~~ ✅ Corrigé
-2. [x] ~~Bug : Panels fermés lors du dock dans certains cas~~ ✅ Corrigé
-3. [ ] Tester edge cases : layouts très imbriqués
-4. [ ] Valider le comportement avec multiples opérations consécutive
+| MVP   | Bugs fix, tabs close/reorder, save/load | ✅ Complété |
+| V2    | Registry, edge docking, rules, overflow, maximize, boutons visuels | ✅ Complété (sauf floating 8.x) |
+| V3    | Auto-hide, proximity docking, focus, polish | 🔴 À faire |
 ## 🐛 Bugs Connus à Investiguer
 
 1. [x] ~~Bug : Headers des tabs avec bordures visibles~~ ✅ Corrigé (MGBorder sans bordure)

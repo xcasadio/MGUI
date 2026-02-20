@@ -62,14 +62,11 @@ public class MGDockTabGroup : MGElement
     private int _visibleTabCount = 0;
 
     // Compact strip buttons created in the constructor
-    private MGBorder _scrollLeftBtn;
-    private MGBorder _scrollRightBtn;
-    private MGBorder _dropdownBtn;
-    private MGBorder _maximizeBtn;
+    private MGBorder _dropdownBtn;   // "..." overflow menu — visible only when tabs are hidden
+    private MGBorder _maximizeBtn;   // maximize / restore toggle — always visible
 
-    private const int ScrollBtnWidth   = 22;
-    private const int DropdownBtnWidth = 22;
-    private const int MaximizeBtnWidth = 22;
+    private const int DropdownBtnWidth = 24;
+    private const int MaximizeBtnWidth = 24;
 
     private bool _isMaximized;
     /// <summary>
@@ -167,16 +164,9 @@ public class MGDockTabGroup : MGElement
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
 
-            // ── Overflow buttons (always present, collapsed until needed) ─────
-            _scrollLeftBtn = CreateCompactButton(window, "<", () => ScrollLeft());
-            _scrollLeftBtn.Visibility = Visibility.Collapsed;
-            _scrollLeftBtn.SetParent(this);
-
-            _scrollRightBtn = CreateCompactButton(window, ">", () => ScrollRight());
-            _scrollRightBtn.Visibility = Visibility.Collapsed;
-            _scrollRightBtn.SetParent(this);
-
-            _dropdownBtn = CreateCompactButton(window, "...", () => ShowDropdown());
+            // ── Overflow dropdown (visible only when some tabs are hidden) ─────
+            _dropdownBtn = CreateCompactButton(window, "", () => ShowDropdown());
+            _dropdownBtn.Visibility = Visibility.Collapsed;
             _dropdownBtn.SetParent(this);
 
             // Maximize / restore toggle — icon is drawn directly in DrawContents
@@ -198,8 +188,8 @@ public class MGDockTabGroup : MGElement
     {
         var body = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
         {
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment   = VerticalAlignment.Top
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment   = VerticalAlignment.Stretch
         };
 
         // Use the visual-state brush system for hover / press highlighting
@@ -423,16 +413,12 @@ public class MGDockTabGroup : MGElement
 
     public override IEnumerable<MGElement> GetChildren()
     {
-        // header-strip elements (tab panel + chromeless buttons)
+        // header-strip elements (tab panel + control buttons)
         if (_tabHeadersPanel != null)
             yield return _tabHeadersPanel;
-        if (_scrollLeftBtn  != null)
-            yield return _scrollLeftBtn;
-        if (_scrollRightBtn != null)
-            yield return _scrollRightBtn;
-        if (_dropdownBtn    != null)
+        if (_dropdownBtn != null)
             yield return _dropdownBtn;
-        if (_maximizeBtn    != null)
+        if (_maximizeBtn != null)
             yield return _maximizeBtn;
 
         if (_activeContentContainer != null)
@@ -474,8 +460,9 @@ public class MGDockTabGroup : MGElement
         int panelCount = GroupNode?.Panels.Count ?? 0;
 
         // ── Determine overflow ────────────────────────────────────────────
-        // Reserve room for the dropdown AND maximize buttons on the right edge at all times.
-        int headerAvailableWidth = Bounds.Width - DropdownBtnWidth - MaximizeBtnWidth;
+        // Always reserve room for the maximize button on the right edge.
+        // The dropdown ("...") button is only shown when overflow occurs.
+        int headerAvailableWidth = Bounds.Width - MaximizeBtnWidth;
 
         // Estimate total tabs width using the per-tab minimum (conservative).
         // On subsequent frames tab LayoutBounds are valid; use the larger value.
@@ -491,8 +478,8 @@ public class MGDockTabGroup : MGElement
 
         bool newOverflowing = totalEstimated > headerAvailableWidth;
 
-        // Width available for the tab strip itself
-        int tabStripWidth = headerAvailableWidth - (newOverflowing ? ScrollBtnWidth * 2 : 0);
+        // Width available for the tab strip itself (shrink further if dropdown is shown)
+        int tabStripWidth = headerAvailableWidth - (newOverflowing ? DropdownBtnWidth : 0);
         tabStripWidth = Math.Max(0, tabStripWidth);
 
         // How many tabs fit inside tabStripWidth?
@@ -541,47 +528,29 @@ public class MGDockTabGroup : MGElement
         _visibleTabCount  = newVisibleCount;
 
         // ── Layout header row ─────────────────────────────────────────────
+        // Order (left → right):  [tabs] [... dropdown (if overflow)] [maximize]
         int x = Bounds.X;
-
-        // Scroll-left button
-        if (_scrollLeftBtn != null)
-        {
-            _scrollLeftBtn.Visibility = newOverflowing ? Visibility.Visible : Visibility.Collapsed;
-            if (newOverflowing)
-            {
-                _scrollLeftBtn.UpdateLayout(new Rectangle(x, Bounds.Y, ScrollBtnWidth, TabHeaderHeight));
-                x += ScrollBtnWidth;
-            }
-        }
 
         // Tab strip
         _tabHeadersPanel.UpdateLayout(new Rectangle(x, Bounds.Y, tabStripWidth, TabHeaderHeight));
         x += tabStripWidth;
 
-        // Scroll-right button
-        if (_scrollRightBtn != null)
+        // Dropdown button — only visible when overflow
+        if (_dropdownBtn != null)
         {
-            _scrollRightBtn.Visibility = newOverflowing ? Visibility.Visible : Visibility.Collapsed;
+            _dropdownBtn.Visibility = newOverflowing ? Visibility.Visible : Visibility.Collapsed;
             if (newOverflowing)
             {
-                _scrollRightBtn.UpdateLayout(new Rectangle(x, Bounds.Y, ScrollBtnWidth, TabHeaderHeight));
-                x += ScrollBtnWidth;
+                _dropdownBtn.UpdateLayout(new Rectangle(x, Bounds.Y, DropdownBtnWidth, TabHeaderHeight));
+                x += DropdownBtnWidth;
             }
         }
 
-        // Dropdown button (always visible, right-aligned, right of maximize)
-        if (_dropdownBtn != null)
-        {
-            _dropdownBtn.UpdateLayout(new Rectangle(
-                Bounds.Right - DropdownBtnWidth, Bounds.Y,
-                DropdownBtnWidth, TabHeaderHeight));
-        }
-
-        // Maximize button (always visible, to the left of dropdown)
+        // Maximize button — always visible, rightmost
         if (_maximizeBtn != null)
         {
             _maximizeBtn.UpdateLayout(new Rectangle(
-                Bounds.Right - DropdownBtnWidth - MaximizeBtnWidth, Bounds.Y,
+                Bounds.Right - MaximizeBtnWidth, Bounds.Y,
                 MaximizeBtnWidth, TabHeaderHeight));
         }
 
@@ -698,8 +667,34 @@ public class MGDockTabGroup : MGElement
             child?.Draw(DA);
         }
 
-        // Draw maximize / restore icon directly over the button
+        // Draw programmatic icons over their respective buttons
+        DrawDropdownIcon(DA);
         DrawMaximizeIcon(DA);
+    }
+
+    /// <summary>
+    /// Draws three small dots ("...") centred over the dropdown button.
+    /// Only drawn when the button is visible (overflow state).
+    /// </summary>
+    private void DrawDropdownIcon(ElementDrawArgs DA)
+    {
+        if (_dropdownBtn == null || _dropdownBtn.Visibility != Visibility.Visible)
+            return;
+
+        Rectangle b   = _dropdownBtn.LayoutBounds;
+        float     cx  = b.X + b.Width * 0.5f;
+        float     cy  = b.Y + b.Height * 0.5f;
+        Color     col = new Color(200, 200, 200);
+
+        const float dotRadius = 1.5f;
+        const float spacing   = 5f;
+        for (int i = -1; i <= 1; i++)
+        {
+            float dx = cx + i * spacing;
+            DA.DT.FillRectangle(Vector2.Zero,
+                new RectangleF(dx - dotRadius, cy - dotRadius, dotRadius * 2f, dotRadius * 2f),
+                col);
+        }
     }
 
     /// <summary>
