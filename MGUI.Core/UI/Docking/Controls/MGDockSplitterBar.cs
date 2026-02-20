@@ -109,10 +109,10 @@ public class MGDockSplitterBar : MGElement
     {
         using (BeginInitializing())
         {
-            // Set default brushes
-            NormalBrush = new MGSolidFillBrush(new Color(64, 64, 64));
-            HoverBrush = new MGSolidFillBrush(new Color(80, 80, 80));
-            PressedBrush = new MGSolidFillBrush(new Color(100, 100, 100));
+            // Set default brushes with better visual feedback
+            NormalBrush = new MGSolidFillBrush(new Color(64, 64, 64));        // Dark gray
+            HoverBrush = new MGSolidFillBrush(new Color(100, 150, 200));      // Blue highlight
+            PressedBrush = new MGSolidFillBrush(new Color(70, 130, 180));     // Darker blue when dragging
 
             // Subscribe to mouse press event to start dragging
             MouseHandler.LMBPressedInside += OnLMBPressed;
@@ -279,6 +279,36 @@ public class MGDockSplitterBar : MGElement
         // Draw background
         brush?.Draw(DA, this, LayoutBounds);
 
+        // Add visual highlight when hovered or dragging
+        if (IsHovered || IsDragging)
+        {
+            Color highlightColor = IsDragging 
+                ? new Color(100, 180, 255, 180)  // Bright blue when dragging
+                : new Color(150, 200, 255, 120);  // Lighter blue when hovering
+
+            // Draw highlight overlay
+            Rectangle highlightBounds = LayoutBounds;
+            
+            // Make the highlight slightly larger to draw attention
+            if (ParentSplitContainer?.Orientation == Orientation.Horizontal)
+            {
+                // Vertical bar - expand horizontally
+                highlightBounds.X -= 1;
+                highlightBounds.Width += 2;
+            }
+            else
+            {
+                // Horizontal bar - expand vertically
+                highlightBounds.Y -= 1;
+                highlightBounds.Height += 2;
+            }
+
+            // Draw semi-transparent highlight
+            DA.DT.FillRectangle(Vector2.Zero, 
+                new RectangleF(highlightBounds.X, highlightBounds.Y, highlightBounds.Width, highlightBounds.Height), 
+                highlightColor);
+        }
+
         // Draw grip dots in the center (optional visual enhancement)
         DrawGripDots(DA, LayoutBounds);
 
@@ -294,7 +324,10 @@ public class MGDockSplitterBar : MGElement
         const int spacing = 4;
         const int dotCount = 5;
 
-        Color dotColor = Color.White * 0.5f; // Semi-transparent white
+        // Make dots more visible when hovered or dragging
+        Color dotColor = (IsHovered || IsDragging)
+            ? Color.White * 0.8f  // More opaque when hovered/dragging
+            : Color.White * 0.5f; // Semi-transparent normally
 
         if (ParentSplitContainer?.Orientation == Orientation.Horizontal)
         {
