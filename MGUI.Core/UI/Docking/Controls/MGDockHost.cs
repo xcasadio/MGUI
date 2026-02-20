@@ -101,6 +101,51 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public event EventHandler DockLayoutChanged;
 
+    #region Maximize / Restore
+
+    /// <summary>
+    /// Stack of group node IDs that have been maximized.
+    /// The top of the stack is the currently maximized group.
+    /// Empty when the layout is in normal (non-maximized) state.
+    /// </summary>
+    private readonly Stack<string> _maximizeStack = new Stack<string>();
+
+    /// <summary>The ID of the currently maximized group, or null when not maximized.</summary>
+    private string CurrentMaximizedGroupId =>
+        _maximizeStack.Count > 0 ? _maximizeStack.Peek() : null;
+
+    /// <summary>
+    /// Maximizes <paramref name="groupNode"/> so it fills the entire host.
+    /// The previous layout is restored via <see cref="RestoreLayout"/>.
+    /// Multiple maximize calls stack (inner group on top of outer).
+    /// </summary>
+    public void MaximizeGroup(DockTabGroupNode groupNode)
+    {
+        if (groupNode == null)
+            return;
+
+        _maximizeStack.Push(groupNode.Id);
+        RebuildVisualTree();
+    }
+
+    /// <summary>
+    /// Pops the maximize stack, restoring the layout to the state before the most recent maximize.
+    /// Does nothing if the layout is not currently maximized.
+    /// </summary>
+    public void RestoreLayout()
+    {
+        if (_maximizeStack.Count == 0)
+            return;
+
+        _maximizeStack.Pop();
+        RebuildVisualTree();
+    }
+
+    /// <summary>Whether the layout is currently in a maximized state.</summary>
+    public bool IsMaximized => _maximizeStack.Count > 0;
+
+    #endregion Maximize / Restore
+
     #region Drag & Drop State
 
     private DockDragData _currentDrag;
@@ -842,7 +887,27 @@ public class MGDockHost : MGSingleContentHost
 
         try
         {
-            // Build visual tree from model
+            // ── Maximize mode: show only the maximized group ───────────────
+            string maximizedId = CurrentMaximizedGroupId;
+            if (maximizedId != null)
+            {
+                // Find the tab group node with the matching ID
+                var maximizedGroup = LayoutModel.GetAllTabGroups()
+                    .FirstOrDefault(g => g.Id == maximizedId);
+
+                if (maximizedGroup != null)
+                {
+                    var fullscreenVisual = BuildTabGroup(maximizedGroup, isMaximized: true);
+                    SetContent(fullscreenVisual);
+                    SyncRegistryVisibility();
+                    return;
+                }
+
+                // Maximized group no longer exists — pop and fall through to normal rebuild
+                _maximizeStack.Pop();
+            }
+
+            // ── Normal mode ────────────────────────────────────────────────
             MGElement visualRoot = BuildVisualTree(LayoutModel.RootNode);
             SetContent(visualRoot);
             SyncRegistryVisibility();
@@ -935,12 +1000,18 @@ public class MGDockHost : MGSingleContentHost
     /// <summary>
     /// Builds a tab group visual from a DockTabGroupNode.
     /// </summary>
-    private MGElement BuildTabGroup(DockTabGroupNode tabGroupNode)
+    /// <param name="tabGroupNode">The model node to bind the visual to.</param>
+    /// <param name="isMaximized">
+    /// True when this tab group is being built in maximize mode (fills the whole host).
+    /// The visual will display a restore button instead of a maximize button.
+    /// </param>
+    private MGElement BuildTabGroup(DockTabGroupNode tabGroupNode, bool isMaximized = false)
     {
         var tabGroup = new MGDockTabGroup(ParentWindow, tabGroupNode)
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch
+            VerticalAlignment   = VerticalAlignment.Stretch,
+            IsMaximized         = isMaximized
         };
 
         // Subscribe to panel close requests
@@ -950,11 +1021,18 @@ public class MGDockHost : MGSingleContentHost
             {
                 // Remove panel from layout model
                 DockOperation.RemovePanel(LayoutModel, panelToClose);
-                    
-                // Rebuild visual tree to reflect changes
                 RebuildVisualTree();
             }
         };
+
+        // Subscribe to maximize / restore requests
+        tabGroup.MaximizeRequested += (sender, groupNode) =>
+        {
+            if (groupNode != null)
+                MaximizeGroup(groupNode);
+        };
+
+        tabGroup.RestoreRequested += (sender, _) => RestoreLayout();
 
         return tabGroup;
     }

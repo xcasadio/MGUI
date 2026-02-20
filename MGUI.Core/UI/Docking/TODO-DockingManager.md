@@ -250,16 +250,20 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
   - Restaurer au réaffichage
 
 ### 12. Maximize/Restore
-- [ ] **12.1** Bouton Maximize sur un groupe
-  - Le groupe occupe tout le host
-  - Les autres groupes sont masqués
+- [x] **12.1** Bouton Maximize sur un groupe ✅ (Implémenté le 2026-02-20)
+  - ✅ Bouton □ ajouté à gauche du bouton dropdown dans chaque MGDockTabGroup
+  - ✅ `MaximizeRequested` event → `MGDockHost.MaximizeGroup(groupNode)` empile le groupe
+  - ✅ Le groupe remplit l'intégralité du host (`_maximizeStack`, `RebuildVisualTree`)
 
-- [ ] **12.2** Bouton Restore
-  - Revenir à l'état précédent
+- [x] **12.2** Bouton Restore ✅ (Implémenté le 2026-02-20)
+  - ✅ Quand `IsMaximized = true`, le bouton affiche ⊡ (à la place de □)
+  - ✅ `RestoreRequested` event → `MGDockHost.RestoreLayout()` dépile
+  - ✅ `BuildTabGroup(isMaximized: true)` positionne le flag sur le visuel
 
-- [ ] **12.3** Pile d'états pour restore
-  - Stack des layouts avant maximize
-  - Pop au restore
+- [x] **12.3** Pile d'états pour restore ✅ (Implémenté le 2026-02-20)
+  - ✅ `Stack<string> _maximizeStack` dans MGDockHost
+  - ✅ Push sur maximize, Pop sur restore — supporte les maximisations imbriquées
+  - ✅ Si le groupe maximisé n'existe plus, le stack est dépilé automatiquement
 
 ### 13. Proximity Docking
 - [ ] **13.1** Docking sans joystick

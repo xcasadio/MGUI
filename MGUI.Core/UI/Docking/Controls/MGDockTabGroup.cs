@@ -65,9 +65,36 @@ public class MGDockTabGroup : MGElement
     private MGBorder _scrollLeftBtn;
     private MGBorder _scrollRightBtn;
     private MGBorder _dropdownBtn;
+    private MGBorder _maximizeBtn;
 
     private const int ScrollBtnWidth   = 22;
     private const int DropdownBtnWidth = 22;
+    private const int MaximizeBtnWidth = 22;
+
+    private bool _isMaximized;
+    /// <summary>
+    /// When true the tab group is currently filling the whole docking host.
+    /// The header shows a restore icon (⊡) instead of maximize (□).
+    /// </summary>
+    public bool IsMaximized
+    {
+        get => _isMaximized;
+        set
+        {
+            if (_isMaximized != value)
+            {
+                _isMaximized = value;
+                UpdateMaximizeButtonLabel();
+                NPC(nameof(IsMaximized));
+            }
+        }
+    }
+
+    /// <summary>Fired when the user clicks the maximize button while the group is in normal state.</summary>
+    public event EventHandler<DockTabGroupNode> MaximizeRequested;
+
+    /// <summary>Fired when the user clicks the restore button while the group is maximized.</summary>
+    public event EventHandler<DockTabGroupNode> RestoreRequested;
 
     private int _tabHeaderHeight = 30;
     /// <summary>
@@ -102,6 +129,13 @@ public class MGDockTabGroup : MGElement
     /// Event raised when a panel close is requested.
     /// </summary>
     public event EventHandler<DockPanelNode> PanelCloseRequested;
+
+    /// <summary>Updates the maximize / restore button label to match <see cref="IsMaximized"/>.</summary>
+    private void UpdateMaximizeButtonLabel()
+    {
+        if (_maximizeBtn?.Content is MGTextBlock lbl)
+            lbl.Text = _isMaximized ? "⊡" : "□";
+    }
 
     /// <summary>
     /// Creates a new MGDockTabGroup.
@@ -145,6 +179,16 @@ public class MGDockTabGroup : MGElement
 
             _dropdownBtn = CreateCompactButton(window, "▾", () => ShowDropdown());
             _dropdownBtn.SetParent(this);
+
+            // Maximize / restore toggle ─────────────────────────────────────
+            _maximizeBtn = CreateCompactButton(window, "□", () =>
+            {
+                if (_isMaximized)
+                    RestoreRequested?.Invoke(this, GroupNode);
+                else
+                    MaximizeRequested?.Invoke(this, GroupNode);
+            });
+            _maximizeBtn.SetParent(this);
         }
     }
 
@@ -389,6 +433,8 @@ public class MGDockTabGroup : MGElement
             yield return _scrollRightBtn;
         if (_dropdownBtn    != null)
             yield return _dropdownBtn;
+        if (_maximizeBtn    != null)
+            yield return _maximizeBtn;
 
         if (_activeContentContainer != null)
             yield return _activeContentContainer;
@@ -396,7 +442,7 @@ public class MGDockTabGroup : MGElement
 
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
-        // ── Header row: tabs + optional scroll buttons + dropdown ──────────
+        // ── Header row: tabs + optional scroll buttons + dropdown + maximize ──────
         int headerWidth  = AvailableSize.Width;
         int headerHeight = TabHeaderHeight;
 
@@ -429,8 +475,8 @@ public class MGDockTabGroup : MGElement
         int panelCount = GroupNode?.Panels.Count ?? 0;
 
         // ── Determine overflow ────────────────────────────────────────────
-        // Reserve room for the dropdown button on the right edge at all times.
-        int headerAvailableWidth = Bounds.Width - DropdownBtnWidth;
+        // Reserve room for the dropdown AND maximize buttons on the right edge at all times.
+        int headerAvailableWidth = Bounds.Width - DropdownBtnWidth - MaximizeBtnWidth;
 
         // Estimate total tabs width using the per-tab minimum (conservative).
         // On subsequent frames tab LayoutBounds are valid; use the larger value.
@@ -524,12 +570,20 @@ public class MGDockTabGroup : MGElement
             }
         }
 
-        // Dropdown button (always visible, right-aligned)
+        // Dropdown button (always visible, right-aligned, right of maximize)
         if (_dropdownBtn != null)
         {
             _dropdownBtn.UpdateLayout(new Rectangle(
                 Bounds.Right - DropdownBtnWidth, Bounds.Y,
                 DropdownBtnWidth, TabHeaderHeight));
+        }
+
+        // Maximize button (always visible, to the left of dropdown)
+        if (_maximizeBtn != null)
+        {
+            _maximizeBtn.UpdateLayout(new Rectangle(
+                Bounds.Right - DropdownBtnWidth - MaximizeBtnWidth, Bounds.Y,
+                MaximizeBtnWidth, TabHeaderHeight));
         }
 
         TabHeadersBounds = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, TabHeaderHeight);
