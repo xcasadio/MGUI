@@ -161,10 +161,10 @@ public class MGDockTabItem : MGElement
         {
             _panel = panel;
 
-            // Set default brushes
-            NormalBrush = new MGSolidFillBrush(new Color(45, 45, 48));
-            HoverBrush = new MGSolidFillBrush(new Color(62, 62, 66));
-            ActiveBrush = new MGSolidFillBrush(new Color(0, 122, 204));
+            // Set default brushes with better visual distinction
+            NormalBrush = new MGSolidFillBrush(new Color(45, 45, 48));      // Dark gray (inactive)
+            HoverBrush = new MGSolidFillBrush(new Color(62, 62, 66));       // Lighter gray (hover)
+            ActiveBrush = new MGSolidFillBrush(new Color(37, 37, 38));      // Slightly darker but will have bright accent line
 
             // Create title text
             _titleText = new MGTextBlock(window, panel?.Title ?? "Tab")
@@ -228,6 +228,23 @@ public class MGDockTabItem : MGElement
         if (_titleText != null && Panel != null)
         {
             _titleText.SetText(Panel.Title);
+        }
+
+        // Update text color based on active state for better readability
+        if (_titleText != null)
+        {
+            // Active tabs get brighter text
+            _titleText.DefaultTextForeground.NormalValue = IsActive
+                ? new MGUniformFillBrush(Color.White)               // Bright white for active
+                : new MGUniformFillBrush(new Color(200, 200, 200)); // Slightly dimmed for inactive
+        }
+
+        // Update close button text color
+        if (_closeButtonText != null)
+        {
+            _closeButtonText.DefaultTextForeground.NormalValue = IsActive
+                ? new MGUniformFillBrush(Color.White)
+                : new MGUniformFillBrush(new Color(180, 180, 180));
         }
     }
 
@@ -375,6 +392,41 @@ public class MGDockTabItem : MGElement
 
         // Draw background
         backgroundBrush?.Draw(DA, this, LayoutBounds);
+
+        // Draw visual accent for active tab
+        if (IsActive)
+        {
+            // Draw a bright accent line at the bottom of active tab
+            const int accentHeight = 3;
+            Rectangle accentBounds = new Rectangle(
+                LayoutBounds.X,
+                LayoutBounds.Bottom - accentHeight,
+                LayoutBounds.Width,
+                accentHeight
+            );
+                
+            Color accentColor = new Color(0, 180, 255); // Bright blue accent
+            DA.DT.FillRectangle(Vector2.Zero, 
+                new RectangleF(accentBounds.X, accentBounds.Y, accentBounds.Width, accentBounds.Height),
+                accentColor);
+        }
+        // Draw subtle hover indicator for inactive tabs
+        else if (IsHovered)
+        {
+            // Draw a thin line at the bottom when hovered (but not active)
+            const int hoverLineHeight = 2;
+            Rectangle hoverBounds = new Rectangle(
+                LayoutBounds.X,
+                LayoutBounds.Bottom - hoverLineHeight,
+                LayoutBounds.Width,
+                hoverLineHeight
+            );
+                
+            Color hoverLineColor = new Color(100, 150, 200, 180); // Semi-transparent blue
+            DA.DT.FillRectangle(Vector2.Zero,
+                new RectangleF(hoverBounds.X, hoverBounds.Y, hoverBounds.Width, hoverBounds.Height),
+                hoverLineColor);
+        }
 
         DrawSelfBaseImplementation(DA, LayoutBounds);
     }
