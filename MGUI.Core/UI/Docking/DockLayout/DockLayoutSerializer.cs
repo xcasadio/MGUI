@@ -219,6 +219,16 @@ public static class DockLayoutSerializer
         // Deserialize the tree
         var rootNode = DeserializeNode(layoutDto.RootNode, panelFactory);
 
+        // Clean up invalid nodes (empty groups, incomplete splits)
+        rootNode = CleanupInvalidNodes(rootNode);
+
+        if (rootNode == null)
+        {
+            System.Diagnostics.Debug.WriteLine("[DockLayoutSerializer] Warning: After cleanup, root node is null. Creating empty layout.");
+            // Return an empty layout with a default tab group
+            rootNode = new DockTabGroupNode();
+        }
+
         return new DockLayoutModel(rootNode);
     }
 
@@ -282,6 +292,8 @@ public static class DockLayoutSerializer
     {
         var tabGroupNode = new DockTabGroupNode(dto.Id);
 
+        int skippedCount = 0;
+
         // Deserialize panels
         if (dto.Panels != null)
         {
@@ -292,13 +304,34 @@ public static class DockLayoutSerializer
                 {
                     tabGroupNode.Panels.Add(panel);
                 }
+                else
+                {
+                    skippedCount++;
+                }
             }
+        }
+
+        if (skippedCount > 0)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Tab group (ID: {tabGroupNode.Id}) skipped {skippedCount} missing panel(s).");
         }
 
         // Set active panel
         if (!string.IsNullOrEmpty(dto.ActivePanelId))
         {
-            tabGroupNode.SetActivePanel(dto.ActivePanelId);
+            // Check if the active panel exists in the deserialized panels
+            if (tabGroupNode.Panels.Any(p => p.Id == dto.ActivePanelId))
+            {
+                tabGroupNode.SetActivePanel(dto.ActivePanelId);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Active panel ID '{dto.ActivePanelId}' not found in group. Defaulting to first available panel.");
+                if (tabGroupNode.Panels.Count > 0)
+                {
+                    tabGroupNode.SetActivePanel(tabGroupNode.Panels[0].Id);
+                }
+            }
         }
         else if (tabGroupNode.Panels.Count > 0)
         {
@@ -319,22 +352,93 @@ public static class DockLayoutSerializer
             return null;
         }
 
+        // Check if panel factory can provide content for this panel ID
+        Func<MGElement> contentFactory = null;
+        if (panelFactory != null)
+        {
+            contentFactory = panelFactory(dto.Id);
+                
+            // If factory returns null, it means the panel is not available/registered
+            if (contentFactory == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Warning: Panel with ID '{dto.Id}' (Title: '{dto.Title}') not found in factory. Skipping panel.");
+                return null;
+            }
+        }
+
         var panel = new DockPanelNode(dto.Id)
         {
             Title = dto.Title ?? "Untitled",
             Icon = dto.Icon, // Store as string; view layer can convert to texture
             CanClose = dto.CanClose,
             CanFloat = dto.CanFloat,
-            IsPinned = dto.IsPinned
+            IsPinned = dto.IsPinned,
+            ContentFactory = contentFactory
         };
 
-        // Set content factory if provided
-        if (panelFactory != null)
+        return panel;
+    }
+
+    /// <summary>
+    /// Recursively cleans up invalid nodes in the deserialized tree.
+    /// Removes empty tab groups and collapses/removes invalid split nodes.
+    /// </summary>
+    /// <param name="node">The node to clean up.</param>
+    /// <returns>The cleaned node, or null if the node should be removed.</returns>
+    private static DockNode CleanupInvalidNodes(DockNode node)
+    {
+        if (node == null)
         {
-            panel.ContentFactory = panelFactory(dto.Id);
+            return null;
         }
 
-        return panel;
+        // Handle tab group nodes
+        if (node is DockTabGroupNode tabGroup)
+        {
+            // Remove empty tab groups
+            if (tabGroup.Panels.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Removing empty tab group (ID: {tabGroup.Id}).");
+                return null;
+            }
+
+            // Tab group is valid if it has at least one panel
+            return tabGroup;
+        }
+
+        // Handle split nodes
+        if (node is DockSplitNode splitNode)
+        {
+            // Recursively clean up children
+            splitNode.FirstChild = CleanupInvalidNodes(splitNode.FirstChild);
+            splitNode.SecondChild = CleanupInvalidNodes(splitNode.SecondChild);
+
+            // Both children null → remove this split node
+            if (splitNode.FirstChild == null && splitNode.SecondChild == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Removing split node with no valid children (ID: {splitNode.Id}).");
+                return null;
+            }
+
+            // One child null → promote the remaining child
+            if (splitNode.FirstChild == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Collapsing split node (ID: {splitNode.Id}): FirstChild is null, promoting SecondChild.");
+                return splitNode.SecondChild;
+            }
+
+            if (splitNode.SecondChild == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Collapsing split node (ID: {splitNode.Id}): SecondChild is null, promoting FirstChild.");
+                return splitNode.FirstChild;
+            }
+
+            // Both children valid → keep split node
+            return splitNode;
+        }
+
+        // Unknown node type or leaf node
+        return node;
     }
 
     #endregion
