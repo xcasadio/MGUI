@@ -8,6 +8,8 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// Overlay that displays a central visual indicator showing available drop zones
 /// during drag and drop operations. Shows a single indicator with Left/Right/Top/Bottom/Center zones
 /// arranged in a cross layout (like Visual Studio).
+/// Also supports host-edge indicators: four small arrow buttons pinned to the edges of the
+/// docking host that are always visible while a drag is active.
 /// </summary>
 public class MGDockDropIndicators : MGElement
 {
@@ -15,10 +17,16 @@ public class MGDockDropIndicators : MGElement
     private const int ZoneSpacing = 4;    // Spacing between zones
     private const int BorderWidth = 2;
 
+    // ── Per-panel joystick colours ──────────────────────────────────────────
     private static readonly Color InactiveColor = new Color(100, 100, 100, 180);
-    private static readonly Color ActiveColor = new Color(0, 122, 204, 230);
-    private static readonly Color BorderColor = new Color(255, 255, 255, 200);
+    private static readonly Color ActiveColor   = new Color(0, 122, 204, 230);
+    private static readonly Color BorderColor   = new Color(255, 255, 255, 200);
 
+    // ── Host-edge indicator colours (slightly different tint) ────────────────
+    private static readonly Color HostInactiveColor = new Color(80, 80, 120, 180);
+    private static readonly Color HostActiveColor   = new Color(0, 160, 80, 230);
+
+    // ── Per-panel joystick state ─────────────────────────────────────────────
     private Rectangle _leftZoneRect;
     private Rectangle _rightZoneRect;
     private Rectangle _topZoneRect;
@@ -28,7 +36,7 @@ public class MGDockDropIndicators : MGElement
 
     private bool _isVisible;
     /// <summary>
-    /// Whether the indicators are currently visible.
+    /// Whether the per-panel indicators are currently visible.
     /// </summary>
     public bool IsVisible
     {
@@ -63,7 +71,7 @@ public class MGDockDropIndicators : MGElement
 
     private DockZone _activeZone = DockZone.None;
     /// <summary>
-    /// The currently active (hovered) zone.
+    /// The currently active (hovered) per-panel zone.
     /// </summary>
     public DockZone ActiveZone
     {
@@ -77,6 +85,24 @@ public class MGDockDropIndicators : MGElement
             }
         }
     }
+
+    // ── Host-edge indicator state ────────────────────────────────────────────
+
+    private bool       _hostEdgeVisible;
+    private Rectangle  _hostBounds;
+
+    // The four small indicator squares pinned to each edge of the host
+    private Rectangle _hostLeftZoneRect;
+    private Rectangle _hostRightZoneRect;
+    private Rectangle _hostTopZoneRect;
+    private Rectangle _hostBottomZoneRect;
+
+    private DockZone _hostEdgeActiveZone = DockZone.None;
+
+    /// <summary>
+    /// Whether the host-edge indicators are currently visible.
+    /// </summary>
+    public bool HostEdgeVisible => _hostEdgeVisible;
 
     public MGDockDropIndicators(MGWindow parentWindow) : base(parentWindow, MGElementType.Custom)
     {
@@ -114,6 +140,63 @@ public class MGDockDropIndicators : MGElement
     {
         IsVisible = false;
         ActiveZone = DockZone.None;
+    }
+
+    // ── Host-edge indicator API ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Shows the four host-edge indicators pinned to the edges of <paramref name="hostBounds"/>.
+    /// Call once when a drag begins (threshold exceeded) and update via
+    /// <see cref="UpdateHostEdgeActiveZone"/> each frame.
+    /// </summary>
+    public void ShowHostEdge(Rectangle hostBounds)
+    {
+        if (_hostBounds != hostBounds)
+        {
+            _hostBounds = hostBounds;
+            CalculateHostEdgePositions();
+        }
+        _hostEdgeVisible = true;
+        _hostEdgeActiveZone = DockZone.None;
+    }
+
+    /// <summary>
+    /// Hides the host-edge indicators and resets the active zone.
+    /// Call when a drag ends or is cancelled.
+    /// </summary>
+    public void HideHostEdge()
+    {
+        _hostEdgeVisible = false;
+        _hostEdgeActiveZone = DockZone.None;
+    }
+
+    /// <summary>
+    /// Returns the host-edge zone whose indicator square contains <paramref name="screenPosition"/>,
+    /// or <see cref="DockZone.None"/> if none.
+    /// </summary>
+    public DockZone GetHostEdgeZoneAtPosition(Point screenPosition)
+    {
+        if (!_hostEdgeVisible)
+        {
+            return DockZone.None;
+        }
+
+        if (_hostLeftZoneRect.Contains(screenPosition))   return DockZone.Left;
+        if (_hostRightZoneRect.Contains(screenPosition))  return DockZone.Right;
+        if (_hostTopZoneRect.Contains(screenPosition))    return DockZone.Top;
+        if (_hostBottomZoneRect.Contains(screenPosition)) return DockZone.Bottom;
+
+        return DockZone.None;
+    }
+
+    /// <summary>
+    /// Updates the highlighted host-edge zone based on the current mouse position.
+    /// Pass a point outside all indicator squares (or <c>new Point(-1,-1)</c>) to clear
+    /// the highlight when the panel joystick takes priority.
+    /// </summary>
+    public void UpdateHostEdgeActiveZone(Point screenPosition)
+    {
+        _hostEdgeActiveZone = GetHostEdgeZoneAtPosition(screenPosition);
     }
 
     /// <summary>
@@ -227,19 +310,66 @@ public class MGDockDropIndicators : MGElement
         _indicatorBounds = new Rectangle(minX, minY, maxX - minX, maxY - minY);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    /// <summary>
+    /// Calculates the screen-space positions of the four host-edge indicator squares
+    /// based on the current host bounds.  Each square is centred on the corresponding edge.
+    /// </summary>
+    private void CalculateHostEdgePositions()
     {
-        if (!IsVisible)
+        if (_hostBounds.Width <= 0 || _hostBounds.Height <= 0)
         {
-            DrawSelfBaseImplementation(DA, LayoutBounds);
             return;
         }
 
-        DrawZoneIndicator(DA, _leftZoneRect, DockZone.Left);
-        DrawZoneIndicator(DA, _rightZoneRect, DockZone.Right);
-        DrawZoneIndicator(DA, _topZoneRect, DockZone.Top);
-        DrawZoneIndicator(DA, _bottomZoneRect, DockZone.Bottom);
-        DrawZoneIndicator(DA, _centerZoneRect, DockZone.Center);
+        int midX = _hostBounds.X + _hostBounds.Width  / 2;
+        int midY = _hostBounds.Y + _hostBounds.Height / 2;
+        int half = ZoneSize / 2;
+
+        // Left  — centred vertically on the left edge
+        _hostLeftZoneRect = new Rectangle(
+            _hostBounds.X,
+            midY - half,
+            ZoneSize, ZoneSize);
+
+        // Right — centred vertically on the right edge
+        _hostRightZoneRect = new Rectangle(
+            _hostBounds.Right - ZoneSize,
+            midY - half,
+            ZoneSize, ZoneSize);
+
+        // Top   — centred horizontally on the top edge
+        _hostTopZoneRect = new Rectangle(
+            midX - half,
+            _hostBounds.Y,
+            ZoneSize, ZoneSize);
+
+        // Bottom — centred horizontally on the bottom edge
+        _hostBottomZoneRect = new Rectangle(
+            midX - half,
+            _hostBounds.Bottom - ZoneSize,
+            ZoneSize, ZoneSize);
+    }
+
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    {
+        // Draw per-panel joystick indicators
+        if (_isVisible)
+        {
+            DrawZoneIndicator(DA, _leftZoneRect,   DockZone.Left,   false);
+            DrawZoneIndicator(DA, _rightZoneRect,  DockZone.Right,  false);
+            DrawZoneIndicator(DA, _topZoneRect,    DockZone.Top,    false);
+            DrawZoneIndicator(DA, _bottomZoneRect, DockZone.Bottom, false);
+            DrawZoneIndicator(DA, _centerZoneRect, DockZone.Center, false);
+        }
+
+        // Draw host-edge indicators (always visible during drag, independent of hovered group)
+        if (_hostEdgeVisible)
+        {
+            DrawZoneIndicator(DA, _hostLeftZoneRect,   DockZone.Left,   true);
+            DrawZoneIndicator(DA, _hostRightZoneRect,  DockZone.Right,  true);
+            DrawZoneIndicator(DA, _hostTopZoneRect,    DockZone.Top,    true);
+            DrawZoneIndicator(DA, _hostBottomZoneRect, DockZone.Bottom, true);
+        }
 
         DrawSelfBaseImplementation(DA, LayoutBounds);
     }
@@ -247,10 +377,19 @@ public class MGDockDropIndicators : MGElement
     /// <summary>
     /// Draws a single zone indicator with a symbol.
     /// </summary>
-    private void DrawZoneIndicator(ElementDrawArgs DA, Rectangle rect, DockZone zone)
+    /// <param name="isHostEdge">
+    /// True when drawing a host-edge indicator (uses a distinct colour palette and
+    /// checks <see cref="_hostEdgeActiveZone"/> for highlighting).
+    /// </param>
+    private void DrawZoneIndicator(ElementDrawArgs DA, Rectangle rect, DockZone zone, bool isHostEdge)
     {
-        bool isActive = (zone == ActiveZone);
-        Color fillColor = isActive ? ActiveColor : InactiveColor;
+        bool isActive = isHostEdge
+            ? (zone == _hostEdgeActiveZone)
+            : (zone == ActiveZone);
+
+        Color fillColor   = isHostEdge
+            ? (isActive ? HostActiveColor   : HostInactiveColor)
+            : (isActive ? ActiveColor       : InactiveColor);
 
         DA.DT.FillRectangle(
             Vector2.Zero,
