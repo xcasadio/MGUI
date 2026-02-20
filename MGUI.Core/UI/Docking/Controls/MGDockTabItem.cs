@@ -235,16 +235,16 @@ public class MGDockTabItem : MGElement
         {
             // Active tabs get brighter text
             _titleText.DefaultTextForeground.NormalValue = IsActive
-                ? new MGUniformFillBrush(Color.White)               // Bright white for active
-                : new MGUniformFillBrush(new Color(200, 200, 200)); // Slightly dimmed for inactive
+                ? Color.White               // Bright white for active
+                : new Color(200, 200, 200); // Slightly dimmed for inactive
         }
 
         // Update close button text color
         if (_closeButtonText != null)
         {
             _closeButtonText.DefaultTextForeground.NormalValue = IsActive
-                ? new MGUniformFillBrush(Color.White)
-                : new MGUniformFillBrush(new Color(180, 180, 180));
+                ? Color.White
+                : new Color(180, 180, 180);
         }
     }
 

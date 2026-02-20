@@ -61,6 +61,9 @@ public static class DockLayoutSerializer
         [JsonPropertyName("activePanelId")]
         public string ActivePanelId { get; set; }
 
+        [JsonPropertyName("isDocumentArea")]
+        public bool? IsDocumentArea { get; set; }
+
         [JsonPropertyName("panels")]
         public List<PanelDto> Panels { get; set; }
     }
@@ -87,6 +90,9 @@ public static class DockLayoutSerializer
 
         [JsonPropertyName("isPinned")]
         public bool IsPinned { get; set; } = true;
+
+        [JsonPropertyName("dockableType")]
+        public string DockableType { get; set; } = "Tool";
     }
 
     #endregion
@@ -153,6 +159,7 @@ public static class DockLayoutSerializer
                 Type = "TabGroup",
                 Id = tabGroupNode.Id,
                 ActivePanelId = tabGroupNode.ActivePanelId,
+                IsDocumentArea = tabGroupNode.IsDocumentArea ? true : (bool?)null,
                 Panels = tabGroupNode.Panels.Select(SerializePanel).ToList()
             };
         }
@@ -177,7 +184,8 @@ public static class DockLayoutSerializer
             Icon = panel.Icon?.ToString(), // Convert icon to string representation
             CanClose = panel.CanClose,
             CanFloat = panel.CanFloat,
-            IsPinned = panel.IsPinned
+            IsPinned = panel.IsPinned,
+            DockableType = panel.DockableType.ToString()
         };
     }
 
@@ -339,6 +347,10 @@ public static class DockLayoutSerializer
             tabGroupNode.SetActivePanel(tabGroupNode.Panels[0].Id);
         }
 
+        // Restore document area flag
+        if (dto.IsDocumentArea == true)
+            tabGroupNode.IsDocumentArea = true;
+
         return tabGroupNode;
     }
 
@@ -375,6 +387,13 @@ public static class DockLayoutSerializer
             IsPinned = dto.IsPinned,
             ContentFactory = contentFactory
         };
+
+        // Restore dockable type
+        if (!string.IsNullOrEmpty(dto.DockableType) &&
+            Enum.TryParse<DockableType>(dto.DockableType, true, out var dockableType))
+        {
+            panel.DockableType = dockableType;
+        }
 
         return panel;
     }

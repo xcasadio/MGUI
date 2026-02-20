@@ -40,6 +40,26 @@ public class DockTabGroupNode : DockNode
     /// </summary>
     public DockPanelNode ActivePanel => Panels.FirstOrDefault(p => p.Id == ActivePanelId);
 
+    private bool _isDocumentArea;
+    /// <summary>
+    /// When true, this tab group is designated as the central "Document Area".
+    /// Document panels (<see cref="DockableType.Document"/>) are preferentially placed here,
+    /// and Tool panels are prevented from being added when docking rules are enforced.
+    /// Only one group per layout should be the Document Area.
+    /// </summary>
+    public bool IsDocumentArea
+    {
+        get => _isDocumentArea;
+        set
+        {
+            if (_isDocumentArea != value)
+            {
+                _isDocumentArea = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     /// <summary>
     /// Creates a new empty DockTabGroupNode.
     /// </summary>

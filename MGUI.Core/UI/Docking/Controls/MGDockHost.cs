@@ -652,6 +652,57 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
+    /// Returns the tab group designated as the Document Area, or null if none is set.
+    /// </summary>
+    public DockTabGroupNode GetDocumentArea()
+    {
+        return GetAllTabGroups().FirstOrDefault(g => g.IsDocumentArea);
+    }
+
+    /// <summary>
+    /// Designates a specific tab group as the Document Area.
+    /// Clears the flag from any previous Document Area group.
+    /// </summary>
+    /// <param name="group">The group to designate. Pass null to clear without assigning a new one.</param>
+    public void SetDocumentArea(DockTabGroupNode group)
+    {
+        // Clear old designation
+        foreach (var g in GetAllTabGroups())
+        {
+            if (g.IsDocumentArea && g != group)
+                g.IsDocumentArea = false;
+        }
+        if (group != null)
+            group.IsDocumentArea = true;
+    }
+
+    /// <summary>
+    /// Checks whether a panel of the given type can be docked into the specified group,
+    /// taking into account Document Area rules.
+    /// Rules:
+    /// - Documents can only tab-dock into the Document Area (if one exists).
+    /// - Tools cannot be tab-docked into the Document Area.
+    /// Split-docking is always allowed regardless of type.
+    /// </summary>
+    public bool CanDockIntoGroup(DockableType panelType, DockTabGroupNode targetGroup, DockZone zone)
+    {
+        if (zone != DockZone.Center)
+            return true; // Split docks are always allowed
+
+        var documentArea = GetDocumentArea();
+        if (documentArea == null)
+            return true; // No document area defined → no type restriction
+
+        if (panelType == DockableType.Document)
+            return targetGroup == documentArea; // Documents only go to DocumentArea
+
+        if (panelType == DockableType.Tool)
+            return targetGroup != documentArea; // Tools cannot go to DocumentArea
+
+        return true;
+    }
+
+    /// <summary>
     /// Rebuilds the entire visual tree from the layout model.
     /// Call this after making structural changes to the layout.
     /// </summary>
