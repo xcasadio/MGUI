@@ -120,31 +120,28 @@ Extension de la section 4 (Preview & Indicateurs de Drop).
 Permet de docker un panel sur les bords **du Host entier** (et non d'un panel existant),
 créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 
-- [ ] **4.3** Zones de drop sur les bords du Host
-  - Détecter quand la souris est dans une bande le long des bords du MGDockHost (ex: < 30px)
-  - Calculer 4 zones : Left, Right, Top, Bottom couvrant toute la largeur/hauteur du Host
-  - Ces zones sont distinctes des zones per-panel (joystick central)
+- [x] **4.3** Zones de drop sur les bords du Host ✅ (Implémenté le 2026-02-20)
+  - ✅ `DockDropCalculator.CalculateHostEdgeZones()` retourne 4 DockDropTarget (L/R/T/B)
+  - ✅ Bande de détection de 40px sur chaque bord du Host
+  - ✅ `DockDropTarget.IsHostEdge = true` distingue ces zones des zones per-panel
 
-- [ ] **4.4** Indicateurs visuels aux bords du Host
-  - Afficher 4 petits indicateurs (flèches / rectangles) fixés aux bords du Host pendant un drag
-  - Style VS : petite icône sur chaque bord, highlight au survol
-  - Les indicateurs n'apparaissent que pendant un drag actif
+- [x] **4.4** Indicateurs visuels aux bords du Host ✅ (Implémenté le 2026-02-20)
+  - ✅ `MGDockDropIndicators.ShowHostEdge(Rectangle)` / `HideHostEdge()` 
+  - ✅ 4 petits carrés (40×40) centrés sur chaque bord du Host, palette verte distincte
+  - ✅ `GetHostEdgeZoneAtPosition()` / `UpdateHostEdgeActiveZone()` pour le highlight
 
-- [ ] **4.5** Preview pour edge drop
-  - Rectangle de prévisualisation couvrant toute la largeur (Top/Bottom) ou hauteur (Left/Right)
-  - Ratio de la preview configurable (ex: 25% pour un tool latéral)
-  - La preview montre clairement qu'il s'agit d'un split root-level
+- [x] **4.5** Preview pour edge drop ✅ (Implémenté avec 4.3)
+  - ✅ PreviewRect = 25% de la dimension Host (HostEdgePreviewRatio)
+  - ✅ Couvre toute la largeur (Top/Bottom) ou toute la hauteur (Left/Right)
 
-- [ ] **4.6** Exécution du edge drop
-  - Au drop sur un bord du Host : créer un nouveau `DockSplitNode` à la racine
-  - L'ancien `RootNode` devient un enfant, le nouveau panel l'autre enfant
-  - Orientation et ordre des enfants selon le bord (Left → Horizontal, panel en First ; Right → panel en Second, etc.)
-  - Ratio initial configurable (défaut: 0.25 pour tools, 0.5 pour documents)
+- [x] **4.6** Exécution du edge drop ✅ (Implémenté le 2026-02-20)
+  - ✅ `DockOperation.SplitDockAtRoot(model, panel, zone, ratio)` crée le split racine
+  - ✅ `ExecuteDrop` dispatche vers `SplitDockAtRoot` si `target.IsHostEdge == true`
 
-- [ ] **4.7** Priorité entre indicateurs Host vs Panel
-  - Les indicateurs per-panel (joystick) ont priorité quand la souris est au-dessus d'un joystick
-  - Les indicateurs Host sont actifs seulement dans la bande de bord ET hors d'un joystick actif
-  - Pas de conflit visuel : un seul jeu d'indicateurs highlight à la fois
+- [x] **4.7** Priorité entre indicateurs Host vs Panel ✅ (Implémenté le 2026-02-20)
+  - ✅ Priorité 1 : joystick per-panel (beurre l'edge highlight si zone détectée)
+  - ✅ Priorité 2 : edge host zone (uniquement si P1 = DockZone.None)
+  - ✅ Un seul jeu d'indicateurs highlighté à la fois
 
 ### 6. Registre des Dockables
 - [x] **6.1** Créer `DockableDefinition` avec métadonnées ✅
