@@ -104,6 +104,9 @@ public class MGDockTabItem : MGElement
     private MGBorder _closeButton;
     private MGTextBlock _closeButtonText;
 
+    /// <summary>Fixed pixel width reserved for the close button (icon area + padding).</summary>
+    private const int CloseButtonSize = 22;
+
     private int _tabHeight = 30;
     /// <summary>
     /// Height of the tab in pixels.
@@ -176,11 +179,12 @@ public class MGDockTabItem : MGElement
             HoverBrush = new MGSolidFillBrush(new Color(62, 62, 66));       // Lighter gray (hover)
             ActiveBrush = new MGSolidFillBrush(new Color(37, 37, 38));      // Slightly darker but will have bright accent line
 
-            // Create title text
+            // Create title text — single-line only; the tab width adapts to its content
             _titleText = new MGTextBlock(window, panel?.Title ?? "Tab")
             {
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
+                WrapText = false,
                 Padding = new XAML.Thickness(8, 4, 4, 4).ToThickness()
             };
             _titleText.SetParent(this);
@@ -367,22 +371,19 @@ public class MGDockTabItem : MGElement
 
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
-        // Content size is the area needed for title + close button
+        // Measure title text with unlimited width so it reports its natural single-line size.
         int titleWidth = 0;
         if (_titleText != null)
         {
-            _titleText.UpdateMeasurement(AvailableSize, out _, out Thickness titleFullSize, out _, out _);
+            var unlimitedSize = new Size(int.MaxValue / 2, AvailableSize.Height);
+            _titleText.UpdateMeasurement(unlimitedSize, out _, out Thickness titleFullSize, out _, out _);
             titleWidth = titleFullSize.Width;
         }
 
-        int closeWidth = 0;
-        if (Panel?.CanClose == true && _closeButton != null)
-        {
-            _closeButton.UpdateMeasurement(AvailableSize, out _, out Thickness closeFullSize, out _, out _);
-            closeWidth = closeFullSize.Width;
-        }
+        // Close button occupies a fixed reserved area — no need to measure the child element.
+        int closeWidth = (Panel?.CanClose == true) ? CloseButtonSize : 0;
 
-        int totalWidth = Math.Max(MinTabWidth, titleWidth + closeWidth + 8);
+        int totalWidth = Math.Max(MinTabWidth, titleWidth + closeWidth);
         return new Thickness(totalWidth, TabHeight, 0, 0);
     }
 
@@ -393,26 +394,25 @@ public class MGDockTabItem : MGElement
             return;
         }
 
-        // Layout title text (takes most of the space)
-        int closeWidth = (Panel?.CanClose == true && _closeButton != null) ? 18 : 0;
-        int padding = closeWidth > 0 ? 2 : 0; // Small gap between title and close button
-            
+        // Layout title text — occupies everything left of the close button
+        int closeWidth = (Panel?.CanClose == true && _closeButton != null) ? CloseButtonSize : 0;
+
         Rectangle titleBounds = new Rectangle(
             Bounds.X,
             Bounds.Y,
-            Bounds.Width - closeWidth - padding,
+            Bounds.Width - closeWidth,
             Bounds.Height
         );
         _titleText.UpdateLayout(titleBounds);
 
-        // Layout close button (right side)
+        // Layout close button — flush to the right, vertically centred, exactly CloseButtonSize wide
         if (Panel?.CanClose == true && _closeButton != null)
         {
             Rectangle closeBounds = new Rectangle(
-                Bounds.Right - closeWidth,
-                Bounds.Y + (Bounds.Height - 18) / 2, // Center vertically
-                closeWidth,
-                18
+                Bounds.Right - CloseButtonSize,
+                Bounds.Y,
+                CloseButtonSize,
+                Bounds.Height
             );
             _closeButton.UpdateLayout(closeBounds);
         }
