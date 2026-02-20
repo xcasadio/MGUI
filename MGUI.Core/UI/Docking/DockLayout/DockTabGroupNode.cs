@@ -284,7 +284,6 @@ public class DockTabGroupNode : DockNode
         int currentIndex = Panels.IndexOf(panel);
         if (currentIndex < 0)
         {
-            System.Diagnostics.Debug.WriteLine($"[ReorderPanel] Panel '{panel.Title}' not found in group");
             return false; // Panel not in this group
         }
 
@@ -297,13 +296,9 @@ public class DockTabGroupNode : DockNode
         // No change needed
         if (currentIndex == newIndex)
         {
-            System.Diagnostics.Debug.WriteLine($"[ReorderPanel] Panel '{panel.Title}' already at index {newIndex}, no change needed");
             return false;
         }
 
-        System.Diagnostics.Debug.WriteLine($"[ReorderPanel] Moving panel '{panel.Title}' from index {currentIndex} to {newIndex}");
-
-        // Remove from current position
         Panels.RemoveAt(currentIndex);
 
         // The newIndex parameter already represents the FINAL desired position
@@ -322,8 +317,7 @@ public class DockTabGroupNode : DockNode
         }
 
         Panels.Insert(insertIndex, panel);
-        
-        System.Diagnostics.Debug.WriteLine($"[ReorderPanel] Panel '{panel.Title}' successfully moved to index {Panels.IndexOf(panel)}");
+
         return true;
     }
 

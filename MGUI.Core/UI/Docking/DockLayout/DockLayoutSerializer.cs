@@ -218,22 +218,16 @@ public static class DockLayoutSerializer
             throw new InvalidOperationException("Failed to deserialize layout: result is null.");
         }
 
-        // Check version compatibility
         if (layoutDto.Version != CurrentVersion)
         {
             System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Warning: Layout version mismatch. Expected {CurrentVersion}, got {layoutDto.Version}. Attempting to load anyway.");
         }
 
-        // Deserialize the tree
         var rootNode = DeserializeNode(layoutDto.RootNode, panelFactory);
-
-        // Clean up invalid nodes (empty groups, incomplete splits)
         rootNode = CleanupInvalidNodes(rootNode);
 
         if (rootNode == null)
         {
-            System.Diagnostics.Debug.WriteLine("[DockLayoutSerializer] Warning: After cleanup, root node is null. Creating empty layout.");
-            // Return an empty layout with a default tab group
             rootNode = new DockTabGroupNode();
         }
 
@@ -259,7 +253,6 @@ public static class DockLayoutSerializer
                 return DeserializeTabGroupNode(dto, panelFactory);
 
             default:
-                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Warning: Unknown node type '{dto.Type}'. Skipping node.");
                 return null;
         }
     }
@@ -271,14 +264,12 @@ public static class DockLayoutSerializer
     {
         var splitNode = new DockSplitNode(dto.Id);
 
-        // Parse orientation
         if (Enum.TryParse<Orientation>(dto.Orientation, true, out var orientation))
         {
             splitNode.Orientation = orientation;
         }
         else
         {
-            System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Warning: Invalid orientation '{dto.Orientation}'. Defaulting to Horizontal.");
             splitNode.Orientation = Orientation.Horizontal;
         }
 
@@ -286,7 +277,6 @@ public static class DockLayoutSerializer
         splitNode.MinFirstSize = dto.MinFirstSize ?? 100;
         splitNode.MinSecondSize = dto.MinSecondSize ?? 100;
 
-        // Recursively deserialize children
         splitNode.FirstChild = DeserializeNode(dto.FirstChild, panelFactory);
         splitNode.SecondChild = DeserializeNode(dto.SecondChild, panelFactory);
 
@@ -302,7 +292,6 @@ public static class DockLayoutSerializer
 
         int skippedCount = 0;
 
-        // Deserialize panels
         if (dto.Panels != null)
         {
             foreach (var panelDto in dto.Panels)
@@ -319,11 +308,6 @@ public static class DockLayoutSerializer
             }
         }
 
-        if (skippedCount > 0)
-        {
-            System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Tab group (ID: {tabGroupNode.Id}) skipped {skippedCount} missing panel(s).");
-        }
-
         // Set active panel
         if (!string.IsNullOrEmpty(dto.ActivePanelId))
         {
@@ -334,7 +318,6 @@ public static class DockLayoutSerializer
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Active panel ID '{dto.ActivePanelId}' not found in group. Defaulting to first available panel.");
                 if (tabGroupNode.Panels.Count > 0)
                 {
                     tabGroupNode.SetActivePanel(tabGroupNode.Panels[0].Id);
@@ -349,7 +332,9 @@ public static class DockLayoutSerializer
 
         // Restore document area flag
         if (dto.IsDocumentArea == true)
+        {
             tabGroupNode.IsDocumentArea = true;
+        }
 
         return tabGroupNode;
     }
@@ -373,7 +358,6 @@ public static class DockLayoutSerializer
             // If factory returns null, it means the panel is not available/registered
             if (contentFactory == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Warning: Panel with ID '{dto.Id}' (Title: '{dto.Title}') not found in factory. Skipping panel.");
                 return null;
             }
         }
@@ -417,7 +401,6 @@ public static class DockLayoutSerializer
             // Remove empty tab groups
             if (tabGroup.Panels.Count == 0)
             {
-                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Removing empty tab group (ID: {tabGroup.Id}).");
                 return null;
             }
 
@@ -435,20 +418,17 @@ public static class DockLayoutSerializer
             // Both children null → remove this split node
             if (splitNode.FirstChild == null && splitNode.SecondChild == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Removing split node with no valid children (ID: {splitNode.Id}).");
                 return null;
             }
 
             // One child null → promote the remaining child
             if (splitNode.FirstChild == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Collapsing split node (ID: {splitNode.Id}): FirstChild is null, promoting SecondChild.");
                 return splitNode.SecondChild;
             }
 
             if (splitNode.SecondChild == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[DockLayoutSerializer] Collapsing split node (ID: {splitNode.Id}): SecondChild is null, promoting FirstChild.");
                 return splitNode.FirstChild;
             }
 

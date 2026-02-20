@@ -587,8 +587,6 @@ public class MGDockTabGroup : MGElement
         }
 
         TabHeadersBounds = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, TabHeaderHeight);
-        System.Diagnostics.Debug.WriteLine(
-            $"[MGDockTabGroup] header={TabHeadersBounds}, overflow={_isOverflowing}, scrollIdx={_tabScrollIndex}");
 
         // ── Layout content area ───────────────────────────────────────────
         if (_activeContentContainer != null)

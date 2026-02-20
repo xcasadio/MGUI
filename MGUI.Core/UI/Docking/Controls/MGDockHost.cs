@@ -412,8 +412,6 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private void PerformDrop()
     {
-        System.Diagnostics.Debug.WriteLine($"[PerformDrop] Called, IsDragging={IsDragging}");
-        
         if (!IsDragging)
         {
             return;
@@ -425,24 +423,15 @@ public class MGDockHost : MGSingleContentHost
             // Don't recalculate here as the layout may have changed
             var dropTarget = CurrentDropTarget;
 
-            System.Diagnostics.Debug.WriteLine($"[PerformDrop] Using CurrentDropTarget={(dropTarget != null ? $"Zone={dropTarget.Zone}, TabIndex={dropTarget.TabIndex}" : "null")}");
-
-            // Check if there's a valid drop target
             if (dropTarget != null && dropTarget.Zone != DockZone.None)
             {
-                System.Diagnostics.Debug.WriteLine($"[PerformDrop] Calling ExecuteDrop");
                 ExecuteDrop(CurrentDrag, dropTarget);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[PerformDrop] No valid drop target, tab remains in source group");
             }
             // If no valid drop target, the tab remains in its source group (no action needed)
         }
         finally
         {
             // Always cleanup drag state via public EndDrag method
-            System.Diagnostics.Debug.WriteLine($"[PerformDrop] Calling EndDrag in finally block");
             EndDrag();
         }
     }
@@ -569,7 +558,6 @@ public class MGDockHost : MGSingleContentHost
                     if (drag.SourceGroup == targetGroup)
                     {
                         // Reorder within the same group
-                        System.Diagnostics.Debug.WriteLine($"[ExecuteDrop] Reordering panel '{panel.Title}' to index {target.TabIndex} in same group");
                         DockOperation.ReorderTab(LayoutModel, panel, targetGroup, target.TabIndex);
                     }
                     else
@@ -577,7 +565,6 @@ public class MGDockHost : MGSingleContentHost
                         // Move to different group
                         // Use the calculated TabIndex if available, otherwise append at end (-1)
                         int insertIndex = target.TabIndex >= 0 ? target.TabIndex : -1;
-                        System.Diagnostics.Debug.WriteLine($"[ExecuteDrop] Moving panel '{panel.Title}' to different group at index {insertIndex}");
                         DockOperation.MoveTab(LayoutModel, panel, targetGroup, insertIndex);
                     }
                 }
@@ -1217,17 +1204,12 @@ public class MGDockHost : MGSingleContentHost
             bool isDraggingFromSameGroup = IsDragging && CurrentDrag != null && 
                                            CurrentDrag.SourceGroup == tabGroup.GroupNode;
 
-            System.Diagnostics.Debug.WriteLine($"[GetDropTarget] tabGroup={tabGroup.GroupNode?.Id}, isDraggingFromSameGroup={isDraggingFromSameGroup}");
-
             // PRIORITY: If dragging from same group and mouse is over tab headers -> REORDER MODE
             if (isDraggingFromSameGroup && 
                 tabGroup.TabHeadersBounds.Width > 0 && 
                 tabGroup.TabHeadersBounds.Height > 0 &&
                 tabGroup.TabHeadersBounds.Contains(screenPosition))
             {
-                System.Diagnostics.Debug.WriteLine($"[GetDropTarget] Mouse over tab headers -> REORDER MODE");
-                
-                // Create a reorder-only target
                 var reorderTarget = new DockDropTarget
                 {
                     TargetNode = tabGroup.GroupNode,
@@ -1242,15 +1224,12 @@ public class MGDockHost : MGSingleContentHost
                     screenPosition.X, 
                     CurrentDrag.DraggedPanel);
                 
-                System.Diagnostics.Debug.WriteLine($"[GetDropTarget] Reorder TabIndex: {reorderTarget.TabIndex}");
-                
                 if (reorderTarget.TabIndex >= 0)
                 {
                     reorderTarget.PreviewRect = DockDropCalculator.CalculateTabReorderPreviewRect(
                         tabGroup, 
                         reorderTarget.TabIndex,
                         CurrentDrag.DraggedPanel);
-                    System.Diagnostics.Debug.WriteLine($"[GetDropTarget] Reorder PreviewRect: {reorderTarget.PreviewRect}");
                 }
                 
                 bestTarget = reorderTarget;
@@ -1265,8 +1244,6 @@ public class MGDockHost : MGSingleContentHost
             var target = DockDropCalculator.GetDropTargetAtPosition(zones, screenPosition);
             if (target != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[GetDropTarget] Found target zone: {target.Zone}");
-                
                 // If dropping in center zone, calculate tab index for positioning
                 if (target.Zone == DockZone.Center && IsDragging && CurrentDrag != null)
                 {
@@ -1274,8 +1251,6 @@ public class MGDockHost : MGSingleContentHost
                         tabGroup, 
                         screenPosition.X, 
                         CurrentDrag.DraggedPanel);
-                    
-                    System.Diagnostics.Debug.WriteLine($"[GetDropTarget] Center zone TabIndex: {target.TabIndex}");
                 }
 
                 bestTarget = target;

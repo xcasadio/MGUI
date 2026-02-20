@@ -48,12 +48,7 @@ public static class MGDockHostExtensions
             throw new ArgumentException("JSON string cannot be null or empty.", nameof(json));
         }
 
-        // Deserialize the layout
         var newLayoutModel = DockLayoutSerializer.FromJson(json, panelFactory);
-
-        // Update the layout model (this will trigger rebuild)
         dockHost.LayoutModel = newLayoutModel;
-
-        System.Diagnostics.Debug.WriteLine($"[MGDockHostExtensions.LoadLayoutFromJson] Layout loaded successfully.");
     }
 }

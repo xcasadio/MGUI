@@ -280,8 +280,15 @@ public static class DockOperation
     public static void SplitDockAtRoot(DockLayoutModel model, DockPanelNode panel,
         DockZone zone, float ratio = 0.25f)
     {
-        if (model == null)  throw new ArgumentNullException(nameof(model));
-        if (panel  == null) throw new ArgumentNullException(nameof(panel));
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (panel  == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
 
         if (zone == DockZone.None || zone == DockZone.Center)
         {

@@ -49,7 +49,9 @@ public class DockableRegistry
     public void Register(DockableDefinition definition)
     {
         if (definition == null)
+        {
             throw new ArgumentNullException(nameof(definition));
+        }
 
         _definitions[definition.DockableId] = definition;
     }
@@ -62,7 +64,9 @@ public class DockableRegistry
     public bool Unregister(string dockableId)
     {
         if (string.IsNullOrWhiteSpace(dockableId))
+        {
             return false;
+        }
 
         _visibleIds.Remove(dockableId);
         return _definitions.Remove(dockableId);
@@ -87,7 +91,10 @@ public class DockableRegistry
     public DockableDefinition GetById(string dockableId)
     {
         if (string.IsNullOrWhiteSpace(dockableId))
+        {
             return null;
+        }
+
         _definitions.TryGetValue(dockableId, out var def);
         return def;
     }
@@ -117,7 +124,10 @@ public class DockableRegistry
     /// </summary>
     internal void NotifyShown(string dockableId)
     {
-        if (!_definitions.TryGetValue(dockableId, out var def)) return;
+        if (!_definitions.TryGetValue(dockableId, out var def))
+        {
+            return;
+        }
 
         bool wasHidden = _visibleIds.Add(dockableId); // returns true if added
         if (wasHidden)
@@ -132,7 +142,10 @@ public class DockableRegistry
     /// </summary>
     internal void NotifyHidden(string dockableId)
     {
-        if (!_definitions.TryGetValue(dockableId, out var def)) return;
+        if (!_definitions.TryGetValue(dockableId, out var def))
+        {
+            return;
+        }
 
         bool wasVisible = _visibleIds.Remove(dockableId);
         if (wasVisible)
@@ -147,7 +160,10 @@ public class DockableRegistry
     /// </summary>
     internal void NotifyClosed(string dockableId)
     {
-        if (!_definitions.TryGetValue(dockableId, out var def)) return;
+        if (!_definitions.TryGetValue(dockableId, out var def))
+        {
+            return;
+        }
 
         _visibleIds.Remove(dockableId);
         OnClosed?.Invoke(this, def);
@@ -159,7 +175,11 @@ public class DockableRegistry
     /// </summary>
     internal void NotifyActivated(string dockableId)
     {
-        if (!_definitions.TryGetValue(dockableId, out var def)) return;
+        if (!_definitions.TryGetValue(dockableId, out var def))
+        {
+            return;
+        }
+
         OnActivated?.Invoke(this, def);
     }
 

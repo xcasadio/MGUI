@@ -90,9 +90,14 @@ public class DockableDefinition
     public DockableDefinition(string dockableId, string title)
     {
         if (string.IsNullOrWhiteSpace(dockableId))
+        {
             throw new ArgumentException("DockableId cannot be null or empty.", nameof(dockableId));
+        }
+
         if (string.IsNullOrWhiteSpace(title))
+        {
             throw new ArgumentException("Title cannot be null or empty.", nameof(title));
+        }
 
         DockableId = dockableId;
         _title = title;

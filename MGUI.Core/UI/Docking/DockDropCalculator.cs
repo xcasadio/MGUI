@@ -388,8 +388,6 @@ public static class DockDropCalculator
             targetIndex = tabGroup.GroupNode.Panels.Count - 1;
         }
 
-        System.Diagnostics.Debug.WriteLine($"[CalculateTabIndex] mouseX={mouseX}, draggedIndex={draggedIndex}, targetIndex={targetIndex}, panelCount={tabGroup.GroupNode.Panels.Count}");
-
         return targetIndex;
     }
 
@@ -437,23 +435,18 @@ public static class DockDropCalculator
             visualIndex = targetIndex + 1;
         }
 
-        System.Diagnostics.Debug.WriteLine($"[CalculateTabReorderPreviewRect] targetIndex={targetIndex}, draggedIndex={draggedIndex}, visualIndex={visualIndex}");
-
         // Calculate insertion position using VISUAL index
         int insertX;
         if (visualIndex <= 0)
         {
-            // Insert at the beginning (left of first tab)
             insertX = tabItems[0].LayoutBounds.Left;
         }
         else if (visualIndex >= tabItems.Count)
         {
-            // Insert at the end (right of last tab)
             insertX = tabItems[tabItems.Count - 1].LayoutBounds.Right;
         }
         else
         {
-            // Insert between tabs (use left edge of visual target tab)
             insertX = tabItems[visualIndex].LayoutBounds.Left;
         }
 
@@ -466,8 +459,6 @@ public static class DockDropCalculator
             lineWidth,
             headerBounds.Height
         );
-
-        System.Diagnostics.Debug.WriteLine($"[CalculateTabReorderPreviewRect] targetIndex={targetIndex}, insertX={insertX}, previewRect={previewRect}");
 
         return previewRect;
     }

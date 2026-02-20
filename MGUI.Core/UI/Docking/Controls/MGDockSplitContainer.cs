@@ -317,8 +317,6 @@ public class MGDockSplitContainer : MGElement
 
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
-        System.Diagnostics.Debug.WriteLine($"[MGDockSplitContainer] UpdateContentMeasurement: AvailableSize={AvailableSize}, Orientation={Orientation}");
-            
         if (FirstChild == null && SecondChild == null)
         {
             return new Thickness(0);
