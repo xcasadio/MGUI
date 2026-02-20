@@ -507,7 +507,31 @@ public class MGDockTabGroup : MGElement
                 }
             }
             newVisibleCount = Math.Max(1, newVisibleCount);
-            // Clamp scroll so the last valid window is used
+
+            // ── INVARIANT: the active tab header is ALWAYS visible ────────────────────
+            // Adjust _tabScrollIndex (using the fresh newVisibleCount, not the stale
+            // _visibleTabCount) so that the active panel is within the visible window.
+            int activeTabIndex = -1;
+            if (GroupNode?.ActivePanelId != null && GroupNode.Panels != null)
+            {
+                for (int i = 0; i < GroupNode.Panels.Count; i++)
+                {
+                    if (GroupNode.Panels[i].Id == GroupNode.ActivePanelId)
+                    {
+                        activeTabIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (activeTabIndex >= 0)
+            {
+                if (activeTabIndex < _tabScrollIndex)
+                    _tabScrollIndex = activeTabIndex;
+                else if (activeTabIndex >= _tabScrollIndex + newVisibleCount)
+                    _tabScrollIndex = activeTabIndex - newVisibleCount + 1;
+            }
+
             ClampScrollIndex(panelCount, newVisibleCount);
         }
 
@@ -604,11 +628,11 @@ public class MGDockTabGroup : MGElement
         foreach (var panel in GroupNode.Panels)
         {
             var capturedPanel = panel;
-            var item = menu.AddButton(capturedPanel.Title, _ =>
+            menu.AddButton(capturedPanel.Title, _ =>
             {
+                // SetActivePanel triggers OnGroupNodePropertyChanged which calls
+                // EnsureTabVisible and invalidates the layout — no extra call needed.
                 GroupNode.SetActivePanel(capturedPanel.Id);
-                // Ensure the tab is visible by scrolling to it
-                EnsureTabVisible(capturedPanel.Id);
             });
         }
 
@@ -622,27 +646,35 @@ public class MGDockTabGroup : MGElement
     }
 
     /// <summary>
-    /// Adjusts <see cref="_tabScrollIndex"/> so that the panel with the given id is in the visible range.
+    /// Nudges <see cref="_tabScrollIndex"/> toward the panel with the given id and
+    /// invalidates layout.  The layout pass itself then clamps and enforces the
+    /// active-tab-always-visible invariant with fresh measurements.
     /// </summary>
     public void EnsureTabVisible(string panelId)
     {
         if (GroupNode == null)
             return;
 
-        int idx = GroupNode.Panels.IndexOf(GroupNode.Panels.FirstOrDefault(p => p.Id == panelId));
+        int idx = -1;
+        for (int i = 0; i < GroupNode.Panels.Count; i++)
+        {
+            if (GroupNode.Panels[i].Id == panelId)
+            {
+                idx = i;
+                break;
+            }
+        }
         if (idx < 0)
             return;
 
+        // Nudge the scroll window toward idx; the layout pass will do the
+        // precise clamping and active-tab enforcement.
         if (idx < _tabScrollIndex)
-        {
             _tabScrollIndex = idx;
-            InvalidateLayout();
-        }
-        else if (idx >= _tabScrollIndex + Math.Max(1, _visibleTabCount))
-        {
-            _tabScrollIndex = Math.Max(0, idx - _visibleTabCount + 1);
-            InvalidateLayout();
-        }
+        else if (idx > _tabScrollIndex)
+            _tabScrollIndex = idx;   // layout pass will back-off if needed
+
+        InvalidateLayout();
     }
 
     private void ClampScrollIndex(int panelCount = -1, int visibleCount = -1)
