@@ -192,11 +192,12 @@ public class MGDockTabItem : MGElement
                 VerticalAlignment = VerticalAlignment.Center
             };
                 
-            _closeButtonText = new MGTextBlock(window, "×")
+            _closeButtonText = new MGTextBlock(window, "")
             {
                 FontSize = 14,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
+                // Empty text — the X cross is drawn directly in DrawContents
                 Padding = new XAML.Thickness(4, 2, 4, 2).ToThickness()
             };
             _closeButton.SetContent(_closeButtonText);
@@ -477,10 +478,27 @@ public class MGDockTabItem : MGElement
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        // Draw all children (title text and close button)
+        // Draw all children (title text and close button background)
         foreach (var child in GetChildren())
         {
             child?.Draw(DA);
+        }
+
+        // Draw X cross icon on the close button (drawn directly, not via font glyph)
+        if (Panel?.CanClose == true && _closeButton != null)
+        {
+            Rectangle cb = _closeButton.LayoutBounds;
+            float cx = cb.X + cb.Width * 0.5f;
+            float cy = cb.Y + cb.Height * 0.5f;
+            const float half = 4.5f;
+            Color crossColor = IsActive ? Color.White : new Color(180, 180, 180);
+
+            DA.DT.StrokeLineSegment(Vector2.Zero,
+                new Vector2(cx - half, cy - half), new Vector2(cx + half, cy + half),
+                crossColor, 1.5f);
+            DA.DT.StrokeLineSegment(Vector2.Zero,
+                new Vector2(cx + half, cy - half), new Vector2(cx - half, cy + half),
+                crossColor, 1.5f);
         }
     }
 }

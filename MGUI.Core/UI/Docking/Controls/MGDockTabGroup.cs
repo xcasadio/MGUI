@@ -134,7 +134,7 @@ public class MGDockTabGroup : MGElement
     private void UpdateMaximizeButtonLabel()
     {
         if (_maximizeBtn?.Content is MGTextBlock lbl)
-            lbl.Text = _isMaximized ? "⊡" : "□";
+            lbl.Text = _isMaximized ? "-" : "+";
     }
 
     /// <summary>
@@ -169,19 +169,19 @@ public class MGDockTabGroup : MGElement
             VerticalAlignment = VerticalAlignment.Stretch;
 
             // ── Overflow buttons (always present, collapsed until needed) ─────
-            _scrollLeftBtn = CreateCompactButton(window, "‹", () => ScrollLeft());
+            _scrollLeftBtn = CreateCompactButton(window, "<", () => ScrollLeft());
             _scrollLeftBtn.Visibility = Visibility.Collapsed;
             _scrollLeftBtn.SetParent(this);
 
-            _scrollRightBtn = CreateCompactButton(window, "›", () => ScrollRight());
+            _scrollRightBtn = CreateCompactButton(window, ">", () => ScrollRight());
             _scrollRightBtn.Visibility = Visibility.Collapsed;
             _scrollRightBtn.SetParent(this);
 
-            _dropdownBtn = CreateCompactButton(window, "▾", () => ShowDropdown());
+            _dropdownBtn = CreateCompactButton(window, "v", () => ShowDropdown());
             _dropdownBtn.SetParent(this);
 
             // Maximize / restore toggle ─────────────────────────────────────
-            _maximizeBtn = CreateCompactButton(window, "□", () =>
+            _maximizeBtn = CreateCompactButton(window, "+", () =>
             {
                 if (_isMaximized)
                     RestoreRequested?.Invoke(this, GroupNode);
