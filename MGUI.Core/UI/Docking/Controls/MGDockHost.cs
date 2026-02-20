@@ -262,7 +262,14 @@ public class MGDockHost : MGSingleContentHost
 
         _lastPreviewCalculation = mousePosition;
 
-        // Find which group we're hovering over
+        // ── Keep host-edge indicators visible and up-to-date throughout the drag ──
+        // They are pinned to the host's four edges regardless of where the mouse is.
+        if (LayoutBounds.Width > 0 && LayoutBounds.Height > 0)
+        {
+            _dropIndicators.ShowHostEdge(LayoutBounds);
+        }
+
+        // ── Find which panel group the mouse is hovering over ───────────────────
         MGDockTabGroup hoveredGroup = null;
         foreach (var tabGroup in GetAllVisibleTabGroups())
         {
@@ -273,7 +280,7 @@ public class MGDockHost : MGSingleContentHost
             }
         }
 
-        // Show/hide indicators based on hovered group
+        // Show/hide per-panel joystick indicators based on hovered group
         if (hoveredGroup != null && hoveredGroup != _lastHoveredGroup)
         {
             // Show indicators for the new group
@@ -282,40 +289,70 @@ public class MGDockHost : MGSingleContentHost
         }
         else if (hoveredGroup == null && _lastHoveredGroup != null)
         {
-            // Mouse left all groups - hide indicators
+            // Mouse left all groups - hide joystick
             _dropIndicators.Hide();
             _lastHoveredGroup = null;
         }
 
-        // Update active zone based on mouse position over indicators
+        // ── PRIORITY 1: per-panel joystick ───────────────────────────────────────
         _dropIndicators.UpdateActiveZone(mousePosition);
-        
-        // Get the zone detected by the indicator (None if not hovering the indicator)
-        DockZone detectedZone = _dropIndicators.GetZoneAtPosition(mousePosition);
+        DockZone panelJoystickZone = _dropIndicators.GetZoneAtPosition(mousePosition);
 
-        if (detectedZone != DockZone.None && hoveredGroup != null)
+        if (panelJoystickZone != DockZone.None && hoveredGroup != null)
         {
-            // Mouse is over a zone indicator - calculate drop target for that zone
-            var dropTarget = GetDropTargetForZone(hoveredGroup, detectedZone, mousePosition);
-            
+            // Panel joystick wins — suppress host-edge highlight
+            _dropIndicators.UpdateHostEdgeActiveZone(new Point(-1, -1));
+
+            var dropTarget = GetDropTargetForZone(hoveredGroup, panelJoystickZone, mousePosition);
             CurrentDropTarget = dropTarget;
 
             if (dropTarget != null && dropTarget.PreviewRect != default(Microsoft.Xna.Framework.Rectangle))
             {
-                // Show preview for the detected zone
                 ShowPreview(dropTarget.PreviewRect);
             }
             else
             {
                 HidePreview();
             }
+
+            return;
         }
-        else
+
+        // ── PRIORITY 2: host-edge indicator zones ───────────────────────────────
+        _dropIndicators.UpdateHostEdgeActiveZone(mousePosition);
+        DockZone hostEdgeZone = _dropIndicators.GetHostEdgeZoneAtPosition(mousePosition);
+
+        if (hostEdgeZone != DockZone.None)
         {
-            // Not hovering an indicator zone - no preview, no drop target
-            CurrentDropTarget = null;
-            HidePreview();
+            // Compute (or reuse) host-edge drop targets for the current host bounds
+            var hostEdgeTargets = DockDropCalculator.CalculateHostEdgeZones(LayoutBounds);
+            DockDropTarget hostTarget = null;
+            foreach (var t in hostEdgeTargets)
+            {
+                if (t.Zone == hostEdgeZone)
+                {
+                    hostTarget = t;
+                    break;
+                }
+            }
+
+            CurrentDropTarget = hostTarget;
+
+            if (hostTarget != null)
+            {
+                ShowPreview(hostTarget.PreviewRect);
+            }
+            else
+            {
+                HidePreview();
+            }
+
+            return;
         }
+
+        // ── No active drop target ────────────────────────────────────────────────
+        CurrentDropTarget = null;
+        HidePreview();
     }
 
     /// <summary>
@@ -416,8 +453,9 @@ public class MGDockHost : MGSingleContentHost
         // Hide preview
         HidePreview();
 
-        // Hide drop indicators
+        // Hide drop indicators (joystick + host-edge)
         _dropIndicators.Hide();
+        _dropIndicators.HideHostEdge();
         _lastHoveredGroup = null;
 
         // Clear drag state
@@ -444,8 +482,9 @@ public class MGDockHost : MGSingleContentHost
         // Hide preview
         HidePreview();
 
-        // Hide drop indicators
+        // Hide drop indicators (joystick + host-edge)
         _dropIndicators.Hide();
+        _dropIndicators.HideHostEdge();
         _lastHoveredGroup = null;
 
         // Clear drag state
@@ -497,7 +536,16 @@ public class MGDockHost : MGSingleContentHost
             case DockZone.Top:
             case DockZone.Bottom:
                 // Split dock: remove from source and create split
-                DockOperation.SplitDock(LayoutModel, panel, targetNode, target.Zone);
+                if (target.IsHostEdge)
+                {
+                    // Host-edge drop: insert a new root-level split
+                    DockOperation.SplitDockAtRoot(LayoutModel, panel, target.Zone,
+                        DockDropCalculator.HostEdgePreviewRatio);
+                }
+                else
+                {
+                    DockOperation.SplitDock(LayoutModel, panel, targetNode, target.Zone);
+                }
                 break;
 
             case DockZone.None:
