@@ -198,6 +198,26 @@ public class DockPanelNode : DockNode
         // Panel nodes don't have children
     }
 
+    /// <summary>
+    /// Calculates the effective minimum width for a panel.
+    /// </summary>
+    /// <returns>The minimum width in pixels for a panel (default: 150).</returns>
+    public override int CalculateEffectiveMinWidth()
+    {
+        // Minimum width for a single panel (enough for a tab and some content)
+        return 150;
+    }
+
+    /// <summary>
+    /// Calculates the effective minimum height for a panel.
+    /// </summary>
+    /// <returns>The minimum height in pixels for a panel (default: 100).</returns>
+    public override int CalculateEffectiveMinHeight()
+    {
+        // Minimum height for a single panel (tab header + some content space)
+        return 100;
+    }
+
     public override string ToString()
     {
         return $"Panel (Id: {Id}, Title: '{Title}', Content: {(IsContentCreated ? "Created" : "Not Created")})";

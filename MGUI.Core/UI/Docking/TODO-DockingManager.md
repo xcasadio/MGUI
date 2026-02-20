@@ -68,19 +68,28 @@ Cette liste organise les tâches restantes en phases MVP → V2 → V3.
   - ⚠️ Future amélioration : Animation fade-in/out
   - ⚠️ Future amélioration : Couleur personnalisable par thème
 
-- [ ] **4.2** Indicateurs joystick (optionnel MVP)
-  - Afficher icônes L/R/T/B/Center au survol d'un groupe
-  - Highlight de la zone sous la souris
+- [x] **4.2** Indicateurs joystick style Visual Studio ✅ (Corrigé le 2026-02-13)
+  - ✅ Indicateur central unique affiché au centre du panel survolé
+  - ✅ 5 zones en croix : Left/Right/Top/Bottom/Center
+  - ✅ Preview n'apparaît QUE lors du survol d'une zone de l'indicateur
+  - ✅ Zone survolée mise en surbrillance (bleu opaque vs gris transparent)
+  - ✅ Annulation automatique du drag si lâché hors indicateur
+  - ✅ Classe `MGDockDropIndicators` avec méthodes `GetZoneAtPosition()` et `UpdateActiveZone()`
 
 ### 5. Persistance Layout (Save/Load)
-- [ ] **5.1** Sérialiser le DockLayoutModel en JSON
-  - Parcourir l'arbre récursivement
-  - Sauvegarder : type de nœud, IDs, ratios, onglet actif
+- [x] **5.1** Sérialiser le DockLayoutModel en JSON ✅ (Implémenté le 2026-02-13)
+  - ✅ Classe `DockLayoutSerializer` avec DTOs
+  - ✅ Méthode `ToJson()` pour sérialisation récursive
+  - ✅ Support de tous les types de nœuds (Split, TabGroup, Panel)
+  - ✅ Format JSON versionné (version 1.0)
+  - ✅ Sauvegarde : orientation, ratios, tailles min, onglet actif, propriétés des panels
 
-- [ ] **5.2** Désérialiser et reconstruire l'arbre
-  - Parser le JSON
-  - Recréer les nœuds et liens parent/enfant
-  - Reconnecter les panels via DockableId
+- [x] **5.2** Désérialiser et reconstruire l'arbre ✅ (Implémenté le 2026-02-13)
+  - ✅ Méthode `FromJson()` pour désérialisation
+  - ✅ Reconstruction récursive de l'arbre de nœuds
+  - ✅ Support du panelFactory pour reconnecter le contenu
+  - ✅ Vérification de version avec warning si mismatch
+  - ✅ Méthodes d'extension `SaveLayoutToJson()` et `LoadLayoutFromJson()` sur MGDockHost
 
 - [ ] **5.3** Gérer les panels manquants au restore
   - Ignorer les IDs inconnus

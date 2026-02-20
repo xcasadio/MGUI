@@ -641,7 +641,8 @@ public class MGDockHost : MGSingleContentHost
             VerticalAlignment = VerticalAlignment.Stretch,
             SplitRatio = splitNode.SplitRatio,
             MinFirstSize = splitNode.MinFirstSize,
-            MinSecondSize = splitNode.MinSecondSize
+            MinSecondSize = splitNode.MinSecondSize,
+            ModelNode = splitNode // Link to model for recursive constraints
         };
 
         // Subscribe to split ratio changes to update the model

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
+using MGUI.Core.UI.Docking.DockLayout;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -166,6 +167,11 @@ public class MGDockSplitContainer : MGElement
     }
 
     /// <summary>
+    /// Reference to the model node (optional). Used for calculating recursive minimum constraints.
+    /// </summary>
+    public DockSplitNode ModelNode { get; set; }
+
+    /// <summary>
     /// The splitter bar visual element.
     /// </summary>
     private readonly MGDockSplitterBar _splitterBar;
@@ -240,6 +246,7 @@ public class MGDockSplitContainer : MGElement
 
     /// <summary>
     /// Clamps the ratio to ensure minimum sizes are respected.
+    /// Uses recursive minimum size calculations from ModelNode if available.
     /// </summary>
     private float ClampRatioToMinSizes(float ratio)
     {
@@ -252,8 +259,27 @@ public class MGDockSplitContainer : MGElement
             return ratio;
         }
 
-        float minRatio = (float)MinFirstSize / availableSize;
-        float maxRatio = (float)(availableSize - MinSecondSize) / availableSize;
+        // Calculate effective minimum sizes (considering nested splits if ModelNode is available)
+        int effectiveMinFirstSize = MinFirstSize;
+        int effectiveMinSecondSize = MinSecondSize;
+
+        if (ModelNode != null)
+        {
+            // Use recursive calculation for more accurate constraints
+            if (Orientation == Orientation.Horizontal)
+            {
+                effectiveMinFirstSize = ModelNode.FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
+                effectiveMinSecondSize = ModelNode.SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
+            }
+            else
+            {
+                effectiveMinFirstSize = ModelNode.FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
+                effectiveMinSecondSize = ModelNode.SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
+            }
+        }
+
+        float minRatio = (float)effectiveMinFirstSize / availableSize;
+        float maxRatio = (float)(availableSize - effectiveMinSecondSize) / availableSize;
 
         return Math.Clamp(ratio, minRatio, maxRatio);
     }

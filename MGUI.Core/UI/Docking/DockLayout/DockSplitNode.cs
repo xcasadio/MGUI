@@ -226,6 +226,56 @@ public class DockSplitNode : DockNode
         return null;
     }
 
+    /// <summary>
+    /// Calculates the effective minimum width for this node, considering nested splits.
+    /// </summary>
+    /// <returns>The minimum width in pixels required to display this node and all its children.</returns>
+    public override int CalculateEffectiveMinWidth()
+    {
+        if (Orientation == Orientation.Horizontal)
+        {
+            // Horizontal split: widths add up
+            int firstMinWidth = FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
+            int secondMinWidth = SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
+            
+            // Total width = first child + splitter + second child
+            return firstMinWidth + 4 + secondMinWidth; // 4 is default splitter thickness
+        }
+        else
+        {
+            // Vertical split: width is the maximum of children
+            int firstMinWidth = FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
+            int secondMinWidth = SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
+            
+            return Math.Max(firstMinWidth, secondMinWidth);
+        }
+    }
+
+    /// <summary>
+    /// Calculates the effective minimum height for this node, considering nested splits.
+    /// </summary>
+    /// <returns>The minimum height in pixels required to display this node and all its children.</returns>
+    public override int CalculateEffectiveMinHeight()
+    {
+        if (Orientation == Orientation.Vertical)
+        {
+            // Vertical split: heights add up
+            int firstMinHeight = FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
+            int secondMinHeight = SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
+            
+            // Total height = first child + splitter + second child
+            return firstMinHeight + 4 + secondMinHeight; // 4 is default splitter thickness
+        }
+        else
+        {
+            // Horizontal split: height is the maximum of children
+            int firstMinHeight = FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
+            int secondMinHeight = SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
+            
+            return Math.Max(firstMinHeight, secondMinHeight);
+        }
+    }
+
     public override string ToString()
     {
         return $"SplitNode (Id: {Id}, Orientation: {Orientation}, Ratio: {SplitRatio:F2})";

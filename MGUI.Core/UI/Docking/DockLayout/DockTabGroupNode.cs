@@ -307,6 +307,46 @@ public class DockTabGroupNode : DockNode
         return true;
     }
 
+    /// <summary>
+    /// Calculates the effective minimum width for this tab group.
+    /// Returns the maximum minimum width of all panels, since they're stacked.
+    /// </summary>
+    /// <returns>The minimum width in pixels for this tab group.</returns>
+    public override int CalculateEffectiveMinWidth()
+    {
+        if (Panels.Count == 0)
+        {
+            return 100; // Default minimum for empty group
+        }
+
+        // Tab group width should be at least the widest panel's minimum
+        int maxPanelMinWidth = Panels.Max(p => p?.CalculateEffectiveMinWidth() ?? 100);
+        
+        // Also consider space needed for tab headers (approximate: 100px per tab minimum, but allow overlap)
+        // For simplicity, ensure at least 150px to show a few tabs
+        return Math.Max(maxPanelMinWidth, 150);
+    }
+
+    /// <summary>
+    /// Calculates the effective minimum height for this tab group.
+    /// Returns the maximum minimum height of all panels plus tab header space.
+    /// </summary>
+    /// <returns>The minimum height in pixels for this tab group.</returns>
+    public override int CalculateEffectiveMinHeight()
+    {
+        if (Panels.Count == 0)
+        {
+            return 100; // Default minimum for empty group
+        }
+
+        // Tab group height = tab header height + content height
+        const int TabHeaderHeight = 30; // Approximate height of tab headers
+        
+        int maxPanelMinHeight = Panels.Max(p => p?.CalculateEffectiveMinHeight() ?? 100);
+        
+        return TabHeaderHeight + maxPanelMinHeight;
+    }
+
     public override string ToString()
     {
         return $"TabGroup (Id: {Id}, Panels: {Panels.Count}, Active: {ActivePanelId})";

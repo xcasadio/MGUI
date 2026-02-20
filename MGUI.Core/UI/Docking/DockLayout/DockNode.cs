@@ -116,6 +116,28 @@ public abstract class DockNode : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Calculates the effective minimum width for this node, considering nested content.
+    /// Override in derived classes to provide specific logic.
+    /// </summary>
+    /// <returns>The minimum width in pixels required to display this node.</returns>
+    public virtual int CalculateEffectiveMinWidth()
+    {
+        // Default implementation: return a reasonable minimum
+        return 100;
+    }
+
+    /// <summary>
+    /// Calculates the effective minimum height for this node, considering nested content.
+    /// Override in derived classes to provide specific logic.
+    /// </summary>
+    /// <returns>The minimum height in pixels required to display this node.</returns>
+    public virtual int CalculateEffectiveMinHeight()
+    {
+        // Default implementation: return a reasonable minimum
+        return 100;
+    }
+
     public override string ToString()
     {
         return $"{GetType().Name} (Id: {Id})";
