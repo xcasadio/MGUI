@@ -34,11 +34,17 @@ Cette liste organise les tâches restantes en phases MVP → V2 → V3.
   - ✅ Redistribution des ratios opérationnelle
   - ✅ Taille minimum bloque correctement le splitter
 
-- [ ] **2.2** Propager MinWidth/MinHeight dans les splits imbriqués
-  - Calculer les contraintes min récursivement
-  - Empêcher les splits trop petits
+- [x] **2.2** Propager MinWidth/MinHeight dans les splits imbriqués ✅ (Complété le 2026-02-20)
+  - ✅ Calculer les contraintes min récursivement
+  - ✅ Empêcher les splits trop petits
+  - ✅ Méthodes CalculateEffectiveMinWidth/Height ajoutées à DockNode
+  - ✅ MGDockSplitContainer utilise les contraintes récursives via ModelNode
 
-- [ ] **2.3** Améliorer le feedback visuel du splitter (curseur, highlight)
+- [x] **2.3** Améliorer le feedback visuel du splitter (curseur, highlight) ✅ (Complété le 2026-02-20)
+  - ✅ Couleurs hover/pressed améliorées (bleu vif)
+  - ✅ Highlight overlay lors du hover/drag
+  - ✅ Grip dots plus visibles (opacité 80% vs 50%)
+  - ⚠️ Note: Support curseur matériel pas encore implémenté dans MGUI
 
 ### 3. Tabs Fonctionnels
 - [x] **3.0** Corriger l'apparence des tab headers
@@ -56,9 +62,11 @@ Cette liste organise les tâches restantes en phases MVP → V2 → V3.
   - ✅ Calculer l'index cible basé sur la position X
   - ✅ Réordonner sans créer de split
 
-- [ ] **3.3** Sélection visuelle de l'onglet actif
-  - Style différent pour tab active vs inactive
-  - Highlight au hover
+- [x] **3.3** Sélection visuelle de l'onglet actif ✅ (Complété le 2026-02-20)
+  - ✅ Style différent pour tab active vs inactive
+  - ✅ Highlight au hover avec ligne bleue semi-transparente
+  - ✅ Ligne d'accent bleue vive de 3px pour l'onglet actif
+  - ✅ Texte blanc brillant pour onglet actif vs grisé pour inactif
 
 ### 4. Preview & Indicateurs de Drop
 - [x] **4.1** Améliorer le preview rectangle ✅ (Corrigé le 2026-02-12)
@@ -91,14 +99,17 @@ Cette liste organise les tâches restantes en phases MVP → V2 → V3.
   - ✅ Vérification de version avec warning si mismatch
   - ✅ Méthodes d'extension `SaveLayoutToJson()` et `LoadLayoutFromJson()` sur MGDockHost
 
-- [ ] **5.3** Gérer les panels manquants au restore
-  - Ignorer les IDs inconnus
-  - Logger un warning
-  - Nettoyer les groupes vides
+- [x] **5.3** Gérer les panels manquants au restore ✅ (Complété le 2026-02-20)
+  - ✅ Ignorer les IDs inconnus (retourner null si panelFactory échoue)
+  - ✅ Logger un warning avec ID et titre du panel manquant
+  - ✅ Nettoyer les groupes vides automatiquement
+  - ✅ Méthode CleanupInvalidNodes pour post-traitement
+  - ✅ Collapse des split nodes avec un seul enfant valide
 
-- [ ] **5.4** Versionner le format JSON
-  - Ajouter un champ "version"
-  - Gérer la migration si nécessaire
+- [x] **5.4** Versionner le format JSON ✅ (Déjà implémenté)
+  - ✅ Champ "version" présent (v1.0)
+  - ✅ Warning si version mismatch
+  - ⚠️ Migration automatique pas encore implémentée
 
 ---
 
