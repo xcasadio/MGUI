@@ -648,6 +648,7 @@ public class MGDockTabGroup : MGElement
 
         // Build a context menu containing one button per panel
         var menu = new MGContextMenu(ParentWindow, "");
+        menu.CanContextMenuOpen = true;
 
         foreach (var panel in GroupNode.Panels)
         {
