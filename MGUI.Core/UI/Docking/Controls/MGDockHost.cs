@@ -157,6 +157,16 @@ public class MGDockHost : MGSingleContentHost
 
     #endregion Floating Windows
 
+    #region Auto-Hide repin targets
+
+    /// <summary>
+    /// Maps a panel ID to the tab group it lived in just before being sent to the auto-hide store.
+    /// Used by <see cref="RepinPanel"/> to restore the panel to its original group.
+    /// </summary>
+    private readonly Dictionary<string, DockTabGroupNode> _repinTargets = new();
+
+    #endregion Auto-Hide repin targets
+
     #region Drag & Drop State
 
     private DockDragData _currentDrag;
@@ -1006,6 +1016,11 @@ public class MGDockHost : MGSingleContentHost
 
         AutoHideSide side = InferAutoHideSide(panel);
 
+        // ── Save the panel's current group so RepinPanel can restore it later ──
+        var currentGroup = GetAllTabGroups().FirstOrDefault(g => g.Panels.Contains(panel));
+        if (currentGroup != null)
+            _repinTargets[panel.Id] = currentGroup;
+
         // Suspend model-change events so we get exactly one visual-tree rebuild at the end
         _layoutModel.LayoutChanged -= OnLayoutModelChanged;
         try
@@ -1038,20 +1053,32 @@ public class MGDockHost : MGSingleContentHost
         {
             LayoutModel.RemoveFromAutoHide(panel);
 
-            var groups = GetAllTabGroups().ToList();
-            if (groups.Count > 0)
+            // Try to restore to the group the panel was in before it was pinned.
+            _repinTargets.TryGetValue(panel.Id, out var originalGroup);
+            _repinTargets.Remove(panel.Id);
+
+            bool restoredToOriginal = false;
+            if (originalGroup != null && GetAllTabGroups().Contains(originalGroup))
             {
-                DockOperation.DockAsTab(LayoutModel, panel, groups[0]);
+                // Original group still exists — slip back in as a tab.
+                DockOperation.DockAsTab(LayoutModel, panel, originalGroup);
+                restoredToOriginal = true;
             }
-            else if (LayoutModel.RootNode == null)
+
+            if (!restoredToOriginal)
             {
-                var newGroup = new DockTabGroupNode();
-                newGroup.AddPanel(panel, -1);
-                LayoutModel.RootNode = newGroup;
-            }
-            else
-            {
-                DockOperation.SplitDock(LayoutModel, panel, LayoutModel.RootNode, DockZone.Right);
+                // Fall back: create a fresh standalone group and graft it to the right edge.
+                if (LayoutModel.RootNode == null)
+                {
+                    var newGroup = new DockTabGroupNode();
+                    newGroup.AddPanel(panel, -1);
+                    LayoutModel.RootNode = newGroup;
+                }
+                else
+                {
+                    DockOperation.SplitDockAtRoot(LayoutModel, panel, DockZone.Right,
+                        DockDropCalculator.HostEdgePreviewRatio);
+                }
             }
         }
         finally

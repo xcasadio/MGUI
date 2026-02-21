@@ -124,13 +124,35 @@ public class MGDockTabGroup : MGElement
     /// For tab groups that are direct children of the host's visual tree this is null
     /// because <see cref="MGDockTabItem"/> can find the host via its ancestor chain.
     /// </summary>
-    public MGDockHost OwnerDockHost { get; set; }
+    public MGDockHost OwnerDockHost
+    {
+        get => _ownerDockHost;
+        set
+        {
+            _ownerDockHost = value;
+            // Propagate to already-created tab items so OnDragStart can find the host.
+            foreach (var ti in _tabItems.Values)
+                ti.OwnerDockHost = value;
+        }
+    }
+    private MGDockHost _ownerDockHost;
 
     /// <summary>
     /// Reference back to the <see cref="MGFloatingDockWindow"/> that contains this tab group,
     /// or null when the tab group is part of the docked (non-floating) layout.
     /// </summary>
-    public MGFloatingDockWindow OwnerFloatingWindow { get; set; }
+    public MGFloatingDockWindow OwnerFloatingWindow
+    {
+        get => _ownerFloatingWindow;
+        set
+        {
+            _ownerFloatingWindow = value;
+            // Propagate to already-created tab items.
+            foreach (var ti in _tabItems.Values)
+                ti.OwnerFloatingWindow = value;
+        }
+    }
+    private MGFloatingDockWindow _ownerFloatingWindow;
 
     /// <summary>
     /// Event raised when the active panel changes.
