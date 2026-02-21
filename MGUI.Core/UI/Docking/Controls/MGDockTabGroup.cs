@@ -118,6 +118,21 @@ public class MGDockTabGroup : MGElement
     public Rectangle TabHeadersBounds { get; private set; }
 
     /// <summary>
+    /// Reference back to the <see cref="MGDockHost"/> that owns this tab group.
+    /// Non-null only when this tab group lives inside a <see cref="MGFloatingDockWindow"/>
+    /// (where the window is not a visual ancestor of the host).
+    /// For tab groups that are direct children of the host's visual tree this is null
+    /// because <see cref="MGDockTabItem"/> can find the host via its ancestor chain.
+    /// </summary>
+    public MGDockHost OwnerDockHost { get; set; }
+
+    /// <summary>
+    /// Reference back to the <see cref="MGFloatingDockWindow"/> that contains this tab group,
+    /// or null when the tab group is part of the docked (non-floating) layout.
+    /// </summary>
+    public MGFloatingDockWindow OwnerFloatingWindow { get; set; }
+
+    /// <summary>
     /// Event raised when the active panel changes.
     /// </summary>
     public event EventHandler<DockPanelNode> ActivePanelChanged;
@@ -239,7 +254,9 @@ public class MGDockTabGroup : MGElement
         {
             var tabItem = new MGDockTabItem(ParentWindow, panel)
             {
-                IsActive = (panel.Id == GroupNode.ActivePanelId)
+                IsActive            = (panel.Id == GroupNode.ActivePanelId),
+                OwnerDockHost       = OwnerDockHost,
+                OwnerFloatingWindow = OwnerFloatingWindow
             };
 
             // Subscribe to tab click

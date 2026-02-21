@@ -172,22 +172,28 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
   - Les tools ne peuvent pas y aller
 
 ### 8. Fenêtres Flottantes
-- [ ] **8.1** Créer `MGFloatingWindow`
-  - Fenêtre overlay interne à MGUI
-  - Contient un DockTabGroup
-  - Draggable, resizable
+- [x] **8.1** Créer `MGFloatingDockWindow` ✅ (Implémenté le 2026-02-21)
+  - ✅ Classe `MGFloatingDockWindow` étend `MGWindow` (NestedWindow du ParentWindow du host)
+  - ✅ Contient un `MGDockTabGroup` lié à un `DockTabGroupNode`
+  - ✅ `IsDraggable = true`, `IsTitleBarVisible = true` — déplaçable par la barre de titre
+  - ✅ `IsUserResizable = true` — redimensionnable par le grip en bas à droite
+  - ✅ Titre mis à jour automatiquement lors du changement d'onglet actif
 
-- [ ] **8.2** Détacher un panel en floating
-  - Au drop hors du host, créer une floating window
-  - Transférer le panel
+- [x] **8.2** Détacher un panel en floating ✅ (Implémenté le 2026-02-21)
+  - ✅ `MGDockHost.DetachToFloating(panel, dropPosition)` — retire du layout, crée la fenêtre flottante
+  - ✅ Déclenché automatiquement dans `PerformDrop` si `CanFloat == true` et souris hors du host
+  - ✅ `_lastMousePosition` tracké à chaque frame pour détecter la position au release
 
-- [ ] **8.3** Redock depuis floating
-  - Démarrer un drag depuis floating
-  - Permettre le dock dans le host principal
+- [x] **8.3** Redock depuis floating ✅ (Implémenté le 2026-02-21)
+  - ✅ `MGDockTabGroup.OwnerDockHost` / `OwnerFloatingWindow` — références back vers le host
+  - ✅ `MGDockTabItem.OwnerDockHost` / `OwnerFloatingWindow` — utilisées dans `OnDragStart` comme fallback
+  - ✅ `BeginDrag(..., sourceFloatingWindow)` — `DockDragData.SourceFloatingWindow` tracké
+  - ✅ `ExecuteDrop` retire le panel de la fenêtre flottante avant d'appliquer le dock dans le host
+  - ✅ Fermeture automatique de la floating window si elle devient vide après redock
 
-- [ ] **8.4** Z-order des floating windows
-  - Clic = bring to front
-  - Pile d'ordre gérée
+- [x] **8.4** Z-order des floating windows ✅ (Implémenté le 2026-02-21)
+  - ✅ Clic → `ParentWindow.BringToFront(this)` dans le MouseHandler de `MGFloatingDockWindow`
+  - ✅ Géré nativement par le système `NestedWindows` de `MGWindow`
 
 ### 9. Règles de Docking
 - [x] **9.1** Méthode `CanDockTo(DockableDefinition, DockNode, DockZone)` ✅ (Implémenté le 2026-02-20)
@@ -328,7 +334,7 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 | Phase | Features Principales | État |
 |-------|---------------------|------|
 | MVP   | Bugs fix, tabs close/reorder, save/load | ✅ Complété |
-| V2    | Registry, edge docking, rules, overflow, maximize, boutons visuels | ✅ Complété (sauf floating 8.x) |
+| V2    | Registry, edge docking, rules, overflow, maximize, boutons visuels, floating windows | ✅ Complété |
 | V3    | Auto-hide, proximity docking, focus, polish | 🔴 À faire |
 ## 🐛 Bugs Connus à Investiguer
 

@@ -146,6 +146,17 @@ public class MGDockHost : MGSingleContentHost
 
     #endregion Maximize / Restore
 
+    #region Floating Windows
+
+    private readonly List<MGFloatingDockWindow> _floatingWindows = new();
+
+    /// <summary>
+    /// Read-only view of all currently open floating dock windows managed by this host.
+    /// </summary>
+    public IReadOnlyList<MGFloatingDockWindow> FloatingWindows => _floatingWindows;
+
+    #endregion Floating Windows
+
     #region Drag & Drop State
 
     private DockDragData _currentDrag;
@@ -176,6 +187,13 @@ public class MGDockHost : MGSingleContentHost
     /// Used to avoid recalculating drop targets too frequently.
     /// </summary>
     private Point _lastPreviewCalculation;
+
+    /// <summary>
+    /// Last known mouse position during a drag operation.
+    /// Updated every update tick while dragging; used by <see cref="PerformDrop"/> to decide
+    /// whether the drop occurred inside or outside the host bounds.
+    /// </summary>
+    private Point _lastMousePosition;
 
     private int _dragThreshold = 5;
     /// <summary>
@@ -284,6 +302,9 @@ public class MGDockHost : MGSingleContentHost
                     return;
                 }
             }
+
+            // Remember mouse position for PerformDrop (outside-host detection)
+            _lastMousePosition = currentMousePosition;
 
             // Update drop preview
             UpdateDragPreview(currentMousePosition);
@@ -427,7 +448,16 @@ public class MGDockHost : MGSingleContentHost
             {
                 ExecuteDrop(CurrentDrag, dropTarget);
             }
-            // If no valid drop target, the tab remains in its source group (no action needed)
+            else if (CurrentDrag.HasExceededThreshold
+                     && CurrentDrag.SourceFloatingWindow == null  // not already floating
+                     && CurrentDrag.DraggedPanel?.CanFloat == true
+                     && !LayoutBounds.Contains(_lastMousePosition))
+            {
+                // Mouse released outside the host with no valid drop target → detach to floating
+                DetachToFloating(CurrentDrag.DraggedPanel, _lastMousePosition);
+            }
+            // Otherwise: the tab stays in its source group (e.g. released inside host but off-indicator,
+            // or is already a floating panel with no new drop target).
         }
         finally
         {
@@ -443,7 +473,17 @@ public class MGDockHost : MGSingleContentHost
     /// <param name="sourceGroup">The tab group from which the panel is being dragged.</param>
     /// <param name="startPos">The screen-space position where the drag started.</param>
     /// <param name="sourceItem">The visual tab item that initiated the drag.</param>
-    public void BeginDrag(DockPanelNode panel, DockTabGroupNode sourceGroup, Point startPos, MGDockTabItem sourceItem)
+    /// <param name="sourceFloatingWindow">
+    /// The floating window that contains the panel, or null when dragging from the docked layout.
+    /// When non-null, a successful drop will move the panel back into the host and
+    /// close the floating window if it becomes empty.
+    /// </param>
+    public void BeginDrag(
+        DockPanelNode panel,
+        DockTabGroupNode sourceGroup,
+        Point startPos,
+        MGDockTabItem sourceItem,
+        MGFloatingDockWindow sourceFloatingWindow = null)
     {
         if (panel == null)
         {
@@ -463,14 +503,16 @@ public class MGDockHost : MGSingleContentHost
         // Create drag data (visuals will activate after threshold is exceeded)
         CurrentDrag = new DockDragData(panel, sourceGroup, startPos, sourceItem)
         {
-            HasExceededThreshold = false
+            HasExceededThreshold    = false,
+            SourceFloatingWindow    = sourceFloatingWindow
         };
 
         // Don't provide visual feedback yet - wait for threshold
         // sourceItem.Opacity will be set when threshold is exceeded
 
-        // Initialize preview calculation position
+        // Initialize preview calculation and mouse-position tracking
         _lastPreviewCalculation = startPos;
+        _lastMousePosition      = startPos;
     }
 
 
@@ -545,8 +587,34 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
-        var panel = drag.DraggedPanel;
+        var panel      = drag.DraggedPanel;
         var targetNode = target.TargetNode;
+
+        // ── If panel comes from a floating window, detach it first ──────────────
+        if (drag.SourceFloatingWindow != null)
+        {
+            var floatingSource = drag.SourceFloatingWindow;
+
+            // Remove the panel from the floating window's model group.
+            // This must happen BEFORE any DockOperation call so that DockOperation's
+            // "remove from current parent" logic does not try to clean up a group that
+            // is outside the host's LayoutModel.
+            floatingSource.GroupNode.RemovePanelById(panel.Id);
+
+            // Close the floating window if it is now empty
+            if (floatingSource.GroupNode.IsEmpty)
+            {
+                CloseFloatingWindow(floatingSource);
+            }
+
+            // Register the panel back in the host (it was never in _panelRegistry
+            // while floating, so there is no duplicate-key issue).
+            if (!_panelRegistry.ContainsKey(panel.Id))
+            {
+                _panelRegistry[panel.Id] = panel;
+                PanelAdded?.Invoke(this, panel);
+            }
+        }
 
         switch (target.Zone)
         {
@@ -554,18 +622,17 @@ public class MGDockHost : MGSingleContentHost
                 // Dock as tab
                 if (targetNode is DockTabGroupNode targetGroup)
                 {
-                    // Check if this is a reorder operation (same group)
-                    if (drag.SourceGroup == targetGroup)
+                    // Check if this is a reorder operation (same group, source in host)
+                    if (drag.SourceGroup == targetGroup && drag.SourceFloatingWindow == null)
                     {
                         // Reorder within the same group
                         DockOperation.ReorderTab(LayoutModel, panel, targetGroup, target.TabIndex);
                     }
                     else
                     {
-                        // Move to different group
-                        // Use the calculated TabIndex if available, otherwise append at end (-1)
+                        // Move to different group (or from floating → host)
                         int insertIndex = target.TabIndex >= 0 ? target.TabIndex : -1;
-                        DockOperation.MoveTab(LayoutModel, panel, targetGroup, insertIndex);
+                        DockOperation.DockAsTab(LayoutModel, panel, targetGroup, insertIndex);
                     }
                 }
                 break;
@@ -729,9 +796,88 @@ public class MGDockHost : MGSingleContentHost
         return true;
     }
 
+    #region Floating Windows — management
+
     /// <summary>
-    /// Gets all tab groups currently in the layout.
+    /// Detaches <paramref name="panel"/> from the docked layout and wraps it in a new
+    /// <see cref="MGFloatingDockWindow"/> centred on <paramref name="dropPosition"/>.
+    /// The method removes the panel from the host's layout model and panel registry,
+    /// then creates the floating window and registers it as a nested window of the
+    /// host's parent <see cref="MGWindow"/>.
     /// </summary>
+    /// <param name="panel">The panel to detach.</param>
+    /// <param name="dropPosition">
+    /// The screen-space position where the user released the mouse (used to position the window).
+    /// </param>
+    public MGFloatingDockWindow DetachToFloating(DockPanelNode panel, Point dropPosition)
+    {
+        if (panel == null) throw new ArgumentNullException(nameof(panel));
+
+        // Remove from the host panel registry first (before model cleanup)
+        _panelRegistry.Remove(panel.Id);
+
+        // Remove from the docked layout model (triggers RebuildVisualTree via LayoutChanged)
+        DockOperation.RemovePanel(LayoutModel, panel);
+
+        const int defaultFloatWidth  = 320;
+        const int defaultFloatHeight = 260;
+        int left = dropPosition.X - defaultFloatWidth  / 2;
+        int top  = dropPosition.Y - defaultFloatHeight / 2;
+
+        var floatWin = new MGFloatingDockWindow(this, panel, left, top, defaultFloatWidth, defaultFloatHeight);
+        _floatingWindows.Add(floatWin);
+        ParentWindow.AddNestedWindow(floatWin);
+
+        // Re-sync: the floating panel should still appear "visible" to the DockableRegistry
+        SyncRegistryVisibility();
+
+        return floatWin;
+    }
+
+    /// <summary>
+    /// Creates a floating window for <paramref name="panel"/> at the given position without
+    /// removing the panel from the layout model first (used when the panel is already outside
+    /// the layout, e.g. the source is a floating window moving to a new floating position — 
+    /// reserved for future use).  Normal detach from the docked layout should use
+    /// <see cref="DetachToFloating"/>.
+    /// </summary>
+    public MGFloatingDockWindow CreateFloatingWindow(DockPanelNode panel, int left, int top, int width = 320, int height = 260)
+    {
+        if (panel == null) throw new ArgumentNullException(nameof(panel));
+
+        var floatWin = new MGFloatingDockWindow(this, panel, left, top, width, height);
+        _floatingWindows.Add(floatWin);
+        ParentWindow.AddNestedWindow(floatWin);
+        SyncRegistryVisibility();
+        return floatWin;
+    }
+
+    /// <summary>
+    /// Closes a floating window: removes it from the floating list and from the parent
+    /// window's nested windows list.
+    /// </summary>
+    public void CloseFloatingWindow(MGFloatingDockWindow window)
+    {
+        if (window == null) return;
+
+        _floatingWindows.Remove(window);
+        ParentWindow.RemoveNestedWindow(window);
+        SyncRegistryVisibility();
+    }
+
+    /// <summary>
+    /// Called by <see cref="MGFloatingDockWindow"/> when the user closes a panel inside it
+    /// via the close button.  Notifies the dockable registry that the panel was closed.
+    /// </summary>
+    internal void NotifyFloatingPanelClosed(DockPanelNode panel)
+    {
+        if (panel == null) return;
+        PanelRemoved?.Invoke(this, panel);
+        _dockableRegistry?.NotifyClosed(panel.Id);
+        SyncRegistryVisibility();
+    }
+
+    #endregion Floating Windows — management
     /// <returns>Collection of all DockTabGroupNode instances in the visual tree.</returns>
     public IEnumerable<DockTabGroupNode> GetAllTabGroups()
     {
@@ -907,11 +1053,20 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Collects all panel IDs currently present in the layout and syncs them to the registry.
+    /// Collects all panel IDs currently present in the docked layout AND in floating windows,
+    /// then syncs them to the registry so they are all reported as "visible".
+    /// Floating panels are still considered visible (just not docked).
     /// </summary>
     private void SyncRegistryVisibility()
     {
-        _dockableRegistry?.SyncVisibility(_panelRegistry.Keys);
+        if (_dockableRegistry == null)
+            return;
+
+        var floatingIds = _floatingWindows
+            .SelectMany(w => w.GroupNode.Panels)
+            .Select(p => p.Id);
+
+        _dockableRegistry.SyncVisibility(_panelRegistry.Keys.Concat(floatingIds));
     }
 
     /// <summary>

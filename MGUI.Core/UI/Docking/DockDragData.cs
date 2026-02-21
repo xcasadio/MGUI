@@ -37,6 +37,15 @@ public class DockDragData
     public bool HasExceededThreshold { get; set; }
 
     /// <summary>
+    /// The floating window from which this drag originated, or null if the drag
+    /// started from a panel that is currently in the docked (non-floating) layout.
+    /// When set, a successful drop must move the panel out of this floating window
+    /// and back into the host layout.  If no valid drop target is found the panel
+    /// remains in the floating window unchanged.
+    /// </summary>
+    public MGFloatingDockWindow SourceFloatingWindow { get; set; }
+
+    /// <summary>
     /// Creates a new DockDragData.
     /// </summary>
     public DockDragData()

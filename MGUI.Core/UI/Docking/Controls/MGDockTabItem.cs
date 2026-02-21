@@ -164,6 +164,21 @@ public class MGDockTabItem : MGElement
     public event EventHandler<DockPanelNode> CloseAllRequested;
 
     /// <summary>
+    /// Fallback reference to the owning <see cref="MGDockHost"/> used when this tab item lives
+    /// inside a <see cref="MGFloatingDockWindow"/> and the host is not reachable via the element
+    /// ancestor chain.  Set by <see cref="MGDockTabGroup"/> when it creates this item so that
+    /// drag operations initiated from a floating window are still forwarded to the correct host.
+    /// </summary>
+    public MGDockHost OwnerDockHost { get; set; }
+
+    /// <summary>
+    /// Reference to the <see cref="MGFloatingDockWindow"/> that contains this tab item,
+    /// or null when the tab group is part of the docked (non-floating) layout.
+    /// Set by <see cref="MGDockTabGroup"/> together with <see cref="OwnerDockHost"/>.
+    /// </summary>
+    public MGFloatingDockWindow OwnerFloatingWindow { get; set; }
+
+    /// <summary>
     /// Creates a new MGDockTabItem.
     /// </summary>
     /// <param name="window">The parent window.</param>
@@ -309,13 +324,6 @@ public class MGDockTabItem : MGElement
             return;
         }
 
-        // Find parent MGDockHost
-        var dockHost = FindAncestor<MGDockHost>();
-        if (dockHost == null)
-        {
-            return;
-        }
-
         // Find parent MGDockTabGroup
         var tabGroup = FindAncestor<MGDockTabGroup>();
         if (tabGroup == null)
@@ -323,8 +331,16 @@ public class MGDockTabItem : MGElement
             return;
         }
 
-        // Begin drag operation
-        dockHost.BeginDrag(Panel, tabGroup.GroupNode, e.Position, this);
+        // Find parent MGDockHost — either as a real ancestor (normal case) or
+        // via OwnerDockHost set by the containing MGFloatingDockWindow (floating case).
+        var dockHost = FindAncestor<MGDockHost>() ?? OwnerDockHost;
+        if (dockHost == null)
+        {
+            return;
+        }
+
+        // Begin drag operation, passing the source floating window if applicable
+        dockHost.BeginDrag(Panel, tabGroup.GroupNode, e.Position, this, OwnerFloatingWindow);
 
         // Mark event as handled to prevent default behavior
         e.SetHandledBy(this, false);
