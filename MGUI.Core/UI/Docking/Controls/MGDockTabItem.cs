@@ -154,6 +154,11 @@ public class MGDockTabItem : MGElement
     public event EventHandler<DockPanelNode> CloseRequested;
 
     /// <summary>
+    /// Event raised when the user selects "Float" from the context menu.
+    /// </summary>
+    public event EventHandler<DockPanelNode> FloatRequested;
+
+    /// <summary>
     /// Event raised when the user selects "Close Others" from the context menu.
     /// </summary>
     public event EventHandler<DockPanelNode> CloseOthersRequested;
@@ -275,6 +280,13 @@ public class MGDockTabItem : MGElement
             if (Panel?.CanClose == true)
             {
                 menu.AddButton("Close", _ => CloseRequested?.Invoke(this, Panel));
+                menu.AddSeparator();
+            }
+
+            // Float — detach this panel into a floating window
+            if (Panel?.CanFloat == true)
+            {
+                menu.AddButton("Float", _ => FloatRequested?.Invoke(this, Panel));
                 menu.AddSeparator();
             }
 

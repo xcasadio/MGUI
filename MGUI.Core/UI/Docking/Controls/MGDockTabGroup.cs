@@ -142,6 +142,11 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     public event EventHandler<DockPanelNode> PanelCloseRequested;
 
+    /// <summary>
+    /// Event raised when the user requests to float (detach) a panel via the context menu.
+    /// </summary>
+    public event EventHandler<DockPanelNode> PanelFloatRequested;
+
     /// <summary>Updates the maximize / restore button label to match <see cref="IsMaximized"/>.</summary>
     private void UpdateMaximizeButtonLabel()
     {
@@ -272,6 +277,12 @@ public class MGDockTabGroup : MGElement
             tabItem.CloseRequested += (sender, panelToClose) =>
             {
                 PanelCloseRequested?.Invoke(this, panelToClose);
+            };
+
+            // Subscribe to float request
+            tabItem.FloatRequested += (sender, panelToFloat) =>
+            {
+                PanelFloatRequested?.Invoke(this, panelToFloat);
             };
 
             // Context-menu extra events

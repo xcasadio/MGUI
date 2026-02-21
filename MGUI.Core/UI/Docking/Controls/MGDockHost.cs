@@ -1167,6 +1167,17 @@ public class MGDockHost : MGSingleContentHost
             }
         };
 
+        // Subscribe to float (detach) requests from the context menu
+        tabGroup.PanelFloatRequested += (sender, panelToFloat) =>
+        {
+            if (panelToFloat == null) return;
+            // Position the floating window roughly at the centre of the host
+            var pos = new Microsoft.Xna.Framework.Point(
+                LayoutBounds.X + LayoutBounds.Width  / 2,
+                LayoutBounds.Y + LayoutBounds.Height / 2);
+            DetachToFloating(panelToFloat, pos);
+        };
+
         // Subscribe to maximize / restore requests
         tabGroup.MaximizeRequested += (sender, groupNode) =>
         {
