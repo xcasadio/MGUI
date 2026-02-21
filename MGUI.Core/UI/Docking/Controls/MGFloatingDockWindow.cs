@@ -63,17 +63,18 @@ public class MGFloatingDockWindow : MGWindow
         GroupNode = new DockTabGroupNode();
         GroupNode.AddPanel(initialPanel, -1);
 
-        // Build the tab group visual
-        _tabGroup = new MGDockTabGroup(ownerHost.ParentWindow, GroupNode)
+        // Build the tab group visual.
+        // IMPORTANT: OwnerDockHost / OwnerFloatingWindow must be set BEFORE GroupNode so that
+        // RebuildTabHeaders (triggered by GroupNode assignment) creates tab items that
+        // already know their owner host and can start a drag operation.
+        _tabGroup = new MGDockTabGroup(ownerHost.ParentWindow)
         {
-            HorizontalAlignment     = HorizontalAlignment.Stretch,
-            VerticalAlignment       = VerticalAlignment.Stretch,
-            // Maximize button is not meaningful in a floating window because
-            // "filling the host" while floating does not make sense.
-            // We leave to the user whether to hide the maximize button.
-            OwnerDockHost           = ownerHost,
-            OwnerFloatingWindow     = this
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment   = VerticalAlignment.Stretch,
+            OwnerDockHost       = ownerHost,
+            OwnerFloatingWindow = this
         };
+        _tabGroup.GroupNode = GroupNode;   // triggers RebuildTabHeaders with owner refs already set
 
         _tabGroup.PanelCloseRequested += OnPanelCloseRequested;
 

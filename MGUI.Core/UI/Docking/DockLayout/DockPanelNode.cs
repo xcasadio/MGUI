@@ -197,6 +197,14 @@ public class DockPanelNode : DockNode
         }
     }
 
+    /// <summary>
+    /// The tab group this panel belonged to just before it was sent to the auto-hide store.
+    /// Set by the host when the panel is unpinned; cleared when it is repinned or removed.
+    /// Allows the host to restore the panel to its original position without relying on
+    /// any external side-dictionary.
+    /// </summary>
+    internal DockTabGroupNode AutoHideReturnGroup { get; set; }
+
     private IReadOnlyList<DockZone> _allowedZones;
     /// <summary>
     /// Optional allow-list of drag zones inherited from <see cref="DockableDefinition.AllowedZones"/>.

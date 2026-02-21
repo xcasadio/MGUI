@@ -157,15 +157,7 @@ public class MGDockHost : MGSingleContentHost
 
     #endregion Floating Windows
 
-    #region Auto-Hide repin targets
 
-    /// <summary>
-    /// Maps a panel ID to the tab group it lived in just before being sent to the auto-hide store.
-    /// Used by <see cref="RepinPanel"/> to restore the panel to its original group.
-    /// </summary>
-    private readonly Dictionary<string, DockTabGroupNode> _repinTargets = new();
-
-    #endregion Auto-Hide repin targets
 
     #region Drag & Drop State
 
@@ -1016,10 +1008,9 @@ public class MGDockHost : MGSingleContentHost
 
         AutoHideSide side = InferAutoHideSide(panel);
 
-        // ── Save the panel's current group so RepinPanel can restore it later ──
-        var currentGroup = GetAllTabGroups().FirstOrDefault(g => g.Panels.Contains(panel));
-        if (currentGroup != null)
-            _repinTargets[panel.Id] = currentGroup;
+        // Snapshot the parent group NOW while panel.Parent is still set.
+        // DockOperation.RemovePanel clears it, so we must do this before that call.
+        panel.AutoHideReturnGroup = panel.Parent as DockTabGroupNode;
 
         // Suspend model-change events so we get exactly one visual-tree rebuild at the end
         _layoutModel.LayoutChanged -= OnLayoutModelChanged;
@@ -1053,21 +1044,21 @@ public class MGDockHost : MGSingleContentHost
         {
             LayoutModel.RemoveFromAutoHide(panel);
 
-            // Try to restore to the group the panel was in before it was pinned.
-            _repinTargets.TryGetValue(panel.Id, out var originalGroup);
-            _repinTargets.Remove(panel.Id);
+            // The panel recorded its own original group when it was unpinned.
+            var returnGroup = panel.AutoHideReturnGroup;
+            panel.AutoHideReturnGroup = null;   // clear — no longer needed
 
             bool restoredToOriginal = false;
-            if (originalGroup != null && GetAllTabGroups().Contains(originalGroup))
+            if (returnGroup != null && GetAllTabGroups().Contains(returnGroup))
             {
                 // Original group still exists — slip back in as a tab.
-                DockOperation.DockAsTab(LayoutModel, panel, originalGroup);
+                DockOperation.DockAsTab(LayoutModel, panel, returnGroup);
                 restoredToOriginal = true;
             }
 
             if (!restoredToOriginal)
             {
-                // Fall back: create a fresh standalone group and graft it to the right edge.
+                // Fall back: graft a new standalone group onto the right edge.
                 if (LayoutModel.RootNode == null)
                 {
                     var newGroup = new DockTabGroupNode();
@@ -1175,6 +1166,7 @@ public class MGDockHost : MGSingleContentHost
     {
         if (panel == null) return;
         HideAutoHideDrawer();
+        panel.AutoHideReturnGroup = null;  // not going back to layout
         LayoutModel?.RemoveFromAutoHide(panel);
         _panelRegistry.Remove(panel.Id);
         PanelRemoved?.Invoke(this, panel);
