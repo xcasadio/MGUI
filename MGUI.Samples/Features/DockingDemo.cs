@@ -77,7 +77,7 @@ namespace MGUI.Samples.Features
                 Title = "Solution Explorer",
                 Icon = null,
                 CanClose = true,
-                CanFloat = false,
+                CanFloat = true,
                 ContentFactory = () => CreateSolutionExplorerContent()
             };
 
@@ -86,7 +86,7 @@ namespace MGUI.Samples.Features
                 Title = "Properties",
                 Icon = null,
                 CanClose = true,
-                CanFloat = false,
+                CanFloat = true,
                 ContentFactory = () => CreatePropertiesContent()
             };
 
@@ -95,7 +95,7 @@ namespace MGUI.Samples.Features
                 Title = "Output",
                 Icon = null,
                 CanClose = true,
-                CanFloat = false,
+                CanFloat = true,
                 ContentFactory = () => CreateOutputContent()
             };
 
@@ -104,7 +104,7 @@ namespace MGUI.Samples.Features
                 Title = "Layout Manager",
                 Icon = null,
                 CanClose = false, // Cannot be closed
-                CanFloat = false,
+                CanFloat = true,
                 ContentFactory = () => CreateLayoutManagerContent()
             };
 
@@ -113,7 +113,7 @@ namespace MGUI.Samples.Features
                 Title = "Document1.cs",
                 Icon = null,
                 CanClose = false,
-                CanFloat = false,
+                CanFloat = true,
                 ContentFactory = () => CreateDocumentContent("Document1.cs")
             };
 
@@ -122,7 +122,7 @@ namespace MGUI.Samples.Features
                 Title = "README.md",
                 Icon = null,
                 CanClose = true,
-                CanFloat = false,
+                CanFloat = true,
                 ContentFactory = () => CreateDocumentContent("README.md")
             };
 

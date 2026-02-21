@@ -261,40 +261,42 @@ public class MGDockTabItem : MGElement
 
     /// <summary>
     /// Creates and assigns the right-click context menu for this tab.
-    /// Called once from the constructor; the menu is rebuilt lazily on open
-    /// so it always reflects the current CanClose / CanFloat state.
+    /// A fresh menu is built on every right-click so items never accumulate.
     /// </summary>
     private void BuildContextMenu(MGWindow window)
     {
-        var menu = new MGContextMenu(window, "");
-
-        menu.CanContextMenuOpen = true;
-
-        // We rebuild items every time the menu opens so they are always fresh.
-        menu.ContextMenuOpening += (_, __) =>
+        // Build a brand-new menu on every RMB release so the item list is
+        // always exactly right — no stale state, no duplicate-items bug.
+        MouseHandler.RMBReleasedInside += (_, e) =>
         {
-            // Clear existing items and rebuild
-            menu.Items.Clear();
+            if (e.IsHandled) return;
 
-            // Close — only shown if the panel allows it
-            if (Panel?.CanClose == true)
+            var menu = new MGContextMenu(window, "");
+            menu.CanContextMenuOpen = true;
+
+            // Snapshot the current panel so lambdas capture the right value
+            var panel = Panel;
+
+            // Close — only if the panel allows it
+            if (panel?.CanClose == true)
             {
-                menu.AddButton("Close", _ => CloseRequested?.Invoke(this, Panel));
+                menu.AddButton("Close", _ => CloseRequested?.Invoke(this, panel));
                 menu.AddSeparator();
             }
 
-            // Float — detach this panel into a floating window
-            if (Panel?.CanFloat == true)
+            // Float — only if the panel allows it
+            if (panel?.CanFloat == true)
             {
-                menu.AddButton("Float", _ => FloatRequested?.Invoke(this, Panel));
+                menu.AddButton("Float", _ => FloatRequested?.Invoke(this, panel));
                 menu.AddSeparator();
             }
 
-            menu.AddButton("Close Others", _ => CloseOthersRequested?.Invoke(this, Panel));
-            menu.AddButton("Close All",    _ => CloseAllRequested?.Invoke(this, Panel));
+            menu.AddButton("Close Others", _ => CloseOthersRequested?.Invoke(this, panel));
+            menu.AddButton("Close All",    _ => CloseAllRequested?.Invoke(this, panel));
+
+            window.Desktop.TryOpenContextMenu(menu, e.Position);
+            e.SetHandledBy(this, false);
         };
-
-        ContextMenu = menu;
     }
 
     /// <summary>
