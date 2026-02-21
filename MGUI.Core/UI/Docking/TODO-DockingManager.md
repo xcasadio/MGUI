@@ -263,6 +263,36 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 
 ---
 
+### 16. Corrections Auto-Hide (bugs détectés post-implémentation)
+
+- [ ] **16.1** Texte vertical dans les strips Left/Right
+  - Les boutons dans les strips Left/Right ont une largeur de 24 px → le texte horizontal est illisible
+  - **Fix** : dans `MGDockAutoHideStrip.DrawContents`, pour Left/Right, dessiner le titre rotaté 90° via `DA.DT.DrawSpriteFontText`
+  - Les boutons enfants conservent leur logique de hit-test/fond ; le texte est rendu manuellement après
+
+- [ ] **16.2** La zone de contenu doit tenir compte des strips
+  - Les strips sont des `MGComponent` overlay → le contenu docké s'affiche SOUS les strips
+  - **Fix** : surcharger `UpdateContentLayout` dans `MGDockHost` pour inséter les bounds du contenu selon les strips visibles (left/top/right/bottom inset = `StripThickness` pour chaque côté actif)
+  - Même correction s'applique en mode maximize automatiquement
+
+- [ ] **16.3** Le bouton × du drawer doit vraiment fermer le panel
+  - Actuellement il masque juste le drawer ; le panel reste dans l'auto-hide store
+  - **Fix** : ajouter `PanelCloseRequested: EventHandler<DockPanelNode>` sur `MGDockAutoHideDrawer` déclenché par le bouton × ; `MGDockHost` gère cet event en supprimant le panel de l'auto-hide store et du registre (via `NotifyFloatingPanelClosed` pattern)
+
+- [ ] **16.4** Regression : impossible de docker une fenêtre flottante
+  - Cause probable : le bouton pin dans `MGDockTabItem` est un élément enfant `hit-testable` → lorsque le drag commence sur la zone du pin, `DragStart` n'est pas transmis au tab item
+  - **Fix** : supprimer le hit-test du `_pinButton` (`IsHitTestVisible = false`) ; gérer le clic sur la zone pin directement dans le `MouseHandler` du tab item (vérification de position dans le handler `LMBReleasedInside`)
+
+- [ ] **16.5** Le bouton Maximize d'une fenêtre flottante ne fait rien
+  - `MGFloatingDockWindow` construit le tab group mais ne s'abonne pas à `MaximizeRequested` / `RestoreRequested`
+  - **Fix** : dans le constructeur de `MGFloatingDockWindow`, souscrire à ces events et implémenter maximize = redimensionner la fenêtre pour remplir le viewport du desktop ; restore = revenir aux dimensions précédentes
+
+- [ ] **16.6** Impossible de redimensionner le drawer (panel pinné)
+  - `ResizeGripSize` est défini dans `MGDockAutoHideDrawer` mais non implémenté
+  - **Fix** : ajouter un MGResizeGrip (ou implémentation manuelle de drag) sur le bord intérieur du drawer pour permettre de modifier `ActivePanel.DrawerSize` ; mettre à jour `DrawerSize` (min 60 px) pendant le drag et invalider le layout
+
+---
+
 ## 🌟 V3 (Waouh)
 
 ### 11. Auto-Hide (Pin/Unpin)

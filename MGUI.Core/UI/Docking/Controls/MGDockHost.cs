@@ -272,8 +272,10 @@ public class MGDockHost : MGSingleContentHost
             // ── Auto-hide drawer overlay ───────────────────────────────────
             _autoHideDrawer = new MGDockAutoHideDrawer(window);
             _autoHideDrawer.Visibility  = Visibility.Collapsed;
-            _autoHideDrawer.PinRequested   += (_, panel) => RepinPanel(panel);
-            _autoHideDrawer.CloseRequested += (_, _)     => HideAutoHideDrawer();
+            _autoHideDrawer.PinRequested         += (_, panel) => RepinPanel(panel);
+            _autoHideDrawer.PanelCloseRequested   += (_, panel) => CloseAutoHidePanel(panel);
+            _autoHideDrawer.CloseRequested         += (_, _)     => HideAutoHideDrawer();
+            _autoHideDrawer.DrawerSizeChanged      += (_, _)     => InvalidateLayout();
             var drawerComp = new MGComponent<MGDockAutoHideDrawer>(
                 _autoHideDrawer,
                 ComponentUpdatePriority.AfterContents,
@@ -282,6 +284,30 @@ public class MGDockHost : MGSingleContentHost
                 (avail, _) => GetDrawerBounds(avail));
             AddComponent(drawerComp);
         }
+    }
+
+    /// <summary>
+    /// Shrinks the content bounds to leave space for any visible auto-hide strips.
+    /// </summary>
+    protected override void UpdateContentLayout(Microsoft.Xna.Framework.Rectangle Bounds)
+    {
+        base.UpdateContentLayout(ComputeInnerBounds(Bounds));
+    }
+
+    /// <summary>
+    /// Returns the content rectangle with insets reserved for active auto-hide strips.
+    /// </summary>
+    private Microsoft.Xna.Framework.Rectangle ComputeInnerBounds(Microsoft.Xna.Framework.Rectangle bounds)
+    {
+        int left   = LayoutModel?.HasAutoHidePanels(AutoHideSide.Left)   == true ? _autoHideStripThickness : 0;
+        int right  = LayoutModel?.HasAutoHidePanels(AutoHideSide.Right)  == true ? _autoHideStripThickness : 0;
+        int top    = LayoutModel?.HasAutoHidePanels(AutoHideSide.Top)    == true ? _autoHideStripThickness : 0;
+        int bottom = LayoutModel?.HasAutoHidePanels(AutoHideSide.Bottom) == true ? _autoHideStripThickness : 0;
+        return new Microsoft.Xna.Framework.Rectangle(
+            bounds.X + left,
+            bounds.Y + top,
+            Math.Max(0, bounds.Width  - left - right),
+            Math.Max(0, bounds.Height - top  - bottom));
     }
 
     public override void UpdateSelf(ElementUpdateArgs UA)
@@ -1112,6 +1138,22 @@ public class MGDockHost : MGSingleContentHost
             _autoHideStrips[side].Visibility = panels.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
         InvalidateLayout();
+    }
+
+    /// <summary>
+    /// Permanently closes an auto-hidden panel: removes it from the auto-hide store,
+    /// the panel registry, and notifies the dockable registry.
+    /// </summary>
+    private void CloseAutoHidePanel(DockPanelNode panel)
+    {
+        if (panel == null) return;
+        HideAutoHideDrawer();
+        LayoutModel?.RemoveFromAutoHide(panel);
+        _panelRegistry.Remove(panel.Id);
+        PanelRemoved?.Invoke(this, panel);
+        _dockableRegistry?.NotifyClosed(panel.Id);
+        RefreshAutoHideStrips();
+        SyncRegistryVisibility();
     }
 
     #endregion Auto-Hide

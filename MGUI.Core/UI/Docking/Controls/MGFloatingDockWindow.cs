@@ -24,6 +24,9 @@ public class MGFloatingDockWindow : MGWindow
     /// <summary>The visual tab group control shown inside this window.</summary>
     public MGDockTabGroup TabGroup => _tabGroup;
 
+    /// <summary>Saved window bounds captured just before a maximize operation so we can restore them later.</summary>
+    private (int Left, int Top, int Width, int Height)? _preMaximizeBounds;
+
     // ──────────────────────────────────────────────────────────────────────
     // Constructor
     // ──────────────────────────────────────────────────────────────────────
@@ -73,6 +76,10 @@ public class MGFloatingDockWindow : MGWindow
         };
 
         _tabGroup.PanelCloseRequested += OnPanelCloseRequested;
+
+        // Maximize / restore the floating window to fill the desktop viewport
+        _tabGroup.MaximizeRequested += (_, _) => MaximizeWindow();
+        _tabGroup.RestoreRequested  += (_, _) => RestoreWindow();
 
         // Update title bar when the active tab changes
         UpdateTitle();
@@ -125,6 +132,44 @@ public class MGFloatingDockWindow : MGWindow
     public void BringToFront()
     {
         ParentWindow?.BringToFront(this);
+    }
+
+    /// <summary>
+    /// Maximises this floating window to cover the full desktop viewport, saving the
+    /// previous bounds so they can be restored later.
+    /// </summary>
+    private void MaximizeWindow()
+    {
+        if (_tabGroup.IsMaximized) return;
+        _preMaximizeBounds = (Left, Top, WindowWidth, WindowHeight);
+        var screen = GetDesktop().ValidScreenBounds;
+        Left          = screen.X;
+        Top           = screen.Y;
+        WindowWidth   = screen.Width;
+        WindowHeight  = screen.Height;
+        _tabGroup.IsMaximized = true;
+        IsDraggable           = false;
+        IsUserResizable       = false;
+    }
+
+    /// <summary>
+    /// Restores this floating window to the bounds it had before <see cref="MaximizeWindow"/> was called.
+    /// </summary>
+    private void RestoreWindow()
+    {
+        if (!_tabGroup.IsMaximized) return;
+        if (_preMaximizeBounds.HasValue)
+        {
+            var (l, t, w, h)  = _preMaximizeBounds.Value;
+            Left              = l;
+            Top               = t;
+            WindowWidth       = w;
+            WindowHeight      = h;
+            _preMaximizeBounds = null;
+        }
+        _tabGroup.IsMaximized = false;
+        IsDraggable           = true;
+        IsUserResizable       = true;
     }
 
     // ──────────────────────────────────────────────────────────────────────

@@ -249,10 +249,20 @@ public class MGDockTabItem : MGElement
             _closeButton.SetParent(this);
 
             // Subscribe to mouse click
+            // NOTE: pin button is not hit-testable, so its area routes here too.
             MouseHandler.LMBReleasedInside += (sender, e) =>
             {
                 if (!e.IsHandled)
                 {
+                    // Check if the release was within the pin button bounds (transparent to hit-test).
+                    if (Panel?.CanAutoHide == true && _pinButton != null
+                        && _pinButton.LayoutBounds.Width > 0
+                        && _pinButton.LayoutBounds.Contains(e.Position))
+                    {
+                        PinToggleRequested?.Invoke(this, Panel);
+                        e.SetHandledBy(this, false);
+                        return;
+                    }
                     TabClicked?.Invoke(this, Panel);
                 }
             };
@@ -263,18 +273,8 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment   = VerticalAlignment.Stretch
             };
-            _pinButton.BackgroundBrush = new VisualStateFillBrush(
-                (IFillBrush)null,
-                new Color(62, 62, 66),
-                PressedModifierType.Darken, 0.10f);
-            _pinButton.MouseHandler.LMBReleasedInside += (sender, e) =>
-            {
-                if (!e.IsHandled)
-                {
-                    PinToggleRequested?.Invoke(this, Panel);
-                    e.SetHandledBy(_pinButton, false);
-                }
-            };
+            // Pin button is purely visual — mouse events pass through to the tab item.
+            _pinButton.IsHitTestVisible = false;
             _pinButton.SetParent(this);
 
             // Subscribe to drag start

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Shared.Text;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -112,16 +114,20 @@ public class MGDockAutoHideStrip : MGElement
             PressedModifierType.Darken,
             0.10f);
 
-        var label = new MGTextBlock(ParentWindow, title)
+        // Only add a label for horizontal strips; vertical strips use rotated DrawContents text
+        if (IsHorizontal)
         {
-            FontSize            = 11,
-            WrapText            = false,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment   = VerticalAlignment.Center,
-            Padding             = new XAML.Thickness(4, 2, 4, 2).ToThickness()
-        };
-        label.DefaultTextForeground.NormalValue = new Color(200, 200, 200);
-        body.SetContent(label);
+            var label = new MGTextBlock(ParentWindow, title)
+            {
+                FontSize            = 11,
+                WrapText            = false,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment   = VerticalAlignment.Center,
+                Padding             = new XAML.Thickness(4, 2, 4, 2).ToThickness()
+            };
+            label.DefaultTextForeground.NormalValue = new Color(200, 200, 200);
+            body.SetContent(label);
+        }
         return body;
     }
 
@@ -191,6 +197,29 @@ public class MGDockAutoHideStrip : MGElement
         // Draw button children
         foreach (var child in GetChildren())
             child?.Draw(DA);
+
+        // For Left / Right strips, the buttons are only 24 px wide so we draw the title
+        // text rotated 90° manually.
+        if (!IsHorizontal)
+        {
+            string family = ParentWindow.Desktop.FontManager.DefaultFontFamily;
+            foreach (var (btn, panel) in _buttonMap)
+            {
+                string title = panel.Title;
+                if (string.IsNullOrEmpty(title)) continue;
+                if (DA.DT.FontManager.TryGetFont(family, CustomFontStyles.Normal, 11, true,
+                    out _, out SpriteFont sf, out _, out _, out float scale))
+                {
+                    Vector2 textSize = sf.MeasureString(title);
+                    Vector2 origin   = new Vector2(textSize.X / 2f, textSize.Y / 2f);
+                    Vector2 pos      = new Vector2(
+                        btn.LayoutBounds.X + btn.LayoutBounds.Width  / 2f,
+                        btn.LayoutBounds.Y + btn.LayoutBounds.Height / 2f);
+                    Color textColor  = new Color(200, 200, 200) * DA.Opacity;
+                    DA.DT.DrawSpriteFontText(sf, title, pos, textColor, origin, scale, scale, -MathF.PI / 2f);
+                }
+            }
+        }
 
         var LayoutBounds = this.LayoutBounds;
         // Draw a thin separator line on the inner edge

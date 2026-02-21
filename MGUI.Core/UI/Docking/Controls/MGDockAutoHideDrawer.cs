@@ -57,8 +57,19 @@ public class MGDockAutoHideDrawer : MGElement
     /// <summary>Fired when the user clicks the Pin button — requests the panel be returned to the layout.</summary>
     public event EventHandler<DockPanelNode> PinRequested;
 
-    /// <summary>Fired when the user clicks the close (×) button — closes the drawer without pinning.</summary>
+    /// <summary>Fired when the user clicks the close (×) button — closes the panel entirely (removes it from the layout).</summary>
+    public event EventHandler<DockPanelNode> PanelCloseRequested;
+
+    /// <summary>Fired to close the drawer without affecting the panel (e.g. click-outside dismissal).</summary>
     public event EventHandler CloseRequested;
+
+    /// <summary>Fired when the user drags the resize grip, with the new drawer size in pixels.</summary>
+    public event EventHandler<int> DrawerSizeChanged;
+
+    // ── Resize grip state ──────────────────────────────────────────────
+    private bool _isResizing;
+    private Point _resizeDragStart;
+    private int   _resizeStartSize;
 
     // ── Constructor ───────────────────────────────────────────────────
     public MGDockAutoHideDrawer(MGWindow window) : base(window, MGElementType.Custom)
@@ -95,7 +106,13 @@ public class MGDockAutoHideDrawer : MGElement
                     PinRequested?.Invoke(this, _activePanel);
             });
 
-            _closeBtn = CreateHeaderButton(window, "×", () => CloseRequested?.Invoke(this, EventArgs.Empty));
+            _closeBtn = CreateHeaderButton(window, "\u00d7", () =>
+            {
+                if (_activePanel != null)
+                    PanelCloseRequested?.Invoke(this, _activePanel);
+                else
+                    CloseRequested?.Invoke(this, EventArgs.Empty);
+            });
 
             _header.SetParent(this);
 
@@ -180,6 +197,31 @@ public class MGDockAutoHideDrawer : MGElement
             yield return _content;
     }
 
+    // ── Resize grip helpers ────────────────────────────────────────────
+    private Rectangle GetResizeGripRect(Rectangle lb)
+    {
+        return _side switch
+        {
+            AutoHideSide.Left   => new Rectangle(lb.Right - ResizeGripSize, lb.Y, ResizeGripSize, lb.Height),
+            AutoHideSide.Right  => new Rectangle(lb.X, lb.Y, ResizeGripSize, lb.Height),
+            AutoHideSide.Top    => new Rectangle(lb.X, lb.Bottom - ResizeGripSize, lb.Width, ResizeGripSize),
+            AutoHideSide.Bottom => new Rectangle(lb.X, lb.Y, lb.Width, ResizeGripSize),
+            _                   => Rectangle.Empty
+        };
+    }
+
+    private int ComputeResizeDelta(Point current)
+    {
+        return _side switch
+        {
+            AutoHideSide.Left   =>  (current.X - _resizeDragStart.X),
+            AutoHideSide.Right  => -(current.X - _resizeDragStart.X),
+            AutoHideSide.Top    =>  (current.Y - _resizeDragStart.Y),
+            AutoHideSide.Bottom => -(current.Y - _resizeDragStart.Y),
+            _                   => 0
+        };
+    }
+
     // ── Layout ────────────────────────────────────────────────────────
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
@@ -213,6 +255,41 @@ public class MGDockAutoHideDrawer : MGElement
         _content?.UpdateLayout(new Rectangle(Bounds.X, contentY, Bounds.Width, contentH));
     }
 
+    // ── Resize drag handling ──────────────────────────────────────────
+    public override void UpdateSelf(ElementUpdateArgs UA)
+    {
+        base.UpdateSelf(UA);
+
+        var mouse    = ParentWindow.Desktop.InputTracker.Mouse;
+        Point mp     = mouse.CurrentPosition;
+        bool lmbDown = mouse.CurrentState.LeftButton  == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+        bool wasDown = mouse.PreviousState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+
+        if (!_isResizing && lmbDown && !wasDown)
+        {
+            Rectangle grip = GetResizeGripRect(LayoutBounds);
+            if (grip.Width > 0 && grip.Contains(mp))
+            {
+                _isResizing     = true;
+                _resizeDragStart = mp;
+                _resizeStartSize = ActivePanel?.DrawerSize ?? 200;
+            }
+        }
+        else if (_isResizing && lmbDown)
+        {
+            int newSize = Math.Max(60, _resizeStartSize + ComputeResizeDelta(mp));
+            if (ActivePanel != null && ActivePanel.DrawerSize != newSize)
+            {
+                ActivePanel.DrawerSize = newSize;
+                DrawerSizeChanged?.Invoke(this, newSize);
+            }
+        }
+        else if (_isResizing && !lmbDown)
+        {
+            _isResizing = false;
+        }
+    }
+
     // ── Draw shadow/border ─────────────────────────────────────────────
     protected override void DrawContents(ElementDrawArgs DA)
     {
@@ -231,5 +308,13 @@ public class MGDockAutoHideDrawer : MGElement
         DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.X, LayoutBounds.Y, 1, LayoutBounds.Height), borderColor);
         // Right
         DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.Right - 1, LayoutBounds.Y, 1, LayoutBounds.Height), borderColor);
+
+        // Draw resize grip highlight on the inner edge
+        Rectangle grip = GetResizeGripRect(LayoutBounds);
+        if (grip.Width > 0)
+        {
+            var gripColor = new Color(100, 100, 110) * DA.Opacity;
+            DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(grip.X, grip.Y, grip.Width, grip.Height), gripColor);
+        }
     }
 }
