@@ -54,6 +54,75 @@ public class DockLayoutModel : INotifyPropertyChanged
     /// </summary>
     public event PropertyChangedEventHandler PropertyChanged;
 
+    #region Auto-Hide Store
+
+    /// <summary>
+    /// Panels that are currently auto-hidden (unpinned), grouped by the edge they appear on.
+    /// The order within each list is the order they appear in the strip.
+    /// </summary>
+    private readonly Dictionary<AutoHideSide, List<DockPanelNode>> _autoHideStore
+        = new Dictionary<AutoHideSide, List<DockPanelNode>>
+        {
+            { AutoHideSide.Left,   new List<DockPanelNode>() },
+            { AutoHideSide.Right,  new List<DockPanelNode>() },
+            { AutoHideSide.Top,    new List<DockPanelNode>() },
+            { AutoHideSide.Bottom, new List<DockPanelNode>() },
+        };
+
+    /// <summary>
+    /// Returns a read-only view of the auto-hidden panels on the specified side.
+    /// </summary>
+    public IReadOnlyList<DockPanelNode> GetAutoHidePanels(AutoHideSide side)
+        => _autoHideStore[side].AsReadOnly();
+
+    /// <summary>
+    /// Returns all auto-hidden panels across all sides.
+    /// </summary>
+    public IEnumerable<DockPanelNode> GetAllAutoHidePanels()
+        => _autoHideStore.Values.SelectMany(l => l);
+
+    /// <summary>
+    /// Adds <paramref name="panel"/> to the auto-hide store on <paramref name="side"/>.
+    /// Marks the panel as unpinned.  Does nothing if the panel is already in the store.
+    /// </summary>
+    public void AddToAutoHide(DockPanelNode panel, AutoHideSide side)
+    {
+        if (panel == null) return;
+        // Remove from any existing side first (safety)
+        RemoveFromAutoHide(panel);
+        panel.IsPinned = false;
+        panel.AutoHideSide = side;
+        _autoHideStore[side].Add(panel);
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Removes <paramref name="panel"/> from the auto-hide store (regardless of which side it is on).
+    /// Marks the panel as pinned again.  Returns true if the panel was found and removed.
+    /// </summary>
+    public bool RemoveFromAutoHide(DockPanelNode panel)
+    {
+        if (panel == null) return false;
+        foreach (var list in _autoHideStore.Values)
+        {
+            if (list.Remove(panel))
+            {
+                panel.IsPinned = true;
+                LayoutChanged?.Invoke(this, EventArgs.Empty);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Whether any panel is currently auto-hidden on <paramref name="side"/>.</summary>
+    public bool HasAutoHidePanels(AutoHideSide side) => _autoHideStore[side].Count > 0;
+
+    /// <summary>Whether any panel anywhere is currently auto-hidden.</summary>
+    public bool HasAnyAutoHidePanels() => _autoHideStore.Values.Any(l => l.Count > 0);
+
+    #endregion Auto-Hide Store
+
     /// <summary>
     /// Creates a new empty DockLayoutModel.
     /// </summary>

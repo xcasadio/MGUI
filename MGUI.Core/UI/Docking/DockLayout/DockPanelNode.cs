@@ -87,10 +87,28 @@ public class DockPanelNode : DockNode
         }
     }
 
-    private bool _isPinned;
+    private bool _canAutoHide = true;
     /// <summary>
-    /// Indicates whether the panel is pinned (always visible) or can auto-hide.
-    /// Phase 2 feature. Default: true (pinned).
+    /// Whether the user is allowed to pin/unpin this panel.
+    /// When false, the pin button is hidden. Default: true.
+    /// </summary>
+    public bool CanAutoHide
+    {
+        get => _canAutoHide;
+        set
+        {
+            if (_canAutoHide != value)
+            {
+                _canAutoHide = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private bool _isPinned = true;
+    /// <summary>
+    /// Indicates whether the panel is pinned (always visible) or auto-hidden (in a strip).
+    /// Default: true (pinned).
     /// </summary>
     public bool IsPinned
     {
@@ -100,6 +118,42 @@ public class DockPanelNode : DockNode
             if (_isPinned != value)
             {
                 _isPinned = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private AutoHideSide _autoHideSide = AutoHideSide.Left;
+    /// <summary>
+    /// The edge of the host where this panel's languette appears when it is auto-hidden.
+    /// Inferred from the panel's position when the user unpins it.
+    /// </summary>
+    public AutoHideSide AutoHideSide
+    {
+        get => _autoHideSide;
+        set
+        {
+            if (_autoHideSide != value)
+            {
+                _autoHideSide = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private int _drawerSize = 200;
+    /// <summary>
+    /// Width (for Left/Right sides) or height (for Top/Bottom sides) of the auto-hide drawer in pixels.
+    /// Persisted so the drawer reopens at the same size as the user left it.
+    /// </summary>
+    public int DrawerSize
+    {
+        get => _drawerSize;
+        set
+        {
+            if (_drawerSize != value)
+            {
+                _drawerSize = Math.Max(60, value);
                 OnPropertyChanged();
             }
         }

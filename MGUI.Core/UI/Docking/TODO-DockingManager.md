@@ -266,21 +266,24 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 ## 🌟 V3 (Waouh)
 
 ### 11. Auto-Hide (Pin/Unpin)
-- [ ] **11.1** Bouton Pin/Unpin sur les tabs
-  - Toggle `IsPinned`
-  - Si unpin → déplacer vers languette
+- [x] **11.1** Bouton Pin/Unpin sur les tabs ✅ (Implémenté le 2026-02-20)
+  - ✅ `_pinButton` (MGBorder) + `PinToggleRequested` event sur `MGDockTabItem`
+  - ✅ Menu contextuel : « Auto-Hide » / « Pin (restore) » selon l'état
+  - ✅ `PanelPinToggleRequested` propagé via `MGDockTabGroup`
 
-- [ ] **11.2** Languettes sur les bords
-  - Bande étroite Left/Right/Top/Bottom
-  - Afficher une icône + titre court pour chaque panel unpinned
+- [x] **11.2** Languettes sur les bords ✅ (Implémenté le 2026-02-20)
+  - ✅ `MGDockAutoHideStrip` : bande fine (24 px) par côté Left/Right/Top/Bottom
+  - ✅ `AutoHideStore` dans `DockLayoutModel` avec `AddToAutoHide` / `RemoveFromAutoHide`
+  - ✅ `RefreshAutoHideStrips()` / `GetStripBounds()` dans `MGDockHost`
 
-- [ ] **11.3** Drawer (overlay) au survol/clic
-  - Animer l'ouverture du panel depuis le bord
-  - Se ferme au focus loss ou clic ailleurs
+- [x] **11.3** Drawer (overlay) au survol/clic ✅ (Implémenté le 2026-02-20)
+  - ✅ `MGDockAutoHideDrawer` : panneau overlay avec header (titre + boutons Pin/×)
+  - ✅ Clic sur languette → `ShowAutoHideDrawer(panel)` ; clic hors drawer → fermeture
+  - ✅ Bouton Pin → `RepinPanel(panel)` ; bouton × → `HideAutoHideDrawer()`
 
-- [ ] **11.4** Mémoriser la taille du drawer
-  - Persister la largeur/hauteur du drawer par panel
-  - Restaurer au réaffichage
+- [x] **11.4** Mémoriser la taille du drawer ✅ (Implémenté le 2026-02-20)
+  - ✅ `DrawerSize` (int, min 60) persisté dans `DockPanelNode`
+  - ✅ `GetDrawerBounds()` dans MGDockHost utilise `ActivePanel.DrawerSize`
 
 ### 12. Maximize/Restore
 - [x] **12.1** Bouton Maximize sur un groupe ✅ (Implémenté le 2026-02-20)
@@ -335,7 +338,7 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 |-------|---------------------|------|
 | MVP   | Bugs fix, tabs close/reorder, save/load | ✅ Complété |
 | V2    | Registry, edge docking, rules, overflow, maximize, boutons visuels, floating windows | ✅ Complété |
-| V3    | Auto-hide, proximity docking, focus, polish | 🔴 À faire |
+| V3    | Auto-hide, proximity docking, focus, polish | � En cours (auto-hide ✅, tâches 13-15 restantes) |
 ## 🐛 Bugs Connus à Investiguer
 
 1. [x] ~~Bug : Headers des tabs avec bordures visibles~~ ✅ Corrigé (MGBorder sans bordure)

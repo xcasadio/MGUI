@@ -250,12 +250,65 @@ public class MGDockHost : MGSingleContentHost
             // Set default styling
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
+
+            // ── Auto-hide strips (one per edge) ────────────────────────────────
+            foreach (AutoHideSide side in System.Enum.GetValues(typeof(AutoHideSide)))
+            {
+                var strip = new MGDockAutoHideStrip(window, side);
+                strip.Visibility = Visibility.Collapsed;
+                strip.PanelActivated += (_, panel) => ShowAutoHideDrawer(panel);
+                _autoHideStrips[side] = strip;
+
+                AutoHideSide capturedSide = side;
+                var comp = new MGComponent<MGDockAutoHideStrip>(
+                    strip,
+                    ComponentUpdatePriority.AfterContents,
+                    ComponentDrawPriority.AfterContents,
+                    true, true, false, false, false, false, false,
+                    (avail, _) => GetStripBounds(capturedSide, avail));
+                AddComponent(comp);
+            }
+
+            // ── Auto-hide drawer overlay ───────────────────────────────────
+            _autoHideDrawer = new MGDockAutoHideDrawer(window);
+            _autoHideDrawer.Visibility  = Visibility.Collapsed;
+            _autoHideDrawer.PinRequested   += (_, panel) => RepinPanel(panel);
+            _autoHideDrawer.CloseRequested += (_, _)     => HideAutoHideDrawer();
+            var drawerComp = new MGComponent<MGDockAutoHideDrawer>(
+                _autoHideDrawer,
+                ComponentUpdatePriority.AfterContents,
+                ComponentDrawPriority.AfterContents,
+                true, true, false, false, false, false, false,
+                (avail, _) => GetDrawerBounds(avail));
+            AddComponent(drawerComp);
         }
     }
 
     public override void UpdateSelf(ElementUpdateArgs UA)
     {
         base.UpdateSelf(UA);
+
+        // ── Close auto-hide drawer on click outside ──────────────────────────────
+        if (_autoHideDrawer?.Visibility == Visibility.Visible)
+        {
+            var mouseState = ParentWindow.Desktop.InputTracker.Mouse;
+            bool lmbPressed = mouseState.CurrentState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed
+                           && mouseState.PreviousState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+
+            if (lmbPressed)
+            {
+                Point mp = mouseState.CurrentPosition;
+                bool insideDrawer = _autoHideDrawer.LayoutBounds.Contains(mp);
+                bool insideStrip  = false;
+                foreach (var strip in _autoHideStrips.Values)
+                {
+                    if (strip.Visibility == Visibility.Visible && strip.LayoutBounds.Contains(mp))
+                    { insideStrip = true; break; }
+                }
+                if (!insideDrawer && !insideStrip)
+                    HideAutoHideDrawer();
+            }
+        }
 
         // Handle drag operation via polling
         if (IsDragging)
@@ -878,6 +931,191 @@ public class MGDockHost : MGSingleContentHost
     }
 
     #endregion Floating Windows — management
+
+    #region Auto-Hide
+
+    private const int _autoHideStripThickness = MGDockAutoHideStrip.StripThickness;
+
+    // ── Layout helpers ─────────────────────────────────────────────────
+
+    private Microsoft.Xna.Framework.Rectangle GetStripBounds(AutoHideSide side, Microsoft.Xna.Framework.Rectangle avail)
+    {
+        if (LayoutModel == null || !LayoutModel.HasAutoHidePanels(side))
+            return new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0);
+        return side switch
+        {
+            AutoHideSide.Left   => new Microsoft.Xna.Framework.Rectangle(avail.X, avail.Y, _autoHideStripThickness, avail.Height),
+            AutoHideSide.Right  => new Microsoft.Xna.Framework.Rectangle(avail.Right - _autoHideStripThickness, avail.Y, _autoHideStripThickness, avail.Height),
+            AutoHideSide.Top    => new Microsoft.Xna.Framework.Rectangle(avail.X, avail.Y, avail.Width, _autoHideStripThickness),
+            AutoHideSide.Bottom => new Microsoft.Xna.Framework.Rectangle(avail.X, avail.Bottom - _autoHideStripThickness, avail.Width, _autoHideStripThickness),
+            _                   => new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0)
+        };
+    }
+
+    private Microsoft.Xna.Framework.Rectangle GetDrawerBounds(Microsoft.Xna.Framework.Rectangle avail)
+    {
+        var panel = _autoHideDrawer?.ActivePanel;
+        if (panel == null) return new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0);
+        int ds = panel.DrawerSize;
+        int st = _autoHideStripThickness;
+        return panel.AutoHideSide switch
+        {
+            AutoHideSide.Left   => new Microsoft.Xna.Framework.Rectangle(avail.X + st,           avail.Y,              ds, avail.Height),
+            AutoHideSide.Right  => new Microsoft.Xna.Framework.Rectangle(avail.Right - st - ds,  avail.Y,              ds, avail.Height),
+            AutoHideSide.Top    => new Microsoft.Xna.Framework.Rectangle(avail.X,                avail.Y + st,          avail.Width, ds),
+            AutoHideSide.Bottom => new Microsoft.Xna.Framework.Rectangle(avail.X,                avail.Bottom - st - ds, avail.Width, ds),
+            _                   => new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0)
+        };
+    }
+
+    // ── Public API ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Removes <paramref name="panel"/> from the docked layout and places it in the auto-hide
+    /// strip on the appropriate edge (inferred from its current position).
+    /// </summary>
+    public void UnpinPanel(DockPanelNode panel)
+    {
+        if (panel == null || !panel.CanAutoHide) return;
+
+        AutoHideSide side = InferAutoHideSide(panel);
+
+        // Suspend model-change events so we get exactly one visual-tree rebuild at the end
+        _layoutModel.LayoutChanged -= OnLayoutModelChanged;
+        try
+        {
+            DockOperation.RemovePanel(LayoutModel, panel);
+            LayoutModel.AddToAutoHide(panel, side);
+        }
+        finally
+        {
+            _layoutModel.LayoutChanged += OnLayoutModelChanged;
+        }
+
+        RefreshAutoHideStrips();
+        RebuildVisualTree();
+        DockLayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Moves <paramref name="panel"/> from the auto-hide store back into the docked layout,
+    /// placing it in the first available tab group (or creating a new one).
+    /// </summary>
+    public void RepinPanel(DockPanelNode panel)
+    {
+        if (panel == null) return;
+
+        HideAutoHideDrawer();
+
+        _layoutModel.LayoutChanged -= OnLayoutModelChanged;
+        try
+        {
+            LayoutModel.RemoveFromAutoHide(panel);
+
+            var groups = GetAllTabGroups().ToList();
+            if (groups.Count > 0)
+            {
+                DockOperation.DockAsTab(LayoutModel, panel, groups[0]);
+            }
+            else if (LayoutModel.RootNode == null)
+            {
+                var newGroup = new DockTabGroupNode();
+                newGroup.AddPanel(panel, -1);
+                LayoutModel.RootNode = newGroup;
+            }
+            else
+            {
+                DockOperation.SplitDock(LayoutModel, panel, LayoutModel.RootNode, DockZone.Right);
+            }
+        }
+        finally
+        {
+            _layoutModel.LayoutChanged += OnLayoutModelChanged;
+        }
+
+        RefreshAutoHideStrips();
+        RebuildVisualTree();
+        DockLayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Shows the auto-hide drawer for the given panel.
+    /// Calling this while the same panel is already open closes the drawer (toggle).
+    /// </summary>
+    public void ShowAutoHideDrawer(DockPanelNode panel)
+    {
+        if (panel == null) return;
+
+        // Toggle: clicking the same languette again closes it
+        if (_autoHideDrawer.ActivePanel == panel && _autoHideDrawer.Visibility == Visibility.Visible)
+        {
+            HideAutoHideDrawer();
+            return;
+        }
+
+        _autoHideDrawer.Side       = panel.AutoHideSide;
+        _autoHideDrawer.ActivePanel = panel;
+        _autoHideDrawer.Visibility  = Visibility.Visible;
+        InvalidateLayout();
+    }
+
+    /// <summary>Closes the auto-hide drawer without re-pinning the panel.</summary>
+    public void HideAutoHideDrawer()
+    {
+        if (_autoHideDrawer?.Visibility == Visibility.Collapsed) return;
+        _autoHideDrawer.ActivePanel = null;
+        _autoHideDrawer.Visibility  = Visibility.Collapsed;
+        InvalidateLayout();
+    }
+
+    // ── Private helpers ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Infers which edge of the host <paramref name="panel"/> should auto-hide to, based on the
+    /// current position of its tab group relative to the host centre.
+    /// </summary>
+    private AutoHideSide InferAutoHideSide(DockPanelNode panel)
+    {
+        foreach (var tabGroup in GetAllVisibleTabGroups())
+        {
+            if (tabGroup.GroupNode?.Panels.Any(p => p.Id == panel.Id) == true)
+            {
+                var gb = tabGroup.LayoutBounds;
+                var hb = LayoutBounds;
+                if (hb.Width == 0 || hb.Height == 0) return AutoHideSide.Left;
+
+                float cx = (gb.X + gb.Width  * 0.5f - hb.X) / hb.Width;
+                float cy = (gb.Y + gb.Height * 0.5f - hb.Y) / hb.Height;
+
+                float dL = cx;
+                float dR = 1f - cx;
+                float dT = cy;
+                float dB = 1f - cy;
+                float min = Math.Min(Math.Min(dL, dR), Math.Min(dT, dB));
+                if (min == dL) return AutoHideSide.Left;
+                if (min == dR) return AutoHideSide.Right;
+                if (min == dT) return AutoHideSide.Top;
+                return AutoHideSide.Bottom;
+            }
+        }
+        return AutoHideSide.Left;
+    }
+
+    /// <summary>Rebuilds every strip's button list from the current auto-hide store.</summary>
+    private void RefreshAutoHideStrips()
+    {
+        if (LayoutModel == null) return;
+        foreach (AutoHideSide side in _autoHideStrips.Keys)
+        {
+            var panels = LayoutModel.GetAutoHidePanels(side);
+            _autoHideStrips[side].Refresh(panels);
+            _autoHideStrips[side].Visibility = panels.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        InvalidateLayout();
+    }
+
+    #endregion Auto-Hide
+
     /// <returns>Collection of all DockTabGroupNode instances in the visual tree.</returns>
     public IEnumerable<DockTabGroupNode> GetAllTabGroups()
     {
@@ -1066,7 +1304,11 @@ public class MGDockHost : MGSingleContentHost
             .SelectMany(w => w.GroupNode.Panels)
             .Select(p => p.Id);
 
-        _dockableRegistry.SyncVisibility(_panelRegistry.Keys.Concat(floatingIds));
+        // Auto-hidden panels are still "visible" to the registry (just folded away)
+        var autoHideIds = LayoutModel?.GetAllAutoHidePanels().Select(p => p.Id)
+                          ?? Enumerable.Empty<string>();
+
+        _dockableRegistry.SyncVisibility(_panelRegistry.Keys.Concat(floatingIds).Concat(autoHideIds));
     }
 
     /// <summary>
@@ -1176,6 +1418,16 @@ public class MGDockHost : MGSingleContentHost
                 LayoutBounds.X + LayoutBounds.Width  / 2,
                 LayoutBounds.Y + LayoutBounds.Height / 2);
             DetachToFloating(panelToFloat, pos);
+        };
+
+        // Subscribe to pin/unpin toggle requests from the context menu or pin button
+        tabGroup.PanelPinToggleRequested += (sender, panelToToggle) =>
+        {
+            if (panelToToggle == null) return;
+            if (panelToToggle.IsPinned)
+                UnpinPanel(panelToToggle);
+            else
+                RepinPanel(panelToToggle);
         };
 
         // Subscribe to maximize / restore requests
@@ -1330,6 +1582,11 @@ public class MGDockHost : MGSingleContentHost
     private MGDockDropIndicators _dropIndicators;
     private MGComponentBase _dropIndicatorsComponent;
     private MGDockTabGroup _lastHoveredGroup; // Track which group we're hovering for indicators
+
+    // Auto-hide strips (one per edge) and drawer overlay
+    private readonly Dictionary<AutoHideSide, MGDockAutoHideStrip> _autoHideStrips
+        = new Dictionary<AutoHideSide, MGDockAutoHideStrip>();
+    private MGDockAutoHideDrawer _autoHideDrawer;
 
     /// <summary>
     /// The current drop target based on the last mouse position.

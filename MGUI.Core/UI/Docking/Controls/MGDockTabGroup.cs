@@ -147,6 +147,11 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     public event EventHandler<DockPanelNode> PanelFloatRequested;
 
+    /// <summary>
+    /// Event raised when the user clicks the pin button or selects Auto-Hide/Pin from a tab's context menu.
+    /// </summary>
+    public event EventHandler<DockPanelNode> PanelPinToggleRequested;
+
     /// <summary>Updates the maximize / restore button label to match <see cref="IsMaximized"/>.</summary>
     private void UpdateMaximizeButtonLabel()
     {
@@ -283,6 +288,12 @@ public class MGDockTabGroup : MGElement
             tabItem.FloatRequested += (sender, panelToFloat) =>
             {
                 PanelFloatRequested?.Invoke(this, panelToFloat);
+            };
+
+            // Subscribe to pin/unpin toggle
+            tabItem.PinToggleRequested += (sender, panelToToggle) =>
+            {
+                PanelPinToggleRequested?.Invoke(this, panelToToggle);
             };
 
             // Context-menu extra events

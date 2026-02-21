@@ -103,9 +103,12 @@ public class MGDockTabItem : MGElement
     private MGTextBlock _titleText;
     private MGBorder _closeButton;
     private MGTextBlock _closeButtonText;
+    private MGBorder _pinButton;
 
     /// <summary>Fixed pixel width reserved for the close button (icon area + padding).</summary>
     private const int CloseButtonSize = 22;
+    /// <summary>Fixed pixel width reserved for the pin button.</summary>
+    private const int PinButtonSize = 22;
 
     private int _tabHeight = 30;
     /// <summary>
@@ -167,6 +170,12 @@ public class MGDockTabItem : MGElement
     /// Event raised when the user selects "Close All" from the context menu.
     /// </summary>
     public event EventHandler<DockPanelNode> CloseAllRequested;
+
+    /// <summary>
+    /// Event raised when the user clicks the pin button or selects "Auto-Hide" / "Pin" from the
+    /// context menu.  The host should toggle <see cref="DockPanelNode.IsPinned"/> accordingly.
+    /// </summary>
+    public event EventHandler<DockPanelNode> PinToggleRequested;
 
     /// <summary>
     /// Fallback reference to the owning <see cref="MGDockHost"/> used when this tab item lives
@@ -248,6 +257,26 @@ public class MGDockTabItem : MGElement
                 }
             };
 
+            // ── Pin button ─────────────────────────────────────────────────
+            _pinButton = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment   = VerticalAlignment.Stretch
+            };
+            _pinButton.BackgroundBrush = new VisualStateFillBrush(
+                (IFillBrush)null,
+                new Color(62, 62, 66),
+                PressedModifierType.Darken, 0.10f);
+            _pinButton.MouseHandler.LMBReleasedInside += (sender, e) =>
+            {
+                if (!e.IsHandled)
+                {
+                    PinToggleRequested?.Invoke(this, Panel);
+                    e.SetHandledBy(_pinButton, false);
+                }
+            };
+            _pinButton.SetParent(this);
+
             // Subscribe to drag start
             MouseHandler.DragStart += OnDragStart;
 
@@ -288,6 +317,14 @@ public class MGDockTabItem : MGElement
             if (panel?.CanFloat == true)
             {
                 menu.AddButton("Float", _ => FloatRequested?.Invoke(this, panel));
+                menu.AddSeparator();
+            }
+
+            // Pin / Auto-Hide — only if the panel allows auto-hide
+            if (panel?.CanAutoHide == true)
+            {
+                string pinLabel = (panel.IsPinned) ? "Auto-Hide" : "Pin (restore)";
+                menu.AddButton(pinLabel, _ => PinToggleRequested?.Invoke(this, panel));
                 menu.AddSeparator();
             }
 
@@ -381,14 +418,13 @@ public class MGDockTabItem : MGElement
     public override System.Collections.Generic.IEnumerable<MGElement> GetChildren()
     {
         if (_titleText != null)
-        {
             yield return _titleText;
-        }
+
+        if (_pinButton != null && Panel?.CanAutoHide == true)
+            yield return _pinButton;
 
         if (_closeButton != null && Panel?.CanClose == true)
-        {
             yield return _closeButton;
-        }
     }
 
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
@@ -411,10 +447,11 @@ public class MGDockTabItem : MGElement
             titleWidth = titleFullSize.Width;
         }
 
-        // Close button occupies a fixed reserved area — no need to measure the child element.
+        // Close and pin buttons occupy fixed reserved areas.
         int closeWidth = (Panel?.CanClose == true) ? CloseButtonSize : 0;
+        int pinWidth   = (Panel?.CanAutoHide == true) ? PinButtonSize : 0;
 
-        int totalWidth = Math.Max(MinTabWidth, titleWidth + closeWidth);
+        int totalWidth = Math.Max(MinTabWidth, titleWidth + pinWidth + closeWidth);
         return new Thickness(totalWidth, TabHeight, 0, 0);
     }
 
@@ -425,27 +462,37 @@ public class MGDockTabItem : MGElement
             return;
         }
 
-        // Layout title text — occupies everything left of the close button
-        int closeWidth = (Panel?.CanClose == true && _closeButton != null) ? CloseButtonSize : 0;
+        // Layout title text — occupies everything left of pin + close buttons
+        int closeWidth = (Panel?.CanClose == true  && _closeButton != null) ? CloseButtonSize : 0;
+        int pinWidth   = (Panel?.CanAutoHide == true && _pinButton  != null) ? PinButtonSize   : 0;
+        int buttonsWidth = pinWidth + closeWidth;
 
         Rectangle titleBounds = new Rectangle(
             Bounds.X,
             Bounds.Y,
-            Bounds.Width - closeWidth,
+            Bounds.Width - buttonsWidth,
             Bounds.Height
         );
         _titleText.UpdateLayout(titleBounds);
 
-        // Layout close button — flush to the right, vertically centred, exactly CloseButtonSize wide
+        // Pin button — left of close button
+        if (Panel?.CanAutoHide == true && _pinButton != null)
+        {
+            _pinButton.UpdateLayout(new Rectangle(
+                Bounds.Right - buttonsWidth,
+                Bounds.Y,
+                PinButtonSize,
+                Bounds.Height));
+        }
+
+        // Close button — flush right
         if (Panel?.CanClose == true && _closeButton != null)
         {
-            Rectangle closeBounds = new Rectangle(
-                Bounds.Right - CloseButtonSize,
+            _closeButton.UpdateLayout(new Rectangle(
+                Bounds.Right - closeWidth,
                 Bounds.Y,
                 CloseButtonSize,
-                Bounds.Height
-            );
-            _closeButton.UpdateLayout(closeBounds);
+                Bounds.Height));
         }
     }
 
@@ -530,6 +577,26 @@ public class MGDockTabItem : MGElement
             DA.DT.StrokeLineSegment(Vector2.Zero,
                 new Vector2(cx + half, cy - half), new Vector2(cx - half, cy + half),
                 crossColor, 1.5f);
+        }
+
+        // Draw pin icon on the pin button
+        if (Panel?.CanAutoHide == true && _pinButton != null)
+        {
+            Rectangle pb = _pinButton.LayoutBounds;
+            float cx = pb.X + pb.Width * 0.5f;
+            float cy = pb.Y + pb.Height * 0.5f;
+            Color pinColor = Panel.IsPinned
+                ? new Color(0, 180, 255)    // blue when pinned (will be auto-hidden on click)
+                : new Color(180, 180, 180); // grey when unpinned (will be re-pinned on click)
+
+            // Pin head: small filled square
+            int hs = 3;
+            DA.DT.FillRectangle(Vector2.Zero,
+                new MonoGame.Extended.RectangleF(cx - hs, cy - hs - 1, hs * 2, hs * 2), pinColor);
+            // Pin stem: short vertical line below the head
+            DA.DT.StrokeLineSegment(Vector2.Zero,
+                new Vector2(cx, cy + hs - 1), new Vector2(cx, cy + hs + 3),
+                pinColor, 1.5f);
         }
     }
 }
