@@ -121,7 +121,10 @@ namespace MGUI.Core.UI.XAML
             if (Submenu != null)
                 ContextMenuItem.Submenu = Submenu.ToElement<MGContextMenu>(ContextMenuItem.SelfOrParentWindow, ContextMenuItem);
 
-            //base.ApplyDerivedSettings(Parent, Element, IncludeContent);
+            // base.ApplyDerivedSettings is intentionally NOT called here.
+            // SingleContentHost.ApplyDerivedSettings would call SetContent() on the runtime element,
+            // but Content is already consumed in CreateElementInstance (e.g. passed to ContextMenu.AddButton).
+            // The runtime element has CanChangeContent = false, so a second SetContent call would throw.
         }
     }
 
@@ -234,9 +237,9 @@ namespace MGUI.Core.UI.XAML
         }
     }
 
-    /// <summary>XAML class for <see cref="MGContextMenuRadio"/>.<para/>
+    /// <summary>XAML class for <see cref="MGContextMenuRadioButton"/>.<para/>
     /// Items sharing the same <see cref="GroupName"/> are mutually exclusive within the same <see cref="ContextMenu"/>.</summary>
-    public class ContextMenuRadio : WrappedContextMenuItem
+    public class ContextMenuRadioButton : WrappedContextMenuItem
     {
         public override MGElementType ElementType => MGElementType.ContextMenuItem;
 
@@ -257,21 +260,21 @@ namespace MGUI.Core.UI.XAML
                 return ContextMenu.AddRadioButton(ContentElement, GroupName ?? "default", IsChecked ?? false);
             }
             else
-                throw new InvalidOperationException($"The parent of a {nameof(ContextMenuRadio)} must be a {nameof(MGContextMenu)}.");
+                throw new InvalidOperationException($"The parent of a {nameof(ContextMenuRadioButton)} must be a {nameof(MGContextMenu)}.");
         }
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
         {
-            MGContextMenuRadio Radio = Element as MGContextMenuRadio;
+            MGContextMenuRadioButton RadioButton = Element as MGContextMenuRadioButton;
 
             if (CommandId != null)
-                Radio.CommandId = CommandId;
+                RadioButton.CommandId = CommandId;
             if (GroupName != null)
-                Radio.GroupName = GroupName;
+                RadioButton.GroupName = GroupName;
             if (IsChecked.HasValue)
-                Radio.IsChecked = IsChecked.Value;
+                RadioButton.IsChecked = IsChecked.Value;
             if (ShortcutText != null)
-                Radio.ShortcutText = ShortcutText;
+                RadioButton.ShortcutText = ShortcutText;
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
