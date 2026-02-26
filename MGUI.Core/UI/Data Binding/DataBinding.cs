@@ -69,6 +69,12 @@ namespace MGUI.Core.UI.Data_Binding
         public readonly PropertyInfo TargetProperty;
         public readonly Type TargetPropertyType;
 
+        /// <summary>True if the last attempt to set the target property value threw an exception.<br/>
+        /// Reset to <see langword="false"/> when a subsequent binding update succeeds.</summary>
+        public bool HasError { get; private set; }
+        /// <summary>The error message from the last failed binding attempt, or <see langword="null"/> if no error has occurred.</summary>
+        public string LastError { get; private set; }
+
         private readonly record struct ConverterConfig(IValueConverter Converter, object Parameter, bool IsConvertingBack)
         {
             public object Apply(object Value, Type TargetType) => IsConvertingBack ?
@@ -400,8 +406,16 @@ namespace MGUI.Core.UI.Data_Binding
                     (Value != null && IsAssignableOrConvertible(SourceType, TargetPropertyType)))
                 {
                     object ActualValue = ConvertValue(Context, SourceType, TargetPropertyType, Value, null, StringFormat);
-                    try { TargetProperty.SetValue(TargetObject, ActualValue); }
-                    catch (Exception ex) { Debug.WriteLine(ex); }
+                    try
+                    {
+                        TargetProperty.SetValue(TargetObject, ActualValue);
+                        if (Context is DataBinding b1) { b1.HasError = false; b1.LastError = null; }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[DataBinding ERROR] SetValue failed for property '{TargetProperty?.Name}' on '{TargetObject?.GetType().Name}': {ex.Message}");
+                        if (Context is DataBinding b1) { b1.HasError = true; b1.LastError = ex.Message; }
+                    }
                     return true;
                 }
             }
@@ -431,8 +445,16 @@ namespace MGUI.Core.UI.Data_Binding
                 if (ConverterSettings.HasValue || IsAssignableOrConvertible(SourcePropertyType, TargetPropertyType))
                 {
                     object ActualValue = ConvertValue(Context, SourcePropertyType, TargetPropertyType, Value, null, StringFormat);
-                    try { TargetProperty.SetValue(TargetObject, ActualValue); }
-                    catch (Exception ex) { Debug.WriteLine(ex); }
+                    try
+                    {
+                        TargetProperty.SetValue(TargetObject, ActualValue);
+                        if (Context is DataBinding b2) { b2.HasError = false; b2.LastError = null; }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[DataBinding ERROR] SetValue failed for property '{TargetProperty?.Name}' on '{TargetObject?.GetType().Name}': {ex.Message}");
+                        if (Context is DataBinding b2) { b2.HasError = true; b2.LastError = ex.Message; }
+                    }
                     return true;
                 }
             }
