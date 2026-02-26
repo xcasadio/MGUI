@@ -80,25 +80,27 @@
 
             <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
                 <!-- ListBox without explicit size, with title — should size to content -->
-                <ListBox Name="TestListBox1" IsTitleVisible="True" OuterBB="rgba(255,200,50,255)" OuterBT="2">
+                <ListBox Name="TestListBox1" IsTitleVisible="True" OuterBB="rgba(255,200,50,255)" OuterBT="2"
+                         xmlns:System="clr-namespace:System;assembly=mscorlib" ItemType="{x:Type System:String}">
                     <ListBox.Header>
                         <TextBlock Text="Test List Box" Foreground="White" IsBold="True" />
                     </ListBox.Header>
-                    <ListBoxItem>Item Alpha</ListBoxItem>
-                    <ListBoxItem>Item Beta</ListBoxItem>
-                    <ListBoxItem>Item Gamma — a longer item to test width</ListBoxItem>
-                    <ListBoxItem>Item Delta</ListBoxItem>
-                    <ListBoxItem>Item Epsilon</ListBoxItem>
+                    <System:String>Item Alpha</System:String>
+                    <System:String>Item Beta</System:String>
+                    <System:String>Item Gamma - a longer item to test width</System:String>
+                    <System:String>Item Delta</System:String>
+                    <System:String>Item Epsilon</System:String>
                 </ListBox>
 
                 <!-- ListBox with explicit width, with title — both header and list fill it -->
-                <ListBox Name="TestListBox2" IsTitleVisible="True" Width="200" OuterBB="rgba(50,200,255,255)" OuterBT="2">
+                <ListBox Name="TestListBox2" IsTitleVisible="True" Width="200" OuterBB="rgba(50,200,255,255)" OuterBT="2"
+                         xmlns:System="clr-namespace:System;assembly=mscorlib" ItemType="{x:Type System:String}">
                     <ListBox.Header>
                         <TextBlock Text="Fixed Width List" Foreground="White" IsBold="True" />
                     </ListBox.Header>
-                    <ListBoxItem>Short item</ListBoxItem>
-                    <ListBoxItem>Another item</ListBoxItem>
-                    <ListBoxItem>Third item</ListBoxItem>
+                    <System:String>Short item</System:String>
+                    <System:String>Another item</System:String>
+                    <System:String>Third item</System:String>
                 </ListBox>
             </StackPanel>
             <TextBlock Name="ListBoxMeasureLabel" Text="ListBox measurement: ..." Foreground="Yellow" />
