@@ -1545,9 +1545,12 @@ namespace MGUI.Core.UI
             // Components live outside or spanning the padding area, so they use the full bounds.
             // There is no special-case needed for MGTabControl: its HeadersPanel IS a component,
             // so it always receives the full (unpadded) bounds.
+            // Clamp origin so ContentAreaBounds never exceeds ActualLayoutBounds
+            // even when Padding is larger than the available Width/Height.
+            int _cabX = Math.Min(ActualLayoutBounds.X + Padding.Left,  ActualLayoutBounds.Right);
+            int _cabY = Math.Min(ActualLayoutBounds.Y + Padding.Top,   ActualLayoutBounds.Bottom);
             Rectangle ContentAreaBounds = new Rectangle(
-                ActualLayoutBounds.X + Padding.Left,
-                ActualLayoutBounds.Y + Padding.Top,
+                _cabX, _cabY,
                 Math.Max(0, ActualLayoutBounds.Width  - Padding.Left - Padding.Right),
                 Math.Max(0, ActualLayoutBounds.Height - Padding.Top  - Padding.Bottom));
             Debug.Assert(ActualLayoutBounds.IsEmpty || ActualLayoutBounds.Contains(ContentAreaBounds),
