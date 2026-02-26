@@ -497,7 +497,28 @@ namespace MGUI.Core.UI.XAML
         protected internal void ProcessStyles(MGResources Resources)
         {
             Dictionary<string, Style> StylesByName = Resources.Styles.ToDictionary(x => x.Key, x => x.Value);
-            ProcessStyles(StylesByName, new Dictionary<MGElementType, Dictionary<string, List<object>>>());
+
+            // Pre-seed StylesByType with desktop-level implicit styles so they apply to all elements of their target type
+            var StylesByType = new Dictionary<MGElementType, Dictionary<string, List<object>>>();
+            foreach (var KVP in Resources.ImplicitStyles)
+            {
+                if (KVP.Value.Setters.Any())
+                {
+                    var ValuesByProperty = new Dictionary<string, List<object>>();
+                    foreach (Setter Setter in KVP.Value.Setters)
+                    {
+                        if (!ValuesByProperty.TryGetValue(Setter.Property, out List<object> Values))
+                        {
+                            Values = new();
+                            ValuesByProperty.Add(Setter.Property, Values);
+                        }
+                        Values.Add(Setter.Value);
+                    }
+                    StylesByType.Add(KVP.Key, ValuesByProperty);
+                }
+            }
+
+            ProcessStyles(StylesByName, StylesByType);
         }
         private void ProcessStyles(Dictionary<string, Style> StylesByName, Dictionary<MGElementType, Dictionary<string, List<object>>> StylesByType)
         {

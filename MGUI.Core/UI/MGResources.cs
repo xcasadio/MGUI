@@ -233,31 +233,51 @@ namespace MGUI.Core.UI
         #endregion Themes
 
         #region Styles
-        //TODO maybe this should be split up into ImplicitStyles (which are indexed by their MGElementType) and ExplicitStyles (which are indexed by their Name)
-        //  If so, need to modify Element.ProcessStyles to initialize the 'StylesByType' dictionary before proceeding with the styling logic
-        //Dictionary<MGElementType, Style> ImplicitStyles
-        //      AddImplicitStyle(Style Style)
-        //          If style has no setters, return
-        //          If the Style has a name, throw exception
-        //          look in ImplicitStyles for a value at Style.TargetType
-        //          Create if not found. Then merge all the Style Setters together, overwriting any existing setters for properties
-        //      RemoveImplicitStyle(MGElementType TargetType)
-        //Dictionary<string, Style> ExplicitStyles
-        //      AddExplicitStyle(Style Style)
-        //          If style has no setters, return
-        //          If the Style doesn't have a name, throw exception
-        //          Else add it to ExplicitStyles
-        //Maybe Window should have bool InheritsImplicitStyles
-        //      If true, Window's Element.Styles is pulled from Resources.ImplicitStyles
-        //      Or the ImplicitStyles would have to be stored as some kind of named Set?
-        //      Dictionary<string, StyleSet> where StyleSet contains List<Style>
-        //      Then you could say <Window StyleSetNames="...">...</Window>
-        //      to automatically initialize Window.Styles to whatever is found in Resources.StyleSets[StyleSetName]
-        //      could treat it as a comma separated list like StyleNames, and apply it to any Element
-        //      then in Element.ProcessStyles, foreach (style in this.styles AND foreach style in each styleset that we can find in the resources... append to dictionaries etc
+        #region Implicit Styles
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly Dictionary<MGElementType, Style> _ImplicitStyles = new();
+        /// <summary>Desktop-level styles that are automatically applied to every element of their <see cref="Style.TargetType"/>
+        /// when XAML is processed, before any inline element styles.<para/>
+        /// Unlike <see cref="ExplicitStyles"/>, implicit styles have no <see cref="Style.Name"/> and are keyed by <see cref="MGElementType"/> only.<para/>
+        /// See also: <see cref="AddImplicitStyle(Style)"/>, <see cref="RemoveImplicitStyle(MGElementType)"/></summary>
+        public IReadOnlyDictionary<MGElementType, Style> ImplicitStyles => _ImplicitStyles;
 
+        /// <summary>Registers an implicit style for the given element type.
+        /// If a style for the same <see cref="Style.TargetType"/> already exists, new setters are merged in (overwriting existing setters for the same property).</summary>
+        /// <exception cref="InvalidOperationException">Thrown if the style has a <see cref="Style.Name"/> (implicit styles must be anonymous).</exception>
+        public void AddImplicitStyle(Style Style)
+        {
+            if (Style == null) throw new ArgumentNullException(nameof(Style));
+            if (!Style.Setters.Any()) return;
+            if (Style.Name != null) throw new InvalidOperationException("Implicit styles must not have a Name.");
+
+            MGElementType Type = Style.TargetType;
+            if (!_ImplicitStyles.TryGetValue(Type, out Style Existing))
+            {
+                _ImplicitStyles.Add(Type, Style);
+            }
+            else
+            {
+                foreach (Setter Setter in Style.Setters)
+                {
+                    int ExistingIndex = Existing.Setters.FindIndex(s => s.Property == Setter.Property);
+                    if (ExistingIndex >= 0)
+                        Existing.Setters[ExistingIndex] = Setter;
+                    else
+                        Existing.Setters.Add(Setter);
+                }
+            }
+        }
+
+        /// <summary>Removes the implicit style for the given element type, if one exists.</summary>
+        public bool RemoveImplicitStyle(MGElementType TargetType) => _ImplicitStyles.Remove(TargetType);
+        #endregion Implicit Styles
+
+        #region Explicit Styles
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly Dictionary<string, Style> _Styles = new();
+        /// <summary>Named (explicit) styles that can be referenced by <see cref="MGUI.Core.UI.XAML.Element.StyleNames"/>.<para/>
+        /// See also: <see cref="ImplicitStyles"/> for anonymous type-based desktop-level styles.</summary>
         public IReadOnlyDictionary<string, Style> Styles => _Styles;
 
         public void AddStyle(string Name, Style Style)
@@ -280,6 +300,7 @@ namespace MGUI.Core.UI
 
         public event EventHandler<(string Name, Style Style)> OnStyleAdded;
         public event EventHandler<(string Name, Style Style)> OnStyleRemoved;
+        #endregion Explicit Styles
         #endregion Styles
 
         #region StaticResources
