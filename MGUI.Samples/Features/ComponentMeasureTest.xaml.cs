@@ -33,8 +33,8 @@ namespace MGUI.Samples.Features
 {
     public class ComponentMeasureTestSample : SampleBase
     {
-        private MGListBox<object> ListBox1     { get; }
-        private MGListBox<object> ListBox2     { get; }
+        private MGListBox<string> ListBox1     { get; }
+        private MGListBox<string> ListBox2     { get; }
         private MGTabControl      TabControl   { get; }
         private MGTextBox         TextBox1     { get; }
 
@@ -47,8 +47,8 @@ namespace MGUI.Samples.Features
         public ComponentMeasureTestSample(ContentManager Content, MGDesktop Desktop)
             : base(Content, Desktop, $"{nameof(Features)}", "ComponentMeasureTest.xaml")
         {
-            ListBox1   = Window.GetElementByName<MGListBox<object>>("TestListBox1");
-            ListBox2   = Window.GetElementByName<MGListBox<object>>("TestListBox2");
+            ListBox1   = Window.GetElementByName<MGListBox<string>>("TestListBox1");
+            ListBox2   = Window.GetElementByName<MGListBox<string>>("TestListBox2");
             TabControl = Window.GetElementByName<MGTabControl>("TestTabControl");
             TextBox1   = Window.GetElementByName<MGTextBox>("TestTextBox1");
 
