@@ -62,6 +62,7 @@
     <None Remove="Features\NestedScrollViewerTest.xaml" />
     <None Remove="Features\ComponentMeasureTest.xaml" />
     <None Remove="Features\ActualLayoutBoundsTest.xaml" />
+    <None Remove="Features\TextBoxBackslashTest.xaml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Compendium.xaml">
@@ -174,6 +175,7 @@
     <EmbeddedResource Include="Features\NestedScrollViewerTest.xaml" />
     <EmbeddedResource Include="Features\ComponentMeasureTest.xaml" />
     <EmbeddedResource Include="Features\ActualLayoutBoundsTest.xaml" />
+    <EmbeddedResource Include="Features\TextBoxBackslashTest.xaml" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="..\MGUI.Shared\Content\MGUI.Shared.Content.mgcb" Link="Content\MGUI.Shared.Content.mgcb" />

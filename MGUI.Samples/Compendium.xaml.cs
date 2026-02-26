@@ -168,6 +168,7 @@ namespace MGUI.Samples
         public NestedScrollViewerTestSample NestedScrollViewerTest { get; }
         public ComponentMeasureTestSample ComponentMeasureTest { get; }
         public ActualLayoutBoundsTestSample ActualLayoutBoundsTest { get; }
+        public TextBoxBackslashTestSample TextBoxBackslashTest { get; }
         #endregion Features
 
         #region Dialogs
@@ -225,6 +226,7 @@ namespace MGUI.Samples
             NestedScrollViewerTest = new(Content, Desktop);
             ComponentMeasureTest = new(Content, Desktop);
             ActualLayoutBoundsTest = new(Content, Desktop);
+            TextBoxBackslashTest = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs
