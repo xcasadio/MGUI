@@ -410,28 +410,45 @@ namespace MGUI.Core.UI.Text
 
             StringBuilder Result = new();
 
-            if (Text[0] == OpenTagChar)
-                Result.Append(EscapeOpenTagChar);
-            Result.Append(Text[0]);
+            // FIX (Task 7): Count consecutive EscapeOpenTagChar ('\') immediately before each OpenTagChar ('[').
+            // An ODD count means the last '\' already escapes the '[', so we only need to double the preceding
+            // backslashes to preserve them as literals.
+            // An EVEN count (including 0) means no backslash currently escapes the '[', so we must add one.
+            //
+            // General rule for N consecutive backslashes before '[':
+            //   • Append N additional backslashes (to double each existing one as a literal pair).
+            //   • Append 1 escape backslash (to escape the '[').
+            //   • Then append '[' as usual.
+            // This collapses correctly for N=0 (no preceding backslash): just prepend 1 escape. ✓
+            // For N=1 (old case that was already handled): output '\\\[' (pair + escaped '[');
+            //   tokenizer: '\\' → literal '\', '\[' → literal '['. Renders as '\['. ✓
+            //
+            // The tokenizer interprets consecutive backslashes before '[' as follows (proof tests in FormattedTextTokenizerTest):
+            //   "\[tag]"   → N=1 (odd):  '[' IS escaped  → renders literal '[tag]'
+            //   "\\[tag]"  → N=2 (even): '[' NOT escaped → renders literal '\' + bold/tag
+            //   "\\\[tag]" → N=3 (odd):  '[' IS escaped  → renders literal '\[tag]'
+            int consecutiveEscapeCount = 0;
 
-            char PreviousCharacter = Text[0];
-            foreach (char c in Text.Skip(1))
+            foreach (char c in Text)
             {
-                if (c == OpenTagChar && PreviousCharacter != EscapeOpenTagChar)
+                if (c == OpenTagChar)
+                {
+                    // Add 'consecutiveEscapeCount' extra backslashes (doubling the run) + 1 escape for '['.
+                    for (int k = 0; k < consecutiveEscapeCount; k++)
+                        Result.Append(EscapeOpenTagChar);
                     Result.Append(EscapeOpenTagChar);
+                    consecutiveEscapeCount = 0;
+                }
+                else if (c == EscapeOpenTagChar)
+                {
+                    consecutiveEscapeCount++;
+                }
+                else
+                {
+                    consecutiveEscapeCount = 0;
+                }
                 Result.Append(c);
-                PreviousCharacter = c;
             }
-
-            //TODO: This method should also handle cases where open brackets immediately follow double-escaped characters
-            //EX:
-            //  Unescaped:                  @"Hello\\[]World"
-            //  Escaped:                    @"Hello\\\[]World"
-            //  Literal rendered string:    @"Hello\[]World"
-            //The @"\\" is treated as a backslash literal, rather than the 2nd backslash being treated as an escape character for the open bracket.
-            //The current logic thinks the open bracket is already escaped because it's immediately after the escape character.
-            //So it's not validating that the escape character isn't also escaped.
-            //I guess we need to check if each open bracket has an odd number of escape characters immediately before it.
 
             return Result.ToString();
         }
