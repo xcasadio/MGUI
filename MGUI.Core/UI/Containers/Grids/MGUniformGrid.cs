@@ -419,8 +419,15 @@ namespace MGUI.Core.UI.Containers.Grids
             Rectangle Viewport = LayoutBounds; // Does this also need to be translated by this.Origin?
             if (TryFindParentOfType(out MGScrollViewer SV, false))
             {
-                //TODO test this logic for ScrollViewers that are nested inside of another ScrollViewer
-                //  It might be: this.Origin + SV.Origin; Idk
+                // Viewport formula for nested ScrollViewers — analysed and confirmed correct.
+                // this.Origin  = UA.Offset = accumulated scroll-offset of ALL ancestor SVs.
+                // SV.Origin    = UA.Offset = accumulated scroll-offset of SV's own ancestors.
+                // Origin - SV.Origin = this SV's own scroll-offset only.
+                // Translating SV.ContentViewport by that delta gives the correct visible range
+                // in layout coordinates for any level of SV nesting.
+                // Mouse events that reach this UniformGrid are already clipped by every ancestor SV,
+                // so we only need to check against the immediate parent SV.
+                // See: MGUI.Samples/Features/NestedScrollViewerTest for a live validation.
                 Viewport = SV.ContentViewport.GetTranslated(Origin - SV.Origin);
             }
 

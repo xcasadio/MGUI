@@ -165,6 +165,7 @@ namespace MGUI.Samples
         public DataBindingSamples DataBindingSamples { get; }
         public IFillBrushSamples IFillBrushSamples { get; }
         public IBorderBrushSamples IBorderBrushSamples { get; }
+        public NestedScrollViewerTestSample NestedScrollViewerTest { get; }
         #endregion Features
 
         #region Dialogs
@@ -219,6 +220,7 @@ namespace MGUI.Samples
             DataBindingSamples = new(Content, Desktop);
             IFillBrushSamples = new(Content, Desktop);
             IBorderBrushSamples = new(Content, Desktop, this);
+            NestedScrollViewerTest = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs
