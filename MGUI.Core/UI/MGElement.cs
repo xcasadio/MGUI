@@ -1474,19 +1474,18 @@ namespace MGUI.Core.UI
             Origin = UA.Offset;
 
             Rectangle UnscaledScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, LayoutBounds);
-            //TODO there's a bug with ActualLayoutBounds that I'm too lazy to fix:
-            //Rectangle.Intersect(Parent.ActualLayoutBounds, this.LayoutBounds.GetTranslated(-UA.Offset)) does NOT properly account for the parent's Padding.
-            //We can't simply compress the ActualLayoutBounds by the parent's Padding because not all element's pad all of their children.
-            //For example, an MGTabControl's padding isn't applied to the HeadersPanel that hosts the TabControl's Tab headers.
-#if true
+            //FIX (Task 5): ActualLayoutBounds is computed by intersecting the received UA.ActualLayoutBounds
+            //(which IS the parent's content-area bounds — see below) with this element's own unscaled screen bounds.
+            //This correctly clips each element to the visible content area of its parent.
+            //Note: UA.ActualLayoutBounds passed into this call is always the parent's content-area bounds (parent's
+            //ActualLayoutBounds shrunk by the parent's Padding), computed just before calling UpdateContents below.
+            //Components (border panels, title bars, etc.) receive the parent's full ActualLayoutBounds (not shrunk)
+            //because components typically live outside or spanning the padding area.
+            //An MGTabControl's HeadersPanel is a component, so it correctly receives the full bounds.
             if (IsWindow)
                 ActualLayoutBounds = UnscaledScreenBounds;
             else
                 ActualLayoutBounds = Rectangle.Intersect(UA.ActualLayoutBounds, UnscaledScreenBounds);
-#else
-            Rectangle ParentLayoutBounds = IsWindow ? GetDesktop().ValidScreenBounds : UA.ActualLayoutBounds;
-            this.ActualLayoutBounds = Rectangle.Intersect(ParentLayoutBounds, UnscaledScreenBounds);
-#endif
 
             UA = UA with {
                 IsEnabled = ComputedIsEnabled, 
@@ -1539,11 +1538,27 @@ namespace MGUI.Core.UI
             _CanReceiveKeyboardInput = BaseCanReceiveInput && (Parent?._CanReceiveKeyboardInput ?? true);
 
             OnBeginUpdateContents?.Invoke(this, UpdateEventArgs);
+
+            // Compute the content-area bounds: ActualLayoutBounds shrunk by this element's Padding.
+            // Content children (visual-tree children) are clipped to the content area so their
+            // ActualLayoutBounds correctly excludes the padding region of their parent.
+            // Components live outside or spanning the padding area, so they use the full bounds.
+            // There is no special-case needed for MGTabControl: its HeadersPanel IS a component,
+            // so it always receives the full (unpadded) bounds.
+            Rectangle ContentAreaBounds = new Rectangle(
+                ActualLayoutBounds.X + Padding.Left,
+                ActualLayoutBounds.Y + Padding.Top,
+                Math.Max(0, ActualLayoutBounds.Width  - Padding.Left - Padding.Right),
+                Math.Max(0, ActualLayoutBounds.Height - Padding.Top  - Padding.Bottom));
+            Debug.Assert(ActualLayoutBounds.IsEmpty || ActualLayoutBounds.Contains(ContentAreaBounds),
+                $"[ActualLayoutBounds] ContentAreaBounds ({ContentAreaBounds}) exceeds ActualLayoutBounds ({ActualLayoutBounds}) for {GetType().Name}");
+            ElementUpdateArgs UAForContents = UA with { ActualLayoutBounds = ContentAreaBounds };
+
 			foreach (MGElement Component in Components.Where(x => x.UpdateBeforeContents).Select(x => x.BaseElement))
-				Component.Update(UA);
-			UpdateContents(UA);
+				Component.Update(UA);               // components get the full (unpadded) bounds
+			UpdateContents(UAForContents);          // content children get the content-area bounds
             foreach (MGElement Component in Components.Where(x => x.UpdateAfterContents).Select(x => x.BaseElement))
-                Component.Update(UA);
+                Component.Update(UA);              // components get the full (unpadded) bounds
             OnEndUpdateContents?.Invoke(this, UpdateEventArgs);
 
             if (ComputedIsHitTestVisible)
