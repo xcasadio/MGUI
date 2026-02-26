@@ -133,7 +133,6 @@ namespace MGUI.Samples
             PreviewUpdate?.Invoke(this, gameTime.TotalGameTime);
 
             Desktop.Update();
-            // TODO: Add your update logic here
             base.Update(gameTime);
 
             EndUpdate?.Invoke(this, EventArgs.Empty);
@@ -142,7 +141,6 @@ namespace MGUI.Samples
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
-            // TODO: Add your drawing code here
             Desktop.Draw();
             base.Draw(gameTime);
         }
