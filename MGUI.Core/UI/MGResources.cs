@@ -154,8 +154,29 @@ namespace MGUI.Core.UI
         /// See also: <see cref="OnCommandAdded"/></summary>
         public event EventHandler<(string Name, Action<MGElement> Command)> OnCommandRemoved;
 
-        //TODO refactor MGWindow.NamedToolTips to be a Dictionary<Window, Dictionary<string, ToolTip>> in MGResources?
         #endregion Commands
+
+        #region Named ToolTips
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly Dictionary<string, MGToolTip> _NamedToolTips = new();
+        /// <summary>A lookup of named <see cref="MGToolTip"/>s that can be referenced by name in <see cref="MGTextBlock"/> inline text markup.<para/>
+        /// See also:<br/><see cref="AddNamedToolTip(string, MGToolTip)"/><br/><see cref="RemoveNamedToolTip(string)"/><para/>
+        /// EX: If you create an <see cref="MGTextBlock"/> and set its text to:
+        /// <code>[ToolTip=ABC]This text has a ToolTip[/ToolTip] but this text doesn't</code>
+        /// then the ToolTip with the name "ABC" will be shown when hovering over the substring.</summary>
+        public IReadOnlyDictionary<string, MGToolTip> NamedToolTips => _NamedToolTips;
+
+        public void AddNamedToolTip(string Name, MGToolTip ToolTip) => _NamedToolTips.Add(Name, ToolTip);
+        public bool RemoveNamedToolTip(string Name) => _NamedToolTips.Remove(Name);
+
+        public bool TryGetNamedToolTip(string Name, out MGToolTip ToolTip)
+        {
+            if (Name != null && _NamedToolTips.TryGetValue(Name, out ToolTip))
+                return true;
+            ToolTip = null;
+            return false;
+        }
+        #endregion Named ToolTips
 
         #region Themes
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

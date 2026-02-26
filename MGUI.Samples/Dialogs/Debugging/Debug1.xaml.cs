@@ -39,12 +39,12 @@ namespace MGUI.Samples.Dialogs.Debugging
 
             MGToolTip Test1 = new(Window, Window, 100, 100);
             Test1.SetContent("Testing inlined tooltip");
-            Window.AddNamedToolTip("Test1", Test1);
+            Window.GetResources().AddNamedToolTip("Test1", Test1);
             MGToolTip Test2 = new(Window, Window, 200, 100);
             Test2.BackgroundBrush.NormalValue = SolidFillBrushes.SemiBlack;
             Test2.SetContent("Testing inlined tooltip on an inlined image.\n\nAlso click here to reduce window opacity by 0.05", null, 14);
             Test2.ApplySizeToContent(SizeToContent.Height);
-            Window.AddNamedToolTip("Test2", Test2);
+            Window.GetResources().AddNamedToolTip("Test2", Test2);
 
             Action<MGElement> Debug1_TestAction = element =>
             {

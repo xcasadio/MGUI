@@ -601,10 +601,21 @@ namespace MGUI.Core.UI
         /// EX: If you create an <see cref="MGTextBlock"/> and set its text to:
         /// <code>[ToolTip=ABC]This text has a ToolTip[/ToolTip] but this text doesn't</code>
         /// then the ToolTip with the name "ABC" will be shown when hovering over the substring "This text has a ToolTip"</summary>
+        [Obsolete("Use Desktop.Resources.NamedToolTips (or Desktop.Resources.AddNamedToolTip) to register shared ToolTips at the desktop level.")]
         public IReadOnlyDictionary<string, MGToolTip> NamedToolTips => _NamedToolTips;
 
+        [Obsolete("Use Desktop.Resources.AddNamedToolTip(name, tooltip) instead.")]
         public void AddNamedToolTip(string Name, MGToolTip ToolTip) => _NamedToolTips.Add(Name, ToolTip);
+        [Obsolete("Use Desktop.Resources.RemoveNamedToolTip(name) instead.")]
         public void RemoveNamedToolTip(string Name) => _NamedToolTips.Remove(Name);
+
+        /// <summary>Searches both the window-local <see cref="NamedToolTips"/> and the desktop <see cref="MGResources.NamedToolTips"/> for a tooltip with the given name.</summary>
+        internal bool TryGetNamedToolTip(string Name, out MGToolTip ToolTip)
+        {
+            if (Name != null && _NamedToolTips.TryGetValue(Name, out ToolTip))
+                return true;
+            return GetResources().TryGetNamedToolTip(Name, out ToolTip);
+        }
         #endregion Named ToolTips
 
         /// <summary>A <see cref="MouseHandler"/> that is updated just before <see cref="MGElement.MouseHandler"/> is updated.<para/>
