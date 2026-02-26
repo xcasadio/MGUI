@@ -286,6 +286,33 @@ namespace MGUI.Core.UI
                 _Items.RemoveAt(i);
         }
 
+        /// <summary>Removes a specific <paramref name="Item"/> from this menu, correctly unregistering its event handlers.
+        /// <para/>See also: <see cref="RemoveAt(int)"/>, <see cref="ClearItems"/></summary>
+        /// <returns>True if the item was found and removed; false otherwise.</returns>
+        public bool RemoveItem(MGContextMenuItem Item)
+        {
+            bool Removed = _Items.Remove(Item);
+            Debug.WriteLineIf(Removed, $"[MGContextMenu] RemoveItem: {Item?.GetType().Name}");
+            return Removed;
+        }
+
+        /// <summary>Removes the item at the specified <paramref name="Index"/> from this menu.
+        /// <para/>See also: <see cref="RemoveItem(MGContextMenuItem)"/>, <see cref="ClearItems"/></summary>
+        public void RemoveAt(int Index)
+        {
+            Debug.WriteLine($"[MGContextMenu] RemoveAt index={Index}");
+            _Items.RemoveAt(Index);
+        }
+
+        /// <summary>Replaces the item at the specified <paramref name="Index"/> with <paramref name="NewItem"/>.
+        /// The replaced item's event handlers are correctly unregistered.
+        /// <para/>See also: <see cref="AddButton(string, Action{MGContextMenuButton})"/></summary>
+        public void ReplaceItem(int Index, MGContextMenuItem NewItem)
+        {
+            Debug.WriteLine($"[MGContextMenu] ReplaceItem at index={Index} with {NewItem?.GetType().Name}");
+            _Items[Index] = NewItem;
+        }
+
         /// <summary>Optional factory called every time this menu is about to open (just <em>before</em>
         /// <see cref="ContextMenuOpening"/> fires).
         /// When set, <see cref="ClearItems"/> is called automatically before the factory runs,
@@ -500,9 +527,6 @@ namespace MGUI.Core.UI
         internal event EventHandler<MGContextMenu> SubmenuClosed;
         #endregion Nested Menu
 
-        //TODO
-        //functions to remove/replace from _Items (need to implement NotifyCollectionChangedAction.Replace also)
-
         /// <summary>Invoked when a <see cref="MGContextMenuButton"/> item is clicked.<br/>
         /// The <see cref="MGContextMenuButton"/> may exist within a nested submenu (See also: <see cref="Submenus"/>)</summary>
         public event EventHandler<MGContextMenuButton> ItemSelected;
@@ -692,8 +716,39 @@ namespace MGUI.Core.UI
 
                         if (e.Action is NotifyCollectionChangedAction.Replace or NotifyCollectionChangedAction.Move)
                         {
-                            //Too lazy to implement this. Probably won't ever use it.
-                            throw new NotImplementedException();
+                            //  For Replace/Move: remove old items, then add new items at the correct index
+                            if (e.OldItems != null)
+                            {
+                                foreach (MGContextMenuItem Item in e.OldItems)
+                                {
+                                    if (Item is MGContextMenuButton Button)
+                                        Button.OnSelected -= MenuItem_ItemSelected;
+                                    else if (Item is MGContextMenuToggle Toggle)
+                                        Toggle.OnToggled -= MenuItem_ItemToggled;
+                                    else if (Item is MGContextMenuRadioButton RadioButton)
+                                    {
+                                        RadioButton.OnToggled -= MenuItem_ItemRadioSelected;
+                                        UnregisterRadioItem(RadioButton);
+                                    }
+                                    ItemsPanel.TryRemoveChild(Item);
+                                }
+                            }
+
+                            if (e.NewItems != null)
+                            {
+                                int Index = e.NewStartingIndex;
+                                foreach (MGContextMenuItem Item in e.NewItems)
+                                {
+                                    if (Item is MGContextMenuButton Button)
+                                        Button.OnSelected += MenuItem_ItemSelected;
+                                    else if (Item is MGContextMenuToggle Toggle)
+                                        Toggle.OnToggled += MenuItem_ItemToggled;
+                                    else if (Item is MGContextMenuRadioButton RadioButton)
+                                        RadioButton.OnToggled += MenuItem_ItemRadioSelected;
+                                    ItemsPanel.TryInsertChild(Index, Item);
+                                    Index++;
+                                }
+                            }
                         }
                     }
                 };
