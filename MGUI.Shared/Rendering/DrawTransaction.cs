@@ -17,6 +17,7 @@ namespace MGUI.Shared.Rendering
 {
     //TODO: Maybe a 'SetEffect'/'SetEffectTemporary'? Could put the Effect in DrawSettings, default value = null
     //Anytime the effect is being changed, must call SetDrawSettings/SetDrawSettingsTemporary just like SetTransform/SetTransformTemporary do
+    // --> SetEffect/SetEffectTemporary are now implemented via DrawSettings.Effect; see SetEffect() and SetEffectTemporary() below.
 
     public enum DrawContext
     {
@@ -409,6 +410,51 @@ namespace MGUI.Shared.Rendering
 
         //TODO: StrokeAndFillEllipse StrokeEllipse FillEllipse
 
+        /// <param name="NumSides">How many sides to use when approximating the geometry of the ellipse. Recommended: 16-32. Max value = <see cref="CircleMaxSides"/></param>
+        public void FillEllipse(Vector2 Center, float RadiusX, float RadiusY, Color Color, int NumSides = 32, DrawContext? PreferredContext = null)
+        {
+            if (RadiusX <= 0.0f || RadiusX.IsAlmostZero() || RadiusY <= 0.0f || RadiusY.IsAlmostZero())
+                return;
+            if (NumSides > CircleMaxSides)
+                throw new ArgumentException($"{nameof(FillEllipse)}.{nameof(NumSides)} cannot exceed {CircleMaxSides}.");
+
+            //  FillEllipse always uses the Primitives context because PD.DrawSolidEllipse is the most efficient path.
+            //  No equivalent filled-ellipse primitive exists in SpriteBatch.
+            BeginDraw(DrawContext.Primitives);
+            PD.DrawSolidEllipse(Center, new Vector2(RadiusX, RadiusY), NumSides, Color, false);
+        }
+
+        /// <param name="NumSides">How many sides to use when approximating the geometry of the ellipse. Recommended: 16-32. Max value = <see cref="CircleMaxSides"/></param>
+        public void StrokeEllipse(Vector2 Center, float RadiusX, float RadiusY, Color Color, float Thickness = 1.0f, int NumSides = 32, DrawContext? PreferredContext = null)
+        {
+            if (RadiusX <= 0.0f || RadiusX.IsAlmostZero() || RadiusY <= 0.0f || RadiusY.IsAlmostZero() || Thickness <= 0.0f || Thickness.IsAlmostZero())
+                return;
+            if (NumSides > CircleMaxSides)
+                throw new ArgumentException($"{nameof(StrokeEllipse)}.{nameof(NumSides)} cannot exceed {CircleMaxSides}.");
+
+            DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
+            BeginDraw(Ctx);
+
+            Vector2[] Vertices = GetEllipseVertices(Center, RadiusX, RadiusY, NumSides);
+            for (int i = 0; i < NumSides; i++)
+                StrokeLineSegment(Vector2.Zero, Vertices[i], Vertices[(i + 1) % NumSides], Color, Thickness, Ctx);
+        }
+
+        /// <param name="NumSides">How many sides to use when approximating the geometry of the ellipse. Recommended: 16-32. Max value = <see cref="CircleMaxSides"/></param>
+        public void StrokeAndFillEllipse(Vector2 Center, float RadiusX, float RadiusY, Color StrokeColor, Color FillColor, float StrokeThickness = 1.0f, int NumSides = 32, DrawContext? PreferredContext = null)
+        {
+            if (RadiusX <= 0.0f || RadiusX.IsAlmostZero() || RadiusY <= 0.0f || RadiusY.IsAlmostZero())
+                return;
+
+            if (RadiusX.IsAlmostEqual(StrokeThickness) || RadiusY.IsAlmostEqual(StrokeThickness))
+                FillEllipse(Center, RadiusX, RadiusY, StrokeColor, NumSides, PreferredContext);
+            else
+            {
+                FillEllipse(Center, RadiusX, RadiusY, FillColor, NumSides, PreferredContext);
+                StrokeEllipse(Center, RadiusX, RadiusY, StrokeColor, StrokeThickness, NumSides, PreferredContext);
+            }
+        }
+
         //Adapted from:
         //https://github.com/craftworkgames/MonoGame.Extended/blob/a3373ac26d90c9801b71b55679f1199fa4ec22a6/src/cs/MonoGame.Extended/Math/ShapeExtensions.cs
         //https://github.com/craftworkgames/MonoGame.Extended/blob/a3373ac26d90c9801b71b55679f1199fa4ec22a6/src/cs/MonoGame.Extended/VectorDraw/PrimitiveDrawing.cs
@@ -746,6 +792,14 @@ namespace MGUI.Shared.Rendering
         {
             return SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
         }
+
+        /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering.</summary>
+        public void SetEffect(Effect Effect)
+            => SetDrawSettings(CurrentSettings with { Effect = Effect });
+
+        /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering, and restores the previous effect when the returned <see cref="IDisposable"/> is disposed.</summary>
+        public IDisposable SetEffectTemporary(Effect Effect)
+            => SetDrawSettingsTemporary(CurrentSettings with { Effect = Effect });
 
         /// <param name="IntersectWithCurrentClipTarget">If true, rather than replacing the clip target with the given <paramref name="Bounds"/>,<br/>
         /// the clip target will be the intersection of the current clip target and the given <paramref name="Bounds"/></param>
