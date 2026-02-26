@@ -1034,9 +1034,16 @@ namespace MGUI.Core.UI
 
                 TextBlockElement = new(Window, "");
                 TextBlockElement.ClipToBounds = false;
-                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf, 
+                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf,
                     false, false, true, true, false, false, true,
-                    (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
+                    (AvailableBounds, ComponentSize) =>
+                    {
+                        var Padded = AvailableBounds.GetCompressed(Padding);
+                        if (!_EnableScrolling || _TextScrollOffsetX == 0)
+                            return Padded;
+                        return new Rectangle(Padded.Left - _TextScrollOffsetX, Padded.Top,
+                            Padded.Width + _TextScrollOffsetX, Padded.Height);
+                    });
                 AddComponent(TextBlockComponent);
 
                 TextRenderInfo = new(this, TextBlockElement);
@@ -1199,9 +1206,68 @@ namespace MGUI.Core.UI
             }
         }
 
-        //TODO
-        //Built-in scrolling? Could wrap the textblock inside a scrollviewer with scrollbar visibilities set to 'Hidden'.
-        //Using the arrow keys adjusts the scrollviewer's horizontal/vertical offset
+        #region Scrolling
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _EnableScrolling;
+        /// <summary>If true, text that overflows the textbox width is scrollable; the view automatically scrolls to keep the caret visible.<para/>
+        /// Setting this to true also enables <see cref="MGElement.ClipToBounds"/> on this element.<para/>
+        /// Default value: false<para/>
+        /// Note: This is primarily designed for single-line textboxes. Multi-line scrolling is best handled by wrapping in an <see cref="MGScrollViewer"/>.</summary>
+        public bool EnableScrolling
+        {
+            get => _EnableScrolling;
+            set
+            {
+                if (_EnableScrolling != value)
+                {
+                    _EnableScrolling = value;
+                    if (_EnableScrolling)
+                    {
+                        ClipToBounds = true;
+                    }
+                    else
+                    {
+                        _TextScrollOffsetX = 0;
+                        ClipToBounds = false;
+                        LayoutChanged(this, true);
+                    }
+                    NPC(nameof(EnableScrolling));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int _TextScrollOffsetX;
+
+        private void EnsureCaretVisible()
+        {
+            if (!EnableScrolling || !Caret.HasPosition) return;
+
+            Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
+            if (PaddedBounds.Width <= 0) return;
+
+            Rectangle CaretBounds = Caret.Position.Value.Bounds;
+
+            if (CaretBounds.Left < PaddedBounds.Left)
+            {
+                int NewOffset = Math.Max(0, _TextScrollOffsetX - (PaddedBounds.Left - CaretBounds.Left));
+                if (NewOffset != _TextScrollOffsetX)
+                {
+                    _TextScrollOffsetX = NewOffset;
+                    LayoutChanged(this, true);
+                }
+            }
+            else if (CaretBounds.Right > PaddedBounds.Right)
+            {
+                int NewOffset = _TextScrollOffsetX + (CaretBounds.Right - PaddedBounds.Right);
+                if (NewOffset != _TextScrollOffsetX)
+                {
+                    _TextScrollOffsetX = NewOffset;
+                    LayoutChanged(this, true);
+                }
+            }
+        }
+        #endregion Scrolling
 
         private void HandleKeyPress(BaseKeyPressedEventArgs e)
         {
@@ -1480,6 +1546,8 @@ namespace MGUI.Core.UI
         public override void UpdateSelf(ElementUpdateArgs UA)
         {
             base.UpdateSelf(UA);
+            if (EnableScrolling)
+                EnsureCaretVisible();
             if (IsEnabled && !IsReadonly && IsHitTestVisible && IsHeldKeyRepeated && GetDesktop().FocusedKeyboardHandler == this &&
                 LastKeyPress.HasValue && !LastKeyPress.Value.PressedWithin(InitialKeyRepeatDelay) && !LastKeyPress.Value.RepeatedWithin(KeyRepeatInterval))
             {
