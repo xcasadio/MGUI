@@ -105,20 +105,15 @@ namespace MGUI.Core.UI
     }
 
     //TODO:
-    //Fix bug with measurement logic of components
-    //      MGElement.MeasureSelf and MGElement.UpdateLayout both have 2 bugs when dealing with components
-    //      1. Some components may need to share their size with other components rather than just with the Content
-    //              EX: A ListBox contains a component for its header, and a component for the scrollable Grid content,
-    //                  rather than a component for its header, and putting everything else in the Content property
-    //                  (Because MGListBox extends MGelement, not MGSingleContentHost, which was kind of a dumb implementation on my part)
-    //                  So the width of the listbox should be Max(TitleComponent.Width, InnerBorderComponent.Width)
-    //                  but components are currently only coded to share their dimensions with Content, not with other components
-    //              So when measuring components, instead of summing their dimensions, we probably need logic that will
-    //              do some Math.Max on dimensions of components that have the same IsWidthSharedWithContent/IsHeightSharedWithContent settings
-    //      2. There's a bug where components aren't able to share their size with the Padding
-    //              This probably only matters in cases where the component doesn't use the owner's padding (like MGTabControl)
-    //              So it's causing the total measured dimensions to be Sum(Padding, UnsharedComponentSize, Max(ContentSize, SharedComponentSize)
-    //              instead of something like: Sum(Max(Padding, UnsharedComponentSize), Max(ContentSize, SharedComponentSize))
+    //FIXED Bug 1 (see MeasureSelf): shared component sizes now use element-wise MAX instead of SUM.
+    //      When multiple components have IsWidthSharedWithContent=true or IsHeightSharedWithContent=true,
+    //      their contributions to SharedSize are now max'd (not summed), so the measured total size is
+    //      Max(comp1, comp2, ..., Content) rather than comp1+comp2+...+Max(0,Content-sum).
+    //REMAINING Bug 2: components aren't able to share their size with the Padding.
+    //      This probably only matters in cases where a component doesn't use the owner's padding (like MGTabControl)
+    //      So it's causing the total measured dimensions to be Sum(Padding, UnsharedComponentSize, Max(ContentSize, SharedComponentSize)
+    //      instead of something like: Sum(Max(Padding, UnsharedComponentSize), Max(ContentSize, SharedComponentSize))
+    //      Fixing this requires tracking a "MaxPaddingAndUnsharedComponent" which is more invasive.
     //Make ItemsSource bindable in combobox/listbox/listview/grid/unfiromgrid
     //      for example: ComboBox could have "public MGBinding ItemsSource"
     //      then in MGComboBox.LoadSettings, if ItemsSource binding is not null,
@@ -2113,7 +2108,12 @@ namespace MGUI.Core.UI
 			Total = Total.Add(Overridden);
 			RemainingSize = RemainingSize.Subtract(Overridden.Size, 0, 0);
 
-            Thickness TotalComponentSize = new(0);
+            // Fix for component measurement Bug 1:
+            //   Components that share their size with content also share with each other.
+            //   Use element-wise MAX (not SUM) for shared sizes, and SUM for unshared sizes.
+            //   See the TODO comment near the top of this file for the full description.
+            Thickness MaxSharedComponentSize = new(0);  // element-wise MAX of all shared-with-content component dimensions
+            Thickness UnsharedComponentSum = new(0);    // SUM of component dimensions that are NOT shared with content
 			foreach (MGComponentBase Component in Components)
 			{
 				Size RemainingSizeForComponent = Component.UsesOwnersPadding ? RemainingSize.Subtract(PaddingSize, 0, 0) : RemainingSize;
@@ -2121,18 +2121,42 @@ namespace MGUI.Core.UI
 				MGElement Element = Component.BaseElement;
                 Element.UpdateMeasurement(RemainingSizeForComponent, out _, out Thickness ComponentSize, out _, out _);
 
+                // Assert: the measured component size must not exceed the available space
+                Debug.Assert(ComponentSize.Width <= RemainingSizeForComponent.Width + 2,
+                    $"[MeasureSelf] Component {Element.GetType().Name} measured width {ComponentSize.Width} exceeds available {RemainingSizeForComponent.Width}");
+                Debug.Assert(ComponentSize.Height <= RemainingSizeForComponent.Height + 2,
+                    $"[MeasureSelf] Component {Element.GetType().Name} measured height {ComponentSize.Height} exceeds available {RemainingSizeForComponent.Height}");
+
 				Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
 				Thickness ComponentSharedSize = new(
 					Component.IsWidthSharedWithContent ? ActualComponentSize.Left : 0,
 					Component.IsHeightSharedWithContent ? ActualComponentSize.Top : 0,
 					Component.IsWidthSharedWithContent ? ActualComponentSize.Right : 0,
 					Component.IsHeightSharedWithContent ? ActualComponentSize.Bottom : 0);
-				SharedSize = SharedSize.Add(ComponentSharedSize);
 
-                TotalComponentSize = TotalComponentSize.Add(ActualComponentSize);
+                // Track element-wise MAX of shared sizes (components sharing with content also share with each other)
+                MaxSharedComponentSize = new(
+                    Math.Max(MaxSharedComponentSize.Left, ComponentSharedSize.Left),
+                    Math.Max(MaxSharedComponentSize.Top, ComponentSharedSize.Top),
+                    Math.Max(MaxSharedComponentSize.Right, ComponentSharedSize.Right),
+                    Math.Max(MaxSharedComponentSize.Bottom, ComponentSharedSize.Bottom));
+
+                // Sum the unshared portion of this component
+                Thickness ComponentUnsharedSize = new(
+                    Component.IsWidthSharedWithContent ? 0 : ActualComponentSize.Left,
+                    Component.IsHeightSharedWithContent ? 0 : ActualComponentSize.Top,
+                    Component.IsWidthSharedWithContent ? 0 : ActualComponentSize.Right,
+                    Component.IsHeightSharedWithContent ? 0 : ActualComponentSize.Bottom);
+                UnsharedComponentSum = UnsharedComponentSum.Add(ComponentUnsharedSize);
+
                 RemainingSize = RemainingSize.Subtract(ActualComponentSize.Size, 0, 0);
 			}
 
+            // SharedSize = element-wise max of all shared component sizes
+            // (used by outer measurement to compute Max(SharedSize, ContentSize))
+            SharedSize = SharedSize.Add(MaxSharedComponentSize);
+            // Total component contribution = unshared sum + max-shared
+            Thickness TotalComponentSize = UnsharedComponentSum.Add(MaxSharedComponentSize);
             Total = Total.Add(TotalComponentSize);
 
             if (Total.Width <= 0 && Total.Height <= 0)

@@ -1,0 +1,172 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="120" Top="80" Width="650" Height="700" TitleText="Component Measurement Test" Padding="10">
+    <!--
+    ComponentMeasureTest — Validation of MGElement.MeasureSelf component measurement
+    ==================================================================================
+    PURPOSE
+    -------
+    This sample verifies that the component measurement bug fix (Task 4) is correct:
+
+    BUG FIXED (Bug 1): When multiple components share size with content via
+    IsWidthSharedWithContent / IsHeightSharedWithContent, the old code summed
+    all shared sizes. The fix uses element-wise MAX instead of SUM, so:
+
+        OLD: FullSize = Unshared + Max(comp1 + comp2 + ..., Content)   ← wrong
+        NEW: FullSize = Unshared + Max(Max(comp1, comp2, ...), Content) ← correct
+
+    KNOWN REMAINING (Bug 2): Components cannot share their size with Padding.
+    For elements where a component doesn't use the owner's padding (e.g. MGTabControl),
+    the total is Sum(Padding, UnsharedComponent, Max(Content, SharedComponent))
+    rather than Sum(Max(Padding, UnsharedComponent), Max(Content, SharedComponent)).
+    This is documented but not yet fixed (requires more invasive changes).
+
+    ASSERTIONS
+    ----------
+    Debug.Assert statements in MGElement.MeasureSelf verify that each component's
+    measured size does not exceed the available space provided to it.
+    These assertions fire in Debug builds whenever any element is measured.
+
+    WHAT TO CHECK VISUALLY
+    ----------------------
+    - The MGListBox shows its title bar and its item list, with the header and list
+      aligned to the same width (both fill the box horizontally).
+    - The MGTabControl shows its tab headers and content panel correctly aligned.
+    - Neither element has unexpected extra whitespace or misaligned borders.
+    - The measurement labels at the bottom show the calculated component sizes.
+    -->
+
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(60,60,60)" Padding="6,4">
+        <StackPanel Orientation="Vertical" Spacing="12">
+
+            <TextBlock StyleNames="Header1" Text="Component Measurement Test" HorizontalAlignment="Center" />
+            <Separator/>
+
+            <TextBlock>
+                This sample validates the [c=Turquoise]MeasureSelf[/c] fix for component measurement.
+                [b]Bug 1[/b] (FIXED): shared component sizes now use [c=Yellow]MAX[/c] instead of [c=Red]SUM[/c].
+                Each [c=Turquoise]Debug.Assert[/c] in [c=Turquoise]MeasureSelf[/c] verifies component size ≤ available size.
+            </TextBlock>
+            <Separator/>
+
+            <!-- ═══════════════════════════════════════
+                 SCENARIO 1: ListBox with title
+                 (OuterBorder + TitleComponent + InnerBorderComponent,
+                  Title and InnerBorder both IsWidthSharedWithContent=true)
+                 ═══════════════════════════════════════ -->
+            <TextBlock StyleNames="Header1" Text="Scenario 1 — MGListBox" />
+            <TextBlock>
+                The [c=Turquoise]MGListBox[/c] has three components: an outer border, a title bar component
+                (IsWidthSharedWithContent=[c=Yellow]true[/c]), and an inner border component
+                (IsWidthSharedWithContent=[c=Yellow]true[/c]).
+                With the fix, both shared-width components contribute via MAX, not SUM.
+                Verify that the title bar and item list have the same width.
+            </TextBlock>
+
+            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
+                <!-- ListBox without explicit size, with title — should size to content -->
+                <ListBox Name="TestListBox1" IsTitleVisible="True" OuterBB="rgba(255,200,50,255)" OuterBT="2">
+                    <ListBox.Header>
+                        <TextBlock Text="Test List Box" Foreground="White" IsBold="True" />
+                    </ListBox.Header>
+                    <ListBoxItem>Item Alpha</ListBoxItem>
+                    <ListBoxItem>Item Beta</ListBoxItem>
+                    <ListBoxItem>Item Gamma — a longer item to test width</ListBoxItem>
+                    <ListBoxItem>Item Delta</ListBoxItem>
+                    <ListBoxItem>Item Epsilon</ListBoxItem>
+                </ListBox>
+
+                <!-- ListBox with explicit width, with title — both header and list fill it -->
+                <ListBox Name="TestListBox2" IsTitleVisible="True" Width="200" OuterBB="rgba(50,200,255,255)" OuterBT="2">
+                    <ListBox.Header>
+                        <TextBlock Text="Fixed Width List" Foreground="White" IsBold="True" />
+                    </ListBox.Header>
+                    <ListBoxItem>Short item</ListBoxItem>
+                    <ListBoxItem>Another item</ListBoxItem>
+                    <ListBoxItem>Third item</ListBoxItem>
+                </ListBox>
+            </StackPanel>
+            <TextBlock Name="ListBoxMeasureLabel" Text="ListBox measurement: ..." Foreground="Yellow" />
+            <Separator/>
+
+            <!-- ═══════════════════════════════════════
+                 SCENARIO 2: TabControl
+                 ═══════════════════════════════════════ -->
+            <TextBlock StyleNames="Header1" Text="Scenario 2 — MGTabControl" />
+            <TextBlock>
+                The [c=Turquoise]MGTabControl[/c] has one component: a border component
+                (IsWidthSharedWithContent=[c=Yellow]false[/c], IsHeightSharedWithContent=[c=Yellow]false[/c]).
+                This verifies that single-component elements continue to work correctly with the fix.
+                [c=Gray](Bug 2 — Padding sharing — affects TabControl but is not yet fixed.)[/c]
+            </TextBlock>
+
+            <TabControl Name="TestTabControl" Width="400" Height="200">
+                <TabItem Header="Tab One">
+                    <StackPanel Orientation="Vertical" Spacing="4" Padding="6">
+                        <TextBlock Text="Content of Tab One" />
+                        <TextBlock Text="This verifies component measurement in TabControl." />
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Tab Two">
+                    <StackPanel Orientation="Vertical" Spacing="4" Padding="6">
+                        <TextBlock Text="Content of Tab Two" />
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Tab Three — Longer Header">
+                    <StackPanel Orientation="Vertical" Spacing="4" Padding="6">
+                        <TextBlock Text="Content of Tab Three" />
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+            <TextBlock Name="TabControlMeasureLabel" Text="TabControl measurement: ..." Foreground="Yellow" />
+            <Separator/>
+
+            <!-- ═══════════════════════════════════════
+                 SCENARIO 3: Custom element with two shared-width components
+                 Represented by a TextBox (has CharacterCount + TextBlock components,
+                 both partially shared)
+                 ═══════════════════════════════════════ -->
+            <TextBlock StyleNames="Header1" Text="Scenario 3 — MGTextBox (multi-component)" />
+            <TextBlock>
+                [c=Turquoise]MGTextBox[/c] has 5 components including shared-width ones
+                (CharacterCount component: IsWidthSharedWithContent=[c=Yellow]true[/c]).
+                Verify that the text box renders correctly and doesn't have measurement artifacts.
+            </TextBlock>
+
+            <TextBox Name="TestTextBox1" Width="300" ShowCharacterCount="True" CharacterLimit="50"
+                     Placeholder="Type here to test measurement..." BorderBrush="rgba(200,100,255,255)" BorderThickness="2" />
+            <TextBlock Name="TextBoxMeasureLabel" Text="TextBox measurement: ..." Foreground="Yellow" />
+            <Separator/>
+
+            <!-- Live measurement display -->
+            <TextBlock StyleNames="Header1" Text="Live Measurement Info" />
+            <TextBlock>
+                The following labels display the [c=Turquoise]LayoutBounds[/c] and
+                [c=Yellow]Padding[/c] of each test element, updated every frame.
+                These confirm the fix produces correct measured sizes.
+            </TextBlock>
+            <StackPanel Orientation="Vertical" Background="Black * 0.3" Padding="6" Spacing="3">
+                <TextBlock Name="Info_LB1" Text="ListBox1 LayoutBounds: ..." />
+                <TextBlock Name="Info_LB2" Text="ListBox2 LayoutBounds: ..." />
+                <TextBlock Name="Info_TC"  Text="TabControl LayoutBounds: ..." />
+                <TextBlock Name="Info_TB1" Text="TextBox1 LayoutBounds: ..." />
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

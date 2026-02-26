@@ -166,6 +166,7 @@ namespace MGUI.Samples
         public IFillBrushSamples IFillBrushSamples { get; }
         public IBorderBrushSamples IBorderBrushSamples { get; }
         public NestedScrollViewerTestSample NestedScrollViewerTest { get; }
+        public ComponentMeasureTestSample ComponentMeasureTest { get; }
         #endregion Features
 
         #region Dialogs
@@ -221,6 +222,7 @@ namespace MGUI.Samples
             IFillBrushSamples = new(Content, Desktop);
             IBorderBrushSamples = new(Content, Desktop, this);
             NestedScrollViewerTest = new(Content, Desktop);
+            ComponentMeasureTest = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs

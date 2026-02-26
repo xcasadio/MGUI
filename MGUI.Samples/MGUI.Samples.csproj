@@ -60,6 +60,7 @@
     <None Remove="Features\IFillBrush.xaml" />
     <None Remove="Features\Styles.xaml" />
     <None Remove="Features\NestedScrollViewerTest.xaml" />
+    <None Remove="Features\ComponentMeasureTest.xaml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Compendium.xaml">
@@ -170,6 +171,7 @@
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
     <EmbeddedResource Include="Features\NestedScrollViewerTest.xaml" />
+    <EmbeddedResource Include="Features\ComponentMeasureTest.xaml" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="..\MGUI.Shared\Content\MGUI.Shared.Content.mgcb" Link="Content\MGUI.Shared.Content.mgcb" />
