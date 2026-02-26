@@ -4,7 +4,7 @@
     ComponentMeasureTest — Validation of MGElement.MeasureSelf component measurement
     ==================================================================================
     PURPOSE
-    -------
+    =======
     This sample verifies that the component measurement bug fix (Task 4) is correct:
 
     BUG FIXED (Bug 1): When multiple components share size with content via
@@ -21,13 +21,13 @@
     This is documented but not yet fixed (requires more invasive changes).
 
     ASSERTIONS
-    ----------
+    ==========
     Debug.Assert statements in MGElement.MeasureSelf verify that each component's
     measured size does not exceed the available space provided to it.
     These assertions fire in Debug builds whenever any element is measured.
 
     WHAT TO CHECK VISUALLY
-    ----------------------
+    ======================
     - The MGListBox shows its title bar and its item list, with the header and list
       aligned to the same width (both fill the box horizontally).
     - The MGTabControl shows its tab headers and content panel correctly aligned.

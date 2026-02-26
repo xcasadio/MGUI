@@ -4,7 +4,7 @@
     ActualLayoutBoundsTest — Validation of the Task 5 fix in MGElement.Update
     ===========================================================================
     PURPOSE
-    -------
+    =======
     This sample verifies that the fix passes content-area bounds (ActualLayoutBounds
     shrunk by Padding) down to content children in MGElement.Update.
 
@@ -26,7 +26,7 @@
     is always contained within ActualLayoutBounds.
 
     WHAT TO CHECK VISUALLY
-    ----------------------
+    ======================
     - The "Padded Container" below has Padding=20. The child buttons inside should
       display their correct ActualLayoutBounds (offset by 20 from left/top).
     - With the old code, a child button clipped at the border of the container would

@@ -4,7 +4,7 @@
     FormattedTextTokenizerTest — Validation of the Task 7 EscapeMarkdown fix
     =========================================================================
     PURPOSE
-    -------
+    =======
     Validates the Fix to FormattedTextTokenizer.EscapeMarkdown (Task 7):
     Consecutive escape characters ('\\') before '[' are now properly counted.
     Only an ODD count of backslashes before '[' should escape it.
@@ -26,7 +26,7 @@
       "\\\[tag]" → 3 backslashes (odd) → '[' IS escaped → literal "\[tag]"
 
     VISUAL SCENARIOS
-    ----------------
+    ================
     The TextBlocks below show EscapeMarkdown output and direct tokenizer output so
     the fix can be verified visually by running the sample in Debug mode.
     -->
