@@ -1031,8 +1031,19 @@ namespace MGUI.Core.UI
                     //  call to Nested.Update() will apply the same ordering inside each nested window.
                     ModalWindow?.Update(UpdateArgs);
 
+                    //  Track ToolTip occlusion for nested windows, mirroring the logic in MGDesktop.Update().
+                    //  When a nested window is being hovered, windows beneath it should not be able to override the active ToolTip.
+                    bool isNestedWindowOccludedAtMousePos = ModalWindow != null && ModalWindow.VisualState.IsPressedOrHovered;
                     foreach (MGWindow Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
+                    {
+                        MGToolTip previousQueuedToolTip = GetDesktop().QueuedToolTip;
                         Nested.Update(UpdateArgs);
+                        //  If a higher-priority nested window is occluding the mouse, prevent this window from overriding the ToolTip
+                        if (isNestedWindowOccludedAtMousePos)
+                            GetDesktop().QueuedToolTip = previousQueuedToolTip;
+                        else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough)
+                            isNestedWindowOccludedAtMousePos = true;
+                    }
                 };
 
                 OnEndUpdateContents += (sender, e) =>
