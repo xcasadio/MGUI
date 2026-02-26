@@ -1328,14 +1328,14 @@ namespace MGUI.Core.UI
                             Padding = new(0);
                             BorderThickness = new(0);
                             PreviousBackgroundBrush = BackgroundBrush.Copy();
-                            BackgroundBrush.SetAll(MGSolidFillBrush.Transparent); // Set this to MGSolidFillBrush.White * 0.2f while testing the AllowsClickThrough issue below
-                                                                                       //this.AllowsClickThrough = true;   //TODO we probably want AllowsClickThrough=false, but to then handle any unhandled events that occurred overtop of this window's content.
-                                                                                       //That way, an invisible window with margin around the content (such as horizontally-centered content) won't auto-handle clicks within the
-                                                                                       //window that are outside the content.
-                                                                                       //For Example, make an invisible window at topleft=0,0, size=500,500
-                                                                                       //Add content with size=200,200, centered in the window
-                                                                                       //clicking at position=100,100 overlaps the window, but doesn't overlap the content of the window
-                                                                                       //so the click should fall-through to whatever's under the window
+                            BackgroundBrush.SetAll(MGSolidFillBrush.Transparent);
+                            //  Explicitly disable click-through so the window blocks mouse events that fall within it.
+                            //  Note: clicks that land within the window bounds but outside of any child element content
+                            //  will still be consumed by this window (not passed through to windows below).
+                            //  If pass-through for empty areas is needed in the future, set AllowsClickThrough = true instead.
+                            AllowsClickThrough = false;
+                            Debug.Assert(AllowsClickThrough == false,
+                                $"{nameof(WindowStyle)}.{nameof(WindowStyle.None)} windows should not allow click-through by default.");
                             break;
                         default: throw new NotImplementedException($"Unrecognized {nameof(WindowStyle)}: {value}");
                     }
