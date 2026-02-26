@@ -210,7 +210,19 @@ namespace MGUI.Core.UI
 
             //  Microsoft.Win32.OpenFileDialog.ShowDialog() requires STA apartment state
             ApartmentState State = Thread.CurrentThread.GetApartmentState();
-            FilePath = State == ApartmentState.STA ? Browse() : StartSTATask(Browse).Result;
+            if (State == ApartmentState.STA)
+            {
+                FilePath = Browse();
+            }
+            else
+            {
+                //  The calling thread is not STA (e.g., MonoGame's update loop is MTA by default).
+                //  We start a dedicated STA thread via StartSTATask and block synchronously using GetAwaiter().GetResult().
+                //  This is safe here because MonoGame's update loop has no SynchronizationContext, so there is no
+                //  risk of the blocking call causing a deadlock. If this method is ever called from a thread with
+                //  a SynchronizationContext (e.g., a UI thread), it should be awaited asynchronously instead.
+                FilePath = StartSTATask(Browse).GetAwaiter().GetResult();
+            }
             return !string.IsNullOrEmpty(FilePath);
 #else
             //TODO: Implement this
