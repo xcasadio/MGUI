@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using System;
 using System.Collections.Generic;
@@ -641,7 +641,7 @@ namespace MGUI.Core.UI
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalContentAlignment = VerticalAlignment.Stretch,
                 };
-                SelectedColorPresenter.BackgroundBrush.SetAll(MGSolidFillBrush.Black * 0.75f);
+                SelectedColorPresenter.BackgroundBrush.SetAll(SolidFillBrushes.Black * 0.75f);
                 SelectedColorComponent = new MGComponent<MGHeaderedContentPresenter>(SelectedColorPresenter, true, false, false, false, false, true, true,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds.GetCompressed(Padding), HorizontalAlignment.Stretch, VerticalAlignment.Bottom, ComponentSize.Size));
                 AddComponent(SelectedColorComponent);
@@ -669,7 +669,7 @@ namespace MGUI.Core.UI
                 UnselectedColorBorderBrush = Color.Black.AsFillBrush().AsUniformBorderBrush();
                 UnselectedColorBorderThickness = new(1);
 
-                HoveredColorOverlay = MGSolidFillBrush.White * 0.2f;
+                HoveredColorOverlay = SolidFillBrushes.White * 0.2f;
                 SelectedColorOverlay = null; //Color.Yellow.AsFillBrush() * 0.1f;
 
                 MouseHandler.Exited += (sender, e) => HoveredColorIndex = null;

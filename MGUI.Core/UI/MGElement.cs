@@ -105,20 +105,15 @@ namespace MGUI.Core.UI
     }
 
     //TODO:
-    //Fix bug with measurement logic of components
-    //      MGElement.MeasureSelf and MGElement.UpdateLayout both have 2 bugs when dealing with components
-    //      1. Some components may need to share their size with other components rather than just with the Content
-    //              EX: A ListBox contains a component for its header, and a component for the scrollable Grid content,
-    //                  rather than a component for its header, and putting everything else in the Content property
-    //                  (Because MGListBox extends MGelement, not MGSingleContentHost, which was kind of a dumb implementation on my part)
-    //                  So the width of the listbox should be Max(TitleComponent.Width, InnerBorderComponent.Width)
-    //                  but components are currently only coded to share their dimensions with Content, not with other components
-    //              So when measuring components, instead of summing their dimensions, we probably need logic that will
-    //              do some Math.Max on dimensions of components that have the same IsWidthSharedWithContent/IsHeightSharedWithContent settings
-    //      2. There's a bug where components aren't able to share their size with the Padding
-    //              This probably only matters in cases where the component doesn't use the owner's padding (like MGTabControl)
-    //              So it's causing the total measured dimensions to be Sum(Padding, UnsharedComponentSize, Max(ContentSize, SharedComponentSize)
-    //              instead of something like: Sum(Max(Padding, UnsharedComponentSize), Max(ContentSize, SharedComponentSize))
+    //FIXED Bug 1 (see MeasureSelf): shared component sizes now use element-wise MAX instead of SUM.
+    //      When multiple components have IsWidthSharedWithContent=true or IsHeightSharedWithContent=true,
+    //      their contributions to SharedSize are now max'd (not summed), so the measured total size is
+    //      Max(comp1, comp2, ..., Content) rather than comp1+comp2+...+Max(0,Content-sum).
+    //REMAINING Bug 2: components aren't able to share their size with the Padding.
+    //      This probably only matters in cases where a component doesn't use the owner's padding (like MGTabControl)
+    //      So it's causing the total measured dimensions to be Sum(Padding, UnsharedComponentSize, Max(ContentSize, SharedComponentSize)
+    //      instead of something like: Sum(Max(Padding, UnsharedComponentSize), Max(ContentSize, SharedComponentSize))
+    //      Fixing this requires tracking a "MaxPaddingAndUnsharedComponent" which is more invasive.
     //Make ItemsSource bindable in combobox/listbox/listview/grid/unfiromgrid
     //      for example: ComboBox could have "public MGBinding ItemsSource"
     //      then in MGComboBox.LoadSettings, if ItemsSource binding is not null,
@@ -1479,19 +1474,18 @@ namespace MGUI.Core.UI
             Origin = UA.Offset;
 
             Rectangle UnscaledScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, LayoutBounds);
-            //TODO there's a bug with ActualLayoutBounds that I'm too lazy to fix:
-            //Rectangle.Intersect(Parent.ActualLayoutBounds, this.LayoutBounds.GetTranslated(-UA.Offset)) does NOT properly account for the parent's Padding.
-            //We can't simply compress the ActualLayoutBounds by the parent's Padding because not all element's pad all of their children.
-            //For example, an MGTabControl's padding isn't applied to the HeadersPanel that hosts the TabControl's Tab headers.
-#if true
+            //FIX (Task 5): ActualLayoutBounds is computed by intersecting the received UA.ActualLayoutBounds
+            //(which IS the parent's content-area bounds — see below) with this element's own unscaled screen bounds.
+            //This correctly clips each element to the visible content area of its parent.
+            //Note: UA.ActualLayoutBounds passed into this call is always the parent's content-area bounds (parent's
+            //ActualLayoutBounds shrunk by the parent's Padding), computed just before calling UpdateContents below.
+            //Components (border panels, title bars, etc.) receive the parent's full ActualLayoutBounds (not shrunk)
+            //because components typically live outside or spanning the padding area.
+            //An MGTabControl's HeadersPanel is a component, so it correctly receives the full bounds.
             if (IsWindow)
                 ActualLayoutBounds = UnscaledScreenBounds;
             else
                 ActualLayoutBounds = Rectangle.Intersect(UA.ActualLayoutBounds, UnscaledScreenBounds);
-#else
-            Rectangle ParentLayoutBounds = IsWindow ? GetDesktop().ValidScreenBounds : UA.ActualLayoutBounds;
-            this.ActualLayoutBounds = Rectangle.Intersect(ParentLayoutBounds, UnscaledScreenBounds);
-#endif
 
             UA = UA with {
                 IsEnabled = ComputedIsEnabled, 
@@ -1544,11 +1538,28 @@ namespace MGUI.Core.UI
             _CanReceiveKeyboardInput = BaseCanReceiveInput && (Parent?._CanReceiveKeyboardInput ?? true);
 
             OnBeginUpdateContents?.Invoke(this, UpdateEventArgs);
+
+            // Compute the content-area bounds: ActualLayoutBounds shrunk by this element's Padding.
+            // Content children (visual-tree children) are clipped to the content area so their
+            // ActualLayoutBounds correctly excludes the padding region of their parent.
+            // Components live outside or spanning the padding area, so they use the full bounds.
+            // There is no special-case needed for MGTabControl: its HeadersPanel IS a component,
+            // so it always receives the full (unpadded) bounds.
+            // Clamp origin so ContentAreaBounds never exceeds ActualLayoutBounds
+            // even when Padding is larger than the available Width/Height.
+            int _cabX = Math.Min(ActualLayoutBounds.X + Padding.Left,  ActualLayoutBounds.Right);
+            int _cabY = Math.Min(ActualLayoutBounds.Y + Padding.Top,   ActualLayoutBounds.Bottom);
+            Rectangle ContentAreaBounds = new Rectangle(
+                _cabX, _cabY,
+                Math.Max(0, ActualLayoutBounds.Width  - Padding.Left - Padding.Right),
+                Math.Max(0, ActualLayoutBounds.Height - Padding.Top  - Padding.Bottom));
+            ElementUpdateArgs UAForContents = UA with { ActualLayoutBounds = ContentAreaBounds };
+
 			foreach (MGElement Component in Components.Where(x => x.UpdateBeforeContents).Select(x => x.BaseElement))
-				Component.Update(UA);
-			UpdateContents(UA);
+				Component.Update(UA);               // components get the full (unpadded) bounds
+			UpdateContents(UAForContents);          // content children get the content-area bounds
             foreach (MGElement Component in Components.Where(x => x.UpdateAfterContents).Select(x => x.BaseElement))
-                Component.Update(UA);
+                Component.Update(UA);              // components get the full (unpadded) bounds
             OnEndUpdateContents?.Invoke(this, UpdateEventArgs);
 
             if (ComputedIsHitTestVisible)
@@ -2128,7 +2139,12 @@ namespace MGUI.Core.UI
 			Total = Total.Add(Overridden);
 			RemainingSize = RemainingSize.Subtract(Overridden.Size, 0, 0);
 
-            Thickness TotalComponentSize = new(0);
+            // Fix for component measurement Bug 1:
+            //   Components that share their size with content also share with each other.
+            //   Use element-wise MAX (not SUM) for shared sizes, and SUM for unshared sizes.
+            //   See the TODO comment near the top of this file for the full description.
+            Thickness MaxSharedComponentSize = new(0);  // element-wise MAX of all shared-with-content component dimensions
+            Thickness UnsharedComponentSum = new(0);    // SUM of component dimensions that are NOT shared with content
 			foreach (MGComponentBase Component in Components)
 			{
 				Size RemainingSizeForComponent = Component.UsesOwnersPadding ? RemainingSize.Subtract(PaddingSize, 0, 0) : RemainingSize;
@@ -2136,18 +2152,36 @@ namespace MGUI.Core.UI
 				MGElement Element = Component.BaseElement;
                 Element.UpdateMeasurement(RemainingSizeForComponent, out _, out Thickness ComponentSize, out _, out _);
 
-				Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
+Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
 				Thickness ComponentSharedSize = new(
 					Component.IsWidthSharedWithContent ? ActualComponentSize.Left : 0,
 					Component.IsHeightSharedWithContent ? ActualComponentSize.Top : 0,
 					Component.IsWidthSharedWithContent ? ActualComponentSize.Right : 0,
 					Component.IsHeightSharedWithContent ? ActualComponentSize.Bottom : 0);
-				SharedSize = SharedSize.Add(ComponentSharedSize);
 
-                TotalComponentSize = TotalComponentSize.Add(ActualComponentSize);
+                // Track element-wise MAX of shared sizes (components sharing with content also share with each other)
+                MaxSharedComponentSize = new(
+                    Math.Max(MaxSharedComponentSize.Left, ComponentSharedSize.Left),
+                    Math.Max(MaxSharedComponentSize.Top, ComponentSharedSize.Top),
+                    Math.Max(MaxSharedComponentSize.Right, ComponentSharedSize.Right),
+                    Math.Max(MaxSharedComponentSize.Bottom, ComponentSharedSize.Bottom));
+
+                // Sum the unshared portion of this component
+                Thickness ComponentUnsharedSize = new(
+                    Component.IsWidthSharedWithContent ? 0 : ActualComponentSize.Left,
+                    Component.IsHeightSharedWithContent ? 0 : ActualComponentSize.Top,
+                    Component.IsWidthSharedWithContent ? 0 : ActualComponentSize.Right,
+                    Component.IsHeightSharedWithContent ? 0 : ActualComponentSize.Bottom);
+                UnsharedComponentSum = UnsharedComponentSum.Add(ComponentUnsharedSize);
+
                 RemainingSize = RemainingSize.Subtract(ActualComponentSize.Size, 0, 0);
 			}
 
+            // SharedSize = element-wise max of all shared component sizes
+            // (used by outer measurement to compute Max(SharedSize, ContentSize))
+            SharedSize = SharedSize.Add(MaxSharedComponentSize);
+            // Total component contribution = unshared sum + max-shared
+            Thickness TotalComponentSize = UnsharedComponentSum.Add(MaxSharedComponentSize);
             Total = Total.Add(TotalComponentSize);
 
             if (Total.Width <= 0 && Total.Height <= 0)

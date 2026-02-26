@@ -1,4 +1,4 @@
-﻿using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Containers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -150,7 +150,7 @@ namespace MGUI.Core.UI
                 SendButton.ManagedParent = this;
 
                 Separator = new(ParentWindow, Orientation.Horizontal, 1);
-                Separator.BackgroundBrush.SetAll(MGSolidFillBrush.Black);
+                Separator.BackgroundBrush.SetAll(SolidFillBrushes.Black);
                 Separator.Margin = new(0);
                 Separator.ManagedParent = this;
 

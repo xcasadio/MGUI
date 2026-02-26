@@ -132,6 +132,25 @@ namespace MGUI.Core.UI
         private bool IsDragging;
 
         //TODO options to allow resize in either direction or just 1 axis?
+        private bool _AllowHorizontalResize = true;
+        /// <summary>If true, dragging the <see cref="MGResizeGrip"/> will resize its host element horizontally.<para/>
+        /// Default value: true<para/>
+        /// See also: <see cref="AllowVerticalResize"/></summary>
+        public bool AllowHorizontalResize
+        {
+            get => _AllowHorizontalResize;
+            set { if (_AllowHorizontalResize != value) { _AllowHorizontalResize = value; NPC(nameof(AllowHorizontalResize)); } }
+        }
+
+        private bool _AllowVerticalResize = true;
+        /// <summary>If true, dragging the <see cref="MGResizeGrip"/> will resize its host element vertically.<para/>
+        /// Default value: true<para/>
+        /// See also: <see cref="AllowHorizontalResize"/></summary>
+        public bool AllowVerticalResize
+        {
+            get => _AllowVerticalResize;
+            set { if (_AllowVerticalResize != value) { _AllowVerticalResize = value; NPC(nameof(AllowVerticalResize)); } }
+        }
 
         /// <summary>Creates a <see cref="MGResizeGrip"/> that will be attached to the given <paramref name="HostElement"/></summary>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="HostElement"/> is null</exception>
@@ -185,13 +204,17 @@ namespace MGUI.Core.UI
                         Point Delta = new((int)(e.PositionDelta.X * Scalar), (int)(e.PositionDelta.Y * Scalar));
                         if (Parent is MGWindow TargetWindow)
                         {
-                            TargetWindow.WindowWidth = Math.Max(0, InitialWidth + Delta.X);
-                            TargetWindow.WindowHeight = Math.Max(0, InitialHeight + Delta.Y);
+                            if (AllowHorizontalResize)
+                                TargetWindow.WindowWidth = Math.Max(0, InitialWidth + Delta.X);
+                            if (AllowVerticalResize)
+                                TargetWindow.WindowHeight = Math.Max(0, InitialHeight + Delta.Y);
                         }
                         else
                         {
-                            Parent.PreferredWidth = Math.Max(0, InitialWidth + Delta.X);
-                            Parent.PreferredHeight = Math.Max(0, InitialHeight + Delta.Y);
+                            if (AllowHorizontalResize)
+                                Parent.PreferredWidth = Math.Max(0, InitialWidth + Delta.X);
+                            if (AllowVerticalResize)
+                                Parent.PreferredHeight = Math.Max(0, InitialHeight + Delta.Y);
                         }
                     }
                 };

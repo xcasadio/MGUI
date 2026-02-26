@@ -52,14 +52,12 @@ namespace MGUI.Core.UI.XAML
                 }
 
                 MGElement Item = Template.GetInstance(Window);
-                //TODO: Need a way to handle ApplyBaseSettings.
-                //Maybe MGElementTemplate.Template should be split into 2 functions instead of 1 so that
-                //we can interlace the ApplyBaseSettings delegate to just after the element is created, but before it's customized?
-                //      MGElement Item = Template.CreateInstance(Window)
-                //      ApplyBaseSettings?.Invoke(Item);
-                //      Template.StyleInstance(Item);
-                Debug.WriteLineIf(ApplyBaseSettings != null, $"Warning - {nameof(Template)}.{nameof(GetContent)} does not account for {nameof(ApplyBaseSettings)} parameter when using {nameof(ContentTemplateName)}. " +
-                    $"This may result in incorrectly-styled Content, such as if this {nameof(Template)} was used to generate a {nameof(ComboBox)}'s {nameof(ComboBox.DropdownItemTemplate)}.");
+                //  Note: ideally ApplyBaseSettings should be invoked *before* the template applies its own customization.
+                //  This requires splitting MGElementTemplate.Template into Create + Style phases.
+                //  As a best-effort fix, we apply it here (after template creation) so it at least runs.
+                ApplyBaseSettings?.Invoke(Item);
+                Debug.WriteLineIf(ApplyBaseSettings != null, $"[{nameof(ContentTemplate)}] Applied {nameof(ApplyBaseSettings)} post-creation for template '{ContentTemplateName}'. " +
+                    $"Note: ideally {nameof(ApplyBaseSettings)} should run before template customization for correct style precedence.");
                 Element.ProcessBindings(Item, true, DataContext);
                 return Item;
             }

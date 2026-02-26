@@ -71,8 +71,19 @@ namespace MGUI.Samples
             } 
             catch (Exception ex) 
             { 
-                Debug.WriteLine($"Error parsing XAML content for {ResourceName}: {ex}");
-#if DEBUG
+                Debug.WriteLine($"[XAML ERROR] Failed to parse XAML content for '{ResourceName}': {ex.Message}");
+                Debug.WriteLine($"[XAML ERROR] Stack trace: {ex.StackTrace}");
+                // In Release mode, attempt to display a visible error indicator instead of silently producing an empty window
+#if !DEBUG
+                string safeMsg = (ex.Message ?? string.Empty)
+                    .Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+                string fallback =
+                    "<Window xmlns=\"clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core\" " +
+                    "Left=\"100\" Top=\"100\" Width=\"600\" SizeToContent=\"Height\">" +
+                    $"<TextBlock Foreground=\"Red\" Text=\"[XAML ERROR] {safeMsg}\" Padding=\"10\" /></Window>";
+                try { Window = XAMLParser.LoadRootWindow(Desktop, fallback, false, false); }
+                catch (Exception inner) { Debug.WriteLine($"[XAML ERROR] Fallback window also failed: {inner.Message}"); }
+#else
                 throw;
 #endif
             }
@@ -155,6 +166,11 @@ namespace MGUI.Samples
         public IFillBrushSamples IFillBrushSamples { get; }
         public IBorderBrushSamples IBorderBrushSamples { get; }
         public DockingDemo DockingDemo { get; }
+        public NestedScrollViewerTestSample NestedScrollViewerTest { get; }
+        public ComponentMeasureTestSample ComponentMeasureTest { get; }
+        public ActualLayoutBoundsTestSample ActualLayoutBoundsTest { get; }
+        public TextBoxBackslashTestSample TextBoxBackslashTest { get; }
+        public FormattedTextTokenizerTestSample FormattedTextTokenizerTest { get; }
         #endregion Features
 
         #region Dialogs
@@ -210,6 +226,11 @@ namespace MGUI.Samples
             IFillBrushSamples = new(Content, Desktop);
             IBorderBrushSamples = new(Content, Desktop, this);
             DockingDemo = new(Content, Desktop);
+            NestedScrollViewerTest = new(Content, Desktop);
+            ComponentMeasureTest = new(Content, Desktop);
+            ActualLayoutBoundsTest = new(Content, Desktop);
+            TextBoxBackslashTest = new(Content, Desktop);
+            FormattedTextTokenizerTest = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs

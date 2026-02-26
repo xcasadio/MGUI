@@ -22,10 +22,27 @@ namespace MGUI.Core.UI
 
         private const int ScrollBarPadding = 2;
 
-        //TODO: bool AllowClickDragScrolling
-        //      if true, this ScrollViewer attempts to handle DragStart, Dragged, and DragEnd events when clicking anywhere within the Viewport's bounds
-        //      (assuming a child element didn't already handle the event.
-        //      maybe only detects it if the start position of the drag wasn't overtop of any child content that handles input (like MGButton, MGRadioButton, MGCheckBox, MGTextBox etc)
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _AllowClickDragScrolling;
+        /// <summary>If true, clicking and dragging anywhere within this <see cref="MGScrollViewer"/>'s viewport will scroll the content,
+        /// as long as the drag did not start over the scrollbars.<para/>
+        /// Default value: false</summary>
+        public bool AllowClickDragScrolling
+        {
+            get => _AllowClickDragScrolling;
+            set
+            {
+                if (_AllowClickDragScrolling != value)
+                {
+                    _AllowClickDragScrolling = value;
+                    NPC(nameof(AllowClickDragScrolling));
+                }
+            }
+        }
+
+        private bool IsDraggingContent { get; set; }
+        private float _ContentDragStartVerticalOffset;
+        private float _ContentDragStartHorizontalOffset;
 
         /// <summary>Represents how much <see cref="VerticalOffset"/> will be changed when using the mouse scroll wheel.<para/>
         /// Recommended value: Anywhere from 20 to 80 (Scrolling on reddit.com seems to scroll by about 84px? Might be percentage-based)</summary>
@@ -438,6 +455,14 @@ namespace MGUI.Core.UI
                             e.SetHandledBy(this, false);
                             IsDraggingHSB = true;
                         }
+
+                        if (AllowClickDragScrolling && !IsHoveringVSB && !IsHoveringHSB)
+                        {
+                            e.SetHandledBy(this, false);
+                            IsDraggingContent = true;
+                            _ContentDragStartVerticalOffset = VerticalOffset;
+                            _ContentDragStartHorizontalOffset = HorizontalOffset;
+                        }
                     }
                 };
 
@@ -445,6 +470,7 @@ namespace MGUI.Core.UI
                 {
                     IsDraggingVSB = false;
                     IsDraggingHSB = false;
+                    IsDraggingContent = false;
                 };
 
                 MouseHandler.Dragged += (sender, e) =>
@@ -462,12 +488,21 @@ namespace MGUI.Core.UI
                         Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                         HandleScrollBarInput(Orientation.Horizontal, e.Button, LayoutSpacePosition.X);
                     }
+
+                    if (IsDraggingContent)
+                    {
+                        Point DragStart = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.StartPosition);
+                        Point DragCurrent = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                        Point Delta = DragCurrent - DragStart;
+                        VerticalOffset = _ContentDragStartVerticalOffset - Delta.Y;
+                        HorizontalOffset = _ContentDragStartHorizontalOffset - Delta.X;
+                    }
                 };
 
                 //  Pre-emptively handle mouse events if user was dragging a scrollbar so that the child content doesn't also react to the mouse event
                 OnBeginUpdateContents += (sender, e) =>
                 {
-                    if (IsDraggingVSB || IsDraggingHSB)
+                    if (IsDraggingVSB || IsDraggingHSB || IsDraggingContent)
                     {
                         MouseHandler.Tracker.CurrentButtonReleasedEvents[MouseButton.Left]?.SetHandledBy(this, false);
                         foreach (DragStartCondition StartCondition in MouseHandler.DragStartConditions)
@@ -483,7 +518,7 @@ namespace MGUI.Core.UI
                 //  This probably isn't needed
                 MouseHandler.ReleasedOutside += (sender, e) =>
                 {
-                    if (e.IsLMB && (IsDraggingVSB || IsDraggingHSB))
+                    if (e.IsLMB && (IsDraggingVSB || IsDraggingHSB || IsDraggingContent))
                         e.SetHandledBy(this, false);
                 };
 

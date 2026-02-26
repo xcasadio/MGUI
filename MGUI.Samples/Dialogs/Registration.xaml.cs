@@ -60,9 +60,9 @@ namespace MGUI.Samples.Dialogs
                     string Username = TextBox_Username.Text;
                     string Password = TextBox_Password.Password;
 
-                    //TODO
-                    //Do something with email/username/password inputs
-                    //
+                    Debug.WriteLine($"[Registration] Handler invoked for user: {Username}, email: {Email}");
+                    //  TODO: Replace this stub with actual registration logic (e.g., call a web API, validate inputs, show confirmation)
+                    throw new NotImplementedException("Registration handler not yet implemented");
                 }
             });
         }

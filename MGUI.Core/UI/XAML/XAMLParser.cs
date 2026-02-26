@@ -137,20 +137,47 @@ namespace MGUI.Core.UI.XAML
         {
             XAMLString = XAMLString.Trim();
 
-            //  TODO: First line might not be an XElement. Could be something like a comment,
-            //  so we should use more robust logic to insert the namespaces
-            int FirstLineBreakIndex = XAMLString.IndexOfAny(new char[] { '\n', '\r' });
-            string FirstLine = FirstLineBreakIndex < 0 ? XAMLString : XAMLString.Substring(0, FirstLineBreakIndex);
-            if (!FirstLine.Contains(XMLNameSpaces))
+            //  Check whether the namespace declarations are already present anywhere in the string.
+            //  We search the full string (not just the first line) to correctly handle XAML documents
+            //  that start with XML comments (<!-- ... -->) or processing instructions before the root element.
+            if (!XAMLString.Contains(XMLNameSpaces))
             {
-                //  Insert the required xml namespaces into the XAML string
-                int SpaceIndex = XAMLString.IndexOf(' ');
-                if (SpaceIndex >= 0)
-                    XAMLString = $"{XAMLString.Substring(0, SpaceIndex)} {XMLNameSpaces} {XAMLString.Substring(SpaceIndex + 1)}";
-                else
+                //  Find the actual root element tag, skipping any XML comments (<!-- ... -->) and
+                //  processing instructions (<? ... ?>) that may precede it.
+                int rootTagStart = -1;
+                int searchPos = 0;
+                while (searchPos < XAMLString.Length)
                 {
-                    int InsertionIndex = XAMLString.IndexOf('>');
-                    XAMLString = $"{XAMLString.Substring(0, InsertionIndex)} {XMLNameSpaces} {XAMLString.Substring(InsertionIndex)}";
+                    int tagStart = XAMLString.IndexOf('<', searchPos);
+                    if (tagStart < 0) break;
+                    if (tagStart + 1 >= XAMLString.Length) break;
+
+                    char nextChar = XAMLString[tagStart + 1];
+                    if (nextChar != '!' && nextChar != '?')
+                    {
+                        // This is an element tag, not a comment or PI — this is the root element
+                        rootTagStart = tagStart;
+                        break;
+                    }
+
+                    // Skip past this comment or processing instruction
+                    int tagEnd = XAMLString.IndexOf('>', tagStart + 1);
+                    if (tagEnd < 0) break;
+                    searchPos = tagEnd + 1;
+                }
+
+                if (rootTagStart >= 0)
+                {
+                    //  Insert the required xml namespaces into the root element tag
+                    string afterOpenTag = XAMLString.Substring(rootTagStart);
+                    int SpaceIndex = afterOpenTag.IndexOf(' ');
+                    if (SpaceIndex >= 0)
+                        XAMLString = $"{XAMLString.Substring(0, rootTagStart + SpaceIndex)} {XMLNameSpaces} {XAMLString.Substring(rootTagStart + SpaceIndex + 1)}";
+                    else
+                    {
+                        int InsertionIndex = rootTagStart + afterOpenTag.IndexOf('>');
+                        XAMLString = $"{XAMLString.Substring(0, InsertionIndex)} {XMLNameSpaces} {XAMLString.Substring(InsertionIndex)}";
+                    }
                 }
             }
 

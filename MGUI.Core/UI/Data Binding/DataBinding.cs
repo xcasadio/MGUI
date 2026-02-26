@@ -1,6 +1,7 @@
 ﻿using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.XAML;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -67,6 +68,12 @@ namespace MGUI.Core.UI.Data_Binding
         public readonly string TargetPropertyName;
         public readonly PropertyInfo TargetProperty;
         public readonly Type TargetPropertyType;
+
+        /// <summary>True if the last attempt to set the target property value threw an exception.<br/>
+        /// Reset to <see langword="false"/> when a subsequent binding update succeeds.</summary>
+        public bool HasError { get; private set; }
+        /// <summary>The error message from the last failed binding attempt, or <see langword="null"/> if no error has occurred.</summary>
+        public string LastError { get; private set; }
 
         private readonly record struct ConverterConfig(IValueConverter Converter, object Parameter, bool IsConvertingBack)
         {
@@ -399,8 +406,16 @@ namespace MGUI.Core.UI.Data_Binding
                     (Value != null && IsAssignableOrConvertible(SourceType, TargetPropertyType)))
                 {
                     object ActualValue = ConvertValue(Context, SourceType, TargetPropertyType, Value, null, StringFormat);
-                    try { TargetProperty.SetValue(TargetObject, ActualValue); }
-                    catch (Exception ex) { Debug.WriteLine(ex); }
+                    try
+                    {
+                        TargetProperty.SetValue(TargetObject, ActualValue);
+                        if (Context is DataBinding b1) { b1.HasError = false; b1.LastError = null; }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[DataBinding ERROR] SetValue failed for property '{TargetProperty?.Name}' on '{TargetObject?.GetType().Name}': {ex.Message}");
+                        if (Context is DataBinding b1) { b1.HasError = true; b1.LastError = ex.Message; }
+                    }
                     return true;
                 }
             }
@@ -430,8 +445,16 @@ namespace MGUI.Core.UI.Data_Binding
                 if (ConverterSettings.HasValue || IsAssignableOrConvertible(SourcePropertyType, TargetPropertyType))
                 {
                     object ActualValue = ConvertValue(Context, SourcePropertyType, TargetPropertyType, Value, null, StringFormat);
-                    try { TargetProperty.SetValue(TargetObject, ActualValue); }
-                    catch (Exception ex) { Debug.WriteLine(ex); }
+                    try
+                    {
+                        TargetProperty.SetValue(TargetObject, ActualValue);
+                        if (Context is DataBinding b2) { b2.HasError = false; b2.LastError = null; }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[DataBinding ERROR] SetValue failed for property '{TargetProperty?.Name}' on '{TargetObject?.GetType().Name}': {ex.Message}");
+                        if (Context is DataBinding b2) { b2.HasError = true; b2.LastError = ex.Message; }
+                    }
                     return true;
                 }
             }
@@ -510,25 +533,23 @@ namespace MGUI.Core.UI.Data_Binding
             }
         }
 
-        private static readonly Dictionary<Type, Dictionary<Type, bool>> CachedIsAssignable = new();
+        private static readonly ConcurrentDictionary<Type, Dictionary<Type, bool>> CachedIsAssignable = new();
         private static bool IsAssignable(Type From, Type To)
         {
             if (From == null || To == null)
                 return false;
 
-            if (!CachedIsAssignable.TryGetValue(From, out Dictionary<Type, bool> CanAssignByType))
-            {
-                CanAssignByType = new();
-                CachedIsAssignable.Add(From, CanAssignByType);
-            }
+            var CanAssignByType = CachedIsAssignable.GetOrAdd(From, _ => new Dictionary<Type, bool>());
 
-            if (!CanAssignByType.TryGetValue(To, out bool CanAssign))
+            lock (CanAssignByType)
             {
-                CanAssign = From.IsAssignableTo(To);
-                CanAssignByType.Add(To, CanAssign);
+                if (!CanAssignByType.TryGetValue(To, out bool CanAssign))
+                {
+                    CanAssign = From.IsAssignableTo(To);
+                    CanAssignByType.Add(To, CanAssign);
+                }
+                return CanAssign;
             }
-
-            return CanAssign;
         }
 
         static DataBinding()
@@ -552,7 +573,7 @@ namespace MGUI.Core.UI.Data_Binding
         public static void RegisterDefaultTypeConverter(Type TargetType, TypeConverterAttribute TypeConverter)
             => TypeDescriptor.AddAttributes(TargetType, TypeConverter);
 
-        private static readonly Dictionary<Type, TypeConverter> CachedConverters = new();
+        private static readonly ConcurrentDictionary<Type, TypeConverter> CachedConverters = new();
         private static TypeConverter GetConverter(Type Type)
         {
             if (Type == null)
@@ -561,21 +582,20 @@ namespace MGUI.Core.UI.Data_Binding
             if (!CachedConverters.TryGetValue(Type, out TypeConverter Converter))
             {
                 Converter = TypeDescriptor.GetConverter(Type);
-                CachedConverters.Add(Type, Converter);
+                CachedConverters.TryAdd(Type, Converter);
+                CachedConverters.TryGetValue(Type, out Converter);
             }
 
             return Converter;
         }
 
-        private static readonly Dictionary<TypeConverter, Dictionary<Type, bool>> CachedCanConvertFrom = new();
-        private static readonly Dictionary<TypeConverter, Dictionary<Type, bool>> CachedCanConvertTo = new();
+        // NOTE: TypeConverters don't necessarily return the same CanConvertFrom/CanConvertTo result for the same input types
+        // when an ITypeDescriptorContext is available. This cache ignores context, which is acceptable in practice since
+        // context-sensitive TypeConverters are rare. These dictionaries are thread-safe: the outer ConcurrentDictionary
+        // handles concurrent additions of new converters; inner dictionaries are locked individually when written.
+        private static readonly ConcurrentDictionary<TypeConverter, Dictionary<Type, bool>> CachedCanConvertFrom = new();
+        private static readonly ConcurrentDictionary<TypeConverter, Dictionary<Type, bool>> CachedCanConvertTo = new();
         private static bool IsConvertible(Type From, Type To) => IsConvertibleFrom(From, To) || IsConvertibleTo(From, To);
-
-        //TODO TypeConverters don't necessarily return the same value for the same input types.
-        //CanConvertFrom/CanConvertTo might return different values depending on the ITypeDescriptorContext
-        //so we can't actually cache these results... and we should be passing in the context...
-        //I don't care to fix this right now since it's pretty rare that a TypeConverter's implementation
-        //needs to access the ITypeDescriptorContext to determine if it can/cannot convert to/from.
         private static bool IsConvertibleFrom(Type From, Type To)
         {
             if (From == null || To == null)
@@ -583,19 +603,16 @@ namespace MGUI.Core.UI.Data_Binding
 
             TypeConverter Converter = GetConverter(To);
 
-            if (!CachedCanConvertFrom.TryGetValue(Converter, out Dictionary<Type, bool> CanConvertByType))
+            var CanConvertByType = CachedCanConvertFrom.GetOrAdd(Converter, _ => new Dictionary<Type, bool>());
+            lock (CanConvertByType)
             {
-                CanConvertByType = new();
-                CachedCanConvertFrom.Add(Converter, CanConvertByType);
+                if (!CanConvertByType.TryGetValue(To, out bool CanConvert))
+                {
+                    CanConvert = Converter.CanConvertFrom(From);
+                    CanConvertByType.Add(To, CanConvert);
+                }
+                return CanConvert;
             }
-
-            if (!CanConvertByType.TryGetValue(To, out bool CanConvert))
-            {
-                CanConvert = Converter.CanConvertFrom(From);
-                CanConvertByType.Add(To, CanConvert);
-            }
-
-            return CanConvert;
         }
 
         private static bool IsConvertibleTo(Type From, Type To)
@@ -605,19 +622,16 @@ namespace MGUI.Core.UI.Data_Binding
 
             TypeConverter Converter = GetConverter(From);
 
-            if (!CachedCanConvertTo.TryGetValue(Converter, out Dictionary<Type, bool> CanConvertByType))
+            var CanConvertByType = CachedCanConvertTo.GetOrAdd(Converter, _ => new Dictionary<Type, bool>());
+            lock (CanConvertByType)
             {
-                CanConvertByType = new();
-                CachedCanConvertTo.Add(Converter, CanConvertByType);
+                if (!CanConvertByType.TryGetValue(To, out bool CanConvert))
+                {
+                    CanConvert = Converter.CanConvertTo(To);
+                    CanConvertByType.Add(To, CanConvert);
+                }
+                return CanConvert;
             }
-
-            if (!CanConvertByType.TryGetValue(To, out bool CanConvert))
-            {
-                CanConvert = Converter.CanConvertTo(To);
-                CanConvertByType.Add(To, CanConvert);
-            }
-
-            return CanConvert;
         }
 
         private static bool IsAssignableOrConvertible(Type From, Type To) => IsAssignable(From, To) || IsConvertible(From, To);

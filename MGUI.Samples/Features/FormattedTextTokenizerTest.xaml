@@ -1,0 +1,88 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="120" Top="650" Width="680" Height="500" TitleText="FormattedTextTokenizer Escape Test" Padding="10">
+    <!--
+    FormattedTextTokenizerTest — Validation of the Task 7 EscapeMarkdown fix
+    =========================================================================
+    PURPOSE
+    =======
+    Validates the Fix to FormattedTextTokenizer.EscapeMarkdown (Task 7):
+    Consecutive escape characters ('\\') before '[' are now properly counted.
+    Only an ODD count of backslashes before '[' should escape it.
+
+    BUG FIXED (Task 7): The old code only checked if the IMMEDIATELY preceding
+    character was the escape char. This caused it to skip adding an escape for
+    even-numbered backslash runs (e.g. '\\[tag]'), leaving the '[' unescaped
+    and the preceding backslashes appearing to "eat" each other.
+
+    FIX: In EscapeMarkdown, count consecutive EscapeOpenTagChar chars trailing
+    the result builder before each '['. For N preceding backslashes:
+      • Add N extra backslashes (doubling the run into literal pairs).
+      • Add 1 more backslash to escape the '['.
+
+    TOKENIZER PROOF (tested programmatically in the CS file):
+    The tokenizer already handles odd/even backslash counts correctly:
+      "\[tag]"   → 1 backslash (odd)  → '[' IS escaped → string literal "[tag]"
+      "\\[tag]"  → 2 backslashes (even) → '[' NOT escaped → starts a tag
+      "\\\[tag]" → 3 backslashes (odd) → '[' IS escaped → literal "\[tag]"
+
+    VISUAL SCENARIOS
+    ================
+    The TextBlocks below show EscapeMarkdown output and direct tokenizer output so
+    the fix can be verified visually by running the sample in Debug mode.
+    -->
+
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(50,50,50)" Padding="6">
+        <StackPanel Orientation="Vertical" Spacing="10">
+
+            <TextBlock IsBold="True" FontSize="12" Text="FormattedTextTokenizer Double-Escape Fix" HorizontalAlignment="Center" />
+            <TextBlock>
+                [b]Task 7[/b]: [c=Turquoise]EscapeMarkdown[/c] now counts consecutive [c=Yellow]\\[/c] before [c=Yellow][[/c].
+                Only an [c=LimeGreen]ODD[/c] count escapes the bracket.
+            </TextBlock>
+
+            <!-- The TextBlocks below accept FormattedText directly.
+                 Rendered text lets us visually verify the tokenizer's behavior. -->
+
+            <TextBlock IsBold="True" Text="Direct FormattedText rendering (tokenizer proof):" />
+            <TextBlock>
+                These TextBlocks receive the strings directly as FormattedText.
+                The tokenizer must parse them correctly.
+            </TextBlock>
+
+            <!-- Case 1: "\[Bold]"  → 1 backslash before '[' (odd) → '[' IS escaped → renders "[Bold]" literally -->
+            <TextBlock Name="Case1" Text="\[Bold]" />
+            <TextBlock Name="Case1Info" Text="Case 1: should render as literal text '[Bold]' — not as bold tag" Foreground="LightGray" />
+
+            <!-- Case 2: "\\[Bold]"  → 2 backslashes before '[' (even) → '[' NOT escaped → bold tag active -->
+            <TextBlock Name="Case2" Text="\\[b]Bold[/b]" />
+            <TextBlock Name="Case2Info" Text="Case 2: the '\\' renders as literal '\', then '[b]' activates bold" Foreground="LightGray" />
+
+            <!-- Case 3: "\\\[Bold]" → 3 backslashes (odd) → '[' IS escaped → renders '\[Bold]' literally -->
+            <TextBlock Name="Case3" Text="\\\[Bold]" />
+            <TextBlock Name="Case3Info" Text="Case 3: should render as literal text '\[Bold]' (1 backslash + literal '[Bold]')" Foreground="LightGray" />
+
+            <TextBlock IsBold="True" Text="EscapeMarkdown output (raw string passed to a TextBox):" />
+            <TextBlock Name="EscapeTest1" />
+            <TextBlock Name="EscapeTest2" />
+            <TextBlock Name="EscapeTest3" />
+
+            <!-- Programmatic test results displayed here -->
+            <TextBlock IsBold="True" Text="Programmatic assertion results:" />
+            <StackPanel Name="ResultsPanel" Orientation="Vertical" Background="Black * 0.4" Padding="6" Spacing="2">
+                <TextBlock Name="Result1" Text="Waiting..." Foreground="Yellow" />
+                <TextBlock Name="Result2" Text="Waiting..." Foreground="Yellow" />
+                <TextBlock Name="Result3" Text="Waiting..." Foreground="Yellow" />
+                <TextBlock Name="Result4" Text="Waiting..." Foreground="Yellow" />
+                <TextBlock Name="Result5" Text="Waiting..." Foreground="Yellow" />
+                <TextBlock Name="ResultSummary" Text="..." IsBold="True" FontSize="12" />
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

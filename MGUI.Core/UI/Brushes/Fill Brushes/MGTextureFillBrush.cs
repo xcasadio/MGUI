@@ -16,13 +16,14 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public readonly MGTextureData Source;
         public readonly Stretch Stretch;
         public readonly Color Color;
-
-        //TODO Option to make it tesselate if Stretch is not Fill/UniformToFill? (LinearWrap SamplerState?)
-        //      So if Stretch is None or UniformToFill, the empty space would instead be filled up with LinearWrap texture
+        /// <summary>If true, the texture is drawn at its natural pixel size (<see cref="MGTextureData.RenderSize"/>) and tiled
+        /// repeatedly to fill the entire bounds. When true, <see cref="Stretch"/> is ignored.<para/>
+        /// Default value: false</summary>
+        public readonly bool Tile;
 
         /// <param name="SourceName">The name of the <see cref="MGTextureData"/> in <see cref="MGResources.Textures"/> that should be drawn by this <see cref="MGTextureFillBrush"/>.<para/>
         /// See also: <see cref="MGElement.GetResources"/>, <see cref="MGResources.Textures"/>, <see cref="MGResources.AddTexture(string, MGTextureData)"/></param>
-        public MGTextureFillBrush(MGDesktop Desktop, string SourceName, Stretch Stretch = Stretch.Fill, Color? Color = null)
+        public MGTextureFillBrush(MGDesktop Desktop, string SourceName, Stretch Stretch = Stretch.Fill, Color? Color = null, bool Tile = false)
         {
             if (Desktop == null)
                 throw new ArgumentNullException(nameof(Desktop));
@@ -34,13 +35,15 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             this.Source = Source;
             this.Stretch = Stretch;
             this.Color = Color ?? Microsoft.Xna.Framework.Color.White;
+            this.Tile = Tile;
         }
 
-        public MGTextureFillBrush(MGTextureData Source, Stretch Stretch = Stretch.Fill, Color? Color = null)
+        public MGTextureFillBrush(MGTextureData Source, Stretch Stretch = Stretch.Fill, Color? Color = null, bool Tile = false)
         {
             this.Source = Source;
             this.Stretch = Stretch;
             this.Color = Color ?? Microsoft.Xna.Framework.Color.White;
+            this.Tile = Tile;
         }
 
         private int UnstretchedWidth => Source.RenderSize.Width;
@@ -54,6 +57,33 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         {
             if (DA.Opacity > 0 && !DA.Opacity.IsAlmostZero())
             {
+                Color drawColor = Color * DA.Opacity * Source.Opacity;
+
+                if (Tile)
+                {
+                    // Draw the texture at its natural size, tiling it to fill the bounds
+                    int tileW = UnstretchedWidth;
+                    int tileH = UnstretchedHeight;
+                    if (tileW > 0 && tileH > 0)
+                    {
+                        Rectangle fullSrc = Source.SourceRect ?? new Rectangle(0, 0, Source.Texture.Width, Source.Texture.Height);
+                        for (int y = Bounds.Top; y < Bounds.Bottom; y += tileH)
+                        {
+                            for (int x = Bounds.Left; x < Bounds.Right; x += tileW)
+                            {
+                                int drawW = Math.Min(tileW, Bounds.Right - x);
+                                int drawH = Math.Min(tileH, Bounds.Bottom - y);
+                                Rectangle dest = new(x, y, drawW, drawH);
+                                Rectangle src = drawW < tileW || drawH < tileH
+                                    ? new Rectangle(fullSrc.X, fullSrc.Y, Math.Min(drawW, fullSrc.Width), Math.Min(drawH, fullSrc.Height))
+                                    : fullSrc;
+                                DA.DT.DrawTextureTo(Source.Texture, src, dest.GetTranslated(DA.Offset), drawColor);
+                            }
+                        }
+                    }
+                    return;
+                }
+
                 double AspectRatio = UnstretchedAspectRatio;
                 Rectangle Destination;
                 if (Stretch == Stretch.None)
@@ -85,11 +115,11 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     throw new NotImplementedException($"Unrecognized {nameof(Stretch)}: {Stretch}");
                 }
 
-                DA.DT.DrawTextureTo(Source.Texture, Source.SourceRect, Destination.GetTranslated(DA.Offset), Color * DA.Opacity * Source.Opacity);
+                DA.DT.DrawTextureTo(Source.Texture, Source.SourceRect, Destination.GetTranslated(DA.Offset), drawColor);
             }
         }
 
-        public IFillBrush Copy() => new MGTextureFillBrush(Source, Stretch, Color);
+        public IFillBrush Copy() => new MGTextureFillBrush(Source, Stretch, Color, Tile);
     }
 
 }

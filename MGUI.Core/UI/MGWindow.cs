@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MGUI.Shared.Helpers;
 using Prism.Commands;
@@ -601,10 +601,21 @@ namespace MGUI.Core.UI
         /// EX: If you create an <see cref="MGTextBlock"/> and set its text to:
         /// <code>[ToolTip=ABC]This text has a ToolTip[/ToolTip] but this text doesn't</code>
         /// then the ToolTip with the name "ABC" will be shown when hovering over the substring "This text has a ToolTip"</summary>
+        [Obsolete("Use Desktop.Resources.NamedToolTips (or Desktop.Resources.AddNamedToolTip) to register shared ToolTips at the desktop level.")]
         public IReadOnlyDictionary<string, MGToolTip> NamedToolTips => _NamedToolTips;
 
+        [Obsolete("Use Desktop.Resources.AddNamedToolTip(name, tooltip) instead.")]
         public void AddNamedToolTip(string Name, MGToolTip ToolTip) => _NamedToolTips.Add(Name, ToolTip);
+        [Obsolete("Use Desktop.Resources.RemoveNamedToolTip(name) instead.")]
         public void RemoveNamedToolTip(string Name) => _NamedToolTips.Remove(Name);
+
+        /// <summary>Searches both the window-local <see cref="NamedToolTips"/> and the desktop <see cref="MGResources.NamedToolTips"/> for a tooltip with the given name.</summary>
+        internal bool TryGetNamedToolTip(string Name, out MGToolTip ToolTip)
+        {
+            if (Name != null && _NamedToolTips.TryGetValue(Name, out ToolTip))
+                return true;
+            return GetResources().TryGetNamedToolTip(Name, out ToolTip);
+        }
         #endregion Named ToolTips
 
         /// <summary>A <see cref="MouseHandler"/> that is updated just before <see cref="MGElement.MouseHandler"/> is updated.<para/>
@@ -773,6 +784,18 @@ namespace MGUI.Core.UI
         }
 
         public event EventHandler<object> WindowDataContextChanged;
+        /// <summary>Named handler for <see cref="MGWindow.WindowDataContextChanged"/> on <see cref="MGElement.ParentWindow"/>.
+        /// Stored as a field so it can be unsubscribed in <see cref="CleanUpParentDataContextListener"/>.</summary>
+        private EventHandler<object> _onParentWindowDataContextChanged;
+        private void CleanUpParentDataContextListener()
+        {
+            if (ParentWindow != null && _onParentWindowDataContextChanged != null)
+            {
+                ParentWindow.WindowDataContextChanged -= _onParentWindowDataContextChanged;
+                Debug.WriteLine($"[Dispose] {nameof(MGWindow)} '{TitleText}' unsubscribed 1 event handler from ParentWindow");
+                _onParentWindowDataContextChanged = null;
+            }
+        }
 
         private void RevalidateSizeToContent(bool UpdateImmediately)
         {
@@ -1011,13 +1034,27 @@ namespace MGUI.Core.UI
                 {
                     ElementUpdateArgs UpdateArgs = e.UA.ChangeOffset(Origin);
 
-                    //TODO does this order make sense?
-                    //What if this window has both a ModalWindow and a NestedWindow, and the NestedWindow has a ModalWindow.
-                    //Should we update the ModalWindow of the NestedWindow before we update the ModalWindow of this Window?
+                    //  ModalWindow is intentionally updated BEFORE NestedWindows so that it can mark mouse/keyboard
+                    //  events as handled first. Since event args are shared objects, once ModalWindow sets IsHandled=true,
+                    //  the subsequent NestedWindow updates will see the event as already handled and skip processing it.
+                    //  This ensures the ModalWindow effectively blocks all input to NestedWindows.
+                    //  For nested ModalWindows (e.g., a NestedWindow that itself has a ModalWindow), the recursive
+                    //  call to Nested.Update() will apply the same ordering inside each nested window.
                     ModalWindow?.Update(UpdateArgs);
 
+                    //  Track ToolTip occlusion for nested windows, mirroring the logic in MGDesktop.Update().
+                    //  When a nested window is being hovered, windows beneath it should not be able to override the active ToolTip.
+                    bool isNestedWindowOccludedAtMousePos = ModalWindow != null && ModalWindow.VisualState.IsPressedOrHovered;
                     foreach (MGWindow Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
+                    {
+                        MGToolTip previousQueuedToolTip = GetDesktop().QueuedToolTip;
                         Nested.Update(UpdateArgs);
+                        //  If a higher-priority nested window is occluding the mouse, prevent this window from overriding the ToolTip
+                        if (isNestedWindowOccludedAtMousePos)
+                            GetDesktop().QueuedToolTip = previousQueuedToolTip;
+                        else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough)
+                            isNestedWindowOccludedAtMousePos = true;
+                    }
                 };
 
                 OnEndUpdateContents += (sender, e) =>
@@ -1029,7 +1066,7 @@ namespace MGUI.Core.UI
                 //  Nested windows inherit their WindowDataContext from the parent if they don't have their own explicit value
                 if (ParentWindow != null)
                 {
-                    ParentWindow.WindowDataContextChanged += (sender, e) =>
+                    _onParentWindowDataContextChanged = (sender, e) =>
                     {
                         if (_WindowDataContext == null)
                         {
@@ -1040,6 +1077,9 @@ namespace MGUI.Core.UI
                             RevalidateSizeToContent(false);
                         }
                     };
+                    ParentWindow.WindowDataContextChanged += _onParentWindowDataContextChanged;
+                    //  Unsubscribe when this window closes to prevent the parent holding a reference to this window
+                    WindowClosed += (_, __) => CleanUpParentDataContextListener();
                 }
 
                 MakeDraggable();
@@ -1310,14 +1350,14 @@ namespace MGUI.Core.UI
                             Padding = new(0);
                             BorderThickness = new(0);
                             PreviousBackgroundBrush = BackgroundBrush.Copy();
-                            BackgroundBrush.SetAll(MGSolidFillBrush.Transparent); // Set this to MGSolidFillBrush.White * 0.2f while testing the AllowsClickThrough issue below
-                                                                                       //this.AllowsClickThrough = true;   //TODO we probably want AllowsClickThrough=false, but to then handle any unhandled events that occurred overtop of this window's content.
-                                                                                       //That way, an invisible window with margin around the content (such as horizontally-centered content) won't auto-handle clicks within the
-                                                                                       //window that are outside the content.
-                                                                                       //For Example, make an invisible window at topleft=0,0, size=500,500
-                                                                                       //Add content with size=200,200, centered in the window
-                                                                                       //clicking at position=100,100 overlaps the window, but doesn't overlap the content of the window
-                                                                                       //so the click should fall-through to whatever's under the window
+                            BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
+                            //  Explicitly disable click-through so the window blocks mouse events that fall within it.
+                            //  Note: clicks that land within the window bounds but outside of any child element content
+                            //  will still be consumed by this window (not passed through to windows below).
+                            //  If pass-through for empty areas is needed in the future, set AllowsClickThrough = true instead.
+                            AllowsClickThrough = false;
+                            Debug.Assert(AllowsClickThrough == false,
+                                $"{nameof(WindowStyle)}.{nameof(WindowStyle.None)} windows should not allow click-through by default.");
                             break;
                         default: throw new NotImplementedException($"Unrecognized {nameof(WindowStyle)}: {value}");
                     }

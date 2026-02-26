@@ -110,7 +110,11 @@ namespace MGUI.Samples
                     }
                 }
             }
-            catch (Exception ex) { Debug.WriteLine(ex); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] Font initialization failed: {ex.Message}");
+                Debug.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
+            }
 
             //  This is a dialog with toggle buttons to launch other dialogs
             Compendium Compendium = new(Content, Desktop);
@@ -129,7 +133,6 @@ namespace MGUI.Samples
             PreviewUpdate?.Invoke(this, gameTime.TotalGameTime);
 
             Desktop.Update();
-            // TODO: Add your update logic here
             base.Update(gameTime);
 
             EndUpdate?.Invoke(this, EventArgs.Empty);
@@ -138,7 +141,6 @@ namespace MGUI.Samples
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
-            // TODO: Add your drawing code here
             Desktop.Draw();
             base.Draw(gameTime);
         }

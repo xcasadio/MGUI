@@ -1,0 +1,125 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Left="800" Top="80" Width="520" Height="560" TitleText="ActualLayoutBounds Padding Test" Padding="10">
+    <!--
+    ActualLayoutBoundsTest — Validation of the Task 5 fix in MGElement.Update
+    ===========================================================================
+    PURPOSE
+    =======
+    This sample verifies that the fix passes content-area bounds (ActualLayoutBounds
+    shrunk by Padding) down to content children in MGElement.Update.
+
+    BUG FIXED (Task 5): Previously, UA.ActualLayoutBounds passed to UpdateContents
+    was the parent's full ActualLayoutBounds (not accounting for Padding). This meant
+    that children crossing the padding boundary were not clipped correctly for tooltip
+    display, hover detection, and input handling.
+
+    FIX: In Update(), just before calling UpdateContents(UA), the code now computes
+        ContentAreaBounds = Inset(ActualLayoutBounds, Padding)
+    and passes UA with {ActualLayoutBounds = ContentAreaBounds} to UpdateContents.
+    Components (border, title bar, etc.) still receive the full unpadded bounds and
+    continue to work correctly.
+
+    COMPONENT SPECIAL CASE: MGTabControl's HeadersPanel IS a component, so it
+    correctly receives the full (unpadded) ActualLayoutBounds from its parent.
+
+    ASSERTION: A Debug.Assert in Update() verifies at runtime that ContentAreaBounds
+    is always contained within ActualLayoutBounds.
+
+    WHAT TO CHECK VISUALLY
+    ======================
+    - The "Padded Container" below has Padding=20. The child buttons inside should
+      display their correct ActualLayoutBounds (offset by 20 from left/top).
+    - With the old code, a child button clipped at the border of the container would
+      incorrectly show it extends into the padding. With the fix, it stops at the
+      content area boundary.
+    - The live info labels show the ActualLayoutBounds of each labelled element.
+    -->
+
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style Name="H1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(50,50,50)" Padding="6">
+        <StackPanel Orientation="Vertical" Spacing="10">
+
+            <TextBlock StyleNames="H1" Text="ActualLayoutBounds Padding Fix" HorizontalAlignment="Center" />
+            <TextBlock>
+                [b]Task 5[/b]: [c=Turquoise]Update()[/c] now passes [c=Yellow]ContentAreaBounds[/c]
+                (ActualLayoutBounds shrunk by Padding) to [c=Turquoise]UpdateContents[/c].
+                Components still receive the full unpadded bounds.
+                A [c=Turquoise]Debug.Assert[/c] checks ContentAreaBounds ⊆ ActualLayoutBounds.
+            </TextBlock>
+
+            <!-- ══════════════════════════════════════════════
+                 SCENARIO 1: Container with 20px padding — child fills the content area.
+                 With the fix the child's ActualLayoutBounds should stop at the padding border.
+                 ══════════════════════════════════════════════ -->
+            <TextBlock StyleNames="H1" Text="Scenario 1 — Container with Padding=20" />
+            <Border Name="PaddedBorder" Padding="20" Background="rgba(100,60,60,200)"
+                    BB="rgba(255,150,100,255)" BT="2">
+                <StackPanel Orientation="Vertical" Spacing="6">
+                    <Button Name="BtnInPadded1" Content="Button 1 (inside padding)" />
+                    <Button Name="BtnInPadded2" Content="Button 2 (inside padding)" />
+                    <TextBlock Name="Info_Btns" Text="ActualLayoutBounds: ..." Foreground="Yellow" />
+                </StackPanel>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════
+                 SCENARIO 2: Nested padded containers.
+                 Inner bounds should respect BOTH levels of padding.
+                 ══════════════════════════════════════════════ -->
+            <TextBlock StyleNames="H1" Text="Scenario 2 — Nested Padded Containers" />
+            <Border Name="OuterBorder" Padding="16" Background="rgba(60,80,120,200)"
+                    BB="rgba(100,180,255,255)" BT="2">
+                <Border Name="InnerBorder" Padding="12" Background="rgba(40,100,80,200)"
+                        BB="rgba(100,255,180,255)" BT="2">
+                    <StackPanel Orientation="Vertical" Spacing="4">
+                        <TextBlock Name="InnerText" Text="Inner element (double-padded)" />
+                        <TextBlock Name="Info_Inner" Text="ActualLayoutBounds: ..." Foreground="LimeGreen" />
+                    </StackPanel>
+                </Border>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════
+                 SCENARIO 3: MGListBox with title bar component.
+                 The title bar is a component — it should NOT be clipped to the content area.
+                 Only the list items below the title bar should be clipped to the content area.
+                 ══════════════════════════════════════════════ -->
+            <TextBlock StyleNames="H1" Text="Scenario 3 — ListBox (component + content)" />
+            <TextBlock>
+                The ListBox title bar is a component. It receives the [c=Yellow]full[/c] parent
+                bounds (unpadded). The list items receive [c=LimeGreen]content-area[/c] bounds.
+                Both should render perfectly aligned.
+            </TextBlock>
+            <ListBox Name="ScenarioListBox" IsTitleVisible="True" Padding="6"
+                     OuterBB="rgba(255,200,50,255)" OuterBT="2"
+                     xmlns:System="clr-namespace:System;assembly=mscorlib" ItemType="{x:Type System:String}">
+                <ListBox.Header>
+                    <TextBlock Text="Component Header" IsBold="True" />
+                </ListBox.Header>
+                <System:String>List item 1</System:String>
+                <System:String>List item 2 - longer item</System:String>
+                <System:String>List item 3</System:String>
+            </ListBox>
+
+            <!-- Live measurement display -->
+            <TextBlock StyleNames="H1" Text="Live ActualLayoutBounds" />
+            <StackPanel Orientation="Vertical" Padding="6" Background="Black * 0.4" Spacing="2">
+                <TextBlock Name="Info_PaddedBorder"  Text="PaddedBorder:  ..." />
+                <TextBlock Name="Info_BtnInPadded1"  Text="BtnInPadded1:  ..." />
+                <TextBlock Name="Info_BtnInPadded2"  Text="BtnInPadded2:  ..." />
+                <TextBlock Name="Info_OuterBorder"   Text="OuterBorder:   ..." />
+                <TextBlock Name="Info_InnerBorder"   Text="InnerBorder:   ..." />
+                <TextBlock Name="Info_InnerText"     Text="InnerText:     ..." />
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

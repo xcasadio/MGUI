@@ -201,7 +201,6 @@ namespace MGUI.Core.UI
                 AddComponent(ActiveOverlayPresenterComponent);
 
                 //  Ensure all inputs are handled by the overlay presenter so they cannot fall-through to the content when an overlay is active
-                //TODO what about keyboard inputs?
                 ActiveOverlayPresenter.MouseHandler.PressedInside += (sender, e) => TryHandleInputs(() => e.SetHandledBy(this, false));
                 ActiveOverlayPresenter.MouseHandler.ReleasedInside += (sender, e) => TryHandleInputs(() => e.SetHandledBy(this, false));
                 ActiveOverlayPresenter.MouseHandler.DragStart += (sender, e) => TryHandleInputs(() => e.SetHandledBy(this, false));
@@ -219,6 +218,29 @@ namespace MGUI.Core.UI
                             TryHandleInputs(() => e.SetHandledBy(this, false));
                     }
                 };
+
+                //  Block keyboard inputs from falling through to content when an overlay is active.
+                //  If the focused keyboard handler belongs to the content behind the overlay (not the overlay itself),
+                //  clear focus so keyboard events do not reach hidden/blocked content.
+                OnBeginUpdate += (sender, e) =>
+                {
+                    if (IsModal && ActiveOverlay != null)
+                    {
+                        MGElement Focused = GetDesktop().FocusedKeyboardHandler;
+                        if (Focused != null)
+                        {
+                            bool FocusedIsInsideOverlay = Focused.TraverseVisualTree(false, false, true, false, TreeTraversalMode.Preorder)
+                                .Any(x => x == ActiveOverlayPresenter) || Focused == ActiveOverlayPresenter ||
+                                ActiveOverlayPresenter.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Contains(Focused);
+                            if (!FocusedIsInsideOverlay)
+                            {
+                                Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
+                                GetDesktop().QueuedFocusedKeyboardHandler = null;
+                            }
+                        }
+                    }
+                };
+
                 void TryHandleInputs(Action SetHandled)
                 {
                     if (IsModal && ActiveOverlay != null)

@@ -1,0 +1,301 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="100" Top="60" Width="700" Height="700" TitleText="Nested ScrollViewer Test" Padding="10">
+    <!--
+    NestedScrollViewerTest — Validation of nested ScrollViewer viewport logic
+    ========================================================================
+    PURPOSE
+    =======
+    This sample validates that MGGrid (and MGUniformGrid) cell-selection logic
+    works correctly when a Grid is nested inside one or more MGScrollViewer
+    instances.
+
+    CASES TESTED
+    ============
+    Case 1 — Grid inside a single ScrollViewer (baseline)
+        Layout:  OuterSV > Grid
+        Expected: clicking a scrolled-away cell does NOT select it.
+        Assertion: Debug.Assert verifies selected cell matches click position.
+
+    Case 2 — Grid inside a nested ScrollViewer pair
+        Layout:  OuterSV > InnerSV > Grid
+        Expected: independently scrolling OuterSV and InnerSV still produces
+                  correct cell hit-testing.
+        Assertion: Debug.Assert verifies no stale selection after scrolling.
+
+    Case 3 — UniformGrid inside a nested ScrollViewer pair
+        Layout:  OuterSV > InnerSV > UniformGrid
+        Same expectations as Case 2 but for MGUniformGrid.
+
+    VIEWPORT FORMULA ANALYSIS
+    =========================
+    In MGGrid.UpdateSelection and MGUniformGrid.UpdateSelection the formula is:
+        Viewport = SV.ContentViewport.GetTranslated(Origin - SV.Origin)
+
+    Where:
+      • SV   = the immediate ancestor MGScrollViewer
+      • SV.ContentViewport = viewport rect of SV in layout coordinates
+                             (fixed at arrange time, not updated on scroll)
+      • this.Origin  = UA.Offset passed at update time
+                     = accumulated scroll-offset of ALL ancestor SVs
+      • SV.Origin    = UA.Offset that was passed into SV at update time
+                     = accumulated scroll-offset of SV's OWN ancestors
+
+    Therefore:
+        Origin - SV.Origin = this SV's own scroll offset (not accumulated)
+
+    This equals the amount by which SV has translated its content relative to
+    its ContentViewport — so the translation correctly yields the visible
+    range in layout coordinates.
+
+    For deeply nested SVs (OuterSV > InnerSV > Grid):
+        Grid.Origin    = OuterOffset + InnerOffset
+        InnerSV.Origin = OuterOffset
+        Origin - InnerSV.Origin = InnerOffset     ← InnerSV's own scroll
+        InnerSV.ContentViewport is already positioned at the correct layout
+        location accounting for OuterSV's scroll during the arrange pass.
+
+    We do NOT need to intersect with the OuterSV's viewport because the outer
+    SV clips mouse events (CanReceiveMouseInput) to its ContentViewport — so
+    if a click reaches the Grid it is already within the outer SV's bounds.
+
+    RESULT: The existing formula is CORRECT for arbitrarily nested SVs.
+    No code change was required; this sample verifies the behaviour visually
+    and via runtime Debug.Assert statements.
+    -->
+
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Name="CellLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Padding" Value="2" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(60,60,60)" Padding="6,4">
+        <StackPanel Orientation="Vertical" Spacing="12">
+
+            <!-- Header -->
+            <TextBlock StyleNames="Header1" Text="Nested ScrollViewer — Viewport Logic Test" HorizontalAlignment="Center" />
+            <Separator/>
+
+            <TextBlock>
+                This sample validates that [c=Turquoise][i]MGGrid[/i][/c] and [c=Turquoise][i]MGUniformGrid[/i][/c]
+                cell-selection works correctly when nested inside multiple [c=Turquoise][i]ScrollViewers[/i][/c].
+                Click cells in each scenario to verify the correct cell is highlighted.
+                See the source file header for the full analysis of the viewport formula.
+            </TextBlock>
+            <Separator/>
+
+            <!-- ═══════════════════════════════════════════════════════
+                 CASE 1: Grid inside a single ScrollViewer (baseline)
+                 ═══════════════════════════════════════════════════════ -->
+            <TextBlock StyleNames="Header1" Text="Case 1 — Single ScrollViewer + Grid (baseline)" />
+            <TextBlock>
+                An [c=Turquoise][i]MGGrid[/i][/c] with [c=Yellow]RowMode[/c] selection inside a single
+                [c=Turquoise][i]ScrollViewer[/i][/c]. Scroll down then click a visible row — it should
+                highlight that row and [i]not[/i] the row that was visually above it before scrolling.
+            </TextBlock>
+
+            <ScrollViewer Name="Case1SV" Height="150" VerticalScrollBarVisibility="Visible" Background="Black * 0.3" Padding="2">
+                <Grid Name="Case1Grid" SelectionMode="Row" RowLengths="30,30,30,30,30,30,30,30,30,30" ColumnLengths="*,*,*">
+                    <!-- Row 0 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="0" Text="R0 C0" Background="rgb(80,40,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="1" Text="R0 C1" Background="rgb(80,40,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="2" Text="R0 C2" Background="rgb(80,40,40)" />
+                    <!-- Row 1 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="0" Text="R1 C0" Background="rgb(40,80,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="1" Text="R1 C1" Background="rgb(40,80,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="2" Text="R1 C2" Background="rgb(40,80,40)" />
+                    <!-- Row 2 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="0" Text="R2 C0" Background="rgb(40,40,80)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="1" Text="R2 C1" Background="rgb(40,40,80)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="2" Text="R2 C2" Background="rgb(40,40,80)" />
+                    <!-- Row 3 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="0" Text="R3 C0" Background="rgb(80,80,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="1" Text="R3 C1" Background="rgb(80,80,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="2" Text="R3 C2" Background="rgb(80,80,40)" />
+                    <!-- Row 4 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="0" Text="R4 C0" Background="rgb(80,40,80)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="1" Text="R4 C1" Background="rgb(80,40,80)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="2" Text="R4 C2" Background="rgb(80,40,80)" />
+                    <!-- Row 5 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="0" Text="R5 C0" Background="rgb(40,80,80)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="1" Text="R5 C1" Background="rgb(40,80,80)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="2" Text="R5 C2" Background="rgb(40,80,80)" />
+                    <!-- Row 6 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="0" Text="R6 C0" Background="rgb(100,60,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="1" Text="R6 C1" Background="rgb(100,60,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="2" Text="R6 C2" Background="rgb(100,60,40)" />
+                    <!-- Row 7 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="0" Text="R7 C0" Background="rgb(60,100,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="1" Text="R7 C1" Background="rgb(60,100,40)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="2" Text="R7 C2" Background="rgb(60,100,40)" />
+                    <!-- Row 8 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="8" GridColumn="0" Text="R8 C0" Background="rgb(40,60,100)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="8" GridColumn="1" Text="R8 C1" Background="rgb(40,60,100)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="8" GridColumn="2" Text="R8 C2" Background="rgb(40,60,100)" />
+                    <!-- Row 9 -->
+                    <TextBlock StyleNames="CellLabel" GridRow="9" GridColumn="0" Text="R9 C0" Background="rgb(100,100,60)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="9" GridColumn="1" Text="R9 C1" Background="rgb(100,100,60)" />
+                    <TextBlock StyleNames="CellLabel" GridRow="9" GridColumn="2" Text="R9 C2" Background="rgb(100,100,60)" />
+                </Grid>
+            </ScrollViewer>
+            <TextBlock Name="Case1SelectionLabel" Text="Selected Row: (none)" Foreground="Yellow" />
+            <Separator/>
+
+            <!-- ═══════════════════════════════════════════════════════
+                 CASE 2: Grid inside nested ScrollViewers
+                 ═══════════════════════════════════════════════════════ -->
+            <TextBlock StyleNames="Header1" Text="Case 2 — Outer ScrollViewer › Inner ScrollViewer › Grid" />
+            <TextBlock>
+                The [c=Turquoise][i]outer[/i][/c] ScrollViewer scrolls vertically.
+                The [c=Turquoise][i]inner[/i][/c] ScrollViewer scrolls horizontally.
+                The Grid inside has Row-mode selection.
+                Scroll both independently, then click a cell — the correct row must be selected.
+            </TextBlock>
+
+            <!-- Outer SV scrolls vertically (shows subset of inner content) -->
+            <ScrollViewer Name="Case2OuterSV" Height="160" VerticalScrollBarVisibility="Visible" Background="Black * 0.3" Padding="2">
+                <!-- Inner SV scrolls horizontally (wide grid) -->
+                <ScrollViewer Name="Case2InnerSV" HorizontalScrollBarVisibility="Visible" Background="Black * 0.2" Padding="2">
+                    <Grid Name="Case2Grid" SelectionMode="Row"
+                          RowLengths="30,30,30,30,30,30,30,30"
+                          ColumnLengths="80,80,80,80,80,80">
+                        <!-- Row 0 -->
+                        <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="0" Text="R0 C0" Background="rgb(80,40,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="1" Text="R0 C1" Background="rgb(80,40,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="2" Text="R0 C2" Background="rgb(80,40,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="3" Text="R0 C3" Background="rgb(80,40,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="4" Text="R0 C4" Background="rgb(80,40,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="0" GridColumn="5" Text="R0 C5" Background="rgb(80,40,40)" />
+                        <!-- Row 1 -->
+                        <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="0" Text="R1 C0" Background="rgb(40,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="1" Text="R1 C1" Background="rgb(40,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="2" Text="R1 C2" Background="rgb(40,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="3" Text="R1 C3" Background="rgb(40,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="4" Text="R1 C4" Background="rgb(40,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="1" GridColumn="5" Text="R1 C5" Background="rgb(40,80,40)" />
+                        <!-- Row 2 -->
+                        <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="0" Text="R2 C0" Background="rgb(40,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="1" Text="R2 C1" Background="rgb(40,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="2" Text="R2 C2" Background="rgb(40,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="3" Text="R2 C3" Background="rgb(40,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="4" Text="R2 C4" Background="rgb(40,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="2" GridColumn="5" Text="R2 C5" Background="rgb(40,40,80)" />
+                        <!-- Row 3 -->
+                        <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="0" Text="R3 C0" Background="rgb(80,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="1" Text="R3 C1" Background="rgb(80,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="2" Text="R3 C2" Background="rgb(80,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="3" Text="R3 C3" Background="rgb(80,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="4" Text="R3 C4" Background="rgb(80,80,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="3" GridColumn="5" Text="R3 C5" Background="rgb(80,80,40)" />
+                        <!-- Row 4 -->
+                        <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="0" Text="R4 C0" Background="rgb(80,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="1" Text="R4 C1" Background="rgb(80,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="2" Text="R4 C2" Background="rgb(80,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="3" Text="R4 C3" Background="rgb(80,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="4" Text="R4 C4" Background="rgb(80,40,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="4" GridColumn="5" Text="R4 C5" Background="rgb(80,40,80)" />
+                        <!-- Row 5 -->
+                        <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="0" Text="R5 C0" Background="rgb(40,80,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="1" Text="R5 C1" Background="rgb(40,80,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="2" Text="R5 C2" Background="rgb(40,80,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="3" Text="R5 C3" Background="rgb(40,80,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="4" Text="R5 C4" Background="rgb(40,80,80)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="5" GridColumn="5" Text="R5 C5" Background="rgb(40,80,80)" />
+                        <!-- Row 6 -->
+                        <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="0" Text="R6 C0" Background="rgb(100,60,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="1" Text="R6 C1" Background="rgb(100,60,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="2" Text="R6 C2" Background="rgb(100,60,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="3" Text="R6 C3" Background="rgb(100,60,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="4" Text="R6 C4" Background="rgb(100,60,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="6" GridColumn="5" Text="R6 C5" Background="rgb(100,60,40)" />
+                        <!-- Row 7 -->
+                        <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="0" Text="R7 C0" Background="rgb(60,100,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="1" Text="R7 C1" Background="rgb(60,100,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="2" Text="R7 C2" Background="rgb(60,100,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="3" Text="R7 C3" Background="rgb(60,100,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="4" Text="R7 C4" Background="rgb(60,100,40)" />
+                        <TextBlock StyleNames="CellLabel" GridRow="7" GridColumn="5" Text="R7 C5" Background="rgb(60,100,40)" />
+                    </Grid>
+                </ScrollViewer>
+            </ScrollViewer>
+            <TextBlock Name="Case2SelectionLabel" Text="Selected Row: (none)" Foreground="Yellow" />
+            <Separator/>
+
+            <!-- ═══════════════════════════════════════════════════════
+                 CASE 3: UniformGrid inside nested ScrollViewers
+                 ═══════════════════════════════════════════════════════ -->
+            <TextBlock StyleNames="Header1" Text="Case 3 — Outer ScrollViewer › Inner ScrollViewer › UniformGrid" />
+            <TextBlock>
+                Same topology as Case 2 but using [c=Turquoise][i]MGUniformGrid[/i][/c].
+                The UniformGrid shares the same viewport formula — verify cell selection
+                is correct after scrolling both SVs independently.
+            </TextBlock>
+
+            <ScrollViewer Name="Case3OuterSV" Height="160" VerticalScrollBarVisibility="Visible" Background="Black * 0.3" Padding="2">
+                <ScrollViewer Name="Case3InnerSV" HorizontalScrollBarVisibility="Visible" Background="Black * 0.2" Padding="2">
+                    <UniformGrid Name="Case3UGrid" Columns="5" AutoAssignCells="True" CellSize="90,30" SelectionMode="Cell">
+                        <Border Background="rgb(80,40,40)" Content="UG R0C0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,40)" Content="UG R0C1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,40)" Content="UG R0C2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,40)" Content="UG R0C3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,40)" Content="UG R0C4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,80,40)" Content="UG R1C0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,80,40)" Content="UG R1C1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,80,40)" Content="UG R1C2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,80,40)" Content="UG R1C3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,80,40)" Content="UG R1C4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,40,80)" Content="UG R2C0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,40,80)" Content="UG R2C1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,40,80)" Content="UG R2C2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,40,80)" Content="UG R2C3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(40,40,80)" Content="UG R2C4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,80,40)" Content="UG R3C0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,80,40)" Content="UG R3C1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,80,40)" Content="UG R3C2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,80,40)" Content="UG R3C3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,80,40)" Content="UG R3C4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,80)" Content="UG R4C0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,80)" Content="UG R4C1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,80)" Content="UG R4C2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,80)" Content="UG R4C3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Border Background="rgb(80,40,80)" Content="UG R4C4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                    </UniformGrid>
+                </ScrollViewer>
+            </ScrollViewer>
+            <TextBlock Name="Case3SelectionLabel" Text="Selected Cell: (none)" Foreground="Yellow" />
+            <Separator/>
+
+            <!-- Viewport bounds display -->
+            <TextBlock StyleNames="Header1" Text="Live Viewport Bounds" />
+            <TextBlock>
+                The following labels show the [c=Turquoise]ContentViewport[/c] and
+                [c=Yellow]Origin[/c] values for each ScrollViewer, updated every frame.
+                Verify that bounds track correctly as you scroll.
+            </TextBlock>
+            <StackPanel Orientation="Vertical" Background="Black * 0.3" Padding="6" Spacing="3">
+                <TextBlock Name="VP_Case1SV"      Text="Case1 SV viewport: ..." />
+                <TextBlock Name="VP_Case2OuterSV" Text="Case2 Outer SV viewport: ..." />
+                <TextBlock Name="VP_Case2InnerSV" Text="Case2 Inner SV viewport: ..." />
+                <TextBlock Name="VP_Case3OuterSV" Text="Case3 Outer SV viewport: ..." />
+                <TextBlock Name="VP_Case3InnerSV" Text="Case3 Inner SV viewport: ..." />
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

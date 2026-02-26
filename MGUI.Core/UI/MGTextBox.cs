@@ -187,23 +187,31 @@ namespace MGUI.Core.UI
                         UnescapedCount++;
                         CurrentIndex--;
                     }
-                    CurrentIndex++;
+                    int RunStartTextIndex = CurrentIndex + 1;  // inclusive start of backslash run in Text
 
                     if (UnescapedCount > 0)
                     {
                         string InsertionValue = string.Concat(Enumerable.Repeat(FTTokenizer.EscapeOpenTagChar, UnescapedCount));
-                        FormattedText = FormattedText.Insert(Index, InsertionValue);
 
-                        //TODO: There's still a bug with this logic. Set the textbox's text to: @"A\\B",
-                        //Then try selecting just the 2nd backslash, and there's some kind of off-by-one issue with the escaped indices.
-                        //Since it only happens when there's multiple consecutive backslashes, and only when selecting just the backslashes, I don't really care enough to fix it
-                        for (int i = CurrentIndex + 1; i < CurrentIndex + 1 + UnescapedCount; i++)
+                        // FIX (Task 6): Use EscapedIndices to find the correct FormattedText position for the
+                        // start of the backslash run, instead of using the raw Text index directly.
+                        // After the first DoubleEscapeAtIndex call modifies FormattedText, the second call
+                        // must account for the already-inserted chars; EscapedIndices is kept up-to-date below.
+                        int FMInsertPos = EscapedIndices[RunStartTextIndex];
+                        FormattedText = FormattedText.Insert(FMInsertPos, InsertionValue);
+
+                        // FIX (Task 6): Increment all EscapedIndices whose FM position is >= FMInsertPos, by
+                        // UnescapedCount. The previous logic incremented in a staggered per-char loop that
+                        // skipped EscapedIndices[RunStartTextIndex] and therefore left that entry one too low
+                        // whenever two or more consecutive backslashes ended a run (off-by-one).
+                        for (int j = 0; j < EscapedIndices.Count; j++)
                         {
-                            for (int j = i; j < EscapedIndices.Count; j++)
-                            {
-                                EscapedIndices[j]++;
-                            }
+                            if (EscapedIndices[j] >= FMInsertPos)
+                                EscapedIndices[j] += UnescapedCount;
                         }
+
+                        Debug.Assert(EscapedIndices[RunStartTextIndex] == FMInsertPos + UnescapedCount,
+                            $"[Task6] EscapedIndices[{RunStartTextIndex}] should be {FMInsertPos + UnescapedCount} after shift, got {EscapedIndices[RunStartTextIndex]}");
                     }
                 }
 
@@ -1034,9 +1042,16 @@ namespace MGUI.Core.UI
 
                 TextBlockElement = new(Window, "");
                 TextBlockElement.ClipToBounds = false;
-                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf, 
+                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf,
                     false, false, true, true, false, false, true,
-                    (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
+                    (AvailableBounds, ComponentSize) =>
+                    {
+                        var Padded = AvailableBounds.GetCompressed(Padding);
+                        if (!_EnableScrolling || _TextScrollOffsetX == 0)
+                            return Padded;
+                        return new Rectangle(Padded.Left - _TextScrollOffsetX, Padded.Top,
+                            Padded.Width + _TextScrollOffsetX, Padded.Height);
+                    });
                 AddComponent(TextBlockComponent);
 
                 TextRenderInfo = new(this, TextBlockElement);
@@ -1199,9 +1214,68 @@ namespace MGUI.Core.UI
             }
         }
 
-        //TODO
-        //Built-in scrolling? Could wrap the textblock inside a scrollviewer with scrollbar visibilities set to 'Hidden'.
-        //Using the arrow keys adjusts the scrollviewer's horizontal/vertical offset
+        #region Scrolling
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _EnableScrolling;
+        /// <summary>If true, text that overflows the textbox width is scrollable; the view automatically scrolls to keep the caret visible.<para/>
+        /// Setting this to true also enables <see cref="MGElement.ClipToBounds"/> on this element.<para/>
+        /// Default value: false<para/>
+        /// Note: This is primarily designed for single-line textboxes. Multi-line scrolling is best handled by wrapping in an <see cref="MGScrollViewer"/>.</summary>
+        public bool EnableScrolling
+        {
+            get => _EnableScrolling;
+            set
+            {
+                if (_EnableScrolling != value)
+                {
+                    _EnableScrolling = value;
+                    if (_EnableScrolling)
+                    {
+                        ClipToBounds = true;
+                    }
+                    else
+                    {
+                        _TextScrollOffsetX = 0;
+                        ClipToBounds = false;
+                        LayoutChanged(this, true);
+                    }
+                    NPC(nameof(EnableScrolling));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int _TextScrollOffsetX;
+
+        private void EnsureCaretVisible()
+        {
+            if (!EnableScrolling || !Caret.HasPosition) return;
+
+            Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
+            if (PaddedBounds.Width <= 0) return;
+
+            Rectangle CaretBounds = Caret.Position.Value.Bounds;
+
+            if (CaretBounds.Left < PaddedBounds.Left)
+            {
+                int NewOffset = Math.Max(0, _TextScrollOffsetX - (PaddedBounds.Left - CaretBounds.Left));
+                if (NewOffset != _TextScrollOffsetX)
+                {
+                    _TextScrollOffsetX = NewOffset;
+                    LayoutChanged(this, true);
+                }
+            }
+            else if (CaretBounds.Right > PaddedBounds.Right)
+            {
+                int NewOffset = _TextScrollOffsetX + (CaretBounds.Right - PaddedBounds.Right);
+                if (NewOffset != _TextScrollOffsetX)
+                {
+                    _TextScrollOffsetX = NewOffset;
+                    LayoutChanged(this, true);
+                }
+            }
+        }
+        #endregion Scrolling
 
         private void HandleKeyPress(BaseKeyPressedEventArgs e)
         {
@@ -1480,6 +1554,8 @@ namespace MGUI.Core.UI
         public override void UpdateSelf(ElementUpdateArgs UA)
         {
             base.UpdateSelf(UA);
+            if (EnableScrolling)
+                EnsureCaretVisible();
             if (IsEnabled && !IsReadonly && IsHitTestVisible && IsHeldKeyRepeated && GetDesktop().FocusedKeyboardHandler == this &&
                 LastKeyPress.HasValue && !LastKeyPress.Value.PressedWithin(InitialKeyRepeatDelay) && !LastKeyPress.Value.RepeatedWithin(KeyRepeatInterval))
             {

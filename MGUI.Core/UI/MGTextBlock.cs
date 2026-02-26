@@ -748,7 +748,7 @@ namespace MGUI.Core.UI
                     foreach (var KVP in ToolTipBounds)
                     {
                         string ToolTipName = KVP.Key;
-                        if (ParentWindow.NamedToolTips.TryGetValue(ToolTipName, out ToolTip))
+                        if (ParentWindow.TryGetNamedToolTip(ToolTipName, out ToolTip))
                         {
                             foreach (Rectangle Bounds in KVP.Value)
                             {

@@ -577,7 +577,57 @@ namespace MGUI.Core.UI
             }
         }
 
-        //TODO maybe add an option to show the value in a bordered textblock to the right of the slider portion?
+        #region Show Value Label
+        /// <summary>Provides direct access to the textblock component that displays the current value when <see cref="ShowValueLabel"/> is true.</summary>
+        public MGComponent<MGTextBlock> ValueLabelComponent { get; }
+        private MGTextBlock ValueLabelElement { get; }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _ShowValueLabel;
+        /// <summary>If true, the current value will be displayed as a text overlay centered on this slider.<para/>
+        /// Default value: false<para/>
+        /// See also: <see cref="ValueLabelFormat"/></summary>
+        public bool ShowValueLabel
+        {
+            get => _ShowValueLabel;
+            set
+            {
+                if (_ShowValueLabel != value)
+                {
+                    _ShowValueLabel = value;
+                    ValueLabelElement.Visibility = ShowValueLabel ? Visibility.Visible : Visibility.Collapsed;
+                    UpdateValueLabelText();
+                    NPC(nameof(ShowValueLabel));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _ValueLabelFormat;
+        /// <summary>Only relevant if <see cref="ShowValueLabel"/> is true.<para/>
+        /// A numeric format string used when displaying <see cref="Value"/>.<para/>
+        /// Default value: "F0"<para/>
+        /// See also: <see href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings"/></summary>
+        public string ValueLabelFormat
+        {
+            get => _ValueLabelFormat;
+            set
+            {
+                if (_ValueLabelFormat != value)
+                {
+                    _ValueLabelFormat = value;
+                    UpdateValueLabelText();
+                    NPC(nameof(ValueLabelFormat));
+                }
+            }
+        }
+
+        private void UpdateValueLabelText()
+        {
+            if (ShowValueLabel)
+                ValueLabelElement.Text = Value.ToString(ValueLabelFormat ?? "F0");
+        }
+        #endregion Show Value Label
 
         public MGSlider(MGWindow Window, float Minimum, float Maximum, float Value)
             : this(Window, Minimum, Maximum, Value, false, null, MGUniformBorderBrush.Black, Orientation.Horizontal) { }
@@ -629,6 +679,18 @@ namespace MGUI.Core.UI
                     throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
 
                 AcceptsMouseScrollWheel = false;
+
+                ValueLabelElement = new(Window, "", Color.White, Theme.FontSettings.SmallFontSize);
+                ValueLabelComponent = new(ValueLabelElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+                    true, true, false, false, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Center, VerticalAlignment.Center, ComponentSize.Size));
+                ValueLabelElement.Padding = new(2, 1);
+                AddComponent(ValueLabelComponent);
+
+                ValueLabelFormat = "F0";
+                ShowValueLabel = false;
+
+                ValueChanged += (sender, e) => UpdateValueLabelText();
 
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {

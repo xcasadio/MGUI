@@ -1,4 +1,4 @@
-﻿using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Text;
@@ -359,7 +359,7 @@ namespace MGUI.Core.UI
                 IFillBrush BrightNeutralBrush = BrightNeutralColor.AsFillBrush();
                 IFillBrush AccentBrush = AccentColor.AsFillBrush();
                 IFillBrush DimNeutralBackground = DimNeutralColor.AsFillBrush();
-                MGSolidFillBrush SpoilerUnpsoiledBG = MGSolidFillBrush.SemiBlack;
+                MGSolidFillBrush SpoilerUnpsoiledBG = SolidFillBrushes.SemiBlack;
 
                 //  Button/ProgressButton/ComboBox
                 ThemeManagedVisualStateFillBrush ButtonBG =
@@ -528,7 +528,7 @@ namespace MGUI.Core.UI
                 ProgressBarIncompleteBrush =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            MGSolidFillBrush.Transparent,
+                            SolidFillBrushes.Transparent,
                             Color.White * 0.01f, PressedModifierType.Darken, 0f)
                     );
 
@@ -668,7 +668,7 @@ namespace MGUI.Core.UI
                 _Backgrounds[MGElementType.TextBox] = new ThemeManagedVisualStateFillBrush(TextBoxBG.GetValue(true));
 
                 //  Separator/Stopwatch/Timer
-                IFillBrush AccentBrush = MGSolidFillBrush.SemiBlack;
+                IFillBrush AccentBrush = SolidFillBrushes.SemiBlack;
                 ThemeManagedVisualStateFillBrush AccentBG =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
@@ -716,7 +716,7 @@ namespace MGUI.Core.UI
                 ToolTipTextForeground = new VisualStateSetting<Color?>(ToolTipForegroundColor, ToolTipForegroundColor, ToolTipForegroundColor);
 
                 //  Window
-                IFillBrush DimNeutralBackground = MGSolidFillBrush.LightGray;
+                IFillBrush DimNeutralBackground = SolidFillBrushes.LightGray;
                 ThemeManagedVisualStateFillBrush WindowBG =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
@@ -728,7 +728,7 @@ namespace MGUI.Core.UI
                 ComboBoxDropdownBackground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            MGSolidFillBrush.White,
+                            SolidFillBrushes.White,
                             null, PressedModifierType.Darken, 0.06f)
                     );
                 ComboBoxDropdownItemBackground =
@@ -768,7 +768,7 @@ namespace MGUI.Core.UI
                 GridSplitterForeground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            MGSolidFillBrush.SemiBlack,
+                            SolidFillBrushes.SemiBlack,
                             Color.White * 0.25f, PressedModifierType.Darken, 0.06f)
                     );
 
@@ -781,7 +781,7 @@ namespace MGUI.Core.UI
                 ProgressBarIncompleteBrush =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            MGSolidFillBrush.SemiBlack,
+                            SolidFillBrushes.SemiBlack,
                             Color.White * 0.01f, PressedModifierType.Darken, 0f)
                     );
 
@@ -827,7 +827,7 @@ namespace MGUI.Core.UI
                 SelectedTabHeaderBackground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            MGSolidFillBrush.White,
+                            SolidFillBrushes.White,
                             Color.White * 0.18f, PressedModifierType.Darken, 0.06f)
                     );
                 UnselectedTabHeaderBackground =
@@ -840,7 +840,7 @@ namespace MGUI.Core.UI
                 SpoilerUnspoiledBackground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            MGSolidFillBrush.SemiBlack,
+                            SolidFillBrushes.SemiBlack,
                             Color.White * 0.18f, PressedModifierType.Darken, 0.06f)
                     );
 
@@ -852,7 +852,7 @@ namespace MGUI.Core.UI
                 TitleBackground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            MGSolidFillBrush.SemiBlack,
+                            SolidFillBrushes.SemiBlack,
                             Color.White * 0.05f, PressedModifierType.Darken, 0.06f)
                     );
 

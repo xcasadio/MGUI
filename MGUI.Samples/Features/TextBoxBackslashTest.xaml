@@ -1,0 +1,81 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="800" Top="650" Width="500" Height="440" TitleText="TextBox Backslash Selection Test" Padding="10">
+    <!--
+    TextBoxBackslashTest — Validation of the Task 6 off-by-one fix in MGTextBox
+    ============================================================================
+    PURPOSE
+    =======
+    Validates that selecting consecutive backslash characters in an MGTextBox
+    correctly highlights the intended characters.
+
+    BUG FIXED (Task 6): DoubleEscapeAtIndex used the raw Text index as the
+    FormattedText insert position after a prior call had already shifted the FM
+    contents. The fix uses EscapedIndices[RunStartTextIndex] (the FM-space position)
+    instead of the raw index. The EscapedIndices update loop was also corrected:
+    the old staggered loop skipped the first element of the run, leaving it one
+    too low; the new loop increments all fm-positions >= the insert position.
+
+    DEBUG VERIFICATION
+    ==================
+    A Debug.Assert in DoubleEscapeAtIndex verifies after each insertion that
+    EscapedIndices[RunStartTextIndex] == FMInsertPos + UnescapedCount.
+    This assert fires on every selection render in Debug builds.
+
+    TEST CASES (select with mouse to verify)
+    ========================================
+    TextBox 1  — text "A\\B"  (A, backslash, backslash, B)
+        Select just the 2nd backslash: the highlight should cover precisely one '\'.
+        With the bug, the selected region was shifted or covered wrong chars.
+
+    TextBox 2  — text "\\\\" (4 backslashes only)
+        Select from 2nd to 3rd backslash (positions 1-2 inclusive, i.e., 2 chars):
+        exactly 2 backslashes should be highlighted.
+    -->
+
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(50,50,50)" Padding="6">
+        <StackPanel Orientation="Vertical" Spacing="10">
+
+            <TextBlock IsBold="True" FontSize="12" Text="TextBox Backslash Selection Fix" HorizontalAlignment="Center" />
+            <TextBlock>
+                [b]Task 6[/b]: Off-by-one in [c=Turquoise]DoubleEscapeAtIndex[/c].
+                Fixed: insert position uses [c=Yellow]EscapedIndices[RunStartTextIndex][/c]. 
+                [c=Gray]Select characters in the boxes below to trigger Debug.Assert verification.[/c]
+            </TextBlock>
+
+            <!-- Test Case 1: "A\\B" (4 chars: A, \, \, B) -->
+            <TextBlock IsBold="True" Text="Test 1 — A\\B  (A + 2 backslashes + B)" />
+            <TextBlock Foreground="LightGray">
+                Select just the 2nd backslash (\) with the mouse.
+                The highlight must cover exactly 1 backslash — not 'A' or 'B'.
+                With the bug, the highlight would incorrectly span [c=Red]A\[/c] instead of [c=LimeGreen]\\[/c].
+            </TextBlock>
+            <TextBox Name="TB1" FontSize="14" Padding="6,4" />
+            <TextBlock Name="Info_TB1" Text="Selection info: (none)" Foreground="Yellow" />
+
+            <!-- Test Case 2: "\\\\" (4 backslashes) -->
+            <TextBlock IsBold="True" Text="Test 2 — \\\\ (4 backslashes)" />
+            <TextBlock Foreground="LightGray">
+                Select from the 2nd to the 3rd backslash with the mouse (2 chars).
+                The highlight must cover exactly [c=LimeGreen]\\[/c] (positions 1-2).
+            </TextBlock>
+            <TextBox Name="TB2" FontSize="14" Padding="6,4" />
+            <TextBlock Name="Info_TB2" Text="Selection info: (none)" Foreground="Yellow" />
+
+            <!-- Test Case 3: "A\\B" — select just the 1st backslash -->
+            <TextBlock IsBold="True" Text="Test 3 — select 1st backslash in A\\B" />
+            <TextBlock Foreground="LightGray">
+                Select just the 1st backslash (\). This was already working before the fix,
+                and should continue to work correctly.
+            </TextBlock>
+            <TextBox Name="TB3" FontSize="14" Padding="6,4" />
+            <TextBlock Name="Info_TB3" Text="Selection info: (none)" Foreground="Yellow" />
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>
