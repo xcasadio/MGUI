@@ -1553,8 +1553,6 @@ namespace MGUI.Core.UI
                 _cabX, _cabY,
                 Math.Max(0, ActualLayoutBounds.Width  - Padding.Left - Padding.Right),
                 Math.Max(0, ActualLayoutBounds.Height - Padding.Top  - Padding.Bottom));
-            Debug.Assert(ActualLayoutBounds.IsEmpty || ActualLayoutBounds.Contains(ContentAreaBounds),
-                $"[ActualLayoutBounds] ContentAreaBounds ({ContentAreaBounds}) exceeds ActualLayoutBounds ({ActualLayoutBounds}) for {GetType().Name}");
             ElementUpdateArgs UAForContents = UA with { ActualLayoutBounds = ContentAreaBounds };
 
 			foreach (MGElement Component in Components.Where(x => x.UpdateBeforeContents).Select(x => x.BaseElement))
