@@ -110,7 +110,11 @@ namespace MGUI.Samples
                     }
                 }
             }
-            catch (Exception ex) { Debug.WriteLine(ex); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] Font initialization failed: {ex.Message}");
+                Debug.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
+            }
 
             //  This is a dialog with toggle buttons to launch other dialogs
             Compendium Compendium = new(Content, Desktop);
