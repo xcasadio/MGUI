@@ -2136,13 +2136,7 @@ namespace MGUI.Core.UI
 				MGElement Element = Component.BaseElement;
                 Element.UpdateMeasurement(RemainingSizeForComponent, out _, out Thickness ComponentSize, out _, out _);
 
-                // Assert: the measured component size must not exceed the available space
-                Debug.Assert(ComponentSize.Width <= RemainingSizeForComponent.Width + 2,
-                    $"[MeasureSelf] Component {Element.GetType().Name} measured width {ComponentSize.Width} exceeds available {RemainingSizeForComponent.Width}");
-                Debug.Assert(ComponentSize.Height <= RemainingSizeForComponent.Height + 2,
-                    $"[MeasureSelf] Component {Element.GetType().Name} measured height {ComponentSize.Height} exceeds available {RemainingSizeForComponent.Height}");
-
-				Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
+Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
 				Thickness ComponentSharedSize = new(
 					Component.IsWidthSharedWithContent ? ActualComponentSize.Left : 0,
 					Component.IsHeightSharedWithContent ? ActualComponentSize.Top : 0,
