@@ -395,8 +395,23 @@ namespace MGUI.Core.UI
             }
         }
 
-        //TODO
-        //Orientation? FlowDirection?
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Orientation _Orientation;
+        /// <summary>Whether items are arranged left-to-right (<see cref="Orientation.Horizontal"/>) or top-to-bottom (<see cref="Orientation.Vertical"/>).<para/>
+        /// Default value: <see cref="Orientation.Horizontal"/></summary>
+        public Orientation Orientation
+        {
+            get => _Orientation;
+            set
+            {
+                if (_Orientation != value)
+                {
+                    _Orientation = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(Orientation));
+                }
+            }
+        }
 
         public MGRatingControl(MGWindow ParentWindow, int MinimumValue = 0, int MaximumValue = 5, int Size = 16, 
             bool UseDiscreteValues = true, float? DiscreteValueInterval = 1, RatingItemShape Shape = RatingItemShape.Star)
@@ -411,6 +426,7 @@ namespace MGUI.Core.UI
                 this.DiscreteValueInterval = DiscreteValueInterval;
                 SetRange(MinimumValue, MaximumValue);
 
+                Orientation = Orientation.Horizontal;
                 IsReadonly = false;
 
                 UnfilledShapeStrokeThickness = 1;
@@ -488,15 +504,18 @@ namespace MGUI.Core.UI
             }
 
             Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-            int Position = MousePosition.X;
+            bool IsVertical = Orientation == Orientation.Vertical;
+            int Position = IsVertical ? MousePosition.Y : MousePosition.X;
+            int RangeStart = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
+            int RangeEnd = IsVertical ? PaddedBounds.Bottom : PaddedBounds.Right;
 
-            if (Position <= PaddedBounds.Left)
+            if (Position <= RangeStart)
                 PreviewValue = Minimum;
-            else if (Position >= PaddedBounds.Right)
+            else if (Position >= RangeEnd)
                 PreviewValue = Maximum;
             else
             {
-                int RelativePosition = Position - PaddedBounds.Left;
+                int RelativePosition = Position - RangeStart;
                 int PaddedItemSize = ItemSize + Spacing;
                 int FilledValue = (RelativePosition + Spacing) / PaddedItemSize;
                 float PartialValue = Math.Max(0, (RelativePosition - FilledValue * PaddedItemSize)) * 1.0f / ItemSize;
@@ -508,8 +527,10 @@ namespace MGUI.Core.UI
         {
             SharedSize = new(0);
 
-            int Width = NumItems * ItemSize + (NumItems - 1) * Spacing;
-            int Height = ItemSize;
+            int PrimarySize = NumItems * ItemSize + (NumItems - 1) * Spacing;
+            int SecondarySize = ItemSize;
+            int Width = Orientation == Orientation.Vertical ? SecondarySize : PrimarySize;
+            int Height = Orientation == Orientation.Vertical ? PrimarySize : SecondarySize;
             return new(Width, Height, 0, 0);
         }
 
@@ -517,31 +538,40 @@ namespace MGUI.Core.UI
         {
             float Opacity = DA.Opacity;
             Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-            int CurrentX = PaddedBounds.Left;
+            bool IsVertical = Orientation == Orientation.Vertical;
+            int CurrentPos = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
 
             for (int i = 0; i < NumItems; i++)
             {
-                DrawValue(DA, PaddedBounds, CurrentX, 1.0f, UnfilledShapeStrokeThickness, UnfilledShapeStrokeColor * Opacity, UnfilledShapeFillColor * Opacity);
+                Rectangle Dest = IsVertical
+                    ? new(PaddedBounds.X, CurrentPos, ItemSize, ItemSize)
+                    : new(CurrentPos, PaddedBounds.Y, ItemSize, ItemSize);
+
+                DrawValue(DA, Dest, 1.0f, UnfilledShapeStrokeThickness, UnfilledShapeStrokeColor * Opacity, UnfilledShapeFillColor * Opacity, IsVertical);
 
                 float FilledPercent = Math.Clamp(Value - i, 0, 1);
-                DrawValue(DA, PaddedBounds, CurrentX, FilledPercent, FilledShapeStrokeThickness, FilledShapeStrokeColor * Opacity, FilledShapeFillColor * Opacity);
+                DrawValue(DA, Dest, FilledPercent, FilledShapeStrokeThickness, FilledShapeStrokeColor * Opacity, FilledShapeFillColor * Opacity, IsVertical);
 
                 if (PreviewValue.HasValue)
                 {
                     float PreviewFilledPercent = Math.Clamp(PreviewValue.Value - i, 0, 1);
-                    DrawValue(DA, PaddedBounds, CurrentX, PreviewFilledPercent, PreviewShapeStrokeThickness, PreviewShapeStrokeColor * Opacity, PreviewShapeFillColor * Opacity);
+                    DrawValue(DA, Dest, PreviewFilledPercent, PreviewShapeStrokeThickness, PreviewShapeStrokeColor * Opacity, PreviewShapeFillColor * Opacity, IsVertical);
                 }
 
-                CurrentX += ItemSize + Spacing;
+                CurrentPos += ItemSize + Spacing;
             }
         }
 
-        private void DrawValue(ElementDrawArgs DA, Rectangle PaddedBounds, int CurrentX, float FilledPercent,
-            int StrokeThickness, Color StrokeColor, Color FillColor)
+        private Rectangle GetPartialClipRect(Rectangle destination, float filledPercent, bool isVertical)
+            => isVertical
+                ? new(destination.Left, destination.Top, destination.Width, (int)(destination.Height * filledPercent))
+                : new(destination.Left, destination.Top, (int)(destination.Width * filledPercent), destination.Height);
+
+        private void DrawValue(ElementDrawArgs DA, Rectangle Destination, float FilledPercent,
+            int StrokeThickness, Color StrokeColor, Color FillColor, bool IsVertical)
         {
             Vector2 Offset = DA.Offset.ToVector2();
             float ScaleFactor = ItemSize / 256.0f;
-            Rectangle Destination = new(CurrentX, PaddedBounds.Y, ItemSize, ItemSize);
 
             bool IsCompletelyFilled = FilledPercent.IsAlmostEqual(1);
             bool IsCompletelyUnfilled = FilledPercent.IsAlmostEqual(0);
@@ -563,11 +593,9 @@ namespace MGUI.Core.UI
                     }
                     else if (IsPartiallyFilled)
                     {
-                        float MinVertexX = Vertices.Min(v => v.X);
-                        float MaxVertexX = Vertices.Max(v => v.X);
-                        float Width = MinVertexX + (MaxVertexX - MinVertexX) * FilledPercent;
-
-                        Rectangle UnscaledClipTarget = new(Destination.Left, Destination.Top, (int)Width, Destination.Height);
+                        Rectangle UnscaledClipTarget = IsVertical
+                            ? new(Destination.Left, Destination.Top, Destination.Width, (int)(Vertices.Min(v => v.Y) + (Vertices.Max(v => v.Y) - Vertices.Min(v => v.Y)) * FilledPercent))
+                            : new(Destination.Left, Destination.Top, (int)(Vertices.Min(v => v.X) + (Vertices.Max(v => v.X) - Vertices.Min(v => v.X)) * FilledPercent), Destination.Height);
                         Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
                         using (DA.DT.SetClipTargetTemporary(ClipTarget, true))
                         {
@@ -587,11 +615,7 @@ namespace MGUI.Core.UI
                     }
                     else if (IsPartiallyFilled)
                     {
-                        float MinVertexX = Center.X - Radius;
-                        float MaxVertexX = Center.X + Radius;
-                        float Width = (MaxVertexX - MinVertexX) * FilledPercent;
-
-                        Rectangle UnscaledClipTarget = new(Destination.Left, Destination.Top, (int)Width, Destination.Height);
+                        Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
                         Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
                         using (DA.DT.SetClipTargetTemporary(ClipTarget, true))
                         {
@@ -608,7 +632,7 @@ namespace MGUI.Core.UI
                     }
                     else if (IsPartiallyFilled)
                     {
-                        Rectangle UnscaledClipTarget = new(Destination.Left, Destination.Top, (int)(Destination.Width * FilledPercent), Destination.Height);
+                        Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
                         Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
                         using (DA.DT.SetClipTargetTemporary(ClipTarget, true))
                         {
@@ -633,11 +657,9 @@ namespace MGUI.Core.UI
                     }
                     else if (IsPartiallyFilled)
                     {
-                        float MinVertexX = TriangleVertices.Min(v => v.X);
-                        float MaxVertexX = TriangleVertices.Max(v => v.X);
-                        float Width = MinVertexX + (MaxVertexX - MinVertexX) * FilledPercent;
-
-                        Rectangle UnscaledClipTarget = new(Destination.Left, Destination.Top, (int)Width, Destination.Height);
+                        Rectangle UnscaledClipTarget = IsVertical
+                            ? new(Destination.Left, Destination.Top, Destination.Width, (int)(TriangleVertices.Min(v => v.Y) + (TriangleVertices.Max(v => v.Y) - TriangleVertices.Min(v => v.Y)) * FilledPercent))
+                            : new(Destination.Left, Destination.Top, (int)(TriangleVertices.Min(v => v.X) + (TriangleVertices.Max(v => v.X) - TriangleVertices.Min(v => v.X)) * FilledPercent), Destination.Height);
                         Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
                         using (DA.DT.SetClipTargetTemporary(ClipTarget, true))
                         {
