@@ -4,13 +4,13 @@
     NestedScrollViewerTest — Validation of nested ScrollViewer viewport logic
     ========================================================================
     PURPOSE
-    -------
+    =======
     This sample validates that MGGrid (and MGUniformGrid) cell-selection logic
     works correctly when a Grid is nested inside one or more MGScrollViewer
     instances.
 
     CASES TESTED
-    ------------
+    ============
     Case 1 — Grid inside a single ScrollViewer (baseline)
         Layout:  OuterSV > Grid
         Expected: clicking a scrolled-away cell does NOT select it.
@@ -27,7 +27,7 @@
         Same expectations as Case 2 but for MGUniformGrid.
 
     VIEWPORT FORMULA ANALYSIS
-    -------------------------
+    =========================
     In MGGrid.UpdateSelection and MGUniformGrid.UpdateSelection the formula is:
         Viewport = SV.ContentViewport.GetTranslated(Origin - SV.Origin)
 

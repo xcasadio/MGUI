@@ -4,7 +4,7 @@
     TextBoxBackslashTest — Validation of the Task 6 off-by-one fix in MGTextBox
     ============================================================================
     PURPOSE
-    -------
+    =======
     Validates that selecting consecutive backslash characters in an MGTextBox
     correctly highlights the intended characters.
 
@@ -16,13 +16,13 @@
     too low; the new loop increments all fm-positions >= the insert position.
 
     DEBUG VERIFICATION
-    ------------------
+    ==================
     A Debug.Assert in DoubleEscapeAtIndex verifies after each insertion that
     EscapedIndices[RunStartTextIndex] == FMInsertPos + UnescapedCount.
     This assert fires on every selection render in Debug builds.
 
     TEST CASES (select with mouse to verify)
-    ----------------------------------------
+    ========================================
     TextBox 1  — text "A\\B"  (A, backslash, backslash, B)
         Select just the 2nd backslash: the highlight should cover precisely one '\'.
         With the bug, the selected region was shifted or covered wrong chars.
