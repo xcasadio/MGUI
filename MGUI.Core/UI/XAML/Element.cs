@@ -327,7 +327,19 @@ namespace MGUI.Core.UI.XAML
                             }
                             if (RecurseNestedBindableObjects(Source).Any(x => x.Bindings?.Any() == true))
                             {
-                                Debug.WriteLine($"Warning - DataBindings that are defined in XAML are ignored if they are nested within non-{nameof(MGElement)} objects.");
+                                foreach (XAMLBindableBase nested in RecurseNestedBindableObjects(Source))
+                                {
+                                    if (nested.Bindings?.Any() == true)
+                                    {
+                                        foreach (var binding in nested.Bindings)
+                                        {
+                                            Debug.WriteLine(
+                                                $"[WARN] DataBinding on nested {nameof(XAMLBindableBase)} is not supported and will be ignored. " +
+                                                $"Path='{TargetPath}.{binding.TargetPath}'. " +
+                                                $"Consider binding directly on the enclosing {nameof(MGElement)} property instead.");
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
