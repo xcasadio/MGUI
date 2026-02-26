@@ -3,6 +3,7 @@ using MGUI.Core.UI;
 using Microsoft.Xna.Framework.Content;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -203,7 +204,19 @@ namespace MGUI.Samples.Dialogs
         {
             UpdateWindowBounds();
             if (Desktop.Renderer.Host is GameRenderHost<Game1> Host)
-                Host.Game.Window.ClientSizeChanged += (sender, e) => UpdateWindowBounds();
+            {
+                // Store handler as a named delegate for proper unsubscription when the window closes
+                EventHandler<EventArgs> onClientSizeChanged = (sender, e) => UpdateWindowBounds();
+                Host.Game.Window.ClientSizeChanged += onClientSizeChanged;
+                if (Window != null)
+                {
+                    Window.WindowClosed += (_, __) =>
+                    {
+                        Host.Game.Window.ClientSizeChanged -= onClientSizeChanged;
+                        Debug.WriteLine($"[Dispose] {nameof(SampleHUD)} unsubscribed 1 event handler from Game.Window.ClientSizeChanged");
+                    };
+                }
+            }
 
             MGResources Resources = Desktop.Resources;
 

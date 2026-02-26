@@ -40,7 +40,7 @@ namespace MGUI.Shared.Rendering
         public KeyboardState GetKeyboardState();
     }
 
-    public class GameRenderHost<TObservableGame> : IRenderHost
+    public class GameRenderHost<TObservableGame> : IRenderHost, IDisposable
         where TObservableGame : Game, IObservableUpdate
     {
         public TObservableGame Game { get; }
@@ -59,19 +59,37 @@ namespace MGUI.Shared.Rendering
 
         private Rectangle PreviousClientBounds;
 
+        // Named handlers stored so they can be properly unsubscribed in Dispose()
+        private readonly EventHandler<TimeSpan> _onGamePreviewUpdate;
+        private readonly EventHandler<EventArgs> _onGameEndUpdate;
+        private readonly EventHandler<EventArgs> _onClientSizeChanged;
+
         public GameRenderHost(TObservableGame Game)
         {
             this.Game = Game;
-            this.Game.PreviewUpdate += (sender, e) => PreviewUpdate?.Invoke(Game, e);
-            this.Game.EndUpdate += (sender, e) => EndUpdate?.Invoke(Game, e);
 
-            PreviousClientBounds = GetBounds();
-            Game.Window.ClientSizeChanged += (sender, e) =>
+            _onGamePreviewUpdate = (sender, e) => PreviewUpdate?.Invoke(Game, e);
+            _onGameEndUpdate = (sender, e) => EndUpdate?.Invoke(Game, e);
+            _onClientSizeChanged = (sender, e) =>
             {
                 if (GraphicsDevice.ScissorRectangle == PreviousClientBounds)
                     GraphicsDevice.ScissorRectangle = GetBounds();
                 PreviousClientBounds = GetBounds();
             };
+
+            this.Game.PreviewUpdate += _onGamePreviewUpdate;
+            this.Game.EndUpdate += _onGameEndUpdate;
+
+            PreviousClientBounds = GetBounds();
+            Game.Window.ClientSizeChanged += _onClientSizeChanged;
+        }
+
+        public void Dispose()
+        {
+            Game.PreviewUpdate -= _onGamePreviewUpdate;
+            Game.EndUpdate -= _onGameEndUpdate;
+            Game.Window.ClientSizeChanged -= _onClientSizeChanged;
+            Debug.WriteLine($"[Dispose] {GetType().Name} unsubscribed 3 event handlers");
         }
     }
 

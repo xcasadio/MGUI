@@ -773,6 +773,18 @@ namespace MGUI.Core.UI
         }
 
         public event EventHandler<object> WindowDataContextChanged;
+        /// <summary>Named handler for <see cref="MGWindow.WindowDataContextChanged"/> on <see cref="MGElement.ParentWindow"/>.
+        /// Stored as a field so it can be unsubscribed in <see cref="CleanUpParentDataContextListener"/>.</summary>
+        private EventHandler<object> _onParentWindowDataContextChanged;
+        private void CleanUpParentDataContextListener()
+        {
+            if (ParentWindow != null && _onParentWindowDataContextChanged != null)
+            {
+                ParentWindow.WindowDataContextChanged -= _onParentWindowDataContextChanged;
+                Debug.WriteLine($"[Dispose] {nameof(MGWindow)} '{TitleText}' unsubscribed 1 event handler from ParentWindow");
+                _onParentWindowDataContextChanged = null;
+            }
+        }
 
         private void RevalidateSizeToContent(bool UpdateImmediately)
         {
@@ -1032,7 +1044,7 @@ namespace MGUI.Core.UI
                 //  Nested windows inherit their WindowDataContext from the parent if they don't have their own explicit value
                 if (ParentWindow != null)
                 {
-                    ParentWindow.WindowDataContextChanged += (sender, e) =>
+                    _onParentWindowDataContextChanged = (sender, e) =>
                     {
                         if (_WindowDataContext == null)
                         {
@@ -1043,6 +1055,9 @@ namespace MGUI.Core.UI
                             RevalidateSizeToContent(false);
                         }
                     };
+                    ParentWindow.WindowDataContextChanged += _onParentWindowDataContextChanged;
+                    //  Unsubscribe when this window closes to prevent the parent holding a reference to this window
+                    WindowClosed += (_, __) => CleanUpParentDataContextListener();
                 }
 
                 MakeDraggable();
