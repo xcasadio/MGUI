@@ -71,8 +71,19 @@ namespace MGUI.Samples
             } 
             catch (Exception ex) 
             { 
-                Debug.WriteLine($"Error parsing XAML content for {ResourceName}: {ex}");
-#if DEBUG
+                Debug.WriteLine($"[XAML ERROR] Failed to parse XAML content for '{ResourceName}': {ex.Message}");
+                Debug.WriteLine($"[XAML ERROR] Stack trace: {ex.StackTrace}");
+                // In Release mode, attempt to display a visible error indicator instead of silently producing an empty window
+#if !DEBUG
+                string safeMsg = (ex.Message ?? string.Empty)
+                    .Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+                string fallback =
+                    "<Window xmlns=\"clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core\" " +
+                    "Left=\"100\" Top=\"100\" Width=\"600\" SizeToContent=\"Height\">" +
+                    $"<TextBlock Foreground=\"Red\" Text=\"[XAML ERROR] {safeMsg}\" Padding=\"10\" /></Window>";
+                try { Window = XAMLParser.LoadRootWindow(Desktop, fallback, false, false); }
+                catch (Exception inner) { Debug.WriteLine($"[XAML ERROR] Fallback window also failed: {inner.Message}"); }
+#else
                 throw;
 #endif
             }
