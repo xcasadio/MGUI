@@ -1011,9 +1011,12 @@ namespace MGUI.Core.UI
                 {
                     ElementUpdateArgs UpdateArgs = e.UA.ChangeOffset(Origin);
 
-                    //TODO does this order make sense?
-                    //What if this window has both a ModalWindow and a NestedWindow, and the NestedWindow has a ModalWindow.
-                    //Should we update the ModalWindow of the NestedWindow before we update the ModalWindow of this Window?
+                    //  ModalWindow is intentionally updated BEFORE NestedWindows so that it can mark mouse/keyboard
+                    //  events as handled first. Since event args are shared objects, once ModalWindow sets IsHandled=true,
+                    //  the subsequent NestedWindow updates will see the event as already handled and skip processing it.
+                    //  This ensures the ModalWindow effectively blocks all input to NestedWindows.
+                    //  For nested ModalWindows (e.g., a NestedWindow that itself has a ModalWindow), the recursive
+                    //  call to Nested.Update() will apply the same ordering inside each nested window.
                     ModalWindow?.Update(UpdateArgs);
 
                     foreach (MGWindow Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
