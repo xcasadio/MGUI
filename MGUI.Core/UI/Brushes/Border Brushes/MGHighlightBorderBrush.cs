@@ -1,4 +1,4 @@
-﻿using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework;
@@ -71,7 +71,7 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 		}
 
 		private MGUniformBorderBrush HighlightBorderBrush = MGUniformBorderBrush.Transparent;
-		private MGSolidFillBrush HighlightFillBrush = MGSolidFillBrush.Transparent;
+		private MGSolidFillBrush HighlightFillBrush = SolidFillBrushes.Transparent;
 
         #region Animation Settings
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

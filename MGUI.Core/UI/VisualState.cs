@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
@@ -201,7 +201,7 @@ namespace MGUI.Core.UI
             }
             else
             {
-                HoveredFillOverlay = MGSolidFillBrush.Transparent;
+                HoveredFillOverlay = SolidFillBrushes.Transparent;
                 HoveredBorderOverlay = MGUniformBorderBrush.Transparent;
             }
             NPC(nameof(HoveredColorOverlay));
@@ -225,7 +225,7 @@ namespace MGUI.Core.UI
             else
             {
                 PressedColorOverlay = null;
-                PressedFillOverlay = MGSolidFillBrush.Transparent;
+                PressedFillOverlay = SolidFillBrushes.Transparent;
                 PressedBorderOverlay = MGUniformBorderBrush.Transparent;
             }
             NPC(nameof(PressedColorOverlay));

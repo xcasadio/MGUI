@@ -1,4 +1,4 @@
-﻿using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.XAML;
@@ -682,7 +682,7 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 //  Create the outer border
-                OuterBorder = new(ParentWindow, 0, MGSolidFillBrush.Black);
+                OuterBorder = new(ParentWindow, 0, SolidFillBrushes.Black);
                 OuterBorderComponent = MGComponentBase.Create(OuterBorder);
                 AddComponent(OuterBorderComponent);
                 OuterBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(OuterBorderBrush)); };
@@ -723,7 +723,7 @@ namespace MGUI.Core.UI
                 InnerBorder.SetContent(ScrollViewer);
                 InnerBorder.CanChangeContent = false;
 
-                SetTitleAndContentBorder(MGSolidFillBrush.Black, 1);
+                SetTitleAndContentBorder(SolidFillBrushes.Black, 1);
                 
                 MinHeight = 30;
 

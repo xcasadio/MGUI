@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
@@ -305,7 +305,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                IFillBrush GridLineBrush = MGSolidFillBrush.Black;
+                IFillBrush GridLineBrush = SolidFillBrushes.Black;
 
                 HeaderGrid = new(Window);
                 HeaderGrid.AddRow(GridLength.Auto);

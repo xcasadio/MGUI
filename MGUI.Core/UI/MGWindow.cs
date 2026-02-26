@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MGUI.Shared.Helpers;
 using Prism.Commands;
@@ -1339,7 +1339,7 @@ namespace MGUI.Core.UI
                             Padding = new(0);
                             BorderThickness = new(0);
                             PreviousBackgroundBrush = BackgroundBrush.Copy();
-                            BackgroundBrush.SetAll(MGSolidFillBrush.Transparent);
+                            BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
                             //  Explicitly disable click-through so the window blocks mouse events that fall within it.
                             //  Note: clicks that land within the window bounds but outside of any child element content
                             //  will still be consumed by this window (not passed through to windows below).

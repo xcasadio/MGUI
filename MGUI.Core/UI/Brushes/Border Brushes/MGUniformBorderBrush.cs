@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
@@ -14,15 +14,15 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
     /// See also: <see cref="MGDockedBorderBrush"/>, <see cref="MGBandedBorderBrush"/>, <see cref="MGTexturedBorderBrush"/>, <see cref="MGHighlightBorderBrush"/>, <see cref="MGCompositedBorderBrush"/></summary>
     public readonly struct MGUniformBorderBrush : IBorderBrush
     {
-        public static readonly MGUniformBorderBrush Transparent = new(MGSolidFillBrush.Transparent);
-        public static readonly MGUniformBorderBrush White = new(MGSolidFillBrush.White);
-        public static readonly MGUniformBorderBrush LightGray = new(MGSolidFillBrush.LightGray);
-        public static readonly MGUniformBorderBrush Gray = new(MGSolidFillBrush.Gray);
-        public static readonly MGUniformBorderBrush DarkGray = new(MGSolidFillBrush.DarkGray);
-        public static readonly MGUniformBorderBrush Black = new(MGSolidFillBrush.Black);
+        public static readonly MGUniformBorderBrush Transparent = new(SolidFillBrushes.Transparent);
+        public static readonly MGUniformBorderBrush White = new(SolidFillBrushes.White);
+        public static readonly MGUniformBorderBrush LightGray = new(SolidFillBrushes.LightGray);
+        public static readonly MGUniformBorderBrush Gray = new(SolidFillBrushes.Gray);
+        public static readonly MGUniformBorderBrush DarkGray = new(SolidFillBrushes.DarkGray);
+        public static readonly MGUniformBorderBrush Black = new(SolidFillBrushes.Black);
 
         private readonly IFillBrush _Brush;
-        public IFillBrush Brush => _Brush ?? MGSolidFillBrush.Transparent;
+        public IFillBrush Brush => _Brush ?? SolidFillBrushes.Transparent;
 
         /// <summary>Uses an <see cref="MGSolidFillBrush"/> from the given <paramref name="Color"/> for each side.</summary>
         /// <param name="Color"></param>

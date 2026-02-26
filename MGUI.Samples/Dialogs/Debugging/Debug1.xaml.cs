@@ -1,4 +1,4 @@
-﻿using MGUI.Core.UI;
+using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Containers;
@@ -41,7 +41,7 @@ namespace MGUI.Samples.Dialogs.Debugging
             Test1.SetContent("Testing inlined tooltip");
             Window.AddNamedToolTip("Test1", Test1);
             MGToolTip Test2 = new(Window, Window, 200, 100);
-            Test2.BackgroundBrush.NormalValue = MGSolidFillBrush.SemiBlack;
+            Test2.BackgroundBrush.NormalValue = SolidFillBrushes.SemiBlack;
             Test2.SetContent("Testing inlined tooltip on an inlined image.\n\nAlso click here to reduce window opacity by 0.05", null, 14);
             Test2.ApplySizeToContent(SizeToContent.Height);
             Window.AddNamedToolTip("Test2", Test2);
@@ -49,7 +49,7 @@ namespace MGUI.Samples.Dialogs.Debugging
             Action<MGElement> Debug1_TestAction = element =>
             {
                 Window.Opacity -= 0.05f;
-                //Window.BackgroundBrush.NormalValue = MGSolidFillBrush.SemiBlack;
+                //Window.BackgroundBrush.NormalValue = SolidFillBrushes.SemiBlack;
             };
             Window.GetResources().AddCommand("Debug1_TestAction", Debug1_TestAction);
 

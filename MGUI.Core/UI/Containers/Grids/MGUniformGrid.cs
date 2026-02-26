@@ -1,4 +1,4 @@
-﻿using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Input.Mouse;
 using Microsoft.Xna.Framework;
@@ -461,7 +461,7 @@ namespace MGUI.Core.UI.Containers.Grids
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private IFillBrush _SelectionBackground = MGSolidFillBrush.Yellow * 0.5f;
+        private IFillBrush _SelectionBackground = SolidFillBrushes.Yellow * 0.5f;
         public IFillBrush SelectionBackground
         {
             get => _SelectionBackground;
