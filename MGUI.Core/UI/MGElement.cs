@@ -1564,6 +1564,30 @@ namespace MGUI.Core.UI
             else
                 ActualLayoutBounds = Rectangle.Intersect(UA.ActualLayoutBounds, UnscaledScreenBounds);
 
+            // Fast path: element is fully clipped (off-viewport). Skip all expensive processing.
+            // Exception: elements that can receive input while hidden still need a minimal update.
+            if (!IsWindow && ActualLayoutBounds.Width == 0 && ActualLayoutBounds.Height == 0
+                && !(Visibility == Visibility.Hidden && CanHandleInputsWhileHidden))
+            {
+                _CanReceiveMouseInput = false;
+                _CanReceiveKeyboardInput = false;
+                HoverStartTime = null;
+                VisualState = new(UI.PrimaryVisualState.Normal, UI.SecondaryVisualState.None);
+                return;
+            }
+
+            // Fast path: element is fully clipped (off-viewport). Skip all expensive processing.
+            // Exception: elements that can receive input while hidden still need a minimal update.
+            if (!IsWindow && ActualLayoutBounds.Width == 0 && ActualLayoutBounds.Height == 0
+                && !(Visibility == Visibility.Hidden && CanHandleInputsWhileHidden))
+            {
+                _CanReceiveMouseInput = false;
+                _CanReceiveKeyboardInput = false;
+                HoverStartTime = null;
+                VisualState = new(PrimaryVisualState.Normal, SecondaryVisualState.None);
+                return;
+            }
+
             UA = UA with {
                 IsEnabled = ComputedIsEnabled, 
                 IsSelected = ComputedIsSelected, 
@@ -1572,13 +1596,13 @@ namespace MGUI.Core.UI
             };
             //UA = new(UA.BA, ComputedIsEnabled, ComputedIsSelected, ComputedIsHitTestVisible, UA.Offset, this.ActualLayoutBounds);
 
-            PrimaryVisualState PrimaryVisualState = !ComputedIsEnabled ? PrimaryVisualState.Disabled : ComputedIsSelected ? PrimaryVisualState.Selected : PrimaryVisualState.Normal;
-            SecondaryVisualState SecondaryVisualState = 
+            PrimaryVisualState newPVS = !ComputedIsEnabled ? PrimaryVisualState.Disabled : ComputedIsSelected ? PrimaryVisualState.Selected : PrimaryVisualState.Normal;
+            SecondaryVisualState newSVS = 
                 !ComputedIsHitTestVisible || SelfOrParentWindow.HasModalWindow ? SecondaryVisualState.None : 
                 IsLMBPressed && IsSelfOrAncestorOf(SelfOrParentWindow.PressedElement) ? SecondaryVisualState.Pressed : 
                 IsHovered && IsSelfOrAncestorOf(SelfOrParentWindow.HoveredElement) ? SecondaryVisualState.Hovered : 
                 SecondaryVisualState.None;
-            VisualState = new(PrimaryVisualState, SecondaryVisualState);
+            VisualState = new(newPVS, newSVS);
 
             ElementUpdateEventArgs UpdateEventArgs = new(this, UA);
 
@@ -1587,7 +1611,7 @@ namespace MGUI.Core.UI
             GetBorderBrushes().ToList().ForEach(x => x?.Update(UA.BA));
 
             if (ComputedIsHitTestVisible && Visibility == Visibility.Visible &&
-                (SecondaryVisualState == SecondaryVisualState.Hovered || (IsHovered && SecondaryVisualState == SecondaryVisualState.Pressed)))
+                (newSVS == SecondaryVisualState.Hovered || (IsHovered && newSVS == SecondaryVisualState.Pressed)))
             {
                 HoverStartTime ??= DateTime.Now;
             }
