@@ -68,137 +68,214 @@ namespace MGUI.Shared.Input.Mouse
         public bool IsButtonPressedInside(MouseButton Button) => Tracker.IsPressedInside(Button, Owner);
 
         #region Events
+        #region Backing fields for all events
+        private EventHandler<BaseMouseScrolledEventArgs> _scrolled;
+        private EventHandler<BaseMouseMovedEventArgs> _movedInside, _movedOutside, _entered, _exited;
+        private EventHandler<BaseMousePressedEventArgs> _pressedInside, _lmbPressedInside, _mmbPressedInside, _rmbPressedInside, _pressedOutside;
+        private EventHandler<BaseMouseReleasedEventArgs> _releasedInside, _lmbReleasedInside, _mmbReleasedInside, _rmbReleasedInside, _releasedOutside;
+        private EventHandler<BaseMouseClickedEventArgs> _clickedInside, _lmbClickedInside, _mmbClickedInside, _rmbClickedInside, _clickedOutside;
+        private EventHandler<BaseMouseDragStartEventArgs> _dragStart, _dragStartOutside;
+        private EventHandler<BaseMouseDraggedEventArgs> _dragged;
+        private EventHandler<BaseMouseDragEndEventArgs> _dragEnd;
+        #endregion Backing fields
+
+        #region Cached monitoring flags
+        private bool _hasSubscribedEvents;
+        private bool _isMonitoringScroll;
+        private bool _isMonitoringMovement;
+        private bool _isMonitoringPressed;
+        private bool _isMonitoringReleased;
+        private bool _isMonitoringClicked;
+        private bool _isMonitoringClicks;
+        private bool _isMonitoringDrag;
+
+        private void RecomputeMonitoringFlags()
+        {
+            _isMonitoringScroll  = _scrolled != null;
+            _isMonitoringDrag    = _dragStart != null || _dragStartOutside != null || _dragged != null || _dragEnd != null;
+            _isMonitoringMovement = _movedInside != null || _movedOutside != null || _entered != null || _exited != null || _isMonitoringDrag;
+            _isMonitoringPressed  = _pressedInside != null || _lmbPressedInside != null || _mmbPressedInside != null || _rmbPressedInside != null || _pressedOutside != null;
+            _isMonitoringReleased = _releasedInside != null || _lmbReleasedInside != null || _mmbReleasedInside != null || _rmbReleasedInside != null || _releasedOutside != null;
+            _isMonitoringClicked  = _clickedInside != null || _lmbClickedInside != null || _mmbClickedInside != null || _rmbClickedInside != null || _clickedOutside != null;
+            _isMonitoringClicks   = _isMonitoringPressed || _isMonitoringReleased || _isMonitoringClicked;
+            _hasSubscribedEvents  = _isMonitoringScroll || _isMonitoringMovement || _isMonitoringClicks || _isMonitoringDrag;
+        }
+        #endregion Cached monitoring flags
+
+        /// <summary>True if at least one event has been subscribed to.<para/>
+        /// If false, the Update method may return early under the assumption that no further processing is needed.</summary>
+        private bool HasSubscribedEvents => _hasSubscribedEvents;
+        /// <summary>True if at least one scroll event has been subscribed to</summary>
+        private bool IsMonitoringScroll => _isMonitoringScroll;
+        /// <summary>True if at least one move event has been subscribed to</summary>
+        private bool IsMonitoringMovement => _isMonitoringMovement;
+        /// <summary>True if at least one press/release/click event has been subscribed to</summary>
+        private bool IsMonitoringClicks => _isMonitoringClicks;
+        /// <summary>True if at least one drag event has been subscribed to</summary>
+        private bool IsMonitoringDrag => _isMonitoringDrag;
+
         /// <summary>Invoked when the mouse wheel is scrolled overtop of the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseScrolledEventArgs> Scrolled;
+        public event EventHandler<BaseMouseScrolledEventArgs> Scrolled
+        {
+            add    { _scrolled += value; RecomputeMonitoringFlags(); }
+            remove { _scrolled -= value; RecomputeMonitoringFlags(); }
+        }
 
         #region Movement
         /// <summary>Invoked when the mouse moves to a different position, and that position is inside of the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseMovedEventArgs> MovedInside;
-        /// <summary>Invoked when the mouse moves to a different position, and that position is outside of the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseMovedEventArgs> MovedOutside;
-        /// <summary>Invoked when the mouse enters the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseMovedEventArgs> Entered;
-        /// <summary>Invoked when the mouse exits the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseMovedEventArgs> Exited;
-
-        private IEnumerable<EventHandler<BaseMouseMovedEventArgs>> MovedEvents
+        public event EventHandler<BaseMouseMovedEventArgs> MovedInside
         {
-            get
-            {
-                yield return MovedInside;
-                yield return MovedOutside;
-                yield return Entered;
-                yield return Exited;
-            }
+            add    { _movedInside += value; RecomputeMonitoringFlags(); }
+            remove { _movedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when the mouse moves to a different position, and that position is outside of the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseMovedEventArgs> MovedOutside
+        {
+            add    { _movedOutside += value; RecomputeMonitoringFlags(); }
+            remove { _movedOutside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when the mouse enters the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseMovedEventArgs> Entered
+        {
+            add    { _entered += value; RecomputeMonitoringFlags(); }
+            remove { _entered -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when the mouse exits the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseMovedEventArgs> Exited
+        {
+            add    { _exited += value; RecomputeMonitoringFlags(); }
+            remove { _exited -= value; RecomputeMonitoringFlags(); }
         }
         #endregion Movement
 
         #region Pressed
         /// <summary>Invoked when any <see cref="MouseButton"/> is pressed while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMousePressedEventArgs> PressedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Left"/> is pressed while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMousePressedEventArgs> LMBPressedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Middle"/> is pressed while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMousePressedEventArgs> MMBPressedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Right"/> is pressed while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMousePressedEventArgs> RMBPressedInside;
-
-        /// <summary>Invoked when any <see cref="MouseButton"/> is pressed while the mouse is currently outside of the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMousePressedEventArgs> PressedOutside;
-
-        private IEnumerable<EventHandler<BaseMousePressedEventArgs>> PressedEvents
+        public event EventHandler<BaseMousePressedEventArgs> PressedInside
         {
-            get
-            {
-                yield return PressedInside;
-                yield return LMBPressedInside;
-                yield return MMBPressedInside;
-                yield return RMBPressedInside;
-                yield return PressedOutside;
-            }
+            add    { _pressedInside += value; RecomputeMonitoringFlags(); }
+            remove { _pressedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Left"/> is pressed while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMousePressedEventArgs> LMBPressedInside
+        {
+            add    { _lmbPressedInside += value; RecomputeMonitoringFlags(); }
+            remove { _lmbPressedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Middle"/> is pressed while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMousePressedEventArgs> MMBPressedInside
+        {
+            add    { _mmbPressedInside += value; RecomputeMonitoringFlags(); }
+            remove { _mmbPressedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Right"/> is pressed while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMousePressedEventArgs> RMBPressedInside
+        {
+            add    { _rmbPressedInside += value; RecomputeMonitoringFlags(); }
+            remove { _rmbPressedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when any <see cref="MouseButton"/> is pressed while the mouse is currently outside of the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMousePressedEventArgs> PressedOutside
+        {
+            add    { _pressedOutside += value; RecomputeMonitoringFlags(); }
+            remove { _pressedOutside -= value; RecomputeMonitoringFlags(); }
         }
         #endregion Pressed
 
         #region Released
         /// <summary>Invoked when any <see cref="MouseButton"/> is released while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseReleasedEventArgs> ReleasedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Left"/> is released while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseReleasedEventArgs> LMBReleasedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Middle"/> is released while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseReleasedEventArgs> MMBReleasedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Right"/> is released while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseReleasedEventArgs> RMBReleasedInside;
-
-        /// <summary>Invoked when any <see cref="MouseButton"/> is released while the mouse is currently outside of the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseReleasedEventArgs> ReleasedOutside;
-
-        private IEnumerable<EventHandler<BaseMouseReleasedEventArgs>> ReleasedEvents
+        public event EventHandler<BaseMouseReleasedEventArgs> ReleasedInside
         {
-            get
-            {
-                yield return ReleasedInside;
-                yield return LMBReleasedInside;
-                yield return MMBReleasedInside;
-                yield return RMBReleasedInside;
-                yield return ReleasedOutside;
-            }
+            add    { _releasedInside += value; RecomputeMonitoringFlags(); }
+            remove { _releasedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Left"/> is released while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseReleasedEventArgs> LMBReleasedInside
+        {
+            add    { _lmbReleasedInside += value; RecomputeMonitoringFlags(); }
+            remove { _lmbReleasedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Middle"/> is released while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseReleasedEventArgs> MMBReleasedInside
+        {
+            add    { _mmbReleasedInside += value; RecomputeMonitoringFlags(); }
+            remove { _mmbReleasedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Right"/> is released while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseReleasedEventArgs> RMBReleasedInside
+        {
+            add    { _rmbReleasedInside += value; RecomputeMonitoringFlags(); }
+            remove { _rmbReleasedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when any <see cref="MouseButton"/> is released while the mouse is currently outside of the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseReleasedEventArgs> ReleasedOutside
+        {
+            add    { _releasedOutside += value; RecomputeMonitoringFlags(); }
+            remove { _releasedOutside -= value; RecomputeMonitoringFlags(); }
         }
         #endregion Released
 
         #region Clicked
         /// <summary>Invoked when any <see cref="MouseButton"/> is clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseClickedEventArgs> ClickedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Left"/> is clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseClickedEventArgs> LMBClickedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Middle"/> is clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseClickedEventArgs> MMBClickedInside;
-        /// <summary>Invoked when <see cref="MouseButton.Right"/> is clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseClickedEventArgs> RMBClickedInside;
-
-        /// <summary>Invoked when any <see cref="MouseButton"/> is clicked while the mouse is currently outside of the <see cref="Owner"/>'s viewport.</summary>
-        public event EventHandler<BaseMouseClickedEventArgs> ClickedOutside;
-
-        private IEnumerable<EventHandler<BaseMouseClickedEventArgs>> ClickedEvents
+        public event EventHandler<BaseMouseClickedEventArgs> ClickedInside
         {
-            get
-            {
-                yield return ClickedInside;
-                yield return LMBClickedInside;
-                yield return MMBClickedInside;
-                yield return RMBClickedInside;
-                yield return ClickedOutside;
-            }
+            add    { _clickedInside += value; RecomputeMonitoringFlags(); }
+            remove { _clickedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Left"/> is clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> LMBClickedInside
+        {
+            add    { _lmbClickedInside += value; RecomputeMonitoringFlags(); }
+            remove { _lmbClickedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Middle"/> is clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> MMBClickedInside
+        {
+            add    { _mmbClickedInside += value; RecomputeMonitoringFlags(); }
+            remove { _mmbClickedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Right"/> is clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> RMBClickedInside
+        {
+            add    { _rmbClickedInside += value; RecomputeMonitoringFlags(); }
+            remove { _rmbClickedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when any <see cref="MouseButton"/> is clicked while the mouse is currently outside of the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> ClickedOutside
+        {
+            add    { _clickedOutside += value; RecomputeMonitoringFlags(); }
+            remove { _clickedOutside -= value; RecomputeMonitoringFlags(); }
         }
         #endregion Clicked
 
         #region Drag
         /// <summary>Invoked when any <see cref="MouseButton"/> is pressed while the mouse is currently inside the <see cref="Owner"/>'s viewport.<br/>
         /// If <see cref="DragStartCondition"/> is <see cref="DragStartCondition.MouseMovedAfterPress"/>, then will also verify that the mouse has moved by at least <see cref="MouseTracker.DragThreshold"/> while pressed before invoking the event.</summary>
-        public event EventHandler<BaseMouseDragStartEventArgs> DragStart;
-
+        public event EventHandler<BaseMouseDragStartEventArgs> DragStart
+        {
+            add    { _dragStart += value; RecomputeMonitoringFlags(); }
+            remove { _dragStart -= value; RecomputeMonitoringFlags(); }
+        }
         /// <summary>Invoked when any <see cref="MouseButton"/> is pressed while the mouse is currently outside the <see cref="Owner"/>'s viewport.<br/>
         /// If <see cref="DragStartCondition"/> is <see cref="DragStartCondition.MouseMovedAfterPress"/>, then will also verify that the mouse has moved by at least <see cref="MouseTracker.DragThreshold"/> while pressed before invoking the event.<para/>
         /// You should probably subscribe to <see cref="DragStart"/> instead.</summary>
-        public event EventHandler<BaseMouseDragStartEventArgs> DragStartOutside;
-
+        public event EventHandler<BaseMouseDragStartEventArgs> DragStartOutside
+        {
+            add    { _dragStartOutside += value; RecomputeMonitoringFlags(); }
+            remove { _dragStartOutside -= value; RecomputeMonitoringFlags(); }
+        }
         /// <summary>Invoked when <see cref="DragStart"/> is already in progress, and then the mouse moves.</summary>
-        public event EventHandler<BaseMouseDraggedEventArgs> Dragged;
-
+        public event EventHandler<BaseMouseDraggedEventArgs> Dragged
+        {
+            add    { _dragged += value; RecomputeMonitoringFlags(); }
+            remove { _dragged -= value; RecomputeMonitoringFlags(); }
+        }
         /// <summary>Invoked when <see cref="DragStart"/> is currently in progress, and then the pressed <see cref="MouseButton"/> is released.</summary>
-        public event EventHandler<BaseMouseDragEndEventArgs> DragEnd;
+        public event EventHandler<BaseMouseDragEndEventArgs> DragEnd
+        {
+            add    { _dragEnd += value; RecomputeMonitoringFlags(); }
+            remove { _dragEnd -= value; RecomputeMonitoringFlags(); }
+        }
         #endregion Drag
-
-        /// <summary>True if at least one event has been subscribed to.<para/>
-        /// If false, the Update method may return early under the assumption that no further processing is needed.</summary>
-        private bool HasSubscribedEvents => IsMonitoringScroll || IsMonitoringMovement || IsMonitoringClicks || IsMonitoringDrag;
-        /// <summary>True if at least one scroll event has been subscribed to</summary>
-        private bool IsMonitoringScroll => Scrolled != null;
-        /// <summary>True if at least one move event has been subscribed to</summary>
-        private bool IsMonitoringMovement => MovedEvents.Any(x => x != null) || IsMonitoringDrag;
-        /// <summary>True if at least one press/release/click event has been subscribed to</summary>
-        private bool IsMonitoringClicks => PressedEvents.Any(x => x != null) || ReleasedEvents.Any(x => x != null) || ClickedEvents.Any(x => x != null);
-        /// <summary>True if at least one drag event has been subscribed to</summary>
-        private bool IsMonitoringDrag => DragStart != null || Dragged != null || DragEnd != null;
         #endregion Events
 
         /// <summary>Should only be invoked via <see cref="MouseTracker.UpdateHandlers"/>></summary>
@@ -229,37 +306,37 @@ namespace MGUI.Shared.Input.Mouse
                 if (CanReceiveInputs)
                 {
                     //  Invoke Scrolled event
-                    if (Tracker.CurrentScrollEvent != null && Scrolled != null && IsInside(Tracker.CurrentScrollEvent.Position, Offset))
+                    if (Tracker.CurrentScrollEvent != null && _isMonitoringScroll && IsInside(Tracker.CurrentScrollEvent.Position, Offset))
                     {
                         if (InvokeEvenIfHandled || !Tracker.CurrentScrollEvent.IsHandled)
                         {
-                            Scrolled.Invoke(this, Tracker.CurrentScrollEvent);
+                            _scrolled.Invoke(this, Tracker.CurrentScrollEvent);
                             if (AlwaysHandlesEvents)
                                 Tracker.CurrentScrollEvent.SetHandledBy(Owner, false);
                         }
                     }
 
                     //  Invoke mouse moved events
-                    if (Tracker.CurrentMoveEvent != null && IsMonitoringMovement)
+                    if (Tracker.CurrentMoveEvent != null && _isMonitoringMovement)
                     {
                         bool WasHovering = IsInside(Tracker.CurrentMoveEvent.PreviousPosition, Offset);
                         bool IsHovering = IsInside(Tracker.CurrentMoveEvent.CurrentPosition, Offset);
 
                         if (IsHovering)
-                            MovedInside?.Invoke(this, Tracker.CurrentMoveEvent);
+                            _movedInside?.Invoke(this, Tracker.CurrentMoveEvent);
                         if (!IsHovering)
-                            MovedOutside?.Invoke(this, Tracker.CurrentMoveEvent);
+                            _movedOutside?.Invoke(this, Tracker.CurrentMoveEvent);
 
                         if (!WasHovering && IsHovering)
-                            Entered?.Invoke(this, Tracker.CurrentMoveEvent);
+                            _entered?.Invoke(this, Tracker.CurrentMoveEvent);
                         if (WasHovering && !IsHovering)
-                            Exited?.Invoke(this, Tracker.CurrentMoveEvent);
+                            _exited?.Invoke(this, Tracker.CurrentMoveEvent);
                     }
 
-                    if (Tracker.HasCurrentButtonEvents && IsMonitoringClicks)
+                    if (Tracker.HasCurrentButtonEvents && _isMonitoringClicks)
                     {
                         //  Invoke mouse pressed events
-                        if (Tracker.HasCurrentButtonPressedEvents && PressedEvents.Any(x => x != null))
+                        if (Tracker.HasCurrentButtonPressedEvents && _isMonitoringPressed)
                         {
                             foreach (MouseButton Button in MouseButtons)
                             {
@@ -269,9 +346,9 @@ namespace MGUI.Shared.Input.Mouse
                                     bool IsPressedInside = IsInside(Args.Position, Offset);
                                     if (IsPressedInside)
                                     {
-                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && PressedInside != null)
+                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && _pressedInside != null)
                                         {
-                                            PressedInside.Invoke(this, Args);
+                                            _pressedInside.Invoke(this, Args);
                                             if (AlwaysHandlesEvents)
                                                 Args.SetHandledBy(Owner, false);
                                         }
@@ -281,25 +358,25 @@ namespace MGUI.Shared.Input.Mouse
                                             switch (Button)
                                             {
                                                 case MouseButton.Left:
-                                                    if (LMBPressedInside != null)
+                                                    if (_lmbPressedInside != null)
                                                     {
-                                                        LMBPressedInside.Invoke(this, Args);
+                                                        _lmbPressedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
                                                     break;
                                                 case MouseButton.Middle:
-                                                    if (MMBPressedInside != null)
+                                                    if (_mmbPressedInside != null)
                                                     {
-                                                        MMBPressedInside.Invoke(this, Args);
+                                                        _mmbPressedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
                                                     break;
                                                 case MouseButton.Right:
-                                                    if (RMBPressedInside != null)
+                                                    if (_rmbPressedInside != null)
                                                     {
-                                                        RMBPressedInside.Invoke(this, Args);
+                                                        _rmbPressedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
@@ -309,9 +386,9 @@ namespace MGUI.Shared.Input.Mouse
                                     }
                                     else
                                     {
-                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && PressedOutside != null)
+                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && _pressedOutside != null)
                                         {
-                                            PressedOutside.Invoke(this, Args);
+                                            _pressedOutside.Invoke(this, Args);
                                             if (AlwaysHandlesEvents)
                                                 Args.SetHandledBy(Owner, false);
                                         }
@@ -321,7 +398,7 @@ namespace MGUI.Shared.Input.Mouse
                         }
 
                         //  Invoke mouse released events
-                        if (Tracker.HasCurrentButtonReleasedEvents && ReleasedEvents.Any(x => x != null))
+                        if (Tracker.HasCurrentButtonReleasedEvents && _isMonitoringReleased)
                         {
                             foreach (MouseButton Button in MouseButtons)
                             {
@@ -331,9 +408,9 @@ namespace MGUI.Shared.Input.Mouse
                                     bool IsReleasedInside = IsInside(Args.Position, Offset);
                                     if (IsReleasedInside)
                                     {
-                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && ReleasedInside != null)
+                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && _releasedInside != null)
                                         {
-                                            ReleasedInside.Invoke(this, Args);
+                                            _releasedInside.Invoke(this, Args);
                                             if (AlwaysHandlesEvents)
                                                 Args.SetHandledBy(Owner, false);
                                         }
@@ -343,25 +420,25 @@ namespace MGUI.Shared.Input.Mouse
                                             switch (Button)
                                             {
                                                 case MouseButton.Left:
-                                                    if (LMBReleasedInside != null)
+                                                    if (_lmbReleasedInside != null)
                                                     {
-                                                        LMBReleasedInside.Invoke(this, Args);
+                                                        _lmbReleasedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
                                                     break;
                                                 case MouseButton.Middle:
-                                                    if (MMBReleasedInside != null)
+                                                    if (_mmbReleasedInside != null)
                                                     {
-                                                        MMBReleasedInside.Invoke(this, Args);
+                                                        _mmbReleasedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
                                                     break;
                                                 case MouseButton.Right:
-                                                    if (RMBReleasedInside != null)
+                                                    if (_rmbReleasedInside != null)
                                                     {
-                                                        RMBReleasedInside.Invoke(this, Args);
+                                                        _rmbReleasedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
@@ -371,9 +448,9 @@ namespace MGUI.Shared.Input.Mouse
                                     }
                                     else
                                     {
-                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && ReleasedOutside != null)
+                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && _releasedOutside != null)
                                         {
-                                            ReleasedOutside.Invoke(this, Args);
+                                            _releasedOutside.Invoke(this, Args);
                                             if (AlwaysHandlesEvents)
                                                 Args.SetHandledBy(Owner, false);
                                         }
@@ -383,7 +460,7 @@ namespace MGUI.Shared.Input.Mouse
                         }
 
                         //  Invoke mouse clicked events
-                        if (Tracker.HasCurrentButtonClickedEvents && ClickedEvents.Any(x => x != null))
+                        if (Tracker.HasCurrentButtonClickedEvents && _isMonitoringClicked)
                         {
                             foreach (MouseButton Button in MouseButtons)
                             {
@@ -393,9 +470,9 @@ namespace MGUI.Shared.Input.Mouse
                                     bool IsClickedInside = IsInside(Args.Position, Offset);
                                     if (IsClickedInside)
                                     {
-                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner) && ClickedInside != null)
+                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner) && _clickedInside != null)
                                         {
-                                            ClickedInside.Invoke(this, Args);
+                                            _clickedInside.Invoke(this, Args);
                                             if (AlwaysHandlesEvents)
                                                 Args.SetHandledBy(Owner, false);
                                         }
@@ -405,25 +482,25 @@ namespace MGUI.Shared.Input.Mouse
                                             switch (Button)
                                             {
                                                 case MouseButton.Left:
-                                                    if (LMBClickedInside != null)
+                                                    if (_lmbClickedInside != null)
                                                     {
-                                                        LMBClickedInside.Invoke(this, Args);
+                                                        _lmbClickedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
                                                     break;
                                                 case MouseButton.Middle:
-                                                    if (MMBClickedInside != null)
+                                                    if (_mmbClickedInside != null)
                                                     {
-                                                        MMBClickedInside.Invoke(this, Args);
+                                                        _mmbClickedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
                                                     break;
                                                 case MouseButton.Right:
-                                                    if (RMBClickedInside != null)
+                                                    if (_rmbClickedInside != null)
                                                     {
-                                                        RMBClickedInside.Invoke(this, Args);
+                                                        _rmbClickedInside.Invoke(this, Args);
                                                         if (AlwaysHandlesEvents)
                                                             Args.SetHandledBy(Owner, false);
                                                     }
@@ -433,9 +510,9 @@ namespace MGUI.Shared.Input.Mouse
                                     }
                                     else
                                     {
-                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner) && ClickedOutside != null)
+                                        if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner) && _clickedOutside != null)
                                         {
-                                            ClickedOutside.Invoke(this, Args);
+                                            _clickedOutside.Invoke(this, Args);
                                             if (AlwaysHandlesEvents)
                                                 Args.SetHandledBy(Owner, false);
                                         }
@@ -449,7 +526,7 @@ namespace MGUI.Shared.Input.Mouse
                 //  Invoke mouse drag events
                 //  Note: Drag events are invoked even if !Owner.CanReceiveMouseInput(), to ensure that every DragStart event is still followed by a corresponding DragEnd event
                 //  (because Owner.CanReceiveMouseInputs conditions could have changed during the drag, which could result in unexpected behavior)
-                if (Tracker.HasCurrentDragEvents && IsMonitoringDrag)
+                if (Tracker.HasCurrentDragEvents && _isMonitoringDrag)
                 {
                     List<DragStartCondition> Conditions = new();
                     if (DragStartCondition == DragStartCondition.Both)
@@ -467,22 +544,22 @@ namespace MGUI.Shared.Input.Mouse
                         foreach (MouseButton Button in MouseButtons)
                         {
                             //  Drag started
-                            if (CanReceiveInputs && (DragStart != null || DragStartOutside != null))
+                            if (CanReceiveInputs && (_dragStart != null || _dragStartOutside != null))
                             {
                                 BaseMouseDragStartEventArgs DragStartPressed = Tracker.CurrentDragStartEvents[DragStartCondition.MousePressed][Button];
                                 if (DragStartPressed != null && Condition == DragStartCondition.MousePressed && (InvokeEvenIfHandled || !DragStartPressed.IsHandled || (InvokeIfHandledBySelf && DragStartPressed.HandledBy == Owner)))
                                 {
                                     bool IsMouseInsideViewport = IsInside(DragStartPressed.Position, Offset);
 
-                                    if (IsMouseInsideViewport && DragStart != null)
+                                    if (IsMouseInsideViewport && _dragStart != null)
                                     {
-                                        DragStart.Invoke(this, DragStartPressed);
+                                        _dragStart.Invoke(this, DragStartPressed);
                                         if (AlwaysHandlesEvents)
                                             DragStartPressed.SetHandledBy(Owner, false);
                                     }
-                                    else if (!IsMouseInsideViewport && DragStartOutside != null)
+                                    else if (!IsMouseInsideViewport && _dragStartOutside != null)
                                     {
-                                        DragStartOutside.Invoke(this, DragStartPressed);
+                                        _dragStartOutside.Invoke(this, DragStartPressed);
                                         if (AlwaysHandlesEvents)
                                             DragStartPressed.SetHandledBy(Owner, false);
                                     }
@@ -493,15 +570,15 @@ namespace MGUI.Shared.Input.Mouse
                                 {
                                     bool IsMouseInsideViewport = IsInside(DragStartMovedAfterPress.Position, Offset);
 
-                                    if (IsMouseInsideViewport && DragStart != null)
+                                    if (IsMouseInsideViewport && _dragStart != null)
                                     {
-                                        DragStart.Invoke(this, DragStartMovedAfterPress);
+                                        _dragStart.Invoke(this, DragStartMovedAfterPress);
                                         if (AlwaysHandlesEvents)
                                             DragStartMovedAfterPress.SetHandledBy(Owner, false);
                                     }
-                                    else if (!IsMouseInsideViewport && DragStartOutside != null)
+                                    else if (!IsMouseInsideViewport && _dragStartOutside != null)
                                     {
-                                        DragStartOutside.Invoke(this, DragStartMovedAfterPress);
+                                        _dragStartOutside.Invoke(this, DragStartMovedAfterPress);
                                         if (AlwaysHandlesEvents)
                                             DragStartMovedAfterPress.SetHandledBy(Owner, false);
                                     }
@@ -510,20 +587,20 @@ namespace MGUI.Shared.Input.Mouse
 
                             //  Dragged
                             BaseMouseDraggedEventArgs DraggedArgs = Tracker.CurrentDraggedEvents[Condition][Button];
-                            if (DraggedArgs != null && Dragged != null && (IsInside(DraggedArgs.StartPosition, Offset) || DraggedArgs.DragStartArgs.HandledBy == Owner)
+                            if (DraggedArgs != null && _dragged != null && (IsInside(DraggedArgs.StartPosition, Offset) || DraggedArgs.DragStartArgs.HandledBy == Owner)
                                 && (InvokeEvenIfHandled || !DraggedArgs.DragStartArgs.IsHandled || DraggedArgs.DragStartArgs.HandledBy == Owner))
                             {
-                                Dragged.Invoke(this, DraggedArgs);
+                                _dragged.Invoke(this, DraggedArgs);
                                 if (AlwaysHandlesEvents)
                                     DraggedArgs.SetHandled(Owner, false);
                             }
 
                             //  Drag ended
                             BaseMouseDragEndEventArgs DragEndArgs = Tracker.CurrentDragEndEvents[Condition][Button];
-                            if (DragEndArgs != null && DragEnd != null && (IsInside(DragEndArgs.StartPosition, Offset) || DragEndArgs.DragStartArgs.HandledBy == Owner)
+                            if (DragEndArgs != null && _dragEnd != null && (IsInside(DragEndArgs.StartPosition, Offset) || DragEndArgs.DragStartArgs.HandledBy == Owner)
                                 && (InvokeEvenIfHandled || !DragEndArgs.DragStartArgs.IsHandled || DragEndArgs.DragStartArgs.HandledBy == Owner))
                             {
-                                DragEnd.Invoke(this, DragEndArgs);
+                                _dragEnd.Invoke(this, DragEndArgs);
                                 if (AlwaysHandlesEvents)
                                     DragEndArgs.SetHandled(Owner, false);
                             }
