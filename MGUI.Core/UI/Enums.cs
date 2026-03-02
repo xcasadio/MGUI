@@ -13,6 +13,7 @@ namespace MGUI.Core.UI
 
         //  Containers
         StackPanel,
+        VirtualizingStackPanel,
         DockPanel,
         Grid,
         UniformGrid,
