@@ -194,9 +194,10 @@ namespace MGUI.Core.UI
                         }
                     }
 
-                    // When virtualizing, update the VSP item count after the InternalItems collection is assigned
+                    // When virtualizing, update the VSP item count.
+                    // _logicalItemsList takes precedence over InternalItems (InternalItems is null in the recycling path).
                     if (IsVirtualizing && _virtualizingPanel != null)
-                        _virtualizingPanel.TotalItemCount = InternalItems?.Count ?? 0;
+                        _virtualizingPanel.TotalItemCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
 
                     ClearSelection();
                     RefreshRowBackgrounds();
@@ -222,7 +223,7 @@ namespace MGUI.Core.UI
             {
                 // When virtualizing, only keep the VSP total count in sync; the VSP manages its own children
                 if (_virtualizingPanel != null)
-                    _virtualizingPanel.TotalItemCount = InternalItems?.Count ?? 0;
+                    _virtualizingPanel.TotalItemCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
 
                 HashSet<MGListBoxItem<TItemType>> virtualRemoved = new();
                 if (e.Action is NotifyCollectionChangedAction.Reset)
@@ -380,6 +381,9 @@ namespace MGUI.Core.UI
                         bool wasVirtualizing = IsVirtualizing;
                         IsVirtualizing = false;
                         InternalItems = null;
+                        _logicalItemsList = null;
+                        _realizedItems.Clear();
+                        _contentPresToItem.Clear();
                         if (wasVirtualizing && ScrollViewer != null)
                         {
                             using (ScrollViewer.AllowChangingContentTemporarily())
@@ -393,22 +397,31 @@ namespace MGUI.Core.UI
                         // Set flag BEFORE InternalItems so InternalItems.set sees the correct mode
                         IsVirtualizing = newVirtualize;
 
-                        IEnumerable<MGListBoxItem<TItemType>> Values = ItemsSource.Select((x, Index) => new MGListBoxItem<TItemType>(this, x));
-                        InternalItems = new ObservableCollection<MGListBoxItem<TItemType>>(Values);
-
-                        if (newVirtualize && ScrollViewer != null)
+                        if (newVirtualize)
                         {
+                            // Virtualised mode: store only the raw data list, never allocate per-item wrappers up-front
+                            _logicalItemsList = ItemsSource as IList<TItemType> ?? ItemsSource.ToList();
+                            _realizedItems.Clear();
+                            _contentPresToItem.Clear();
+                            InternalItems = null;   // VSP manages realized elements; InternalItems stays null
                             ConfigureVirtualizingPanel();
-                            if (!wasVirtualizing)
+                            if (ScrollViewer != null && !wasVirtualizing)
                             {
                                 using (ScrollViewer.AllowChangingContentTemporarily())
                                     ScrollViewer.SetContent(_virtualizingPanel);
                             }
                         }
-                        else if (!newVirtualize && wasVirtualizing && ScrollViewer != null)
+                        else
                         {
-                            using (ScrollViewer.AllowChangingContentTemporarily())
-                                ScrollViewer.SetContent(ItemsPanel);
+                            _logicalItemsList = null;
+                            IEnumerable<MGListBoxItem<TItemType>> Values = ItemsSource.Select((x, Index) =>
+                                new MGListBoxItem<TItemType>(this, x) { LogicalIndex = Index });
+                            InternalItems = new ObservableCollection<MGListBoxItem<TItemType>>(Values);
+                            if (wasVirtualizing && ScrollViewer != null)
+                            {
+                                using (ScrollViewer.AllowChangingContentTemporarily())
+                                    ScrollViewer.SetContent(ItemsPanel);
+                            }
                         }
                     }
 
@@ -588,16 +601,12 @@ namespace MGUI.Core.UI
                     foreach (MGListBoxItem<TItemType> Item in SelectedItems)
                         Item.ContentPresenter.IsSelected = true;
 
-                    // Maintain index-based selection set in sync
+                    // Maintain index-based selection set in sync via LogicalIndex (works in both normal and virtual modes)
                     _selectedIndices.Clear();
-                    if (InternalItems != null)
+                    foreach (MGListBoxItem<TItemType> item in SelectedItems)
                     {
-                        foreach (MGListBoxItem<TItemType> item in SelectedItems)
-                        {
-                            int idx = InternalItems.IndexOf(item);
-                            if (idx >= 0)
-                                _selectedIndices.Add(idx);
-                        }
+                        if (item.LogicalIndex >= 0)
+                            _selectedIndices.Add(item.LogicalIndex);
                     }
 
                     NPC(nameof(SelectedItems));
@@ -626,13 +635,46 @@ namespace MGUI.Core.UI
                 return;
 
             //  Find ListBoxItem that wraps the Item data
-            foreach (MGListBoxItem<TItemType> LBI in ListBoxItems)
+            if (IsVirtualizing && _logicalItemsList != null)
             {
-                if (EqualityComparer.Equals(LBI.Data, Item))
+                // In virtual mode InternalItems is null — scan the raw data list directly
+                for (int i = 0; i < _logicalItemsList.Count; i++)
                 {
-                    //  Select it
-                    SelectedItems = new List<MGListBoxItem<TItemType>>() { LBI }.AsReadOnly();
-                    return;
+                    if (EqualityComparer.Equals(_logicalItemsList[i], Item))
+                    {
+                        if (_realizedItems.TryGetValue(i, out MGListBoxItem<TItemType> realized))
+                        {
+                            // Item is currently visible — select through normal path so all events fire
+                            SelectedItems = new List<MGListBoxItem<TItemType>>() { realized }.AsReadOnly();
+                        }
+                        else
+                        {
+                            // Item is scrolled out of view — track via index; visual applied when realized
+                            foreach (var kvp in _realizedItems)
+                                kvp.Value.ContentPresenter.IsSelected = false;
+                            _selectedIndices.Clear();
+                            _selectedIndices.Add(i);
+                            _SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
+                            NPC(nameof(SelectedItems));
+                            NPC(nameof(SelectedValue));
+                            NPC(nameof(SelectedDataItems));
+                            NPC(nameof(SelectedIndices));
+                            SelectionChanged?.Invoke(this, _SelectedItems);
+                        }
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                foreach (MGListBoxItem<TItemType> LBI in ListBoxItems ?? Enumerable.Empty<MGListBoxItem<TItemType>>())
+                {
+                    if (EqualityComparer.Equals(LBI.Data, Item))
+                    {
+                        //  Select it
+                        SelectedItems = new List<MGListBoxItem<TItemType>>() { LBI }.AsReadOnly();
+                        return;
+                    }
                 }
             }
 
@@ -687,7 +729,9 @@ namespace MGUI.Core.UI
         /// <param name="screenPos">Mouse position in scaled screen space.</param>
         private MGListBoxItem<TItemType> GetItemAtMousePosition(Microsoft.Xna.Framework.Point screenPos)
         {
-            if (InternalItems == null || InternalItems.Count == 0)
+            // Choose total item count from the appropriate source for the current mode
+            int itemCount = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (InternalItems?.Count ?? 0);
+            if (itemCount == 0)
                 return null;
 
             // Convert screen → unscaled screen once
@@ -701,19 +745,15 @@ namespace MGUI.Core.UI
                 return null;
 
             // Fast path: O(1) for uniform-height items
-            // localY = position within the panel's content area (accounting for scroll)
-            int itemCount = InternalItems.Count;
-
-            // Use UniformItemHeight from VSP directly, otherwise read from first two items
             int uniformH = 0;
             if (IsVirtualizing && _virtualizingPanel != null && _virtualizingPanel.UniformItemHeight > 0)
             {
                 uniformH = _virtualizingPanel.UniformItemHeight;
             }
-            else if (itemCount >= 1)
+            else if (!IsVirtualizing && InternalItems?.Count >= 1)
             {
                 int firstItemH = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
-                if (itemCount < 2 || InternalItems[1].ContentPresenter.AllocatedBounds.Height == firstItemH)
+                if (InternalItems.Count < 2 || InternalItems[1].ContentPresenter.AllocatedBounds.Height == firstItemH)
                     uniformH = firstItemH;
             }
 
@@ -723,22 +763,32 @@ namespace MGUI.Core.UI
                 int index = (int)(localY / uniformH);
                 if (index >= 0 && index < itemCount)
                 {
+                    if (IsVirtualizing)
+                        return _realizedItems.GetValueOrDefault(index);
                     var candidate = InternalItems[index].ContentPresenter;
                     if (!candidate.ActualLayoutBounds.IsEmpty && candidate.ActualLayoutBounds.ContainsInclusive(unscaledPos))
-                        return InternalItems[index];
-                    // For virtualized mode, trust the mathematical index even if ContentPresenter hasn't been updated yet
-                    if (IsVirtualizing)
                         return InternalItems[index];
                 }
             }
 
-            // Fallback: O(n) scan using ActualLayoutBounds (fast rect check, no per-item coordinate conversion)
-            // For virtualized mode this only checks realized items (non-empty ActualLayoutBounds)
-            for (int i = 0; i < itemCount; i++)
+            // Fallback: O(n) scan using ActualLayoutBounds
+            if (IsVirtualizing)
             {
-                Rectangle bounds = InternalItems[i].ContentPresenter.ActualLayoutBounds;
-                if (!bounds.IsEmpty && bounds.ContainsInclusive(unscaledPos))
-                    return InternalItems[i];
+                foreach (var kvp in _realizedItems)
+                {
+                    Rectangle bounds = kvp.Value.ContentPresenter.ActualLayoutBounds;
+                    if (!bounds.IsEmpty && bounds.ContainsInclusive(unscaledPos))
+                        return kvp.Value;
+                }
+            }
+            else if (InternalItems != null)
+            {
+                for (int i = 0; i < InternalItems.Count; i++)
+                {
+                    Rectangle bounds = InternalItems[i].ContentPresenter.ActualLayoutBounds;
+                    if (!bounds.IsEmpty && bounds.ContainsInclusive(unscaledPos))
+                        return InternalItems[i];
+                }
             }
             return null;
         }
@@ -777,6 +827,17 @@ namespace MGUI.Core.UI
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private VirtualizingStackPanel _virtualizingPanel;
 
+        /// <summary>Raw data list used in virtualised mode — allows O(1) index access
+        /// without allocating <see cref="MGListBoxItem{TItemType}"/> wrappers per data entry.</summary>
+        private IList<TItemType> _logicalItemsList;
+
+        /// <summary>Currently-realised items in virtualised mode, keyed by their logical (data) index.</summary>
+        private readonly Dictionary<int, MGListBoxItem<TItemType>> _realizedItems = new();
+
+        /// <summary>Reverse-maps a <see cref="MGBorder"/> ContentPresenter back to its
+        /// owning <see cref="MGListBoxItem{TItemType}"/> so the recycle pool can reuse wrappers.</summary>
+        private readonly Dictionary<MGBorder, MGListBoxItem<TItemType>> _contentPresToItem = new();
+
         private bool ShouldVirtualize(int itemCount) =>
             VirtualizationMode == ListBoxVirtualizationMode.Always ||
             (VirtualizationMode == ListBoxVirtualizationMode.Auto && itemCount >= VirtualizationThreshold);
@@ -791,18 +852,43 @@ namespace MGUI.Core.UI
                 _virtualizingPanel.BorderThickness = DefaultItemBorderThickness;
                 _virtualizingPanel.BorderBrush = DefaultItemBorderBrush;
             }
-            _virtualizingPanel.TotalItemCount = InternalItems?.Count ?? 0;
+            int totalCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
+            _virtualizingPanel.TotalItemCount = totalCount;
             _virtualizingPanel.UniformItemHeight = EstimateItemHeight();
             _virtualizingPanel.ItemGenerator = (idx) =>
             {
-                var cp = InternalItems[idx].ContentPresenter;
-                // Restore correct selection state when an item is realized
-                cp.IsSelected = _selectedIndices.Contains(idx);
-                return cp;
+                MGListBoxItem<TItemType> item;
+
+                // Try to reuse a recycled wrapper from the pool
+                if (_logicalItemsList != null &&
+                    _virtualizingPanel.TryDequeueRecycledElement(out MGElement recycledEl) &&
+                    recycledEl is MGBorder recycledCp &&
+                    _contentPresToItem.TryGetValue(recycledCp, out MGListBoxItem<TItemType> recycledItem))
+                {
+                    // Rebind the recycled wrapper to the new data index
+                    recycledItem.UpdateData(idx, _logicalItemsList[idx]);
+                    item = recycledItem;
+                }
+                else if (_logicalItemsList != null)
+                {
+                    // Allocate a new wrapper (pool was empty or not yet populated)
+                    item = new MGListBoxItem<TItemType>(this, _logicalItemsList[idx]) { LogicalIndex = idx };
+                    _contentPresToItem[item.ContentPresenter] = item;
+                }
+                else
+                {
+                    // Non-pooled fallback (InternalItems path, should not occur when fully virtualizing)
+                    item = InternalItems[idx];
+                }
+
+                _realizedItems[idx] = item;
+                item.ContentPresenter.IsSelected = _selectedIndices.Contains(idx);
+                return item.ContentPresenter;
             };
             _virtualizingPanel.ItemRecycler = (idx, element) =>
             {
-                // Clear any spoof states so they are fresh for the next occupant
+                _realizedItems.Remove(idx);
+                // Clear transient visual states so the recycled element is clean for its next use
                 if (element is MGBorder cp)
                 {
                     cp.SpoofIsHoveredWhileDrawingBackground = false;
@@ -1064,11 +1150,12 @@ namespace MGUI.Core.UI
 
                         void SelectContiguous()
                         {
-                            if (!IsShiftDown || SelectionSourceItem == null || !InternalItems.Contains(SelectionSourceItem))
+                            if (!IsShiftDown || SelectionSourceItem == null ||
+                                (InternalItems != null && !InternalItems.Contains(SelectionSourceItem)))
                             {
                                 SelectSingle();
                             }
-                            else
+                            else if (InternalItems != null)
                             {
                                 int SourceIndex = InternalItems.IndexOf(SelectionSourceItem);
                                 int PressedIndex = InternalItems.IndexOf(ReleasedItem);
@@ -1077,6 +1164,12 @@ namespace MGUI.Core.UI
                                 int EndIndex = Math.Max(SourceIndex, PressedIndex);
 
                                 SelectedItems = InternalItems.Skip(StartIndex).Take(EndIndex - StartIndex + 1).ToList().AsReadOnly();
+                            }
+                            else
+                            {
+                                // Virtual mode: contiguous selection degrades to single selection
+                                // (full range would span unrealized items that have no wrapper instances)
+                                SelectSingle();
                             }
                         }
 
@@ -1189,7 +1282,12 @@ namespace MGUI.Core.UI
 
         /// <summary>The data object used as a parameter to generate the content of this item.<para/>
         /// See also: <see cref="MGListBox{TItemType}.ItemTemplate"/></summary>
-        public TItemType Data { get; }
+        public TItemType Data { get; private set; }
+
+        /// <summary>The zero-based index of this item in the logical data source (<see cref="MGListBox{TItemType}.ItemsSource"/>).<para/>
+        /// In non-virtualized mode this equals the item's position in <see cref="MGListBox{TItemType}.ListBoxItems"/>.<br/>
+        /// In virtualized mode this is updated each time the item is recycled and rebound to a different data entry.</summary>
+        public int LogicalIndex { get; internal set; } = -1;
 
         /// <summary>The wrapper element that hosts this item's content</summary>
         public MGBorder ContentPresenter { get; }
@@ -1235,6 +1333,16 @@ namespace MGUI.Core.UI
 
             ListBox.ItemContainerStyleChanged += (sender, e) => { ListBox.ItemContainerStyle?.Invoke(ContentPresenter); };
             ListBox.ItemContainerStyle?.Invoke(ContentPresenter);
+        }
+
+        /// <summary>Rebinds this item to a different data entry — used when recycling items in a <see cref="VirtualizingStackPanel"/>.<para/>
+        /// Removes old data bindings, updates <see cref="Data"/> and <see cref="LogicalIndex"/>, regenerates <see cref="Content"/>.</summary>
+        internal void UpdateData(int logicalIndex, TItemType newData)
+        {
+            Content?.RemoveDataBindings(true);
+            Data = newData;
+            LogicalIndex = logicalIndex;
+            Content = ListBox.ItemTemplate?.Invoke(newData);
         }
     }
 }
