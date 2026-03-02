@@ -6,7 +6,6 @@ using MGUI.Shared.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace MGUI.Core.UI.Containers
 {
@@ -107,6 +106,11 @@ namespace MGUI.Core.UI.Containers
         /// <summary>The last (highest) logical index that is currently realized, or -1 if nothing is realized.</summary>
         public int LastRealizedIndex { get; private set; } = -1;
 
+        // Cached visible range from the last UpdateContentLayout call.
+        // When the range hasn't changed we skip all realize/recycle work.
+        private int _cachedFirstNeeded = -1;
+        private int _cachedLastNeeded  = -1;
+
         private MGScrollViewer _parentScrollViewer;
 
         private void EnsureScrollViewerAttached()
@@ -122,11 +126,15 @@ namespace MGUI.Core.UI.Containers
 
         private void RecycleAllItems()
         {
-            var indices = _realizedItems.Keys.ToList();
+            // Collect indices first to avoid modifying the dictionary during iteration
+            int[] indices = new int[_realizedItems.Count];
+            _realizedItems.Keys.CopyTo(indices, 0);
             foreach (int idx in indices)
                 RecycleItem(idx);
-            FirstRealizedIndex = -1;
-            LastRealizedIndex = -1;
+            FirstRealizedIndex    = -1;
+            LastRealizedIndex     = -1;
+            _cachedFirstNeeded    = -1;
+            _cachedLastNeeded     = -1;
         }
 
         private void RealizeItem(int index)
@@ -198,23 +206,40 @@ namespace MGUI.Core.UI.Containers
             int lastNeeded  = Math.Min(TotalItemCount - 1,
                                        (int)((scrollOffset + viewportHeight - 1) / (double)UniformItemHeight) + BufferCount);
 
-            // Recycle items that are no longer in the needed range
-            var toRecycle = _realizedItems.Keys.Where(k => k < firstNeeded || k > lastNeeded).ToList();
-            foreach (int idx in toRecycle)
-                RecycleItem(idx);
+            bool rangeChanged = firstNeeded != _cachedFirstNeeded || lastNeeded != _cachedLastNeeded;
 
-            // Realize items newly in range
-            for (int i = firstNeeded; i <= lastNeeded; i++)
+            if (rangeChanged)
             {
-                if (!_realizedItems.ContainsKey(i))
-                    RealizeItem(i);
+                _cachedFirstNeeded = firstNeeded;
+                _cachedLastNeeded  = lastNeeded;
+
+                // Recycle items that fell outside the new range (no LINQ, avoids allocations)
+                if (_realizedItems.Count > 0)
+                {
+                    int[] toRecycle = new int[_realizedItems.Count];
+                    int count = 0;
+                    foreach (int k in _realizedItems.Keys)
+                    {
+                        if (k < firstNeeded || k > lastNeeded)
+                            toRecycle[count++] = k;
+                    }
+                    for (int i = 0; i < count; i++)
+                        RecycleItem(toRecycle[i]);
+                }
+
+                // Realize items newly in range
+                for (int i = firstNeeded; i <= lastNeeded; i++)
+                {
+                    if (!_realizedItems.ContainsKey(i))
+                        RealizeItem(i);
+                }
+
+                // Update tracking indices incrementally
+                FirstRealizedIndex = _realizedItems.Count > 0 ? firstNeeded : -1;
+                LastRealizedIndex  = _realizedItems.Count > 0 ? lastNeeded  : -1;
             }
 
-            // Update tracking
-            FirstRealizedIndex = _realizedItems.Count > 0 ? _realizedItems.Keys.Min() : -1;
-            LastRealizedIndex  = _realizedItems.Count > 0 ? _realizedItems.Keys.Max() : -1;
-
-            // Position each realized item at its correct absolute layout location
+            // Always reposition realized items (bounds may have changed even when the range did not)
             foreach (var (idx, element) in _realizedItems)
             {
                 int y = bounds.Top + idx * UniformItemHeight;
