@@ -1491,13 +1491,20 @@ namespace MGUI.Core.UI
         protected internal MGElement GetTopmostHoveredElement(ElementUpdateArgs UA)
         {
             MGElement Result = null;
-            ComputeTopmostHoveredElement(UA.IsEnabled, UA.IsHitTestVisible, true, ref Result);
+            // Convert mouse position to unscaled screen space once, then pass down the tree
+            Vector2 unscaledMousePos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen,
+                InputTracker.Mouse.CurrentPosition.ToVector2());
+            ComputeTopmostHoveredElement(UA.IsEnabled, UA.IsHitTestVisible, true, unscaledMousePos, ref Result);
             return Result;
         }
 
-        private void ComputeTopmostHoveredElement(bool IsParentEnabled, bool IsParentHitTestVisible, bool CanParentReceiveMouseInput, ref MGElement Result)
+        private void ComputeTopmostHoveredElement(bool IsParentEnabled, bool IsParentHitTestVisible, bool CanParentReceiveMouseInput, Vector2 unscaledMousePos, ref MGElement Result)
         {
             if (Visibility != Visibility.Visible)
+                return;
+
+            // Skip elements that were clipped / not rendered
+            if (RecentDrawWasClipped)
                 return;
 
             bool ComputedIsEnabled = IsParentEnabled && IsEnabled;
@@ -1507,22 +1514,32 @@ namespace MGUI.Core.UI
                 && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
             bool CanReceiveMouseInput = BaseCanReceiveInput && CanParentReceiveMouseInput;
 
+            // Components can overflow parent bounds — always recurse into them
             foreach (MGElement Component in _componentsDrawBeforeBackground)
-                Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
+                Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
             foreach (MGElement Component in _componentsDrawBeforeSelf)
-                Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
+                Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
 
-            if (CanReceiveMouseInput && ComputedIsHitTestVisible && !SelfOrParentWindow.HasModalWindow && IsHovered)
+            // Early-out: if mouse is outside this element's bounds, skip self-hover and visual children
+            // (visual tree children are always clipped to the parent's content area)
+            bool mouseInBounds = ActualLayoutBounds.ContainsInclusive(unscaledMousePos);
+
+            if (mouseInBounds && CanReceiveMouseInput && ComputedIsHitTestVisible && !SelfOrParentWindow.HasModalWindow && IsHovered)
             {
                 Result = this;
             }
 
             foreach (MGElement Component in _componentsDrawBeforeContents)
-                Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
-            foreach (MGElement Child in GetVisualTreeChildren(false, true))
-                Child.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
+                Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
+
+            if (mouseInBounds)
+            {
+                foreach (MGElement Child in GetVisualTreeChildren(false, true))
+                    Child.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
+            }
+
             foreach (MGElement Component in _componentsDrawAfterContents)
-                Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
+                Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
         }
 
         public void Update(ElementUpdateArgs UA)
