@@ -864,6 +864,16 @@ namespace MGUI.Core.UI
         protected bool _CanReceiveKeyboardInput { get; private set; }
 		bool IKeyboardHandlerHost.CanReceiveKeyboardInput() => CanHandleKeyboardInput && _CanReceiveKeyboardInput;
 
+        // ---- Dirty flags for targeted input-state recomputation (Task 14) ---------
+        // Set to true when IsEnabled, IsHitTestVisible, Visibility, or RecentDrawWasClipped changes
+        // so the next Update() call knows it must recompute _CanReceiveMouseInput.
+        private bool _inputStateDirty = true;
+        // Cached values from the last recomputation so we can detect unchanged frames.
+        private bool _cachedComputedEnabled;
+        private bool _cachedComputedHTVisible;
+        private bool _cachedParentCanReceiveMouse = true;
+        // ---- End dirty-flag fields ------------------------------------------------
+
 		bool IKeyboardHandlerHost.HasKeyboardFocus() => GetDesktop().FocusedKeyboardHandler == this;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -893,6 +903,7 @@ namespace MGUI.Core.UI
                 if (IsHitTestVisible != value)
                 {
                     _IsHitTestVisible = value;
+                    _inputStateDirty = true;
                     NPC(nameof(IsHitTestVisible));
                 }
             }
@@ -956,6 +967,7 @@ namespace MGUI.Core.UI
                 if (_IsEnabled != value)
                 {
                     _IsEnabled = value;
+                    _inputStateDirty = true;
                     NPC(nameof(IsEnabled));
                 }
             }
@@ -1061,6 +1073,7 @@ namespace MGUI.Core.UI
                 {
                     Visibility Previous = Visibility;
                     _Visibility = value;
+                    _inputStateDirty = true;
                     if (Previous == Visibility.Collapsed || Visibility == Visibility.Collapsed)
                         LayoutChanged(this, true);
                     NPC(nameof(Visibility));
@@ -1571,6 +1584,7 @@ namespace MGUI.Core.UI
             {
                 _CanReceiveMouseInput = false;
                 _CanReceiveKeyboardInput = false;
+                _inputStateDirty = true;  // ensure recompute when the element re-enters viewport
                 HoverStartTime = null;
                 VisualState = new(UI.PrimaryVisualState.Normal, UI.SecondaryVisualState.None);
                 return;
@@ -1583,6 +1597,7 @@ namespace MGUI.Core.UI
             {
                 _CanReceiveMouseInput = false;
                 _CanReceiveKeyboardInput = false;
+                _inputStateDirty = true;  // ensure recompute when the element re-enters viewport
                 HoverStartTime = null;
                 VisualState = new(PrimaryVisualState.Normal, SecondaryVisualState.None);
                 return;
@@ -1608,7 +1623,9 @@ namespace MGUI.Core.UI
 
             OnBeginUpdate?.Invoke(this, UpdateEventArgs);
 
-            GetBorderBrushes().ToList().ForEach(x => x?.Update(UA.BA));
+            // Fix (Task 14): iterate directly instead of .ToList().ForEach() which allocates a temporary List<>
+            foreach (IBorderBrush brush in GetBorderBrushes())
+                brush?.Update(UA.BA);
 
             if (ComputedIsHitTestVisible && Visibility == Visibility.Visible &&
                 (newSVS == SecondaryVisualState.Hovered || (IsHovered && newSVS == SecondaryVisualState.Pressed)))
@@ -1633,10 +1650,24 @@ namespace MGUI.Core.UI
                 }
 			}
 
-            bool BaseCanReceiveInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible
-            	&& (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
-            _CanReceiveMouseInput = BaseCanReceiveInput && (Parent?._CanReceiveMouseInput ?? true);
-            _CanReceiveKeyboardInput = BaseCanReceiveInput && (Parent?._CanReceiveKeyboardInput ?? true);
+            // Optimisation (Task 14): skip _CanReceiveMouseInput recomputation when nothing that affects it changed.
+            // The inputs are: Visibility, ComputedIsEnabled, ComputedIsHitTestVisible, RecentDrawWasClipped (tracked
+            // by _inputStateDirty), and the parent's _CanReceiveMouseInput (checked explicitly each frame).
+            bool parentCanMouse = Parent?._CanReceiveMouseInput ?? true;
+            if (_inputStateDirty ||
+                ComputedIsEnabled != _cachedComputedEnabled ||
+                ComputedIsHitTestVisible != _cachedComputedHTVisible ||
+                parentCanMouse != _cachedParentCanReceiveMouse)
+            {
+                _inputStateDirty = false;
+                bool BaseCanReceiveInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible
+                    && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
+                _CanReceiveMouseInput    = BaseCanReceiveInput && parentCanMouse;
+                _CanReceiveKeyboardInput = BaseCanReceiveInput && (Parent?._CanReceiveKeyboardInput ?? true);
+                _cachedComputedEnabled       = ComputedIsEnabled;
+                _cachedComputedHTVisible     = ComputedIsHitTestVisible;
+                _cachedParentCanReceiveMouse = parentCanMouse;
+            }
 
             OnBeginUpdateContents?.Invoke(this, UpdateEventArgs);
 
@@ -1736,6 +1767,7 @@ namespace MGUI.Core.UI
                 if (_RecentDrawWasClipped != value)
                 {
                     _RecentDrawWasClipped = value;
+                    _inputStateDirty = true;
                     NPC(nameof(RecentDrawWasClipped));
                 }
             }
