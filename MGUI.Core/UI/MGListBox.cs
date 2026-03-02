@@ -562,6 +562,52 @@ namespace MGUI.Core.UI
         public MGListBoxItem<TItemType> ReleasedItem { get; private set; }
         #endregion Selection
 
+        /// <summary>Returns the <see cref="MGListBoxItem{TItemType}"/> at the given mouse position.<para/>
+        /// First tries an O(1) mathematical lookup for uniform-height items, then falls back to an O(n) scan using <see cref="MGElement.ActualLayoutBounds"/>.<br/>
+        /// This avoids the per-item <see cref="MGElement.IsHovered"/> check (which allocates a coordinate conversion per item).</summary>
+        /// <param name="screenPos">Mouse position in scaled screen space.</param>
+        private MGListBoxItem<TItemType> GetItemAtMousePosition(Microsoft.Xna.Framework.Point screenPos)
+        {
+            if (InternalItems == null || InternalItems.Count == 0)
+                return null;
+
+            // Convert screen → unscaled screen once
+            Vector2 unscaledPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPos.ToVector2());
+
+            // Quick reject: mouse must be within the ItemsPanel's visible area
+            if (ItemsPanel.ActualLayoutBounds.IsEmpty || !ItemsPanel.ActualLayoutBounds.ContainsInclusive(unscaledPos))
+                return null;
+
+            // Fast path: O(1) for uniform-height items
+            // localY = position within the ItemsPanel's content area (accounting for scroll)
+            int itemCount = InternalItems.Count;
+            if (itemCount >= 1)
+            {
+                int firstItemH = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
+                if (firstItemH > 0 && (itemCount < 2 || InternalItems[1].ContentPresenter.AllocatedBounds.Height == firstItemH))
+                {
+                    // Uniform height: compute index mathematically
+                    float localY = unscaledPos.Y + ItemsPanel.Origin.Y - ItemsPanel.AlignedContentBounds.Y;
+                    int index = (int)(localY / firstItemH);
+                    if (index >= 0 && index < itemCount)
+                    {
+                        var candidate = InternalItems[index].ContentPresenter;
+                        if (!candidate.ActualLayoutBounds.IsEmpty && candidate.ActualLayoutBounds.ContainsInclusive(unscaledPos))
+                            return InternalItems[index];
+                    }
+                }
+            }
+
+            // Fallback: O(n) scan using ActualLayoutBounds (fast rect check, no per-item coordinate conversion)
+            for (int i = 0; i < itemCount; i++)
+            {
+                Rectangle bounds = InternalItems[i].ContentPresenter.ActualLayoutBounds;
+                if (!bounds.IsEmpty && bounds.ContainsInclusive(unscaledPos))
+                    return InternalItems[i];
+            }
+            return null;
+        }
+
         public MGScrollViewer ScrollViewer { get; }
         public MGStackPanel ItemsPanel { get; }
 
@@ -752,7 +798,7 @@ namespace MGUI.Core.UI
 
                 MouseHandler.LMBPressedInside += (sender, e) =>
                 {
-                    PressedItem = InternalItems?.FirstOrDefault(x => x.ContentPresenter.IsHovered);
+                    PressedItem = GetItemAtMousePosition(e.Position);
                 };
 
                 MouseHandler.ReleasedOutside += (sender, e) =>
@@ -764,7 +810,7 @@ namespace MGUI.Core.UI
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {
                     IsPressedItemInvalidationPending = true;
-                    ReleasedItem = InternalItems?.FirstOrDefault(x => x.ContentPresenter.IsHovered);
+                    ReleasedItem = GetItemAtMousePosition(e.Position);
 
                     if (ReleasedItem != null)
                     {
