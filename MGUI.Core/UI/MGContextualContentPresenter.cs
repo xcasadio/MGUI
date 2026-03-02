@@ -123,22 +123,23 @@ namespace MGUI.Core.UI
             }
         }
 
-        public override IEnumerable<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
+        public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
         {
+            List<MGElement> result = new(3);
             if (IncludeInactive)
             {
                 if (TrueContent != null && TrueContent != CurrentContent)
-                    yield return TrueContent;
+                    result.Add(TrueContent);
                 if (FalseContent != null && FalseContent != CurrentContent)
-                    yield return FalseContent;
+                    result.Add(FalseContent);
             }
-
             if (IncludeActive)
             {
                 MGElement Current = CurrentContent;
                 if (Current != null)
-                    yield return Current;
+                    result.Add(Current);
             }
+            return result;
         }
     }
 }

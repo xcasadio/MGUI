@@ -323,20 +323,20 @@ namespace MGUI.Core.UI
                 yield return ActiveOverlay;
         }*/
 
-        public override IEnumerable<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
+        public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
         {
-            foreach (MGElement Child in base.GetVisualTreeChildren(IncludeInactive, IncludeActive))
-                yield return Child;
+            IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
+            if (!IncludeInactive)
+                return baseChildren;
 
-            if (IncludeInactive)
-            {
-                foreach (MGOverlay InactiveOverlay in _Overlays.Where(x => x != ActiveOverlay))
-                    yield return InactiveOverlay;
-            }
+            List<MGElement> result = new(baseChildren.Count + _Overlays.Count);
+            result.AddRange(baseChildren);
 
-            //  The ActiveOverlay is wrapped in an MGComponent so it should already be enumerated
-            //if (IncludeActive && ActiveOverlay != null)
-            //    yield return ActiveOverlay;
+            foreach (MGOverlay InactiveOverlay in _Overlays)
+                if (InactiveOverlay != ActiveOverlay)
+                    result.Add(InactiveOverlay);
+
+            return result;
         }
     }
 

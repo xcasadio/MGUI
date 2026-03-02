@@ -18,13 +18,15 @@ namespace MGUI.Core.UI
 {
     public class MGGroupBox : MGSingleContentHost
     {
-        public override IEnumerable<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
+        public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
         {
-            foreach (MGElement Child in base.GetVisualTreeChildren(IncludeInactive, IncludeActive))
-                yield return Child;
-
-            if (IncludeActive)
-                yield return OuterHeaderPresenter;
+            IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
+            if (!IncludeActive)
+                return baseChildren;
+            List<MGElement> result = new(baseChildren.Count + 1);
+            result.AddRange(baseChildren);
+            result.Add(OuterHeaderPresenter);
+            return result;
         }
 
         #region Border

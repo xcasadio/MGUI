@@ -38,16 +38,18 @@ namespace MGUI.Core.UI
             }
         }
 
-        public override IEnumerable<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
+        public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
         {
+            List<MGElement> result = new(_Tabs.Count + 1);
             if (IncludeInactive)
             {
-                foreach (MGTabItem Item in _Tabs.Where(x => !x.IsTabSelected))
-                    yield return Item;
+                foreach (MGTabItem Item in _Tabs)
+                    if (!Item.IsTabSelected)
+                        result.Add(Item);
             }
-
             if (IncludeActive && SelectedTab != null)
-                yield return SelectedTab;
+                result.Add(SelectedTab);
+            return result;
         }
 
         #region Border

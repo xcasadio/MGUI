@@ -1611,10 +1611,12 @@ namespace MGUI.Core.UI
 
 		protected virtual void UpdateContents(ElementUpdateArgs UA)
         {
-            foreach (MGElement InactiveChild in GetVisualTreeChildren(true, false).Reverse().ToList())
-                InactiveChild.Update(UA.ChangeHitTestVisible(false));
-            foreach (MGElement ActiveChild in GetVisualTreeChildren(false, true).Reverse().ToList())
-                ActiveChild.Update(UA);
+            IReadOnlyList<MGElement> inactiveChildren = GetVisualTreeChildren(true, false);
+            for (int i = inactiveChildren.Count - 1; i >= 0; i--)
+                inactiveChildren[i].Update(UA.ChangeHitTestVisible(false));
+            IReadOnlyList<MGElement> activeChildren = GetVisualTreeChildren(false, true);
+            for (int i = activeChildren.Count - 1; i >= 0; i--)
+                activeChildren[i].Update(UA);
         }
 
         public event EventHandler<ElementUpdateEventArgs> OnBeginUpdate;
@@ -2234,16 +2236,26 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
         #endregion Layout
 
         #region Visual Tree
-        /// <param name="IncludeActive">If true, active content will also be enumerated. Recommended value: true</param>
+        private static readonly IReadOnlyList<MGElement> _emptyElementList = new List<MGElement>(0).AsReadOnly();
+
         /// <param name="IncludeInactive">If true, inactive content (child content which is unable to receive inputs, regardless of its <see cref="IsHitTestVisible"/> value,<br/>
         /// such as an unselected tab within a <see cref="MGTabControl"/>) will also be enumerated.</param>
-        public virtual IEnumerable<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
+        /// <param name="IncludeActive">If true, active content will also be enumerated. Recommended value: true</param>
+        public virtual IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
         {
             if (IncludeActive)
             {
-                foreach (MGElement Child in GetChildren())
-                    yield return Child;
+                IEnumerable<MGElement> children = GetChildren();
+                if (children is IReadOnlyList<MGElement> readOnlyList)
+                    return readOnlyList;
+                if (children is List<MGElement> list)
+                    return list;
+                List<MGElement> result = new();
+                foreach (MGElement Child in children)
+                    result.Add(Child);
+                return result;
             }
+            return _emptyElementList;
         }
 
         public enum TreeTraversalMode
