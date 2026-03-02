@@ -562,6 +562,24 @@ namespace MGUI.Core.UI
         public MGListBoxItem<TItemType> ReleasedItem { get; private set; }
         #endregion Selection
 
+        #region Hover / Pressed visual spoof
+        /// <summary>The item currently under the mouse cursor (determined by the consolidated <see cref="MGListBox{TItemType}"/> handler).<para/>
+        /// Since item <see cref="MGElement.IsHitTestVisible"/> is <see langword="false"/>, hover visuals are applied via
+        /// <see cref="MGElement.SpoofIsHoveredWhileDrawingBackground"/> on the item's <see cref="MGListBoxItem{TItemType}.ContentPresenter"/>.</summary>
+        private MGListBoxItem<TItemType> _hoveredItem;
+
+        private void SetHoveredItem(MGListBoxItem<TItemType> newItem)
+        {
+            if (_hoveredItem == newItem)
+                return;
+            if (_hoveredItem != null)
+                _hoveredItem.ContentPresenter.SpoofIsHoveredWhileDrawingBackground = false;
+            _hoveredItem = newItem;
+            if (_hoveredItem != null)
+                _hoveredItem.ContentPresenter.SpoofIsHoveredWhileDrawingBackground = true;
+        }
+        #endregion Hover / Pressed visual spoof
+
         /// <summary>Returns the <see cref="MGListBoxItem{TItemType}"/> at the given mouse position.<para/>
         /// First tries an O(1) mathematical lookup for uniform-height items, then falls back to an O(n) scan using <see cref="MGElement.ActualLayoutBounds"/>.<br/>
         /// This avoids the per-item <see cref="MGElement.IsHovered"/> check (which allocates a coordinate conversion per item).</summary>
@@ -792,13 +810,29 @@ namespace MGUI.Core.UI
                     if (IsPressedItemInvalidationPending)
                     {
                         IsPressedItemInvalidationPending = false;
+                        if (PressedItem != null)
+                            PressedItem.ContentPresenter.SpoofIsPressedWhileDrawingBackground = false;
                         PressedItem = null;
                     }
                 };
 
+                MouseHandler.MovedInside += (sender, e) =>
+                {
+                    SetHoveredItem(GetItemAtMousePosition(e.CurrentPosition));
+                };
+
+                MouseHandler.Exited += (sender, e) =>
+                {
+                    SetHoveredItem(null);
+                };
+
                 MouseHandler.LMBPressedInside += (sender, e) =>
                 {
+                    if (PressedItem != null)
+                        PressedItem.ContentPresenter.SpoofIsPressedWhileDrawingBackground = false;
                     PressedItem = GetItemAtMousePosition(e.Position);
+                    if (PressedItem != null)
+                        PressedItem.ContentPresenter.SpoofIsPressedWhileDrawingBackground = true;
                 };
 
                 MouseHandler.ReleasedOutside += (sender, e) =>
@@ -989,6 +1023,10 @@ namespace MGUI.Core.UI
             this.ListBox = ListBox ?? throw new ArgumentNullException(nameof(ListBox));
             this.Data = Data ?? throw new ArgumentNullException(nameof(Data));
             ContentPresenter = new(ListBox.SelfOrParentWindow);
+            //  Disable per-item hit-testing: the MGListBox consolidated handler manages all input and
+            //  updates hover/pressed visuals via SpoofIsHoveredWhileDrawingBackground / SpoofIsPressedWhileDrawingBackground.
+            //  This eliminates ~5800 ManualUpdate() calls per frame when the list is large.
+            ContentPresenter.IsHitTestVisible = false;
 
             ListBox.ItemTemplateChanged += (sender, e) =>
             {
