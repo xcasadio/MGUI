@@ -1,0 +1,53 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="450" Top="20" Width="680" Height="620" TitleText="Performance Test — Large ListBox" Padding="8">
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Padding" Value="8,3" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.2" />
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Orientation="Vertical" Spacing="6">
+
+        <!-- Item count row -->
+        <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="Items:" VerticalAlignment="Center" />
+            <Button Name="BtnLoad5k"   Content="5 000" />
+            <Button Name="BtnLoad10k"  Content="10 000" />
+            <Button Name="BtnLoad50k"  Content="50 000" />
+        </StackPanel>
+
+        <!-- Virtualisation mode row -->
+        <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="Mode:" VerticalAlignment="Center" />
+            <Button Name="BtnModeNever"  Content="Never" />
+            <Button Name="BtnModeAuto"   Content="Auto" />
+            <Button Name="BtnModeAlways" Content="Always" />
+        </StackPanel>
+
+        <Separator />
+
+        <!-- Stats overlay -->
+        <StackPanel Orientation="Vertical" Spacing="2" Background="Black * 0.4" Padding="6,4">
+            <TextBlock Name="TbFps"      Text="FPS: —" />
+            <TextBlock Name="TbFrameMs"  Text="Frame time: — ms" />
+            <TextBlock Name="TbElements" Text="Elements: total=0   realized=0" />
+            <TextBlock Name="TbMode"     Text="Mode: Auto  |  Virtualizing: —" />
+        </StackPanel>
+
+        <Separator />
+
+        <!-- The list box under test -->
+        <ListBox Name="PerfList" Height="420" />
+
+    </StackPanel>
+</Window>

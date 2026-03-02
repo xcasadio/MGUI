@@ -827,6 +827,9 @@ namespace MGUI.Core.UI
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private VirtualizingStackPanel _virtualizingPanel;
 
+        /// <summary>The <see cref="VirtualizingStackPanel"/> used when <see cref="IsVirtualizing"/> is true. Null otherwise.</summary>
+        public VirtualizingStackPanel VirtualizingPanel => _virtualizingPanel;
+
         /// <summary>Raw data list used in virtualised mode — allows O(1) index access
         /// without allocating <see cref="MGListBoxItem{TItemType}"/> wrappers per data entry.</summary>
         private IList<TItemType> _logicalItemsList;

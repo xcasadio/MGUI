@@ -171,6 +171,7 @@ namespace MGUI.Samples
         public ActualLayoutBoundsTestSample ActualLayoutBoundsTest { get; }
         public TextBoxBackslashTestSample TextBoxBackslashTest { get; }
         public FormattedTextTokenizerTestSample FormattedTextTokenizerTest { get; }
+        public PerformanceTest PerformanceTest { get; }
         #endregion Features
 
         #region Dialogs
@@ -231,6 +232,7 @@ namespace MGUI.Samples
             ActualLayoutBoundsTest = new(Content, Desktop);
             TextBoxBackslashTest = new(Content, Desktop);
             FormattedTextTokenizerTest = new(Content, Desktop);
+            PerformanceTest = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs
