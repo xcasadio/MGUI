@@ -303,11 +303,46 @@ namespace MGUI.Core.UI
         public bool IsComponent => ComponentParent != null;
 
         protected List<MGComponentBase> Components { get; } = new();
+
+        // Pre-computed component lists by category — updated in AddComponent, eliminates LINQ allocations in hot paths.
+        private readonly List<MGElement> _componentsDrawBeforeBackground = new();
+        private readonly List<MGElement> _componentsDrawBeforeSelf       = new();
+        private readonly List<MGElement> _componentsDrawBeforeContents   = new();
+        private readonly List<MGElement> _componentsDrawAfterContents    = new();
+        private readonly List<MGElement> _componentsUpdateBeforeContents = new();
+        private readonly List<MGElement> _componentsUpdateAfterContents  = new();
+
+        private void RebuildComponentCaches()
+        {
+            _componentsDrawBeforeBackground.Clear();
+            _componentsDrawBeforeSelf.Clear();
+            _componentsDrawBeforeContents.Clear();
+            _componentsDrawAfterContents.Clear();
+            _componentsUpdateBeforeContents.Clear();
+            _componentsUpdateAfterContents.Clear();
+            foreach (MGComponentBase c in Components)
+            {
+                if (c.DrawBeforeBackground) _componentsDrawBeforeBackground.Add(c.BaseElement);
+                if (c.DrawBeforeSelf)       _componentsDrawBeforeSelf.Add(c.BaseElement);
+                if (c.DrawBeforeContents)   _componentsDrawBeforeContents.Add(c.BaseElement);
+                if (c.DrawAfterContents)    _componentsDrawAfterContents.Add(c.BaseElement);
+                if (c.UpdateBeforeContents) _componentsUpdateBeforeContents.Add(c.BaseElement);
+                if (c.UpdateAfterContents)  _componentsUpdateAfterContents.Add(c.BaseElement);
+            }
+        }
+
 		protected virtual void AddComponent(MGComponentBase Component)
 		{
 			Component.BaseElement.SetParent(this);
             Component.BaseElement.ComponentParent = this;
 			Components.Add(Component);
+            // Update cached category lists
+            if (Component.DrawBeforeBackground) _componentsDrawBeforeBackground.Add(Component.BaseElement);
+            if (Component.DrawBeforeSelf)       _componentsDrawBeforeSelf.Add(Component.BaseElement);
+            if (Component.DrawBeforeContents)   _componentsDrawBeforeContents.Add(Component.BaseElement);
+            if (Component.DrawAfterContents)    _componentsDrawAfterContents.Add(Component.BaseElement);
+            if (Component.UpdateBeforeContents) _componentsUpdateBeforeContents.Add(Component.BaseElement);
+            if (Component.UpdateAfterContents)  _componentsUpdateAfterContents.Add(Component.BaseElement);
 		}
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1472,9 +1507,9 @@ namespace MGUI.Core.UI
                 && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
             bool CanReceiveMouseInput = BaseCanReceiveInput && CanParentReceiveMouseInput;
 
-            foreach (MGElement Component in Components.Where(x => x.DrawBeforeBackground).Select(x => x.BaseElement))
+            foreach (MGElement Component in _componentsDrawBeforeBackground)
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
-            foreach (MGElement Component in Components.Where(x => x.DrawBeforeSelf).Select(x => x.BaseElement))
+            foreach (MGElement Component in _componentsDrawBeforeSelf)
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
 
             if (CanReceiveMouseInput && ComputedIsHitTestVisible && !SelfOrParentWindow.HasModalWindow && IsHovered)
@@ -1482,11 +1517,11 @@ namespace MGUI.Core.UI
                 Result = this;
             }
 
-            foreach (MGElement Component in Components.Where(x => x.DrawBeforeContents).Select(x => x.BaseElement))
+            foreach (MGElement Component in _componentsDrawBeforeContents)
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
             foreach (MGElement Child in GetVisualTreeChildren(false, true))
                 Child.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
-            foreach (MGElement Component in Components.Where(x => x.DrawAfterContents).Select(x => x.BaseElement))
+            foreach (MGElement Component in _componentsDrawAfterContents)
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, ref Result);
         }
 
@@ -1580,10 +1615,10 @@ namespace MGUI.Core.UI
                 Math.Max(0, ActualLayoutBounds.Height - Padding.Top  - Padding.Bottom));
             ElementUpdateArgs UAForContents = UA with { ActualLayoutBounds = ContentAreaBounds };
 
-			foreach (MGElement Component in Components.Where(x => x.UpdateBeforeContents).Select(x => x.BaseElement))
+			foreach (MGElement Component in _componentsUpdateBeforeContents)
 				Component.Update(UA);               // components get the full (unpadded) bounds
 			UpdateContents(UAForContents);          // content children get the content-area bounds
-            foreach (MGElement Component in Components.Where(x => x.UpdateAfterContents).Select(x => x.BaseElement))
+            foreach (MGElement Component in _componentsUpdateAfterContents)
                 Component.Update(UA);              // components get the full (unpadded) bounds
             OnEndUpdateContents?.Invoke(this, UpdateEventArgs);
 
@@ -1704,22 +1739,22 @@ namespace MGUI.Core.UI
 			{
 				using (ClipToBounds ? DA.DT.SetClipTargetTemporary(TargetBounds, true) : null)
 				{
-                    foreach (MGElement Component in Components.Where(x => x.DrawBeforeBackground).Select(x => x.BaseElement))
+                    foreach (MGElement Component in _componentsDrawBeforeBackground)
                         Component.Draw(DA);
 
                     DrawBackground(DA, LayoutBounds);
 
-                    foreach (MGElement Component in Components.Where(x => x.DrawBeforeSelf).Select(x => x.BaseElement))
+                    foreach (MGElement Component in _componentsDrawBeforeSelf)
                         Component.Draw(DA);
 
                     DrawSelf(DA, LayoutBounds);
 
-					foreach (MGElement Component in Components.Where(x => x.DrawBeforeContents).Select(x => x.BaseElement))
+					foreach (MGElement Component in _componentsDrawBeforeContents)
 						Component.Draw(DA);
 
                     DrawContents(DA);
 
-                    foreach (MGElement Component in Components.Where(x => x.DrawAfterContents).Select(x => x.BaseElement))
+                    foreach (MGElement Component in _componentsDrawAfterContents)
                         Component.Draw(DA);
 
                     OverlayBrush?.Draw(DA, this, GetBackgroundBounds(LayoutBounds));
