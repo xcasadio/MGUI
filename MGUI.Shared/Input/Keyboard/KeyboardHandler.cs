@@ -36,16 +36,33 @@ namespace MGUI.Shared.Input.Keyboard
         }
 
         #region Events
+        private EventHandler<BaseKeyPressedEventArgs> _pressed;
+        private EventHandler<BaseKeyReleasedEventArgs> _released;
+        private EventHandler<BaseKeyClickedEventArgs> _clicked;
+
         /// <summary>Invoked immediately after a Key has been pressed.</summary>
-        public event EventHandler<BaseKeyPressedEventArgs> Pressed;
+        public event EventHandler<BaseKeyPressedEventArgs> Pressed
+        {
+            add    { _pressed += value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+            remove { _pressed -= value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+        }
         /// <summary>Invoked immediately after a Key has been released.<para/>
         /// Note: This event is invoked before <see cref="Clicked"/></summary>
-        public event EventHandler<BaseKeyReleasedEventArgs> Released;
+        public event EventHandler<BaseKeyReleasedEventArgs> Released
+        {
+            add    { _released += value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+            remove { _released -= value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+        }
         /// <summary>Invoked immediately after a Key has been clicked.<para/>
         /// Note: This event is invoked after <see cref="Released"/></summary>
-        public event EventHandler<BaseKeyClickedEventArgs> Clicked;
+        public event EventHandler<BaseKeyClickedEventArgs> Clicked
+        {
+            add    { _clicked += value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+            remove { _clicked -= value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+        }
 
-        public bool HasSubscribedEvents => Pressed != null || Released != null || Clicked != null;
+        private bool _hasSubscribedEvents;
+        public bool HasSubscribedEvents => _hasSubscribedEvents;
         #endregion Events
 
         /// <summary>Should only be invoked via <see cref="KeyboardTracker.UpdateHandlers"/></summary>
@@ -73,27 +90,27 @@ namespace MGUI.Shared.Input.Keyboard
                 {
                     //  Invoke Key Pressed
                     BaseKeyPressedEventArgs PressedArgs = Tracker.CurrentKeyPressedEvents[Key];
-                    if (PressedArgs != null && Pressed != null && (InvokeEvenIfHandled || !PressedArgs.IsHandled))
+                    if (PressedArgs != null && _pressed != null && (InvokeEvenIfHandled || !PressedArgs.IsHandled))
                     {
-                        Pressed.Invoke(this, PressedArgs);
+                        _pressed.Invoke(this, PressedArgs);
                         if (AlwaysHandlesEvents)
                             PressedArgs.SetHandledBy(Owner, false);
                     }
 
                     //  Invoke Key Released
                     BaseKeyReleasedEventArgs ReleasedArgs = Tracker.CurrentKeyReleasedEvents[Key];
-                    if (ReleasedArgs != null && Released != null && (InvokeEvenIfHandled || !ReleasedArgs.IsHandled))
+                    if (ReleasedArgs != null && _released != null && (InvokeEvenIfHandled || !ReleasedArgs.IsHandled))
                     {
-                        Released.Invoke(this, ReleasedArgs);
+                        _released.Invoke(this, ReleasedArgs);
                         if (AlwaysHandlesEvents)
                             ReleasedArgs.SetHandledBy(Owner, false);
                     }
 
                     //  Invoke Key Clicked
                     BaseKeyClickedEventArgs ClickedArgs = Tracker.CurrentKeyClickedEvents[Key];
-                    if (ClickedArgs != null && Clicked != null && (InvokeEvenIfHandled || !ClickedArgs.IsHandled) && (InvokeEvenIfHandled || !ClickedArgs.ReleasedArgs.IsHandled || ClickedArgs.ReleasedArgs.HandledBy == Owner))
+                    if (ClickedArgs != null && _clicked != null && (InvokeEvenIfHandled || !ClickedArgs.IsHandled) && (InvokeEvenIfHandled || !ClickedArgs.ReleasedArgs.IsHandled || ClickedArgs.ReleasedArgs.HandledBy == Owner))
                     {
-                        Clicked.Invoke(this, ClickedArgs);
+                        _clicked.Invoke(this, ClickedArgs);
                         if (AlwaysHandlesEvents)
                             ClickedArgs.SetHandledBy(Owner, false);
                     }
