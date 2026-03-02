@@ -785,7 +785,15 @@ namespace MGUI.Core.UI
             using (DA.DT.SetClipTargetTemporary(ScreenBounds, true))
             {
                 Point NewOffset = DA.Offset - new Point((int)HorizontalOffset, (int)VerticalOffset);
-                base.DrawContents(DA with { Offset = NewOffset });
+                ElementDrawArgs adjustedDA = DA with { Offset = NewOffset };
+
+                // CPU-side frustum culling (Task 15): skip direct content children whose ActualLayoutBounds
+                // is empty (fully clipped), avoiding unnecessary Draw() call overhead for off-viewport elements.
+                foreach (MGElement child in GetChildren())
+                {
+                    if (!child.ActualLayoutBounds.IsEmpty)
+                        child.Draw(adjustedDA);
+                }
             }
         }
     }

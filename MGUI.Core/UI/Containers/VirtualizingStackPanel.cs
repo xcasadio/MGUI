@@ -246,5 +246,23 @@ namespace MGUI.Core.UI.Containers
                 element.UpdateLayout(new Rectangle(bounds.Left, y, bounds.Width, UniformItemHeight));
             }
         }
+
+        /// <summary>CPU-side culling: only draw realized items whose <see cref="MGElement.ActualLayoutBounds"/>
+        /// are non-empty (i.e. intersect the scissor viewport computed during <see cref="MGElement.Update"/>).
+        /// Items in the recycle buffer above/below the visible area will have an empty <see cref="MGElement.ActualLayoutBounds"/>
+        /// and are skipped here without entering their <see cref="MGElement.Draw"/> method, saving per-call overhead.</summary>
+        protected override void DrawContents(ElementDrawArgs DA)
+        {
+            if (_realizedItems.Count == 0)
+                return;
+
+            foreach (var (_, element) in _realizedItems)
+            {
+                // ActualLayoutBounds is empty when the element is fully clipped (outside the scroll viewport).
+                // Skipping the Draw() call avoids computing TargetBounds, scissor checks, and delegate invocations.
+                if (!element.ActualLayoutBounds.IsEmpty)
+                    element.Draw(DA);
+            }
+        }
     }
 }
