@@ -182,6 +182,7 @@ namespace MGUI.Core.UI.Containers
                     }
 
                     LayoutChanged(this, true);
+                    InvalidateVtcCache();   // Task 16: invalidate GetVisualTreeChildren cache when children change
                     NPC(nameof(HasContent));
                     NPC(nameof(HasMultipleChildren));
                 };
@@ -215,6 +216,7 @@ namespace MGUI.Core.UI.Containers
                     InvokeContentAdded(_Content);
                 }
                 LayoutChanged(this, true);
+                InvalidateVtcCache();   // Task 16: content change invalidates GetVisualTreeChildren cache
                 NPC(nameof(Content));
                 NPC(nameof(HasContent));
             }

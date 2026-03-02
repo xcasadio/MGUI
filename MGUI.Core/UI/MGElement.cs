@@ -1547,8 +1547,10 @@ namespace MGUI.Core.UI
 
             if (mouseInBounds)
             {
-                foreach (MGElement Child in GetVisualTreeChildren(false, true))
-                    Child.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
+                // Use indexed for loop to avoid IReadOnlyList enumerator allocation (Task 16)
+                IReadOnlyList<MGElement> vtc = GetVisualTreeChildren(false, true);
+                for (int vtcIdx = 0; vtcIdx < vtc.Count; vtcIdx++)
+                    vtc[vtcIdx].ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
             }
 
             foreach (MGElement Component in _componentsDrawAfterContents)
@@ -1913,8 +1915,10 @@ namespace MGUI.Core.UI
         internal protected void InvalidateLayoutTree()
         {
             InvalidateLayout();
-            foreach (MGElement Child in GetVisualTreeChildren(true, true))
-                Child.InvalidateLayoutTree();
+            // Use indexed for loop to avoid IReadOnlyList enumerator allocation (Task 16)
+            IReadOnlyList<MGElement> vtcAll = GetVisualTreeChildren(true, true);
+            for (int i = 0; i < vtcAll.Count; i++)
+                vtcAll[i].InvalidateLayoutTree();
             foreach (MGComponentBase Component in Components)
                 Component.BaseElement.InvalidateLayoutTree();
         }
@@ -2353,18 +2357,61 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
         {
             if (IncludeActive)
             {
-                IEnumerable<MGElement> children = GetChildren();
-                if (children is IReadOnlyList<MGElement> readOnlyList)
-                    return readOnlyList;
-                if (children is List<MGElement> list)
-                    return list;
-                List<MGElement> result = new();
-                foreach (MGElement Child in children)
-                    result.Add(Child);
-                return result;
+                // Cache (Task 16): store the resolved active-children list between calls and only recompute
+                // when _vtcCacheDirty is true (set by InvalidateVtcCache() from children-collection changes).
+                if (!IncludeInactive)
+                {
+                    if (!_vtcCacheDirty && _vtcCacheActiveOnly != null)
+                        return _vtcCacheActiveOnly;
+
+                    IEnumerable<MGElement> children = GetChildren();
+                    IReadOnlyList<MGElement> result;
+                    if (children is IReadOnlyList<MGElement> readOnlyList)
+                        result = readOnlyList;
+                    else if (children is List<MGElement> list)
+                        result = list;
+                    else
+                    {
+                        List<MGElement> built = new();
+                        foreach (MGElement Child in children)
+                            built.Add(Child);
+                        result = built;
+                    }
+                    _vtcCacheActiveOnly = result;
+                    _vtcCacheDirty = false;
+                    return result;
+                }
+
+                // (true, true) — include inactive + active; not cached per-frame because inactive set
+                // may change without a _Children mutation (e.g. tab-selection changes).
+                IEnumerable<MGElement> allChildren = GetChildren();
+                if (allChildren is IReadOnlyList<MGElement> arl)
+                    return arl;
+                if (allChildren is List<MGElement> al)
+                    return al;
+                List<MGElement> allResult = new();
+                foreach (MGElement Child in allChildren)
+                    allResult.Add(Child);
+                return allResult;
             }
             return _emptyElementList;
         }
+
+        // ---- Visual-tree-children cache (Task 16) -----------------------------------
+        // Caches the result of GetVisualTreeChildren(false, true) between frames so that
+        // repeated calls within the same frame avoid re-resolving the underlying collection.
+        // Invalidated by InvalidateVtcCache() whenever children are added or removed.
+        private IReadOnlyList<MGElement> _vtcCacheActiveOnly;
+        private bool _vtcCacheDirty = true;
+
+        /// <summary>Invalidates the cached result of <see cref="GetVisualTreeChildren(bool, bool)"/>.<para/>
+        /// Call this whenever the set of active visual-tree children changes (e.g. when <see cref="_Children"/> is mutated).</summary>
+        protected internal void InvalidateVtcCache()
+        {
+            _vtcCacheDirty = true;
+            _vtcCacheActiveOnly = null;
+        }
+        // ---- End cache fields -------------------------------------------------------
 
         public enum TreeTraversalMode
         {
