@@ -7,6 +7,17 @@ using System.Threading.Tasks;
 
 namespace MGUI.Core.UI
 {
+    public enum ListBoxVirtualizationMode
+    {
+        /// <summary>Never virtualize. All items are created and maintained as UI elements, even if not visible.</summary>
+        Never,
+        /// <summary>Automatically virtualize if the item count exceeds <see cref="MGListBox{TItemType}.VirtualizationThreshold"/>.<para/>
+        /// Default mode.</summary>
+        Auto,
+        /// <summary>Always virtualize, regardless of item count.</summary>
+        Always,
+    }
+
     public enum MGElementType
     {
         Undefined,

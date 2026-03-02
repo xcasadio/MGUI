@@ -186,13 +186,17 @@ namespace MGUI.Core.UI
                         //  Clear all ListBoxItems
                         _ = ItemsPanel.TryRemoveAll();
 
-                        //  Add the new ListBoxItems to the ItemsPanel
-                        if (InternalItems != null)
+                        //  Add the new ListBoxItems to the ItemsPanel (skipped when virtualizing: VSP manages its own children)
+                        if (!IsVirtualizing && InternalItems != null)
                         {
                             foreach (MGListBoxItem<TItemType> LBI in InternalItems)
                                 _ = ItemsPanel.TryAddChild(LBI.ContentPresenter);
                         }
                     }
+
+                    // When virtualizing, update the VSP item count after the InternalItems collection is assigned
+                    if (IsVirtualizing && _virtualizingPanel != null)
+                        _virtualizingPanel.TotalItemCount = InternalItems?.Count ?? 0;
 
                     ClearSelection();
                     RefreshRowBackgrounds();
@@ -214,6 +218,38 @@ namespace MGUI.Core.UI
 
         private void ListBoxItems_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            if (IsVirtualizing)
+            {
+                // When virtualizing, only keep the VSP total count in sync; the VSP manages its own children
+                if (_virtualizingPanel != null)
+                    _virtualizingPanel.TotalItemCount = InternalItems?.Count ?? 0;
+
+                HashSet<MGListBoxItem<TItemType>> virtualRemoved = new();
+                if (e.Action is NotifyCollectionChangedAction.Reset)
+                {
+                    ClearSelection();
+                }
+                else if (e.Action is NotifyCollectionChangedAction.Remove && e.OldItems != null)
+                {
+                    foreach (MGListBoxItem<TItemType> item in e.OldItems)
+                        virtualRemoved.Add(item);
+                }
+
+                // Clean up selection for removed items
+                if (virtualRemoved.Count > 0 && SelectedItems != null)
+                {
+                    List<MGListBoxItem<TItemType>> newSel = SelectedItems.Where(x => !virtualRemoved.Contains(x)).ToList();
+                    if (newSel.Count != SelectedItems.Count)
+                        SelectedItems = newSel.AsReadOnly();
+                }
+                if (SelectionSourceItem != null && virtualRemoved.Contains(SelectionSourceItem))
+                    SelectionSourceItem = null;
+
+                if (virtualRemoved.Count > 0)
+                    HandleTemplatedContentRemoved(virtualRemoved.Select(x => x.Content));
+                return;
+            }
+
             using (ItemsPanel.AllowChangingContentTemporarily())
             {
                 HashSet<MGListBoxItem<TItemType>> Removed = new();
@@ -340,11 +376,40 @@ namespace MGUI.Core.UI
                         Observable2.CollectionChanged += ItemsSource_CollectionChanged;
 
                     if (ItemsSource == null)
+                    {
+                        bool wasVirtualizing = IsVirtualizing;
+                        IsVirtualizing = false;
                         InternalItems = null;
+                        if (wasVirtualizing && ScrollViewer != null)
+                        {
+                            using (ScrollViewer.AllowChangingContentTemporarily())
+                                ScrollViewer.SetContent(ItemsPanel);
+                        }
+                    }
                     else
                     {
+                        bool newVirtualize = ShouldVirtualize(ItemsSource.Count);
+                        bool wasVirtualizing = IsVirtualizing;
+                        // Set flag BEFORE InternalItems so InternalItems.set sees the correct mode
+                        IsVirtualizing = newVirtualize;
+
                         IEnumerable<MGListBoxItem<TItemType>> Values = ItemsSource.Select((x, Index) => new MGListBoxItem<TItemType>(this, x));
                         InternalItems = new ObservableCollection<MGListBoxItem<TItemType>>(Values);
+
+                        if (newVirtualize && ScrollViewer != null)
+                        {
+                            ConfigureVirtualizingPanel();
+                            if (!wasVirtualizing)
+                            {
+                                using (ScrollViewer.AllowChangingContentTemporarily())
+                                    ScrollViewer.SetContent(_virtualizingPanel);
+                            }
+                        }
+                        else if (!newVirtualize && wasVirtualizing && ScrollViewer != null)
+                        {
+                            using (ScrollViewer.AllowChangingContentTemporarily())
+                                ScrollViewer.SetContent(ItemsPanel);
+                        }
                     }
 
                     NPC(nameof(ItemsSource));
@@ -592,31 +657,47 @@ namespace MGUI.Core.UI
             // Convert screen → unscaled screen once
             Vector2 unscaledPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPos.ToVector2());
 
-            // Quick reject: mouse must be within the ItemsPanel's visible area
-            if (ItemsPanel.ActualLayoutBounds.IsEmpty || !ItemsPanel.ActualLayoutBounds.ContainsInclusive(unscaledPos))
+            // Select the actual items panel (regular or virtualizing)
+            MGElement activePanel = IsVirtualizing ? (MGElement)_virtualizingPanel : ItemsPanel;
+
+            // Quick reject: mouse must be within the active panel's visible area
+            if (activePanel == null || activePanel.ActualLayoutBounds.IsEmpty || !activePanel.ActualLayoutBounds.ContainsInclusive(unscaledPos))
                 return null;
 
             // Fast path: O(1) for uniform-height items
-            // localY = position within the ItemsPanel's content area (accounting for scroll)
+            // localY = position within the panel's content area (accounting for scroll)
             int itemCount = InternalItems.Count;
-            if (itemCount >= 1)
+
+            // Use UniformItemHeight from VSP directly, otherwise read from first two items
+            int uniformH = 0;
+            if (IsVirtualizing && _virtualizingPanel != null && _virtualizingPanel.UniformItemHeight > 0)
+            {
+                uniformH = _virtualizingPanel.UniformItemHeight;
+            }
+            else if (itemCount >= 1)
             {
                 int firstItemH = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
-                if (firstItemH > 0 && (itemCount < 2 || InternalItems[1].ContentPresenter.AllocatedBounds.Height == firstItemH))
+                if (itemCount < 2 || InternalItems[1].ContentPresenter.AllocatedBounds.Height == firstItemH)
+                    uniformH = firstItemH;
+            }
+
+            if (uniformH > 0)
+            {
+                float localY = unscaledPos.Y + activePanel.Origin.Y - activePanel.AlignedContentBounds.Y;
+                int index = (int)(localY / uniformH);
+                if (index >= 0 && index < itemCount)
                 {
-                    // Uniform height: compute index mathematically
-                    float localY = unscaledPos.Y + ItemsPanel.Origin.Y - ItemsPanel.AlignedContentBounds.Y;
-                    int index = (int)(localY / firstItemH);
-                    if (index >= 0 && index < itemCount)
-                    {
-                        var candidate = InternalItems[index].ContentPresenter;
-                        if (!candidate.ActualLayoutBounds.IsEmpty && candidate.ActualLayoutBounds.ContainsInclusive(unscaledPos))
-                            return InternalItems[index];
-                    }
+                    var candidate = InternalItems[index].ContentPresenter;
+                    if (!candidate.ActualLayoutBounds.IsEmpty && candidate.ActualLayoutBounds.ContainsInclusive(unscaledPos))
+                        return InternalItems[index];
+                    // For virtualized mode, trust the mathematical index even if ContentPresenter hasn't been updated yet
+                    if (IsVirtualizing)
+                        return InternalItems[index];
                 }
             }
 
             // Fallback: O(n) scan using ActualLayoutBounds (fast rect check, no per-item coordinate conversion)
+            // For virtualized mode this only checks realized items (non-empty ActualLayoutBounds)
             for (int i = 0; i < itemCount; i++)
             {
                 Rectangle bounds = InternalItems[i].ContentPresenter.ActualLayoutBounds;
@@ -628,6 +709,80 @@ namespace MGUI.Core.UI
 
         public MGScrollViewer ScrollViewer { get; }
         public MGStackPanel ItemsPanel { get; }
+
+        #region Virtualization
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ListBoxVirtualizationMode _VirtualizationMode = ListBoxVirtualizationMode.Auto;
+        /// <summary>Controls whether UI virtualization is used for this ListBox.<para/>
+        /// In <see cref="ListBoxVirtualizationMode.Auto"/> mode, virtualization activates when the item count reaches
+        /// <see cref="VirtualizationThreshold"/>.<para/>
+        /// Default value: <see cref="ListBoxVirtualizationMode.Auto"/></summary>
+        public ListBoxVirtualizationMode VirtualizationMode
+        {
+            get => _VirtualizationMode;
+            set
+            {
+                if (_VirtualizationMode != value)
+                {
+                    _VirtualizationMode = value;
+                    NPC(nameof(VirtualizationMode));
+                }
+            }
+        }
+
+        /// <summary>The minimum item count at which <see cref="ListBoxVirtualizationMode.Auto"/> enables UI virtualization.<para/>
+        /// Default value: 100</summary>
+        public int VirtualizationThreshold { get; set; } = 100;
+
+        /// <summary>When true, this <see cref="MGListBox{TItemType}"/> is rendering via a <see cref="VirtualizingStackPanel"/> —
+        /// only the ~<see cref="VirtualizingStackPanel.BufferCount"/> visible items exist as live <see cref="MGElement"/>s.</summary>
+        public bool IsVirtualizing { get; private set; }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private VirtualizingStackPanel _virtualizingPanel;
+
+        private bool ShouldVirtualize(int itemCount) =>
+            VirtualizationMode == ListBoxVirtualizationMode.Always ||
+            (VirtualizationMode == ListBoxVirtualizationMode.Auto && itemCount >= VirtualizationThreshold);
+
+        /// <summary>Creates the <see cref="VirtualizingStackPanel"/> if needed and configures its generator and recycler callbacks.</summary>
+        private void ConfigureVirtualizingPanel()
+        {
+            if (_virtualizingPanel == null)
+            {
+                _virtualizingPanel = new VirtualizingStackPanel(SelfOrParentWindow);
+                _virtualizingPanel.VerticalAlignment = VerticalAlignment.Top;
+                _virtualizingPanel.BorderThickness = DefaultItemBorderThickness;
+                _virtualizingPanel.BorderBrush = DefaultItemBorderBrush;
+            }
+            _virtualizingPanel.TotalItemCount = InternalItems?.Count ?? 0;
+            _virtualizingPanel.UniformItemHeight = EstimateItemHeight();
+            _virtualizingPanel.ItemGenerator = (idx) => InternalItems[idx].ContentPresenter;
+            _virtualizingPanel.ItemRecycler = (idx, element) =>
+            {
+                // Clear any spoof states so they are fresh for the next occupant
+                if (element is MGBorder cp)
+                {
+                    cp.SpoofIsHoveredWhileDrawingBackground = false;
+                    cp.SpoofIsPressedWhileDrawingBackground = false;
+                }
+            };
+        }
+
+        /// <summary>Estimates the pixel height of individual items for the <see cref="VirtualizingStackPanel"/>.<br/>
+        /// Uses the first realized item's measured height, or a theme-based fallback.</summary>
+        private int EstimateItemHeight()
+        {
+            if (InternalItems?.Count > 0)
+            {
+                int h = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
+                if (h > 0) return h;
+                h = InternalItems[0].ContentPresenter.LayoutBounds.Height;
+                if (h > 0) return h;
+            }
+            return 26; // Fallback: ~6 px padding top + 14 px text + 6 px padding bottom
+        }
+        #endregion Virtualization
 
         /// <summary>Sets the <see cref="TitleBorderBrush"/> to the given <paramref name="Brush"/> using the given <paramref name="BorderThickness"/>, except with a bottom thickness of 0 to avoid doubled thickness between the title and content.<br/>
         /// Sets the <see cref="InnerBorderBrush"/> to the given <paramref name="Brush"/> using the given <paramref name="BorderThickness"/></summary>
