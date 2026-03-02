@@ -543,6 +543,28 @@ namespace MGUI.Core.UI
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly HashSet<int> _selectedIndices = new();
+
+        /// <summary>The logical indices of the currently-selected items within <see cref="ListBoxItems"/>.<para/>
+        /// This is the index-based representation of <see cref="SelectedItems"/>, and is kept in sync whenever
+        /// the selection changes. It is particularly useful in virtualized mode to avoid holding references to
+        /// <see cref="MGListBoxItem{TItemType}"/> objects that may have been recycled.</summary>
+        public IReadOnlySet<int> SelectedIndices => _selectedIndices;
+
+        /// <summary>The data values of the currently-selected items, derived from <see cref="SelectedIndices"/> and <see cref="ItemsSource"/>.</summary>
+        public IEnumerable<TItemType> SelectedDataItems
+        {
+            get
+            {
+                if (ItemsSource == null || _selectedIndices.Count == 0)
+                    yield break;
+                IList<TItemType> asList = ItemsSource as IList<TItemType> ?? ItemsSource.ToList();
+                foreach (int idx in _selectedIndices)
+                    if (idx >= 0 && idx < asList.Count)
+                        yield return asList[idx];
+            }
+        }
+
         private ReadOnlyCollection<MGListBoxItem<TItemType>> _SelectedItems;
         /// <summary>The currently-selected items. This collection is never null: Uses an empty list if setting to null.</summary>
         public ReadOnlyCollection<MGListBoxItem<TItemType>> SelectedItems
@@ -566,8 +588,22 @@ namespace MGUI.Core.UI
                     foreach (MGListBoxItem<TItemType> Item in SelectedItems)
                         Item.ContentPresenter.IsSelected = true;
 
+                    // Maintain index-based selection set in sync
+                    _selectedIndices.Clear();
+                    if (InternalItems != null)
+                    {
+                        foreach (MGListBoxItem<TItemType> item in SelectedItems)
+                        {
+                            int idx = InternalItems.IndexOf(item);
+                            if (idx >= 0)
+                                _selectedIndices.Add(idx);
+                        }
+                    }
+
                     NPC(nameof(SelectedItems));
                     NPC(nameof(SelectedValue));
+                    NPC(nameof(SelectedDataItems));
+                    NPC(nameof(SelectedIndices));
                     SelectionChanged?.Invoke(this, SelectedItems);
                 }
             }
@@ -757,7 +793,13 @@ namespace MGUI.Core.UI
             }
             _virtualizingPanel.TotalItemCount = InternalItems?.Count ?? 0;
             _virtualizingPanel.UniformItemHeight = EstimateItemHeight();
-            _virtualizingPanel.ItemGenerator = (idx) => InternalItems[idx].ContentPresenter;
+            _virtualizingPanel.ItemGenerator = (idx) =>
+            {
+                var cp = InternalItems[idx].ContentPresenter;
+                // Restore correct selection state when an item is realized
+                cp.IsSelected = _selectedIndices.Contains(idx);
+                return cp;
+            };
             _virtualizingPanel.ItemRecycler = (idx, element) =>
             {
                 // Clear any spoof states so they are fresh for the next occupant
