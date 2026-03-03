@@ -20,7 +20,6 @@ namespace MGUI.Samples
     public class Game1 : Game, IObservableUpdate
     {
         private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
 
         private MainRenderer MGUIRenderer { get; set; }
         private MGDesktop Desktop { get; set; }
@@ -48,8 +47,6 @@ namespace MGUI.Samples
             _graphics.PreferredBackBufferWidth = 1600;
             _graphics.PreferredBackBufferHeight = 900;
             _graphics.ApplyChanges();
-
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
 
             MGUIRenderer = new(new GameRenderHost<Game1>(this));
             Desktop = new(MGUIRenderer);
@@ -96,11 +93,6 @@ namespace MGUI.Samples
             base.Initialize();
         }
 
-        protected override void LoadContent()
-        {
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
-        }
-
         protected override void Update(GameTime gameTime)
         {
             PreviewUpdate?.Invoke(this, gameTime.TotalGameTime);
@@ -110,9 +102,7 @@ namespace MGUI.Samples
             if (_fssEngine != null &&
                 ks.IsKeyDown(Keys.F1) && !_prevKeyboardState.IsKeyDown(Keys.F1))
             {
-                Desktop.TextEngine = Desktop.TextEngine is SpriteFontTextEngine
-                    ? (ITextEngine)_fssEngine
-                    : (ITextEngine)_sfEngine;
+                Desktop.TextEngine = Desktop.TextEngine is SpriteFontTextEngine ? _fssEngine : _sfEngine;
                 Debug.WriteLine($"[TextEngine] switched to {Desktop.TextEngine.GetType().Name}");
                 // Re-resolve all MGTextBlock font handles from the new engine and clear
                 // measurement caches so layouts update in the very next frame.

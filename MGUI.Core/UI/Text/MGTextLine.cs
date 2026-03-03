@@ -247,6 +247,19 @@ namespace MGUI.Core.UI.Text
         /// -------</code>
         /// Note that lines consisting of multiple consecutive spaces will still be returned.</param>
         /// <param name="WordDelimiters">Recommended: ' ' (space) and '-' (hyphen)</param>
+        /// <remarks>
+        /// <b>Known non-idempotency issue (PR #35):</b><br/>
+        /// The wrapping <i>decision</i> uses a word-by-word accumulated width (<c>CurrentX</c>),
+        /// while the resulting <see cref="MGTextLine.LineWidth"/> is computed by re-measuring each
+        /// run as a <i>complete string</i> inside <c>FlushLine</c>.<br/>
+        /// Because a whole-string measurement can be smaller than the sum of its word-by-word
+        /// measurements (inter-glyph kerning), calling <c>ParseLines(W)</c> may produce a line
+        /// with <c>LineWidth = W' &lt; W</c>.  Calling <c>ParseLines(W')</c> then wraps again,
+        /// because the per-word sum still exceeds W'.<br/>
+        /// <br/>
+        /// Fix: align the wrapping decision with <c>FlushLine</c> by measuring
+        /// the candidate line as a whole string before deciding whether to wrap.
+        /// </remarks>
         public static IEnumerable<MGTextLine> ParseLines(ITextMeasurer Measurer, double MaxLineWidth, bool WrapText, IEnumerable<MGTextRun> Runs, bool IgnoreEmptySpaceLines, params char[] WordDelimiters)
         {
             if (Runs?.Any() != true || MaxLineWidth < 1)
@@ -258,6 +271,10 @@ namespace MGUI.Core.UI.Text
             int LineNumber = 1;
             List<MGTextRun> CurrentLine = new();
             float CurrentX = 0;
+            // Whole-string sum of the widths of runs already committed to CurrentLine.
+            // Updated whenever a run/image is added to CurrentLine without a direct flush, and reset
+            // to 0 inside FlushLine.  Used by the idempotent wrapping decision below.
+            float CommittedRunsWidth = 0;
             List<int> CurrentIndicesMap = new();
             int CurrentIndexInOriginalText = 0;
 
@@ -300,6 +317,7 @@ namespace MGUI.Core.UI.Text
                 CurrentLine.Clear();
                 CurrentIndicesMap.Clear();
                 CurrentX = 0;
+                CommittedRunsWidth = 0;
 
                 bool IsIgnoreable = IgnoreEmptySpaceLines && PreviousLine != null && !PreviousLine.EndsInLinebreakCharacter &&
                     Line.Runs.Count == 1 && Line.Runs.First() is MGTextRunText TextRun && TextRun.Text == " ";
@@ -331,11 +349,12 @@ namespace MGUI.Core.UI.Text
                     else
                     {
                         int ImgWidth = ImageRun.TargetWidth;
-                        if (CurrentLine.Any() && CurrentX + ImgWidth > MaxLineWidth && FlushLine(out Line, false))
+                        if (CurrentLine.Any() && CommittedRunsWidth + ImgWidth > MaxLineWidth && FlushLine(out Line, false))
                             yield return Line;
 
                         CurrentLine.Add(ImageRun);
                         CurrentX += ImgWidth;
+                        CommittedRunsWidth += ImgWidth;
                     }
                 }
                 else if (Run.IsText && Run.OriginalRun is MGTextRunText TextRun)
@@ -344,6 +363,7 @@ namespace MGUI.Core.UI.Text
                     {
                         string Text = Run.GetAllRemainingText();
                         CurrentLine.Add(Run.AsTextRun(Text));
+                        CommittedRunsWidth += Measurer.MeasureText(Text, TextRun.Settings.IsBold, TextRun.Settings.IsItalic).X;
                         foreach (char c in Text)
                         {
                             CurrentIndicesMap.Add(CurrentIndexInOriginalText);
@@ -367,7 +387,40 @@ namespace MGUI.Core.UI.Text
                             float CurrentWidth = Measurements[0].X;
                             float TotalWidth = Measurements.Sum(x => x.X);
 
-                            if (CurrentX + TotalWidth <= MaxLineWidth)
+                            // IDEMPOTENT WRAPPING DECISION
+                            // We project the line width using the same whole-string-per-run measurement that
+                            // FlushLine uses to compute LineWidth.  This ensures ParseLines(W') behaves
+                            // identically to ParseLines(W) when W' = Max(LineWidth) of the previous pass.
+                            //
+                            // For intra-run candidates (all words belong to the current run) we measure
+                            // UnwrappedText + candidate words as a single string — exactly what FlushLine
+                            // would measure after the commit.
+                            // For cross-run HasNext candidates (words from two adjacent runs with no
+                            // delimiter between them) we sum per-run whole-string widths, again matching
+                            // FlushLine's per-run accumulation.
+                            float ProjectedWidth;
+                            if (CurrentAndNext.All(w => w.Run == Run))
+                            {
+                                // Intra-run: whole-string measurement eliminates kerning divergence
+                                string Candidate = UnwrappedText.ToString() + string.Concat(CurrentAndNext.Select(w => w.Text));
+                                ProjectedWidth = CommittedRunsWidth
+                                    + Measurer.MeasureText(Candidate, Current.IsBold, Current.IsItalic).X;
+                            }
+                            else
+                            {
+                                // Cross-run HasNext: sum per-run whole-string widths
+                                bool IsFirstGroup = true;
+                                ProjectedWidth = CommittedRunsWidth;
+                                foreach (IGrouping<WrappableRun, WrappableRunWord> G in CurrentAndNext.GroupBy(w => w.Run))
+                                {
+                                    string GroupText = (IsFirstGroup ? UnwrappedText.ToString() : "")
+                                        + string.Concat(G.Select(w => w.Text));
+                                    ProjectedWidth += Measurer.MeasureText(GroupText, G.First().IsBold, G.First().IsItalic).X;
+                                    IsFirstGroup = false;
+                                }
+                            }
+
+                            if (ProjectedWidth <= MaxLineWidth)
                             {
                                 UnwrappedText.Append(Current.Text);
                                 foreach (char c in Current.Text)
@@ -486,7 +539,11 @@ namespace MGUI.Core.UI.Text
                         }
 
                         if (UnwrappedText.ToString().Length > 0)
-                            CurrentLine.Add(Run.AsTextRun(UnwrappedText.ToString()));
+                        {
+                            string CommittedText = UnwrappedText.ToString();
+                            CurrentLine.Add(Run.AsTextRun(CommittedText));
+                            CommittedRunsWidth += Measurer.MeasureText(CommittedText, TextRun.Settings.IsBold, TextRun.Settings.IsItalic).X;
+                        }
                     }
                 }
                 else
