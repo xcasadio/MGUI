@@ -129,6 +129,25 @@ namespace MGUI.FontStashSharp
         private Dictionary<(CustomFontStyles, int), char>? _calibratedDefaultChar;
 
         /// <summary>
+        /// Per (style, size) SpriteFont + ExactScale pair used at <see cref="ResolveFont"/>
+        /// time to calibrate the FSS pixel size via a multi-character reference string.
+        /// The calibrated FSS font then produces advance widths that match SF, giving
+        /// identical wrap points and no text clipping.
+        /// Populated by <see cref="MatchSpriteFontSizing"/>.
+        /// </summary>
+        private Dictionary<(CustomFontStyles, int), (SpriteFont SF, float ExactScale)>? _calibratedSpriteFont;
+
+        /// <summary>
+        /// Reference string used to compute the FSS pixel-size correction ratio at
+        /// <see cref="ResolveFont"/> time.  Must be the same string in both
+        /// <see cref="MatchSpriteFontSizing"/> and <see cref="ResolveFont"/>.
+        /// Covers a wide variety of character pairs to get an accurate average correction.
+        /// </summary>
+        private const string CalibrationString =
+            "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz" +
+            "0123456789 ,.:;!?\"'()-";
+
+        /// <summary>
         /// Scale factor applied to MGUI's logical <c>FontSize</c> (in points) before
         /// passing it to <see cref="FontSystem.GetFont"/> (which expects pixels).
         /// <para/>
@@ -220,10 +239,22 @@ namespace MGUI.FontStashSharp
         ///     pixels, matching SF's ExactScale-based measurement.</description></item>
         ///   <item><description><b>LineHeight</b> — copied from <c>FontSet.Heights[bakedSize] × exactScale</c>,
         ///     the tight glyph-crop metric used by SpriteFontTextEngine.</description></item>
-        ///   <item><description><b>SpaceWidth</b> — copied from <c>SF.MeasureString(" ") × exactScale</c>.</description></item>
         ///   <item><description><b>DrawOrigin</b> — vertical offset that shifts text up by the
         ///     same number of screen pixels as SpriteFontTextEngine's crop origin.</description></item>
         /// </list>
+        /// <para/>
+        /// <b>Note on glyph-width calibration:</b> this method also populates per-glyph
+        /// metric tables (<c>_calibratedGlyphMetrics</c>, <c>_calibratedSpacing</c>, etc.)
+        /// from the SpriteFont atlas, but <see cref="MeasureText"/> and
+        /// <see cref="MeasureGlyph"/> deliberately do <b>not</b> use them.  SpriteFont atlas
+        /// glyph widths are integer-precision (rounded at bake time), whereas FSS rendering
+        /// uses float-precision StbTrueType advances.  Summing the calibrated integers
+        /// produces a width systematically <i>narrower</i> than the FSS DrawText output,
+        /// causing text to be clipped.  All width measurements therefore use FSS-native
+        /// <see cref="FontStashSharp.SpriteFontBase.MeasureString"/> for measure–draw
+        /// consistency.  The calibrated tables are retained for potential future use (e.g.
+        /// glyph-atlas debugging) and for <see cref="SpaceWidth"/> reference.
+        /// <para/>
         /// Call this after <see cref="AddFontSystem(string, CustomFontStyles, FontSystem, byte[])"/>
         /// has set <see cref="FontSizeScale"/>.  You only need to call it once; the tables
         /// remain valid as long as <paramref name="fontManager"/>'s content does not change.
@@ -244,6 +275,7 @@ namespace MGUI.FontStashSharp
             var glyphMetricsTable = new Dictionary<(CustomFontStyles, int), Dictionary<char, GlyphMetrics>>();
             var spacingTable      = new Dictionary<(CustomFontStyles, int), float>();
             var defaultCharTable  = new Dictionary<(CustomFontStyles, int), char>();
+            var spriteFontTable   = new Dictionary<(CustomFontStyles, int), (SpriteFont SF, float ExactScale)>();
 
             // Styles to calibrate glyph metrics for.  LineHeight/SpaceWidth/DrawOrigin use Normal
             // only (FontSet.Heights/Origins are computed across all styles so Normal is representative).
@@ -308,6 +340,11 @@ namespace MGUI.FontStashSharp
                     spacingTable[(style, ptSize)]      = sf.Spacing * es;
                     if (sf.DefaultCharacter.HasValue)
                         defaultCharTable[(style, ptSize)] = sf.DefaultCharacter.Value;
+
+                    // Store the SpriteFont + exactScale so MeasureText can delegate
+                    // whole-string measurement to SF directly, giving identical layout
+                    // decisions to SpriteFontTextEngine (same wrap points, no extra lines).
+                    spriteFontTable[(style, ptSize)] = (sf, es);
                 }
             }
 
@@ -318,6 +355,7 @@ namespace MGUI.FontStashSharp
             _calibratedGlyphMetrics = glyphMetricsTable;
             _calibratedSpacing      = spacingTable;
             _calibratedDefaultChar  = defaultCharTable;
+            _calibratedSpriteFont   = spriteFontTable;
             InvalidateCache();
         }
 
@@ -426,27 +464,46 @@ namespace MGUI.FontStashSharp
 
             // Compute the FSS pixel size.
             // When MatchSpriteFontSizing has been called we use the effective pt from the
-            // SpriteFont calibration table (bakedSize × suggestedScale) rather than the
-            // raw logical size.  This ensures advance widths match SpriteFontTextEngine
-            // across all font sizes despite the quantised baked-atlas scheme it uses.
+            // SpriteFont calibration table (bakedSize × exactScale) rather than the
+            // raw logical size.  This ensures the FSS rasterisation pt aligns with SF.
             float effectivePt = _calibratedEffectivePt != null
                 && _calibratedEffectivePt.TryGetValue(spec.Size, out float cal)
                 ? cal
                 : (float)spec.Size;
-            SpriteFontBase spriteFontBase = fs.GetFont(effectivePt * FontSizeScale);
+
+            float pixelSize = effectivePt * FontSizeScale;
+
+            // MULTI-CHAR PIXEL-SIZE CALIBRATION
+            // calSW == rawSW for single spaces (diagnostic confirmed ratio=1.0 for all sizes),
+            // but FSS MeasureString for multi-character strings differs from SF * exactScale.
+            // Fix: measure a representative calibration string with BOTH SF and FSS at the
+            // raw pixel size, scale pixelSize by (sfWidth / fssWidth) so that the corrected
+            // FSS font produces advance widths matching SF for all text.  MeasureText then
+            // uses FSS-native MeasureString on the corrected font:
+            //   • ParseLines uses SF-equivalent widths → same wrap points as default engine
+            //   • DrawText renders with the same corrected font → no clipping
+            if (_calibratedSpriteFont != null
+                && _calibratedSpriteFont.TryGetValue((spec.Style, spec.Size), out var sfEntry))
+            {
+                float sfCalibWidth  = sfEntry.SF.MeasureString(CalibrationString).X * sfEntry.ExactScale;
+                float fssCalibWidth = fs.GetFont(pixelSize).MeasureString(CalibrationString).X;
+                if (sfCalibWidth > 0f && fssCalibWidth > 0f)
+                    pixelSize *= sfCalibWidth / fssCalibWidth;
+            }
+
+            SpriteFontBase spriteFontBase = fs.GetFont(pixelSize);
             var handle = new FSSFontHandle(spriteFontBase);
 
-            // Use calibrated metrics when available (populated by MatchSpriteFontSizing)
-            // so that layout and visual output match SpriteFontTextEngine exactly.
+            // Use calibrated LineHeight when available so vertical layout is identical to
+            // SpriteFontTextEngine (tight glyph-crop metric vs. FSS's full line-height).
             float lineHeight = _calibratedLineHeight != null
                 && _calibratedLineHeight.TryGetValue(spec.Size, out float calLH)
                 ? calLH
                 : handle.LineHeight;
 
-            float spaceWidth = _calibratedSpaceWidth != null
-                && _calibratedSpaceWidth.TryGetValue(spec.Size, out float calSW)
-                ? calSW
-                : handle.SpaceWidth;
+            // SpaceWidth comes from the calibrated-size FSS font, which now matches SF's
+            // exactScale measurement — consistent with MeasureText and MeasureGlyph.
+            float spaceWidth = handle.SpaceWidth;
 
             Vector2 drawOrigin = _calibratedDrawOrigin != null
                 && _calibratedDrawOrigin.TryGetValue(spec.Size, out Vector2 calDO)
@@ -485,90 +542,58 @@ namespace MGUI.FontStashSharp
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// <b>Why FSS-native width instead of calibrated SpriteFont glyph sum:</b><br/>
+        /// The calibrated path previously summed <c>SpriteFont</c> atlas glyph metrics
+        /// (integer pixel widths × <c>ExactScale</c>).  However, <see cref="DrawText"/>
+        /// renders via FSS at <c>effectivePt × FontSizeScale</c> using StbTrueType's
+        /// float-precision glyph advances.  Because the SpriteFont atlas stores integer
+        /// widths (each rounded individually), the calibrated sum is <b>systematically
+        /// narrower</b> than the actual FSS rendering.  Over a line of 30+ characters
+        /// the cumulative difference can reach several pixels, causing the layout engine
+        /// to allocate too little horizontal space and the text to be clipped.<br/>
+        /// <br/>
+        /// The FSS font resolved by <see cref="ResolveFont"/> has its pixel size corrected
+        /// via <see cref="CalibrationString"/> so that FSS advance widths match
+        /// <c>SF.MeasureString * exactScale</c>.  MeasureText therefore uses FSS-native
+        /// <c>MeasureString</c> directly — consistent with <see cref="DrawText"/> which
+        /// renders with the same corrected font — giving identical wrap points to
+        /// <see cref="SpriteFontTextEngine"/> and no text clipping.
+        /// Calibrated <c>LineHeight</c> is kept for the Y component.
+        /// </remarks>
         public Vector2 MeasureText(ResolvedFont font, string text)
         {
             if (string.IsNullOrEmpty(text))
                 return Vector2.Zero;
 
-            // When calibrated, compute the width by summing the SpriteFont-calibrated
-            // glyph advances and adding the per-glyph spacing, exactly mirroring what
-            // SpriteFont.MeasureString does internally.  This guarantees width parity
-            // with SpriteFontTextEngine regardless of StbTrueType rasterizer differences.
-            var styleKey = (font.Spec.Style, font.Spec.Size);
-            if (_calibratedGlyphMetrics != null
-                && _calibratedGlyphMetrics.TryGetValue(styleKey, out var charMap))
-            {
-                float spacing = 0f;
-                _calibratedSpacing?.TryGetValue(styleKey, out spacing);
-
-                // Pre-resolve the fallback default-char metrics (once, outside the loop).
-                GlyphMetrics defaultMetrics = default;
-                bool hasDefaultMetrics = false;
-                if (_calibratedDefaultChar != null
-                    && _calibratedDefaultChar.TryGetValue(styleKey, out char defChar))
-                {
-                    hasDefaultMetrics = charMap.TryGetValue(defChar, out defaultMetrics);
-                }
-
-                float width = 0f;
-                bool first  = true;
-                GlyphMetrics lastGm = default;
-                foreach (char c in text)
-                {
-                    if (!charMap.TryGetValue(c, out GlyphMetrics gm))
-                    {
-                        gm = hasDefaultMetrics ? defaultMetrics : default;
-                        // Unknown char with no default contributes nothing (all zeros).
-                    }
-
-                    // SpriteFont first-glyph rule: clamp negative LSB to 0 for the first
-                    // character (mirrors SpriteFont.MeasureString behaviour).
-                    width += first ? gm.TotalWidthFirstGlyph : gm.TotalWidth;
-                    if (!first) width += spacing;
-                    first  = false;
-                    lastGm = gm;
-                }
-
-                // SpriteFont last-glyph rule: MeasureString tracks proposedWidth as
-                // x + Math.Max(RSB, 0), so a negative RSB on the last character does not
-                // reduce the measured width.  Subtract the negative portion to match.
-                width -= MathF.Min(lastGm.RightSideBearing, 0f);
-
-                return new Vector2(width, font.LineHeight);
-            }
-
-            // Fallback: use FSS's own measurement when calibration is unavailable.
+            // Use FSS-native whole-string measurement on the pixel-size-corrected font.
+            // The correction (applied in ResolveFont) scales the FSS pixel size so that
+            // MeasureString results match SF * exactScale, ensuring:
+            //   • DrawText renders at the same width as MeasureText → no clipping
+            //   • ParseLines wraps at the same points as SpriteFontTextEngine
             var h = GetHandle(font);
             if (h is null) return Vector2.Zero;
             return new Vector2(h.Font.MeasureString(text).X, font.LineHeight);
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// <b>Consistency with <see cref="MeasureText"/>:</b> this method always returns
+        /// FSS-native glyph widths (via <see cref="FSSFontHandle.GetGlyphWidth"/>), not
+        /// the calibrated SpriteFont atlas values.  <c>TextRenderInfo</c> reconciles the
+        /// per-glyph sum against <see cref="MeasureText"/> (whole-string), so both must
+        /// come from the same measurement source to avoid caret-positioning drift.
+        /// </remarks>
         public GlyphMetrics MeasureGlyph(ResolvedFont font, char c)
         {
-            // When calibrated, return the pre-computed SF glyph metrics directly.
-            // This guarantees LSB / Width / RSB match SpriteFontTextEngine exactly
-            // (Option C from the parity task list), keeping TextBox caret positions
-            // pixel-identical between the two engines.
-            var styleKey = (font.Spec.Style, font.Spec.Size);
-            if (_calibratedGlyphMetrics != null
-                && _calibratedGlyphMetrics.TryGetValue(styleKey, out var charMap)
-                && charMap.TryGetValue(c, out GlyphMetrics calibrated))
-            {
-                // Ensure Height reflects any post-calibration LineHeight value.
-                return calibrated.Height == font.LineHeight
-                    ? calibrated
-                    : calibrated with { Height = font.LineHeight };
-            }
-
-            // Fallback: FSS measurement (used when MatchSpriteFontSizing was not called
-            // or the character is not in the SF atlas).
+            // Always use FSS-native per-glyph measurement so that caret positions
+            // (computed in TextRenderInfo) match the FSS-rendered glyph positions.
+            // FSS doesn't expose per-glyph bearings; report the full advance as GlyphWidth
+            // (LeftSideBearing = RightSideBearing = 0, so TotalWidth == TotalWidthFirstGlyph).
             var h = GetHandle(font);
             if (h is null)
                 return new GlyphMetrics(0, 0, 0, font.LineHeight);
 
-            // FSS doesn’t expose per-glyph bearings; report the full advance as GlyphWidth
-            // (LeftSideBearing = RightSideBearing = 0, so TotalWidth == TotalWidthFirstGlyph).
             return new GlyphMetrics(0f, h.GetGlyphWidth(c), 0f, font.LineHeight);
         }
 
