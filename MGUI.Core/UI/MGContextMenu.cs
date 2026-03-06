@@ -286,33 +286,6 @@ namespace MGUI.Core.UI
                 _Items.RemoveAt(i);
         }
 
-        /// <summary>Removes a specific <paramref name="Item"/> from this menu, correctly unregistering its event handlers.
-        /// <para/>See also: <see cref="RemoveAt(int)"/>, <see cref="ClearItems"/></summary>
-        /// <returns>True if the item was found and removed; false otherwise.</returns>
-        public bool RemoveItem(MGContextMenuItem Item)
-        {
-            bool Removed = _Items.Remove(Item);
-            Debug.WriteLineIf(Removed, $"[MGContextMenu] RemoveItem: {Item?.GetType().Name}");
-            return Removed;
-        }
-
-        /// <summary>Removes the item at the specified <paramref name="Index"/> from this menu.
-        /// <para/>See also: <see cref="RemoveItem(MGContextMenuItem)"/>, <see cref="ClearItems"/></summary>
-        public void RemoveAt(int Index)
-        {
-            Debug.WriteLine($"[MGContextMenu] RemoveAt index={Index}");
-            _Items.RemoveAt(Index);
-        }
-
-        /// <summary>Replaces the item at the specified <paramref name="Index"/> with <paramref name="NewItem"/>.
-        /// The replaced item's event handlers are correctly unregistered.
-        /// <para/>See also: <see cref="AddButton(string, Action{MGContextMenuButton})"/></summary>
-        public void ReplaceItem(int Index, MGContextMenuItem NewItem)
-        {
-            Debug.WriteLine($"[MGContextMenu] ReplaceItem at index={Index} with {NewItem?.GetType().Name}");
-            _Items[Index] = NewItem;
-        }
-
         /// <summary>Optional factory called every time this menu is about to open (just <em>before</em>
         /// <see cref="ContextMenuOpening"/> fires).
         /// When set, <see cref="ClearItems"/> is called automatically before the factory runs,
