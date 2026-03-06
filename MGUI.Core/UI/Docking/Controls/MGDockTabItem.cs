@@ -562,41 +562,58 @@ public class MGDockTabItem : MGElement
             child?.Draw(DA);
         }
 
-        // Draw X cross icon on the close button (drawn directly, not via font glyph)
+        // Draw close icon
         if (Panel?.CanClose == true && _closeButton != null)
         {
-            Rectangle cb = _closeButton.LayoutBounds;
-            float cx = cb.X + cb.Width * 0.5f;
-            float cy = cb.Y + cb.Height * 0.5f;
-            const float half = 4.5f;
-            Color crossColor = IsActive ? Color.White : new Color(180, 180, 180);
+            Rectangle cb       = _closeButton.LayoutBounds;
+            const int iconSize = 12;
+            Rectangle iconRect = new Rectangle(
+                cb.X + (cb.Width  - iconSize) / 2,
+                cb.Y + (cb.Height - iconSize) / 2,
+                iconSize, iconSize);
+            Color closeColor = IsActive ? Color.White : new Color(180, 180, 180);
 
-            DA.DT.StrokeLineSegment(Vector2.Zero,
-                new Vector2(cx - half, cy - half), new Vector2(cx + half, cy + half),
-                crossColor, 1.5f);
-            DA.DT.StrokeLineSegment(Vector2.Zero,
-                new Vector2(cx + half, cy - half), new Vector2(cx - half, cy + half),
-                crossColor, 1.5f);
+            if (!GetResources().TryDrawTexture(DA.DT, "DockClose", iconRect, 1f, closeColor))
+            {
+                // Fallback: programmatic X cross
+                float cx = cb.X + cb.Width * 0.5f;
+                float cy = cb.Y + cb.Height * 0.5f;
+                const float half = 4.5f;
+                DA.DT.StrokeLineSegment(Vector2.Zero,
+                    new Vector2(cx - half, cy - half), new Vector2(cx + half, cy + half),
+                    closeColor, 1.5f);
+                DA.DT.StrokeLineSegment(Vector2.Zero,
+                    new Vector2(cx + half, cy - half), new Vector2(cx - half, cy + half),
+                    closeColor, 1.5f);
+            }
         }
 
-        // Draw pin icon on the pin button
+        // Draw pin / unpin icon
         if (Panel?.CanAutoHide == true && _pinButton != null)
         {
-            Rectangle pb = _pinButton.LayoutBounds;
-            float cx = pb.X + pb.Width * 0.5f;
-            float cy = pb.Y + pb.Height * 0.5f;
-            Color pinColor = Panel.IsPinned
-                ? new Color(0, 180, 255)    // blue when pinned (will be auto-hidden on click)
-                : new Color(180, 180, 180); // grey when unpinned (will be re-pinned on click)
+            Rectangle pb       = _pinButton.LayoutBounds;
+            const int iconSize = 12;
+            Rectangle iconRect = new Rectangle(
+                pb.X + (pb.Width  - iconSize) / 2,
+                pb.Y + (pb.Height - iconSize) / 2,
+                iconSize, iconSize);
 
-            // Pin head: small filled square
-            int hs = 3;
-            DA.DT.FillRectangle(Vector2.Zero,
-                new MonoGame.Extended.RectangleF(cx - hs, cy - hs - 1, hs * 2, hs * 2), pinColor);
-            // Pin stem: short vertical line below the head
-            DA.DT.StrokeLineSegment(Vector2.Zero,
-                new Vector2(cx, cy + hs - 1), new Vector2(cx, cy + hs + 3),
-                pinColor, 1.5f);
+            // Blue when pinned (click → auto-hide), grey when auto-hidden (click → re-pin)
+            Color pinColor = Panel.IsPinned ? new Color(0, 180, 255) : new Color(180, 180, 180);
+            string pinIcon = Panel.IsPinned ? "DockPin" : "DockPinOff";
+
+            if (!GetResources().TryDrawTexture(DA.DT, pinIcon, iconRect, 1f, pinColor))
+            {
+                // Fallback: programmatic pin shape
+                float cx = pb.X + pb.Width * 0.5f;
+                float cy = pb.Y + pb.Height * 0.5f;
+                int hs = 3;
+                DA.DT.FillRectangle(Vector2.Zero,
+                    new MonoGame.Extended.RectangleF(cx - hs, cy - hs - 1, hs * 2, hs * 2), pinColor);
+                DA.DT.StrokeLineSegment(Vector2.Zero,
+                    new Vector2(cx, cy + hs - 1), new Vector2(cx, cy + hs + 3),
+                    pinColor, 1.5f);
+            }
         }
     }
 }

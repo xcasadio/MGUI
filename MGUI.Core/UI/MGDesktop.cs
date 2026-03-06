@@ -418,6 +418,38 @@ namespace MGUI.Core.UI
             }
             #endregion Sample Icons
 
+            #region Docking Icons
+            string[] DockIconEntries = {
+                "x-white",                    "DockClose",
+                "maximize-white",             "DockMaximize",
+                "minimize-white",             "DockMinimize",
+                "pin-white",                  "DockPin",
+                "pin-off-white",              "DockPinOff",
+                // panel direction icons — dashed = per-panel joystick, solid = host-edge
+                "panel-left-dashed-white",    "DockPanelLeftDashed",
+                "panel-right-dashed-white",   "DockPanelRightDashed",
+                "panel-top-dashed-white",     "DockPanelTopDashed",
+                "panel-bottom-dashed-white",  "DockPanelBottomDashed",
+                "panel-center-dashed-white",  "DockPanelCenterDashed",
+                "panel-left-white",           "DockPanelLeft",
+                "panel-right-white",          "DockPanelRight",
+                "panel-top-white",            "DockPanelTop",
+                "panel-bottom-white",         "DockPanelBottom",
+                "panel-center-white",         "DockPanelCenter"
+            };
+            for (int i = 0; i < DockIconEntries.Length; i += 2)
+            {
+                string fileName   = DockIconEntries[i];
+                string resourceId = DockIconEntries[i + 1];
+                try
+                {
+                    Texture2D DockTex = Renderer.Content.Load<Texture2D>(Path.Combine("Icons", "docking", fileName));
+                    Resources.AddTexture(resourceId, new(DockTex));
+                }
+                catch { /* icon not found — skip silently */ }
+            }
+            #endregion Docking Icons
+
             ToolTipShowDelay = DefaultToolTipShowDelay;
 
             HighPriorityMouseHandler = InputTracker.Mouse.CreateHandler(this, null);
