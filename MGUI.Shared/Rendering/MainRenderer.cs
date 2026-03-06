@@ -109,6 +109,7 @@ namespace MGUI.Shared.Rendering
 
         public FontManager FontManager { get; }
 
+        private ITextEngine _textEngine;
         /// <summary>
         /// The active text engine used for all font measurement and rendering.
         /// Defaults to a <see cref="SpriteFontTextEngine"/> wrapping <see cref="FontManager"/>.
@@ -121,12 +122,16 @@ namespace MGUI.Shared.Rendering
             get => _textEngine;
             set
             {
+                ITextEngine previous = TextEngine;
                 if (_textEngine != null && !ReferenceEquals(_textEngine, value))
                     _textEngine.InvalidateCache();
-                _textEngine = value ?? throw new System.ArgumentNullException(nameof(value));
+                _textEngine = value ?? throw new ArgumentNullException(nameof(value));
+                TextEngineChanged?.Invoke(this, new EventArgs<ITextEngine>(previous, TextEngine));
             }
         }
-        private ITextEngine _textEngine;
+
+        /// <summary>Invoked when <see cref="TextEngine"/> is set to a new value</summary>
+        public event EventHandler<EventArgs<ITextEngine>> TextEngineChanged;
 
         public InputTracker Input { get; }
         public UpdateBaseArgs UpdateArgs { get; private set; }
@@ -143,7 +148,7 @@ namespace MGUI.Shared.Rendering
             PrimitiveBatch = new(GraphicsDevice, 1024);
             Content = new(Host, "Content");
             FontManager = new(Content, "Arial");
-            _textEngine = new SpriteFontTextEngine(FontManager);
+            TextEngine = new SpriteFontTextEngine(FontManager);
             Input = new();
 
             ScrollMarker = Content.Load<Texture2D>(Path.Combine("Icons", "ScrollMarker"));

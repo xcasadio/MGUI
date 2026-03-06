@@ -17,6 +17,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using MGUI.Shared.Text.Engines;
 
 namespace MGUI.Core.UI
 {
@@ -27,9 +28,10 @@ namespace MGUI.Core.UI
         public MainRenderer Renderer { get; }
         public InputTracker InputTracker => Renderer.Input;
         public FontManager FontManager => Renderer.FontManager;
-        /// <summary>The active <see cref="MGUI.Shared.Text.Engines.ITextEngine"/> used for all
+
+        /// <summary>The active <see cref="ITextEngine"/> used for all
         /// text measurement and rendering.  Assign a different engine to switch backends globally.</summary>
-        public MGUI.Shared.Text.Engines.ITextEngine TextEngine
+        public ITextEngine TextEngine
         {
             get => Renderer.TextEngine;
             set => Renderer.TextEngine = value;
@@ -467,6 +469,17 @@ namespace MGUI.Core.UI
 
             HighPriorityMouseHandler.PressedInside += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
             HighPriorityMouseHandler.PressedOutside += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
+
+            //  Recalculate the layout of text-based elements when the text-rendering backend changes
+            Renderer.TextEngineChanged += (sender, e) =>
+            {
+                foreach (MGWindow window in Windows)
+                    foreach (MGTextBlock tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+                        tb.RefreshTextEngine();
+                //  Note: We don't need to call InvalidateAllLayouts() because the parent elements of MGTextBlocks will already receive LayoutChanged notifications.
+                //  The only reason InvalidateAllLayouts would be needed is if an MGElement instance other than MGTextBlock rendered text in its DrawSelf method
+                //  (currently, all text-drawing is funnelled through MGTextBlocks, even for things like MGTimer/MGStopWatch/MGTextBox)
+            };
         }
 
         public void Update()
