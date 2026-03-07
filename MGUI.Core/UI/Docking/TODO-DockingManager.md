@@ -263,33 +263,34 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 
 ---
 
-### 16. Corrections Auto-Hide (bugs détectés post-implémentation)
+### 16. Corrections Auto-Hide (bugs détectés post-implémentation) ✅ (Complété le 2026-03-07)
 
-- [ ] **16.1** Texte vertical dans les strips Left/Right
-  - Les boutons dans les strips Left/Right ont une largeur de 24 px → le texte horizontal est illisible
-  - **Fix** : dans `MGDockAutoHideStrip.DrawContents`, pour Left/Right, dessiner le titre rotaté 90° via `DA.DT.DrawSpriteFontText`
-  - Les boutons enfants conservent leur logique de hit-test/fond ; le texte est rendu manuellement après
+- [x] **16.1** ✅ Texte vertical dans les strips Left/Right
+  - ✅ `MGDockAutoHideStrip.DrawContents` dessine le titre rotaté 90° via `DA.DT.DrawTextViaEngine` (FSS — rendu vectoriel, anti-aliasé)
+  - ✅ Taille des boutons adaptée au texte mesuré (`MeasureButtonSizePx`) ; les boutons enfants conservent leur logique de hit-test/fond
 
-- [ ] **16.2** La zone de contenu doit tenir compte des strips
-  - Les strips sont des `MGComponent` overlay → le contenu docké s'affiche SOUS les strips
-  - **Fix** : surcharger `UpdateContentLayout` dans `MGDockHost` pour inséter les bounds du contenu selon les strips visibles (left/top/right/bottom inset = `StripThickness` pour chaque côté actif)
-  - Même correction s'applique en mode maximize automatiquement
+- [x] **16.2** ✅ La zone de contenu tient compte des strips
+  - ✅ `MGDockHost.UpdateContentLayout` surcharge via `ComputeInnerBounds(Bounds)` qui inset le contenu de `StripThickness` pour chaque côté actif
+  - ✅ Drop indicators positionnés sur `ComputeInnerBounds(LayoutBounds)` (pas derrière les strips)
+  - ✅ Corners des strips Left/Right insetés par topInset/bottomInset pour éviter les chevauchements
 
-- [ ] **16.3** Le bouton × du drawer doit vraiment fermer le panel
-  - Actuellement il masque juste le drawer ; le panel reste dans l'auto-hide store
-  - **Fix** : ajouter `PanelCloseRequested: EventHandler<DockPanelNode>` sur `MGDockAutoHideDrawer` déclenché par le bouton × ; `MGDockHost` gère cet event en supprimant le panel de l'auto-hide store et du registre (via `NotifyFloatingPanelClosed` pattern)
+- [x] **16.3** ✅ Le bouton × du drawer ferme vraiment le panel
+  - ✅ `PanelCloseRequested: EventHandler<DockPanelNode>` sur `MGDockAutoHideDrawer` déclenché par le bouton ×
+  - ✅ `MGDockHost.CloseAutoHidePanel()` retire le panel de l'auto-hide store et du registre
 
-- [ ] **16.4** Regression : impossible de docker une fenêtre flottante
-  - Cause probable : le bouton pin dans `MGDockTabItem` est un élément enfant `hit-testable` → lorsque le drag commence sur la zone du pin, `DragStart` n'est pas transmis au tab item
-  - **Fix** : supprimer le hit-test du `_pinButton` (`IsHitTestVisible = false`) ; gérer le clic sur la zone pin directement dans le `MouseHandler` du tab item (vérification de position dans le handler `LMBReleasedInside`)
+- [x] **16.4** ✅ Regression drag depuis fenêtre flottante corrigée
+  - ✅ `_pinButton.IsHitTestVisible = false` — le pin ne capture plus les événements souris
+  - ✅ Clic pin géré dans `LMBReleasedInside` du tab item via vérification de position `_pinButton.LayoutBounds.Contains(e.Position)`
 
-- [ ] **16.5** Le bouton Maximize d'une fenêtre flottante ne fait rien
-  - `MGFloatingDockWindow` construit le tab group mais ne s'abonne pas à `MaximizeRequested` / `RestoreRequested`
-  - **Fix** : dans le constructeur de `MGFloatingDockWindow`, souscrire à ces events et implémenter maximize = redimensionner la fenêtre pour remplir le viewport du desktop ; restore = revenir aux dimensions précédentes
+- [x] **16.5** ✅ Bouton Maximize d'une fenêtre flottante
+  - ✅ `MGFloatingDockWindow` souscrit à `MaximizeRequested` / `RestoreRequested` dans son constructeur
+  - ✅ `MaximizeWindow()` : sauvegarde bounds courants, redimensionne pour remplir le viewport desktop
+  - ✅ `RestoreWindow()` : restaure `_preMaximizeBounds`
 
-- [ ] **16.6** Impossible de redimensionner le drawer (panel pinné)
-  - `ResizeGripSize` est défini dans `MGDockAutoHideDrawer` mais non implémenté
-  - **Fix** : ajouter un MGResizeGrip (ou implémentation manuelle de drag) sur le bord intérieur du drawer pour permettre de modifier `ActivePanel.DrawerSize` ; mettre à jour `DrawerSize` (min 60 px) pendant le drag et invalider le layout
+- [x] **16.6** ✅ Redimensionnement du drawer
+  - ✅ `GetResizeGripRect()` calcule la zone de drag (4 px sur le bord intérieur) selon le côté
+  - ✅ `ComputeResizeDelta()` convertit le mouvement souris en variation de `DrawerSize`
+  - ✅ `DrawerSizeChanged: EventHandler<int>` sur `MGDockAutoHideDrawer` — `MGDockHost` invalide le layout
 
 ---
 
@@ -332,33 +333,79 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
   - ✅ Si le groupe maximisé n'existe plus, le stack est dépilé automatiquement
 
 ### 13. Proximity Docking
-- [ ] **13.1** Docking sans joystick
-  - Détecter l'approche d'un bord (ex: <30px)
-  - Activer automatiquement la zone correspondante
+- [x] **13.1** ✅ Docking sans joystick (Complété le 2026-03-07)
+  - ✅ `ProximityDockingEnabled` (bool, défaut `true`) + `ProximityBandWidth` (int, défaut 30px)
+  - ✅ PRIORITY 4 dans `UpdateDragPreview` : si la souris se trouve dans la bande de `ProximityBandWidth * UIScale` pixels d'un bord, la zone de split est activée automatiquement
+  - ✅ Respecte les zones interdites (GetForbiddenZones) comme le joystick
+  - ✅ Multiplié par `UIScale` pour un support DPI correct
 
-- [ ] **13.2** Drop sur splitter existant
-  - Autoriser le drop sur un splitter bar
-  - Insérer dans le split parent comme 3ème enfant (créer nested split)
+- [x] **13.2** ✅ Drop sur splitter existant (Complété le 2026-03-07)
+  - ✅ `MGDockSplitContainer.SplitterBarLayoutBounds` expose les bounds de la barre
+  - ✅ `DockDropTarget.IsSplitterDrop` + `SplitterNode` pour identifier ce type de drop
+  - ✅ PRIORITY 3 dans `UpdateDragPreview` : scan de tous les `MGDockSplitContainer`, détection de hit élargi (+4px)
+  - ✅ `FindSplitContainersRecursive` + `FindFirstLeafTabGroup` pour résoudre le nœud cible
+  - ✅ La moitié de la barre détermine le côté d'insertion (Left/Right pour H-split, Top/Bottom pour V-split)
+  - ✅ `ExecuteDrop` n'a pas besoin de modifications : le target est un `DockTabGroupNode` standard avec une zone de split
 
 ### 14. Focus & Polish
-- [ ] **14.1** Focus manager centralisé
-  - `ActiveDockable` property sur MGDockHost
-  - Highlight visuel du panel actif
+- [x] **14.1** ✅ Focus manager centralisé (Complété le 2026-03-07)
+  - ✅ `ActiveDockable` property (public, readonly) sur `MGDockHost` — mise à jour dans `OnTabGroupPropertyChanged`
+  - ✅ `MGDockTabGroup.IsActiveGroup` bool property — mis à `true` uniquement sur le groupe contenant `ActiveDockable`
+  - ✅ `RefreshActiveGroupHighlight()` parcourt `GetAllVisibleTabGroups()` et met à jour `IsActiveGroup`
+  - ✅ `DrawActiveGroupAccent()` dans `MGDockTabGroup.DrawContents` : bande bleue Windows (0,120,215) de 2px en haut du groupe actif
 
-- [ ] **14.2** "Bring to front" des floating windows
-  - Au clic, mettre la fenêtre au premier plan
+- [x] **14.2** ✅ "Bring to front" des floating windows
+  - ✅ `MGFloatingDockWindow.MouseHandler.LMBPressedInside` → `BringToFront()` → `ParentWindow.BringToFront(this)`
+  - ✅ Géré nativement par le système `NestedWindows` de `MGWindow`
 
-- [ ] **14.3** Navigation clavier Ctrl+Tab
-  - Ouvrir popup de sélection rapide
-  - Naviguer entre les panels ouverts
+- [x] **14.3** ✅ Navigation clavier Ctrl+Tab (Complété le 2026-03-07)
+  - ✅ Détection edge-triggered (CurrentState && !PreviousState) de Tab + Ctrl dans `UpdateSelf`
+  - ✅ `ShowCtrlTabSwitcher()` (public) ouvre un `MGContextMenu` centré sur le host
+  - ✅ Liste tous les panels de `_panelRegistry` avec leurs titres — clic appelle `ShowDockable(id)`
 
-- [ ] **14.4** Performance : ne pas render les panels cachés
-  - Désactiver Update/Draw pour auto-hide fermé
-  - Lazy content creation
+- [x] **14.4** ✅ Performance : panels cachés (Complété le 2026-03-07)
+  - ✅ Panels inactifs dans un groupe : seul `_activeContentContainer` est rendu (déjà en place)
+  - ✅ Drawer auto-hide fermé (`Visibility.Collapsed`) : rendu et Update skippés automatiquement par MGElement
+  - ✅ Content du drawer est null/cleared quand `ActivePanel = null` via `RefreshContent()`
+  - ℹ️ La création du contenu est déjà lazy via `GetOrCreateContent()` — aucune modification necessaire
 
-- [ ] **14.5** DPI / Scaling
-  - Tailles minimum adaptatives
-  - Seuils de drag ajustés
+- [x] **14.5** ✅ DPI / Scaling (Complété le 2026-03-07)
+  - ✅ `UIScale` float property sur `MGDockHost` (défaut 1.0, clamp 0.25–4.0)
+  - ✅ `ProximityBandWidth` est multiplié par `UIScale` lors de la détection de proximité
+  - ✅ Permet d'adapter les seuils aux écrans haute résolution sans toucher les valeurs par défaut
+
+---
+
+### 17. Tests Unitaires
+
+- [x] **17.1** ✅ Tests DockLayoutModel (Complété)
+  - ✅ 22 tests : `AddToAutoHide` / `RemoveFromAutoHide` / `HasAutoHidePanels` (11 tests)
+  - ✅ `GetAllTabGroups` sur arbres imbriqués (4 tests)
+  - ✅ Sérialisation/désérialisation JSON round-trip complet (6 tests)
+  - Fichier : `MGUI.Tests/Docking/DockLayoutModelTests.cs`
+
+- [x] **17.2** ✅ Tests DockOperation (Complété)
+  - ✅ 22 tests : `DockAsTab` (6), `ReorderTab` (3), `SplitDock` L/R/T/B/Center/nested/root (7)
+  - ✅ `RemovePanel` cleanup groupes/splits vides (3), `SplitDockAtRoot` (5)
+  - Fichier : `MGUI.Tests/Docking/DockOperationTests.cs`
+
+- [x] **17.3** ✅ Tests DockTabGroupNode model (Complété)
+  - ✅ 18 tests : `AddPanel`, `SetActivePanel`, `IsEmpty`, `RemovePanel`, `ReorderPanel`, scroll index clamping
+  - Note : tests `LastMeasuredWidth` vs `LayoutBounds.Width` nécessitent un contexte MonoGame (hors scope unit tests)
+  - Fichier : `MGUI.Tests/Docking/DockTabGroupModelTests.cs`
+
+- [x] **17.4** ✅ Tests règles de docking (Complété)
+  - ✅ 16 tests : `AllowedZones` (4), `Family` (7), `DockableType`/`IsDocumentArea` (4), combiné (1)
+  - Note : `CanDockTo` Document/Tool area et `GetForbiddenZones` nécessitent `MGDockHost` (hors scope unit tests)
+  - Fichier : `MGUI.Tests/Docking/DockRulesModelTests.cs`
+
+- [x] **17.5** ✅ Tests auto-hide / repin (Complété)
+  - ✅ 13 tests : store multi-panel (2), snapshots `AutoHideReturnZone`/`SplitRatio` (5), repin restauration (4)
+  - Helpers `SimulateUnpin` / `SimulateRepin` reproduisent la logique model-layer de `MGDockHost`
+  - `InternalsVisibleTo("MGUI.Tests")` ajouté dans `MGUI.Core/Properties/AssemblyInfo.cs`
+  - Fichier : `MGUI.Tests/Docking/DockAutoHideRepinTests.cs`
+
+**Total : 91 tests unitaires, tous ✅ verts (124 tests dans la suite incluant les tests FSS existants)**
 
 ---
 
@@ -368,7 +415,11 @@ créant un split au niveau racine qui occupe toute la largeur ou hauteur.
 |-------|---------------------|------|
 | MVP   | Bugs fix, tabs close/reorder, save/load | ✅ Complété |
 | V2    | Registry, edge docking, rules, overflow, maximize, boutons visuels, floating windows | ✅ Complété |
-| V3    | Auto-hide, proximity docking, focus, polish | � En cours (auto-hide ✅, tâches 13-15 restantes) |
+| V3    | Auto-hide (11-12 ✅), corrections (15-16 ✅), proximity docking (13 ✅), focus+polish (14 ✅) | ✅ Complété |
+| Tests | Tests unitaires (17 ✅) — 91 tests docking model layer, tous verts | ✅ Complété |
+
+---
+
 ## 🐛 Bugs Connus à Investiguer
 
 1. [x] ~~Bug : Headers des tabs avec bordures visibles~~ ✅ Corrigé (MGBorder sans bordure)

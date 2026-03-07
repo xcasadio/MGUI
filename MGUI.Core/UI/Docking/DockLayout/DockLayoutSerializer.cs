@@ -88,11 +88,23 @@ public static class DockLayoutSerializer
         [JsonPropertyName("canFloat")]
         public bool CanFloat { get; set; } = true;
 
+        [JsonPropertyName("canAutoHide")]
+        public bool CanAutoHide { get; set; } = true;
+
         [JsonPropertyName("isPinned")]
         public bool IsPinned { get; set; } = true;
 
         [JsonPropertyName("dockableType")]
         public string DockableType { get; set; } = "Tool";
+
+        [JsonPropertyName("family")]
+        public string Family { get; set; }
+
+        [JsonPropertyName("drawerSize")]
+        public int DrawerSize { get; set; } = 200;
+
+        [JsonPropertyName("allowedZones")]
+        public List<string> AllowedZones { get; set; }
     }
 
     #endregion
@@ -184,8 +196,12 @@ public static class DockLayoutSerializer
             Icon = panel.Icon?.ToString(), // Convert icon to string representation
             CanClose = panel.CanClose,
             CanFloat = panel.CanFloat,
+            CanAutoHide = panel.CanAutoHide,
             IsPinned = panel.IsPinned,
-            DockableType = panel.DockableType.ToString()
+            DockableType = panel.DockableType.ToString(),
+            Family = panel.Family,
+            DrawerSize = panel.DrawerSize,
+            AllowedZones = panel.AllowedZones?.Select(z => z.ToString()).ToList()
         };
     }
 
@@ -368,8 +384,11 @@ public static class DockLayoutSerializer
             Icon = dto.Icon, // Store as string; view layer can convert to texture
             CanClose = dto.CanClose,
             CanFloat = dto.CanFloat,
+            CanAutoHide = dto.CanAutoHide,
             IsPinned = dto.IsPinned,
-            ContentFactory = contentFactory
+            ContentFactory = contentFactory,
+            Family = dto.Family,
+            DrawerSize = dto.DrawerSize > 0 ? dto.DrawerSize : 200
         };
 
         // Restore dockable type
@@ -377,6 +396,19 @@ public static class DockLayoutSerializer
             Enum.TryParse<DockableType>(dto.DockableType, true, out var dockableType))
         {
             panel.DockableType = dockableType;
+        }
+
+        // Restore allowed zones (null = all zones permitted)
+        if (dto.AllowedZones != null && dto.AllowedZones.Count > 0)
+        {
+            var zones = new List<DockZone>();
+            foreach (var z in dto.AllowedZones)
+            {
+                if (Enum.TryParse<DockZone>(z, true, out var zone))
+                    zones.Add(zone);
+            }
+            if (zones.Count > 0)
+                panel.AllowedZones = zones.AsReadOnly();
         }
 
         return panel;

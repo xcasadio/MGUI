@@ -335,6 +335,16 @@ public class DockLayoutModel : INotifyPropertyChanged
 
     private void OnNodePropertyChanged(object sender, PropertyChangedEventArgs e)
     {
+        // ActivePanelId / ActivePanel changes are purely visual state (which tab is selected),
+        // not structural layout changes.  Firing LayoutChanged here would cause a full
+        // visual-tree rebuild on every tab switch — including during Ctrl+Tab cycling.
+        if (sender is DockTabGroupNode &&
+            (e.PropertyName == nameof(DockTabGroupNode.ActivePanelId) ||
+             e.PropertyName == nameof(DockTabGroupNode.ActivePanel)))
+        {
+            return;
+        }
+
         // Propagate layout change notification
         // This allows the view layer to know when to rebuild
         LayoutChanged?.Invoke(this, EventArgs.Empty);
@@ -349,10 +359,21 @@ public class DockLayoutModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Clears the entire layout tree.
+    /// Clears the entire layout tree including all auto-hidden panels.
+    /// Unsubscribes from auto-hidden panels before clearing them so that
+    /// their subsequent property changes do not trigger spurious LayoutChanged events.
     /// </summary>
     public void Clear()
     {
+        // Unsubscribe from auto-hidden panels (they're NOT in the layout tree,
+        // so UnsubscribeFromNodeTree in the RootNode setter doesn't cover them).
+        foreach (var list in _autoHideStore.Values)
+        {
+            foreach (var panel in list)
+                panel.PropertyChanged -= OnNodePropertyChanged;
+            list.Clear();
+        }
+
         RootNode = null;
     }
 

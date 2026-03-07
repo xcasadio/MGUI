@@ -281,25 +281,14 @@ public class DockPanelNode : DockNode
     /// <summary>
     /// Clears the cached content, forcing recreation on next GetOrCreateContent() call.
     /// Useful for refreshing panel content or freeing resources.
+    /// Callers that need to clean up data bindings should do so on the returned content
+    /// BEFORE calling this method.
     /// </summary>
-    public void ClearCachedContent()
+    public MGElement ClearCachedContent()
     {
-        // Note: Consider calling RemoveDataBindings() on cached content if it exists
-        // to prevent memory leaks from event subscriptions
-        if (_cachedContent != null)
-        {
-            try
-            {
-                // Attempt to clean up data bindings if method exists
-                _cachedContent.RemoveDataBindings(true);
-            }
-            catch
-            {
-                // Ignore if method not available or fails
-            }
-        }
-            
+        var previous = _cachedContent;
         _cachedContent = null;
+        return previous;
     }
 
     /// <summary>

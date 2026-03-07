@@ -47,6 +47,19 @@ public class DockDropTarget
     public bool IsHostEdge { get; set; }
 
     /// <summary>
+    /// When true, the user dropped the panel onto a splitter bar between two existing children.
+    /// <see cref="SplitterNode"/> carries the model-level split whose bar was hit, and
+    /// <see cref="Zone"/> indicates which child the panel will be inserted next to.
+    /// </summary>
+    public bool IsSplitterDrop { get; set; }
+
+    /// <summary>
+    /// The split node whose splitter bar was targeted.
+    /// Only valid when <see cref="IsSplitterDrop"/> is true.
+    /// </summary>
+    public DockSplitNode SplitterNode { get; set; }
+
+    /// <summary>
     /// Creates a new DockDropTarget.
     /// </summary>
     public DockDropTarget()
