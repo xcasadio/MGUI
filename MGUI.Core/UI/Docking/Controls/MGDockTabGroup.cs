@@ -528,8 +528,11 @@ public class MGDockTabGroup : MGElement
         {
             foreach (var tab in _tabItems.Values)
             {
-                int w = Math.Max(tab.MinTabWidth, tab.LayoutBounds.Width);
-                totalEstimated += w;
+                // Use LastMeasuredWidth (desired width from the measurement pass) rather than
+                // LayoutBounds.Width (allocated width).  LayoutBounds.Width is clamped by the
+                // stack panel when it distributes space, so it under-reports the space actually
+                // needed and can prevent overflow from ever being detected.
+                totalEstimated += tab.LastMeasuredWidth;
             }
         }
 
@@ -556,7 +559,7 @@ public class MGDockTabGroup : MGElement
                 {
                     if (!_tabItems.TryGetValue(panels[i].Id, out var tab))
                         continue;
-                    int w = Math.Max(tab.MinTabWidth, tab.LayoutBounds.Width);
+                    int w = tab.LastMeasuredWidth;
                     if (accumulated + w > tabStripWidth && newVisibleCount > 0)
                         break;
                     accumulated += w;

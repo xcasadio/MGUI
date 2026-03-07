@@ -21,8 +21,9 @@ public class MGDockAutoHideStrip : MGElement
     /// <summary>Thickness of the strip perpendicular to its edge (pixels).</summary>
     public const int StripThickness = 24;
 
-    private const int ButtonMinSize = 80; // min width (horizontal) / height (vertical) per button
-    private const int ButtonSpacing = 1;
+    private const int ButtonMinSize = 60; // min width (horizontal) / height (vertical) per button
+    private const int ButtonPadding  = 20; // horizontal / leading+trailing padding added to text measurement
+    private const int ButtonSpacing  = 1;
 
     // ── State ─────────────────────────────────────────────────────────
     private AutoHideSide _side;
@@ -100,6 +101,22 @@ public class MGDockAutoHideStrip : MGElement
         LayoutChanged(this, true);
     }
 
+    // ── Text-measurement helper ───────────────────────────────────────
+    /// <summary>
+    /// Returns the button's variable dimension in pixels (width for horizontal strips,
+    /// height for vertical strips), sized to fit <paramref name="title"/> with padding.
+    /// </summary>
+    private int MeasureButtonSizePx(string title)
+    {
+        if (string.IsNullOrEmpty(title)) return ButtonMinSize;
+        string family = ParentWindow.Desktop.FontManager.DefaultFontFamily;
+        if (!ParentWindow.Desktop.FontManager.TryGetFont(family, CustomFontStyles.Normal, 11, true,
+            out _, out SpriteFont sf, out _, out _, out float scale))
+            return ButtonMinSize;
+        int textPx = (int)Math.Ceiling(sf.MeasureString(title).X * scale);
+        return Math.Max(ButtonMinSize, textPx + ButtonPadding);
+    }
+
     // ── Button factory ────────────────────────────────────────────────
     private MGBorder CreateButton(string title)
     {
@@ -142,27 +159,28 @@ public class MGDockAutoHideStrip : MGElement
     {
         if (IsHorizontal)
         {
-            // Top / Bottom: fixed height = StripThickness, width = sum of buttons
+            // Top / Bottom: fixed height = StripThickness, width = text-measured per button
             int totalW = 0;
             foreach (var btn in _buttons)
             {
-                btn.UpdateMeasurement(
-                    new Size(ButtonMinSize, StripThickness),
-                    out _, out Thickness btnSzH, out _, out _);
-                totalW += Math.Max(ButtonMinSize, btnSzH.Width) + ButtonSpacing;
+                string title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
+                int btnW = MeasureButtonSizePx(title);
+                btn.UpdateMeasurement(new Size(btnW, StripThickness), out _, out _, out _, out _);
+                totalW += btnW + ButtonSpacing;
             }
             return new Thickness(totalW, StripThickness, 0, 0);
         }
         else
         {
-            // Left / Right: fixed width = StripThickness, height = sum of buttons
+            // Left / Right: fixed width = StripThickness, height = text-measured per button
+            // (text is rotated 90°, so text WIDTH → button HEIGHT)
             int totalH = 0;
             foreach (var btn in _buttons)
             {
-                btn.UpdateMeasurement(
-                    new Size(StripThickness, ButtonMinSize),
-                    out _, out Thickness btnSzV, out _, out _);
-                totalH += Math.Max(ButtonMinSize, btnSzV.Height) + ButtonSpacing;
+                string title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
+                int btnH = MeasureButtonSizePx(title);
+                btn.UpdateMeasurement(new Size(StripThickness, btnH), out _, out _, out _, out _);
+                totalH += btnH + ButtonSpacing;
             }
             return new Thickness(StripThickness, totalH, 0, 0);
         }
@@ -175,7 +193,8 @@ public class MGDockAutoHideStrip : MGElement
             int x = Bounds.X;
             foreach (var btn in _buttons)
             {
-                int w = ButtonMinSize;
+                string title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
+                int w = MeasureButtonSizePx(title);
                 btn.UpdateLayout(new Rectangle(x, Bounds.Y, w, Bounds.Height));
                 x += w + ButtonSpacing;
             }
@@ -185,7 +204,8 @@ public class MGDockAutoHideStrip : MGElement
             int y = Bounds.Y;
             foreach (var btn in _buttons)
             {
-                int h = ButtonMinSize;
+                string title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
+                int h = MeasureButtonSizePx(title);
                 btn.UpdateLayout(new Rectangle(Bounds.X, y, Bounds.Width, h));
                 y += h + ButtonSpacing;
             }
@@ -198,25 +218,26 @@ public class MGDockAutoHideStrip : MGElement
         foreach (var child in GetChildren())
             child?.Draw(DA);
 
-        // For Left / Right strips, the buttons are only 24 px wide so we draw the title
-        // text rotated 90° manually.
+        // For Left / Right strips, draw the title text rotated 90° via the FSS text engine
+        // (vector rendering — stays crisp at any angle, unlike scaled SpriteFonts).
         if (!IsHorizontal)
         {
             string family = ParentWindow.Desktop.FontManager.DefaultFontFamily;
-            foreach (var (btn, panel) in _buttonMap)
+            var resolved  = DA.DT.TextEngine.ResolveFont(new FontSpec(family, 11, CustomFontStyles.Normal));
+            if (resolved?.NativeFont != null)
             {
-                string title = panel.Title;
-                if (string.IsNullOrEmpty(title)) continue;
-                if (DA.DT.FontManager.TryGetFont(family, CustomFontStyles.Normal, 11, true,
-                    out _, out SpriteFont sf, out _, out _, out float scale))
+                foreach (var (btn, panel) in _buttonMap)
                 {
-                    Vector2 textSize = sf.MeasureString(title);
-                    Vector2 origin   = new Vector2(textSize.X / 2f, textSize.Y / 2f);
+                    string title = panel.Title;
+                    if (string.IsNullOrEmpty(title)) continue;
+                    float   scale    = resolved.SuggestedScale;
+                    Vector2 textSize = DA.DT.TextEngine.MeasureText(resolved, title); // unscaled
+                    Vector2 origin   = textSize / 2f;                                 // pivot at text centre
                     Vector2 pos      = new Vector2(
                         btn.LayoutBounds.X + btn.LayoutBounds.Width  / 2f,
                         btn.LayoutBounds.Y + btn.LayoutBounds.Height / 2f);
                     Color textColor  = new Color(200, 200, 200) * DA.Opacity;
-                    DA.DT.DrawSpriteFontText(sf, title, pos, textColor, origin, scale, scale, -MathF.PI / 2f);
+                    DA.DT.DrawTextViaEngine(resolved, title, pos, textColor, origin, scale, -MathF.PI / 2f);
                 }
             }
         }

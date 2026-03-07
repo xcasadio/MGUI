@@ -410,10 +410,12 @@ public class MGDockHost : MGSingleContentHost
         _lastPreviewCalculation = mousePosition;
 
         // ── Keep host-edge indicators visible and up-to-date throughout the drag ──
-        // They are pinned to the host's four edges regardless of where the mouse is.
-        if (LayoutBounds.Width > 0 && LayoutBounds.Height > 0)
+        // Use the inner bounds (excluding auto-hide strips) so the indicators are
+        // positioned inside the strips, not hidden behind them.
+        var innerBounds = ComputeInnerBounds(LayoutBounds);
+        if (innerBounds.Width > 0 && innerBounds.Height > 0)
         {
-            _dropIndicators.ShowHostEdge(LayoutBounds);
+            _dropIndicators.ShowHostEdge(innerBounds);
         }
 
         // ── Find which panel group the mouse is hovering over ───────────────────
@@ -970,10 +972,17 @@ public class MGDockHost : MGSingleContentHost
     {
         if (LayoutModel == null || !LayoutModel.HasAutoHidePanels(side))
             return new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0);
+
+        // Top / Bottom strips take the full width.
+        // Left / Right strips are inset vertically by any active Top/Bottom strip to avoid
+        // corner overlaps when multiple sides are active simultaneously.
+        int topInset    = LayoutModel.HasAutoHidePanels(AutoHideSide.Top)    ? _autoHideStripThickness : 0;
+        int bottomInset = LayoutModel.HasAutoHidePanels(AutoHideSide.Bottom) ? _autoHideStripThickness : 0;
+
         return side switch
         {
-            AutoHideSide.Left   => new Microsoft.Xna.Framework.Rectangle(avail.X, avail.Y, _autoHideStripThickness, avail.Height),
-            AutoHideSide.Right  => new Microsoft.Xna.Framework.Rectangle(avail.Right - _autoHideStripThickness, avail.Y, _autoHideStripThickness, avail.Height),
+            AutoHideSide.Left   => new Microsoft.Xna.Framework.Rectangle(avail.X, avail.Y + topInset, _autoHideStripThickness, avail.Height - topInset - bottomInset),
+            AutoHideSide.Right  => new Microsoft.Xna.Framework.Rectangle(avail.Right - _autoHideStripThickness, avail.Y + topInset, _autoHideStripThickness, avail.Height - topInset - bottomInset),
             AutoHideSide.Top    => new Microsoft.Xna.Framework.Rectangle(avail.X, avail.Y, avail.Width, _autoHideStripThickness),
             AutoHideSide.Bottom => new Microsoft.Xna.Framework.Rectangle(avail.X, avail.Bottom - _autoHideStripThickness, avail.Width, _autoHideStripThickness),
             _                   => new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0)
@@ -1011,6 +1020,23 @@ public class MGDockHost : MGSingleContentHost
         // Snapshot the parent group NOW while panel.Parent is still set.
         // DockOperation.RemovePanel clears it, so we must do this before that call.
         panel.AutoHideReturnGroup = panel.Parent as DockTabGroupNode;
+
+        // Also snapshot the exact split position so we can restore it faithfully when
+        // the original group no longer exists after the panel (alone in its group) is removed.
+        if (panel.AutoHideReturnGroup?.Parent is DockSplitNode splitParent)
+        {
+            bool isFirst = splitParent.FirstChild == panel.AutoHideReturnGroup;
+            panel.AutoHideReturnZone = splitParent.Orientation == MGUI.Core.UI.Orientation.Horizontal
+                ? (isFirst ? DockZone.Left  : DockZone.Right)
+                : (isFirst ? DockZone.Top   : DockZone.Bottom);
+            // Fraction of the split this child occupied: SplitRatio = firstChild share.
+            panel.AutoHideReturnSplitRatio = isFirst ? splitParent.SplitRatio : 1f - splitParent.SplitRatio;
+        }
+        else
+        {
+            panel.AutoHideReturnZone        = DockZone.None;
+            panel.AutoHideReturnSplitRatio  = null;
+        }
 
         // Suspend model-change events so we get exactly one visual-tree rebuild at the end
         _layoutModel.LayoutChanged -= OnLayoutModelChanged;
@@ -1058,7 +1084,24 @@ public class MGDockHost : MGSingleContentHost
 
             if (!restoredToOriginal)
             {
-                // Fall back: graft a new standalone group onto the right edge.
+                // Fall back: recreate the split using the snapshotted zone and ratio.
+                // Map AutoHideReturnZone first; if it wasn't set, infer from AutoHideSide.
+                DockZone fallbackZone = panel.AutoHideReturnZone != DockZone.None
+                    ? panel.AutoHideReturnZone
+                    : panel.AutoHideSide switch
+                    {
+                        AutoHideSide.Left   => DockZone.Left,
+                        AutoHideSide.Right  => DockZone.Right,
+                        AutoHideSide.Top    => DockZone.Top,
+                        AutoHideSide.Bottom => DockZone.Bottom,
+                        _                   => DockZone.Right
+                    };
+                float fallbackRatio = panel.AutoHideReturnSplitRatio ?? DockDropCalculator.HostEdgePreviewRatio;
+
+                // Clear saved position metadata
+                panel.AutoHideReturnZone       = DockZone.None;
+                panel.AutoHideReturnSplitRatio = null;
+
                 if (LayoutModel.RootNode == null)
                 {
                     var newGroup = new DockTabGroupNode();
@@ -1067,8 +1110,7 @@ public class MGDockHost : MGSingleContentHost
                 }
                 else
                 {
-                    DockOperation.SplitDockAtRoot(LayoutModel, panel, DockZone.Right,
-                        DockDropCalculator.HostEdgePreviewRatio);
+                    DockOperation.SplitDockAtRoot(LayoutModel, panel, fallbackZone, fallbackRatio);
                 }
             }
         }

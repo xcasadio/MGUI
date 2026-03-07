@@ -147,6 +147,15 @@ public class MGDockTabItem : MGElement
     }
 
     /// <summary>
+    /// The desired (natural) width of this tab as computed during the last measurement pass.
+    /// Set by <see cref="UpdateContentMeasurement"/> and used by the parent
+    /// <see cref="MGDockTabGroup"/> for overflow detection.
+    /// Defaults to <see cref="MinTabWidth"/> until the first measurement pass.
+    /// </summary>
+    internal int LastMeasuredWidth => _lastMeasuredWidth;
+    private int _lastMeasuredWidth = 80; // matches default MinTabWidth
+
+    /// <summary>
     /// Event raised when the tab is clicked.
     /// </summary>
     public event EventHandler<DockPanelNode> TabClicked;
@@ -452,6 +461,7 @@ public class MGDockTabItem : MGElement
         int pinWidth   = (Panel?.CanAutoHide == true) ? PinButtonSize : 0;
 
         int totalWidth = Math.Max(MinTabWidth, titleWidth + pinWidth + closeWidth);
+        _lastMeasuredWidth = totalWidth; // expose desired width for overflow detection in MGDockTabGroup
         return new Thickness(totalWidth, TabHeight, 0, 0);
     }
 
@@ -598,9 +608,9 @@ public class MGDockTabItem : MGElement
                 pb.Y + (pb.Height - iconSize) / 2,
                 iconSize, iconSize);
 
-            // Blue when pinned (click → auto-hide), grey when auto-hidden (click → re-pin)
-            Color pinColor = Panel.IsPinned ? new Color(0, 180, 255) : new Color(180, 180, 180);
-            string pinIcon = Panel.IsPinned ? "DockPin" : "DockPinOff";
+            // Neutral grey: DockPinOff when pinned (click → auto-hide), DockPin when auto-hidden (click → re-pin)
+            Color pinColor = new Color(180, 180, 180);
+            string pinIcon = Panel.IsPinned ? "DockPinOff" : "DockPin";
 
             if (!GetResources().TryDrawTexture(DA.DT, pinIcon, iconRect, 1f, pinColor))
             {
