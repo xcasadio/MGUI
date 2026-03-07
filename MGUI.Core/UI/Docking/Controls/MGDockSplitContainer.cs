@@ -172,6 +172,13 @@ public class MGDockSplitContainer : MGElement
     public DockSplitNode ModelNode { get; set; }
 
     /// <summary>
+    /// The screen-space bounds of the splitter bar handle, available after the first layout pass.
+    /// Returns <see cref="Rectangle.Empty"/> before layout has been computed.
+    /// Used by <see cref="MGDockHost"/> to detect splitter-bar drop targets during drag operations.
+    /// </summary>
+    public Rectangle SplitterBarLayoutBounds => _splitterBar?.LayoutBounds ?? Rectangle.Empty;
+
+    /// <summary>
     /// The splitter bar visual element.
     /// </summary>
     private readonly MGDockSplitterBar _splitterBar;

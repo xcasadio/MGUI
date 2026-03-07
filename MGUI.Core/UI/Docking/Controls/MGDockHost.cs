@@ -215,6 +215,64 @@ public class MGDockHost : MGSingleContentHost
         }
     }
 
+    // ─── 14.1 Active dockable tracking ──────────────────────────────────────
+    private DockPanelNode _activeDockable;
+    /// <summary>
+    /// The panel that was most recently activated in the host.
+    /// Updated automatically whenever <see cref="ActivePanelChanged"/> fires.
+    /// The group that contains this panel displays an accent border via
+    /// <see cref="MGDockTabGroup.IsActiveGroup"/>.
+    /// </summary>
+    public DockPanelNode ActiveDockable
+    {
+        get => _activeDockable;
+        private set
+        {
+            if (_activeDockable != value)
+            {
+                _activeDockable = value;
+                NPC(nameof(ActiveDockable));
+                RefreshActiveGroupHighlight();
+            }
+        }
+    }
+
+    // ─── 13.1 Proximity docking ──────────────────────────────────────────────
+    /// <summary>
+    /// When true, moving the mouse cursor within <see cref="ProximityBandWidth"/> pixels of any
+    /// docked panel edge automatically activates a split-dock zone — no joystick hover required.
+    /// Default: true.
+    /// </summary>
+    public bool ProximityDockingEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Width (in logical pixels, scaled by <see cref="UIScale"/>) of the edge band that triggers
+    /// automatic split-zone activation during a drag when <see cref="ProximityDockingEnabled"/> is true.
+    /// Default: 30 pixels.
+    /// </summary>
+    public int ProximityBandWidth { get; set; } = 30;
+
+    // ─── 14.5 DPI / UI scale ────────────────────────────────────────────────
+    private float _uiScale = 1f;
+    /// <summary>
+    /// Scaling factor applied to drag thresholds and proximity detection distances.
+    /// Set this to match the application's content-scale / DPI factor.
+    /// Default: 1.0 (no scaling, logical-pixel distances are used as-is).
+    /// </summary>
+    public float UIScale
+    {
+        get => _uiScale;
+        set
+        {
+            float clamped = Math.Clamp(value, 0.25f, 4f);
+            if (Math.Abs(_uiScale - clamped) > 1e-6f)
+            {
+                _uiScale = clamped;
+                NPC(nameof(UIScale));
+            }
+        }
+    }
+
     #endregion Drag & Drop State
 
     /// <summary>
@@ -336,6 +394,19 @@ public class MGDockHost : MGSingleContentHost
                 if (!insideDrawer && !insideStrip)
                     HideAutoHideDrawer();
             }
+        }
+
+        // ── 14.3 Ctrl+Tab panel switcher ─────────────────────────────────────────
+        if (!IsDragging)
+        {
+            var kb = ParentWindow.Desktop.InputTracker.Keyboard;
+            bool ctrlHeld = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl)
+                         || kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightControl);
+            bool tabJustPressed = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab)
+                               && !kb.PreviousState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab);
+
+            if (ctrlHeld && tabJustPressed)
+                ShowCtrlTabSwitcher();
         }
 
         // Handle drag operation via polling
@@ -504,6 +575,122 @@ public class MGDockHost : MGSingleContentHost
             }
 
             return;
+        }
+
+        // ── PRIORITY 3: splitter-bar drop ────────────────────────────────────────
+        // When the mouse is hovering over any split container's splitter bar we offer a
+        // "insert between" drop target.  hoveredGroup is typically null here because the
+        // splitter bar lies in the gap between two groups.
+        foreach (var sc in GetAllSplitContainers())
+        {
+            var splitterBounds = sc.SplitterBarLayoutBounds;
+            if (splitterBounds == Microsoft.Xna.Framework.Rectangle.Empty)
+                continue;
+
+            // Expand the hit area a bit so the thin bar is easier to target.
+            const int hitExpand = 4;
+            var hitRect = new Microsoft.Xna.Framework.Rectangle(
+                splitterBounds.X - hitExpand,
+                splitterBounds.Y - hitExpand,
+                splitterBounds.Width  + hitExpand * 2,
+                splitterBounds.Height + hitExpand * 2);
+
+            if (!hitRect.Contains(mousePosition))
+                continue;
+
+            // Determine which child to dock next to, and with which zone,
+            // based on which half of the splitter bar the mouse is over.
+            DockNode targetChildNode;
+            DockZone splitterZone;
+
+            if (sc.Orientation == Orientation.Horizontal)
+            {
+                // Horizontal split (left | right) — the bar is vertical.
+                // Press left half  → add to the right of FirstChild.
+                // Press right half → add to the left of SecondChild.
+                bool leftHalf = mousePosition.X < splitterBounds.X + splitterBounds.Width / 2;
+                if (leftHalf)
+                {
+                    targetChildNode = sc.ModelNode?.FirstChild;
+                    splitterZone    = DockZone.Right;
+                }
+                else
+                {
+                    targetChildNode = sc.ModelNode?.SecondChild;
+                    splitterZone    = DockZone.Left;
+                }
+            }
+            else
+            {
+                // Vertical split (top / bottom) — the bar is horizontal.
+                // Press top half    → add below FirstChild.
+                // Press bottom half → add above SecondChild.
+                bool topHalf = mousePosition.Y < splitterBounds.Y + splitterBounds.Height / 2;
+                if (topHalf)
+                {
+                    targetChildNode = sc.ModelNode?.FirstChild;
+                    splitterZone    = DockZone.Bottom;
+                }
+                else
+                {
+                    targetChildNode = sc.ModelNode?.SecondChild;
+                    splitterZone    = DockZone.Top;
+                }
+            }
+
+            // Resolve the child node to its first leaf tab group
+            var leafGroup = targetChildNode != null ? FindFirstLeafTabGroup(targetChildNode) : null;
+            if (leafGroup == null)
+                continue;
+
+            // Build the drop target reusing the normal zone calculator
+            var leafVisual = GetAllVisibleTabGroups().FirstOrDefault(tg => tg.GroupNode == leafGroup);
+            if (leafVisual == null)
+                continue;
+
+            var splitterDropTarget = GetDropTargetForZone(leafVisual, splitterZone, mousePosition);
+            if (splitterDropTarget == null)
+                continue;
+
+            splitterDropTarget.IsSplitterDrop = true;
+            splitterDropTarget.SplitterNode   = sc.ModelNode;
+
+            CurrentDropTarget = splitterDropTarget;
+            ShowPreview(splitterDropTarget.PreviewRect);
+            return;
+        }
+
+        // ── PRIORITY 4: proximity docking ───────────────────────────────────────
+        // When the mouse enters the edge band of a group (but the joystick centre was
+        // not used), automatically activate the appropriate split zone.
+        if (ProximityDockingEnabled && hoveredGroup != null)
+        {
+            int band = (int)(ProximityBandWidth * _uiScale);
+            var gb   = hoveredGroup.LayoutBounds;
+
+            DockZone proximityZone = DockZone.None;
+            if      (mousePosition.X - gb.X      < band) proximityZone = DockZone.Left;
+            else if (gb.Right - mousePosition.X   < band) proximityZone = DockZone.Right;
+            else if (mousePosition.Y - gb.Y       < band) proximityZone = DockZone.Top;
+            else if (gb.Bottom - mousePosition.Y  < band) proximityZone = DockZone.Bottom;
+
+            if (proximityZone != DockZone.None)
+            {
+                var forbidden = CurrentDrag?.DraggedPanel != null && hoveredGroup.GroupNode != null
+                    ? GetForbiddenZones(CurrentDrag.DraggedPanel, hoveredGroup.GroupNode)
+                    : System.Linq.Enumerable.Empty<DockZone>();
+
+                if (!forbidden.Contains(proximityZone))
+                {
+                    var proximityTarget = GetDropTargetForZone(hoveredGroup, proximityZone, mousePosition);
+                    if (proximityTarget != null)
+                    {
+                        CurrentDropTarget = proximityTarget;
+                        ShowPreview(proximityTarget.PreviewRect);
+                        return;
+                    }
+                }
+            }
         }
 
         // ── No active drop target ────────────────────────────────────────────────
@@ -822,6 +1009,40 @@ public class MGDockHost : MGSingleContentHost
     public IEnumerable<DockPanelNode> GetAllPanels()
     {
         return _panelRegistry.Values;
+    }
+
+    // ─── 14.3 Ctrl+Tab panel switcher ───────────────────────────────────────
+
+    /// <summary>
+    /// Opens a context-menu pop-up that lists every registered dockable, allowing the
+    /// user to switch to any panel with a single click.
+    /// Triggered automatically by the Ctrl+Tab keyboard shortcut.
+    /// </summary>
+    public void ShowCtrlTabSwitcher()
+    {
+        var allPanels = GetAllPanels().ToList();
+        if (allPanels.Count == 0)
+            return;
+
+        var menu = new MGContextMenu(ParentWindow, "");
+        menu.CanContextMenuOpen = true;
+
+        foreach (var panel in allPanels)
+        {
+            var capturedId    = panel.Id;
+            var capturedTitle = panel.Title ?? capturedId;
+            menu.AddButton(capturedTitle, _ =>
+            {
+                ShowDockable(capturedId);
+            });
+        }
+
+        // Open the switcher centred on the host's layout bounds
+        var lb = LayoutBounds;
+        int cx = lb.X + lb.Width  / 2;
+        int cy = lb.Y + lb.Height / 2;
+        ParentWindow.Desktop.TryOpenContextMenu(menu,
+            new Microsoft.Xna.Framework.Rectangle(cx, cy, 1, 1));
     }
 
     /// <summary>
@@ -1672,6 +1893,7 @@ public class MGDockHost : MGSingleContentHost
             if (sender is DockTabGroupNode tabGroup && tabGroup.ActivePanel != null)
             {
                 ActivePanelChanged?.Invoke(this, tabGroup.ActivePanel);
+                ActiveDockable = tabGroup.ActivePanel;  // 14.1 — track active panel
                 _dockableRegistry?.NotifyActivated(tabGroup.ActivePanel.Id);
             }
         }
@@ -1917,6 +2139,69 @@ public class MGDockHost : MGSingleContentHost
                 yield return childTabGroup;
             }
         }
+    }
+
+    // ─── 14.1 Active group highlight ────────────────────────────────────────
+
+    /// <summary>
+    /// Updates the <see cref="MGDockTabGroup.IsActiveGroup"/> flag on every visible tab group
+    /// so only the one that contains <see cref="ActiveDockable"/> shows the accent border.
+    /// </summary>
+    private void RefreshActiveGroupHighlight()
+    {
+        string activePanelId = _activeDockable?.Id;
+        foreach (var tg in GetAllVisibleTabGroups())
+        {
+            bool contains = activePanelId != null
+                && tg.GroupNode?.Panels.Any(p => p.Id == activePanelId) == true;
+            tg.IsActiveGroup = contains;
+        }
+    }
+
+    // ─── 13.2 Splitter-bar discovery helpers ────────────────────────────────
+
+    /// <summary>
+    /// Returns all <see cref="MGDockSplitContainer"/> elements currently in the visual tree.
+    /// </summary>
+    private IEnumerable<MGDockSplitContainer> GetAllSplitContainers()
+    {
+        if (Content == null)
+            yield break;
+        foreach (var sc in FindSplitContainersRecursive(Content))
+            yield return sc;
+    }
+
+    private IEnumerable<MGDockSplitContainer> FindSplitContainersRecursive(MGElement element)
+    {
+        if (element == null)
+            yield break;
+
+        if (element is MGDockSplitContainer splitContainer)
+            yield return splitContainer;
+
+        foreach (var child in element.GetChildren())
+        {
+            foreach (var sc in FindSplitContainersRecursive(child))
+                yield return sc;
+        }
+    }
+
+    /// <summary>
+    /// Finds the first <see cref="DockTabGroupNode"/> leaf within a node subtree.
+    /// Used when resolving a splitter-bar drop to a concrete target group.
+    /// </summary>
+    private DockTabGroupNode FindFirstLeafTabGroup(DockNode node)
+    {
+        if (node is DockTabGroupNode tg)
+            return tg;
+        if (node is DockSplitNode split)
+        {
+            var fromFirst = FindFirstLeafTabGroup(split.FirstChild);
+            if (fromFirst != null)
+                return fromFirst;
+            return FindFirstLeafTabGroup(split.SecondChild);
+        }
+        return null;
     }
 
     #endregion Drop Zone Calculation

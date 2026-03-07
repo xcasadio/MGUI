@@ -93,6 +93,25 @@ public class MGDockTabGroup : MGElement
     /// <summary>Fired when the user clicks the restore button while the group is maximized.</summary>
     public event EventHandler<DockTabGroupNode> RestoreRequested;
 
+    private bool _isActiveGroup;
+    /// <summary>
+    /// When true this group contains the currently active (last-focused) panel.
+    /// A thin accent stripe is drawn at the top of the tab bar to highlight the active group.
+    /// Set by <see cref="MGDockHost"/> whenever <see cref="MGDockHost.ActiveDockable"/> changes.
+    /// </summary>
+    public bool IsActiveGroup
+    {
+        get => _isActiveGroup;
+        set
+        {
+            if (_isActiveGroup != value)
+            {
+                _isActiveGroup = value;
+                NPC(nameof(IsActiveGroup));
+            }
+        }
+    }
+
     private int _tabHeaderHeight = 30;
     /// <summary>
     /// Height of the tab header area in pixels.
@@ -728,9 +747,29 @@ public class MGDockTabGroup : MGElement
             child?.Draw(DA);
         }
 
+        // Draw active-group accent stripe (top edge of tab header area)
+        if (IsActiveGroup)
+            DrawActiveGroupAccent(DA);
+
         // Draw programmatic icons over their respective buttons
         DrawDropdownIcon(DA);
         DrawMaximizeIcon(DA);
+    }
+
+    /// <summary>
+    /// Draws a 2-pixel accent stripe at the very top of the tab-header bar to indicate
+    /// that this group is the currently active (last-focused) group.
+    /// </summary>
+    private void DrawActiveGroupAccent(ElementDrawArgs DA)
+    {
+        var lb = LayoutBounds;
+        if (lb.Width <= 0 || lb.Height <= 0)
+            return;
+
+        const int stripeH = 2;
+        DA.DT.FillRectangle(Vector2.Zero,
+            new RectangleF(lb.X, lb.Y, lb.Width, stripeH),
+            new Color(0, 120, 215));   // Windows accent blue
     }
 
     /// <summary>
