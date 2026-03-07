@@ -1,6 +1,7 @@
 ﻿using MGUI.Shared.Helpers;
 using MGUI.Shared.Input;
 using MGUI.Shared.Text;
+using MGUI.Shared.Text.Engines;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -90,6 +91,30 @@ namespace MGUI.Shared.Rendering
 
         public FontManager FontManager { get; }
 
+        private ITextEngine _textEngine;
+        /// <summary>
+        /// The active text engine used for all font measurement and rendering.
+        /// Defaults to a <see cref="SpriteFontTextEngine"/> wrapping <see cref="FontManager"/>.
+        /// Assign a different implementation (e.g. a FontStashSharp-based engine) to switch
+        /// backends globally.  Setting a new value automatically flushes the cache of the
+        /// old engine.
+        /// </summary>
+        public ITextEngine TextEngine
+        {
+            get => _textEngine;
+            set
+            {
+                ITextEngine previous = TextEngine;
+                if (_textEngine != null && !ReferenceEquals(_textEngine, value))
+                    _textEngine.InvalidateCache();
+                _textEngine = value ?? throw new ArgumentNullException(nameof(value));
+                TextEngineChanged?.Invoke(this, new EventArgs<ITextEngine>(previous, TextEngine));
+            }
+        }
+
+        /// <summary>Invoked when <see cref="TextEngine"/> is set to a new value</summary>
+        public event EventHandler<EventArgs<ITextEngine>> TextEngineChanged;
+
         public InputTracker Input { get; }
         public UpdateBaseArgs UpdateArgs { get; private set; }
 
@@ -105,6 +130,7 @@ namespace MGUI.Shared.Rendering
             PrimitiveBatch = new(GraphicsDevice, 1024);
             Content = new(Host, "Content");
             FontManager = new(Content, "Arial");
+            TextEngine = new SpriteFontTextEngine(FontManager);
             Input = new();
 
             ScrollMarker = Content.Load<Texture2D>(Path.Combine("Icons", "ScrollMarker"));
