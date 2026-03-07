@@ -193,6 +193,17 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     public event EventHandler<DockPanelNode> PanelPinToggleRequested;
 
+    /// <summary>
+    /// Detaches this visual from its model node, unsubscribing all event handlers.
+    /// Must be called before the visual is discarded (e.g. during RebuildVisualTree) to
+    /// prevent the model from holding permanent references to orphaned tab group visuals.
+    /// After calling Detach() this instance should not be used.
+    /// </summary>
+    public void Detach()
+    {
+        GroupNode = null; // setter removes CollectionChanged + PropertyChanged subscriptions
+    }
+
     /// <summary>Updates the maximize / restore button label to match <see cref="IsMaximized"/>.</summary>
     private void UpdateMaximizeButtonLabel()
     {

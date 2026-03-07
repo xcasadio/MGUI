@@ -152,6 +152,12 @@ public class MGDockHost : MGSingleContentHost
 
     #endregion Floating Windows
 
+    /// <summary>
+    /// All <see cref="MGDockTabGroup"/> visuals that are currently mounted in the docked layout.
+    /// Tracked so that <see cref="RebuildVisualTree"/> can <see cref="MGDockTabGroup.Detach"/> them
+    /// before replacing the visual tree, preventing model→visual reference leaks.
+    /// </summary>
+    private readonly List<MGDockTabGroup> _activeTabGroupVisuals = new();
 
 
     #region Drag & Drop State
@@ -1652,6 +1658,13 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public void RebuildVisualTree()
     {
+        // Detach all existing tab group visuals from their model nodes before replacing the
+        // visual tree.  Without this, each rebuild leaves the old MGDockTabGroup instances
+        // permanently subscribed to model events, causing a growing chain of orphaned handlers.
+        foreach (var oldVisual in _activeTabGroupVisuals)
+            oldVisual.Detach();
+        _activeTabGroupVisuals.Clear();
+
         if (LayoutModel?.RootNode == null)
         {
             // No layout defined, show placeholder or empty content
@@ -1802,13 +1815,26 @@ public class MGDockHost : MGSingleContentHost
             IsMaximized         = isMaximized
         };
 
+        // Track this visual so RebuildVisualTree can Detach() it later.
+        _activeTabGroupVisuals.Add(tabGroup);
+
         // Subscribe to panel close requests
         tabGroup.PanelCloseRequested += (sender, panelToClose) =>
         {
             if (panelToClose != null && LayoutModel != null)
             {
+                // Remove from panel registry BEFORE removing from model,
+                // otherwise the registry becomes stale for any caller that
+                // inspects it synchronously in a LayoutChanged handler.
+                _panelRegistry.Remove(panelToClose.Id);
+
                 // Remove panel from layout model
                 DockOperation.RemovePanel(LayoutModel, panelToClose);
+
+                // Notify event subscribers
+                PanelRemoved?.Invoke(this, panelToClose);
+                _dockableRegistry?.NotifyClosed(panelToClose.Id);
+
                 RebuildVisualTree();
             }
         };
