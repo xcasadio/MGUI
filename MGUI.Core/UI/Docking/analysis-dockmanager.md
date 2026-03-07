@@ -256,22 +256,199 @@
 
 ---
 
-## Phase 5 — Performance & Scalabilité
+## Phase 5 — Performance & Scalabilité ✅
 
-- [ ] Mesurer le coût de `RebuildVisualTree` avec 10, 50, 100 panels — est-il acceptable ?
-- [ ] Vérifier que `GetAllTabGroups()` ne fait pas d'allocation excessive (ToList dans des hot paths).
-- [ ] Analyser si le pattern `PropertyChanged → LayoutChanged → Rebuild` cause des rebuilds en cascade (N property changes = N rebuilds au lieu de 1 batché).
-- [ ] Vérifier que `FindNodeById` n'est pas O(n²) dans les cas imbriqués.
-- [ ] Vérifier que les indicateurs de drop ne recalculent pas les zones à chaque frame (seulement quand le mouse bouge).
+### 5.1 `RebuildVisualTree` — coût et fréquence
+
+**Coût par rebuild :** O(n) en nombre de nœuds dans l'arbre — un parcours récursif de `BuildVisualTree`
+crée un contrôle UI par nœud. Pour 10 panels c'est trivial; pour 100 panels (scénario extrême)
+le coût est linéaire côté modèle, mais l'impact principal est le layout pass de MonoGame qui
+suit immédiatement.
+
+**Fréquence — risque réel :** `LayoutChanged` est déclenché par tout `PropertyChanged` d'un nœud
+(SAUF `ActivePanelId` — guard présent et vérifié). Cela signifie qu'un rename de panel, un
+changement de `IsPinned`, un changement de `SplitRatio` — chaque propriété déclenche un rebuild
+complet. Si l'on change 5 propriétés en rafale (ex: lors d'une désérialisation), on obtient
+5 rebuilds au lieu d'1.
+
+**Recommandation :** Implémenter un dirty-flag avec `BeginUpdate()`/`EndUpdate()` (compteur, pas
+booléen) sur `DockLayoutModel`. Pendant `BeginUpdate`, mettre en file au plus 1 rebuild pending.
+`EndUpdate` déclenche le rebuild une seule fois. Cela bénéficierait au load de layouts complets.
+
+### 5.2 `GetAllTabGroups()` — allocations
+
+`GetAllTabGroups()` retourne un `IEnumerable<DockTabGroupNode>` via `yield return` — pas
+d'allocation List sauf quand l'appelant matérialise. Analyse des call sites :
+
+| Call site | Impact |
+|-----------|--------|
+| `MGDockHost.L1165` — `.ToList()` (dans `CyclePanel`) | Allocation list, appelé une fois par Ctrl+Tab → négligeable |
+| `MGDockHost.L1074` — `.Contains()` (dans `ActivatePanel`) | Traverse le générateur jusqu'au match — O(n) acceptable |
+| `MGDockHost.L1030` — `.SelectMany().AddRange()` (dans `CyclePanel`) | Une matérialisation par Ctrl+Tab — acceptable |
+| `DockLayoutModel.ToString()` — `.Count()` × 2 | Double traverse dans `ToString()` — seulement appelé par debugger |
+| `DockLayoutModel.ValidateTree.L383` — `.Count()` | Appelé ponctuellement, pas dans hot path |
+| `RebuildVisualTree.L1684` — `.FirstOrDefault()` en mode maximize | Appelé à chaque rebuild en mode maximize — O(n) acceptable |
+
+**Conclusion :** Pas de problème d'allocation critique. Aucun `GetAllTabGroups()` n'est appelé
+dans un hot path per-frame.
+
+### 5.3 `FindNodeById` — complexité
+
+Implémentation : DFS récursif dans `DockNode.FindNodeById`. Retours anticipés (early exit dès
+trouvé). Complexité : O(n) dans le pire cas (nœud absent ou feuille droite), O(1) amortissable
+si le nœud est proche de la racine.
+
+**Pas d'O(n²) :** Chaque appel fait au plus n comparaisons pour un arbre de n nœuds. Il n'y a
+pas de boucle qui rappelle `FindNodeById` à chaque itération.
+
+**Recommandation faible :** Pour des layouts très larges (100+ groupes), un `Dictionary<string,
+DockNode>` maintenu à jour dans `DockLayoutModel` réduirait `FindNodeById` à O(1). Actuellement
+non nécessaire pour les usages typiques (< 20 groupes).
+
+### 5.4 Drop indicators — recalcul per-frame
+
+`UpdateDragPreview` est appelé à chaque `MouseMoved` pendant un drag. Optimisations présentes :
+
+1. **Distance threshold** (seuil 5px) : si la souris n'a pas bougé de plus de 5 pixels depuis
+   le dernier calcul, la fonction retourne immédiatement. Cela évite les recalculs inutiles à
+   60 fps quand la souris est "quasi-statique".
+
+2. **Lazy indicator positioning** : `_dropIndicators.Show()` recalcule les positions des
+   indicateurs (`CalculateIndicatorPositions`) seulement lors d'un changement de `_targetBounds`,
+   pas à chaque appel de `UpdateActiveZone`.
+
+3. **`DockDropCalculator.CalculateHostEdgeZones`** : recalculé à chaque passage dans la branche
+   host-edge après le seuil de 5px. Ce calcul retourne un petit tableau de 4 `DockDropTarget`
+   (Left/Right/Top/Bottom) — coût O(1), allocation d'un tableau fixe. Acceptable mais pourrait
+   être mis en cache sur `_lastPreviewCalculation`.
+
+**Recommandation :** Mettre en cache `CalculateHostEdgeZones(LayoutBounds)` dans un champ
+`_cachedHostEdgeTargets`, invalidé seulement quand `LayoutBounds` change. Gain marginal en
+allocations.
+
+### 5.5 Bilan Performance
+
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| N rebuilds pour N property changes en rafale | Moyenne | `BeginUpdate`/`EndUpdate` dirty-flag |
+| `CalculateHostEdgeZones` alloue à chaque preview | Faible | Cache `_cachedHostEdgeTargets` |
+| `FindNodeById` O(n) | Faible | Dictionary optionnel pour 100+ nœuds |
+| `GetAllTabGroups()` allocations | Inexistant | Rien à faire |
 
 ---
 
-## Phase 6 — Recommandations Architecturales
+## Phase 6 — Recommandations Architecturales ✅
 
-À produire après les phases 1-5 :
+### 6.1 Bilan des forces
 
-- [ ] Rédiger un bilan des forces et faiblesses de l'architecture actuelle.
-- [ ] Proposer un plan de refactoring priorisé (quick wins vs. refactors majeurs).
-- [ ] Identifier les abstractions manquantes (interfaces, patterns).
-- [ ] Évaluer si le découplage model/view est suffisant pour permettre des tests unitaires de la couche host sans MonoGame.
-- [ ] Proposer une stratégie de test (unit tests purs, integration tests headless, smoke tests visuels).
+| Force | Détail |
+|-------|--------|
+| **Séparation model/view nette** | `DockLayout/` ne référence aucun type MonoGame/UI (hors `Orientation`). `DockOperation` est la seule API de mutation structurelle. |
+| **Model testable sans MonoGame** | 185 tests unitaires purs sur le model layer (DockOperation, DockTabGroupNode, DockLayoutModel, DockableRegistry, DockNodeModel, etc.) sans dépendance XNA. |
+| **Event-driven proprement** | `PropertyChanged → LayoutChanged → RebuildVisualTree` est une chaîne unidirectionnelle sans boucles. Les guards `ActivePanelId` sont en place des deux côtés. |
+| **Sérialization round-trip** | Après les fixes Phase 1, `DockLayoutSerializer` préserve toutes les propriétés métier (`Family`, `CanAutoHide`, `DrawerSize`, `AllowedZones`). |
+| **Drag & drop optimisé** | Seuil 5px dans `UpdateDragPreview`, `Show/Hide` lazy sur les indicateurs. |
+| **Subscription lifecycle fixé** | `Detach()` + `_activeTabGroupVisuals` + `Clear()` auto-hide évitent les fuites d'event handlers lors des rebuilds. |
+
+### 6.2 Faiblesses et dette technique
+
+#### 6.2.1 God Class `MGDockHost` (2 338 lignes, 11+ responsabilités)
+
+`MGDockHost` a les responsabilités suivantes, toutes entremêlées :
+
+1. Construction et rebuild du visual tree
+2. Orchestration du drag & drop (BeginDrag, UpdateDrag, PerformDrop, CancelDrag)
+3. Calcul des zones de drop (appels à `DockDropCalculator`)
+4. Raccourcis clavier (Ctrl+Tab, Ctrl+F4)
+5. Gestion auto-hide (strips, drawer, pin/unpin)
+6. Gestion des fenêtres flottantes
+7. Maximize/restore
+8. Registry des panels (`_panelRegistry`)
+9. Chargement/sauvegarde de layout
+10. Gestion des souscriptions nœuds (`SyncNodeSubscriptions`)
+11. Tracking du panel actif (`ActiveDockable`)
+
+**Impact :** Impossible de tester les comportements de drag & drop, auto-hide, ou maximize sans
+instancier un `MGDockHost` complet (qui requiert un `MGDesktop` et MonoGame).
+
+#### 6.2.2 Absence de dirty-batching sur `LayoutChanged`
+
+Tout changement de propriété sur n'importe quel nœud déclenche un rebuild complet du visual tree.
+Ceci n'est pas batché. Lors d'un `LoadLayoutFromJson` avec 20 nœuds, chaque nœud modifié lors
+de la désérialisation peut déclencher un rebuild.
+
+**Mitigation actuelle :** `UnpinPanel`/`RepinPanel` utilisent un pattern de désabonnement
+temporaire (`_suppressLayoutChanged`) pour batcher les mutations — c'est un workaround correct
+mais non généralisé.
+
+#### 6.2.3 `_panelRegistry` vs. `GetAllTabGroups().SelectMany`
+
+`_panelRegistry` est un `Dictionary<string, DockPanelNode>` maintenu manuellement, mais son
+contenu est redondant avec `LayoutModel.GetAllTabGroups().SelectMany(g => g.Panels)`. Des
+incohérences sont possibles si un panel est ajouté au modèle sans passer par `MGDockHost`.
+
+#### 6.2.4 XML doc partielle
+
+Les méthodes publiques de `DockOperation.cs` ont une bonne couverture XML. En revanche,
+plusieurs méthodes `internal` et `private` dans `MGDockHost.cs` (ex: `BuildTabGroup`,
+`BuildSplitContainer`, `SyncNodeSubscriptions`) n'ont pas de doc — acceptable pour du privé
+mais rend l'audit difficile.
+
+### 6.3 Plan de refactoring priorisé
+
+#### Quick wins (< 1 jour chacun)
+
+| # | Action | Bénéfice |
+|---|--------|----------|
+| QW1 | Ajouter `BeginUpdate()`/`EndUpdate()` sur `DockLayoutModel` avec dirty-flag | Évite N rebuilds lors de chargement JSON |
+| QW2 | Mettre en cache `CalculateHostEdgeZones` sur changement de `LayoutBounds` | Réduit allocations pendant drag |
+| QW3 | Remplacer `_panelRegistry` par une property calculée `GetDockedPanelIds()` | Élimine la source d'incohérence |
+
+#### Refactors moyens (1–3 jours chacun)
+
+| # | Action | Bénéfice |
+|---|--------|----------|
+| RM1 | Extraire `DockDragManager` de `MGDockHost` (BeginDrag/UpdateDrag/PerformDrop/Cancel + _dragData + _dropIndicators) | Testable séparément, réduit MGDockHost de ~500 lignes |
+| RM2 | Extraire `DockAutoHideManager` (strip, drawer, pin/unpin, snapshots) | Réduit MGDockHost de ~400 lignes |
+| RM3 | Extraire `DockKeyboardManager` (Ctrl+Tab cycle, Ctrl+F4) | Testable avec mock IActivatablePanel |
+
+#### Refactors majeurs (> 1 semaine)
+
+| # | Action | Bénéfice |
+|---|--------|----------|
+| RJ1 | Introduire `IDockHostMediator` interface pour permettre des tests headless de la logique host | Tous les comportements testables sans MonoGame |
+| RJ2 | Passer `DockPanelNode.ContentFactory` à `Func<object>` avec résolution via service locator | Découple complètement model layer de MGElement |
+
+### 6.4 Abstractions manquantes
+
+| Abstraction | Justification |
+|-------------|---------------|
+| `IDockLayoutObserver` | Permettrait à des composants externes de s'abonner aux changements de layout sans coupler à `DockLayoutModel` concret |
+| `IDockPanelLifecycle` | Interface `OnShown()`, `OnHidden()`, `OnActivated()` implémentée par les contenus de panel — actuellement tout passe par `DockableRegistry` events |
+| `IDockCommandBus` | Pattern Command pour les opérations `BeginDrag/PerformDrop` — permettrait undo/redo |
+
+### 6.5 Stratégie de test recommandée
+
+| Couche | Approche | Outils |
+|--------|----------|--------|
+| **Model layer** (`DockLayout/`) | Tests unitaires purs xUnit — déjà en place (185 tests) | xUnit, aucune dépendance MonoGame |
+| **Host behavior** (drag, auto-hide, maximize) | Tests d'intégration headless après extraction des managers (RM1-RM3) | xUnit + mock `ILayoutBoundsProvider` |
+| **Visual rendering** | Smoke tests / screenshot comparison | MonoGame headless mode ou captures manuelles |
+| **Non-régression UI** | Tests manuels déclenché par PR + checklist visuelle | Compendium sample |
+
+### 6.6 Conclusion
+
+L'architecture du système de docking est **solide dans sa couche model** : séparation nette,
+testabilité élevée, event-driven proprement. Les problèmes réels sont **concentrés dans
+`MGDockHost`** qui est un God Class classique — conséquence inévitable de développements
+itératifs sur un contrôle de haute complexité.
+
+Les 6 bugs corrigés en Phase 1-2 (fuites d'event handlers, registry stale, sérialiseur incomplet,
+try/catch silencieux) étaient des défauts réels mais de sévérité moyenne — aucun ne causait de
+crash, mais ils auraient conduit à des comportements incohérents en usage intensif (nombreux
+rebuilds, layouts perdus au save/load, registry phantoms).
+
+**Priorité recommandée :**
+1. `BeginUpdate/EndUpdate` (QW1) — impact immédiat sur la performance de chargement
+2. Extraction `DockDragManager` (RM1) — plus grande réduction du God Class
+3. Extraction `DockAutoHideManager` (RM2) — deuxième plus grande réduction
