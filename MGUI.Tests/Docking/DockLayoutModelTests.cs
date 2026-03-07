@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Docking;
 using MGUI.Core.UI.Docking.DockLayout;
@@ -347,5 +349,153 @@ public class DockLayoutModelTests
             .ToList();
 
         Assert.Equal(new[] { "BottomRight", "Left", "TopRight" }, titles);
+    }
+
+    // ── JSON Round-trip: new properties (Phase 4.4) ───────────────────────
+
+    [Fact]
+    public void Json_RoundTrip_Family_IsPreserved()
+    {
+        var p = new DockPanelNode { Title = "Toolbox", Family = "editors" };
+        var model = new DockLayoutModel(Group(p));
+
+        string json  = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        var rp = restored!.GetAllTabGroups().Single().Panels[0];
+        Assert.Equal("editors", rp.Family);
+    }
+
+    [Fact]
+    public void Json_RoundTrip_CanAutoHide_False_IsPreserved()
+    {
+        var p = new DockPanelNode { Title = "Fixed", CanAutoHide = false };
+        var model = new DockLayoutModel(Group(p));
+
+        string json  = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        var rp = restored!.GetAllTabGroups().Single().Panels[0];
+        Assert.False(rp.CanAutoHide);
+    }
+
+    [Fact]
+    public void Json_RoundTrip_DrawerSize_IsPreserved()
+    {
+        var p = new DockPanelNode { Title = "Side", DrawerSize = 350 };
+        var model = new DockLayoutModel(Group(p));
+
+        string json  = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        var rp = restored!.GetAllTabGroups().Single().Panels[0];
+        Assert.Equal(350, rp.DrawerSize);
+    }
+
+    [Fact]
+    public void Json_RoundTrip_AllowedZones_IsPreserved()
+    {
+        var p = new DockPanelNode
+        {
+            Title = "Restricted",
+            AllowedZones = new List<DockZone> { DockZone.Left, DockZone.Right }.AsReadOnly()
+        };
+        var model = new DockLayoutModel(Group(p));
+
+        string json  = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        var rp = restored!.GetAllTabGroups().Single().Panels[0];
+        Assert.NotNull(rp.AllowedZones);
+        Assert.Equal(2, rp.AllowedZones!.Count);
+        Assert.Contains(DockZone.Left,  rp.AllowedZones);
+        Assert.Contains(DockZone.Right, rp.AllowedZones);
+    }
+
+    [Fact]
+    public void Json_RoundTrip_AllowedZones_Null_IsPreserved()
+    {
+        var p = new DockPanelNode { Title = "Unrestricted", AllowedZones = null };
+        var model = new DockLayoutModel(Group(p));
+
+        string json  = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        var rp = restored!.GetAllTabGroups().Single().Panels[0];
+        Assert.Null(rp.AllowedZones);
+    }
+
+    // ── Non-regression: LayoutChanged NOT fired for ActivePanelId (Phase 4.4) ─
+
+    [Fact]
+    public void LayoutChanged_NotFired_WhenActivePanelIdChanges()
+    {
+        // Regression guard: DockLayoutModel.OnNodePropertyChanged must NOT propagate
+        // LayoutChanged for ActivePanelId/ActivePanel changes (would cause full visual
+        // rebuild on every Ctrl+Tab press).
+        var p1 = new DockPanelNode { Title = "A" };
+        var p2 = new DockPanelNode { Title = "B" };
+        var g  = Group(p1, p2);
+        var model = new DockLayoutModel(g);
+
+        int layoutChangedCount = 0;
+        model.LayoutChanged += (_, _) => layoutChangedCount++;
+
+        // Switch tab — should NOT fire LayoutChanged
+        g.SetActivePanel(p2.Id);
+        g.SetActivePanel(p1.Id);
+
+        Assert.Equal(0, layoutChangedCount);
+    }
+
+    [Fact]
+    public void LayoutChanged_Fired_WhenTitleChanges()
+    {
+        // Structural/visual property changes SHOULD still propagate LayoutChanged.
+        var p = new DockPanelNode { Title = "Before" };
+        var model = new DockLayoutModel(Group(p));
+
+        int layoutChangedCount = 0;
+        model.LayoutChanged += (_, _) => layoutChangedCount++;
+
+        p.Title = "After"; // non-ActivePanel property
+
+        Assert.True(layoutChangedCount > 0);
+    }
+
+    // ── Non-regression: Clear() clears auto-hide store (Phase 4.4) ──────────
+
+    [Fact]
+    public void Clear_RemovesAllPanels_FromAutoHideStore()
+    {
+        var p1 = new DockPanelNode { Title = "A" };
+        var p2 = new DockPanelNode { Title = "B" };
+        var model = new DockLayoutModel(Group(new DockPanelNode { Title = "Dummy" }));
+        model.AddToAutoHide(p1, AutoHideSide.Left);
+        model.AddToAutoHide(p2, AutoHideSide.Right);
+
+        model.Clear();
+
+        Assert.False(model.HasAnyAutoHidePanels());
+        Assert.Empty(model.GetAutoHidePanels(AutoHideSide.Left));
+        Assert.Empty(model.GetAutoHidePanels(AutoHideSide.Right));
+    }
+
+    [Fact]
+    public void Clear_AutoHidePanelPropertyChanges_DoNotFireLayoutChanged_After_Clear()
+    {
+        // After Clear(), auto-hide panels should be fully unsubscribed.
+        // Any property change on them must NOT fire LayoutChanged any more.
+        var p = new DockPanelNode { Title = "AH" };
+        var model = new DockLayoutModel(Group(new DockPanelNode { Title = "Root" }));
+        model.AddToAutoHide(p, AutoHideSide.Bottom);
+
+        model.Clear();
+
+        int count = 0;
+        model.LayoutChanged += (_, _) => count++;
+
+        p.Title = "Changed after clear"; // should not trigger LayoutChanged
+        Assert.Equal(0, count);
     }
 }

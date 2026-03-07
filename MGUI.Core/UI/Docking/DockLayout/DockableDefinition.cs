@@ -114,6 +114,7 @@ public class DockableDefinition
             Icon = Icon,
             CanClose = CanClose,
             CanFloat = CanFloat,
+            CanAutoHide = CanAutoHide,
             IsPinned = true,
             DockableType = DockableType,
             ContentFactory = ContentFactory,
