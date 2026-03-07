@@ -137,6 +137,15 @@ namespace MGUI.Core.UI.Containers
             _cachedLastNeeded     = -1;
         }
 
+        /// <summary>Forces all currently realized items to be recycled and re-created on the next layout pass.
+        /// Call this after replacing the data source (i.e. after reassigning <see cref="ItemGenerator"/> and <see cref="ItemRecycler"/>)
+        /// to discard stale rendered items whose cached range would otherwise prevent re-rendering.</summary>
+        public void InvalidateData()
+        {
+            RecycleAllItems();
+            LayoutChanged(this, true);
+        }
+
         private void RealizeItem(int index)
         {
             if (ItemGenerator == null)

@@ -898,6 +898,12 @@ namespace MGUI.Core.UI
                     cp.SpoofIsPressedWhileDrawingBackground = false;
                 }
             };
+
+            // Discard any stale realized items from the previous data source.
+            // Without this, if the visible range [firstNeeded..lastNeeded] happens to be identical
+            // to the cached range from the previous source, the VirtualizingStackPanel skips
+            // re-realization entirely and keeps showing the old items — breaking filter switches.
+            _virtualizingPanel.InvalidateData();
         }
 
         /// <summary>Estimates the pixel height of individual items for the <see cref="VirtualizingStackPanel"/>.<br/>
