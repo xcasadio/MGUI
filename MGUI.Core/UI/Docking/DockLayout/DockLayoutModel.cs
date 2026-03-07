@@ -335,6 +335,16 @@ public class DockLayoutModel : INotifyPropertyChanged
 
     private void OnNodePropertyChanged(object sender, PropertyChangedEventArgs e)
     {
+        // ActivePanelId / ActivePanel changes are purely visual state (which tab is selected),
+        // not structural layout changes.  Firing LayoutChanged here would cause a full
+        // visual-tree rebuild on every tab switch — including during Ctrl+Tab cycling.
+        if (sender is DockTabGroupNode &&
+            (e.PropertyName == nameof(DockTabGroupNode.ActivePanelId) ||
+             e.PropertyName == nameof(DockTabGroupNode.ActivePanel)))
+        {
+            return;
+        }
+
         // Propagate layout change notification
         // This allows the view layer to know when to rebuild
         LayoutChanged?.Invoke(this, EventArgs.Empty);

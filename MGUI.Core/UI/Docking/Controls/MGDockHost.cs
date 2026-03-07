@@ -1009,14 +1009,34 @@ public class MGDockHost : MGSingleContentHost
 
     /// <summary>
     /// Cycles the active panel forward (Ctrl+Tab) or backward (Ctrl+Shift+Tab) through
-    /// all visible docked panels, iterating by tab-group order then panel order within each group.
+    /// all visible panels: docked tab groups, auto-hidden panels, and floating panels.
     /// </summary>
     /// <param name="forward">True to move to the next panel, false to move to the previous.</param>
     private void CyclePanel(bool forward)
     {
-        var allPanels = GetAllTabGroups()
-            .SelectMany(g => g.Panels)
-            .ToList();
+        // Collect all reachable panels in a deterministic order:
+        // 1. Docked panels (tab-group tree order, panel order within each group)
+        // 2. Auto-hidden panels (Left, Top, Right, Bottom)
+        // 3. Floating panels
+        var allPanels = new List<DockPanelNode>();
+
+        // Docked panels
+        allPanels.AddRange(GetAllTabGroups().SelectMany(g => g.Panels));
+
+        // Auto-hidden panels (by side)
+        if (LayoutModel != null)
+        {
+            foreach (AutoHideSide side in new[] { AutoHideSide.Left, AutoHideSide.Top, AutoHideSide.Right, AutoHideSide.Bottom })
+            {
+                allPanels.AddRange(LayoutModel.GetAutoHidePanels(side));
+            }
+        }
+
+        // Floating panels
+        foreach (var floatWin in _floatingWindows)
+        {
+            allPanels.AddRange(floatWin.GroupNode.Panels);
+        }
 
         if (allPanels.Count <= 1)
             return;
@@ -1032,9 +1052,47 @@ public class MGDockHost : MGSingleContentHost
         else
             nextIndex = (currentIndex - 1 + allPanels.Count) % allPanels.Count;
 
-        var nextPanel   = allPanels[nextIndex];
-        var parentGroup = nextPanel.Parent as DockTabGroupNode;
-        parentGroup?.SetActivePanel(nextPanel.Id);
+        var nextPanel = allPanels[nextIndex];
+        ActivatePanel(nextPanel);
+    }
+
+    /// <summary>
+    /// Activates a panel regardless of its current location (docked, auto-hidden, or floating).
+    /// </summary>
+    private void ActivatePanel(DockPanelNode panel)
+    {
+        if (panel == null) return;
+
+        // Check if panel is in a docked tab group
+        if (panel.Parent is DockTabGroupNode parentGroup
+            && GetAllTabGroups().Contains(parentGroup))
+        {
+            parentGroup.SetActivePanel(panel.Id);
+            return;
+        }
+
+        // Check if panel is auto-hidden
+        if (LayoutModel != null)
+        {
+            foreach (AutoHideSide side in new[] { AutoHideSide.Left, AutoHideSide.Top, AutoHideSide.Right, AutoHideSide.Bottom })
+            {
+                if (LayoutModel.GetAutoHidePanels(side).Any(p => p.Id == panel.Id))
+                {
+                    ShowAutoHideDrawer(panel);
+                    return;
+                }
+            }
+        }
+
+        // Check if panel is in a floating window
+        foreach (var floatWin in _floatingWindows)
+        {
+            if (floatWin.GroupNode.Panels.Any(p => p.Id == panel.Id))
+            {
+                floatWin.GroupNode.SetActivePanel(panel.Id);
+                return;
+            }
+        }
     }
 
     /// <summary>
