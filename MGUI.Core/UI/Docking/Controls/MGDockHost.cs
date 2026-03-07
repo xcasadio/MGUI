@@ -1060,6 +1060,12 @@ public class MGDockHost : MGSingleContentHost
 
         var nextPanel = allPanels[nextIndex];
         ActivatePanel(nextPanel);
+
+        // Always update ActiveDockable directly.  If nextPanel was already the active panel
+        // in its tab group, SetActivePanel() is a no-op and fires no PropertyChanged, so
+        // OnTabGroupPropertyChanged would never update ActiveDockable — causing every
+        // subsequent Ctrl+Tab call to compute the same currentIndex and stay stuck.
+        ActiveDockable = nextPanel;
     }
 
     /// <summary>

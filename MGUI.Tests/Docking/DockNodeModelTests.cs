@@ -409,4 +409,63 @@ public class DockNodeModelTests
         Assert.Null(old);
         Assert.False(p.IsContentCreated);
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Non-regression: Ctrl+Tab root cause (SetActivePanel idempotency)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Root cause of Ctrl+Tab stuck-loop bug:
+    /// SetActivePanel with a panel that is ALREADY active must NOT fire PropertyChanged
+    /// (INPC contract — no change, no event).  This means MGDockHost.CyclePanel cannot
+    /// rely on PropertyChanged to update ActiveDockable; it must set it directly.
+    /// Fix applied: CyclePanel sets ActiveDockable = nextPanel unconditionally after
+    /// ActivatePanel().
+    /// </summary>
+    [Fact]
+    public void SetActivePanel_WithSameId_DoesNotFirePropertyChanged()
+    {
+        var p1 = Panel("p1");
+        var p2 = Panel("p2");
+        var group = Group(p1, p2);
+        group.SetActivePanel(p1.Id);  // p1 is now active
+
+        int changeCount = 0;
+        group.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(DockTabGroupNode.ActivePanelId) ||
+                e.PropertyName == nameof(DockTabGroupNode.ActivePanel))
+                changeCount++;
+        };
+
+        // Calling SetActivePanel again with the same id must NOT fire PropertyChanged
+        group.SetActivePanel(p1.Id);
+
+        Assert.Equal(0, changeCount);
+    }
+
+    /// <summary>
+    /// Complementary: switching to a DIFFERENT panel DOES fire the event,
+    /// confirming the normal-path still works.
+    /// </summary>
+    [Fact]
+    public void SetActivePanel_WithDifferentId_FiresPropertyChanged()
+    {
+        var p1 = Panel("p1");
+        var p2 = Panel("p2");
+        var group = Group(p1, p2);
+        group.SetActivePanel(p1.Id);
+
+        int changeCount = 0;
+        group.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(DockTabGroupNode.ActivePanelId))
+                changeCount++;
+        };
+
+        group.SetActivePanel(p2.Id);
+
+        Assert.Equal(1, changeCount);
+        Assert.Equal(p2.Id, group.ActivePanelId);
+    }
 }
