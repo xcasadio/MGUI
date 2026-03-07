@@ -31,10 +31,6 @@ public class MGDockHost : MGSingleContentHost
                 if (_layoutModel != null)
                 {
                     _layoutModel.LayoutChanged -= OnLayoutModelChanged;
-                    if (_layoutModel.RootNode != null)
-                    {
-                        UnsubscribeFromNode(_layoutModel.RootNode);
-                    }
                 }
 
                 _layoutModel = value;
@@ -43,11 +39,10 @@ public class MGDockHost : MGSingleContentHost
                 if (_layoutModel != null)
                 {
                     _layoutModel.LayoutChanged += OnLayoutModelChanged;
-                    if (_layoutModel.RootNode != null)
-                    {
-                        SubscribeToNode(_layoutModel.RootNode);
-                    }
                 }
+
+                // Re-sync node subscriptions (OnTabGroupPropertyChanged etc.)
+                SyncNodeSubscriptions();
 
                 NPC(nameof(LayoutModel));
                 RebuildVisualTree();
@@ -400,12 +395,9 @@ public class MGDockHost : MGSingleContentHost
         if (!IsDragging)
         {
             var kb = ParentWindow.Desktop.InputTracker.Keyboard;
-            bool ctrlHeld  = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl)
-                          || kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightControl);
-            bool shiftHeld = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift)
-                          || kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightShift);
-            bool tabJustPressed = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab)
-                               && !kb.PreviousState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab);
+            bool ctrlHeld       = kb.IsControlDown;
+            bool shiftHeld      = kb.IsShiftDown;
+            bool tabJustPressed = kb.CurrentKeyPressedEvents[Microsoft.Xna.Framework.Input.Keys.Tab] != null;
 
             if (ctrlHeld && tabJustPressed)
                 CyclePanel(forward: !shiftHeld);
@@ -1827,12 +1819,36 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Handles layout model changes by rebuilding the visual tree.
+    /// Handles layout model changes by rebuilding the visual tree and re-syncing node subscriptions.
     /// </summary>
     private void OnLayoutModelChanged(object sender, EventArgs e)
     {
+        SyncNodeSubscriptions();
         RebuildVisualTree();
         DockLayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Last root node we subscribed to (to allow clean unsubscribe on structural changes).</summary>
+    private DockNode _subscribedRootNode;
+
+    /// <summary>
+    /// Unsubscribes from the previously subscribed root tree and subscribes to the current one.
+    /// Safe to call multiple times — avoids double-subscription.
+    /// </summary>
+    private void SyncNodeSubscriptions()
+    {
+        if (_subscribedRootNode != null)
+        {
+            UnsubscribeFromNode(_subscribedRootNode);
+            _subscribedRootNode = null;
+        }
+
+        var newRoot = LayoutModel?.RootNode;
+        if (newRoot != null)
+        {
+            SubscribeToNode(newRoot);
+            _subscribedRootNode = newRoot;
+        }
     }
 
     /// <summary>
