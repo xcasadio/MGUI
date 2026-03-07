@@ -400,13 +400,15 @@ public class MGDockHost : MGSingleContentHost
         if (!IsDragging)
         {
             var kb = ParentWindow.Desktop.InputTracker.Keyboard;
-            bool ctrlHeld = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl)
-                         || kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightControl);
+            bool ctrlHeld  = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl)
+                          || kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightControl);
+            bool shiftHeld = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift)
+                          || kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightShift);
             bool tabJustPressed = kb.CurrentState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab)
                                && !kb.PreviousState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab);
 
             if (ctrlHeld && tabJustPressed)
-                ShowCtrlTabSwitcher();
+                CyclePanel(forward: !shiftHeld);
         }
 
         // Handle drag operation via polling
@@ -1014,9 +1016,38 @@ public class MGDockHost : MGSingleContentHost
     // ─── 14.3 Ctrl+Tab panel switcher ───────────────────────────────────────
 
     /// <summary>
-    /// Opens a context-menu pop-up that lists every registered dockable, allowing the
-    /// user to switch to any panel with a single click.
-    /// Triggered automatically by the Ctrl+Tab keyboard shortcut.
+    /// Cycles the active panel forward (Ctrl+Tab) or backward (Ctrl+Shift+Tab) through
+    /// all visible docked panels, iterating by tab-group order then panel order within each group.
+    /// </summary>
+    /// <param name="forward">True to move to the next panel, false to move to the previous.</param>
+    private void CyclePanel(bool forward)
+    {
+        var allPanels = GetAllTabGroups()
+            .SelectMany(g => g.Panels)
+            .ToList();
+
+        if (allPanels.Count <= 1)
+            return;
+
+        var currentId = ActiveDockable?.Id;
+        int currentIndex = currentId != null ? allPanels.FindIndex(p => p.Id == currentId) : -1;
+
+        int nextIndex;
+        if (currentIndex < 0)
+            nextIndex = forward ? 0 : allPanels.Count - 1;
+        else if (forward)
+            nextIndex = (currentIndex + 1) % allPanels.Count;
+        else
+            nextIndex = (currentIndex - 1 + allPanels.Count) % allPanels.Count;
+
+        var nextPanel   = allPanels[nextIndex];
+        var parentGroup = nextPanel.Parent as DockTabGroupNode;
+        parentGroup?.SetActivePanel(nextPanel.Id);
+    }
+
+    /// <summary>
+    /// Opens a context-menu pop-up that lists every visible docked panel, allowing
+    /// the user to jump to any panel with a single click.
     /// </summary>
     public void ShowCtrlTabSwitcher()
     {
@@ -1037,7 +1068,6 @@ public class MGDockHost : MGSingleContentHost
             });
         }
 
-        // Open the switcher centred on the host's layout bounds
         var lb = LayoutBounds;
         int cx = lb.X + lb.Width  / 2;
         int cy = lb.Y + lb.Height / 2;
