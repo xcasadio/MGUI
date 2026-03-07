@@ -407,9 +407,9 @@ public class MGDockDropIndicators : MGElement
 
         DrawBorder(DA, rect, borderCol, BorderWidth);
         if (!isDisabled)
-            DrawZoneSymbol(DA, rect, zone, Color.White);
+            DrawZoneSymbol(DA, rect, zone, Color.White, isHostEdge);
         else
-            DrawZoneSymbol(DA, rect, zone, new Color(100, 100, 100, 150));
+            DrawZoneSymbol(DA, rect, zone, new Color(100, 100, 100, 150), isHostEdge);
     }
 
     /// <summary>
@@ -447,45 +447,59 @@ public class MGDockDropIndicators : MGElement
     }
 
     /// <summary>
-    /// Draws the directional symbol for a zone.
+    /// Draws the directional symbol for a zone, using texture icons when available.
     /// </summary>
-    private void DrawZoneSymbol(ElementDrawArgs DA, Rectangle rect, DockZone zone, Color color)
+    /// <param name="isHostEdge">
+    /// True for host-edge indicators (solid panel icons); false for per-panel joystick
+    /// (dashed panel icons).
+    /// </param>
+    private void DrawZoneSymbol(ElementDrawArgs DA, Rectangle rect, DockZone zone, Color color, bool isHostEdge)
     {
-        int centerX = rect.X + rect.Width / 2;
-        int centerY = rect.Y + rect.Height / 2;
-        int arrowSize = 10; // Size of directional arrows
+        const int iconSize = 24;
+        Rectangle iconRect = new Rectangle(
+            rect.X + (rect.Width  - iconSize) / 2,
+            rect.Y + (rect.Height - iconSize) / 2,
+            iconSize, iconSize);
+
+        // Choose the resource key: dashed variant for per-panel joystick, solid for host-edge
+        string textureKey = zone switch
+        {
+            DockZone.Left   => isHostEdge ? "DockPanelLeft"   : "DockPanelLeftDashed",
+            DockZone.Right  => isHostEdge ? "DockPanelRight"  : "DockPanelRightDashed",
+            DockZone.Top    => isHostEdge ? "DockPanelTop"    : "DockPanelTopDashed",
+            DockZone.Bottom => isHostEdge ? "DockPanelBottom" : "DockPanelBottomDashed",
+            DockZone.Center => isHostEdge ? "DockPanelCenter" : "DockPanelCenterDashed",
+            _               => null
+        };
+
+        if (textureKey != null && GetResources().TryDrawTexture(DA.DT, textureKey, iconRect, 1f, color))
+            return; // texture drawn — done
+
+        // Fallback: programmatic shape
+        int centerX   = rect.X + rect.Width  / 2;
+        int centerY   = rect.Y + rect.Height / 2;
+        int arrowSize = 10;
 
         switch (zone)
         {
             case DockZone.Left:
-                // Left-pointing arrow (triangle)
                 DrawArrow(DA, centerX, centerY, arrowSize, 180, color);
                 break;
-
             case DockZone.Right:
-                // Right-pointing arrow
                 DrawArrow(DA, centerX, centerY, arrowSize, 0, color);
                 break;
-
             case DockZone.Top:
-                // Up-pointing arrow
                 DrawArrow(DA, centerX, centerY, arrowSize, 270, color);
                 break;
-
             case DockZone.Bottom:
-                // Down-pointing arrow
                 DrawArrow(DA, centerX, centerY, arrowSize, 90, color);
                 break;
-
             case DockZone.Center:
-                // Small square for center zone
                 int squareSize = 14;
-                var centerSquare = new Rectangle(
+                DrawBorder(DA, new Rectangle(
                     centerX - squareSize / 2,
                     centerY - squareSize / 2,
-                    squareSize,
-                    squareSize);
-                DrawBorder(DA, centerSquare, color, 2);
+                    squareSize, squareSize), color, 2);
                 break;
         }
     }

@@ -528,8 +528,11 @@ public class MGDockTabGroup : MGElement
         {
             foreach (var tab in _tabItems.Values)
             {
-                int w = Math.Max(tab.MinTabWidth, tab.LayoutBounds.Width);
-                totalEstimated += w;
+                // Use LastMeasuredWidth (desired width from the measurement pass) rather than
+                // LayoutBounds.Width (allocated width).  LayoutBounds.Width is clamped by the
+                // stack panel when it distributes space, so it under-reports the space actually
+                // needed and can prevent overflow from ever being detected.
+                totalEstimated += tab.LastMeasuredWidth;
             }
         }
 
@@ -556,7 +559,7 @@ public class MGDockTabGroup : MGElement
                 {
                     if (!_tabItems.TryGetValue(panels[i].Id, out var tab))
                         continue;
-                    int w = Math.Max(tab.MinTabWidth, tab.LayoutBounds.Width);
+                    int w = tab.LastMeasuredWidth;
                     if (accumulated + w > tabStripWidth && newVisibleCount > 0)
                         break;
                     accumulated += w;
@@ -756,37 +759,48 @@ public class MGDockTabGroup : MGElement
     }
 
     /// <summary>
-    /// Draws a hollow square (maximize) or a short horizontal dash (restore) centred
-    /// over <see cref="_maximizeBtn"/>'s layout bounds.
+    /// Draws the maximize or restore icon centred over <see cref="_maximizeBtn"/>'s layout bounds.
+    /// Uses the <c>DockMaximize</c> / <c>DockMinimize</c> texture resources when available;
+    /// falls back to programmatic shapes otherwise.
     /// </summary>
     private void DrawMaximizeIcon(ElementDrawArgs DA)
     {
         if (_maximizeBtn == null)
             return;
 
-        Rectangle b    = _maximizeBtn.LayoutBounds;
-        float     cx   = b.X + b.Width  * 0.5f;
-        float     cy   = b.Y + b.Height * 0.5f;
-        Color     col  = new Color(200, 200, 200);
+        Rectangle b        = _maximizeBtn.LayoutBounds;
+        const int iconSize = 14;
+        Rectangle iconRect = new Rectangle(
+            b.X + (b.Width  - iconSize) / 2,
+            b.Y + (b.Height - iconSize) / 2,
+            iconSize, iconSize);
+        Color col      = new Color(200, 200, 200);
+        string iconKey = _isMaximized ? "DockMinimize" : "DockMaximize";
 
-        if (_isMaximized)
+        if (!GetResources().TryDrawTexture(DA.DT, iconKey, iconRect, 1f, col))
         {
-            // Restore: short horizontal dash  ─
-            const float halfW = 5f;
-            DA.DT.StrokeLineSegment(Vector2.Zero,
-                new Vector2(cx - halfW, cy),
-                new Vector2(cx + halfW, cy),
-                col, 1.5f);
-        }
-        else
-        {
-            // Maximize: hollow square  □
-            const float halfS = 5f;
-            DA.DT.StrokeRectangle(Vector2.Zero,
-                new RectangleF(cx - halfS, cy - halfS, halfS * 2f, halfS * 2f),
-                col,
-                new Thickness(1),
-                null);
+            // Fallback: programmatic shape
+            float cx = b.X + b.Width  * 0.5f;
+            float cy = b.Y + b.Height * 0.5f;
+            if (_isMaximized)
+            {
+                // Restore: short horizontal dash  ─
+                const float halfW = 5f;
+                DA.DT.StrokeLineSegment(Vector2.Zero,
+                    new Vector2(cx - halfW, cy),
+                    new Vector2(cx + halfW, cy),
+                    col, 1.5f);
+            }
+            else
+            {
+                // Maximize: hollow square  □
+                const float halfS = 5f;
+                DA.DT.StrokeRectangle(Vector2.Zero,
+                    new RectangleF(cx - halfS, cy - halfS, halfS * 2f, halfS * 2f),
+                    col,
+                    new Thickness(1),
+                    null);
+            }
         }
     }
 }

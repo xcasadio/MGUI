@@ -187,16 +187,16 @@ namespace MGUI.Samples.Features
             var tree = new MGTreeView(Window);
             var rootItem = new MGTreeViewItem(Window) { Header = "MyProject (C#)" };
             tree.AddItem(rootItem);
-            var srcFolder = new MGTreeViewItem(Window) { Header = "📁 src" };
+            var srcFolder = new MGTreeViewItem(Window) { Header = "src" };
             rootItem.AddItem(srcFolder);
-            srcFolder.AddItem(new MGTreeViewItem(Window) { Header = "📄 Program.cs" });
-            srcFolder.AddItem(new MGTreeViewItem(Window) { Header = "📄 MainWindow.cs" });
-            srcFolder.AddItem(new MGTreeViewItem(Window) { Header = "📄 DockingSystem.cs" });
-            var propsFolder = new MGTreeViewItem(Window) { Header = "📁 Properties" };
+            srcFolder.AddItem(new MGTreeViewItem(Window) { Header = "Program.cs" });
+            srcFolder.AddItem(new MGTreeViewItem(Window) { Header = "MainWindow.cs" });
+            srcFolder.AddItem(new MGTreeViewItem(Window) { Header = "DockingSystem.cs" });
+            var propsFolder = new MGTreeViewItem(Window) { Header = "Properties" };
             rootItem.AddItem(propsFolder);
-            propsFolder.AddItem(new MGTreeViewItem(Window) { Header = "📄 AssemblyInfo.cs" });
-            rootItem.AddItem(new MGTreeViewItem(Window) { Header = "📄 MyProject.csproj" });
-            rootItem.AddItem(new MGTreeViewItem(Window) { Header = "📄 README.md" });
+            propsFolder.AddItem(new MGTreeViewItem(Window) { Header = "AssemblyInfo.cs" });
+            rootItem.AddItem(new MGTreeViewItem(Window) { Header = "MyProject.csproj" });
+            rootItem.AddItem(new MGTreeViewItem(Window) { Header = "README.md" });
 
             stackPanel.TryAddChild(header);
             stackPanel.TryAddChild(tree);
@@ -359,18 +359,18 @@ namespace MGUI.Samples.Features
                 try
                 {
                     SaveLayout();
-                    ShowNotification("✓ Layout saved successfully!", Color.LightGreen);
+                    ShowNotification("Layout saved successfully!", Color.LightGreen);
                 }
                 catch (Exception ex)
                 {
-                    ShowNotification($"✗ Error saving layout:\n{ex.Message}", Color.OrangeRed);
+                    ShowNotification($"Error saving layout:\n{ex.Message}", Color.OrangeRed);
                 }
             })
             {
                 MinWidth = 150,
                 Padding = new Core.UI.XAML.Thickness(12, 8).ToThickness()
             };
-            saveButton.SetContent(new MGTextBlock(Window, "💾 Save Layout"));
+            saveButton.SetContent(new MGTextBlock(Window, "Save Layout"));
             stackPanel.TryAddChild(saveButton);
 
             // Load Layout Button
@@ -379,11 +379,11 @@ namespace MGUI.Samples.Features
                 try
                 {
                     LoadLayout();
-                    ShowNotification("✓ Layout loaded successfully!", Color.LightGreen);
+                    ShowNotification("Layout loaded successfully!", Color.LightGreen);
                 }
                 catch (Exception ex)
                 {
-                    ShowNotification($"✗ Error loading layout:\n{ex.Message}", Color.OrangeRed);
+                    ShowNotification($"Error loading layout:\n{ex.Message}", Color.OrangeRed);
                 }
             })
             {
@@ -391,7 +391,7 @@ namespace MGUI.Samples.Features
                 Padding = new Core.UI.XAML.Thickness(12, 8).ToThickness(),
                 Margin = new Core.UI.XAML.Thickness(0, 8, 0, 0).ToThickness()
             };
-            loadButton.SetContent(new MGTextBlock(Window, "📂 Load Layout"));
+            loadButton.SetContent(new MGTextBlock(Window, "Load Layout"));
             stackPanel.TryAddChild(loadButton);
 
             stackPanel.TryAddChild(new MGSeparator(Window, Orientation.Horizontal) 

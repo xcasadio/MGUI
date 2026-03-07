@@ -16,6 +16,7 @@ public class MGDockAutoHideDrawer : MGElement
 {
     // ── Constants ─────────────────────────────────────────────────────
     private const int HeaderHeight    = 28;
+    private const int HeaderBtnSize   = 22; // square icon-only buttons
     private const int ResizeGripSize  = 4; // thin drag handle on the inner edge
 
     // ── State ──────────────────────────────────────────────────────────
@@ -100,13 +101,13 @@ public class MGDockAutoHideDrawer : MGElement
             };
             _titleLabel.DefaultTextForeground.NormalValue = Color.White;
 
-            _pinBtn = CreateHeaderButton(window, "📌 Pin", () =>
+            _pinBtn = CreateHeaderButton(window, () =>
             {
                 if (_activePanel != null)
                     PinRequested?.Invoke(this, _activePanel);
             });
 
-            _closeBtn = CreateHeaderButton(window, "\u00d7", () =>
+            _closeBtn = CreateHeaderButton(window, () =>
             {
                 if (_activePanel != null)
                     PanelCloseRequested?.Invoke(this, _activePanel);
@@ -126,7 +127,8 @@ public class MGDockAutoHideDrawer : MGElement
     }
 
     // ── Header-button factory ─────────────────────────────────────────
-    private static MGBorder CreateHeaderButton(MGWindow window, string label, Action onClick)
+    /// <summary>Creates a square icon-only button for the drawer header.</summary>
+    private static MGBorder CreateHeaderButton(MGWindow window, Action onClick)
     {
         var body = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
         {
@@ -137,17 +139,7 @@ public class MGDockAutoHideDrawer : MGElement
             (IFillBrush)null,
             new Color(62, 62, 66),
             PressedModifierType.Darken, 0.10f);
-
-        var text = new MGTextBlock(window, label)
-        {
-            FontSize            = 11,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment   = VerticalAlignment.Center,
-            Padding             = new XAML.Thickness(6, 2, 6, 2).ToThickness()
-        };
-        text.DefaultTextForeground.NormalValue = new Color(200, 200, 200);
-        body.SetContent(text);
-
+        // No text child — icon is drawn directly in DrawContents
         body.MouseHandler.LMBReleasedInside += (_, e) =>
         {
             if (!e.IsHandled) { onClick(); e.SetHandledBy(body, false); }
@@ -227,9 +219,9 @@ public class MGDockAutoHideDrawer : MGElement
     {
         // Header
         _header.UpdateMeasurement(new Size(AvailableSize.Width, HeaderHeight), out _, out _, out _, out _);
-        _titleLabel.UpdateMeasurement(new Size(AvailableSize.Width - 60, HeaderHeight), out _, out _, out _, out _);
-        _pinBtn.UpdateMeasurement( new Size(50, HeaderHeight), out _, out _, out _, out _);
-        _closeBtn.UpdateMeasurement(new Size(20, HeaderHeight), out _, out _, out _, out _);
+        _titleLabel.UpdateMeasurement(new Size(Math.Max(0, AvailableSize.Width - HeaderBtnSize * 2), HeaderHeight), out _, out _, out _, out _);
+        _pinBtn.UpdateMeasurement( new Size(HeaderBtnSize, HeaderBtnSize), out _, out _, out _, out _);
+        _closeBtn.UpdateMeasurement(new Size(HeaderBtnSize, HeaderBtnSize), out _, out _, out _, out _);
         // Content
         int contentHeight = Math.Max(0, AvailableSize.Height - HeaderHeight);
         _content?.UpdateMeasurement(new Size(AvailableSize.Width, contentHeight), out _, out _, out _, out _);
@@ -241,13 +233,12 @@ public class MGDockAutoHideDrawer : MGElement
         int headerW = Bounds.Width;
         _header.UpdateLayout(new Rectangle(Bounds.X, Bounds.Y, headerW, HeaderHeight));
 
-        // Title takes up remaining space after the two buttons
-        int closeBtnW = 20;
-        int pinBtnW   = 50;
-        int titleW    = Math.Max(0, headerW - pinBtnW - closeBtnW - 2);
+        // Title takes up remaining space after the two icon buttons
+        int titleW = Math.Max(0, headerW - HeaderBtnSize * 2 - 2);
+        int btnY   = Bounds.Y + (HeaderHeight - HeaderBtnSize) / 2;
         _titleLabel.UpdateLayout(new Rectangle(Bounds.X, Bounds.Y, titleW, HeaderHeight));
-        _pinBtn.UpdateLayout(new Rectangle(Bounds.X + titleW, Bounds.Y, pinBtnW, HeaderHeight));
-        _closeBtn.UpdateLayout(new Rectangle(Bounds.X + titleW + pinBtnW, Bounds.Y, closeBtnW, HeaderHeight));
+        _pinBtn.UpdateLayout(new Rectangle(Bounds.X + titleW, btnY, HeaderBtnSize, HeaderBtnSize));
+        _closeBtn.UpdateLayout(new Rectangle(Bounds.X + titleW + HeaderBtnSize, btnY, HeaderBtnSize, HeaderBtnSize));
 
         // Content below header
         int contentY = Bounds.Y + HeaderHeight;
@@ -296,6 +287,39 @@ public class MGDockAutoHideDrawer : MGElement
         // Draw all child elements
         foreach (var child in GetChildren())
             child?.Draw(DA);
+
+        // ── Draw pin icon centred in the pin button ───────────────────────────
+        if (_pinBtn != null && _pinBtn.Visibility == Visibility.Visible)
+        {
+            Rectangle pb       = _pinBtn.LayoutBounds;
+            const int iconSize = 14;
+            Rectangle iconRect = new Rectangle(
+                pb.X + (pb.Width  - iconSize) / 2,
+                pb.Y + (pb.Height - iconSize) / 2,
+                iconSize, iconSize);
+            GetResources().TryDrawTexture(DA.DT, "DockPin", iconRect, DA.Opacity, new Color(200, 200, 200));
+        }
+
+        // ── Draw close icon centred in the close button ───────────────────────
+        if (_closeBtn != null && _closeBtn.Visibility == Visibility.Visible)
+        {
+            Rectangle cb       = _closeBtn.LayoutBounds;
+            const int iconSize = 12;
+            Rectangle iconRect = new Rectangle(
+                cb.X + (cb.Width  - iconSize) / 2,
+                cb.Y + (cb.Height - iconSize) / 2,
+                iconSize, iconSize);
+            if (!GetResources().TryDrawTexture(DA.DT, "DockClose", iconRect, DA.Opacity, new Color(200, 200, 200)))
+            {
+                // Fallback: × cross
+                float cx = cb.X + cb.Width  * 0.5f;
+                float cy = cb.Y + cb.Height * 0.5f;
+                const float half = 4.5f;
+                var col = new Color(200, 200, 200) * DA.Opacity;
+                DA.DT.StrokeLineSegment(Vector2.Zero, new Vector2(cx - half, cy - half), new Vector2(cx + half, cy + half), col, 1.5f);
+                DA.DT.StrokeLineSegment(Vector2.Zero, new Vector2(cx + half, cy - half), new Vector2(cx - half, cy + half), col, 1.5f);
+            }
+        }
 
         var LayoutBounds = this.LayoutBounds;
         // Draw a visible border
