@@ -860,9 +860,27 @@ namespace MGUI.Core.UI
 		protected bool _CanReceiveMouseInput { get; private set; }
 		bool IMouseHandlerHost.CanReceiveMouseInput() => _CanReceiveMouseInput;
 
-        public virtual bool CanHandleKeyboardInput { get => false; }
+        /// <summary>If true, this element can receive keyboard focus when clicked,
+        /// without necessarily being a text input control.<br/>
+        /// Controls like <see cref="MGTreeView"/>, <see cref="MGListBox{TItemType}"/>,
+        /// and <see cref="MGListView{TItemType}"/> set this to <see langword="true"/> to enable keyboard navigation.<para/>
+        /// Setting this to <see langword="true"/> also makes <see cref="CanHandleKeyboardInput"/> return <see langword="true"/>.</summary>
+        public virtual bool IsFocusable { get; set; } = false;
+
+        /// <summary>Returns <see langword="true"/> if this element can process keyboard input.<br/>
+        /// By default returns <see cref="IsFocusable"/>.<br/>
+        /// Controls that are always keyboard-active (like text boxes) override this to return <see langword="true"/>.</summary>
+        public virtual bool CanHandleKeyboardInput { get => IsFocusable; }
         protected bool _CanReceiveKeyboardInput { get; private set; }
 		bool IKeyboardHandlerHost.CanReceiveKeyboardInput() => CanHandleKeyboardInput && _CanReceiveKeyboardInput;
+
+        /// <summary>Requests keyboard focus for this element.
+        /// Focus will be applied at the end of the current update tick.</summary>
+        public void Focus()
+        {
+            if (CanHandleKeyboardInput)
+                GetDesktop().QueuedFocusedKeyboardHandler = this;
+        }
 
         // ---- Dirty flags for targeted input-state recomputation (Task 14) ---------
         // Set to true when IsEnabled, IsHitTestVisible, Visibility, or RecentDrawWasClipped changes
