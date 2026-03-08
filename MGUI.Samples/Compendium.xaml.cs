@@ -247,7 +247,7 @@ namespace MGUI.Samples
 
 #if DEBUG
             //HUD.Show();
-            DockingDemo.Show();
+            //DockingDemo.Show();
 #endif
 
             Window.WindowDataContext = this;

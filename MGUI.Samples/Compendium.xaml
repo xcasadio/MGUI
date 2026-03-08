@@ -95,6 +95,7 @@
                         <ToggleButton Content="BorderBrush" IsChecked="{MGBinding Path=IBorderBrushSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="FillBrush" IsChecked="{MGBinding Path=IFillBrushSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Perf Test" IsChecked="{MGBinding Path=PerformanceTest.IsVisible, Mode=TwoWay}" />
+                        <ToggleButton Content="Docking Demo" IsChecked="{MGBinding Path=DockingDemo.IsVisible, Mode=TwoWay}" />
                     </UniformGrid>
                 </StackPanel>
             </Expander>
