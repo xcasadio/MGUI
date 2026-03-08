@@ -3,7 +3,9 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.XAML;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
+using MGUI.Shared.Input.Keyboard;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -689,6 +691,59 @@ namespace MGUI.Core.UI
                 SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
         }
 
+        /// <summary>Selects all items. Only meaningful when <see cref="SelectionMode"/> is <see cref="ListBoxSelectionMode.Multiple"/> or <see cref="ListBoxSelectionMode.Contiguous"/>.</summary>
+        public void SelectAll()
+        {
+            if (SelectionMode == ListBoxSelectionMode.None)
+                return;
+            if (IsVirtualizing)
+            {
+                if (_logicalItemsList?.Count > 0)
+                {
+                    // In virtual mode we track by index; realized items will reflect selection
+                    _selectedIndices.Clear();
+                    for (int i = 0; i < _logicalItemsList.Count; i++)
+                        _selectedIndices.Add(i);
+                    foreach (var kvp in _realizedItems)
+                        kvp.Value.ContentPresenter.IsSelected = _selectedIndices.Contains(kvp.Key);
+                    _SelectedItems = _realizedItems.Values.ToList().AsReadOnly();
+                    NPC(nameof(SelectedItems));
+                    NPC(nameof(SelectedValue));
+                    NPC(nameof(SelectedDataItems));
+                    NPC(nameof(SelectedIndices));
+                    SelectionChanged?.Invoke(this, _SelectedItems);
+                }
+            }
+            else
+            {
+                if (ListBoxItems?.Count > 0)
+                    SelectedItems = ListBoxItems.ToList().AsReadOnly();
+            }
+        }
+
+        /// <summary>Returns the <typeparamref name="TItemType"/> item at the given logical index, or default if out of range.</summary>
+        private TItemType GetLogicalItemAt(int index)
+        {
+            if (IsVirtualizing)
+                return (_logicalItemsList != null && index >= 0 && index < _logicalItemsList.Count) ? _logicalItemsList[index] : default;
+            return (ListBoxItems != null && index >= 0 && index < ListBoxItems.Count) ? ListBoxItems[index].Data : default;
+        }
+
+        #region FocusedIndex
+        private int _FocusedIndex = -1;
+        /// <summary>The index of the keyboard-focused item, or -1 if none. Updated automatically on mouse click and keyboard navigation.</summary>
+        public int FocusedIndex
+        {
+            get => _FocusedIndex;
+            set
+            {
+                int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (InternalItems?.Count ?? 0);
+                int clamped = count == 0 ? -1 : Math.Clamp(value, 0, count - 1);
+                if (_FocusedIndex != clamped) { _FocusedIndex = clamped; NPC(nameof(FocusedIndex)); }
+            }
+        }
+        #endregion FocusedIndex
+
         /// <summary>The <see cref="MGListBoxItem{TItemType}"/> that the mouse was pressed on during the last mouse left-button press, or null if no item is currently pressed.<br/>
         /// This value is set back to <see langword="null"/> at the END of the update tick when the mouse left-button is released (so that other input-handlers have a chance to read the value before it is invalidated).<para/>
         /// This value can be useful for manually implementing drag-drop behavior.<para/>
@@ -1168,6 +1223,7 @@ namespace MGUI.Core.UI
                     PressedItem = GetItemAtMousePosition(e.Position);
                     if (PressedItem != null)
                         PressedItem.ContentPresenter.SpoofIsPressedWhileDrawingBackground = true;
+                    Focus();
                 };
 
                 MouseHandler.ReleasedOutside += (sender, e) =>
@@ -1248,8 +1304,70 @@ namespace MGUI.Core.UI
                                 break;
                             default: throw new NotImplementedException($"Unrecognized {nameof(ListBoxSelectionMode)}: {nameof(SelectionMode)}");
                         }
+                        if (ReleasedItem != null)
+                        {
+                            int idx = IsVirtualizing
+                                ? (_logicalItemsList?.IndexOf(ReleasedItem.Data) ?? -1)
+                                : (ListBoxItems != null ? ListBoxItems.ToList().IndexOf(ReleasedItem) : -1);
+                            if (idx >= 0) FocusedIndex = idx;
+                        }
                     }
                 };
+
+                IsFocusable = true;
+                KeyboardHandler.Pressed += OnListBoxKeyPressed;
+            }
+        }
+
+        private void OnListBoxKeyPressed(object sender, BaseKeyPressedEventArgs e)
+        {
+            int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
+            if (count == 0) return;
+
+            bool isCtrlDown = e.Tracker.IsControlDown;
+
+            // Ctrl+A — select all (Multiple/Contiguous mode)
+            if (isCtrlDown && e.Key == Keys.A)
+            {
+                if (SelectionMode == ListBoxSelectionMode.Multiple || SelectionMode == ListBoxSelectionMode.Contiguous)
+                {
+                    SelectAll();
+                    e.SetHandledBy(this, true);
+                }
+                return;
+            }
+
+            int newIndex = FocusedIndex;
+            switch (e.Key)
+            {
+                case Keys.Up:       newIndex = Math.Max(0, FocusedIndex <= 0 ? 0 : FocusedIndex - 1); break;
+                case Keys.Down:     newIndex = Math.Min(count - 1, FocusedIndex < 0 ? 0 : FocusedIndex + 1); break;
+                case Keys.Home:     newIndex = 0; break;
+                case Keys.End:      newIndex = count - 1; break;
+                case Keys.PageUp:   newIndex = Math.Max(0, FocusedIndex - 10); break;
+                case Keys.PageDown: newIndex = Math.Min(count - 1, FocusedIndex + 10); break;
+                case Keys.Space:
+                case Keys.Enter:
+                    if (FocusedIndex >= 0 && FocusedIndex < count && SelectionMode != ListBoxSelectionMode.None)
+                    {
+                        TItemType item = GetLogicalItemAt(FocusedIndex);
+                        if (item != null) SelectItem(item, true);
+                        e.SetHandledBy(this, true);
+                    }
+                    return;
+                default:
+                    return;
+            }
+
+            if (newIndex != FocusedIndex || FocusedIndex < 0)
+            {
+                FocusedIndex = newIndex;
+                if (SelectionMode != ListBoxSelectionMode.None)
+                {
+                    TItemType item = GetLogicalItemAt(FocusedIndex);
+                    if (item != null) SelectItem(item, true);
+                }
+                e.SetHandledBy(this, true);
             }
         }
 
