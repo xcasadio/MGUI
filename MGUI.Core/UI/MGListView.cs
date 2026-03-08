@@ -460,6 +460,80 @@ namespace MGUI.Core.UI
             if (Settings.SelectionMode.HasValue)
                 SelectionMode = Settings.SelectionMode.Value;
         }
+
+        #region Column Sort
+        /// <summary>Event arguments for <see cref="ColumnSortChanged"/>.</summary>
+        public class ColumnSortChangedEventArgs : EventArgs
+        {
+            public MGListViewColumn<TItemType> Column { get; }
+            public SortDirection? Direction { get; }
+            public ColumnSortChangedEventArgs(MGListViewColumn<TItemType> column, SortDirection? direction)
+            { Column = column; Direction = direction; }
+        }
+
+        /// <summary>Raised whenever the sort column or direction changes (including when sort is cleared).</summary>
+        public event EventHandler<ColumnSortChangedEventArgs> ColumnSortChanged;
+
+        /// <summary>The column that is currently used for sorting, or null if no sort is active.</summary>
+        public MGListViewColumn<TItemType> ActiveSortColumn { get; private set; }
+
+        private List<TItemType> _presortItems;
+
+        /// <summary>Sort rows by the given column in the given direction.
+        /// The column must have <see cref="MGListViewColumn{TItemType}.SortKeySelector"/> set.</summary>
+        public void SortByColumn(MGListViewColumn<TItemType> column, SortDirection direction)
+        {
+            if (column == null) throw new ArgumentNullException(nameof(column));
+            if (column.SortKeySelector == null) return;
+
+            // Save original order on first sort
+            if (_presortItems == null && ItemsSource != null)
+                _presortItems = ItemsSource.ToList();
+
+            // Update sort state
+            if (ActiveSortColumn != null && ActiveSortColumn != column)
+            {
+                ActiveSortColumn.SetSortDirection(null);
+                ActiveSortColumn.UpdateSortIndicator();
+            }
+            ActiveSortColumn = column;
+            column.SetSortDirection(direction);
+            column.UpdateSortIndicator();
+
+            ApplySort();
+            ColumnSortChanged?.Invoke(this, new ColumnSortChangedEventArgs(column, direction));
+        }
+
+        /// <summary>Removes the active column sort and restores the original item order.</summary>
+        public void ClearSort()
+        {
+            if (ActiveSortColumn == null) return;
+            ActiveSortColumn.SetSortDirection(null);
+            ActiveSortColumn.UpdateSortIndicator();
+            ActiveSortColumn = null;
+
+            if (_presortItems != null)
+            {
+                ReorderRows(_presortItems);
+                _presortItems = null;
+            }
+            ColumnSortChanged?.Invoke(this, new ColumnSortChangedEventArgs(null, null));
+        }
+
+        private void ApplySort()
+        {
+            if (ActiveSortColumn?.SortKeySelector == null || ItemsSource == null) return;
+            var sorted = ActiveSortColumn.CurrentSortDirection == SortDirection.Ascending
+                ? ItemsSource.OrderBy(d => ActiveSortColumn.SortKeySelector(d))
+                : ItemsSource.OrderByDescending(d => ActiveSortColumn.SortKeySelector(d));
+            ReorderRows(sorted);
+        }
+
+        private void ReorderRows(IEnumerable<TItemType> orderedItems)
+        {
+            SetItemsSource(orderedItems.ToList());
+        }
+        #endregion Column Sort
     }
     
     public class ListViewColumnWidth : ViewModelBase
@@ -588,6 +662,13 @@ namespace MGUI.Core.UI
             {
                 if (_Header != value)
                 {
+                    // Unsubscribe from old header's sort click
+                    if (_Header != null && _headerSortSubscribed)
+                    {
+                        _Header.MouseHandler.LMBClickedInside -= Header_SortClicked;
+                        _headerSortSubscribed = false;
+                    }
+
                     _Header = value;
 
                     RowDefinition HeaderRow = HeaderGrid.Rows[0];
@@ -599,6 +680,9 @@ namespace MGUI.Core.UI
                             HeaderGrid.TryAddChild(HeaderRow, HeaderColumn, Header);
                         }
                     }
+
+                    // Re-subscribe to new header if sortable
+                    RefreshSortClickSubscription();
 
                     NPC(nameof(Header));
                 }
@@ -666,5 +750,73 @@ namespace MGUI.Core.UI
 
             CellTemplate = ItemTemplate;
         }
+
+        #region Column Sort
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsSortable;
+        /// <summary>When true, clicking the column header will sort the list view by this column.
+        /// Requires <see cref="SortKeySelector"/> to be set.</summary>
+        public bool IsSortable
+        {
+            get => _IsSortable;
+            set
+            {
+                if (_IsSortable != value)
+                {
+                    _IsSortable = value;
+                    RefreshSortClickSubscription();
+                    NPC(nameof(IsSortable));
+                }
+            }
+        }
+
+        /// <summary>A function that extracts a comparable key from an item, used for sorting.</summary>
+        public Func<TItemType, IComparable> SortKeySelector { get; set; }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private SortDirection? _CurrentSortDirection;
+        /// <summary>The active sort direction for this column, or null if this column is not the active sort column.</summary>
+        public SortDirection? CurrentSortDirection
+        {
+            get => _CurrentSortDirection;
+            private set { if (_CurrentSortDirection != value) { _CurrentSortDirection = value; NPC(nameof(CurrentSortDirection)); } }
+        }
+
+        internal void SetSortDirection(SortDirection? direction) => CurrentSortDirection = direction;
+
+        private bool _headerSortSubscribed;
+
+        private void RefreshSortClickSubscription()
+        {
+            if (_Header != null)
+            {
+                if (IsSortable && !_headerSortSubscribed)
+                {
+                    _Header.MouseHandler.LMBClickedInside += Header_SortClicked;
+                    _headerSortSubscribed = true;
+                }
+                else if (!IsSortable && _headerSortSubscribed)
+                {
+                    _Header.MouseHandler.LMBClickedInside -= Header_SortClicked;
+                    _headerSortSubscribed = false;
+                }
+            }
+        }
+
+        private void Header_SortClicked(object sender, MGUI.Shared.Input.Mouse.BaseMouseClickedEventArgs e)
+        {
+            if (!IsSortable || SortKeySelector == null) return;
+            SortDirection newDir = CurrentSortDirection == SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending;
+            ListView.SortByColumn(this, newDir);
+        }
+
+        /// <summary>Override to customize the sort indicator displayed on the column header.
+        /// By default updates the header's <see cref="MGElement.ToolTip"/> text to show sort direction.</summary>
+        public virtual void UpdateSortIndicator()
+        {
+            // Base implementation is intentionally empty.
+            // Consumers may override MGListViewColumn or subscribe to ListView.ColumnSortChanged to update visuals.
+        }
+        #endregion Column Sort
     }
 }
