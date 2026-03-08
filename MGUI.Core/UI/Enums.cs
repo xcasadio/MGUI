@@ -239,6 +239,15 @@ namespace MGUI.Core.UI
         Screen
     }
 
+    /// <summary>Specifies the direction of a sort operation.</summary>
+    public enum SortDirection
+    {
+        /// <summary>Sort in ascending order (A→Z, 0→9).</summary>
+        Ascending,
+        /// <summary>Sort in descending order (Z→A, 9→0).</summary>
+        Descending
+    }
+
     public enum WindowStyle
     {
         Default,
