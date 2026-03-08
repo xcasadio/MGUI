@@ -427,6 +427,8 @@ public class MGTreeViewItem : MGSingleContentHost
         if (clickedExpander)
             return;
         OwnerTreeView?.NotifyItemSelected(this);
+        // Transfer keyboard focus to the parent TreeView on click
+        OwnerTreeView?.Focus();
         if (HasItems && !isDouble)
             ToggleExpansion();
         if (isDouble && HasItems)

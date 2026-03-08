@@ -1,7 +1,9 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
+using MGUI.Shared.Input.Keyboard;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -259,6 +261,89 @@ namespace MGUI.Core.UI
                 ScrollViewer.Padding = new MonoGame.Extended.Thickness(0);
                 ItemsPanel.Margin = new MonoGame.Extended.Thickness(0);
                 ItemsPanel.Padding = new MonoGame.Extended.Thickness(0);
+            }
+
+            // Enable keyboard navigation
+            IsFocusable = true;
+            KeyboardHandler.Pressed += OnKeyPressed;
+        }
+
+        /// <summary>Handles keyboard input for navigation within the tree view.</summary>
+        private void OnKeyPressed(object sender, BaseKeyPressedEventArgs e)
+        {
+            if (e.IsHandled)
+                return;
+
+            // If nothing is selected and a navigation key is pressed, select the first visible item
+            if (SelectedItem == null)
+            {
+                if (e.Key is Keys.Down or Keys.Up or Keys.Home or Keys.End or Keys.Left or Keys.Right or Keys.Enter or Keys.Space)
+                {
+                    var firstItem = _VisibleItemsCache?.FirstOrDefault();
+                    if (firstItem != null)
+                    {
+                        SelectItem(firstItem);
+                        e.SetHandledBy(this, true);
+                    }
+                }
+                return;
+            }
+
+            switch (e.Key)
+            {
+                case Keys.Up:
+                {
+                    var prev = GetPreviousVisibleItem(SelectedItem);
+                    if (prev != null) SelectItem(prev);
+                    e.SetHandledBy(this, true);
+                    break;
+                }
+                case Keys.Down:
+                {
+                    var next = GetNextVisibleItem(SelectedItem);
+                    if (next != null) SelectItem(next);
+                    e.SetHandledBy(this, true);
+                    break;
+                }
+                case Keys.Right:
+                    if (!SelectedItem.IsExpanded)
+                        SelectedItem.Expand();
+                    else
+                    {
+                        var firstChild = SelectedItem.Items.FirstOrDefault();
+                        if (firstChild != null) SelectItem(firstChild);
+                    }
+                    RebuildVisibleItemsCache();
+                    e.SetHandledBy(this, true);
+                    break;
+                case Keys.Left:
+                    if (SelectedItem.IsExpanded)
+                        SelectedItem.Collapse();
+                    else if (SelectedItem.ParentItem != null)
+                        SelectItem(SelectedItem.ParentItem);
+                    RebuildVisibleItemsCache();
+                    e.SetHandledBy(this, true);
+                    break;
+                case Keys.Home:
+                {
+                    var first = _VisibleItemsCache?.FirstOrDefault();
+                    if (first != null) SelectItem(first);
+                    e.SetHandledBy(this, true);
+                    break;
+                }
+                case Keys.End:
+                {
+                    var last = _VisibleItemsCache?.LastOrDefault();
+                    if (last != null) SelectItem(last);
+                    e.SetHandledBy(this, true);
+                    break;
+                }
+                case Keys.Space:
+                case Keys.Enter:
+                    SelectedItem.ToggleExpansion();
+                    RebuildVisibleItemsCache();
+                    e.SetHandledBy(this, true);
+                    break;
             }
         }
 
