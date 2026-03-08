@@ -19,6 +19,7 @@ using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Data_Binding;
 using System.ComponentModel;
 using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.DragDrop;
 
 namespace MGUI.Core.UI
 {
@@ -881,6 +882,70 @@ namespace MGUI.Core.UI
             if (CanHandleKeyboardInput)
                 GetDesktop().QueuedFocusedKeyboardHandler = this;
         }
+
+        #region Drag and Drop
+        /// <summary>When true, this element accepts dropped items during a drag-and-drop operation.
+        /// Setting this will subscribe to <see cref="MouseHandler.MovedInside"/> and <see cref="MouseHandler.Exited"/>
+        /// in order to drive <see cref="DragEnter"/>, <see cref="DragOver"/>, and <see cref="DragLeave"/> events.</summary>
+        public bool AllowDrop
+        {
+            get => _AllowDrop;
+            set
+            {
+                if (_AllowDrop != value)
+                {
+                    _AllowDrop = value;
+                    RefreshDragDropSubscriptions();
+                }
+            }
+        }
+        private bool _AllowDrop;
+        private bool _dragDropSubscribed;
+
+        private void RefreshDragDropSubscriptions()
+        {
+            if (_AllowDrop && !_dragDropSubscribed)
+            {
+                MouseHandler.MovedInside += OnDragMovedInside;
+                MouseHandler.Exited      += OnDragExited;
+                _dragDropSubscribed = true;
+            }
+            else if (!_AllowDrop && _dragDropSubscribed)
+            {
+                MouseHandler.MovedInside -= OnDragMovedInside;
+                MouseHandler.Exited      -= OnDragExited;
+                _dragDropSubscribed = false;
+            }
+        }
+
+        private void OnDragMovedInside(object sender, MGUI.Shared.Input.Mouse.BaseMouseMovedEventArgs e)
+        {
+            MGDesktop desktop = GetDesktop();
+            if (desktop?.DragDropManager?.IsDragging == true)
+                desktop.DragDropManager.NotifyDragOver(this, e.CurrentPosition);
+        }
+
+        private void OnDragExited(object sender, MGUI.Shared.Input.Mouse.BaseMouseMovedEventArgs e)
+        {
+            MGDesktop desktop = GetDesktop();
+            if (desktop?.DragDropManager?.IsDragging == true)
+                desktop.DragDropManager.NotifyDragLeave(this, e.CurrentPosition);
+        }
+
+        public event EventHandler<DragEnterEventArgs> DragEnter;
+        public event EventHandler<DragOverEventArgs>  DragOver;
+        public event EventHandler<DragLeaveEventArgs> DragLeave;
+        public event EventHandler<DropEventArgs>      Drop;
+
+        internal void RaiseDragEnter(DragEnterEventArgs e)  => DragEnter?.Invoke(this, e);
+        internal void RaiseDragOver(DragOverEventArgs e)    => DragOver?.Invoke(this, e);
+        internal void RaiseDragLeave(DragLeaveEventArgs e)  => DragLeave?.Invoke(this, e);
+        internal void RaiseDrop(DropEventArgs e)            => Drop?.Invoke(this, e);
+
+        /// <summary>Initiates a drag-and-drop operation from this element.
+        /// Call this from a <see cref="MouseHandler.LMBPressedInside"/> or similar handler.</summary>
+        public void DoDragDrop(DragDropData data) => GetDesktop()?.DragDropManager?.DoDragDrop(this, data);
+        #endregion Drag and Drop
 
         // ---- Dirty flags for targeted input-state recomputation (Task 14) ---------
         // Set to true when IsEnabled, IsHitTestVisible, Visibility, or RecentDrawWasClipped changes

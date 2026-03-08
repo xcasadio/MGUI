@@ -13,6 +13,7 @@ using MGUI.Shared.Input;
 using MGUI.Shared.Text;
 using MGUI.Shared.Rendering;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.DragDrop;
 using Microsoft.Xna.Framework.Graphics;
 using System.Diagnostics;
 using System.IO;
@@ -80,6 +81,10 @@ namespace MGUI.Core.UI
         /// Objects that subscribe to this handler's keyboard events will be the very first to receive and handle the event.<para/>
         /// Highly recommended to avoid using this unless absolutely necessary, and if you do use it, you probably shouldn't call e.SetHandledBy(...) so other elements can still receive the input.</summary>
         public KeyboardHandler HighPriorityKeyboardHandler { get; }
+
+        /// <summary>Manages drag-and-drop operations for all elements on this desktop.
+        /// Call <see cref="DragDropManager.DoDragDrop"/> from a mouse-pressed handler to initiate a drag.</summary>
+        public DragDropManager DragDropManager { get; private set; }
 
         bool IMouseViewport.IsInside(Vector2 Position) => ValidScreenBounds.ContainsInclusive(Position);
         Vector2 IMouseViewport.GetOffset() => Vector2.Zero;
@@ -499,8 +504,14 @@ namespace MGUI.Core.UI
             HighPriorityMouseHandler = InputTracker.Mouse.CreateHandler(this, null);
             HighPriorityKeyboardHandler = InputTracker.Keyboard.CreateHandler(this, null);
 
-            HighPriorityMouseHandler.PressedInside += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
+            HighPriorityMouseHandler.PressedInside  += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
             HighPriorityMouseHandler.PressedOutside += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
+
+            // Wire LMB release to finalize or cancel any active drag-and-drop
+            HighPriorityMouseHandler.ReleasedInside  += (sender, e) => { if (e.IsLMB && DragDropManager.IsDragging) DragDropManager.NotifyDrop(DragDropManager.CurrentDropTarget, e.Position); };
+            HighPriorityMouseHandler.ReleasedOutside += (sender, e) => { if (e.IsLMB && DragDropManager.IsDragging) DragDropManager.CancelDrag(); };
+
+            DragDropManager = new DragDropManager(this);
 
             //  Recalculate the layout of text-based elements when the text-rendering backend changes
             Renderer.TextEngineChanged += (sender, e) =>
