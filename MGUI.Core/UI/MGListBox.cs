@@ -857,7 +857,7 @@ namespace MGUI.Core.UI
             }
             int totalCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
             _virtualizingPanel.TotalItemCount = totalCount;
-            _virtualizingPanel.UniformItemHeight = EstimateItemHeight();
+            _virtualizingPanel.UniformItemHeight = MeasureNaturalItemHeight();
             _virtualizingPanel.ItemGenerator = (idx) =>
             {
                 MGListBoxItem<TItemType> item;
@@ -918,6 +918,49 @@ namespace MGUI.Core.UI
                 if (h > 0) return h;
             }
             return 26; // Fallback: ~6 px padding top + 14 px text + 6 px padding bottom
+        }
+
+        /// <summary>Measures the natural (un-stretched) height of a single item by creating a probe element,
+        /// running a layout pass with <see cref="VerticalAlignment.Top"/> so it occupies only its preferred height,
+        /// and reading the resulting <see cref="MGElement.LayoutBounds"/>.<para/>
+        /// This is necessary in virtualised mode because <see cref="InternalItems"/> is null and there are no
+        /// realized elements to read from before the first layout pass.</summary>
+        private int MeasureNaturalItemHeight()
+        {
+            // Fast path: non-virtualizing mode already has realized items we can measure
+            if (InternalItems?.Count > 0)
+                return EstimateItemHeight();
+
+            if (_logicalItemsList == null || _logicalItemsList.Count == 0 || ItemTemplate == null)
+                return 26;
+
+            try
+            {
+                // Build the item content via the template (same as real items)
+                MGElement content = ItemTemplate(_logicalItemsList[0]);
+                if (content == null)
+                    return 26;
+
+                // Wrap in a border that matches real item container style, but TOP-aligned so it
+                // takes its natural height instead of stretching to fill whatever slot we give it.
+                var probe = new MGBorder(SelfOrParentWindow)
+                {
+                    VerticalAlignment = VerticalAlignment.Top,
+                };
+                ApplyDefaultItemContainerStyle(probe);
+                using (probe.AllowChangingContentTemporarily())
+                    probe.SetContent(content);
+
+                // Use a wide rect so text wrapping doesn't artificially inflate height,
+                // and a tall rect (2000) so VA=Top reports the true natural height.
+                probe.UpdateLayout(new Rectangle(0, 0, 1200, 2000));
+                int h = probe.LayoutBounds.Height;
+                return h > 4 ? h : 26;
+            }
+            catch
+            {
+                return 26;
+            }
         }
         #endregion Virtualization
 
