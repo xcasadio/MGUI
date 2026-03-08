@@ -1,9 +1,11 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.XAML;
+using MGUI.Shared.Input.Keyboard;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -370,6 +372,57 @@ namespace MGUI.Core.UI
                 _Columns = new();
 
                 SelectionMode = GridSelectionMode.None;
+
+                DataGrid.SelectionChanged += (sender, e) =>
+                {
+                    if (e.HasValue && DataGrid.Rows.Count > 0)
+                        FocusedRowIndex = DataGrid.GetRowIndex(e.Value.Cell.Row);
+                };
+                DataGrid.MouseHandler.LMBPressedInside += (sender, e) => Focus();
+
+                IsFocusable = true;
+                KeyboardHandler.Pressed += OnListViewKeyPressed;
+            }
+        }
+
+        #region FocusedRowIndex
+        private int _FocusedRowIndex = -1;
+        /// <summary>The index of the keyboard-focused row, or -1 if none.</summary>
+        public int FocusedRowIndex
+        {
+            get => _FocusedRowIndex;
+            set
+            {
+                int count = RowItems?.Count ?? 0;
+                int clamped = count == 0 ? -1 : Math.Clamp(value, 0, count - 1);
+                if (_FocusedRowIndex != clamped) { _FocusedRowIndex = clamped; NPC(nameof(FocusedRowIndex)); }
+            }
+        }
+        #endregion FocusedRowIndex
+
+        private void OnListViewKeyPressed(object sender, BaseKeyPressedEventArgs e)
+        {
+            int count = RowItems?.Count ?? 0;
+            if (count == 0) return;
+
+            int newIndex = FocusedRowIndex;
+            switch (e.Key)
+            {
+                case Keys.Up:       newIndex = Math.Max(0, FocusedRowIndex <= 0 ? 0 : FocusedRowIndex - 1); break;
+                case Keys.Down:     newIndex = Math.Min(count - 1, FocusedRowIndex < 0 ? 0 : FocusedRowIndex + 1); break;
+                case Keys.Home:     newIndex = 0; break;
+                case Keys.End:      newIndex = count - 1; break;
+                case Keys.PageUp:   newIndex = Math.Max(0, FocusedRowIndex - 10); break;
+                case Keys.PageDown: newIndex = Math.Min(count - 1, FocusedRowIndex + 10); break;
+                default: return;
+            }
+
+            if (newIndex != FocusedRowIndex || FocusedRowIndex < 0)
+            {
+                FocusedRowIndex = newIndex;
+                if (SelectionMode != GridSelectionMode.None && DataGrid.Rows.Count > FocusedRowIndex && DataGrid.Columns.Count > 0)
+                    DataGrid.CurrentSelection = new GridSelection(DataGrid, new GridCell(DataGrid.Rows[FocusedRowIndex], DataGrid.Columns[0]), SelectionMode);
+                e.SetHandledBy(this, true);
             }
         }
 
