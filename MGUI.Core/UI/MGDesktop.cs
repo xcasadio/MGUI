@@ -587,14 +587,24 @@ namespace MGUI.Core.UI
             FocusedKeyboardHandler = QueuedFocusedKeyboardHandler;
         }
 
-        /// <summary>Traverses up the visual tree, starting from the given <paramref name="Element"/>, looking for an <see cref="MGElement"/> that is fully opaque (<see cref="MGElement.Opacity"/> >= 1.0f)</summary>
+        /// <summary>Traverses up the visual tree, starting from the given <paramref name="Element"/>, looking for an
+        /// <see cref="MGElement"/> that is visually "opaque" — i.e. it has a non-null <see cref="MGElement.BackgroundBrush"/>
+        /// normal value AND <see cref="MGElement.Opacity"/> &gt;= 1.0.<para/>
+        /// Pure layout containers (e.g. <see cref="MGGrid"/>, <see cref="MGStackPanel"/>) get a <c>null</c>
+        /// background from the theme, so they are intentionally excluded even though they are technically within
+        /// the visual-tree bounds — they have no visual presence of their own and therefore should not block
+        /// click-through in <see cref="MGWindow.AllowsClickThrough"/> windows.</summary>
         /// <param name="IncludeSelf">If true, this method may return the input <paramref name="Element"/>. If false, starts checking for valid matches from the input's <see cref="MGElement.Parent"/></param>
         private static MGElement FindFirstOpaqueParent(MGElement Element, bool IncludeSelf)
         {
             MGElement Current = IncludeSelf ? Element : Element?.Parent;
             while (Current != null)
             {
-                if (Current.Opacity >= 1f || Current.Opacity.IsAlmostEqual(1f))
+                // Only elements that (1) actually draw a background and (2) are fully opaque count as "blocking".
+                // Layout-only containers (Grid, StackPanel, etc.) have BackgroundBrush.NormalValue == null
+                // and must not prevent click-through in visually empty areas of AllowsClickThrough windows.
+                bool HasBackground = Current.BackgroundBrush?.NormalValue != null;
+                if (HasBackground && (Current.Opacity >= 1f || Current.Opacity.IsAlmostEqual(1f)))
                     return Current;
                 else
                     Current = Current.Parent;
