@@ -1223,7 +1223,6 @@ namespace MGUI.Core.UI
                     PressedItem = GetItemAtMousePosition(e.Position);
                     if (PressedItem != null)
                         PressedItem.ContentPresenter.SpoofIsPressedWhileDrawingBackground = true;
-                    Focus();
                 };
 
                 MouseHandler.ReleasedOutside += (sender, e) =>

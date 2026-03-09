@@ -378,7 +378,6 @@ namespace MGUI.Core.UI
                     if (e.HasValue && DataGrid.Rows.Count > 0)
                         FocusedRowIndex = DataGrid.GetRowIndex(e.Value.Cell.Row);
                 };
-                DataGrid.MouseHandler.LMBPressedInside += (sender, e) => Focus();
 
                 IsFocusable = true;
                 KeyboardHandler.Pressed += OnListViewKeyPressed;
