@@ -20,7 +20,7 @@ namespace MGUI.Core.UI.XAML
         public abstract MGElementType ElementType { get; }
 
         /// <summary>Tracks the names of properties that were explicitly assigned in XAML by the parser (i.e., the property setter was called during <c>XamlServices.Parse</c>).<br/>
-        /// Used by <see cref="ProcessStyles"/> to distinguish an intentional XAML assignment from a C#-level default.<para/>
+        /// Used by <see cref="ProcessStyles(MGResources)"/> to distinguish an intentional XAML assignment from a C#-level default.<para/>
         /// <b>Note:</b> Only non-nullable value-type properties (<c>bool</c>, <c>int</c>, enums, …) need to register here, because
         /// nullable and reference-type properties already use <c>null</c> as a reliable "not-set" sentinel.</summary>
         internal HashSet<string> ExplicitlySetProperties { get; } = new();
@@ -617,8 +617,7 @@ namespace MGUI.Core.UI.XAML
                         PropertyInfo PropertyInfo = ThisType.GetProperty(PropertyName, BindingFlags.Public | BindingFlags.Instance); // | BindingFlags.IgnoreCase?
                         if (PropertyInfo != null)
                         {
-                            if (ModifiedPropertyNames.Contains(PropertyName) 
-                                || PropertyInfo.GetValue(this) == default) // Don't allow a style to override a value that was already explicitly set (needs more robust logic since some controls initialize properties to non-null values)
+                            if (ModifiedPropertyNames.Contains(PropertyName) || IsXAMLPropertyUnset(PropertyInfo))
                             {
                                 TypeConverter Converter = TypeDescriptor.GetConverter(PropertyInfo.PropertyType);
                                 foreach (object Value in KVP.Value)
@@ -649,8 +648,7 @@ namespace MGUI.Core.UI.XAML
                         PropertyInfo PropertyInfo = ThisType.GetProperty(PropertyName, BindingFlags.Public | BindingFlags.Instance); // | BindingFlags.IgnoreCase?
                         if (PropertyInfo != null)
                         {
-                            if (ModifiedPropertyNames.Contains(PropertyName) 
-                                || PropertyInfo.GetValue(this) == default) // Don't allow a style to override a value that was already explicitly set
+                            if (ModifiedPropertyNames.Contains(PropertyName) || IsXAMLPropertyUnset(PropertyInfo))
                             {
                                 PropertiesByName.Add(PropertyName, PropertyInfo);
                             }
@@ -712,6 +710,37 @@ namespace MGUI.Core.UI.XAML
                     }
                 }
             }
+        }
+
+        /// <summary>Returns <see langword="true"/> when a XAML property has NOT been explicitly set by the XAML
+        /// parser, meaning a style setter may override it.
+        /// <list type="bullet">
+        /// <item>Non-nullable value types (<c>bool</c>, <c>int</c>, <c>enum</c>, …): relies on
+        ///   <see cref="ExplicitlySetProperties"/>.  If absent from that set the property is still at its
+        ///   C# default, i.e. effectively unset.</item>
+        /// <item>Nullable value types (<c>int?</c>, <c>bool?</c>, …) and reference types: a
+        ///   <see langword="null"/> value means "not set" because the XAML parser never called the
+        ///   setter.</item>
+        /// </list>
+        /// Called from <see cref="ProcessStyles(MGResources)"/> to guard against style overrides.
+        /// </summary>
+        private bool IsXAMLPropertyUnset(PropertyInfo pi)
+        {
+            // Explicit-tracking wins: if the setter was called during XAML parsing, the
+            // property was intentionally set — the style must not override it.
+            if (ExplicitlySetProperties.Contains(pi.Name))
+                return false;
+
+            Type type = pi.PropertyType;
+
+            // Non-nullable value type: the boxed value is never null, so a null-check
+            // would always report "not set".  Without an entry in ExplicitlySetProperties
+            // the property is at its C# default and is therefore effectively unset.
+            if (type.IsValueType && Nullable.GetUnderlyingType(type) == null)
+                return true;
+
+            // Reference type or Nullable<T>: null ↔ "not set by the XAML parser".
+            return pi.GetValue(this) == null;
         }
     }
 
