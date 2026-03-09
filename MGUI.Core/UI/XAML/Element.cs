@@ -19,6 +19,12 @@ namespace MGUI.Core.UI.XAML
     {
         public abstract MGElementType ElementType { get; }
 
+        /// <summary>Tracks the names of properties that were explicitly assigned in XAML by the parser (i.e., the property setter was called during <c>XamlServices.Parse</c>).<br/>
+        /// Used by <see cref="ProcessStyles"/> to distinguish an intentional XAML assignment from a C#-level default.<para/>
+        /// <b>Note:</b> Only non-nullable value-type properties (<c>bool</c>, <c>int</c>, enums, …) need to register here, because
+        /// nullable and reference-type properties already use <c>null</c> as a reliable "not-set" sentinel.</summary>
+        internal HashSet<string> ExplicitlySetProperties { get; } = new();
+
         public string Name { get; set; }
 
         [Category("Layout")]
@@ -115,23 +121,53 @@ namespace MGUI.Core.UI.XAML
 
         /// <summary>Used by <see cref="DockPanel"/>'s children</summary>
         [Category("Attached")]
-        public Dock Dock { get; set; } = Dock.Top;
+        public Dock Dock
+        {
+            get => _dock;
+            set { _dock = value; ExplicitlySetProperties.Add(nameof(Dock)); }
+        }
+        private Dock _dock = Dock.Top;
 
         /// <summary>Used by <see cref="Grid"/>'s children</summary>
         [Browsable(false)]
-        public int GridRow { get; set; } = 0;
+        public int GridRow
+        {
+            get => _gridRow;
+            set { _gridRow = value; ExplicitlySetProperties.Add(nameof(GridRow)); }
+        }
+        private int _gridRow = 0;
         /// <summary>Used by <see cref="Grid"/>'s children</summary>
         [Browsable(false)]
-        public int GridColumn { get; set; } = 0;
+        public int GridColumn
+        {
+            get => _gridColumn;
+            set { _gridColumn = value; ExplicitlySetProperties.Add(nameof(GridColumn)); }
+        }
+        private int _gridColumn = 0;
         /// <summary>Used by <see cref="Grid"/>'s children</summary>
         [Browsable(false)]
-        public int GridRowSpan { get; set; } = 1;
+        public int GridRowSpan
+        {
+            get => _gridRowSpan;
+            set { _gridRowSpan = value; ExplicitlySetProperties.Add(nameof(GridRowSpan)); }
+        }
+        private int _gridRowSpan = 1;
         /// <summary>Used by <see cref="Grid"/>'s children</summary>
         [Browsable(false)]
-        public int GridColumnSpan { get; set; } = 1;
+        public int GridColumnSpan
+        {
+            get => _gridColumnSpan;
+            set { _gridColumnSpan = value; ExplicitlySetProperties.Add(nameof(GridColumnSpan)); }
+        }
+        private int _gridColumnSpan = 1;
         /// <summary>Used by <see cref="Grid"/>'s children</summary>
         [Category("Attached")]
-        public bool GridAffectsMeasure { get; set; } = true;
+        public bool GridAffectsMeasure
+        {
+            get => _gridAffectsMeasure;
+            set { _gridAffectsMeasure = value; ExplicitlySetProperties.Add(nameof(GridAffectsMeasure)); }
+        }
+        private bool _gridAffectsMeasure = true;
 
         /// <summary>Used by <see cref="OverlayPanel"/>'s children</summary>
         [Category("Attached")]
@@ -156,7 +192,12 @@ namespace MGUI.Core.UI.XAML
         /// <summary>If true, this object can have <see cref="Setter"/>s applied to its properties.<para/>
         /// Default value: true</summary>
         [Category("Appearance")]
-        public bool IsStyleable { get; set; } = true;
+        public bool IsStyleable
+        {
+            get => _isStyleable;
+            set { _isStyleable = value; ExplicitlySetProperties.Add(nameof(IsStyleable)); }
+        }
+        private bool _isStyleable = true;
         [Category("Appearance")]
         public List<Style> Styles { get; set; } = new();
         /// <summary>The names of the named <see cref="Style"/>s that should be applied to this <see cref="Element"/>.<br/>

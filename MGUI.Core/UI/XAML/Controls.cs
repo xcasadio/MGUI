@@ -69,7 +69,12 @@ namespace MGUI.Core.UI.XAML
     public class ContextualContentPresenter : Element
     {
         [Category("Behavior")]
-        public bool Value { get; set; }
+        public bool Value
+        {
+            get => _value;
+            set { _value = value; ExplicitlySetProperties.Add(nameof(Value)); }
+        }
+        private bool _value;
 
         public Element TrueContent { get; set; } = null;
         public Element FalseContent { get; set; } = null;
