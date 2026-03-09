@@ -865,8 +865,30 @@ namespace MGUI.Core.UI
         /// without necessarily being a text input control.<br/>
         /// Controls like <see cref="MGTreeView"/>, <see cref="MGListBox{TItemType}"/>,
         /// and <see cref="MGListView{TItemType}"/> set this to <see langword="true"/> to enable keyboard navigation.<para/>
-        /// Setting this to <see langword="true"/> also makes <see cref="CanHandleKeyboardInput"/> return <see langword="true"/>.</summary>
-        public virtual bool IsFocusable { get; set; } = false;
+        /// Setting this to <see langword="true"/> also makes <see cref="CanHandleKeyboardInput"/> return <see langword="true"/>.<para/>
+        /// When first set to <see langword="true"/>, a one-time subscription to <see cref="MouseHandler"/>
+        /// <c>.LMBPressedInside</c> is made so that clicking this element will automatically call <see cref="Focus"/>.</summary>
+        public virtual bool IsFocusable
+        {
+            get => _isFocusable;
+            set
+            {
+                if (_isFocusable != value)
+                {
+                    _isFocusable = value;
+                    if (value && !_autoFocusSubscribed)
+                    {
+                        _autoFocusSubscribed = true;
+                        MouseHandler.LMBPressedInside += (sender, e) =>
+                        {
+                            if (IsFocusable) Focus();
+                        };
+                    }
+                }
+            }
+        }
+        private bool _isFocusable;
+        private bool _autoFocusSubscribed;
 
         /// <summary>Returns <see langword="true"/> if this element can process keyboard input.<br/>
         /// By default returns <see cref="IsFocusable"/>.<br/>
