@@ -1776,6 +1776,12 @@ namespace MGUI.Core.UI
                 _cachedParentCanReceiveMouse = parentCanMouse;
             }
 
+            // Modal-window override: applied outside the cached block so it is re-evaluated every tick
+            // without needing a dirty flag.  Elements inside the modal window have
+            // SelfOrParentWindow == the modal itself (which has HasModalWindow == false unless a
+            // second modal opens), so they are correctly allowed to receive input.
+            _CanReceiveMouseInput &= !(SelfOrParentWindow?.HasModalWindow == true);
+
             OnBeginUpdateContents?.Invoke(this, UpdateEventArgs);
 
             // Compute the content-area bounds: ActualLayoutBounds shrunk by this element's Padding.
