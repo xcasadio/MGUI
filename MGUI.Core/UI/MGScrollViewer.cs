@@ -411,8 +411,8 @@ namespace MGUI.Core.UI
                 MouseHandler.MovedInside += (sender, e) =>
                 {
                     Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
-                    IsHoveringVSB = !ParentWindow.HasModalWindow && VSBBounds.HasValue && VSBBounds.Value.ContainsInclusive(LayoutSpacePosition);
-                    IsHoveringHSB = !ParentWindow.HasModalWindow && HSBBounds.HasValue && HSBBounds.Value.ContainsInclusive(LayoutSpacePosition);
+                    IsHoveringVSB = VSBBounds.HasValue && VSBBounds.Value.ContainsInclusive(LayoutSpacePosition);
+                    IsHoveringHSB = HSBBounds.HasValue && HSBBounds.Value.ContainsInclusive(LayoutSpacePosition);
                 };
 
                 MouseHandler.MovedOutside += (sender, e) =>

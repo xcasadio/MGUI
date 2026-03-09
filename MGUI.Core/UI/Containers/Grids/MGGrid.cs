@@ -902,20 +902,14 @@ namespace MGUI.Core.UI.Containers.Grids
                 SelectionMouseHandler = InputTracker.Mouse.CreateHandler(this, null, false, true);
                 SelectionMouseHandler.LMBPressedInside += (sender, e) =>
                 {
-                    if (!ParentWindow.HasModalWindow)
-                    {
-                        SelectionAtStartOfMousePress = CurrentSelection;
-                        Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                        UpdateSelection(Position, false);
-                    }
+                    SelectionAtStartOfMousePress = CurrentSelection;
+                    Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    UpdateSelection(Position, false);
                 };
                 SelectionMouseHandler.LMBReleasedInside += (sender, e) =>
                 {
-                    if (!ParentWindow.HasModalWindow)
-                    {
-                        Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                        UpdateSelection(Position, true);
-                    }
+                    Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    UpdateSelection(Position, true);
                 };
 
                 OnEndingDraw += (sender, e) =>

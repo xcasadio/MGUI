@@ -443,10 +443,7 @@ namespace MGUI.Core.UI
 
                 MouseHandler.MovedInside += (sender, e) =>
                 {
-                    if (ParentWindow.HasModalWindow)
-                        PreviewValue = null;
-                    else
-                        UpdatePreviewValue(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition));
+                    UpdatePreviewValue(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition));
                 };
 
                 MouseHandler.MovedOutside += (sender, e) => { PreviewValue = null; };
