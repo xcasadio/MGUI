@@ -1351,13 +1351,11 @@ namespace MGUI.Core.UI
                             BorderThickness = new(0);
                             PreviousBackgroundBrush = BackgroundBrush.Copy();
                             BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
-                            //  Explicitly disable click-through so the window blocks mouse events that fall within it.
-                            //  Note: clicks that land within the window bounds but outside of any child element content
-                            //  will still be consumed by this window (not passed through to windows below).
-                            //  If pass-through for empty areas is needed in the future, set AllowsClickThrough = true instead.
+                            //  WindowStyle.None sets AllowsClickThrough=false by default so that
+                            //  chrome-less windows still block mouse events.
+                            //  XAML can legitimately override this afterwards via the AllowsClickThrough property
+                            //  (e.g. HUD overlays that need click-through in empty areas).
                             AllowsClickThrough = false;
-                            Debug.Assert(AllowsClickThrough == false,
-                                $"{nameof(WindowStyle)}.{nameof(WindowStyle.None)} windows should not allow click-through by default.");
                             break;
                         default: throw new NotImplementedException($"Unrecognized {nameof(WindowStyle)}: {value}");
                     }

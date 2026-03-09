@@ -2677,9 +2677,6 @@ namespace MGUI.Core.UI.XAML
             if (IsTopmost.HasValue)
                 Window.IsTopmost = IsTopmost.Value;
 
-            if (AllowsClickThrough.HasValue)
-                Window.AllowsClickThrough = AllowsClickThrough.Value;
-
             if (IsDraggable.HasValue)
                 Window.IsDraggable = IsDraggable.Value;
 
@@ -2700,7 +2697,9 @@ namespace MGUI.Core.UI.XAML
             if (WindowStyle != null)
                 Window.WindowStyle = WindowStyle.Value;
 
-            //  Apply these properties after setting WindowStyle because they may have been overwrriten when setting WindowStyle to WindowStyle.None
+            //  Apply these properties after setting WindowStyle because they may have been overwritten when setting WindowStyle to WindowStyle.None
+            if (AllowsClickThrough.HasValue)
+                Window.AllowsClickThrough = AllowsClickThrough.Value;
             if (Padding != null)
                 Window.Padding = Padding.Value.ToThickness();
             if (IsTitleBarVisible.HasValue)
