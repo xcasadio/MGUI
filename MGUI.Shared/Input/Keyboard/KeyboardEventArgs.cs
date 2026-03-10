@@ -8,6 +8,13 @@ using System.Threading.Tasks;
 
 namespace MGUI.Shared.Input.Keyboard
 {
+    internal sealed class KeyboardInputStreamRoutingMetadata
+    {
+        public long? OwnerHandlerId { get; set; }
+    }
+
+    /// <summary>Represents the stable technical identity of a held-key input stream.
+    /// The stream is used for internal routing and ownership independently from the public <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> state.</summary>
     public class KeyboardInputStream
     {
         public long Id { get; }
@@ -15,7 +22,7 @@ namespace MGUI.Shared.Input.Keyboard
         public TimeSpan StartedAt { get; }
         public BaseKeyPressedEventArgs InitialPressedArgs { get; private set; }
 
-        internal long? OwnerHandlerId { get; private set; }
+        internal KeyboardInputStreamRoutingMetadata RoutingMetadata { get; } = new();
 
         internal KeyboardInputStream(long Id, Keys Key, TimeSpan StartedAt)
         {
@@ -32,12 +39,14 @@ namespace MGUI.Shared.Input.Keyboard
 
         internal bool HasOwner => OwnerHandlerId.HasValue;
 
+        internal long? OwnerHandlerId => RoutingMetadata.OwnerHandlerId;
+
         internal bool TryAdoptOwner(long HandlerId)
         {
             if (OwnerHandlerId.HasValue && OwnerHandlerId != HandlerId)
                 return false;
 
-            OwnerHandlerId = HandlerId;
+            RoutingMetadata.OwnerHandlerId = HandlerId;
             return true;
         }
 
@@ -51,6 +60,8 @@ namespace MGUI.Shared.Input.Keyboard
         public bool IsAlphanumeric() => IsPrintableKey && Alphanumeric.IsMatch(PrintableValue);
 
         public KeyboardTracker Tracker { get; }
+        /// <summary>The stable technical stream that this key press belongs to.
+        /// This is used for internal routing and is distinct from the public handled state.</summary>
         public KeyboardInputStream Stream { get; }
         public long StreamId => Stream?.Id ?? 0;
 
@@ -97,6 +108,7 @@ namespace MGUI.Shared.Input.Keyboard
         public KeyboardTracker Tracker { get; }
 
         public BaseKeyPressedEventArgs PressedArgs { get; }
+        /// <summary>The stable technical stream associated with the original key press.</summary>
         public KeyboardInputStream Stream => PressedArgs?.Stream;
         public long StreamId => Stream?.Id ?? 0;
 
@@ -129,6 +141,7 @@ namespace MGUI.Shared.Input.Keyboard
 
         public BaseKeyReleasedEventArgs ReleasedArgs { get; }
         public BaseKeyPressedEventArgs PressedArgs => ReleasedArgs.PressedArgs;
+        /// <summary>The stable technical stream associated with the original key press.</summary>
         public KeyboardInputStream Stream => PressedArgs?.Stream;
         public long StreamId => Stream?.Id ?? 0;
 

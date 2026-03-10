@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace MGUI.Shared.Input.Mouse
 {
+    internal sealed class MouseClickSequenceRoutingMetadata
+    {
+        public long? ValidatedTargetId { get; set; }
+    }
+
     public class BaseMouseScrolledEventArgs : HandledByEventArgs<IMouseHandlerHost>
     {
         public MouseTracker Tracker { get; }
@@ -45,6 +50,8 @@ namespace MGUI.Shared.Input.Mouse
     }
 
     #region Press / Release / Click
+    /// <summary>Represents the stable technical identity of a candidate multi-click sequence.
+    /// This sequence is used for internal routing and does not depend on the public <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> state.</summary>
     public class MouseClickSequence
     {
         public long Id { get; }
@@ -55,7 +62,7 @@ namespace MGUI.Shared.Input.Mouse
         public BaseMouseClickedEventArgs LatestClick { get; private set; }
         public int ClickCount => LatestClick?.ClickCount ?? 0;
 
-        internal long? ValidatedTargetId { get; private set; }
+        internal MouseClickSequenceRoutingMetadata RoutingMetadata { get; } = new();
 
         internal MouseClickSequence(long Id, MouseButton Button, TimeSpan StartedAt)
         {
@@ -73,19 +80,19 @@ namespace MGUI.Shared.Input.Mouse
         }
 
         internal bool CanBeAdoptedBy(long TargetId)
-            => !ValidatedTargetId.HasValue || ValidatedTargetId == TargetId;
+            => !RoutingMetadata.ValidatedTargetId.HasValue || RoutingMetadata.ValidatedTargetId == TargetId;
 
         internal bool TryAdoptTarget(long TargetId)
         {
             if (!CanBeAdoptedBy(TargetId))
                 return false;
 
-            ValidatedTargetId = TargetId;
+            RoutingMetadata.ValidatedTargetId = TargetId;
             return true;
         }
 
         internal bool IsOwnedBy(long TargetId)
-            => ValidatedTargetId == TargetId;
+            => RoutingMetadata.ValidatedTargetId == TargetId;
     }
 
     public class BaseMousePressedEventArgs : HandledByEventArgs<IMouseHandlerHost>
@@ -156,7 +163,8 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>The previous click in the same candidate multi-click sequence, if any.</summary>
         public BaseMouseClickedEventArgs PreviousClickInSequence { get; }
 
-        /// <summary>The explicit multi-click sequence that this click belongs to.</summary>
+        /// <summary>The explicit multi-click sequence that this click belongs to.
+        /// This sequence provides routing identity independently from the public handled state.</summary>
         public MouseClickSequence Sequence { get; }
 
         /// <summary>An identifier shared by clicks that belong to the same candidate multi-click sequence.</summary>

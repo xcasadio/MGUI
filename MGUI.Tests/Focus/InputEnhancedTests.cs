@@ -454,12 +454,17 @@ public class InputEnhancedTests
         secondaryHandler.KeyUp += (_, _) => secondaryKeyUp++;
 
         tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        BaseKeyPressedEventArgs pressed = tracker.Keyboard.CurrentKeyPressedEvents[Keys.A];
         tracker.Keyboard.UpdateHandlers();
         tracker.Update(CreateUpdateArgs(320, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
         tracker.Keyboard.UpdateHandlers();
         tracker.Update(CreateUpdateArgs(470, CreateMouseState(Point.Zero), new KeyboardState()));
         tracker.Keyboard.UpdateHandlers();
 
+        Assert.NotNull(pressed);
+        Assert.True(pressed.IsHandled);
+        Assert.Same(sharedHost, pressed.HandledBy);
+        Assert.NotNull(pressed.Stream);
         Assert.Equal(1, owningKeyDown);
         Assert.Equal(1, owningRepeats);
         Assert.Equal(1, owningKeyUp);
