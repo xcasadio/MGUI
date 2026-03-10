@@ -13,6 +13,12 @@ namespace MGUI.Core.UI;
 /// </summary>
 public class MGTreeViewItem : MGSingleContentHost
 {
+    internal static bool ShouldToggleExpansionOnHeaderClick(bool hasItems, int clickCount)
+        => hasItems && clickCount == 1;
+
+    internal static bool ShouldRaiseItemDoubleClicked(bool hasItems, int clickCount)
+        => hasItems && clickCount >= 2;
+
     private object _Header;
     private int _Level;
     private MGTreeViewItem _ParentItem;
@@ -151,8 +157,6 @@ public class MGTreeViewItem : MGSingleContentHost
     private MGBorder HeaderContainer { get; set; }
     private MGStackPanel ChildrenPanel { get; set; }
     private MGDockPanel HeaderPanel { get; set; }
-    private DateTime _lastClickTime;
-
     public MGTreeViewItem(MGWindow Window) : base(Window, MGElementType.TreeViewItem)
     {
         using (BeginInitializing())
@@ -173,7 +177,8 @@ public class MGTreeViewItem : MGSingleContentHost
             ExpanderButton.Visibility = Visibility.Collapsed;
             ChildrenPanel.Visibility = Visibility.Collapsed;
             ChildrenPanel.CanChangeContent = false;
-            HeaderPanel.MouseHandler.LMBReleasedInside += OnHeaderPanelClick;
+            HeaderPanel.MouseHandler.LMBClickedInside += OnHeaderPanelClick;
+            HeaderPanel.MouseHandler.LMBDoubleClickedInside += OnHeaderPanelDoubleClick;
             HeaderPanel.MouseHandler.RMBReleasedInside += OnHeaderPanelRightClick;
             mainPanel.TryAddChild(HeaderPanel);
             mainPanel.TryAddChild(ChildrenPanel);
@@ -417,11 +422,8 @@ public class MGTreeViewItem : MGSingleContentHost
     /// <summary>
     /// Handles the click event on the header panel.
     /// </summary>
-    private void OnHeaderPanelClick(object sender, Shared.Input.Mouse.BaseMouseReleasedEventArgs e)
+    private void OnHeaderPanelClick(object sender, Shared.Input.Mouse.BaseMouseClickedEventArgs e)
     {
-        var now = DateTime.Now;
-        bool isDouble = (now - _lastClickTime).TotalMilliseconds < 500;
-        _lastClickTime = now;
         Point layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
         bool clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
         if (clickedExpander)
@@ -429,9 +431,21 @@ public class MGTreeViewItem : MGSingleContentHost
         OwnerTreeView?.NotifyItemSelected(this);
         // Transfer keyboard focus to the parent TreeView on click
         OwnerTreeView?.Focus();
-        if (HasItems && !isDouble)
+        if (ShouldToggleExpansionOnHeaderClick(HasItems, e.ClickCount))
             ToggleExpansion();
-        if (isDouble && HasItems)
+        OwnerTreeView?.RebuildVisibleItemsCache();
+    }
+
+    private void OnHeaderPanelDoubleClick(object sender, Shared.Input.Mouse.BaseMouseClickedEventArgs e)
+    {
+        Point layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+        bool clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
+        if (clickedExpander)
+            return;
+
+        OwnerTreeView?.NotifyItemSelected(this);
+        OwnerTreeView?.Focus();
+        if (ShouldRaiseItemDoubleClicked(HasItems, e.ClickCount))
             OwnerTreeView?.RaiseItemDoubleClicked(this);
         OwnerTreeView?.RebuildVisibleItemsCache();
     }
