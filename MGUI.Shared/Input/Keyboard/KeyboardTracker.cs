@@ -69,6 +69,7 @@ namespace MGUI.Shared.Input.Keyboard
         #region Events
         /// <summary>The most recent Key Press events that have occurred, even if they occurred on a prior Update tick. These values are set back to null when the key is released.</summary>
         private readonly Dictionary<Keys, BaseKeyPressedEventArgs> RecentKeyPressedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyPressedEventArgs);
+        private long _NextInputStreamId = 1;
 
         private readonly Dictionary<Keys, BaseKeyPressedEventArgs> _CurrentKeyPressedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyPressedEventArgs);
         /// <summary>The Key Press events that occurred on the current Update tick, or null if the key wasn't just pressed on the current Update tick.</summary>
@@ -126,7 +127,8 @@ namespace MGUI.Shared.Input.Keyboard
                 if (!PreviousKeys.Contains(Key))
                 {
                     string KeyValue = KeyToTextInputString(Key);
-                    BaseKeyPressedEventArgs PressedArgs = new(this, Key, KeyValue, BA.TotalElapsed);
+                    KeyboardInputStream stream = new(_NextInputStreamId++, Key, BA.TotalElapsed);
+                    BaseKeyPressedEventArgs PressedArgs = new(this, Key, KeyValue, BA.TotalElapsed, stream);
                     RecentKeyPressedEvents[Key] = PressedArgs;
                     _CurrentKeyPressedEvents[Key] = PressedArgs;
                     _HeldSince[Key] = BA.TotalElapsed;

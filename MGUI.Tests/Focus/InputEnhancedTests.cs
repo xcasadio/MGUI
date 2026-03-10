@@ -346,6 +346,37 @@ public class InputEnhancedTests
     }
 
     [Fact]
+    public void KeyboardHandler_KeyEvents_ShareExplicitStreamIdentity()
+    {
+        InputTracker tracker = new();
+        tracker.Keyboard.ClickTimeThreshold = TimeSpan.FromMilliseconds(500);
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        BaseKeyPressedEventArgs pressed = tracker.Keyboard.CurrentKeyPressedEvents[Keys.A];
+        tracker.Update(CreateUpdateArgs(320, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        KeyboardHost host = new();
+        KeyboardHandler handler = tracker.Keyboard.CreateHandler(host, 10);
+        handler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        handler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+        BaseKeyRepeatedEventArgs repeated = null;
+        handler.KeyRepeat += (_, e) => repeated = e;
+        tracker.Keyboard.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(350, CreateMouseState(Point.Zero), new KeyboardState()));
+        BaseKeyReleasedEventArgs released = tracker.Keyboard.CurrentKeyReleasedEvents[Keys.A];
+        BaseKeyClickedEventArgs clicked = tracker.Keyboard.CurrentKeyClickedEvents[Keys.A];
+
+        Assert.NotNull(pressed);
+        Assert.NotNull(pressed.Stream);
+        Assert.NotNull(repeated);
+        Assert.NotNull(released);
+        Assert.NotNull(clicked);
+        Assert.Same(pressed.Stream, repeated.Stream);
+        Assert.Same(pressed.Stream, released.Stream);
+        Assert.Same(pressed.Stream, clicked.Stream);
+        Assert.Equal(pressed.Stream.Id, clicked.StreamId);
+    }
+
+    [Fact]
     public void KeyboardHandler_HandledKeyStream_RemainsOwnedAfterFocusChanges()
     {
         InputTracker tracker = new();
@@ -391,6 +422,49 @@ public class InputEnhancedTests
         Assert.Equal(1, originalKeyUp);
         Assert.Equal(0, newFocusedRepeats);
         Assert.Equal(0, newFocusedKeyUp);
+    }
+
+    [Fact]
+    public void KeyboardHandler_HandledKeyStream_IsOwnedByHandlerNotOwnerInstance()
+    {
+        InputTracker tracker = new();
+        KeyboardHost sharedHost = new() { HasFocus = true };
+        KeyboardHandler owningHandler = tracker.Keyboard.CreateHandler(sharedHost, 20);
+        KeyboardHandler secondaryHandler = tracker.Keyboard.CreateHandler(sharedHost, 10, false, true);
+
+        owningHandler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        owningHandler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+        secondaryHandler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        secondaryHandler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+
+        int owningKeyDown = 0;
+        int owningRepeats = 0;
+        int owningKeyUp = 0;
+        int secondaryRepeats = 0;
+        int secondaryKeyUp = 0;
+
+        owningHandler.KeyDown += (_, e) =>
+        {
+            owningKeyDown++;
+            e.SetHandledBy(sharedHost, false);
+        };
+        owningHandler.KeyRepeat += (_, _) => owningRepeats++;
+        owningHandler.KeyUp += (_, _) => owningKeyUp++;
+        secondaryHandler.KeyRepeat += (_, _) => secondaryRepeats++;
+        secondaryHandler.KeyUp += (_, _) => secondaryKeyUp++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(320, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(470, CreateMouseState(Point.Zero), new KeyboardState()));
+        tracker.Keyboard.UpdateHandlers();
+
+        Assert.Equal(1, owningKeyDown);
+        Assert.Equal(1, owningRepeats);
+        Assert.Equal(1, owningKeyUp);
+        Assert.Equal(0, secondaryRepeats);
+        Assert.Equal(0, secondaryKeyUp);
     }
 
     [Fact]

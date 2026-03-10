@@ -27,6 +27,9 @@ namespace MGUI.Shared.Input.Keyboard
         public double? UpdatePriority { get; }
         public bool IsManualUpdate => !UpdatePriority.HasValue;
 
+        private static long _NextStreamOwnerId = 1;
+        private long StreamOwnerId { get; }
+
         /// <summary>If true, <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> will always be set to <see cref="Owner"/> after invoking an event.</summary>
         private bool AlwaysHandlesEvents { get; }
         /// <summary>If true, events will still be invoked even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true.</summary>
@@ -45,7 +48,17 @@ namespace MGUI.Shared.Input.Keyboard
             this.UpdatePriority = UpdatePriority;
             this.AlwaysHandlesEvents = AlwaysHandlesEvents;
             this.InvokeEvenIfHandled = InvokeEvenIfHandled;
+            this.StreamOwnerId = System.Threading.Interlocked.Increment(ref _NextStreamOwnerId);
         }
+
+        private void AdoptStreamIfHandled(BaseKeyPressedEventArgs PressedArgs)
+        {
+            if (PressedArgs?.IsHandled == true)
+                PressedArgs.Stream?.TryAdoptOwner(StreamOwnerId);
+        }
+
+        private bool OwnsStream(KeyboardInputStream Stream)
+            => Stream?.IsOwnedBy(StreamOwnerId) == true;
 
         #region Events
         private EventHandler<BaseKeyPressedEventArgs> _pressed;
@@ -131,12 +144,14 @@ namespace MGUI.Shared.Input.Keyboard
                         _pressed.Invoke(this, PressedArgs);
                         if (AlwaysHandlesEvents)
                             PressedArgs.SetHandledBy(Owner, false);
+
+                        AdoptStreamIfHandled(PressedArgs);
                     }
 
                     //  Invoke Key Released
                     BaseKeyReleasedEventArgs ReleasedArgs = Tracker.CurrentKeyReleasedEvents[Key];
-                    bool ownsReleasedStream = ReleasedArgs?.PressedArgs?.HandledBy == Owner;
-                    bool hasOwnedReleasedStream = ReleasedArgs?.PressedArgs?.IsHandled == true;
+                    bool ownsReleasedStream = OwnsStream(ReleasedArgs?.Stream);
+                    bool hasOwnedReleasedStream = ReleasedArgs?.Stream?.HasOwner == true;
                     bool canReceiveReleased = ownsReleasedStream || (!hasOwnedReleasedStream && hasKeyboardFocus);
                     if (ReleasedArgs != null && _released != null && canReceiveReleased
                         && (InvokeEvenIfHandled || !ReleasedArgs.IsHandled || ReleasedArgs.HandledBy == Owner || ownsReleasedStream))
@@ -147,8 +162,8 @@ namespace MGUI.Shared.Input.Keyboard
                     }
 
                     BaseKeyRepeatedEventArgs RepeatedArgs = GetCurrentKeyRepeatEvent(Key);
-                    bool ownsRepeatStream = RepeatedArgs?.InitialPressedArgs?.HandledBy == Owner;
-                    bool hasOwnedStream = RepeatedArgs?.InitialPressedArgs?.IsHandled == true;
+                    bool ownsRepeatStream = OwnsStream(RepeatedArgs?.Stream);
+                    bool hasOwnedStream = RepeatedArgs?.Stream?.HasOwner == true;
                     bool canReceiveRepeat = ownsRepeatStream || (!hasOwnedStream && hasKeyboardFocus);
                     if (RepeatedArgs != null && _repeated != null && canReceiveRepeat
                         && (InvokeEvenIfHandled || !RepeatedArgs.IsHandled || RepeatedArgs.HandledBy == Owner || ownsRepeatStream))
@@ -160,8 +175,8 @@ namespace MGUI.Shared.Input.Keyboard
 
                     //  Invoke Key Clicked
                     BaseKeyClickedEventArgs ClickedArgs = Tracker.CurrentKeyClickedEvents[Key];
-                    bool ownsClickedStream = ClickedArgs?.PressedArgs?.HandledBy == Owner;
-                    bool hasOwnedClickedStream = ClickedArgs?.PressedArgs?.IsHandled == true;
+                    bool ownsClickedStream = OwnsStream(ClickedArgs?.Stream);
+                    bool hasOwnedClickedStream = ClickedArgs?.Stream?.HasOwner == true;
                     bool canReceiveClicked = ownsClickedStream || (!hasOwnedClickedStream && hasKeyboardFocus);
                     if (ClickedArgs != null && _clicked != null && canReceiveClicked
                         && (InvokeEvenIfHandled || !ClickedArgs.IsHandled || ClickedArgs.HandledBy == Owner || ownsClickedStream)

@@ -8,12 +8,51 @@ using System.Threading.Tasks;
 
 namespace MGUI.Shared.Input.Keyboard
 {
+    public class KeyboardInputStream
+    {
+        public long Id { get; }
+        public Keys Key { get; }
+        public TimeSpan StartedAt { get; }
+        public BaseKeyPressedEventArgs InitialPressedArgs { get; private set; }
+
+        internal long? OwnerHandlerId { get; private set; }
+
+        internal KeyboardInputStream(long Id, Keys Key, TimeSpan StartedAt)
+        {
+            this.Id = Id;
+            this.Key = Key;
+            this.StartedAt = StartedAt;
+        }
+
+        internal void RegisterInitialPress(BaseKeyPressedEventArgs PressedArgs)
+        {
+            if (InitialPressedArgs == null)
+                InitialPressedArgs = PressedArgs;
+        }
+
+        internal bool HasOwner => OwnerHandlerId.HasValue;
+
+        internal bool TryAdoptOwner(long HandlerId)
+        {
+            if (OwnerHandlerId.HasValue && OwnerHandlerId != HandlerId)
+                return false;
+
+            OwnerHandlerId = HandlerId;
+            return true;
+        }
+
+        internal bool IsOwnedBy(long HandlerId)
+            => OwnerHandlerId == HandlerId;
+    }
+
     public class BaseKeyPressedEventArgs : HandledByEventArgs<IKeyboardHandlerHost>
     {
         private static readonly Regex Alphanumeric = new(@"^[A-Za-z0-9]$");
         public bool IsAlphanumeric() => IsPrintableKey && Alphanumeric.IsMatch(PrintableValue);
 
         public KeyboardTracker Tracker { get; }
+        public KeyboardInputStream Stream { get; }
+        public long StreamId => Stream?.Id ?? 0;
 
         public TimeSpan PressedAt { get; }
         public TimeSpan? RepeatedAt { get; }
@@ -22,15 +61,18 @@ namespace MGUI.Shared.Input.Keyboard
         public string PrintableValue { get; }
         public bool IsRepeat => RepeatedAt.HasValue;
 
-        public BaseKeyPressedEventArgs(KeyboardTracker Tracker, Keys Key, string PrintableValue, TimeSpan PressedAt, TimeSpan? RepeatedAt = null)
+        public BaseKeyPressedEventArgs(KeyboardTracker Tracker, Keys Key, string PrintableValue, TimeSpan PressedAt, KeyboardInputStream Stream, TimeSpan? RepeatedAt = null)
             : base()
         {
             this.Tracker = Tracker;
+            this.Stream = Stream;
             this.PressedAt = PressedAt;
             this.RepeatedAt = RepeatedAt;
             this.Key = Key;
             IsPrintableKey = !string.IsNullOrEmpty(PrintableValue);
             this.PrintableValue = PrintableValue;
+
+            this.Stream?.RegisterInitialPress(this);
         }
     }
 
@@ -41,7 +83,7 @@ namespace MGUI.Shared.Input.Keyboard
         public TimeSpan HeldDuration => RepeatedAt!.Value.Subtract(InitialPressedArgs.PressedAt);
 
         public BaseKeyRepeatedEventArgs(KeyboardTracker Tracker, BaseKeyPressedEventArgs InitialPressedArgs, Keys Key, string PrintableValue)
-            : base(Tracker, Key, PrintableValue, InitialPressedArgs.PressedAt, Tracker.CurrentTotalElapsed)
+            : base(Tracker, Key, PrintableValue, InitialPressedArgs.PressedAt, InitialPressedArgs.Stream, Tracker.CurrentTotalElapsed)
         {
             this.InitialPressedArgs = InitialPressedArgs;
         }
@@ -55,6 +97,8 @@ namespace MGUI.Shared.Input.Keyboard
         public KeyboardTracker Tracker { get; }
 
         public BaseKeyPressedEventArgs PressedArgs { get; }
+        public KeyboardInputStream Stream => PressedArgs?.Stream;
+        public long StreamId => Stream?.Id ?? 0;
 
         public TimeSpan ReleasedAt { get; }
 
@@ -85,6 +129,8 @@ namespace MGUI.Shared.Input.Keyboard
 
         public BaseKeyReleasedEventArgs ReleasedArgs { get; }
         public BaseKeyPressedEventArgs PressedArgs => ReleasedArgs.PressedArgs;
+        public KeyboardInputStream Stream => PressedArgs?.Stream;
+        public long StreamId => Stream?.Id ?? 0;
 
         public Keys Key { get; }
         public bool IsPrintableKey { get; }
