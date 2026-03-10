@@ -17,6 +17,8 @@ namespace MGUI.Core.UI
     /// <summary>A simple wrapper class that allows hiding this <see cref="MGElement"/>'s <see cref="MGSingleContentHost.Content"/> until user clicks it to reveal the contents.</summary>
     public class MGSpoiler : MGSingleContentHost
     {
+        internal static bool CanRevealFromSubmit(bool isRevealed) => !isRevealed;
+
         #region Button
         /// <summary>Provides direct access to the button component that is drawn overtop of this spoiler's content when  <see cref="IsRevealed"/> is false.</summary>
         public MGComponent<MGButton> ButtonComponent { get; }
@@ -122,6 +124,7 @@ namespace MGUI.Core.UI
                     _IsRevealed = value;
 
                     ButtonElement.Visibility = IsRevealed ? Visibility.Collapsed : Visibility.Visible;
+                    IsFocusable = !IsRevealed;
                     UpdateContentVisibility();
 
                     NPC(nameof(IsRevealed));
@@ -160,6 +163,7 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 ButtonElement = new(Window, new(1), MGUniformBorderBrush.Black, x => IsRevealed = true);
+                ButtonElement.IsFocusable = false;
                 TextElement = new(Window, DefaultUnspoiledText, Color.White);
                 TextElement.ManagedParent = this;
                 ButtonElement.SetContent(TextElement);
@@ -174,6 +178,15 @@ namespace MGUI.Core.UI
 
                 OnContentAdded += (sender, e) => { UpdateContentVisibility(); };
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (action != UINavigationAction.Submit || !CanRevealFromSubmit(IsRevealed))
+                return false;
+
+            IsRevealed = true;
+            return true;
         }
     }
 }

@@ -52,6 +52,9 @@ namespace MGUI.Core.UI
     /// They are commonly used in clicker/incremental games (such as clicking a button, "Gather Wood" to obtain a resource, and waiting a few seconds before you can click it again), or for things like abilities with a cooldown period.</summary>
     public class MGProgressButton : MGSingleContentHost
     {
+        internal static ProgressButtonActionType GetSubmitAction(bool isPaused, ProgressButtonActionType actionWhenPaused, ProgressButtonActionType actionWhenProcessing)
+            => isPaused ? actionWhenPaused : actionWhenProcessing;
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -582,6 +585,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 MinWidth = 16;
                 MinHeight = 16;
 
@@ -622,7 +626,7 @@ namespace MGUI.Core.UI
                 {
                     if (e.IsLMB)
                     {
-                        PerformAction(IsPaused ? ActionWhenPaused : ActionWhenProcessing);
+                        PerformAction(GetSubmitAction(IsPaused, ActionWhenPaused, ActionWhenProcessing));
                     }
                 };
             }
@@ -732,5 +736,14 @@ namespace MGUI.Core.UI
         public void Pause() => PerformAction(ProgressButtonActionType.Pause);
         public void Resume() => PerformAction(ProgressButtonActionType.Resume);
         public void ResetProgress() => PerformAction(ProgressButtonActionType.Reset);
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (action != UINavigationAction.Submit)
+                return false;
+
+            PerformAction(GetSubmitAction(IsPaused, ActionWhenPaused, ActionWhenProcessing));
+            return true;
+        }
     }
 }

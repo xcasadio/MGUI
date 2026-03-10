@@ -274,10 +274,12 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 this.Group = Group;
                 Group.AddRadioButton(this);
 
                 ButtonElement = new(Window, x => IsChecked = !IsChecked);
+                ButtonElement.IsFocusable = false;
                 ButtonElement.MinHeight = 8;
                 ButtonElement.MinWidth = 8;
                 ButtonElement.Visibility = Visibility.Hidden;
@@ -295,6 +297,15 @@ namespace MGUI.Core.UI
 
                 SpacingWidth = DefaultBubbleSpacingWidth;
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (action != UINavigationAction.Submit)
+                return false;
+
+            IsChecked = !IsChecked;
+            return true;
         }
 
         /// <summary>The number of sides to use when approximating a circle as a polygon.<para/>

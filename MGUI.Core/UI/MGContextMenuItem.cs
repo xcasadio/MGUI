@@ -156,6 +156,7 @@ namespace MGUI.Core.UI
                     //  Set new wrapper's content
                     if (ContentWrapper != null)
                     {
+                        ContentWrapper.IsFocusable = false;
                         ContentWrapper.CanChangeContent = false;
                         using (ContentWrapper.AllowChangingContentTemporarily())
                         {
@@ -176,6 +177,9 @@ namespace MGUI.Core.UI
         }
 
         protected virtual void OnContentWrapperChanged() { }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+            => action == UINavigationAction.Submit && ContentWrapper?.TryHandleNavigationAction(UINavigationAction.Submit) == true;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGElement _MenuItemContent;
@@ -290,6 +294,7 @@ namespace MGUI.Core.UI
         protected MGWrappedContextMenuItem(MGContextMenu Menu, ContextMenuItemType ItemType, MGButton ContentWrapper, MGElement MenuItemContent)
             : base(Menu, ItemType)
         {
+            IsFocusable = true;
             Container = new(Menu);
             Container.ManagedParent = this;
             Container.CanChangeContent = false;

@@ -15,6 +15,14 @@ namespace MGUI.Core.UI
 {
     public class MGCheckBox : MGSingleContentHost
     {
+        internal static bool? GetNextCheckedState(bool? isChecked, bool isThreeState)
+        {
+            if (isThreeState)
+                return isChecked.HasValue && isChecked.Value ? null : !isChecked.HasValue ? false : true;
+
+            return !isChecked.HasValue || isChecked.Value ? false : true;
+        }
+
         /// <summary>The default width/height of the checkable part of an <see cref="MGCheckBox"/></summary>
         public const int DefaultCheckBoxSize = 16;
         /// <summary>The default empty width between the checkable part of an <see cref="MGCheckBox"/> and its <see cref="MGSingleContentHost.Content"/></summary>
@@ -205,20 +213,13 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 ButtonElement = new(Window, new(1), MGUniformBorderBrush.Black, x =>
                 {
                     if (!IsReadonly)
-                    {
-                        if (IsThreeState)
-                        {
-                            this.IsChecked = this.IsChecked.HasValue && this.IsChecked.Value ? null : !this.IsChecked.HasValue ? false : true;
-                        }
-                        else
-                        {
-                            this.IsChecked = !this.IsChecked.HasValue || this.IsChecked.Value ? false : true;
-                        }
-                    }
+                        this.IsChecked = GetNextCheckedState(this.IsChecked, IsThreeState);
                 });
+                ButtonElement.IsFocusable = false;
                 ButtonElement.MinWidth = 12;
                 ButtonElement.MinHeight = 12;
                 ButtonElement.Padding = new(0);
@@ -262,6 +263,15 @@ namespace MGUI.Core.UI
                 this.IsChecked = IsChecked;
                 IsReadonly = false;
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (action != UINavigationAction.Submit || IsReadonly)
+                return false;
+
+            IsChecked = GetNextCheckedState(IsChecked, IsThreeState);
+            return true;
         }
 
         public static void DrawCheckMark(MGDesktop Desktop, Rectangle Bounds, DrawTransaction DT, float Opacity, Point Offset, Color Color)

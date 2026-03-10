@@ -155,6 +155,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 MinWidth = 16;
                 MinHeight = 16;
 
@@ -206,6 +207,20 @@ namespace MGUI.Core.UI
                         TryInvokeCommands(e, false);
                 };
             }
+        }
+
+        internal static BaseMouseReleasedEventArgs CreateNavigationReleasedEventArgs()
+        {
+            BaseMousePressedEventArgs pressedArgs = new(null, MouseButton.Left, Point.Zero);
+            return new(null, pressedArgs, MouseButton.Left, Point.Zero);
+        }
+
+        protected virtual bool TryHandleSubmitAction()
+        {
+            bool hasHandler = OnLeftClicked != null;
+            BaseMouseReleasedEventArgs args = CreateNavigationReleasedEventArgs();
+            OnLeftClicked?.Invoke(this, args);
+            return hasHandler || args.IsHandled;
         }
 
         private bool TryInvokeCommands(HandledByEventArgs<IMouseHandlerHost> args, bool IsRepeating)
@@ -291,5 +306,8 @@ namespace MGUI.Core.UI
         /// Consider checking <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> at the start of this <see cref="EventHandler"/><br/>
         /// or subscribing via <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>.</summary>
         public event EventHandler<BaseMouseReleasedEventArgs> OnRightClicked;
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+            => action == UINavigationAction.Submit && TryHandleSubmitAction();
     }
 }

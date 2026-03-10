@@ -268,4 +268,59 @@ public class FocusTests
 
         Assert.Equal(-1, actual);
     }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void ToggleButton_GetNextCheckedState_TogglesValue(bool current, bool expected)
+    {
+        bool actual = MGUI.Core.UI.MGToggleButton.GetNextCheckedState(current);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, false)]
+    [InlineData(null, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, null)]
+    [InlineData(null, true, false)]
+    public void CheckBox_GetNextCheckedState_ReturnsExpectedValue(bool? current, bool isThreeState, bool? expected)
+    {
+        bool? actual = MGUI.Core.UI.MGCheckBox.GetNextCheckedState(current, isThreeState);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(true, MGUI.Core.UI.ProgressButtonActionType.ResetAndResume, MGUI.Core.UI.ProgressButtonActionType.Toggle, MGUI.Core.UI.ProgressButtonActionType.ResetAndResume)]
+    [InlineData(false, MGUI.Core.UI.ProgressButtonActionType.ResetAndResume, MGUI.Core.UI.ProgressButtonActionType.Toggle, MGUI.Core.UI.ProgressButtonActionType.Toggle)]
+    public void ProgressButton_GetSubmitAction_ReturnsExpectedAction(bool isPaused, MGUI.Core.UI.ProgressButtonActionType pausedAction, MGUI.Core.UI.ProgressButtonActionType processingAction, MGUI.Core.UI.ProgressButtonActionType expected)
+    {
+        var actual = MGUI.Core.UI.MGProgressButton.GetSubmitAction(isPaused, pausedAction, processingAction);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void Button_CreateNavigationReleasedEventArgs_CreatesSyntheticLeftClick()
+    {
+        var actual = MGUI.Core.UI.MGButton.CreateNavigationReleasedEventArgs();
+
+        Assert.True(actual.IsLMB);
+        Assert.Equal(Microsoft.Xna.Framework.Point.Zero, actual.Position);
+        Assert.NotNull(actual.PressedArgs);
+        Assert.True(actual.PressedArgs.IsLMB);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void Spoiler_CanRevealFromSubmit_OnlyWhenHidden(bool isRevealed, bool expected)
+    {
+        bool actual = MGUI.Core.UI.MGSpoiler.CanRevealFromSubmit(isRevealed);
+
+        Assert.Equal(expected, actual);
+    }
 }

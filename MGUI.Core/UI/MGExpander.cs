@@ -318,6 +318,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 HeadersPanelElement = new(Window, Orientation.Horizontal) { Spacing = 6 };
                 HeadersPanelComponent = new(HeadersPanelElement, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents,
                     true, false, true, true, false, false, true,
@@ -330,6 +331,7 @@ namespace MGUI.Core.UI
                 HeaderBottomMargin = 3;
 
                 ExpanderToggleButton = new(Window, IsExpanded);
+                ExpanderToggleButton.IsFocusable = false;
                 ExpanderToggleButton.VerticalAlignment = VerticalAlignment.Center;
                 ExpanderToggleButton.ManagedParent = this;
 
@@ -390,6 +392,15 @@ namespace MGUI.Core.UI
 
                 this.IsExpanded = IsExpanded;
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (action != UINavigationAction.Submit)
+                return false;
+
+            IsExpanded = !IsExpanded;
+            return true;
         }
     }
 }

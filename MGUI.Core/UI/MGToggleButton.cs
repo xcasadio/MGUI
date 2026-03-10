@@ -15,6 +15,8 @@ namespace MGUI.Core.UI
 {
     public class MGToggleButton : MGSingleContentHost
     {
+        internal static bool GetNextCheckedState(bool isChecked) => !isChecked;
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -100,6 +102,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 MinWidth = 16;
                 MinHeight = 16;
 
@@ -115,12 +118,21 @@ namespace MGUI.Core.UI
 
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {
-                    this.IsChecked = !this.IsChecked;
+                    this.IsChecked = GetNextCheckedState(this.IsChecked);
                     e.SetHandledBy(this, false);
                 };
 
                 this.IsChecked = IsChecked;
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (action != UINavigationAction.Submit)
+                return false;
+
+            IsChecked = GetNextCheckedState(IsChecked);
+            return true;
         }
     }
 }
