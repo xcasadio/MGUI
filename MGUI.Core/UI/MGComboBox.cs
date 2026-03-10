@@ -470,9 +470,15 @@ namespace MGUI.Core.UI
                         Dropdown.Top = TopLeft.Y;
                         UpdateDropdownContent();
                         ParentWindow.AddNestedWindow(Dropdown);
+
+                        GetDesktop().PushFocusScope(Dropdown, this);
+                        (SelectedTemplatedItem ?? TemplatedItems?.FirstOrDefault())?.Element?.Focus();
                     }
                     else
+                    {
                         ParentWindow.RemoveNestedWindow(Dropdown);
+                        GetDesktop().PopFocusScope(Dropdown);
+                    }
 
                     HoveredItem = null;
 
@@ -570,6 +576,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 BorderElement = new(Window, BorderThickness, BorderBrush);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);

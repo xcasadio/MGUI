@@ -115,12 +115,16 @@ namespace MGUI.Core.UI
         }
         internal void InvokeContextMenuOpened()
         {
+            GetDesktop().PushFocusScope(this, GetDesktop().FocusedKeyboardHandler);
+            MGContextMenuItem initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
+            initialFocusTarget?.Focus();
             NPC(nameof(IsContextMenuOpen));
             ContextMenuOpened?.Invoke(this, EventArgs.Empty);
         }
         internal void InvokeContextMenuClosing() => ContextMenuClosing?.Invoke(this, EventArgs.Empty);
         internal void InvokeContextMenuClosed()
         {
+            GetDesktop().PopFocusScope(this);
             NPC(nameof(IsContextMenuOpen));
             ContextMenuClosed?.Invoke(this, EventArgs.Empty);
         }

@@ -430,6 +430,7 @@ namespace MGUI.Core.UI
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
 
                 Padding = new(12);
+                IsFocusable = true;
 
                 ActualTabHeaders = new();
 
@@ -462,6 +463,7 @@ namespace MGUI.Core.UI
                 SelectedTabHeaderTemplate = (MGTabItem TabItem) =>
                 {
                     MGButton Button = new(TabItem.SelfOrParentWindow, x => TabItem.IsTabSelected = true);
+                    Button.IsFocusable = false;
                     ApplyDefaultSelectedTabHeaderStyle(Button);
                     return Button;
                 };
@@ -469,6 +471,7 @@ namespace MGUI.Core.UI
                 UnselectedTabHeaderTemplate = (MGTabItem TabItem) =>
                 {
                     MGButton Button = new(TabItem.SelfOrParentWindow, x => TabItem.IsTabSelected = true);
+                    Button.IsFocusable = false;
                     ApplyDefaultUnselectedTabHeaderStyle(Button);
                     return Button;
                 };

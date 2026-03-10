@@ -168,12 +168,91 @@ namespace MGUI.Core.UI
 
         internal bool ShouldDisplayFocusedState => ActiveInputMode != UIInputMode.Pointer;
 
-        private MGWindow GetNavigationRoot()
+        private sealed class FocusScopeEntry
         {
-            if (FocusedKeyboardHandler?.SelfOrParentWindow != null)
-                return FocusedKeyboardHandler.SelfOrParentWindow;
+            public MGElement ScopeRoot { get; }
+            public MGElement RestoreFocusTarget { get; set; }
 
-            return Windows.OrderBy(x => x.IsTopmost).LastOrDefault();
+            public FocusScopeEntry(MGElement scopeRoot, MGElement restoreFocusTarget)
+            {
+                ScopeRoot = scopeRoot;
+                RestoreFocusTarget = restoreFocusTarget;
+            }
+        }
+
+        private List<FocusScopeEntry> FocusScopes { get; } = new();
+
+        internal static T GetActiveFocusScopeRoot<T>(IReadOnlyList<T> scopeRoots)
+            where T : class
+            => scopeRoots?.LastOrDefault();
+
+        internal static T ResolveNavigationRoot<T>(T activeScopeRoot, T focusedWindowRoot, T topWindowRoot)
+            where T : class
+            => activeScopeRoot ?? focusedWindowRoot ?? topWindowRoot;
+
+        internal static bool IsWithinFocusScope<T>(T scopeRoot, T element, Func<T, T> getParent)
+            where T : class
+        {
+            if (scopeRoot == null || element == null || getParent == null)
+                return false;
+
+            T current = element;
+            while (current != null)
+            {
+                if (ReferenceEquals(current, scopeRoot))
+                    return true;
+
+                current = getParent(current);
+            }
+
+            return false;
+        }
+
+        internal void PushFocusScope(MGElement scopeRoot, MGElement restoreFocusTarget = null)
+        {
+            if (scopeRoot == null)
+                return;
+
+            int existingIndex = FocusScopes.FindLastIndex(x => x.ScopeRoot == scopeRoot);
+            if (existingIndex >= 0)
+            {
+                FocusScopeEntry existingEntry = FocusScopes[existingIndex];
+                FocusScopes.RemoveAt(existingIndex);
+                existingEntry.RestoreFocusTarget = restoreFocusTarget ?? existingEntry.RestoreFocusTarget;
+                FocusScopes.Add(existingEntry);
+                return;
+            }
+
+            FocusScopes.Add(new(scopeRoot, restoreFocusTarget ?? FocusedKeyboardHandler));
+        }
+
+        internal void PopFocusScope(MGElement scopeRoot)
+        {
+            if (scopeRoot == null)
+                return;
+
+            int existingIndex = FocusScopes.FindLastIndex(x => x.ScopeRoot == scopeRoot);
+            if (existingIndex < 0)
+                return;
+
+            bool wasActiveScope = existingIndex == FocusScopes.Count - 1;
+            FocusScopeEntry entry = FocusScopes[existingIndex];
+            FocusScopes.RemoveAt(existingIndex);
+
+            bool shouldRestoreFocus = wasActiveScope
+                && QueuedFocusedKeyboardHandler == null
+                && (FocusedKeyboardHandler == null || IsWithinFocusScope(scopeRoot, FocusedKeyboardHandler, current => current.Parent));
+            if (shouldRestoreFocus && IsNavigationTarget(entry.RestoreFocusTarget))
+                entry.RestoreFocusTarget.Focus();
+        }
+
+        private MGElement GetNavigationRoot()
+        {
+            MGElement activeScopeRoot = GetActiveFocusScopeRoot(FocusScopes.Select(x => x.ScopeRoot).ToList());
+            MGElement focusedWindowRoot = FocusedKeyboardHandler?.SelfOrParentWindow;
+            MGElement topWindowRoot = Windows.OrderBy(x => x.IsTopmost).LastOrDefault();
+
+            return ResolveNavigationRoot(activeScopeRoot, focusedWindowRoot, topWindowRoot);
         }
 
         private static bool IsNavigationTarget(MGElement element)
@@ -185,7 +264,7 @@ namespace MGUI.Core.UI
 
         public IReadOnlyList<MGElement> GetFocusableElements()
         {
-            MGWindow root = GetNavigationRoot();
+            MGElement root = GetNavigationRoot();
             if (root == null)
                 return Array.Empty<MGElement>();
 

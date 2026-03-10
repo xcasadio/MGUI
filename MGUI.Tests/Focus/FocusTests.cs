@@ -3,6 +3,11 @@ namespace MGUI.Tests.Focus;
 /// <summary>Unit tests for the IsFocusable auto-focus-on-click mechanism (pure logic, no MonoGame runtime).</summary>
 public class FocusTests
 {
+    private sealed class ScopeNode
+    {
+        public ScopeNode? Parent { get; init; }
+    }
+
     // ── Minimal stub that replicates the IsFocusable / auto-subscribe logic ──────
 
     /// <summary>
@@ -322,5 +327,54 @@ public class FocusTests
         bool actual = MGUI.Core.UI.MGSpoiler.CanRevealFromSubmit(isRevealed);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void GetActiveFocusScopeRoot_ReturnsLastScope()
+    {
+        string? actual = MGUI.Core.UI.MGDesktop.GetActiveFocusScopeRoot(new[] { "window", "dropdown", "submenu" });
+
+        Assert.Equal("submenu", actual);
+    }
+
+    [Fact]
+    public void ResolveNavigationRoot_PrefersActiveScope()
+    {
+        string? actual = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot("submenu", "window", "top-window");
+
+        Assert.Equal("submenu", actual);
+    }
+
+    [Fact]
+    public void ResolveNavigationRoot_FallsBackToFocusedWindowThenTopWindow()
+    {
+        string? actualWithFocusedWindow = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<string>(null!, "window", "top-window");
+        string? actualWithTopWindow = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<string>(null!, null!, "top-window");
+
+        Assert.Equal("window", actualWithFocusedWindow);
+        Assert.Equal("top-window", actualWithTopWindow);
+    }
+
+    [Fact]
+    public void IsWithinFocusScope_ReturnsTrueForDescendant()
+    {
+        var scopeRoot = new ScopeNode();
+        var descendant = new ScopeNode { Parent = new ScopeNode { Parent = scopeRoot } };
+
+        bool actual = MGUI.Core.UI.MGDesktop.IsWithinFocusScope(scopeRoot, descendant, node => node.Parent!);
+
+        Assert.True(actual);
+    }
+
+    [Fact]
+    public void IsWithinFocusScope_ReturnsFalseForDifferentBranch()
+    {
+        var scopeRoot = new ScopeNode();
+        var otherRoot = new ScopeNode();
+        var descendant = new ScopeNode { Parent = otherRoot };
+
+        bool actual = MGUI.Core.UI.MGDesktop.IsWithinFocusScope(scopeRoot, descendant, node => node.Parent!);
+
+        Assert.False(actual);
     }
 }
