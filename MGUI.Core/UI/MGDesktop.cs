@@ -10,6 +10,7 @@ using MonoGame.Extended;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Input;
+using MGUI.Shared.Input.GamePad;
 using MGUI.Shared.Text;
 using MGUI.Shared.Rendering;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
@@ -100,8 +101,76 @@ namespace MGUI.Core.UI
             }
         }
 
+        internal static bool TryMapGamePadNavigationAction(GamePadButton button, out UINavigationAction action)
+        {
+            switch (button)
+            {
+                case GamePadButton.A:
+                    action = UINavigationAction.Submit;
+                    return true;
+                case GamePadButton.B:
+                case GamePadButton.Back:
+                    action = UINavigationAction.Cancel;
+                    return true;
+                case GamePadButton.DPadUp:
+                case GamePadButton.LeftStickUp:
+                    action = UINavigationAction.MoveUp;
+                    return true;
+                case GamePadButton.DPadDown:
+                case GamePadButton.LeftStickDown:
+                    action = UINavigationAction.MoveDown;
+                    return true;
+                case GamePadButton.DPadLeft:
+                case GamePadButton.LeftStickLeft:
+                    action = UINavigationAction.MoveLeft;
+                    return true;
+                case GamePadButton.DPadRight:
+                case GamePadButton.LeftStickRight:
+                    action = UINavigationAction.MoveRight;
+                    return true;
+                case GamePadButton.LeftShoulder:
+                    action = UINavigationAction.ShoulderPrevious;
+                    return true;
+                case GamePadButton.RightShoulder:
+                    action = UINavigationAction.ShoulderNext;
+                    return true;
+                case GamePadButton.LeftTrigger:
+                    action = UINavigationAction.Decrement;
+                    return true;
+                case GamePadButton.RightTrigger:
+                    action = UINavigationAction.Increment;
+                    return true;
+                case GamePadButton.X:
+                    action = UINavigationAction.OpenContext;
+                    return true;
+                default:
+                    action = default;
+                    return false;
+            }
+        }
+
         internal static bool TryDispatchNavigationAction(UINavigationAction action, Func<UINavigationAction, bool> tryHandleFocusedAction)
             => tryHandleFocusedAction?.Invoke(action) == true;
+
+        private static readonly IReadOnlyList<GamePadButton> GamePadNavigationButtons = new[]
+        {
+            GamePadButton.A,
+            GamePadButton.B,
+            GamePadButton.X,
+            GamePadButton.Back,
+            GamePadButton.DPadUp,
+            GamePadButton.DPadDown,
+            GamePadButton.DPadLeft,
+            GamePadButton.DPadRight,
+            GamePadButton.LeftStickUp,
+            GamePadButton.LeftStickDown,
+            GamePadButton.LeftStickLeft,
+            GamePadButton.LeftStickRight,
+            GamePadButton.LeftShoulder,
+            GamePadButton.RightShoulder,
+            GamePadButton.LeftTrigger,
+            GamePadButton.RightTrigger,
+        };
 
         internal static int GetWrappedFocusIndex(int count, int currentIndex, bool moveNext)
         {
@@ -358,6 +427,23 @@ namespace MGUI.Core.UI
             }
 
             return false;
+        }
+
+        private bool TryDispatchGamePadNavigationActions()
+        {
+            bool handledAny = false;
+            foreach (GamePadButton button in GamePadNavigationButtons)
+            {
+                if (!InputTracker.GamePad.WasTriggered(button) || !TryMapGamePadNavigationAction(button, out UINavigationAction action))
+                    continue;
+
+                MGElement focusedElement = FocusedKeyboardHandler;
+                Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
+                if (TryDispatchNavigationAction(action, tryHandleFocusedAction) || TryPerformFallbackNavigation(action))
+                    handledAny = true;
+            }
+
+            return handledAny;
         }
 
         /// <summary>The active <see cref="ITextEngine"/> used for all
@@ -883,10 +969,12 @@ namespace MGUI.Core.UI
 
             MGElement focusCandidate = QueuedFocusedKeyboardHandler ?? FocusedKeyboardHandler;
             bool isTextEntryFocused = focusCandidate is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
-            ActiveInputMode = ResolveInputMode(HasMouseActivity(InputTracker.Mouse), HasKeyboardActivity(InputTracker.Keyboard), isTextEntryFocused, ActiveInputMode);
+            bool hasNavigationActivity = HasKeyboardActivity(InputTracker.Keyboard) || InputTracker.GamePad.HasActivity();
+            ActiveInputMode = ResolveInputMode(HasMouseActivity(InputTracker.Mouse), hasNavigationActivity, isTextEntryFocused, ActiveInputMode);
 
             HighPriorityMouseHandler.ManualUpdate();
             HighPriorityKeyboardHandler.ManualUpdate();
+            _ = TryDispatchGamePadNavigationActions();
 
             QueuedToolTip = null;
 

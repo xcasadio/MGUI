@@ -199,6 +199,29 @@ public class FocusTests
         Assert.False(mapped);
     }
 
+    [Theory]
+    [InlineData(MGUI.Shared.Input.GamePad.GamePadButton.A, MGUI.Core.UI.UINavigationAction.Submit)]
+    [InlineData(MGUI.Shared.Input.GamePad.GamePadButton.B, MGUI.Core.UI.UINavigationAction.Cancel)]
+    [InlineData(MGUI.Shared.Input.GamePad.GamePadButton.LeftStickUp, MGUI.Core.UI.UINavigationAction.MoveUp)]
+    [InlineData(MGUI.Shared.Input.GamePad.GamePadButton.DPadRight, MGUI.Core.UI.UINavigationAction.MoveRight)]
+    [InlineData(MGUI.Shared.Input.GamePad.GamePadButton.LeftShoulder, MGUI.Core.UI.UINavigationAction.ShoulderPrevious)]
+    [InlineData(MGUI.Shared.Input.GamePad.GamePadButton.RightTrigger, MGUI.Core.UI.UINavigationAction.Increment)]
+    public void TryMapGamePadNavigationAction_MapsExpectedButtons(MGUI.Shared.Input.GamePad.GamePadButton button, MGUI.Core.UI.UINavigationAction expected)
+    {
+        bool mapped = MGUI.Core.UI.MGDesktop.TryMapGamePadNavigationAction(button, out var actual);
+
+        Assert.True(mapped);
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void TryMapGamePadNavigationAction_UnknownButton_ReturnsFalse()
+    {
+        bool mapped = MGUI.Core.UI.MGDesktop.TryMapGamePadNavigationAction(MGUI.Shared.Input.GamePad.GamePadButton.Start, out _);
+
+        Assert.False(mapped);
+    }
+
     [Fact]
     public void TryDispatchNavigationAction_HandlerConsumesAction_ReturnsTrue()
     {
@@ -243,6 +266,23 @@ public class FocusTests
     public void TextBox_ShouldPreserveTextEntryKey_ReturnsExpectedValue(Microsoft.Xna.Framework.Input.Keys key, bool isReadonly, bool acceptsReturn, bool acceptsTab, bool expected)
     {
         bool actual = MGUI.Core.UI.MGTextBox.ShouldPreserveTextEntryKey(key, isReadonly, acceptsReturn, acceptsTab);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(400, 0, null, 350, 120, true)]
+    [InlineData(200, 0, null, 350, 120, false)]
+    [InlineData(500, 0, 400, 350, 120, false)]
+    [InlineData(530, 0, 400, 350, 120, true)]
+    public void GamePadTracker_IsRepeatDue_ReturnsExpectedValue(int nowMs, int heldSinceMs, int? lastRepeatMs, int initialDelayMs, int repeatIntervalMs, bool expected)
+    {
+        bool actual = MGUI.Shared.Input.GamePad.GamePadTracker.IsRepeatDue(
+            TimeSpan.FromMilliseconds(nowMs),
+            TimeSpan.FromMilliseconds(heldSinceMs),
+            lastRepeatMs.HasValue ? TimeSpan.FromMilliseconds(lastRepeatMs.Value) : null,
+            TimeSpan.FromMilliseconds(initialDelayMs),
+            TimeSpan.FromMilliseconds(repeatIntervalMs));
 
         Assert.Equal(expected, actual);
     }

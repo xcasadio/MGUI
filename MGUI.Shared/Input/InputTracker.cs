@@ -1,5 +1,6 @@
 ﻿using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Input.Mouse;
+using MGUI.Shared.Input.GamePad;
 using MGUI.Shared.Rendering;
 using System;
 using System.Collections.Generic;
@@ -57,11 +58,13 @@ namespace MGUI.Shared.Input
     {
         public MouseTracker Mouse { get; }
         public KeyboardTracker Keyboard { get; }
+        public GamePadTracker GamePad { get; }
 
         public InputTracker()
         {
             Mouse = new(this);
             Keyboard = new(this);
+            GamePad = new(this);
         }
 
         /// <summary>Should be invoked exactly once per Update tick, at the very start of your Game's Update method.<para/>
@@ -70,6 +73,7 @@ namespace MGUI.Shared.Input
         {
             Mouse.Update(BA);
             Keyboard.Update(BA);
+            GamePad.Update(BA);
         }
     }
 }
