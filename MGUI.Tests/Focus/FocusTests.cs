@@ -8,6 +8,15 @@ public class FocusTests
         public ScopeNode? Parent { get; init; }
     }
 
+    private static bool DoesFocusChangeMoveScrollableTarget(MGUI.Core.UI.KeyboardFocusSource source, float currentOffset, float viewportStart, float viewportSize, float maxOffset, float elementStart, float elementEnd)
+    {
+        if (!MGUI.Core.UI.MGDesktop.ShouldAutoScrollFocusedElement(source))
+            return false;
+
+        float nextOffset = MGUI.Core.UI.MGScrollViewer.GetVisibleOffset(currentOffset, viewportStart, viewportSize, maxOffset, elementStart, elementEnd);
+        return Math.Abs(nextOffset - currentOffset) > 0.5f;
+    }
+
     // ── Minimal stub that replicates the IsFocusable / auto-subscribe logic ──────
 
     /// <summary>
@@ -357,6 +366,24 @@ public class FocusTests
         string? actual = MGUI.Core.UI.MGDesktop.ResolveAutoFocusTarget(defaultFocus, lastFocused, firstFocusable, preferWindowDefault);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void PointerFocus_DoesNotMoveScrollableButtonBeforeRelease()
+    {
+        bool actual = DoesFocusChangeMoveScrollableTarget(MGUI.Core.UI.KeyboardFocusSource.Pointer, 40f, 10f, 100f, 300f, 5f, 25f);
+
+        Assert.False(actual);
+    }
+
+    [Theory]
+    [InlineData(MGUI.Core.UI.KeyboardFocusSource.Keyboard)]
+    [InlineData(MGUI.Core.UI.KeyboardFocusSource.GamePad)]
+    public void NavigationFocus_CanMoveScrollableTargetIntoView(MGUI.Core.UI.KeyboardFocusSource source)
+    {
+        bool actual = DoesFocusChangeMoveScrollableTarget(source, 40f, 10f, 100f, 300f, 5f, 25f);
+
+        Assert.True(actual);
     }
 
     [Fact]
