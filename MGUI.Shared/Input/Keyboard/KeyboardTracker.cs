@@ -126,7 +126,7 @@ namespace MGUI.Shared.Input.Keyboard
                 if (!PreviousKeys.Contains(Key))
                 {
                     string KeyValue = KeyToTextInputString(Key);
-                    BaseKeyPressedEventArgs PressedArgs = new(this, Key, KeyValue);
+                    BaseKeyPressedEventArgs PressedArgs = new(this, Key, KeyValue, BA.TotalElapsed);
                     RecentKeyPressedEvents[Key] = PressedArgs;
                     _CurrentKeyPressedEvents[Key] = PressedArgs;
                     _HeldSince[Key] = BA.TotalElapsed;
@@ -142,7 +142,7 @@ namespace MGUI.Shared.Input.Keyboard
 
                     if (RecentKeyPressedEvents.TryGetValue(Key, out BaseKeyPressedEventArgs PressedArgs) && PressedArgs != null)
                     {
-                        BaseKeyReleasedEventArgs ReleasedArgs = new(this, PressedArgs, Key, KeyValue);
+                        BaseKeyReleasedEventArgs ReleasedArgs = new(this, PressedArgs, Key, KeyValue, BA.TotalElapsed);
                         _CurrentKeyReleasedEvents[Key] = ReleasedArgs;
 
                         //  Detect keys that were clicked

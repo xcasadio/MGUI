@@ -211,8 +211,8 @@ namespace MGUI.Core.UI
 
         internal static BaseMouseReleasedEventArgs CreateNavigationReleasedEventArgs()
         {
-            BaseMousePressedEventArgs pressedArgs = new(null, MouseButton.Left, Point.Zero);
-            return new(null, pressedArgs, MouseButton.Left, Point.Zero);
+            BaseMousePressedEventArgs pressedArgs = new(null, MouseButton.Left, Point.Zero, TimeSpan.Zero);
+            return new(null, pressedArgs, MouseButton.Left, Point.Zero, TimeSpan.Zero);
         }
 
         protected virtual bool TryHandleSubmitAction()

@@ -15,18 +15,18 @@ namespace MGUI.Shared.Input.Keyboard
 
         public KeyboardTracker Tracker { get; }
 
-        public DateTime PressedAt { get; }
-        public DateTime? RepeatedAt { get; }
+        public TimeSpan PressedAt { get; }
+        public TimeSpan? RepeatedAt { get; }
         public Keys Key { get; }
         public bool IsPrintableKey { get; }
         public string PrintableValue { get; }
         public bool IsRepeat => RepeatedAt.HasValue;
 
-        public BaseKeyPressedEventArgs(KeyboardTracker Tracker, Keys Key, string PrintableValue, DateTime? PressedAt = null, DateTime? RepeatedAt = null)
+        public BaseKeyPressedEventArgs(KeyboardTracker Tracker, Keys Key, string PrintableValue, TimeSpan PressedAt, TimeSpan? RepeatedAt = null)
             : base()
         {
             this.Tracker = Tracker;
-            this.PressedAt = PressedAt ?? DateTime.Now;
+            this.PressedAt = PressedAt;
             this.RepeatedAt = RepeatedAt;
             this.Key = Key;
             IsPrintableKey = !string.IsNullOrEmpty(PrintableValue);
@@ -41,7 +41,7 @@ namespace MGUI.Shared.Input.Keyboard
         public TimeSpan HeldDuration => RepeatedAt!.Value.Subtract(InitialPressedArgs.PressedAt);
 
         public BaseKeyRepeatedEventArgs(KeyboardTracker Tracker, BaseKeyPressedEventArgs InitialPressedArgs, Keys Key, string PrintableValue)
-            : base(Tracker, Key, PrintableValue, InitialPressedArgs.PressedAt, DateTime.Now)
+            : base(Tracker, Key, PrintableValue, InitialPressedArgs.PressedAt, Tracker.CurrentTotalElapsed)
         {
             this.InitialPressedArgs = InitialPressedArgs;
         }
@@ -56,7 +56,7 @@ namespace MGUI.Shared.Input.Keyboard
 
         public BaseKeyPressedEventArgs PressedArgs { get; }
 
-        public DateTime ReleasedAt { get; }
+        public TimeSpan ReleasedAt { get; }
 
         public Keys Key { get; }
         public bool IsPrintableKey { get; }
@@ -64,12 +64,12 @@ namespace MGUI.Shared.Input.Keyboard
 
         public TimeSpan HeldDuration => ReleasedAt.Subtract(PressedArgs.PressedAt);
 
-        public BaseKeyReleasedEventArgs(KeyboardTracker Tracker, BaseKeyPressedEventArgs PressedArgs, Keys Key, string PrintableValue)
+        public BaseKeyReleasedEventArgs(KeyboardTracker Tracker, BaseKeyPressedEventArgs PressedArgs, Keys Key, string PrintableValue, TimeSpan ReleasedAt)
             : base()
         {
             this.Tracker = Tracker;
             this.PressedArgs = PressedArgs;
-            ReleasedAt = DateTime.Now;
+            this.ReleasedAt = ReleasedAt;
             this.Key = Key;
             IsPrintableKey = !string.IsNullOrEmpty(PrintableValue);
             this.PrintableValue = PrintableValue;

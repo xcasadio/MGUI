@@ -202,6 +202,24 @@ public class InputEnhancedTests
     }
 
     [Fact]
+    public void MouseTracker_UsesLogicalUpdateTimeForMouseEventTimestamps()
+    {
+        InputTracker tracker = new();
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(5, 5)), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(120, CreateMouseState(new Point(5, 5), MouseButton.Left), new KeyboardState()));
+        BaseMousePressedEventArgs pressed = tracker.Mouse.CurrentButtonPressedEvents[MouseButton.Left];
+        tracker.Update(CreateUpdateArgs(255, CreateMouseState(new Point(5, 5)), new KeyboardState()));
+        BaseMouseReleasedEventArgs released = tracker.Mouse.CurrentButtonReleasedEvents[MouseButton.Left];
+
+        Assert.NotNull(pressed);
+        Assert.NotNull(released);
+        Assert.Equal(TimeSpan.FromMilliseconds(120), pressed.PressedAt);
+        Assert.Equal(TimeSpan.FromMilliseconds(255), released.ReleasedAt);
+        Assert.Equal(TimeSpan.FromMilliseconds(135), released.HeldDuration);
+    }
+
+    [Fact]
     public void KeyboardHandler_KeyRepeat_UsesLocalPolicyTiming()
     {
         InputTracker tracker = new();
@@ -268,6 +286,23 @@ public class InputEnhancedTests
 
         Assert.Equal(2, fastRepeats);
         Assert.Equal(1, slowRepeats);
+    }
+
+    [Fact]
+    public void KeyboardTracker_UsesLogicalUpdateTimeForKeyboardEventTimestamps()
+    {
+        InputTracker tracker = new();
+
+        tracker.Update(CreateUpdateArgs(150, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        BaseKeyPressedEventArgs pressed = tracker.Keyboard.CurrentKeyPressedEvents[Keys.A];
+        tracker.Update(CreateUpdateArgs(410, CreateMouseState(Point.Zero), new KeyboardState()));
+        BaseKeyReleasedEventArgs released = tracker.Keyboard.CurrentKeyReleasedEvents[Keys.A];
+
+        Assert.NotNull(pressed);
+        Assert.NotNull(released);
+        Assert.Equal(TimeSpan.FromMilliseconds(150), pressed.PressedAt);
+        Assert.Equal(TimeSpan.FromMilliseconds(410), released.ReleasedAt);
+        Assert.Equal(TimeSpan.FromMilliseconds(260), released.HeldDuration);
     }
 
     [Fact]

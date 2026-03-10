@@ -49,7 +49,7 @@ namespace MGUI.Shared.Input.Mouse
     {
         public MouseTracker Tracker { get; }
 
-        public DateTime PressedAt { get; }
+        public TimeSpan PressedAt { get; }
         public MouseButton Button { get; }
         public Point Position { get; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
@@ -61,11 +61,11 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Middle"/></summary>
         public bool IsMMB => Button == MouseButton.Middle;
 
-        public BaseMousePressedEventArgs(MouseTracker Tracker, MouseButton Button, Point Position)
+        public BaseMousePressedEventArgs(MouseTracker Tracker, MouseButton Button, Point Position, TimeSpan PressedAt)
             : base()
         {
             this.Tracker = Tracker;
-            PressedAt = DateTime.Now;
+            this.PressedAt = PressedAt;
             this.Button = Button;
             this.Position = Position;
         }
@@ -77,7 +77,7 @@ namespace MGUI.Shared.Input.Mouse
 
         public BaseMousePressedEventArgs PressedArgs { get; }
 
-        public DateTime ReleasedAt { get; }
+        public TimeSpan ReleasedAt { get; }
         public MouseButton Button { get; }
         public Point Position { get; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
@@ -91,11 +91,11 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Middle"/></summary>
         public bool IsMMB => Button == MouseButton.Middle;
 
-        public BaseMouseReleasedEventArgs(MouseTracker Tracker, BaseMousePressedEventArgs PressedArgs, MouseButton Button, Point Position)
+        public BaseMouseReleasedEventArgs(MouseTracker Tracker, BaseMousePressedEventArgs PressedArgs, MouseButton Button, Point Position, TimeSpan ReleasedAt)
             : base()
         {
             this.Tracker = Tracker;
-            ReleasedAt = DateTime.Now;
+            this.ReleasedAt = ReleasedAt;
             this.PressedArgs = PressedArgs;
             this.Button = Button;
             this.Position = Position;
@@ -156,7 +156,7 @@ namespace MGUI.Shared.Input.Mouse
     {
         public MouseTracker Tracker { get; }
 
-        public DateTime StartedAt { get; }
+        public TimeSpan StartedAt { get; }
         public MouseButton Button { get; }
         public Point Position { get; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
@@ -170,10 +170,10 @@ namespace MGUI.Shared.Input.Mouse
 
         public DragStartCondition Condition { get; }
 
-        public BaseMouseDragStartEventArgs(MouseTracker Tracker, MouseButton Button, Point Position, DragStartCondition Condition)
+        public BaseMouseDragStartEventArgs(MouseTracker Tracker, MouseButton Button, Point Position, DragStartCondition Condition, TimeSpan StartedAt)
         {
             this.Tracker = Tracker;
-            StartedAt = DateTime.Now;
+            this.StartedAt = StartedAt;
             this.Button = Button;
             this.Position = Position;
             this.Condition = Condition;
@@ -186,7 +186,7 @@ namespace MGUI.Shared.Input.Mouse
 
         public BaseMouseDragStartEventArgs DragStartArgs { get; }
 
-        public DateTime Timestamp { get; }
+        public TimeSpan Timestamp { get; }
         public MouseButton Button { get; }
         public Point Position { get; }
 
@@ -202,11 +202,11 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Middle"/></summary>
         public bool IsMMB => Button == MouseButton.Middle;
 
-        public BaseMouseDraggedEventArgs(MouseTracker Tracker, BaseMouseDragStartEventArgs DragStartArgs, MouseButton Button, Point Position)
+        public BaseMouseDraggedEventArgs(MouseTracker Tracker, BaseMouseDragStartEventArgs DragStartArgs, MouseButton Button, Point Position, TimeSpan Timestamp)
         {
             this.Tracker = Tracker;
             this.DragStartArgs = DragStartArgs;
-            Timestamp = DateTime.Now;
+            this.Timestamp = Timestamp;
             this.Button = Button;
             this.Position = Position;
         }
@@ -234,7 +234,7 @@ namespace MGUI.Shared.Input.Mouse
 
         public BaseMouseDragStartEventArgs DragStartArgs { get; }
 
-        public DateTime Timestamp { get; }
+        public TimeSpan Timestamp { get; }
         public MouseButton Button { get; }
         private Point Position { get; }
 
@@ -251,11 +251,11 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Middle"/></summary>
         public bool IsMMB => Button == MouseButton.Middle;
 
-        public BaseMouseDragEndEventArgs(MouseTracker Tracker, BaseMouseDragStartEventArgs DragStartArgs, MouseButton Button, Point Position)
+        public BaseMouseDragEndEventArgs(MouseTracker Tracker, BaseMouseDragStartEventArgs DragStartArgs, MouseButton Button, Point Position, TimeSpan Timestamp)
         {
             this.Tracker = Tracker;
             this.DragStartArgs = DragStartArgs;
-            Timestamp = DateTime.Now;
+            this.Timestamp = Timestamp;
             this.Button = Button;
             this.Position = Position;
         }

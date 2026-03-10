@@ -95,6 +95,7 @@ namespace MGUI.Shared.Input.Mouse
 
         public MouseState PreviousState { get; private set; }
         public MouseState CurrentState { get; private set; }
+        internal TimeSpan CurrentTotalElapsed { get; private set; }
 
         /// <summary>True if the mouse left button was just pressed during the current update.<para/>
         /// See also: <see cref="MouseLeftButtonReleasedRecently"/></summary>
@@ -319,6 +320,7 @@ namespace MGUI.Shared.Input.Mouse
         {
             PreviousState = CurrentState;
             CurrentState = BA.MouseState;
+            CurrentTotalElapsed = BA.TotalElapsed;
 
             CurrentPosition = CurrentState.Position;
 
@@ -351,7 +353,7 @@ namespace MGUI.Shared.Input.Mouse
                 if (GetButtonState(PreviousState, Button) == ButtonState.Released && GetButtonState(CurrentState, Button) == ButtonState.Pressed)
                 {
                     //Debug.WriteLine($"Pressed: {Button} - {CurrentPosition}");
-                    BaseMousePressedEventArgs Args = new(this, Button, CurrentPosition);
+                    BaseMousePressedEventArgs Args = new(this, Button, CurrentPosition, BA.TotalElapsed);
                     _RecentButtonPressedEvents[Button] = Args;
                     _CurrentButtonPressedEvents[Button] = Args;
 
@@ -359,7 +361,7 @@ namespace MGUI.Shared.Input.Mouse
                     bool IsDragging = RecentDragStartEvents[DragStartCondition.MousePressed][Button] != null;
                     if (!IsDragging)
                     {
-                        BaseMouseDragStartEventArgs DragStartArgs = new(this, Button, CurrentPosition, DragStartCondition.MousePressed);
+                        BaseMouseDragStartEventArgs DragStartArgs = new(this, Button, CurrentPosition, DragStartCondition.MousePressed, BA.TotalElapsed);
                         RecentDragStartEvents[DragStartCondition.MousePressed][Button] = DragStartArgs;
                         _CurrentDragStartEvents[DragStartCondition.MousePressed][Button] = DragStartArgs;
                     }
@@ -370,7 +372,7 @@ namespace MGUI.Shared.Input.Mouse
                     _RecentButtonPressedEvents.TryGetValue(Button, out BaseMousePressedEventArgs PressedArgs) && PressedArgs != null)
                 {
                     //Debug.WriteLine($"Released: {Button} - {CurrentPosition}");
-                    BaseMouseReleasedEventArgs ReleasedArgs = new(this, PressedArgs, Button, CurrentPosition);
+                    BaseMouseReleasedEventArgs ReleasedArgs = new(this, PressedArgs, Button, CurrentPosition, BA.TotalElapsed);
                     _CurrentButtonReleasedEvents[Button] = ReleasedArgs;
 
                     //  Detect buttons that were just clicked
@@ -414,7 +416,7 @@ namespace MGUI.Shared.Input.Mouse
                             (Math.Abs(CurrentPosition.X - PressedArgs.Position.X) >= DragThreshold || Math.Abs(CurrentPosition.Y - PressedArgs.Position.Y) >= DragThreshold))
                         {
                             //Debug.WriteLine($"Drag Start: {Button} - {PressedArgs.Position}");
-                            BaseMouseDragStartEventArgs DragStartArgs = new(this, Button, PressedArgs.Position, Condition);
+                            BaseMouseDragStartEventArgs DragStartArgs = new(this, Button, PressedArgs.Position, Condition, BA.TotalElapsed);
                             RecentDragStartEvents[Condition][Button] = DragStartArgs;
                             _CurrentDragStartEvents[Condition][Button] = DragStartArgs;
                         }
@@ -426,7 +428,7 @@ namespace MGUI.Shared.Input.Mouse
                         {
                             BaseMouseDragStartEventArgs StartArgs = RecentDragStartEvents[Condition][Button];
                             //Debug.WriteLine($"Dragged: {Button} - {StartArgs.Position} - {CurrentPosition}");
-                            BaseMouseDraggedEventArgs DraggedArgs = new(this, StartArgs, Button, CurrentPosition);
+                            BaseMouseDraggedEventArgs DraggedArgs = new(this, StartArgs, Button, CurrentPosition, BA.TotalElapsed);
                             _CurrentDraggedEvents[Condition][Button] = DraggedArgs;
                         }
 
@@ -435,7 +437,7 @@ namespace MGUI.Shared.Input.Mouse
                         {
                             BaseMouseDragStartEventArgs StartArgs = RecentDragStartEvents[Condition][Button];
                             //Debug.WriteLine($"Drag End: {Button} - {StartArgs.Position} - {CurrentPosition}");
-                            BaseMouseDragEndEventArgs DragEndArgs = new(this, StartArgs, Button, CurrentPosition);
+                            BaseMouseDragEndEventArgs DragEndArgs = new(this, StartArgs, Button, CurrentPosition, BA.TotalElapsed);
                             _CurrentDragEndEvents[Condition][Button] = DragEndArgs;
                             RecentDragStartEvents[Condition][Button] = null;
                             RecentDragStartEvents[Condition][Button] = null;
