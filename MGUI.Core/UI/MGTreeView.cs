@@ -17,6 +17,22 @@ namespace MGUI.Core.UI
     /// </summary>
     public class MGTreeView : MGSingleContentHost
     {
+        internal static int GetNextVisibleNavigationIndex(int currentIndex, int count, UINavigationAction action)
+        {
+            if (count <= 0)
+                return -1;
+
+            int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+            return action switch
+            {
+                UINavigationAction.MoveUp => Math.Max(0, normalizedIndex - 1),
+                UINavigationAction.MoveDown => Math.Min(count - 1, normalizedIndex + 1),
+                UINavigationAction.Home => 0,
+                UINavigationAction.End => count - 1,
+                _ => normalizedIndex
+            };
+        }
+
         private readonly ObservableCollection<MGTreeViewItem> _Items;
         private MGTreeViewItem _SelectedItem;
         private readonly List<MGTreeViewItem> _VisibleItemsCache;
@@ -344,6 +360,68 @@ namespace MGUI.Core.UI
                     RebuildVisibleItemsCache();
                     e.SetHandledBy(this, true);
                     break;
+            }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (_VisibleItemsCache.Count == 0)
+                return false;
+
+            if (SelectedItem == null)
+            {
+                if (action is UINavigationAction.MoveDown or UINavigationAction.MoveUp or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Submit)
+                {
+                    MGTreeViewItem firstItem = _VisibleItemsCache.FirstOrDefault();
+                    if (firstItem != null)
+                    {
+                        SelectItem(firstItem);
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            switch (action)
+            {
+                case UINavigationAction.MoveUp:
+                case UINavigationAction.MoveDown:
+                case UINavigationAction.Home:
+                case UINavigationAction.End:
+                {
+                    int currentIndex = _VisibleItemsCache.IndexOf(SelectedItem);
+                    int nextIndex = GetNextVisibleNavigationIndex(currentIndex, _VisibleItemsCache.Count, action);
+                    if (nextIndex < 0)
+                        return false;
+
+                    SelectItem(_VisibleItemsCache[nextIndex]);
+                    return true;
+                }
+                case UINavigationAction.MoveRight:
+                    if (!SelectedItem.IsExpanded)
+                        SelectedItem.Expand();
+                    else
+                    {
+                        MGTreeViewItem firstChild = SelectedItem.Items.FirstOrDefault();
+                        if (firstChild != null)
+                            SelectItem(firstChild);
+                    }
+                    RebuildVisibleItemsCache();
+                    return true;
+                case UINavigationAction.MoveLeft:
+                    if (SelectedItem.IsExpanded)
+                        SelectedItem.Collapse();
+                    else if (SelectedItem.ParentItem != null)
+                        SelectItem(SelectedItem.ParentItem);
+                    RebuildVisibleItemsCache();
+                    return true;
+                case UINavigationAction.Submit:
+                    SelectedItem.ToggleExpansion();
+                    RebuildVisibleItemsCache();
+                    return true;
+                default:
+                    return false;
             }
         }
 

@@ -422,4 +422,38 @@ public class FocusTests
 
         Assert.Equal(expected, actual);
     }
+
+    [Theory]
+    [InlineData(-1, 5, MGUI.Core.UI.UINavigationAction.MoveDown, 1)]
+    [InlineData(2, 5, MGUI.Core.UI.UINavigationAction.MoveUp, 1)]
+    [InlineData(2, 5, MGUI.Core.UI.UINavigationAction.End, 4)]
+    public void ListBox_GetNextNavigationIndex_ReturnsExpectedIndex(int currentIndex, int count, MGUI.Core.UI.UINavigationAction action, int expected)
+    {
+        int actual = MGUI.Core.UI.MGListBox<string>.GetNextNavigationIndex(currentIndex, count, action);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(-1, 5, MGUI.Core.UI.UINavigationAction.MoveDown, 1)]
+    [InlineData(3, 5, MGUI.Core.UI.UINavigationAction.PageUp, 0)]
+    [InlineData(1, 5, MGUI.Core.UI.UINavigationAction.End, 4)]
+    public void ListView_GetNextNavigationIndex_ReturnsExpectedIndex(int currentIndex, int count, MGUI.Core.UI.UINavigationAction action, int expected)
+    {
+        int actual = MGUI.Core.UI.MGListView<string>.GetNextNavigationIndex(currentIndex, count, action);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(-1, 5, MGUI.Core.UI.UINavigationAction.MoveDown, 1)]
+    [InlineData(2, 5, MGUI.Core.UI.UINavigationAction.MoveUp, 1)]
+    [InlineData(2, 5, MGUI.Core.UI.UINavigationAction.Home, 0)]
+    [InlineData(2, 5, MGUI.Core.UI.UINavigationAction.End, 4)]
+    public void TreeView_GetNextVisibleNavigationIndex_ReturnsExpectedIndex(int currentIndex, int count, MGUI.Core.UI.UINavigationAction action, int expected)
+    {
+        int actual = MGUI.Core.UI.MGTreeView.GetNextVisibleNavigationIndex(currentIndex, count, action);
+
+        Assert.Equal(expected, actual);
+    }
 }

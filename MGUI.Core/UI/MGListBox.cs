@@ -38,6 +38,24 @@ namespace MGUI.Core.UI
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to.</typeparam>
     public class MGListBox<TItemType> : MGElement
     {
+        internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
+        {
+            if (count <= 0)
+                return -1;
+
+            int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+            return action switch
+            {
+                UINavigationAction.MoveUp => Math.Max(0, normalizedIndex - 1),
+                UINavigationAction.MoveDown => Math.Min(count - 1, normalizedIndex + 1),
+                UINavigationAction.Home => 0,
+                UINavigationAction.End => count - 1,
+                UINavigationAction.PageUp => Math.Max(0, normalizedIndex - pageSize),
+                UINavigationAction.PageDown => Math.Min(count - 1, normalizedIndex + pageSize),
+                _ => normalizedIndex
+            };
+        }
+
         #region Outer Border
         private MGComponent<MGBorder> OuterBorderComponent { get; }
         /// <summary><see cref="MGListBox{TItemType}"/>es contain 3 borders:<para/>
@@ -1368,6 +1386,40 @@ namespace MGUI.Core.UI
                 }
                 e.SetHandledBy(this, true);
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
+            if (count == 0)
+                return false;
+
+            if (action == UINavigationAction.Submit && FocusedIndex >= 0 && FocusedIndex < count && SelectionMode != ListBoxSelectionMode.None)
+            {
+                TItemType focusedItem = GetLogicalItemAt(FocusedIndex);
+                if (focusedItem != null)
+                {
+                    SelectItem(focusedItem, true);
+                    return true;
+                }
+            }
+
+            if (action is not (UINavigationAction.MoveUp or UINavigationAction.MoveDown or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.PageUp or UINavigationAction.PageDown))
+                return false;
+
+            int nextIndex = GetNextNavigationIndex(FocusedIndex, count, action);
+            if (nextIndex < 0)
+                return false;
+
+            FocusedIndex = nextIndex;
+            if (SelectionMode != ListBoxSelectionMode.None)
+            {
+                TItemType focusedItem = GetLogicalItemAt(FocusedIndex);
+                if (focusedItem != null)
+                    SelectItem(focusedItem, true);
+            }
+
+            return true;
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)

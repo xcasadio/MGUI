@@ -27,6 +27,24 @@ namespace MGUI.Core.UI
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to.</typeparam>
     public class MGListView<TItemType> : MGSingleContentHost
     {
+        internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
+        {
+            if (count <= 0)
+                return -1;
+
+            int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+            return action switch
+            {
+                UINavigationAction.MoveUp => Math.Max(0, normalizedIndex - 1),
+                UINavigationAction.MoveDown => Math.Min(count - 1, normalizedIndex + 1),
+                UINavigationAction.Home => 0,
+                UINavigationAction.End => count - 1,
+                UINavigationAction.PageUp => Math.Max(0, normalizedIndex - pageSize),
+                UINavigationAction.PageDown => Math.Min(count - 1, normalizedIndex + pageSize),
+                _ => normalizedIndex
+            };
+        }
+
         #region Items Source
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ObservableCollection<MGListViewItem<TItemType>> _InternalRowItems;
@@ -423,6 +441,26 @@ namespace MGUI.Core.UI
                     DataGrid.CurrentSelection = new GridSelection(DataGrid, new GridCell(DataGrid.Rows[FocusedRowIndex], DataGrid.Columns[0]), SelectionMode);
                 e.SetHandledBy(this, true);
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            int count = RowItems?.Count ?? 0;
+            if (count == 0)
+                return false;
+
+            if (action is not (UINavigationAction.MoveUp or UINavigationAction.MoveDown or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.PageUp or UINavigationAction.PageDown))
+                return false;
+
+            int nextIndex = GetNextNavigationIndex(FocusedRowIndex, count, action);
+            if (nextIndex < 0)
+                return false;
+
+            FocusedRowIndex = nextIndex;
+            if (SelectionMode != GridSelectionMode.None && DataGrid.Rows.Count > FocusedRowIndex && DataGrid.Columns.Count > 0)
+                DataGrid.CurrentSelection = new GridSelection(DataGrid, new GridCell(DataGrid.Rows[FocusedRowIndex], DataGrid.Columns[0]), SelectionMode);
+
+            return true;
         }
 
         public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
