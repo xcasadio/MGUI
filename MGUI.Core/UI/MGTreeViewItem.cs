@@ -17,7 +17,7 @@ public class MGTreeViewItem : MGSingleContentHost
         => hasItems && clickCount == 1;
 
     internal static bool ShouldRaiseItemDoubleClicked(bool hasItems, int clickCount)
-        => hasItems && clickCount >= 2;
+        => hasItems && clickCount == 2;
 
     private object _Header;
     private int _Level;

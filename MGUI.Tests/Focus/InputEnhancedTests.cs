@@ -343,7 +343,7 @@ public class InputEnhancedTests
     [Theory]
     [InlineData(true, 1, false)]
     [InlineData(true, 2, true)]
-    [InlineData(true, 3, true)]
+    [InlineData(true, 3, false)]
     [InlineData(false, 2, false)]
     public void TreeViewItem_ShouldRaiseItemDoubleClicked_ReturnsExpectedValue(bool hasItems, int clickCount, bool expected)
     {
