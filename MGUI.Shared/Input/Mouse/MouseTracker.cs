@@ -76,6 +76,10 @@ namespace MGUI.Shared.Input.Mouse
         public int ClickPositionThreshold { get; set; } = 2;
         /// <summary>The maximum amount of time that can pass between a mouse button press and mouse button release to still be registered as a Click event</summary>
         public TimeSpan ClickTimeThreshold { get; set; } = TimeSpan.FromMilliseconds(300);
+        /// <summary>The maximum amount of time that can pass between two consecutive clicks of the same button to still be registered as a multi-click.</summary>
+        public TimeSpan MultiClickTimeThreshold { get; set; } = TimeSpan.FromMilliseconds(500);
+        /// <summary>The maximum number of pixels that the pointer can move between two consecutive clicks of the same button to still be registered as a multi-click.</summary>
+        public int MultiClickPositionThreshold { get; set; } = 4;
 
         /// <summary>The minimum number of pixels that the mouse must move by (in either the X or Y direction) while pressed before the a mouse drag event begins.<para/>
         /// Only used if <see cref="DragStartCondition"/> == <see cref="DragStartCondition.MouseMovedAfterPress"/></summary>
@@ -186,6 +190,24 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>The MouseButton Click events that occurred on the current Update tick, or null if the button didn't just finish clicking on the current Update tick.</summary>
         public IReadOnlyDictionary<MouseButton, BaseMouseClickedEventArgs> CurrentButtonClickedEvents => _CurrentButtonClickedEvents;
         internal bool HasCurrentButtonClickedEvents;
+
+        private readonly Dictionary<MouseButton, BaseMouseClickedEventArgs> _RecentButtonClickedEvents = new()
+        {
+            { MouseButton.Left, null },
+            { MouseButton.Middle, null },
+            { MouseButton.Right, null }
+        };
+        public IReadOnlyDictionary<MouseButton, BaseMouseClickedEventArgs> RecentButtonClickedEvents => _RecentButtonClickedEvents;
+
+        private readonly Dictionary<MouseButton, BaseMouseClickedEventArgs> _CurrentButtonDoubleClickedEvents = new()
+        {
+            { MouseButton.Left, null },
+            { MouseButton.Middle, null },
+            { MouseButton.Right, null }
+        };
+        /// <summary>The MouseButton Double-Click events that occurred on the current Update tick, or null if the button did not just finish a double-click on the current Update tick.</summary>
+        public IReadOnlyDictionary<MouseButton, BaseMouseClickedEventArgs> CurrentButtonDoubleClickedEvents => _CurrentButtonDoubleClickedEvents;
+        internal bool HasCurrentButtonDoubleClickedEvents;
 
         /// <summary>The most recent DragStart events that have occurred, even if they occurred on a prior Update tick. These values are set back to null when the DragEnd event is detected.</summary>
         private readonly Dictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDragStartEventArgs>> RecentDragStartEvents = new()
@@ -320,6 +342,7 @@ namespace MGUI.Shared.Input.Mouse
                 _CurrentButtonPressedEvents[Button] = null;
                 _CurrentButtonReleasedEvents[Button] = null;
                 _CurrentButtonClickedEvents[Button] = null;
+                _CurrentButtonDoubleClickedEvents[Button] = null;
                 _CurrentDragStartEvents[DragStartCondition.MousePressed][Button] = null;
 
                 //  Detect buttons that were just pressed
@@ -352,8 +375,14 @@ namespace MGUI.Shared.Input.Mouse
                     if (Math.Abs(PressedArgs.Position.X - ReleasedArgs.Position.X) <= ClickPositionThreshold && Math.Abs(PressedArgs.Position.Y - ReleasedArgs.Position.Y) <= ClickPositionThreshold &&
                         ReleasedArgs.HeldDuration <= ClickTimeThreshold)
                     {
-                        BaseMouseClickedEventArgs ClickedArgs = new(this, ReleasedArgs, Button, CurrentPosition);
+                        BaseMouseClickedEventArgs PreviousClickedArgs = _RecentButtonClickedEvents[Button];
+                        int clickCount = GetMultiClickCount(PreviousClickedArgs, ReleasedArgs, MultiClickTimeThreshold, MultiClickPositionThreshold);
+                        BaseMouseClickedEventArgs ClickedArgs = new(this, ReleasedArgs, Button, CurrentPosition, clickCount);
                         _CurrentButtonClickedEvents[Button] = ClickedArgs;
+                        _RecentButtonClickedEvents[Button] = ClickedArgs;
+
+                        if (ClickedArgs.IsDoubleClick)
+                            _CurrentButtonDoubleClickedEvents[Button] = ClickedArgs;
                     }
 
                     _RecentButtonPressedEvents[Button] = null;
@@ -414,11 +443,24 @@ namespace MGUI.Shared.Input.Mouse
             HasCurrentButtonPressedEvents = _CurrentButtonPressedEvents.Any(x => x.Value != null);
             HasCurrentButtonReleasedEvents = _CurrentButtonReleasedEvents.Any(x => x.Value != null);
             HasCurrentButtonClickedEvents = _CurrentButtonClickedEvents.Any(x => x.Value != null);
-            HasCurrentButtonEvents = HasCurrentButtonPressedEvents || HasCurrentButtonReleasedEvents || HasCurrentButtonClickedEvents;
+            HasCurrentButtonDoubleClickedEvents = _CurrentButtonDoubleClickedEvents.Any(x => x.Value != null);
+            HasCurrentButtonEvents = HasCurrentButtonPressedEvents || HasCurrentButtonReleasedEvents || HasCurrentButtonClickedEvents || HasCurrentButtonDoubleClickedEvents;
             HasCurrentDragStartEvents = _CurrentDragStartEvents.Any(x => x.Value != null);
             HasCurrentDraggedEvents = _CurrentDraggedEvents.Any(x => x.Value != null);
             HasCurrentDragEndEvents = _CurrentDragEndEvents.Any(x => x.Value != null);
             HasCurrentDragEvents = HasCurrentDragStartEvents || HasCurrentDraggedEvents || HasCurrentDragEndEvents;
+        }
+
+        public static int GetMultiClickCount(BaseMouseClickedEventArgs PreviousClickedArgs, BaseMouseReleasedEventArgs ReleasedArgs, TimeSpan multiClickTimeThreshold, int multiClickPositionThreshold)
+        {
+            if (PreviousClickedArgs == null || ReleasedArgs == null)
+                return 1;
+
+            bool isWithinTime = ReleasedArgs.ReleasedAt - PreviousClickedArgs.ReleasedArgs.ReleasedAt <= multiClickTimeThreshold;
+            bool isWithinPosition = Math.Abs(PreviousClickedArgs.Position.X - ReleasedArgs.Position.X) <= multiClickPositionThreshold
+                && Math.Abs(PreviousClickedArgs.Position.Y - ReleasedArgs.Position.Y) <= multiClickPositionThreshold;
+
+            return isWithinTime && isWithinPosition ? PreviousClickedArgs.ClickCount + 1 : 1;
         }
 
         /// <summary>Should be invoked exactly once per Update tick.<para/>

@@ -109,6 +109,9 @@ namespace MGUI.Shared.Input.Mouse
         public BaseMouseReleasedEventArgs ReleasedArgs { get; }
         public BaseMousePressedEventArgs PressedArgs => ReleasedArgs?.PressedArgs;
 
+        public int ClickCount { get; }
+        public bool IsDoubleClick => ClickCount >= 2;
+
         public MouseButton Button { get; }
         public Point Position { get; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
@@ -120,13 +123,14 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Middle"/></summary>
         public bool IsMMB => Button == MouseButton.Middle;
 
-        public BaseMouseClickedEventArgs(MouseTracker Tracker, BaseMouseReleasedEventArgs ReleasedArgs, MouseButton Button, Point Position)
+        public BaseMouseClickedEventArgs(MouseTracker Tracker, BaseMouseReleasedEventArgs ReleasedArgs, MouseButton Button, Point Position, int ClickCount = 1)
             : base()
         {
             this.Tracker = Tracker;
             this.ReleasedArgs = ReleasedArgs;
             this.Button = Button;
             this.Position = Position;
+            this.ClickCount = Math.Max(1, ClickCount);
         }
     }
     #endregion Press / Release / Click
