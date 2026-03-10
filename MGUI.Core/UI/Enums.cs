@@ -113,6 +113,27 @@ namespace MGUI.Core.UI
         TextEntry
     }
 
+    public enum UINavigationAction
+    {
+        Submit,
+        Cancel,
+        MoveNext,
+        MovePrevious,
+        MoveUp,
+        MoveDown,
+        MoveLeft,
+        MoveRight,
+        Increment,
+        Decrement,
+        Home,
+        End,
+        PageUp,
+        PageDown,
+        OpenContext,
+        ShoulderPrevious,
+        ShoulderNext
+    }
+
     /// <summary>Describes how a child element is vertically positioned or stretched within a parent's layout slot</summary>
     public enum VerticalAlignment
     {

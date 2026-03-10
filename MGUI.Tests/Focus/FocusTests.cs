@@ -167,4 +167,60 @@ public class FocusTests
 
         Assert.Equal(MGUI.Core.UI.PrimaryVisualState.Selected, result);
     }
+
+    [Theory]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Tab, false, MGUI.Core.UI.UINavigationAction.MoveNext)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Tab, true, MGUI.Core.UI.UINavigationAction.MovePrevious)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Enter, false, MGUI.Core.UI.UINavigationAction.Submit)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Space, false, MGUI.Core.UI.UINavigationAction.Submit)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Escape, false, MGUI.Core.UI.UINavigationAction.Cancel)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Up, false, MGUI.Core.UI.UINavigationAction.MoveUp)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Down, false, MGUI.Core.UI.UINavigationAction.MoveDown)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Left, false, MGUI.Core.UI.UINavigationAction.MoveLeft)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Right, false, MGUI.Core.UI.UINavigationAction.MoveRight)]
+    public void TryMapNavigationAction_MapsExpectedKeys(Microsoft.Xna.Framework.Input.Keys key, bool isShiftDown, MGUI.Core.UI.UINavigationAction expected)
+    {
+        bool mapped = MGUI.Core.UI.MGDesktop.TryMapNavigationAction(key, isShiftDown, out var actual);
+
+        Assert.True(mapped);
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void TryMapNavigationAction_UnknownKey_ReturnsFalse()
+    {
+        bool mapped = MGUI.Core.UI.MGDesktop.TryMapNavigationAction(Microsoft.Xna.Framework.Input.Keys.A, false, out _);
+
+        Assert.False(mapped);
+    }
+
+    [Fact]
+    public void TryDispatchNavigationAction_HandlerConsumesAction_ReturnsTrue()
+    {
+        int callCount = 0;
+        bool handled = MGUI.Core.UI.MGDesktop.TryDispatchNavigationAction(MGUI.Core.UI.UINavigationAction.MoveLeft, action =>
+        {
+            callCount++;
+            return action == MGUI.Core.UI.UINavigationAction.MoveLeft;
+        });
+
+        Assert.True(handled);
+        Assert.Equal(1, callCount);
+    }
+
+    [Fact]
+    public void TryDispatchNavigationAction_HandlerRejectsAction_ReturnsFalse()
+    {
+        bool handled = MGUI.Core.UI.MGDesktop.TryDispatchNavigationAction(MGUI.Core.UI.UINavigationAction.MoveLeft, _ => false);
+
+        Assert.False(handled);
+    }
+
+    [Fact]
+    public void TryDispatchNavigationAction_NullHandler_ReturnsFalse()
+    {
+        bool handled = MGUI.Core.UI.MGDesktop.TryDispatchNavigationAction(MGUI.Core.UI.UINavigationAction.MoveLeft, null);
+
+        Assert.False(handled);
+    }
 }

@@ -15,6 +15,7 @@ using MGUI.Shared.Rendering;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.DragDrop;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -52,6 +53,56 @@ namespace MGUI.Core.UI
             return currentMode;
         }
 
+        internal static bool TryMapNavigationAction(Keys key, bool isShiftDown, out UINavigationAction action)
+        {
+            switch (key)
+            {
+                case Keys.Tab:
+                    action = isShiftDown ? UINavigationAction.MovePrevious : UINavigationAction.MoveNext;
+                    return true;
+                case Keys.Enter:
+                case Keys.Space:
+                    action = UINavigationAction.Submit;
+                    return true;
+                case Keys.Escape:
+                    action = UINavigationAction.Cancel;
+                    return true;
+                case Keys.Up:
+                    action = UINavigationAction.MoveUp;
+                    return true;
+                case Keys.Down:
+                    action = UINavigationAction.MoveDown;
+                    return true;
+                case Keys.Left:
+                    action = UINavigationAction.MoveLeft;
+                    return true;
+                case Keys.Right:
+                    action = UINavigationAction.MoveRight;
+                    return true;
+                case Keys.Home:
+                    action = UINavigationAction.Home;
+                    return true;
+                case Keys.End:
+                    action = UINavigationAction.End;
+                    return true;
+                case Keys.PageUp:
+                    action = UINavigationAction.PageUp;
+                    return true;
+                case Keys.PageDown:
+                    action = UINavigationAction.PageDown;
+                    return true;
+                case Keys.Apps:
+                    action = UINavigationAction.OpenContext;
+                    return true;
+                default:
+                    action = default;
+                    return false;
+            }
+        }
+
+        internal static bool TryDispatchNavigationAction(UINavigationAction action, Func<UINavigationAction, bool> tryHandleFocusedAction)
+            => tryHandleFocusedAction?.Invoke(action) == true;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private UIInputMode _ActiveInputMode = UIInputMode.Pointer;
         public UIInputMode ActiveInputMode
@@ -68,6 +119,20 @@ namespace MGUI.Core.UI
         }
 
         internal bool ShouldDisplayFocusedState => ActiveInputMode != UIInputMode.Pointer;
+
+        private bool TryDispatchNavigationAction(BaseKeyPressedEventArgs e)
+        {
+            if (!TryMapNavigationAction(e.Key, e.Tracker.IsShiftDown, out UINavigationAction action))
+                return false;
+
+            MGElement focusedElement = FocusedKeyboardHandler;
+            Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
+            if (!TryDispatchNavigationAction(action, tryHandleFocusedAction))
+                return false;
+
+            e.SetHandledBy(focusedElement, false);
+            return true;
+        }
 
         /// <summary>The active <see cref="ITextEngine"/> used for all
         /// text measurement and rendering.  Assign a different engine to switch backends globally.</summary>
@@ -545,6 +610,7 @@ namespace MGUI.Core.UI
 
             HighPriorityMouseHandler.PressedInside  += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
             HighPriorityMouseHandler.PressedOutside += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
+            HighPriorityKeyboardHandler.Pressed += (sender, e) => { _ = TryDispatchNavigationAction(e); };
 
             // Wire LMB release to finalize or cancel any active drag-and-drop
             HighPriorityMouseHandler.ReleasedInside  += (sender, e) => { if (e.IsLMB && DragDropManager.IsDragging) DragDropManager.NotifyDrop(DragDropManager.CurrentDropTarget, e.Position); };

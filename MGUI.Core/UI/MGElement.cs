@@ -1043,6 +1043,8 @@ namespace MGUI.Core.UI
         /// <summary>Invoked when <see cref="VisualState"/> changes.</summary>
         public event EventHandler<EventArgs<VisualState>> VisualStateChanged;
 
+        public virtual bool TryHandleNavigationAction(UINavigationAction action) => false;
+
         internal static PrimaryVisualState ResolvePrimaryVisualState(bool isEnabled, bool isSelected, bool hasKeyboardFocus, bool shouldDisplayFocusedState)
         {
             if (!isEnabled)
