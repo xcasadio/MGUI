@@ -456,4 +456,27 @@ public class FocusTests
 
         Assert.Equal(expected, actual);
     }
+
+    [Theory]
+    [InlineData(-1, 4, MGUI.Core.UI.UINavigationAction.MoveRight, 1)]
+    [InlineData(2, 4, MGUI.Core.UI.UINavigationAction.MoveLeft, 1)]
+    [InlineData(2, 4, MGUI.Core.UI.UINavigationAction.End, 3)]
+    public void MenuBar_GetAdjacentItemIndex_ReturnsExpectedIndex(int currentIndex, int count, MGUI.Core.UI.UINavigationAction action, int expected)
+    {
+        int actual = MGUI.Core.UI.MGMenuBar.GetAdjacentItemIndex(currentIndex, count, action);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(-1, 5, MGUI.Core.UI.UINavigationAction.MoveRight, 1)]
+    [InlineData(2, 5, MGUI.Core.UI.UINavigationAction.MoveLeft, 1)]
+    [InlineData(2, 5, MGUI.Core.UI.UINavigationAction.End, 4)]
+    [InlineData(2, 5, MGUI.Core.UI.UINavigationAction.ShoulderNext, 3)]
+    public void TabControl_GetAdjacentTabIndex_ReturnsExpectedIndex(int currentIndex, int count, MGUI.Core.UI.UINavigationAction action, int expected)
+    {
+        int actual = MGUI.Core.UI.MGTabControl.GetAdjacentTabIndex(currentIndex, count, action);
+
+        Assert.Equal(expected, actual);
+    }
 }

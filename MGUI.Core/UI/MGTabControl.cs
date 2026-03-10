@@ -18,6 +18,22 @@ namespace MGUI.Core.UI
 {
     public class MGTabControl : MGHeaderedContentPresenter
     {
+        internal static int GetAdjacentTabIndex(int currentIndex, int count, UINavigationAction action)
+        {
+            if (count <= 0)
+                return -1;
+
+            int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+            return action switch
+            {
+                UINavigationAction.MoveLeft or UINavigationAction.MoveUp or UINavigationAction.ShoulderPrevious => Math.Max(0, normalizedIndex - 1),
+                UINavigationAction.MoveRight or UINavigationAction.MoveDown or UINavigationAction.ShoulderNext => Math.Min(count - 1, normalizedIndex + 1),
+                UINavigationAction.Home => 0,
+                UINavigationAction.End => count - 1,
+                _ => normalizedIndex
+            };
+        }
+
         protected override void SetContentVirtual(MGElement Value)
         {
             if (_Content != Value)
@@ -498,6 +514,24 @@ namespace MGUI.Core.UI
                 _ => throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {TabHeaderPosition}")
             };
             base.DrawBackground(DA, TabContentBounds);
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (_Tabs.Count == 0)
+                return false;
+
+            bool usesHorizontalHeaderNavigation = TabHeaderPosition is Dock.Top or Dock.Bottom;
+            bool usesVerticalHeaderNavigation = TabHeaderPosition is Dock.Left or Dock.Right;
+
+            bool isTabNavigationAction = action is UINavigationAction.Home or UINavigationAction.End or UINavigationAction.ShoulderPrevious or UINavigationAction.ShoulderNext
+                || (usesHorizontalHeaderNavigation && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight)
+                || (usesVerticalHeaderNavigation && action is UINavigationAction.MoveUp or UINavigationAction.MoveDown);
+            if (!isTabNavigationAction)
+                return action == UINavigationAction.Submit && SelectedTab != null;
+
+            int nextIndex = GetAdjacentTabIndex(SelectedTabIndex, _Tabs.Count, action);
+            return nextIndex >= 0 && TrySelectTabAtIndex(nextIndex);
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds) { }

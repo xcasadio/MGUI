@@ -178,8 +178,32 @@ namespace MGUI.Core.UI
 
         protected virtual void OnContentWrapperChanged() { }
 
+        private void OpenSubmenu()
+        {
+            if (Submenu?.IsContextMenuOpen == false)
+            {
+                Rectangle ScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.GetExpanded(new Thickness(2, 0, 2, 0)));
+                Submenu.TryOpenContextMenu(ScreenBounds);
+            }
+        }
+
         public override bool TryHandleNavigationAction(UINavigationAction action)
-            => action == UINavigationAction.Submit && ContentWrapper?.TryHandleNavigationAction(UINavigationAction.Submit) == true;
+        {
+            return action switch
+            {
+                UINavigationAction.Submit => ContentWrapper?.TryHandleNavigationAction(UINavigationAction.Submit) == true,
+                UINavigationAction.MoveRight when Submenu != null => OpenSubmenuAndConsume(),
+                UINavigationAction.MoveLeft when Menu.IsSubmenu => Menu.TryCloseContextMenu(),
+                UINavigationAction.Cancel => Menu.TryCloseContextMenu(),
+                _ => false
+            };
+
+            bool OpenSubmenuAndConsume()
+            {
+                OpenSubmenu();
+                return true;
+            }
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGElement _MenuItemContent;
@@ -353,15 +377,6 @@ namespace MGUI.Core.UI
             };
 
             Submenu = null;
-
-            void OpenSubmenu()
-            {
-                if (Submenu?.IsContextMenuOpen == false)
-                {
-                    Rectangle ScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.GetExpanded(new Thickness(2, 0, 2, 0)));
-                    Submenu.TryOpenContextMenu(ScreenBounds);
-                }
-            }
 
             void CloseSubmenuIfNotHovered()
             {

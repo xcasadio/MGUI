@@ -62,6 +62,7 @@ namespace MGUI.Core.UI
 
                     if (ContentWrapper != null)
                     {
+                        ContentWrapper.IsFocusable = false;
                         ContentWrapper.CanChangeContent = false;
                         using (ContentWrapper.AllowChangingContentTemporarily())
                             ContentWrapper.SetContent(_ItemContent);
@@ -197,8 +198,24 @@ namespace MGUI.Core.UI
     /// Supports hierarchical menus (unlimited levels), separators, toggle items, radio groups, disabled items, and icon + text.</summary>
     public class MGMenuBar : MGSingleContentHost
     {
+        internal static int GetAdjacentItemIndex(int currentIndex, int count, UINavigationAction action)
+        {
+            if (count <= 0)
+                return -1;
+
+            int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+            return action switch
+            {
+                UINavigationAction.MoveLeft => Math.Max(0, normalizedIndex - 1),
+                UINavigationAction.MoveRight => Math.Min(count - 1, normalizedIndex + 1),
+                UINavigationAction.Home => 0,
+                UINavigationAction.End => count - 1,
+                _ => normalizedIndex
+            };
+        }
+
         /// <inheritdoc/>
-        public override bool CanHandleKeyboardInput => IsMenuActive;
+        public override bool CanHandleKeyboardInput => IsFocusable || IsMenuActive;
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -372,6 +389,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 BorderElement = new(Window, new Thickness(0, 0, 0, 1), MGUniformBorderBrush.Black);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
@@ -453,6 +471,41 @@ namespace MGUI.Core.UI
                     }
                 };
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (_Items.Count == 0)
+                return false;
+
+            if (action == UINavigationAction.Cancel && IsMenuActive)
+            {
+                CloseActiveItem();
+                return true;
+            }
+
+            if (action == UINavigationAction.Submit)
+            {
+                MGMenuBarItem targetItem = ActiveItem ?? _Items.FirstOrDefault();
+                if (targetItem?.Submenu != null)
+                {
+                    OpenItem(targetItem);
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (action is not (UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Home or UINavigationAction.End))
+                return false;
+
+            int currentIndex = Math.Max(0, _Items.IndexOf(ActiveItem));
+            int nextIndex = GetAdjacentItemIndex(currentIndex, _Items.Count, action);
+            if (nextIndex < 0)
+                return false;
+
+            OpenItem(_Items[nextIndex]);
+            return true;
         }
     }
 }
