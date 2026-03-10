@@ -18,6 +18,8 @@ namespace MGUI.Core.UI
         Disabled,
         /// <summary>See also: <see cref="MGElement.IsSelected"/>, <see cref="MGElement.DerivedIsSelected"/></summary>
         Selected,
+        /// <summary>Used when the element has keyboard focus and focus visuals should be shown.</summary>
+        Focused,
         Normal
     }
 
@@ -34,6 +36,7 @@ namespace MGUI.Core.UI
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]public bool IsDisabled => Primary == PrimaryVisualState.Disabled;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]public bool IsSelected => Primary == PrimaryVisualState.Selected;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]public bool IsFocused => Primary == PrimaryVisualState.Focused;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]public bool IsPressed => Secondary == SecondaryVisualState.Pressed;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]public bool IsHovered => Secondary == SecondaryVisualState.Hovered;
@@ -85,6 +88,21 @@ namespace MGUI.Core.UI
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private TDataType _FocusedValue;
+        public TDataType FocusedValue
+        {
+            get => _FocusedValue;
+            set
+            {
+                if (!EqualityComparer.Equals(_FocusedValue, value))
+                {
+                    _FocusedValue = value;
+                    NPC(nameof(FocusedValue));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private TDataType _NormalValue;
         public TDataType NormalValue
         {
@@ -104,6 +122,7 @@ namespace MGUI.Core.UI
             {
                 PrimaryVisualState.Disabled => DisabledValue,
                 PrimaryVisualState.Selected => SelectedValue,
+                PrimaryVisualState.Focused => FocusedValue,
                 PrimaryVisualState.Normal => NormalValue,
                 _ => throw new NotImplementedException($"Unrecognized {nameof(PrimaryVisualState)}: {State}")
             };
@@ -112,6 +131,7 @@ namespace MGUI.Core.UI
         {
             DisabledValue = Value;
             SelectedValue = Value;
+            FocusedValue = Value;
             NormalValue = Value;
         }
 
@@ -119,13 +139,17 @@ namespace MGUI.Core.UI
             : this(Value, Value, Value) { }
 
         public VisualStateSetting(TDataType NormalValue, TDataType SelectedValue, TDataType DisabledValue)
+            : this(NormalValue, SelectedValue, SelectedValue, DisabledValue) { }
+
+        public VisualStateSetting(TDataType NormalValue, TDataType SelectedValue, TDataType FocusedValue, TDataType DisabledValue)
         {
             this.NormalValue = NormalValue;
             this.SelectedValue = SelectedValue;
+            this.FocusedValue = FocusedValue;
             this.DisabledValue = DisabledValue;
         }
 
-        public VisualStateSetting<TDataType> GetCopy() => new(NormalValue, SelectedValue, DisabledValue);
+        public VisualStateSetting<TDataType> GetCopy() => new(NormalValue, SelectedValue, FocusedValue, DisabledValue);
     }
 
     public enum PressedModifierType
@@ -276,7 +300,16 @@ namespace MGUI.Core.UI
 
         protected VisualStateBrush(TDataType NormalValue, TDataType SelectedValue, TDataType DisabledValue, 
             Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
-            : base(NormalValue, SelectedValue, DisabledValue)
+            : base(NormalValue, SelectedValue, SelectedValue, DisabledValue)
+        {
+            FocusedColor = HoveredColor;
+            this.PressedModifierType = PressedModifierType;
+            this.PressedModifier = PressedModifier;
+        }
+
+        protected VisualStateBrush(TDataType NormalValue, TDataType SelectedValue, TDataType FocusedValue, TDataType DisabledValue,
+            Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
+            : base(NormalValue, SelectedValue, FocusedValue, DisabledValue)
         {
             FocusedColor = HoveredColor;
             this.PressedModifierType = PressedModifierType;
@@ -298,8 +331,11 @@ namespace MGUI.Core.UI
         public VisualStateFillBrush(IFillBrush NormalBrush, IFillBrush SelectedBrush, IFillBrush DisabledBrush, Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
             : base(NormalBrush, SelectedBrush, DisabledBrush, HoveredColor, PressedModifierType, PressedModifier) { }
 
+        public VisualStateFillBrush(IFillBrush NormalBrush, IFillBrush SelectedBrush, IFillBrush FocusedBrush, IFillBrush DisabledBrush, Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
+            : base(NormalBrush, SelectedBrush, FocusedBrush, DisabledBrush, HoveredColor, PressedModifierType, PressedModifier) { }
+
         private VisualStateFillBrush(VisualStateFillBrush InheritFrom)
-            : base(InheritFrom.NormalValue?.Copy(), InheritFrom.SelectedValue?.Copy(), InheritFrom.DisabledValue?.Copy(),
+            : base(InheritFrom.NormalValue?.Copy(), InheritFrom.SelectedValue?.Copy(), InheritFrom.FocusedValue?.Copy(), InheritFrom.DisabledValue?.Copy(),
                   InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier) { }
 
         public VisualStateFillBrush Copy() => new(this);
@@ -318,8 +354,11 @@ namespace MGUI.Core.UI
         public VisualStateColorBrush(Color NormalColor, Color SelectedColor, Color DisabledColor, Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
             : base(NormalColor, SelectedColor, DisabledColor, HoveredColor, PressedModifierType, PressedModifier) { }
 
+        public VisualStateColorBrush(Color NormalColor, Color SelectedColor, Color FocusedColorValue, Color DisabledColor, Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
+            : base(NormalColor, SelectedColor, FocusedColorValue, DisabledColor, HoveredColor, PressedModifierType, PressedModifier) { }
+
         private VisualStateColorBrush(VisualStateColorBrush InheritFrom)
-            : base(InheritFrom.NormalValue, InheritFrom.SelectedValue, InheritFrom.DisabledValue,
+            : base(InheritFrom.NormalValue, InheritFrom.SelectedValue, InheritFrom.FocusedValue, InheritFrom.DisabledValue,
                   InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier) { }
 
         public VisualStateColorBrush Copy() => new(this);

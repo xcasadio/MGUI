@@ -1043,6 +1043,20 @@ namespace MGUI.Core.UI
         /// <summary>Invoked when <see cref="VisualState"/> changes.</summary>
         public event EventHandler<EventArgs<VisualState>> VisualStateChanged;
 
+        internal static PrimaryVisualState ResolvePrimaryVisualState(bool isEnabled, bool isSelected, bool hasKeyboardFocus, bool shouldDisplayFocusedState)
+        {
+            if (!isEnabled)
+                return PrimaryVisualState.Disabled;
+
+            if (isSelected)
+                return PrimaryVisualState.Selected;
+
+            if (hasKeyboardFocus && shouldDisplayFocusedState)
+                return PrimaryVisualState.Focused;
+
+            return PrimaryVisualState.Normal;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsSelected;
         /// <summary>This property does not account for the parent's <see cref="IsSelected"/>. Consider using <see cref="DerivedIsSelected"/> instead.</summary>
@@ -1718,7 +1732,10 @@ namespace MGUI.Core.UI
             };
             //UA = new(UA.BA, ComputedIsEnabled, ComputedIsSelected, ComputedIsHitTestVisible, UA.Offset, this.ActualLayoutBounds);
 
-            PrimaryVisualState newPVS = !ComputedIsEnabled ? PrimaryVisualState.Disabled : ComputedIsSelected ? PrimaryVisualState.Selected : PrimaryVisualState.Normal;
+            MGDesktop desktop = GetDesktop();
+            bool hasKeyboardFocus = desktop?.FocusedKeyboardHandler == this;
+            bool shouldDisplayFocusedState = desktop?.ShouldDisplayFocusedState == true;
+            PrimaryVisualState newPVS = ResolvePrimaryVisualState(ComputedIsEnabled, ComputedIsSelected, hasKeyboardFocus, shouldDisplayFocusedState);
             SecondaryVisualState newSVS = 
                 !ComputedIsHitTestVisible || SelfOrParentWindow.HasModalWindow ? SecondaryVisualState.None : 
                 IsLMBPressed && IsSelfOrAncestorOf(SelfOrParentWindow.PressedElement) ? SecondaryVisualState.Pressed : 

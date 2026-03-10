@@ -116,4 +116,55 @@ public class FocusTests
         el.SimulateClick();
         Assert.Equal(0, el.AutoFocusCallCount);
     }
+
+    [Fact]
+    public void VisualStateSetting_FocusedValue_IsReturned()
+    {
+        var setting = new MGUI.Core.UI.VisualStateSetting<int>(1, 2, 3, 4);
+
+        Assert.Equal(1, setting.GetValue(MGUI.Core.UI.PrimaryVisualState.Normal));
+        Assert.Equal(2, setting.GetValue(MGUI.Core.UI.PrimaryVisualState.Selected));
+        Assert.Equal(3, setting.GetValue(MGUI.Core.UI.PrimaryVisualState.Focused));
+        Assert.Equal(4, setting.GetValue(MGUI.Core.UI.PrimaryVisualState.Disabled));
+    }
+
+    [Fact]
+    public void ResolveInputMode_MouseActivity_Wins()
+    {
+        var result = MGUI.Core.UI.MGDesktop.ResolveInputMode(hasMouseActivity: true, hasKeyboardActivity: true, isTextEntryFocused: true, currentMode: MGUI.Core.UI.UIInputMode.Navigation);
+
+        Assert.Equal(MGUI.Core.UI.UIInputMode.Pointer, result);
+    }
+
+    [Fact]
+    public void ResolveInputMode_KeyboardActivity_OnTextEntry_ReturnsTextEntry()
+    {
+        var result = MGUI.Core.UI.MGDesktop.ResolveInputMode(hasMouseActivity: false, hasKeyboardActivity: true, isTextEntryFocused: true, currentMode: MGUI.Core.UI.UIInputMode.Pointer);
+
+        Assert.Equal(MGUI.Core.UI.UIInputMode.TextEntry, result);
+    }
+
+    [Fact]
+    public void ResolveInputMode_NoActivity_KeepsCurrentMode()
+    {
+        var result = MGUI.Core.UI.MGDesktop.ResolveInputMode(hasMouseActivity: false, hasKeyboardActivity: false, isTextEntryFocused: false, currentMode: MGUI.Core.UI.UIInputMode.Navigation);
+
+        Assert.Equal(MGUI.Core.UI.UIInputMode.Navigation, result);
+    }
+
+    [Fact]
+    public void ResolvePrimaryVisualState_Focused_WhenEnabledAndNavigationVisible()
+    {
+        var result = MGUI.Core.UI.MGElement.ResolvePrimaryVisualState(isEnabled: true, isSelected: false, hasKeyboardFocus: true, shouldDisplayFocusedState: true);
+
+        Assert.Equal(MGUI.Core.UI.PrimaryVisualState.Focused, result);
+    }
+
+    [Fact]
+    public void ResolvePrimaryVisualState_Selected_HasPriorityOverFocused()
+    {
+        var result = MGUI.Core.UI.MGElement.ResolvePrimaryVisualState(isEnabled: true, isSelected: true, hasKeyboardFocus: true, shouldDisplayFocusedState: true);
+
+        Assert.Equal(MGUI.Core.UI.PrimaryVisualState.Selected, result);
+    }
 }

@@ -30,6 +30,45 @@ namespace MGUI.Core.UI
         public InputTracker InputTracker => Renderer.Input;
         public FontManager FontManager => Renderer.FontManager;
 
+        internal static bool HasKeyboardActivity(KeyboardTracker keyboard)
+            => keyboard.CurrentKeyPressedEvents.Values.Any(x => x != null)
+            || keyboard.CurrentKeyReleasedEvents.Values.Any(x => x != null)
+            || keyboard.CurrentKeyClickedEvents.Values.Any(x => x != null);
+
+        internal static bool HasMouseActivity(MouseTracker mouse)
+            => mouse.MouseMovedRecently
+            || mouse.MouseLeftButtonPressedRecently
+            || mouse.MouseLeftButtonReleasedRecently
+            || mouse.CurrentScrollEvent != null;
+
+        internal static UIInputMode ResolveInputMode(bool hasMouseActivity, bool hasKeyboardActivity, bool isTextEntryFocused, UIInputMode currentMode)
+        {
+            if (hasMouseActivity)
+                return UIInputMode.Pointer;
+
+            if (hasKeyboardActivity)
+                return isTextEntryFocused ? UIInputMode.TextEntry : UIInputMode.Navigation;
+
+            return currentMode;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private UIInputMode _ActiveInputMode = UIInputMode.Pointer;
+        public UIInputMode ActiveInputMode
+        {
+            get => _ActiveInputMode;
+            private set
+            {
+                if (_ActiveInputMode != value)
+                {
+                    _ActiveInputMode = value;
+                    NPC(nameof(ActiveInputMode));
+                }
+            }
+        }
+
+        internal bool ShouldDisplayFocusedState => ActiveInputMode != UIInputMode.Pointer;
+
         /// <summary>The active <see cref="ITextEngine"/> used for all
         /// text measurement and rendering.  Assign a different engine to switch backends globally.</summary>
         public ITextEngine TextEngine
@@ -537,6 +576,10 @@ namespace MGUI.Core.UI
             }
 
             UpdateBaseArgs BA = Renderer.UpdateArgs;
+
+            MGElement focusCandidate = QueuedFocusedKeyboardHandler ?? FocusedKeyboardHandler;
+            bool isTextEntryFocused = focusCandidate is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
+            ActiveInputMode = ResolveInputMode(HasMouseActivity(InputTracker.Mouse), HasKeyboardActivity(InputTracker.Keyboard), isTextEntryFocused, ActiveInputMode);
 
             HighPriorityMouseHandler.ManualUpdate();
             HighPriorityKeyboardHandler.ManualUpdate();

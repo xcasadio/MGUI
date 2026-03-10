@@ -368,6 +368,7 @@ namespace MGUI.Core.UI
                             PrimaryBG, PrimaryBG, PrimaryBG * 0.5f,
                             Color.White * 0.12f, PressedModifierType.Darken, 0.06f)
                     );
+                ButtonBG.GetValue(false).FocusedValue = PrimaryColor.Brighten(0.16f).AsFillBrush();
                 _Backgrounds[MGElementType.Button] = new ThemeManagedVisualStateFillBrush(ButtonBG.GetValue(true));
                 _Backgrounds[MGElementType.ProgressButton] = new ThemeManagedVisualStateFillBrush(ButtonBG.GetValue(true));
                 _Backgrounds[MGElementType.ComboBox] = new ThemeManagedVisualStateFillBrush(ButtonBG.GetValue(true));
@@ -411,6 +412,7 @@ namespace MGUI.Core.UI
                             PrimaryBG,
                             Color.White * 0.08f, PressedModifierType.Darken, 0f)
                     );
+                TextBoxBG.GetValue(false).FocusedValue = PrimaryColor.Brighten(0.10f).AsFillBrush();
                 _Backgrounds[MGElementType.PasswordBox] = new ThemeManagedVisualStateFillBrush(TextBoxBG.GetValue(true));
                 _Backgrounds[MGElementType.TextBox] = new ThemeManagedVisualStateFillBrush(TextBoxBG.GetValue(true));
 
@@ -448,6 +450,7 @@ namespace MGUI.Core.UI
                             ToggleButtonUnselected.AsFillBrush(), PrimaryBG, ToggleButtonUnselected.AsFillBrush() * 0.5f,
                             Color.White * 0.12f, PressedModifierType.Darken, 0.06f)
                     );
+                ToggleButtonBG.GetValue(false).FocusedValue = ToggleButtonUnselected.Brighten(0.16f).AsFillBrush();
                 _Backgrounds[MGElementType.ToggleButton] = new ThemeManagedVisualStateFillBrush(ToggleButtonBG.GetValue(true));
 
                 //  ToolTip
@@ -622,6 +625,7 @@ namespace MGUI.Core.UI
                             PrimaryBG, PrimaryBG, PrimaryBG * 0.5f,
                             Color.White * 0.18f, PressedModifierType.Darken, 0.06f)
                     );
+                ButtonBG.GetValue(false).FocusedValue = Color.Lerp(Color.White, PrimaryColor, 0.70f).AsFillBrush();
                 _Backgrounds[MGElementType.Button] = new ThemeManagedVisualStateFillBrush(ButtonBG.GetValue(true));
                 _Backgrounds[MGElementType.ComboBox] = new ThemeManagedVisualStateFillBrush(ButtonBG.GetValue(true));
 
@@ -664,6 +668,7 @@ namespace MGUI.Core.UI
                             PrimaryBG,
                             Color.White * 0.25f, PressedModifierType.Darken, 0f)
                     );
+                TextBoxBG.GetValue(false).FocusedValue = Color.Lerp(Color.White, PrimaryColor, 0.82f).AsFillBrush();
                 _Backgrounds[MGElementType.PasswordBox] = new ThemeManagedVisualStateFillBrush(TextBoxBG.GetValue(true));
                 _Backgrounds[MGElementType.TextBox] = new ThemeManagedVisualStateFillBrush(TextBoxBG.GetValue(true));
 
@@ -702,6 +707,7 @@ namespace MGUI.Core.UI
                             PrimaryBG, Color.LightBlue.AsFillBrush(), PrimaryBG * 0.5f,
                             Color.White * 0.18f, PressedModifierType.Darken, 0.06f)
                     );
+                ToggleButtonBG.GetValue(false).FocusedValue = Color.Lerp(Color.White, Color.LightBlue, 0.55f).AsFillBrush();
                 _Backgrounds[MGElementType.ToggleButton] = new ThemeManagedVisualStateFillBrush(ToggleButtonBG.GetValue(true));
 
                 //  ToolTip
