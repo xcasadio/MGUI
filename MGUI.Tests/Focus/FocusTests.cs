@@ -336,6 +336,17 @@ public class FocusTests
     }
 
     [Theory]
+    [InlineData(40f, 10f, 100f, 300f, 5f, 25f, 35f)]
+    [InlineData(40f, 10f, 100f, 300f, 80f, 130f, 60f)]
+    [InlineData(40f, 10f, 100f, 300f, 20f, 90f, 40f)]
+    public void ScrollViewer_GetVisibleOffset_WithViewportStart_ReturnsExpectedOffset(float currentOffset, float viewportStart, float viewportSize, float maxOffset, float elementStart, float elementEnd, float expected)
+    {
+        float actual = MGUI.Core.UI.MGScrollViewer.GetVisibleOffset(currentOffset, viewportStart, viewportSize, maxOffset, elementStart, elementEnd);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData("default", "last", "first", true, "default")]
     [InlineData(null, "last", "first", true, "last")]
     [InlineData("default", "last", "first", false, "last")]

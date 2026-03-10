@@ -36,6 +36,21 @@ namespace MGUI.Core.UI
             return Math.Clamp(newOffset, 0, maxOffset);
         }
 
+        internal static float GetVisibleOffset(float currentOffset, float viewportStart, float viewportSize, float maxOffset, float elementStart, float elementEnd)
+        {
+            if (viewportSize <= 0)
+                return Math.Clamp(currentOffset, 0, maxOffset);
+
+            float newOffset = currentOffset;
+            float viewportEnd = viewportStart + viewportSize;
+            if (elementStart < viewportStart)
+                newOffset -= viewportStart - elementStart;
+            else if (elementEnd > viewportEnd)
+                newOffset += elementEnd - viewportEnd;
+
+            return Math.Clamp(newOffset, 0, maxOffset);
+        }
+
         public void EnsureElementVisible(MGElement target)
         {
             if (target == null || !HasContent || ContentViewport.Width <= 0 || ContentViewport.Height <= 0)
@@ -44,9 +59,11 @@ namespace MGUI.Core.UI
             if (!(Content == target || Content.IsSelfOrAncestorOf(target)))
                 return;
 
-            Rectangle bounds = target.LayoutBounds;
-            float newVerticalOffset = GetVisibleOffset(VerticalOffset, ContentViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
-            float newHorizontalOffset = GetVisibleOffset(HorizontalOffset, ContentViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
+            Rectangle screenBounds = target.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, target.LayoutBounds);
+            Rectangle bounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, screenBounds);
+            Rectangle localViewport = new(Padding.Left, Padding.Top, ContentViewport.Width, ContentViewport.Height);
+            float newVerticalOffset = GetVisibleOffset(VerticalOffset, localViewport.Top, localViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
+            float newHorizontalOffset = GetVisibleOffset(HorizontalOffset, localViewport.Left, localViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
 
             if (Math.Abs(newVerticalOffset - VerticalOffset) > 0.5f)
                 VerticalOffset = newVerticalOffset;
