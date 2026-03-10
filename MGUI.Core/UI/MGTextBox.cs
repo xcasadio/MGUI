@@ -44,7 +44,14 @@ namespace MGUI.Core.UI
             => isHeldKeyRepeated && !isControlDown && (isPrintableKey || key is Keys.Back or Keys.Delete or Keys.Left or Keys.Right or Keys.Up or Keys.Down);
 
         internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
-            => hasKeyboardFocus && ShouldProcessRepeatedKey(isHeldKeyRepeated, isControlDown, isPrintableKey, key);
+            => ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key, false);
+
+        internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key,
+            bool streamStartedAsControlShortcut)
+            => hasKeyboardFocus && !streamStartedAsControlShortcut && ShouldProcessRepeatedKey(isHeldKeyRepeated, isControlDown, isPrintableKey, key);
+
+        internal static bool IsControlShortcutKey(Keys key)
+            => key is Keys.X or Keys.C or Keys.V or Keys.Z or Keys.Y or Keys.A or Keys.D;
 
         internal bool ShouldPreserveTextEntryKey(Keys key)
             => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
@@ -985,6 +992,7 @@ namespace MGUI.Core.UI
         public MGTextCaret Caret { get; }
 
         private StringClipboard Clipboard { get; } = new();
+        private HashSet<long> ShortcutOriginStreamIds { get; } = new();
 
         #region Resizing
         /// <summary>Provides direct access to the resizer grip that appears in the bottom-right corner of this textbox when <see cref="IsUserResizable"/> is true.</summary>
@@ -1210,17 +1218,26 @@ namespace MGUI.Core.UI
 
                 KeyboardHandler.Pressed += (sender, e) =>
                 {
+                    TrackShortcutOriginStream(e);
                     HandleKeyPress(e);
                     e.SetHandledBy(this, false);
                 };
 
                 KeyboardHandler.KeyRepeat += (sender, e) =>
                 {
-                    if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key))
+                    bool streamStartedAsControlShortcut = e.Stream != null && ShortcutOriginStreamIds.Contains(e.Stream.Id);
+                    if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key,
+                        streamStartedAsControlShortcut))
                         return;
 
                     HandleKeyPress(e);
                     e.SetHandledBy(this, false);
+                };
+
+                KeyboardHandler.KeyUp += (sender, e) =>
+                {
+                    if (e.Stream != null)
+                        ShortcutOriginStreamIds.Remove(e.Stream.Id);
                 };
 
                 SyncKeyboardRepeatPolicy();
@@ -1235,6 +1252,15 @@ namespace MGUI.Core.UI
             KeyboardHandler.RepeatPolicy.Enabled = IsHeldKeyRepeated;
             KeyboardHandler.RepeatPolicy.InitialDelay = InitialKeyRepeatDelay;
             KeyboardHandler.RepeatPolicy.Interval = KeyRepeatInterval;
+        }
+
+        private void TrackShortcutOriginStream(BaseKeyPressedEventArgs e)
+        {
+            if (e.Stream == null)
+                return;
+
+            if (e.Tracker.IsControlDown && IsControlShortcutKey(e.Key))
+                ShortcutOriginStreamIds.Add(e.Stream.Id);
         }
 
         #region Scrolling
@@ -1392,7 +1418,7 @@ namespace MGUI.Core.UI
                 if (e.Tracker.IsControlDown)
                 {
                     //  Handle keyboard shortcuts such as Ctrl+C or Ctrl+V
-                    bool IsKeyboardShortcut = e.Key is Keys.X or Keys.C or Keys.V or Keys.Z or Keys.Y or Keys.A or Keys.D;
+                    bool IsKeyboardShortcut = IsControlShortcutKey(e.Key);
                     if (IsKeyboardShortcut)
                     {
                         string CurrentText = GetTextBackingField();

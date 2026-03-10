@@ -573,4 +573,31 @@ public class InputEnhancedTests
 
         Assert.Equal(expected, actual);
     }
+
+    [Theory]
+    [InlineData(true, true, false, true, Keys.C, true, false)]
+    [InlineData(true, true, false, true, Keys.C, false, true)]
+    [InlineData(true, true, false, false, Keys.Back, true, false)]
+    [InlineData(false, true, false, true, Keys.V, true, false)]
+    public void TextBox_ShouldHandleRepeatedKey_WithShortcutOrigin_ReturnsExpectedValue(bool hasKeyboardFocus, bool isHeldKeyRepeated,
+        bool isControlDown, bool isPrintableKey, Keys key, bool streamStartedAsControlShortcut, bool expected)
+    {
+        bool actual = MGTextBox.ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key,
+            streamStartedAsControlShortcut);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(Keys.C, true)]
+    [InlineData(Keys.V, true)]
+    [InlineData(Keys.A, true)]
+    [InlineData(Keys.Back, false)]
+    [InlineData(Keys.Enter, false)]
+    public void TextBox_IsControlShortcutKey_ReturnsExpectedValue(Keys key, bool expected)
+    {
+        bool actual = MGTextBox.IsControlShortcutKey(key);
+
+        Assert.Equal(expected, actual);
+    }
 }
