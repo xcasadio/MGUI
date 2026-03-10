@@ -155,6 +155,9 @@ namespace MGUI.Core.UI
         internal static KeyboardFocusSource GetNavigationFocusSource(bool isGamePadNavigation)
             => isGamePadNavigation ? KeyboardFocusSource.GamePad : KeyboardFocusSource.Keyboard;
 
+        internal static bool ShouldAutoScrollFocusedElement(KeyboardFocusSource focusSource)
+            => focusSource != KeyboardFocusSource.Pointer;
+
         internal static T ResolveAutoFocusTarget<T>(T defaultFocus, T lastFocused, T firstFocusable, bool preferWindowDefault)
             where T : class
             => preferWindowDefault
@@ -822,7 +825,7 @@ namespace MGUI.Core.UI
                     if (FocusedKeyboardHandler?.SelfOrParentWindow != null)
                         WindowFocusHistory[FocusedKeyboardHandler.SelfOrParentWindow] = FocusedKeyboardHandler;
 
-                    if (FocusedKeyboardHandler != null)
+                    if (FocusedKeyboardHandler != null && ShouldAutoScrollFocusedElement(LastFocusChangeSource))
                         EnsureFocusedElementVisible(FocusedKeyboardHandler);
 
                     NPC(nameof(FocusedKeyboardHandler));

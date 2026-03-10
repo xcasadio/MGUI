@@ -167,6 +167,18 @@ public class FocusTests
         Assert.Equal(expected, actual);
     }
 
+    [Theory]
+    [InlineData(MGUI.Core.UI.KeyboardFocusSource.Pointer, false)]
+    [InlineData(MGUI.Core.UI.KeyboardFocusSource.Keyboard, true)]
+    [InlineData(MGUI.Core.UI.KeyboardFocusSource.GamePad, true)]
+    [InlineData(MGUI.Core.UI.KeyboardFocusSource.Programmatic, true)]
+    public void ShouldAutoScrollFocusedElement_ReturnsExpectedValue(MGUI.Core.UI.KeyboardFocusSource source, bool expected)
+    {
+        bool actual = MGUI.Core.UI.MGDesktop.ShouldAutoScrollFocusedElement(source);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void ResolvePrimaryVisualState_Focused_WhenEnabledAndNavigationVisible()
     {
