@@ -281,6 +281,54 @@ public class InputEnhancedTests
         Assert.Equal(1, keyUpCount);
     }
 
+    [Fact]
+    public void KeyboardHandler_HandledKeyStream_RemainsOwnedAfterFocusChanges()
+    {
+        InputTracker tracker = new();
+        KeyboardHost originalHost = new() { HasFocus = true };
+        KeyboardHost newFocusedHost = new() { HasFocus = false };
+        KeyboardHandler originalHandler = tracker.Keyboard.CreateHandler(originalHost, 20);
+        KeyboardHandler newFocusedHandler = tracker.Keyboard.CreateHandler(newFocusedHost, 10, false, true);
+
+        originalHandler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        originalHandler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+        newFocusedHandler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        newFocusedHandler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+
+        int originalKeyDown = 0;
+        int originalRepeats = 0;
+        int originalKeyUp = 0;
+        int newFocusedRepeats = 0;
+        int newFocusedKeyUp = 0;
+
+        originalHandler.KeyDown += (_, e) =>
+        {
+            originalKeyDown++;
+            e.SetHandledBy(originalHost, false);
+        };
+        originalHandler.KeyRepeat += (_, _) => originalRepeats++;
+        originalHandler.KeyUp += (_, _) => originalKeyUp++;
+        newFocusedHandler.KeyRepeat += (_, _) => newFocusedRepeats++;
+        newFocusedHandler.KeyUp += (_, _) => newFocusedKeyUp++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+
+        originalHost.HasFocus = false;
+        newFocusedHost.HasFocus = true;
+
+        tracker.Update(CreateUpdateArgs(320, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(470, CreateMouseState(Point.Zero), new KeyboardState()));
+        tracker.Keyboard.UpdateHandlers();
+
+        Assert.Equal(1, originalKeyDown);
+        Assert.Equal(1, originalRepeats);
+        Assert.Equal(1, originalKeyUp);
+        Assert.Equal(0, newFocusedRepeats);
+        Assert.Equal(0, newFocusedKeyUp);
+    }
+
     [Theory]
     [InlineData(true, 1, true)]
     [InlineData(true, 2, false)]

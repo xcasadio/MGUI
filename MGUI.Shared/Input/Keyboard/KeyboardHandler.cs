@@ -118,13 +118,15 @@ namespace MGUI.Shared.Input.Keyboard
 
         private void InvokeQueuedEvents()
         {
-            if (IsValid && HasSubscribedEvents && Owner.CanReceiveKeyboardInput() && Owner.HasKeyboardFocus())
+            if (IsValid && HasSubscribedEvents && Owner.CanReceiveKeyboardInput())
             {
                 foreach (Keys Key in AllKeys)
                 {
+                    bool hasKeyboardFocus = Owner.HasKeyboardFocus();
+
                     //  Invoke Key Pressed
                     BaseKeyPressedEventArgs PressedArgs = Tracker.CurrentKeyPressedEvents[Key];
-                    if (PressedArgs != null && _pressed != null && (InvokeEvenIfHandled || !PressedArgs.IsHandled))
+                    if (PressedArgs != null && _pressed != null && hasKeyboardFocus && (InvokeEvenIfHandled || !PressedArgs.IsHandled))
                     {
                         _pressed.Invoke(this, PressedArgs);
                         if (AlwaysHandlesEvents)
@@ -133,7 +135,11 @@ namespace MGUI.Shared.Input.Keyboard
 
                     //  Invoke Key Released
                     BaseKeyReleasedEventArgs ReleasedArgs = Tracker.CurrentKeyReleasedEvents[Key];
-                    if (ReleasedArgs != null && _released != null && (InvokeEvenIfHandled || !ReleasedArgs.IsHandled))
+                    bool ownsReleasedStream = ReleasedArgs?.PressedArgs?.HandledBy == Owner;
+                    bool hasOwnedReleasedStream = ReleasedArgs?.PressedArgs?.IsHandled == true;
+                    bool canReceiveReleased = ownsReleasedStream || (!hasOwnedReleasedStream && hasKeyboardFocus);
+                    if (ReleasedArgs != null && _released != null && canReceiveReleased
+                        && (InvokeEvenIfHandled || !ReleasedArgs.IsHandled || ReleasedArgs.HandledBy == Owner || ownsReleasedStream))
                     {
                         _released.Invoke(this, ReleasedArgs);
                         if (AlwaysHandlesEvents)
@@ -141,7 +147,11 @@ namespace MGUI.Shared.Input.Keyboard
                     }
 
                     BaseKeyRepeatedEventArgs RepeatedArgs = GetCurrentKeyRepeatEvent(Key);
-                    if (RepeatedArgs != null && _repeated != null && (InvokeEvenIfHandled || !RepeatedArgs.IsHandled))
+                    bool ownsRepeatStream = RepeatedArgs?.InitialPressedArgs?.HandledBy == Owner;
+                    bool hasOwnedStream = RepeatedArgs?.InitialPressedArgs?.IsHandled == true;
+                    bool canReceiveRepeat = ownsRepeatStream || (!hasOwnedStream && hasKeyboardFocus);
+                    if (RepeatedArgs != null && _repeated != null && canReceiveRepeat
+                        && (InvokeEvenIfHandled || !RepeatedArgs.IsHandled || RepeatedArgs.HandledBy == Owner || ownsRepeatStream))
                     {
                         _repeated.Invoke(this, RepeatedArgs);
                         if (AlwaysHandlesEvents)
@@ -150,7 +160,12 @@ namespace MGUI.Shared.Input.Keyboard
 
                     //  Invoke Key Clicked
                     BaseKeyClickedEventArgs ClickedArgs = Tracker.CurrentKeyClickedEvents[Key];
-                    if (ClickedArgs != null && _clicked != null && (InvokeEvenIfHandled || !ClickedArgs.IsHandled) && (InvokeEvenIfHandled || !ClickedArgs.ReleasedArgs.IsHandled || ClickedArgs.ReleasedArgs.HandledBy == Owner))
+                    bool ownsClickedStream = ClickedArgs?.PressedArgs?.HandledBy == Owner;
+                    bool hasOwnedClickedStream = ClickedArgs?.PressedArgs?.IsHandled == true;
+                    bool canReceiveClicked = ownsClickedStream || (!hasOwnedClickedStream && hasKeyboardFocus);
+                    if (ClickedArgs != null && _clicked != null && canReceiveClicked
+                        && (InvokeEvenIfHandled || !ClickedArgs.IsHandled || ClickedArgs.HandledBy == Owner || ownsClickedStream)
+                        && (InvokeEvenIfHandled || !ClickedArgs.ReleasedArgs.IsHandled || ClickedArgs.ReleasedArgs.HandledBy == Owner || ownsClickedStream))
                     {
                         _clicked.Invoke(this, ClickedArgs);
                         if (AlwaysHandlesEvents)
