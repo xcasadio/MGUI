@@ -27,6 +27,8 @@ namespace MGUI.Shared.Input.Keyboard
         /// <summary>The maximum amount of time that can pass between a key press and key release 
         /// to still be registed as a Click event (<see cref="KeyboardHandler.Clicked"/>)</summary>
         public TimeSpan ClickTimeThreshold { get; set; } = TimeSpan.FromMilliseconds(300);
+        public TimeSpan InitialRepeatDelay { get; set; } = TimeSpan.FromMilliseconds(500);
+        public TimeSpan RepeatInterval { get; set; } = TimeSpan.FromMilliseconds(1000.0 / 30.0);
 
         public InputTracker InputTracker { get; }
 
@@ -80,7 +82,17 @@ namespace MGUI.Shared.Input.Keyboard
         private readonly Dictionary<Keys, BaseKeyClickedEventArgs> _CurrentKeyClickedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyClickedEventArgs);
         /// <summary>The Key click events that occurred on the current Update tick, or null if the key wasn't just clicked on the current Update tick.</summary>
         public IReadOnlyDictionary<Keys, BaseKeyClickedEventArgs> CurrentKeyClickedEvents => _CurrentKeyClickedEvents;
+
+        private readonly Dictionary<Keys, BaseKeyRepeatedEventArgs> _CurrentKeyRepeatedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyRepeatedEventArgs);
+        /// <summary>The Key repeat events that occurred on the current Update tick, or null if the key was not repeated on the current Update tick.</summary>
+        public IReadOnlyDictionary<Keys, BaseKeyRepeatedEventArgs> CurrentKeyRepeatedEvents => _CurrentKeyRepeatedEvents;
+
+        private readonly Dictionary<Keys, TimeSpan?> _HeldSince = AllKeys.ToDictionary(x => x, _ => (TimeSpan?)null);
+        private readonly Dictionary<Keys, TimeSpan?> _LastRepeatedAt = AllKeys.ToDictionary(x => x, _ => (TimeSpan?)null);
         #endregion Events
+
+        public IReadOnlyDictionary<Keys, BaseKeyPressedEventArgs> CurrentKeyDownEvents => _CurrentKeyPressedEvents;
+        public IReadOnlyDictionary<Keys, BaseKeyReleasedEventArgs> CurrentKeyUpEvents => _CurrentKeyReleasedEvents;
 
         public bool IsPressed(Keys Key) => RecentKeyPressedEvents[Key] != null;
         public bool IsAnyPressed(params Keys[] Keys) => Keys.Any(x => IsPressed(x));
@@ -103,6 +115,7 @@ namespace MGUI.Shared.Input.Keyboard
                 _CurrentKeyPressedEvents[Key] = null;
                 _CurrentKeyReleasedEvents[Key] = null;
                 _CurrentKeyClickedEvents[Key] = null;
+                _CurrentKeyRepeatedEvents[Key] = null;
             }
 
             List<Keys> PreviousKeys = PreviousState.GetPressedKeys().ToList();
@@ -117,6 +130,24 @@ namespace MGUI.Shared.Input.Keyboard
                     BaseKeyPressedEventArgs PressedArgs = new(this, Key, KeyValue);
                     RecentKeyPressedEvents[Key] = PressedArgs;
                     _CurrentKeyPressedEvents[Key] = PressedArgs;
+                    _HeldSince[Key] = BA.TotalElapsed;
+                    _LastRepeatedAt[Key] = null;
+                }
+            }
+
+            foreach (Keys Key in CurrentKeys)
+            {
+                if (PreviousKeys.Contains(Key)
+                    && RecentKeyPressedEvents.TryGetValue(Key, out BaseKeyPressedEventArgs PressedArgs)
+                    && PressedArgs != null
+                    && ShouldRepeatKey(Key)
+                    && _HeldSince[Key].HasValue
+                    && IsRepeatDue(BA.TotalElapsed, _HeldSince[Key].Value, _LastRepeatedAt[Key], InitialRepeatDelay, RepeatInterval))
+                {
+                    string KeyValue = KeyToTextInputString(Key);
+                    BaseKeyRepeatedEventArgs RepeatedArgs = new(this, PressedArgs, Key, KeyValue);
+                    _CurrentKeyRepeatedEvents[Key] = RepeatedArgs;
+                    _LastRepeatedAt[Key] = BA.TotalElapsed;
                 }
             }
 
@@ -141,9 +172,28 @@ namespace MGUI.Shared.Input.Keyboard
 
                         RecentKeyPressedEvents[Key] = null;
                     }
+
+                    _HeldSince[Key] = null;
+                    _LastRepeatedAt[Key] = null;
                 }
             }
         }
+
+        public static bool IsRepeatDue(TimeSpan now, TimeSpan heldSince, TimeSpan? lastRepeatAt, TimeSpan initialRepeatDelay, TimeSpan repeatInterval)
+        {
+            if (now - heldSince < initialRepeatDelay)
+                return false;
+
+            return !lastRepeatAt.HasValue || now - lastRepeatAt.Value >= repeatInterval;
+        }
+
+        public static bool ShouldRepeatKey(Keys key)
+            => key is not (Keys.LeftShift or Keys.RightShift
+                or Keys.LeftControl or Keys.RightControl
+                or Keys.LeftAlt or Keys.RightAlt
+                or Keys.LeftWindows or Keys.RightWindows
+                or Keys.CapsLock or Keys.NumLock or Keys.Scroll
+                or Keys.Apps or Keys.None);
 
         /// <summary>Should be invoked exactly once per Update tick.<para/>
         /// This method will invoke any pending keyboard events on its <see cref="Handlers"/> where <see cref="KeyboardHandler.IsManualUpdate"/> is false.</summary>

@@ -16,18 +16,34 @@ namespace MGUI.Shared.Input.Keyboard
         public KeyboardTracker Tracker { get; }
 
         public DateTime PressedAt { get; }
+        public DateTime? RepeatedAt { get; }
         public Keys Key { get; }
         public bool IsPrintableKey { get; }
         public string PrintableValue { get; }
+        public bool IsRepeat => RepeatedAt.HasValue;
 
-        public BaseKeyPressedEventArgs(KeyboardTracker Tracker, Keys Key, string PrintableValue)
+        public BaseKeyPressedEventArgs(KeyboardTracker Tracker, Keys Key, string PrintableValue, DateTime? PressedAt = null, DateTime? RepeatedAt = null)
             : base()
         {
             this.Tracker = Tracker;
-            PressedAt = DateTime.Now;
+            this.PressedAt = PressedAt ?? DateTime.Now;
+            this.RepeatedAt = RepeatedAt;
             this.Key = Key;
             IsPrintableKey = !string.IsNullOrEmpty(PrintableValue);
             this.PrintableValue = PrintableValue;
+        }
+    }
+
+    public class BaseKeyRepeatedEventArgs : BaseKeyPressedEventArgs
+    {
+        public BaseKeyPressedEventArgs InitialPressedArgs { get; }
+
+        public TimeSpan HeldDuration => RepeatedAt!.Value.Subtract(InitialPressedArgs.PressedAt);
+
+        public BaseKeyRepeatedEventArgs(KeyboardTracker Tracker, BaseKeyPressedEventArgs InitialPressedArgs, Keys Key, string PrintableValue)
+            : base(Tracker, Key, PrintableValue, InitialPressedArgs.PressedAt, DateTime.Now)
+        {
+            this.InitialPressedArgs = InitialPressedArgs;
         }
     }
 
