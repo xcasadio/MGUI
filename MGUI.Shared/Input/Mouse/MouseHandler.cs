@@ -74,6 +74,7 @@ namespace MGUI.Shared.Input.Mouse
         private EventHandler<BaseMousePressedEventArgs> _pressedInside, _lmbPressedInside, _mmbPressedInside, _rmbPressedInside, _pressedOutside;
         private EventHandler<BaseMouseReleasedEventArgs> _releasedInside, _lmbReleasedInside, _mmbReleasedInside, _rmbReleasedInside, _releasedOutside;
         private EventHandler<BaseMouseClickedEventArgs> _clickedInside, _lmbClickedInside, _mmbClickedInside, _rmbClickedInside, _clickedOutside;
+        private EventHandler<BaseMouseClickedEventArgs> _doubleClickedInside, _lmbDoubleClickedInside, _mmbDoubleClickedInside, _rmbDoubleClickedInside, _doubleClickedOutside;
         private EventHandler<BaseMouseDragStartEventArgs> _dragStart, _dragStartOutside;
         private EventHandler<BaseMouseDraggedEventArgs> _dragged;
         private EventHandler<BaseMouseDragEndEventArgs> _dragEnd;
@@ -96,7 +97,8 @@ namespace MGUI.Shared.Input.Mouse
             _isMonitoringMovement = _movedInside != null || _movedOutside != null || _entered != null || _exited != null || _isMonitoringDrag;
             _isMonitoringPressed  = _pressedInside != null || _lmbPressedInside != null || _mmbPressedInside != null || _rmbPressedInside != null || _pressedOutside != null;
             _isMonitoringReleased = _releasedInside != null || _lmbReleasedInside != null || _mmbReleasedInside != null || _rmbReleasedInside != null || _releasedOutside != null;
-            _isMonitoringClicked  = _clickedInside != null || _lmbClickedInside != null || _mmbClickedInside != null || _rmbClickedInside != null || _clickedOutside != null;
+            _isMonitoringClicked  = _clickedInside != null || _lmbClickedInside != null || _mmbClickedInside != null || _rmbClickedInside != null || _clickedOutside != null
+                || _doubleClickedInside != null || _lmbDoubleClickedInside != null || _mmbDoubleClickedInside != null || _rmbDoubleClickedInside != null || _doubleClickedOutside != null;
             _isMonitoringClicks   = _isMonitoringPressed || _isMonitoringReleased || _isMonitoringClicked;
             _hasSubscribedEvents  = _isMonitoringScroll || _isMonitoringMovement || _isMonitoringClicks || _isMonitoringDrag;
         }
@@ -244,6 +246,37 @@ namespace MGUI.Shared.Input.Mouse
         {
             add    { _clickedOutside += value; RecomputeMonitoringFlags(); }
             remove { _clickedOutside -= value; RecomputeMonitoringFlags(); }
+        }
+
+        /// <summary>Invoked when any <see cref="MouseButton"/> is double-clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> DoubleClickedInside
+        {
+            add    { _doubleClickedInside += value; RecomputeMonitoringFlags(); }
+            remove { _doubleClickedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Left"/> is double-clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> LMBDoubleClickedInside
+        {
+            add    { _lmbDoubleClickedInside += value; RecomputeMonitoringFlags(); }
+            remove { _lmbDoubleClickedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Middle"/> is double-clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> MMBDoubleClickedInside
+        {
+            add    { _mmbDoubleClickedInside += value; RecomputeMonitoringFlags(); }
+            remove { _mmbDoubleClickedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when <see cref="MouseButton.Right"/> is double-clicked while the mouse is currently inside the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> RMBDoubleClickedInside
+        {
+            add    { _rmbDoubleClickedInside += value; RecomputeMonitoringFlags(); }
+            remove { _rmbDoubleClickedInside -= value; RecomputeMonitoringFlags(); }
+        }
+        /// <summary>Invoked when any <see cref="MouseButton"/> is double-clicked while the mouse is currently outside of the <see cref="Owner"/>'s viewport.</summary>
+        public event EventHandler<BaseMouseClickedEventArgs> DoubleClickedOutside
+        {
+            add    { _doubleClickedOutside += value; RecomputeMonitoringFlags(); }
+            remove { _doubleClickedOutside -= value; RecomputeMonitoringFlags(); }
         }
         #endregion Clicked
 
@@ -516,6 +549,67 @@ namespace MGUI.Shared.Input.Mouse
                                             if (AlwaysHandlesEvents)
                                                 Args.SetHandledBy(Owner, false);
                                         }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (Tracker.HasCurrentButtonDoubleClickedEvents && _isMonitoringClicked)
+                        {
+                            foreach (MouseButton Button in MouseButtons)
+                            {
+                                BaseMouseClickedEventArgs Args = Tracker.CurrentButtonDoubleClickedEvents[Button];
+                                if (Args != null)
+                                {
+                                    bool IsClickedInside = IsInside(Args.Position, Offset);
+                                    bool CanInvoke = (InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner))
+                                        && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner);
+
+                                    if (IsClickedInside)
+                                    {
+                                        if (CanInvoke && _doubleClickedInside != null)
+                                        {
+                                            _doubleClickedInside.Invoke(this, Args);
+                                            if (AlwaysHandlesEvents)
+                                                Args.SetHandledBy(Owner, false);
+                                        }
+
+                                        if (CanInvoke)
+                                        {
+                                            switch (Button)
+                                            {
+                                                case MouseButton.Left:
+                                                    if (_lmbDoubleClickedInside != null)
+                                                    {
+                                                        _lmbDoubleClickedInside.Invoke(this, Args);
+                                                        if (AlwaysHandlesEvents)
+                                                            Args.SetHandledBy(Owner, false);
+                                                    }
+                                                    break;
+                                                case MouseButton.Middle:
+                                                    if (_mmbDoubleClickedInside != null)
+                                                    {
+                                                        _mmbDoubleClickedInside.Invoke(this, Args);
+                                                        if (AlwaysHandlesEvents)
+                                                            Args.SetHandledBy(Owner, false);
+                                                    }
+                                                    break;
+                                                case MouseButton.Right:
+                                                    if (_rmbDoubleClickedInside != null)
+                                                    {
+                                                        _rmbDoubleClickedInside.Invoke(this, Args);
+                                                        if (AlwaysHandlesEvents)
+                                                            Args.SetHandledBy(Owner, false);
+                                                    }
+                                                    break;
+                                            }
+                                        }
+                                    }
+                                    else if (CanInvoke && _doubleClickedOutside != null)
+                                    {
+                                        _doubleClickedOutside.Invoke(this, Args);
+                                        if (AlwaysHandlesEvents)
+                                            Args.SetHandledBy(Owner, false);
                                     }
                                 }
                             }
