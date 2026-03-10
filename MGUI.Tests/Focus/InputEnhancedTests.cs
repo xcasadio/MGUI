@@ -364,4 +364,16 @@ public class InputEnhancedTests
 
         Assert.Equal(expected, actual);
     }
+
+    [Theory]
+    [InlineData(true, true, false, true, Keys.A, true)]
+    [InlineData(false, true, false, true, Keys.A, false)]
+    [InlineData(true, true, true, true, Keys.V, false)]
+    [InlineData(true, false, false, false, Keys.Back, false)]
+    public void TextBox_ShouldHandleRepeatedKey_ReturnsExpectedValue(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key, bool expected)
+    {
+        bool actual = MGTextBox.ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key);
+
+        Assert.Equal(expected, actual);
+    }
 }

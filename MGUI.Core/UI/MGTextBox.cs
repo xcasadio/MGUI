@@ -43,6 +43,9 @@ namespace MGUI.Core.UI
         internal static bool ShouldProcessRepeatedKey(bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
             => isHeldKeyRepeated && !isControlDown && (isPrintableKey || key is Keys.Back or Keys.Delete or Keys.Left or Keys.Right or Keys.Up or Keys.Down);
 
+        internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
+            => hasKeyboardFocus && ShouldProcessRepeatedKey(isHeldKeyRepeated, isControlDown, isPrintableKey, key);
+
         internal bool ShouldPreserveTextEntryKey(Keys key)
             => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
 
@@ -1213,7 +1216,7 @@ namespace MGUI.Core.UI
 
                 KeyboardHandler.KeyRepeat += (sender, e) =>
                 {
-                    if (!ShouldProcessRepeatedKey(IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key))
+                    if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key))
                         return;
 
                     HandleKeyPress(e);
