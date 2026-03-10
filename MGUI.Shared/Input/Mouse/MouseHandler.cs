@@ -36,6 +36,9 @@ namespace MGUI.Shared.Input.Mouse
         public double? UpdatePriority { get; }
         public bool IsManualUpdate => !UpdatePriority.HasValue;
 
+        private static long _NextTargetIdentityId = 1;
+        private long TargetIdentityId { get; }
+
         /// <summary>If true, <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> will always be set to <see cref="Owner"/> after invoking an event.</summary>
         private bool AlwaysHandlesEvents { get; }
         /// <summary>If true, events will still be invoked even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true.</summary>
@@ -56,11 +59,16 @@ namespace MGUI.Shared.Input.Mouse
             this.AlwaysHandlesEvents = AlwaysHandlesEvents;
             this.InvokeEvenIfHandled = InvokeEvenIfHandled;
             this.InvokeIfHandledBySelf = InvokeIfHandledBySelf;
+            this.TargetIdentityId = System.Threading.Interlocked.Increment(ref _NextTargetIdentityId);
         }
 
         private bool IsInside(Vector2 Position) => IsInside(Position, Owner.GetOffset());
         private bool IsInside(Point Position, Vector2 Offset) => IsInside(Position.ToVector2(), Offset);
         private bool IsInside(Vector2 Position, Vector2 Offset) => Owner.IsInside(Position + Offset);
+        private void AdoptClickSequence(BaseMouseClickedEventArgs Args)
+            => Args.Sequence?.TryAdoptTarget(TargetIdentityId);
+        private bool OwnsClickSequence(BaseMouseClickedEventArgs Args)
+            => Args.Sequence?.IsOwnedBy(TargetIdentityId) == true;
 
         /// <summary>True if the mouse is currently inside the viewport</summary>
         public bool IsHovered => IsInside(Tracker.CurrentState.Position.ToVector2(), Owner.GetOffset());
@@ -503,6 +511,8 @@ namespace MGUI.Shared.Input.Mouse
                                     bool IsClickedInside = IsInside(Args.Position, Offset);
                                     if (IsClickedInside)
                                     {
+                                        AdoptClickSequence(Args);
+
                                         if ((InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner)) && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner) && _clickedInside != null)
                                         {
                                             _clickedInside.Invoke(this, Args);
@@ -561,11 +571,10 @@ namespace MGUI.Shared.Input.Mouse
                                 BaseMouseClickedEventArgs Args = Tracker.CurrentButtonDoubleClickedEvents[Button];
                                 if (Args != null)
                                 {
-                                    bool WasPreviousClickInside = Args.PreviousClickInSequence != null && IsInside(Args.PreviousClickInSequence.Position, Offset);
                                     bool IsClickedInside = IsInside(Args.Position, Offset);
                                     bool CanInvoke = (InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner))
                                         && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner)
-                                        && WasPreviousClickInside;
+                                        && OwnsClickSequence(Args);
 
                                     if (IsClickedInside)
                                     {

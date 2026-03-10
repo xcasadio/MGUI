@@ -45,6 +45,49 @@ namespace MGUI.Shared.Input.Mouse
     }
 
     #region Press / Release / Click
+    public class MouseClickSequence
+    {
+        public long Id { get; }
+        public MouseButton Button { get; }
+        public TimeSpan StartedAt { get; }
+
+        public BaseMouseClickedEventArgs FirstClick { get; private set; }
+        public BaseMouseClickedEventArgs LatestClick { get; private set; }
+        public int ClickCount => LatestClick?.ClickCount ?? 0;
+
+        internal long? ValidatedTargetId { get; private set; }
+
+        internal MouseClickSequence(long Id, MouseButton Button, TimeSpan StartedAt)
+        {
+            this.Id = Id;
+            this.Button = Button;
+            this.StartedAt = StartedAt;
+        }
+
+        internal void RegisterClick(BaseMouseClickedEventArgs ClickedArgs)
+        {
+            if (FirstClick == null)
+                FirstClick = ClickedArgs;
+
+            LatestClick = ClickedArgs;
+        }
+
+        internal bool CanBeAdoptedBy(long TargetId)
+            => !ValidatedTargetId.HasValue || ValidatedTargetId == TargetId;
+
+        internal bool TryAdoptTarget(long TargetId)
+        {
+            if (!CanBeAdoptedBy(TargetId))
+                return false;
+
+            ValidatedTargetId = TargetId;
+            return true;
+        }
+
+        internal bool IsOwnedBy(long TargetId)
+            => ValidatedTargetId == TargetId;
+    }
+
     public class BaseMousePressedEventArgs : HandledByEventArgs<IMouseHandlerHost>
     {
         public MouseTracker Tracker { get; }
@@ -113,8 +156,11 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>The previous click in the same candidate multi-click sequence, if any.</summary>
         public BaseMouseClickedEventArgs PreviousClickInSequence { get; }
 
+        /// <summary>The explicit multi-click sequence that this click belongs to.</summary>
+        public MouseClickSequence Sequence { get; }
+
         /// <summary>An identifier shared by clicks that belong to the same candidate multi-click sequence.</summary>
-        public long MultiClickSequenceId { get; }
+        public long MultiClickSequenceId => Sequence?.Id ?? 0;
 
         /// <summary>The raw click count within the current candidate multi-click sequence.</summary>
         public int ClickCount { get; }
@@ -137,7 +183,7 @@ namespace MGUI.Shared.Input.Mouse
         public bool IsMMB => Button == MouseButton.Middle;
 
         public BaseMouseClickedEventArgs(MouseTracker Tracker, BaseMouseReleasedEventArgs ReleasedArgs, MouseButton Button, Point Position,
-            int ClickCount = 1, BaseMouseClickedEventArgs PreviousClickInSequence = null, long MultiClickSequenceId = 0)
+            int ClickCount = 1, BaseMouseClickedEventArgs PreviousClickInSequence = null, MouseClickSequence Sequence = null)
             : base()
         {
             this.Tracker = Tracker;
@@ -146,7 +192,9 @@ namespace MGUI.Shared.Input.Mouse
             this.Position = Position;
             this.ClickCount = Math.Max(1, ClickCount);
             this.PreviousClickInSequence = PreviousClickInSequence;
-            this.MultiClickSequenceId = MultiClickSequenceId;
+            this.Sequence = Sequence;
+
+            this.Sequence?.RegisterClick(this);
         }
     }
     #endregion Press / Release / Click

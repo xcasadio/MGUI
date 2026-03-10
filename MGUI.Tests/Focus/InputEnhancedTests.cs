@@ -59,6 +59,8 @@ public class InputEnhancedTests
         Assert.Equal(2, secondClick.ClickCount);
         Assert.True(secondClick.IsDoubleClick);
         Assert.True(secondClick.IsMultiClick);
+        Assert.NotNull(secondClick.Sequence);
+        Assert.Same(secondClick.Sequence, secondClick.PreviousClickInSequence.Sequence);
         Assert.Same(secondClick, tracker.Mouse.CurrentButtonDoubleClickedEvents[button]);
     }
 
@@ -172,7 +174,8 @@ public class InputEnhancedTests
         Assert.NotNull(secondClick);
         Assert.Equal(2, secondClick.ClickCount);
         Assert.NotNull(secondClick.PreviousClickInSequence);
-        Assert.Equal(secondClick.PreviousClickInSequence.MultiClickSequenceId, secondClick.MultiClickSequenceId);
+        Assert.NotNull(secondClick.Sequence);
+        Assert.Same(secondClick.PreviousClickInSequence.Sequence, secondClick.Sequence);
         Assert.Equal(0, leftDoubleClicks);
         Assert.Equal(0, rightDoubleClicks);
         Assert.Equal(1, rightClicks);
@@ -197,7 +200,10 @@ public class InputEnhancedTests
         Assert.NotNull(secondSequenceClick);
         Assert.Equal(1, firstSequenceClick.ClickCount);
         Assert.Equal(1, secondSequenceClick.ClickCount);
-        Assert.NotEqual(firstSequenceClick.MultiClickSequenceId, secondSequenceClick.MultiClickSequenceId);
+        Assert.NotNull(firstSequenceClick.Sequence);
+        Assert.NotNull(secondSequenceClick.Sequence);
+        Assert.NotSame(firstSequenceClick.Sequence, secondSequenceClick.Sequence);
+        Assert.NotEqual(firstSequenceClick.Sequence.Id, secondSequenceClick.Sequence.Id);
         Assert.Null(secondSequenceClick.PreviousClickInSequence);
     }
 
