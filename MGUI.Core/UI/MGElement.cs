@@ -881,7 +881,7 @@ namespace MGUI.Core.UI
                         _autoFocusSubscribed = true;
                         MouseHandler.LMBPressedInside += (sender, e) =>
                         {
-                            if (IsFocusable) Focus();
+                            if (IsFocusable) Focus(KeyboardFocusSource.Pointer);
                         };
                     }
                 }
@@ -899,10 +899,10 @@ namespace MGUI.Core.UI
 
         /// <summary>Requests keyboard focus for this element.
         /// Focus will be applied at the end of the current update tick.</summary>
-        public void Focus()
+        public void Focus(KeyboardFocusSource source = KeyboardFocusSource.Programmatic)
         {
             if (CanHandleKeyboardInput)
-                GetDesktop().QueuedFocusedKeyboardHandler = this;
+            GetDesktop().QueueFocusedKeyboardHandler(this, source);
         }
 
         #region Drag and Drop

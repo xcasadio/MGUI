@@ -843,7 +843,7 @@ namespace MGUI.Core.UI
         #endregion Undo / Redo
 
         /// <summary>Attempts to set this element as the value for <see cref="MGDesktop.FocusedKeyboardHandler"/> at the end of the next update tick.</summary>
-        public void RequestFocus() => GetDesktop().QueuedFocusedKeyboardHandler = this;
+        public void RequestFocus() => GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Programmatic);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsReadonly;
@@ -1093,7 +1093,7 @@ namespace MGUI.Core.UI
                         Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                         AddMousePressHistory(Position.ToVector2(), out bool IsDoublePress, out bool IsTriplePress, out bool IsQuadruplePress);
 
-                        GetDesktop().QueuedFocusedKeyboardHandler = this;
+                        GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Pointer);
 
                         Caret.MoveToApproximateScreenPosition(Position.ToVector2());
 

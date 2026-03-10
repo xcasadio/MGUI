@@ -157,6 +157,16 @@ public class FocusTests
         Assert.Equal(MGUI.Core.UI.UIInputMode.Navigation, result);
     }
 
+    [Theory]
+    [InlineData(false, MGUI.Core.UI.KeyboardFocusSource.Keyboard)]
+    [InlineData(true, MGUI.Core.UI.KeyboardFocusSource.GamePad)]
+    public void GetNavigationFocusSource_ReturnsExpectedSource(bool isGamePadNavigation, MGUI.Core.UI.KeyboardFocusSource expected)
+    {
+        var actual = MGUI.Core.UI.MGDesktop.GetNavigationFocusSource(isGamePadNavigation);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void ResolvePrimaryVisualState_Focused_WhenEnabledAndNavigationVisible()
     {

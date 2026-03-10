@@ -340,7 +340,7 @@ namespace MGUI.Core.UI
             Item.OpenSubmenu();
 
             // Claim keyboard focus so arrow/escape keys reach this handler
-            GetDesktop().QueuedFocusedKeyboardHandler = this;
+            GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Programmatic);
         }
 
         /// <summary>Closes the dropdown of the current active item.</summary>
@@ -355,7 +355,7 @@ namespace MGUI.Core.UI
 
                 // Release keyboard focus
                 if (GetDesktop().FocusedKeyboardHandler == this)
-                    GetDesktop().QueuedFocusedKeyboardHandler = null;
+                    GetDesktop().ClearQueuedFocusedKeyboardHandler();
             }
         }
 

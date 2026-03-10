@@ -142,6 +142,14 @@ namespace MGUI.Core.UI
         Right
     }
 
+    public enum KeyboardFocusSource
+    {
+        Pointer,
+        Keyboard,
+        GamePad,
+        Programmatic
+    }
+
     /// <summary>Describes how a child element is vertically positioned or stretched within a parent's layout slot</summary>
     public enum VerticalAlignment
     {

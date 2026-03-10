@@ -152,6 +152,9 @@ namespace MGUI.Core.UI
         internal static bool TryDispatchNavigationAction(UINavigationAction action, Func<UINavigationAction, bool> tryHandleFocusedAction)
             => tryHandleFocusedAction?.Invoke(action) == true;
 
+        internal static KeyboardFocusSource GetNavigationFocusSource(bool isGamePadNavigation)
+            => isGamePadNavigation ? KeyboardFocusSource.GamePad : KeyboardFocusSource.Keyboard;
+
         internal static T ResolveAutoFocusTarget<T>(T defaultFocus, T lastFocused, T firstFocusable, bool preferWindowDefault)
             where T : class
             => preferWindowDefault
@@ -359,17 +362,27 @@ namespace MGUI.Core.UI
 
         public bool MoveFocusNext()
         {
+            return MoveFocusNext(KeyboardFocusSource.Keyboard);
+        }
+
+        public bool MoveFocusNext(KeyboardFocusSource source)
+        {
             IReadOnlyList<MGElement> focusableElements = GetFocusableElements();
             int currentIndex = focusableElements.Select((element, index) => new { element, index }).FirstOrDefault(x => x.element == FocusedKeyboardHandler)?.index ?? -1;
             int nextIndex = GetWrappedFocusIndex(focusableElements.Count, currentIndex, true);
             if (nextIndex < 0)
                 return false;
 
-            focusableElements[nextIndex].Focus();
+            focusableElements[nextIndex].Focus(source);
             return true;
         }
 
         public bool MoveFocusPrevious()
+        {
+            return MoveFocusPrevious(KeyboardFocusSource.Keyboard);
+        }
+
+        public bool MoveFocusPrevious(KeyboardFocusSource source)
         {
             IReadOnlyList<MGElement> focusableElements = GetFocusableElements();
             int currentIndex = focusableElements.Select((element, index) => new { element, index }).FirstOrDefault(x => x.element == FocusedKeyboardHandler)?.index ?? -1;
@@ -377,11 +390,16 @@ namespace MGUI.Core.UI
             if (nextIndex < 0)
                 return false;
 
-            focusableElements[nextIndex].Focus();
+            focusableElements[nextIndex].Focus(source);
             return true;
         }
 
         public bool NavigateTo(NavigationDirection direction)
+        {
+            return NavigateTo(direction, KeyboardFocusSource.Keyboard);
+        }
+
+        public bool NavigateTo(NavigationDirection direction, KeyboardFocusSource source)
         {
             MGElement focusedElement = FocusedKeyboardHandler;
             if (focusedElement == null)
@@ -389,7 +407,7 @@ namespace MGUI.Core.UI
 
             if (focusedElement.NavigationNeighbors.TryGetValue(direction, out MGElement explicitNeighbor) && IsNavigationTarget(explicitNeighbor))
             {
-                explicitNeighbor.Focus();
+                explicitNeighbor.Focus(source);
                 return true;
             }
 
@@ -399,19 +417,19 @@ namespace MGUI.Core.UI
             if (targetIndex < 0)
                 return false;
 
-            candidates[targetIndex].Focus();
+            candidates[targetIndex].Focus(source);
             return true;
         }
 
-        private bool TryPerformFallbackNavigation(UINavigationAction action)
+        private bool TryPerformFallbackNavigation(UINavigationAction action, KeyboardFocusSource source)
             => action switch
             {
-                UINavigationAction.MoveNext => MoveFocusNext(),
-                UINavigationAction.MovePrevious => MoveFocusPrevious(),
-                UINavigationAction.MoveUp => NavigateTo(NavigationDirection.Up),
-                UINavigationAction.MoveDown => NavigateTo(NavigationDirection.Down),
-                UINavigationAction.MoveLeft => NavigateTo(NavigationDirection.Left),
-                UINavigationAction.MoveRight => NavigateTo(NavigationDirection.Right),
+                UINavigationAction.MoveNext => MoveFocusNext(source),
+                UINavigationAction.MovePrevious => MoveFocusPrevious(source),
+                UINavigationAction.MoveUp => NavigateTo(NavigationDirection.Up, source),
+                UINavigationAction.MoveDown => NavigateTo(NavigationDirection.Down, source),
+                UINavigationAction.MoveLeft => NavigateTo(NavigationDirection.Left, source),
+                UINavigationAction.MoveRight => NavigateTo(NavigationDirection.Right, source),
                 _ => false
             };
 
@@ -431,7 +449,7 @@ namespace MGUI.Core.UI
                 return true;
             }
 
-            if (TryPerformFallbackNavigation(action))
+            if (TryPerformFallbackNavigation(action, KeyboardFocusSource.Keyboard))
             {
                 e.SetHandledBy(this, false);
                 return true;
@@ -450,7 +468,7 @@ namespace MGUI.Core.UI
 
                 MGElement focusedElement = FocusedKeyboardHandler;
                 Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
-                if (TryDispatchNavigationAction(action, tryHandleFocusedAction) || TryPerformFallbackNavigation(action))
+                if (TryDispatchNavigationAction(action, tryHandleFocusedAction) || TryPerformFallbackNavigation(action, KeyboardFocusSource.GamePad))
                     handledAny = true;
             }
 
@@ -754,8 +772,26 @@ namespace MGUI.Core.UI
         #endregion Windows
 
         #region Keyboard Focus
-        internal MGElement QueuedFocusedKeyboardHandler { get; set; } = null;
+        private sealed record QueuedKeyboardFocusRequest(MGElement Target, KeyboardFocusSource Source);
+
+        private QueuedKeyboardFocusRequest _QueuedFocusedKeyboardHandler;
+        internal MGElement QueuedFocusedKeyboardHandler => _QueuedFocusedKeyboardHandler?.Target;
+        internal KeyboardFocusSource? QueuedFocusedKeyboardHandlerSource => _QueuedFocusedKeyboardHandler?.Source;
+        internal KeyboardFocusSource LastFocusChangeSource { get; private set; } = KeyboardFocusSource.Programmatic;
         private readonly Dictionary<MGWindow, MGElement> WindowFocusHistory = new();
+
+        internal void QueueFocusedKeyboardHandler(MGElement target, KeyboardFocusSource source)
+        {
+            if (target == null)
+            {
+                ClearQueuedFocusedKeyboardHandler();
+                return;
+            }
+
+            _QueuedFocusedKeyboardHandler = new(target, source);
+        }
+
+        internal void ClearQueuedFocusedKeyboardHandler() => _QueuedFocusedKeyboardHandler = null;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGElement _FocusedKeyboardHandler;
@@ -772,6 +808,9 @@ namespace MGUI.Core.UI
                         throw new InvalidOperationException($"{nameof(MGWindow)}.{nameof(FocusedKeyboardHandler)} cannot be set to an value with {nameof(MGElement)}.{nameof(MGElement.CanHandleKeyboardInput)}=false.");
 
                     MGElement Previous = FocusedKeyboardHandler;
+                    LastFocusChangeSource = value != null && QueuedFocusedKeyboardHandler == value && QueuedFocusedKeyboardHandlerSource.HasValue
+                        ? QueuedFocusedKeyboardHandlerSource.Value
+                        : KeyboardFocusSource.Programmatic;
                     if (Previous is MGTextBox PreviousTextBox)
                         PreviousTextBox.ReadonlyChanged -= TextBox_ReadonlyChanged;
 
@@ -829,7 +868,7 @@ namespace MGUI.Core.UI
 
             MGElement target = ResolveAutoFocusTarget(GetNavigationRoot(), preferWindowDefault);
             if (target != null)
-                QueuedFocusedKeyboardHandler = target;
+                QueueFocusedKeyboardHandler(target, KeyboardFocusSource.Programmatic);
         }
 
         internal void NotifyWindowOpened(MGWindow window)
@@ -839,7 +878,7 @@ namespace MGUI.Core.UI
 
             MGElement target = ResolveAutoFocusTarget(window, true);
             if (target != null)
-                QueuedFocusedKeyboardHandler = target;
+                QueueFocusedKeyboardHandler(target, KeyboardFocusSource.Programmatic);
         }
 
         internal void NotifyWindowClosed(MGWindow window)
@@ -850,7 +889,7 @@ namespace MGUI.Core.UI
             WindowFocusHistory.Remove(window);
 
             if (QueuedFocusedKeyboardHandler?.SelfOrParentWindow == window)
-                QueuedFocusedKeyboardHandler = null;
+                ClearQueuedFocusedKeyboardHandler();
 
             if (FocusedKeyboardHandler?.SelfOrParentWindow == window)
                 FocusedKeyboardHandler = null;
@@ -999,8 +1038,8 @@ namespace MGUI.Core.UI
             HighPriorityMouseHandler = InputTracker.Mouse.CreateHandler(this, null);
             HighPriorityKeyboardHandler = InputTracker.Keyboard.CreateHandler(this, null);
 
-            HighPriorityMouseHandler.PressedInside  += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
-            HighPriorityMouseHandler.PressedOutside += (sender, e) => { QueuedFocusedKeyboardHandler = null; };
+            HighPriorityMouseHandler.PressedInside  += (sender, e) => { ClearQueuedFocusedKeyboardHandler(); };
+            HighPriorityMouseHandler.PressedOutside += (sender, e) => { ClearQueuedFocusedKeyboardHandler(); };
             HighPriorityKeyboardHandler.Pressed += (sender, e) => { _ = TryDispatchNavigationAction(e); };
 
             // Wire LMB release to finalize or cancel any active drag-and-drop
@@ -1088,6 +1127,7 @@ namespace MGUI.Core.UI
 
             ActiveToolTip = QueuedToolTip;
             FocusedKeyboardHandler = QueuedFocusedKeyboardHandler;
+            ClearQueuedFocusedKeyboardHandler();
         }
 
         /// <summary>Traverses up the visual tree, starting from the given <paramref name="Element"/>, looking for an <see cref="MGElement"/> that is fully opaque (<see cref="MGElement.Opacity"/> >= 1.0f)</summary>
