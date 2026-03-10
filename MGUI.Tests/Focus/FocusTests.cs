@@ -387,6 +387,30 @@ public class FocusTests
     }
 
     [Fact]
+    public void PointerFocus_DoesNotAutoScrollWhenElementIsAlreadyVisible()
+    {
+        bool actual = DoesFocusChangeMoveScrollableTarget(MGUI.Core.UI.KeyboardFocusSource.Pointer, 40f, 10f, 100f, 300f, 20f, 90f);
+
+        Assert.False(actual);
+    }
+
+    [Fact]
+    public void ProgrammaticFocus_CanAutoScrollWhenElementIsOutsideViewport()
+    {
+        bool actual = DoesFocusChangeMoveScrollableTarget(MGUI.Core.UI.KeyboardFocusSource.Programmatic, 40f, 10f, 100f, 300f, 120f, 180f);
+
+        Assert.True(actual);
+    }
+
+    [Fact]
+    public void NavigationFocus_DoesNotAutoScrollWhenElementIsAlreadyVisible()
+    {
+        bool actual = DoesFocusChangeMoveScrollableTarget(MGUI.Core.UI.KeyboardFocusSource.Keyboard, 40f, 10f, 100f, 300f, 20f, 90f);
+
+        Assert.False(actual);
+    }
+
+    [Fact]
     public void FindDirectionalNavigationTarget_FindsNearestDownCandidate()
     {
         var current = new Microsoft.Xna.Framework.Rectangle(100, 100, 20, 20);
