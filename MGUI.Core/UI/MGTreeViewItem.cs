@@ -19,6 +19,9 @@ public class MGTreeViewItem : MGSingleContentHost
     internal static bool ShouldRaiseItemDoubleClicked(bool hasItems, int clickCount)
         => hasItems && clickCount == 2;
 
+    internal static bool ShouldRaiseItemDoubleClicked(bool hasItems, int clickCount, bool sequenceStartedOnHeaderBody, bool clickedExpander)
+        => hasItems && clickCount == 2 && sequenceStartedOnHeaderBody && !clickedExpander;
+
     private object _Header;
     private int _Level;
     private MGTreeViewItem _ParentItem;
@@ -27,6 +30,7 @@ public class MGTreeViewItem : MGSingleContentHost
     internal MGTreeView _OwnerTreeView;
     private object _HeaderTemplate;
     private VisualStateFillBrush _PreviousHeaderBackgroundBrush;
+    private long? _LastHeaderBodySequenceId;
 
     /// <summary>
     /// Gets the visual element that displays the header content.
@@ -426,6 +430,7 @@ public class MGTreeViewItem : MGSingleContentHost
     {
         Point layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
         bool clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
+        TrackHeaderBodySequence(e, clickedExpander);
         if (clickedExpander)
             return;
         OwnerTreeView?.NotifyItemSelected(this);
@@ -445,9 +450,19 @@ public class MGTreeViewItem : MGSingleContentHost
 
         OwnerTreeView?.NotifyItemSelected(this);
         OwnerTreeView?.Focus();
-        if (ShouldRaiseItemDoubleClicked(HasItems, e.ClickCount))
+        bool sequenceStartedOnHeaderBody = e.Sequence != null && _LastHeaderBodySequenceId == e.Sequence.Id;
+        if (ShouldRaiseItemDoubleClicked(HasItems, e.ClickCount, sequenceStartedOnHeaderBody, clickedExpander))
             OwnerTreeView?.RaiseItemDoubleClicked(this);
         OwnerTreeView?.RebuildVisibleItemsCache();
+    }
+
+    private void TrackHeaderBodySequence(Shared.Input.Mouse.BaseMouseClickedEventArgs e, bool clickedExpander)
+    {
+        if (e.ClickCount != 1 || e.Sequence == null)
+            return;
+
+        if (!clickedExpander)
+            _LastHeaderBodySequenceId = e.Sequence.Id;
     }
 
     /// <summary>

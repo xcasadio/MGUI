@@ -537,6 +537,19 @@ public class InputEnhancedTests
     }
 
     [Theory]
+    [InlineData(true, 2, true, false, true)]
+    [InlineData(true, 2, false, false, false)]
+    [InlineData(true, 2, true, true, false)]
+    [InlineData(false, 2, true, false, false)]
+    public void TreeViewItem_ShouldRaiseItemDoubleClicked_WithSequenceContext_ReturnsExpectedValue(bool hasItems, int clickCount,
+        bool sequenceStartedOnHeaderBody, bool clickedExpander, bool expected)
+    {
+        bool actual = MGTreeViewItem.ShouldRaiseItemDoubleClicked(hasItems, clickCount, sequenceStartedOnHeaderBody, clickedExpander);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(true, false, true, Keys.A, true)]
     [InlineData(true, true, true, Keys.A, false)]
     [InlineData(true, false, false, Keys.Back, true)]
