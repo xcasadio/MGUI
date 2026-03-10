@@ -26,6 +26,9 @@ namespace MGUI.Core.UI
     /// Sample usage: Displaying a mission's difficulty, or allowing users to rate other user-generated content such as custom maps</summary>
     public class MGRatingControl : MGElement
     {
+        internal static float GetNavigationStep(bool useDiscreteValues, float? discreteValueInterval)
+            => useDiscreteValues && discreteValueInterval.HasValue && discreteValueInterval.Value > 0 ? discreteValueInterval.Value : 1f;
+
         private static readonly Rectangle Rect256 = new(0, 0, 256, 256);
         private static readonly Dictionary<RatingItemShape, ReadOnlyCollection<Vector2>> ShapeVertices256 = new()
         {
@@ -419,6 +422,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 ItemShape = Shape;
                 ItemSize = Size;
                 Spacing = 3;
@@ -490,6 +494,38 @@ namespace MGUI.Core.UI
                     }
                 };
             }
+        }
+
+        private bool TryAdjustValue(float delta)
+        {
+            float previousValue = Value;
+            SetValue(Value + delta);
+            return !Value.IsAlmostEqual(previousValue);
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (IsReadonly)
+                return false;
+
+            float step = GetNavigationStep(UseDiscreteValues, DiscreteValueInterval);
+            float largeStep = step * 5f;
+
+            return action switch
+            {
+                UINavigationAction.MoveLeft when Orientation == Orientation.Horizontal => TryAdjustValue(-step),
+                UINavigationAction.MoveRight when Orientation == Orientation.Horizontal => TryAdjustValue(step),
+                UINavigationAction.MoveUp when Orientation == Orientation.Vertical => TryAdjustValue(-step),
+                UINavigationAction.MoveDown when Orientation == Orientation.Vertical => TryAdjustValue(step),
+                UINavigationAction.Decrement => TryAdjustValue(-step),
+                UINavigationAction.Increment => TryAdjustValue(step),
+                UINavigationAction.PageUp => TryAdjustValue(-largeStep),
+                UINavigationAction.PageDown => TryAdjustValue(largeStep),
+                UINavigationAction.Home => TryAdjustValue(Minimum - Value),
+                UINavigationAction.End => TryAdjustValue(Maximum - Value),
+                UINavigationAction.Submit => true,
+                _ => false
+            };
         }
 
         private void UpdatePreviewValue(Point MousePosition)

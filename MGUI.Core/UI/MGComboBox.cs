@@ -27,6 +27,25 @@ namespace MGUI.Core.UI
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to. Usually this would be: <see cref="string"/> for simple text-choices</typeparam>
     public class MGComboBox<TItemType> : MGSingleContentHost
     {
+        internal static int GetNextNavigationIndex(int currentIndex, int itemCount, UINavigationAction action)
+        {
+            if (itemCount <= 0)
+                return -1;
+
+            int largeStep = Math.Max(1, itemCount / 5);
+
+            return action switch
+            {
+                UINavigationAction.MoveUp or UINavigationAction.MovePrevious => Math.Max(0, currentIndex - 1),
+                UINavigationAction.MoveDown or UINavigationAction.MoveNext => Math.Min(itemCount - 1, currentIndex + 1),
+                UINavigationAction.Home => 0,
+                UINavigationAction.End => itemCount - 1,
+                UINavigationAction.PageUp => Math.Max(0, currentIndex - largeStep),
+                UINavigationAction.PageDown => Math.Min(itemCount - 1, currentIndex + largeStep),
+                _ => currentIndex
+            };
+        }
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -331,6 +350,7 @@ namespace MGUI.Core.UI
         {
             Target.Padding = DefaultDropdownItemPadding;
             Target.Margin = 0;
+            Target.IsFocusable = false;
             Target.BackgroundBrush = GetTheme().ComboBoxDropdownItemBackground.GetValue(true);
             Target.HorizontalAlignment = HorizontalAlignment.Stretch;
             Target.HorizontalContentAlignment = HorizontalAlignment.Left;
@@ -471,13 +491,12 @@ namespace MGUI.Core.UI
                         UpdateDropdownContent();
                         ParentWindow.AddNestedWindow(Dropdown);
 
-                        GetDesktop().PushFocusScope(Dropdown, this);
-                        (SelectedTemplatedItem ?? TemplatedItems?.FirstOrDefault())?.Element?.Focus();
+                        SetNavigationHoveredItem(SelectedTemplatedItem ?? TemplatedItems?.FirstOrDefault());
                     }
                     else
                     {
                         ParentWindow.RemoveNestedWindow(Dropdown);
-                        GetDesktop().PopFocusScope(Dropdown);
+                        SetNavigationHoveredItem(null);
                     }
 
                     HoveredItem = null;
@@ -690,6 +709,66 @@ namespace MGUI.Core.UI
                     e.SetHandledBy(this, false);
                 };
             }
+        }
+
+        private void SetNavigationHoveredItem(TemplatedElement<TItemType, MGButton> item)
+        {
+            if (HoveredItem?.Element != null)
+                HoveredItem.Element.SpoofIsHoveredWhileDrawingBackground = false;
+
+            HoveredItem = item;
+
+            if (HoveredItem?.Element != null)
+                HoveredItem.Element.SpoofIsHoveredWhileDrawingBackground = true;
+        }
+
+        private bool TryAdjustClosedSelection(UINavigationAction action)
+        {
+            if (TemplatedItems == null || TemplatedItems.Count == 0)
+                return false;
+
+            int currentIndex = Math.Clamp(SelectedIndex < 0 ? 0 : SelectedIndex, 0, TemplatedItems.Count - 1);
+            int nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
+            if (nextIndex < 0 || nextIndex == currentIndex && SelectedIndex == nextIndex)
+                return false;
+
+            SelectedIndex = nextIndex;
+            return true;
+        }
+
+        private bool TryAdjustOpenSelection(UINavigationAction action)
+        {
+            if (!IsDropdownOpen || TemplatedItems == null || TemplatedItems.Count == 0)
+                return false;
+
+            int currentIndex = HoveredItem == null ? Math.Clamp(SelectedIndex < 0 ? 0 : SelectedIndex, 0, TemplatedItems.Count - 1) : TemplatedItems.IndexOf(HoveredItem);
+            int nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
+            if (nextIndex < 0)
+                return false;
+
+            SetNavigationHoveredItem(TemplatedItems[nextIndex]);
+            return true;
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (IsDropdownOpen)
+            {
+                return action switch
+                {
+                    UINavigationAction.Submit when HoveredItem != null => (SelectedTemplatedItem = HoveredItem) != null && !(IsDropdownOpen = false),
+                    UINavigationAction.Cancel => !(IsDropdownOpen = false),
+                    UINavigationAction.MoveUp or UINavigationAction.MoveDown or UINavigationAction.MoveNext or UINavigationAction.MovePrevious or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.PageUp or UINavigationAction.PageDown => TryAdjustOpenSelection(action),
+                    _ => false
+                };
+            }
+
+            return action switch
+            {
+                UINavigationAction.Submit => (IsDropdownOpen = true),
+                UINavigationAction.MoveUp or UINavigationAction.MoveDown or UINavigationAction.MoveNext or UINavigationAction.MovePrevious or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.PageUp or UINavigationAction.PageDown => TryAdjustClosedSelection(action),
+                _ => false
+            };
         }
 
         public override void UpdateSelf(ElementUpdateArgs UA)

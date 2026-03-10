@@ -17,6 +17,15 @@ namespace MGUI.Core.UI
 {
     public class MGSlider : MGElement
     {
+        internal static float GetNavigationStep(float minimum, float maximum, bool useDiscreteValues, float? discreteValueInterval)
+        {
+            if (useDiscreteValues && discreteValueInterval.HasValue && discreteValueInterval.Value > 0)
+                return discreteValueInterval.Value;
+
+            float interval = maximum - minimum;
+            return interval > 0 ? interval / 10f : 1f;
+        }
+
         #region Value
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private float _Minimum;
@@ -638,6 +647,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 MGTheme Theme = GetTheme();
 
                 SetRange(Minimum, Maximum);
@@ -745,6 +755,34 @@ namespace MGUI.Core.UI
                     }
                 };
             }
+        }
+
+        private bool TryAdjustValue(float delta)
+        {
+            float previousValue = Value;
+            SetValue(Value + delta);
+            return !Value.IsAlmostEqual(previousValue);
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            float step = GetNavigationStep(Minimum, Maximum, UseDiscreteValues, DiscreteValueInterval);
+            float largeStep = step * 5f;
+
+            return action switch
+            {
+                UINavigationAction.MoveLeft when IsHorizontal => TryAdjustValue(-step),
+                UINavigationAction.MoveRight when IsHorizontal => TryAdjustValue(step),
+                UINavigationAction.MoveUp when IsVertical => TryAdjustValue(-step),
+                UINavigationAction.MoveDown when IsVertical => TryAdjustValue(step),
+                UINavigationAction.Decrement => TryAdjustValue(-step),
+                UINavigationAction.Increment => TryAdjustValue(step),
+                UINavigationAction.PageUp => TryAdjustValue(-largeStep),
+                UINavigationAction.PageDown => TryAdjustValue(largeStep),
+                UINavigationAction.Home => TryAdjustValue(Minimum - Value),
+                UINavigationAction.End => TryAdjustValue(Maximum - Value),
+                _ => false
+            };
         }
 
         protected override IEnumerable<IBorderBrush> GetBorderBrushes()

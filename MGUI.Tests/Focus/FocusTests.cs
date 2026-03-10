@@ -377,4 +377,49 @@ public class FocusTests
 
         Assert.False(actual);
     }
+
+    [Theory]
+    [InlineData(0f, 10f, false, null, 1f)]
+    [InlineData(0f, 10f, true, 2f, 2f)]
+    [InlineData(3f, 3f, false, null, 1f)]
+    public void Slider_GetNavigationStep_ReturnsExpectedStep(float minimum, float maximum, bool useDiscreteValues, float? discreteInterval, float expected)
+    {
+        float actual = MGUI.Core.UI.MGSlider.GetNavigationStep(minimum, maximum, useDiscreteValues, discreteInterval);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(true, 0.5f, 0.5f)]
+    [InlineData(false, null, 1f)]
+    public void RatingControl_GetNavigationStep_ReturnsExpectedStep(bool useDiscreteValues, float? discreteInterval, float expected)
+    {
+        float actual = MGUI.Core.UI.MGRatingControl.GetNavigationStep(useDiscreteValues, discreteInterval);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(0, 4, 9, MGUI.Core.UI.NavigationDirection.Right, 1)]
+    [InlineData(1, 4, 9, MGUI.Core.UI.NavigationDirection.Down, 5)]
+    [InlineData(8, 4, 9, MGUI.Core.UI.NavigationDirection.Right, 8)]
+    [InlineData(8, 4, 9, MGUI.Core.UI.NavigationDirection.Up, 4)]
+    public void GridColorPicker_GetAdjacentColorIndex_ReturnsExpectedIndex(int currentIndex, int columns, int colorCount, MGUI.Core.UI.NavigationDirection direction, int expected)
+    {
+        int? actual = MGUI.Core.UI.MGGridColorPicker.GetAdjacentColorIndex(currentIndex, columns, colorCount, direction);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(2, 10, MGUI.Core.UI.UINavigationAction.MoveUp, 1)]
+    [InlineData(2, 10, MGUI.Core.UI.UINavigationAction.MoveDown, 3)]
+    [InlineData(2, 10, MGUI.Core.UI.UINavigationAction.Home, 0)]
+    [InlineData(2, 10, MGUI.Core.UI.UINavigationAction.End, 9)]
+    public void ComboBox_GetNextNavigationIndex_ReturnsExpectedIndex(int currentIndex, int itemCount, MGUI.Core.UI.UINavigationAction action, int expected)
+    {
+        int actual = MGUI.Core.UI.MGComboBox<string>.GetNextNavigationIndex(currentIndex, itemCount, action);
+
+        Assert.Equal(expected, actual);
+    }
 }

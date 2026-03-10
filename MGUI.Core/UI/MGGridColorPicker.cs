@@ -255,6 +255,36 @@ namespace MGUI.Core.UI
     /// <summary>Displays a grid of colors to choose from.</summary>
     public class MGGridColorPicker : MGElement
     {
+        internal static int? GetAdjacentColorIndex(int? currentIndex, int columns, int colorCount, NavigationDirection direction)
+        {
+            if (colorCount <= 0 || columns <= 0)
+                return null;
+
+            int current = Math.Clamp(currentIndex ?? 0, 0, colorCount - 1);
+            int row = current / columns;
+            int column = current % columns;
+            int rowCount = (colorCount - 1) / columns + 1;
+
+            switch (direction)
+            {
+                case NavigationDirection.Up:
+                    row = Math.Max(0, row - 1);
+                    break;
+                case NavigationDirection.Down:
+                    row = Math.Min(rowCount - 1, row + 1);
+                    break;
+                case NavigationDirection.Left:
+                    column = Math.Max(0, column - 1);
+                    break;
+                case NavigationDirection.Right:
+                    column = Math.Min(columns - 1, column + 1);
+                    break;
+            }
+
+            int candidate = row * columns + column;
+            return Math.Min(candidate, colorCount - 1);
+        }
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -618,6 +648,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                IsFocusable = true;
                 BorderElement = new(Window, 0, null as IFillBrush);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
@@ -702,6 +733,39 @@ namespace MGUI.Core.UI
                     }
                 };
             }
+        }
+
+        private int? GetCurrentNavigationColorIndex()
+            => HoveredColorIndex ?? SelectedColorIndexes.FirstOrDefault();
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            NavigationDirection? direction = action switch
+            {
+                UINavigationAction.MoveUp => NavigationDirection.Up,
+                UINavigationAction.MoveDown => NavigationDirection.Down,
+                UINavigationAction.MoveLeft => NavigationDirection.Left,
+                UINavigationAction.MoveRight => NavigationDirection.Right,
+                _ => null
+            };
+
+            if (direction.HasValue)
+            {
+                int? nextIndex = GetAdjacentColorIndex(GetCurrentNavigationColorIndex(), Columns, Colors?.Count ?? 0, direction.Value);
+                if (!nextIndex.HasValue)
+                    return false;
+
+                HoveredColorIndex = nextIndex.Value;
+                return true;
+            }
+
+            return action switch
+            {
+                UINavigationAction.Home when Colors?.Count > 0 => (HoveredColorIndex = 0) == 0,
+                UINavigationAction.End when Colors?.Count > 0 => (HoveredColorIndex = Colors.Count - 1) == Colors.Count - 1,
+                UINavigationAction.Submit when HoveredColorIndex.HasValue => (SelectedColorIndexes = new List<int>() { HoveredColorIndex.Value }) != null,
+                _ => false
+            };
         }
 
         /// <param name="MousePosition">The mouse position in screen space</param>
