@@ -561,9 +561,11 @@ namespace MGUI.Shared.Input.Mouse
                                 BaseMouseClickedEventArgs Args = Tracker.CurrentButtonDoubleClickedEvents[Button];
                                 if (Args != null)
                                 {
+                                    bool WasPreviousClickInside = Args.PreviousClickInSequence != null && IsInside(Args.PreviousClickInSequence.Position, Offset);
                                     bool IsClickedInside = IsInside(Args.Position, Offset);
                                     bool CanInvoke = (InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner))
-                                        && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner);
+                                        && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner)
+                                        && WasPreviousClickInside;
 
                                     if (IsClickedInside)
                                     {

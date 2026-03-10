@@ -199,6 +199,8 @@ namespace MGUI.Shared.Input.Mouse
         };
         public IReadOnlyDictionary<MouseButton, BaseMouseClickedEventArgs> RecentButtonClickedEvents => _RecentButtonClickedEvents;
 
+        private long _NextMultiClickSequenceId = 1;
+
         private readonly Dictionary<MouseButton, BaseMouseClickedEventArgs> _CurrentButtonDoubleClickedEvents = new()
         {
             { MouseButton.Left, null },
@@ -377,7 +379,9 @@ namespace MGUI.Shared.Input.Mouse
                     {
                         BaseMouseClickedEventArgs PreviousClickedArgs = _RecentButtonClickedEvents[Button];
                         int clickCount = GetMultiClickCount(PreviousClickedArgs, ReleasedArgs, MultiClickTimeThreshold, MultiClickPositionThreshold);
-                        BaseMouseClickedEventArgs ClickedArgs = new(this, ReleasedArgs, Button, CurrentPosition, clickCount);
+                        BaseMouseClickedEventArgs previousClickInSequence = clickCount > 1 ? PreviousClickedArgs : null;
+                        long multiClickSequenceId = previousClickInSequence?.MultiClickSequenceId ?? _NextMultiClickSequenceId++;
+                        BaseMouseClickedEventArgs ClickedArgs = new(this, ReleasedArgs, Button, CurrentPosition, clickCount, previousClickInSequence, multiClickSequenceId);
                         _CurrentButtonClickedEvents[Button] = ClickedArgs;
                         _RecentButtonClickedEvents[Button] = ClickedArgs;
 

@@ -107,6 +107,47 @@ public class InputEnhancedTests
     }
 
     [Fact]
+    public void MouseHandler_DoubleClick_RequiresStableLogicalTarget()
+    {
+        InputTracker tracker = new();
+        tracker.Mouse.MultiClickPositionThreshold = 4;
+
+        MouseHandlerHost leftHost = new(() => new Rectangle(0, 0, 50, 100));
+        MouseHandlerHost rightHost = new(() => new Rectangle(50, 0, 50, 100));
+        MouseHandler leftHandler = tracker.Mouse.CreateHandler(leftHost, 20);
+        MouseHandler rightHandler = tracker.Mouse.CreateHandler(rightHost, 10);
+
+        int leftDoubleClicks = 0;
+        int rightDoubleClicks = 0;
+        int rightClicks = 0;
+
+        leftHandler.LMBDoubleClickedInside += (_, _) => leftDoubleClicks++;
+        rightHandler.LMBDoubleClickedInside += (_, _) => rightDoubleClicks++;
+        rightHandler.LMBClickedInside += (_, _) => rightClicks++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(49, 10)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(49, 10), MouseButton.Left), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(49, 10)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+
+        tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(51, 10), MouseButton.Left), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(80, CreateMouseState(new Point(51, 10)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+
+        BaseMouseClickedEventArgs secondClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+        Assert.NotNull(secondClick);
+        Assert.Equal(2, secondClick.ClickCount);
+        Assert.NotNull(secondClick.PreviousClickInSequence);
+        Assert.Equal(secondClick.PreviousClickInSequence.MultiClickSequenceId, secondClick.MultiClickSequenceId);
+        Assert.Equal(0, leftDoubleClicks);
+        Assert.Equal(0, rightDoubleClicks);
+        Assert.Equal(1, rightClicks);
+    }
+
+    [Fact]
     public void KeyboardTracker_KeyRepeat_FiresAfterInitialDelayAndInterval()
     {
         InputTracker tracker = new();
