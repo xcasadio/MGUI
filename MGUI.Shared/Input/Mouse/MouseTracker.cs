@@ -385,7 +385,7 @@ namespace MGUI.Shared.Input.Mouse
                         _CurrentButtonClickedEvents[Button] = ClickedArgs;
                         _RecentButtonClickedEvents[Button] = ClickedArgs;
 
-                        if (ClickedArgs.IsDoubleClick)
+                        if (ClickedArgs.ClickCount == 2)
                             _CurrentButtonDoubleClickedEvents[Button] = ClickedArgs;
                     }
 

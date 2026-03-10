@@ -107,6 +107,31 @@ public class InputEnhancedTests
     }
 
     [Fact]
+    public void MouseTracker_DoubleClick_IsOnlyEmittedOnSecondClickTransition()
+    {
+        InputTracker tracker = new();
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        Assert.Null(tracker.Mouse.CurrentButtonDoubleClickedEvents[MouseButton.Left]);
+
+        tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(80, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        BaseMouseClickedEventArgs secondClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+        Assert.NotNull(secondClick);
+        Assert.Equal(2, secondClick.ClickCount);
+        Assert.Same(secondClick, tracker.Mouse.CurrentButtonDoubleClickedEvents[MouseButton.Left]);
+
+        tracker.Update(CreateUpdateArgs(110, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(135, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        BaseMouseClickedEventArgs thirdClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+        Assert.NotNull(thirdClick);
+        Assert.Equal(3, thirdClick.ClickCount);
+        Assert.Null(tracker.Mouse.CurrentButtonDoubleClickedEvents[MouseButton.Left]);
+    }
+
+    [Fact]
     public void MouseHandler_DoubleClick_RequiresStableLogicalTarget()
     {
         InputTracker tracker = new();
