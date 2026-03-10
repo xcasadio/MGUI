@@ -8,6 +8,22 @@ public class FocusTests
         public ScopeNode? Parent { get; init; }
     }
 
+    private sealed class FocusQueueState<T>
+        where T : class
+    {
+        public T? Focused { get; set; }
+        public T? Queued { get; set; }
+
+        public void ApplyQueuedFocusChange()
+        {
+            if (Queued == null)
+                return;
+
+            Focused = Queued;
+            Queued = null;
+        }
+    }
+
     private static bool DoesFocusChangeMoveScrollableTarget(MGUI.Core.UI.KeyboardFocusSource source, float currentOffset, float viewportStart, float viewportSize, float maxOffset, float elementStart, float elementEnd)
     {
         if (!MGUI.Core.UI.MGDesktop.ShouldAutoScrollFocusedElement(source))
@@ -166,6 +182,22 @@ public class FocusTests
         Assert.Equal(MGUI.Core.UI.UIInputMode.Navigation, result);
     }
 
+    [Fact]
+    public void HasMouseMovementActivity_IgnoresSinglePixelJitter()
+    {
+        bool result = MGUI.Core.UI.MGDesktop.HasMouseMovementActivity(new Microsoft.Xna.Framework.Point(100, 100), new Microsoft.Xna.Framework.Point(101, 100));
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasMouseMovementActivity_DetectsSignificantMovement()
+    {
+        bool result = MGUI.Core.UI.MGDesktop.HasMouseMovementActivity(new Microsoft.Xna.Framework.Point(100, 100), new Microsoft.Xna.Framework.Point(102, 100));
+
+        Assert.True(result);
+    }
+
     [Theory]
     [InlineData(false, MGUI.Core.UI.KeyboardFocusSource.Keyboard)]
     [InlineData(true, MGUI.Core.UI.KeyboardFocusSource.GamePad)]
@@ -189,6 +221,41 @@ public class FocusTests
     }
 
     [Fact]
+    public void ResolveNavigationRoot_PrefersHoveredWindow_WhenNoFocusedWindowExists()
+    {
+        var hovered = new ScopeNode();
+        var top = new ScopeNode();
+
+        var result = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<ScopeNode>(activeScopeRoot: null, focusedWindowRoot: null, hoveredWindowRoot: hovered, topWindowRoot: top);
+
+        Assert.Same(hovered, result);
+    }
+
+    [Fact]
+    public void ResolveNavigationRoot_PrefersFocusedWindow_OverHoveredWindow()
+    {
+        var focused = new ScopeNode();
+        var hovered = new ScopeNode();
+        var top = new ScopeNode();
+
+        var result = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<ScopeNode>(activeScopeRoot: null, focusedWindowRoot: focused, hoveredWindowRoot: hovered, topWindowRoot: top);
+
+        Assert.Same(focused, result);
+    }
+
+    [Fact]
+    public void ResolveNavigationRoot_PrefersActiveScope_OverHoveredWindow()
+    {
+        var scope = new ScopeNode();
+        var hovered = new ScopeNode();
+        var top = new ScopeNode();
+
+        var result = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<ScopeNode>(activeScopeRoot: scope, focusedWindowRoot: null, hoveredWindowRoot: hovered, topWindowRoot: top);
+
+        Assert.Same(scope, result);
+    }
+
+    [Fact]
     public void ResolvePrimaryVisualState_Focused_WhenEnabledAndNavigationVisible()
     {
         var result = MGUI.Core.UI.MGElement.ResolvePrimaryVisualState(isEnabled: true, isSelected: false, hasKeyboardFocus: true, shouldDisplayFocusedState: true);
@@ -202,6 +269,54 @@ public class FocusTests
         var result = MGUI.Core.UI.MGElement.ResolvePrimaryVisualState(isEnabled: true, isSelected: true, hasKeyboardFocus: true, shouldDisplayFocusedState: true);
 
         Assert.Equal(MGUI.Core.UI.PrimaryVisualState.Selected, result);
+    }
+
+    [Fact]
+    public void ResolveSecondaryVisualState_Hovered_WhenPointerHoverIsActive()
+    {
+        var result = MGUI.Core.UI.MGElement.ResolveSecondaryVisualState(
+            isHitTestVisible: true,
+            hasModalWindow: false,
+            isLmbPressed: false,
+            isPressedElementOrAncestor: false,
+            isHovered: true,
+            isHoveredElementOrAncestor: true,
+            hasKeyboardFocus: false,
+            shouldDisplayFocusedState: false);
+
+        Assert.Equal(MGUI.Core.UI.SecondaryVisualState.Hovered, result);
+    }
+
+    [Fact]
+    public void ResolveSecondaryVisualState_SuppressesHover_WhenFocusedStateIsDisplayed()
+    {
+        var result = MGUI.Core.UI.MGElement.ResolveSecondaryVisualState(
+            isHitTestVisible: true,
+            hasModalWindow: false,
+            isLmbPressed: false,
+            isPressedElementOrAncestor: false,
+            isHovered: true,
+            isHoveredElementOrAncestor: true,
+            hasKeyboardFocus: true,
+            shouldDisplayFocusedState: true);
+
+        Assert.Equal(MGUI.Core.UI.SecondaryVisualState.None, result);
+    }
+
+    [Fact]
+    public void ResolveSecondaryVisualState_Pressed_HasPriorityOverFocusedState()
+    {
+        var result = MGUI.Core.UI.MGElement.ResolveSecondaryVisualState(
+            isHitTestVisible: true,
+            hasModalWindow: false,
+            isLmbPressed: true,
+            isPressedElementOrAncestor: true,
+            isHovered: true,
+            isHoveredElementOrAncestor: true,
+            hasKeyboardFocus: true,
+            shouldDisplayFocusedState: true);
+
+        Assert.Equal(MGUI.Core.UI.SecondaryVisualState.Pressed, result);
     }
 
     [Theory]
@@ -507,7 +622,7 @@ public class FocusTests
     [Fact]
     public void ResolveNavigationRoot_PrefersActiveScope()
     {
-        string? actual = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot("submenu", "window", "top-window");
+        string? actual = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot("submenu", "window", null, "top-window");
 
         Assert.Equal("submenu", actual);
     }
@@ -515,11 +630,60 @@ public class FocusTests
     [Fact]
     public void ResolveNavigationRoot_FallsBackToFocusedWindowThenTopWindow()
     {
-        string? actualWithFocusedWindow = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<string>(null!, "window", "top-window");
-        string? actualWithTopWindow = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<string>(null!, null!, "top-window");
+        string? actualWithFocusedWindow = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<string>(null!, "window", null!, "top-window");
+        string? actualWithTopWindow = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<string>(null!, null!, null!, "top-window");
 
         Assert.Equal("window", actualWithFocusedWindow);
         Assert.Equal("top-window", actualWithTopWindow);
+    }
+
+    [Fact]
+    public void ApplyQueuedFocusChange_KeepsExistingFocus_WhenNothingQueued()
+    {
+        var focused = new ScopeNode();
+        var state = new FocusQueueState<ScopeNode> { Focused = focused, Queued = null };
+
+        state.ApplyQueuedFocusChange();
+
+        Assert.Same(focused, state.Focused);
+    }
+
+    [Fact]
+    public void ApplyQueuedFocusChange_AppliesQueuedFocus_AndClearsQueue()
+    {
+        var focused = new ScopeNode();
+        var queued = new ScopeNode();
+        var state = new FocusQueueState<ScopeNode> { Focused = focused, Queued = queued };
+
+        state.ApplyQueuedFocusChange();
+
+        Assert.Same(queued, state.Focused);
+        Assert.Null(state.Queued);
+    }
+
+    [Fact]
+    public void ApplyExplicitBackground_PreservesFocusedUnderlay()
+    {
+        var selectedBrush = new MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush(Microsoft.Xna.Framework.Color.Yellow);
+        var originalFocusedBrush = new MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush(Microsoft.Xna.Framework.Color.Blue);
+        var explicitBrush = new MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush(Microsoft.Xna.Framework.Color.Transparent);
+        var brush = new MGUI.Core.UI.VisualStateFillBrush(
+            null,
+            selectedBrush,
+            originalFocusedBrush,
+            null,
+            null,
+            MGUI.Core.UI.PressedModifierType.Darken,
+            0.06f);
+
+        MGUI.Core.UI.XAML.Element.ApplyExplicitBackground(brush, explicitBrush);
+
+        Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.NormalValue);
+        Assert.Equal(Microsoft.Xna.Framework.Color.Transparent, ((MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush)brush.NormalValue).Color);
+        Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.FocusedValue);
+        Assert.Equal(Microsoft.Xna.Framework.Color.Transparent, ((MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush)brush.FocusedValue).Color);
+        Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.SelectedValue);
+        Assert.Equal(Microsoft.Xna.Framework.Color.Yellow, ((MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush)brush.SelectedValue).Color);
     }
 
     [Fact]

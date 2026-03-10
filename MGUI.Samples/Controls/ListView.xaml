@@ -1,5 +1,6 @@
 ﻿<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:System="clr-namespace:System;assembly=mscorlib"
         Left="440" Top="20" MinHeight="0" Width="600" Height="600" TitleText="ListView" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
@@ -49,6 +50,14 @@
                         though these are just using [c=Turquoise][i]TextBlocks[/i][/c]. This [c=Turquoise][i]ListView[/i][/c] uses dynamic logic
                         to color the names blue for men and pink for women.
                     </TextBlock>
+                    <HeaderedContentPresenter Header="Selection mode:" Spacing="8" HorizontalAlignment="Left">
+                        <ComboBox Name="SelectionModeComboBox" ItemType="{x:Type System:String}" Width="100" SelectedIndex="1">
+                            <System:String>None</System:String>
+                            <System:String>Row</System:String>
+                            <System:String>Column</System:String>
+                            <System:String>Cell</System:String>
+                        </ComboBox>
+                    </HeaderedContentPresenter>
                     <ListView Width="320" MaxHeight="260" Name="ListView_Sample1" HorizontalAlignment="Left"
                               xmlns:local="clr-namespace:MGUI.Samples.Controls;assembly=MGUI.Samples" ItemType="{x:Type local:Person}">
                         <ListViewColumn Width="50">

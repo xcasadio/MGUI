@@ -25,7 +25,7 @@ using ColumnDefinition = MGUI.Core.UI.Containers.Grids.ColumnDefinition;
 namespace MGUI.Core.UI
 {
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to.</typeparam>
-    public class MGListView<TItemType> : MGSingleContentHost
+    public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisibilityHandler
     {
         internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
         {
@@ -417,6 +417,18 @@ namespace MGUI.Core.UI
         }
         #endregion FocusedRowIndex
 
+        private void EnsureFocusedRowVisible()
+        {
+            if (FocusedRowIndex < 0 || ScrollViewer == null || RowItems == null || FocusedRowIndex >= RowItems.Count)
+                return;
+
+            MGElement firstVisibleCell = RowItems[FocusedRowIndex].GetRowContents().Values.FirstOrDefault();
+            if (firstVisibleCell != null)
+                ScrollViewer.EnsureElementVisible(firstVisibleCell);
+        }
+
+        void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible() => EnsureFocusedRowVisible();
+
         private void OnListViewKeyPressed(object sender, BaseKeyPressedEventArgs e)
         {
             int count = RowItems?.Count ?? 0;
@@ -437,6 +449,7 @@ namespace MGUI.Core.UI
             if (newIndex != FocusedRowIndex || FocusedRowIndex < 0)
             {
                 FocusedRowIndex = newIndex;
+                ((INavigationTargetVisibilityHandler)this).EnsureNavigationTargetVisible();
                 if (SelectionMode != GridSelectionMode.None && DataGrid.Rows.Count > FocusedRowIndex && DataGrid.Columns.Count > 0)
                     DataGrid.CurrentSelection = new GridSelection(DataGrid, new GridCell(DataGrid.Rows[FocusedRowIndex], DataGrid.Columns[0]), SelectionMode);
                 e.SetHandledBy(this, true);

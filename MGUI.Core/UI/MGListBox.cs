@@ -36,7 +36,7 @@ namespace MGUI.Core.UI
     }
 
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to.</typeparam>
-    public class MGListBox<TItemType> : MGElement
+    public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandler
     {
         internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
         {
@@ -54,6 +54,16 @@ namespace MGUI.Core.UI
                 UINavigationAction.PageDown => Math.Min(count - 1, normalizedIndex + pageSize),
                 _ => normalizedIndex
             };
+        }
+
+        internal static float GetVisibleVerticalOffsetForIndex(float currentOffset, float contentTop, float viewportHeight, float maxOffset, int itemIndex, int itemHeight)
+        {
+            if (itemIndex < 0 || itemHeight <= 0)
+                return Math.Clamp(currentOffset, 0, maxOffset);
+
+            float itemTop = contentTop + (itemIndex * itemHeight);
+            float itemBottom = itemTop + itemHeight;
+            return MGScrollViewer.GetVisibleOffset(currentOffset, contentTop + currentOffset, viewportHeight, maxOffset, itemTop, itemBottom);
         }
 
         #region Outer Border
@@ -869,6 +879,38 @@ namespace MGUI.Core.UI
         public MGScrollViewer ScrollViewer { get; }
         public MGStackPanel ItemsPanel { get; }
 
+        private void EnsureFocusedItemVisible()
+        {
+            if (FocusedIndex < 0 || ScrollViewer == null)
+                return;
+
+            if (!IsVirtualizing)
+            {
+                if (InternalItems != null && FocusedIndex < InternalItems.Count)
+                    ScrollViewer.EnsureElementVisible(InternalItems[FocusedIndex].ContentPresenter);
+                return;
+            }
+
+            if (_realizedItems.TryGetValue(FocusedIndex, out MGListBoxItem<TItemType> realizedItem))
+            {
+                ScrollViewer.EnsureElementVisible(realizedItem.ContentPresenter);
+                return;
+            }
+
+            if (ScrollViewer.ContentViewport.Height <= 0)
+                return;
+
+            int itemHeight = _virtualizingPanel?.UniformItemHeight > 0 ? _virtualizingPanel.UniformItemHeight : MeasureNaturalItemHeight();
+            float contentTop = (_virtualizingPanel as MGElement)?.LayoutBounds.Top ?? ItemsPanel.LayoutBounds.Top;
+            float newOffset = GetVisibleVerticalOffsetForIndex(ScrollViewer.VerticalOffset, contentTop, ScrollViewer.ContentViewport.Height,
+                ScrollViewer.MaxVerticalOffset, FocusedIndex, itemHeight);
+
+            if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
+                ScrollViewer.VerticalOffset = newOffset;
+        }
+
+        void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible() => EnsureFocusedItemVisible();
+
         #region Virtualization
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ListBoxVirtualizationMode _VirtualizationMode = ListBoxVirtualizationMode.Auto;
@@ -1379,6 +1421,7 @@ namespace MGUI.Core.UI
             if (newIndex != FocusedIndex || FocusedIndex < 0)
             {
                 FocusedIndex = newIndex;
+                ((INavigationTargetVisibilityHandler)this).EnsureNavigationTargetVisible();
                 if (SelectionMode != ListBoxSelectionMode.None)
                 {
                     TItemType item = GetLogicalItemAt(FocusedIndex);

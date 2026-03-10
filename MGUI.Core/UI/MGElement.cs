@@ -1076,6 +1076,23 @@ namespace MGUI.Core.UI
             return PrimaryVisualState.Normal;
         }
 
+        internal static SecondaryVisualState ResolveSecondaryVisualState(bool isHitTestVisible, bool hasModalWindow,
+            bool isLmbPressed, bool isPressedElementOrAncestor, bool isHovered, bool isHoveredElementOrAncestor,
+            bool hasKeyboardFocus, bool shouldDisplayFocusedState)
+        {
+            if (!isHitTestVisible || hasModalWindow)
+                return SecondaryVisualState.None;
+
+            if (isLmbPressed && isPressedElementOrAncestor)
+                return SecondaryVisualState.Pressed;
+
+            bool shouldSuppressHover = hasKeyboardFocus && shouldDisplayFocusedState;
+            if (!shouldSuppressHover && isHovered && isHoveredElementOrAncestor)
+                return SecondaryVisualState.Hovered;
+
+            return SecondaryVisualState.None;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsSelected;
         /// <summary>This property does not account for the parent's <see cref="IsSelected"/>. Consider using <see cref="DerivedIsSelected"/> instead.</summary>
@@ -1755,11 +1772,15 @@ namespace MGUI.Core.UI
             bool hasKeyboardFocus = desktop?.FocusedKeyboardHandler == this;
             bool shouldDisplayFocusedState = desktop?.ShouldDisplayFocusedState == true;
             PrimaryVisualState newPVS = ResolvePrimaryVisualState(ComputedIsEnabled, ComputedIsSelected, hasKeyboardFocus, shouldDisplayFocusedState);
-            SecondaryVisualState newSVS = 
-                !ComputedIsHitTestVisible || SelfOrParentWindow.HasModalWindow ? SecondaryVisualState.None : 
-                IsLMBPressed && IsSelfOrAncestorOf(SelfOrParentWindow.PressedElement) ? SecondaryVisualState.Pressed : 
-                IsHovered && IsSelfOrAncestorOf(SelfOrParentWindow.HoveredElement) ? SecondaryVisualState.Hovered : 
-                SecondaryVisualState.None;
+            SecondaryVisualState newSVS = ResolveSecondaryVisualState(
+                ComputedIsHitTestVisible,
+                SelfOrParentWindow.HasModalWindow,
+                IsLMBPressed,
+                IsSelfOrAncestorOf(SelfOrParentWindow.PressedElement),
+                IsHovered,
+                IsSelfOrAncestorOf(SelfOrParentWindow.HoveredElement),
+                hasKeyboardFocus,
+                shouldDisplayFocusedState);
             VisualState = new(newPVS, newSVS);
 
             ElementUpdateEventArgs UpdateEventArgs = new(this, UA);

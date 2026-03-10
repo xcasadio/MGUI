@@ -1,5 +1,6 @@
 ﻿using MGUI.Core.UI.Data_Binding;
 using MGUI.Core.UI.Data_Binding.Converters;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -515,12 +516,21 @@ namespace MGUI.Core.UI.XAML
             }
         }
 
+        internal static void ApplyExplicitBackground(VisualStateFillBrush backgroundBrush, IFillBrush explicitBackground)
+        {
+            if (backgroundBrush == null || explicitBackground == null)
+                return;
+
+            backgroundBrush.NormalValue = explicitBackground;
+            backgroundBrush.FocusedValue = explicitBackground.Copy();
+        }
+
         protected void ApplyBackground(MGElement Element)
         {
             MGDesktop Desktop = Element.GetDesktop();
 
             if (Background != null)
-                Element.BackgroundBrush.NormalValue = Background.ToFillBrush(Desktop, Element);
+                ApplyExplicitBackground(Element.BackgroundBrush, Background.ToFillBrush(Desktop, Element));
             if (DisabledBackground != null)
                 Element.BackgroundBrush.DisabledValue = DisabledBackground.ToFillBrush(Desktop, Element);
             if (SelectedBackground != null)

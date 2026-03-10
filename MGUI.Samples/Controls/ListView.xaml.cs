@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI;
+using MGUI.Core.UI.Containers.Grids;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using System;
@@ -18,6 +19,7 @@ namespace MGUI.Samples.Controls
         {
             //  Get the ListView
             MGListView<Person> ListView_Sample1 = Window.GetElementByName<MGListView<Person>>("ListView_Sample1");
+            MGComboBox<string> SelectionModeComboBox = Window.GetElementByName<MGComboBox<string>>("SelectionModeComboBox");
 
             //  We already defined the CellTemplate of the first column in our XAML.
             //  But the other 2 columns will use slightly more complex logic that depends on the IsMale property, so we'll define those CellTemplates with c# code
@@ -39,6 +41,20 @@ namespace MGUI.Samples.Controls
                 new(10, "Alice", "Wright", false)
             };
             ListView_Sample1.SetItemsSource(People);
+
+            void ApplySelectionMode(string selectedMode)
+            {
+                ListView_Sample1.SelectionMode = selectedMode switch
+                {
+                    "Row" => GridSelectionMode.Row,
+                    "Column" => GridSelectionMode.Column,
+                    "Cell" => GridSelectionMode.Cell,
+                    _ => GridSelectionMode.None,
+                };
+            }
+
+            ApplySelectionMode(SelectionModeComboBox.SelectedItem);
+            SelectionModeComboBox.SelectedItemChanged += (sender, e) => ApplySelectionMode(e.NewValue);
         }
     }
 }

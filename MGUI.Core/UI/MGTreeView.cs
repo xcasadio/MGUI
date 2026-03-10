@@ -15,7 +15,7 @@ namespace MGUI.Core.UI
     /// <summary>
     /// Represents a control that displays hierarchical data in a tree structure with expandable and collapsible nodes.
     /// </summary>
-    public class MGTreeView : MGSingleContentHost
+    public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandler
     {
         internal static int GetNextVisibleNavigationIndex(int currentIndex, int count, UINavigationAction action)
         {
@@ -648,7 +648,8 @@ namespace MGUI.Core.UI
             var bounds = item.LayoutBounds;
             float itemTop = bounds.Y;
             float itemBottom = bounds.Bottom;
-            float viewportTop = ScrollViewer.VerticalOffset;
+            float contentTop = ScrollViewer.Content?.LayoutBounds.Top ?? 0;
+            float viewportTop = contentTop + ScrollViewer.VerticalOffset;
             float viewportHeight = ScrollViewer.ContentViewport.Height;
             float viewportBottom = viewportTop + viewportHeight;
             bool invalidBounds = bounds.Height <= 0;
@@ -678,6 +679,12 @@ namespace MGUI.Core.UI
             if (newOffset > ScrollViewer.MaxVerticalOffset) newOffset = ScrollViewer.MaxVerticalOffset;
             if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
                 ScrollViewer.VerticalOffset = newOffset;
+        }
+
+        void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible()
+        {
+            if (SelectedItem != null)
+                ScrollIntoView(SelectedItem);
         }
 
         /// <summary>

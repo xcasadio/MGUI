@@ -51,19 +51,49 @@ namespace MGUI.Core.UI
             return Math.Clamp(newOffset, 0, maxOffset);
         }
 
+        private bool TryGetDescendantBoundsInContentSpace(MGElement target, out Rectangle bounds)
+        {
+            bounds = Rectangle.Empty;
+
+            if (target == null || !HasContent)
+                return false;
+
+            if (Content == target)
+            {
+                bounds = target.LayoutBounds;
+                return true;
+            }
+
+            if (!Content.IsSelfOrAncestorOf(target))
+                return false;
+
+            Rectangle currentBounds = target.LayoutBounds;
+            for (MGElement current = target.Parent; current != null; current = current.Parent)
+            {
+                if (current == Content)
+                {
+                    bounds = currentBounds;
+                    return true;
+                }
+
+                currentBounds = currentBounds.GetTranslated(current.LayoutBounds.Location);
+            }
+
+            return false;
+        }
+
         public void EnsureElementVisible(MGElement target)
         {
             if (target == null || !HasContent || ContentViewport.Width <= 0 || ContentViewport.Height <= 0)
                 return;
 
-            if (!(Content == target || Content.IsSelfOrAncestorOf(target)))
+            if (!TryGetDescendantBoundsInContentSpace(target, out Rectangle bounds))
                 return;
 
-            Rectangle screenBounds = target.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, target.LayoutBounds);
-            Rectangle bounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, screenBounds);
-            Rectangle localViewport = new(Padding.Left, Padding.Top, ContentViewport.Width, ContentViewport.Height);
-            float newVerticalOffset = GetVisibleOffset(VerticalOffset, localViewport.Top, localViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
-            float newHorizontalOffset = GetVisibleOffset(HorizontalOffset, localViewport.Left, localViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
+            float verticalViewportStart = Content.LayoutBounds.Top + VerticalOffset;
+            float horizontalViewportStart = Content.LayoutBounds.Left + HorizontalOffset;
+            float newVerticalOffset = GetVisibleOffset(VerticalOffset, verticalViewportStart, ContentViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
+            float newHorizontalOffset = GetVisibleOffset(HorizontalOffset, horizontalViewportStart, ContentViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
 
             if (Math.Abs(newVerticalOffset - VerticalOffset) > 0.5f)
                 VerticalOffset = newVerticalOffset;

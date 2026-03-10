@@ -98,4 +98,46 @@ public class KeyboardNavTests
         int newIndex = System.Math.Min(count - 1, currentIndex < 0 ? 0 : currentIndex + 1);
         Assert.Equal(0, newIndex);
     }
+
+    [Fact]
+    public void GetVisibleVerticalOffsetForIndex_ItemBelowViewport_ScrollsDown()
+    {
+        float offset = MGUI.Core.UI.MGListBox<string>.GetVisibleVerticalOffsetForIndex(
+            currentOffset: 0,
+            contentTop: 100,
+            viewportHeight: 30,
+            maxOffset: 100,
+            itemIndex: 4,
+            itemHeight: 10);
+
+        Assert.Equal(20, offset);
+    }
+
+    [Fact]
+    public void GetVisibleVerticalOffsetForIndex_ItemAboveViewport_ScrollsUp()
+    {
+        float offset = MGUI.Core.UI.MGListBox<string>.GetVisibleVerticalOffsetForIndex(
+            currentOffset: 30,
+            contentTop: 100,
+            viewportHeight: 30,
+            maxOffset: 100,
+            itemIndex: 1,
+            itemHeight: 10);
+
+        Assert.Equal(10, offset);
+    }
+
+    [Fact]
+    public void GetVisibleVerticalOffsetForIndex_ItemAlreadyVisible_KeepsOffset()
+    {
+        float offset = MGUI.Core.UI.MGListBox<string>.GetVisibleVerticalOffsetForIndex(
+            currentOffset: 20,
+            contentTop: 100,
+            viewportHeight: 30,
+            maxOffset: 100,
+            itemIndex: 3,
+            itemHeight: 10);
+
+        Assert.Equal(20, offset);
+    }
 }

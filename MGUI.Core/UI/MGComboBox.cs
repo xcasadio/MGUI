@@ -25,7 +25,7 @@ namespace MGUI.Core.UI
     public record class TemplatedElement<TDataType, TElementType>(TDataType SourceData, TElementType Element);
 
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to. Usually this would be: <see cref="string"/> for simple text-choices</typeparam>
-    public class MGComboBox<TItemType> : MGSingleContentHost
+    public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisibilityHandler
     {
         internal static int GetNextNavigationIndex(int currentIndex, int itemCount, UINavigationAction action)
         {
@@ -492,6 +492,7 @@ namespace MGUI.Core.UI
                         ParentWindow.AddNestedWindow(Dropdown);
 
                         SetNavigationHoveredItem(SelectedTemplatedItem ?? TemplatedItems?.FirstOrDefault());
+                        ((INavigationTargetVisibilityHandler)this).EnsureNavigationTargetVisible();
                     }
                     else
                     {
@@ -720,6 +721,12 @@ namespace MGUI.Core.UI
 
             if (HoveredItem?.Element != null)
                 HoveredItem.Element.SpoofIsHoveredWhileDrawingBackground = true;
+        }
+
+        void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible()
+        {
+            if (IsDropdownOpen && HoveredItem?.Element != null)
+                DropdownScrollViewer?.EnsureElementVisible(HoveredItem.Element);
         }
 
         private bool TryAdjustClosedSelection(UINavigationAction action)
