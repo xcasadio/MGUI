@@ -103,6 +103,54 @@ namespace MGUI.Core.UI
         internal static bool TryDispatchNavigationAction(UINavigationAction action, Func<UINavigationAction, bool> tryHandleFocusedAction)
             => tryHandleFocusedAction?.Invoke(action) == true;
 
+        internal static int GetWrappedFocusIndex(int count, int currentIndex, bool moveNext)
+        {
+            if (count <= 0)
+                return -1;
+
+            if (currentIndex < 0 || currentIndex >= count)
+                return moveNext ? 0 : count - 1;
+
+            return moveNext
+                ? (currentIndex + 1) % count
+                : (currentIndex - 1 + count) % count;
+        }
+
+        internal static int FindDirectionalNavigationTarget(Rectangle currentBounds, IReadOnlyList<Rectangle> candidateBounds, NavigationDirection direction)
+        {
+            int bestIndex = -1;
+            double bestDistance = double.MaxValue;
+
+            Vector2 currentCenter = currentBounds.Center.ToVector2();
+            for (int i = 0; i < candidateBounds.Count; i++)
+            {
+                Rectangle candidate = candidateBounds[i];
+                Vector2 candidateCenter = candidate.Center.ToVector2();
+                Vector2 delta = candidateCenter - currentCenter;
+
+                bool isValidDirection = direction switch
+                {
+                    NavigationDirection.Up => delta.Y < 0,
+                    NavigationDirection.Down => delta.Y > 0,
+                    NavigationDirection.Left => delta.X < 0,
+                    NavigationDirection.Right => delta.X > 0,
+                    _ => false
+                };
+
+                if (!isValidDirection)
+                    continue;
+
+                double distance = delta.LengthSquared();
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+            }
+
+            return bestIndex;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private UIInputMode _ActiveInputMode = UIInputMode.Pointer;
         public UIInputMode ActiveInputMode
@@ -120,6 +168,94 @@ namespace MGUI.Core.UI
 
         internal bool ShouldDisplayFocusedState => ActiveInputMode != UIInputMode.Pointer;
 
+        private MGWindow GetNavigationRoot()
+        {
+            if (FocusedKeyboardHandler?.SelfOrParentWindow != null)
+                return FocusedKeyboardHandler.SelfOrParentWindow;
+
+            return Windows.OrderBy(x => x.IsTopmost).LastOrDefault();
+        }
+
+        private static bool IsNavigationTarget(MGElement element)
+            => element != null
+            && element.IsFocusable
+            && element.DerivedIsEnabled
+            && element.DerivedIsHitTestVisible
+            && element.Visibility == Visibility.Visible;
+
+        public IReadOnlyList<MGElement> GetFocusableElements()
+        {
+            MGWindow root = GetNavigationRoot();
+            if (root == null)
+                return Array.Empty<MGElement>();
+
+            return root.TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder)
+                .Where(IsNavigationTarget)
+                .Distinct()
+                .OrderBy(x => x.TabIndex)
+                .ThenBy(x => x.ActualLayoutBounds.Top)
+                .ThenBy(x => x.ActualLayoutBounds.Left)
+                .ToList();
+        }
+
+        public bool MoveFocusNext()
+        {
+            IReadOnlyList<MGElement> focusableElements = GetFocusableElements();
+            int currentIndex = focusableElements.Select((element, index) => new { element, index }).FirstOrDefault(x => x.element == FocusedKeyboardHandler)?.index ?? -1;
+            int nextIndex = GetWrappedFocusIndex(focusableElements.Count, currentIndex, true);
+            if (nextIndex < 0)
+                return false;
+
+            focusableElements[nextIndex].Focus();
+            return true;
+        }
+
+        public bool MoveFocusPrevious()
+        {
+            IReadOnlyList<MGElement> focusableElements = GetFocusableElements();
+            int currentIndex = focusableElements.Select((element, index) => new { element, index }).FirstOrDefault(x => x.element == FocusedKeyboardHandler)?.index ?? -1;
+            int nextIndex = GetWrappedFocusIndex(focusableElements.Count, currentIndex, false);
+            if (nextIndex < 0)
+                return false;
+
+            focusableElements[nextIndex].Focus();
+            return true;
+        }
+
+        public bool NavigateTo(NavigationDirection direction)
+        {
+            MGElement focusedElement = FocusedKeyboardHandler;
+            if (focusedElement == null)
+                return false;
+
+            if (focusedElement.NavigationNeighbors.TryGetValue(direction, out MGElement explicitNeighbor) && IsNavigationTarget(explicitNeighbor))
+            {
+                explicitNeighbor.Focus();
+                return true;
+            }
+
+            IReadOnlyList<MGElement> focusableElements = GetFocusableElements();
+            List<MGElement> candidates = focusableElements.Where(x => x != focusedElement).ToList();
+            int targetIndex = FindDirectionalNavigationTarget(focusedElement.ActualLayoutBounds, candidates.Select(x => x.ActualLayoutBounds).ToList(), direction);
+            if (targetIndex < 0)
+                return false;
+
+            candidates[targetIndex].Focus();
+            return true;
+        }
+
+        private bool TryPerformFallbackNavigation(UINavigationAction action)
+            => action switch
+            {
+                UINavigationAction.MoveNext => MoveFocusNext(),
+                UINavigationAction.MovePrevious => MoveFocusPrevious(),
+                UINavigationAction.MoveUp => NavigateTo(NavigationDirection.Up),
+                UINavigationAction.MoveDown => NavigateTo(NavigationDirection.Down),
+                UINavigationAction.MoveLeft => NavigateTo(NavigationDirection.Left),
+                UINavigationAction.MoveRight => NavigateTo(NavigationDirection.Right),
+                _ => false
+            };
+
         private bool TryDispatchNavigationAction(BaseKeyPressedEventArgs e)
         {
             if (!TryMapNavigationAction(e.Key, e.Tracker.IsShiftDown, out UINavigationAction action))
@@ -127,11 +263,19 @@ namespace MGUI.Core.UI
 
             MGElement focusedElement = FocusedKeyboardHandler;
             Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
-            if (!TryDispatchNavigationAction(action, tryHandleFocusedAction))
-                return false;
+            if (TryDispatchNavigationAction(action, tryHandleFocusedAction))
+            {
+                e.SetHandledBy(focusedElement, false);
+                return true;
+            }
 
-            e.SetHandledBy(focusedElement, false);
-            return true;
+            if (TryPerformFallbackNavigation(action))
+            {
+                e.SetHandledBy(this, false);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>The active <see cref="ITextEngine"/> used for all

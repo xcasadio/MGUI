@@ -1045,6 +1045,23 @@ namespace MGUI.Core.UI
 
         public virtual bool TryHandleNavigationAction(UINavigationAction action) => false;
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int _TabIndex;
+        public int TabIndex
+        {
+            get => _TabIndex;
+            set
+            {
+                if (_TabIndex != value)
+                {
+                    _TabIndex = value;
+                    NPC(nameof(TabIndex));
+                }
+            }
+        }
+
+        public Dictionary<NavigationDirection, MGElement> NavigationNeighbors { get; } = new();
+
         internal static PrimaryVisualState ResolvePrimaryVisualState(bool isEnabled, bool isSelected, bool hasKeyboardFocus, bool shouldDisplayFocusedState)
         {
             if (!isEnabled)

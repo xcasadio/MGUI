@@ -223,4 +223,49 @@ public class FocusTests
 
         Assert.False(handled);
     }
+
+    [Theory]
+    [InlineData(0, -1, true, -1)]
+    [InlineData(3, -1, true, 0)]
+    [InlineData(3, -1, false, 2)]
+    [InlineData(3, 0, true, 1)]
+    [InlineData(3, 2, true, 0)]
+    [InlineData(3, 0, false, 2)]
+    public void GetWrappedFocusIndex_ReturnsExpectedIndex(int count, int currentIndex, bool moveNext, int expected)
+    {
+        int actual = MGUI.Core.UI.MGDesktop.GetWrappedFocusIndex(count, currentIndex, moveNext);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void FindDirectionalNavigationTarget_FindsNearestDownCandidate()
+    {
+        var current = new Microsoft.Xna.Framework.Rectangle(100, 100, 20, 20);
+        var candidates = new[]
+        {
+            new Microsoft.Xna.Framework.Rectangle(90, 160, 20, 20),
+            new Microsoft.Xna.Framework.Rectangle(300, 300, 20, 20),
+            new Microsoft.Xna.Framework.Rectangle(100, 10, 20, 20)
+        };
+
+        int actual = MGUI.Core.UI.MGDesktop.FindDirectionalNavigationTarget(current, candidates, MGUI.Core.UI.NavigationDirection.Down);
+
+        Assert.Equal(0, actual);
+    }
+
+    [Fact]
+    public void FindDirectionalNavigationTarget_IgnoresWrongDirection()
+    {
+        var current = new Microsoft.Xna.Framework.Rectangle(100, 100, 20, 20);
+        var candidates = new[]
+        {
+            new Microsoft.Xna.Framework.Rectangle(100, 10, 20, 20),
+            new Microsoft.Xna.Framework.Rectangle(10, 100, 20, 20)
+        };
+
+        int actual = MGUI.Core.UI.MGDesktop.FindDirectionalNavigationTarget(current, candidates, MGUI.Core.UI.NavigationDirection.Right);
+
+        Assert.Equal(-1, actual);
+    }
 }
