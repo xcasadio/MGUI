@@ -22,6 +22,39 @@ namespace MGUI.Core.UI
 
         private const int ScrollBarPadding = 2;
 
+        internal static float GetVisibleOffset(float currentOffset, float viewportSize, float maxOffset, float elementStart, float elementEnd)
+        {
+            if (viewportSize <= 0)
+                return Math.Clamp(currentOffset, 0, maxOffset);
+
+            float newOffset = currentOffset;
+            if (elementStart < currentOffset)
+                newOffset = elementStart;
+            else if (elementEnd > currentOffset + viewportSize)
+                newOffset = elementEnd - viewportSize;
+
+            return Math.Clamp(newOffset, 0, maxOffset);
+        }
+
+        public void EnsureElementVisible(MGElement target)
+        {
+            if (target == null || !HasContent || ContentViewport.Width <= 0 || ContentViewport.Height <= 0)
+                return;
+
+            if (!(Content == target || Content.IsSelfOrAncestorOf(target)))
+                return;
+
+            Rectangle bounds = target.LayoutBounds;
+            float newVerticalOffset = GetVisibleOffset(VerticalOffset, ContentViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
+            float newHorizontalOffset = GetVisibleOffset(HorizontalOffset, ContentViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
+
+            if (Math.Abs(newVerticalOffset - VerticalOffset) > 0.5f)
+                VerticalOffset = newVerticalOffset;
+
+            if (Math.Abs(newHorizontalOffset - HorizontalOffset) > 0.5f)
+                HorizontalOffset = newHorizontalOffset;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _AllowClickDragScrolling;
         /// <summary>If true, clicking and dragging anywhere within this <see cref="MGScrollViewer"/>'s viewport will scroll the content,

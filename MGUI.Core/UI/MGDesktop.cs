@@ -682,6 +682,9 @@ namespace MGUI.Core.UI
                     if (FocusedKeyboardHandler is MGTextBox CurrentTextBox)
                         CurrentTextBox.ReadonlyChanged += TextBox_ReadonlyChanged;
 
+                    if (FocusedKeyboardHandler != null)
+                        EnsureFocusedElementVisible(FocusedKeyboardHandler);
+
                     NPC(nameof(FocusedKeyboardHandler));
                     FocusedKeyboardHandlerChanged?.Invoke(this, new(Previous, FocusedKeyboardHandler));
                 }
@@ -692,6 +695,15 @@ namespace MGUI.Core.UI
         {
             if (sender is MGTextBox TextBox && IsReadonly && FocusedKeyboardHandler == TextBox)
                 FocusedKeyboardHandler = null;
+        }
+
+        private static void EnsureFocusedElementVisible(MGElement focusedElement)
+        {
+            for (MGElement current = focusedElement?.Parent; current != null; current = current.Parent)
+            {
+                if (current is MGScrollViewer scrollViewer)
+                    scrollViewer.EnsureElementVisible(focusedElement);
+            }
         }
 
         public event EventHandler<EventArgs<MGElement>> FocusedKeyboardHandlerChanged;

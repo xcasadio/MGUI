@@ -261,6 +261,18 @@ public class FocusTests
         Assert.Equal(expected, actual);
     }
 
+    [Theory]
+    [InlineData(40f, 100f, 300f, 10f, 30f, 10f)]
+    [InlineData(40f, 100f, 300f, 120f, 180f, 80f)]
+    [InlineData(40f, 100f, 300f, 50f, 90f, 40f)]
+    [InlineData(280f, 100f, 300f, 350f, 420f, 300f)]
+    public void ScrollViewer_GetVisibleOffset_ReturnsExpectedOffset(float currentOffset, float viewportSize, float maxOffset, float elementStart, float elementEnd, float expected)
+    {
+        float actual = MGUI.Core.UI.MGScrollViewer.GetVisibleOffset(currentOffset, viewportSize, maxOffset, elementStart, elementEnd);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void FindDirectionalNavigationTarget_FindsNearestDownCandidate()
     {
