@@ -844,6 +844,14 @@ namespace MGUI.Core.UI
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public bool IsLMBPressed => InputTracker.Mouse.IsPressedInside(MouseButton.Left, this);
 
+        /// <summary>True if <see cref="MouseButton.Right"/> was pressed overtop of this <see cref="MGElement"/> and has not been released yet.</summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public bool IsRMBPressed => InputTracker.Mouse.IsPressedInside(MouseButton.Right, this);
+
+        /// <summary>True if <see cref="MouseButton.Middle"/> was pressed overtop of this <see cref="MGElement"/> and has not been released yet.</summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public bool IsMMBPressed => InputTracker.Mouse.IsPressedInside(MouseButton.Middle, this);
+
         /// <summary>Warning - this property can be true even if this <see cref="MGElement"/> is entirely occluded by another <see cref="MGElement"/> overtop it.<para/>
         /// You may want to consider checking for <see cref="VisualState"/>'s <see cref="SecondaryVisualState.Hovered"/> instead.<para/>
         /// See also: <see cref="MGWindow.HoveredElement"/> (You might also want to call <see cref="IsSelfOrAncestorOf(MGElement)"/> on the <see cref="MGWindow.HoveredElement"/>)</summary>
