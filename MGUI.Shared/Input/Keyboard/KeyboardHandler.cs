@@ -8,6 +8,14 @@ using System.Threading.Tasks;
 
 namespace MGUI.Shared.Input.Keyboard
 {
+    public class KeyboardRepeatPolicy
+    {
+        public bool Enabled { get; set; } = true;
+        public TimeSpan InitialDelay { get; set; } = TimeSpan.FromMilliseconds(500);
+        public TimeSpan Interval { get; set; } = TimeSpan.FromMilliseconds(1000.0 / 30.0);
+        public Func<Keys, bool> CanRepeat { get; set; } = KeyboardTracker.ShouldRepeatKey;
+    }
+
     /// <summary>Exposes several keyboard-related events that you can subscribe and respond to, such as <see cref="KeyboardHandler.Pressed"/>, <see cref="KeyboardHandler.Released"/>, <see cref="KeyboardHandler.Clicked"/>.<para/>
     /// This class is instantiated via: <see cref="KeyboardTracker.CreateHandler{T}(T, double?, bool, bool)"/></summary>
     public class KeyboardHandler
@@ -23,6 +31,10 @@ namespace MGUI.Shared.Input.Keyboard
         private bool AlwaysHandlesEvents { get; }
         /// <summary>If true, events will still be invoked even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true.</summary>
         private bool InvokeEvenIfHandled { get; }
+
+        public KeyboardRepeatPolicy RepeatPolicy { get; } = new();
+
+        private readonly Dictionary<Keys, TimeSpan?> _LastRepeatedAt = AllKeys.ToDictionary(x => x, _ => (TimeSpan?)null);
 
         public override string ToString() => $"{nameof(KeyboardHandler)}: {nameof(Owner)} = {Owner}";
 
@@ -128,7 +140,7 @@ namespace MGUI.Shared.Input.Keyboard
                             ReleasedArgs.SetHandledBy(Owner, false);
                     }
 
-                    BaseKeyRepeatedEventArgs RepeatedArgs = Tracker.CurrentKeyRepeatedEvents[Key];
+                    BaseKeyRepeatedEventArgs RepeatedArgs = GetCurrentKeyRepeatEvent(Key);
                     if (RepeatedArgs != null && _repeated != null && (InvokeEvenIfHandled || !RepeatedArgs.IsHandled))
                     {
                         _repeated.Invoke(this, RepeatedArgs);
@@ -146,6 +158,45 @@ namespace MGUI.Shared.Input.Keyboard
                     }
                 }
             }
+        }
+
+        private BaseKeyRepeatedEventArgs GetCurrentKeyRepeatEvent(Keys key)
+        {
+            if (_repeated == null || !RepeatPolicy.Enabled)
+            {
+                _LastRepeatedAt[key] = null;
+                return null;
+            }
+
+            if (Tracker.CurrentKeyReleasedEvents[key] != null || !Tracker.IsPressed(key))
+            {
+                _LastRepeatedAt[key] = null;
+                return null;
+            }
+
+            if (Tracker.CurrentKeyPressedEvents[key] != null)
+            {
+                _LastRepeatedAt[key] = null;
+                return null;
+            }
+
+            if (!Tracker.TryGetInitialPressedEvent(key, out BaseKeyPressedEventArgs initialPressedArgs))
+                return null;
+
+            TimeSpan? heldSince = Tracker.GetHeldSince(key);
+            if (!heldSince.HasValue)
+                return null;
+
+            if (RepeatPolicy.CanRepeat != null && !RepeatPolicy.CanRepeat(key))
+                return null;
+
+            if (!KeyboardTracker.IsRepeatDue(Tracker.CurrentTotalElapsed, heldSince.Value, _LastRepeatedAt[key], RepeatPolicy.InitialDelay, RepeatPolicy.Interval))
+                return null;
+
+            string keyValue = Tracker.KeyToTextInputString(key);
+            BaseKeyRepeatedEventArgs repeatedArgs = new(Tracker, initialPressedArgs, key, keyValue);
+            _LastRepeatedAt[key] = Tracker.CurrentTotalElapsed;
+            return repeatedArgs;
         }
 
         private bool IsValid = true;

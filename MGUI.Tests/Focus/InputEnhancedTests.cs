@@ -179,42 +179,83 @@ public class InputEnhancedTests
     }
 
     [Fact]
-    public void KeyboardTracker_KeyRepeat_FiresAfterInitialDelayAndInterval()
+    public void KeyboardHandler_KeyRepeat_UsesLocalPolicyTiming()
     {
         InputTracker tracker = new();
-        tracker.Keyboard.InitialRepeatDelay = TimeSpan.FromMilliseconds(300);
-        tracker.Keyboard.RepeatInterval = TimeSpan.FromMilliseconds(100);
+        KeyboardHost host = new();
+        KeyboardHandler handler = tracker.Keyboard.CreateHandler(host, 10);
+        handler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        handler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+
+        int repeatCount = 0;
+        handler.KeyRepeat += (_, _) => repeatCount++;
 
         tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
         Assert.NotNull(tracker.Keyboard.CurrentKeyPressedEvents[Keys.A]);
-        Assert.Null(tracker.Keyboard.CurrentKeyRepeatedEvents[Keys.A]);
+        Assert.Equal(0, repeatCount);
 
         tracker.Update(CreateUpdateArgs(200, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
-        Assert.Null(tracker.Keyboard.CurrentKeyRepeatedEvents[Keys.A]);
+        tracker.Keyboard.UpdateHandlers();
+        Assert.Equal(0, repeatCount);
 
         tracker.Update(CreateUpdateArgs(320, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
-        Assert.NotNull(tracker.Keyboard.CurrentKeyRepeatedEvents[Keys.A]);
+        tracker.Keyboard.UpdateHandlers();
+        Assert.Equal(1, repeatCount);
 
         tracker.Update(CreateUpdateArgs(370, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
-        Assert.Null(tracker.Keyboard.CurrentKeyRepeatedEvents[Keys.A]);
+        tracker.Keyboard.UpdateHandlers();
+        Assert.Equal(1, repeatCount);
 
         tracker.Update(CreateUpdateArgs(430, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
-        Assert.NotNull(tracker.Keyboard.CurrentKeyRepeatedEvents[Keys.A]);
+        tracker.Keyboard.UpdateHandlers();
+        Assert.Equal(2, repeatCount);
 
         tracker.Update(CreateUpdateArgs(470, CreateMouseState(Point.Zero), new KeyboardState()));
         Assert.NotNull(tracker.Keyboard.CurrentKeyReleasedEvents[Keys.A]);
-        Assert.Null(tracker.Keyboard.CurrentKeyRepeatedEvents[Keys.A]);
+        tracker.Keyboard.UpdateHandlers();
+        Assert.Equal(2, repeatCount);
+    }
+
+    [Fact]
+    public void KeyboardHandler_LocalRepeatPolicies_DoNotInterfere()
+    {
+        InputTracker tracker = new();
+        KeyboardHost fastHost = new();
+        KeyboardHost slowHost = new();
+        KeyboardHandler fastHandler = tracker.Keyboard.CreateHandler(fastHost, 20, false, true);
+        KeyboardHandler slowHandler = tracker.Keyboard.CreateHandler(slowHost, 10, false, true);
+
+        fastHandler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        fastHandler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+        slowHandler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(500);
+        slowHandler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(200);
+
+        int fastRepeats = 0;
+        int slowRepeats = 0;
+        fastHandler.KeyRepeat += (_, _) => fastRepeats++;
+        slowHandler.KeyRepeat += (_, _) => slowRepeats++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(320, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(520, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+
+        Assert.Equal(2, fastRepeats);
+        Assert.Equal(1, slowRepeats);
     }
 
     [Fact]
     public void KeyboardHandler_KeyDownKeyRepeatAndKeyUp_AreInvoked()
     {
         InputTracker tracker = new();
-        tracker.Keyboard.InitialRepeatDelay = TimeSpan.FromMilliseconds(300);
-        tracker.Keyboard.RepeatInterval = TimeSpan.FromMilliseconds(100);
 
         KeyboardHost host = new();
         KeyboardHandler handler = tracker.Keyboard.CreateHandler(host, 10);
+        handler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        handler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
 
         int keyDownCount = 0;
         int keyRepeatCount = 0;

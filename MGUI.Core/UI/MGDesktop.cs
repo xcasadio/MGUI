@@ -34,7 +34,6 @@ namespace MGUI.Core.UI
 
         internal static bool HasKeyboardActivity(KeyboardTracker keyboard)
             => keyboard.CurrentKeyPressedEvents.Values.Any(x => x != null)
-            || keyboard.CurrentKeyRepeatedEvents.Values.Any(x => x != null)
             || keyboard.CurrentKeyReleasedEvents.Values.Any(x => x != null)
             || keyboard.CurrentKeyClickedEvents.Values.Any(x => x != null);
 

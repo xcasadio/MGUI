@@ -922,6 +922,7 @@ namespace MGUI.Core.UI
                 if (_IsHeldKeyRepeated != value)
                 {
                     _IsHeldKeyRepeated = value;
+                    SyncKeyboardRepeatPolicy();
                     NPC(nameof(IsHeldKeyRepeated));
                 }
             }
@@ -939,6 +940,7 @@ namespace MGUI.Core.UI
                 if (_InitialKeyRepeatDelay != value)
                 {
                     _InitialKeyRepeatDelay = value;
+                    SyncKeyboardRepeatPolicy();
                     NPC(nameof(InitialKeyRepeatDelay));
                 }
             }
@@ -956,6 +958,7 @@ namespace MGUI.Core.UI
                 if (_KeyRepeatInterval != value)
                 {
                     _KeyRepeatInterval = value;
+                    SyncKeyboardRepeatPolicy();
                     NPC(nameof(KeyRepeatInterval));
                 }
             }
@@ -1198,14 +1201,12 @@ namespace MGUI.Core.UI
                 {
                     if (e.PreviousValue == this || e.NewValue == this)
                     {
-                        SyncKeyboardRepeatSettings();
                         UpdateFormattedText(true);
                     }
                 };
 
                 KeyboardHandler.Pressed += (sender, e) =>
                 {
-                    SyncKeyboardRepeatSettings();
                     HandleKeyPress(e);
                     e.SetHandledBy(this, false);
                 };
@@ -1218,16 +1219,19 @@ namespace MGUI.Core.UI
                     HandleKeyPress(e);
                     e.SetHandledBy(this, false);
                 };
+
+                SyncKeyboardRepeatPolicy();
             }
         }
 
-        private void SyncKeyboardRepeatSettings()
+        private void SyncKeyboardRepeatPolicy()
         {
-            if (GetDesktop().FocusedKeyboardHandler == this)
-            {
-                KeyboardHandler.Tracker.InitialRepeatDelay = InitialKeyRepeatDelay;
-                KeyboardHandler.Tracker.RepeatInterval = KeyRepeatInterval;
-            }
+            if (KeyboardHandler == null)
+                return;
+
+            KeyboardHandler.RepeatPolicy.Enabled = IsHeldKeyRepeated;
+            KeyboardHandler.RepeatPolicy.InitialDelay = InitialKeyRepeatDelay;
+            KeyboardHandler.RepeatPolicy.Interval = KeyRepeatInterval;
         }
 
         #region Scrolling
@@ -1573,7 +1577,7 @@ namespace MGUI.Core.UI
             if (EnableScrolling)
                 EnsureCaretVisible();
             if (GetDesktop().FocusedKeyboardHandler == this)
-                SyncKeyboardRepeatSettings();
+                SyncKeyboardRepeatPolicy();
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)

@@ -27,8 +27,6 @@ namespace MGUI.Shared.Input.Keyboard
         /// <summary>The maximum amount of time that can pass between a key press and key release 
         /// to still be registed as a Click event (<see cref="KeyboardHandler.Clicked"/>)</summary>
         public TimeSpan ClickTimeThreshold { get; set; } = TimeSpan.FromMilliseconds(300);
-        public TimeSpan InitialRepeatDelay { get; set; } = TimeSpan.FromMilliseconds(500);
-        public TimeSpan RepeatInterval { get; set; } = TimeSpan.FromMilliseconds(1000.0 / 30.0);
 
         public InputTracker InputTracker { get; }
 
@@ -40,6 +38,7 @@ namespace MGUI.Shared.Input.Keyboard
 
         public KeyboardState PreviousState { get; private set; }
         public KeyboardState CurrentState { get; private set; }
+        internal TimeSpan CurrentTotalElapsed { get; private set; }
 
         internal KeyboardTracker(InputTracker InputTracker)
         {
@@ -83,12 +82,7 @@ namespace MGUI.Shared.Input.Keyboard
         /// <summary>The Key click events that occurred on the current Update tick, or null if the key wasn't just clicked on the current Update tick.</summary>
         public IReadOnlyDictionary<Keys, BaseKeyClickedEventArgs> CurrentKeyClickedEvents => _CurrentKeyClickedEvents;
 
-        private readonly Dictionary<Keys, BaseKeyRepeatedEventArgs> _CurrentKeyRepeatedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyRepeatedEventArgs);
-        /// <summary>The Key repeat events that occurred on the current Update tick, or null if the key was not repeated on the current Update tick.</summary>
-        public IReadOnlyDictionary<Keys, BaseKeyRepeatedEventArgs> CurrentKeyRepeatedEvents => _CurrentKeyRepeatedEvents;
-
         private readonly Dictionary<Keys, TimeSpan?> _HeldSince = AllKeys.ToDictionary(x => x, _ => (TimeSpan?)null);
-        private readonly Dictionary<Keys, TimeSpan?> _LastRepeatedAt = AllKeys.ToDictionary(x => x, _ => (TimeSpan?)null);
         #endregion Events
 
         public IReadOnlyDictionary<Keys, BaseKeyPressedEventArgs> CurrentKeyDownEvents => _CurrentKeyPressedEvents;
@@ -105,17 +99,22 @@ namespace MGUI.Shared.Input.Keyboard
         public bool IsControlDown => IsAnyPressed(Keys.LeftControl, Keys.RightControl);
         public bool IsAltDown => IsAnyPressed(Keys.LeftAlt, Keys.RightAlt);
 
+        internal bool TryGetInitialPressedEvent(Keys Key, out BaseKeyPressedEventArgs PressedArgs)
+            => RecentKeyPressedEvents.TryGetValue(Key, out PressedArgs) && PressedArgs != null;
+
+        internal TimeSpan? GetHeldSince(Keys Key) => _HeldSince[Key];
+
         internal void Update(UpdateBaseArgs BA)
         {
             PreviousState = CurrentState;
             CurrentState = BA.KeyboardState;
+            CurrentTotalElapsed = BA.TotalElapsed;
 
             foreach (Keys Key in AllKeys)
             {
                 _CurrentKeyPressedEvents[Key] = null;
                 _CurrentKeyReleasedEvents[Key] = null;
                 _CurrentKeyClickedEvents[Key] = null;
-                _CurrentKeyRepeatedEvents[Key] = null;
             }
 
             List<Keys> PreviousKeys = PreviousState.GetPressedKeys().ToList();
@@ -131,23 +130,6 @@ namespace MGUI.Shared.Input.Keyboard
                     RecentKeyPressedEvents[Key] = PressedArgs;
                     _CurrentKeyPressedEvents[Key] = PressedArgs;
                     _HeldSince[Key] = BA.TotalElapsed;
-                    _LastRepeatedAt[Key] = null;
-                }
-            }
-
-            foreach (Keys Key in CurrentKeys)
-            {
-                if (PreviousKeys.Contains(Key)
-                    && RecentKeyPressedEvents.TryGetValue(Key, out BaseKeyPressedEventArgs PressedArgs)
-                    && PressedArgs != null
-                    && ShouldRepeatKey(Key)
-                    && _HeldSince[Key].HasValue
-                    && IsRepeatDue(BA.TotalElapsed, _HeldSince[Key].Value, _LastRepeatedAt[Key], InitialRepeatDelay, RepeatInterval))
-                {
-                    string KeyValue = KeyToTextInputString(Key);
-                    BaseKeyRepeatedEventArgs RepeatedArgs = new(this, PressedArgs, Key, KeyValue);
-                    _CurrentKeyRepeatedEvents[Key] = RepeatedArgs;
-                    _LastRepeatedAt[Key] = BA.TotalElapsed;
                 }
             }
 
@@ -174,7 +156,6 @@ namespace MGUI.Shared.Input.Keyboard
                     }
 
                     _HeldSince[Key] = null;
-                    _LastRepeatedAt[Key] = null;
                 }
             }
         }
