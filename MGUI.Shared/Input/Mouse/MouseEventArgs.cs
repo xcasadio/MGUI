@@ -106,13 +106,24 @@ namespace MGUI.Shared.Input.Mouse
     {
         public MouseTracker Tracker { get; }
 
+        /// <summary>The release event that completed this click.</summary>
         public BaseMouseReleasedEventArgs ReleasedArgs { get; }
         public BaseMousePressedEventArgs PressedArgs => ReleasedArgs?.PressedArgs;
+
+        /// <summary>The previous click in the same candidate multi-click sequence, if any.</summary>
         public BaseMouseClickedEventArgs PreviousClickInSequence { get; }
+
+        /// <summary>An identifier shared by clicks that belong to the same candidate multi-click sequence.</summary>
         public long MultiClickSequenceId { get; }
 
+        /// <summary>The raw click count within the current candidate multi-click sequence.</summary>
         public int ClickCount { get; }
-        public bool IsDoubleClick => ClickCount >= 2;
+
+        /// <summary>True only for the second click in a sequence.</summary>
+        public bool IsDoubleClick => ClickCount == 2;
+
+        /// <summary>True when this click belongs to any multi-click sequence.</summary>
+        public bool IsMultiClick => ClickCount > 1;
 
         public MouseButton Button { get; }
         public Point Position { get; }

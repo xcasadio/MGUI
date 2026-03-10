@@ -47,6 +47,8 @@ public class InputEnhancedTests
         BaseMouseClickedEventArgs firstClick = tracker.Mouse.CurrentButtonClickedEvents[button];
         Assert.NotNull(firstClick);
         Assert.Equal(1, firstClick.ClickCount);
+        Assert.False(firstClick.IsDoubleClick);
+        Assert.False(firstClick.IsMultiClick);
         Assert.Null(tracker.Mouse.CurrentButtonDoubleClickedEvents[button]);
 
         tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(12, 12), button), new KeyboardState()));
@@ -55,6 +57,8 @@ public class InputEnhancedTests
         BaseMouseClickedEventArgs secondClick = tracker.Mouse.CurrentButtonClickedEvents[button];
         Assert.NotNull(secondClick);
         Assert.Equal(2, secondClick.ClickCount);
+        Assert.True(secondClick.IsDoubleClick);
+        Assert.True(secondClick.IsMultiClick);
         Assert.Same(secondClick, tracker.Mouse.CurrentButtonDoubleClickedEvents[button]);
     }
 
@@ -128,6 +132,8 @@ public class InputEnhancedTests
         BaseMouseClickedEventArgs thirdClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
         Assert.NotNull(thirdClick);
         Assert.Equal(3, thirdClick.ClickCount);
+        Assert.False(thirdClick.IsDoubleClick);
+        Assert.True(thirdClick.IsMultiClick);
         Assert.Null(tracker.Mouse.CurrentButtonDoubleClickedEvents[MouseButton.Left]);
     }
 
