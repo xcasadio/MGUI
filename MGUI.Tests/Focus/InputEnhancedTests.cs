@@ -179,6 +179,29 @@ public class InputEnhancedTests
     }
 
     [Fact]
+    public void MouseTracker_DistinctMultiClickSequences_GetDistinctSequenceIds()
+    {
+        InputTracker tracker = new();
+        tracker.Mouse.MultiClickPositionThreshold = 2;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        BaseMouseClickedEventArgs firstSequenceClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+
+        tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(30, 30), MouseButton.Left), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(70, CreateMouseState(new Point(30, 30)), new KeyboardState()));
+        BaseMouseClickedEventArgs secondSequenceClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+
+        Assert.NotNull(firstSequenceClick);
+        Assert.NotNull(secondSequenceClick);
+        Assert.Equal(1, firstSequenceClick.ClickCount);
+        Assert.Equal(1, secondSequenceClick.ClickCount);
+        Assert.NotEqual(firstSequenceClick.MultiClickSequenceId, secondSequenceClick.MultiClickSequenceId);
+        Assert.Null(secondSequenceClick.PreviousClickInSequence);
+    }
+
+    [Fact]
     public void KeyboardHandler_KeyRepeat_UsesLocalPolicyTiming()
     {
         InputTracker tracker = new();
@@ -327,6 +350,47 @@ public class InputEnhancedTests
         Assert.Equal(1, originalKeyUp);
         Assert.Equal(0, newFocusedRepeats);
         Assert.Equal(0, newFocusedKeyUp);
+    }
+
+    [Fact]
+    public void KeyboardHandler_UnhandledKeyStream_CanFollowFocusChanges()
+    {
+        InputTracker tracker = new();
+        KeyboardHost originalHost = new() { HasFocus = true };
+        KeyboardHost newFocusedHost = new() { HasFocus = false };
+        KeyboardHandler originalHandler = tracker.Keyboard.CreateHandler(originalHost, 20);
+        KeyboardHandler newFocusedHandler = tracker.Keyboard.CreateHandler(newFocusedHost, 10, false, true);
+
+        originalHandler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        originalHandler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+        newFocusedHandler.RepeatPolicy.InitialDelay = TimeSpan.FromMilliseconds(300);
+        newFocusedHandler.RepeatPolicy.Interval = TimeSpan.FromMilliseconds(100);
+
+        int originalKeyDown = 0;
+        int originalRepeats = 0;
+        int newFocusedRepeats = 0;
+        int newFocusedKeyUp = 0;
+
+        originalHandler.KeyDown += (_, _) => originalKeyDown++;
+        originalHandler.KeyRepeat += (_, _) => originalRepeats++;
+        newFocusedHandler.KeyRepeat += (_, _) => newFocusedRepeats++;
+        newFocusedHandler.KeyUp += (_, _) => newFocusedKeyUp++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+
+        originalHost.HasFocus = false;
+        newFocusedHost.HasFocus = true;
+
+        tracker.Update(CreateUpdateArgs(320, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(470, CreateMouseState(Point.Zero), new KeyboardState()));
+        tracker.Keyboard.UpdateHandlers();
+
+        Assert.Equal(1, originalKeyDown);
+        Assert.Equal(0, originalRepeats);
+        Assert.Equal(1, newFocusedRepeats);
+        Assert.Equal(1, newFocusedKeyUp);
     }
 
     [Theory]
