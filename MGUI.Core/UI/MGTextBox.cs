@@ -30,6 +30,19 @@ namespace MGUI.Core.UI
     {
         public override bool CanHandleKeyboardInput => true;
 
+        internal static bool ShouldPreserveTextEntryKey(Keys key, bool isReadonly, bool acceptsReturn, bool acceptsTab)
+            => key switch
+            {
+                Keys.Left or Keys.Right or Keys.Up or Keys.Down or Keys.Home or Keys.End => true,
+                Keys.Space => !isReadonly,
+                Keys.Enter => !isReadonly && acceptsReturn,
+                Keys.Tab => !isReadonly && acceptsTab,
+                _ => false
+            };
+
+        internal bool ShouldPreserveTextEntryKey(Keys key)
+            => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }

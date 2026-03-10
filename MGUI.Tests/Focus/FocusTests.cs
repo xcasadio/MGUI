@@ -230,6 +230,24 @@ public class FocusTests
     }
 
     [Theory]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Left, false, false, false, true)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Home, true, false, false, true)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Space, false, false, false, true)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Space, true, false, false, false)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Enter, false, true, false, true)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Enter, false, false, false, false)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Enter, true, true, false, false)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Tab, false, false, true, true)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.Tab, false, false, false, false)]
+    [InlineData(Microsoft.Xna.Framework.Input.Keys.PageDown, false, false, false, false)]
+    public void TextBox_ShouldPreserveTextEntryKey_ReturnsExpectedValue(Microsoft.Xna.Framework.Input.Keys key, bool isReadonly, bool acceptsReturn, bool acceptsTab, bool expected)
+    {
+        bool actual = MGUI.Core.UI.MGTextBox.ShouldPreserveTextEntryKey(key, isReadonly, acceptsReturn, acceptsTab);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(0, -1, true, -1)]
     [InlineData(3, -1, true, 0)]
     [InlineData(3, -1, false, 2)]

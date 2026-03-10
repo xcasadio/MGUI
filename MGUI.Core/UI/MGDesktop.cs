@@ -337,10 +337,13 @@ namespace MGUI.Core.UI
 
         private bool TryDispatchNavigationAction(BaseKeyPressedEventArgs e)
         {
+            MGElement focusedElement = FocusedKeyboardHandler;
+            if (focusedElement is MGTextBox focusedTextBox && focusedTextBox.ShouldPreserveTextEntryKey(e.Key))
+                return false;
+
             if (!TryMapNavigationAction(e.Key, e.Tracker.IsShiftDown, out UINavigationAction action))
                 return false;
 
-            MGElement focusedElement = FocusedKeyboardHandler;
             Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
             if (TryDispatchNavigationAction(action, tryHandleFocusedAction))
             {
