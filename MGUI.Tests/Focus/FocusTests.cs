@@ -313,6 +313,19 @@ public class FocusTests
         Assert.Equal(expected, actual);
     }
 
+    [Theory]
+    [InlineData("default", "last", "first", true, "default")]
+    [InlineData(null, "last", "first", true, "last")]
+    [InlineData("default", "last", "first", false, "last")]
+    [InlineData("default", null, "first", false, "default")]
+    [InlineData(null, null, "first", false, "first")]
+    public void ResolveAutoFocusTarget_ReturnsExpectedTarget(string? defaultFocus, string? lastFocused, string? firstFocusable, bool preferWindowDefault, string expected)
+    {
+        string? actual = MGUI.Core.UI.MGDesktop.ResolveAutoFocusTarget(defaultFocus, lastFocused, firstFocusable, preferWindowDefault);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void FindDirectionalNavigationTarget_FindsNearestDownCandidate()
     {

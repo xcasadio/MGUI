@@ -152,6 +152,12 @@ namespace MGUI.Core.UI
         internal static bool TryDispatchNavigationAction(UINavigationAction action, Func<UINavigationAction, bool> tryHandleFocusedAction)
             => tryHandleFocusedAction?.Invoke(action) == true;
 
+        internal static T ResolveAutoFocusTarget<T>(T defaultFocus, T lastFocused, T firstFocusable, bool preferWindowDefault)
+            where T : class
+            => preferWindowDefault
+                ? defaultFocus ?? lastFocused ?? firstFocusable
+                : lastFocused ?? defaultFocus ?? firstFocusable;
+
         private static readonly IReadOnlyList<GamePadButton> GamePadNavigationButtons = new[]
         {
             GamePadButton.A,
@@ -331,9 +337,8 @@ namespace MGUI.Core.UI
             && element.DerivedIsHitTestVisible
             && element.Visibility == Visibility.Visible;
 
-        public IReadOnlyList<MGElement> GetFocusableElements()
+        private static IReadOnlyList<MGElement> GetFocusableElements(MGElement root)
         {
-            MGElement root = GetNavigationRoot();
             if (root == null)
                 return Array.Empty<MGElement>();
 
@@ -344,6 +349,12 @@ namespace MGUI.Core.UI
                 .ThenBy(x => x.ActualLayoutBounds.Top)
                 .ThenBy(x => x.ActualLayoutBounds.Left)
                 .ToList();
+        }
+
+        public IReadOnlyList<MGElement> GetFocusableElements()
+        {
+            MGElement root = GetNavigationRoot();
+            return GetFocusableElements(root);
         }
 
         public bool MoveFocusNext()
@@ -744,6 +755,7 @@ namespace MGUI.Core.UI
 
         #region Keyboard Focus
         internal MGElement QueuedFocusedKeyboardHandler { get; set; } = null;
+        private readonly Dictionary<MGWindow, MGElement> WindowFocusHistory = new();
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGElement _FocusedKeyboardHandler;
@@ -768,6 +780,9 @@ namespace MGUI.Core.UI
                     if (FocusedKeyboardHandler is MGTextBox CurrentTextBox)
                         CurrentTextBox.ReadonlyChanged += TextBox_ReadonlyChanged;
 
+                    if (FocusedKeyboardHandler?.SelfOrParentWindow != null)
+                        WindowFocusHistory[FocusedKeyboardHandler.SelfOrParentWindow] = FocusedKeyboardHandler;
+
                     if (FocusedKeyboardHandler != null)
                         EnsureFocusedElementVisible(FocusedKeyboardHandler);
 
@@ -790,6 +805,58 @@ namespace MGUI.Core.UI
                 if (current is MGScrollViewer scrollViewer)
                     scrollViewer.EnsureElementVisible(focusedElement);
             }
+        }
+
+        private MGElement ResolveAutoFocusTarget(MGElement root, bool preferWindowDefault)
+        {
+            if (root is not MGWindow window)
+                return GetFocusableElements(root).FirstOrDefault();
+
+            MGElement defaultFocus = window.DefaultFocusElement;
+            MGElement lastFocused = WindowFocusHistory.TryGetValue(window, out MGElement previousFocus) ? previousFocus : null;
+            MGElement firstFocusable = GetFocusableElements(window).FirstOrDefault();
+
+            defaultFocus = IsNavigationTarget(defaultFocus) && window.IsSelfOrAncestorOf(defaultFocus) ? defaultFocus : null;
+            lastFocused = IsNavigationTarget(lastFocused) && window.IsSelfOrAncestorOf(lastFocused) ? lastFocused : null;
+
+            return ResolveAutoFocusTarget(defaultFocus, lastFocused, firstFocusable, preferWindowDefault);
+        }
+
+        private void QueueAutoFocusIfNeeded(bool preferWindowDefault)
+        {
+            if (ActiveInputMode == UIInputMode.Pointer || QueuedFocusedKeyboardHandler != null || FocusedKeyboardHandler != null)
+                return;
+
+            MGElement target = ResolveAutoFocusTarget(GetNavigationRoot(), preferWindowDefault);
+            if (target != null)
+                QueuedFocusedKeyboardHandler = target;
+        }
+
+        internal void NotifyWindowOpened(MGWindow window)
+        {
+            if (window == null || ActiveInputMode == UIInputMode.Pointer)
+                return;
+
+            MGElement target = ResolveAutoFocusTarget(window, true);
+            if (target != null)
+                QueuedFocusedKeyboardHandler = target;
+        }
+
+        internal void NotifyWindowClosed(MGWindow window)
+        {
+            if (window == null)
+                return;
+
+            WindowFocusHistory.Remove(window);
+
+            if (QueuedFocusedKeyboardHandler?.SelfOrParentWindow == window)
+                QueuedFocusedKeyboardHandler = null;
+
+            if (FocusedKeyboardHandler?.SelfOrParentWindow == window)
+                FocusedKeyboardHandler = null;
+
+            if (ActiveInputMode != UIInputMode.Pointer)
+                QueueAutoFocusIfNeeded(false);
         }
 
         public event EventHandler<EventArgs<MGElement>> FocusedKeyboardHandlerChanged;
@@ -971,6 +1038,7 @@ namespace MGUI.Core.UI
             bool isTextEntryFocused = focusCandidate is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
             bool hasNavigationActivity = HasKeyboardActivity(InputTracker.Keyboard) || InputTracker.GamePad.HasActivity();
             ActiveInputMode = ResolveInputMode(HasMouseActivity(InputTracker.Mouse), hasNavigationActivity, isTextEntryFocused, ActiveInputMode);
+            QueueAutoFocusIfNeeded(true);
 
             HighPriorityMouseHandler.ManualUpdate();
             HighPriorityKeyboardHandler.ManualUpdate();

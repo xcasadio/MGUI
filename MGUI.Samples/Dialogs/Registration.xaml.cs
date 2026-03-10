@@ -36,6 +36,8 @@ namespace MGUI.Samples.Dialogs
             MGCheckBox CheckBox_TOS = Window.GetElementByName<MGCheckBox>("CheckBox_TOS");
             MGButton Button_Register = Window.GetElementByName<MGButton>("Button_Register");
 
+            Window.DefaultFocusElement = TextBox_Email;
+
             //  React to the terms of service checkbox
             CheckBox_TOS.OnCheckStateChanged += (sender, e) =>
             {

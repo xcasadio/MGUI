@@ -20,6 +20,7 @@ namespace MGUI.Samples.Controls
             ScrollViewer1 = Window.GetElementByName<MGScrollViewer>("ScrollViewer1");
 
             TextBox_SV1VerticalOffset = Window.GetElementByName<MGTextBox>("TextBox_SV1VerticalOffset");
+            Window.DefaultFocusElement = TextBox_SV1VerticalOffset;
             Window.GetResources().AddCommand("ApplyScrollViewer1VerticalOffset", x => {
                 if (float.TryParse(TextBox_SV1VerticalOffset.Text, out float DesiredOffset))
                     ScrollViewer1.VerticalOffset = DesiredOffset;

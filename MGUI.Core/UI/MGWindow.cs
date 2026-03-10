@@ -35,6 +35,7 @@ namespace MGUI.Core.UI
     public class MGWindow : MGSingleContentHost
     {
         public MGDesktop Desktop { get; }
+        public MGElement DefaultFocusElement { get; set; }
 
         #region Position / Size
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -375,6 +376,8 @@ namespace MGUI.Core.UI
                 {
                     MGWindow Previous = ModalWindow;
                     _ModalWindow = value;
+                    if (_ModalWindow != null)
+                        Desktop.NotifyWindowOpened(_ModalWindow);
                     NPC(nameof(ModalWindow));
                     NPC(nameof(HasModalWindow));
                     Previous?.NPC(nameof(IsModalWindow));
@@ -403,6 +406,7 @@ namespace MGUI.Core.UI
             if (NestedWindow == this)
                 throw new ArgumentException("Cannot add a window as a nested window to itself as this would create an infinite recursive dependency.");
             _NestedWindows.Add(NestedWindow);
+            Desktop.NotifyWindowOpened(NestedWindow);
         }
         public bool RemoveNestedWindow(MGWindow NestedWindow) => _NestedWindows.Remove(NestedWindow);
 
@@ -565,7 +569,10 @@ namespace MGUI.Core.UI
                     IsClosed = Desktop.Windows.Remove(this);
 
                 if (IsClosed)
+                {
+                    Desktop.NotifyWindowClosed(this);
                     WindowClosed?.Invoke(this, EventArgs.Empty);
+                }
                 return IsClosed;
             }
 
