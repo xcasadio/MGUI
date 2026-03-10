@@ -40,6 +40,9 @@ namespace MGUI.Core.UI
                 _ => false
             };
 
+        internal static bool ShouldProcessRepeatedKey(bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
+            => isHeldKeyRepeated && !isControlDown && (isPrintableKey || key is Keys.Back or Keys.Delete or Keys.Left or Keys.Right or Keys.Up or Keys.Down);
+
         internal bool ShouldPreserveTextEntryKey(Keys key)
             => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
 
@@ -905,16 +908,6 @@ namespace MGUI.Core.UI
             }
         }
 
-        private record struct RecentKeyPress(BaseKeyPressedEventArgs KeyArgs)
-        {
-            public DateTime PressedAt { get; } = DateTime.Now;
-            public DateTime RepeatedAt { get; set; } = DateTime.Now;
-            public bool PressedWithin(TimeSpan t) => DateTime.Now.Subtract(PressedAt) <= t;
-            public bool RepeatedWithin(TimeSpan t) => DateTime.Now.Subtract(RepeatedAt) <= t;
-        }
-
-        private RecentKeyPress? LastKeyPress { get; set; } = null;
-
         [DebuggerBrowsable (DebuggerBrowsableState.Never)]
         private bool _IsHeldKeyRepeated = true;
         /// <summary>If true, the most-recently pressed key will be repeatedly inputted (~30 times/second). Default value: true<br/>
@@ -1205,25 +1198,35 @@ namespace MGUI.Core.UI
                 {
                     if (e.PreviousValue == this || e.NewValue == this)
                     {
-                        LastKeyPress = null;
+                        SyncKeyboardRepeatSettings();
                         UpdateFormattedText(true);
                     }
                 };
 
                 KeyboardHandler.Pressed += (sender, e) =>
                 {
-                    LastKeyPress = new(e);
+                    SyncKeyboardRepeatSettings();
                     HandleKeyPress(e);
                     e.SetHandledBy(this, false);
                 };
 
-                KeyboardHandler.Released += (sender, e) =>
+                KeyboardHandler.KeyRepeat += (sender, e) =>
                 {
-                    if (e.Key == LastKeyPress?.KeyArgs.Key)
-                    {
-                        LastKeyPress = null;
-                    }
+                    if (!ShouldProcessRepeatedKey(IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key))
+                        return;
+
+                    HandleKeyPress(e);
+                    e.SetHandledBy(this, false);
                 };
+            }
+        }
+
+        private void SyncKeyboardRepeatSettings()
+        {
+            if (GetDesktop().FocusedKeyboardHandler == this)
+            {
+                KeyboardHandler.Tracker.InitialRepeatDelay = InitialKeyRepeatDelay;
+                KeyboardHandler.Tracker.RepeatInterval = KeyRepeatInterval;
             }
         }
 
@@ -1569,20 +1572,8 @@ namespace MGUI.Core.UI
             base.UpdateSelf(UA);
             if (EnableScrolling)
                 EnsureCaretVisible();
-            if (IsEnabled && !IsReadonly && IsHitTestVisible && IsHeldKeyRepeated && GetDesktop().FocusedKeyboardHandler == this &&
-                LastKeyPress.HasValue && !LastKeyPress.Value.PressedWithin(InitialKeyRepeatDelay) && !LastKeyPress.Value.RepeatedWithin(KeyRepeatInterval))
-            {
-                BaseKeyPressedEventArgs KeyArgs = LastKeyPress.Value.KeyArgs;
-
-                //  Probably don't want to repeat things like function keys, INS, PRTSCR etc.
-                //  Also probably don't want to repeat keys while control is pressed because that could repeatedly execute keyboard shortcuts like Ctrl+V (Or maybe we do want that?)
-                bool IsRepeatableKey = !KeyArgs.Tracker.IsControlDown && (KeyArgs.IsPrintableKey || KeyArgs.Key is Keys.Back or Keys.Delete or Keys.Left or Keys.Right or Keys.Up or Keys.Down);
-                if (IsRepeatableKey)
-                {
-                    LastKeyPress = LastKeyPress.Value with { RepeatedAt = DateTime.Now };
-                    HandleKeyPress(LastKeyPress.Value.KeyArgs);
-                }
-            }
+            if (GetDesktop().FocusedKeyboardHandler == this)
+                SyncKeyboardRepeatSettings();
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
