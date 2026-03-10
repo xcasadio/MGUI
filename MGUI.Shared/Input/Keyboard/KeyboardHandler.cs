@@ -39,26 +39,48 @@ namespace MGUI.Shared.Input.Keyboard
         private EventHandler<BaseKeyPressedEventArgs> _pressed;
         private EventHandler<BaseKeyReleasedEventArgs> _released;
         private EventHandler<BaseKeyClickedEventArgs> _clicked;
+        private EventHandler<BaseKeyRepeatedEventArgs> _repeated;
+
+        private void RecomputeHasSubscribedEvents()
+            => _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null || _repeated != null;
 
         /// <summary>Invoked immediately after a Key has been pressed.</summary>
         public event EventHandler<BaseKeyPressedEventArgs> Pressed
         {
-            add    { _pressed += value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
-            remove { _pressed -= value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+            add    { _pressed += value; RecomputeHasSubscribedEvents(); }
+            remove { _pressed -= value; RecomputeHasSubscribedEvents(); }
+        }
+        /// <summary>Alias of <see cref="Pressed"/> with desktop-style naming.</summary>
+        public event EventHandler<BaseKeyPressedEventArgs> KeyDown
+        {
+            add    { _pressed += value; RecomputeHasSubscribedEvents(); }
+            remove { _pressed -= value; RecomputeHasSubscribedEvents(); }
         }
         /// <summary>Invoked immediately after a Key has been released.<para/>
         /// Note: This event is invoked before <see cref="Clicked"/></summary>
         public event EventHandler<BaseKeyReleasedEventArgs> Released
         {
-            add    { _released += value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
-            remove { _released -= value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+            add    { _released += value; RecomputeHasSubscribedEvents(); }
+            remove { _released -= value; RecomputeHasSubscribedEvents(); }
+        }
+        /// <summary>Alias of <see cref="Released"/> with desktop-style naming.</summary>
+        public event EventHandler<BaseKeyReleasedEventArgs> KeyUp
+        {
+            add    { _released += value; RecomputeHasSubscribedEvents(); }
+            remove { _released -= value; RecomputeHasSubscribedEvents(); }
         }
         /// <summary>Invoked immediately after a Key has been clicked.<para/>
         /// Note: This event is invoked after <see cref="Released"/></summary>
         public event EventHandler<BaseKeyClickedEventArgs> Clicked
         {
-            add    { _clicked += value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
-            remove { _clicked -= value; _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null; }
+            add    { _clicked += value; RecomputeHasSubscribedEvents(); }
+            remove { _clicked -= value; RecomputeHasSubscribedEvents(); }
+        }
+        /// <summary>Invoked after the initial key press while the key remains held and the repeat thresholds are met.</summary>
+        public event EventHandler<BaseKeyRepeatedEventArgs> KeyRepeat
+        {
+            add    { _repeated += value; RecomputeHasSubscribedEvents(); }
+            remove { _repeated -= value; RecomputeHasSubscribedEvents(); }
         }
 
         private bool _hasSubscribedEvents;
@@ -104,6 +126,14 @@ namespace MGUI.Shared.Input.Keyboard
                         _released.Invoke(this, ReleasedArgs);
                         if (AlwaysHandlesEvents)
                             ReleasedArgs.SetHandledBy(Owner, false);
+                    }
+
+                    BaseKeyRepeatedEventArgs RepeatedArgs = Tracker.CurrentKeyRepeatedEvents[Key];
+                    if (RepeatedArgs != null && _repeated != null && (InvokeEvenIfHandled || !RepeatedArgs.IsHandled))
+                    {
+                        _repeated.Invoke(this, RepeatedArgs);
+                        if (AlwaysHandlesEvents)
+                            RepeatedArgs.SetHandledBy(Owner, false);
                     }
 
                     //  Invoke Key Clicked
