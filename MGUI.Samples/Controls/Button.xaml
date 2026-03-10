@@ -28,13 +28,19 @@
                 Buttons are rectangular clickable controls that can host arbitrary Content inside them.
             </TextBlock>
             <Separator />
-            <Button Name="Button1" Content="Click me!" HorizontalAlignment="Left" Padding="15,5" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="8">
+                <Button Name="Button1" Content="Click me!" HorizontalAlignment="Left" Padding="15,5" />
+                <Button Name="DoubleClickButton" Content="Double-click me!" HorizontalAlignment="Left" Padding="15,5" />
+            </StackPanel>
             
             <DockPanel>
                 <TextBlock Dock="Top">
                     [c=Turquoise]Buttons[/c] execute an Action when clicked.
                 </TextBlock>
                 <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="2">
+                    <TextBlock>
+                        The second button above is wired in code-behind to count only [c=Turquoise]double-clicks[/c].
+                    </TextBlock>
                     <TextBlock>
                         Set [c=Turquoise]CommandName[/c] to associate a particular command to the [c=Turquoise]Button[/c].
                         Commands are stored in [c=Turquoise]MGResources.Commands[/c] (Use [c=Turquoise]MGResources.AddCommand[/c](...) to create one).

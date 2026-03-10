@@ -11,6 +11,7 @@ namespace MGUI.Shared.Input.Mouse
     internal sealed class MouseClickSequenceRoutingMetadata
     {
         public long? ValidatedTargetId { get; set; }
+        public WeakReference<IMouseHandlerHost> ValidatedTargetHost { get; set; }
     }
 
     public class BaseMouseScrolledEventArgs : HandledByEventArgs<IMouseHandlerHost>
@@ -82,17 +83,28 @@ namespace MGUI.Shared.Input.Mouse
         internal bool CanBeAdoptedBy(long TargetId)
             => !RoutingMetadata.ValidatedTargetId.HasValue || RoutingMetadata.ValidatedTargetId == TargetId;
 
-        internal bool TryAdoptTarget(long TargetId)
+        internal bool TryAdoptTarget(long TargetId, IMouseHandlerHost TargetHost)
         {
             if (!CanBeAdoptedBy(TargetId))
                 return false;
 
             RoutingMetadata.ValidatedTargetId = TargetId;
+            RoutingMetadata.ValidatedTargetHost = TargetHost != null ? new(TargetHost) : null;
             return true;
         }
 
         internal bool IsOwnedBy(long TargetId)
             => RoutingMetadata.ValidatedTargetId == TargetId;
+
+        internal bool TryGetValidatedTargetHost(out IMouseHandlerHost TargetHost)
+        {
+            TargetHost = null;
+
+            if (RoutingMetadata.ValidatedTargetHost == null)
+                return false;
+
+            return RoutingMetadata.ValidatedTargetHost.TryGetTarget(out TargetHost);
+        }
     }
 
     public class BaseMousePressedEventArgs : HandledByEventArgs<IMouseHandlerHost>
@@ -173,8 +185,8 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>The raw click count within the current candidate multi-click sequence.</summary>
         public int ClickCount { get; }
 
-        /// <summary>True only for the second click in a sequence.</summary>
-        public bool IsDoubleClick => ClickCount == 2;
+        /// <summary>True when this click completes a recognized double-click pair within the current sequence, such as click counts 2, 4, 6, etc.</summary>
+        public bool IsDoubleClick => MouseTracker.IsDoubleClickCount(ClickCount);
 
         /// <summary>True when this click belongs to any multi-click sequence.</summary>
         public bool IsMultiClick => ClickCount > 1;

@@ -113,7 +113,7 @@ public class InputEnhancedTests
     }
 
     [Fact]
-    public void MouseTracker_DoubleClick_IsOnlyEmittedOnSecondClickTransition()
+    public void MouseTracker_DoubleClick_IsEmittedOnEachRecognizedPair()
     {
         InputTracker tracker = new();
 
@@ -137,6 +137,15 @@ public class InputEnhancedTests
         Assert.False(thirdClick.IsDoubleClick);
         Assert.True(thirdClick.IsMultiClick);
         Assert.Null(tracker.Mouse.CurrentButtonDoubleClickedEvents[MouseButton.Left]);
+
+        tracker.Update(CreateUpdateArgs(165, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(190, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        BaseMouseClickedEventArgs fourthClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+        Assert.NotNull(fourthClick);
+        Assert.Equal(4, fourthClick.ClickCount);
+        Assert.True(fourthClick.IsDoubleClick);
+        Assert.True(fourthClick.IsMultiClick);
+        Assert.Same(fourthClick, tracker.Mouse.CurrentButtonDoubleClickedEvents[MouseButton.Left]);
     }
 
     [Fact]
@@ -205,6 +214,103 @@ public class InputEnhancedTests
         Assert.NotSame(firstSequenceClick.Sequence, secondSequenceClick.Sequence);
         Assert.NotEqual(firstSequenceClick.Sequence.Id, secondSequenceClick.Sequence.Id);
         Assert.Null(secondSequenceClick.PreviousClickInSequence);
+    }
+
+    [Fact]
+    public void MouseTracker_MultiClickSequence_ResetsWhenLogicalThresholdIsExceeded()
+    {
+        InputTracker tracker = new();
+        tracker.Mouse.MultiClickTimeThreshold = TimeSpan.FromMilliseconds(100);
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        BaseMouseClickedEventArgs firstClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+
+        tracker.Update(CreateUpdateArgs(250, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
+        tracker.Update(CreateUpdateArgs(270, CreateMouseState(new Point(12, 12)), new KeyboardState()));
+        BaseMouseClickedEventArgs secondClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+
+        Assert.NotNull(firstClick);
+        Assert.NotNull(secondClick);
+        Assert.Equal(1, secondClick.ClickCount);
+        Assert.NotNull(firstClick.Sequence);
+        Assert.NotNull(secondClick.Sequence);
+        Assert.NotSame(firstClick.Sequence, secondClick.Sequence);
+        Assert.Null(secondClick.PreviousClickInSequence);
+    }
+
+    [Fact]
+    public void MouseHandler_DoubleClickOwnership_IsOwnedByHandlerNotOwnerInstance()
+    {
+        InputTracker tracker = new();
+        MouseHandlerHost sharedHost = new(() => new Rectangle(0, 0, 100, 100));
+        MouseHandler owningHandler = tracker.Mouse.CreateHandler(sharedHost, 20);
+        MouseHandler secondaryHandler = tracker.Mouse.CreateHandler(sharedHost, 10, false, true);
+
+        int owningDoubleClicks = 0;
+        int secondaryDoubleClicks = 0;
+
+        owningHandler.LMBClickedInside += (_, e) => e.SetHandledBy(sharedHost, false);
+        owningHandler.LMBDoubleClickedInside += (_, _) => owningDoubleClicks++;
+        secondaryHandler.LMBDoubleClickedInside += (_, _) => secondaryDoubleClicks++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(10, 10)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(10, 10), MouseButton.Left), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(10, 10)), new KeyboardState()));
+        BaseMouseClickedEventArgs firstClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+        tracker.Mouse.UpdateHandlers();
+
+        tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(10, 10), MouseButton.Left), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(80, CreateMouseState(new Point(10, 10)), new KeyboardState()));
+        BaseMouseClickedEventArgs secondClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+        tracker.Mouse.UpdateHandlers();
+
+        Assert.NotNull(firstClick);
+        Assert.NotNull(secondClick);
+        Assert.True(firstClick.IsHandled);
+        Assert.Same(sharedHost, firstClick.HandledBy);
+        Assert.NotNull(secondClick.Sequence);
+        Assert.Equal(1, owningDoubleClicks);
+        Assert.Equal(0, secondaryDoubleClicks);
+    }
+
+    [Fact]
+    public void MouseHandler_DoubleClick_AllowsLogicalAncestorsOfValidatedTarget()
+    {
+        InputTracker tracker = new();
+        MouseHandlerHost parentHost = new(() => new Rectangle(0, 0, 100, 100));
+        MouseHandlerHost childHost = new(() => new Rectangle(20, 20, 60, 60))
+        {
+            MouseInputParent = parentHost,
+        };
+
+        MouseHandler childHandler = tracker.Mouse.CreateHandler(childHost, 20);
+        MouseHandler parentHandler = tracker.Mouse.CreateHandler(parentHost, 10);
+
+        int childClicks = 0;
+        int parentDoubleClicks = 0;
+
+        childHandler.LMBClickedInside += (_, _) => childClicks++;
+        parentHandler.LMBDoubleClickedInside += (_, _) => parentDoubleClicks++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(40, 40)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(40, 40), MouseButton.Left), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(40, 40)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+
+        tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(40, 40), MouseButton.Left), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(80, CreateMouseState(new Point(40, 40)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+
+        Assert.Equal(2, childClicks);
+        Assert.Equal(1, parentDoubleClicks);
     }
 
     [Fact]
@@ -528,6 +634,7 @@ public class InputEnhancedTests
     [InlineData(true, 1, false)]
     [InlineData(true, 2, true)]
     [InlineData(true, 3, false)]
+    [InlineData(true, 4, true)]
     [InlineData(false, 2, false)]
     public void TreeViewItem_ShouldRaiseItemDoubleClicked_ReturnsExpectedValue(bool hasItems, int clickCount, bool expected)
     {
@@ -540,6 +647,7 @@ public class InputEnhancedTests
     [InlineData(true, 2, true, false, true)]
     [InlineData(true, 2, false, false, false)]
     [InlineData(true, 2, true, true, false)]
+    [InlineData(true, 4, true, false, true)]
     [InlineData(false, 2, true, false, false)]
     public void TreeViewItem_ShouldRaiseItemDoubleClicked_WithSequenceContext_ReturnsExpectedValue(bool hasItems, int clickCount,
         bool sequenceStartedOnHeaderBody, bool clickedExpander, bool expected)

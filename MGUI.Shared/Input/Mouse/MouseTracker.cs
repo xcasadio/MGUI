@@ -20,6 +20,8 @@ namespace MGUI.Shared.Input.Mouse
         private readonly Func<RectangleF> ComputeBoundsF;
         private readonly Func<Vector2> ComputeOffset;
 
+        public IMouseHandlerHost MouseInputParent { get; set; }
+
         public MouseHandlerHost(Func<Rectangle> ComputeBounds)
             : this(ComputeBounds, null) { }
 
@@ -42,6 +44,7 @@ namespace MGUI.Shared.Input.Mouse
 
         Vector2 IMouseViewport.GetOffset() => ComputeOffset?.Invoke() ?? Vector2.Zero;
         bool IMouseViewport.IsInside(Vector2 Position) => ComputeBounds != null ? ComputeBounds().ContainsInclusive(Position) : ComputeBoundsF().ContainsInclusive(Position);
+        IMouseHandlerHost IMouseHandlerHost.GetMouseInputParent() => MouseInputParent;
     }
 
     public interface IMouseViewport
@@ -56,6 +59,7 @@ namespace MGUI.Shared.Input.Mouse
     public interface IMouseHandlerHost : IMouseViewport
     {
         public bool CanReceiveMouseInput() => true;
+        public IMouseHandlerHost GetMouseInputParent() => null;
     }
 
     public enum MouseButton
@@ -387,7 +391,7 @@ namespace MGUI.Shared.Input.Mouse
                         _CurrentButtonClickedEvents[Button] = ClickedArgs;
                         _RecentButtonClickedEvents[Button] = ClickedArgs;
 
-                        if (ClickedArgs.ClickCount == 2)
+                        if (IsDoubleClickCount(ClickedArgs.ClickCount))
                             _CurrentButtonDoubleClickedEvents[Button] = ClickedArgs;
                     }
 
@@ -468,6 +472,9 @@ namespace MGUI.Shared.Input.Mouse
 
             return isWithinTime && isWithinPosition ? PreviousClickedArgs.ClickCount + 1 : 1;
         }
+
+        public static bool IsDoubleClickCount(int ClickCount)
+            => ClickCount > 1 && ClickCount % 2 == 0;
 
         /// <summary>Should be invoked exactly once per Update tick.<para/>
         /// This method will invoke any pending mouse events on its <see cref="Handlers"/> where <see cref="MouseHandler.IsManualUpdate"/> is false.</summary>

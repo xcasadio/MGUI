@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using MGUI.Core.UI.Containers;
+using MGUI.Shared.Input.Mouse;
 using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 
@@ -17,10 +18,10 @@ public class MGTreeViewItem : MGSingleContentHost
         => hasItems && clickCount == 1;
 
     internal static bool ShouldRaiseItemDoubleClicked(bool hasItems, int clickCount)
-        => hasItems && clickCount == 2;
+        => hasItems && MouseTracker.IsDoubleClickCount(clickCount);
 
     internal static bool ShouldRaiseItemDoubleClicked(bool hasItems, int clickCount, bool sequenceStartedOnHeaderBody, bool clickedExpander)
-        => hasItems && clickCount == 2 && sequenceStartedOnHeaderBody && !clickedExpander;
+        => hasItems && MouseTracker.IsDoubleClickCount(clickCount) && sequenceStartedOnHeaderBody && !clickedExpander;
 
     private object _Header;
     private int _Level;

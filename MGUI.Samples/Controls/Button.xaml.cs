@@ -55,6 +55,16 @@ namespace MGUI.Samples.Controls
                 return true;
             };
 
+            int DoubleClickCount = 0;
+            MGButton DoubleClickButton = Window.GetElementByName<MGButton>("DoubleClickButton");
+            DoubleClickButton.MouseHandler.LMBDoubleClickedInside += (sender, e) =>
+            {
+                DoubleClickCount++;
+                string NewText = $"Double-clicked [b]{DoubleClickCount}[/b] time(s)";
+                MGTextBlock TextBlock = DoubleClickButton.Content as MGTextBlock;
+                TextBlock.SetText(NewText, NewText.Length == TextBlock.Text.Length);
+            };
+
             Resources.AddCommand("ReduceOpacity", x => x.Opacity -= 0.1f);
 
             List<Color> Colors = new()

@@ -868,6 +868,7 @@ namespace MGUI.Core.UI
 
 		protected bool _CanReceiveMouseInput { get; private set; }
 		bool IMouseHandlerHost.CanReceiveMouseInput() => _CanReceiveMouseInput;
+        IMouseHandlerHost IMouseHandlerHost.GetMouseInputParent() => Parent;
 
         /// <summary>If true, this element can receive keyboard focus when clicked,
         /// without necessarily being a text input control.<br/>

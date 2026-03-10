@@ -66,9 +66,27 @@ namespace MGUI.Shared.Input.Mouse
         private bool IsInside(Point Position, Vector2 Offset) => IsInside(Position.ToVector2(), Offset);
         private bool IsInside(Vector2 Position, Vector2 Offset) => Owner.IsInside(Position + Offset);
         private void AdoptClickSequence(BaseMouseClickedEventArgs Args)
-            => Args.Sequence?.TryAdoptTarget(TargetIdentityId);
+            => Args.Sequence?.TryAdoptTarget(TargetIdentityId, Owner);
         private bool OwnsClickSequence(BaseMouseClickedEventArgs Args)
             => Args.Sequence?.IsOwnedBy(TargetIdentityId) == true;
+        private bool IsLogicalAncestorOfClickSequenceTarget(BaseMouseClickedEventArgs Args)
+        {
+            if (Args?.Sequence == null || !Args.Sequence.TryGetValidatedTargetHost(out IMouseHandlerHost TargetHost))
+                return false;
+
+            IMouseHandlerHost Current = TargetHost.GetMouseInputParent();
+            while (Current != null)
+            {
+                if (ReferenceEquals(Current, Owner))
+                    return true;
+
+                Current = Current.GetMouseInputParent();
+            }
+
+            return false;
+        }
+        private bool MatchesClickSequenceTarget(BaseMouseClickedEventArgs Args)
+            => OwnsClickSequence(Args) || IsLogicalAncestorOfClickSequenceTarget(Args);
 
         /// <summary>True if the mouse is currently inside the viewport</summary>
         public bool IsHovered => IsInside(Tracker.CurrentState.Position.ToVector2(), Owner.GetOffset());
@@ -574,7 +592,7 @@ namespace MGUI.Shared.Input.Mouse
                                     bool IsClickedInside = IsInside(Args.Position, Offset);
                                     bool CanInvoke = (InvokeEvenIfHandled || !Args.IsHandled || (InvokeIfHandledBySelf && Args.HandledBy == Owner))
                                         && (InvokeEvenIfHandled || !Args.ReleasedArgs.IsHandled || Args.ReleasedArgs.HandledBy == Owner)
-                                        && OwnsClickSequence(Args);
+                                        && MatchesClickSequenceTarget(Args);
 
                                     if (IsClickedInside)
                                     {
