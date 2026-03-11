@@ -37,4 +37,12 @@ public class UIViewTests
         Assert.NotNull(typeof(MainRenderer).GetMethod(nameof(MainRenderer.RegisterView), BindingFlags.Instance | BindingFlags.Public));
         Assert.NotNull(typeof(MainRenderer).GetMethod(nameof(MainRenderer.UnregisterView), BindingFlags.Instance | BindingFlags.Public));
     }
+
+    [Fact]
+    public void MGDesktop_ValidScreenBounds_UsesViewSurfaceWhenAvailable()
+    {
+        string desktopSource = System.IO.File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
+
+        Assert.Contains("View?.Surface.GetBounds() ?? Renderer.Surface.GetBounds()", desktopSource);
+    }
 }
