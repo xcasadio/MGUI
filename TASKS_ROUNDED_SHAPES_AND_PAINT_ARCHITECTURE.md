@@ -245,14 +245,14 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 11. Faire évoluer l’interface des border brushes
 
-- [ ] Modifier l’API des border brushes pour qu’ils travaillent à partir d’une shape commune plutôt qu’à partir de simples bounds rectangulaires.
-- [ ] Éviter une refactorisation brutale de tous les brushes à la fois.
-- [ ] S’appuyer sur la stratégie de compatibilité définie à l’étape précédente.
+- [x] Modifier l’API des border brushes pour qu’ils travaillent à partir d’une shape commune plutôt qu’à partir de simples bounds rectangulaires.
+- [x] Éviter une refactorisation brutale de tous les brushes à la fois.
+- [x] S’appuyer sur la stratégie de compatibilité définie à l’étape précédente.
 
 #### Critère d’acceptation
 
-- [ ] Un border brush reçoit une shape ou une géométrie, pas juste un rectangle brut.
-- [ ] La logique d’arrondi n’est plus recodée brush par brush.
+- [x] Un border brush reçoit une shape ou une géométrie, pas juste un rectangle brut.
+- [x] La logique d’arrondi n’est plus recodée brush par brush.
 
 ---
 

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
 {
@@ -62,6 +63,23 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             {
                 Brush.Draw(DA, Element, new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
             }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            Thickness borderThickness = Shape.NormalizedBorderThickness;
+            if (borderThickness.IsEmpty())
+            {
+                return;
+            }
+
+            if (!Shape.HasRoundedCorners || Brush is not MGSolidFillBrush solidFillBrush)
+            {
+                Draw(DA, Element, Shape.OuterBounds, borderThickness);
+                return;
+            }
+
+            DA.DT.DrawBorderRing(DA.Offset.ToVector2(), Geometry, solidFillBrush.Color * DA.Opacity);
         }
 
         public IBorderBrush Copy() => new MGUniformBorderBrush(Brush.Copy());
