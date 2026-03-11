@@ -57,6 +57,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         {
             if (DA.Opacity > 0 && !DA.Opacity.IsAlmostZero())
             {
+                MGUI.Shared.Rendering.DrawTransaction drawTransaction = DA.Context as MGUI.Shared.Rendering.DrawTransaction;
                 Color drawColor = Color * DA.Opacity * Source.Opacity;
 
                 if (Tile)
@@ -77,7 +78,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                                 Rectangle src = drawW < tileW || drawH < tileH
                                     ? new Rectangle(fullSrc.X, fullSrc.Y, Math.Min(drawW, fullSrc.Width), Math.Min(drawH, fullSrc.Height))
                                     : fullSrc;
-                                DA.DT.DrawTextureTo(Source.Texture, src, dest.GetTranslated(DA.Offset), drawColor);
+                                drawTransaction?.DrawTextureTo(Source.Texture, src, dest.GetTranslated(DA.Offset), drawColor);
                             }
                         }
                     }
@@ -115,7 +116,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     throw new NotImplementedException($"Unrecognized {nameof(Stretch)}: {Stretch}");
                 }
 
-                DA.DT.DrawTextureTo(Source.Texture, Source.SourceRect, Destination.GetTranslated(DA.Offset), drawColor);
+                drawTransaction?.DrawTextureTo(Source.Texture, Source.SourceRect, Destination.GetTranslated(DA.Offset), drawColor);
             }
         }
 

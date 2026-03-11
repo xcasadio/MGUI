@@ -28,6 +28,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
     [TypeConverter(typeof(IFillBrushStringConverter))]
     public interface IFillBrush : ICloneable
     {
+        /// <summary>Draws this brush using the abstract render context carried by <see cref="ElementDrawArgs"/>.</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds);
         public MGUniformBorderBrush AsUniformBorderBrush() => new(this);
 
