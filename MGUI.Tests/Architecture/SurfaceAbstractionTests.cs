@@ -25,4 +25,10 @@ public class SurfaceAbstractionTests
         Assert.NotNull(surfaceProperty);
         Assert.Equal(typeof(IUISurface), surfaceProperty!.PropertyType);
     }
+
+    [Fact]
+    public void BackBufferSurface_ImplementsIUISurface()
+    {
+        Assert.Contains(typeof(IUISurface), typeof(BackBufferSurface).GetInterfaces());
+    }
 }
