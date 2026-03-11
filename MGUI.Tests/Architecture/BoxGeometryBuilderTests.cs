@@ -17,6 +17,9 @@ public class BoxGeometryBuilderTests
         Assert.True(geometry.UsesRectangleFastPath);
         Assert.Equal(4, geometry.OuterContour.Count);
         Assert.False(geometry.HasInnerContour);
+        Assert.Equal(4, geometry.Vertices.Count);
+        Assert.Equal(6, geometry.FillIndices.Count);
+        Assert.False(geometry.HasBorderRingMesh);
     }
 
     [Fact]
@@ -30,6 +33,9 @@ public class BoxGeometryBuilderTests
         Assert.True(geometry.OuterContour.Count > 4);
         Assert.True(geometry.InnerContour.Count > 4);
         Assert.Equal(4, geometry.CornerSegmentCount);
+        Assert.True(geometry.HasFillMesh);
+        Assert.True(geometry.HasBorderRingMesh);
+        Assert.Equal(geometry.OuterContour.Count + geometry.InnerContour.Count, geometry.Vertices.Count);
     }
 
     [Fact]

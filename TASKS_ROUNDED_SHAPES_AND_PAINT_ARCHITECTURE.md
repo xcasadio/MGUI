@@ -157,22 +157,22 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 6. Concevoir une structure de données de géométrie réutilisable
 
-- [ ] Créer un type de sortie pour le geometry builder, par exemple :
-  - [ ] contour externe,
-  - [ ] contour interne,
-  - [ ] vertices,
-  - [ ] indices,
-  - [ ] méta-infos utiles.
-- [ ] La structure doit être réutilisable par :
-  - [ ] fill painter,
-  - [ ] stroke painter,
-  - [ ] future clip shape,
-  - [ ] future hit test.
+- [x] Créer un type de sortie pour le geometry builder, par exemple :
+  - [x] contour externe,
+  - [x] contour interne,
+  - [x] vertices,
+  - [x] indices,
+  - [x] méta-infos utiles.
+- [x] La structure doit être réutilisable par :
+  - [x] fill painter,
+  - [x] stroke painter,
+  - [x] future clip shape,
+  - [x] future hit test.
 
 #### Critère d’acceptation
 
-- [ ] Les painters consomment une géométrie déjà calculée.
-- [ ] Les données ne sont pas recalculées inutilement dans chaque brush.
+- [x] Les painters consomment une géométrie déjà calculée.
+- [x] Les données ne sont pas recalculées inutilement dans chaque brush.
 
 ---
 

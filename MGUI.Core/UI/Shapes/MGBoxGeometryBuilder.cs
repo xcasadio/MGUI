@@ -17,7 +17,74 @@ namespace MGUI.Core.UI.Shapes
                 ? BuildContour(normalized.InnerBounds, normalized.InnerCornerRadius, actualCornerSegmentCount)
                 : Array.Empty<Vector2>();
 
-            return new MGBoxGeometry(normalized, outerContour, innerContour, actualCornerSegmentCount, usesRectangleFastPath);
+            Vector2[] vertices = CombineVertices(outerContour, innerContour);
+            int[] fillIndices = BuildFillIndices(outerContour.Length);
+            int[] borderRingIndices = BuildBorderRingIndices(outerContour.Length, innerContour.Length);
+
+            return new MGBoxGeometry(
+                normalized,
+                outerContour,
+                innerContour,
+                vertices,
+                fillIndices,
+                borderRingIndices,
+                actualCornerSegmentCount,
+                usesRectangleFastPath);
+        }
+
+        private static Vector2[] CombineVertices(Vector2[] outerContour, Vector2[] innerContour)
+        {
+            Vector2[] result = new Vector2[outerContour.Length + innerContour.Length];
+            Array.Copy(outerContour, 0, result, 0, outerContour.Length);
+            Array.Copy(innerContour, 0, result, outerContour.Length, innerContour.Length);
+            return result;
+        }
+
+        private static int[] BuildFillIndices(int outerContourCount)
+        {
+            if (outerContourCount < 3)
+            {
+                return Array.Empty<int>();
+            }
+
+            List<int> indices = new((outerContourCount - 2) * 3);
+            for (int i = 1; i < outerContourCount - 1; i++)
+            {
+                indices.Add(0);
+                indices.Add(i);
+                indices.Add(i + 1);
+            }
+
+            return indices.ToArray();
+        }
+
+        private static int[] BuildBorderRingIndices(int outerContourCount, int innerContourCount)
+        {
+            if (outerContourCount < 2 || innerContourCount != outerContourCount)
+            {
+                return Array.Empty<int>();
+            }
+
+            List<int> indices = new(outerContourCount * 6);
+            int innerOffset = outerContourCount;
+            for (int i = 0; i < outerContourCount; i++)
+            {
+                int next = (i + 1) % outerContourCount;
+                int outerCurrent = i;
+                int outerNext = next;
+                int innerCurrent = innerOffset + i;
+                int innerNext = innerOffset + next;
+
+                indices.Add(outerCurrent);
+                indices.Add(outerNext);
+                indices.Add(innerNext);
+
+                indices.Add(innerNext);
+                indices.Add(innerCurrent);
+                indices.Add(outerCurrent);
+            }
+
+            return indices.ToArray();
         }
 
         private static Vector2[] BuildContour(Rectangle bounds, MGCornerRadius cornerRadius, int cornerSegmentCount)
