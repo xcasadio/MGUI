@@ -77,24 +77,24 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 2. Introduire un type `MGCornerRadius`
 
-- [ ] Créer un type dédié représentant les 4 rayons de coins :
-  - [ ] `TopLeft`
-  - [ ] `TopRight`
-  - [ ] `BottomRight`
-  - [ ] `BottomLeft`
-- [ ] Prévoir :
-  - [ ] un constructeur uniforme,
-  - [ ] une valeur `Zero`,
-  - [ ] une propriété `IsZero`,
-  - [ ] les comparaisons utiles.
-- [ ] Nommer clairement le type et éviter les ambiguïtés.
+- [x] Créer un type dédié représentant les 4 rayons de coins :
+  - [x] `TopLeft`
+  - [x] `TopRight`
+  - [x] `BottomRight`
+  - [x] `BottomLeft`
+- [x] Prévoir :
+  - [x] un constructeur uniforme,
+  - [x] une valeur `Zero`,
+  - [x] une propriété `IsZero`,
+  - [x] les comparaisons utiles.
+- [x] Nommer clairement le type et éviter les ambiguïtés.
 
 #### Critère d’acceptation
 
-- [ ] Le type peut représenter :
-  - [ ] un rectangle sans arrondi ;
-  - [ ] un arrondi uniforme ;
-  - [ ] des rayons différents par coin.
+- [x] Le type peut représenter :
+  - [x] un rectangle sans arrondi ;
+  - [x] un arrondi uniforme ;
+  - [x] des rayons différents par coin.
 
 ---
 
