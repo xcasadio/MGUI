@@ -139,19 +139,19 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 5. Créer une couche `Shape Geometry Builder`
 
-- [ ] Ajouter un composant dédié qui construit la géométrie d’une box.
-- [ ] Il doit pouvoir produire :
-  - [ ] le contour externe ;
-  - [ ] le contour interne ;
-  - [ ] l’anneau de bordure ;
-  - [ ] les points nécessaires pour un rectangle arrondi.
-- [ ] Prévoir une API claire et indépendante des brushes.
-- [ ] Prévoir le paramétrage du niveau de tessellation des coins arrondis.
+- [x] Ajouter un composant dédié qui construit la géométrie d’une box.
+- [x] Il doit pouvoir produire :
+  - [x] le contour externe ;
+  - [x] le contour interne ;
+  - [x] l’anneau de bordure ;
+  - [x] les points nécessaires pour un rectangle arrondi.
+- [x] Prévoir une API claire et indépendante des brushes.
+- [x] Prévoir le paramétrage du niveau de tessellation des coins arrondis.
 
 #### Critère d’acceptation
 
-- [ ] La construction de géométrie d’un rounded rectangle n’est plus dans les brushes.
-- [ ] Le builder peut être appelé par plusieurs painters différents.
+- [x] La construction de géométrie d’un rounded rectangle n’est plus dans les brushes.
+- [x] Le builder peut être appelé par plusieurs painters différents.
 
 ---
 
