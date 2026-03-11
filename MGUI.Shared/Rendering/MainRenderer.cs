@@ -91,8 +91,22 @@ namespace MGUI.Shared.Rendering
 
     public class MainRenderer
     {
+        private sealed class HostBackedSurface : IUISurface
+        {
+            private readonly IRenderHost Host;
+
+            public HostBackedSurface(IRenderHost Host)
+            {
+                this.Host = Host ?? throw new ArgumentNullException(nameof(Host));
+            }
+
+            public Rectangle GetBounds() => Host.GetBounds();
+            public RenderTarget2D GetRenderTarget() => null;
+        }
+
         public IRenderHost Host { get; }
         public IRawInputSource RawInputSource { get; }
+        public IUISurface Surface { get; }
 
         public GraphicsDevice GraphicsDevice => Host.GraphicsDevice;
         public GraphicsDevice GD => GraphicsDevice;
@@ -134,7 +148,7 @@ namespace MGUI.Shared.Rendering
 
         private TimeSpan PreviousUpdateTimeSpan = TimeSpan.Zero;
 
-        public Rectangle GetViewport(int Margin) => Host.GetBounds().GetCompressed(Margin);
+        public Rectangle GetViewport(int Margin) => Surface.GetBounds().GetCompressed(Margin);
 
         private static IRawInputSource ResolveInputSource(IRenderHost Host, IRawInputSource RawInputSource)
         {
@@ -150,10 +164,11 @@ namespace MGUI.Shared.Rendering
 
         /// <param name="Host">Consider using an instance of <see cref="GameRenderHost{TObservableGame}"/> to quickly create an implementation of <see cref="IRenderHost"/></param>
         /// <param name="RawInputSource">Optional explicit raw-input provider. If null, <paramref name="Host"/> must implement <see cref="IRawInputSource"/>.</param>
-        public MainRenderer(IRenderHost Host, IRawInputSource RawInputSource = null)
+        public MainRenderer(IRenderHost Host, IRawInputSource RawInputSource = null, IUISurface Surface = null)
         {
             this.Host = Host;
             this.RawInputSource = ResolveInputSource(Host, RawInputSource);
+            this.Surface = Surface ?? new HostBackedSurface(Host);
             SpriteBatch = new(GraphicsDevice);
             PrimitiveBatch = new(GraphicsDevice, 1024);
             Content = new(Host, "Content");

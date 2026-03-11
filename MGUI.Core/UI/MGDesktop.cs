@@ -997,7 +997,7 @@ namespace MGUI.Core.UI
 
         /// <summary>Represents the screen space that can be occupied with <see cref="MGElement"/>s.<para/>
         /// For example, an <see cref="MGContextMenu"/> will attempt to position itself such that it is not rendered outside of these bounds.</summary>
-        public Rectangle ValidScreenBounds => Renderer.Host.GetBounds();
+        public Rectangle ValidScreenBounds => Renderer.Surface.GetBounds();
 
         public MGResources Resources { get; }
         /// <summary>Convenience property that just returns <see cref="Resources"/>.<see cref="MGResources.DefaultTheme"/></summary>
