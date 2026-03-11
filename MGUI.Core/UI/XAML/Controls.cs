@@ -142,6 +142,12 @@ namespace MGUI.Core.UI.XAML
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
 
+        [Category("Border")]
+        public CornerRadius? CornerRadius { get; set; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
+
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGBorder(Window);
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
@@ -158,6 +164,11 @@ namespace MGUI.Core.UI.XAML
             if (BorderThickness.HasValue)
             {
                 Border.BorderThickness = BorderThickness.Value.ToThickness();
+            }
+
+            if (CornerRadius.HasValue)
+            {
+                Border.CornerRadius = CornerRadius.Value.ToCornerRadius();
             }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
@@ -197,6 +208,13 @@ namespace MGUI.Core.UI.XAML
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
         /// <summary>The name of the command to execute when this <see cref="Button"/> is left-clicked, or null if no named command should be executed when left-clicked.<para/>
         /// This name should exist in <see cref="MGResources.Commands"/>, otherwise nothing will be invoked when clicking this <see cref="Button"/><para/>
@@ -267,6 +285,13 @@ namespace MGUI.Core.UI.XAML
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         [Browsable(false)]
         public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
         [Category("Behavior")]
         public int? MaxMessageLength { get; set; }
@@ -440,6 +465,13 @@ namespace MGUI.Core.UI.XAML
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
         [Category("Appearance")]
         public ContentPresenter DropdownArrow { get; set; } = new();
@@ -677,6 +709,13 @@ namespace MGUI.Core.UI.XAML
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
         [Category("Layout")]
         public int? Columns { get; set; }
@@ -1796,6 +1835,8 @@ namespace MGUI.Core.UI.XAML
         public XAMLColor? Stroke { get; set; }
         [Category("Border")]
         public int? StrokeThickness { get; set; }
+        [Category("Border")]
+        public CornerRadius? CornerRadius { get; set; }
         [Category("Appearance")]
         public FillBrush Fill { get; set; }
 
@@ -1816,6 +1857,11 @@ namespace MGUI.Core.UI.XAML
             if (StrokeThickness.HasValue)
             {
                 Rectangle.StrokeThickness = StrokeThickness.Value;
+            }
+
+            if (CornerRadius.HasValue)
+            {
+                Rectangle.CornerRadius = CornerRadius.Value.ToCornerRadius();
             }
 
             if (Fill != null)
@@ -2310,6 +2356,13 @@ namespace MGUI.Core.UI.XAML
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
 
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
+
         [Category("Value")]
         public TextBlock Value { get; set; } = new();
         [Category("Value")]
@@ -2385,6 +2438,13 @@ namespace MGUI.Core.UI.XAML
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
         [Category("Appearance")]
         public StackPanel HeadersPanel { get; set; } = new();
@@ -2703,6 +2763,13 @@ namespace MGUI.Core.UI.XAML
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
 
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
+
         public TextBlock TextBlock { get; set; } = new();
 
         public string Text { get; set; }
@@ -2925,6 +2992,13 @@ namespace MGUI.Core.UI.XAML
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
 
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
+
         [Category("Value")]
         public TextBlock Value { get; set; } = new();
         [Category("Value")]
@@ -3014,6 +3088,13 @@ namespace MGUI.Core.UI.XAML
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
         [Category("Appearance")]
         public FillBrush CheckedBackgroundBrush { get; set; }

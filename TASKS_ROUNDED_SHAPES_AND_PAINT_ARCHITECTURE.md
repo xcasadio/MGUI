@@ -409,18 +409,18 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 21. Ajouter les conversions et sérialisations utiles
 
-- [ ] Ajouter un support minimal de `CornerRadius` dans les chemins de configuration indispensables de la phase 1, en priorité :
-  - [ ] XAML ;
-  - [ ] styles ;
-  - [ ] thèmes.
-- [ ] Évaluer séparément si une sérialisation interne dédiée est nécessaire dès cette phase.
-- [ ] Ajouter les converters nécessaires avec une syntaxe propre et cohérente.
-- [ ] Différer les raffinements secondaires qui ne bloquent pas l’adoption ni les tests de la phase 1.
+- [x] Ajouter un support minimal de `CornerRadius` dans les chemins de configuration indispensables de la phase 1, en priorité :
+  - [x] XAML ;
+  - [x] styles ;
+  - [x] thèmes.
+- [x] Évaluer séparément si une sérialisation interne dédiée est nécessaire dès cette phase.
+- [x] Ajouter les converters nécessaires avec une syntaxe propre et cohérente.
+- [x] Différer les raffinements secondaires qui ne bloquent pas l’adoption ni les tests de la phase 1.
 
 #### Critère d’acceptation
 
-- [ ] Un utilisateur du framework peut configurer un corner radius sans code custom.
-- [ ] Le support minimal est disponible suffisamment tôt pour tester la fonctionnalité via markup et thèmes.
+- [x] Un utilisateur du framework peut configurer un corner radius sans code custom.
+- [x] Le support minimal est disponible suffisamment tôt pour tester la fonctionnalité via markup et thèmes.
 
 ---
 
