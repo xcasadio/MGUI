@@ -47,7 +47,7 @@ namespace MGUI.Samples
 
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            MGUIRenderer = new(new GameRenderHost<Game1>(this));
+            MGUIRenderer = new(new GameRenderHost<Game1>(this), new MonoGameRawInputSource());
             Desktop = new(MGUIRenderer);
 
             InitializeTextEngines();

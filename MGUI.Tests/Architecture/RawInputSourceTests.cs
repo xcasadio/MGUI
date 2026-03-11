@@ -19,11 +19,17 @@ public class RawInputSourceTests
     }
 
     [Fact]
-    public void GameRenderHost_ImplementsRawInputSource()
+    public void GameRenderHost_RemainsRenderHostOnly()
     {
         Type openGenericHostType = typeof(GameRenderHost<>);
 
-        Assert.Contains(typeof(IRawInputSource), openGenericHostType.GetInterfaces());
         Assert.Contains(typeof(IRenderHost), openGenericHostType.GetInterfaces());
+        Assert.DoesNotContain(typeof(IRawInputSource), openGenericHostType.GetInterfaces());
+    }
+
+    [Fact]
+    public void MonoGameRawInputSource_ImplementsRawInputSource()
+    {
+        Assert.Contains(typeof(IRawInputSource), typeof(MonoGameRawInputSource).GetInterfaces());
     }
 }

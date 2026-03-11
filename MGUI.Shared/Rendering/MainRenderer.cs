@@ -39,7 +39,7 @@ namespace MGUI.Shared.Rendering
         public GraphicsDevice GraphicsDevice { get; }
     }
 
-    public class GameRenderHost<TObservableGame> : IRenderHost, IRawInputSource, IDisposable
+    public class GameRenderHost<TObservableGame> : IRenderHost, IDisposable
         where TObservableGame : Game, IObservableUpdate
     {
         public TObservableGame Game { get; }
@@ -47,9 +47,6 @@ namespace MGUI.Shared.Rendering
         public Rectangle GetBounds() => new(0, 0, Game.Window.ClientBounds.Width, Game.Window.ClientBounds.Height);
 
         public GraphicsDevice GraphicsDevice => Game.GraphicsDevice;
-
-        public MouseState GetMouseState() => Mouse.GetState();
-        public KeyboardState GetKeyboardState() => Keyboard.GetState();
 
         public object GetService(Type serviceType) => Game.Services.GetService(serviceType);
 
@@ -148,11 +145,11 @@ namespace MGUI.Shared.Rendering
                 return HostInputSource;
 
             throw new ArgumentNullException(nameof(RawInputSource),
-                $"{nameof(MainRenderer)} requires an {nameof(IRawInputSource)} when the supplied {nameof(IRenderHost)} does not implement {nameof(IRawInputSource)}.");
+                $"{nameof(MainRenderer)} requires an explicit {nameof(IRawInputSource)} when the supplied {nameof(IRenderHost)} does not implement {nameof(IRawInputSource)}.");
         }
 
         /// <param name="Host">Consider using an instance of <see cref="GameRenderHost{TObservableGame}"/> to quickly create an implementation of <see cref="IRenderHost"/></param>
-        /// <param name="RawInputSource">Optional explicit raw-input provider. If null, <paramref name="Host"/> must also implement <see cref="IRawInputSource"/>.</param>
+        /// <param name="RawInputSource">Optional explicit raw-input provider. If null, <paramref name="Host"/> must implement <see cref="IRawInputSource"/>.</param>
         public MainRenderer(IRenderHost Host, IRawInputSource RawInputSource = null)
         {
             this.Host = Host;
