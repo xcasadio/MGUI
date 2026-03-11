@@ -122,18 +122,18 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 4. Définir clairement la séparation entre géométrie et paint
 
-- [ ] Introduire une convention d’architecture explicite :
-  - [ ] shape / geometry builder = construit les contours, segments, rings, polygones ;
-  - [ ] paint / brush = applique la couleur, texture, gradient, bandes, etc.
-- [ ] Écrire une courte note d’architecture dans `Docs/shape-paint-architecture.md`.
-- [ ] Vérifier que cette convention est cohérente avec le reste de MGUI.
+- [x] Introduire une convention d’architecture explicite :
+  - [x] shape / geometry builder = construit les contours, segments, rings, polygones ;
+  - [x] paint / brush = applique la couleur, texture, gradient, bandes, etc.
+- [x] Écrire une courte note d’architecture dans `Docs/shape-paint-architecture.md`.
+- [x] Vérifier que cette convention est cohérente avec le reste de MGUI.
 
 #### Critère d’acceptation
 
-- [ ] Le document explique clairement :
-  - [ ] ce qui appartient à la géométrie ;
-  - [ ] ce qui appartient au paint ;
-  - [ ] ce qui n’a plus le droit d’être fait dans un brush.
+- [x] Le document explique clairement :
+  - [x] ce qui appartient à la géométrie ;
+  - [x] ce qui appartient au paint ;
+  - [x] ce qui n’a plus le droit d’être fait dans un brush.
 
 ---
 
