@@ -95,6 +95,7 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
             double totalWeight = Bands.Sum(x => x.ThicknessWeight);
             MGBoxShape remainingShape = Shape.Normalize();
+            Thickness totalThickness = remainingShape.NormalizedBorderThickness;
 
             foreach (MGBorderBand band in Bands)
             {
@@ -106,10 +107,15 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                 double percentageThickness = band.ThicknessWeight / totalWeight;
                 Thickness bandThickness = new(
-                    (int)(remainingThickness.Left * percentageThickness),
-                    (int)(remainingThickness.Top * percentageThickness),
-                    (int)(remainingThickness.Right * percentageThickness),
-                    (int)(remainingThickness.Bottom * percentageThickness));
+                    Math.Min(remainingThickness.Left, (int)(totalThickness.Left * percentageThickness)),
+                    Math.Min(remainingThickness.Top, (int)(totalThickness.Top * percentageThickness)),
+                    Math.Min(remainingThickness.Right, (int)(totalThickness.Right * percentageThickness)),
+                    Math.Min(remainingThickness.Bottom, (int)(totalThickness.Bottom * percentageThickness)));
+
+                if (bandThickness.IsEmpty())
+                {
+                    continue;
+                }
 
                 MGBoxShape bandShape = new(remainingShape.OuterBounds, bandThickness, remainingShape.NormalizedCornerRadius);
                 MGBoxGeometry bandGeometry = MGBoxGeometryBuilder.Build(bandShape, Geometry.CornerSegmentCount);

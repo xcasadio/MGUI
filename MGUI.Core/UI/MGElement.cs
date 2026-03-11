@@ -20,6 +20,7 @@ using MGUI.Core.UI.Data_Binding;
 using System.ComponentModel;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.DragDrop;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI
 {
@@ -1638,6 +1639,10 @@ namespace MGUI.Core.UI
             }
         }
 
+        public bool DrawBackgroundEnabled { get; set; } = true;
+        public bool DrawOverlayBrushEnabled { get; set; } = true;
+        public bool DrawBackgroundBorderOverlayEnabled { get; set; } = true;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Point _Origin;
         /// <summary>This value is typically <see cref="Point.Zero"/> except when this <see cref="MGElement"/> is a child of an <see cref="MGScrollViewer"/>,<br/>
@@ -2126,7 +2131,10 @@ namespace MGUI.Core.UI
                         Component.Draw(DA);
                     }
 
-                    DrawBackground(DA, LayoutBounds);
+                    if (DrawBackgroundEnabled)
+                    {
+                        DrawBackground(DA, LayoutBounds);
+                    }
 
                     foreach (MGElement Component in _componentsDrawBeforeSelf)
                     {
@@ -2147,7 +2155,10 @@ namespace MGUI.Core.UI
                         Component.Draw(DA);
                     }
 
-                    OverlayBrush?.Draw(DA, this, GetBackgroundBounds(LayoutBounds));
+                    if (DrawOverlayBrushEnabled)
+                    {
+                        OverlayBrush?.Draw(DA, this, GetBackgroundBounds(LayoutBounds));
+                    }
 
                     OnEndingDraw?.Invoke(this, DrawEventArgs);
                 }
@@ -2197,6 +2208,19 @@ namespace MGUI.Core.UI
 
         public virtual void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
 		{
+            if (HasBorder && !GetBorder().CornerRadius.IsZero)
+            {
+                MGBoxShape boxShape = new MGBoxShape(LayoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
+                Rectangle backgroundBounds = boxShape.InnerBounds.GetCompressed(BackgroundRenderPadding);
+                MGBoxShape backgroundShape = new(backgroundBounds, new Thickness(0), boxShape.InnerCornerRadius);
+                MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
+                BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+
+                SecondaryVisualState secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
+                BackgroundBrush.GetFillOverlay(secondaryState)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+                return;
+            }
+
             Rectangle BackgroundBounds = GetBackgroundBounds(LayoutBounds);
             BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, BackgroundBounds);
             SecondaryVisualState SecondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
@@ -2210,7 +2234,22 @@ namespace MGUI.Core.UI
         {
             if (HasBorder)
             {
-                BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, LayoutBounds, GetBorder().BorderThickness);
+                if (!GetBorder().CornerRadius.IsZero)
+                {
+                    MGBoxShape boxShape = new MGBoxShape(LayoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
+                    MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(boxShape);
+                    if (DrawBackgroundBorderOverlayEnabled)
+                    {
+                        BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, boxShape, geometry);
+                    }
+                }
+                else
+                {
+                    if (DrawBackgroundBorderOverlayEnabled)
+                    {
+                        BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, LayoutBounds, GetBorder().BorderThickness);
+                    }
+                }
             }
         }
         #endregion Draw

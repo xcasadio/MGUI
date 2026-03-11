@@ -177,6 +177,7 @@ namespace MGUI.Samples
         public TextBoxBackslashTestSample TextBoxBackslashTest { get; }
         public FormattedTextTokenizerTestSample FormattedTextTokenizerTest { get; }
         public PerformanceTest PerformanceTest { get; }
+        public RoundedShapesSamples RoundedShapesSamples { get; }
         #endregion Features
 
         #region Dialogs
@@ -238,6 +239,7 @@ namespace MGUI.Samples
             TextBoxBackslashTest = new(Content, Desktop);
             FormattedTextTokenizerTest = new(Content, Desktop);
             PerformanceTest = new(Content, Desktop);
+            RoundedShapesSamples = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs

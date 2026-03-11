@@ -3,6 +3,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Shapes;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
+using System.Collections.Generic;
 
 namespace MGUI.Tests.Architecture;
 
@@ -61,5 +62,57 @@ public class RoundedShapeScenarioTests
         Assert.NotNull(typeof(MGUniformBorderBrush).GetMethod("Draw", new[] { typeof(ElementDrawArgs), typeof(MGElement), typeof(MGBoxShape), typeof(MGBoxGeometry) }));
         Assert.NotNull(typeof(MGBandedBorderBrush).GetMethod("Draw", new[] { typeof(ElementDrawArgs), typeof(MGElement), typeof(MGBoxShape), typeof(MGBoxGeometry) }));
         Assert.NotNull(typeof(MGDockedBorderBrush).GetMethod("Draw", new[] { typeof(ElementDrawArgs), typeof(MGElement), typeof(MGBoxShape), typeof(MGBoxGeometry) }));
+    }
+
+    [Fact]
+    public void BandedBorderBrush_ShapeAwareDraw_KeepsPerBandThicknessBasedOnOriginalBorder()
+    {
+        List<MGBoxShape> capturedShapes = new();
+        RecordingBorderBrush[] recordingBands = Enumerable.Range(0, 6)
+            .Select(_ => new RecordingBorderBrush(capturedShapes))
+            .ToArray();
+
+        MGBandedBorderBrush brush = new(recordingBands.Select(x => new MGBorderBand(x, 1.0)).ToArray());
+        MGBoxShape shape = new(new Rectangle(0, 0, 80, 40), new Thickness(6), MGCornerRadius.Zero);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, 8);
+
+        brush.Draw(default, null!, shape, geometry);
+
+        Assert.Equal(6, capturedShapes.Count);
+        Assert.All(capturedShapes, x => Assert.Equal(new Thickness(1), x.NormalizedBorderThickness));
+    }
+
+    [Fact]
+    public void BoxShapeRegionHelper_PreservesOnlyCornersTouchingHostEdges()
+    {
+        Rectangle hostBounds = new(0, 0, 100, 40);
+        MGCornerRadius hostCornerRadius = new(8, 10, 12, 14);
+
+        MGBoxShape topBand = MGBoxShapeRegionHelper.CreateSubShape(hostBounds, hostCornerRadius, new Rectangle(0, 0, 100, 12));
+        MGBoxShape leftSegment = MGBoxShapeRegionHelper.CreateSubShape(hostBounds, hostCornerRadius, new Rectangle(0, 10, 40, 20));
+
+        Assert.Equal(new MGCornerRadius(8, 10, 0, 0), topBand.CornerRadius);
+        Assert.Equal(new MGCornerRadius(0, 0, 0, 0), leftSegment.CornerRadius);
+    }
+
+    private sealed class RecordingBorderBrush : IBorderBrush
+    {
+        private readonly List<MGBoxShape> _CapturedShapes;
+
+        public RecordingBorderBrush(List<MGBoxShape> capturedShapes)
+        {
+            _CapturedShapes = capturedShapes;
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
+        {
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            _CapturedShapes.Add(Shape.Normalize());
+        }
+
+        public IBorderBrush Copy() => new RecordingBorderBrush(_CapturedShapes);
     }
 }

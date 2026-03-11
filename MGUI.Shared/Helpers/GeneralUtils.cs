@@ -245,7 +245,13 @@ namespace MGUI.Shared.Helpers
 
         public static string ReadEmbeddedResourceAsString(Assembly CurrentAssembly, string ResourceName)
         {
-            using (Stream ResourceStream = CurrentAssembly.GetManifestResourceStream(ResourceName))
+            Stream ResourceStream = CurrentAssembly.GetManifestResourceStream(ResourceName);
+            if (ResourceStream == null)
+            {
+                throw new InvalidOperationException($"Embedded resource was not found: '{ResourceName}' in assembly '{CurrentAssembly.GetName().Name}'.");
+            }
+
+            using (ResourceStream)
             using (StreamReader Reader = new StreamReader(ResourceStream))
                 return Reader.ReadToEnd();
         }

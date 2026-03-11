@@ -18,6 +18,7 @@ using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework.Graphics;
 using MGUI.Core.UI.Containers.Grids;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI
 {
@@ -997,6 +998,7 @@ namespace MGUI.Core.UI
                 TitleBarElement.VerticalAlignment = VerticalAlignment.Stretch;
                 TitleBarElement.VerticalContentAlignment = VerticalAlignment.Stretch;
                 TitleBarElement.BackgroundBrush = ActualTheme.TitleBackground.GetValue(true);
+                TitleBarElement.DrawBackgroundEnabled = false;
 
                 TitleBarComponent = new(TitleBarElement, true, false, true, true, false, false, false,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size));
@@ -1599,6 +1601,30 @@ namespace MGUI.Core.UI
             }
 
             OnEndDrawNestedWindows?.Invoke(this, DA);
+        }
+
+        public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
+        {
+            base.DrawBackground(DA, LayoutBounds);
+
+            if (!IsTitleBarVisible || TitleBarElement.Visibility != Visibility.Visible)
+            {
+                return;
+            }
+
+            MGBoxShape windowShape = new(LayoutBounds, BorderThickness, CornerRadius);
+            MGBoxShape normalizedWindowShape = windowShape.Normalize();
+            Rectangle hostBounds = normalizedWindowShape.InnerBounds;
+            Rectangle titleBarBounds = Rectangle.Intersect(hostBounds, TitleBarElement.LayoutBounds);
+            if (titleBarBounds.Width <= 0 || titleBarBounds.Height <= 0)
+            {
+                return;
+            }
+
+            MGBoxShape titleBarShape = MGBoxShapeRegionHelper.CreateSubShape(hostBounds, normalizedWindowShape.InnerCornerRadius, titleBarBounds);
+            MGBoxGeometry titleBarGeometry = MGBoxGeometryBuilder.Build(titleBarShape);
+            TitleBarElement.BackgroundBrush.GetUnderlay(TitleBarElement.VisualState.Primary)?.Draw(DA, TitleBarElement, titleBarShape, titleBarGeometry);
+            TitleBarElement.BackgroundBrush.GetFillOverlay(TitleBarElement.VisualState.Secondary)?.Draw(DA, TitleBarElement, titleBarShape, titleBarGeometry);
         }
     }
 }

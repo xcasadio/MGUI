@@ -75,6 +75,8 @@ namespace MGUI.Core.UI
 
         public event EventHandler<EventArgs<MGCornerRadius>> OnCornerRadiusChanged;
 
+        public bool DrawBackgroundAndOverlay { get; set; } = true;
+
         public MGBorder(MGWindow Window)
             : this(Window, new(1), MGUniformBorderBrush.Black) { }
 
@@ -113,6 +115,11 @@ namespace MGUI.Core.UI
 
         public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
+            if (!DrawBackgroundAndOverlay)
+            {
+                return;
+            }
+
             MGBoxShape backgroundShape = CreateBackgroundShape(LayoutBounds);
             MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
             BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
@@ -126,7 +133,11 @@ namespace MGUI.Core.UI
             MGBoxShape boxShape = CreateBoxShape(LayoutBounds);
             MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(boxShape);
             BorderBrush?.Draw(DA, this, boxShape, geometry);
-            BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, boxShape, geometry);
+
+            if (DrawBackgroundAndOverlay)
+            {
+                BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, boxShape, geometry);
+            }
         }
     }
 }

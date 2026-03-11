@@ -26,6 +26,11 @@ namespace MGUI.Core.UI.XAML
         /// nullable and reference-type properties already use <c>null</c> as a reliable "not-set" sentinel.</summary>
         internal HashSet<string> ExplicitlySetProperties { get; } = new();
 
+        /// <summary>If false, implicit and named styles inherited from ancestor XAML elements are not propagated to this node.
+        /// Local styles declared directly on this node still apply when this node is processed.</summary>
+        [Browsable(false)]
+        public bool InheritsParentStyles { get; set; } = true;
+
         public string Name { get; set; }
 
         [Category("Layout")]
@@ -802,7 +807,14 @@ namespace MGUI.Core.UI.XAML
             //  Recursively process all children
             foreach (Element Child in GetChildren())
             {
-                Child.ProcessStyles(StylesByName, StylesByType);
+                if (Child.InheritsParentStyles)
+                {
+                    Child.ProcessStyles(StylesByName, StylesByType);
+                }
+                else
+                {
+                    Child.ProcessStyles(new Dictionary<string, Style>(), new Dictionary<MGElementType, Dictionary<string, List<object>>>());
+                }
             }
 
             //  Remove current style setters from indexed data

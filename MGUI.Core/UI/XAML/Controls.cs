@@ -193,7 +193,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.Button;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -277,7 +277,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.ChatBox;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -450,7 +450,7 @@ namespace MGUI.Core.UI.XAML
         public Type ItemType { get; set; } = typeof(object);
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -694,7 +694,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.GridColorPicker;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1176,11 +1176,18 @@ namespace MGUI.Core.UI.XAML
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
 
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
+
         [Category("Appearance")]
         public bool? IsOpen { get; set; }
 
         [Category("Appearance")]
-        public Button CloseButton { get; set; } = new();
+        public Button CloseButton { get; set; } = new() { InheritsParentStyles = false };
         [Category("Appearance")]
         public bool? ShowCloseButton { get; set; }
 
@@ -1262,7 +1269,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.ProgressBar;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1277,6 +1284,13 @@ namespace MGUI.Core.UI.XAML
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
         [Category("Value")]
         public TextBlock ValueTextBlock { get; set; }
@@ -1400,7 +1414,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.ProgressButton;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1415,6 +1429,13 @@ namespace MGUI.Core.UI.XAML
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
         [Category("Behavior")]
         public ProgressButtonActionType? ActionWhenProcessing { get; set; }
@@ -2340,7 +2361,7 @@ namespace MGUI.Core.UI.XAML
     {
         public override MGElementType ElementType => MGElementType.Stopwatch;
 
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -2770,7 +2791,7 @@ namespace MGUI.Core.UI.XAML
         [Browsable(false)]
         public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
-        public TextBlock TextBlock { get; set; } = new();
+        public TextBlock TextBlock { get; set; } = new() { InheritsParentStyles = false };
 
         public string Text { get; set; }
         public int? FontSize { get; set; }
@@ -2781,10 +2802,10 @@ namespace MGUI.Core.UI.XAML
         [Category("Layout")]
         public int? MaxLines { get; set; }
 
-        public TextBlock Placeholder { get; set; } = new();
+        public TextBlock Placeholder { get; set; } = new() { InheritsParentStyles = false };
         public string PlaceholderText { get; set; }
 
-        public TextBlock CharacterCounter { get; set; } = new();
+        public TextBlock CharacterCounter { get; set; } = new() { InheritsParentStyles = false };
         [Category("Behavior")]
         public int? CharacterLimit { get; set; }
         [Category("Appearance")]
@@ -2826,7 +2847,7 @@ namespace MGUI.Core.UI.XAML
         [Category("Behavior")]
         public TextEntryMode? TextEntryMode { get; set; }
 
-        public ResizeGrip ResizeGrip { get; set; } = new();
+        public ResizeGrip ResizeGrip { get; set; } = new() { InheritsParentStyles = false };
         [Category("Layout")]
         public bool? IsUserResizable { get; set; }
 
@@ -2976,7 +2997,7 @@ namespace MGUI.Core.UI.XAML
     {
         public override MGElementType ElementType => MGElementType.Timer;
 
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -3073,7 +3094,7 @@ namespace MGUI.Core.UI.XAML
     {
         public override MGElementType ElementType => MGElementType.ToggleButton;
 
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -3375,11 +3396,11 @@ namespace MGUI.Core.UI.XAML
         [Category("Layout")]
         public float? Scale { get; set; }
 
-        public ResizeGrip ResizeGrip { get; set; } = new();
+        public ResizeGrip ResizeGrip { get; set; } = new() { InheritsParentStyles = false };
         [Category("Layout")]
         public bool? IsUserResizable { get; set; }
 
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -3395,21 +3416,28 @@ namespace MGUI.Core.UI.XAML
         [Browsable(false)]
         public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
 
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public CornerRadius? CornerRadius { get => Border.CornerRadius; set => Border.CornerRadius = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
+
         public Window ModalWindow { get; set; }
         public List<Window> NestedWindows { get; set; } = new();
 
         [Category("Title")]
-        public DockPanel TitleBar { get; set; } = new();
+        public DockPanel TitleBar { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Title")]
-        public TextBlock TitleBarTextBlock { get; set; } = new();
+        public TextBlock TitleBarTextBlock { get; set; } = new() { InheritsParentStyles = false };
         [Category("Title")]
         public string TitleText { get; set; }
         [Category("Title")]
         public bool? IsTitleBarVisible { get; set; }
 
         [Category("Title")]
-        public Button CloseButton { get; set; } = new();
+        public Button CloseButton { get; set; } = new() { InheritsParentStyles = false };
         [Category("Title")]
         public bool? IsCloseButtonVisible { get; set; }
 

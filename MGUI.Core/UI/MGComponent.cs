@@ -82,8 +82,11 @@ namespace MGUI.Core.UI
         }
 
         public static MGComponent<MGBorder> Create(MGBorder Border)
-            => new(Border, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf,
-          false, false, true, true, true, true, false, (AvailableBounds, ComponentSize) => AvailableBounds);
+        {
+            Border.DrawBackgroundAndOverlay = false;
+            return new(Border, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf,
+                false, false, true, true, true, true, false, (AvailableBounds, ComponentSize) => AvailableBounds);
+        }
 
         public static MGComponent<MGResizeGrip> Create(MGResizeGrip ResizeGrip)
             => new(ResizeGrip, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents,

@@ -1096,6 +1096,7 @@ namespace MGUI.Core.UI
                 BorderElement = new(Window);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
+                DrawBackgroundBorderOverlayEnabled = false;
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };

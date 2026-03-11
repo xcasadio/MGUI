@@ -7,6 +7,15 @@ namespace MGUI.Tests.Architecture;
 public class BorderShapeAdoptionTests
 {
     [Fact]
+    public void MGElement_ExposesBackgroundBorderOverlayToggle()
+    {
+        var property = typeof(MGElement).GetProperty(nameof(MGElement.DrawBackgroundBorderOverlayEnabled));
+
+        Assert.NotNull(property);
+        Assert.Equal(typeof(bool), property!.PropertyType);
+    }
+
+    [Fact]
     public void MGBorder_ExposesCornerRadiusProperty()
     {
         var property = typeof(MGBorder).GetProperty(nameof(MGBorder.CornerRadius));

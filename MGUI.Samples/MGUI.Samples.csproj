@@ -65,6 +65,7 @@
     <None Remove="Features\TextBoxBackslashTest.xaml" />
     <None Remove="Features\FormattedTextTokenizerTest.xaml" />
     <None Remove="Features\PerformanceTest.xaml" />
+    <None Remove="Features\RoundedShapes.xaml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Compendium.xaml">
@@ -180,6 +181,7 @@
     <EmbeddedResource Include="Features\TextBoxBackslashTest.xaml" />
     <EmbeddedResource Include="Features\FormattedTextTokenizerTest.xaml" />
     <EmbeddedResource Include="Features\PerformanceTest.xaml" />
+    <EmbeddedResource Include="Features\RoundedShapes.xaml" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="..\MGUI.Shared\Content\MGUI.Shared.Content.mgcb" Link="Content\MGUI.Shared.Content.mgcb" />

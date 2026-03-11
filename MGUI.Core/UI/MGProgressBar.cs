@@ -13,6 +13,7 @@ using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI
 {
@@ -373,7 +374,9 @@ namespace MGUI.Core.UI
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
-            Rectangle BorderlessBounds = LayoutBounds.GetCompressed(BorderThickness);
+            MGBoxShape boxShape = new(LayoutBounds, BorderThickness, CornerRadius);
+            MGBoxShape normalizedBoxShape = boxShape.Normalize();
+            Rectangle BorderlessBounds = normalizedBoxShape.InnerBounds;
             Rectangle CompletedBounds;
             Rectangle IncompleteBounds;
 
@@ -410,12 +413,30 @@ namespace MGUI.Core.UI
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
             }
 
-            IncompleteBrush.GetUnderlay(VisualState.Primary)?.Draw(DA, this, IncompleteBounds);
-            CompletedBrush.GetUnderlay(VisualState.Primary)?.Draw(DA, this, CompletedBounds);
-            IncompleteBrush.GetFillOverlay(VisualState.Secondary)?.Draw(DA, this, IncompleteBounds);
-            CompletedBrush.GetFillOverlay(VisualState.Secondary)?.Draw(DA, this, CompletedBounds);
+            DrawSegment(IncompleteBrush, IncompleteBounds, normalizedBoxShape, DA);
+            DrawSegment(CompletedBrush, CompletedBounds, normalizedBoxShape, DA);
 
             DrawSelfBaseImplementation(DA, LayoutBounds);
+        }
+
+        private void DrawSegment(VisualStateFillBrush brush, Rectangle bounds, MGBoxShape hostShape, ElementDrawArgs drawArgs)
+        {
+            if (brush == null || bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                return;
+            }
+
+            if (CornerRadius.IsZero)
+            {
+                brush.GetUnderlay(VisualState.Primary)?.Draw(drawArgs, this, bounds);
+                brush.GetFillOverlay(VisualState.Secondary)?.Draw(drawArgs, this, bounds);
+                return;
+            }
+
+            MGBoxShape segmentShape = MGBoxShapeRegionHelper.CreateSubShape(hostShape.InnerBounds, hostShape.InnerCornerRadius, bounds);
+            MGBoxGeometry segmentGeometry = MGBoxGeometryBuilder.Build(segmentShape);
+            brush.GetUnderlay(VisualState.Primary)?.Draw(drawArgs, this, segmentShape, segmentGeometry);
+            brush.GetFillOverlay(VisualState.Secondary)?.Draw(drawArgs, this, segmentShape, segmentGeometry);
         }
     }
 }
