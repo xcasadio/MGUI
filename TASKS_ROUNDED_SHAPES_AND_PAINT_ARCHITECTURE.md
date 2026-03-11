@@ -216,17 +216,17 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 9. Définir une stratégie de compatibilité transitoire des APIs de paint
 
-- [ ] Introduire une phase de transition explicite entre les signatures actuelles basées sur `Rectangle` / `Thickness` et les futures entrées basées sur `BoxShape` ou géométrie calculée.
-- [ ] Définir si cette transition passe par :
-  - [ ] des surcharges temporaires ;
-  - [ ] des adapters ;
-  - [ ] des helpers de bridge centralisés.
-- [ ] Interdire les migrations ad hoc différentes brush par brush.
+- [x] Introduire une phase de transition explicite entre les signatures actuelles basées sur `Rectangle` / `Thickness` et les futures entrées basées sur `BoxShape` ou géométrie calculée.
+- [x] Définir si cette transition passe par :
+  - [x] des surcharges temporaires ;
+  - [x] des adapters ;
+  - [x] des helpers de bridge centralisés.
+- [x] Interdire les migrations ad hoc différentes brush par brush.
 
 #### Critère d’acceptation
 
-- [ ] Un agent peut migrer progressivement les paints sans refactor brutal de toute l’API publique.
-- [ ] Le chemin de migration est défini avant la modification des interfaces `IBorderBrush` et `IFillBrush`.
+- [x] Un agent peut migrer progressivement les paints sans refactor brutal de toute l’API publique.
+- [x] Le chemin de migration est défini avant la modification des interfaces `IBorderBrush` et `IFillBrush`.
 
 ---
 
