@@ -232,14 +232,14 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 10. Clarifier le cycle de vie des paints stateful ou animés
 
-- [ ] Identifier les paints qui ne sont pas purement stateless et qui nécessitent une logique `Update` ou un état interne.
-- [ ] Définir comment ce cycle de vie s’articule avec la nouvelle séparation shape / geometry / paint.
-- [ ] Vérifier explicitement le cas des brushes composés et des brushes animés.
+- [x] Identifier les paints qui ne sont pas purement stateless et qui nécessitent une logique `Update` ou un état interne.
+- [x] Définir comment ce cycle de vie s’articule avec la nouvelle séparation shape / geometry / paint.
+- [x] Vérifier explicitement le cas des brushes composés et des brushes animés.
 
 #### Critère d’acceptation
 
-- [ ] La nouvelle architecture ne casse pas les paints animés ou stateful.
-- [ ] Le contrat de mise à jour est documenté avant la migration des brushes existants.
+- [x] La nouvelle architecture ne casse pas les paints animés ou stateful.
+- [x] Le contrat de mise à jour est documenté avant la migration des brushes existants.
 
 ---
 
