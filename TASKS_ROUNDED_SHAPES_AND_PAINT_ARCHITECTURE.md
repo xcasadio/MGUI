@@ -483,16 +483,16 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 25. Identifier la phase 2 : clip arrondi et hit testing de forme
 
-- [ ] Rédiger un document de suite expliquant comment brancher :
-  - [ ] rounded clipping ;
-  - [ ] hit test shape-aware ;
-  - [ ] masques ou render target de clip ;
-  - [ ] stencil/shader si pertinent.
-- [ ] Ne pas l’implémenter dans cette phase sauf si c’est déjà trivial.
+- [x] Rédiger un document de suite expliquant comment brancher :
+  - [x] rounded clipping ;
+  - [x] hit test shape-aware ;
+  - [x] masques ou render target de clip ;
+  - [x] stencil/shader si pertinent.
+- [x] Ne pas l’implémenter dans cette phase sauf si c’est déjà trivial.
 
 #### Critère d’acceptation
 
-- [ ] La roadmap phase 2 est claire et découplée de la phase actuelle.
+- [x] La roadmap phase 2 est claire et découplée de la phase actuelle.
 
 ---
 
