@@ -37,11 +37,9 @@ namespace MGUI.Shared.Rendering
     public interface IRenderHost : IRenderViewport, IObservableUpdate, IServiceProvider
     {
         public GraphicsDevice GraphicsDevice { get; }
-        public MouseState GetMouseState();
-        public KeyboardState GetKeyboardState();
     }
 
-    public class GameRenderHost<TObservableGame> : IRenderHost, IDisposable
+    public class GameRenderHost<TObservableGame> : IRenderHost, IRawInputSource, IDisposable
         where TObservableGame : Game, IObservableUpdate
     {
         public TObservableGame Game { get; }
@@ -97,6 +95,7 @@ namespace MGUI.Shared.Rendering
     public class MainRenderer
     {
         public IRenderHost Host { get; }
+        public IRawInputSource RawInputSource { get; }
 
         public GraphicsDevice GraphicsDevice => Host.GraphicsDevice;
         public GraphicsDevice GD => GraphicsDevice;
@@ -140,10 +139,24 @@ namespace MGUI.Shared.Rendering
 
         public Rectangle GetViewport(int Margin) => Host.GetBounds().GetCompressed(Margin);
 
+        private static IRawInputSource ResolveInputSource(IRenderHost Host, IRawInputSource RawInputSource)
+        {
+            if (RawInputSource != null)
+                return RawInputSource;
+
+            if (Host is IRawInputSource HostInputSource)
+                return HostInputSource;
+
+            throw new ArgumentNullException(nameof(RawInputSource),
+                $"{nameof(MainRenderer)} requires an {nameof(IRawInputSource)} when the supplied {nameof(IRenderHost)} does not implement {nameof(IRawInputSource)}.");
+        }
+
         /// <param name="Host">Consider using an instance of <see cref="GameRenderHost{TObservableGame}"/> to quickly create an implementation of <see cref="IRenderHost"/></param>
-        public MainRenderer(IRenderHost Host)
+        /// <param name="RawInputSource">Optional explicit raw-input provider. If null, <paramref name="Host"/> must also implement <see cref="IRawInputSource"/>.</param>
+        public MainRenderer(IRenderHost Host, IRawInputSource RawInputSource = null)
         {
             this.Host = Host;
+            this.RawInputSource = ResolveInputSource(Host, RawInputSource);
             SpriteBatch = new(GraphicsDevice);
             PrimitiveBatch = new(GraphicsDevice, 1024);
             Content = new(Host, "Content");
@@ -155,7 +168,7 @@ namespace MGUI.Shared.Rendering
 
             Host.PreviewUpdate += (sender, e) =>
             {
-                UpdateArgs = new(e, e.Subtract(PreviousUpdateTimeSpan), this.Host.GetMouseState(), this.Host.GetKeyboardState());
+                UpdateArgs = new(e, e.Subtract(PreviousUpdateTimeSpan), this.RawInputSource.GetMouseState(), this.RawInputSource.GetKeyboardState());
                 PreviousUpdateTimeSpan = e;
                 Input.Update(UpdateArgs);
             };
