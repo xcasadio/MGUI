@@ -199,18 +199,18 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 8. Ajouter un fast path explicite pour les rectangles non arrondis
 
-- [ ] Conserver l’implémentation rapide existante pour :
-  - [ ] `CornerRadius == 0`
-  - [ ] cas simples de stroke rectangulaire.
-- [ ] Faire en sorte que la nouvelle architecture ne dégrade pas les cas les plus courants.
-- [ ] Isoler clairement le choix entre :
-  - [ ] chemin rapide rectangle ;
-  - [ ] chemin géométrique arrondi.
+- [x] Conserver l’implémentation rapide existante pour :
+  - [x] `CornerRadius == 0`
+  - [x] cas simples de stroke rectangulaire.
+- [x] Faire en sorte que la nouvelle architecture ne dégrade pas les cas les plus courants.
+- [x] Isoler clairement le choix entre :
+  - [x] chemin rapide rectangle ;
+  - [x] chemin géométrique arrondi.
 
 #### Critère d’acceptation
 
-- [ ] Le rendu des rectangles simples n’utilise pas la tessellation arrondie.
-- [ ] La logique est centralisée et non dupliquée.
+- [x] Le rendu des rectangles simples n’utilise pas la tessellation arrondie.
+- [x] La logique est centralisée et non dupliquée.
 
 ---
 

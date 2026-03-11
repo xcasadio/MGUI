@@ -23,6 +23,18 @@ public class BoxGeometryBuilderTests
     }
 
     [Fact]
+    public void ZeroCornerRadius_DoesNotUseRoundedTessellation()
+    {
+        MGBoxShape shape = new(new Rectangle(0, 0, 20, 10), new Thickness(1), MGCornerRadius.Zero);
+
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, 32);
+
+        Assert.True(geometry.UsesRectangleFastPath);
+        Assert.Equal(4, geometry.OuterContour.Count);
+        Assert.Equal(4, geometry.InnerContour.Count);
+    }
+
+    [Fact]
     public void RoundedShape_BuildsRoundedOuterAndInnerContours()
     {
         MGBoxShape shape = new(new Rectangle(0, 0, 20, 20), new Thickness(2), new MGCornerRadius(6));
