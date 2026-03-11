@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -313,6 +314,12 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 				}
 			}
         }
+
+		public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+		{
+			// Phase 1 limitation: highlight masks still operate on rectangular exclusion regions.
+			Draw(DA, Element, Shape.OuterBounds);
+		}
 
         public IFillBrush Copy()
 		{

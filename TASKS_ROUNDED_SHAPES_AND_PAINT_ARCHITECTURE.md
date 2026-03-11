@@ -323,20 +323,20 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 16. Refactorer les fill brushes existants un par un
 
-- [ ] Migrer progressivement :
-  - [ ] fill brush uniforme ;
-  - [ ] gradient fill brush ;
-  - [ ] texture fill brush ;
-  - [ ] brushes composés ou spécialisés.
-- [ ] Pour chaque brush :
-  - [ ] enlever les hypothèses rectangulaires implicites qui doivent appartenir à la shape ou à la géométrie ;
-  - [ ] conserver sa responsabilité de paint ;
-  - [ ] documenter clairement les limitations transitoires si un paint avancé ne supporte pas encore complètement les rounded shapes.
+- [x] Migrer progressivement :
+  - [x] fill brush uniforme ;
+  - [x] gradient fill brush ;
+  - [x] texture fill brush ;
+  - [x] brushes composés ou spécialisés.
+- [x] Pour chaque brush :
+  - [x] enlever les hypothèses rectangulaires implicites qui doivent appartenir à la shape ou à la géométrie ;
+  - [x] conserver sa responsabilité de paint ;
+  - [x] documenter clairement les limitations transitoires si un paint avancé ne supporte pas encore complètement les rounded shapes.
 
 #### Critère d’acceptation
 
-- [ ] Les fill brushes sont migrés progressivement sans re-dupliquer la logique géométrique.
-- [ ] Les limitations de phase 1 sur les paints avancés sont explicites et localisées.
+- [x] Les fill brushes sont migrés progressivement sans re-dupliquer la logique géométrique.
+- [x] Les limitations de phase 1 sur les paints avancés sont explicites et localisées.
 
 ---
 

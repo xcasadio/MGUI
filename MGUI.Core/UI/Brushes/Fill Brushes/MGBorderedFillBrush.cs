@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -48,6 +49,31 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 }
 
                 BorderBrush?.Draw(DA, Element, Bounds, BorderThickness);
+            }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            float opacity = DA.Opacity;
+            if (opacity <= 0 || opacity.IsAlmostZero())
+            {
+                return;
+            }
+
+            if (FillBrush != null)
+            {
+                MGBoxShape fillShape = PadFillBoundsByBorderThickness
+                    ? new MGBoxShape(Shape.InnerBounds, new Thickness(0), Shape.InnerCornerRadius).Normalize()
+                    : new MGBoxShape(Shape.OuterBounds, new Thickness(0), Shape.NormalizedCornerRadius).Normalize();
+                MGBoxGeometry fillGeometry = MGBoxGeometryBuilder.Build(fillShape, Geometry.CornerSegmentCount);
+                FillBrush.Draw(DA, Element, fillGeometry.Shape, fillGeometry);
+            }
+
+            if (BorderBrush != null)
+            {
+                MGBoxShape borderShape = new MGBoxShape(Shape.OuterBounds, BorderThickness, Shape.NormalizedCornerRadius).Normalize();
+                MGBoxGeometry borderGeometry = MGBoxGeometryBuilder.Build(borderShape, Geometry.CornerSegmentCount);
+                BorderBrush.Draw(DA, Element, borderGeometry.Shape, borderGeometry);
             }
         }
 

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -126,6 +127,12 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
                 drawTransaction?.DrawTextureTo(Source.Texture, Source.SourceRect, Destination.GetTranslated(DA.Offset), drawColor);
             }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            // Phase 1 limitation: textured fills still render to rectangular bounds until rounded texture clipping/UV mapping is introduced.
+            Draw(DA, Element, Shape.OuterBounds);
         }
 
         public IFillBrush Copy() => new MGTextureFillBrush(Source, Stretch, Color, Tile);

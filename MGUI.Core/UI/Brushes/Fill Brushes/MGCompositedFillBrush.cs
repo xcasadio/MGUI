@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -23,6 +24,14 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             foreach (IFillBrush Brush in Brushes)
             {
                 Brush.Draw(DA, Element, Bounds);
+            }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            foreach (IFillBrush Brush in Brushes)
+            {
+                Brush.Draw(DA, Element, Shape, Geometry);
             }
         }
 

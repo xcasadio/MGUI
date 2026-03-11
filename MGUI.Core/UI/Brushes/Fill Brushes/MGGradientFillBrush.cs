@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -36,6 +37,51 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     Bounds.BottomRight().ToVector2(), BottomRightColor * Opacity,
                     Bounds.BottomLeft().ToVector2(), BottomLeftColor * Opacity);
             }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            float opacity = DA.Opacity;
+            if (opacity <= 0 || opacity.IsAlmostZero())
+            {
+                return;
+            }
+
+            if (Geometry.UsesRectangleFastPath)
+            {
+                Draw(DA, Element, Shape.OuterBounds);
+                return;
+            }
+
+            Vector2 origin = DA.Offset.ToVector2();
+            Rectangle bounds = Shape.OuterBounds;
+            for (int i = 0; i + 2 < Geometry.FillIndices.Count; i += 3)
+            {
+                Vector2 v0 = Geometry.Vertices[Geometry.FillIndices[i]];
+                Vector2 v1 = Geometry.Vertices[Geometry.FillIndices[i + 1]];
+                Vector2 v2 = Geometry.Vertices[Geometry.FillIndices[i + 2]];
+
+                DA.DT.FillTriangle(
+                    origin,
+                    v0, GetColorAt(v0, bounds) * opacity,
+                    v1, GetColorAt(v1, bounds) * opacity,
+                    v2, GetColorAt(v2, bounds) * opacity);
+            }
+        }
+
+        private Color GetColorAt(Vector2 point, Rectangle bounds)
+        {
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                return TopLeftColor;
+            }
+
+            float horizontal = Math.Clamp((point.X - bounds.Left) / bounds.Width, 0f, 1f);
+            float vertical = Math.Clamp((point.Y - bounds.Top) / bounds.Height, 0f, 1f);
+
+            Color top = Color.Lerp(TopLeftColor, TopRightColor, horizontal);
+            Color bottom = Color.Lerp(BottomLeftColor, BottomRightColor, horizontal);
+            return Color.Lerp(top, bottom, vertical);
         }
 
         public IFillBrush Copy() => new MGGradientFillBrush(TopLeftColor, TopRightColor, BottomRightColor, BottomLeftColor);
@@ -93,6 +139,13 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     Bounds.BottomLeft().ToVector2(), GetColor(CornerType.BottomLeft) * Opacity);
             }
         }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+            => new MGGradientFillBrush(
+                GetColor(CornerType.TopLeft),
+                GetColor(CornerType.TopRight),
+                GetColor(CornerType.BottomRight),
+                GetColor(CornerType.BottomLeft)).Draw(DA, Element, Shape, Geometry);
 
         public IFillBrush Copy() => new MGDiagonalGradientFillBrush(Color1, Color2, Color1Position);
     }

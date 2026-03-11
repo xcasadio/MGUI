@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -193,6 +194,12 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     BottomRight.Draw(DT, new Rectangle(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize + CenterRowSize, RightColumnSize, BottomRowSize), null, DA.Opacity);
                 }
             }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            // Phase 1 limitation: nine-slice paints still target rectangular destinations until rounded patch decomposition exists.
+            Draw(DA, Element, Shape.OuterBounds);
         }
     }
 }

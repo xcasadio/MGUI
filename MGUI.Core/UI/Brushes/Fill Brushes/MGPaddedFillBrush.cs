@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -66,6 +67,34 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
                 Brush.Draw(DA, Element, ActualBounds);
             }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            float opacity = DA.Opacity;
+            if (opacity <= 0 || opacity.IsAlmostZero() || Brush == null)
+            {
+                return;
+            }
+
+            Rectangle paddedBounds = Shape.OuterBounds.GetCompressed(Padding);
+
+            if (Scale.HasValue)
+            {
+                paddedBounds = paddedBounds.GetScaledFromCenter(Scale.Value);
+            }
+
+            int desiredWidth = Math.Clamp(paddedBounds.Width, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
+            int desiredHeight = Math.Clamp(paddedBounds.Height, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
+            Rectangle actualBounds = MGElement.ApplyAlignment(
+                paddedBounds,
+                HorizontalAlignment ?? UI.HorizontalAlignment.Stretch,
+                VerticalAlignment ?? UI.VerticalAlignment.Stretch,
+                new Size(desiredWidth, desiredHeight));
+
+            MGBoxShape paddedShape = new MGBoxShape(actualBounds, new Thickness(0), Shape.NormalizedCornerRadius).Normalize();
+            MGBoxGeometry paddedGeometry = MGBoxGeometryBuilder.Build(paddedShape, Geometry.CornerSegmentCount);
+            Brush.Draw(DA, Element, paddedGeometry.Shape, paddedGeometry);
         }
 
         public IFillBrush Copy() => new MGPaddedFillBrush(Brush?.Copy(), Padding, Scale, MinWidth, MinHeight, MaxWidth, MaxHeight, HorizontalAlignment, VerticalAlignment);

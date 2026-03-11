@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -59,6 +60,40 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 Color FillColor = new Color(Color.Lerp(c1, c2, Progress), Alpha) * DA.Opacity;
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), Bounds, FillColor);
             }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            if (ProgressBar == null || DA.Opacity <= 0 || DA.Opacity.IsAlmostZero())
+            {
+                return;
+            }
+
+            float progress = ProgressBar.ValuePercent / 100f;
+
+            float min;
+            float max;
+            Color c1;
+            Color c2;
+            if (progress > 0.5f)
+            {
+                min = 0.5f;
+                max = 1.0f;
+                c1 = MiddleValueColor;
+                c2 = MaximumValueColor;
+            }
+            else
+            {
+                min = 0f;
+                max = 0.5f;
+                c1 = MinimumValueColor;
+                c2 = MiddleValueColor;
+            }
+
+            progress = (progress - min) / (max - min);
+            int alpha = (int)(c1.A * (1.0f - progress) + c2.A * progress);
+            Color fillColor = new Color(Color.Lerp(c1, c2, progress), alpha) * DA.Opacity;
+            DA.DT.FillRoundedRectangle(DA.Offset.ToVector2(), Geometry, fillColor);
         }
 
         public override string ToString() => $"{nameof(MGProgressBarGradientBrush)}: {MinimumValueColor} - {MaximumValueColor}";
