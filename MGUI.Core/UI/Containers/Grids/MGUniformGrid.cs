@@ -45,7 +45,10 @@ namespace MGUI.Core.UI.Containers.Grids
                     yield break;
                 case GridSelectionMode.Cell:
                     if (Grid.IsValidCellIndex(Cell))
+                    {
                         yield return Cell;
+                    }
+
                     yield break;
                 default:
                     throw new NotImplementedException($"Unrecognized {nameof(GridSelectionMode)}: {SelectionMode}");
@@ -170,7 +173,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
             int CurrentX = LayoutBounds.Left + Padding.Left;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
+            {
                 CurrentX += Math.Max(0, ColumnSpacing - GridLineMargin);
+            }
 
             for (int ColumnIndex = 0; ColumnIndex < Columns; ColumnIndex++)
             {
@@ -178,7 +183,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
                 int CurrentY = LayoutBounds.Top + Padding.Top;
                 if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
+                {
                     CurrentY += Math.Max(0, RowSpacing - GridLineMargin);
+                }
 
                 for (int RowIndex = 0; RowIndex < Rows; RowIndex++)
                 {
@@ -215,7 +222,9 @@ namespace MGUI.Core.UI.Containers.Grids
             {
                 GridCellIndex Cell = new(Row, Column);
                 if (ChildrenByRC.TryGetValue(Cell, out List<MGElement> Elements))
+                {
                     RowContent.Add(Cell, Elements);
+                }
             }
             return RowContent.ToDictionary(x => x.Key, x => x.Value as IReadOnlyList<MGElement>);
         }
@@ -227,7 +236,9 @@ namespace MGUI.Core.UI.Containers.Grids
             {
                 GridCellIndex Cell = new(Row, Column);
                 if (ChildrenByRC.TryGetValue(Cell, out List<MGElement> Elements))
+                {
                     ColumnContent.Add(Cell, Elements);
+                }
             }
             return ColumnContent.ToDictionary(x => x.Key, x => x.Value as IReadOnlyList<MGElement>);
         }
@@ -236,9 +247,13 @@ namespace MGUI.Core.UI.Containers.Grids
         public IReadOnlyList<MGElement> GetCellContent(GridCellIndex Cell)
         {
             if (ChildrenByRC.TryGetValue(Cell, out List<MGElement> Elements))
+            {
                 return Elements;
+            }
             else
+            {
                 return new List<MGElement>();
+            }
         }
 
         public bool TryAddChild(int Row, int Column, MGElement Item) => TryAddChild(new GridCellIndex(Row, Column), Item);
@@ -247,13 +262,24 @@ namespace MGUI.Core.UI.Containers.Grids
         public bool TryAddChild(GridCellIndex Cell, MGElement Item)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
+
             if (Item == null)
+            {
                 throw new ArgumentNullException(nameof(Item));
+            }
+
             if (_Children.Contains(Item))
+            {
                 throw new InvalidOperationException($"{nameof(MGUniformGrid)} does not support adding the same {nameof(MGElement)} multiple times.");
+            }
+
             if (!IsValidCellIndex(Cell))
+            {
                 throw new ArgumentOutOfRangeException($"Cell: {Cell.Row},{Cell.Column}. Row must be >= 0 and < {nameof(MGUniformGrid)}.{nameof(Rows)}, Column must be >= 0 and < {nameof(MGUniformGrid)}.{nameof(Columns)}");
+            }
 
             if (!ChildrenByRC.TryGetValue(Cell, out var CellContent))
             {
@@ -273,7 +299,9 @@ namespace MGUI.Core.UI.Containers.Grids
         public bool TryRemoveChild(MGElement Item)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             if (_Children.Remove(Item))
             {
@@ -283,14 +311,18 @@ namespace MGUI.Core.UI.Containers.Grids
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         /// <summary>Removes all elements from every row/column of this grid</summary>
         public bool TryRemoveAll()
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             _Children.ClearOneByOne();
             ChildrenByRC.Clear();
@@ -303,7 +335,9 @@ namespace MGUI.Core.UI.Containers.Grids
         {
             List<MGElement> Removed = new();
             if (!CanChangeContent)
+            {
                 return Removed;
+            }
 
             IReadOnlyList<MGElement> CellContent = GetCellContent(Cell);
             foreach (MGElement Element in CellContent)
@@ -318,7 +352,9 @@ namespace MGUI.Core.UI.Containers.Grids
             if (Removed.Any())
             {
                 if (Removed.Count == CellContent.Count)
+                {
                     ChildrenByRC.Remove(Cell);
+                }
                 else
                 {
 #if DEBUG
@@ -461,9 +497,13 @@ namespace MGUI.Core.UI.Containers.Grids
                 }
 
                 if (AllowDeselect && ClickedExistingSelection)
+                {
                     CurrentSelection = null;
+                }
                 else
+                {
                     CurrentSelection = new StaticGridSelection(this, Cell.Value, SelectionMode);
+                }
             }
         }
 
@@ -729,7 +769,9 @@ namespace MGUI.Core.UI.Containers.Grids
                             {
                                 Rectangle ScreenSpaceBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, Bounds.GetTranslated(e.DA.Offset));
                                 if (ScissorBounds.HasValue && ScreenSpaceBounds.Intersects(ScissorBounds.Value))
+                                {
                                     SelectionOverlay.Draw(e.DA, this, Bounds);
+                                }
                             }
                         }
                     }
@@ -760,27 +802,43 @@ namespace MGUI.Core.UI.Containers.Grids
             SharedSize = 0;
 
             if (Rows <= 0 || Columns <= 0)
+            {
                 return new(0);
+            }
 
             int TotalColumnSpacingWidth = (Columns - 1) * ColumnSpacing;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
+            {
                 TotalColumnSpacingWidth += Math.Max(0, ColumnSpacing - GridLineMargin);
+            }
+
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.RightEdge))
+            {
                 TotalColumnSpacingWidth += Math.Max(0, ColumnSpacing - GridLineMargin);
+            }
 
             int TotalWidth = TotalColumnSpacingWidth + CellSize.Width * Columns;
             if (HeaderColumnWidth.HasValue && Columns > 0)
+            {
                 TotalWidth += HeaderColumnWidth.Value - CellSize.Width;
+            }
 
             int TotalRowSpacingHeight = (Rows - 1) * RowSpacing;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
+            {
                 TotalRowSpacingHeight += Math.Max(0, RowSpacing - GridLineMargin);
+            }
+
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.BottomEdge))
+            {
                 TotalRowSpacingHeight += Math.Max(0, RowSpacing - GridLineMargin);
+            }
 
             int TotalHeight = TotalRowSpacingHeight + CellSize.Height * Rows;
             if (HeaderRowHeight.HasValue && Rows > 0)
+            {
                 TotalHeight += HeaderRowHeight.Value - CellSize.Height;
+            }
 
             return new(TotalWidth, TotalHeight, 0, 0);
         }
@@ -812,7 +870,9 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (_CellBounds.TryGetValue(Cell, out Rectangle Bounds))
                     {
                         if (ScissorBounds.HasValue && Bounds.GetTranslated(DA.Offset).Intersects(ScissorBounds.Value))
+                        {
                             SelectionBackground.Draw(DA, this, Bounds);
+                        }
                     }
                 }
             }
@@ -838,9 +898,13 @@ namespace MGUI.Core.UI.Containers.Grids
                 }
             }
             else if (HasHorizontalGridLines)
+            {
                 DrawHorizontalGridLines(DA, LayoutBounds);
+            }
             else if (HasVerticalGridLines)
+            {
                 DrawVerticalGridLines(DA, LayoutBounds);
+            }
 
             for (int C = 0; C < Columns; C++)
             {
@@ -866,7 +930,9 @@ namespace MGUI.Core.UI.Containers.Grids
         private void DrawHorizontalGridLines(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             if (DA.Opacity <= 0 || DA.Opacity.IsAlmostZero() || HorizontalGridLineBrush == null || Rows == 0 || Columns == 0)
+            {
                 return;
+            }
 
             int Left = _CellBounds[new(0, 0)].Left - Math.Max(0, ColumnSpacing - GridLineMargin);
             int Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, ColumnSpacing - GridLineMargin);
@@ -906,7 +972,9 @@ namespace MGUI.Core.UI.Containers.Grids
         private void DrawVerticalGridLines(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             if (DA.Opacity <= 0 || DA.Opacity.IsAlmostZero() || VerticalGridLineBrush == null || Rows == 0 || Columns == 0)
+            {
                 return;
+            }
 
             int Left = _CellBounds[new(0, 0)].Left - Math.Max(0, ColumnSpacing - GridLineMargin);
             int Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, ColumnSpacing - GridLineMargin);

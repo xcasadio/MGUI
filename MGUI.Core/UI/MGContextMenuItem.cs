@@ -223,9 +223,14 @@ namespace MGUI.Core.UI
                     using (Container.AllowChangingContentTemporarily())
                     {
                         if (Previous != null)
+                        {
                             Container.TryRemoveChild(Previous);
+                        }
+
                         if (MenuItemContent != null)
+                        {
                             Container.TryAddChild(MenuItemContent, Dock.Left);
+                        }
                     }
 
                     NPC(nameof(MenuItemContent));
@@ -258,7 +263,9 @@ namespace MGUI.Core.UI
                 if (_Submenu != value)
                 {
                     if (value != null && value.Host != Menu)
+                    {
                         throw new InvalidOperationException($"Cannot set {nameof(MGContextMenuItem)}.{nameof(Submenu)} to an {nameof(MGContextMenu)} whose parent is not the same as this.{nameof(Menu)}.");
+                    }
 
                     if (Submenu != null)
                     {
@@ -588,7 +595,9 @@ namespace MGUI.Core.UI
             ContentWrapper?.AddCommandHandler((Button, e) =>
             {
                 if (!IsChecked)
+                {
                     Menu.SetCheckedRadioItem(GroupName, this);
+                }
             });
         }
 

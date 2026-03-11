@@ -84,11 +84,20 @@ namespace MGUI.Samples.Features
         {
             List<MGElement> Elements = new();
             if (HighlightBrushFocusCheckBox && Window.TryGetElementByName("HighlightBrushSampleCheckBox", out MGElement CheckBox))
+            {
                 Elements.Add(CheckBox);
+            }
+
             if (HighlightBrushFocusButton && Window.TryGetElementByName("HighlightBrushSampleButton", out MGElement Button))
+            {
                 Elements.Add(Button);
+            }
+
             if (HighlightBrushFocusRadioButtons && Window.TryGetElementByName("HighlightBrushSampleRadioButtons", out MGElement RadioButtons))
+            {
                 Elements.Add(RadioButtons);
+            }
+
             HighlightBrushFocusedElements = Elements;
         }
 
@@ -342,7 +351,10 @@ namespace MGUI.Samples.Features
             ProgressBar1.OnEndUpdate += (sender, e) =>
             {
                 if (Counter % 3 == 0)
+                {
                     ProgressBar1.Value = (ProgressBar1.Value + 0.5f + ProgressBar1.Maximum) % ProgressBar1.Maximum;
+                }
+
                 Counter++;
             };
 

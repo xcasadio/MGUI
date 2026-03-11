@@ -24,13 +24,17 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         void IBorderBrush.Update(UpdateBaseArgs UA)
         {
             foreach (IBorderBrush Brush in Brushes)
+            {
                 Brush.Update(UA);
+            }
         }
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
         {
             foreach (IBorderBrush Brush in Brushes)
+            {
                 Brush.Draw(DA, Element, Bounds, BT);
+            }
         }
 
         public IBorderBrush Copy() => new MGCompositedBorderBrush(Brushes.Select(x => x.Copy()).ToArray());

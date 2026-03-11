@@ -149,8 +149,15 @@ namespace MGUI.Core.UI.XAML
                 while (searchPos < XAMLString.Length)
                 {
                     int tagStart = XAMLString.IndexOf('<', searchPos);
-                    if (tagStart < 0) break;
-                    if (tagStart + 1 >= XAMLString.Length) break;
+                    if (tagStart < 0)
+                    {
+                        break;
+                    }
+
+                    if (tagStart + 1 >= XAMLString.Length)
+                    {
+                        break;
+                    }
 
                     char nextChar = XAMLString[tagStart + 1];
                     if (nextChar != '!' && nextChar != '?')
@@ -162,7 +169,11 @@ namespace MGUI.Core.UI.XAML
 
                     // Skip past this comment or processing instruction
                     int tagEnd = XAMLString.IndexOf('>', tagStart + 1);
-                    if (tagEnd < 0) break;
+                    if (tagEnd < 0)
+                    {
+                        break;
+                    }
+
                     searchPos = tagEnd + 1;
                 }
 
@@ -172,7 +183,9 @@ namespace MGUI.Core.UI.XAML
                     string afterOpenTag = XAMLString.Substring(rootTagStart);
                     int SpaceIndex = afterOpenTag.IndexOf(' ');
                     if (SpaceIndex >= 0)
+                    {
                         XAMLString = $"{XAMLString.Substring(0, rootTagStart + SpaceIndex)} {XMLNameSpaces} {XAMLString.Substring(rootTagStart + SpaceIndex + 1)}";
+                    }
                     else
                     {
                         int InsertionIndex = rootTagStart + afterOpenTag.IndexOf('>');
@@ -224,13 +237,20 @@ namespace MGUI.Core.UI.XAML
         private static string PrepareMarkup(XamlDocumentSource Source, bool SanitizeXAMLString, bool ReplaceLinebreakLiterals)
         {
             if (Source == null)
+            {
                 throw new ArgumentNullException(nameof(Source));
+            }
 
             string XAMLString = Source.LoadContent();
             if (SanitizeXAMLString)
+            {
                 XAMLString = ValidateXAMLString(XAMLString);
+            }
+
             if (ReplaceLinebreakLiterals)
+            {
                 XAMLString = XAMLString.Replace(@"\n", "&#x0a;");
+            }
 
             return XAMLString;
         }
@@ -243,7 +263,9 @@ namespace MGUI.Core.UI.XAML
             TDefinition Parsed = (TDefinition)XamlServices.Parse(XAMLString);
 
             if (Resources != null)
+            {
                 Parsed.ProcessStyles(Resources);
+            }
 
             return Parsed;
         }

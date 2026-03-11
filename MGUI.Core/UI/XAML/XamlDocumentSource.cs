@@ -32,7 +32,9 @@ namespace MGUI.Core.UI.XAML
         public static XamlDocumentSource FromString(string Markup, string DisplayName = null)
         {
             if (Markup == null)
+            {
                 throw new ArgumentNullException(nameof(Markup));
+            }
 
             return new(XamlDocumentSourceKind.String, () => Markup, DisplayName);
         }
@@ -40,7 +42,9 @@ namespace MGUI.Core.UI.XAML
         public static XamlDocumentSource FromFile(string FilePath)
         {
             if (string.IsNullOrWhiteSpace(FilePath))
+            {
                 throw new ArgumentException("A valid file path is required.", nameof(FilePath));
+            }
 
             string FullPath = Path.GetFullPath(FilePath);
             return new(XamlDocumentSourceKind.File, () => File.ReadAllText(FullPath), Path.GetFileName(FullPath), FullPath);
@@ -49,7 +53,9 @@ namespace MGUI.Core.UI.XAML
         public static XamlDocumentSource FromStream(Func<Stream> StreamFactory, string DisplayName = null)
         {
             if (StreamFactory == null)
+            {
                 throw new ArgumentNullException(nameof(StreamFactory));
+            }
 
             return new(XamlDocumentSourceKind.Stream, () =>
             {

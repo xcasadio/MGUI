@@ -45,11 +45,17 @@ namespace MGUI.Core.UI
         public SecondaryVisualState GetSecondaryState(bool SpoofIsPressed, bool SpoofIsHovered)
         {
             if (SpoofIsPressed)
+            {
                 return SecondaryVisualState.Pressed;
+            }
             else if (SpoofIsHovered && Secondary != SecondaryVisualState.Pressed)
+            {
                 return SecondaryVisualState.Hovered;
+            }
             else
+            {
                 return Secondary;
+            }
         }
     }
 

@@ -151,7 +151,9 @@ public class MGDockTabGroup : MGElement
             _ownerDockHost = value;
             // Propagate to already-created tab items so OnDragStart can find the host.
             foreach (var ti in _tabItems.Values)
+            {
                 ti.OwnerDockHost = value;
+            }
         }
     }
     private MGDockHost _ownerDockHost;
@@ -168,7 +170,9 @@ public class MGDockTabGroup : MGElement
             _ownerFloatingWindow = value;
             // Propagate to already-created tab items.
             foreach (var ti in _tabItems.Values)
+            {
                 ti.OwnerFloatingWindow = value;
+            }
         }
     }
     private MGFloatingDockWindow _ownerFloatingWindow;
@@ -250,9 +254,13 @@ public class MGDockTabGroup : MGElement
             _maximizeBtn = CreateCompactButton(window, "", () =>
             {
                 if (_isMaximized)
+                {
                     RestoreRequested?.Invoke(this, GroupNode);
+                }
                 else
+                {
                     MaximizeRequested?.Invoke(this, GroupNode);
+                }
             });
             _maximizeBtn.SetParent(this);
         }
@@ -367,28 +375,36 @@ public class MGDockTabGroup : MGElement
     private void OnCloseOthers(DockPanelNode panelToKeep)
     {
         if (GroupNode == null)
+        {
             return;
+        }
 
         var toClose = GroupNode.Panels
             .Where(p => p.Id != panelToKeep.Id && p.CanClose)
             .ToList(); // snapshot
 
         foreach (var p in toClose)
+        {
             PanelCloseRequested?.Invoke(this, p);
+        }
     }
 
     /// <summary>Handles "Close All" from a tab context-menu.</summary>
     private void OnCloseAll()
     {
         if (GroupNode == null)
+        {
             return;
+        }
 
         var toClose = GroupNode.Panels
             .Where(p => p.CanClose)
             .ToList(); // snapshot
 
         foreach (var p in toClose)
+        {
             PanelCloseRequested?.Invoke(this, p);
+        }
     }
 
     /// <summary>
@@ -502,14 +518,24 @@ public class MGDockTabGroup : MGElement
     {
         // header-strip elements (tab panel + control buttons)
         if (_tabHeadersPanel != null)
+        {
             yield return _tabHeadersPanel;
+        }
+
         if (_dropdownBtn != null)
+        {
             yield return _dropdownBtn;
+        }
+
         if (_maximizeBtn != null)
+        {
             yield return _maximizeBtn;
+        }
 
         if (_activeContentContainer != null)
+        {
             yield return _activeContentContainer;
+        }
     }
 
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
@@ -542,7 +568,9 @@ public class MGDockTabGroup : MGElement
     protected override void UpdateContentLayout(Rectangle Bounds)
     {
         if (_tabHeadersPanel == null)
+        {
             return;
+        }
 
         int panelCount = GroupNode?.Panels.Count ?? 0;
 
@@ -588,10 +616,16 @@ public class MGDockTabGroup : MGElement
                 for (int i = _tabScrollIndex; i < panels.Count; i++)
                 {
                     if (!_tabItems.TryGetValue(panels[i].Id, out var tab))
+                    {
                         continue;
+                    }
+
                     int w = tab.LastMeasuredWidth;
                     if (accumulated + w > tabStripWidth && newVisibleCount > 0)
+                    {
                         break;
+                    }
+
                     accumulated += w;
                     newVisibleCount++;
                 }
@@ -617,9 +651,13 @@ public class MGDockTabGroup : MGElement
             if (activeTabIndex >= 0)
             {
                 if (activeTabIndex < _tabScrollIndex)
+                {
                     _tabScrollIndex = activeTabIndex;
+                }
                 else if (activeTabIndex >= _tabScrollIndex + newVisibleCount)
+                {
                     _tabScrollIndex = activeTabIndex - newVisibleCount + 1;
+                }
             }
 
             ClampScrollIndex(panelCount, newVisibleCount);
@@ -710,7 +748,9 @@ public class MGDockTabGroup : MGElement
     public void ShowDropdown()
     {
         if (GroupNode == null || GroupNode.IsEmpty)
+        {
             return;
+        }
 
         // Build a context menu containing one button per panel
         var menu = new MGContextMenu(ParentWindow, "");
@@ -738,8 +778,16 @@ public class MGDockTabGroup : MGElement
 
     private void ClampScrollIndex(int panelCount = -1, int visibleCount = -1)
     {
-        if (panelCount < 0)  panelCount  = GroupNode?.Panels.Count ?? 0;
-        if (visibleCount < 0) visibleCount = Math.Max(1, _visibleTabCount);
+        if (panelCount < 0)
+        {
+            panelCount  = GroupNode?.Panels.Count ?? 0;
+        }
+
+        if (visibleCount < 0)
+        {
+            visibleCount = Math.Max(1, _visibleTabCount);
+        }
+
         int maxIndex = Math.Max(0, panelCount - visibleCount);
         _tabScrollIndex = Math.Clamp(_tabScrollIndex, 0, maxIndex);
     }
@@ -760,7 +808,9 @@ public class MGDockTabGroup : MGElement
 
         // Draw active-group accent stripe (top edge of tab header area)
         if (IsActiveGroup)
+        {
             DrawActiveGroupAccent(DA);
+        }
 
         // Draw programmatic icons over their respective buttons
         DrawDropdownIcon(DA);
@@ -775,7 +825,9 @@ public class MGDockTabGroup : MGElement
     {
         var lb = LayoutBounds;
         if (lb.Width <= 0 || lb.Height <= 0)
+        {
             return;
+        }
 
         const int stripeH = 2;
         DA.DT.FillRectangle(Vector2.Zero,
@@ -790,7 +842,9 @@ public class MGDockTabGroup : MGElement
     private void DrawDropdownIcon(ElementDrawArgs DA)
     {
         if (_dropdownBtn == null || _dropdownBtn.Visibility != Visibility.Visible)
+        {
             return;
+        }
 
         Rectangle b   = _dropdownBtn.LayoutBounds;
         float     cx  = b.X + b.Width * 0.5f;
@@ -816,7 +870,9 @@ public class MGDockTabGroup : MGElement
     private void DrawMaximizeIcon(ElementDrawArgs DA)
     {
         if (_maximizeBtn == null)
+        {
             return;
+        }
 
         Rectangle b        = _maximizeBtn.LayoutBounds;
         const int iconSize = 14;

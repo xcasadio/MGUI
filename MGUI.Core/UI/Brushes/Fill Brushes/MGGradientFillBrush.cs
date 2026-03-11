@@ -52,11 +52,17 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public Color GetColor(CornerType Corner)
         {
             if (Corner == Color1Position)
+            {
                 return Color1;
+            }
             else if (Corner == Color2Position)
+            {
                 return Color2;
+            }
             else
+            {
                 return Color.Lerp(Color1, Color2, 0.5f);
+            }
         }
 
         private static readonly Dictionary<CornerType, CornerType> OppositeCorners = new Dictionary<CornerType, CornerType>()

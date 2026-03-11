@@ -42,7 +42,9 @@ namespace MGUI.Core.UI.Containers.Grids
             {
                 MatchCollection Matches = UnanchoredParser.Matches(CommaSeparatedValues);
                 foreach (Match Match in Matches.Cast<Match>())
+                {
                     yield return Parse(Match.Value);
+                }
             }
         }
     }
@@ -96,7 +98,9 @@ namespace MGUI.Core.UI.Containers.Grids
         public void SetSizeConstraints(int? MinWidth, int? MaxWidth)
         {
             if (MinWidth.HasValue && MaxWidth.HasValue && MinWidth.Value > MaxWidth.Value)
+            {
                 throw new ArgumentException($"{nameof(MinWidth)} cannot be greater than {nameof(MaxWidth)}");
+            }
 
             this.MinWidth = MinWidth;
             this.MaxWidth = MaxWidth;
@@ -159,7 +163,9 @@ namespace MGUI.Core.UI.Containers.Grids
         public void SetSizeConstraints(int? MinHeight, int? MaxHeight)
         {
             if (MinHeight.HasValue && MaxHeight.HasValue && MinHeight.Value > MaxHeight.Value)
+            {
                 throw new ArgumentException($"{nameof(MinHeight)} cannot be greater than {nameof(MaxHeight)}");
+            }
 
             this.MinHeight = MinHeight;
             this.MaxHeight = MaxHeight;

@@ -194,7 +194,9 @@ namespace MGUI.Core.UI.Containers.Grids
                 this.OwnerGrid = OwnerGrid;
 
                 if (NormalizeWeightedLengths)
+                {
                     OwnerGrid.NormalizeWeightedLengths();
+                }
 
                 ActualColumns = OwnerGrid.Columns;
                 OriginalColumns = ActualColumns.Select(x => x.GetCopy()).ToList();
@@ -285,7 +287,9 @@ namespace MGUI.Core.UI.Containers.Grids
         private void ApplyResizing(Point PositionDelta)
         {
             if (GridData?.IsValid != true)
+            {
                 return;
+            }
 
             GridDragData Data = new(GridData.Value); // Make a copy of the data so we can iteratively adjust the row/column width/height values without affecting the original data used by these calculations
 
@@ -375,7 +379,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
                                         TotalRemainingAddedHeight -= CurrentAddedHeight;
                                         if (TotalRemainingAddedHeight <= 0)
+                                        {
                                             break;
+                                        }
                                     }
                                 }
 
@@ -383,7 +389,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
                                 TotalRemainingRemovedHeight -= CurrentRemovedHeight;
                                 if (TotalRemainingRemovedHeight <= 0)
+                                {
                                     break;
+                                }
                             }
                         }
                     }
@@ -466,7 +474,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
                                         TotalRemainingAddedWidth -= CurrentAddedWidth;
                                         if (TotalRemainingAddedWidth <= 0)
+                                        {
                                             break;
+                                        }
                                     }
                                 }
 
@@ -474,7 +484,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
                                 TotalRemainingRemovedWidth -= CurrentRemovedWidth;
                                 if (TotalRemainingRemovedWidth <= 0)
+                                {
                                     break;
+                                }
                             }
                         }
                     }
@@ -520,7 +532,9 @@ namespace MGUI.Core.UI.Containers.Grids
                 if (Underlay != null)
                 {
                     foreach (Rectangle Tick in TickBounds)
+                    {
                         Underlay.Draw(DA, this, Tick);
+                    }
                 }
 
                 if (!ParentWindow.HasModalWindow)
@@ -529,7 +543,9 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (Overlay != null)
                     {
                         foreach (Rectangle Tick in TickBounds)
+                        {
                             Overlay.Draw(DA, this, Tick);
+                        }
                     }
                 }
             }

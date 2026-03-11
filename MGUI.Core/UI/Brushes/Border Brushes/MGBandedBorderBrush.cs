@@ -28,7 +28,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         public MGBandedBorderBrush(IList<Color> Colors, IList<double> Weights)
         {
             if (Colors.Count != Weights.Count)
+            {
                 throw new InvalidOperationException($"{nameof(MGBandedBorderBrush)}.ctor: There must be exactly 1 weight per color");
+            }
 
             List<MGBorderBand> Bands = new();
             for (int i = 0; i < Colors.Count; i++)
@@ -65,7 +67,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
         {
             if (!Bands.Any())
+            {
                 return;
+            }
 
             DrawTransaction DT = DA.DT;
             float Opacity = DA.Opacity;

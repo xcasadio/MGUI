@@ -22,7 +22,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public bool TryGetElementByName(string Name, out MGElement NamedElement)
 		{
 			if (SourceElement != null)
+			{
 				return SourceElement.TryGetElementByName(Name, out NamedElement);
+			}
 			else
 			{
 				NamedElement = null;
@@ -165,7 +167,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 					if (FocusedElements != null)
 					{
 						foreach (MGElement Element in FocusedElements)
+						{
 							Element.OnLayoutBoundsChanged -= HandleLayoutBoundsChanged;
+						}
 					}
 
                     _FocusedElements = value;
@@ -175,7 +179,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     if (FocusedElements != null)
                     {
                         foreach (MGElement Element in FocusedElements)
-                            Element.OnLayoutBoundsChanged += HandleLayoutBoundsChanged;
+                        {
+	                        Element.OnLayoutBoundsChanged += HandleLayoutBoundsChanged;
+                        }
                     }
 
                     CachedUnfocusedRegions.Clear();
@@ -231,7 +237,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 		public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
 		{
 			if (!IsEnabled || (!CanFillFocusedRegion && !CanFillUnfocusedRegion))
+			{
 				return;
+			}
 
 			Vector2 Offset = DA.Offset.ToVector2();
 
@@ -245,13 +253,17 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 				if (FocusedBounds != null)
 				{
 					foreach (Rectangle r in FocusedBounds)
+					{
 						DA.DT.FillRectangle(Offset, r, FocusedColor.Value);
+					}
 				}
 
 				if (FocusedElements != null)
 				{
 					foreach (Rectangle r in FocusedElements.Select(x => x.LayoutBounds.GetExpanded(FocusedElementPadding)))
+					{
 						DA.DT.FillRectangle(Offset, r, FocusedColor.Value);
+					}
 				}
 			}
 
@@ -273,21 +285,31 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 				{
 					List<Rectangle> Subtractions = new();
 					if (FocusedBounds?.Any() == true)
+					{
 						Subtractions.AddRange(FocusedBounds);
+					}
+
 					if (FocusedElements?.Any() == true)
+					{
 						Subtractions.AddRange(FocusedElements.Select(x => x.LayoutBounds.GetExpanded(FocusedElementPadding)));
+					}
+
 					UnfocusedRegion = Subtract(Bounds, Subtractions);
 
 					//  Cache the result
                     CachedUnfocusedRegions.Add((Bounds, UnfocusedRegion));
 					if (CachedUnfocusedRegions.Count > MaxCachedUnfocusedRegions)
+					{
 						CachedUnfocusedRegions.RemoveAt(0);
+					}
 				}
 
 				if (UnfocusedRegion.Any())
 				{
 					foreach (Rectangle r in UnfocusedRegion)
+					{
 						DA.DT.FillRectangle(Offset, r, UnfocusedColor.Value);
+					}
 				}
 			}
         }
@@ -320,7 +342,10 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
                 List<Rectangle> Tmp = new();
                 foreach (Rectangle Rect in Result)
-                    Tmp.AddRange(Subtract(Rect, CurrentSubtraction));
+                {
+	                Tmp.AddRange(Subtract(Rect, CurrentSubtraction));
+                }
+
                 Result = Tmp;
             }
 
@@ -346,19 +371,27 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
             var heightA = subtrahend.Top - minuend.Top;
             if (heightA > 0)
-                yield return new Rectangle(minuend.Left, minuend.Top, minuend.Width, heightA);
+            {
+	            yield return new Rectangle(minuend.Left, minuend.Top, minuend.Width, heightA);
+            }
 
             var widthB = subtrahend.Left - minuend.Left;
             if (widthB > 0)
-                yield return new Rectangle(minuend.Left, subtrahend.Top, widthB, subtrahend.Height);
+            {
+	            yield return new Rectangle(minuend.Left, subtrahend.Top, widthB, subtrahend.Height);
+            }
 
             var widthC = minuend.Right - subtrahend.Right;
             if (widthC > 0)
-                yield return new Rectangle(subtrahend.Right, subtrahend.Top, widthC, subtrahend.Height);
+            {
+	            yield return new Rectangle(subtrahend.Right, subtrahend.Top, widthC, subtrahend.Height);
+            }
 
             var heightD = minuend.Bottom - subtrahend.Bottom;
             if (heightD > 0)
-                yield return new Rectangle(minuend.Left, subtrahend.Bottom, minuend.Width, heightD);
+            {
+	            yield return new Rectangle(minuend.Left, subtrahend.Bottom, minuend.Width, heightD);
+            }
         }
     }
 }

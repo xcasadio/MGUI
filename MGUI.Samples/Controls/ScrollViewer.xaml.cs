@@ -23,14 +23,18 @@ namespace MGUI.Samples.Controls
             Window.DefaultFocusElement = TextBox_SV1VerticalOffset;
             Window.GetResources().AddCommand("ApplyScrollViewer1VerticalOffset", x => {
                 if (float.TryParse(TextBox_SV1VerticalOffset.Text, out float DesiredOffset))
+                {
                     ScrollViewer1.VerticalOffset = DesiredOffset;
+                }
             });
             ScrollViewer1.VerticalOffsetChanged += (sender, e) => { TextBox_SV1VerticalOffset.SetText(e.NewValue.ToString("0.0")); };
 
             TextBox_SV1HorizontalOffset = Window.GetElementByName<MGTextBox>("TextBox_SV1HorizontalOffset");
             Window.GetResources().AddCommand("ApplyScrollViewer1HorizontalOffset", x => {
                 if (float.TryParse(TextBox_SV1HorizontalOffset.Text, out float DesiredOffset))
+                {
                     ScrollViewer1.HorizontalOffset = DesiredOffset;
+                }
             });
             ScrollViewer1.HorizontalOffsetChanged += (sender, e) => { TextBox_SV1HorizontalOffset.SetText(e.NewValue.ToString("0.0")); };
         }

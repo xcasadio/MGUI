@@ -71,7 +71,9 @@ public class MGDockHost : MGSingleContentHost
                 _dockableRegistry = value;
                 // Sync current visibility to the new registry
                 if (_dockableRegistry != null)
+                {
                     SyncRegistryVisibility();
+                }
             }
         }
     }
@@ -117,7 +119,9 @@ public class MGDockHost : MGSingleContentHost
     public void MaximizeGroup(DockTabGroupNode groupNode)
     {
         if (groupNode == null)
+        {
             return;
+        }
 
         _maximizeStack.Push(groupNode.Id);
         RebuildVisualTree();
@@ -130,7 +134,9 @@ public class MGDockHost : MGSingleContentHost
     public void RestoreLayout()
     {
         if (_maximizeStack.Count == 0)
+        {
             return;
+        }
 
         _maximizeStack.Pop();
         RebuildVisualTree();
@@ -393,7 +399,9 @@ public class MGDockHost : MGSingleContentHost
                     { insideStrip = true; break; }
                 }
                 if (!insideDrawer && !insideStrip)
+                {
                     HideAutoHideDrawer();
+                }
             }
         }
 
@@ -406,7 +414,9 @@ public class MGDockHost : MGSingleContentHost
             bool tabJustPressed = kb.CurrentKeyPressedEvents[Microsoft.Xna.Framework.Input.Keys.Tab] != null;
 
             if (ctrlHeld && tabJustPressed)
+            {
                 CyclePanel(forward: !shiftHeld);
+            }
         }
 
         // Handle drag operation via polling
@@ -585,7 +595,9 @@ public class MGDockHost : MGSingleContentHost
         {
             var splitterBounds = sc.SplitterBarLayoutBounds;
             if (splitterBounds == Microsoft.Xna.Framework.Rectangle.Empty)
+            {
                 continue;
+            }
 
             // Expand the hit area a bit so the thin bar is easier to target.
             const int hitExpand = 4;
@@ -596,7 +608,9 @@ public class MGDockHost : MGSingleContentHost
                 splitterBounds.Height + hitExpand * 2);
 
             if (!hitRect.Contains(mousePosition))
+            {
                 continue;
+            }
 
             // Determine which child to dock next to, and with which zone,
             // based on which half of the splitter bar the mouse is over.
@@ -641,16 +655,22 @@ public class MGDockHost : MGSingleContentHost
             // Resolve the child node to its first leaf tab group
             var leafGroup = targetChildNode != null ? FindFirstLeafTabGroup(targetChildNode) : null;
             if (leafGroup == null)
+            {
                 continue;
+            }
 
             // Build the drop target reusing the normal zone calculator
             var leafVisual = GetAllVisibleTabGroups().FirstOrDefault(tg => tg.GroupNode == leafGroup);
             if (leafVisual == null)
+            {
                 continue;
+            }
 
             var splitterDropTarget = GetDropTargetForZone(leafVisual, splitterZone, mousePosition);
             if (splitterDropTarget == null)
+            {
                 continue;
+            }
 
             splitterDropTarget.IsSplitterDrop = true;
             splitterDropTarget.SplitterNode   = sc.ModelNode;
@@ -669,10 +689,22 @@ public class MGDockHost : MGSingleContentHost
             var gb   = hoveredGroup.LayoutBounds;
 
             DockZone proximityZone = DockZone.None;
-            if      (mousePosition.X - gb.X      < band) proximityZone = DockZone.Left;
-            else if (gb.Right - mousePosition.X   < band) proximityZone = DockZone.Right;
-            else if (mousePosition.Y - gb.Y       < band) proximityZone = DockZone.Top;
-            else if (gb.Bottom - mousePosition.Y  < band) proximityZone = DockZone.Bottom;
+            if      (mousePosition.X - gb.X      < band)
+            {
+                proximityZone = DockZone.Left;
+            }
+            else if (gb.Right - mousePosition.X   < band)
+            {
+                proximityZone = DockZone.Right;
+            }
+            else if (mousePosition.Y - gb.Y       < band)
+            {
+                proximityZone = DockZone.Top;
+            }
+            else if (gb.Bottom - mousePosition.Y  < band)
+            {
+                proximityZone = DockZone.Bottom;
+            }
 
             if (proximityZone != DockZone.None)
             {
@@ -1045,18 +1077,26 @@ public class MGDockHost : MGSingleContentHost
         }
 
         if (allPanels.Count <= 1)
+        {
             return;
+        }
 
         var currentId = ActiveDockable?.Id;
         int currentIndex = currentId != null ? allPanels.FindIndex(p => p.Id == currentId) : -1;
 
         int nextIndex;
         if (currentIndex < 0)
+        {
             nextIndex = forward ? 0 : allPanels.Count - 1;
+        }
         else if (forward)
+        {
             nextIndex = (currentIndex + 1) % allPanels.Count;
+        }
         else
+        {
             nextIndex = (currentIndex - 1 + allPanels.Count) % allPanels.Count;
+        }
 
         var nextPanel = allPanels[nextIndex];
         ActivatePanel(nextPanel);
@@ -1073,7 +1113,10 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private void ActivatePanel(DockPanelNode panel)
     {
-        if (panel == null) return;
+        if (panel == null)
+        {
+            return;
+        }
 
         // Check if panel is in a docked tab group
         if (panel.Parent is DockTabGroupNode parentGroup
@@ -1115,7 +1158,9 @@ public class MGDockHost : MGSingleContentHost
     {
         var allPanels = GetAllPanels().ToList();
         if (allPanels.Count == 0)
+        {
             return;
+        }
 
         var menu = new MGContextMenu(ParentWindow, "");
         menu.CanContextMenuOpen = true;
@@ -1147,7 +1192,9 @@ public class MGDockHost : MGSingleContentHost
     public bool ShowDockable(string dockableId)
     {
         if (string.IsNullOrWhiteSpace(dockableId))
+        {
             return false;
+        }
 
         // Check if it is already visible
         if (_panelRegistry.TryGetValue(dockableId, out var existingPanel))
@@ -1163,7 +1210,9 @@ public class MGDockHost : MGSingleContentHost
 
         // Not visible → need to find definition and add it
         if (_dockableRegistry == null || !_dockableRegistry.TryGetById(dockableId, out var definition))
+        {
             return false;
+        }
 
         var panel = definition.CreatePanelNode();
 
@@ -1207,7 +1256,10 @@ public class MGDockHost : MGSingleContentHost
     /// </param>
     public MGFloatingDockWindow DetachToFloating(DockPanelNode panel, Point dropPosition)
     {
-        if (panel == null) throw new ArgumentNullException(nameof(panel));
+        if (panel == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
 
         // Remove from the host panel registry first (before model cleanup)
         _panelRegistry.Remove(panel.Id);
@@ -1239,7 +1291,10 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public MGFloatingDockWindow CreateFloatingWindow(DockPanelNode panel, int left, int top, int width = 320, int height = 260)
     {
-        if (panel == null) throw new ArgumentNullException(nameof(panel));
+        if (panel == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
 
         var floatWin = new MGFloatingDockWindow(this, panel, left, top, width, height);
         _floatingWindows.Add(floatWin);
@@ -1254,7 +1309,10 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public void CloseFloatingWindow(MGFloatingDockWindow window)
     {
-        if (window == null) return;
+        if (window == null)
+        {
+            return;
+        }
 
         _floatingWindows.Remove(window);
         ParentWindow.RemoveNestedWindow(window);
@@ -1267,7 +1325,11 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     internal void NotifyFloatingPanelClosed(DockPanelNode panel)
     {
-        if (panel == null) return;
+        if (panel == null)
+        {
+            return;
+        }
+
         PanelRemoved?.Invoke(this, panel);
         _dockableRegistry?.NotifyClosed(panel.Id);
         SyncRegistryVisibility();
@@ -1284,7 +1346,9 @@ public class MGDockHost : MGSingleContentHost
     private Microsoft.Xna.Framework.Rectangle GetStripBounds(AutoHideSide side, Microsoft.Xna.Framework.Rectangle avail)
     {
         if (LayoutModel == null || !LayoutModel.HasAutoHidePanels(side))
+        {
             return new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0);
+        }
 
         // Top / Bottom strips take the full width.
         // Left / Right strips are inset vertically by any active Top/Bottom strip to avoid
@@ -1305,7 +1369,11 @@ public class MGDockHost : MGSingleContentHost
     private Microsoft.Xna.Framework.Rectangle GetDrawerBounds(Microsoft.Xna.Framework.Rectangle avail)
     {
         var panel = _autoHideDrawer?.ActivePanel;
-        if (panel == null) return new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0);
+        if (panel == null)
+        {
+            return new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0);
+        }
+
         int ds = panel.DrawerSize;
         int st = _autoHideStripThickness;
         return panel.AutoHideSide switch
@@ -1326,7 +1394,10 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public void UnpinPanel(DockPanelNode panel)
     {
-        if (panel == null || !panel.CanAutoHide) return;
+        if (panel == null || !panel.CanAutoHide)
+        {
+            return;
+        }
 
         AutoHideSide side = InferAutoHideSide(panel);
 
@@ -1374,7 +1445,10 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public void RepinPanel(DockPanelNode panel)
     {
-        if (panel == null) return;
+        if (panel == null)
+        {
+            return;
+        }
 
         HideAutoHideDrawer();
 
@@ -1443,7 +1517,10 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public void ShowAutoHideDrawer(DockPanelNode panel)
     {
-        if (panel == null) return;
+        if (panel == null)
+        {
+            return;
+        }
 
         // Toggle: clicking the same languette again closes it
         if (_autoHideDrawer.ActivePanel == panel && _autoHideDrawer.Visibility == Visibility.Visible)
@@ -1461,7 +1538,11 @@ public class MGDockHost : MGSingleContentHost
     /// <summary>Closes the auto-hide drawer without re-pinning the panel.</summary>
     public void HideAutoHideDrawer()
     {
-        if (_autoHideDrawer?.Visibility == Visibility.Collapsed) return;
+        if (_autoHideDrawer?.Visibility == Visibility.Collapsed)
+        {
+            return;
+        }
+
         _autoHideDrawer.ActivePanel = null;
         _autoHideDrawer.Visibility  = Visibility.Collapsed;
         InvalidateLayout();
@@ -1481,7 +1562,10 @@ public class MGDockHost : MGSingleContentHost
             {
                 var gb = tabGroup.LayoutBounds;
                 var hb = LayoutBounds;
-                if (hb.Width == 0 || hb.Height == 0) return AutoHideSide.Left;
+                if (hb.Width == 0 || hb.Height == 0)
+                {
+                    return AutoHideSide.Left;
+                }
 
                 float cx = (gb.X + gb.Width  * 0.5f - hb.X) / hb.Width;
                 float cy = (gb.Y + gb.Height * 0.5f - hb.Y) / hb.Height;
@@ -1491,9 +1575,21 @@ public class MGDockHost : MGSingleContentHost
                 float dT = cy;
                 float dB = 1f - cy;
                 float min = Math.Min(Math.Min(dL, dR), Math.Min(dT, dB));
-                if (min == dL) return AutoHideSide.Left;
-                if (min == dR) return AutoHideSide.Right;
-                if (min == dT) return AutoHideSide.Top;
+                if (min == dL)
+                {
+                    return AutoHideSide.Left;
+                }
+
+                if (min == dR)
+                {
+                    return AutoHideSide.Right;
+                }
+
+                if (min == dT)
+                {
+                    return AutoHideSide.Top;
+                }
+
                 return AutoHideSide.Bottom;
             }
         }
@@ -1503,7 +1599,11 @@ public class MGDockHost : MGSingleContentHost
     /// <summary>Rebuilds every strip's button list from the current auto-hide store.</summary>
     private void RefreshAutoHideStrips()
     {
-        if (LayoutModel == null) return;
+        if (LayoutModel == null)
+        {
+            return;
+        }
+
         foreach (AutoHideSide side in _autoHideStrips.Keys)
         {
             var panels = LayoutModel.GetAutoHidePanels(side);
@@ -1519,7 +1619,11 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private void CloseAutoHidePanel(DockPanelNode panel)
     {
-        if (panel == null) return;
+        if (panel == null)
+        {
+            return;
+        }
+
         HideAutoHideDrawer();
         panel.AutoHideReturnGroup = null;  // not going back to layout
         LayoutModel?.RemoveFromAutoHide(panel);
@@ -1557,10 +1661,14 @@ public class MGDockHost : MGSingleContentHost
         foreach (var g in GetAllTabGroups())
         {
             if (g.IsDocumentArea && g != group)
+            {
                 g.IsDocumentArea = false;
+            }
         }
         if (group != null)
+        {
             group.IsDocumentArea = true;
+        }
     }
 
     /// <summary>
@@ -1574,17 +1682,25 @@ public class MGDockHost : MGSingleContentHost
     public bool CanDockIntoGroup(DockableType panelType, DockTabGroupNode targetGroup, DockZone zone)
     {
         if (zone != DockZone.Center)
+        {
             return true; // Split docks are always allowed
+        }
 
         var documentArea = GetDocumentArea();
         if (documentArea == null)
+        {
             return true; // No document area defined → no type restriction
+        }
 
         if (panelType == DockableType.Document)
+        {
             return targetGroup == documentArea; // Documents only go to DocumentArea
+        }
 
         if (panelType == DockableType.Tool)
+        {
             return targetGroup != documentArea; // Tools cannot go to DocumentArea
+        }
 
         return true;
     }
@@ -1608,16 +1724,22 @@ public class MGDockHost : MGSingleContentHost
     public bool CanDockTo(DockPanelNode panel, DockTabGroupNode targetGroup, DockZone zone)
     {
         if (panel == null || targetGroup == null)
+        {
             return true;
+        }
 
         // 1. Document / Tool area rules (existing)
         if (!CanDockIntoGroup(panel.DockableType, targetGroup, zone))
+        {
             return false;
+        }
 
         // 2. AllowedZones restriction
         var allowedZones = panel.AllowedZones;
         if (allowedZones != null && !allowedZones.Contains(zone))
+        {
             return false;
+        }
 
         // 3. Family restriction — only for tab-docking (Center)
         if (zone == DockZone.Center)
@@ -1628,9 +1750,14 @@ public class MGDockHost : MGSingleContentHost
                 foreach (var p in targetGroup.Panels)
                 {
                     if (p.Id == panel.Id)
+                    {
                         continue; // skip self
+                    }
+
                     if (p.Family != null && p.Family != family)
+                    {
                         return false;
+                    }
                 }
             }
         }
@@ -1647,12 +1774,16 @@ public class MGDockHost : MGSingleContentHost
     {
         var forbidden = new HashSet<DockZone>();
         if (panel == null || targetGroup == null)
+        {
             return forbidden;
+        }
 
         foreach (var z in _allDropZones)
         {
             if (!CanDockTo(panel, targetGroup, z))
+            {
                 forbidden.Add(z);
+            }
         }
 
         return forbidden;
@@ -1668,7 +1799,10 @@ public class MGDockHost : MGSingleContentHost
         // visual tree.  Without this, each rebuild leaves the old MGDockTabGroup instances
         // permanently subscribed to model events, causing a growing chain of orphaned handlers.
         foreach (var oldVisual in _activeTabGroupVisuals)
+        {
             oldVisual.Detach();
+        }
+
         _activeTabGroupVisuals.Clear();
 
         if (LayoutModel?.RootNode == null)
@@ -1721,7 +1855,9 @@ public class MGDockHost : MGSingleContentHost
     private void SyncRegistryVisibility()
     {
         if (_dockableRegistry == null)
+        {
             return;
+        }
 
         var floatingIds = _floatingWindows
             .SelectMany(w => w.GroupNode.Panels)
@@ -1848,7 +1984,11 @@ public class MGDockHost : MGSingleContentHost
         // Subscribe to float (detach) requests from the context menu
         tabGroup.PanelFloatRequested += (sender, panelToFloat) =>
         {
-            if (panelToFloat == null) return;
+            if (panelToFloat == null)
+            {
+                return;
+            }
+
             // Position the floating window roughly at the centre of the host
             var pos = new Microsoft.Xna.Framework.Point(
                 LayoutBounds.X + LayoutBounds.Width  / 2,
@@ -1859,18 +1999,28 @@ public class MGDockHost : MGSingleContentHost
         // Subscribe to pin/unpin toggle requests from the context menu or pin button
         tabGroup.PanelPinToggleRequested += (sender, panelToToggle) =>
         {
-            if (panelToToggle == null) return;
+            if (panelToToggle == null)
+            {
+                return;
+            }
+
             if (panelToToggle.IsPinned)
+            {
                 UnpinPanel(panelToToggle);
+            }
             else
+            {
                 RepinPanel(panelToToggle);
+            }
         };
 
         // Subscribe to maximize / restore requests
         tabGroup.MaximizeRequested += (sender, groupNode) =>
         {
             if (groupNode != null)
+            {
                 MaximizeGroup(groupNode);
+            }
         };
 
         tabGroup.RestoreRequested += (sender, _) => RestoreLayout();
@@ -2302,23 +2452,34 @@ public class MGDockHost : MGSingleContentHost
     private IEnumerable<MGDockSplitContainer> GetAllSplitContainers()
     {
         if (Content == null)
+        {
             yield break;
+        }
+
         foreach (var sc in FindSplitContainersRecursive(Content))
+        {
             yield return sc;
+        }
     }
 
     private IEnumerable<MGDockSplitContainer> FindSplitContainersRecursive(MGElement element)
     {
         if (element == null)
+        {
             yield break;
+        }
 
         if (element is MGDockSplitContainer splitContainer)
+        {
             yield return splitContainer;
+        }
 
         foreach (var child in element.GetChildren())
         {
             foreach (var sc in FindSplitContainersRecursive(child))
+            {
                 yield return sc;
+            }
         }
     }
 
@@ -2329,12 +2490,18 @@ public class MGDockHost : MGSingleContentHost
     private DockTabGroupNode FindFirstLeafTabGroup(DockNode node)
     {
         if (node is DockTabGroupNode tg)
+        {
             return tg;
+        }
+
         if (node is DockSplitNode split)
         {
             var fromFirst = FindFirstLeafTabGroup(split.FirstChild);
             if (fromFirst != null)
+            {
                 return fromFirst;
+            }
+
             return FindFirstLeafTabGroup(split.SecondChild);
         }
         return null;

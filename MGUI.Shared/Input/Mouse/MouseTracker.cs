@@ -392,7 +392,9 @@ namespace MGUI.Shared.Input.Mouse
                         _RecentButtonClickedEvents[Button] = ClickedArgs;
 
                         if (IsDoubleClickCount(ClickedArgs.ClickCount))
+                        {
                             _CurrentButtonDoubleClickedEvents[Button] = ClickedArgs;
+                        }
                     }
 
                     _RecentButtonPressedEvents[Button] = null;
@@ -405,7 +407,10 @@ namespace MGUI.Shared.Input.Mouse
                 foreach (MouseButton Button in MouseButtons)
                 {
                     if (Condition != DragStartCondition.MousePressed)
+                    {
                         _CurrentDragStartEvents[Condition][Button] = null;
+                    }
+
                     _CurrentDraggedEvents[Condition][Button] = null;
                     _CurrentDragEndEvents[Condition][Button] = null;
 
@@ -464,7 +469,9 @@ namespace MGUI.Shared.Input.Mouse
         public static int GetMultiClickCount(BaseMouseClickedEventArgs PreviousClickedArgs, BaseMouseReleasedEventArgs ReleasedArgs, TimeSpan multiClickTimeThreshold, int multiClickPositionThreshold)
         {
             if (PreviousClickedArgs == null || ReleasedArgs == null)
+            {
                 return 1;
+            }
 
             bool isWithinTime = ReleasedArgs.ReleasedAt - PreviousClickedArgs.ReleasedArgs.ReleasedAt <= multiClickTimeThreshold;
             bool isWithinPosition = Math.Abs(PreviousClickedArgs.Position.X - ReleasedArgs.Position.X) <= multiClickPositionThreshold

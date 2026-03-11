@@ -74,11 +74,17 @@ namespace MGUI.Core.UI
             SharedSize = new(0);
 
             if (Orientation == Orientation.Horizontal)
+            {
                 return new(1, Size, 0, 0);
+            }
             else if (Orientation == Orientation.Vertical)
+            {
                 return new(Size, 1, 0, 0);
+            }
             else
+            {
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+            }
         }
     }
 }

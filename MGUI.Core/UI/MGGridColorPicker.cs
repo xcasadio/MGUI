@@ -236,7 +236,9 @@ namespace MGUI.Core.UI
         public static IReadOnlyList<Color> GetColors(ColorPalette Palette)
         {
             if (Colors.ContainsKey(Palette))
+            {
                 return Colors[Palette].Select(x => ColorStringConverter.ParseColor(x).ToXNAColor()).ToList();
+            }
             else
             {
                 List<Color> Result = new();
@@ -258,7 +260,9 @@ namespace MGUI.Core.UI
         internal static int? GetAdjacentColorIndex(int? currentIndex, int columns, int colorCount, NavigationDirection direction)
         {
             if (colorCount <= 0 || columns <= 0)
+            {
                 return null;
+            }
 
             int current = Math.Clamp(currentIndex ?? 0, 0, colorCount - 1);
             int row = current / columns;
@@ -354,7 +358,9 @@ namespace MGUI.Core.UI
         {
             Colors = ColorPalettes.GetColors(Palette);
             if (TryUseRecommendedColumnCount && ColorPalettes.SuggestedColumnCounts.TryGetValue(Palette, out int SuggestedColumnCount))
+            {
                 Columns = SuggestedColumnCount;
+            }
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -482,7 +488,9 @@ namespace MGUI.Core.UI
         protected override IEnumerable<IBorderBrush> GetBorderBrushes()
         {
             foreach (IBorderBrush Brush in base.GetBorderBrushes())
+            {
                 yield return Brush;
+            }
 
             yield return SelectedColorBorderBrush;
             yield return UnselectedColorBorderBrush;
@@ -556,16 +564,23 @@ namespace MGUI.Core.UI
                 if (_SelectedColorIndexes != value)
                 {
                     if (!AllowMultiSelect)
+                    {
                         _SelectedColorIndexes = value?.Take(1).ToList() ?? new List<int>();
+                    }
                     else
+                    {
                         _SelectedColorIndexes = value ?? new List<int>();
+                    }
+
                     NPC(nameof(SelectedColorIndexes));
                     NPC(nameof(SelectedColor));
                     NPC(nameof(SelectedColors));
 
                     RefreshSelectedColorLabelVisibility();
                     if (IsSelectedColorLabelVisible)
+                    {
                         SelectedColorValue.Fill = SelectedColor.Value.AsFillBrush();
+                    }
                 }
             }
         }
@@ -580,9 +595,13 @@ namespace MGUI.Core.UI
             set
             {
                 if (!value.HasValue || !TryGetColorIndex(value.Value, out int Index))
+                {
                     SelectedColorIndexes = new List<int>();
+                }
                 else
+                {
                     SelectedColorIndexes = new List<int>() { Index };
+                }
             }
         }
 
@@ -617,7 +636,10 @@ namespace MGUI.Core.UI
                     _AllowMultiSelect = value;
                     NPC(nameof(AllowMultiSelect));
                     if (!AllowMultiSelect && SelectedColorIndexes.Count > 1)
+                    {
                         SelectedColorIndexes = SelectedColorIndexes.Take(1).ToList();
+                    }
+
                     RefreshSelectedColorLabelVisibility();
                 }
             }
@@ -682,7 +704,9 @@ namespace MGUI.Core.UI
                 PropertyChanged += (sender, e) =>
                 {
                     if (e.PropertyName == nameof(Padding))
+                    {
                         SelectedColorPresenter.Margin = SelectedColorPresenter.Margin.ChangeTop(Padding.Bottom);
+                    }
                 };
 
                 this.Columns = Columns;
@@ -711,7 +735,9 @@ namespace MGUI.Core.UI
                         HoveredColorIndex = LinearIndex;
                     }
                     else
+                    {
                         HoveredColorIndex = null;
+                    }
                 };
 
                 //  Update the selection when a color is clicked
@@ -722,9 +748,13 @@ namespace MGUI.Core.UI
                         if (AllowMultiSelect && e.Tracker.InputTracker.Keyboard.IsControlDown)
                         {
                             if (SelectedColorIndexes.Contains(HoveredColorIndex.Value)) // Deselect if already selected
+                            {
                                 SelectedColorIndexes = SelectedColorIndexes.Where(x => x != HoveredColorIndex.Value).ToList();
+                            }
                             else
+                            {
                                 SelectedColorIndexes = SelectedColorIndexes.Union(new List<int>() { HoveredColorIndex.Value }).ToList();
+                            }
                         }
                         else
                         {
@@ -753,7 +783,9 @@ namespace MGUI.Core.UI
             {
                 int? nextIndex = GetAdjacentColorIndex(GetCurrentNavigationColorIndex(), Columns, Colors?.Count ?? 0, direction.Value);
                 if (!nextIndex.HasValue)
+                {
                     return false;
+                }
 
                 HoveredColorIndex = nextIndex.Value;
                 return true;
@@ -847,10 +879,14 @@ namespace MGUI.Core.UI
                     SelectedColorBorderBrush?.Draw(DA, this, Bounds, SelectedColorBorderThickness);
                 }
                 else
+                {
                     UnselectedColorBorderBrush?.Draw(DA, this, Bounds, UnselectedColorBorderThickness);
+                }
 
                 if (HoveredColorIndex.HasValue && HoveredColorIndex.Value == Index)
+                {
                     HoveredColorOverlay?.Draw(DA, this, Bounds);
+                }
 
                 Column++;
                 if (Column >= Columns)

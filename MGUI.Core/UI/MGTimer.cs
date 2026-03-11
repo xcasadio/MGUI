@@ -82,7 +82,9 @@ namespace MGUI.Core.UI
         private void UpdateDisplayedValue(bool ForceLayoutRefresh)
         {
             if (ValueElement == null || ValueDisplayFormat == null || RemainingDurationToString == null)
+            {
                 return;
+            }
 
             string RemainingDurationDisplayString = RemainingDurationToString(RemainingDuration);
             string ValueDisplayString = ValueDisplayFormat.Replace($"{{{{{nameof(RemainingDuration)}}}}}", RemainingDurationDisplayString);
@@ -131,7 +133,9 @@ namespace MGUI.Core.UI
                     RemainingDurationChanged?.Invoke(this, new(Previous, RemainingDuration));
 
                     if (RemainingDuration.TotalSeconds <= 0)
+                    {
                         TimeUp?.Invoke(this, EventArgs.Empty);
+                    }
                 }
             }
         }
@@ -197,9 +201,13 @@ namespace MGUI.Core.UI
                     _IsPaused = value;
                     NPC(nameof(IsPaused));
                     if (IsPaused)
+                    {
                         Paused?.Invoke(this, EventArgs.Empty);
+                    }
                     else
+                    {
                         Resumed?.Invoke(this, EventArgs.Empty);
+                    }
                 }
             }
         }
@@ -239,13 +247,18 @@ namespace MGUI.Core.UI
             if (Active != _PreviousActiveEffect)
             {
                 if (_PreviousActiveEffect != null)
+                {
                     ResetEffects();
+                }
+
                 _EffectAccumulator = 0.0;
                 _PreviousActiveEffect = Active;
             }
 
             if (Active == null)
+            {
                 return;
+            }
 
             _EffectAccumulator += ElapsedSeconds;
 
@@ -315,7 +328,10 @@ namespace MGUI.Core.UI
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             if (_ShakeOffsetX != 0)
+            {
                 LayoutBounds = new Rectangle(LayoutBounds.X + _ShakeOffsetX, LayoutBounds.Y, LayoutBounds.Width, LayoutBounds.Height);
+            }
+
             base.DrawSelf(DA, LayoutBounds);
         }
     }

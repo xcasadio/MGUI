@@ -83,7 +83,9 @@ namespace MGUI.Shared.Rendering
             else if (CurrentContext != Context)
             {
                 if (CurrentContext != DrawContext.None)
+                {
                     EndDraw(CurrentContext);
+                }
 
                 switch (Context)
                 {
@@ -123,7 +125,9 @@ namespace MGUI.Shared.Rendering
         public void DrawTextureTo(Texture2D Texture, Rectangle? Source, Rectangle Destination, Color ColorMask)
         {
             if (Destination.Width < 1 || Destination.Height < 1)
+            {
                 return;
+            }
 
             BeginDraw(DrawContext.Sprites);
             SB.Draw(Texture, Destination, Source, ColorMask);
@@ -134,7 +138,9 @@ namespace MGUI.Shared.Rendering
             Vector2 Origin, float Rotation = 0f, float Depth = 0f, SpriteEffects Effects = SpriteEffects.None)
         {
             if (Destination.Width < 1 || Destination.Height < 1)
+            {
                 return;
+            }
 
             BeginDraw(DrawContext.Sprites);
             SB.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, Effects, Depth);
@@ -159,9 +165,13 @@ namespace MGUI.Shared.Rendering
         {
             BeginDraw(DrawContext.Sprites);
             if (ScaleX == ScaleY)
+            {
                 SB.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, ScaleX, Effects, Depth);
+            }
             else
+            {
                 SB.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, new Vector2(ScaleX, ScaleY), Effects, Depth);
+            }
         }
         #endregion Draw Texture
 
@@ -172,9 +182,13 @@ namespace MGUI.Shared.Rendering
         {
             BeginDraw(DrawContext.Sprites);
             if (ScaleX == ScaleY)
+            {
                 SB.DrawString(Font, Text, Position, Color, Rotation, Origin, ScaleX, Effects, Depth);
+            }
             else
+            {
                 SB.DrawString(Font, Text, Position, Color, Rotation, Origin, new Vector2(ScaleX, ScaleY), Effects, Depth);
+            }
         }
 
         /// <summary>
@@ -196,7 +210,10 @@ namespace MGUI.Shared.Rendering
             SpriteEffects Effects = SpriteEffects.None)
         {
             if (string.IsNullOrEmpty(Text) || Font?.NativeFont == null)
+            {
                 return;
+            }
+
             BeginDraw(DrawContext.Sprites);
             TextEngine.DrawText(SB, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Effects);
         }
@@ -222,7 +239,9 @@ namespace MGUI.Shared.Rendering
             // Resolve and measure once; draw twice (shadow + text) to avoid redundant font resolves
             var resolved = TextEngine.ResolveFont(new FontSpec(Family, DesiredFontSize, Style));
             if (resolved.NativeFont == null)
+            {
                 return Vector2.Zero;
+            }
 
             float scale = Exact ? resolved.ExactScale : resolved.SuggestedScale;
             Vector2 suggested = TextEngine.MeasureText(resolved, Text);
@@ -232,22 +251,31 @@ namespace MGUI.Shared.Rendering
             TextEngine.DrawText(SB, resolved, Text, Position, TextColor, resolved.DrawOrigin, scale);
 
             if (!Exact || resolved.SuggestedScale == resolved.ExactScale)
+            {
                 return suggested;
+            }
+
             return suggested * (resolved.ExactScale / resolved.SuggestedScale);
         }
 
         public Vector2 MeasureText(string Family, CustomFontStyles Style, string Text, int DesiredFontSize, bool Exact = false)
         {
             if (string.IsNullOrEmpty(Text))
+            {
                 return Vector2.Zero;
+            }
 
             var resolved = TextEngine.ResolveFont(new FontSpec(Family, DesiredFontSize, Style));
             if (resolved.NativeFont == null)
+            {
                 return Vector2.Zero;
+            }
 
             Vector2 suggested = TextEngine.MeasureText(resolved, Text);
             if (!Exact || resolved.SuggestedScale == resolved.ExactScale)
+            {
                 return suggested;
+            }
 
             // Adjust from SuggestedScale to ExactScale proportionally
             float ratio = resolved.ExactScale / resolved.SuggestedScale;
@@ -286,7 +314,10 @@ namespace MGUI.Shared.Rendering
             TextEngine.DrawText(SB, resolved, Text, Position, Color, resolved.DrawOrigin, scale);
 
             if (!Exact || resolved.SuggestedScale == resolved.ExactScale)
+            {
                 return suggested;
+            }
+
             return suggested * (resolved.ExactScale / resolved.SuggestedScale);
         }
         #endregion Draw Text
@@ -308,7 +339,9 @@ namespace MGUI.Shared.Rendering
         public void StrokeRectangle(Vector2 Origin, RectangleF Destination, Color Color, Thickness Thickness, DrawContext? PreferredContext = null)
         {
             if (Destination.Width.IsAlmostZero() || Destination.Height.IsAlmostZero() || Thickness.IsEmpty())
+            {
                 return;
+            }
 
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
@@ -346,7 +379,9 @@ namespace MGUI.Shared.Rendering
         public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color, DrawContext? PreferredContext = null)
         {
             if (Destination.Width.IsAlmostZero() || Destination.Height.IsAlmostZero() || Color.A == 0)
+            {
                 return;
+            }
 
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
@@ -382,10 +417,14 @@ namespace MGUI.Shared.Rendering
         public void StrokeAndFillCircle(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness = 1.0f, int NumSides = 32, DrawContext? PreferredContext = null)
         {
             if (Radius <= 0.0f || Radius.IsAlmostZero())
+            {
                 return;
+            }
 
             if (Radius.IsAlmostEqual(StrokeThickness))
+            {
                 FillCircle(Center, StrokeColor, Radius, NumSides, PreferredContext);
+            }
             else
             {
                 FillCircle(Center, FillColor, Radius, NumSides, PreferredContext);
@@ -397,9 +436,14 @@ namespace MGUI.Shared.Rendering
         public void StrokeCircle(Vector2 Center, Color Color, float Radius, float Thickness = 1.0f, int NumSides = 32, DrawContext? PreferredContext = null)
         {
             if (Radius <= 0.0f || Radius.IsAlmostZero() || Thickness <= 0.0f || Thickness.IsAlmostZero())
+            {
                 return;
+            }
+
             if (NumSides > CircleMaxSides)
+            {
                 throw new ArgumentException($"{nameof(StrokeCircle)}.{nameof(NumSides)} cannot exceed {CircleMaxSides}.");
+            }
 
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
@@ -437,9 +481,14 @@ namespace MGUI.Shared.Rendering
         public void FillCircle(Vector2 Center, Color Color, float Radius, int NumSides = 32, DrawContext? PreferredContext = null)
         {
             if (Radius <= 0.0f || Radius.IsAlmostZero())
+            {
                 return;
+            }
+
             if (NumSides > CircleMaxSides)
+            {
                 throw new ArgumentException($"{nameof(FillCircle)}.{nameof(NumSides)} cannot exceed {CircleMaxSides}.");
+            }
 
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
@@ -464,9 +513,14 @@ namespace MGUI.Shared.Rendering
         public void FillEllipse(Vector2 Center, float RadiusX, float RadiusY, Color Color, int NumSides = 32, DrawContext? PreferredContext = null)
         {
             if (RadiusX <= 0.0f || RadiusX.IsAlmostZero() || RadiusY <= 0.0f || RadiusY.IsAlmostZero())
+            {
                 return;
+            }
+
             if (NumSides > CircleMaxSides)
+            {
                 throw new ArgumentException($"{nameof(FillEllipse)}.{nameof(NumSides)} cannot exceed {CircleMaxSides}.");
+            }
 
             //  FillEllipse always uses the Primitives context because PD.DrawSolidEllipse is the most efficient path.
             //  No equivalent filled-ellipse primitive exists in SpriteBatch.
@@ -478,9 +532,14 @@ namespace MGUI.Shared.Rendering
         public void StrokeEllipse(Vector2 Center, float RadiusX, float RadiusY, Color Color, float Thickness = 1.0f, int NumSides = 32, DrawContext? PreferredContext = null)
         {
             if (RadiusX <= 0.0f || RadiusX.IsAlmostZero() || RadiusY <= 0.0f || RadiusY.IsAlmostZero() || Thickness <= 0.0f || Thickness.IsAlmostZero())
+            {
                 return;
+            }
+
             if (NumSides > CircleMaxSides)
+            {
                 throw new ArgumentException($"{nameof(StrokeEllipse)}.{nameof(NumSides)} cannot exceed {CircleMaxSides}.");
+            }
 
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
@@ -494,10 +553,14 @@ namespace MGUI.Shared.Rendering
         public void StrokeAndFillEllipse(Vector2 Center, float RadiusX, float RadiusY, Color StrokeColor, Color FillColor, float StrokeThickness = 1.0f, int NumSides = 32, DrawContext? PreferredContext = null)
         {
             if (RadiusX <= 0.0f || RadiusX.IsAlmostZero() || RadiusY <= 0.0f || RadiusY.IsAlmostZero())
+            {
                 return;
+            }
 
             if (RadiusX.IsAlmostEqual(StrokeThickness) || RadiusY.IsAlmostEqual(StrokeThickness))
+            {
                 FillEllipse(Center, RadiusX, RadiusY, StrokeColor, NumSides, PreferredContext);
+            }
             else
             {
                 FillEllipse(Center, RadiusX, RadiusY, FillColor, NumSides, PreferredContext);
@@ -548,10 +611,14 @@ namespace MGUI.Shared.Rendering
             bool CenterLinesOnVertices = true, WindingOrder? Order = null)
         {
             if (Vertices == null || !Vertices.Any())
+            {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
+            }
 
             if (!CenterLinesOnVertices && StrokeColor == FillColor)
+            {
                 FillPolygon(Origin, Vertices, StrokeColor);
+            }
             else
             {
                 FillPolygon(Origin, Vertices, FillColor);
@@ -566,9 +633,13 @@ namespace MGUI.Shared.Rendering
         public void StrokePolygon(Vector2 Origin, IReadOnlyList<Vector2> Vertices, Color Color, float Thickness = 1.0f, bool CenterLinesOnVertices = true, WindingOrder? Order = null, DrawContext? PreferredContext = null)
         {
             if (Thickness <= 0.0f || Thickness.IsAlmostZero())
+            {
                 return;
+            }
             else if (Vertices == null || !Vertices.Any())
+            {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
+            }
 
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
@@ -577,7 +648,9 @@ namespace MGUI.Shared.Rendering
             {
                 var Edges = Vertices.SelectConsecutivePairs(true);
                 foreach ((Vector2 Start, Vector2 End) in Edges)
+                {
                     StrokeLineSegment(Origin, Start, End, Color, Thickness, Ctx);
+                }
             }
             else
             {
@@ -621,7 +694,9 @@ namespace MGUI.Shared.Rendering
         public void FillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color Color)
         {
             if (Vertices == null || !Vertices.Any())
+            {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
+            }
 
             BeginDraw(DrawContext.Primitives);
             //Vector2[] CCWVertices = Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise);
@@ -640,7 +715,9 @@ namespace MGUI.Shared.Rendering
         public void StrokeAndFillPoint(Vector2 Position, Color StrokeColor, Color FillColor, float Radius = 3.0f, int StrokeThickness = 1, PointShape Shape = PointShape.Circle, DrawContext? PreferredContext = null)
         {
             if (Radius.IsAlmostEqual(StrokeThickness))
+            {
                 FillPoint(Position, StrokeColor, Radius, Shape, PreferredContext);
+            }
             else
             {
                 FillPoint(Position, FillColor, Radius, Shape, PreferredContext);
@@ -651,7 +728,9 @@ namespace MGUI.Shared.Rendering
         public void StrokePoint(Vector2 Position, Color Color, float Radius = 1.0f, int Thickness = 1, PointShape Shape = PointShape.Circle, DrawContext? PreferredContext = null)
         {
             if (Radius <= 0.0f || Radius.IsAlmostZero() || Thickness <= 0)
+            {
                 return;
+            }
 
             if (Radius.IsAlmostEqual(Thickness))
             {
@@ -675,7 +754,9 @@ namespace MGUI.Shared.Rendering
         public void FillPoint(Vector2 Position, Color Color, float Radius = 1.0f, PointShape Shape = PointShape.Circle, DrawContext? PreferredContext = null)
         {
             if (Radius <= 0.0f || Radius.IsAlmostZero())
+            {
                 return;
+            }
 
             switch (Shape)
             {
@@ -693,7 +774,9 @@ namespace MGUI.Shared.Rendering
         public void StrokeLineSegment(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness = 1.0f, DrawContext? PreferredContext = null)
         {
             if (Start.IsAlmostEqualTo(End) || Thickness <= 0.0f || Thickness.IsAlmostZero())
+            {
                 return;
+            }
 
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
@@ -715,7 +798,9 @@ namespace MGUI.Shared.Rendering
         private void FillTrianglePrimitive(Vector2 Origin, Vector2 v0, Vector2 v1, Vector2 v2, Color Color)
         {
             if (!PB.IsReady() || CurrentContext != DrawContext.Primitives)
+            {
                 throw new InvalidOperationException($"{nameof(PrimitiveBatch)}.{nameof(PrimitiveBatch.Begin)} must be called before drawing anything.");
+            }
             else if (CurrentSettings.RasterizerState.CullMode != CullMode.None)
             {
                 string ErrorMessage = $"{nameof(DrawTransaction)}.{nameof(FillTrianglePrimitive)} does not account for the winding order of the vertices and may not work correctly " +
@@ -794,7 +879,9 @@ namespace MGUI.Shared.Rendering
                 EndDraw(CurrentContext);
                 GD.SetRenderTarget(New);
                 if (ClearColor.HasValue)
+                {
                     GD.Clear(ClearColor.Value);
+                }
             }
         }
 
@@ -870,9 +957,13 @@ namespace MGUI.Shared.Rendering
                 EndDraw(CurrentContext);
                 SB.GraphicsDevice.ScissorRectangle = Bounds ?? Renderer.GetViewport(0);
                 if (ShouldScissorTest && !IsScissorTesting)
+                {
                     SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
+                }
                 else if (!ShouldScissorTest && IsScissorTesting)
+                {
                     SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
+                }
             }
         }
 

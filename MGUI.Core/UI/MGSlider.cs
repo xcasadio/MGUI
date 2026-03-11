@@ -20,7 +20,9 @@ namespace MGUI.Core.UI
         internal static float GetNavigationStep(float minimum, float maximum, bool useDiscreteValues, float? discreteValueInterval)
         {
             if (useDiscreteValues && discreteValueInterval.HasValue && discreteValueInterval.Value > 0)
+            {
                 return discreteValueInterval.Value;
+            }
 
             float interval = maximum - minimum;
             return interval > 0 ? interval / 10f : 1f;
@@ -53,7 +55,9 @@ namespace MGUI.Core.UI
             if (this.Minimum != Minimum || this.Maximum != Maximum)
             {
                 if (ValidateNotGreaterThanMax && Minimum > Maximum)
+                {
                     throw new ArgumentException($"{nameof(MGSlider)}.{nameof(Minimum)} cannot be greater than {nameof(MGSlider)}.{nameof(Maximum)}");
+                }
 
                 float PreviousMin = this.Minimum;
                 float PreviousMax = this.Maximum;
@@ -73,12 +77,19 @@ namespace MGUI.Core.UI
                 }
 
                 if (this.Minimum <= this.Maximum)
+                {
                     _ = SetValue(Value);
+                }
 
                 if (MinimumChanged)
+                {
                     NPC(nameof(Minimum));
+                }
+
                 if (MaximumChanged)
+                {
                     NPC(nameof(Maximum));
+                }
 
                 NPC(nameof(Interval));
                 NPC(nameof(CanDrawTickMarks));
@@ -147,7 +158,10 @@ namespace MGUI.Core.UI
                 {
                     _UseDiscreteValues = value;
                     if (UseDiscreteValues)
+                    {
                         _ = SetValue(Value);
+                    }
+
                     NPC(nameof(UseDiscreteValues));
                 }
             }
@@ -165,7 +179,10 @@ namespace MGUI.Core.UI
                 {
                     _DiscreteValueInterval = value;
                     if (UseDiscreteValues)
+                    {
                         _ = SetValue(Value);
+                    }
+
                     NPC(nameof(DiscreteValueInterval));
                 }
             }
@@ -315,7 +332,10 @@ namespace MGUI.Core.UI
                 {
                     _TickWidth = value;
                     if (DrawTicks)
+                    {
                         LayoutChanged(this, true);
+                    }
+
                     NPC(nameof(TickWidth));
                     NPC(nameof(ActualTickWidth));
                 }
@@ -336,7 +356,10 @@ namespace MGUI.Core.UI
                 {
                     _TickHeight = value;
                     if (DrawTicks)
+                    {
                         LayoutChanged(this, true);
+                    }
+
                     NPC(nameof(TickHeight));
                     NPC(nameof(ActualTickHeight));
                 }
@@ -634,7 +657,9 @@ namespace MGUI.Core.UI
         private void UpdateValueLabelText()
         {
             if (ShowValueLabel)
+            {
                 ValueLabelElement.Text = Value.ToString(ValueLabelFormat ?? "F0");
+            }
         }
         #endregion Show Value Label
 
@@ -686,7 +711,9 @@ namespace MGUI.Core.UI
                     HorizontalAlignment = HorizontalAlignment.Left;
                 }
                 else
+                {
                     throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+                }
 
                 AcceptsMouseScrollWheel = false;
 
@@ -729,13 +756,17 @@ namespace MGUI.Core.UI
                 MouseHandler.DragEnd += (sender, e) =>
                 {
                     if (e.IsLMB)
+                    {
                         IsDraggingThumb = false;
+                    }
                 };
 
                 MouseHandler.Dragged += (sender, e) =>
                 {
                     if (e.IsLMB && IsDraggingThumb)
+                    {
                         HandleSliderInput(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position).ToVector2());
+                    }
                 };
 
                 MouseHandler.Scrolled += (sender, e) =>
@@ -788,7 +819,10 @@ namespace MGUI.Core.UI
         protected override IEnumerable<IBorderBrush> GetBorderBrushes()
         {
             foreach (IBorderBrush Brush in base.GetBorderBrushes())
+            {
                 yield return Brush;
+            }
+
             yield return NumberLineBorderBrush;
             yield return TickBorderBrush;
             yield return ThumbBorderBrush;
@@ -819,7 +853,9 @@ namespace MGUI.Core.UI
                 SetValue(Minimum + Percent * Interval);
             }
             else
+            {
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+            }
         }
 
         public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
@@ -849,7 +885,9 @@ namespace MGUI.Core.UI
                 }
             }
             else
+            {
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+            }
 
             return new(Width, Height, 0, 0);
         }
@@ -892,7 +930,9 @@ namespace MGUI.Core.UI
                 return NumberLineBounds;
             }
             else
+            {
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+            }
         }
 
         /// <summary>The most-recently rendered bounds of the number line, before accounting for any offset (DrawSelf.Offset)</summary>
@@ -952,9 +992,13 @@ namespace MGUI.Core.UI
                 //  Compute thumb position
                 float ThumbXPosition;
                 if (Minimum.IsAlmostEqual(Maximum))
+                {
                     ThumbXPosition = NumberLineBounds.Center.X;
+                }
                 else
+                {
                     ThumbXPosition = NumberLineBounds.Left + NumberLineBounds.Width * (Value - Minimum) / Interval;
+                }
 
                 //  Draw the thumb
                 Size ThumbSize = new(ActualThumbWidth, ActualThumbHeight);
@@ -969,10 +1013,16 @@ namespace MGUI.Core.UI
                     //  so that we don't draw overtop of the thumb with the number line overlays
                     Rectangle LeftNumberLine = Rectangle.Empty;
                     if (NumberLineBounds.Left < ThumbBounds.Left)
+                    {
                         LeftNumberLine = new(NumberLineBounds.Left, NumberLineBounds.Top, ThumbBounds.Left - NumberLineBounds.Left, NumberLineBounds.Height);
+                    }
+
                     Rectangle RightNumberLine = Rectangle.Empty;
                     if (NumberLineBounds.Right > ThumbBounds.Right)
+                    {
                         RightNumberLine = new(ThumbBounds.Right, NumberLineBounds.Top, NumberLineBounds.Right - ThumbBounds.Right, NumberLineBounds.Height);
+                    }
+
                     List<Rectangle> NumberLineChunks = new List<Rectangle>() { LeftNumberLine, RightNumberLine }.Where(x => x != Rectangle.Empty).ToList();
 
                     foreach (Rectangle Bounds in NumberLineChunks)
@@ -1020,9 +1070,13 @@ namespace MGUI.Core.UI
                 //  Compute thumb position
                 float ThumbYPosition;
                 if (Minimum.IsAlmostEqual(Maximum))
+                {
                     ThumbYPosition = NumberLineBounds.Center.Y;
+                }
                 else
+                {
                     ThumbYPosition = NumberLineBounds.Top + NumberLineBounds.Height * (Value - Minimum) / Interval;
+                }
 
                 //  Draw the thumb
                 Size ThumbSize = new(ActualThumbWidth, ActualThumbHeight);
@@ -1037,10 +1091,16 @@ namespace MGUI.Core.UI
                     //  so that we don't draw overtop of the thumb with the number line overlays
                     Rectangle TopNumberLine = Rectangle.Empty;
                     if (NumberLineBounds.Top < ThumbBounds.Top)
+                    {
                         TopNumberLine = new(NumberLineBounds.Left, NumberLineBounds.Top, NumberLineBounds.Width, ThumbBounds.Top - NumberLineBounds.Top);
+                    }
+
                     Rectangle BottomNumberLine = Rectangle.Empty;
                     if (NumberLineBounds.Bottom > ThumbBounds.Bottom)
+                    {
                         BottomNumberLine = new(NumberLineBounds.Left, ThumbBounds.Bottom, NumberLineBounds.Width, NumberLineBounds.Bottom - ThumbBounds.Bottom);
+                    }
+
                     List<Rectangle> NumberLineChunks = new List<Rectangle>() { TopNumberLine, BottomNumberLine }.Where(x => x != Rectangle.Empty).ToList();
 
                     foreach (Rectangle Bounds in NumberLineChunks)
@@ -1053,7 +1113,9 @@ namespace MGUI.Core.UI
                 }
             }
             else
+            {
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+            }
         }
     }
 }

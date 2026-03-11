@@ -57,7 +57,10 @@ namespace MGUI.FontStashSharp
             public float GetGlyphWidth(char c)
             {
                 if (_glyphWidths.TryGetValue(c, out float w))
+                {
                     return w;
+                }
+
                 float measured = Font.MeasureString(c.ToString()).X;
                 _glyphWidths[c] = measured;
                 return measured;
@@ -207,7 +210,11 @@ namespace MGUI.FontStashSharp
         /// TTF font added via <see cref="FontSystem.AddFont(byte[])"/>.</param>
         public void AddFontSystem(string family, CustomFontStyles style, FontSystem fontSystem)
         {
-            if (fontSystem is null) throw new ArgumentNullException(nameof(fontSystem));
+            if (fontSystem is null)
+            {
+                throw new ArgumentNullException(nameof(fontSystem));
+            }
+
             _fontSystems[(family, style)] = fontSystem;
             _fallbackFontSystem ??= fontSystem;
             InvalidateCache();
@@ -228,7 +235,9 @@ namespace MGUI.FontStashSharp
         {
             AddFontSystem(family, style, fontSystem);
             if (ttfData != null)
+            {
                 FontSizeScale = ComputeFontSizeScale(ttfData);
+            }
         }
 
         /// <summary>
@@ -265,7 +274,10 @@ namespace MGUI.FontStashSharp
         /// </param>
         public void MatchSpriteFontSizing(FontManager fontManager)
         {
-            if (fontManager is null) throw new ArgumentNullException(nameof(fontManager));
+            if (fontManager is null)
+            {
+                throw new ArgumentNullException(nameof(fontManager));
+            }
 
             string family = fontManager.DefaultFontFamily;
             var effectivePtTable  = new Dictionary<int, float>();
@@ -310,7 +322,9 @@ namespace MGUI.FontStashSharp
                     // DrawOrigin: on-screen shift = sfOrigin.Y × suggestedScale px.
                     // FSS draws at scale 1.0 so origin must equal that pixel count directly.
                     if (fs.Origins.TryGetValue(bakedSize, out Vector2 sfOrigin))
+                    {
                         drawOriginTable[ptSize] = new Vector2(sfOrigin.X, sfOrigin.Y * suggestedScale);
+                    }
                 }
 
                 // Per-style glyph metrics, spacing, and default-char.
@@ -320,7 +334,9 @@ namespace MGUI.FontStashSharp
                             true,
                             out _, out SpriteFont sf,
                             out int baked, out float es, out _))
+                    {
                         continue;
+                    }
 
                     float lh = lineHeightTable.TryGetValue(ptSize, out float lhVal)
                         ? lhVal
@@ -339,7 +355,9 @@ namespace MGUI.FontStashSharp
                     glyphMetricsTable[(style, ptSize)] = glyphDict;
                     spacingTable[(style, ptSize)]      = sf.Spacing * es;
                     if (sf.DefaultCharacter.HasValue)
+                    {
                         defaultCharTable[(style, ptSize)] = sf.DefaultCharacter.Value;
+                    }
 
                     // Store the SpriteFont + exactScale so MeasureText can delegate
                     // whole-string measurement to SF directly, giving identical layout
@@ -377,7 +395,9 @@ namespace MGUI.FontStashSharp
         public static float ComputeFontSizeScale(byte[] ttfData)
         {
             if (ttfData == null || ttfData.Length < 12)
+            {
                 throw new ArgumentException("Invalid TTF data.", nameof(ttfData));
+            }
 
             int numTables = ReadUInt16BE(ttfData, 4);
             int headOffset = -1;
@@ -386,20 +406,32 @@ namespace MGUI.FontStashSharp
             for (int i = 0; i < numTables; i++)
             {
                 int rec = 12 + i * 16;
-                if (rec + 16 > ttfData.Length) break;
+                if (rec + 16 > ttfData.Length)
+                {
+                    break;
+                }
 
                 if (TagEquals(ttfData, rec, 'h', 'e', 'a', 'd'))
+                {
                     headOffset = (int)ReadUInt32BE(ttfData, rec + 8);
+                }
                 else if (TagEquals(ttfData, rec, 'h', 'h', 'e', 'a'))
+                {
                     hheaOffset = (int)ReadUInt32BE(ttfData, rec + 8);
+                }
 
-                if (headOffset >= 0 && hheaOffset >= 0) break;
+                if (headOffset >= 0 && hheaOffset >= 0)
+                {
+                    break;
+                }
             }
 
             if (headOffset < 0 || hheaOffset < 0)
+            {
                 throw new ArgumentException(
                     "TTF data is missing the required 'head' or 'hhea' table.",
                     nameof(ttfData));
+            }
 
             // head table: unitsPerEm at offset +18 (uint16)
             int unitsPerEm = ReadUInt16BE(ttfData, headOffset + 18);
@@ -437,7 +469,9 @@ namespace MGUI.FontStashSharp
         public ResolvedFont ResolveFont(FontSpec spec)
         {
             if (_cache.TryGetValue(spec, out var cached))
+            {
                 return cached;
+            }
 
             bool isFallback = false;
             FontSystem? fs = null;
@@ -488,7 +522,9 @@ namespace MGUI.FontStashSharp
                 float sfCalibWidth  = sfEntry.SF.MeasureString(CalibrationString).X * sfEntry.ExactScale;
                 float fssCalibWidth = fs.GetFont(pixelSize).MeasureString(CalibrationString).X;
                 if (sfCalibWidth > 0f && fssCalibWidth > 0f)
+                {
                     pixelSize *= sfCalibWidth / fssCalibWidth;
+                }
             }
 
             SpriteFontBase spriteFontBase = fs.GetFont(pixelSize);
@@ -536,7 +572,10 @@ namespace MGUI.FontStashSharp
         private FSSFontHandle? GetHandle(ResolvedFont font)
         {
             if (font.NativeFont is FSSFontHandle h)
+            {
                 return h;
+            }
+
             // Stale handle from another engine — re-resolve via spec.
             return ResolveFont(font.Spec).NativeFont as FSSFontHandle;
         }
@@ -564,7 +603,9 @@ namespace MGUI.FontStashSharp
         public Vector2 MeasureText(ResolvedFont font, string text)
         {
             if (string.IsNullOrEmpty(text))
+            {
                 return Vector2.Zero;
+            }
 
             // Use FSS-native whole-string measurement on the pixel-size-corrected font.
             // The correction (applied in ResolveFont) scales the FSS pixel size so that
@@ -572,7 +613,11 @@ namespace MGUI.FontStashSharp
             //   • DrawText renders at the same width as MeasureText → no clipping
             //   • ParseLines wraps at the same points as SpriteFontTextEngine
             var h = GetHandle(font);
-            if (h is null) return Vector2.Zero;
+            if (h is null)
+            {
+                return Vector2.Zero;
+            }
+
             return new Vector2(h.Font.MeasureString(text).X, font.LineHeight);
         }
 
@@ -592,7 +637,9 @@ namespace MGUI.FontStashSharp
             // (LeftSideBearing = RightSideBearing = 0, so TotalWidth == TotalWidthFirstGlyph).
             var h = GetHandle(font);
             if (h is null)
+            {
                 return new GlyphMetrics(0, 0, 0, font.LineHeight);
+            }
 
             return new GlyphMetrics(0f, h.GetGlyphWidth(c), 0f, font.LineHeight);
         }
@@ -617,18 +664,30 @@ namespace MGUI.FontStashSharp
             SpriteEffects effects = SpriteEffects.None)
         {
             if (string.IsNullOrEmpty(text))
+            {
                 return;
+            }
 
             var h = GetHandle(font);
-            if (h is null) return;
+            if (h is null)
+            {
+                return;
+            }
 
             // FontStashSharp's DrawText does not accept SpriteEffects directly.
             // Simulate flipping by negating the scale axes and adjusting the position,
             // which is equivalent to what SpriteBatch does for sprite effects.
             float sx = scale;
             float sy = scale;
-            if ((effects & SpriteEffects.FlipHorizontally) != 0) sx = -sx;
-            if ((effects & SpriteEffects.FlipVertically)   != 0) sy = -sy;
+            if ((effects & SpriteEffects.FlipHorizontally) != 0)
+            {
+                sx = -sx;
+            }
+
+            if ((effects & SpriteEffects.FlipVertically)   != 0)
+            {
+                sy = -sy;
+            }
 
             h.Font.DrawText(spriteBatch, text, position, color,
                 rotation:   rotation,

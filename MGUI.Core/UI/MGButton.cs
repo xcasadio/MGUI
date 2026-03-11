@@ -173,7 +173,9 @@ namespace MGUI.Core.UI
                 { 
                     PressedArgs = e;
                     if (IsRepeatButton)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
                 MouseHandler.ReleasedInside += (sender, e) =>
                 {
@@ -204,7 +206,9 @@ namespace MGUI.Core.UI
                     //  EX: RepeatInterval=1s. Press at t=0, Repeat at t=1, Release at t=1.2 - this would fire the commands twice, once at t=1 and again at t=1.2,
                     //  which just seems weird for the last execution to have an unpredictable interval compared to every prior execution
                     if (!IsRepeatButton || !RepeatedAt.HasValue)
+                    {
                         TryInvokeCommands(e, false);
+                    }
                 };
             }
         }
@@ -233,7 +237,10 @@ namespace MGUI.Core.UI
             {
                 bool Handled = this.Command(this);
                 if (Handled)
+                {
                     args.SetHandledBy(this, false);
+                }
+
                 Invoked = true;
             }
 
@@ -265,7 +272,9 @@ namespace MGUI.Core.UI
             {
                 DateTime Now = DateTime.Now;
                 if (!PressedAt.HasValue)
+                {
                     PressedAt = Now;
+                }
                 else if (HasCommand && IsRepeatPending(Now) && PressedArgs != null)
                 {
                     RepeatedAt = Now;
@@ -292,7 +301,10 @@ namespace MGUI.Core.UI
                 OnLeftClicked += (sender, e) =>
                 {
                     if (SetsHandledToTrue)
+                    {
                         e.SetHandledBy(this, false);
+                    }
+
                     Command(this, e);
                 };
             }

@@ -20,7 +20,9 @@ namespace MGUI.Core.UI
         internal static int GetNextVisibleNavigationIndex(int currentIndex, int count, UINavigationAction action)
         {
             if (count <= 0)
+            {
                 return -1;
+            }
 
             int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
             return action switch
@@ -155,12 +157,16 @@ namespace MGUI.Core.UI
                 if (_ItemsSource != value)
                 {
                     if (_ItemsSource is System.Collections.Specialized.INotifyCollectionChanged oldCollection)
+                    {
                         oldCollection.CollectionChanged -= ItemsSource_CollectionChanged;
+                    }
 
                     _ItemsSource = value;
 
                     if (_ItemsSource is System.Collections.Specialized.INotifyCollectionChanged newCollection)
+                    {
                         newCollection.CollectionChanged += ItemsSource_CollectionChanged;
+                    }
 
                     GenerateItemsFromSource();
                     NPC(nameof(ItemsSource));
@@ -288,7 +294,9 @@ namespace MGUI.Core.UI
         private void OnKeyPressed(object sender, BaseKeyPressedEventArgs e)
         {
             if (e.IsHandled)
+            {
                 return;
+            }
 
             // If nothing is selected and a navigation key is pressed, select the first visible item
             if (SelectedItem == null)
@@ -310,47 +318,73 @@ namespace MGUI.Core.UI
                 case Keys.Up:
                 {
                     var prev = GetPreviousVisibleItem(SelectedItem);
-                    if (prev != null) SelectItem(prev);
+                    if (prev != null)
+                    {
+                        SelectItem(prev);
+                    }
+
                     e.SetHandledBy(this, true);
                     break;
                 }
                 case Keys.Down:
                 {
                     var next = GetNextVisibleItem(SelectedItem);
-                    if (next != null) SelectItem(next);
+                    if (next != null)
+                    {
+                        SelectItem(next);
+                    }
+
                     e.SetHandledBy(this, true);
                     break;
                 }
                 case Keys.Right:
                     if (!SelectedItem.IsExpanded)
+                    {
                         SelectedItem.Expand();
+                    }
                     else
                     {
                         var firstChild = SelectedItem.Items.FirstOrDefault();
-                        if (firstChild != null) SelectItem(firstChild);
+                        if (firstChild != null)
+                        {
+                            SelectItem(firstChild);
+                        }
                     }
                     RebuildVisibleItemsCache();
                     e.SetHandledBy(this, true);
                     break;
                 case Keys.Left:
                     if (SelectedItem.IsExpanded)
+                    {
                         SelectedItem.Collapse();
+                    }
                     else if (SelectedItem.ParentItem != null)
+                    {
                         SelectItem(SelectedItem.ParentItem);
+                    }
+
                     RebuildVisibleItemsCache();
                     e.SetHandledBy(this, true);
                     break;
                 case Keys.Home:
                 {
                     var first = _VisibleItemsCache?.FirstOrDefault();
-                    if (first != null) SelectItem(first);
+                    if (first != null)
+                    {
+                        SelectItem(first);
+                    }
+
                     e.SetHandledBy(this, true);
                     break;
                 }
                 case Keys.End:
                 {
                     var last = _VisibleItemsCache?.LastOrDefault();
-                    if (last != null) SelectItem(last);
+                    if (last != null)
+                    {
+                        SelectItem(last);
+                    }
+
                     e.SetHandledBy(this, true);
                     break;
                 }
@@ -366,7 +400,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (_VisibleItemsCache.Count == 0)
+            {
                 return false;
+            }
 
             if (SelectedItem == null)
             {
@@ -393,27 +429,38 @@ namespace MGUI.Core.UI
                     int currentIndex = _VisibleItemsCache.IndexOf(SelectedItem);
                     int nextIndex = GetNextVisibleNavigationIndex(currentIndex, _VisibleItemsCache.Count, action);
                     if (nextIndex < 0)
+                    {
                         return false;
+                    }
 
                     SelectItem(_VisibleItemsCache[nextIndex]);
                     return true;
                 }
                 case UINavigationAction.MoveRight:
                     if (!SelectedItem.IsExpanded)
+                    {
                         SelectedItem.Expand();
+                    }
                     else
                     {
                         MGTreeViewItem firstChild = SelectedItem.Items.FirstOrDefault();
                         if (firstChild != null)
+                        {
                             SelectItem(firstChild);
+                        }
                     }
                     RebuildVisibleItemsCache();
                     return true;
                 case UINavigationAction.MoveLeft:
                     if (SelectedItem.IsExpanded)
+                    {
                         SelectedItem.Collapse();
+                    }
                     else if (SelectedItem.ParentItem != null)
+                    {
                         SelectItem(SelectedItem.ParentItem);
+                    }
+
                     RebuildVisibleItemsCache();
                     return true;
                 case UINavigationAction.Submit:
@@ -435,9 +482,14 @@ namespace MGUI.Core.UI
             BorderThickness = theme?.TreeViewBorderThickness ?? new MonoGame.Extended.Thickness(1);
             SelectionBackgroundBrush = theme?.TreeViewSelectionBackground?.GetValue(true) ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue));
             if (theme != null)
+            {
                 SelectionForeground = theme.TreeViewSelectionForeground;
+            }
+
             if (theme != null)
+            {
                 IndentSize = theme.TreeViewIndentSize;
+            }
         }
 
         private void Items_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -482,7 +534,9 @@ namespace MGUI.Core.UI
             {
                 _VisibleItemsCache.Add(rootItem);
                 if (rootItem.IsExpanded)
+                {
                     _VisibleItemsCache.AddRange(rootItem.GetVisibleDescendants());
+                }
             }
         }
 
@@ -494,7 +548,10 @@ namespace MGUI.Core.UI
         public void AddItem(MGTreeViewItem item)
         {
             if (item == null)
+            {
                 throw new ArgumentNullException(nameof(item));
+            }
+
             _Items.Add(item);
             item.ParentItem = null;
             item.Level = 0;
@@ -508,7 +565,10 @@ namespace MGUI.Core.UI
         internal void RegisterItemRecursive(MGTreeViewItem item)
         {
             if (item == null)
+            {
                 return;
+            }
+
             item._OwnerTreeView = this;
             item.UpdateIndentation();
             item.Expanded -= OnItemExpanded;
@@ -516,7 +576,9 @@ namespace MGUI.Core.UI
             item.Collapsed -= OnItemCollapsed;
             item.Collapsed += OnItemCollapsed;
             foreach (var child in item.Items)
+            {
                 RegisterItemRecursive(child);
+            }
         }
 
         /// <summary>
@@ -551,7 +613,9 @@ namespace MGUI.Core.UI
         {
             _Items.Remove(item);
             if (item != null)
+            {
                 item._OwnerTreeView = null;
+            }
         }
 
         /// <summary>
@@ -560,7 +624,9 @@ namespace MGUI.Core.UI
         public void ClearItems()
         {
             foreach (var item in _Items.ToList())
+            {
                 RemoveItem(item);
+            }
         }
 
         /// <summary>
@@ -571,12 +637,21 @@ namespace MGUI.Core.UI
         public MGTreeViewItem GetNextVisibleItem(MGTreeViewItem current)
         {
             if (current == null)
+            {
                 return null;
+            }
+
             int index = _VisibleItemsCache.IndexOf(current);
             if (index == -1)
+            {
                 return null;
+            }
+
             if (index + 1 < _VisibleItemsCache.Count)
+            {
                 return _VisibleItemsCache[index + 1];
+            }
+
             return null;
         }
 
@@ -588,12 +663,21 @@ namespace MGUI.Core.UI
         public MGTreeViewItem GetPreviousVisibleItem(MGTreeViewItem current)
         {
             if (current == null)
+            {
                 return null;
+            }
+
             int index = _VisibleItemsCache.IndexOf(current);
             if (index == -1)
+            {
                 return null;
+            }
+
             if (index - 1 >= 0)
+            {
                 return _VisibleItemsCache[index - 1];
+            }
+
             return null;
         }
 
@@ -604,12 +688,21 @@ namespace MGUI.Core.UI
         internal void NotifyItemSelected(MGTreeViewItem item)
         {
             if (_SelectedItem == item)
+            {
                 return;
+            }
+
             if (_SelectedItem != null)
+            {
                 _SelectedItem.SetSelected(false);
+            }
+
             _SelectedItem = item;
             if (_SelectedItem != null)
+            {
                 _SelectedItem.SetSelected(true);
+            }
+
             SelectionChanged?.Invoke(this, item);
             NPC(nameof(SelectedItem));
         }
@@ -622,7 +715,9 @@ namespace MGUI.Core.UI
         {
             NotifyItemSelected(item);
             if (item != null)
+            {
                 ScrollIntoView(item);
+            }
         }
 
         /// <summary>
@@ -640,11 +735,20 @@ namespace MGUI.Core.UI
         public void ScrollIntoView(MGTreeViewItem item)
         {
             if (item == null)
+            {
                 return;
+            }
+
             if (!_VisibleItemsCache.Contains(item))
+            {
                 RebuildVisibleItemsCache();
+            }
+
             if (ScrollViewer.MaxVerticalOffset <= 0)
+            {
                 return;
+            }
+
             var bounds = item.LayoutBounds;
             float itemTop = bounds.Y;
             float itemBottom = bounds.Bottom;
@@ -657,9 +761,13 @@ namespace MGUI.Core.UI
             if (!invalidBounds)
             {
                 if (itemTop < viewportTop)
+                {
                     newOffset = itemTop;
+                }
                 else if (itemBottom > viewportBottom)
+                {
                     newOffset = itemBottom - viewportHeight;
+                }
             }
             else
             {
@@ -670,21 +778,37 @@ namespace MGUI.Core.UI
                     float estimatedTop = index * estimatedHeight;
                     float estimatedBottom = estimatedTop + estimatedHeight;
                     if (estimatedTop < viewportTop)
+                    {
                         newOffset = estimatedTop;
+                    }
                     else if (estimatedBottom > viewportBottom)
+                    {
                         newOffset = estimatedBottom - viewportHeight;
+                    }
                 }
             }
-            if (newOffset < 0) newOffset = 0;
-            if (newOffset > ScrollViewer.MaxVerticalOffset) newOffset = ScrollViewer.MaxVerticalOffset;
+            if (newOffset < 0)
+            {
+                newOffset = 0;
+            }
+
+            if (newOffset > ScrollViewer.MaxVerticalOffset)
+            {
+                newOffset = ScrollViewer.MaxVerticalOffset;
+            }
+
             if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
+            {
                 ScrollViewer.VerticalOffset = newOffset;
+            }
         }
 
         void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible()
         {
             if (SelectedItem != null)
+            {
                 ScrollIntoView(SelectedItem);
+            }
         }
 
         /// <summary>
@@ -694,7 +818,10 @@ namespace MGUI.Core.UI
         {
             ClearItems();
             if (ItemsSource == null)
+            {
                 return;
+            }
+
             foreach (var obj in ItemsSource)
             {
                 if (obj != null)

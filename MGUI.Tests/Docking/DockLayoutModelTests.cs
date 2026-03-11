@@ -20,7 +20,11 @@ public class DockLayoutModelTests
     private static DockTabGroupNode Group(params DockPanelNode[] panels)
     {
         var g = new DockTabGroupNode();
-        foreach (var p in panels) g.AddPanel(p, -1);
+        foreach (var p in panels)
+        {
+            g.AddPanel(p, -1);
+        }
+
         return g;
     }
 
@@ -149,7 +153,9 @@ public class DockLayoutModelTests
     {
         var model = new DockLayoutModel();
         foreach (AutoHideSide side in Enum.GetValues<AutoHideSide>())
+        {
             Assert.False(model.HasAutoHidePanels(side));
+        }
     }
 
     [Fact]

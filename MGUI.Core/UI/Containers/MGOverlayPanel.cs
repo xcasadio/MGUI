@@ -19,13 +19,21 @@ namespace MGUI.Core.UI.Containers
             public int Compare(OverlayPanelChild x, OverlayPanelChild y)
             {
                 if (!x.HasZIndex && !y.HasZIndex)
+                {
                     return 0;
+                }
                 else if (x.HasZIndex && y.HasZIndex)
+                {
                     return x.ZIndex.Value.CompareTo(y.ZIndex.Value);
+                }
                 else if (!x.HasZIndex)
+                {
                     return -1;
+                }
                 else
+                {
                     return 1;
+                }
             }
         }
 
@@ -46,7 +54,9 @@ namespace MGUI.Core.UI.Containers
         public bool TryAddChild(MGElement Item, Thickness Offset = default, double? ZIndex = null)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             if (!_Children.Contains(Item))
             {
@@ -55,7 +65,9 @@ namespace MGUI.Core.UI.Containers
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         /// <returns>True if the given <paramref name="Item"/> was found in <see cref="MGMultiContentHost.Children"/> and was successfully removed.<br/>
@@ -63,7 +75,9 @@ namespace MGUI.Core.UI.Containers
         public bool TryRemoveChild(MGElement Item)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             if (_Children.Remove(Item))
             {
@@ -72,7 +86,9 @@ namespace MGUI.Core.UI.Containers
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         /// <param name="Offset">An offset to apply to the new element's bounds. Use zero to have the element fill the entire panel's bounds (minus the panel's padding)</param>
@@ -81,11 +97,15 @@ namespace MGUI.Core.UI.Containers
         public bool TryReplaceChild(MGElement Old, MGElement New, Thickness Offset = default, double? ZIndex = null)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             int Index = _Children.IndexOf(Old);
             if (Index < 0)
+            {
                 return false;
+            }
 
             _Children[Index] = New;
             OverlayPanelChild ToRemove = PanelChildren.First(x => x.Item == Old);
@@ -132,7 +152,9 @@ namespace MGUI.Core.UI.Containers
 
             }
             else
+            {
                 return UpdateContentMeasurementBaseImplementation(AvailableSize);
+            }
         }
     }
 }

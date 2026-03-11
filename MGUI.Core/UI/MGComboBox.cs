@@ -30,7 +30,9 @@ namespace MGUI.Core.UI
         internal static int GetNextNavigationIndex(int currentIndex, int itemCount, UINavigationAction action)
         {
             if (itemCount <= 0)
+            {
                 return -1;
+            }
 
             int largeStep = Math.Max(1, itemCount / 5);
 
@@ -132,7 +134,9 @@ namespace MGUI.Core.UI
                     }
                     _TemplatedItems = value;
                     if (TemplatedItems != null)
+                    {
                         TemplatedItems.CollectionChanged += TemplatedItems_CollectionChanged;
+                    }
 
                     DropdownContentChanged();
                     HoveredItem = null;
@@ -145,7 +149,9 @@ namespace MGUI.Core.UI
             if (Items != null)
             {
                 foreach (var Item in Items)
+                {
                     Item.RemoveDataBindings(true);
+                }
             }
         }
 
@@ -171,11 +177,16 @@ namespace MGUI.Core.UI
                 {
                     TemplatedElement<TItemType, MGButton> PreviousSelection = SelectedTemplatedItem;
                     if (SelectedTemplatedItem != null)
+                    {
                         SelectedTemplatedItem.Element.IsSelected = false;
+                    }
+
                     _SelectedTemplatedItem = value;
                     UpdateSelectedContent();
                     if (SelectedTemplatedItem != null)
+                    {
                         SelectedTemplatedItem.Element.IsSelected = true;
+                    }
 
                     NPC(nameof(SelectedTemplatedItem));
                     NPC(nameof(SelectedItem));
@@ -240,9 +251,13 @@ namespace MGUI.Core.UI
         private void UpdateHoveredDropdownItem()
         {
             if (IsDropdownOpen && TemplatedItems != null && DropdownStackPanel.IsHovered)
+            {
                 HoveredItem = TemplatedItems.FirstOrDefault(x => x.Element.VisualState.IsHovered);
+            }
             else
+            {
                 HoveredItem = null;
+            }
         }
         #endregion Hovered Item
         #endregion Templated Items
@@ -258,13 +273,20 @@ namespace MGUI.Core.UI
                 if (_ItemsSource != value)
                 {
                     if (ItemsSource != null)
+                    {
                         ItemsSource.CollectionChanged -= ItemsSource_CollectionChanged;
+                    }
+
                     _ItemsSource = value;
                     if (ItemsSource != null)
+                    {
                         ItemsSource.CollectionChanged += ItemsSource_CollectionChanged;
+                    }
 
                     if (ItemsSource == null || DropdownItemTemplate == null)
+                    {
                         TemplatedItems = null;
+                    }
                     else
                     {
                         IEnumerable<TemplatedElement<TItemType, MGButton>> Values = ItemsSource.Select(x => new TemplatedElement<TItemType, MGButton>(x, DropdownItemTemplate(x)));
@@ -328,9 +350,13 @@ namespace MGUI.Core.UI
         public void SetItemsSource(ICollection<TItemType> Value)
         {
             if (Value is ObservableCollection<TItemType> Observable)
+            {
                 ItemsSource = Observable;
+            }
             else
+            {
                 ItemsSource = new ObservableCollection<TItemType>(Value.ToList());
+            }
         }
         #endregion Items Source
 
@@ -381,7 +407,9 @@ namespace MGUI.Core.UI
                     _DropdownItemTemplate = value;
 
                     if (ItemsSource == null || DropdownItemTemplate == null)
+                    {
                         TemplatedItems = null;
+                    }
                     else
                     {
                         IEnumerable<TemplatedElement<TItemType, MGButton>> Values = ItemsSource.Select(x => new TemplatedElement<TItemType, MGButton>(x, DropdownItemTemplate(x)));
@@ -451,11 +479,16 @@ namespace MGUI.Core.UI
             using (DropdownStackPanel.AllowChangingContentTemporarily())
             {
                 foreach (MGElement Element in DropdownStackPanel.Children.ToList())
+                {
                     DropdownStackPanel.TryRemoveChild(Element);
+                }
+
                 if (TemplatedItems != null)
                 {
                     foreach (TemplatedElement<TItemType, MGButton> UIItem in TemplatedItems)
+                    {
                         DropdownStackPanel.TryAddChild(UIItem.Element);
+                    }
                 }
             }
 
@@ -479,7 +512,9 @@ namespace MGUI.Core.UI
                     CancelEventArgs e = new CancelEventArgs(false);
                     DropdownOpening?.Invoke(this, e);
                     if (e.Cancel)
+                    {
                         return;
+                    }
 
                     _IsDropdownOpen = value;
 
@@ -715,29 +750,39 @@ namespace MGUI.Core.UI
         private void SetNavigationHoveredItem(TemplatedElement<TItemType, MGButton> item)
         {
             if (HoveredItem?.Element != null)
+            {
                 HoveredItem.Element.SpoofIsHoveredWhileDrawingBackground = false;
+            }
 
             HoveredItem = item;
 
             if (HoveredItem?.Element != null)
+            {
                 HoveredItem.Element.SpoofIsHoveredWhileDrawingBackground = true;
+            }
         }
 
         void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible()
         {
             if (IsDropdownOpen && HoveredItem?.Element != null)
+            {
                 DropdownScrollViewer?.EnsureElementVisible(HoveredItem.Element);
+            }
         }
 
         private bool TryAdjustClosedSelection(UINavigationAction action)
         {
             if (TemplatedItems == null || TemplatedItems.Count == 0)
+            {
                 return false;
+            }
 
             int currentIndex = Math.Clamp(SelectedIndex < 0 ? 0 : SelectedIndex, 0, TemplatedItems.Count - 1);
             int nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
             if (nextIndex < 0 || nextIndex == currentIndex && SelectedIndex == nextIndex)
+            {
                 return false;
+            }
 
             SelectedIndex = nextIndex;
             return true;
@@ -746,12 +791,16 @@ namespace MGUI.Core.UI
         private bool TryAdjustOpenSelection(UINavigationAction action)
         {
             if (!IsDropdownOpen || TemplatedItems == null || TemplatedItems.Count == 0)
+            {
                 return false;
+            }
 
             int currentIndex = HoveredItem == null ? Math.Clamp(SelectedIndex < 0 ? 0 : SelectedIndex, 0, TemplatedItems.Count - 1) : TemplatedItems.IndexOf(HoveredItem);
             int nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
             if (nextIndex < 0)
+            {
                 return false;
+            }
 
             SetNavigationHoveredItem(TemplatedItems[nextIndex]);
             return true;
@@ -785,7 +834,9 @@ namespace MGUI.Core.UI
             if (IsDropdownOpen)
             {
                 if (!IsDropdownContentValid)
+                {
                     UpdateDropdownContent();
+                }
 
                 //  Example scenario: ComboBox is inside a vertically-scrolling ScrollViewer
                 //  ComboBox is visible. User clicks it to open dropdown, then they scroll the ScrollViewer up until the ComboBox is no longer visible
@@ -807,25 +858,43 @@ namespace MGUI.Core.UI
             Settings.DropdownArrow.ApplySettings(this, DropdownArrowComponent.Element, IncludeContent);
 
             if (Settings.DropdownArrowColor.HasValue)
+            {
                 DropdownArrowColor = Settings.DropdownArrowColor.Value.ToXNAColor();
+            }
 
             if (Settings.MinDropdownWidth.HasValue)
+            {
                 MinDropdownWidth = Settings.MinDropdownWidth.Value;
+            }
+
             if (Settings.MaxDropdownWidth.HasValue)
+            {
                 MaxDropdownWidth = Settings.MaxDropdownWidth.Value;
+            }
+
             if (Settings.MinDropdownHeight.HasValue)
+            {
                 MinDropdownHeight = Settings.MinDropdownHeight.Value;
+            }
+
             if (Settings.MaxDropdownHeight.HasValue)
+            {
                 MaxDropdownHeight = Settings.MaxDropdownHeight.Value;
+            }
 
             Settings.Dropdown?.ApplySettings(Dropdown.Parent, Dropdown, false);
             Settings.DropdownScrollViewer?.ApplySettings(DropdownScrollViewer.Parent, DropdownScrollViewer, false);
             Settings.DropdownStackPanel?.ApplySettings(DropdownStackPanel.Parent, DropdownStackPanel, false);
 
             if (Settings.DropdownHeader != null)
+            {
                 DropdownHeader = Settings.DropdownHeader.ToElement<MGElement>(Dropdown, DropdownHeaderPresenter);
+            }
+
             if (Settings.DropdownFooter != null)
+            {
                 DropdownFooter = Settings.DropdownFooter.ToElement<MGElement>(Dropdown, DropdownFooterPresenter);
+            }
 
             if (Settings.Items?.Any() == true)
             {
@@ -853,7 +922,9 @@ namespace MGUI.Core.UI
                     MGElement Content = Settings.DropdownItemTemplate.GetContent(Dropdown, this, Item, x =>
                     {
                         if (x is MGButton ButtonContent)
+                        {
                             ApplyDefaultDropdownButtonSettings(ButtonContent);
+                        }
                     });
 
                     if (Content is MGButton ButtonContent)
@@ -880,7 +951,9 @@ namespace MGUI.Core.UI
             }
 
             if (Settings.SelectedIndex.HasValue)
+            {
                 SelectedIndex = Settings.SelectedIndex.Value;
+            }
         }
     }
 }

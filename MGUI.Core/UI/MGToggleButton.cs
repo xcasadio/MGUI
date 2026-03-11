@@ -82,9 +82,13 @@ namespace MGUI.Core.UI
 
                     IsSelected = IsChecked;
                     if (IsChecked)
+                    {
                         OnChecked?.Invoke(this, EventArgs.Empty);
+                    }
                     else
+                    {
                         OnUnchecked?.Invoke(this, EventArgs.Empty);
+                    }
                 }
             }
         }
@@ -129,7 +133,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (action != UINavigationAction.Submit)
+            {
                 return false;
+            }
 
             IsChecked = GetNextCheckedState(IsChecked);
             return true;

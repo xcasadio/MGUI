@@ -26,11 +26,19 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public MGTextureFillBrush(MGDesktop Desktop, string SourceName, Stretch Stretch = Stretch.Fill, Color? Color = null, bool Tile = false)
         {
             if (Desktop == null)
+            {
                 throw new ArgumentNullException(nameof(Desktop));
+            }
+
             if (SourceName == null)
+            {
                 throw new ArgumentNullException(nameof(SourceName));
+            }
+
             if (!Desktop.Resources.TryGetTexture(SourceName, out MGTextureData Source))
+            {
                 throw new InvalidOperationException($"No Texture was found with the name '{SourceName}' in {nameof(MGResources)}.{nameof(MGResources.Textures)}.");
+            }
 
             this.Source = Source;
             this.Stretch = Stretch;

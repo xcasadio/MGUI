@@ -87,7 +87,9 @@ namespace MGUI.Core.UI
                 {
                     string InitialDirectory;
                     if (!string.IsNullOrEmpty(FromFilePath))
+                    {
                         InitialDirectory = Path.GetDirectoryName(FromFilePath);
+                    }
                     else
                     {
                         string AssemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -98,10 +100,15 @@ namespace MGUI.Core.UI
 #endif
                     }
                     if (TryBrowseFilePath(InitialDirectory, out string SelectedFilePath))
+                    {
                         FromFileTextBoxComponent.SetText(SelectedFilePath);
+                    }
                 });
                 if (FilePathBrowseButton.BackgroundBrush.NormalValue != null && FilePathBrowseButton.BackgroundBrush.NormalValue.TryDarken(0.25f, out IFillBrush Darkened))
+                {
                     FilePathBrowseButton.BackgroundBrush.NormalValue = Darkened;
+                }
+
                 FilePathBrowseButton.SetContent("Browse");
                 FromFileTextBoxComponent = new(ParentWindow, null);
                 FromFileTextBoxComponent.WrapText = false;
@@ -186,7 +193,10 @@ namespace MGUI.Core.UI
                     FileWatcher.EnableRaisingEvents = false;
                     FileWatcher.Path = string.IsNullOrEmpty(FromFilePath) ? null : Path.GetDirectoryName(FromFilePath);
                     if (!string.IsNullOrEmpty(FileWatcher.Path) && Directory.Exists(Path.GetDirectoryName(FileWatcher.Path)))
+                    {
                         FileWatcher.EnableRaisingEvents = true;
+                    }
+
                     RefreshParsedContent();
                     NPC(nameof(FromFilePath));
                 }
@@ -201,12 +211,18 @@ namespace MGUI.Core.UI
                 OpenFileDialog FileBrowser = new();
                 FileBrowser.Filter = "Xaml Files|*.xaml";
                 if (!string.IsNullOrEmpty(InitialDirectory) && Directory.Exists(InitialDirectory))
+                {
                     FileBrowser.InitialDirectory = InitialDirectory;
+                }
 
                 if (FileBrowser.ShowDialog() == true)
+                {
                     return FileBrowser.FileName;
+                }
                 else
+                {
                     return null;
+                }
             }
 
             //  Microsoft.Win32.OpenFileDialog.ShowDialog() requires STA apartment state
@@ -254,9 +270,14 @@ namespace MGUI.Core.UI
             {
                 XamlDocumentSource Source;
                 if (IsReadingInputFromFile)
+                {
                     Source = XamlDocumentSource.FromFile(FromFilePath);
+                }
                 else
+                {
                     Source = XamlDocumentSource.FromString(FromStringTextBoxComponent.Text, "Designer Text Input");
+                }
+
                 Result = UIToolingService.LoadPreview(SelfOrParentWindow, Source, ParsedContentDataContext, !IsReadingInputFromFile, true);
             }
             catch (Exception ex)

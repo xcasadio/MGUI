@@ -41,9 +41,14 @@ namespace MGUI.Samples
                     NPC(nameof(IsVisible));
 
                     if (IsVisible)
+                    {
                         Desktop.Windows.Add(Window);
+                    }
                     else
+                    {
                         Desktop.Windows.Remove(Window);
+                    }
+
                     VisibilityChanged?.Invoke(this, IsVisible);
                 }
             }

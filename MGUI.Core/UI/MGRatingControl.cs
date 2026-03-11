@@ -131,14 +131,18 @@ namespace MGUI.Core.UI
                 float PreviousMaximum = this.Maximum;
 
                 if (Minimum > Maximum)
+                {
                     throw new ArgumentException($"{nameof(MGSlider)}.{nameof(Minimum)} cannot be greater than {nameof(MGSlider)}.{nameof(Maximum)}");
+                }
 
                 _Minimum = Minimum;
                 _Maximum = Maximum;
                 _ = SetValue(Value);
 
                 if (PreviousMaximum != Maximum)
+                {
                     LayoutChanged(this, true);
+                }
 
                 NPC(nameof(Minimum));
                 NPC(nameof(Maximum));
@@ -199,7 +203,10 @@ namespace MGUI.Core.UI
                 {
                     _UseDiscreteValues = value;
                     if (UseDiscreteValues)
+                    {
                         _ = SetValue(Value);
+                    }
+
                     NPC(nameof(UseDiscreteValues));
                 }
             }
@@ -217,7 +224,10 @@ namespace MGUI.Core.UI
                 {
                     _DiscreteValueInterval = value;
                     if (UseDiscreteValues)
+                    {
                         _ = SetValue(Value);
+                    }
+
                     NPC(nameof(DiscreteValueInterval));
                 }
             }
@@ -506,7 +516,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (IsReadonly)
+            {
                 return false;
+            }
 
             float step = GetNavigationStep(UseDiscreteValues, DiscreteValueInterval);
             float largeStep = step * 5f;
@@ -543,9 +555,13 @@ namespace MGUI.Core.UI
             int RangeEnd = IsVertical ? PaddedBounds.Bottom : PaddedBounds.Right;
 
             if (Position <= RangeStart)
+            {
                 PreviewValue = Minimum;
+            }
             else if (Position >= RangeEnd)
+            {
                 PreviewValue = Maximum;
+            }
             else
             {
                 int RelativePosition = Position - RangeStart;
@@ -611,7 +627,9 @@ namespace MGUI.Core.UI
             bool IsPartiallyFilled = !IsCompletelyFilled && !IsCompletelyUnfilled;
 
             if (IsCompletelyUnfilled)
+            {
                 return;
+            }
 
             switch (ItemShape)
             {

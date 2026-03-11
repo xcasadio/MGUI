@@ -25,13 +25,19 @@ namespace MGUI.Core.UI
         internal static float GetVisibleOffset(float currentOffset, float viewportSize, float maxOffset, float elementStart, float elementEnd)
         {
             if (viewportSize <= 0)
+            {
                 return Math.Clamp(currentOffset, 0, maxOffset);
+            }
 
             float newOffset = currentOffset;
             if (elementStart < currentOffset)
+            {
                 newOffset = elementStart;
+            }
             else if (elementEnd > currentOffset + viewportSize)
+            {
                 newOffset = elementEnd - viewportSize;
+            }
 
             return Math.Clamp(newOffset, 0, maxOffset);
         }
@@ -39,14 +45,20 @@ namespace MGUI.Core.UI
         internal static float GetVisibleOffset(float currentOffset, float viewportStart, float viewportSize, float maxOffset, float elementStart, float elementEnd)
         {
             if (viewportSize <= 0)
+            {
                 return Math.Clamp(currentOffset, 0, maxOffset);
+            }
 
             float newOffset = currentOffset;
             float viewportEnd = viewportStart + viewportSize;
             if (elementStart < viewportStart)
+            {
                 newOffset -= viewportStart - elementStart;
+            }
             else if (elementEnd > viewportEnd)
+            {
                 newOffset += elementEnd - viewportEnd;
+            }
 
             return Math.Clamp(newOffset, 0, maxOffset);
         }
@@ -56,7 +68,9 @@ namespace MGUI.Core.UI
             bounds = Rectangle.Empty;
 
             if (target == null || !HasContent)
+            {
                 return false;
+            }
 
             if (Content == target)
             {
@@ -65,7 +79,9 @@ namespace MGUI.Core.UI
             }
 
             if (!Content.IsSelfOrAncestorOf(target))
+            {
                 return false;
+            }
 
             Rectangle currentBounds = target.LayoutBounds;
             for (MGElement current = target.Parent; current != null; current = current.Parent)
@@ -85,10 +101,14 @@ namespace MGUI.Core.UI
         public void EnsureElementVisible(MGElement target)
         {
             if (target == null || !HasContent || ContentViewport.Width <= 0 || ContentViewport.Height <= 0)
+            {
                 return;
+            }
 
             if (!TryGetDescendantBoundsInContentSpace(target, out Rectangle bounds))
+            {
                 return;
+            }
 
             float verticalViewportStart = Content.LayoutBounds.Top + VerticalOffset;
             float horizontalViewportStart = Content.LayoutBounds.Left + HorizontalOffset;
@@ -96,10 +116,14 @@ namespace MGUI.Core.UI
             float newHorizontalOffset = GetVisibleOffset(HorizontalOffset, horizontalViewportStart, ContentViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
 
             if (Math.Abs(newVerticalOffset - VerticalOffset) > 0.5f)
+            {
                 VerticalOffset = newVerticalOffset;
+            }
 
             if (Math.Abs(newHorizontalOffset - HorizontalOffset) > 0.5f)
+            {
                 HorizontalOffset = newHorizontalOffset;
+            }
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -294,9 +318,13 @@ namespace MGUI.Core.UI
         public void QueueScrollToBottom()
         {
             if (IsLayoutValid)
+            {
                 ScrollToBottom();
+            }
             else
+            {
                 MaxVerticalOffsetChanged += MaxVerticalOffsetChanged_ScrollToBottom;
+            }
         }
 
         private void MaxVerticalOffsetChanged_ScrollToBottom(object sender, EventArgs<float> e)
@@ -586,7 +614,9 @@ namespace MGUI.Core.UI
                     {
                         MouseHandler.Tracker.CurrentButtonReleasedEvents[MouseButton.Left]?.SetHandledBy(this, false);
                         foreach (DragStartCondition StartCondition in MouseHandler.DragStartConditions)
+                        {
                             MouseHandler.Tracker.CurrentDragStartEvents[StartCondition][MouseButton.Left]?.SetHandledBy(this, false);
+                        }
                     }
 
                     if (IsHoveringVSB || IsHoveringHSB)
@@ -599,7 +629,9 @@ namespace MGUI.Core.UI
                 MouseHandler.ReleasedOutside += (sender, e) =>
                 {
                     if (e.IsLMB && (IsDraggingVSB || IsDraggingHSB || IsDraggingContent))
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
 
                 MouseHandler.Scrolled += (sender, e) =>
@@ -661,9 +693,13 @@ namespace MGUI.Core.UI
                     float AdjustedPosition = Math.Clamp(CursorPosition - ScrollBarBounds.Top - ScrollBarForegroundHeight / 2, MinValue, MaxValue);
 
                     if (MaxValue == MinValue)
+                    {
                         VerticalOffset = MaxValue;
+                    }
                     else
+                    {
                         VerticalOffset = (AdjustedPosition - MinValue) / (MaxValue - MinValue) * MaxVerticalOffset;
+                    }
                 }
                 else if (ScrollBar == Orientation.Horizontal && HSBVisibility != ScrollBarVisibility.Disabled)
                 {
@@ -677,9 +713,13 @@ namespace MGUI.Core.UI
                     float AdjustedPosition = Math.Clamp(CursorPosition - ScrollBarBounds.Left - ScrollBarForegroundWidth / 2, MinValue, MaxValue);
 
                     if (MaxValue == MinValue)
+                    {
                         VerticalOffset = MaxValue;
+                    }
                     else
+                    {
                         HorizontalOffset = (AdjustedPosition - MinValue) / (MaxValue - MinValue) * MaxHorizontalOffset;
+                    }
                 }
             }
         }
@@ -713,7 +753,9 @@ namespace MGUI.Core.UI
                 Content.UpdateLayout(ActualBounds);
             }
             else
+            {
                 base.UpdateContentLayout(Bounds);
+            }
         }
 
         public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
@@ -774,9 +816,14 @@ namespace MGUI.Core.UI
 
                     float StartY;
                     if (MaxVerticalOffset.IsAlmostZero())
+                    {
                         StartY = PaddedBounds.Top;
+                    }
                     else
+                    {
                         StartY = PaddedBounds.Top + PaddedBounds.Height * PercentOutsideCurrentViewport * VerticalOffset / MaxVerticalOffset;
+                    }
+
                     float EndY = StartY + PercentInCurrentViewport * PaddedBounds.Height;
 
                     //  Validate that the inner rectangle is at least 8 pixels big
@@ -795,7 +842,9 @@ namespace MGUI.Core.UI
                             StartY = PaddedBounds.Top;
                         }
                         if (EndY > PaddedBounds.Bottom)
+                        {
                             EndY = PaddedBounds.Bottom;
+                        }
                     }
 
                     PrimaryVisualState PrimaryState = IsVSBFocused ? PrimaryVisualState.Selected : VisualState.Primary;
@@ -820,9 +869,14 @@ namespace MGUI.Core.UI
 
                     float StartX;
                     if (MaxHorizontalOffset.IsAlmostZero())
+                    {
                         StartX = PaddedBounds.Left;
+                    }
                     else
+                    {
                         StartX = PaddedBounds.Left + PaddedBounds.Width * PercentOutsideCurrentViewport * HorizontalOffset / MaxHorizontalOffset;
+                    }
+
                     float EndX = StartX + PercentInCurrentViewport * PaddedBounds.Width;
 
                     //  Validate that the inner rectangle is at least 8 pixels big
@@ -841,7 +895,9 @@ namespace MGUI.Core.UI
                             StartX = PaddedBounds.Left;
                         }
                         if (EndX > PaddedBounds.Right)
+                        {
                             EndX = PaddedBounds.Right;
+                        }
                     }
 
                     PrimaryVisualState PrimaryState = IsHSBFocused ? PrimaryVisualState.Selected : VisualState.Primary;
@@ -872,7 +928,9 @@ namespace MGUI.Core.UI
                 foreach (MGElement child in GetChildren())
                 {
                     if (!child.ActualLayoutBounds.IsEmpty)
+                    {
                         child.Draw(adjustedDA);
+                    }
                 }
             }
         }

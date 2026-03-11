@@ -104,15 +104,21 @@ public class MGDockAutoHideDrawer : MGElement
             _pinBtn = CreateHeaderButton(window, () =>
             {
                 if (_activePanel != null)
+                {
                     PinRequested?.Invoke(this, _activePanel);
+                }
             });
 
             _closeBtn = CreateHeaderButton(window, () =>
             {
                 if (_activePanel != null)
+                {
                     PanelCloseRequested?.Invoke(this, _activePanel);
+                }
                 else
+                {
                     CloseRequested?.Invoke(this, EventArgs.Empty);
+                }
             });
 
             _header.SetParent(this);
@@ -151,7 +157,9 @@ public class MGDockAutoHideDrawer : MGElement
     private void RefreshContent()
     {
         if (_content != null)
+        {
             _content.SetParent(null);
+        }
 
         if (_activePanel != null)
         {
@@ -186,7 +194,9 @@ public class MGDockAutoHideDrawer : MGElement
         yield return _pinBtn;
         yield return _closeBtn;
         if (_content != null)
+        {
             yield return _content;
+        }
     }
 
     // ── Resize grip helpers ────────────────────────────────────────────
@@ -286,7 +296,9 @@ public class MGDockAutoHideDrawer : MGElement
     {
         // Draw all child elements
         foreach (var child in GetChildren())
+        {
             child?.Draw(DA);
+        }
 
         // ── Draw pin icon centred in the pin button ───────────────────────────
         if (_pinBtn != null && _pinBtn.Visibility == Visibility.Visible)

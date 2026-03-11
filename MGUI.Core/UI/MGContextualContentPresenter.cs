@@ -53,7 +53,10 @@ namespace MGUI.Core.UI
                     TrueContent?.SetParent(this);
                     InvokeContentAdded(TrueContent);
                     if (Value)
+                    {
                         UpdateDisplayedContent();
+                    }
+
                     NPC(nameof(TrueContent));
                     NPC(nameof(CurrentContent));
                 }
@@ -76,7 +79,10 @@ namespace MGUI.Core.UI
                     FalseContent?.SetParent(this);
                     InvokeContentAdded(FalseContent);
                     if (!Value)
+                    {
                         UpdateDisplayedContent();
+                    }
+
                     NPC(nameof(FalseContent));
                     NPC(nameof(CurrentContent));
                 }
@@ -94,9 +100,14 @@ namespace MGUI.Core.UI
                 _Content = DesiredContent;
 
                 if (PreviousContent != null)
+                {
                     PreviousContent.IsHitTestVisible = false;
+                }
+
                 if (DesiredContent != null)
+                {
                     DesiredContent.IsHitTestVisible = true;
+                }
 
                 LayoutChanged(this, true);
                 OnContentUpdated?.Invoke(this, new(PreviousContent, CurrentContent));
@@ -129,15 +140,22 @@ namespace MGUI.Core.UI
             if (IncludeInactive)
             {
                 if (TrueContent != null && TrueContent != CurrentContent)
+                {
                     result.Add(TrueContent);
+                }
+
                 if (FalseContent != null && FalseContent != CurrentContent)
+                {
                     result.Add(FalseContent);
+                }
             }
             if (IncludeActive)
             {
                 MGElement Current = CurrentContent;
                 if (Current != null)
+                {
                     result.Add(Current);
+                }
             }
             return result;
         }

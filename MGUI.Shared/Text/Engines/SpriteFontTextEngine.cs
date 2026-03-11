@@ -60,7 +60,9 @@ namespace MGUI.Shared.Text.Engines
         public ResolvedFont ResolveFont(FontSpec spec)
         {
             if (_cache.TryGetValue(spec, out ResolvedFont cached))
+            {
                 return cached;
+            }
 
             bool found = _fontManager.TryGetFont(
                 spec.Family, spec.Style, spec.Size,
@@ -134,7 +136,10 @@ namespace MGUI.Shared.Text.Engines
         private SpriteFontHandle GetHandle(ResolvedFont font)
         {
             if (font.NativeFont is SpriteFontHandle h)
+            {
                 return h;
+            }
+
             // Stale handle from another engine — re-resolve via spec.
             return ResolveFont(font.Spec).NativeFont as SpriteFontHandle;
         }
@@ -143,10 +148,15 @@ namespace MGUI.Shared.Text.Engines
         public Vector2 MeasureText(ResolvedFont font, string text)
         {
             if (string.IsNullOrEmpty(text))
+            {
                 return Vector2.Zero;
+            }
 
             var h = GetHandle(font);
-            if (h is null) return Vector2.Zero;
+            if (h is null)
+            {
+                return Vector2.Zero;
+            }
 
             // Use exactScale so measurement matches the original MGTextBlock.MeasureText
             // (which applied FontScale = exactScale).  Drawing still happens at suggestedScale
@@ -160,12 +170,16 @@ namespace MGUI.Shared.Text.Engines
         {
             var h = GetHandle(font);
             if (h is null)
+            {
                 return new GlyphMetrics(0, 0, 0, font.LineHeight);
+            }
 
             if (!h.Glyphs.TryGetValue(c, out SpriteFont.Glyph glyph))
             {
                 if (h.SF.DefaultCharacter.HasValue)
+                {
                     h.Glyphs.TryGetValue(h.SF.DefaultCharacter.Value, out glyph);
+                }
             }
 
             // Use exactScale to stay consistent with MeasureText and the original codebase.
@@ -198,10 +212,15 @@ namespace MGUI.Shared.Text.Engines
             SpriteEffects effects = SpriteEffects.None)
         {
             if (string.IsNullOrEmpty(text))
+            {
                 return;
+            }
 
             var h = GetHandle(font);
-            if (h is null) return;
+            if (h is null)
+            {
+                return;
+            }
 
             spriteBatch.DrawString(h.SF, text, position, color, rotation, origin, scale, effects, depth);
         }

@@ -24,13 +24,21 @@ namespace MGUI.Core.UI.Data_Binding.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value == null && !AllowNullBoolean)
+            {
                 throw new InvalidOperationException($"{nameof(BoolToVisibilityConverter)}: Cannot convert from null value when {nameof(AllowNullBoolean)} is false.");
+            }
             else if (value == null)
+            {
                 return NullVisibility;
+            }
             else if (value is bool BoolValue)
+            {
                 return BoolValue ? TrueVisibility : FalseVisibility;
+            }
             else
+            {
                 throw new NotImplementedException();
+            }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -40,22 +48,36 @@ namespace MGUI.Core.UI.Data_Binding.Converters
                 if (!AllowNullBoolean)
                 {
                     if (VisibilityValue == TrueVisibility)
+                    {
                         return true;
+                    }
                     else if (VisibilityValue == FalseVisibility)
+                    {
                         return false;
+                    }
                     else
+                    {
                         throw new NotImplementedException();
+                    }
                 }
                 else
                 {
                     if (VisibilityValue == TrueVisibility)
+                    {
                         return true;
+                    }
                     else if (VisibilityValue == FalseVisibility)
+                    {
                         return false;
+                    }
                     else if (VisibilityValue == NullVisibility)
+                    {
                         return null;
+                    }
                     else
+                    {
                         throw new NotImplementedException();
+                    }
                 }
             }
             else

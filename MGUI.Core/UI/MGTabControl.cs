@@ -21,7 +21,9 @@ namespace MGUI.Core.UI
         internal static int GetAdjacentTabIndex(int currentIndex, int count, UINavigationAction action)
         {
             if (count <= 0)
+            {
                 return -1;
+            }
 
             int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
             return action switch
@@ -39,7 +41,9 @@ namespace MGUI.Core.UI
             if (_Content != Value)
             {
                 if (!CanChangeContent)
+                {
                     throw new InvalidOperationException($"Cannot set {nameof(MGSingleContentHost)}.{nameof(Content)} while {nameof(CanChangeContent)} is false.");
+                }
 
                 //  ContentAdded/ContentRemoved is already invoked when AddTab or RemoveTab
 
@@ -60,11 +64,18 @@ namespace MGUI.Core.UI
             if (IncludeInactive)
             {
                 foreach (MGTabItem Item in _Tabs)
+                {
                     if (!Item.IsTabSelected)
+                    {
                         result.Add(Item);
+                    }
+                }
             }
             if (IncludeActive && SelectedTab != null)
+            {
                 result.Add(SelectedTab);
+            }
+
             return result;
         }
 
@@ -215,7 +226,9 @@ namespace MGUI.Core.UI
                     {
                         MGTabItem Tab = KVP.Key;
                         if (Tab.IsTabSelected)
+                        {
                             UpdateHeaderWrapper(Tab);
+                        }
                     }
                     NPC(nameof(SelectedTabHeaderTemplate));
                 }
@@ -239,7 +252,9 @@ namespace MGUI.Core.UI
                     {
                         MGTabItem Tab = KVP.Key;
                         if (!Tab.IsTabSelected)
+                        {
                             UpdateHeaderWrapper(Tab);
+                        }
                     }
                     NPC(nameof(UnselectedTabHeaderTemplate));
                 }
@@ -307,7 +322,9 @@ namespace MGUI.Core.UI
             ManagedAddHeadersPanelChild(HeaderWrapper);
 
             if (SelectedTab == null)
+            {
                 _ = TrySelectTab(Tab);
+            }
 
             return Tab;
         }
@@ -335,7 +352,9 @@ namespace MGUI.Core.UI
                     CancelEventArgs<MGTabItem> CancelArgs = new(Tab);
                     SelectedTabChanging.Invoke(this, CancelArgs);
                     if (CancelArgs.Cancel)
+                    {
                         return false;
+                    }
                 }
 
                 MGTabItem Previous = SelectedTab;
@@ -353,15 +372,21 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         public bool TrySelectTabAtIndex(int Index)
         {
             if (Index >= 0 && Index < _Tabs.Count)
+            {
                 return TrySelectTab(_Tabs[Index]);
+            }
             else
+            {
                 return false;
+            }
         }
 
         /// <summary>Attempts to deselect the given <paramref name="Tab"/>. Does nothing if the <paramref name="Tab"/> is not already selected or if there are no other tabs to select in place of it.</summary>
@@ -371,11 +396,15 @@ namespace MGUI.Core.UI
         public bool TryDeselectTab(MGTabItem Tab, bool FocusTabToRight)
         {
             if (Tab == null || Tab != SelectedTab || _Tabs.Count <= 1)
+            {
                 return false;
+            }
 
             int TabIndex = _Tabs.IndexOf(Tab);
             if (TabIndex < 0)
+            {
                 return false;
+            }
 
             int DesiredIndex = FocusTabToRight ? TabIndex + 1 : TabIndex - 1;
             int ActualIndex = (DesiredIndex + _Tabs.Count) % _Tabs.Count;
@@ -519,7 +548,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (_Tabs.Count == 0)
+            {
                 return false;
+            }
 
             bool usesHorizontalHeaderNavigation = TabHeaderPosition is Dock.Top or Dock.Bottom;
             bool usesVerticalHeaderNavigation = TabHeaderPosition is Dock.Left or Dock.Right;
@@ -528,7 +559,9 @@ namespace MGUI.Core.UI
                 || (usesHorizontalHeaderNavigation && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight)
                 || (usesVerticalHeaderNavigation && action is UINavigationAction.MoveUp or UINavigationAction.MoveDown);
             if (!isTabNavigationAction)
+            {
                 return action == UINavigationAction.Submit && SelectedTab != null;
+            }
 
             int nextIndex = GetAdjacentTabIndex(SelectedTabIndex, _Tabs.Count, action);
             return nextIndex >= 0 && TrySelectTabAtIndex(nextIndex);

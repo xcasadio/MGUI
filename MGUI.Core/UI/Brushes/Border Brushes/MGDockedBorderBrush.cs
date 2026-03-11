@@ -48,7 +48,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
         {
             if (BT.IsEmpty())
+            {
                 return;
+            }
 
             DrawTransaction DT = DA.DT;
             float Opacity = DA.Opacity;
@@ -93,13 +95,24 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             else
             {
                 if (BT.Left > 0)
+                {
                     Left.Draw(DA, Element, new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
+                }
+
                 if (BT.Right > 0)
+                {
                     Right.Draw(DA, Element, new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, Bounds.Height));
+                }
+
                 if (BT.Top > 0)
+                {
                     Top.Draw(DA, Element, new(Bounds.Left, Bounds.Top, Bounds.Width, BT.Top));
+                }
+
                 if (BT.Bottom > 0)
+                {
                     Bottom.Draw(DA, Element, new(Bounds.Left, Bounds.Bottom - BT.Bottom, Bounds.Width, BT.Bottom));
+                }
             }
         }
 

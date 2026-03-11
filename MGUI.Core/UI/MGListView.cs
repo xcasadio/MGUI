@@ -30,7 +30,9 @@ namespace MGUI.Core.UI
         internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
         {
             if (count <= 0)
+            {
                 return -1;
+            }
 
             int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
             return action switch
@@ -65,7 +67,9 @@ namespace MGUI.Core.UI
                     }
                     _InternalRowItems = value;
                     if (InternalRowItems != null)
+                    {
                         InternalRowItems.CollectionChanged += RowItems_CollectionChanged;
+                    }
 
                     foreach (MGListViewColumn<TItemType> LVIColumn in _Columns)
                     {
@@ -89,7 +93,9 @@ namespace MGUI.Core.UI
                     count++;
                 }
                 if (count > 0)
+                {
                     Debug.WriteLine($"[MGListView] Cleaned up {count} DataBindings");
+                }
             }
         }
 
@@ -153,10 +159,15 @@ namespace MGUI.Core.UI
                 if (_ItemsSource != value)
                 {
                     if (ItemsSource != null)
+                    {
                         ItemsSource.CollectionChanged -= ItemsSource_CollectionChanged;
+                    }
+
                     _ItemsSource = value;
                     if (ItemsSource != null)
+                    {
                         ItemsSource.CollectionChanged += ItemsSource_CollectionChanged;
+                    }
 
                     using (DataGrid.AllowChangingContentTemporarily())
                     {
@@ -171,7 +182,9 @@ namespace MGUI.Core.UI
                     }
 
                     if (ItemsSource == null)
+                    {
                         InternalRowItems = null;
+                    }
                     else
                     {
                         IEnumerable<MGListViewItem<TItemType>> Values = ItemsSource.Select((x, Index) => new MGListViewItem<TItemType>(this, x, DataGrid.Rows[Index]));
@@ -230,9 +243,13 @@ namespace MGUI.Core.UI
         public void SetItemsSource(ICollection<TItemType> Value)
         {
             if (Value is ObservableCollection<TItemType> Observable)
+            {
                 ItemsSource = Observable;
+            }
             else
+            {
                 ItemsSource = new ObservableCollection<TItemType>(Value.ToList());
+            }
         }
         #endregion Items Source
 
@@ -394,7 +411,9 @@ namespace MGUI.Core.UI
                 DataGrid.SelectionChanged += (sender, e) =>
                 {
                     if (e.HasValue && DataGrid.Rows.Count > 0)
+                    {
                         FocusedRowIndex = DataGrid.GetRowIndex(e.Value.Cell.Row);
+                    }
                 };
 
                 IsFocusable = true;
@@ -420,11 +439,15 @@ namespace MGUI.Core.UI
         private void EnsureFocusedRowVisible()
         {
             if (FocusedRowIndex < 0 || ScrollViewer == null || RowItems == null || FocusedRowIndex >= RowItems.Count)
+            {
                 return;
+            }
 
             MGElement firstVisibleCell = RowItems[FocusedRowIndex].GetRowContents().Values.FirstOrDefault();
             if (firstVisibleCell != null)
+            {
                 ScrollViewer.EnsureElementVisible(firstVisibleCell);
+            }
         }
 
         void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible() => EnsureFocusedRowVisible();
@@ -432,7 +455,10 @@ namespace MGUI.Core.UI
         private void OnListViewKeyPressed(object sender, BaseKeyPressedEventArgs e)
         {
             int count = RowItems?.Count ?? 0;
-            if (count == 0) return;
+            if (count == 0)
+            {
+                return;
+            }
 
             int newIndex = FocusedRowIndex;
             switch (e.Key)
@@ -451,7 +477,10 @@ namespace MGUI.Core.UI
                 FocusedRowIndex = newIndex;
                 ((INavigationTargetVisibilityHandler)this).EnsureNavigationTargetVisible();
                 if (SelectionMode != GridSelectionMode.None && DataGrid.Rows.Count > FocusedRowIndex && DataGrid.Columns.Count > 0)
+                {
                     DataGrid.CurrentSelection = new GridSelection(DataGrid, new GridCell(DataGrid.Rows[FocusedRowIndex], DataGrid.Columns[0]), SelectionMode);
+                }
+
                 e.SetHandledBy(this, true);
             }
         }
@@ -460,18 +489,26 @@ namespace MGUI.Core.UI
         {
             int count = RowItems?.Count ?? 0;
             if (count == 0)
+            {
                 return false;
+            }
 
             if (action is not (UINavigationAction.MoveUp or UINavigationAction.MoveDown or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.PageUp or UINavigationAction.PageDown))
+            {
                 return false;
+            }
 
             int nextIndex = GetNextNavigationIndex(FocusedRowIndex, count, action);
             if (nextIndex < 0)
+            {
                 return false;
+            }
 
             FocusedRowIndex = nextIndex;
             if (SelectionMode != GridSelectionMode.None && DataGrid.Rows.Count > FocusedRowIndex && DataGrid.Columns.Count > 0)
+            {
                 DataGrid.CurrentSelection = new GridSelection(DataGrid, new GridCell(DataGrid.Rows[FocusedRowIndex], DataGrid.Columns[0]), SelectionMode);
+            }
 
             return true;
         }
@@ -497,18 +534,26 @@ namespace MGUI.Core.UI
 
                 Func<TItemType, MGElement> CellTemplate;
                 if (ColumnDefinition.CellTemplate != null)
+                {
                     CellTemplate = (Item) => ColumnDefinition.CellTemplate.GetContent(SelfOrParentWindow, this, Item);
+                }
                 else
+                {
                     CellTemplate = (Item) => new MGTextBlock(SelfOrParentWindow, Item.ToString());
+                }
 
                 AddColumn(Width, Header, CellTemplate);
             }
 
             if (Settings.RowHeight.HasValue)
+            {
                 RowHeight = Settings.RowHeight.Value;
+            }
 
             if (Settings.SelectionMode.HasValue)
+            {
                 SelectionMode = Settings.SelectionMode.Value;
+            }
         }
 
         #region Column Sort
@@ -533,12 +578,21 @@ namespace MGUI.Core.UI
         /// The column must have <see cref="MGListViewColumn{TItemType}.SortKeySelector"/> set.</summary>
         public void SortByColumn(MGListViewColumn<TItemType> column, SortDirection direction)
         {
-            if (column == null) throw new ArgumentNullException(nameof(column));
-            if (column.SortKeySelector == null) return;
+            if (column == null)
+            {
+                throw new ArgumentNullException(nameof(column));
+            }
+
+            if (column.SortKeySelector == null)
+            {
+                return;
+            }
 
             // Save original order on first sort
             if (_presortItems == null && ItemsSource != null)
+            {
                 _presortItems = ItemsSource.ToList();
+            }
 
             // Update sort state
             if (ActiveSortColumn != null && ActiveSortColumn != column)
@@ -557,7 +611,11 @@ namespace MGUI.Core.UI
         /// <summary>Removes the active column sort and restores the original item order.</summary>
         public void ClearSort()
         {
-            if (ActiveSortColumn == null) return;
+            if (ActiveSortColumn == null)
+            {
+                return;
+            }
+
             ActiveSortColumn.SetSortDirection(null);
             ActiveSortColumn.UpdateSortIndicator();
             ActiveSortColumn = null;
@@ -572,7 +630,11 @@ namespace MGUI.Core.UI
 
         private void ApplySort()
         {
-            if (ActiveSortColumn?.SortKeySelector == null || ItemsSource == null) return;
+            if (ActiveSortColumn?.SortKeySelector == null || ItemsSource == null)
+            {
+                return;
+            }
+
             var sorted = ActiveSortColumn.CurrentSortDirection == SortDirection.Ascending
                 ? ItemsSource.OrderBy(d => ActiveSortColumn.SortKeySelector(d))
                 : ItemsSource.OrderByDescending(d => ActiveSortColumn.SortKeySelector(d));
@@ -855,7 +917,11 @@ namespace MGUI.Core.UI
 
         private void Header_SortClicked(object sender, MGUI.Shared.Input.Mouse.BaseMouseClickedEventArgs e)
         {
-            if (!IsSortable || SortKeySelector == null) return;
+            if (!IsSortable || SortKeySelector == null)
+            {
+                return;
+            }
+
             SortDirection newDir = CurrentSortDirection == SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending;
             ListView.SortByColumn(this, newDir);
         }

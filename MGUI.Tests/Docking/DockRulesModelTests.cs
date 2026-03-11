@@ -23,20 +23,30 @@ public class DockRulesModelTests
     private static bool CanDock(DockPanelNode panel, DockTabGroupNode target, DockZone zone)
     {
         if (panel == null || target == null)
+        {
             return true;
+        }
 
         // AllowedZones restriction
         if (panel.AllowedZones != null && !panel.AllowedZones.Contains(zone))
+        {
             return false;
+        }
 
         // Family restriction — only for tab-docking (Center)
         if (zone == DockZone.Center && panel.Family != null)
         {
             foreach (var p in target.Panels)
             {
-                if (p.Id == panel.Id) continue;
+                if (p.Id == panel.Id)
+                {
+                    continue;
+                }
+
                 if (p.Family != null && p.Family != panel.Family)
+                {
                     return false;
+                }
             }
         }
 
@@ -46,15 +56,27 @@ public class DockRulesModelTests
     private static DockPanelNode Panel(string? family = null, IReadOnlyList<DockZone>? allowedZones = null)
     {
         var p = new DockPanelNode { Title = "P" };
-        if (family != null) p.Family = family;
-        if (allowedZones != null) p.AllowedZones = allowedZones;
+        if (family != null)
+        {
+            p.Family = family;
+        }
+
+        if (allowedZones != null)
+        {
+            p.AllowedZones = allowedZones;
+        }
+
         return p;
     }
 
     private static DockTabGroupNode Group(params DockPanelNode[] panels)
     {
         var g = new DockTabGroupNode();
-        foreach (var p in panels) g.AddPanel(p, -1);
+        foreach (var p in panels)
+        {
+            g.AddPanel(p, -1);
+        }
+
         return g;
     }
 
@@ -68,7 +90,11 @@ public class DockRulesModelTests
 
         foreach (DockZone z in Enum.GetValues<DockZone>())
         {
-            if (z == DockZone.None) continue;
+            if (z == DockZone.None)
+            {
+                continue;
+            }
+
             Assert.True(CanDock(p, g, z), $"Zone {z} should be allowed when AllowedZones is null");
         }
     }

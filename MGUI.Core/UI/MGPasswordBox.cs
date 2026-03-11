@@ -27,7 +27,10 @@ namespace MGUI.Core.UI
 				{
 					_PasswordCharacter = value;
 					if (!string.IsNullOrEmpty(Text))
+					{
 						_ = base.SetText(ReplaceNormalCharactersWith(Text, PasswordCharacter));
+					}
+
 					NPC(nameof(PasswordCharacter));
 				}
 			}
@@ -65,16 +68,22 @@ namespace MGUI.Core.UI
 		{
 			List<char> SpecialCharacters = new() { '\n', '\r' };
 			if (s == null)
+			{
 				return null;
+			}
 			else
 			{
 				StringBuilder SB = new(s.Length);
 				foreach (char Character in s)
 				{
 					if (SpecialCharacters.Contains(Character))
+					{
 						SB.Append(Character);
+					}
 					else
+					{
 						SB.Append(c);
+					}
 				}
 				return SB.ToString();
 			}

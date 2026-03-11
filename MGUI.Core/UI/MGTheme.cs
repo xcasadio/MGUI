@@ -97,9 +97,13 @@ namespace MGUI.Core.UI
         public VisualStateFillBrush GetBackgroundBrush(MGElementType Type)
         {
             if (_Backgrounds.TryGetValue(Type, out ThemeManagedVisualStateFillBrush Value))
+            {
                 return Value.GetValue(true);
+            }
             else
+            {
                 return new VisualStateFillBrush(null);
+            }
         }
 
         public void SetBackgroundBrush(MGElementType Type, VisualStateFillBrush Value)
@@ -110,7 +114,9 @@ namespace MGUI.Core.UI
                 _Backgrounds.Add(Type, ManagedValue);
             }
             else
+            {
                 ManagedValue.Value = Value;
+            }
         }
         #endregion Background
 
@@ -347,7 +353,9 @@ namespace MGUI.Core.UI
                     TitleShadowIntensity = 0.7f;
                 }
                 else
+                {
                     throw new NotImplementedException();
+                }
 
                 Color DimNeutralColor = new(0, 10, 18);
                 Color AccentColor = Color.Lerp(Color.Black, PrimaryColor, 0.55f);

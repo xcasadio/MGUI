@@ -177,7 +177,9 @@ namespace MGUI.Core.UI.Text
         public static IEnumerable<MGTextRun> ParseRuns(string FormattedText, MGTextRunConfig DefaultSettings)
         {
             if (string.IsNullOrEmpty(FormattedText))
+            {
                 yield break;
+            }
 
             FormattedText = FormattedText.Replace("\t", TabReplacement);
 
@@ -209,7 +211,9 @@ namespace MGUI.Core.UI.Text
             }
 
             foreach (MGTextRun Run in ParseRuns(Tokens, DefaultSettings))
+            {
                 yield return Run;
+            }
         }
 
         public static IEnumerable<MGTextRun> ParseRuns(List<FTTokenMatch> Tokens, MGTextRunConfig DefaultSettings)
@@ -244,7 +248,9 @@ namespace MGUI.Core.UI.Text
                     {
                         CurrentAction = NextAction;
                         if (CurrentAction.ActionType == FTActionType.StringLiteral)
+                        {
                             LiteralValue.Append(CurrentAction.Parameter);
+                        }
 
                         int NextIndex = i + 1;
                         HasNextAction = NextIndex < Actions.Count;
@@ -256,7 +262,9 @@ namespace MGUI.Core.UI.Text
                     yield return new MGTextRunText(LiteralValue.ToString(), CurrentState, CurrentToolTipId, CurrentActionId);
                 }
                 else if (CurrentAction.ActionType == FTActionType.LineBreak)
+                {
                     yield return new MGTextRunLineBreak(CurrentAction.Parameter?.Length ?? 1);
+                }
                 else if (CurrentAction.ActionType == FTActionType.Image)
                 {
                     var (SourceName, TargetWidth, TargetHeight) = FTTokenizer.ParseImageValue(CurrentAction.Parameter.Substring(1));
@@ -265,7 +273,9 @@ namespace MGUI.Core.UI.Text
                 else if (CurrentAction.ActionType == FTActionType.SetToolTip)
                 {
                     if (!string.IsNullOrEmpty(CurrentToolTipId))
+                    {
                         PreviousToolTipIds.Add(CurrentToolTipId);
+                    }
 
                     string NewToolTipValue = CurrentAction.Parameter.Substring(1);
                     CurrentToolTipId = FTTokenizer.ToolTipValueParser.Match(NewToolTipValue).Groups["ToolTipName"].Value;
@@ -277,7 +287,9 @@ namespace MGUI.Core.UI.Text
                 else if (CurrentAction.ActionType == FTActionType.SetAction)
                 {
                     if (!string.IsNullOrEmpty(CurrentActionId))
+                    {
                         PreviousActionIds.Add(CurrentActionId);
+                    }
 
                     string NewActionValue = CurrentAction.Parameter.Substring(1);
                     CurrentActionId = FTTokenizer.ActionValueParser.Match(NewActionValue).Groups["ActionName"].Value;
@@ -310,7 +322,9 @@ namespace MGUI.Core.UI.Text
             foreach (char c in characters)
             {
                 if (Text.Contains(c))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -319,12 +333,16 @@ namespace MGUI.Core.UI.Text
         public bool StartsWithAny(params char[] characters)
         {
             if (string.IsNullOrEmpty(Text))
+            {
                 return false;
+            }
 
             foreach (char c in characters)
             {
                 if (Text.StartsWith(c))
+                {
                     return true;
+                }
             }
 
             return false;

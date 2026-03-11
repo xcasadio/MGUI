@@ -68,68 +68,131 @@ namespace MGUI.Core.UI.Data_Binding.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (targetType != typeof(MGToolTip))
+            {
                 throw new InvalidOperationException($"{nameof(StringToToolTipConverter)} can only convert from string to {nameof(MGToolTip)}. Invalid {nameof(targetType)}: {targetType.FullName}");
+            }
             else if (value == null)
+            {
                 return null;
+            }
             else if (value is not string StringValue)
+            {
                 throw new InvalidOperationException($"{nameof(StringToToolTipConverter)} can only convert from string to {nameof(MGToolTip)}. Invalid input {nameof(value)}: {value}");
+            }
             else
             {
                 MGToolTip ToolTip = StringToToolTipTypeConverter.ToToolTip(Host, StringValue);
                 MGTextBlock TextBlock = ToolTip.Content as MGTextBlock;
 
                 if (!string.IsNullOrEmpty(StylePreset) && _Styles.TryGetValue(StylePreset, out var DefaultStyle))
+                {
                     DefaultStyle?.Invoke(ToolTip, TextBlock);
+                }
 
                 if (Padding.HasValue)
+                {
                     ToolTip.Padding = Padding.Value.ToThickness();
+                }
+
                 if (Background != null)
+                {
                     ToolTip.BackgroundBrush.NormalValue = Background.ToFillBrush(ToolTip.GetDesktop(), ToolTip);
+                }
 
                 if (Width.HasValue)
+                {
                     ToolTip.PreferredWidth = Width.Value;
+                }
+
                 if (MinWidth.HasValue)
+                {
                     ToolTip.MinWidth = MinWidth.Value;
+                }
+
                 if (MaxWidth.HasValue)
+                {
                     ToolTip.MaxWidth = MaxWidth.Value;
+                }
+
                 if (Height.HasValue)
+                {
                     ToolTip.PreferredHeight = Height.Value;
+                }
+
                 if (MinHeight.HasValue)
+                {
                     ToolTip.MinHeight = MinHeight.Value;
+                }
+
                 if (MaxHeight.HasValue)
+                {
                     ToolTip.MaxHeight = MaxHeight.Value;
+                }
 
                 if (ShowOnDisabled.HasValue)
+                {
                     ToolTip.ShowOnDisabled = ShowOnDisabled.Value;
+                }
+
                 if (ShowDelay.HasValue)
+                {
                     ToolTip.ShowDelayOverride = ShowDelay.Value;
+                }
 
                 if (!string.IsNullOrEmpty(FontFamily))
+                {
                     TextBlock.FontFamily = FontFamily;
+                }
+
                 if (FontSize.HasValue)
+                {
                     TextBlock.FontSize = FontSize.Value;
+                }
 
                 if (IsBold.HasValue)
+                {
                     TextBlock.IsBold = IsBold.Value;
+                }
+
                 if (IsItalic.HasValue)
+                {
                     TextBlock.IsItalic = IsItalic.Value;
+                }
+
                 if (IsUnderlined.HasValue)
+                {
                     TextBlock.IsUnderlined = IsUnderlined.Value;
+                }
+
                 if (IsShadowed.HasValue)
+                {
                     TextBlock.IsShadowed = IsShadowed.Value;
+                }
 
                 if (Foreground.HasValue)
+                {
                     TextBlock.Foreground.NormalValue = Foreground.Value.ToXNAColor();
+                }
 
                 if (AllowsInlineFormatting.HasValue)
+                {
                     TextBlock.AllowsInlineFormatting = AllowsInlineFormatting.Value;
+                }
+
                 if (WrapText.HasValue)
+                {
                     TextBlock.WrapText = WrapText.Value;
+                }
+
                 if (TextAlignment.HasValue)
+                {
                     TextBlock.TextAlignment = TextAlignment.Value;
+                }
 
                 if (SizeToContent.HasValue)
+                {
                     ToolTip.ApplySizeToContent(SizeToContent.Value, 10, 10, null, null, false);
+                }
 
                 return ToolTip;
             }

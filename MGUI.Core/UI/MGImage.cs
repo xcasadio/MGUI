@@ -71,7 +71,9 @@ namespace MGUI.Core.UI
         private void Resources_OnTextureAddedRemoved(object sender, (string Name, MGTextureData Data) e)
         {
             if (Name == SourceName)
+            {
                 UpdateActualSource();
+            }
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -96,11 +98,17 @@ namespace MGUI.Core.UI
         private void UpdateActualSource()
         {
             if (Source != null)
+            {
                 _ActualSource = Source;
+            }
             else if (GetResources().TryGetTexture(SourceName, out MGTextureData Texture))
+            {
                 _ActualSource = Texture;
+            }
             else
+            {
                 _ActualSource = null;
+            }
         }
 
 		[DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -117,7 +125,9 @@ namespace MGUI.Core.UI
                     _ActualSource = value;
                     NPC(nameof(ActualSource));
                     if (ActualSource?.RenderSize != PreviousSize)
+                    {
                         LayoutChanged(this, true);
+                    }
                 }
             }
         }
@@ -319,7 +329,9 @@ namespace MGUI.Core.UI
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             if (ActualSource?.Texture == null)
+            {
                 return;
+            }
 
             Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
             double AspectRatio = UnstretchedAspectRatio;

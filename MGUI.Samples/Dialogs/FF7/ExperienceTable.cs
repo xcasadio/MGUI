@@ -41,16 +41,23 @@ namespace MGUI.Samples.Dialogs.FF7
 
                 int CurrentLevelXP = GetXP(CurrentLevel);
                 if (CurrentLevelXP > XP)
+                {
                     Max = CurrentLevel - 1;
+                }
                 else if (CurrentLevelXP < XP)
                 {
                     int NextLevelXP = GetXP(CurrentLevel + 1);
                     if (NextLevelXP > XP)
+                    {
                         return CurrentLevel;
+                    }
+
                     Min = CurrentLevel + 1;
                 }
                 else
+                {
                     return CurrentLevel;
+                }
             } while (Min < Max);
 
             return CurrentLevel;

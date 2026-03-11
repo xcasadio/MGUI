@@ -24,7 +24,10 @@ namespace MGUI.Core.UI.Text
             get
             {
                 if (IsDirty)
+                {
                     UpdateLines();
+                }
+
                 return _Lines;
             }
         }
@@ -82,7 +85,9 @@ namespace MGUI.Core.UI.Text
                     LineIndex++;
 
                     if (!Line.Runs.All(x => x.RunType == TextRunType.Text))
+                    {
                         throw new NotImplementedException($"{nameof(TextRenderInfo)}.{nameof(UpdateLines)} can only handle {nameof(MGTextLine)}s which consist only of {nameof(MGTextRun)}s of type={nameof(TextRunType)}.{nameof(TextRunType.Text)}");
+                    }
 
                     List<MGTextRunText> Runs = Line.Runs.Cast<MGTextRunText>().ToList();
                     if (!Runs.Any(x => !string.IsNullOrEmpty(x.Text)))
@@ -98,7 +103,9 @@ namespace MGUI.Core.UI.Text
                             ResolvedFont resolved = TextBlockElement.GetResolvedFont(Run.Settings.IsBold, Run.Settings.IsItalic);
 
                             if (string.IsNullOrEmpty(Run.Text))
+                            {
                                 continue;
+                            }
 
                             // 1. Compute per-glyph advances.
                             //    The first character on a line has its negative LSB clamped to 0 (matching
@@ -147,7 +154,9 @@ namespace MGUI.Core.UI.Text
             foreach (LineRenderInfo Line in Lines)
             {
                 if (Line.TryGetCharAtOriginalIndex(Index, out Result))
+                {
                     return true;
+                }
             }
 
             Result = default;
@@ -159,7 +168,9 @@ namespace MGUI.Core.UI.Text
             foreach (LineRenderInfo Line in Lines)
             {
                 if (Line.TryGetCharAtParsedIndex(Index, out Result))
+                {
                     return true;
+                }
             }
 
             Result = default;
@@ -273,7 +284,10 @@ namespace MGUI.Core.UI.Text
         {
             LineRenderInfo TranslatedLine = new(TextInfo, Source, LineIndex, YPosition + Offset.Y, Height);
             foreach (CharRenderInfo CharInfo in Characters)
+            {
                 TranslatedLine.AddCharacter(CharInfo.IndexInOriginalText, CharInfo.IndexInParsedText, CharInfo.XPosition + Offset.X, CharInfo.Width);
+            }
+
             return TranslatedLine;
         }
 

@@ -75,9 +75,13 @@ namespace MGUI.Core.UI.XAML
         public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
         {
             if (value is string stringValue)
+            {
                 return ParseFillBrush(stringValue);
+            }
             else
+            {
                 return base.ConvertFrom(context, culture, value);
+            }
         }
 
         public static FillBrush ParseFillBrush(string Value)
@@ -102,7 +106,9 @@ namespace MGUI.Core.UI.XAML
                 return new GradientFillBrush(Colors[0], Colors[1], Colors[2], Colors[3]);
             }
             else
+            {
                 throw new InvalidOperationException($"{Value} is not a valid format for a {nameof(FillBrush)}.");
+            }
         }
     }
 
@@ -205,7 +211,10 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<(XAMLBindableBase, string)> GetNestedBindableObjects()
         {
             foreach (var Item in base.GetNestedBindableObjects())
+            {
                 yield return Item;
+            }
+
             yield return (BorderBrush, nameof(BorderBrush));
             yield return (FillBrush, nameof(FillBrush));
         }
@@ -229,9 +238,14 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<(XAMLBindableBase, string)> GetNestedBindableObjects()
         {
             foreach (var Item in base.GetNestedBindableObjects())
+            {
                 yield return Item;
+            }
+
             foreach (FillBrush Brush in Brushes)
+            {
                 yield return (Brush, nameof(Brushes));
+            }
         }
     }
 
@@ -274,7 +288,10 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<(XAMLBindableBase, string)> GetNestedBindableObjects()
         {
             foreach (var Item in base.GetNestedBindableObjects())
+            {
                 yield return Item;
+            }
+
             yield return (Brush, nameof(Brush));
         }
     }
@@ -316,9 +333,14 @@ namespace MGUI.Core.UI.XAML
         public override IFillBrush ToFillBrush(MGDesktop Desktop, MGElement Element)
         {
             if (SourceName == null)
+            {
                 throw new ArgumentNullException(nameof(SourceName));
+            }
+
             if (!Desktop.Resources.TryGetTexture(SourceName, out MGTextureData Source))
+            {
                 throw new InvalidOperationException($"No Texture was found with the name '{SourceName}' in {nameof(MGResources)}.{nameof(MGResources.Textures)}.");
+            }
 
             IFillBrush Brush = new MGNineSliceFillBrush(TargetMargin.ToThickness(), Source, SourceMargin?.ToThickness());
             return Brush;
@@ -352,9 +374,13 @@ namespace MGUI.Core.UI.XAML
                 {
                     FillBrush[] FillBrushes = fillBrushStrings.Select(x => (FillBrush)FillBrushStringConverter.ConvertFrom(context, culture, x)).ToArray();
                     if (FillBrushes.Length == 2)
+                    {
                         return new DockedBorderBrush(FillBrushes[0], FillBrushes[1], FillBrushes[1], FillBrushes[0]);
+                    }
                     else
+                    {
                         return new DockedBorderBrush(FillBrushes[0], FillBrushes[1], FillBrushes[2 % FillBrushes.Length], FillBrushes[3 % FillBrushes.Length]);
+                    }
                 }
             }
 
@@ -402,7 +428,10 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<(XAMLBindableBase, string)> GetNestedBindableObjects()
         {
             foreach (var Item in base.GetNestedBindableObjects())
+            {
                 yield return Item;
+            }
+
             yield return (Left, nameof(Left));
             yield return (Top, nameof(Top));
             yield return (Right, nameof(Right));
@@ -499,41 +528,79 @@ namespace MGUI.Core.UI.XAML
                 AnimationType ?? HighlightAnimation.Pulse, ActualElement);
 
             if (AnimationProgress.HasValue)
+            {
                 Brush.AnimationProgress = AnimationProgress.Value;
+            }
 
             if (IsEnabled.HasValue)
+            {
                 Brush.IsEnabled = IsEnabled.Value;
+            }
 
             if (PulseFadeDuration.HasValue)
+            {
                 Brush.PulseFadeDuration = PulseFadeDuration.Value;
+            }
+
             if (PulseDelay.HasValue)
+            {
                 Brush.PulseDelay = PulseDelay.Value;
+            }
 
             if (FlashShowDuration.HasValue)
+            {
                 Brush.FlashShowDuration = FlashShowDuration.Value;
+            }
+
             if (FlashHideDuration.HasValue)
+            {
                 Brush.FlashHideDuration = FlashHideDuration.Value;
+            }
 
             if (ProgressFlowDirection.HasValue)
+            {
                 Brush.ProgressFlowDirection = ProgressFlowDirection.Value;
+            }
+
             if (ProgressDuration.HasValue)
+            {
                 Brush.ProgressDuration = ProgressDuration.Value;
+            }
+
             if (ProgressSize.HasValue)
+            {
                 Brush.ProgressSize = ProgressSize.Value;
+            }
 
             if (ScanOrientation.HasValue)
+            {
                 Brush.ScanOrientation = ScanOrientation.Value;
+            }
+
             if (ScanIsReversed.HasValue)
+            {
                 Brush.ScanIsReversed = ScanIsReversed.Value;
+            }
+
             if (ScanDuration.HasValue)
+            {
                 Brush.ScanDuration = ScanDuration.Value;
+            }
+
             if (ScanSize.HasValue)
+            {
                 Brush.ScanSize = ScanSize.Value;
+            }
 
             if (StopOnMouseOver.HasValue)
+            {
                 Brush.StopOnMouseOver = StopOnMouseOver.Value;
+            }
+
             if (StopOnClick.HasValue)
+            {
                 Brush.StopOnClick = StopOnClick.Value;
+            }
 
             return Brush;
         }
@@ -541,7 +608,10 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<(XAMLBindableBase, string)> GetNestedBindableObjects()
         {
             foreach (var Item in base.GetNestedBindableObjects())
+            {
                 yield return Item;
+            }
+
             yield return (Underlay, nameof(Underlay));
         }
     }
@@ -564,9 +634,14 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<(XAMLBindableBase, string)> GetNestedBindableObjects()
         {
             foreach (var Item in base.GetNestedBindableObjects())
+            {
                 yield return Item;
+            }
+
             foreach (BorderBrush Brush in Brushes)
+            {
                 yield return (Brush, nameof(Brushes));
+            }
         }
     }
     #endregion Border Brush

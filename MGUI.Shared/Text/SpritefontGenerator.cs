@@ -76,11 +76,15 @@ namespace MGUI.Shared.Text
             string ContentAbsolutePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..", "..", "..", Content.RootDirectory);
             string SharedFontDirectory = Path.Combine(ContentAbsolutePath, FontSet.FontsBasePath);
             if (!Directory.Exists(SharedFontDirectory))
+            {
                 throw new InvalidOperationException($"No font root direction was found at: {SharedFontDirectory}");
+            }
 
             string FontDirectory = Path.Combine(SharedFontDirectory, FontName);
             if (!Directory.Exists(FontDirectory))
+            {
                 Directory.CreateDirectory(FontDirectory);
+            }
 
             foreach (SpritefontStyle SFStyle in FontStyles)
             {

@@ -34,7 +34,9 @@ namespace MGUI.Shared.Input.Keyboard
         internal void RegisterInitialPress(BaseKeyPressedEventArgs PressedArgs)
         {
             if (InitialPressedArgs == null)
+            {
                 InitialPressedArgs = PressedArgs;
+            }
         }
 
         internal bool HasOwner => OwnerHandlerId.HasValue;
@@ -44,7 +46,9 @@ namespace MGUI.Shared.Input.Keyboard
         internal bool TryAdoptOwner(long HandlerId)
         {
             if (OwnerHandlerId.HasValue && OwnerHandlerId != HandlerId)
+            {
                 return false;
+            }
 
             RoutingMetadata.OwnerHandlerId = HandlerId;
             return true;

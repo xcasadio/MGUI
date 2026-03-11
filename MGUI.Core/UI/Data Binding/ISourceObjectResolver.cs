@@ -77,9 +77,13 @@ namespace MGUI.Core.UI.Data_Binding
         public object ResolveSourceObject(object TargetObject)
         {
             if (TargetObject is IElementNameResolver Resolver && Resolver.TryGetElementByName(ElementName, out MGElement NamedElement))
+            {
                 return NamedElement;
+            }
             else
+            {
                 return null;
+            }
         }
 
         public override string ToString() => $"{nameof(SourceObjectResolverElementName)}: {ElementName}";
@@ -99,9 +103,13 @@ namespace MGUI.Core.UI.Data_Binding
         public object ResolveSourceObject(object TargetObject)
         {
             if (TargetObject is IResourcesResolver Resolver && Resolver.GetResources()?.StaticResources.TryGetValue(ResourceName, out object Resource) == true)
+            {
                 return Resource;
+            }
             else
+            {
                 return null;
+            }
         }
 
         public override string ToString() => $"{nameof(SourceObjectResolverStaticResource)}: {ResourceName}";
@@ -129,7 +137,9 @@ namespace MGUI.Core.UI.Data_Binding
         public object ResolveSourceObject(object TargetObject)
         {
             if (AncestorLevel == 0)
+            {
                 return TargetObject;
+            }
 
             if (TargetObject is MGElement Element)
             {
@@ -143,7 +153,9 @@ namespace MGUI.Core.UI.Data_Binding
                     {
                         Count--;
                         if (Count == 0)
+                        {
                             return Current;
+                        }
                     }
                 }
             }
@@ -163,9 +175,13 @@ namespace MGUI.Core.UI.Data_Binding
         public object ResolveSourceObject(object TargetObject)
         {
             if (TargetObject is IDesktopResolver Resolver)
+            {
                 return Resolver.GetDesktop();
+            }
             else
+            {
                 return null;
+            }
         }
 
         public override string ToString() => $"{nameof(SourceObjectResolverDesktop)}";

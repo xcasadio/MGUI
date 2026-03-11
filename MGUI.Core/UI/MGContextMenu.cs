@@ -47,11 +47,15 @@ namespace MGUI.Core.UI
         {
             int ActualX = Anchor.Right;
             if (ActualX + Size.Width > Viewport.Right)
+            {
                 ActualX = Math.Max(Viewport.Left, Anchor.Left - Size.Width);
+            }
 
             int ActualY = Anchor.Top;
             if (ActualY + Size.Height > Viewport.Bottom)
+            {
                 ActualY = Math.Max(Viewport.Top, Viewport.Bottom - Size.Height);
+            }
 
             Rectangle Bounds = new(ActualX, ActualY, Math.Min(Size.Width, Viewport.Width), Math.Min(Size.Height, Viewport.Height));
             return Bounds;
@@ -108,7 +112,10 @@ namespace MGUI.Core.UI
             {
                 var args = new System.ComponentModel.CancelEventArgs();
                 ContextMenuOpening.Invoke(this, args);
-                if (args.Cancel) return false;
+                if (args.Cancel)
+                {
+                    return false;
+                }
             }
 
             return true;
@@ -330,7 +337,10 @@ namespace MGUI.Core.UI
         internal void RegisterRadioItem(MGContextMenuRadioButton Item)
         {
             if (Item.GroupName == null)
+            {
                 return;
+            }
+
             if (!_RadioGroups.TryGetValue(Item.GroupName, out List<MGContextMenuRadioButton> Group))
             {
                 Group = new();
@@ -342,13 +352,18 @@ namespace MGUI.Core.UI
         internal void UnregisterRadioItem(MGContextMenuRadioButton Item)
         {
             if (Item.GroupName != null && _RadioGroups.TryGetValue(Item.GroupName, out List<MGContextMenuRadioButton> Group))
+            {
                 Group.Remove(Item);
+            }
         }
 
         internal void OnRadioButtonGroupNameChanged(MGContextMenuRadioButton Item, string OldGroup, string NewGroup)
         {
             if (OldGroup != null && _RadioGroups.TryGetValue(OldGroup, out List<MGContextMenuRadioButton> OldList))
+            {
                 OldList.Remove(Item);
+            }
+
             if (NewGroup != null)
             {
                 if (!_RadioGroups.TryGetValue(NewGroup, out List<MGContextMenuRadioButton> NewList))
@@ -365,9 +380,15 @@ namespace MGUI.Core.UI
         public void SetCheckedRadioItem(string GroupName, MGContextMenuRadioButton CheckedItem)
         {
             if (GroupName == null || !_RadioGroups.TryGetValue(GroupName, out List<MGContextMenuRadioButton> Group))
+            {
                 return;
+            }
+
             foreach (MGContextMenuRadioButton Item in Group)
+            {
                 Item.IsChecked = Item == CheckedItem;
+            }
+
             ItemRadioSelected?.Invoke(this, CheckedItem);
         }
         #endregion Radio Groups
@@ -411,7 +432,9 @@ namespace MGUI.Core.UI
             if (ActiveContextMenu != null)
             {
                 if (!ActiveContextMenu.TryCloseActiveContextMenu())
+                {
                     return false;
+                }
 
                 MGContextMenu Previous = ActiveContextMenu;
                 ActiveContextMenu.InvokeContextMenuClosing();
@@ -422,7 +445,9 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return true;
+            }
         }
 
         /// <returns>True if the <paramref name="Menu"/> was already opened, or was successfully opened.<br/>
@@ -430,10 +455,14 @@ namespace MGUI.Core.UI
         public bool TryOpenContextMenu(MGContextMenu Menu, Rectangle Anchor)
         {
             if (!TryCloseActiveContextMenu())
+            {
                 return false;
+            }
 
             if (Menu == null || !Menu.CanContextMenuOpen)
+            {
                 return false;
+            }
 
             Rectangle ValidBounds = GetDesktop().ValidScreenBounds;
             if (Menu.IsContextMenuOpen)
@@ -448,7 +477,10 @@ namespace MGUI.Core.UI
             else
             {
                 if (!Menu.InvokeContextMenuOpening())
+                {
                     return false;
+                }
+
                 _ActiveContextMenu = Menu;
 
                 Menu.Scale = Scale;
@@ -494,7 +526,9 @@ namespace MGUI.Core.UI
                 Point LayoutSpacePosition = Submenu.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, CurrentMousePosition);
                 Rectangle SubmenuBounds = Submenu.LayoutBounds.GetExpanded(Padding);
                 if (SubmenuBounds.ContainsInclusive(LayoutSpacePosition))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -536,7 +570,9 @@ namespace MGUI.Core.UI
         private static void AddItemsToMenu(MGContextMenu Menu, Color? TextForeground, List<MGSimpleContextMenuItem> Items)
         {
             if (Menu == null)
+            {
                 throw new ArgumentNullException(nameof(Menu));
+            }
 
             if (Items != null)
             {
@@ -660,11 +696,18 @@ namespace MGUI.Core.UI
                                 foreach (MGContextMenuItem Item in e.NewItems)
                                 {
                                     if (Item is MGContextMenuButton Button)
+                                    {
                                         Button.OnSelected += MenuItem_ItemSelected;
+                                    }
                                     else if (Item is MGContextMenuToggle Toggle)
+                                    {
                                         Toggle.OnToggled += MenuItem_ItemToggled;
+                                    }
                                     else if (Item is MGContextMenuRadioButton RadioButton)
+                                    {
                                         RadioButton.OnToggled += MenuItem_ItemRadioSelected;
+                                    }
+
                                     ItemsPanel.TryInsertChild(Index, Item);
                                     Index++;
                                 }
@@ -678,9 +721,13 @@ namespace MGUI.Core.UI
                                 foreach (MGContextMenuItem Item in e.OldItems)
                                 {
                                     if (Item is MGContextMenuButton Button)
+                                    {
                                         Button.OnSelected -= MenuItem_ItemSelected;
+                                    }
                                     else if (Item is MGContextMenuToggle Toggle)
+                                    {
                                         Toggle.OnToggled -= MenuItem_ItemToggled;
+                                    }
                                     else if (Item is MGContextMenuRadioButton RadioButton)
                                     {
                                         RadioButton.OnToggled -= MenuItem_ItemRadioSelected;
@@ -699,9 +746,13 @@ namespace MGUI.Core.UI
                                 foreach (MGContextMenuItem Item in e.OldItems)
                                 {
                                     if (Item is MGContextMenuButton Button)
+                                    {
                                         Button.OnSelected -= MenuItem_ItemSelected;
+                                    }
                                     else if (Item is MGContextMenuToggle Toggle)
+                                    {
                                         Toggle.OnToggled -= MenuItem_ItemToggled;
+                                    }
                                     else if (Item is MGContextMenuRadioButton RadioButton)
                                     {
                                         RadioButton.OnToggled -= MenuItem_ItemRadioSelected;
@@ -717,11 +768,18 @@ namespace MGUI.Core.UI
                                 foreach (MGContextMenuItem Item in e.NewItems)
                                 {
                                     if (Item is MGContextMenuButton Button)
+                                    {
                                         Button.OnSelected += MenuItem_ItemSelected;
+                                    }
                                     else if (Item is MGContextMenuToggle Toggle)
+                                    {
                                         Toggle.OnToggled += MenuItem_ItemToggled;
+                                    }
                                     else if (Item is MGContextMenuRadioButton RadioButton)
+                                    {
                                         RadioButton.OnToggled += MenuItem_ItemRadioSelected;
+                                    }
+
                                     ItemsPanel.TryInsertChild(Index, Item);
                                     Index++;
                                 }
@@ -738,7 +796,9 @@ namespace MGUI.Core.UI
                     {
                         Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
                         if (((RectangleF)LayoutBounds).SquaredDistanceTo(LayoutSpacePosition) >= AutoCloseThreshold.Value * AutoCloseThreshold.Value)
+                        {
                             TryCloseContextMenu();
+                        }
                     }
                 };
 
@@ -810,19 +870,25 @@ namespace MGUI.Core.UI
                 ItemSelected += (sender, e) =>
                 {
                     if (!StaysOpenOnItemSelected)
+                    {
                         TryCloseContextMenu();
+                    }
                 };
 
                 ItemToggled += (sender, e) =>
                 {
                     if (!StaysOpenOnItemToggled)
+                    {
                         TryCloseContextMenu();
+                    }
                 };
 
                 ItemRadioSelected += (sender, e) =>
                 {
                     if (!StaysOpenOnItemToggled)
+                    {
                         TryCloseContextMenu();
+                    }
                 };
             }
         }
@@ -834,19 +900,25 @@ namespace MGUI.Core.UI
         private void MenuItem_ItemSelected(object sender, EventArgs e)
         {
             if (sender is MGContextMenuButton Button)
+            {
                 ItemSelected?.Invoke(this, Button);
+            }
         }
 
         private void MenuItem_ItemToggled(object sender, bool e)
         {
             if (sender is MGContextMenuToggle Toggle)
+            {
                 ItemToggled?.Invoke(this, Toggle);
+            }
         }
 
         private void MenuItem_ItemRadioSelected(object sender, bool e)
         {
             if (sender is MGContextMenuRadioButton RadioButton && RadioButton.IsChecked)
+            {
                 ItemRadioSelected?.Invoke(this, RadioButton);
+            }
         }
 
         public IEnumerable<TMenuItemType> GetItemsOfType<TMenuItemType>(bool IncludeSubmenus)
@@ -855,12 +927,16 @@ namespace MGUI.Core.UI
             foreach (MGContextMenuItem Item in Items)
             {
                 if (Item is TMenuItemType TypedItem)
+                {
                     yield return TypedItem;
+                }
 
                 if (IncludeSubmenus && Item is MGWrappedContextMenuItem WrappedItem && WrappedItem.Submenu != null)
                 {
                     foreach (TMenuItemType NestedItem in WrappedItem.Submenu.GetItemsOfType<TMenuItemType>(IncludeSubmenus))
+                    {
                         yield return NestedItem;
+                    }
                 }
             }
         }

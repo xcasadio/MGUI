@@ -169,7 +169,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                 Rectangle LeftBounds = new(Bounds.Left, Bounds.Top + BT.Top, BT.Left, Bounds.Height - BT.Height);
                 if (!EdgeTransforms.HasLeftRotation)
+                {
                     DT.DrawTextureTo(EdgeTexture.Texture, EdgeTexture.SourceRect, LeftBounds, EdgeColor, Vector2.Zero, 0, 0, EdgeTransforms.LeftReflections);
+                }
                 else
                 {
                     Rectangle RotatedLeftBounds = LeftBounds.CreateTransformed(Matrix.CreateRotationZ(EdgeTransforms.LeftRotation));
@@ -180,7 +182,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                 Rectangle TopBounds = new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top);
                 if (!EdgeTransforms.HasTopRotation)
+                {
                     DT.DrawTextureTo(EdgeTexture.Texture, EdgeTexture.SourceRect, TopBounds, EdgeColor, Vector2.Zero, 0, 0, EdgeTransforms.TopReflections);
+                }
                 else
                 {
                     Rectangle RotatedTopBounds = TopBounds.CreateTransformed(Matrix.CreateRotationZ(EdgeTransforms.TopRotation));
@@ -191,7 +195,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                 Rectangle RightBounds = new(Bounds.Right - BT.Right, Bounds.Top + BT.Top, BT.Right, Bounds.Height - BT.Height);
                 if (!EdgeTransforms.HasRightRotation)
+                {
                     DT.DrawTextureTo(EdgeTexture.Texture, EdgeTexture.SourceRect, RightBounds, EdgeColor, Vector2.Zero, 0, 0, EdgeTransforms.RightReflections);
+                }
                 else
                 {
                     Rectangle RotatedRightBounds = RightBounds.CreateTransformed(Matrix.CreateRotationZ(EdgeTransforms.RightRotation));
@@ -202,7 +208,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                 Rectangle BottomBounds = new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom);
                 if (!EdgeTransforms.HasBottomRotation)
+                {
                     DT.DrawTextureTo(EdgeTexture.Texture, EdgeTexture.SourceRect, BottomBounds, EdgeColor, Vector2.Zero, 0, 0, EdgeTransforms.BottomReflections);
+                }
                 else
                 {
                     Rectangle RotatedBottomBounds = BottomBounds.CreateTransformed(Matrix.CreateRotationZ(EdgeTransforms.BottomRotation));
@@ -245,7 +253,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                     Rectangle TopLeftBounds = new(Bounds.Left, Bounds.Top, BT.Left, BT.Top);
                     if (!CornerTransforms.HasTopLeftRotation)
+                    {
                         DT.DrawTextureTo(CornerTexture.Texture, CornerTexture.SourceRect, TopLeftBounds, CornerColor, Vector2.Zero, 0, 0, CornerTransforms.TopLeftReflections);
+                    }
                     else
                     {
                         Rectangle RotatedTopLeftBounds = TopLeftBounds.CreateTransformed(Matrix.CreateRotationZ(CornerTransforms.TopLeftRotation));
@@ -256,7 +266,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                     Rectangle TopRightBounds = new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top);
                     if (!CornerTransforms.HasTopRightRotation)
+                    {
                         DT.DrawTextureTo(CornerTexture.Texture, CornerTexture.SourceRect, TopRightBounds, CornerColor, Vector2.Zero, 0, 0, CornerTransforms.TopRightReflections);
+                    }
                     else
                     {
                         Rectangle RotatedTopRightBounds = TopRightBounds.CreateTransformed(Matrix.CreateRotationZ(CornerTransforms.TopRightRotation));
@@ -267,7 +279,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                     Rectangle BottomRightBounds = new(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom);
                     if (!CornerTransforms.HasBottomRightRotation)
+                    {
                         DT.DrawTextureTo(CornerTexture.Texture, CornerTexture.SourceRect, BottomRightBounds, CornerColor, Vector2.Zero, 0, 0, CornerTransforms.BottomRightReflections);
+                    }
                     else
                     {
                         Rectangle RotatedBottomRightBounds = BottomRightBounds.CreateTransformed(Matrix.CreateRotationZ(CornerTransforms.BottomRightRotation));
@@ -278,7 +292,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                     Rectangle BottomLeftBounds = new(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom);
                     if (!CornerTransforms.HasBottomLeftRotation)
+                    {
                         DT.DrawTextureTo(CornerTexture.Texture, CornerTexture.SourceRect, BottomLeftBounds, CornerColor, Vector2.Zero, 0, 0, CornerTransforms.BottomLeftReflections);
+                    }
                     else
                     {
                         Rectangle RotatedBottomLeftBounds = BottomLeftBounds.CreateTransformed(Matrix.CreateRotationZ(CornerTransforms.BottomLeftRotation));

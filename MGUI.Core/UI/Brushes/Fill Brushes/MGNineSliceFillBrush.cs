@@ -39,7 +39,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
             Texture2D Texture = Source.Texture;
             if (Texture == null)
+            {
                 throw new ArgumentNullException(nameof(Source));
+            }
 
             Rectangle Bounds = Source.SourceRect ?? Texture.Bounds;
 
@@ -48,7 +50,10 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             if (SourceMargin.HasValue)
             {
                 if (SourceMargin.Value.Sides().Any(x => x <= 0))
+                {
                     throw new InvalidDataException($"Invalid {nameof(SourceMargin)}. All sides must have a value greater than zero. Actual value: {SourceMargin.Value}");
+                }
+
                 Margin = SourceMargin.Value;
             }
             else
@@ -125,18 +130,29 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             if (TopRowSize > 0)
             {
                 if (LeftColumnSize > 0)
+                {
                     TopLeft.Draw(DT, new Rectangle(Bounds.Left, Bounds.Top, LeftColumnSize, TopRowSize), null, DA.Opacity);
+                }
+
                 if (CenterColumnSize > 0)
+                {
                     TopCenter.Draw(DT, new Rectangle(Bounds.Left + LeftColumnSize, Bounds.Top, CenterColumnSize, TopRowSize), null, DA.Opacity);
+                }
+
                 if (RightColumnSize > 0)
+                {
                     TopRight.Draw(DT, new Rectangle(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top, RightColumnSize, TopRowSize), null, DA.Opacity);
+                }
             }
 
             //  Draw the center row
             if (CenterRowSize > 0)
             {
                 if (LeftColumnSize > 0)
+                {
                     MiddleLeft.Draw(DT, new Rectangle(Bounds.Left, Bounds.Top + TopRowSize, LeftColumnSize, CenterRowSize), null, DA.Opacity);
+                }
+
                 if (CenterColumnSize > 0)
                 {
 #if NEVER   // trying to tile the texture but LinearWrap isn't working unless I draw the entire texture, using the destination's width/height as the SourceRect
@@ -154,18 +170,28 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 #endif
                 }
                 if (RightColumnSize > 0)
+                {
                     MiddleRight.Draw(DT, new Rectangle(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize, RightColumnSize, CenterRowSize), null, DA.Opacity);
+                }
             }
 
             //  Draw the bottom row
             if (BottomRowSize > 0)
             {
                 if (LeftColumnSize > 0)
+                {
                     BottomLeft.Draw(DT, new Rectangle(Bounds.Left, Bounds.Top + TopRowSize + CenterRowSize, LeftColumnSize, BottomRowSize), null, DA.Opacity);
+                }
+
                 if (CenterColumnSize > 0)
+                {
                     BottomCenter.Draw(DT, new Rectangle(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize + CenterRowSize, CenterColumnSize, BottomRowSize), null, DA.Opacity);
+                }
+
                 if (RightColumnSize > 0)
+                {
                     BottomRight.Draw(DT, new Rectangle(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize + CenterRowSize, RightColumnSize, BottomRowSize), null, DA.Opacity);
+                }
             }
         }
     }

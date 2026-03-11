@@ -95,19 +95,26 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (Grid.Rows.Contains(Cell.Row))
                     {
                         foreach (ColumnDefinition Column in Grid.Columns)
+                        {
                             yield return new GridCell(Cell.Row, Column);
+                        }
                     }
                     yield break;
                 case GridSelectionMode.Column:
                     if (Grid.Columns.Contains(Cell.Column))
                     {
                         foreach (RowDefinition Row in Grid.Rows)
+                        {
                             yield return new GridCell(Row, Cell.Column);
+                        }
                     }
                     yield break;
                 case GridSelectionMode.Cell:
                     if (Grid.Rows.Contains(Cell.Row) && Grid.Columns.Contains(Cell.Column))
+                    {
                         yield return Cell;
+                    }
+
                     yield break;
                 default:
                     throw new NotImplementedException($"Unrecognized {nameof(GridSelectionMode)}: {SelectionMode}");
@@ -223,7 +230,9 @@ namespace MGUI.Core.UI.Containers.Grids
         public void RemoveColumn(ColumnDefinition Column)
         {
             if (!CanChangeContent)
+            {
                 return;
+            }
 
             ClearColumnContent(Column);
             _Columns.Remove(Column);
@@ -264,7 +273,9 @@ namespace MGUI.Core.UI.Containers.Grids
         public void RemoveRow(RowDefinition Row)
         {
             if (!CanChangeContent)
+            {
                 return;
+            }
 
             ClearRowContent(Row);
             _Rows.Remove(Row);
@@ -308,9 +319,13 @@ namespace MGUI.Core.UI.Containers.Grids
         public IReadOnlyDictionary<ColumnDefinition, IReadOnlyList<MGElement>> GetRowContent(RowDefinition Row)
         {
             if (ChildrenByRC.TryGetValue(Row, out var RowContent))
+            {
                 return RowContent.ToDictionary(x => x.Key, x => x.Value as IReadOnlyList<MGElement>);
+            }
             else
+            {
                 return new Dictionary<ColumnDefinition, IReadOnlyList<MGElement>>();
+            }
         }
 
         public IReadOnlyDictionary<RowDefinition, IReadOnlyList<MGElement>> GetColumnContent(ColumnDefinition Column)
@@ -331,9 +346,13 @@ namespace MGUI.Core.UI.Containers.Grids
         {
             IReadOnlyDictionary<ColumnDefinition, IReadOnlyList<MGElement>> RowContent = GetRowContent(Cell.Row);
             if (RowContent.TryGetValue(Cell.Column, out IReadOnlyList<MGElement> CellContent))
+            {
                 return CellContent;
+            }
             else
+            {
                 return new List<MGElement>();
+            }
         }
 
         private IReadOnlyList<MGElement> GetMeasurableCellContent(RowDefinition Row, ColumnDefinition Column) => GetMeasurableCellContent(new GridCell(Row, Column));
@@ -349,7 +368,9 @@ namespace MGUI.Core.UI.Containers.Grids
                 return TryAddChild(Row, Column, Span, Item);
             }
             else
+            {
                 return false;
+            }
         }
 
         public bool TryAddChild(RowDefinition Row, ColumnDefinition Column, MGElement Item) => TryAddChild(Row, Column, GridSpan.Default, Item);
@@ -361,11 +382,19 @@ namespace MGUI.Core.UI.Containers.Grids
         public bool TryAddChild(GridCell Cell, GridSpan Span, MGElement Item)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
+
             if (Item == null)
+            {
                 throw new ArgumentNullException(nameof(Item));
+            }
+
             if (_Children.Contains(Item))
+            {
                 throw new InvalidOperationException($"{nameof(MGGrid)} does not support adding the same {nameof(MGElement)} multiple times.");
+            }
 
             if (!ChildrenByRC.TryGetValue(Cell.Row, out var RowContent))
             {
@@ -392,7 +421,9 @@ namespace MGUI.Core.UI.Containers.Grids
         public bool TryRemoveChild(MGElement Item)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             if (_Children.Remove(Item))
             {
@@ -403,14 +434,18 @@ namespace MGUI.Core.UI.Containers.Grids
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         /// <summary>Removes all elements from every row/column of this grid</summary>
         public bool TryRemoveAll()
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             _Children.ClearOneByOne();
             ChildrenByRC.Clear();
@@ -428,19 +463,28 @@ namespace MGUI.Core.UI.Containers.Grids
                 return ClearCellContent(Row, Column);
             }
             else
+            {
                 return new List<MGElement>();
+            }
         }
 
         public List<MGElement> ClearCellContent(RowDefinition Row, ColumnDefinition Column)
         {
             if (Row == null)
+            {
                 throw new ArgumentNullException(nameof(Row));
+            }
+
             if (Column == null)
+            {
                 throw new ArgumentNullException(nameof(Column));
+            }
 
             List<MGElement> Removed = new();
             if (!CanChangeContent)
+            {
                 return Removed;
+            }
 
             IReadOnlyList<MGElement> CellContent = GetCellContent(Row, Column);
             foreach (MGElement Element in CellContent)
@@ -456,7 +500,9 @@ namespace MGUI.Core.UI.Containers.Grids
             if (Removed.Any())
             {
                 if (Removed.Count == CellContent.Count)
+                {
                     ChildrenByRC[Row].Remove(Column);
+                }
                 else
                 {
 #if DEBUG
@@ -478,17 +524,23 @@ namespace MGUI.Core.UI.Containers.Grids
                 return ClearColumnContent(Column);
             }
             else
+            {
                 return new List<MGElement>();
+            }
         }
 
         public List<MGElement> ClearColumnContent(ColumnDefinition Column)
         {
             if (Column == null)
+            {
                 throw new ArgumentNullException(nameof(Column));
+            }
 
             List<MGElement> Removed = new();
             if (!CanChangeContent)
+            {
                 return Removed;
+            }
 
             foreach (RowDefinition Row in Rows)
             {
@@ -525,17 +577,23 @@ namespace MGUI.Core.UI.Containers.Grids
                 return ClearRowContent(Row);
             }
             else
+            {
                 return new List<MGElement>();
+            }
         }
 
         public List<MGElement> ClearRowContent(RowDefinition Row)
         {
             if (Row == null)
+            {
                 throw new ArgumentNullException(nameof(Row));
+            }
 
             List<MGElement> Removed = new();
             if (!CanChangeContent)
+            {
                 return Removed;
+            }
 
             if (ChildrenByRC.TryGetValue(Row, out Dictionary<ColumnDefinition, List<MGElement>> RowContent))
             {
@@ -673,9 +731,13 @@ namespace MGUI.Core.UI.Containers.Grids
                 }
 
                 if (AllowDeselect && ClickedExistingSelection)
+                {
                     CurrentSelection = null;
+                }
                 else
+                {
                     CurrentSelection = new GridSelection(this, Cell.Value, SelectionMode);
+                }
             }
         }
 
@@ -863,13 +925,17 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (e.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Replace && e.NewItems != null)
                     {
                         foreach (ColumnDefinition Item in e.NewItems)
+                        {
                             Item.DimensionsChanged += RowColumn_DimensionsChanged;
+                        }
                     }
 
                     if (e.Action is NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Replace or NotifyCollectionChangedAction.Reset && e.OldItems != null)
                     {
                         foreach (ColumnDefinition Item in e.OldItems)
+                        {
                             Item.DimensionsChanged -= RowColumn_DimensionsChanged;
+                        }
                     }
                 };
 
@@ -884,13 +950,17 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (e.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Replace && e.NewItems != null)
                     {
                         foreach (RowDefinition Item in e.NewItems)
+                        {
                             Item.DimensionsChanged += RowColumn_DimensionsChanged;
+                        }
                     }
 
                     if (e.Action is NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Replace or NotifyCollectionChangedAction.Reset && e.OldItems != null)
                     {
                         foreach (RowDefinition Item in e.OldItems)
+                        {
                             Item.DimensionsChanged -= RowColumn_DimensionsChanged;
+                        }
                     }
                 };
 
@@ -924,7 +994,9 @@ namespace MGUI.Core.UI.Containers.Grids
                             {
                                 Rectangle ScreenSpaceBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, Bounds.GetTranslated(e.DA.Offset));
                                 if (ScissorBounds.HasValue && ScreenSpaceBounds.Intersects(ScissorBounds.Value))
+                                {
                                     SelectionOverlay.Draw(e.DA, this, Bounds);
+                                }
                             }
                         }
                     }
@@ -937,11 +1009,19 @@ namespace MGUI.Core.UI.Containers.Grids
                 {
                     Point Offset = new(e.NewValue.Left - e.PreviousValue.Left, e.NewValue.Top - e.PreviousValue.Top);
                     foreach (ColumnDefinition Column in Columns)
+                    {
                         Column.Left += Offset.X;
+                    }
+
                     foreach (RowDefinition Row in Rows)
+                    {
                         Row.Top += Offset.Y;
+                    }
+
                     foreach (var KVP in _CellBounds.ToList())
+                    {
                         _CellBounds[KVP.Key] = KVP.Value.GetTranslated(Offset);
+                    }
                 };
             }
         }
@@ -949,7 +1029,9 @@ namespace MGUI.Core.UI.Containers.Grids
         private void RowColumn_DimensionsChanged(object sender, EventArgs e)
         {
             if (!SuppressDimensionChanged)
+            {
                 LayoutChanged(this, true);
+            }
         }
 
         public override void UpdateSelf(ElementUpdateArgs UA)
@@ -983,15 +1065,25 @@ namespace MGUI.Core.UI.Containers.Grids
 
             int TotalColumnSpacingWidth = (Columns.Count - 1) * ColumnSpacing;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
+            {
                 TotalColumnSpacingWidth += Math.Max(0, ColumnSpacing - GridLineMargin);
+            }
+
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.RightEdge))
+            {
                 TotalColumnSpacingWidth += Math.Max(0, ColumnSpacing - GridLineMargin);
+            }
 
             int TotalRowSpacingHeight = (Rows.Count - 1) * RowSpacing;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
+            {
                 TotalRowSpacingHeight += Math.Max(0, RowSpacing - GridLineMargin);
+            }
+
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.BottomEdge))
+            {
                 TotalRowSpacingHeight += Math.Max(0, RowSpacing - GridLineMargin);
+            }
 
             //  Fill in the trivial column measurements where we know exactly how wide they are
             int TotalWidth = TotalColumnSpacingWidth;
@@ -1000,9 +1092,13 @@ namespace MGUI.Core.UI.Containers.Grids
             {
                 int? ColumnWidth = null;
                 if (Column.Length.IsPixelLength)
+                {
                     ColumnWidth = Column.Length.Pixels;
+                }
                 else if (Column.MinWidth.HasValue && Column.MaxWidth.HasValue && Column.MinWidth == Column.MaxWidth)
+                {
                     ColumnWidth = Column.MinWidth.Value;
+                }
 
                 if (ColumnWidth.HasValue)
                 {
@@ -1020,9 +1116,13 @@ namespace MGUI.Core.UI.Containers.Grids
             {
                 int? RowHeight = null;
                 if (Row.Length.IsPixelLength)
+                {
                     RowHeight = Row.Length.Pixels;
+                }
                 else if (Row.MinHeight.HasValue && Row.MaxHeight.HasValue && Row.MinHeight == Row.MaxHeight)
+                {
                     RowHeight = Row.MinHeight.Value;
+                }
 
                 if (RowHeight.HasValue)
                 {
@@ -1043,9 +1143,13 @@ namespace MGUI.Core.UI.Containers.Grids
             {
                 int ColumnWidth;
                 if (RemainingColumnWidth <= 0)
+                {
                     ColumnWidth = 0;
+                }
                 else if (Column.MinWidth.HasValue && RemainingColumnWidth <= Column.MinWidth.Value)
+                {
                     ColumnWidth = Column.MinWidth.Value;
+                }
                 else
                 {
                     bool IsWeightedWidth = Column.Length.IsWeightedLength && !IsPseudoInfiniteWidth; // If measured inside a scrollviewer, * lengths are treated as Auto
@@ -1054,7 +1158,9 @@ namespace MGUI.Core.UI.Containers.Grids
                         double ColumnWeight = Column.Length.Weight;
 #if DEBUG
                         if (ColumnWeight > RemainingColumnWeight)
+                        {
                             throw new InvalidOperationException("Column weight should not exceed remaining weight");
+                        }
 #endif
                         ColumnWidth = Math.Clamp((int)Math.Round(RemainingColumnWidth * (ColumnWeight / RemainingColumnWeight), MidpointRounding.ToEven), Column.MinWidth ?? 0, Column.MaxWidth ?? int.MaxValue);
                         RemainingColumnWeight -= ColumnWeight;
@@ -1078,7 +1184,9 @@ namespace MGUI.Core.UI.Containers.Grids
                         {
                             GridCell Cell = new(Row, Column);
                             if (!RowHeights.TryGetValue(Row, out int RowHeight))
+                            {
                                 RowHeight = RemainingRowHeight; // Lazy 'solution' because I'm too dumb to come up with the actual correct logic that avoids circular dependencies...
+                            }
 
                             Size CellAvailableSize = new(CellAvailableWidth, RowHeight);
                             foreach (MGElement Element in GetMeasurableCellContent(Cell))
@@ -1109,9 +1217,13 @@ namespace MGUI.Core.UI.Containers.Grids
             {
                 int RowHeight;
                 if (RemainingRowHeight <= 0)
+                {
                     RowHeight = 0;
+                }
                 else if (Row.MinHeight.HasValue && RemainingRowHeight <= Row.MinHeight.Value)
+                {
                     RowHeight = Row.MinHeight.Value;
+                }
                 else
                 {
                     bool IsWeightedHeight = Row.Length.IsWeightedLength && !IsPseduoInfiniteHeight; // If measured inside a scrollviewer, * lengths are treated as Auto
@@ -1120,7 +1232,9 @@ namespace MGUI.Core.UI.Containers.Grids
                         double RowWeight = Row.Length.Weight;
 #if DEBUG
                         if (RowWeight > RemainingRowWeight)
+                        {
                             throw new InvalidOperationException("Row weight should not exceed remaining weight");
+                        }
 #endif
                         RowHeight = Math.Clamp((int)Math.Round(RemainingRowHeight * (RowWeight / RemainingRowWeight), MidpointRounding.ToEven), Row.MinHeight ?? 0, Row.MaxHeight ?? int.MaxValue);
                         RemainingRowWeight -= RowWeight;
@@ -1180,7 +1294,9 @@ namespace MGUI.Core.UI.Containers.Grids
         protected override Thickness UpdateContentMeasurement(Size AvailableSize)
         {
             if (!HasContent)
+            {
                 return UpdateContentMeasurementBaseImplementation(AvailableSize);
+            }
 
             GridDimensions Dimensions = ComputeDimensions(AvailableSize, true);
             return new Thickness(Dimensions.TotalWidth, Dimensions.TotalHeight, 0, 0);
@@ -1202,7 +1318,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
             int CurrentX = AlignedBounds.Left;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
+            {
                 CurrentX += Math.Max(0, ColumnSpacing - GridLineMargin);
+            }
 
             //  Set the bounds of each cell
             foreach (ColumnDefinition Column in Columns)
@@ -1213,7 +1331,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
                 int CurrentY = AlignedBounds.Top;
                 if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
+                {
                     CurrentY += Math.Max(0, RowSpacing - GridLineMargin);
+                }
 
                 foreach (RowDefinition Row in Rows)
                 {
@@ -1271,7 +1391,9 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (_CellBounds.TryGetValue(Cell, out Rectangle Bounds))
                     {
                         if (ScissorBounds.HasValue && Bounds.GetTranslated(DA.Offset).Intersects(ScissorBounds.Value))
+                        {
                             SelectionBackground.Draw(DA, this, Bounds);
+                        }
                     }
                 }
             }
@@ -1297,9 +1419,13 @@ namespace MGUI.Core.UI.Containers.Grids
                 }
             }
             else if (HasHorizontalGridLines)
+            {
                 DrawHorizontalGridLines(DA, LayoutBounds);
+            }
             else if (HasVerticalGridLines)
+            {
                 DrawVerticalGridLines(DA, LayoutBounds);
+            }
         }
 
         /// <summary>Attempts to retrieve the bottom-right <see cref="GridCell"/> whose layout has already been computed at least once.<para/>
@@ -1334,7 +1460,9 @@ namespace MGUI.Core.UI.Containers.Grids
         private void DrawHorizontalGridLines(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             if (DA.Opacity <= 0 || DA.Opacity.IsAlmostZero() || HorizontalGridLineBrush == null || Rows.Count == 0 || Columns.Count == 0)
+            {
                 return;
+            }
 
             _CellBounds.TryGetValue(new GridCell(_Rows[0], _Columns[0]), out Rectangle TopLeftCellBounds);
             _CellBounds.TryGetValue(GetLastCellWithKnownBounds(), out Rectangle BottomRightCellBounds);
@@ -1376,7 +1504,9 @@ namespace MGUI.Core.UI.Containers.Grids
         private void DrawVerticalGridLines(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             if (DA.Opacity <= 0 || DA.Opacity.IsAlmostZero() || VerticalGridLineBrush == null || Columns.Count == 0 || Columns.Count == 0)
+            {
                 return;
+            }
 
             _CellBounds.TryGetValue(new GridCell(_Rows[0], _Columns[0]), out Rectangle TopLeftCellBounds);
             _CellBounds.TryGetValue(GetLastCellWithKnownBounds(), out Rectangle BottomRightCellBounds);

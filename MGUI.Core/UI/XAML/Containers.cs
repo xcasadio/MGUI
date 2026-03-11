@@ -48,7 +48,9 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             if (Content != null)
+            {
                 yield return Content;
+            }
         }
     }
 
@@ -94,11 +96,19 @@ namespace MGUI.Core.UI.XAML
             MGGridSplitter GridSplitter = Element as MGGridSplitter;
 
             if (Size.HasValue)
+            {
                 GridSplitter.Size = Size.Value;
+            }
+
             if (TickSize.HasValue)
+            {
                 GridSplitter.TickSize = TickSize.Value.ToSize();
+            }
+
             if (Foreground != null)
+            {
                 GridSplitter.Foreground.NormalValue = Foreground.ToFillBrush(Desktop, Element);
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
@@ -106,7 +116,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGGridSplitter TypedElement)
             {
                 yield return (Foreground, TypedElement.Foreground?.NormalValue, $"{nameof(MGGridSplitter.Foreground)}.{nameof(VisualStateFillBrush.NormalValue)}");
@@ -183,36 +196,71 @@ namespace MGUI.Core.UI.XAML
             }
 
             if (SelectionMode.HasValue)
+            {
                 Grid.SelectionMode = SelectionMode.Value;
+            }
+
             if (CanDeselectByClickingSelectedCell.HasValue)
+            {
                 Grid.CanDeselectByClickingSelectedCell = CanDeselectByClickingSelectedCell.Value;
+            }
+
             if (SelectionBackground != null)
+            {
                 Grid.SelectionBackground = SelectionBackground.ToFillBrush(Desktop, Element);
+            }
+
             if (SelectionOverlay != null)
+            {
                 Grid.SelectionOverlay = SelectionOverlay.ToFillBrush(Desktop, Element);
+            }
 
             if (GridLineIntersectionHandling.HasValue)
+            {
                 Grid.GridLineIntersectionHandling = GridLineIntersectionHandling.Value;
+            }
+
             if (GridLinesVisibility.HasValue)
+            {
                 Grid.GridLinesVisibility = GridLinesVisibility.Value;
+            }
+
             if (GridLineMargin.HasValue)
+            {
                 Grid.GridLineMargin = GridLineMargin.Value;
+            }
+
             if (HorizontalGridLineBrush != null)
+            {
                 Grid.HorizontalGridLineBrush = HorizontalGridLineBrush.ToFillBrush(Desktop, Element);
+            }
+
             if (VerticalGridLineBrush != null)
+            {
                 Grid.VerticalGridLineBrush = VerticalGridLineBrush.ToFillBrush(Desktop, Element);
+            }
 
             if (RowSpacing.HasValue)
+            {
                 Grid.RowSpacing = RowSpacing.Value;
+            }
+
             if (ColumnSpacing.HasValue)
+            {
                 Grid.ColumnSpacing = ColumnSpacing.Value;
+            }
 
             if (IncludeContent && Children.Any())
             {
                 if (string.IsNullOrEmpty(RowLengths) && RowDefinitions.Count == 0)
+                {
                     Grid.AddRow(GridLength.Auto);
+                }
+
                 if (string.IsNullOrEmpty(ColumnLengths) && ColumnDefinitions.Count == 0)
+                {
                     Grid.AddColumn(GridLength.Auto);
+                }
 
                 foreach (Element Child in Children)
                 {
@@ -225,7 +273,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGGrid TypedElement)
             {
                 yield return (SelectionBackground, TypedElement.SelectionBackground, nameof(MGGrid.SelectionBackground));
@@ -298,45 +349,94 @@ namespace MGUI.Core.UI.XAML
             MGUniformGrid Grid = Element as MGUniformGrid;
 
             if (Rows.HasValue)
+            {
                 Grid.Rows = Rows.Value;
+            }
+
             if (Columns.HasValue)
+            {
                 Grid.Columns = Columns.Value;
+            }
+
             if (CellSize.HasValue)
+            {
                 Grid.CellSize = CellSize.Value.ToSize();
+            }
+
             if (HeaderRowHeight.HasValue)
+            {
                 Grid.HeaderRowHeight = HeaderRowHeight.Value;
+            }
+
             if (HeaderColumnWidth.HasValue)
+            {
                 Grid.HeaderColumnWidth = HeaderColumnWidth.Value;
+            }
 
             if (SelectionMode.HasValue)
+            {
                 Grid.SelectionMode = SelectionMode.Value;
+            }
+
             if (CanDeselectByClickingSelectedCell.HasValue)
+            {
                 Grid.CanDeselectByClickingSelectedCell = CanDeselectByClickingSelectedCell.Value;
+            }
+
             if (SelectionBackground != null)
+            {
                 Grid.SelectionBackground = SelectionBackground.ToFillBrush(Desktop, Element);
+            }
+
             if (SelectionOverlay != null)
+            {
                 Grid.SelectionOverlay = SelectionOverlay.ToFillBrush(Desktop, Element);
+            }
 
             if (GridLineIntersectionHandling.HasValue)
+            {
                 Grid.GridLineIntersectionHandling = GridLineIntersectionHandling.Value;
+            }
+
             if (GridLinesVisibility.HasValue)
+            {
                 Grid.GridLinesVisibility = GridLinesVisibility.Value;
+            }
+
             if (GridLineMargin.HasValue)
+            {
                 Grid.GridLineMargin = GridLineMargin.Value;
+            }
+
             if (HorizontalGridLineBrush != null)
+            {
                 Grid.HorizontalGridLineBrush = HorizontalGridLineBrush.ToFillBrush(Desktop, Element);
+            }
+
             if (VerticalGridLineBrush != null)
+            {
                 Grid.VerticalGridLineBrush = VerticalGridLineBrush.ToFillBrush(Desktop, Element);
+            }
 
             if (RowSpacing.HasValue)
+            {
                 Grid.RowSpacing = RowSpacing.Value;
+            }
+
             if (ColumnSpacing.HasValue)
+            {
                 Grid.ColumnSpacing = ColumnSpacing.Value;
+            }
 
             if (CellBackground != null)
+            {
                 Grid.CellBackground.NormalValue = CellBackground.ToFillBrush(Desktop, Element);
+            }
+
             if (DrawEmptyCells.HasValue)
+            {
                 Grid.DrawEmptyCells = DrawEmptyCells.Value;
+            }
 
             if (IncludeContent)
             {
@@ -364,9 +464,14 @@ namespace MGUI.Core.UI.XAML
                     if (AutoAssignCells.HasValue && AutoAssignCells.Value)
                     {
                         if (Row == 0)
+                        {
                             Row = Counter / Grid.Columns;
+                        }
+
                         if (Column == 0)
+                        {
                             Column = Counter % Grid.Columns;
+                        }
                     }
 
                     Grid.TryAddChild(Row, Column, ChildElement);
@@ -378,7 +483,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGUniformGrid TypedElement)
             {
                 yield return (SelectionBackground, TypedElement.SelectionBackground, nameof(MGUniformGrid.SelectionBackground));
@@ -403,7 +511,9 @@ namespace MGUI.Core.UI.XAML
             MGDockPanel DockPanel = Element as MGDockPanel;
 
             if (LastChildFill.HasValue)
+            {
                 DockPanel.LastChildFill = LastChildFill.Value;
+            }
 
             if (IncludeContent)
             {
@@ -450,9 +560,14 @@ namespace MGUI.Core.UI.XAML
             Border.ApplySettings(Parent, StackPanel.BorderComponent.Element, false);
 
             if (Orientation.HasValue)
+            {
                 StackPanel.Orientation = Orientation.Value;
+            }
+
             if (Spacing.HasValue)
+            {
                 StackPanel.Spacing = Spacing.Value;
+            }
 
             if (IncludeContent)
             {

@@ -22,7 +22,10 @@ namespace MGUI.Core.UI
         {
             IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
             if (!IncludeActive)
+            {
                 return baseChildren;
+            }
+
             List<MGElement> result = new(baseChildren.Count + 1);
             result.AddRange(baseChildren);
             result.Add(OuterHeaderPresenter);
@@ -213,9 +216,15 @@ namespace MGUI.Core.UI
             Thickness BT = BorderThickness;
             IFillBrush Brush = BorderBrush.Brush;
             if (BT.Left > 0)
+            {
                 Brush.Draw(DA, this, new(BorderBounds.Left, BorderBounds.Top, BT.Left, BorderBounds.Height));
+            }
+
             if (BT.Right > 0)
+            {
                 Brush.Draw(DA, this, new(BorderBounds.Right - BT.Right, BorderBounds.Top, BT.Right, BorderBounds.Height));
+            }
+
             if (BT.Top > 0)
             {
                 if (HasHeaderContent)
@@ -232,7 +241,9 @@ namespace MGUI.Core.UI
                 }
             }
             if (BT.Bottom > 0)
+            {
                 Brush.Draw(DA, this, new(BorderBounds.Left + BT.Left, BorderBounds.Bottom - BT.Bottom, BorderBounds.Width - BT.Width, BT.Bottom));
+            }
 
             //  Draw the header
             OuterHeaderPresenter.Draw(DA);

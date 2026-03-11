@@ -50,7 +50,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 Rectangle PaddedBounds = Bounds.GetCompressed(Padding);
 
                 if (Scale.HasValue)
+                {
                     PaddedBounds = PaddedBounds.GetScaledFromCenter(Scale.Value);
+                }
 
                 int DesiredWidth = Math.Clamp(PaddedBounds.Width, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
                 int DesiredHeight = Math.Clamp(PaddedBounds.Height, MinHeight ?? 0, MaxHeight ?? int.MaxValue);

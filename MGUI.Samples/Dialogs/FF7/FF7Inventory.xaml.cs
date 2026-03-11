@@ -69,11 +69,16 @@ namespace MGUI.Samples.Dialogs.FF7
                 IndexedItems.Remove(Item);
                 _Items.Remove(InventoryItem);
                 if (SelectedItem == InventoryItem)
+                {
                     SelectedItem = null;
+                }
+
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         public InventoryItem AddItem(Item Item, int Quantity)
@@ -85,7 +90,10 @@ namespace MGUI.Samples.Dialogs.FF7
                 IndexedItems.Add(Item, InventoryItem);
             }
             else
+            {
                 InventoryItem.Quantity += Quantity;
+            }
+
             return InventoryItem;
         }
 
@@ -116,9 +124,13 @@ namespace MGUI.Samples.Dialogs.FF7
                     NPC(nameof(SelectedItem));
 
                     if (SelectedItem == null)
+                    {
                         ItemsList.ClearSelection();
+                    }
                     else if (ItemsList.SelectedItems.Count != 1 || ItemsList.SelectedItems.First().Data != SelectedItem)
+                    {
                         ItemsList.SelectItem(SelectedItem, true);
+                    }
                 }
             }
         }
@@ -257,9 +269,15 @@ namespace MGUI.Samples.Dialogs.FF7
                 {
                     int PreviousHP = Character.CurrentHP;
                     if (Item.HPRecovery != 0)
+                    {
                         Character.CurrentHP = Math.Clamp(Character.CurrentHP + Item.HPRecovery, 0, Character.MaxHP);
+                    }
+
                     if (Item.HPRecoveryPercent != 0.0)
+                    {
                         Character.CurrentHP = Math.Clamp(Character.CurrentHP + (int)(Character.MaxHP * Item.HPRecoveryPercent), 0, Character.MaxHP);
+                    }
+
                     Used = Character.CurrentHP != PreviousHP;
                 }
 
@@ -268,9 +286,15 @@ namespace MGUI.Samples.Dialogs.FF7
                 {
                     int PreviousMP = Character.CurrentMP;
                     if (Item.MPRecovery != 0)
+                    {
                         Character.CurrentMP = Math.Clamp(Character.CurrentMP + Item.MPRecovery, 0, Character.MaxMP);
+                    }
+
                     if (Item.MPRecoveryPercent != 0.0)
+                    {
                         Character.CurrentMP = Math.Clamp(Character.CurrentMP + (int)(Character.MaxMP * Item.MPRecoveryPercent), 0, Character.MaxMP);
+                    }
+
                     Used = Character.CurrentMP != PreviousMP;
                 }
 

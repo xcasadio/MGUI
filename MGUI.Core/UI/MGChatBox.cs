@@ -166,7 +166,9 @@ namespace MGUI.Core.UI
                 Messages.CollectionChanged += (sender, e) =>
                 {
                     if (e.Action is NotifyCollectionChangedAction.Add)
+                    {
                         IsMessagesCountRefreshPending = true;
+                    }
                 };
                 MessagesContainer = new(ParentWindow);
                 MessagesContainer.SetItemsSource(Messages);
@@ -201,7 +203,9 @@ namespace MGUI.Core.UI
             try
             {
                 if (IsMessagesCountRefreshPending)
+                {
                     ValidateNumMessages();
+                }
             }
             finally { IsMessagesCountRefreshPending = false; }
 
@@ -232,7 +236,10 @@ namespace MGUI.Core.UI
             bool WasScrolledToBottom = ScrollViewer.VerticalOffset.IsAlmostEqual(ScrollViewer.MaxVerticalOffset);
             Messages.Add(new(Environment.UserName, DateTime.Now, Message));
             if (WasScrolledToBottom)
+            {
                 ScrollViewer.QueueScrollToBottom();
+            }
+
             InputTextBox.RequestFocus();
         }
     }

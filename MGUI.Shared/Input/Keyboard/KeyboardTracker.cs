@@ -165,7 +165,9 @@ namespace MGUI.Shared.Input.Keyboard
         public static bool IsRepeatDue(TimeSpan now, TimeSpan heldSince, TimeSpan? lastRepeatAt, TimeSpan initialRepeatDelay, TimeSpan repeatInterval)
         {
             if (now - heldSince < initialRepeatDelay)
+            {
                 return false;
+            }
 
             return !lastRepeatAt.HasValue || now - lastRepeatAt.Value >= repeatInterval;
         }
@@ -343,19 +345,31 @@ namespace MGUI.Shared.Input.Keyboard
             {
                 bool IsLetter = Key >= Keys.A && Key <= Keys.Z;
                 if (IsLetter)
+                {
                     IsShiftDown = !IsShiftDown;
+                }
             }
 
             if (PrintableKeyValues.TryGetValue(Key, out PrintableKeyString PrintableValue))
+            {
                 return PrintableValue.Value(IsShiftDown);
+            }
             else if (NonPrintableKeys.Contains(Key))
+            {
                 return NonPrintableKeyValue;
+            }
             else if (Key == Keys.Enter)
+            {
                 return EnterValue;
+            }
             else if (Key == Keys.Tab)
+            {
                 return TabValue;
+            }
             else
+            {
                 throw new NotImplementedException($"{nameof(Keys)}.{Key}");
+            }
         }
     }
 }

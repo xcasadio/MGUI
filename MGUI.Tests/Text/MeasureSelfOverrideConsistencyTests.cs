@@ -55,10 +55,18 @@ namespace MGUI.Tests.Text
             // Simulate simple pair-kerning: consecutive pairs save 1 px each.
             public Vector2 MeasureText(string Text, bool IsBold, bool IsItalic)
             {
-                if (string.IsNullOrEmpty(Text)) return new Vector2(0, 14f);
+                if (string.IsNullOrEmpty(Text))
+                {
+                    return new Vector2(0, 14f);
+                }
+
                 float width = 7f * Text.Length;
                 // Deduct 1 px for every adjacent pair (simulate kerning)
-                if (Text.Length > 1) width -= (Text.Length - 1);
+                if (Text.Length > 1)
+                {
+                    width -= (Text.Length - 1);
+                }
+
                 return new Vector2(Math.Max(0, width), 14f);
             }
         }

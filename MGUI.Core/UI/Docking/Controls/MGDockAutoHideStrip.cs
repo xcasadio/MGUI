@@ -76,7 +76,10 @@ public class MGDockAutoHideStrip : MGElement
     {
         // Remove all old buttons
         foreach (var btn in _buttons)
+        {
             btn.SetParent(null);
+        }
+
         _buttons.Clear();
         _buttonMap.Clear();
 
@@ -108,11 +111,18 @@ public class MGDockAutoHideStrip : MGElement
     /// </summary>
     private int MeasureButtonSizePx(string title)
     {
-        if (string.IsNullOrEmpty(title)) return ButtonMinSize;
+        if (string.IsNullOrEmpty(title))
+        {
+            return ButtonMinSize;
+        }
+
         string family = ParentWindow.Desktop.FontManager.DefaultFontFamily;
         if (!ParentWindow.Desktop.FontManager.TryGetFont(family, CustomFontStyles.Normal, 11, true,
             out _, out SpriteFont sf, out _, out _, out float scale))
+        {
             return ButtonMinSize;
+        }
+
         int textPx = (int)Math.Ceiling(sf.MeasureString(title).X * scale);
         return Math.Max(ButtonMinSize, textPx + ButtonPadding);
     }
@@ -152,7 +162,9 @@ public class MGDockAutoHideStrip : MGElement
     public override IEnumerable<MGElement> GetChildren()
     {
         foreach (var btn in _buttons)
+        {
             yield return btn;
+        }
     }
 
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
@@ -216,7 +228,9 @@ public class MGDockAutoHideStrip : MGElement
     {
         // Draw button children
         foreach (var child in GetChildren())
+        {
             child?.Draw(DA);
+        }
 
         // For Left / Right strips, draw the title text rotated 90° via the FSS text engine
         // (vector rendering — stays crisp at any angle, unlike scaled SpriteFonts).
@@ -229,7 +243,11 @@ public class MGDockAutoHideStrip : MGElement
                 foreach (var (btn, panel) in _buttonMap)
                 {
                     string title = panel.Title;
-                    if (string.IsNullOrEmpty(title)) continue;
+                    if (string.IsNullOrEmpty(title))
+                    {
+                        continue;
+                    }
+
                     float   scale    = resolved.SuggestedScale;
                     Vector2 textSize = DA.DT.TextEngine.MeasureText(resolved, title); // unscaled
                     Vector2 origin   = textSize / 2f;                                 // pivot at text centre

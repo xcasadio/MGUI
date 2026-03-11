@@ -33,7 +33,10 @@ namespace MGUI.Shared.Helpers
             while ((index = s.IndexOfAny(delimiters, start)) != -1)
             {
                 if (index - start > 0)
+                {
                     yield return s.Substring(start, index - start);
+                }
+
                 yield return s.Substring(index, 1);
                 start = index + 1;
             }
@@ -61,7 +64,9 @@ namespace MGUI.Shared.Helpers
             int place = Source.LastIndexOf(Find);
 
             if (place == -1)
+            {
                 return Source;
+            }
 
             string result = Source.Remove(place, Find.Length).Insert(place, Replace);
             return result;

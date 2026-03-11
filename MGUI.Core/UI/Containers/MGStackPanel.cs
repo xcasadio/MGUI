@@ -88,7 +88,9 @@ namespace MGUI.Core.UI.Containers
         public bool TryAddChild(MGElement Item)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             _Children.Add(Item);
             return true;
@@ -99,10 +101,14 @@ namespace MGUI.Core.UI.Containers
         public bool TryInsertChild(int Index, MGElement Item)
         {
             if (!CanChangeContent || Index < 0 || Index > _Children.Count)
+            {
                 return false;
+            }
 
             if (Index == _Children.Count)
+            {
                 return TryAddChild(Item);
+            }
             else
             {
                 _Children.Insert(Index, Item);
@@ -115,7 +121,9 @@ namespace MGUI.Core.UI.Containers
         public bool TryRemoveChild(MGElement Item)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             return _Children.Remove(Item);
         }
@@ -125,11 +133,15 @@ namespace MGUI.Core.UI.Containers
         public bool TryReplaceChild(MGElement Old, MGElement New)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             int Index = _Children.IndexOf(Old);
             if (Index < 0)
+            {
                 return false;
+            }
 
             _Children[Index] = New;
             return true;
@@ -139,7 +151,9 @@ namespace MGUI.Core.UI.Containers
         public bool TryRemoveAll()
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             _Children.ClearOneByOne();
             return true;
@@ -165,7 +179,9 @@ namespace MGUI.Core.UI.Containers
         protected override void UpdateContentLayout(Rectangle Bounds)
         {
             if (!HasContent)
+            {
                 return;
+            }
 
             Size AvailableSize = new(Bounds.Width, Bounds.Height);
             Size RemainingSize = AvailableSize;
@@ -229,7 +245,9 @@ namespace MGUI.Core.UI.Containers
                 }
             }
             else
+            {
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+            }
         }
 
         protected override Thickness UpdateContentMeasurement(Size AvailableSize)
@@ -269,10 +287,14 @@ namespace MGUI.Core.UI.Containers
                     return TotalContentSize;
                 }
                 else
+                {
                     throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+                }
             }
             else
+            {
                 return UpdateContentMeasurementBaseImplementation(AvailableSize);
+            }
         }
     }
 }

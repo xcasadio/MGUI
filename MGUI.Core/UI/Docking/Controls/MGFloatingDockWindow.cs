@@ -52,7 +52,10 @@ public class MGFloatingDockWindow : MGWindow
         : base(ownerHost.ParentWindow, left, top, width, height)
     {
         OwnerHost = ownerHost ?? throw new ArgumentNullException(nameof(ownerHost));
-        if (initialPanel == null) throw new ArgumentNullException(nameof(initialPanel));
+        if (initialPanel == null)
+        {
+            throw new ArgumentNullException(nameof(initialPanel));
+        }
 
         // Window chrome
         IsDraggable      = true;
@@ -108,7 +111,11 @@ public class MGFloatingDockWindow : MGWindow
     /// </summary>
     public void AddPanel(DockPanelNode panel, int index = -1)
     {
-        if (panel == null) throw new ArgumentNullException(nameof(panel));
+        if (panel == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
         GroupNode.AddPanel(panel, index);
         UpdateTitle();
     }
@@ -119,9 +126,17 @@ public class MGFloatingDockWindow : MGWindow
     /// </summary>
     public bool RemovePanel(string panelId)
     {
-        if (string.IsNullOrEmpty(panelId)) return false;
+        if (string.IsNullOrEmpty(panelId))
+        {
+            return false;
+        }
+
         var panel = GroupNode.Panels.FirstOrDefault(p => p.Id == panelId);
-        if (panel == null) return false;
+        if (panel == null)
+        {
+            return false;
+        }
+
         GroupNode.RemovePanelById(panelId);
         UpdateTitle();
         return true;
@@ -141,7 +156,11 @@ public class MGFloatingDockWindow : MGWindow
     /// </summary>
     private void MaximizeWindow()
     {
-        if (_tabGroup.IsMaximized) return;
+        if (_tabGroup.IsMaximized)
+        {
+            return;
+        }
+
         _preMaximizeBounds = (Left, Top, WindowWidth, WindowHeight);
         var screen = GetDesktop().ValidScreenBounds;
         Left          = screen.X;
@@ -158,7 +177,11 @@ public class MGFloatingDockWindow : MGWindow
     /// </summary>
     private void RestoreWindow()
     {
-        if (!_tabGroup.IsMaximized) return;
+        if (!_tabGroup.IsMaximized)
+        {
+            return;
+        }
+
         if (_preMaximizeBounds.HasValue)
         {
             var (l, t, w, h)  = _preMaximizeBounds.Value;
@@ -179,7 +202,10 @@ public class MGFloatingDockWindow : MGWindow
 
     private void OnPanelCloseRequested(object sender, DockPanelNode panel)
     {
-        if (panel == null) return;
+        if (panel == null)
+        {
+            return;
+        }
 
         GroupNode.RemovePanelById(panel.Id);
         OwnerHost.NotifyFloatingPanelClosed(panel);

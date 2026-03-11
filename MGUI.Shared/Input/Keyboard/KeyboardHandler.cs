@@ -54,7 +54,9 @@ namespace MGUI.Shared.Input.Keyboard
         private void AdoptStreamIfHandled(BaseKeyPressedEventArgs PressedArgs)
         {
             if (PressedArgs?.IsHandled == true)
+            {
                 PressedArgs.Stream?.TryAdoptOwner(StreamOwnerId);
+            }
         }
 
         private bool OwnsStream(KeyboardInputStream Stream)
@@ -116,7 +118,10 @@ namespace MGUI.Shared.Input.Keyboard
         internal void AutoUpdate()
         {
             if (IsManualUpdate)
+            {
                 throw new InvalidOperationException($"{nameof(KeyboardHandler)}.{nameof(AutoUpdate)} should only be invoked on {nameof(KeyboardHandler)}s where {nameof(IsManualUpdate)} is false.");
+            }
+
             InvokeQueuedEvents();
         }
 
@@ -125,7 +130,10 @@ namespace MGUI.Shared.Input.Keyboard
         public void ManualUpdate()
         {
             if (!IsManualUpdate)
+            {
                 throw new InvalidOperationException($"{nameof(KeyboardHandler)}.{nameof(ManualUpdate)} should only be invoked on {nameof(KeyboardHandler)}s where {nameof(IsManualUpdate)} is true.");
+            }
+
             InvokeQueuedEvents();
         }
 
@@ -143,7 +151,9 @@ namespace MGUI.Shared.Input.Keyboard
                     {
                         _pressed.Invoke(this, PressedArgs);
                         if (AlwaysHandlesEvents)
+                        {
                             PressedArgs.SetHandledBy(Owner, false);
+                        }
 
                         AdoptStreamIfHandled(PressedArgs);
                     }
@@ -158,7 +168,9 @@ namespace MGUI.Shared.Input.Keyboard
                     {
                         _released.Invoke(this, ReleasedArgs);
                         if (AlwaysHandlesEvents)
+                        {
                             ReleasedArgs.SetHandledBy(Owner, false);
+                        }
                     }
 
                     BaseKeyRepeatedEventArgs RepeatedArgs = GetCurrentKeyRepeatEvent(Key);
@@ -170,7 +182,9 @@ namespace MGUI.Shared.Input.Keyboard
                     {
                         _repeated.Invoke(this, RepeatedArgs);
                         if (AlwaysHandlesEvents)
+                        {
                             RepeatedArgs.SetHandledBy(Owner, false);
+                        }
                     }
 
                     //  Invoke Key Clicked
@@ -184,7 +198,9 @@ namespace MGUI.Shared.Input.Keyboard
                     {
                         _clicked.Invoke(this, ClickedArgs);
                         if (AlwaysHandlesEvents)
+                        {
                             ClickedArgs.SetHandledBy(Owner, false);
+                        }
                     }
                 }
             }
@@ -211,17 +227,25 @@ namespace MGUI.Shared.Input.Keyboard
             }
 
             if (!Tracker.TryGetInitialPressedEvent(key, out BaseKeyPressedEventArgs initialPressedArgs))
+            {
                 return null;
+            }
 
             TimeSpan? heldSince = Tracker.GetHeldSince(key);
             if (!heldSince.HasValue)
+            {
                 return null;
+            }
 
             if (RepeatPolicy.CanRepeat != null && !RepeatPolicy.CanRepeat(key))
+            {
                 return null;
+            }
 
             if (!KeyboardTracker.IsRepeatDue(Tracker.CurrentTotalElapsed, heldSince.Value, _LastRepeatedAt[key], RepeatPolicy.InitialDelay, RepeatPolicy.Interval))
+            {
                 return null;
+            }
 
             string keyValue = Tracker.KeyToTextInputString(key);
             BaseKeyRepeatedEventArgs repeatedArgs = new(Tracker, initialPressedArgs, key, keyValue);

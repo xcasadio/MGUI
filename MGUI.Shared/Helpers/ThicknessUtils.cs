@@ -43,11 +43,15 @@ namespace MGUI.Shared.Helpers
         public static Thickness ClampWidth(this Thickness @this, int MinWidth, int MaxWidth)
         {
             if (MinWidth > MaxWidth)
+            {
                 throw new ArgumentException($"{nameof(ThicknessUtils)}.{nameof(ClampWidth)}: {nameof(MinWidth)} cannot exceed {nameof(MaxWidth)}");
+            }
 
             int CurrentWidth = @this.Width;
             if (CurrentWidth >= MinWidth && CurrentWidth <= MaxWidth)
+            {
                 return @this;
+            }
             else if (CurrentWidth < MinWidth)
             {
                 int ExtraWidth = MinWidth - CurrentWidth;
@@ -58,9 +62,13 @@ namespace MGUI.Shared.Helpers
                 int ExcessWidth = CurrentWidth - MaxWidth;
 
                 if (@this.Right >= ExcessWidth)
+                {
                     return new(@this.Left, @this.Top, @this.Right - ExcessWidth, @this.Bottom);
+                }
                 else
+                {
                     return new(@this.Left - (ExcessWidth - @this.Right), @this.Top, 0, @this.Bottom);
+                }
             }
         }
 
@@ -70,11 +78,15 @@ namespace MGUI.Shared.Helpers
         public static Thickness ClampHeight(this Thickness @this, int MinHeight, int MaxHeight)
         {
             if (MinHeight > MaxHeight)
+            {
                 throw new ArgumentException($"{nameof(ThicknessUtils)}.{nameof(ClampHeight)}: {nameof(MinHeight)} cannot exceed {nameof(MaxHeight)}");
+            }
 
             int CurrentHeight = @this.Height;
             if (CurrentHeight >= MinHeight && CurrentHeight <= MaxHeight)
+            {
                 return @this;
+            }
             else if (CurrentHeight < MinHeight)
             {
                 int ExtraHeight = MinHeight - CurrentHeight;
@@ -85,9 +97,13 @@ namespace MGUI.Shared.Helpers
                 int ExcessHeight = CurrentHeight - MaxHeight;
 
                 if (@this.Bottom >= ExcessHeight)
+                {
                     return new(@this.Left, @this.Top, @this.Right, @this.Bottom - ExcessHeight);
+                }
                 else
+                {
                     return new(@this.Left, @this.Top - (ExcessHeight - @this.Bottom), @this.Right, 0);
+                }
             }
         }
 

@@ -61,9 +61,13 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
         {
             if (value is string stringValue)
+            {
                 return ParseFillBrush(stringValue);
+            }
             else
+            {
                 return base.ConvertFrom(context, culture, value);
+            }
         }
 
         public static IFillBrush ParseFillBrush(string Value)
@@ -88,7 +92,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 return new MGGradientFillBrush(Colors[0], Colors[1], Colors[2], Colors[3]);
             }
             else
+            {
                 throw new InvalidOperationException($"{Value} is not a valid format for a {nameof(IFillBrush)}.");
+            }
         }
     }
 
@@ -97,7 +103,10 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
             if (sourceType == typeof(string))
+            {
                 return true;
+            }
+
             return base.CanConvertFrom(context, sourceType);
         }
 
@@ -107,9 +116,13 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
         {
             if (value is string stringValue)
+            {
                 return ParseColor(stringValue);
+            }
             else
+            {
                 return base.ConvertFrom(context, culture, value);
+            }
         }
 
         public static Color ParseColor(string Value)
@@ -144,7 +157,10 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 DrawingColor color = ParseDrawingColor(colorName);
                 string opacityScalarString = Value.Substring(asteriskIndex + 1).Trim();
                 if (opacityScalarString.EndsWith("f", StringComparison.CurrentCultureIgnoreCase))
+                {
                     opacityScalarString = opacityScalarString[..^1];
+                }
+
                 float opacityScalar = float.Parse(opacityScalarString, CultureInfo.InvariantCulture);
 
                 return new Color(color.R, color.G, color.B, color.A) * opacityScalar;

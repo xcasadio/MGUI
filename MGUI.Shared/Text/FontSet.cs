@@ -190,11 +190,20 @@ namespace MGUI.Shared.Text
 
                     CustomFontStyles Styles = CustomFontStyles.None;
                     if (IsBold)
+                    {
                         Styles |= CustomFontStyles.Bold;
+                    }
+
                     if (IsItalic)
+                    {
                         Styles |= CustomFontStyles.Italic;
+                    }
+
                     if (Styles == CustomFontStyles.None)
+                    {
                         Styles = CustomFontStyles.Normal;
+                    }
+
                     Variations.Add(Styles, SF);
                 }
 
@@ -301,9 +310,13 @@ namespace MGUI.Shared.Text
         {
             string Key = DesiredFontSize.ToString("0.0");
             if (QuickSizeLookup.TryGetValue(Key, out int QuickSize))
+            {
                 return QuickSize;
+            }
             else
+            {
                 return SupportedSizes.SkipWhile(x => PreferDownsampled ? x < DesiredFontSize * 3.0f : x < DesiredFontSize).DefaultIfEmpty(MaxSize).First();
+            }
         }
     }
 }

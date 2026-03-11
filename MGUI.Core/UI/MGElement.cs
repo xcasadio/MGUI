@@ -204,7 +204,10 @@ namespace MGUI.Core.UI
             while (current != null)
             {
                 if (current.TextEngineOverride != null)
+                {
                     return current.TextEngineOverride;
+                }
+
                 current = current.Parent;
             }
             return GetDesktop().TextEngine;
@@ -324,12 +327,35 @@ namespace MGUI.Core.UI
             _componentsUpdateAfterContents.Clear();
             foreach (MGComponentBase c in Components)
             {
-                if (c.DrawBeforeBackground) _componentsDrawBeforeBackground.Add(c.BaseElement);
-                if (c.DrawBeforeSelf)       _componentsDrawBeforeSelf.Add(c.BaseElement);
-                if (c.DrawBeforeContents)   _componentsDrawBeforeContents.Add(c.BaseElement);
-                if (c.DrawAfterContents)    _componentsDrawAfterContents.Add(c.BaseElement);
-                if (c.UpdateBeforeContents) _componentsUpdateBeforeContents.Add(c.BaseElement);
-                if (c.UpdateAfterContents)  _componentsUpdateAfterContents.Add(c.BaseElement);
+                if (c.DrawBeforeBackground)
+                {
+                    _componentsDrawBeforeBackground.Add(c.BaseElement);
+                }
+
+                if (c.DrawBeforeSelf)
+                {
+                    _componentsDrawBeforeSelf.Add(c.BaseElement);
+                }
+
+                if (c.DrawBeforeContents)
+                {
+                    _componentsDrawBeforeContents.Add(c.BaseElement);
+                }
+
+                if (c.DrawAfterContents)
+                {
+                    _componentsDrawAfterContents.Add(c.BaseElement);
+                }
+
+                if (c.UpdateBeforeContents)
+                {
+                    _componentsUpdateBeforeContents.Add(c.BaseElement);
+                }
+
+                if (c.UpdateAfterContents)
+                {
+                    _componentsUpdateAfterContents.Add(c.BaseElement);
+                }
             }
         }
 
@@ -339,13 +365,36 @@ namespace MGUI.Core.UI
             Component.BaseElement.ComponentParent = this;
 			Components.Add(Component);
             // Update cached category lists
-            if (Component.DrawBeforeBackground) _componentsDrawBeforeBackground.Add(Component.BaseElement);
-            if (Component.DrawBeforeSelf)       _componentsDrawBeforeSelf.Add(Component.BaseElement);
-            if (Component.DrawBeforeContents)   _componentsDrawBeforeContents.Add(Component.BaseElement);
-            if (Component.DrawAfterContents)    _componentsDrawAfterContents.Add(Component.BaseElement);
-            if (Component.UpdateBeforeContents) _componentsUpdateBeforeContents.Add(Component.BaseElement);
-            if (Component.UpdateAfterContents)  _componentsUpdateAfterContents.Add(Component.BaseElement);
-		}
+            if (Component.DrawBeforeBackground)
+            {
+                _componentsDrawBeforeBackground.Add(Component.BaseElement);
+            }
+
+            if (Component.DrawBeforeSelf)
+            {
+                _componentsDrawBeforeSelf.Add(Component.BaseElement);
+            }
+
+            if (Component.DrawBeforeContents)
+            {
+                _componentsDrawBeforeContents.Add(Component.BaseElement);
+            }
+
+            if (Component.DrawAfterContents)
+            {
+                _componentsDrawAfterContents.Add(Component.BaseElement);
+            }
+
+            if (Component.UpdateBeforeContents)
+            {
+                _componentsUpdateBeforeContents.Add(Component.BaseElement);
+            }
+
+            if (Component.UpdateAfterContents)
+            {
+                _componentsUpdateAfterContents.Add(Component.BaseElement);
+            }
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _Name;
@@ -668,9 +717,11 @@ namespace MGUI.Core.UI
 				if (_PreferredWidth != value)
 				{
 					if (value.HasValue && value.Value < 0)
-						throw new ArgumentOutOfRangeException($"{nameof(MGElement)}.{nameof(PreferredWidth)} cannot be negative.");
+                    {
+                        throw new ArgumentOutOfRangeException($"{nameof(MGElement)}.{nameof(PreferredWidth)} cannot be negative.");
+                    }
 
-					_PreferredWidth = value;
+                    _PreferredWidth = value;
                     LayoutChanged(this, true);
                     NPC(nameof(PreferredWidth));
                     NPC(nameof(ActualPreferredWidth));
@@ -692,7 +743,9 @@ namespace MGUI.Core.UI
 				if (_PreferredHeight != value)
 				{
                     if (value.HasValue && value.Value < 0)
+                    {
                         throw new ArgumentOutOfRangeException($"{nameof(MGElement)}.{nameof(PreferredHeight)} cannot be negative.");
+                    }
 
                     _PreferredHeight = value;
                     LayoutChanged(this, true);
@@ -783,11 +836,15 @@ namespace MGUI.Core.UI
             _contextMenuRequested?.Invoke(this, args);
 
             if (args.Handled)
+            {
                 return;
+            }
 
             MGContextMenu menu = args.Menu;
             if (menu != null && menu.TryOpenContextMenu(e.Position))
+            {
                 e.SetHandledBy(menu, false);
+            }
         }
 
 		/// <summary>Invoked when <see cref="ContextMenu"/> is set to a new value. (Not invoked when the content within <see cref="ContextMenu"/> is modified)<para/>
@@ -891,7 +948,10 @@ namespace MGUI.Core.UI
                         _autoFocusSubscribed = true;
                         MouseHandler.LMBPressedInside += (sender, e) =>
                         {
-                            if (IsFocusable) Focus(KeyboardFocusSource.Pointer);
+                            if (IsFocusable)
+                            {
+                                Focus(KeyboardFocusSource.Pointer);
+                            }
                         };
                     }
                 }
@@ -912,7 +972,9 @@ namespace MGUI.Core.UI
         public void Focus(KeyboardFocusSource source = KeyboardFocusSource.Programmatic)
         {
             if (CanHandleKeyboardInput)
-            GetDesktop().QueueFocusedKeyboardHandler(this, source);
+            {
+                GetDesktop().QueueFocusedKeyboardHandler(this, source);
+            }
         }
 
         #region Drag and Drop
@@ -954,14 +1016,18 @@ namespace MGUI.Core.UI
         {
             MGDesktop desktop = GetDesktop();
             if (desktop?.DragDropManager?.IsDragging == true)
+            {
                 desktop.DragDropManager.NotifyDragOver(this, e.CurrentPosition);
+            }
         }
 
         private void OnDragExited(object sender, MGUI.Shared.Input.Mouse.BaseMouseMovedEventArgs e)
         {
             MGDesktop desktop = GetDesktop();
             if (desktop?.DragDropManager?.IsDragging == true)
+            {
                 desktop.DragDropManager.NotifyDragLeave(this, e.CurrentPosition);
+            }
         }
 
         public event EventHandler<DragEnterEventArgs> DragEnter;
@@ -1075,13 +1141,19 @@ namespace MGUI.Core.UI
         internal static PrimaryVisualState ResolvePrimaryVisualState(bool isEnabled, bool isSelected, bool hasKeyboardFocus, bool shouldDisplayFocusedState)
         {
             if (!isEnabled)
+            {
                 return PrimaryVisualState.Disabled;
+            }
 
             if (isSelected)
+            {
                 return PrimaryVisualState.Selected;
+            }
 
             if (hasKeyboardFocus && shouldDisplayFocusedState)
+            {
                 return PrimaryVisualState.Focused;
+            }
 
             return PrimaryVisualState.Normal;
         }
@@ -1091,14 +1163,20 @@ namespace MGUI.Core.UI
             bool hasKeyboardFocus, bool shouldDisplayFocusedState)
         {
             if (!isHitTestVisible || hasModalWindow)
+            {
                 return SecondaryVisualState.None;
+            }
 
             if (isLmbPressed && isPressedElementOrAncestor)
+            {
                 return SecondaryVisualState.Pressed;
+            }
 
             bool shouldSuppressHover = hasKeyboardFocus && shouldDisplayFocusedState;
             if (!shouldSuppressHover && isHovered && isHoveredElementOrAncestor)
+            {
                 return SecondaryVisualState.Hovered;
+            }
 
             return SecondaryVisualState.None;
         }
@@ -1240,7 +1318,10 @@ namespace MGUI.Core.UI
                     _Visibility = value;
                     _inputStateDirty = true;
                     if (Previous == Visibility.Collapsed || Visibility == Visibility.Collapsed)
+                    {
                         LayoutChanged(this, true);
+                    }
+
                     NPC(nameof(Visibility));
                     NPC(nameof(IsVisibilityCollapsed));
                 }
@@ -1311,9 +1392,14 @@ namespace MGUI.Core.UI
         public void InvokeLater(Action Action, int FrameDelay, InvokeLaterPriority Priority)
         {
             if (Action == null)
+            {
                 throw new ArgumentNullException(nameof(Action));
+            }
+
             if (FrameDelay <= 0)
+            {
                 throw new ArgumentException($"{nameof(FrameDelay)} must be > 0");
+            }
 
             switch (Priority)
             {
@@ -1450,7 +1536,9 @@ namespace MGUI.Core.UI
         protected virtual IEnumerable<IBorderBrush> GetBorderBrushes()
         {
             if (HasBorder)
+            {
                 yield return GetBorder().BorderBrush;
+            }
         }
 
         /// <summary>Removes all <see cref="DataBinding"/>s that are associated with this <see cref="MGElement"/>.<para/>
@@ -1461,17 +1549,24 @@ namespace MGUI.Core.UI
         public int RemoveDataBindings(bool IncludeChildren)
         {
             if (!IncludeChildren)
+            {
                 return DataBindingManager.RemoveBindings(this);
+            }
             else
+            {
                 return TraverseVisualTree().Sum(x => DataBindingManager.RemoveBindings(x));
+            }
         }
 
         #region Bounds
         protected internal Matrix GetTransform(CoordinateSpace From, CoordinateSpace To)
         {
             if (From == To)
+            {
                 return Matrix.Identity;
+            }
             else
+            {
                 return From switch
                 {
                     CoordinateSpace.Layout => To switch
@@ -1497,12 +1592,15 @@ namespace MGUI.Core.UI
                     },
                     _ => throw new NotImplementedException($"Unrecognized {nameof(CoordinateSpace)}: {From}")
                 };
+            }
         }
 
         public Rectangle ConvertCoordinateSpace(CoordinateSpace From, CoordinateSpace To, Rectangle Value)
         {
             if (From == To)
+            {
                 return Value;
+            }
             else
             {
                 Matrix Transform = GetTransform(From, To);
@@ -1513,7 +1611,9 @@ namespace MGUI.Core.UI
         public Vector2 ConvertCoordinateSpace(CoordinateSpace From, CoordinateSpace To, Vector2 Value)
         {
             if (From == To)
+            {
                 return Value;
+            }
             else
             {
                 Matrix Transform = GetTransform(From, To);
@@ -1679,11 +1779,15 @@ namespace MGUI.Core.UI
         private void ComputeTopmostHoveredElement(bool IsParentEnabled, bool IsParentHitTestVisible, bool CanParentReceiveMouseInput, Vector2 unscaledMousePos, ref MGElement Result)
         {
             if (Visibility != Visibility.Visible)
+            {
                 return;
+            }
 
             // Skip elements that were clipped / not rendered
             if (RecentDrawWasClipped)
+            {
                 return;
+            }
 
             bool ComputedIsEnabled = IsParentEnabled && IsEnabled;
             bool ComputedIsHitTestVisible = IsParentHitTestVisible && IsHitTestVisible;
@@ -1694,9 +1798,14 @@ namespace MGUI.Core.UI
 
             // Components can overflow parent bounds — always recurse into them
             foreach (MGElement Component in _componentsDrawBeforeBackground)
+            {
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
+            }
+
             foreach (MGElement Component in _componentsDrawBeforeSelf)
+            {
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
+            }
 
             // Early-out: if mouse is outside this element's bounds, skip self-hover and visual children
             // (visual tree children are always clipped to the parent's content area)
@@ -1708,7 +1817,9 @@ namespace MGUI.Core.UI
             }
 
             foreach (MGElement Component in _componentsDrawBeforeContents)
+            {
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
+            }
 
             if (mouseInBounds)
             {
@@ -1719,7 +1830,9 @@ namespace MGUI.Core.UI
             }
 
             foreach (MGElement Component in _componentsDrawAfterContents)
+            {
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
+            }
         }
 
         public void Update(ElementUpdateArgs UA)
@@ -1740,9 +1853,13 @@ namespace MGUI.Core.UI
             //because components typically live outside or spanning the padding area.
             //An MGTabControl's HeadersPanel is a component, so it correctly receives the full bounds.
             if (IsWindow)
+            {
                 ActualLayoutBounds = UnscaledScreenBounds;
+            }
             else
+            {
                 ActualLayoutBounds = Rectangle.Intersect(UA.ActualLayoutBounds, UnscaledScreenBounds);
+            }
 
             // Fast path: element is fully clipped (off-viewport). Skip all expensive processing.
             // Exception: elements that can receive input while hidden still need a minimal update.
@@ -1799,7 +1916,9 @@ namespace MGUI.Core.UI
 
             // Fix (Task 14): iterate directly instead of .ToList().ForEach() which allocates a temporary List<>
             foreach (IBorderBrush brush in GetBorderBrushes())
+            {
                 brush?.Update(UA.BA);
+            }
 
             if (ComputedIsHitTestVisible && Visibility == Visibility.Visible &&
                 (newSVS == SecondaryVisualState.Hovered || (IsHovered && newSVS == SecondaryVisualState.Pressed)))
@@ -1807,12 +1926,16 @@ namespace MGUI.Core.UI
                 HoverStartTime ??= DateTime.Now;
             }
             else
+            {
                 HoverStartTime = null;
+            }
 
-			if (!RecentDrawWasClipped && HoverStartTime.HasValue && !SelfOrParentWindow.HasModalWindow)
+            if (!RecentDrawWasClipped && HoverStartTime.HasValue && !SelfOrParentWindow.HasModalWindow)
 			{
                 if (!TryGetToolTip(out MGToolTip ToolTip))
+                {
                     ToolTip = this.ToolTip;
+                }
 
                 if (ToolTip != null && (ComputedIsEnabled || ToolTip.ShowOnDisabled))
                 {
@@ -1868,10 +1991,16 @@ namespace MGUI.Core.UI
             ElementUpdateArgs UAForContents = UA with { ActualLayoutBounds = ContentAreaBounds };
 
 			foreach (MGElement Component in _componentsUpdateBeforeContents)
-				Component.Update(UA);               // components get the full (unpadded) bounds
-			UpdateContents(UAForContents);          // content children get the content-area bounds
+            {
+                Component.Update(UA);               // components get the full (unpadded) bounds
+            }
+
+            UpdateContents(UAForContents);          // content children get the content-area bounds
             foreach (MGElement Component in _componentsUpdateAfterContents)
+            {
                 Component.Update(UA);              // components get the full (unpadded) bounds
+            }
+
             OnEndUpdateContents?.Invoke(this, UpdateEventArgs);
 
             if (ComputedIsHitTestVisible)
@@ -1993,22 +2122,30 @@ namespace MGUI.Core.UI
 				using (ClipToBounds ? DA.DT.SetClipTargetTemporary(TargetBounds, true) : null)
 				{
                     foreach (MGElement Component in _componentsDrawBeforeBackground)
+                    {
                         Component.Draw(DA);
+                    }
 
                     DrawBackground(DA, LayoutBounds);
 
                     foreach (MGElement Component in _componentsDrawBeforeSelf)
+                    {
                         Component.Draw(DA);
+                    }
 
                     DrawSelf(DA, LayoutBounds);
 
 					foreach (MGElement Component in _componentsDrawBeforeContents)
-						Component.Draw(DA);
+                    {
+                        Component.Draw(DA);
+                    }
 
                     DrawContents(DA);
 
                     foreach (MGElement Component in _componentsDrawAfterContents)
+                    {
                         Component.Draw(DA);
+                    }
 
                     OverlayBrush?.Draw(DA, this, GetBackgroundBounds(LayoutBounds));
 
@@ -2072,7 +2209,9 @@ namespace MGUI.Core.UI
         protected void DrawSelfBaseImplementation(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             if (HasBorder)
+            {
                 BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, LayoutBounds, GetBorder().BorderThickness);
+            }
         }
         #endregion Draw
 
@@ -2098,21 +2237,29 @@ namespace MGUI.Core.UI
             for (int i = 0; i < vtcAll.Count; i++)
                 vtcAll[i].InvalidateLayoutTree();
             foreach (MGComponentBase Component in Components)
+            {
                 Component.BaseElement.InvalidateLayoutTree();
+            }
         }
 
         /// <summary>Invoked when a property that affects this <see cref="MGElement"/>'s layout has changed, such as <see cref="Padding"/>, <see cref="Margin"/>, or its content.</summary>
         protected virtual void LayoutChanged(MGElement Source, bool NotifyParent)
         {
 			if (InitializationManager.IsDeferringEvents)
-				return;
+            {
+                return;
+            }
 
             if (IsUpdatingLayout)
+            {
                 SelfOrParentWindow.QueueLayoutRefresh = true;
+            }
 
             InvalidateLayout();
             if (NotifyParent)
+            {
                 Parent?.LayoutChanged(Source, NotifyParent);
+            }
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -2299,7 +2446,9 @@ namespace MGUI.Core.UI
             while (RecentMeasurementsFull.Count > MeasurementCacheSize)
                 RecentMeasurementsFull.RemoveAt(RecentMeasurementsFull.Count - 1);
             if (!RecentMeasurementsFull.Contains(Value))
+            {
                 RecentMeasurementsFull.Insert(0, Value);
+            }
         }
 
 		/// <summary>Recent measurements that only account for the requested size of this <see cref="MGElement"/>; does not include the requested size of its content, if any.<br/>
@@ -2311,7 +2460,9 @@ namespace MGUI.Core.UI
             while (RecentMeasurementsSelfOnly.Count > MeasurementCacheSize)
                 RecentMeasurementsSelfOnly.RemoveAt(RecentMeasurementsSelfOnly.Count - 1);
             if (!RecentMeasurementsSelfOnly.Contains(Value))
+            {
                 RecentMeasurementsSelfOnly.Insert(0, Value);
+            }
         }
 
         /// <param name="SelfMeasurement">A measurement that only accounts for this <see cref="MGElement"/> and not its content.<br/>
@@ -2424,7 +2575,9 @@ namespace MGUI.Core.UI
 			FullSize = FullSize.Clamp(MinSizeIncludingMargin, MaxSizeIncludingMargin).Clamp(Size.Empty, AvailableSize);
 
             if ((FullSize.Width <= 0 || FullSize.Height <= 0) && !CanConsumeSpaceInSingleDimension)
+            {
                 FullSize = new(0);
+            }
 
             ElementMeasurement FullMeasurement = new(AvailableSize, FullSize, SharedSize, ContentSize);
             CacheFullMeasurement(FullMeasurement);
@@ -2502,9 +2655,11 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
             Total = Total.Add(TotalComponentSize);
 
             if (Total.Width <= 0 && Total.Height <= 0)
-				Total = new(0);
+            {
+                Total = new(0);
+            }
 
-			return Total;
+            return Total;
 		}
 
 		/// <summary>This method should not include <see cref="Margin"/> nor <see cref="Padding"/>.</summary>
@@ -2540,19 +2695,28 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
                 if (!IncludeInactive)
                 {
                     if (!_vtcCacheDirty && _vtcCacheActiveOnly != null)
+                    {
                         return _vtcCacheActiveOnly;
+                    }
 
                     IEnumerable<MGElement> children = GetChildren();
                     IReadOnlyList<MGElement> result;
                     if (children is IReadOnlyList<MGElement> readOnlyList)
+                    {
                         result = readOnlyList;
+                    }
                     else if (children is List<MGElement> list)
+                    {
                         result = list;
+                    }
                     else
                     {
                         List<MGElement> built = new();
                         foreach (MGElement Child in children)
+                        {
                             built.Add(Child);
+                        }
+
                         result = built;
                     }
                     _vtcCacheActiveOnly = result;
@@ -2564,12 +2728,21 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
                 // may change without a _Children mutation (e.g. tab-selection changes).
                 IEnumerable<MGElement> allChildren = GetChildren();
                 if (allChildren is IReadOnlyList<MGElement> arl)
+                {
                     return arl;
+                }
+
                 if (allChildren is List<MGElement> al)
+                {
                     return al;
+                }
+
                 List<MGElement> allResult = new();
                 foreach (MGElement Child in allChildren)
+                {
                     allResult.Add(Child);
+                }
+
                 return allResult;
             }
             return _emptyElementList;
@@ -2626,7 +2799,10 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
             while (Current != null)
             {
                 if (Current == this)
+                {
                     return true;
+                }
+
                 Current = Current.Parent;
             }
 
@@ -2649,35 +2825,45 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
             if (TraversalMode == TreeTraversalMode.Preorder && IncludeSelf)
             {
                 if (this is T TypedItem)
+                {
                     yield return TypedItem;
+                }
 
-				if (IncludeComponents)
+                if (IncludeComponents)
 				{
 					foreach (MGComponentBase Component in Components)
 					{
 						foreach (T Item in Component.BaseElement.TraverseVisualTree<T>(true, IncludeComponents, IncludeToolTips, IncludeContextMenus, TraversalMode))
-							yield return Item;
-					}
+                        {
+                            yield return Item;
+                        }
+                    }
 				}
 
                 if (IncludeToolTips && ToolTip != null)
                 {
                     foreach (T Item in ToolTip.TraverseVisualTree<T>(true, IncludeComponents, IncludeToolTips, IncludeContextMenus, TraversalMode))
+                    {
                         yield return Item;
+                    }
                 }
 
                 if (IncludeContextMenus && ContextMenu != null)
                 {
                     foreach (T Item in ContextMenu.TraverseVisualTree<T>(true, IncludeComponents, IncludeToolTips, IncludeContextMenus, TraversalMode))
+                    {
                         yield return Item;
+                    }
                 }
             }
 
             foreach (MGElement Child in GetVisualTreeChildren(true, true))
 			{
 				foreach (T Item in Child.TraverseVisualTree<T>(true, IncludeComponents, IncludeToolTips, IncludeContextMenus, TraversalMode))
-					yield return Item;
-			}
+                {
+                    yield return Item;
+                }
+            }
 
 			if (TraversalMode == TreeTraversalMode.Postorder && IncludeSelf)
 			{
@@ -2686,24 +2872,32 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
                     foreach (MGComponentBase Component in Components)
                     {
                         foreach (T Item in Component.BaseElement.TraverseVisualTree<T>(true, IncludeComponents, IncludeToolTips, IncludeContextMenus, TraversalMode))
+                        {
                             yield return Item;
+                        }
                     }
                 }
 
                 if (IncludeToolTips && ToolTip != null)
                 {
                     foreach (T Item in ToolTip.TraverseVisualTree<T>(true, IncludeComponents, IncludeToolTips, IncludeContextMenus, TraversalMode))
+                    {
                         yield return Item;
+                    }
                 }
 
                 if (IncludeContextMenus && ContextMenu != null)
                 {
                     foreach (T Item in ContextMenu.TraverseVisualTree<T>(true, IncludeComponents, IncludeToolTips, IncludeContextMenus, TraversalMode))
+                    {
                         yield return Item;
+                    }
                 }
 
                 if (this is T TypedItem)
+                {
                     yield return TypedItem;
+                }
             }
         }
 

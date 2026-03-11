@@ -44,11 +44,15 @@ public class StylePrecedenceTests
         public bool IsXAMLPropertyUnset(PropertyInfo pi)
         {
             if (ExplicitlySetProperties.Contains(pi.Name))
+            {
                 return false;
+            }
 
             Type type = pi.PropertyType;
             if (type.IsValueType && Nullable.GetUnderlyingType(type) == null)
+            {
                 return true;
+            }
 
             return pi.GetValue(this) == null;
         }

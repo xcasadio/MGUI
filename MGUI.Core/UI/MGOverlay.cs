@@ -56,7 +56,9 @@ namespace MGUI.Core.UI
                     CancelEventArgs<MGOverlay> ClosingArgs = new(Overlay);
                     Overlay.InvokeOnClosing(ClosingArgs);
                     if (ClosingArgs.Cancel)
+                    {
                         return false;
+                    }
                 }
 
                 Overlay.OnZIndexChanged -= HandleOverlayZIndexChanged;
@@ -79,7 +81,9 @@ namespace MGUI.Core.UI
         private void HandleOverlayZIndexChanged(object sender, double e)
         {
             if (sender is MGOverlay Overlay && _OpenOverlays.Contains(Overlay) && _OpenOverlays.Count > 1)
+            {
                 UpdateActiveOverlay();
+            }
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -94,16 +98,22 @@ namespace MGUI.Core.UI
         {
             //  Validate that the overlay belongs to this element
             if (!_Overlays.Contains(Overlay))
+            {
                 return false;
+            }
 
             //  Validate that the overlay isn't already open
             if (_OpenOverlays.Contains(Overlay))
+            {
                 return false;
+            }
 
             CancelEventArgs<MGOverlay> OpeningArgs = new(Overlay);
             Overlay.InvokeOnOpening(OpeningArgs);
             if (OpeningArgs.Cancel)
+            {
                 return false;
+            }
 
             _OpenOverlays.Add(Overlay);
             Overlay.InvokeOnOpened();
@@ -116,12 +126,16 @@ namespace MGUI.Core.UI
         public bool TryClose(MGOverlay Overlay)
         {
             if (!_OpenOverlays.Contains(Overlay))
+            {
                 return false;
+            }
 
             CancelEventArgs<MGOverlay> ClosingArgs = new(Overlay);
             Overlay.InvokeOnClosing(ClosingArgs);
             if (ClosingArgs.Cancel)
+            {
                 return false;
+            }
 
             _OpenOverlays.Remove(Overlay);
             Overlay.InvokeOnClosed();
@@ -207,7 +221,9 @@ namespace MGUI.Core.UI
                 ActiveOverlayPresenter.MouseHandler.Scrolled += (sender, e) =>
                 {
                     if (Name == MGDesktop.OverlayName) // MGDesktop.OverlayHost is a special overlay that is rendered over the entire desktop, so it always swallows mouse scroll events
+                    {
                         TryHandleInputs(() => e.SetHandledBy(this, false));
+                    }
                     else if (IsModal && ActiveOverlay != null && Content != null)
                     {
                         //  Only swallow the mouse scroll events if the content underneath the overlay is scrollable.
@@ -215,7 +231,9 @@ namespace MGUI.Core.UI
                         //  (Such as if the parent of the OverlayHost was wrapped in a ScrollViewer)
                         bool IsContentScrollable = Content.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Any(x => x.ElementType == MGElementType.ScrollViewer);
                         if (IsContentScrollable)
+                        {
                             TryHandleInputs(() => e.SetHandledBy(this, false));
+                        }
                     }
                 };
 
@@ -261,9 +279,14 @@ namespace MGUI.Core.UI
                 base.SetContentVirtual(Value);
 
                 if (Previous != null)
+                {
                     Previous.OnEndDraw -= Content_OnEndDraw;
+                }
+
                 if (Content != null)
+                {
                     Content.OnEndDraw += Content_OnEndDraw;
+                }
 
                 void Content_OnEndDraw(object sender, MGElementDrawEventArgs e)
                 {
@@ -327,14 +350,20 @@ namespace MGUI.Core.UI
         {
             IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
             if (!IncludeInactive)
+            {
                 return baseChildren;
+            }
 
             List<MGElement> result = new(baseChildren.Count + _Overlays.Count);
             result.AddRange(baseChildren);
 
             foreach (MGOverlay InactiveOverlay in _Overlays)
+            {
                 if (InactiveOverlay != ActiveOverlay)
+                {
                     result.Add(InactiveOverlay);
+                }
+            }
 
             return result;
         }
@@ -392,9 +421,13 @@ namespace MGUI.Core.UI
             set
             {
                 if (IsOpen && !value)
+                {
                     _ = Host.TryClose(this);
+                }
                 else if (!IsOpen && value)
+                {
                     _ = Host.TryOpen(this);
+                }
             }
         }
 

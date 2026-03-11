@@ -307,7 +307,10 @@ public class MGDockTabItem : MGElement
         // always exactly right — no stale state, no duplicate-items bug.
         MouseHandler.RMBReleasedInside += (_, e) =>
         {
-            if (e.IsHandled) return;
+            if (e.IsHandled)
+            {
+                return;
+            }
 
             var menu = new MGContextMenu(window, "");
             menu.CanContextMenuOpen = true;
@@ -427,13 +430,19 @@ public class MGDockTabItem : MGElement
     public override System.Collections.Generic.IEnumerable<MGElement> GetChildren()
     {
         if (_titleText != null)
+        {
             yield return _titleText;
+        }
 
         if (_pinButton != null && Panel?.CanAutoHide == true)
+        {
             yield return _pinButton;
+        }
 
         if (_closeButton != null && Panel?.CanClose == true)
+        {
             yield return _closeButton;
+        }
     }
 
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)

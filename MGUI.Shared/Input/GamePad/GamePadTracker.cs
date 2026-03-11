@@ -70,7 +70,9 @@ namespace MGUI.Shared.Input.GamePad
             CurrentState = Microsoft.Xna.Framework.Input.GamePad.GetState(PlayerIndex, DeadZone);
 
             foreach (GamePadButton button in AllButtons)
+            {
                 _CurrentTriggeredButtons[button] = false;
+            }
 
             if (!CurrentState.IsConnected)
             {
@@ -110,7 +112,9 @@ namespace MGUI.Shared.Input.GamePad
         public static bool IsRepeatDue(TimeSpan now, TimeSpan heldSince, TimeSpan? lastRepeatAt, TimeSpan initialRepeatDelay, TimeSpan repeatInterval)
         {
             if (now - heldSince < initialRepeatDelay)
+            {
                 return false;
+            }
 
             return !lastRepeatAt.HasValue || now - lastRepeatAt.Value >= repeatInterval;
         }

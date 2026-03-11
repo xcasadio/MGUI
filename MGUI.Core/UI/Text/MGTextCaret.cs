@@ -79,12 +79,16 @@ namespace MGUI.Core.UI.Text
             while (true)
             {
                 if (TextRenderInfo.TryGetCharAtOriginalIndex(CurrentIndex, out CharRenderInfo CharInfo))
+                {
                     return MoveToCharacter(CharInfo, CurrentIndex == CharIndex ? LeftSide : false);
+                }
                 else
                 {
                     CurrentIndex--;
                     if (CurrentIndex < FirstIndex)
+                    {
                         return false;
+                    }
                 }
             }
         }
@@ -101,12 +105,16 @@ namespace MGUI.Core.UI.Text
             while (true)
             {
                 if (TextRenderInfo.TryGetCharAtOriginalIndex(CurrentIndex, out CharRenderInfo CharInfo))
+                {
                     return MoveToCharacter(CharInfo, CurrentIndex == CharIndex ? LeftSide : true);
+                }
                 else
                 {
                     CurrentIndex++;
                     if (CurrentIndex > LastIndex)
+                    {
                         return false;
+                    }
                 }
             }
         }
@@ -118,9 +126,13 @@ namespace MGUI.Core.UI.Text
         {
             //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to original index or end: {CharIndex} (Left={LeftSide})");
             if (TextRenderInfo.TryGetCharAtOriginalIndex(CharIndex, out CharRenderInfo CharInfo))
+            {
                 return MoveToCharacter(CharInfo, LeftSide);
+            }
             else
+            {
                 return MoveToEndOfLine(TextRenderInfo.LastLine);
+            }
         }
 
         /// <summary>Moves the caret position to the given side of the given <paramref name="CharIndex"/>.<br/>
@@ -135,12 +147,16 @@ namespace MGUI.Core.UI.Text
             while (true)
             {
                 if (TextRenderInfo.TryGetCharAtParsedIndex(CurrentIndex, out CharRenderInfo CharInfo))
+                {
                     return MoveToCharacter(CharInfo, CurrentIndex == CharIndex ? LeftSide : false);
+                }
                 else
                 {
                     CurrentIndex--;
                     if (CurrentIndex < FirstIndex)
+                    {
                         return false;
+                    }
                 }
             }
         }
@@ -157,12 +173,16 @@ namespace MGUI.Core.UI.Text
             while (true)
             {
                 if (TextRenderInfo.TryGetCharAtParsedIndex(CurrentIndex, out CharRenderInfo CharInfo))
+                {
                     return MoveToCharacter(CharInfo, CurrentIndex == CharIndex ? LeftSide : true);
+                }
                 else
                 {
                     CurrentIndex++;
                     if (CurrentIndex > LastIndex)
+                    {
                         return false;
+                    }
                 }
             }
         }
@@ -174,9 +194,13 @@ namespace MGUI.Core.UI.Text
         {
             //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to parsed index or end: {CharIndex} (Left={LeftSide})");
             if (TextRenderInfo.TryGetCharAtParsedIndex(CharIndex, out CharRenderInfo CharInfo))
+            {
                 return MoveToCharacter(CharInfo, LeftSide);
+            }
             else
+            {
                 return MoveToEndOfLine(TextRenderInfo.LastLine);
+            }
         }
 
         public bool MoveToApproximateScreenPosition(Vector2 ScreenPosition)
@@ -186,11 +210,16 @@ namespace MGUI.Core.UI.Text
             {
                 bool IsLeftEdge = ScreenPosition.X <= CharInfo.CenterX || !CharInfo.Line.HasCharacters || CharInfo.Line.Source == null;
                 if (!IsLeftEdge)
+                {
                     IsLeftEdge = CharInfo.Line.Source?.Runs.All(x => x is MGTextRunText r && string.IsNullOrEmpty(r.Text)) != false;
+                }
+
                 return MoveToCharacter(CharInfo, IsLeftEdge);
             }
             else
+            {
                 return false;
+            }
         }
 
         internal bool MoveToCharacter(CharRenderInfo CharInfo, bool LeftSide)
@@ -214,7 +243,9 @@ namespace MGUI.Core.UI.Text
         public bool MoveLeft(int Amount)
         {
             if (!HasPosition)
+            {
                 return false;
+            }
 
             int DesiredIndex = Position.Value.IndexInParsedText - Amount;
             if (TextRenderInfo.TryGetCharAtParsedIndex(DesiredIndex, out CharRenderInfo CharInfo))
@@ -231,7 +262,9 @@ namespace MGUI.Core.UI.Text
         public bool MoveRight(int Amount)
         {
             if (!HasPosition)
+            {
                 return false;
+            }
 
             int DesiredIndex = Position.Value.IndexInParsedText + Amount - 1;
             if (TextRenderInfo.TryGetCharAtParsedIndex(DesiredIndex, out CharRenderInfo CharInfo))
@@ -248,10 +281,14 @@ namespace MGUI.Core.UI.Text
         public bool MoveUp(int Amount)
         {
             if (!HasPosition)
+            {
                 return false;
+            }
 
             if (Position.Value.LineIndex <= 0)
+            {
                 return MoveToStartOfCurrentLine();
+            }
             else
             {
                 float LineHeight = Position.Value.Bounds.Height;
@@ -264,10 +301,14 @@ namespace MGUI.Core.UI.Text
         public bool MoveDown(int Amount)
         {
             if (!HasPosition)
+            {
                 return false;
+            }
 
             if (Position.Value.LineIndex >= TextRenderInfo.Lines.Max(x => x.LineIndex))
+            {
                 return MoveToEndOfCurrentLine();
+            }
             else
             {
                 float LineHeight = Position.Value.Bounds.Height;
@@ -280,7 +321,9 @@ namespace MGUI.Core.UI.Text
         public bool MoveToStartOfCurrentLine()
         {
             if (!HasPosition)
+            {
                 return false;
+            }
 
             LineRenderInfo Line = TextRenderInfo.Lines.FirstOrDefault(x => x.LineIndex == Position.Value.LineIndex);
             return MoveToStartOfLine(Line);
@@ -289,7 +332,9 @@ namespace MGUI.Core.UI.Text
         internal bool MoveToStartOfLine(LineRenderInfo Line)
         {
             if (Line == null)
+            {
                 return false;
+            }
 
             CharRenderInfo First = Line.Characters.First();
             return MoveToCharacter(First, true);
@@ -298,7 +343,9 @@ namespace MGUI.Core.UI.Text
         public bool MoveToEndOfCurrentLine()
         {
             if (!HasPosition)
+            {
                 return false;
+            }
 
             LineRenderInfo Line = TextRenderInfo.Lines.FirstOrDefault(x => x.LineIndex == Position.Value.LineIndex);
             return MoveToEndOfLine(Line);
@@ -307,7 +354,9 @@ namespace MGUI.Core.UI.Text
         internal bool MoveToEndOfLine(LineRenderInfo Line)
         {
             if (Line == null || !Line.Characters.Any())
+            {
                 return false;
+            }
 
             CharRenderInfo Last = Line.LastCharacter;
             return MoveToCharacter(Last, false);

@@ -20,7 +20,11 @@ public class DockNodeModelTests
     private static DockTabGroupNode Group(params DockPanelNode[] panels)
     {
         var g = new DockTabGroupNode();
-        foreach (var p in panels) g.Panels.Add(p);
+        foreach (var p in panels)
+        {
+            g.Panels.Add(p);
+        }
+
         return g;
     }
 
@@ -435,7 +439,9 @@ public class DockNodeModelTests
         {
             if (e.PropertyName == nameof(DockTabGroupNode.ActivePanelId) ||
                 e.PropertyName == nameof(DockTabGroupNode.ActivePanel))
+            {
                 changeCount++;
+            }
         };
 
         // Calling SetActivePanel again with the same id must NOT fire PropertyChanged
@@ -460,7 +466,9 @@ public class DockNodeModelTests
         group.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(DockTabGroupNode.ActivePanelId))
+            {
                 changeCount++;
+            }
         };
 
         group.SetActivePanel(p2.Id);

@@ -15,7 +15,9 @@ namespace MGUI.Samples.Dialogs
             : base(Content, Desktop, $"{nameof(Dialogs)}", $"{nameof(XAMLDesignerWindow)}.xaml")
         {
             if (Window.BackgroundBrush.NormalValue is MGSolidFillBrush SolidFill)
+            {
                 Window.BackgroundBrush.NormalValue = SolidFill * 0.5f;
+            }
         }
     }
 }

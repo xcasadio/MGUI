@@ -17,7 +17,9 @@ namespace MGUI.Core.UI
         public UIView ResolveTargetView(IReadOnlyList<UIView> Views, UIView HoveredView = null)
         {
             if (PreferredInputView != null && Views?.Contains(PreferredInputView) == true)
+            {
                 return PreferredInputView;
+            }
 
             return HoveredView ?? Views?.LastOrDefault();
         }
@@ -26,7 +28,9 @@ namespace MGUI.Core.UI
         {
             UIView target = ResolveTargetView(Views, HoveredView);
             if (target != null)
+            {
                 PreferredInputView = target;
+            }
 
             return target;
         }

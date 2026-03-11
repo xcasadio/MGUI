@@ -107,7 +107,11 @@ namespace MGUI.Samples.Features
 
         private static string FormatBounds(string name, MGElement el)
         {
-            if (el == null) return $"{name}: (null)";
+            if (el == null)
+            {
+                return $"{name}: (null)";
+            }
+
             Rectangle b = el.ActualLayoutBounds;
             return $"{name}: ({b.X},{b.Y}) {b.Width}×{b.Height}  lay-pad={el.Padding}";
         }

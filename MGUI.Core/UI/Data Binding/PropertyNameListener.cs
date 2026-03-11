@@ -26,7 +26,9 @@ namespace MGUI.Core.UI.Data_Binding
         private void Source_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == PropertyName)
+            {
                 PropertyChanged?.Invoke(sender, e);
+            }
         }
 
         public void Detach()

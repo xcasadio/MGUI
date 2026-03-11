@@ -108,7 +108,9 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         private void Host_LayoutUpdated(object sender, EventArgs e)
@@ -124,7 +126,9 @@ namespace MGUI.Core.UI
         private void Host_EndingDraw(object sender, MGElementDrawEventArgs e)
         {
             if (!Host.RecentDrawWasClipped)
+            {
                 DrawSelf(e.DA, LayoutBounds);
+            }
         }
 
         private int InitialWidth;
@@ -158,7 +162,9 @@ namespace MGUI.Core.UI
             : this(Window, false)
         {
             if (HostElement == null)
+            {
                 throw new ArgumentNullException(nameof(HostElement));
+            }
 
             TrySetHost(HostElement);
         }
@@ -205,16 +211,26 @@ namespace MGUI.Core.UI
                         if (Parent is MGWindow TargetWindow)
                         {
                             if (AllowHorizontalResize)
+                            {
                                 TargetWindow.WindowWidth = Math.Max(0, InitialWidth + Delta.X);
+                            }
+
                             if (AllowVerticalResize)
+                            {
                                 TargetWindow.WindowHeight = Math.Max(0, InitialHeight + Delta.Y);
+                            }
                         }
                         else
                         {
                             if (AllowHorizontalResize)
+                            {
                                 Parent.PreferredWidth = Math.Max(0, InitialWidth + Delta.X);
+                            }
+
                             if (AllowVerticalResize)
+                            {
                                 Parent.PreferredHeight = Math.Max(0, InitialHeight + Delta.Y);
+                            }
                         }
                     }
                 };
@@ -266,7 +282,9 @@ namespace MGUI.Core.UI
             {
                 Color? Overlay = Foreground.GetColorOverlay(VisualState.GetSecondaryState(IsDragging, false));
                 if (Overlay != null)
+                {
                     FillPoints(Overlay.Value * DA.Opacity);
+                }
             }
         }
     }

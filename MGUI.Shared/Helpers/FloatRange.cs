@@ -28,9 +28,13 @@ namespace MGUI.Shared.Helpers
         public float SignedDistance(FloatRange Other)
         {
             if (Minimum < Other.Minimum)
+            {
                 return Other.Minimum - Maximum;
+            }
             else
+            {
                 return Minimum - Other.Maximum;
+            }
         }
 
         public bool Intersects(FloatRange Other, out bool IsTouching, bool TreatTouchingAsIntersection = true) => Intersects(this, Other, out IsTouching, TreatTouchingAsIntersection);
@@ -48,9 +52,13 @@ namespace MGUI.Shared.Helpers
         {
             IsTouching = A.Maximum == B.Minimum || B.Maximum == A.Minimum;
             if (TreatTouchingAsIntersection)
+            {
                 return !(A.Maximum < B.Minimum || B.Maximum < A.Minimum);
+            }
             else
+            {
                 return !(A.Maximum <= B.Minimum || B.Maximum <= A.Minimum);
+            }
         }
 
         public FloatRange Union(FloatRange Other) => new(Math.Min(Minimum, Other.Minimum), Math.Max(Maximum, Other.Maximum));
@@ -64,7 +72,10 @@ namespace MGUI.Shared.Helpers
         public static FloatRange operator /(FloatRange r1, float scalar)
         {
             if (scalar == 0)
+            {
                 throw new DivideByZeroException();
+            }
+
             return new(r1.Minimum / scalar, r1.Maximum / scalar);
         }
 

@@ -137,7 +137,9 @@ namespace MGUI.Core.UI.Containers
         protected override void DrawContents(ElementDrawArgs DA)
         {
             foreach (MGElement Child in GetChildren())
+            {
                 Child.Draw(DA);
+            }
         }
     }
 
@@ -202,7 +204,9 @@ namespace MGUI.Core.UI.Containers
             if (_Content != Value)
             {
                 if (!CanChangeContent)
+                {
                     throw new InvalidOperationException($"Cannot set {nameof(MGSingleContentHost)}.{nameof(Content)} while {nameof(CanChangeContent)} is false.");
+                }
 
                 if (_Content != null)
                 {
@@ -242,7 +246,9 @@ namespace MGUI.Core.UI.Containers
         public MGSingleContentHost SetContent(MGElement Content)
         {
             if (Content is MGSingleContentHost SCH)
+            {
                 return SetContent(SCH);
+            }
             else
             {
                 SetContentVirtual(Content);
@@ -284,7 +290,9 @@ namespace MGUI.Core.UI.Containers
                 return ContentSize;
             }
             else
+            {
                 return UpdateContentMeasurementBaseImplementation(AvailableSize);
+            }
         }
 
         protected override void UpdateContentLayout(Rectangle Bounds)
@@ -313,7 +321,9 @@ namespace MGUI.Core.UI.Containers
             if (_Content != Value)
             {
                 if (!CanChangeContent)
+                {
                     throw new InvalidOperationException($"Cannot set {nameof(MGSingleContentHost)}.{nameof(Content)} while {nameof(CanChangeContent)} is false.");
+                }
 
                 if (_Content != null && !SuppressContentAddedAndRemoved)
                 {
@@ -352,7 +362,9 @@ namespace MGUI.Core.UI.Containers
                         CancelEventArgs<MGElement> CancelArgs = new(value);
                         HeaderChanging(this, CancelArgs);
                         if (CancelArgs.Cancel)
+                        {
                             return;
+                        }
                     }
 
                     HeaderPresenter.SetContent(value);
@@ -386,7 +398,9 @@ namespace MGUI.Core.UI.Containers
                     CancelEventArgs<Dock> CancelArgs = new(Value);
                     HeaderPositionChanging(this, CancelArgs);
                     if (CancelArgs.Cancel)
+                    {
                         return;
+                    }
                 }
 
                 _HeaderPosition = Value;

@@ -84,7 +84,9 @@ namespace MGUI.Samples.Controls
             Desktop.Resources.AddCommand("Button1_Reset", x =>
             {
                 if (Window.TryGetElementByName("ProgressButton_1", out MGProgressButton btn))
+                {
                     btn.ResetProgress();
+                }
             });
 
             ((MGProgressButton)Window.GetElementByName("WoodBtn")).OnCompleted += (sender, e) => WoodQty++;

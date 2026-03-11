@@ -62,7 +62,9 @@ namespace MGUI.Core.UI.XAML
             if (IncludeContent)
             {
                 foreach (MenuBarItem Item in Items)
+                {
                     Item.ToElement<MGMenuBarItem>(Element.SelfOrParentWindow, MenuBar);
+                }
             }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
@@ -71,15 +73,21 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return ItemsPanel;
 
             if (ButtonWrapperTemplate != null)
+            {
                 yield return ButtonWrapperTemplate;
+            }
 
             foreach (MenuBarItem Item in Items)
+            {
                 yield return Item;
+            }
         }
     }
 
@@ -112,7 +120,9 @@ namespace MGUI.Core.UI.XAML
                 return MenuBar.AddItem(ContentElement);
             }
             else
+            {
                 throw new InvalidOperationException($"{nameof(MenuBarItem)} must be a direct child of {nameof(MenuBar)}.");
+            }
         }
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
@@ -134,7 +144,10 @@ namespace MGUI.Core.UI.XAML
                     DropdownMenu.IsTitleBarVisible = false;
                     DropdownMenu.AutoCloseThreshold = null;
                     foreach (ContextMenuItem CMItem in Items)
+                    {
                         CMItem.ToElement<MGContextMenuItem>(Window, DropdownMenu);
+                    }
+
                     Item.Submenu = DropdownMenu;
                 }
             }
@@ -148,13 +161,19 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             if (Submenu != null)
+            {
                 yield return Submenu;
+            }
 
             foreach (ContextMenuItem Item in Items)
+            {
                 yield return Item;
+            }
         }
     }
 }

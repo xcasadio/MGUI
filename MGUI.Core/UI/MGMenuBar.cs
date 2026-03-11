@@ -80,20 +80,28 @@ namespace MGUI.Core.UI
         private void OnContentWrapperChanged()
         {
             if (ContentWrapper == null)
+            {
                 return;
+            }
 
             ContentWrapper.AddCommandHandler((Btn, e) =>
             {
                 if (MenuBar.ActiveItem == this)
+                {
                     MenuBar.CloseActiveItem();
+                }
                 else
+                {
                     MenuBar.OpenItem(this);
+                }
             });
 
             ContentWrapper.MouseHandler.Entered += (sender, e) =>
             {
                 if (MenuBar.IsMenuActive && MenuBar.ActiveItem != this)
+                {
                     MenuBar.OpenItem(this);
+                }
             };
         }
 
@@ -140,13 +148,18 @@ namespace MGUI.Core.UI
         private void Submenu_Opened(object sender, EventArgs e)
         {
             if (ContentWrapper != null)
+            {
                 ContentWrapper.SpoofIsHoveredWhileDrawingBackground = true;
+            }
         }
 
         private void Submenu_Closed(object sender, EventArgs e)
         {
             if (ContentWrapper != null)
+            {
                 ContentWrapper.SpoofIsHoveredWhileDrawingBackground = false;
+            }
+
             MenuBar.OnSubmenuClosed(this);
         }
 
@@ -159,7 +172,10 @@ namespace MGUI.Core.UI
         internal void OpenSubmenu()
         {
             if (Submenu == null || Submenu.IsContextMenuOpen)
+            {
                 return;
+            }
+
             Rectangle ScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds);
             Point AnchorPoint = new(ScreenBounds.Left, ScreenBounds.Bottom);
             Submenu.TryOpenContextMenu(AnchorPoint);
@@ -169,7 +185,9 @@ namespace MGUI.Core.UI
         internal void CloseSubmenu()
         {
             if (Submenu?.IsContextMenuOpen == true)
+            {
                 Submenu.TryCloseContextMenu();
+            }
         }
 
         public MGMenuBarItem(MGMenuBar MenuBar, MGElement Content)
@@ -201,7 +219,9 @@ namespace MGUI.Core.UI
         internal static int GetAdjacentItemIndex(int currentIndex, int count, UINavigationAction action)
         {
             if (count <= 0)
+            {
                 return -1;
+            }
 
             int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
             return action switch
@@ -330,10 +350,14 @@ namespace MGUI.Core.UI
         internal void OpenItem(MGMenuBarItem Item)
         {
             if (Item == null || Item.Submenu == null)
+            {
                 return;
+            }
 
             if (ActiveItem != null && ActiveItem != Item)
+            {
                 ActiveItem.CloseSubmenu();
+            }
 
             ActiveItem = Item;
             IsMenuActive = true;
@@ -355,7 +379,9 @@ namespace MGUI.Core.UI
 
                 // Release keyboard focus
                 if (GetDesktop().FocusedKeyboardHandler == this)
+                {
                     GetDesktop().ClearQueuedFocusedKeyboardHandler();
+                }
             }
         }
 
@@ -416,20 +442,28 @@ namespace MGUI.Core.UI
                 KeyboardHandler.Pressed += (sender, e) =>
                 {
                     if (!IsMenuActive)
+                    {
                         return;
+                    }
 
                     if (e.Key == Keys.Left)
                     {
                         int Idx = _Items.IndexOf(ActiveItem);
                         if (Idx > 0)
+                        {
                             OpenItem(_Items[Idx - 1]);
+                        }
+
                         e.SetHandledBy(this, false);
                     }
                     else if (e.Key == Keys.Right)
                     {
                         int Idx = _Items.IndexOf(ActiveItem);
                         if (Idx >= 0 && Idx < _Items.Count - 1)
+                        {
                             OpenItem(_Items[Idx + 1]);
+                        }
+
                         e.SetHandledBy(this, false);
                     }
                     else if (e.Key == Keys.Escape)
@@ -462,12 +496,16 @@ namespace MGUI.Core.UI
                             if (e.OldItems != null)
                             {
                                 foreach (MGMenuBarItem Item in e.OldItems)
+                                {
                                     ItemsPanel.TryRemoveChild(Item);
+                                }
                             }
                         }
 
                         if (e.Action is NotifyCollectionChangedAction.Replace or NotifyCollectionChangedAction.Move)
+                        {
                             throw new NotImplementedException();
+                        }
                     }
                 };
             }
@@ -476,7 +514,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (_Items.Count == 0)
+            {
                 return false;
+            }
 
             if (action == UINavigationAction.Cancel && IsMenuActive)
             {
@@ -497,12 +537,16 @@ namespace MGUI.Core.UI
             }
 
             if (action is not (UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Home or UINavigationAction.End))
+            {
                 return false;
+            }
 
             int currentIndex = Math.Max(0, _Items.IndexOf(ActiveItem));
             int nextIndex = GetAdjacentItemIndex(currentIndex, _Items.Count, action);
             if (nextIndex < 0)
+            {
                 return false;
+            }
 
             OpenItem(_Items[nextIndex]);
             return true;

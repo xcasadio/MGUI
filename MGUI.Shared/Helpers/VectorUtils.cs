@@ -57,7 +57,10 @@ namespace MGUI.Shared.Helpers
             LineDirection.Normalize();
             double Distance = LineDirection.CrossProduct(LinePoint - Point);
             if (Math.Abs(AngleBetween(LineDirection.LeftNormal(), Normal)) < Math.Abs(AngleBetween(LineDirection.RightNormal(), Normal)))
+            {
                 Distance *= -1;
+            }
+
             return Distance;
         }
 

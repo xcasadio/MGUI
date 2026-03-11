@@ -56,9 +56,13 @@ namespace MGUI.Core.UI.Containers.Grids
             _Weight = Weight;
 
             if (IsPixelLength && !Pixels.HasValue)
+            {
                 throw new ArgumentNullException(nameof(Pixels));
+            }
             else if (IsWeightedLength && !Weight.HasValue)
+            {
                 throw new ArgumentNullException(nameof(Weight));
+            }
         }
 
         public static readonly GridLength Auto = new(GridUnitType.Auto, null, null);
@@ -73,9 +77,13 @@ namespace MGUI.Core.UI.Containers.Grids
         override public bool Equals(object other)
         {
             if (other is GridLength gl)
+            {
                 return this == gl;
+            }
             else
+            {
                 return false;
+            }
         }
         public bool Equals(GridLength other) => this == other;
 
@@ -130,7 +138,9 @@ namespace MGUI.Core.UI.Containers.Grids
                 return CreateWeightedLength(Weight);
             }
             else
+            {
                 throw new NotImplementedException($"Unrecognized {nameof(GridLength)} value: {Length}");
+            }
         }
 
         /// <param name="CommaSeparatedValues">A comma-separated list of dimensions, where each value is either:<para/>
@@ -143,7 +153,9 @@ namespace MGUI.Core.UI.Containers.Grids
             if (!string.IsNullOrEmpty(CommaSeparatedValues))
             {
                 foreach (string Item in CommaSeparatedValues.Split(','))
+                {
                     yield return Parse(Item);
+                }
             }
         }
     }
@@ -153,7 +165,10 @@ namespace MGUI.Core.UI.Containers.Grids
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
             if (sourceType == typeof(string))
+            {
                 return true;
+            }
+
             return base.CanConvertFrom(context, sourceType);
         }
 

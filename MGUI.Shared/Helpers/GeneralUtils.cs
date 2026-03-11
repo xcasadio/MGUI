@@ -74,7 +74,9 @@ namespace MGUI.Shared.Helpers
                 for (int j = 0; j < @this.Count; j++)
                 {
                     if (i == j)
+                    {
                         continue;
+                    }
 
                     yield return new(@this[i], @this[j]);
                 }
@@ -102,15 +104,21 @@ namespace MGUI.Shared.Helpers
         public static IEnumerable<(TSource, TSource)> SelectConsecutivePairs<TSource>(this IEnumerable<TSource> @this, bool includeLastToFirst)
         {
             if (!includeLastToFirst || !@this.Skip(2).Any())
+            {
                 return Enumerable.Zip(@this, @this.Skip(1));
+            }
             else
+            {
                 return Enumerable.Zip(@this, @this.Skip(1).Append(@this.First()));
+            }
         }
 
         public static IEnumerable<(T Current, T Next, bool HasNext)> EnumerateWithLookahead<T>(this IEnumerable<T> Items)
         {
             if (!Items.Any())
+            {
                 yield break;
+            }
 
             bool First = true;
             T Previous = default;
@@ -118,9 +126,14 @@ namespace MGUI.Shared.Helpers
             foreach (T Item in Items)
             {
                 if (First)
+                {
                     First = false;
+                }
                 else
+                {
                     yield return (Previous, Item, true);
+                }
+
                 Previous = Item;
             }
 
@@ -183,7 +196,10 @@ namespace MGUI.Shared.Helpers
         public static int PreviousLoopedIndex<T>(this IList<T> @this, int Current)
         {
             if (Current < 0)
+            {
                 Current = (Current % @this.Count) + @this.Count;
+            }
+
             return Current == 0 ? @this.Count - 1 : Current - 1;
         }
         public static int NextLoopedIndex<T>(this IList<T> @this, int Current) => (Current + 1) % @this.Count;
@@ -216,7 +232,9 @@ namespace MGUI.Shared.Helpers
         public static T RemoveLast<T>(IList<T> Items, T DefaultValue)
         {
             if (!Items.Any())
+            {
                 return DefaultValue;
+            }
             else
             {
                 T Value = Items[Items.Count - 1];

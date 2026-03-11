@@ -23,12 +23,18 @@ namespace MGUI.Core.UI
         public MGElement GetInstance(MGWindow Window)
         {
             if (Window == null)
+            {
                 throw new ArgumentNullException(nameof(Window));
+            }
 
             if (!IsShared)
+            {
                 return Template(Window);
+            }
             else if (Instances.TryGetValue(Window, out MGElement SharedInstance))
+            {
                 return SharedInstance;
+            }
             else
             {
                 MGElement Instance = Template(Window);

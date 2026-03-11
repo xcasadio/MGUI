@@ -241,73 +241,142 @@ namespace MGUI.Core.UI.XAML
                 MGDesktop Desktop = Element.GetDesktop();
 
                 if (Name != null)
+                {
                     Element.Name = Name;
+                }
 
                 if (Margin.HasValue)
+                {
                     Element.Margin = Margin.Value.ToThickness();
+                }
+
                 if (Padding.HasValue)
+                {
                     Element.Padding = Padding.Value.ToThickness();
+                }
 
                 if (HorizontalAlignment.HasValue)
+                {
                     Element.HorizontalAlignment = HorizontalAlignment.Value;
+                }
+
                 if (VerticalAlignment.HasValue)
+                {
                     Element.VerticalAlignment = VerticalAlignment.Value;
+                }
+
                 if (HorizontalContentAlignment.HasValue)
+                {
                     Element.HorizontalContentAlignment = HorizontalContentAlignment.Value;
+                }
+
                 if (VerticalContentAlignment.HasValue)
+                {
                     Element.VerticalContentAlignment = VerticalContentAlignment.Value;
+                }
 
                 if (MinWidth.HasValue)
+                {
                     Element.MinWidth = MinWidth.Value;
+                }
+
                 if (MinHeight.HasValue)
+                {
                     Element.MinHeight = MinHeight.Value;
+                }
+
                 if (MaxWidth.HasValue)
+                {
                     Element.MaxWidth = MaxWidth.Value;
+                }
+
                 if (MaxHeight.HasValue)
+                {
                     Element.MaxHeight = MaxHeight.Value;
+                }
 
                 if (PreferredWidth.HasValue)
+                {
                     Element.PreferredWidth = PreferredWidth.Value;
+                }
+
                 if (PreferredHeight.HasValue)
+                {
                     Element.PreferredHeight = PreferredHeight.Value;
+                }
 
                 if (ToolTip != null)
+                {
                     Element.ToolTip = ToolTip.ToElement<MGToolTip>(Element.SelfOrParentWindow, Element);
+                }
+
                 if (ContextMenu != null)
+                {
                     Element.ContextMenu = ContextMenu.ToElement<MGContextMenu>(Element.SelfOrParentWindow, Element);
+                }
 
                 if (CanHandleInputsWhileHidden.HasValue)
+                {
                     Element.CanHandleInputsWhileHidden = CanHandleInputsWhileHidden.Value;
+                }
+
                 if (IsHitTestVisible.HasValue)
+                {
                     Element.IsHitTestVisible = IsHitTestVisible.Value;
+                }
+
                 if (IsSelected.HasValue)
+                {
                     Element.IsSelected = IsSelected.Value;
+                }
+
                 if (IsEnabled.HasValue)
+                {
                     Element.IsEnabled = IsEnabled.Value;
+                }
 
                 if (BackgroundRenderPadding.HasValue)
+                {
                     Element.BackgroundRenderPadding = BackgroundRenderPadding.Value.ToThickness();
+                }
+
                 ApplyBackground(Element);
                 Element.OverlayBrush = Overlay?.ToFillBrush(Desktop, Element);
 
                 if (TextForeground.HasValue)
+                {
                     Element.DefaultTextForeground.NormalValue = TextForeground.Value.ToXNAColor();
+                }
+
                 if (DisabledTextForeground.HasValue)
+                {
                     Element.DefaultTextForeground.DisabledValue = DisabledTextForeground.Value.ToXNAColor();
+                }
+
                 if (SelectedTextForeground.HasValue)
+                {
                     Element.DefaultTextForeground.SelectedValue = SelectedTextForeground.Value.ToXNAColor();
+                }
 
                 if (Visibility.HasValue)
+                {
                     Element.Visibility = Visibility.Value;
+                }
 
                 if (ClipToBounds.HasValue)
+                {
                     Element.ClipToBounds = ClipToBounds.Value;
+                }
 
                 if (Opacity.HasValue)
+                {
                     Element.Opacity = Opacity.Value;
+                }
 
                 if (RenderScale.HasValue)
+                {
                     Element.RenderScale = new(RenderScale.Value, RenderScale.Value);
+                }
 
                 Element.Tag = Tag;
 
@@ -318,7 +387,9 @@ namespace MGUI.Core.UI.XAML
                     //  So this logic temporarily copies binding information to the underlying target types and processes them later.
 
                     if (Bindings?.Any() == true)
+                    {
                         Element.Bindings.AddRange(Bindings);
+                    }
 
                     void CopyBindings(XAMLBindableBase Source, object Target, string TargetPath)
                     {
@@ -362,7 +433,9 @@ namespace MGUI.Core.UI.XAML
                                         {
                                             yield return Item.Item;
                                             foreach (XAMLBindableBase Nested in RecurseNestedBindableObjects(Item.Item))
+                                            {
                                                 yield return Nested;
+                                            }
                                         }
                                     }
                                 }
@@ -387,9 +460,14 @@ namespace MGUI.Core.UI.XAML
                     }
 
                     foreach (var (Source, Target, TargetPath) in GetBaseBindableObjects(Element))
+                    {
                         CopyBindings(Source, Target, TargetPath);
+                    }
+
                     foreach (var (Source, Target, TargetPath) in GetBindableObjects(Element))
+                    {
                         CopyBindings(Source, Target, TargetPath);
+                    }
                 }
             }
         }
@@ -445,7 +523,9 @@ namespace MGUI.Core.UI.XAML
             else
             {
                 if (DataContextOverride != null)
+                {
                     Element.DataContextOverride = DataContextOverride;
+                }
 
                 if (Element.Bindings?.Any() == true)
                 {
@@ -461,7 +541,9 @@ namespace MGUI.Core.UI.XAML
                         }
 
                         if (PostProcessedBinding.Converter is StringToToolTipConverter StringToolTipConverter)
+                        {
                             StringToolTipConverter.Host = Element;
+                        }
 
                         DataBindingManager.AddBinding(PostProcessedBinding, TargetObject);
                     }
@@ -483,7 +565,10 @@ namespace MGUI.Core.UI.XAML
                                 foreach (BindingConfig Binding in BindableTarget.Bindings)
                                 {
                                     if (Binding.Converter is StringToToolTipConverter StringToolTipConverter)
+                                    {
                                         StringToolTipConverter.Host = Element;
+                                    }
+
                                     DataBindingManager.AddBinding(Binding, BindableTarget);
                                     Targets.Add(BindableTarget);
                                 }
@@ -503,11 +588,16 @@ namespace MGUI.Core.UI.XAML
                             }
 
                             foreach (var Item in Targets)
+                            {
                                 UpdateDataContext(Item);
+                            }
+
                             Window.DataContextChanged += (sender, e) =>
                             {
                                 foreach (var Item in Targets)
+                                {
                                     UpdateDataContext(Item);
+                                }
                             };
                         }
                     }
@@ -519,7 +609,9 @@ namespace MGUI.Core.UI.XAML
         internal static void ApplyExplicitBackground(VisualStateFillBrush backgroundBrush, IFillBrush explicitBackground)
         {
             if (backgroundBrush == null || explicitBackground == null)
+            {
                 return;
+            }
 
             backgroundBrush.NormalValue = explicitBackground;
             backgroundBrush.FocusedValue = explicitBackground.Copy();
@@ -530,13 +622,24 @@ namespace MGUI.Core.UI.XAML
             MGDesktop Desktop = Element.GetDesktop();
 
             if (Background != null)
+            {
                 ApplyExplicitBackground(Element.BackgroundBrush, Background.ToFillBrush(Desktop, Element));
+            }
+
             if (DisabledBackground != null)
+            {
                 Element.BackgroundBrush.DisabledValue = DisabledBackground.ToFillBrush(Desktop, Element);
+            }
+
             if (SelectedBackground != null)
+            {
                 Element.BackgroundBrush.SelectedValue = SelectedBackground.ToFillBrush(Desktop, Element);
+            }
+
             if (BackgroundFocusedColor != null)
+            {
                 Element.BackgroundBrush.FocusedColor = BackgroundFocusedColor.Value.ToXNAColor();
+            }
         }
 
         protected abstract MGElement CreateElementInstance(MGWindow Window, MGElement Parent);
@@ -620,7 +723,9 @@ namespace MGUI.Core.UI.XAML
 #if DEBUG
                         //  Sanity check
                         if (KVP.Value.Count == 0)
+                        {
                             throw new InvalidOperationException($"{nameof(Element)}.{nameof(ProcessStyles)}.{nameof(ValuesByProperty)} should never be empty. The indexed data might not be properly updated.");
+                        }
 #endif
 
                         string PropertyName = KVP.Key;
@@ -633,9 +738,13 @@ namespace MGUI.Core.UI.XAML
                                 foreach (object Value in KVP.Value)
                                 {
                                     if (Value is string StringValue)
+                                    {
                                         PropertyInfo.SetValue(this, Converter.ConvertFrom(null, CultureInfo.InvariantCulture, StringValue));
+                                    }
                                     else
+                                    {
                                         PropertyInfo.SetValue(this, Value);
+                                    }
                                 }
 
                                 ModifiedPropertyNames.Add(PropertyName);
@@ -675,9 +784,13 @@ namespace MGUI.Core.UI.XAML
                             {
                                 TypeConverter Converter = TypeDescriptor.GetConverter(PropertyInfo.PropertyType);
                                 if (Setter.Value is string StringValue)
+                                {
                                     PropertyInfo.SetValue(this, Converter.ConvertFrom(null, CultureInfo.InvariantCulture, StringValue));
+                                }
                                 else
+                                {
                                     PropertyInfo.SetValue(this, Setter.Value);
+                                }
 
                                 ModifiedPropertyNames.Add(PropertyName);
                             }
@@ -713,7 +826,9 @@ namespace MGUI.Core.UI.XAML
                                 {
                                     ValuesByProperty.Remove(Property);
                                     if (ValuesByProperty.Count == 0)
+                                    {
                                         StylesByType.Remove(Type);
+                                    }
                                 }
                             }
                         }
@@ -739,7 +854,9 @@ namespace MGUI.Core.UI.XAML
             // Explicit-tracking wins: if the setter was called during XAML parsing, the
             // property was intentionally set — the style must not override it.
             if (ExplicitlySetProperties.Contains(pi.Name))
+            {
                 return false;
+            }
 
             Type type = pi.PropertyType;
 
@@ -747,7 +864,9 @@ namespace MGUI.Core.UI.XAML
             // would always report "not set".  Without an entry in ExplicitlySetProperties
             // the property is at its C# default and is therefore effectively unset.
             if (type.IsValueType && Nullable.GetUnderlyingType(type) == null)
+            {
                 return true;
+            }
 
             // Reference type or Nullable<T>: null ↔ "not set by the XAML parser".
             return pi.GetValue(this) == null;
@@ -759,7 +878,10 @@ namespace MGUI.Core.UI.XAML
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
             if (sourceType == typeof(string))
+            {
                 return true;
+            }
+
             return base.CanConvertFrom(context, sourceType);
         }
 

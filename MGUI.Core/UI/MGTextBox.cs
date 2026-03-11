@@ -107,10 +107,14 @@ namespace MGUI.Core.UI
         protected virtual bool SetText(string Value, bool ExecuteEvenIfSameValue)
         {
             if (!AcceptsReturn && (Value.Contains('\n') || Value.Contains('\r')))
+            {
                 return false;
+            }
 
             if (CharacterLimit.HasValue && Value.Length > CharacterLimit.Value)
+            {
                 return false;
+            }
 
             if (GetTextBackingField() != Value || ExecuteEvenIfSameValue)
             {
@@ -119,7 +123,9 @@ namespace MGUI.Core.UI
                     CancelEventArgs<string> Args = new(Text);
                     TextChanging.Invoke(this, Args);
                     if (Args.Cancel)
+                    {
                         return false;
+                    }
                 }
 
                 string Previous = Text;
@@ -128,7 +134,9 @@ namespace MGUI.Core.UI
                 NPC(nameof(Text));
 
                 if (!IsExecutingUndoRedo)
+                {
                     ClearRedoStack();
+                }
 
                 UpdateCharacterCountText();
                 UpdatePlaceholderVisibility();
@@ -140,12 +148,16 @@ namespace MGUI.Core.UI
                 //    Caret.MoveToStartOfLine(TextRenderInfo.Lines.FirstOrDefault());
 
                 if (Caret.HasPosition && string.IsNullOrEmpty(Text))
+                {
                     Caret.MoveToStartOfLine(TextRenderInfo.Lines.FirstOrDefault());
+                }
 
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         /// <summary>Invoked when <see cref="Text"/> is about to change.</summary>
@@ -185,7 +197,10 @@ namespace MGUI.Core.UI
                 {
                     EscapedIndices.Add(CurrentEscapedIndex);
                     if (Text[i] == FTTokenizer.OpenTagChar)
+                    {
                         CurrentEscapedIndex++;
+                    }
+
                     CurrentEscapedIndex++;
                 }
                 EscapedIndices.Add(CurrentEscapedIndex);
@@ -233,7 +248,9 @@ namespace MGUI.Core.UI
                         for (int j = 0; j < EscapedIndices.Count; j++)
                         {
                             if (EscapedIndices[j] >= FMInsertPos)
+                            {
                                 EscapedIndices[j] += UnescapedCount;
+                            }
                         }
 
                         Debug.Assert(EscapedIndices[RunStartTextIndex] == FMInsertPos + UnescapedCount,
@@ -377,7 +394,10 @@ namespace MGUI.Core.UI
                 {
                     CharacterCountElement.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
                     if (CharacterCountElement.Visibility == Visibility.Visible)
+                    {
                         UpdateCharacterCountText();
+                    }
+
                     NPC(nameof(ShowCharacterCount));
                 }
             }
@@ -400,7 +420,10 @@ namespace MGUI.Core.UI
                 {
                     _LimitedCharacterCountFormatString = value;
                     if (CharacterLimit.HasValue)
+                    {
                         UpdateCharacterCountText();
+                    }
+
                     NPC(nameof(LimitedCharacterCountFormatString));
                 }
             }
@@ -423,7 +446,10 @@ namespace MGUI.Core.UI
                 {
                     _LimitlessCharacterCountFormatString = value;
                     if (!CharacterLimit.HasValue)
+                    {
                         UpdateCharacterCountText();
+                    }
+
                     NPC(nameof(LimitlessCharacterCountFormatString));
                 }
             }
@@ -435,11 +461,18 @@ namespace MGUI.Core.UI
             {
                 string Value;
                 if (CharacterLimit.HasValue && !string.IsNullOrEmpty(LimitedCharacterCountFormatString))
+                {
                     Value = LimitedCharacterCountFormatString.Replace("{{CharacterCount}}", (Text?.Length ?? 0).ToString()).Replace("{{CharacterLimit}}", CharacterLimit.Value.ToString());
+                }
                 else if (!CharacterLimit.HasValue && !string.IsNullOrEmpty(LimitlessCharacterCountFormatString))
+                {
                     Value = LimitlessCharacterCountFormatString.Replace("{{CharacterCount}}", (Text?.Length ?? 0).ToString());
+                }
                 else
+                {
                     Value = $"{Text?.Length ?? 0}";
+                }
+
                 CharacterCountElement.Text = Value;
             }
         }
@@ -459,7 +492,9 @@ namespace MGUI.Core.UI
                     _AllowsTextSelection = value;
                     NPC(nameof(AllowsTextSelection));
                     if (!AllowsTextSelection)
+                    {
                         CurrentSelection = null;
+                    }
                 }
             }
         }
@@ -516,11 +551,15 @@ namespace MGUI.Core.UI
         public bool TrySelectText(string Text, bool FirstOccurrence = true)
         {
             if (string.IsNullOrEmpty(Text))
+            {
                 return false;
+            }
 
             int Index = FirstOccurrence ? this.Text.IndexOf(Text) : this.Text.LastIndexOf(Text);
             if (Index < 0)
+            {
                 return false;
+            }
             else
             {
                 CurrentSelection = new(Index, Index + Text.Length);
@@ -560,7 +599,9 @@ namespace MGUI.Core.UI
                 {
                     _FocusedSelectionForegroundColorString = value;
                     if (CurrentSelection.HasValue)
+                    {
                         UpdateFormattedText(true);
+                    }
                 }
             }
         }
@@ -595,7 +636,9 @@ namespace MGUI.Core.UI
                 {
                     _FocusedSelectionBackgroundColorString = value;
                     if (CurrentSelection.HasValue)
+                    {
                         UpdateFormattedText(true);
+                    }
                 }
             }
         }
@@ -632,7 +675,9 @@ namespace MGUI.Core.UI
                 {
                     _UnfocusedSelectionForegroundColorString = value;
                     if (CurrentSelection.HasValue)
+                    {
                         UpdateFormattedText(true);
+                    }
                 }
             }
         }
@@ -667,7 +712,9 @@ namespace MGUI.Core.UI
                 {
                     _UnfocusedSelectionBackgroundColorString = value;
                     if (CurrentSelection.HasValue)
+                    {
                         UpdateFormattedText(true);
+                    }
                 }
             }
         }
@@ -693,7 +740,9 @@ namespace MGUI.Core.UI
         {
             MousePressHistory.Add(new(Position));
             if (MousePressHistory.Count > MousePressHistorySize)
+            {
                 MousePressHistory.RemoveAt(0);
+            }
 
             IsDoublePress = MousePressHistory.Count >= 2 && MousePressHistory[^2].IsRecent(DoublePressInterval) && MousePressHistory[^2].IsNearby(Position);
             IsTriplePress = MousePressHistory.Count >= 3 && MousePressHistory.Skip(MousePressHistory.Count - 3).All(x => x.IsRecent(TriplePressInterval) && x.IsNearby(Position));
@@ -713,7 +762,9 @@ namespace MGUI.Core.UI
             public void SetLimit(int Value)
             {
                 if (Value <= 0)
+                {
                     throw new ArgumentOutOfRangeException($"{nameof(LimitedStack<T>)}.{nameof(Limit)} cannot be <= 0.");
+                }
 
                 if (Value != Limit)
                 {
@@ -740,8 +791,11 @@ namespace MGUI.Core.UI
 
             public void Push(T Item)
             {
-                if (Stack.Count == Limit) 
+                if (Stack.Count == Limit)
+                {
                     Stack.RemoveAt(0);
+                }
+
                 Stack.Add(Item);
             }
 
@@ -802,7 +856,9 @@ namespace MGUI.Core.UI
         public bool TryUndo()
         {
             if (IsReadonly || !IsEnabled)
+            {
                 return false;
+            }
 
             try
             {
@@ -832,7 +888,9 @@ namespace MGUI.Core.UI
         public bool TryRedo()
         {
             if (IsReadonly || !IsEnabled)
+            {
                 return false;
+            }
 
             try
             {
@@ -1068,7 +1126,10 @@ namespace MGUI.Core.UI
                     {
                         var Padded = AvailableBounds.GetCompressed(Padding);
                         if (!_EnableScrolling || _TextScrollOffsetX == 0)
+                        {
                             return Padded;
+                        }
+
                         return new Rectangle(Padded.Left - _TextScrollOffsetX, Padded.Top,
                             Padded.Width + _TextScrollOffsetX, Padded.Height);
                     });
@@ -1108,9 +1169,13 @@ namespace MGUI.Core.UI
                         if (TextRenderInfo.TryGetCharAtScreenPosition(Position.ToVector2(), out CharRenderInfo CharInfo))
                         {
                             if (IsQuadruplePress)
+                            {
                                 SelectAll();
+                            }
                             else if (IsTriplePress)
+                            {
                                 CurrentSelection = new(CharInfo.Line.FirstCharacter.IndexInOriginalText, CharInfo.Line.LastCharacter.IndexInOriginalText + 1);
+                            }
                             else if (IsDoublePress)
                             {
                                 int Index = CharInfo.IndexInOriginalText;
@@ -1126,7 +1191,9 @@ namespace MGUI.Core.UI
 
                                         //  Also include the next space if it's the first non-word character we find while traversing to the right
                                         if (CharInfo.IndexInOriginalText + NextCharacters < Text.Length && Text[CharInfo.IndexInOriginalText + NextCharacters] == ' ')
+                                        {
                                             NextCharacters++;
+                                        }
 
                                         CurrentSelection = new(CharInfo.IndexInOriginalText - PreviousCharacters, Math.Min(Text.Length, CharInfo.IndexInOriginalText + NextCharacters));
                                     }
@@ -1154,7 +1221,9 @@ namespace MGUI.Core.UI
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {
                     if (e.PressedArgs.HandledBy == this)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
 
                 MouseHandler.DragStart += (sender, e) =>
@@ -1176,7 +1245,9 @@ namespace MGUI.Core.UI
                 MouseHandler.DragEnd += (sender, e) =>
                 {
                     if (e.IsLMB)
+                    {
                         IsDraggingSelection = false;
+                    }
                 };
 
                 MouseHandler.Dragged += (sender, e) =>
@@ -1228,7 +1299,9 @@ namespace MGUI.Core.UI
                     bool streamStartedAsControlShortcut = e.Stream != null && ShortcutOriginStreamIds.Contains(e.Stream.Id);
                     if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key,
                         streamStartedAsControlShortcut))
+                    {
                         return;
+                    }
 
                     HandleKeyPress(e);
                     e.SetHandledBy(this, false);
@@ -1237,7 +1310,9 @@ namespace MGUI.Core.UI
                 KeyboardHandler.KeyUp += (sender, e) =>
                 {
                     if (e.Stream != null)
+                    {
                         ShortcutOriginStreamIds.Remove(e.Stream.Id);
+                    }
                 };
 
                 SyncKeyboardRepeatPolicy();
@@ -1247,7 +1322,9 @@ namespace MGUI.Core.UI
         private void SyncKeyboardRepeatPolicy()
         {
             if (KeyboardHandler == null)
+            {
                 return;
+            }
 
             KeyboardHandler.RepeatPolicy.Enabled = IsHeldKeyRepeated;
             KeyboardHandler.RepeatPolicy.InitialDelay = InitialKeyRepeatDelay;
@@ -1257,10 +1334,14 @@ namespace MGUI.Core.UI
         private void TrackShortcutOriginStream(BaseKeyPressedEventArgs e)
         {
             if (e.Stream == null)
+            {
                 return;
+            }
 
             if (e.Tracker.IsControlDown && IsControlShortcutKey(e.Key))
+            {
                 ShortcutOriginStreamIds.Add(e.Stream.Id);
+            }
         }
 
         #region Scrolling
@@ -1298,10 +1379,16 @@ namespace MGUI.Core.UI
 
         private void EnsureCaretVisible()
         {
-            if (!EnableScrolling || !Caret.HasPosition) return;
+            if (!EnableScrolling || !Caret.HasPosition)
+            {
+                return;
+            }
 
             Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-            if (PaddedBounds.Width <= 0) return;
+            if (PaddedBounds.Width <= 0)
+            {
+                return;
+            }
 
             Rectangle CaretBounds = Caret.Position.Value.Bounds;
 
@@ -1340,28 +1427,46 @@ namespace MGUI.Core.UI
 
                     case Keys.Left:
                         if (Caret.MoveLeft(1))
+                        {
                             CurrentSelection = null;
+                        }
+
                         break;
                     case Keys.Right:
                         if (Caret.MoveRight(1))
+                        {
                             CurrentSelection = null;
+                        }
+
                         break;
                     case Keys.Up:
                         if (Caret.MoveUp(1))
+                        {
                             CurrentSelection = null;
+                        }
+
                         break;
                     case Keys.Down:
                         if (Caret.MoveDown(1))
+                        {
                             CurrentSelection = null;
+                        }
+
                         break;
 
                     case Keys.Home:
                         if (Caret.MoveToStartOfCurrentLine())
+                        {
                             CurrentSelection = null;
+                        }
+
                         break;
                     case Keys.End:
                         if (Caret.MoveToEndOfCurrentLine())
+                        {
                             CurrentSelection = null;
+                        }
+
                         break;
 
                     case Keys.Back or Keys.Delete when !IsReadonly:
@@ -1395,16 +1500,23 @@ namespace MGUI.Core.UI
                                 string NewText;
                                 SB.Append(CurrentText.AsSpan(0, Index - 1 + Offset));
                                 if (Index < Text.Length)
+                                {
                                     SB.Append(CurrentText.AsSpan(Index + Offset));
+                                }
+
                                 NewText = SB.ToString();
                                 if (SetText(NewText))
                                 {
                                     TextBlockElement.UpdateLines();
 
                                     if (IsBackspace)
+                                    {
                                         _ = Caret.MoveToOriginalCharacterIndexOrLeft(Caret.Position.Value.IndexInOriginalText - 1 + Offset, true);
+                                    }
                                     else if (IsDelete)
+                                    {
                                         _ = Caret.MoveToOriginalCharacterIndexOrRight(Caret.Position.Value.IndexInOriginalText - 1 + Offset, true);
+                                    }
                                 }
                             }
                         }
@@ -1477,7 +1589,9 @@ namespace MGUI.Core.UI
                                         //  EX: Text="Foo", Clipboard="oo", Select the text "oo" and paste.
                                         //  Text attempts to change from "Foo" to "Foo", SetText returns false since nothing changed, so previous if-statement didn't execute
                                         else if (GetTextBackingField() == NewValue)
+                                        {
                                             CurrentSelection = null;
+                                        }
                                     }
                                     else if (Caret.HasPosition)
                                     {
@@ -1574,14 +1688,20 @@ namespace MGUI.Core.UI
                                 SB.Append(CurrentText.AsSpan(0, Index));
                                 SB.Append(e.PrintableValue);
                                 if (Index < Text.Length)
+                                {
                                     SB.Append(CurrentText.AsSpan(Index));
+                                }
+
                                 NewText = SB.ToString();
                                 break;
                             case TextEntryMode.Overwrite:
                                 SB.Append(CurrentText.AsSpan(0, Index));
                                 SB.Append(e.PrintableValue);
                                 if (Index + 1 < Text.Length)
+                                {
                                     SB.Append(CurrentText.AsSpan(Index + 1));
+                                }
+
                                 NewText = SB.ToString();
                                 break;
                             default: throw new NotImplementedException($"Unrecognized {nameof(UI.TextEntryMode)}: {TextEntryMode}");
@@ -1589,12 +1709,19 @@ namespace MGUI.Core.UI
 
                         //Debug.WriteLine($"{nameof(MGTextBox)}: Insert key - {e.PrintableValue}");
                         if (SetText(NewText))
+                        {
                             TextBlockElement.UpdateLines();
+                        }
+
                         int NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
                         if (IsEnter)
+                        {
                             _ = Caret.MoveToOriginalCharacterIndexOrLeft(Caret.Position.Value.IndexInOriginalText + NumCharactersInserted, true);
+                        }
                         else
+                        {
                             _ = Caret.MoveToOriginalCharacterIndexOrRight(Caret.Position.Value.IndexInOriginalText + NumCharactersInserted - 1, false);
+                        }
                     }
                 }
             }
@@ -1604,9 +1731,14 @@ namespace MGUI.Core.UI
         {
             base.UpdateSelf(UA);
             if (EnableScrolling)
+            {
                 EnsureCaretVisible();
+            }
+
             if (GetDesktop().FocusedKeyboardHandler == this)
+            {
                 SyncKeyboardRepeatPolicy();
+            }
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)

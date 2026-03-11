@@ -115,7 +115,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 					NPC(nameof(ActualAnimationProgress));
 
 					if (AnimationProgress < 0.0)
+					{
 						throw new InvalidOperationException($"{nameof(MGBandedBorderBrush)}.{nameof(AnimationProgress)} cannot be negative. Value: {AnimationProgress}");
+					}
 				}
 			}
 		}
@@ -512,7 +514,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 			Underlay?.Draw(DA, Element, Bounds, BT);
 
 			if (!IsEnabled || HighlightColor == Color.Transparent)
+			{
 				return;
+			}
 
 			double Progress = ActualAnimationProgress;
 			switch (AnimationType)
@@ -528,21 +532,35 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 				case HighlightAnimation.Flash:
 					bool IsVisible = Progress <= FlashShowDuration / FlashCycleDuration;
 					if (IsVisible)
+					{
 						HighlightBorderBrush.Draw(DA, Element, Bounds, BT);
+					}
+
 					break;
 				case HighlightAnimation.Progress:
 					{
                         List<Rectangle> Edges = new List<Rectangle>();
                         if (BT.Left > 0)
-                            Edges.Add(new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
-                        if (BT.Right > 0)
-                            Edges.Add(new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, Bounds.Height));
-                        if (BT.Top > 0)
-                            Edges.Add(new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top));
-                        if (BT.Bottom > 0)
-                            Edges.Add(new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
+                        {
+	                        Edges.Add(new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
+                        }
 
-						int OuterPerimeterLength = Bounds.Width * 2 + (Bounds.Height - 1) * 2;
+                        if (BT.Right > 0)
+                        {
+	                        Edges.Add(new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, Bounds.Height));
+                        }
+
+                        if (BT.Top > 0)
+                        {
+	                        Edges.Add(new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top));
+                        }
+
+                        if (BT.Bottom > 0)
+                        {
+	                        Edges.Add(new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
+                        }
+
+                        int OuterPerimeterLength = Bounds.Width * 2 + (Bounds.Height - 1) * 2;
 						int InnerPerimeterLength = OuterPerimeterLength - BT.Width * 2 - BT.Height * 2;
 						int AvgPerimeterLength = (OuterPerimeterLength + InnerPerimeterLength) / 2;
 
@@ -648,7 +666,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                                 }
                             }
 							else
+							{
 								throw new NotImplementedException($"Unrecognized {nameof(HighlightFlowDirection)}: {ProgressFlowDirection}");
+							}
 						}
 						OuterVertices.Add(EndPosition);
 						OuterVertices = OuterVertices.Distinct().ToList(); // There will be duplicate vertices if a start or end point was on a corner
@@ -684,15 +704,25 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 							if (!IsCorner)
 							{
 								if (OuterVertex.Y == Bounds.Top) // Top Edge
+								{
 									InnerVertex = OuterVertex + new Point(0, BT.Top);
+								}
 								else if (OuterVertex.Y == Bounds.Bottom) // Bottom Edge
+								{
 									InnerVertex = OuterVertex + new Point(0, -BT.Bottom);
+								}
 								else if (OuterVertex.X == Bounds.Right) // Right Edge
+								{
 									InnerVertex = OuterVertex + new Point(-BT.Right, 0);
+								}
 								else if (OuterVertex.X == Bounds.Left) // Left Edge
+								{
 									InnerVertex = OuterVertex + new Point(BT.Left, 0);
+								}
 								else
+								{
 									throw new InvalidOperationException($"Flawed logic in {nameof(MGHighlightBorderBrush)}.{nameof(Draw)}: Vertex was not along the outer edge of the bounds.");
+								}
 							}
 
 							Polygon.Add(InnerVertex);
@@ -706,13 +736,24 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 					{
 						List<Rectangle> Edges = new List<Rectangle>();
 						if (BT.Left > 0)
+						{
 							Edges.Add(new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
+						}
+
 						if (BT.Right > 0)
+						{
 							Edges.Add(new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, Bounds.Height));
+						}
+
 						if (BT.Top > 0)
+						{
 							Edges.Add(new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top));
+						}
+
 						if (BT.Bottom > 0)
+						{
 							Edges.Add(new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
+						}
 
 						if (Edges.Any())
 						{
@@ -746,7 +787,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 											Scanlines.Add(new Rectangle(Left, Bounds.Top, Width, Overflow));
 										}
 										else
+										{
 											Scanlines.Add(new Rectangle(Left, Top, Width, Height));
+										}
 									}
 									break;
 								case Orientation.Vertical:
@@ -775,7 +818,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 											Scanlines.Add(new Rectangle(Bounds.Left, Top, Overflow, Height));
 										}
 										else
+										{
 											Scanlines.Add(new Rectangle(Left, Top, Width, Height));
+										}
 									}
 									break;
 								default: throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {ScanOrientation}");
@@ -787,7 +832,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 								{
 									Rectangle Intersection = Rectangle.Intersect(Scanline, Edge);
 									if (!Intersection.IsEmpty)
+									{
 										HighlightFillBrush.Draw(DA, Element, Intersection);
+									}
 								}
 							}
 						}

@@ -41,7 +41,9 @@ namespace MGUI.Core.UI
         internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
         {
             if (count <= 0)
+            {
                 return -1;
+            }
 
             int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
             return action switch
@@ -59,7 +61,9 @@ namespace MGUI.Core.UI
         internal static float GetVisibleVerticalOffsetForIndex(float currentOffset, float contentTop, float viewportHeight, float maxOffset, int itemIndex, int itemHeight)
         {
             if (itemIndex < 0 || itemHeight <= 0)
+            {
                 return Math.Clamp(currentOffset, 0, maxOffset);
+            }
 
             float itemTop = contentTop + (itemIndex * itemHeight);
             float itemBottom = itemTop + itemHeight;
@@ -201,14 +205,18 @@ namespace MGUI.Core.UI
                         HandleTemplatedContentRemoved(InternalItems.Select(x => x.Content));
                         InternalItems.CollectionChanged -= ListBoxItems_CollectionChanged;
                         foreach (MGListBoxItem<TItemType> Removed in InternalItems)
+                        {
                             OnListBoxItemRemoved?.Invoke(this, Removed);
+                        }
                     }
                     _InternalItems = value;
                     if (InternalItems != null)
                     {
                         InternalItems.CollectionChanged += ListBoxItems_CollectionChanged;
                         foreach (MGListBoxItem<TItemType> Added in InternalItems)
+                        {
                             OnListBoxItemAdded?.Invoke(this, Added);
+                        }
                     }
 
                     using (ItemsPanel.AllowChangingContentTemporarily())
@@ -220,14 +228,18 @@ namespace MGUI.Core.UI
                         if (!IsVirtualizing && InternalItems != null)
                         {
                             foreach (MGListBoxItem<TItemType> LBI in InternalItems)
+                            {
                                 _ = ItemsPanel.TryAddChild(LBI.ContentPresenter);
+                            }
                         }
                     }
 
                     // When virtualizing, update the VSP item count.
                     // _logicalItemsList takes precedence over InternalItems (InternalItems is null in the recycling path).
                     if (IsVirtualizing && _virtualizingPanel != null)
+                    {
                         _virtualizingPanel.TotalItemCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
+                    }
 
                     ClearSelection();
                     RefreshRowBackgrounds();
@@ -243,7 +255,9 @@ namespace MGUI.Core.UI
             if (Items != null)
             {
                 foreach (var Item in Items)
+                {
                     Item.RemoveDataBindings(true);
+                }
             }
         }
 
@@ -253,7 +267,9 @@ namespace MGUI.Core.UI
             {
                 // When virtualizing, only keep the VSP total count in sync; the VSP manages its own children
                 if (_virtualizingPanel != null)
+                {
                     _virtualizingPanel.TotalItemCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
+                }
 
                 HashSet<MGListBoxItem<TItemType>> virtualRemoved = new();
                 if (e.Action is NotifyCollectionChangedAction.Reset)
@@ -263,7 +279,9 @@ namespace MGUI.Core.UI
                 else if (e.Action is NotifyCollectionChangedAction.Remove && e.OldItems != null)
                 {
                     foreach (MGListBoxItem<TItemType> item in e.OldItems)
+                    {
                         virtualRemoved.Add(item);
+                    }
                 }
 
                 // Clean up selection for removed items
@@ -271,13 +289,20 @@ namespace MGUI.Core.UI
                 {
                     List<MGListBoxItem<TItemType>> newSel = SelectedItems.Where(x => !virtualRemoved.Contains(x)).ToList();
                     if (newSel.Count != SelectedItems.Count)
+                    {
                         SelectedItems = newSel.AsReadOnly();
+                    }
                 }
                 if (SelectionSourceItem != null && virtualRemoved.Contains(SelectionSourceItem))
+                {
                     SelectionSourceItem = null;
+                }
 
                 if (virtualRemoved.Count > 0)
+                {
                     HandleTemplatedContentRemoved(virtualRemoved.Select(x => x.Content));
+                }
+
                 return;
             }
 
@@ -326,7 +351,9 @@ namespace MGUI.Core.UI
                             Removed.Add(Old[i]);
 
                             if (AlternatingRowBackgrounds?.Any() == true)
+                            {
                                 New[i].ContentPresenter.BackgroundBrush.NormalValue = Old[i].ContentPresenter.BackgroundBrush.NormalValue;
+                            }
                         }
 
                         OnListBoxItemRemoved?.Invoke(this, Old[i]);
@@ -343,10 +370,14 @@ namespace MGUI.Core.UI
                 {
                     List<MGListBoxItem<TItemType>> NewSelectedItems = SelectedItems.Where(x => !Removed.Contains(x)).ToList();
                     if (NewSelectedItems.Count != SelectedItems.Count || !NewSelectedItems.SequenceEqual(SelectedItems))
+                    {
                         SelectedItems = NewSelectedItems.AsReadOnly();
+                    }
                 }
                 if (SelectionSourceItem != null && Removed.Contains(SelectionSourceItem))
+                {
                     SelectionSourceItem = null;
+                }
 
                 HandleTemplatedContentRemoved(Removed.Select(x => x.Content));
             }
@@ -401,10 +432,15 @@ namespace MGUI.Core.UI
                 if (_ItemsSource != value)
                 {
                     if (ItemsSource != null && ItemsSource is INotifyCollectionChanged Observable)
+                    {
                         Observable.CollectionChanged -= ItemsSource_CollectionChanged;
+                    }
+
                     _ItemsSource = value;
                     if (ItemsSource != null && ItemsSource is INotifyCollectionChanged Observable2)
+                    {
                         Observable2.CollectionChanged += ItemsSource_CollectionChanged;
+                    }
 
                     if (ItemsSource == null)
                     {
@@ -600,11 +636,18 @@ namespace MGUI.Core.UI
             get
             {
                 if (ItemsSource == null || _selectedIndices.Count == 0)
+                {
                     yield break;
+                }
+
                 IList<TItemType> asList = ItemsSource as IList<TItemType> ?? ItemsSource.ToList();
                 foreach (int idx in _selectedIndices)
+                {
                     if (idx >= 0 && idx < asList.Count)
+                    {
                         yield return asList[idx];
+                    }
+                }
             }
         }
 
@@ -620,23 +663,31 @@ namespace MGUI.Core.UI
                     if (SelectedItems != null)
                     {
                         foreach (MGListBoxItem<TItemType> Item in SelectedItems)
+                        {
                             Item.ContentPresenter.IsSelected = false;
+                        }
                     }
 
                     _SelectedItems = value ?? new List<MGListBoxItem<TItemType>>().AsReadOnly();
 
                     if (SelectedItems.Any(x => x == null))
+                    {
                         throw new ArgumentNullException($"{nameof(MGListBoxItem<object>)}.{nameof(SelectedItems)} cannnot contain null items.");
+                    }
 
                     foreach (MGListBoxItem<TItemType> Item in SelectedItems)
+                    {
                         Item.ContentPresenter.IsSelected = true;
+                    }
 
                     // Maintain index-based selection set in sync via LogicalIndex (works in both normal and virtual modes)
                     _selectedIndices.Clear();
                     foreach (MGListBoxItem<TItemType> item in SelectedItems)
                     {
                         if (item.LogicalIndex >= 0)
+                        {
                             _selectedIndices.Add(item.LogicalIndex);
+                        }
                     }
 
                     NPC(nameof(SelectedItems));
@@ -662,7 +713,9 @@ namespace MGUI.Core.UI
             }
 
             if (SelectedItems?.Count == 1 && EqualityComparer.Equals(SelectedItems.First().Data, Item))
+            {
                 return;
+            }
 
             //  Find ListBoxItem that wraps the Item data
             if (IsVirtualizing && _logicalItemsList != null)
@@ -681,7 +734,10 @@ namespace MGUI.Core.UI
                         {
                             // Item is scrolled out of view — track via index; visual applied when realized
                             foreach (var kvp in _realizedItems)
+                            {
                                 kvp.Value.ContentPresenter.IsSelected = false;
+                            }
+
                             _selectedIndices.Clear();
                             _selectedIndices.Add(i);
                             _SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
@@ -709,21 +765,28 @@ namespace MGUI.Core.UI
             }
 
             if (DeselectAllIfNotFound)
+            {
                 ClearSelection();
+            }
         }
 
         public void ClearSelection()
         {
             SelectionSourceItem = null;
             if (SelectedItems?.Count != 0)
+            {
                 SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
+            }
         }
 
         /// <summary>Selects all items. Only meaningful when <see cref="SelectionMode"/> is <see cref="ListBoxSelectionMode.Multiple"/> or <see cref="ListBoxSelectionMode.Contiguous"/>.</summary>
         public void SelectAll()
         {
             if (SelectionMode == ListBoxSelectionMode.None)
+            {
                 return;
+            }
+
             if (IsVirtualizing)
             {
                 if (_logicalItemsList?.Count > 0)
@@ -733,7 +796,10 @@ namespace MGUI.Core.UI
                     for (int i = 0; i < _logicalItemsList.Count; i++)
                         _selectedIndices.Add(i);
                     foreach (var kvp in _realizedItems)
+                    {
                         kvp.Value.ContentPresenter.IsSelected = _selectedIndices.Contains(kvp.Key);
+                    }
+
                     _SelectedItems = _realizedItems.Values.ToList().AsReadOnly();
                     NPC(nameof(SelectedItems));
                     NPC(nameof(SelectedValue));
@@ -745,7 +811,9 @@ namespace MGUI.Core.UI
             else
             {
                 if (ListBoxItems?.Count > 0)
+                {
                     SelectedItems = ListBoxItems.ToList().AsReadOnly();
+                }
             }
         }
 
@@ -753,7 +821,10 @@ namespace MGUI.Core.UI
         private TItemType GetLogicalItemAt(int index)
         {
             if (IsVirtualizing)
+            {
                 return (_logicalItemsList != null && index >= 0 && index < _logicalItemsList.Count) ? _logicalItemsList[index] : default;
+            }
+
             return (ListBoxItems != null && index >= 0 && index < ListBoxItems.Count) ? ListBoxItems[index].Data : default;
         }
 
@@ -797,12 +868,20 @@ namespace MGUI.Core.UI
         private void SetHoveredItem(MGListBoxItem<TItemType> newItem)
         {
             if (_hoveredItem == newItem)
+            {
                 return;
+            }
+
             if (_hoveredItem != null)
+            {
                 _hoveredItem.ContentPresenter.SpoofIsHoveredWhileDrawingBackground = false;
+            }
+
             _hoveredItem = newItem;
             if (_hoveredItem != null)
+            {
                 _hoveredItem.ContentPresenter.SpoofIsHoveredWhileDrawingBackground = true;
+            }
         }
         #endregion Hover / Pressed visual spoof
 
@@ -815,7 +894,9 @@ namespace MGUI.Core.UI
             // Choose total item count from the appropriate source for the current mode
             int itemCount = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (InternalItems?.Count ?? 0);
             if (itemCount == 0)
+            {
                 return null;
+            }
 
             // Convert screen → unscaled screen once
             Vector2 unscaledPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPos.ToVector2());
@@ -825,7 +906,9 @@ namespace MGUI.Core.UI
 
             // Quick reject: mouse must be within the active panel's visible area
             if (activePanel == null || activePanel.ActualLayoutBounds.IsEmpty || !activePanel.ActualLayoutBounds.ContainsInclusive(unscaledPos))
+            {
                 return null;
+            }
 
             // Fast path: O(1) for uniform-height items
             int uniformH = 0;
@@ -837,7 +920,9 @@ namespace MGUI.Core.UI
             {
                 int firstItemH = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
                 if (InternalItems.Count < 2 || InternalItems[1].ContentPresenter.AllocatedBounds.Height == firstItemH)
+                {
                     uniformH = firstItemH;
+                }
             }
 
             if (uniformH > 0)
@@ -847,10 +932,15 @@ namespace MGUI.Core.UI
                 if (index >= 0 && index < itemCount)
                 {
                     if (IsVirtualizing)
+                    {
                         return _realizedItems.GetValueOrDefault(index);
+                    }
+
                     var candidate = InternalItems[index].ContentPresenter;
                     if (!candidate.ActualLayoutBounds.IsEmpty && candidate.ActualLayoutBounds.ContainsInclusive(unscaledPos))
+                    {
                         return InternalItems[index];
+                    }
                 }
             }
 
@@ -861,7 +951,9 @@ namespace MGUI.Core.UI
                 {
                     Rectangle bounds = kvp.Value.ContentPresenter.ActualLayoutBounds;
                     if (!bounds.IsEmpty && bounds.ContainsInclusive(unscaledPos))
+                    {
                         return kvp.Value;
+                    }
                 }
             }
             else if (InternalItems != null)
@@ -870,7 +962,9 @@ namespace MGUI.Core.UI
                 {
                     Rectangle bounds = InternalItems[i].ContentPresenter.ActualLayoutBounds;
                     if (!bounds.IsEmpty && bounds.ContainsInclusive(unscaledPos))
+                    {
                         return InternalItems[i];
+                    }
                 }
             }
             return null;
@@ -882,12 +976,17 @@ namespace MGUI.Core.UI
         private void EnsureFocusedItemVisible()
         {
             if (FocusedIndex < 0 || ScrollViewer == null)
+            {
                 return;
+            }
 
             if (!IsVirtualizing)
             {
                 if (InternalItems != null && FocusedIndex < InternalItems.Count)
+                {
                     ScrollViewer.EnsureElementVisible(InternalItems[FocusedIndex].ContentPresenter);
+                }
+
                 return;
             }
 
@@ -898,7 +997,9 @@ namespace MGUI.Core.UI
             }
 
             if (ScrollViewer.ContentViewport.Height <= 0)
+            {
                 return;
+            }
 
             int itemHeight = _virtualizingPanel?.UniformItemHeight > 0 ? _virtualizingPanel.UniformItemHeight : MeasureNaturalItemHeight();
             float contentTop = (_virtualizingPanel as MGElement)?.LayoutBounds.Top ?? ItemsPanel.LayoutBounds.Top;
@@ -906,7 +1007,9 @@ namespace MGUI.Core.UI
                 ScrollViewer.MaxVerticalOffset, FocusedIndex, itemHeight);
 
             if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
+            {
                 ScrollViewer.VerticalOffset = newOffset;
+            }
         }
 
         void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible() => EnsureFocusedItemVisible();
@@ -1028,9 +1131,16 @@ namespace MGUI.Core.UI
             if (InternalItems?.Count > 0)
             {
                 int h = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
-                if (h > 0) return h;
+                if (h > 0)
+                {
+                    return h;
+                }
+
                 h = InternalItems[0].ContentPresenter.LayoutBounds.Height;
-                if (h > 0) return h;
+                if (h > 0)
+                {
+                    return h;
+                }
             }
             return 26; // Fallback: ~6 px padding top + 14 px text + 6 px padding bottom
         }
@@ -1044,17 +1154,23 @@ namespace MGUI.Core.UI
         {
             // Fast path: non-virtualizing mode already has realized items we can measure
             if (InternalItems?.Count > 0)
+            {
                 return EstimateItemHeight();
+            }
 
             if (_logicalItemsList == null || _logicalItemsList.Count == 0 || ItemTemplate == null)
+            {
                 return 26;
+            }
 
             try
             {
                 // Build the item content via the template (same as real items)
                 MGElement content = ItemTemplate(_logicalItemsList[0]);
                 if (content == null)
+                {
                     return 26;
+                }
 
                 // Wrap in a border that matches real item container style, but TOP-aligned so it
                 // takes its natural height instead of stretching to fill whatever slot we give it.
@@ -1261,7 +1377,10 @@ namespace MGUI.Core.UI
                     {
                         IsPressedItemInvalidationPending = false;
                         if (PressedItem != null)
+                        {
                             PressedItem.ContentPresenter.SpoofIsPressedWhileDrawingBackground = false;
+                        }
+
                         PressedItem = null;
                     }
                 };
@@ -1279,16 +1398,23 @@ namespace MGUI.Core.UI
                 MouseHandler.LMBPressedInside += (sender, e) =>
                 {
                     if (PressedItem != null)
+                    {
                         PressedItem.ContentPresenter.SpoofIsPressedWhileDrawingBackground = false;
+                    }
+
                     PressedItem = GetItemAtMousePosition(e.Position);
                     if (PressedItem != null)
+                    {
                         PressedItem.ContentPresenter.SpoofIsPressedWhileDrawingBackground = true;
+                    }
                 };
 
                 MouseHandler.ReleasedOutside += (sender, e) =>
                 {
                     if (e.IsLMB)
+                    {
                         IsPressedItemInvalidationPending = true;
+                    }
                 };
 
                 MouseHandler.LMBReleasedInside += (sender, e) =>
@@ -1354,12 +1480,19 @@ namespace MGUI.Core.UI
                                 if (IsControlDown)
                                 {
                                     if (IsReleasedItemAlreadySelected)
+                                    {
                                         SelectedItems = SelectedItems.Where(x => x != ReleasedItem).ToList().AsReadOnly();
+                                    }
                                     else
+                                    {
                                         SelectedItems = SelectedItems.Append(ReleasedItem).ToList().AsReadOnly();
+                                    }
                                 }
                                 else
+                                {
                                     SelectContiguous();
+                                }
+
                                 break;
                             default: throw new NotImplementedException($"Unrecognized {nameof(ListBoxSelectionMode)}: {nameof(SelectionMode)}");
                         }
@@ -1368,7 +1501,10 @@ namespace MGUI.Core.UI
                             int idx = IsVirtualizing
                                 ? (_logicalItemsList?.IndexOf(ReleasedItem.Data) ?? -1)
                                 : (ListBoxItems != null ? ListBoxItems.ToList().IndexOf(ReleasedItem) : -1);
-                            if (idx >= 0) FocusedIndex = idx;
+                            if (idx >= 0)
+                            {
+                                FocusedIndex = idx;
+                            }
                         }
                     }
                 };
@@ -1381,7 +1517,10 @@ namespace MGUI.Core.UI
         private void OnListBoxKeyPressed(object sender, BaseKeyPressedEventArgs e)
         {
             int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
-            if (count == 0) return;
+            if (count == 0)
+            {
+                return;
+            }
 
             bool isCtrlDown = e.Tracker.IsControlDown;
 
@@ -1410,7 +1549,11 @@ namespace MGUI.Core.UI
                     if (FocusedIndex >= 0 && FocusedIndex < count && SelectionMode != ListBoxSelectionMode.None)
                     {
                         TItemType item = GetLogicalItemAt(FocusedIndex);
-                        if (item != null) SelectItem(item, true);
+                        if (item != null)
+                        {
+                            SelectItem(item, true);
+                        }
+
                         e.SetHandledBy(this, true);
                     }
                     return;
@@ -1425,7 +1568,10 @@ namespace MGUI.Core.UI
                 if (SelectionMode != ListBoxSelectionMode.None)
                 {
                     TItemType item = GetLogicalItemAt(FocusedIndex);
-                    if (item != null) SelectItem(item, true);
+                    if (item != null)
+                    {
+                        SelectItem(item, true);
+                    }
                 }
                 e.SetHandledBy(this, true);
             }
@@ -1435,7 +1581,9 @@ namespace MGUI.Core.UI
         {
             int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
             if (count == 0)
+            {
                 return false;
+            }
 
             if (action == UINavigationAction.Submit && FocusedIndex >= 0 && FocusedIndex < count && SelectionMode != ListBoxSelectionMode.None)
             {
@@ -1448,18 +1596,24 @@ namespace MGUI.Core.UI
             }
 
             if (action is not (UINavigationAction.MoveUp or UINavigationAction.MoveDown or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.PageUp or UINavigationAction.PageDown))
+            {
                 return false;
+            }
 
             int nextIndex = GetNextNavigationIndex(FocusedIndex, count, action);
             if (nextIndex < 0)
+            {
                 return false;
+            }
 
             FocusedIndex = nextIndex;
             if (SelectionMode != ListBoxSelectionMode.None)
             {
                 TItemType focusedItem = GetLogicalItemAt(FocusedIndex);
                 if (focusedItem != null)
+                {
                     SelectItem(focusedItem, true);
+                }
             }
 
             return true;
@@ -1484,7 +1638,9 @@ namespace MGUI.Core.UI
             Settings.ItemsPanel.ApplySettings(this, ItemsPanel, false);
 
             if (Settings.Header != null)
+            {
                 Header = Settings.Header.ToElement<MGElement>(SelfOrParentWindow, this);
+            }
 
             if (Settings.IsTitleVisible.HasValue)
             {
@@ -1516,17 +1672,28 @@ namespace MGUI.Core.UI
             }
 
             if (Settings.CanDeselectByClickingSelectedItem.HasValue)
+            {
                 CanDeselectByClickingSelectedItem = Settings.CanDeselectByClickingSelectedItem.Value;
+            }
+
             if (Settings.SelectionMode.HasValue)
+            {
                 SelectionMode = Settings.SelectionMode.Value;
+            }
 
             if (Settings.SelectedValue is TItemType SelectedT)
+            {
                 SelectedValue = SelectedT;
+            }
 
             if (Settings.AlternatingRowBackgrounds != null && Settings.AlternatingRowBackgrounds.Any())
+            {
                 AlternatingRowBackgrounds = Settings.AlternatingRowBackgrounds.Select(x => x.ToFillBrush(Desktop, this)).ToList().AsReadOnly();
+            }
             else
+            {
                 AlternatingRowBackgrounds = new List<IFillBrush>().AsReadOnly();
+            }
 
             if (Settings.ItemContainerStyle != null)
             {

@@ -98,9 +98,13 @@ namespace MGUI.Core.UI.Data_Binding
                 {
                     _SourceRoot = value;
                     if (Config.SourcePaths.Count <= 1)
+                    {
                         SourceObject = SourceRoot;
+                    }
                     else
+                    {
                         FindAndTrackSourceObject();
+                    }
                 }
             }
         }
@@ -123,14 +127,20 @@ namespace MGUI.Core.UI.Data_Binding
                     string PropertyName = PropertyNames[i];
                     PropertyInfo Property = GetPublicProperty(Current, PropertyName);
                     if (Property == null)
+                    {
                         break;
+                    }
 
                     if (Current is INotifyPropertyChanged PropChangedObject)
+                    {
                         UpdateSourceObjectWhenPropertyChanges(new(PropChangedObject, PropertyName));
+                    }
 
                     Current = Property.GetValue(Current, null);
                     if (Current == null)
+                    {
                         break;
+                    }
                 }
             }
         }
@@ -162,7 +172,9 @@ namespace MGUI.Core.UI.Data_Binding
                 {
 #if UseWPF
                     foreach (PropertyChangedSourceMetadata Item in PathChangeHandlers)
+                    {
                         PropertyChangedEventManager.RemoveHandler(Item.Object, UpdateSourceObject, Item.PropertyName);
+                    }
 #else
                     foreach (PropertyNameHandler Handler in PathChangeHandlers)
                         Handler.Detach();
@@ -253,7 +265,9 @@ namespace MGUI.Core.UI.Data_Binding
             for (int i = 0; i < PropertyNames.Count; i++)
             {
                 if (Current == null || (ExcludeLast && i == PropertyNames.Count - 1))
+                {
                     break;
+                }
 
                 string PropertyName = PropertyNames[i];
                 PropertyInfo Property = GetPublicProperty(Current, PropertyName);
@@ -267,7 +281,9 @@ namespace MGUI.Core.UI.Data_Binding
         private static PropertyInfo GetPublicProperty(object Parent, string PropertyName)
         {
             if (Parent == null || string.IsNullOrEmpty(PropertyName))
+            {
                 return null;
+            }
 
             if (!CachedProperties.TryGetValue(Parent, out Dictionary<string, PropertyInfo> PropertiesByName))
             {
@@ -351,7 +367,9 @@ namespace MGUI.Core.UI.Data_Binding
                 IsSubscribedToTargetObjectPropertyChanged = true;
             }
             else
+            {
                 IsSubscribedToTargetObjectPropertyChanged = false;
+            }
         }
 
         #region Set Property Value
@@ -360,7 +378,9 @@ namespace MGUI.Core.UI.Data_Binding
         private bool TrySetPropertyValue(object Value, object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings)
         {
             if (IsSettingValue)
+            {
                 return false;
+            }
 
             try
             {
@@ -374,7 +394,9 @@ namespace MGUI.Core.UI.Data_Binding
             object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings)
         {
             if (IsSettingValue)
+            {
                 return false;
+            }
 
             try
             {
@@ -466,35 +488,51 @@ namespace MGUI.Core.UI.Data_Binding
         private static object ConvertValue(ITypeDescriptorContext Context, Type SourceType, Type TargetType, object Value, bool? CanAssign, string StringFormat)
         {
             if (Value == null)
+            {
                 return null;
+            }
             else if (StringFormat != null && TargetType == typeof(string))
             {
                 try { return string.Format(StringFormat, Value); }
                 catch (FormatException) { return Value; }
             }
             else if (CanAssign == true || (!CanAssign.HasValue && IsAssignable(SourceType, TargetType)))
+            {
                 return Value;
+            }
             else if (TryConvertWithTypeConverter(Context, SourceType, TargetType, Value, out object TypeConvertedValue))
+            {
                 return TypeConvertedValue;
+            }
             else if (Value is IConvertible)
             {
                 try { return Convert.ChangeType(Value, TargetType); }
                 catch (FormatException) { return Value; }
             }
             else if (TargetType == typeof(string))
+            {
                 return Value.ToString();
+            }
             else
+            {
                 throw new NotImplementedException($"Could not convert value from type='{SourceType.FullName}' to type='{TargetType.FullName}'.");
+            }
         }
 
         private static bool TryConvertWithTypeConverter(ITypeDescriptorContext Context, Type SourceType, Type TargetType, object Value, out object Result)
         {
             if (TryConvertFromWithTypeConverter(Context, SourceType, TargetType, Value, out Result))
+            {
                 return true;
+            }
             else if (TryConvertToWithTypeConverter(Context, SourceType, TargetType, Value, out Result))
+            {
                 return true;
+            }
             else
+            {
                 return false;
+            }
         }
 
         private static bool TryConvertFromWithTypeConverter(ITypeDescriptorContext Context, Type SourceType, Type TargetType, object Value, out object Result)
@@ -537,7 +575,9 @@ namespace MGUI.Core.UI.Data_Binding
         private static bool IsAssignable(Type From, Type To)
         {
             if (From == null || To == null)
+            {
                 return false;
+            }
 
             var CanAssignByType = CachedIsAssignable.GetOrAdd(From, _ => new Dictionary<Type, bool>());
 
@@ -577,7 +617,9 @@ namespace MGUI.Core.UI.Data_Binding
         private static TypeConverter GetConverter(Type Type)
         {
             if (Type == null)
+            {
                 return null;
+            }
 
             if (!CachedConverters.TryGetValue(Type, out TypeConverter Converter))
             {
@@ -599,7 +641,9 @@ namespace MGUI.Core.UI.Data_Binding
         private static bool IsConvertibleFrom(Type From, Type To)
         {
             if (From == null || To == null)
+            {
                 return false;
+            }
 
             TypeConverter Converter = GetConverter(To);
 
@@ -618,7 +662,9 @@ namespace MGUI.Core.UI.Data_Binding
         private static bool IsConvertibleTo(Type From, Type To)
         {
             if (From == null || To == null)
+            {
                 return false;
+            }
 
             TypeConverter Converter = GetConverter(From);
 
@@ -644,10 +690,14 @@ namespace MGUI.Core.UI.Data_Binding
         private void ObservableSourceObject_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == SourcePropertyName)
+            {
                 SourcePropertyValueChanged();
+            }
 #if UseWPF
             else
+            {
                 throw new InvalidOperationException($"{nameof(DataBinding)}.{nameof(ObservableSourceObject_PropertyChanged)}: Expected PropertyName={SourcePropertyName}. Actual PropertyName={e.PropertyName}");
+            }
 #endif
         }
 
@@ -658,10 +708,14 @@ namespace MGUI.Core.UI.Data_Binding
         private void ObservableTargetObject_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == TargetPropertyName)
+            {
                 TargetPropertyValueChanged();
+            }
 #if UseWPF
             else
+            {
                 throw new InvalidOperationException($"{nameof(DataBinding)}.{nameof(ObservableTargetObject_PropertyChanged)}: Expected PropertyName={TargetPropertyName}. Actual PropertyName={e.PropertyName}");
+            }
 #endif
         }
 

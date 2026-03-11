@@ -65,13 +65,21 @@ namespace MGUI.Core.UI.XAML
             get
             {
                 if (!string.IsNullOrEmpty(ElementName) && !string.IsNullOrEmpty(ResourceName))
+                {
                     throw new InvalidOperationException($"Invalid {nameof(MGBinding)}: You cannot specify values for both '{nameof(ElementName)}' and '{nameof(ResourceName)}'.");
+                }
                 else if (!string.IsNullOrEmpty(ElementName))
+                {
                     return ISourceObjectResolver.FromElementName(ElementName);
+                }
                 else if (!string.IsNullOrEmpty(ResourceName))
+                {
                     return ISourceObjectResolver.FromResourceName(ResourceName);
+                }
                 else
+                {
                     return ISourceObjectResolver.FromSelf();
+                }
             }
         }
 
@@ -95,9 +103,13 @@ namespace MGUI.Core.UI.XAML
 
                 //  Return the fallbackvalue or default for now. The actual value will be evaluated later
                 if (FallbackValue != null && FallbackValue.GetType().IsAssignableTo(TargetProperty.PropertyType))
+                {
                     return FallbackValue;
+                }
                 else
+                {
                     return GetDefaultValue(TargetProperty.PropertyType);
+                }
             }
 
             throw new NotImplementedException($"Cannot provide a value when the underlying Type is unknown. " +

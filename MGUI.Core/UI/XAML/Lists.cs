@@ -140,7 +140,9 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return OuterBorder;
             yield return InnerBorder;
@@ -150,11 +152,19 @@ namespace MGUI.Core.UI.XAML
             yield return ItemsPanel;
 
             if (Header != null)
+            {
                 yield return Header;
+            }
+
             if (ItemTemplate?.Content != null)
+            {
                 yield return ItemTemplate.Content;
+            }
+
             if (ItemContainerStyle != null)
+            {
                 yield return ItemContainerStyle;
+            }
         }
     }
 
@@ -201,7 +211,9 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return HeaderGrid;
             yield return ScrollViewer;
@@ -231,11 +243,17 @@ namespace MGUI.Core.UI.XAML
         public UI.ListViewColumnWidth ToWidth()
         {
             if (WidthPixels.HasValue)
+            {
                 return new UI.ListViewColumnWidth(WidthPixels.Value);
+            }
             else if (WidthWeight.HasValue)
+            {
                 return new UI.ListViewColumnWidth(WidthWeight.Value);
+            }
             else
+            {
                 throw new InvalidOperationException($"{nameof(ListViewColumnWidth)} must define either an integral value for {nameof(WidthPixels)} or a double value for {nameof(WidthWeight)}");
+            }
         }
 
         public override string ToString() => $"{nameof(ListViewColumnWidth)}: {(WidthPixels.HasValue ? WidthPixels + "px" : WidthWeight + "*")}";
@@ -262,7 +280,10 @@ namespace MGUI.Core.UI.XAML
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
             if (sourceType == typeof(string))
+            {
                 return true;
+            }
+
             return base.CanConvertFrom(context, sourceType);
         }
 

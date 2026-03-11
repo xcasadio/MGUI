@@ -399,7 +399,9 @@ namespace MGUI.Core.UI
                 }
             }
             else
+            {
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+            }
 
             IncompleteBrush.GetUnderlay(VisualState.Primary)?.Draw(DA, this, IncompleteBounds);
             CompletedBrush.GetUnderlay(VisualState.Primary)?.Draw(DA, this, CompletedBounds);

@@ -42,7 +42,9 @@ namespace MGUI.Core.UI
         private void UpdateDisplayedValue(bool ForceLayoutRefresh)
         {
             if (ValueElement == null || ValueDisplayFormat == null || ElapsedToString == null)
+            {
                 return;
+            }
 
             string ElapsedDisplayString = ElapsedToString(Elapsed);
             string ValueDisplayString = ValueDisplayFormat.Replace($"{{{{{nameof(Elapsed)}}}}}", ElapsedDisplayString);
@@ -150,9 +152,13 @@ namespace MGUI.Core.UI
                     _IsRunning = value;
                     NPC(nameof(IsRunning));
                     if (IsRunning)
+                    {
                         Started?.Invoke(this, EventArgs.Empty);
+                    }
                     else
+                    {
                         Stopped?.Invoke(this, EventArgs.Empty);
+                    }
                 }
             }
         }

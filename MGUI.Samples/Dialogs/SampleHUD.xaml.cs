@@ -273,7 +273,9 @@ namespace MGUI.Samples.Dialogs
             UIToolBar.SelectionChanged += (sender, e) =>
             {
                 if (!e.HasValue)
+                {
                     ToolBar.SelectedSlot = null;
+                }
                 else
                 {
                     int Index = e.Value.Cell.Row * UIToolBar.Columns + e.Value.Cell.Column;
@@ -423,9 +425,13 @@ namespace MGUI.Samples.Dialogs
             set
             {
                 if (value)
+                {
                     ToolBar.SelectedSlot = this;
+                }
                 else if (!value && IsSelected)
+                {
                     ToolBar.SelectedSlot = null;
+                }
             }
         }
 

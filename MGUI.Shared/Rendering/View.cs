@@ -99,7 +99,9 @@ namespace MGUI.Shared.Rendering
                 NPC(nameof(ScreenViewport));
                 BeforeNotify?.Invoke();
                 if (NotifyChanged)
+                {
                     OnScreenViewportChanged?.Invoke(this, new(Previous, ScreenViewport));
+                }
             }
         }
 
@@ -117,12 +119,17 @@ namespace MGUI.Shared.Rendering
             {
                 case TraversalType.Preorder:
                     if (IncludeSelf)
+                    {
                         yield return this;
+                    }
+
                     foreach (View Child in Children)
                     {
                         IEnumerable<View> RecursiveChildren = Child.RecurseChildren(Mode, true, IncludeHidden);
                         foreach (View Item in RecursiveChildren)
+                        {
                             yield return Item;
+                        }
                     }
                     break;
                 case TraversalType.PostOrder:
@@ -130,10 +137,15 @@ namespace MGUI.Shared.Rendering
                     {
                         IEnumerable<View> RecursiveChildren = Child.RecurseChildren(Mode, true, IncludeHidden);
                         foreach (View Item in RecursiveChildren)
+                        {
                             yield return Item;
+                        }
                     }
                     if (IncludeSelf)
+                    {
                         yield return this;
+                    }
+
                     break;
                 default:
                     throw new NotImplementedException($"Unrecognized {nameof(TraversalType)}: {Mode}");
@@ -160,7 +172,10 @@ namespace MGUI.Shared.Rendering
         {
             OnBeginUpdate?.Invoke(this, new(BA));
             foreach (View Child in Children)
+            {
                 Child.Update(BA);
+            }
+
             UpdateSelf(BA);
             OnEndUpdate?.Invoke(this, new(BA));
         }
@@ -173,7 +188,10 @@ namespace MGUI.Shared.Rendering
             {
                 DrawBackground(BA);
                 foreach (View Child in Children)
+                {
                     Child.Draw(BA);
+                }
+
                 DrawForeground(BA);
             }
         }

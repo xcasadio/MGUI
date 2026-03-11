@@ -34,9 +34,13 @@ namespace MGUI.Samples.Features
                     NPC(nameof(IsVisible));
 
                     if (IsVisible)
+                    {
                         Desktop.Windows.Add(Window);
+                    }
                     else
+                    {
                         Desktop.Windows.Remove(Window);
+                    }
                 }
             }
         }

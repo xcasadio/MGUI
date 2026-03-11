@@ -63,7 +63,11 @@ namespace MGUI.Samples.Features
 
             Window.OnBeginUpdateContents += (_, _) =>
             {
-                if (_testsRun) return;
+                if (_testsRun)
+                {
+                    return;
+                }
+
                 _testsRun = true;
                 RunTokenizerTests();
             };
@@ -94,7 +98,9 @@ namespace MGUI.Samples.Features
                     passed++;
                 }
                 else
+                {
                     Result1.SetText($"[c=Red]✗[/c] Case 1 FAILED: ok={ok} allLiteral={allLiteral} value='{combined}'");
+                }
 
                 Debug.Assert(allLiteral && correct,
                     $"[FTTokenizerTest] Case 1 failed: ok={ok}, allLiteral={allLiteral}, combined='{combined}'");
@@ -118,7 +124,9 @@ namespace MGUI.Samples.Features
                     passed++;
                 }
                 else
+                {
                     Result2.SetText($"[c=Red]✗[/c] Case 2 FAILED: ok={ok} hasTag={hasTag}");
+                }
 
                 Debug.Assert(ok && hasTag,
                     $"[FTTokenizerTest] Case 2 failed: ok={ok}, hasTag={hasTag}");
@@ -145,7 +153,9 @@ namespace MGUI.Samples.Features
                     passed++;
                 }
                 else
+                {
                     Result3.SetText($"[c=Red]✗[/c] Case 3 FAILED: ok={ok} allLiteral={allLiteral} value='{combined}'");
+                }
 
                 Debug.Assert(allLiteral && correct,
                     $"[FTTokenizerTest] Case 3 failed: ok={ok}, allLiteral={allLiteral}, combined='{combined}'");
@@ -171,7 +181,9 @@ namespace MGUI.Samples.Features
                     passed++;
                 }
                 else
+                {
                     Result4.SetText($"[c=Red]✗[/c] EscapeMarkdown test 1 FAILED: {display}");
+                }
 
                 EscapeTest1.SetText($"EscapeMarkdown: '\\[Bold]' → escaped='{escaped}'");
 
@@ -197,7 +209,9 @@ namespace MGUI.Samples.Features
                     passed++;
                 }
                 else
+                {
                     Result5.SetText($"[c=Red]✗[/c] EscapeMarkdown test 2 FAILED: {display}");
+                }
 
                 EscapeTest2.SetText($"EscapeMarkdown: '\\\\[Bold]' → escaped='{escaped}'");
                 EscapeTest3.SetText($"(All {total} tests, {passed} passed)");

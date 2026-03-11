@@ -112,9 +112,13 @@ namespace MGUI.Core.UI.Text
                 int Index = RemainingRuns.IndexOf(Current);
                 int NextIndex = Index + 1;
                 if (RemainingRuns.Count > NextIndex)
+                {
                     return RemainingRuns[NextIndex];
+                }
                 else
+                {
                     return null;
+                }
             }
         }
 
@@ -142,7 +146,9 @@ namespace MGUI.Core.UI.Text
                     OriginalWords = Words.Select(x => new WrappableRunWord(this, x, TextRun.Settings, false)).ToList();
                 }
                 else
+                {
                     OriginalWords = new();
+                }
 
                 RemainingWords = new List<WrappableRunWord>(OriginalWords);
             }
@@ -150,9 +156,13 @@ namespace MGUI.Core.UI.Text
             public MGTextRunText AsTextRun(string Text)
             {
                 if (!IsText)
+                {
                     throw new InvalidOperationException();
+                }
                 else
+                {
                     return new MGTextRunText(Text, ((MGTextRunText)OriginalRun).Settings, OriginalRun.ToolTipId, OriginalRun.ActionId);
+                }
             }
 
             public string GetAllRemainingText() => string.Join("", RemainingWords.Select(x => x.Text));
@@ -162,9 +172,13 @@ namespace MGUI.Core.UI.Text
                 int Index = RemainingWords.IndexOf(Current);
                 int NextIndex = Index + 1;
                 if (RemainingWords.Count > NextIndex)
+                {
                     return RemainingWords[NextIndex];
+                }
                 else
+                {
                     return Group.GetNext(this).RemainingWords[0];
+                }
             }
 
             public override string ToString() =>
@@ -198,7 +212,9 @@ namespace MGUI.Core.UI.Text
             public IEnumerable<WrappableRunWord> GetNextWords(bool IncludeSelf)
             {
                 if (IncludeSelf)
+                {
                     yield return this;
+                }
 
                 WrappableRunWord Current = this;
                 while (Current.HasNext)
@@ -263,7 +279,9 @@ namespace MGUI.Core.UI.Text
         public static IEnumerable<MGTextLine> ParseLines(ITextMeasurer Measurer, double MaxLineWidth, bool WrapText, IEnumerable<MGTextRun> Runs, bool IgnoreEmptySpaceLines, params char[] WordDelimiters)
         {
             if (Runs?.Any() != true || MaxLineWidth < 1)
+            {
                 yield break;
+            }
 
             const string MultiLineWordSuffix = "-"; // A suffix to append to the end of a line, when the line only consists of a single word that must wrap across multiple lines
 
@@ -283,7 +301,9 @@ namespace MGUI.Core.UI.Text
             bool FlushLine(out MGTextLine Line, bool EndsInLinebreakCharacter, int LineBreakCharacterCount = 1)
             {
                 if (!CurrentLine.Any())
+                {
                     throw new InvalidOperationException($"Cannot create an {nameof(MGTextLine)} with no {nameof(MGTextRun)}s.");
+                }
 
                 if (EndsInLinebreakCharacter)
                 {
@@ -336,9 +356,14 @@ namespace MGUI.Core.UI.Text
                 if (Run.IsLineBreak && Run.OriginalRun is MGTextRunLineBreak LineBreakRun)
                 {
                     if (!CurrentLine.Any())
+                    {
                         CurrentLine.Add(new MGTextRunText("", new MGTextRunConfig(false), null, null));
+                    }
+
                     if (FlushLine(out Line, true, LineBreakRun.LineBreakCharacterCount))
+                    {
                         yield return Line;
+                    }
                 }
                 else if (Run.IsImage && Run.OriginalRun is MGTextRunImage ImageRun)
                 {
@@ -350,7 +375,9 @@ namespace MGUI.Core.UI.Text
                     {
                         int ImgWidth = ImageRun.TargetWidth;
                         if (CurrentLine.Any() && CommittedRunsWidth + ImgWidth > MaxLineWidth && FlushLine(out Line, false))
+                        {
                             yield return Line;
+                        }
 
                         CurrentLine.Add(ImageRun);
                         CurrentX += ImgWidth;
@@ -441,7 +468,10 @@ namespace MGUI.Core.UI.Text
                                 }
 
                                 if (CurrentLine.Any() && FlushLine(out Line, false))
+                                {
                                     yield return Line;
+                                }
+
                                 UnwrappedText.Clear();
 
                                 if (TotalWidth <= MaxLineWidth)
@@ -463,7 +493,10 @@ namespace MGUI.Core.UI.Text
                                     if (MaxLineSuffixWidth >= MaxLineWidth)
                                     {
                                         if (CurrentLine.Any() && FlushLine(out Line, false))
+                                        {
                                             yield return Line;
+                                        }
+
                                         yield break;
 
                                         //string ErrorMsg = $"{nameof(MGTextLine)}.{nameof(ParseLines)} could not be evaluated because zero characters could fit on an entire line. " +
@@ -515,7 +548,10 @@ namespace MGUI.Core.UI.Text
 
                                                         CurrentLine.Add(WordsByRun.Key.AsTextRun(UnwrappedText.ToString()));
                                                         if (FlushLine(out Line, false))
+                                                        {
                                                             yield return Line;
+                                                        }
+
                                                         UnwrappedText.Clear();
                                                         CharIndex--;
                                                     }
@@ -547,13 +583,20 @@ namespace MGUI.Core.UI.Text
                     }
                 }
                 else
+                {
                     throw new NotImplementedException($"Unrecognized {nameof(TextRunType)}: {Run.RunType}");
+                }
             }
 
             if (!CurrentLine.Any())
+            {
                 CurrentLine.Add(new MGTextRunText("", new MGTextRunConfig(false), null, null));
+            }
+
             if (FlushLine(out Line, false))
+            {
                 yield return Line;
+            }
         }
     }
 }

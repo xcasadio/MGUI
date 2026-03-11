@@ -55,13 +55,17 @@ namespace MGUI.Samples.Features
             // --- Frame-time hook: fires at the end of every Update() tick ---
             _onEndUpdate = OnEndUpdate;
             if (Desktop.Renderer.Host is IObservableUpdate observable)
+            {
                 observable.EndUpdate += _onEndUpdate;
+            }
 
             // Unsubscribe when the sample window is closed
             Window.WindowClosed += (_, __) =>
             {
                 if (Desktop.Renderer.Host is IObservableUpdate obs)
+                {
                     obs.EndUpdate -= _onEndUpdate;
+                }
             };
 
             // --- Initial data ---
@@ -117,10 +121,14 @@ namespace MGUI.Samples.Features
                     realized = (first >= 0 && last >= first) ? (last - first + 1) : 0;
                 }
                 else
+                {
                     realized = 0;
+                }
             }
             else
+            {
                 realized = _listBox.ListBoxItems?.Count ?? 0;
+            }
 
             _tbElements.Text = $"Elements: total={_currentItemCount:N0}   realized={realized}";
             _tbMode.Text     = $"Mode: {_listBox.VirtualizationMode}  |  Virtualizing: {virt}";

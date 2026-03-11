@@ -18,7 +18,10 @@ namespace MGUI.Shared.Helpers
             if (SolidColorTextures.ContainsKey(Key))
             {
                 if (SolidColorTextures[Key].IsDisposed)
+                {
                     throw new Exception($"SolidColorTexture for color {Key} is disposed.");
+                }
+
                 return SolidColorTextures[Key];
             }
             else
@@ -39,14 +42,20 @@ namespace MGUI.Shared.Helpers
             if (Textures.ContainsKey(TexturePath))
             {
                 if (Textures[TexturePath].IsDisposed)
+                {
                     throw new Exception($"Texture '{TexturePath}' is disposed.");
+                }
+
                 return Textures[TexturePath];
             }
             else
             {
                 Texture2D Texture = ContentManager.Load<Texture2D>(TexturePath);
                 if (Texture == null)
+                {
                     throw new ArgumentException($"No texture at '{TexturePath}' was found");
+                }
+
                 Textures.Add(TexturePath, Texture);
                 return Texture;
             }
@@ -58,14 +67,20 @@ namespace MGUI.Shared.Helpers
             if (Effects.ContainsKey(EffectName))
             {
                 if (Effects[EffectName].IsDisposed)
+                {
                     throw new Exception($"Effect {EffectName} is disposed.");
+                }
+
                 return Effects[EffectName];
             }
             else
             {
                 Effect Effect = ContentManager.Load<Effect>(EffectName);
                 if (Effect == null)
+                {
                     throw new ArgumentException($"No effect '{EffectName}' was found");
+                }
+
                 Effects.Add(EffectName, Effect);
                 return Effect;
             }

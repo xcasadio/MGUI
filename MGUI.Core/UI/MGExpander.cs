@@ -202,15 +202,23 @@ namespace MGUI.Core.UI
                     CancelEventArgs CancelArgs = new();
                     PreviewExpandedStateChanging?.Invoke(this, CancelArgs);
                     if (CancelArgs.Cancel)
+                    {
                         return;
+                    }
 
                     if (value)
+                    {
                         PreviewExpanding?.Invoke(this, CancelArgs);
+                    }
                     else
+                    {
                         PreviewCollapsing?.Invoke(this, CancelArgs);
+                    }
 
                     if (CancelArgs.Cancel)
+                    {
                         return;
+                    }
 
                     _IsExpanded = value;
                     ExpanderToggleButton.IsChecked = IsExpanded;
@@ -218,13 +226,19 @@ namespace MGUI.Core.UI
                     NPC(nameof(IsCollapsed));
 
                     foreach (MGElement Item in BoundItems)
+                    {
                         Item.Visibility = IsExpanded ? ExpandedVisibility : CollapsedVisibility;
+                    }
 
                     ExpandedStateChanged?.Invoke(this, IsExpanded);
                     if (IsExpanded)
+                    {
                         Expanded?.Invoke(this, EventArgs.Empty);
+                    }
                     else
+                    {
                         Collapsed?.Invoke(this, EventArgs.Empty);
+                    }
                 }
             }
         }
@@ -352,7 +366,10 @@ namespace MGUI.Core.UI
                 {
                     int DropdownArrowHeight = ExpanderDropdownArrowSize / 2;
                     if (DropdownArrowHeight % 2 != 0)
+                    {
                         DropdownArrowHeight++;
+                    }
+
                     Size DropdownArrowSize = new Size(ExpanderDropdownArrowSize, DropdownArrowHeight);
                     Rectangle DropdownArrowBounds = ApplyAlignment(ExpanderToggleButton.LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, DropdownArrowSize);
 
@@ -397,7 +414,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (action != UINavigationAction.Submit)
+            {
                 return false;
+            }
 
             IsExpanded = !IsExpanded;
             return true;

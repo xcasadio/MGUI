@@ -21,7 +21,11 @@ public class DockTabGroupModelTests
     private static DockTabGroupNode Group(params DockPanelNode[] panels)
     {
         var g = new DockTabGroupNode();
-        foreach (var p in panels) g.AddPanel(p, -1);
+        foreach (var p in panels)
+        {
+            g.AddPanel(p, -1);
+        }
+
         return g;
     }
 
@@ -246,7 +250,9 @@ public class DockTabGroupModelTests
         Assert.Equal(5, g.Panels.Count);
 
         foreach (var p in panels.Take(4))
+        {
             g.RemovePanel(p);
+        }
 
         Assert.Single(g.Panels);
         // max valid scroll index = count - visible (≥1) ≤ 0 → scroll would be 0

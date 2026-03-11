@@ -52,9 +52,13 @@ namespace MGUI.Core.UI.Containers
                 foreach (DockedChild Item in DockedChildren)
                 {
                     if (Item == DockedChildren[^1] && LastChildFill)
+                    {
                         yield return new ActualDockedChild(Item.Item, null);
+                    }
                     else
+                    {
                         yield return new ActualDockedChild(Item.Item, Item.Position);
+                    }
                 }
             }
         }
@@ -62,7 +66,9 @@ namespace MGUI.Core.UI.Containers
         public bool TryAddChild(MGElement Item, Dock Dock)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             DockedChildren.Add(new(Item, Dock));
             _Children.Add(Item);
@@ -72,7 +78,9 @@ namespace MGUI.Core.UI.Containers
         public bool TryRemoveChild(MGElement Item)
         {
             if (!CanChangeContent)
+            {
                 return false;
+            }
 
             for (int i = 0; i < DockedChildren.Count; i++)
             {
@@ -100,7 +108,9 @@ namespace MGUI.Core.UI.Containers
         protected override void UpdateContentLayout(Rectangle Bounds)
         {
             if (!HasContent)
+            {
                 return;
+            }
 
             Size AvailableSize = new(Bounds.Width, Bounds.Height);
 
@@ -192,7 +202,9 @@ namespace MGUI.Core.UI.Containers
                 return new Thickness(TotalContentWidth, TotalContentHeight, 0, 0);
             }
             else
+            {
                 return UpdateContentMeasurementBaseImplementation(AvailableSize);
+            }
         }
     }
 }

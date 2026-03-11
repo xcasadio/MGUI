@@ -143,7 +143,9 @@ namespace MGUI.Shared.Helpers
         public static void SaveToFile(this Texture2D @this, string FilePath)
         {
             if (!FilePath.EndsWith(".png"))
+            {
                 FilePath += ".png";
+            }
 
             using (var Stream = new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
@@ -153,12 +155,31 @@ namespace MGUI.Shared.Helpers
 
         public static Texture2D CreateRoundedRectangleTexture(GraphicsDevice graphics, int width, int height, int borderThickness, int borderRadius, int borderShadow, List<Color> backgroundColors, List<Color> borderColors, float initialShadowIntensity, float finalShadowIntensity)
         {
-            if (backgroundColors == null || backgroundColors.Count == 0) throw new ArgumentException("Must define at least one background color (up to four).");
-            if (borderColors == null || borderColors.Count == 0) throw new ArgumentException("Must define at least one border color (up to three).");
-            if (borderRadius < 1) throw new ArgumentException("Must define a border radius (rounds off edges).");
-            if (borderThickness < 1) throw new ArgumentException("Must define border thikness.");
+            if (backgroundColors == null || backgroundColors.Count == 0)
+            {
+                throw new ArgumentException("Must define at least one background color (up to four).");
+            }
+
+            if (borderColors == null || borderColors.Count == 0)
+            {
+                throw new ArgumentException("Must define at least one border color (up to three).");
+            }
+
+            if (borderRadius < 1)
+            {
+                throw new ArgumentException("Must define a border radius (rounds off edges).");
+            }
+
+            if (borderThickness < 1)
+            {
+                throw new ArgumentException("Must define border thikness.");
+            }
+
             //if (borderThickness + borderRadius > height / 2 || borderThickness + borderRadius > width / 2) throw new ArgumentException("Border will be too thick and/or rounded to fit on the texture.");
-            if (borderShadow > borderRadius) throw new ArgumentException("Border shadow must be lesser in magnitude than the border radius (suggeted: shadow <= 0.25 * radius).");
+            if (borderShadow > borderRadius)
+            {
+                throw new ArgumentException("Border shadow must be lesser in magnitude than the border radius (suggeted: shadow <= 0.25 * radius).");
+            }
 
             Texture2D texture = new Texture2D(graphics, width, height, false, SurfaceFormat.Color);
             Color[] color = new Color[width * height];
@@ -199,7 +220,10 @@ namespace MGUI.Shared.Helpers
         {
             Rectangle internalRectangle = new Rectangle((borderThickness + borderRadius), (borderThickness + borderRadius), width - 2 * (borderThickness + borderRadius), height - 2 * (borderThickness + borderRadius));
 
-            if (internalRectangle.Contains(x, y)) return initialColor;
+            if (internalRectangle.Contains(x, y))
+            {
+                return initialColor;
+            }
 
             Vector2 origin = Vector2.Zero;
             Vector2 point = new Vector2(x, y);
@@ -207,27 +231,43 @@ namespace MGUI.Shared.Helpers
             if (x < borderThickness + borderRadius)
             {
                 if (y < borderRadius + borderThickness)
+                {
                     origin = new Vector2(borderRadius + borderThickness, borderRadius + borderThickness);
+                }
                 else if (y > height - (borderRadius + borderThickness))
+                {
                     origin = new Vector2(borderRadius + borderThickness, height - (borderRadius + borderThickness));
+                }
                 else
+                {
                     origin = new Vector2(borderRadius + borderThickness, y);
+                }
             }
             else if (x > width - (borderRadius + borderThickness))
             {
                 if (y < borderRadius + borderThickness)
+                {
                     origin = new Vector2(width - (borderRadius + borderThickness), borderRadius + borderThickness);
+                }
                 else if (y > height - (borderRadius + borderThickness))
+                {
                     origin = new Vector2(width - (borderRadius + borderThickness), height - (borderRadius + borderThickness));
+                }
                 else
+                {
                     origin = new Vector2(width - (borderRadius + borderThickness), y);
+                }
             }
             else
             {
                 if (y < borderRadius + borderThickness)
+                {
                     origin = new Vector2(x, borderRadius + borderThickness);
+                }
                 else if (y > height - (borderRadius + borderThickness))
+                {
                     origin = new Vector2(x, height - (borderRadius + borderThickness));
+                }
             }
 
             if (!origin.Equals(Vector2.Zero))
@@ -256,7 +296,9 @@ namespace MGUI.Shared.Helpers
 
 
                     if (borderColors.Count > 0)
+                    {
                         return borderColors[0];
+                    }
                 }
                 else if (distance > borderRadius - borderShadow + 1)
                 {

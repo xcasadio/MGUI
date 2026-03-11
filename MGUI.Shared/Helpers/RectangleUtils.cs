@@ -73,7 +73,9 @@ namespace MGUI.Shared.Helpers
         public static Rectangle Union(IEnumerable<Rectangle> Inputs)
         {
             if (Inputs?.Any() != true)
+            {
                 return default(Rectangle);
+            }
             else
             {
                 int MinLeft = int.MaxValue;
@@ -84,13 +86,24 @@ namespace MGUI.Shared.Helpers
                 foreach (Rectangle r in Inputs)
                 {
                     if (r.Left < MinLeft)
+                    {
                         MinLeft = r.Left;
+                    }
+
                     if (r.Right > MaxRight)
+                    {
                         MaxRight = r.Right;
+                    }
+
                     if (r.Top < MinTop)
+                    {
                         MinTop = r.Top;
+                    }
+
                     if (r.Bottom > MaxBottom)
+                    {
                         MaxBottom = r.Bottom;
+                    }
                 }
 
                 return new(MinLeft, MinTop, MaxRight - MinLeft, MaxBottom - MinTop);
@@ -101,7 +114,9 @@ namespace MGUI.Shared.Helpers
         public static RectangleF Union(IEnumerable<RectangleF> Inputs)
         {
             if (Inputs?.Any() != true)
+            {
                 return default(RectangleF);
+            }
             else
             {
                 float MinLeft = float.MaxValue;
@@ -112,13 +127,24 @@ namespace MGUI.Shared.Helpers
                 foreach (RectangleF r in Inputs)
                 {
                     if (r.Left < MinLeft)
+                    {
                         MinLeft = r.Left;
+                    }
+
                     if (r.Right > MaxRight)
+                    {
                         MaxRight = r.Right;
+                    }
+
                     if (r.Top < MinTop)
+                    {
                         MinTop = r.Top;
+                    }
+
                     if (r.Bottom > MaxBottom)
+                    {
                         MaxBottom = r.Bottom;
+                    }
                 }
 
                 return new(MinLeft, MinTop, MaxRight - MinLeft, MaxBottom - MinTop);
@@ -153,14 +179,24 @@ namespace MGUI.Shared.Helpers
             foreach (Vector2 Vertex in Vertices)
             {
                 if (Vertex.X < MinX)
+                {
                     MinX = Vertex.X;
+                }
+
                 if (Vertex.X > MaxX)
+                {
                     MaxX = Vertex.X;
+                }
 
                 if (Vertex.Y < MinY)
+                {
                     MinY = Vertex.Y;
+                }
+
                 if (Vertex.Y > MaxY)
+                {
                     MaxY = Vertex.Y;
+                }
             }
 
             return new(MinX, MinY, MaxX - MinX, MaxY - MinY);

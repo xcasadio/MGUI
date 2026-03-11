@@ -75,7 +75,9 @@ namespace MGUI.Shared.Input.Mouse
         internal void RegisterClick(BaseMouseClickedEventArgs ClickedArgs)
         {
             if (FirstClick == null)
+            {
                 FirstClick = ClickedArgs;
+            }
 
             LatestClick = ClickedArgs;
         }
@@ -86,7 +88,9 @@ namespace MGUI.Shared.Input.Mouse
         internal bool TryAdoptTarget(long TargetId, IMouseHandlerHost TargetHost)
         {
             if (!CanBeAdoptedBy(TargetId))
+            {
                 return false;
+            }
 
             RoutingMetadata.ValidatedTargetId = TargetId;
             RoutingMetadata.ValidatedTargetHost = TargetHost != null ? new(TargetHost) : null;
@@ -101,7 +105,9 @@ namespace MGUI.Shared.Input.Mouse
             TargetHost = null;
 
             if (RoutingMetadata.ValidatedTargetHost == null)
+            {
                 return false;
+            }
 
             return RoutingMetadata.ValidatedTargetHost.TryGetTarget(out TargetHost);
         }
@@ -287,9 +293,13 @@ namespace MGUI.Shared.Input.Mouse
             double DeltaY = PositionDelta.Y;
             double DistanceSquared = DeltaX * DeltaX + DeltaY * DeltaY;
             if (SquaredDistance)
+            {
                 return DistanceSquared;
+            }
             else
+            {
                 return Math.Sqrt(DistanceSquared);
+            }
         }
 
         /// <summary>This is currently not implemented - it does nothing.</summary>
@@ -336,9 +346,13 @@ namespace MGUI.Shared.Input.Mouse
             double DeltaY = PositionDelta.Y;
             double DistanceSquared = DeltaX * DeltaX + DeltaY * DeltaY;
             if (SquaredDistance)
+            {
                 return DistanceSquared;
+            }
             else
+            {
                 return Math.Sqrt(DistanceSquared);
+            }
         }
 
         /// <summary>This is currently not implemented - it does nothing.</summary>

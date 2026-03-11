@@ -177,7 +177,10 @@ namespace MGUI.Core.UI.Text
                     if (Definition.IsNextMatch(RemainingTokens, out FTAction Match))
                     {
                         if (Match.ActionType != FTActionType.Ignore)
+                        {
                             yield return Match;
+                        }
+
                         RemainingTokens.RemoveRange(0, Definition.OrderedTokenTypes.Count);
                         Found = true;
                         break;

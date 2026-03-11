@@ -21,7 +21,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
         {
             foreach (IFillBrush Brush in Brushes)
+            {
                 Brush.Draw(DA, Element, Bounds);
+            }
         }
 
         public IFillBrush Copy() => new MGCompositedFillBrush(Brushes.Select(x => x.Copy()).ToArray());

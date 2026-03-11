@@ -56,7 +56,10 @@ namespace MGUI.Core.UI
                 {
                     _AllowNullCheckedItem = value;
                     if (!AllowNullCheckedItem)
+                    {
                         CheckedItem ??= _RadioButtons.FirstOrDefault();
+                    }
+
                     NPC(nameof(AllowNullCheckedItem));
                     NPC(nameof(ActualAllowUnchecking));
                 }
@@ -98,7 +101,9 @@ namespace MGUI.Core.UI
         public MGRadioButtonGroup(MGWindow Window, string Name)
         {
             if (Window.HasRadioButtonGroup(Name))
+            {
                 throw new ArgumentException($"{nameof(Name)} '{Name}' must be unique within the scope of its {nameof(MGWindow)}.");
+            }
 
             this.Name = Name;
             _RadioButtons = new();
@@ -111,11 +116,15 @@ namespace MGUI.Core.UI
                 {
                     bool RemovedCheckedItem = CheckedItem != null && e.OldItems.Cast<MGRadioButton>().Contains(CheckedItem);
                     if (RemovedCheckedItem)
+                    {
                         CheckedItem = null;
+                    }
                 }
 
                 if (!AllowNullCheckedItem)
+                {
                     CheckedItem ??= _RadioButtons.FirstOrDefault();
+                }
             };
         }
     }
@@ -246,9 +255,13 @@ namespace MGUI.Core.UI
             set
             {
                 if (value)
+                {
                     Group.CheckedItem = this;
+                }
                 else if (IsChecked && Group.AllowUnchecking)
+                {
                     Group.CheckedItem = null;
+                }
             }
         }
 
@@ -256,9 +269,13 @@ namespace MGUI.Core.UI
         {
             OnCheckStateChanged?.Invoke(this, IsChecked);
             if (IsChecked)
+            {
                 OnChecked?.Invoke(this, EventArgs.Empty);
+            }
             else
+            {
                 OnUnchecked?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>Note: This event is invoked before <see cref="OnChecked"/> / <see cref="OnUnchecked"/></summary>
@@ -302,7 +319,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (action != UINavigationAction.Submit)
+            {
                 return false;
+            }
 
             IsChecked = !IsChecked;
             return true;
@@ -338,7 +357,10 @@ namespace MGUI.Core.UI
                     IsBubblePartPressed = BubblePartBounds.ContainsInclusive(PressPositionLayoutSpace);
                 }
                 else
+                {
                     IsBubblePartPressed = false;
+                }
+
                 bool IsBubblePartHovered = BubblePartBounds.ContainsInclusive(LayoutSpacePosition);
 
                 Color? Overlay = BubbleComponentBackground.GetColorOverlay(IsBubblePartPressed ? SecondaryVisualState.Pressed : IsBubblePartHovered ? SecondaryVisualState.Hovered : SecondaryVisualState.None);

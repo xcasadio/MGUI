@@ -49,7 +49,9 @@ namespace MGUI.Core.UI
                 foreach (MGWindow modalWindow in modalWindows)
                 {
                     if (modalWindow != null)
+                    {
                         ModalStackEntries.Add(new(owner, modalWindow));
+                    }
                 }
             }
 
@@ -59,10 +61,14 @@ namespace MGUI.Core.UI
         internal void UnregisterModalWindow(MGWindow modalWindow)
         {
             if (modalWindow == null)
+            {
                 return;
+            }
 
             if (ModalStackEntries.RemoveAll(x => x.Modal == modalWindow) > 0)
+            {
                 NPC(nameof(ActiveModalWindows));
+            }
         }
 
         internal void AttachView(UIView View)
@@ -91,10 +97,14 @@ namespace MGUI.Core.UI
         internal static UIInputMode ResolveInputMode(bool hasMouseActivity, bool hasKeyboardActivity, bool isTextEntryFocused, UIInputMode currentMode)
         {
             if (hasMouseActivity)
+            {
                 return UIInputMode.Pointer;
+            }
 
             if (hasKeyboardActivity)
+            {
                 return isTextEntryFocused ? UIInputMode.TextEntry : UIInputMode.Navigation;
+            }
 
             return currentMode;
         }
@@ -200,7 +210,9 @@ namespace MGUI.Core.UI
         internal static void EnsureNavigationTargetVisible(MGElement focusedElement)
         {
             if (focusedElement is INavigationTargetVisibilityHandler navigationTargetVisibilityHandler)
+            {
                 navigationTargetVisibilityHandler.EnsureNavigationTargetVisible();
+            }
         }
 
         internal static KeyboardFocusSource GetNavigationFocusSource(bool isGamePadNavigation)
@@ -238,10 +250,14 @@ namespace MGUI.Core.UI
         internal static int GetWrappedFocusIndex(int count, int currentIndex, bool moveNext)
         {
             if (count <= 0)
+            {
                 return -1;
+            }
 
             if (currentIndex < 0 || currentIndex >= count)
+            {
                 return moveNext ? 0 : count - 1;
+            }
 
             return moveNext
                 ? (currentIndex + 1) % count
@@ -270,7 +286,9 @@ namespace MGUI.Core.UI
                 };
 
                 if (!isValidDirection)
+                {
                     continue;
+                }
 
                 double distance = delta.LengthSquared();
                 if (distance < bestDistance)
@@ -326,13 +344,17 @@ namespace MGUI.Core.UI
             where T : class
         {
             if (scopeRoot == null || element == null || getParent == null)
+            {
                 return false;
+            }
 
             T current = element;
             while (current != null)
             {
                 if (ReferenceEquals(current, scopeRoot))
+                {
                     return true;
+                }
 
                 current = getParent(current);
             }
@@ -351,7 +373,9 @@ namespace MGUI.Core.UI
             for (MGElement current = element; current != null; current = current.Parent)
             {
                 if (IsNavigationTarget(current))
+                {
                     return current;
+                }
             }
 
             return null;
@@ -366,7 +390,9 @@ namespace MGUI.Core.UI
             {
                 MGElement hoveredTarget = GetNearestNavigationTarget(window.HoveredElement);
                 if (hoveredTarget != null)
+                {
                     return hoveredTarget;
+                }
             }
 
             return null;
@@ -392,7 +418,9 @@ namespace MGUI.Core.UI
         private static IReadOnlyList<MGElement> GetFocusableElements(MGElement root)
         {
             if (root == null)
+            {
                 return Array.Empty<MGElement>();
+            }
 
             return root.TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder)
                 .Where(IsNavigationTarget)
@@ -457,8 +485,12 @@ namespace MGUI.Core.UI
         public void InvalidateAllLayouts()
         {
             foreach (MGWindow window in Windows)
+            {
                 foreach (MGElement element in window.TraverseVisualTree(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+                {
                     element.InvalidateLayout();
+                }
+            }
         }
 
         /// <summary>
@@ -477,8 +509,12 @@ namespace MGUI.Core.UI
             // RefreshTextEngine also calls InvokeLayoutChanged which propagates upward, but
             // that only invalidates the parent chain of each TextBlock, not the full tree.
             foreach (MGWindow window in Windows)
+            {
                 foreach (MGTextBlock tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+                {
                     tb.RefreshTextEngine();
+                }
+            }
 
             // Step 2: invalidate every element's layout cache so containers at all levels
             // re-measure their content with the new text-engine metrics on the next frame.
@@ -512,14 +548,18 @@ namespace MGUI.Core.UI
                 {
                     bool Cancellable = true;
                     if (ActiveToolTip != null && value != null && ActiveToolTip.Host == value.Host)
+                    {
                         Cancellable = false;
+                    }
 
                     if (Cancellable)
                     {
                         CancelEventArgs<MGToolTip> e = new(value);
                         ToolTipOpening?.Invoke(this, e);
                         if (e.Cancel)
+                        {
                             return;
+                        }
                     }
 
                     if (ActiveToolTip != null)
@@ -589,7 +629,9 @@ namespace MGUI.Core.UI
             {
                 //  Close nested menus
                 if (!ActiveContextMenu.TryCloseActiveContextMenu())
+                {
                     return false;
+                }
 
                 MGContextMenu Previous = ActiveContextMenu;
 
@@ -598,7 +640,9 @@ namespace MGUI.Core.UI
                     ContextMenuOpeningClosingEventArgs ClosingArgs = new(ActiveContextMenu, null);
                     ContextMenuClosing.Invoke(this, ClosingArgs);
                     if (ClosingArgs.Cancel)
+                    {
                         return false;
+                    }
                 }
 
                 ActiveContextMenu.InvokeContextMenuClosing();
@@ -612,7 +656,9 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return true;
+            }
         }
 
         /// <returns>True if the <paramref name="Menu"/> was already opened, or was successfully opened.<br/>
@@ -620,10 +666,14 @@ namespace MGUI.Core.UI
         public bool TryOpenContextMenu(MGContextMenu Menu, Rectangle Anchor)
         {
             if (!TryCloseActiveContextMenu())
+            {
                 return false;
+            }
 
             if (Menu == null || !Menu.CanContextMenuOpen)
+            {
                 return false;
+            }
 
             Rectangle ValidBounds = ValidScreenBounds;
             if (Menu.IsContextMenuOpen)
@@ -642,11 +692,15 @@ namespace MGUI.Core.UI
                     ContextMenuOpeningClosingEventArgs OpeningArgs = new(ActiveContextMenu, Menu);
                     ContextMenuOpening.Invoke(this, OpeningArgs);
                     if (OpeningArgs.Cancel)
+                    {
                         return false;
+                    }
                 }
 
                 if (!Menu.InvokeContextMenuOpening())
+                {
                     return false;
+                }
 
                 State.ActiveContextMenu = Menu;
 
@@ -771,25 +825,35 @@ namespace MGUI.Core.UI
                 if (State.FocusedKeyboardHandler != value)
                 {
                     if (value != null && !value.CanHandleKeyboardInput)
+                    {
                         throw new InvalidOperationException($"{nameof(MGWindow)}.{nameof(FocusedKeyboardHandler)} cannot be set to an value with {nameof(MGElement)}.{nameof(MGElement.CanHandleKeyboardInput)}=false.");
+                    }
 
                     MGElement Previous = FocusedKeyboardHandler;
                     LastFocusChangeSource = value != null && QueuedFocusedKeyboardHandler == value && QueuedFocusedKeyboardHandlerSource.HasValue
                         ? QueuedFocusedKeyboardHandlerSource.Value
                         : KeyboardFocusSource.Programmatic;
                     if (Previous is MGTextBox PreviousTextBox)
+                    {
                         PreviousTextBox.ReadonlyChanged -= TextBox_ReadonlyChanged;
+                    }
 
                     State.FocusedKeyboardHandler = value;
 
                     if (FocusedKeyboardHandler is MGTextBox CurrentTextBox)
+                    {
                         CurrentTextBox.ReadonlyChanged += TextBox_ReadonlyChanged;
+                    }
 
                     if (FocusedKeyboardHandler?.SelfOrParentWindow != null)
+                    {
                         State.WindowFocusHistory[FocusedKeyboardHandler.SelfOrParentWindow] = FocusedKeyboardHandler;
+                    }
 
                     if (FocusedKeyboardHandler != null && ShouldAutoScrollFocusedElement(LastFocusChangeSource))
+                    {
                         EnsureFocusedElementVisible(FocusedKeyboardHandler);
+                    }
 
                     NPC(nameof(FocusedKeyboardHandler));
                     FocusedKeyboardHandlerChanged?.Invoke(this, new(Previous, FocusedKeyboardHandler));
@@ -800,7 +864,9 @@ namespace MGUI.Core.UI
         private void TextBox_ReadonlyChanged(object sender, bool IsReadonly)
         {
             if (sender is MGTextBox TextBox && IsReadonly && FocusedKeyboardHandler == TextBox)
+            {
                 FocusedKeyboardHandler = null;
+            }
         }
 
         private static void EnsureFocusedElementVisible(MGElement focusedElement)
@@ -808,14 +874,18 @@ namespace MGUI.Core.UI
             for (MGElement current = focusedElement?.Parent; current != null; current = current.Parent)
             {
                 if (current is MGScrollViewer scrollViewer)
+                {
                     scrollViewer.EnsureElementVisible(focusedElement);
+                }
             }
         }
 
         private void ApplyQueuedFocusChange()
         {
             if (_QueuedFocusedKeyboardHandler == null)
+            {
                 return;
+            }
 
             FocusedKeyboardHandler = QueuedFocusedKeyboardHandler;
             ClearQueuedFocusedKeyboardHandler();
@@ -824,7 +894,9 @@ namespace MGUI.Core.UI
         private MGElement ResolveAutoFocusTarget(MGElement root, bool preferWindowDefault)
         {
             if (root is not MGWindow window)
+            {
                 return GetFocusableElements(root).FirstOrDefault();
+            }
 
             MGElement defaultFocus = window.DefaultFocusElement;
             MGElement lastFocused = State.WindowFocusHistory.TryGetValue(window, out MGElement previousFocus) ? previousFocus : null;
@@ -845,7 +917,9 @@ namespace MGUI.Core.UI
         internal void NotifyWindowClosed(MGWindow window)
         {
             if (window == null)
+            {
                 return;
+            }
 
             UnregisterModalWindow(window);
 
@@ -1000,8 +1074,16 @@ namespace MGUI.Core.UI
             HighPriorityKeyboardHandler.Pressed += (sender, e) => { _ = TryDispatchNavigationAction(e); };
 
             // Wire LMB release to finalize or cancel any active drag-and-drop
-            HighPriorityMouseHandler.ReleasedInside  += (sender, e) => { if (e.IsLMB && DragDropManager.IsDragging) DragDropManager.NotifyDrop(DragDropManager.CurrentDropTarget, e.Position); };
-            HighPriorityMouseHandler.ReleasedOutside += (sender, e) => { if (e.IsLMB && DragDropManager.IsDragging) DragDropManager.CancelDrag(); };
+            HighPriorityMouseHandler.ReleasedInside  += (sender, e) => { if (e.IsLMB && DragDropManager.IsDragging)
+                {
+                    DragDropManager.NotifyDrop(DragDropManager.CurrentDropTarget, e.Position);
+                }
+            };
+            HighPriorityMouseHandler.ReleasedOutside += (sender, e) => { if (e.IsLMB && DragDropManager.IsDragging)
+                {
+                    DragDropManager.CancelDrag();
+                }
+            };
 
             DragDropManager = new DragDropManager(this);
 
@@ -1009,8 +1091,12 @@ namespace MGUI.Core.UI
             Renderer.TextEngineChanged += (sender, e) =>
             {
                 foreach (MGWindow window in Windows)
+                {
                     foreach (MGTextBlock tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+                    {
                         tb.RefreshTextEngine();
+                    }
+                }
                 //  Note: We don't need to call InvalidateAllLayouts() because the parent elements of MGTextBlocks will already receive LayoutChanged notifications.
                 //  The only reason InvalidateAllLayouts would be needed is if an MGElement instance other than MGTextBlock rendered text in its DrawSelf method
                 //  (currently, all text-drawing is funnelled through MGTextBlocks, even for things like MGTimer/MGStopWatch/MGTextBox)
@@ -1072,15 +1158,21 @@ namespace MGUI.Core.UI
                 if (!IsWindowOccludedAtMousePos && Window.VisualState.IsPressedOrHovered)
                 {
                     if (IsOverlayWindow) // When an overlay is being shown, disallow showing of tooltips that belong to windows underneath the overlay
+                    {
                         IsWindowOccludedAtMousePos = OverlayHost.ActiveOverlay != null;
+                    }
                     else if (!Window.AllowsClickThrough)
+                    {
                         IsWindowOccludedAtMousePos = true;
+                    }
                     else
                     {
                         //  Since this window DOES allow click-through, validate that at least one opaque element is being hovered
                         MGElement OpaqueHoveredElement = FindFirstOpaqueParent(Window.HoveredElement, true);
                         if (OpaqueHoveredElement != null && OpaqueHoveredElement != Window)
+                        {
                             IsWindowOccludedAtMousePos = true;
+                        }
                     }
                 }
             }
@@ -1097,9 +1189,13 @@ namespace MGUI.Core.UI
             while (Current != null)
             {
                 if (Current.Opacity >= 1f || Current.Opacity.IsAlmostEqual(1f))
+                {
                     return Current;
+                }
                 else
+                {
                     Current = Current.Parent;
+                }
             }
             return null;
         }
@@ -1120,7 +1216,9 @@ namespace MGUI.Core.UI
                     }
 
                     if (OverlayHost.ActiveOverlay != null)
+                    {
                         OverlayWindow.Draw(DA);
+                    }
 
                     //  The ToolTip only takes priority if it is a ToolTip belonging to the current ContextMenu
                     if (ActiveToolTip != null && ActiveContextMenu != null && ActiveToolTip.ParentWindow == ActiveContextMenu)

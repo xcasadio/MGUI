@@ -117,7 +117,9 @@ namespace MGUI.Samples
         public void ToggleActiveTextEngine()
         {
             if (FontStashSharpEngine == null)
+            {
                 return;
+            }
 
             ITextEngine CurrentEngine = Desktop.TextEngine;
             ITextEngine NewEngine = CurrentEngine is SpriteFontTextEngine ? FontStashSharpEngine : SpriteFontEngine;
@@ -137,7 +139,10 @@ namespace MGUI.Samples
             //  F1 toggles between SpriteFontTextEngine and FontStashSharpTextEngine
             KeyboardState ks = Keyboard.GetState();
             if (ks.IsKeyDown(Keys.F1) && !_prevKeyboardState.IsKeyDown(Keys.F1))
+            {
                 ToggleActiveTextEngine();
+            }
+
             _prevKeyboardState = ks;
 
             Desktop.Update();

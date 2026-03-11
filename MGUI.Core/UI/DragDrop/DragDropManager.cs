@@ -36,7 +36,11 @@ namespace MGUI.Core.UI.DragDrop
         /// <summary>Starts a drag-and-drop operation originating from <paramref name="source"/>.</summary>
         public void DoDragDrop(MGElement source, DragDropData data)
         {
-            if (IsDragging) CancelDrag();
+            if (IsDragging)
+            {
+                CancelDrag();
+            }
+
             DragSource = source;
             ActiveDrag = data;
             DragStarted?.Invoke(this, data);
@@ -46,12 +50,21 @@ namespace MGUI.Core.UI.DragDrop
         /// enters the element during an active drag. Fires <see cref="MGElement.DragEnter"/>.</summary>
         public void NotifyDragEnter(MGElement target, Point position)
         {
-            if (!IsDragging || target == null) return;
-            if (CurrentDropTarget == target) return;
+            if (!IsDragging || target == null)
+            {
+                return;
+            }
+
+            if (CurrentDropTarget == target)
+            {
+                return;
+            }
 
             // Leave previous target
             if (CurrentDropTarget != null)
+            {
                 CurrentDropTarget.RaiseDragLeave(new DragLeaveEventArgs(ActiveDrag, DragSource, position));
+            }
 
             CurrentDropTarget = target;
             target.RaiseDragEnter(new DragEnterEventArgs(ActiveDrag, DragSource, position));
@@ -61,8 +74,16 @@ namespace MGUI.Core.UI.DragDrop
         /// moves inside the element during an active drag. Fires <see cref="MGElement.DragOver"/>.</summary>
         public void NotifyDragOver(MGElement target, Point position)
         {
-            if (!IsDragging || target == null) return;
-            if (CurrentDropTarget != target) NotifyDragEnter(target, position);
+            if (!IsDragging || target == null)
+            {
+                return;
+            }
+
+            if (CurrentDropTarget != target)
+            {
+                NotifyDragEnter(target, position);
+            }
+
             target.RaiseDragOver(new DragOverEventArgs(ActiveDrag, DragSource, position));
         }
 
@@ -70,7 +91,11 @@ namespace MGUI.Core.UI.DragDrop
         /// leaves the element during an active drag. Fires <see cref="MGElement.DragLeave"/>.</summary>
         public void NotifyDragLeave(MGElement target, Point position)
         {
-            if (!IsDragging || target == null) return;
+            if (!IsDragging || target == null)
+            {
+                return;
+            }
+
             if (CurrentDropTarget == target)
             {
                 target.RaiseDragLeave(new DragLeaveEventArgs(ActiveDrag, DragSource, position));
@@ -81,10 +106,18 @@ namespace MGUI.Core.UI.DragDrop
         /// <summary>Called when the mouse button is released. If dropped on a valid target, fires <see cref="MGElement.Drop"/>.</summary>
         public void NotifyDrop(MGElement target, Point position)
         {
-            if (!IsDragging) return;
+            if (!IsDragging)
+            {
+                return;
+            }
+
             if (target != null && target.AllowDrop)
             {
-                if (CurrentDropTarget != target) NotifyDragEnter(target, position);
+                if (CurrentDropTarget != target)
+                {
+                    NotifyDragEnter(target, position);
+                }
+
                 target.RaiseDrop(new DropEventArgs(ActiveDrag, DragSource, position));
             }
             EndDrag();
@@ -93,7 +126,11 @@ namespace MGUI.Core.UI.DragDrop
         /// <summary>Cancels the active drag without dropping.</summary>
         public void CancelDrag()
         {
-            if (!IsDragging) return;
+            if (!IsDragging)
+            {
+                return;
+            }
+
             if (CurrentDropTarget != null)
             {
                 CurrentDropTarget.RaiseDragLeave(new DragLeaveEventArgs(ActiveDrag, DragSource, Point.Zero));

@@ -378,14 +378,18 @@ namespace MGUI.Core.UI
         private void SetModalWindow(MGWindow value)
         {
             if (_ModalWindows.Count == 1 && ReferenceEquals(_ModalWindows[0], value))
+            {
                 return;
+            }
 
             MGWindow previousTopModal = ModalWindow;
             List<MGWindow> previousModalWindows = _ModalWindows.ToList();
 
             _ModalWindows.Clear();
             if (value != null)
+            {
                 _ModalWindows.Add(value);
+            }
 
             SynchronizeModalState(previousModalWindows, previousTopModal);
         }
@@ -393,11 +397,19 @@ namespace MGUI.Core.UI
         public void PushModalWindow(MGWindow modalWindow)
         {
             if (modalWindow == null)
+            {
                 throw new ArgumentNullException(nameof(modalWindow));
+            }
+
             if (_ModalWindows.Contains(modalWindow))
+            {
                 throw new ArgumentException("Cannot add the same modal window multiple times.", nameof(modalWindow));
+            }
+
             if (modalWindow == this)
+            {
                 throw new ArgumentException("Cannot add a window as a modal child of itself.", nameof(modalWindow));
+            }
 
             MGWindow previousTopModal = ModalWindow;
             List<MGWindow> previousModalWindows = _ModalWindows.ToList();
@@ -408,7 +420,9 @@ namespace MGUI.Core.UI
         public bool RemoveModalWindow(MGWindow modalWindow)
         {
             if (modalWindow == null || !_ModalWindows.Contains(modalWindow))
+            {
                 return false;
+            }
 
             MGWindow previousTopModal = ModalWindow;
             List<MGWindow> previousModalWindows = _ModalWindows.ToList();
@@ -461,11 +475,20 @@ namespace MGUI.Core.UI
         public void AddNestedWindow(MGWindow NestedWindow)
         {
             if (NestedWindow == null)
+            {
                 throw new ArgumentNullException(nameof(NestedWindow));
+            }
+
             if (_NestedWindows.Contains(NestedWindow))
+            {
                 throw new ArgumentException("Cannot add the same nested window to a parent window multiple times.");
+            }
+
             if (NestedWindow == this)
+            {
                 throw new ArgumentException("Cannot add a window as a nested window to itself as this would create an infinite recursive dependency.");
+            }
+
             _NestedWindows.Add(NestedWindow);
             Desktop.NotifyWindowOpened(NestedWindow);
         }
@@ -517,16 +540,22 @@ namespace MGUI.Core.UI
         public IEnumerable<MGWindow> RecurseNestedWindows(bool IncludeSelf, TreeTraversalMode TraversalMode = TreeTraversalMode.Postorder)
         {
             if (IncludeSelf && TraversalMode == TreeTraversalMode.Preorder)
+            {
                 yield return this;
+            }
 
             foreach (MGWindow Nested in NestedWindows)
             {
                 foreach (MGWindow Item in Nested.RecurseNestedWindows(true, TraversalMode))
+                {
                     yield return Item;
+                }
             }
 
             if (IncludeSelf && TraversalMode == TreeTraversalMode.Postorder)
+            {
                 yield return this;
+            }
         }
         #endregion Nested Windows
 
@@ -605,7 +634,9 @@ namespace MGUI.Core.UI
         public bool TryCloseWindow()
         {
             if (!CanCloseWindow)
+            {
                 return false;
+            }
 
             if ((ParentWindow != null && (ParentWindow.NestedWindows.Contains(this) || ParentWindow.ModalWindows.Contains(this))) 
                 || (ParentWindow == null && Desktop.Windows.Contains(this)))
@@ -615,7 +646,9 @@ namespace MGUI.Core.UI
                     CancelEventArgs ClosingArgs = new();
                     WindowClosing.Invoke(this, ClosingArgs);
                     if (ClosingArgs.Cancel)
+                    {
                         return false;
+                    }
                 }
 
                 bool IsClosed = false;
@@ -624,9 +657,13 @@ namespace MGUI.Core.UI
                     IsClosed = ParentWindow.RemoveModalWindow(this);
                 }    
                 if (ParentWindow != null && ParentWindow.NestedWindows.Contains(this))
+                {
                     IsClosed = ParentWindow.RemoveNestedWindow(this);
+                }
                 else if (ParentWindow == null && Desktop.Windows.Contains(this))
+                {
                     IsClosed = Desktop.Windows.Remove(this);
+                }
 
                 if (IsClosed)
                 {
@@ -650,7 +687,9 @@ namespace MGUI.Core.UI
         public MGRadioButtonGroup GetOrCreateRadioButtonGroup(string Name)
         {
             if (RadioButtonGroups.TryGetValue(Name, out MGRadioButtonGroup ExistingGroup))
+            {
                 return ExistingGroup;
+            }
             else
             {
                 MGRadioButtonGroup NewGroup = new(this, Name);
@@ -680,7 +719,10 @@ namespace MGUI.Core.UI
         internal bool TryGetNamedToolTip(string Name, out MGToolTip ToolTip)
         {
             if (Name != null && _NamedToolTips.TryGetValue(Name, out ToolTip))
+            {
                 return true;
+            }
+
             return GetResources().TryGetNamedToolTip(Name, out ToolTip);
         }
         #endregion Named ToolTips
@@ -887,7 +929,9 @@ namespace MGUI.Core.UI
             : this(Window.Desktop, Theme, Window, MGElementType.Window, Left, Top, Width, Height)
         {
             if (Window == null)
+            {
                 throw new ArgumentNullException(nameof(Window));
+            }
         }
 
         /// <exception cref="InvalidOperationException">Thrown if you attempt to change <see cref="MGElement.HorizontalAlignment"/> or <see cref="MGElement.VerticalAlignment"/> on this <see cref="MGWindow"/></exception>
@@ -895,7 +939,9 @@ namespace MGUI.Core.UI
             : base(Desktop, WindowTheme, ParentWindow, ElementType)
         {
             if (ParentWindow == null && !WindowElementTypes.Contains(ElementType))
+            {
                 throw new InvalidOperationException($"All {nameof(MGElement)}s must either belong to an {nameof(MGWindow)} or be a root-level {nameof(MGWindow)} instance.");
+            }
 
             using (BeginInitializing())
             {
@@ -1036,18 +1082,28 @@ namespace MGUI.Core.UI
                     {
                         QueueLayoutRefresh = false;
                         if (RecentSizeToContentSettings.HasValue)
+                        {
                             RevalidateSizeToContent(true);
+                        }
                         else
+                        {
                             UpdateLayout(new(this.Left, this.Top, WindowWidth, WindowHeight));
+                        }
                     }
 
                     if (ShouldUpdateHoveredElement)
+                    {
                         HoveredElement = GetTopmostHoveredElement(e.UA);
+                    }
 
                     if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
+                    {
                         PressedElement = GetTopmostHoveredElement(e.UA);
+                    }
                     else if (MouseHandler.Tracker.MouseLeftButtonReleasedRecently)
+                    {
                         PressedElement = null;
+                    }
                 };
 
                 OnEndUpdate += (sender, e) =>
@@ -1055,46 +1111,65 @@ namespace MGUI.Core.UI
                     //  These 2 events are intentionally deferred because they affect MGElement.VisualState,
                     //  and subscribing code probably wants to access the most up-to-date MGElement.VisualState values.
                     if (PressedElementAtBeginUpdate != PressedElement)
+                    {
                         PressedElementChanged?.Invoke(this, new(PressedElementAtBeginUpdate, PressedElement));
+                    }
+
                     if (HoveredElementAtBeginUpdate != HoveredElement)
+                    {
                         HoveredElementChanged?.Invoke(this, new(HoveredElementAtBeginUpdate, HoveredElement));
+                    }
                 };
 
                 //  Ensure all mouse events that haven't already been handled by a child element of this window are handled, so that the mouse events won't fall-through to underneath this window
                 MouseHandler.PressedInside += (sender, e) =>
                 {
                     if (!AllowsClickThrough || IsModalWindow)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
                 MouseHandler.ReleasedInside += (sender, e) =>
                 {
                     if (!AllowsClickThrough || IsModalWindow)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
                 MouseHandler.DragStart += (sender, e) =>
                 {
                     if (!AllowsClickThrough || IsModalWindow)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
                 MouseHandler.Scrolled += (sender, e) =>
                 {
                     if (!AllowsClickThrough || IsModalWindow)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
                 MouseHandler.PressedOutside += (sender, e) =>
                 {
                     if (IsModalWindow)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
                 MouseHandler.ReleasedOutside += (sender, e) =>
                 {
                     if (IsModalWindow)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
                 MouseHandler.DragStartOutside += (sender, e) =>
                 {
                     if (IsModalWindow)
+                    {
                         e.SetHandledBy(this, false);
+                    }
                 };
 
                 OnBeginUpdateContents += (sender, e) =>
@@ -1118,9 +1193,13 @@ namespace MGUI.Core.UI
                         Nested.Update(UpdateArgs);
                         //  If a higher-priority nested window is occluding the mouse, prevent this window from overriding the ToolTip
                         if (isNestedWindowOccludedAtMousePos)
+                        {
                             GetDesktop().QueuedToolTip = previousQueuedToolTip;
+                        }
                         else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough)
+                        {
                             isNestedWindowOccludedAtMousePos = true;
+                        }
                     }
                 };
 
@@ -1297,7 +1376,9 @@ namespace MGUI.Core.UI
         private void Element_Added(object sender, MGElement e)
         {
             if (e.Name != null)
+            {
                 ElementsByName.Add(e.Name, e);
+            }
 
             if (e.ToolTip != null)
             {
@@ -1325,7 +1406,9 @@ namespace MGUI.Core.UI
         private void Element_Removed(object sender, MGElement e)
         {
             if (e.Name != null)
+            {
                 ElementsByName.Remove(e.Name);
+            }
 
             if (e.ToolTip != null)
             {
@@ -1353,9 +1436,14 @@ namespace MGUI.Core.UI
         private void Element_NameChanged(object sender, EventArgs<string> e)
         {
             if (e.PreviousValue != null)
+            {
                 ElementsByName.Remove(e.PreviousValue);
+            }
+
             if (e.NewValue != null)
+            {
                 ElementsByName.Add(e.NewValue, sender as MGElement);
+            }
         }
 
         private void Element_ToolTipChanged(object sender, EventArgs<MGToolTip> e) => Element_NestedElementChanged(e.PreviousValue, e.NewValue);
@@ -1453,7 +1541,9 @@ namespace MGUI.Core.UI
         public override void Draw(ElementDrawArgs DA)
         {
             if (!IsWindowScaled && !ParentWindows.Any(x => x.IsWindowScaled))
+            {
                 base.Draw(DA);
+            }
             else
             {
 #if true
@@ -1478,10 +1568,15 @@ namespace MGUI.Core.UI
 
             //  Draw a transparent black overlay if there is a Modal window overtop of this window
             if (HasModalWindow)
+            {
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), LayoutBounds, Color.Black * 0.5f);
+            }
 
             foreach (MGWindow Nested in _NestedWindows.OrderBy(x => x.IsTopmost))
+            {
                 Nested.Draw(DA);
+            }
+
             ModalWindow?.Draw(DA);
 
             if (!IsDrawingDraggedWindowPreview && IsDraggingWindowPosition && DragWindowPositionOffset.HasValue && DragWindowPositionOffset.Value != Point.Zero)

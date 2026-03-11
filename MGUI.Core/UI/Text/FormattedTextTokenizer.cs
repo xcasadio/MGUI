@@ -82,16 +82,23 @@ namespace MGUI.Core.UI.Text
         public FTTokenMatch? Match(FTTokenType? Previous, string Input)
         {
             if (PrecededBy.Any() && !PrecededBy.Any(x => (x == null && !Previous.HasValue) || (x != null && Previous.HasValue && x.Value == Previous.Value)))
+            {
                 return null;
+            }
+
             if (NotPrecededBy.Any(x => (x == null && !Previous.HasValue) || (x != null && Previous.HasValue && x.Value == Previous.Value)))
+            {
                 return null;
+            }
 
             Match Match = Regex.Match(Input);
             if (Match.Success)
             {
                 string RemainingText = "";
                 if (Match.Length != Input.Length)
+                {
                     RemainingText = Input.Substring(Match.Length);
+                }
 
                 return new FTTokenMatch(Type, Match.Value, RemainingText);
             }
@@ -406,7 +413,9 @@ namespace MGUI.Core.UI.Text
         public static string EscapeMarkdown(string Text)
         {
             if (string.IsNullOrEmpty(Text))
+            {
                 return Text;
+            }
 
             StringBuilder Result = new();
 
@@ -476,7 +485,9 @@ namespace MGUI.Core.UI.Text
         public IEnumerable<FTTokenMatch> Tokenize(string Text, bool ShouldTokenizeLineBreaks)
         {
             if (string.IsNullOrEmpty(Text))
+            {
                 yield break;
+            }
 
             string RemainingText = Text;
             StringBuilder CurrentStringLiteral = new();
@@ -505,7 +516,10 @@ namespace MGUI.Core.UI.Text
                         if (CurrentStringLiteral.Length > 0)
                         {
                             foreach (FTTokenMatch Item in TokenizeLineBreaks(CurrentStringLiteral.ToString(), ShouldTokenizeLineBreaks))
+                            {
                                 yield return Item;
+                            }
+
                             PreviousToken = FTTokenType.StringLiteral;
                         }
 
@@ -534,7 +548,9 @@ namespace MGUI.Core.UI.Text
             if (CurrentStringLiteral.Length > 0)
             {
                 foreach (FTTokenMatch Item in TokenizeLineBreaks(CurrentStringLiteral.ToString(), ShouldTokenizeLineBreaks))
+                {
                     yield return Item;
+                }
             }
         }
 
@@ -545,7 +561,9 @@ namespace MGUI.Core.UI.Text
         public static IEnumerable<FTTokenMatch> TokenizeLineBreaks(string Text, bool Enabled = true)
         {
             if (string.IsNullOrEmpty(Text))
+            {
                 yield break;
+            }
 
             if (Enabled)
             {
@@ -554,11 +572,16 @@ namespace MGUI.Core.UI.Text
                 {
                     int Index = Match.Index;
                     if (Index != 0)
+                    {
                         yield return new(FTTokenType.StringLiteral, Text.Substring(0, Index), "");
+                    }
+
                     yield return new(FTTokenType.LineBreak, Match.Value, "");
                     Text = Text.Substring(Index + Match.Length);
                     if (Text == string.Empty)
+                    {
                         break;
+                    }
                 }
 
                 if (Text != string.Empty)

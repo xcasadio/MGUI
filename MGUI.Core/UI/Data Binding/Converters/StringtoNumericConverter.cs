@@ -19,17 +19,25 @@ namespace MGUI.Core.UI.Data_Binding.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is string StringValue)
+            {
                 return System.Convert.ChangeType(StringValue, targetType, culture);
+            }
             else
+            {
                 throw new NotImplementedException();
+            }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is IConvertible TypedValue)
+            {
                 return TypedValue.ToString(culture);
+            }
             else
+            {
                 throw new NotImplementedException();
+            }
         }
 
         private static readonly StringToNumericConverter Instance = new();

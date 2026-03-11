@@ -17,7 +17,9 @@ public class FocusTests
         public void ApplyQueuedFocusChange()
         {
             if (Queued == null)
+            {
                 return;
+            }
 
             Focused = Queued;
             Queued = null;
@@ -27,7 +29,9 @@ public class FocusTests
     private static bool DoesFocusChangeMoveScrollableTarget(MGUI.Core.UI.KeyboardFocusSource source, float currentOffset, float viewportStart, float viewportSize, float maxOffset, float elementStart, float elementEnd)
     {
         if (!MGUI.Core.UI.MGDesktop.ShouldAutoScrollFocusedElement(source))
+        {
             return false;
+        }
 
         float nextOffset = MGUI.Core.UI.MGScrollViewer.GetVisibleOffset(currentOffset, viewportStart, viewportSize, maxOffset, elementStart, elementEnd);
         return Math.Abs(nextOffset - currentOffset) > 0.5f;
@@ -67,7 +71,10 @@ public class FocusTests
                         SubscriptionCount++;
                         LMBPressedInside += () =>
                         {
-                            if (IsFocusable) AutoFocusCallCount++;
+                            if (IsFocusable)
+                            {
+                                AutoFocusCallCount++;
+                            }
                         };
                     }
                 }

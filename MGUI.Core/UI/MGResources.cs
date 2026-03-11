@@ -96,13 +96,17 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         public bool TryGetTexture(string Name, out MGTextureData Data)
         {
             if (Name != null && _Textures.TryGetValue(Name, out Data))
+            {
                 return true;
+            }
             else
             {
                 Data = default;
@@ -113,7 +117,9 @@ namespace MGUI.Core.UI
         public bool TryLoadTexture(string Name, string AssetName)
         {
             if (AssetProvider == null || !AssetProvider.TryLoadTexture(AssetName, out Texture2D Texture))
+            {
                 return false;
+            }
 
             AddTexture(Name, new(Texture));
             return true;
@@ -127,7 +133,9 @@ namespace MGUI.Core.UI
                 return (Size.Width, Size.Height);
             }
             else
+            {
                 return (null, null);
+            }
         }
 
         public bool TryDrawTexture(DrawTransaction DT, string Name, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
@@ -137,9 +145,13 @@ namespace MGUI.Core.UI
         public bool TryDrawTexture(DrawTransaction DT, string Name, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
         {
             if (TryGetTexture(Name, out MGTextureData TextureData))
+            {
                 return TryDrawTexture(DT, TextureData, Position, Width, Height, Opacity, Color);
+            }
             else
+            {
                 return false;
+            }
         }
         public bool TryDrawTexture(DrawTransaction DT, MGTextureData? TextureData, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
         {
@@ -154,7 +166,9 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         public event EventHandler<(string Name, MGTextureData Data)> OnTextureAdded;
@@ -188,13 +202,17 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         public bool TryGetCommand(string Name, out Action<MGElement> Command)
         {
             if (Name != null && _Commands.TryGetValue(Name, out Command))
+            {
                 return true;
+            }
             else
             {
                 Command = null;
@@ -227,7 +245,10 @@ namespace MGUI.Core.UI
         public bool TryGetNamedToolTip(string Name, out MGToolTip ToolTip)
         {
             if (Name != null && _NamedToolTips.TryGetValue(Name, out ToolTip))
+            {
                 return true;
+            }
+
             ToolTip = null;
             return false;
         }
@@ -253,7 +274,9 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         /// <param name="DefaultValue">The default theme to return if there is no theme with the given <paramref name="Name"/>. Uses <see cref="DefaultTheme"/> if null.</param>
@@ -263,9 +286,13 @@ namespace MGUI.Core.UI
             if (!string.IsNullOrEmpty(Name))
             {
                 if (_Themes.TryGetValue(Name, out MGTheme Result))
+                {
                     return Result;
+                }
                 else if (WarnIfNotFound)
+                {
                     Debug.WriteLine($"Warning - No {nameof(MGTheme)} was found with the name '{Name}' in {nameof(MGResources)}.{nameof(Themes)}");
+                }
             }
 
             return DefaultValue ?? DefaultTheme;
@@ -302,9 +329,20 @@ namespace MGUI.Core.UI
         /// <exception cref="InvalidOperationException">Thrown if the style has a <see cref="Style.Name"/> (implicit styles must be anonymous).</exception>
         public void AddImplicitStyle(Style Style)
         {
-            if (Style == null) throw new ArgumentNullException(nameof(Style));
-            if (!Style.Setters.Any()) return;
-            if (Style.Name != null) throw new InvalidOperationException("Implicit styles must not have a Name.");
+            if (Style == null)
+            {
+                throw new ArgumentNullException(nameof(Style));
+            }
+
+            if (!Style.Setters.Any())
+            {
+                return;
+            }
+
+            if (Style.Name != null)
+            {
+                throw new InvalidOperationException("Implicit styles must not have a Name.");
+            }
 
             MGElementType Type = Style.TargetType;
             if (!_ImplicitStyles.TryGetValue(Type, out Style Existing))
@@ -317,9 +355,13 @@ namespace MGUI.Core.UI
                 {
                     int ExistingIndex = Existing.Setters.FindIndex(s => s.Property == Setter.Property);
                     if (ExistingIndex >= 0)
+                    {
                         Existing.Setters[ExistingIndex] = Setter;
+                    }
                     else
+                    {
                         Existing.Setters.Add(Setter);
+                    }
                 }
             }
         }
@@ -350,7 +392,9 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         public event EventHandler<(string Name, Style Style)> OnStyleAdded;
@@ -378,13 +422,17 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         public bool TryGetStaticResource(string Name, out object Value)
         {
             if (Name != null && _StaticResources.TryGetValue(Name, out Value))
+            {
                 return true;
+            }
             else
             {
                 Value = null;
@@ -416,13 +464,17 @@ namespace MGUI.Core.UI
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         public bool TryGetElementTemplate(string Name, out MGElementTemplate Template)
         {
             if (Name != null && _ElementTemplates.TryGetValue(Name, out Template))
+            {
                 return true;
+            }
             else
             {
                 Template = null;

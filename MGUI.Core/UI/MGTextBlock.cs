@@ -48,9 +48,21 @@ namespace MGUI.Core.UI
         /// <summary>Returns the <see cref="ResolvedFont"/> corresponding to the given style flags.</summary>
         internal ResolvedFont GetResolvedFont(bool IsBold, bool IsItalic)
         {
-            if (!IsBold && !IsItalic) return RF_Regular;
-            if (IsBold && IsItalic)   return RF_BoldItalic;
-            if (IsBold)               return RF_Bold;
+            if (!IsBold && !IsItalic)
+            {
+                return RF_Regular;
+            }
+
+            if (IsBold && IsItalic)
+            {
+                return RF_BoldItalic;
+            }
+
+            if (IsBold)
+            {
+                return RF_Bold;
+            }
+
             return RF_Italic;
         }
 
@@ -64,7 +76,9 @@ namespace MGUI.Core.UI
 
                 // Validate that the requested font exists before committing the change
                 if (!GetDesktop().FontManager.TryGetFont(FontFamily, CustomFontStyles.Normal, FontSize, true, out _, out _, out _, out _, out _))
+                {
                     return false;
+                }
 
                 _FontFamily = FontFamily;
                 _FontSize = FontSize;
@@ -81,14 +95,21 @@ namespace MGUI.Core.UI
                 InvokeLayoutChanged();
 
                 if (PreviousFontFamily != this.FontFamily)
+                {
                     NPC(nameof(FontFamily));
+                }
+
                 if (PreviousFontSize != this.FontSize)
+                {
                     NPC(nameof(FontSize));
+                }
 
                 return true;
             }
             else
+            {
                 return true;
+            }
         }
 
         /// <summary>
@@ -347,9 +368,14 @@ namespace MGUI.Core.UI
                 _Text = Value;
                 UpdateRuns();
                 if (!SuppressLayoutChanged)
+                {
                     InvokeLayoutChanged();
+                }
                 else
+                {
                     UpdateLines();
+                }
+
                 NPC(nameof(Text));
             }
         }
@@ -365,9 +391,13 @@ namespace MGUI.Core.UI
                     _IsTrackingMouseClicks = value;
 
                     if (IsTrackingMouseClicks)
+                    {
                         MouseHandler.ReleasedInside += Mouse_ReleasedInside;
+                    }
                     else if (_MouseHandler != null)
+                    {
                         MouseHandler.ReleasedInside -= Mouse_ReleasedInside;
+                    }
                 }
             }
         }
@@ -553,7 +583,9 @@ namespace MGUI.Core.UI
                 MGDesktop Desktop = GetDesktop();
                 MGTheme Theme = GetTheme();
                 if (!TrySetFont(Theme.FontSettings.DefaultFontFamily ?? Desktop.FontManager.DefaultFontFamily, FontSize ?? GetTheme().FontSettings.DefaultFontSize))
+                {
                     throw new ArgumentException($"Default font not found.");
+                }
 
                 this.AllowsInlineFormatting = AllowsInlineFormatting;
                 IsBold = false;
@@ -584,11 +616,16 @@ namespace MGUI.Core.UI
         public Vector2 MeasureText(string Text, bool IsBold, bool IsItalic)
         {
             if (string.IsNullOrEmpty(Text))
+            {
                 return Vector2.Zero;
+            }
 
             ResolvedFont resolved = GetResolvedFont(IsBold, IsItalic);
             if (resolved?.NativeFont == null)
+            {
                 return Vector2.Zero;
+            }
+
             Vector2 measured = TextEngine.MeasureText(resolved, Text);
             // LineHeight from the engine may be 0 for some backends; fall back to resolved value.
             return new Vector2(measured.X, measured.Y > 0 ? measured.Y : resolved.LineHeight);
@@ -600,7 +637,9 @@ namespace MGUI.Core.UI
             while (RecentSelfMeasurements.Count > MeasurementCacheSize)
                 RecentSelfMeasurements.RemoveAt(RecentSelfMeasurements.Count - 1);
             if (!RecentSelfMeasurements.Contains(Value))
+            {
                 RecentSelfMeasurements.Insert(0, Value);
+            }
         }
 
         private bool TryGetCachedSelfMeasurement(Size AvailableSize, out Thickness? Result)
@@ -612,11 +651,17 @@ namespace MGUI.Core.UI
                 //      we should be able to re-use the measurement as long as the new available size is still >= whatever was previously requested.
                 bool IsMatch = false;
                 if (Measurement.AvailableSize == AvailableSize)
+                {
                     IsMatch = true;
+                }
                 else if (Measurement.AvailableSize.Width == AvailableSize.Width)
+                {
                     IsMatch = AvailableSize.Height >= Measurement.RequestedSize.Height;
+                }
                 else if (Measurement.IsAvailableSizeGreaterThanOrEqual(AvailableSize))
+                {
                     IsMatch = Measurement.IsRequestedSizeLessThanOrEqual(AvailableSize);
+                }
 
                 if (IsMatch)
                 {
@@ -649,16 +694,22 @@ namespace MGUI.Core.UI
 
             SharedSize = new(0);
             if (TryGetCachedSelfMeasurement(RemainingSize, out Thickness? CachedMeasurement))
+            {
                 return CachedMeasurement.Value;
+            }
 
             List<MGTextLine> Lines = MGTextLine.ParseLines(this, RemainingSize.Width, WrapText, Runs, IgnoreEmptySpaceLines).ToList();
             List<MGTextLine> MeasuredLines = Lines;
             if (MaxLines.HasValue && MeasuredLines.Count > MaxLines.Value)
+            {
                 MeasuredLines = MeasuredLines.Take(MaxLines.Value).ToList();
+            }
 
             Vector2 Size = new(MeasuredLines.Select(x => x.LineWidth).DefaultIfEmpty(0).Max(), MeasuredLines.Sum(x => x.LineTotalHeight) + LinePadding * Math.Max(0, MeasuredLines.Count - 1));
             if (MinLines > MeasuredLines.Count)
+            {
                 Size = Size.SetY(Size.Y + (MinLines - MeasuredLines.Count) * (RF_Regular.LineHeight + LinePadding));
+            }
 
             Thickness Measurement = new((int)Math.Ceiling(Size.X), (int)Math.Ceiling(Size.Y), 0, 0);
 
@@ -695,7 +746,9 @@ namespace MGUI.Core.UI
                             foreach (Rectangle Bounds in KVP.Value)
                             {
                                 if (Bounds.Contains(MousePosition))
+                                {
                                     return true;
+                                }
                             }
                         }
                     }
@@ -712,7 +765,9 @@ namespace MGUI.Core.UI
             base.UpdateSelf(UA);
 
             if (ActionBounds.Any())
+            {
                 ActionBounds.Clear();
+            }
 
             //  Update TextProgress (makes the Text appear slowly over time instead of all at once)
             if (TextCharactersPerSecond.HasValue && NumCharacters > 0 && (!TextProgress.HasValue || TextProgress.Value < 1.0))
@@ -774,7 +829,9 @@ namespace MGUI.Core.UI
 
                         string ActualText = TextRun.Text;
                         if (TextProgress.HasValue && RemainingCharacters < TextRun.Text.Length)
+                        {
                             ActualText = TextRun.Text.Substring(0, RemainingCharacters);
+                        }
 
                         Vector2 TextSize = MeasureText(ActualText, IsBold, IsItalic);
 
@@ -823,10 +880,14 @@ namespace MGUI.Core.UI
 
                         RemainingCharacters -= ActualText.Length;
                         if (TextProgress.HasValue && RemainingCharacters <= 0)
+                        {
                             break;
+                        }
                     }
                     else
+                    {
                         throw new NotImplementedException($"{nameof(MGTextBlock)}.{nameof(DrawSelf)} does not support rendering {nameof(MGTextRun)}s of type={nameof(TextRunType)}.{Run.RunType}");
+                    }
 
                     //  Keep track of which parts of the textblock content have their own tooltip or delegate to invoke when clicking in the bounds
                     if (Run.HasToolTip || Run.HasAction)
@@ -862,7 +923,9 @@ namespace MGUI.Core.UI
                 CurrentY += Line.LineTotalHeight + LinePadding;
 
                 if (TextProgress.HasValue && RemainingCharacters <= 0)
+                {
                     break;
+                }
             }
         }
     }

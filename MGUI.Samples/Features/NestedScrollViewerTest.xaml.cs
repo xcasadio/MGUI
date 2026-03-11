@@ -108,7 +108,11 @@ namespace MGUI.Samples.Features
 
                     // Assert that the selection contains at least one cell
                     int cellCount = 0;
-                    foreach (var _ in selection.Value) cellCount++;
+                    foreach (var _ in selection.Value)
+                    {
+                        cellCount++;
+                    }
+
                     Debug.Assert(cellCount > 0,
                         "[NestedSVTest Case1] SelectionChanged fired but selection contains 0 cells.");
                     Debug.WriteLine($"[NestedSVTest Case1] {msg} ({cellCount} cells)");
@@ -130,7 +134,11 @@ namespace MGUI.Samples.Features
                     Case2Label.SetText(msg);
 
                     int cellCount = 0;
-                    foreach (var _ in selection.Value) cellCount++;
+                    foreach (var _ in selection.Value)
+                    {
+                        cellCount++;
+                    }
+
                     Debug.Assert(cellCount > 0,
                         "[NestedSVTest Case2] SelectionChanged fired but selection contains 0 cells.");
 
@@ -158,7 +166,11 @@ namespace MGUI.Samples.Features
                     Case3Label.SetText(msg);
 
                     int cellCount = 0;
-                    foreach (var _ in selection.Value) cellCount++;
+                    foreach (var _ in selection.Value)
+                    {
+                        cellCount++;
+                    }
+
                     Debug.Assert(cellCount > 0,
                         "[NestedSVTest Case3] SelectionChanged fired but selection contains 0 cells.");
 

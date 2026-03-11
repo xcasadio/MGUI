@@ -62,7 +62,9 @@ namespace MGUI.Core.UI.XAML
                 return Item;
             }
             else
+            {
                 return null;
+            }
         }
     }
 }

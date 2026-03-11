@@ -61,13 +61,21 @@ public class MGTreeViewItem : MGSingleContentHost
     private void UpdateHeaderContent()
     {
         if (_Header is string text)
+        {
             HeaderContent = new MGTextBlock(SelfOrParentWindow, text);
+        }
         else if (_Header is MGElement element)
+        {
             HeaderContent = element;
+        }
         else if (_Header != null)
+        {
             HeaderContent = new MGTextBlock(SelfOrParentWindow, _Header.ToString());
+        }
         else
+        {
             HeaderContent = new MGTextBlock(SelfOrParentWindow, string.Empty);
+        }
 
         using (HeaderContainer.AllowChangingContentTemporarily())
             HeaderContainer.SetContent(HeaderContent);
@@ -205,7 +213,9 @@ public class MGTreeViewItem : MGSingleContentHost
                         {
                             ChildrenPanel.TryAddChild(item);
                             if (OwnerTreeView != null)
+                            {
                                 OwnerTreeView.RegisterItemRecursive(item);
+                            }
                         }
                     }
 
@@ -261,7 +271,10 @@ public class MGTreeViewItem : MGSingleContentHost
     private void SetExpanderButtonState(bool isExpanded)
     {
         if (ExpanderButton == null)
+        {
             return;
+        }
+
         ExpanderButton.OnCheckStateChanged -= OnExpanderButtonCheckStateChanged;
         ExpanderButton.IsChecked = isExpanded;
         ExpanderButton.OnCheckStateChanged += OnExpanderButtonCheckStateChanged;
@@ -269,8 +282,14 @@ public class MGTreeViewItem : MGSingleContentHost
 
     private void OnExpanderButtonCheckStateChanged(object sender, EventArgs<bool> e)
     {
-        if (e.NewValue) Expand();
-        else Collapse();
+        if (e.NewValue)
+        {
+            Expand();
+        }
+        else
+        {
+            Collapse();
+        }
     }
 
     /// <summary>
@@ -298,8 +317,14 @@ public class MGTreeViewItem : MGSingleContentHost
     /// </summary>
     public void ToggleExpansion()
     {
-        if (IsExpanded) Collapse();
-        else Expand();
+        if (IsExpanded)
+        {
+            Collapse();
+        }
+        else
+        {
+            Expand();
+        }
     }
 
     /// <summary>
@@ -309,7 +334,9 @@ public class MGTreeViewItem : MGSingleContentHost
     {
         Expand();
         foreach (var child in Items)
+        {
             child.ExpandAll();
+        }
     }
 
     /// <summary>
@@ -319,7 +346,9 @@ public class MGTreeViewItem : MGSingleContentHost
     {
         Collapse();
         foreach (var child in Items)
+        {
             child.CollapseAll();
+        }
     }
 
     /// <summary>
@@ -330,12 +359,18 @@ public class MGTreeViewItem : MGSingleContentHost
     public bool IsAncestorOf(MGTreeViewItem item)
     {
         if (item == null)
+        {
             return false;
+        }
+
         var current = item.ParentItem;
         while (current != null)
         {
             if (current == this)
+            {
                 return true;
+            }
+
             current = current.ParentItem;
         }
 
@@ -351,13 +386,25 @@ public class MGTreeViewItem : MGSingleContentHost
     public void AddItem(MGTreeViewItem item)
     {
         if (item == null)
+        {
             throw new ArgumentNullException(nameof(item));
+        }
+
         if (item == this)
+        {
             throw new InvalidOperationException("Cannot add item as its own child");
+        }
+
         if (item.IsAncestorOf(this))
+        {
             throw new InvalidOperationException("Cannot create circular reference in tree");
+        }
+
         if (item.ParentItem != null)
+        {
             item.ParentItem.RemoveItem(item);
+        }
+
         _Items.Add(item);
         item.ParentItem = this;
         item.Level = Level + 1;
@@ -385,7 +432,9 @@ public class MGTreeViewItem : MGSingleContentHost
     public void ClearItems()
     {
         foreach (var item in _Items.ToList())
+        {
             RemoveItem(item);
+        }
     }
 
     /// <summary>
@@ -395,12 +444,17 @@ public class MGTreeViewItem : MGSingleContentHost
     public IEnumerable<MGTreeViewItem> GetVisibleDescendants()
     {
         if (!IsExpanded)
+        {
             yield break;
+        }
+
         foreach (var child in Items)
         {
             yield return child;
             foreach (var descendant in child.GetVisibleDescendants())
+            {
                 yield return descendant;
+            }
         }
     }
 
@@ -411,7 +465,10 @@ public class MGTreeViewItem : MGSingleContentHost
     internal void SetSelected(bool selected)
     {
         if (IsSelected == selected)
+        {
             return;
+        }
+
         IsSelected = selected;
         if (selected && OwnerTreeView != null)
         {
@@ -433,12 +490,18 @@ public class MGTreeViewItem : MGSingleContentHost
         bool clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
         TrackHeaderBodySequence(e, clickedExpander);
         if (clickedExpander)
+        {
             return;
+        }
+
         OwnerTreeView?.NotifyItemSelected(this);
         // Transfer keyboard focus to the parent TreeView on click
         OwnerTreeView?.Focus();
         if (ShouldToggleExpansionOnHeaderClick(HasItems, e.ClickCount))
+        {
             ToggleExpansion();
+        }
+
         OwnerTreeView?.RebuildVisibleItemsCache();
     }
 
@@ -447,23 +510,32 @@ public class MGTreeViewItem : MGSingleContentHost
         Point layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
         bool clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
         if (clickedExpander)
+        {
             return;
+        }
 
         OwnerTreeView?.NotifyItemSelected(this);
         OwnerTreeView?.Focus();
         bool sequenceStartedOnHeaderBody = e.Sequence != null && _LastHeaderBodySequenceId == e.Sequence.Id;
         if (ShouldRaiseItemDoubleClicked(HasItems, e.ClickCount, sequenceStartedOnHeaderBody, clickedExpander))
+        {
             OwnerTreeView?.RaiseItemDoubleClicked(this);
+        }
+
         OwnerTreeView?.RebuildVisibleItemsCache();
     }
 
     private void TrackHeaderBodySequence(Shared.Input.Mouse.BaseMouseClickedEventArgs e, bool clickedExpander)
     {
         if (e.ClickCount != 1 || e.Sequence == null)
+        {
             return;
+        }
 
         if (!clickedExpander)
+        {
             _LastHeaderBodySequenceId = e.Sequence.Id;
+        }
     }
 
     /// <summary>
@@ -481,7 +553,10 @@ public class MGTreeViewItem : MGSingleContentHost
     {
         base.Draw(DA);
         if (!HasItems)
+        {
             return;
+        }
+
         Rectangle expanderBounds = ExpanderButton.LayoutBounds;
         Point center = expanderBounds.Center;
         int size = 5;

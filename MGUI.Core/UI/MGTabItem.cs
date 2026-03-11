@@ -47,9 +47,13 @@ namespace MGUI.Core.UI
             set
             {
                 if (value)
+                {
                     TabControl.TrySelectTab(this);
+                }
                 else if (!value && IsTabSelected)
+                {
                     TabControl.TryDeselectTab(this, true);
+                }
             }
         }
 

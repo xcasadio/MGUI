@@ -67,7 +67,9 @@ namespace MGUI.Samples.Controls
             { 
                 ProgressBar1.Value += Slider1.Value;
                 if (ToggleButton1.IsChecked && ProgressBar1.Value > ProgressBar1.Maximum)
+                {
                     ProgressBar1.Value = ProgressBar1.Minimum;
+                }
             };
 
             ProgressBar2 = Window.GetElementByName<MGProgressBar>("ProgressBar2");
@@ -78,7 +80,9 @@ namespace MGUI.Samples.Controls
             {
                 ProgressBar2.Value += Slider2.Value;
                 if (ToggleButton2.IsChecked && ProgressBar2.Value > ProgressBar2.Maximum)
+                {
                     ProgressBar2.Value = ProgressBar2.Minimum;
+                }
             };
 
             ProgressBar3 = Window.GetElementByName<MGProgressBar>("ProgressBar3");
@@ -89,7 +93,9 @@ namespace MGUI.Samples.Controls
             {
                 ProgressBar3.Value += Slider3.Value;
                 if (ToggleButton3.IsChecked && ProgressBar3.Value > ProgressBar3.Maximum)
+                {
                     ProgressBar3.Value = ProgressBar3.Minimum;
+                }
             };
 
             ProgressBar4 = Window.GetElementByName<MGProgressBar>("ProgressBar4");
@@ -100,7 +106,9 @@ namespace MGUI.Samples.Controls
             {
                 ProgressBar4.Value += Slider4.Value;
                 if (ToggleButton4.IsChecked && ProgressBar4.Value > ProgressBar4.Maximum)
+                {
                     ProgressBar4.Value = ProgressBar4.Minimum;
+                }
             };
 
             ProgressBar5 = Window.GetElementByName<MGProgressBar>("ProgressBar5");
@@ -111,7 +119,9 @@ namespace MGUI.Samples.Controls
             {
                 ProgressBar5.Value += Slider5.Value;
                 if (ToggleButton5.IsChecked && ProgressBar5.Value > ProgressBar5.Maximum)
+                {
                     ProgressBar5.Value = ProgressBar5.Minimum;
+                }
             };
 
             ProgressBar6 = Window.GetElementByName<MGProgressBar>("ProgressBar6");
@@ -122,7 +132,9 @@ namespace MGUI.Samples.Controls
             {
                 ProgressBar6.Value += Slider6.Value;
                 if (ToggleButton6.IsChecked && ProgressBar6.Value > ProgressBar6.Maximum)
+                {
                     ProgressBar6.Value = ProgressBar6.Minimum;
+                }
             };
 
             Window.GetOrCreateRadioButtonGroup("ValueDisplayMode").CheckedItemChanged += (sender, e) => {
@@ -138,7 +150,9 @@ namespace MGUI.Samples.Controls
             {
                 ProgressBar7.Value += Slider7.Value;
                 if (ToggleButton7.IsChecked && ProgressBar7.Value > ProgressBar7.Maximum)
+                {
                     ProgressBar7.Value = ProgressBar7.Minimum;
+                }
             };
 
             ProgressBar8 = Window.GetElementByName<MGProgressBar>("ProgressBar8");
@@ -149,7 +163,9 @@ namespace MGUI.Samples.Controls
             {
                 ProgressBar8.Value += Slider8.Value;
                 if (ToggleButton8.IsChecked && ProgressBar8.Value > ProgressBar8.Maximum)
+                {
                     ProgressBar8.Value = ProgressBar8.Minimum;
+                }
             };
 
             List<string> Names = new() { "ProgressBar9", "ProgressBar10", "ProgressBar11", "ProgressBar12" };
@@ -160,7 +176,9 @@ namespace MGUI.Samples.Controls
                 {
                     ProgressBar.Value += 0.16f;
                     if (ProgressBar.Value > ProgressBar.Maximum)
+                    {
                         ProgressBar.Value = ProgressBar.Minimum;
+                    }
                 };
             }
             MGProgressBar ProgressBar12 = Window.GetElementByName<MGProgressBar>("ProgressBar12");

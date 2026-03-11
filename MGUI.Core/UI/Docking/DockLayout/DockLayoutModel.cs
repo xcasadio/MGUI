@@ -87,7 +87,11 @@ public class DockLayoutModel : INotifyPropertyChanged
     /// </summary>
     public void AddToAutoHide(DockPanelNode panel, AutoHideSide side)
     {
-        if (panel == null) return;
+        if (panel == null)
+        {
+            return;
+        }
+
         // Remove from any existing side first (safety)
         RemoveFromAutoHide(panel);
         panel.IsPinned = false;
@@ -102,7 +106,11 @@ public class DockLayoutModel : INotifyPropertyChanged
     /// </summary>
     public bool RemoveFromAutoHide(DockPanelNode panel)
     {
-        if (panel == null) return false;
+        if (panel == null)
+        {
+            return false;
+        }
+
         foreach (var list in _autoHideStore.Values)
         {
             if (list.Remove(panel))
@@ -370,7 +378,10 @@ public class DockLayoutModel : INotifyPropertyChanged
         foreach (var list in _autoHideStore.Values)
         {
             foreach (var panel in list)
+            {
                 panel.PropertyChanged -= OnNodePropertyChanged;
+            }
+
             list.Clear();
         }
 

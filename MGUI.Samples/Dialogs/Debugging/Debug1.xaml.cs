@@ -31,7 +31,9 @@ namespace MGUI.Samples.Dialogs.Debugging
             : base(Content, Desktop, $"{nameof(Dialogs)}.{nameof(Debugging)}", $"{nameof(Debug1)}.xaml", () => { InitializeResources(Content, Desktop); })
         {
             if (Window == null)
+            {
                 return;
+            }
 
             //Window.Scale = 2f;
 
@@ -87,11 +89,17 @@ namespace MGUI.Samples.Dialogs.Debugging
                 LV.Columns[1].CellTemplate = (double val) =>
                 {
                     if (val > 0)
+                    {
                         return new MGTextBlock(Window, "Positive", Color.Green);
+                    }
                     else if (val == 0)
+                    {
                         return new MGTextBlock(Window, "Zero", Color.Gray);
+                    }
                     else
+                    {
                         return new MGTextBlock(Window, "Negative", Color.Red);
+                    }
                 };
             }
 
@@ -114,7 +122,10 @@ namespace MGUI.Samples.Dialogs.Debugging
                 TestProgressBar.OnEndUpdate += (sender, e) =>
                 {
                     if (Counter % 6 == 0)
+                    {
                         TestProgressBar.Value = (TestProgressBar.Value + 0.5f + TestProgressBar.Maximum) % TestProgressBar.Maximum;
+                    }
+
                     Counter++;
                 };
             }

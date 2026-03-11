@@ -21,11 +21,17 @@ namespace MGUI.Shared.Text
         public FontSet GetFontFamilyOrDefault(string FamilyName)
         {
             if (_FontsByFamily.TryGetValue(FamilyName, out FontSet FS))
+            {
                 return FS;
+            }
             else if (DefaultFontFamily != null && _FontsByFamily.TryGetValue(DefaultFontFamily, out FS))
+            {
                 return FS;
+            }
             else
+            {
                 return _FontsByFamily.Values.First();
+            }
         }
 
         public FontManager(ContentManager Content, string DefaultFontFamily)

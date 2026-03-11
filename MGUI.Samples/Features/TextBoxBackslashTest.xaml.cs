@@ -70,18 +70,36 @@ namespace MGUI.Samples.Features
             // Selection-changed handlers update the info labels.
             TB1.SelectionChanged += (_, e) =>
             {
-                if (e.NewValue.HasValue) UpdateLabel(Info_TB1, "TB1", e.NewValue.Value, TB1.Text);
-                else Info_TB1.SetText("TB1 selection: (none)");
+                if (e.NewValue.HasValue)
+                {
+                    UpdateLabel(Info_TB1, "TB1", e.NewValue.Value, TB1.Text);
+                }
+                else
+                {
+                    Info_TB1.SetText("TB1 selection: (none)");
+                }
             };
             TB2.SelectionChanged += (_, e) =>
             {
-                if (e.NewValue.HasValue) UpdateLabel(Info_TB2, "TB2", e.NewValue.Value, TB2.Text);
-                else Info_TB2.SetText("TB2 selection: (none)");
+                if (e.NewValue.HasValue)
+                {
+                    UpdateLabel(Info_TB2, "TB2", e.NewValue.Value, TB2.Text);
+                }
+                else
+                {
+                    Info_TB2.SetText("TB2 selection: (none)");
+                }
             };
             TB3.SelectionChanged += (_, e) =>
             {
-                if (e.NewValue.HasValue) UpdateLabel(Info_TB3, "TB3", e.NewValue.Value, TB3.Text);
-                else Info_TB3.SetText("TB3 selection: (none)");
+                if (e.NewValue.HasValue)
+                {
+                    UpdateLabel(Info_TB3, "TB3", e.NewValue.Value, TB3.Text);
+                }
+                else
+                {
+                    Info_TB3.SetText("TB3 selection: (none)");
+                }
             };
 
             // Apply programmatic selections once on the first update tick.
@@ -89,7 +107,11 @@ namespace MGUI.Samples.Features
             // Debug.Assert inside DoubleEscapeAtIndex will fire if the fix is wrong.
             Window.OnBeginUpdateContents += (_, _) =>
             {
-                if (_selectionsApplied) return;
+                if (_selectionsApplied)
+                {
+                    return;
+                }
+
                 _selectionsApplied = true;
                 RunProgrammaticTests();
             };

@@ -39,16 +39,29 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
         {
             if (BT.IsEmpty())
+            {
                 return;
+            }
 
             if (BT.Left > 0)
+            {
                 Brush.Draw(DA, Element, new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
+            }
+
             if (BT.Right > 0)
+            {
                 Brush.Draw(DA, Element, new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, Bounds.Height));
+            }
+
             if (BT.Top > 0)
+            {
                 Brush.Draw(DA, Element, new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top));
+            }
+
             if (BT.Bottom > 0)
+            {
                 Brush.Draw(DA, Element, new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
+            }
         }
 
         public IBorderBrush Copy() => new MGUniformBorderBrush(Brush.Copy());

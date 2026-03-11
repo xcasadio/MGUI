@@ -124,7 +124,9 @@ public class FSSMeasureDrawConsistencyTests
         float wholeStringWidth = engine.MeasureText(font, text).X;
         float glyphSum = 0f;
         foreach (char c in text)
+        {
             glyphSum += engine.MeasureGlyph(font, c).TotalWidth;
+        }
 
         // The whole-string width should be close to the glyph sum.
         // Small differences are expected due to kerning/hinting, but the

@@ -405,10 +405,14 @@ public static class DockLayoutSerializer
             foreach (var z in dto.AllowedZones)
             {
                 if (Enum.TryParse<DockZone>(z, true, out var zone))
+                {
                     zones.Add(zone);
+                }
             }
             if (zones.Count > 0)
+            {
                 panel.AllowedZones = zones.AsReadOnly();
+            }
         }
 
         return panel;

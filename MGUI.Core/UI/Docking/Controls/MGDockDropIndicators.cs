@@ -160,7 +160,9 @@ public class MGDockDropIndicators : MGElement
         if (disabledZones != null)
         {
             foreach (var z in disabledZones)
+            {
                 _disabledZones.Add(z);
+            }
         }
     }
 
@@ -203,10 +205,25 @@ public class MGDockDropIndicators : MGElement
             return DockZone.None;
         }
 
-        if (_hostLeftZoneRect.Contains(screenPosition))   return DockZone.Left;
-        if (_hostRightZoneRect.Contains(screenPosition))  return DockZone.Right;
-        if (_hostTopZoneRect.Contains(screenPosition))    return DockZone.Top;
-        if (_hostBottomZoneRect.Contains(screenPosition)) return DockZone.Bottom;
+        if (_hostLeftZoneRect.Contains(screenPosition))
+        {
+            return DockZone.Left;
+        }
+
+        if (_hostRightZoneRect.Contains(screenPosition))
+        {
+            return DockZone.Right;
+        }
+
+        if (_hostTopZoneRect.Contains(screenPosition))
+        {
+            return DockZone.Top;
+        }
+
+        if (_hostBottomZoneRect.Contains(screenPosition))
+        {
+            return DockZone.Bottom;
+        }
 
         return DockZone.None;
     }
@@ -237,11 +254,30 @@ public class MGDockDropIndicators : MGElement
             return DockZone.None;
         }
 
-        if (_leftZoneRect.Contains(screenPosition)   && !_disabledZones.Contains(DockZone.Left))   return DockZone.Left;
-        if (_rightZoneRect.Contains(screenPosition)  && !_disabledZones.Contains(DockZone.Right))  return DockZone.Right;
-        if (_topZoneRect.Contains(screenPosition)    && !_disabledZones.Contains(DockZone.Top))    return DockZone.Top;
-        if (_bottomZoneRect.Contains(screenPosition) && !_disabledZones.Contains(DockZone.Bottom)) return DockZone.Bottom;
-        if (_centerZoneRect.Contains(screenPosition) && !_disabledZones.Contains(DockZone.Center)) return DockZone.Center;
+        if (_leftZoneRect.Contains(screenPosition)   && !_disabledZones.Contains(DockZone.Left))
+        {
+            return DockZone.Left;
+        }
+
+        if (_rightZoneRect.Contains(screenPosition)  && !_disabledZones.Contains(DockZone.Right))
+        {
+            return DockZone.Right;
+        }
+
+        if (_topZoneRect.Contains(screenPosition)    && !_disabledZones.Contains(DockZone.Top))
+        {
+            return DockZone.Top;
+        }
+
+        if (_bottomZoneRect.Contains(screenPosition) && !_disabledZones.Contains(DockZone.Bottom))
+        {
+            return DockZone.Bottom;
+        }
+
+        if (_centerZoneRect.Contains(screenPosition) && !_disabledZones.Contains(DockZone.Center))
+        {
+            return DockZone.Center;
+        }
 
         return DockZone.None;
     }
@@ -407,9 +443,13 @@ public class MGDockDropIndicators : MGElement
 
         DrawBorder(DA, rect, borderCol, BorderWidth);
         if (!isDisabled)
+        {
             DrawZoneSymbol(DA, rect, zone, Color.White, isHostEdge);
+        }
         else
+        {
             DrawZoneSymbol(DA, rect, zone, new Color(100, 100, 100, 150), isHostEdge);
+        }
     }
 
     /// <summary>
@@ -473,7 +513,9 @@ public class MGDockDropIndicators : MGElement
         };
 
         if (textureKey != null && GetResources().TryDrawTexture(DA.DT, textureKey, iconRect, 1f, color))
+        {
             return; // texture drawn — done
+        }
 
         // Fallback: programmatic shape
         int centerX   = rect.X + rect.Width  / 2;

@@ -116,7 +116,10 @@ namespace MGUI.Core.UI.Containers
         private void EnsureScrollViewerAttached()
         {
             if (_parentScrollViewer != null)
+            {
                 return;
+            }
+
             if (TryFindParentOfType<MGScrollViewer>(out MGScrollViewer sv))
             {
                 _parentScrollViewer = sv;
@@ -130,7 +133,10 @@ namespace MGUI.Core.UI.Containers
             int[] indices = new int[_realizedItems.Count];
             _realizedItems.Keys.CopyTo(indices, 0);
             foreach (int idx in indices)
+            {
                 RecycleItem(idx);
+            }
+
             FirstRealizedIndex    = -1;
             LastRealizedIndex     = -1;
             _cachedFirstNeeded    = -1;
@@ -149,19 +155,31 @@ namespace MGUI.Core.UI.Containers
         private void RealizeItem(int index)
         {
             if (ItemGenerator == null)
+            {
                 return;
+            }
+
             MGElement element = ItemGenerator(index);
             if (element == null)
+            {
                 return;
+            }
+
             if (element.Parent != this)
+            {
                 _Children.Add(element);
+            }
+
             _realizedItems[index] = element;
         }
 
         private void RecycleItem(int index)
         {
             if (!_realizedItems.TryGetValue(index, out MGElement element))
+            {
                 return;
+            }
+
             _realizedItems.Remove(index);
             ItemRecycler?.Invoke(index, element);
             _Children.Remove(element);
@@ -186,7 +204,10 @@ namespace MGUI.Core.UI.Containers
         protected override Thickness UpdateContentMeasurement(Size availableSize)
         {
             if (TotalItemCount <= 0 || UniformItemHeight <= 0)
+            {
                 return new Thickness(0);
+            }
+
             return new Thickness(availableSize.Width, TotalItemCount * UniformItemHeight, 0, 0);
         }
 
@@ -208,7 +229,9 @@ namespace MGUI.Core.UI.Containers
                 scrollOffset = (int)_parentScrollViewer.VerticalOffset;
                 viewportHeight = _parentScrollViewer.ContentViewport.Height;
                 if (viewportHeight <= 0)
+                {
                     viewportHeight = bounds.Height;
+                }
             }
 
             int firstNeeded = Math.Max(0, (int)(scrollOffset / (double)UniformItemHeight) - BufferCount);
@@ -230,7 +253,9 @@ namespace MGUI.Core.UI.Containers
                     foreach (int k in _realizedItems.Keys)
                     {
                         if (k < firstNeeded || k > lastNeeded)
+                        {
                             toRecycle[count++] = k;
+                        }
                     }
                     for (int i = 0; i < count; i++)
                         RecycleItem(toRecycle[i]);
@@ -240,7 +265,9 @@ namespace MGUI.Core.UI.Containers
                 for (int i = firstNeeded; i <= lastNeeded; i++)
                 {
                     if (!_realizedItems.ContainsKey(i))
+                    {
                         RealizeItem(i);
+                    }
                 }
 
                 // Update tracking indices incrementally
@@ -263,14 +290,18 @@ namespace MGUI.Core.UI.Containers
         protected override void DrawContents(ElementDrawArgs DA)
         {
             if (_realizedItems.Count == 0)
+            {
                 return;
+            }
 
             foreach (var (_, element) in _realizedItems)
             {
                 // ActualLayoutBounds is empty when the element is fully clipped (outside the scroll viewport).
                 // Skipping the Draw() call avoids computing TargetBounds, scissor checks, and delegate invocations.
                 if (!element.ActualLayoutBounds.IsEmpty)
+                {
                     element.Draw(DA);
+                }
             }
         }
     }

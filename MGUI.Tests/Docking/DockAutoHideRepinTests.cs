@@ -24,7 +24,11 @@ public class DockAutoHideRepinTests
     private static DockTabGroupNode Group(params DockPanelNode[] panels)
     {
         var g = new DockTabGroupNode();
-        foreach (var p in panels) g.AddPanel(p, -1);
+        foreach (var p in panels)
+        {
+            g.AddPanel(p, -1);
+        }
+
         return g;
     }
 

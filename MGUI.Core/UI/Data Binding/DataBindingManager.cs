@@ -18,7 +18,9 @@ namespace MGUI.Core.UI.Data_Binding
         public static DataBinding AddBinding(BindingConfig Config, object TargetObject)
         {
             if (TargetObject == null)
+            {
                 throw new ArgumentNullException(nameof(TargetObject));
+            }
 
             DataBinding Binding = new(Config, TargetObject);
             _Bindings.Add(Binding);
@@ -48,18 +50,25 @@ namespace MGUI.Core.UI.Data_Binding
         public static bool RemoveBinding(DataBinding Binding)
         {
             if (Binding == null)
+            {
                 throw new ArgumentNullException(nameof(Binding));
+            }
 
             bool Result = _Bindings.Remove(Binding);
 
             if (_BindingsByTargetObject.TryGetValue(Binding.TargetObject, out List<DataBinding> ObjectBindings))
             {
                 if (ObjectBindings.Remove(Binding) && ObjectBindings.Count == 0)
+                {
                     _BindingsByTargetObject.Remove(Binding.TargetObject);
+                }
             }
 
             if (Result)
+            {
                 Binding.Dispose();
+            }
+
             return Result;
         }
 
@@ -68,17 +77,24 @@ namespace MGUI.Core.UI.Data_Binding
         public static int RemoveBindings(object TargetObject)
         {
             if (TargetObject == null)
+            {
                 throw new ArgumentNullException(nameof(TargetObject));
+            }
 
             if (_BindingsByTargetObject.TryGetValue(TargetObject, out List<DataBinding> ObjectBindings))
             {
                 foreach (DataBinding Binding in ObjectBindings)
+                {
                     Binding.Dispose();
+                }
+
                 _BindingsByTargetObject.Remove(TargetObject);
                 return ObjectBindings.Count;
             }
             else
+            {
                 return 0;
+            }
         }
     }
 }

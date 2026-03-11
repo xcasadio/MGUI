@@ -18,7 +18,9 @@ namespace MGUI.Core.UI
         internal static bool? GetNextCheckedState(bool? isChecked, bool isThreeState)
         {
             if (isThreeState)
+            {
                 return isChecked.HasValue && isChecked.Value ? null : !isChecked.HasValue ? false : true;
+            }
 
             return !isChecked.HasValue || isChecked.Value ? false : true;
         }
@@ -151,7 +153,10 @@ namespace MGUI.Core.UI
                 {
                     _IsThreeState = value;
                     if (!IsThreeState && !IsChecked.HasValue)
+                    {
                         IsChecked = false;
+                    }
+
                     NPC(nameof(IsThreeState));
                 }
             }
@@ -168,7 +173,9 @@ namespace MGUI.Core.UI
                 if (_IsChecked != value)
                 {
                     if (!IsThreeState && !value.HasValue)
+                    {
                         throw new InvalidOperationException($"{nameof(MGCheckBox)}.{nameof(IsChecked)} can only be set to 'null' if {nameof(IsThreeState)} is true.");
+                    }
 
                     bool? Previous = IsChecked;
                     _IsChecked = value;
@@ -178,9 +185,13 @@ namespace MGUI.Core.UI
                     if (IsChecked.HasValue)
                     {
                         if (IsChecked.Value)
+                        {
                             OnChecked?.Invoke(this, EventArgs.Empty);
+                        }
                         else
+                        {
                             OnUnchecked?.Invoke(this, EventArgs.Empty);
+                        }
                     }
                 }
             }
@@ -217,7 +228,9 @@ namespace MGUI.Core.UI
                 ButtonElement = new(Window, new(1), MGUniformBorderBrush.Black, x =>
                 {
                     if (!IsReadonly)
+                    {
                         this.IsChecked = GetNextCheckedState(this.IsChecked, IsThreeState);
+                    }
                 });
                 ButtonElement.IsFocusable = false;
                 ButtonElement.MinWidth = 12;
@@ -231,10 +244,15 @@ namespace MGUI.Core.UI
                         Rectangle TargetBounds = ButtonElement.LayoutBounds.GetCompressed(ButtonElement.Padding).GetScaledFromCenter(0.60f);
                         //  Force the bounds to be an even width/height
                         if (TargetBounds.Width % 2 != 0 || TargetBounds.Height % 2 != 0)
+                        {
                             TargetBounds = new(TargetBounds.Left, TargetBounds.Top, TargetBounds.Width / 2 * 2, TargetBounds.Height / 2 * 2);
+                        }
 
                         if (IsCheckMarkShadowed)
+                        {
                             e.DA.DT.FillRectangle(e.DA.Offset.ToVector2(), TargetBounds.GetTranslated(CheckMarkShadowOffset), CheckMarkShadowColor * e.DA.Opacity);
+                        }
+
                         e.DA.DT.FillRectangle(e.DA.Offset.ToVector2(), TargetBounds, CheckMarkColor * e.DA.Opacity);
 
                     }
@@ -242,7 +260,10 @@ namespace MGUI.Core.UI
                     {
                         Rectangle TargetBounds = ButtonElement.LayoutBounds.GetCompressed(ButtonElement.Padding);
                         if (IsCheckMarkShadowed)
+                        {
                             DrawCheckMark(GetDesktop(), TargetBounds, e.DA.DT, e.DA.Opacity, e.DA.Offset + CheckMarkShadowOffset, CheckMarkShadowColor);
+                        }
+
                         DrawCheckMark(GetDesktop(), TargetBounds, e.DA.DT, e.DA.Opacity, e.DA.Offset, CheckMarkColor);
                     }
                 };
@@ -268,7 +289,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (action != UINavigationAction.Submit || IsReadonly)
+            {
                 return false;
+            }
 
             IsChecked = GetNextCheckedState(IsChecked, IsThreeState);
             return true;

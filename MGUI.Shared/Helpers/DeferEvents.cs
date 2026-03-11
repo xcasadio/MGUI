@@ -48,7 +48,9 @@ namespace MGUI.Shared.Helpers
         internal void EndTransaction()
         {
             if (!IsDeferringEvents)
+            {
                 OnEndDeferEvents?.Invoke();
+            }
         }
     }
 }

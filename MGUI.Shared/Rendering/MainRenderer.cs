@@ -70,7 +70,10 @@ namespace MGUI.Shared.Rendering
             _onClientSizeChanged = (sender, e) =>
             {
                 if (GraphicsDevice.ScissorRectangle == PreviousClientBounds)
+                {
                     GraphicsDevice.ScissorRectangle = GetBounds();
+                }
+
                 PreviousClientBounds = GetBounds();
             };
 
@@ -125,7 +128,10 @@ namespace MGUI.Shared.Rendering
             {
                 ITextEngine previous = TextEngine;
                 if (_textEngine != null && !ReferenceEquals(_textEngine, value))
+                {
                     _textEngine.InvalidateCache();
+                }
+
                 _textEngine = value ?? throw new ArgumentNullException(nameof(value));
                 TextEngineChanged?.Invoke(this, new EventArgs<ITextEngine>(previous, TextEngine));
             }
@@ -144,10 +150,14 @@ namespace MGUI.Shared.Rendering
         public void RegisterView(IUIView View)
         {
             if (View == null)
+            {
                 throw new ArgumentNullException(nameof(View));
+            }
 
             if (!MutableViews.Contains(View))
+            {
                 MutableViews.Add(View);
+            }
         }
 
         public bool UnregisterView(IUIView View)
@@ -156,23 +166,31 @@ namespace MGUI.Shared.Rendering
         public void UpdateViews()
         {
             foreach (IUIView View in MutableViews)
+            {
                 View.Update();
+            }
         }
 
         public void DrawViews(float Opacity = 1.0f, DrawSettings InitialDrawSettings = null)
         {
             using DrawTransaction DT = new(this, InitialDrawSettings ?? DrawSettings.Default, false);
             foreach (IUIView View in MutableViews)
+            {
                 View.Draw(DT, Opacity);
+            }
         }
 
         private static IRawInputSource ResolveInputSource(IRenderHost Host, IRawInputSource RawInputSource)
         {
             if (RawInputSource != null)
+            {
                 return RawInputSource;
+            }
 
             if (Host is IRawInputSource HostInputSource)
+            {
                 return HostInputSource;
+            }
 
             throw new ArgumentNullException(nameof(RawInputSource),
                 $"{nameof(MainRenderer)} requires an explicit {nameof(IRawInputSource)} when the supplied {nameof(IRenderHost)} does not implement {nameof(IRawInputSource)}.");
@@ -249,7 +267,9 @@ namespace MGUI.Shared.Rendering
                 .OrderBy(x => Math.Abs(DesiredRadius - x.Key));
 
             if (Matches.Any())
+            {
                 return Matches.First().Value;
+            }
             else
             {
                 DesiredRadius = Math.Min(DesiredRadius, MaximumRadius.Value);
@@ -266,7 +286,9 @@ namespace MGUI.Shared.Rendering
             if (InvalidKeys.Any())
             {
                 foreach (int Key in InvalidKeys)
+                {
                     CircleTextures.Remove(Key);
+                }
             }
         }
         #endregion Circles

@@ -22,7 +22,9 @@ namespace MGUI.Core.UI
         public void Draw(DrawTransaction DT, float opacity = 1.0f)
         {
             if (DT == null)
+            {
                 throw new ArgumentNullException(nameof(DT));
+            }
 
             using (Surface.GetRenderTarget() != null ? DT.SetRenderTargetTemporary(Surface.GetRenderTarget(), null) : null)
             {

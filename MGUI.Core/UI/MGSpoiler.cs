@@ -118,7 +118,9 @@ namespace MGUI.Core.UI
                         CancelEventArgs<bool> Args = new(value);
                         OnIsRevealedChanging?.Invoke(this, Args);
                         if (Args.Cancel)
+                        {
                             return;
+                        }
                     }
 
                     _IsRevealed = value;
@@ -129,9 +131,14 @@ namespace MGUI.Core.UI
 
                     NPC(nameof(IsRevealed));
                     if (IsRevealed)
+                    {
                         OnRevealed?.Invoke(this, EventArgs.Empty);
+                    }
                     else
+                    {
                         OnHidden?.Invoke(this, EventArgs.Empty);
+                    }
+
                     OnIsRevealedChanged?.Invoke(this, IsRevealed);
                 }
             }
@@ -183,7 +190,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (action != UINavigationAction.Submit || !CanRevealFromSubmit(IsRevealed))
+            {
                 return false;
+            }
 
             IsRevealed = true;
             return true;

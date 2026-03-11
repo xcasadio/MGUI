@@ -129,11 +129,15 @@ namespace MGUI.Core.UI
         {
             Rectangle ActualBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(Width, Height));
             if (ActualBounds.Width <= 0 || ActualBounds.Height <= 0)
+            {
                 return;
+            }
 
             Fill?.Draw(DA, this, ActualBounds);
             if (StrokeThickness > 0)
+            {
                 DA.DT.StrokeRectangle(DA.Offset.ToVector2(), ActualBounds, Stroke * DA.Opacity, new(StrokeThickness));
+            }
         }
     }
 }

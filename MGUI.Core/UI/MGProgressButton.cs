@@ -76,7 +76,10 @@ namespace MGUI.Core.UI
         protected override IEnumerable<IBorderBrush> GetBorderBrushes()
         {
             foreach (IBorderBrush Brush in base.GetBorderBrushes())
+            {
                 yield return Brush;
+            }
+
             yield return ProgressBarBorderBrush;
         }
         #endregion Border
@@ -182,7 +185,9 @@ namespace MGUI.Core.UI
                     NPC(nameof(HideWhenPaused));
                     NPC(nameof(IsProgressBarVisible));
                     if (IsPaused)
+                    {
                         LayoutChanged(this, true);
+                    }
                 }
             }
         }
@@ -201,16 +206,22 @@ namespace MGUI.Core.UI
                     NPC(nameof(IsPaused));
                     NPC(nameof(IsProgressBarVisible));
                     if (IsPaused)
+                    {
                         OnPaused?.Invoke(this, EventArgs.Empty);
+                    }
                     else
                     {
                         OnResumed?.Invoke(this, EventArgs.Empty);
                         if (Value.IsAlmostEqual(Minimum))
+                        {
                             OnStarted?.Invoke(this, EventArgs.Empty);
+                        }
                     }
 
                     if (HideWhenPaused)
+                    {
                         LayoutChanged(this, true);
+                    }
                 }
             }
         }
@@ -282,7 +293,9 @@ namespace MGUI.Core.UI
                     {
                         OnReset?.Invoke(this, EventArgs.Empty);
                         if (!IsPaused)
+                        {
                             OnStarted?.Invoke(this, EventArgs.Empty);
+                        }
                     }
                 }
             }
@@ -300,7 +313,10 @@ namespace MGUI.Core.UI
         public void SetRange(float Minimum, float Maximum)
         {
             if (Minimum > Maximum)
+            {
                 throw new ArgumentOutOfRangeException(nameof(Minimum), Minimum, $"Value of {nameof(Minimum)} cannot be greater than value of {nameof(Maximum)}.");
+            }
+
             this.Minimum = Minimum;
             this.Maximum = Maximum;
         }
@@ -311,7 +327,10 @@ namespace MGUI.Core.UI
         public void SetValuePercent(double ValuePercent)
         {
             if (ValuePercent.IsLessThan(0.0) || ValuePercent.IsGreaterThan(100.0))
+            {
                 throw new ArgumentOutOfRangeException(nameof(ValuePercent), ValuePercent, $"{nameof(ValuePercent)} must be a value between 0.0 and 100.0 inclusive.");
+            }
+
             Value = (float)(Minimum + ValuePercent / 100.0 * (Maximum - Minimum));
         }
 
@@ -342,11 +361,17 @@ namespace MGUI.Core.UI
             get
             {
                 if (!Duration.HasValue)
+                {
                     return null;
+                }
                 else if (Value >= Maximum)
+                {
                     return TimeSpan.Zero;
+                }
                 else
+                {
                     return Duration.Value * (Value - Minimum) / (Maximum - Minimum);
+                }
             }
         }
         #endregion Value
@@ -462,13 +487,17 @@ namespace MGUI.Core.UI
         {
             Rectangle PaddedBounds = ElementBounds.GetCompressed(ProgressBarMargin);
             if (!IncludeProgressBarBorder && ProgressBarBorderBrush != null)
+            {
                 PaddedBounds = PaddedBounds.GetCompressed(ProgressBarBorderThickness);
+            }
 
             if (ProgressBarSize.HasValue)
             {
                 Size BarSize = new(ProgressBarSize.Value, ProgressBarSize.Value);
                 if (!IncludeProgressBarBorder && ProgressBarBorderBrush != null)
+                {
                     BarSize = BarSize.Subtract(ProgressBarBorderThickness.Size, 0, 0);
+                }
 
                 return ProgressBarAlignment switch
                 {
@@ -498,7 +527,9 @@ namespace MGUI.Core.UI
                 };
             }
             else
+            {
                 return PaddedBounds;
+            }
         }
         #endregion Progress Bar Bounds
 
@@ -635,7 +666,9 @@ namespace MGUI.Core.UI
         public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
         {
             if (!IsProgressBarVisible || !ProgressBarSize.HasValue || ProgressBarAlignment == ProgressBarAlignment.Stretch)
+            {
                 return base.MeasureSelfOverride(AvailableSize, out SharedSize);
+            }
 
             //  Compute the actual dimensions of the progress bar and its margin
             int Size = ProgressBarSize.Value;
@@ -650,9 +683,14 @@ namespace MGUI.Core.UI
 
             //  Ensure the requested size is at least as large as the progress bar
             if (Result.Width < ProgressBarThickness.Width)
+            {
                 Result = Result.ChangeLeft(ProgressBarThickness.Width);
+            }
+
             if (Result.Height < ProgressBarThickness.Height)
+            {
                 Result = Result.ChangeTop(ProgressBarThickness.Height);
+            }
 
             //  Allow the progress bar to share it's space with the button's Content since the progress bar will be rendered underneath the Content
             SharedSize = SharedSize.Add(ProgressBarThickness);
@@ -690,14 +728,21 @@ namespace MGUI.Core.UI
                     CompletedBounds = ApplyAlignment(ProgressBarBorderlessBounds, HorizontalAlignment.Stretch, VA, new(0, (int)(ProgressBarBorderlessBounds.Height * CompletedScalar)));
                 }
                 else
+                {
                     throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+                }
 
                 //  Draw the progress bar
                 if (!ProgressBarBorderThickness.IsEmpty())
+                {
                     ProgressBarBorderBrush?.Draw(DA, this, ProgressBarBorderedBounds, ProgressBarBorderThickness);
+                }
+
                 ProgressBarBackground?.Draw(DA, this, ProgressBarBorderlessBounds);
                 if (CompletedBounds.Width > 0 && CompletedBounds.Height > 0)
+                {
                     ProgressBarForeground?.Draw(DA, this, CompletedBounds);
+                }
             }
 
             base.DrawSelf(DA, LayoutBounds);
@@ -740,7 +785,9 @@ namespace MGUI.Core.UI
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
             if (action != UINavigationAction.Submit)
+            {
                 return false;
+            }
 
             PerformAction(GetSubmitAction(IsPaused, ActionWhenPaused, ActionWhenProcessing));
             return true;

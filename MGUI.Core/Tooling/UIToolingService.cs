@@ -11,7 +11,9 @@ namespace MGUI.Core.Tooling
         public static UIVisualTreeSnapshot CaptureVisualTree(MGElement root)
         {
             if (root == null)
+            {
                 throw new ArgumentNullException(nameof(root));
+            }
 
             return CreateSnapshot(root, 0);
         }

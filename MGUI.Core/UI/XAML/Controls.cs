@@ -47,11 +47,19 @@ namespace MGUI.Core.UI.XAML
             MGHeaderedContentPresenter ContentPresenter = Element as MGHeaderedContentPresenter;
 
             if (Header != null)
+            {
                 ContentPresenter.Header = Header.ToElement<MGElement>(ContentPresenter.ParentWindow, ContentPresenter);
+            }
+
             if (HeaderPosition.HasValue)
+            {
                 ContentPresenter.HeaderPosition = HeaderPosition.Value;
+            }
+
             if (Spacing.HasValue)
+            {
                 ContentPresenter.Spacing = Spacing.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -59,10 +67,14 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             if (Header != null)
+            {
                 yield return Header;
+            }
         }
     }
 
@@ -88,18 +100,29 @@ namespace MGUI.Core.UI.XAML
             MGContextualContentPresenter ContextualContentPresenter = Element as MGContextualContentPresenter;
 
             if (TrueContent != null)
+            {
                 ContextualContentPresenter.TrueContent = TrueContent.ToElement<MGElement>(Window, ContextualContentPresenter);
+            }
+
             if (FalseContent != null)
+            {
                 ContextualContentPresenter.FalseContent = FalseContent.ToElement<MGElement>(Window, ContextualContentPresenter);
+            }
+
             ContextualContentPresenter.Value = Value;
         }
 
         protected internal override IEnumerable<Element> GetChildren()
         {
             if (TrueContent != null)
+            {
                 yield return TrueContent;
+            }
+
             if (FalseContent != null)
+            {
                 yield return FalseContent;
+            }
         }
     }
 
@@ -128,9 +151,14 @@ namespace MGUI.Core.UI.XAML
             MGBorder Border = Element as MGBorder;
 
             if (BorderBrush != null)
+            {
                 Border.BorderBrush = BorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (BorderThickness.HasValue)
+            {
                 Border.BorderThickness = BorderThickness.Value.ToThickness();
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -138,7 +166,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGBorder TypedElement)
             {
                 yield return (BorderBrush, TypedElement.BorderBrush, nameof(MGBorder.BorderBrush));
@@ -190,14 +221,24 @@ namespace MGUI.Core.UI.XAML
             Border.ApplySettings(Button, Button.BorderComponent.Element, false);
 
             if (CommandName != null)
+            {
                 Button.CommandName = CommandName;
+            }
 
             if (IsRepeatButton.HasValue)
+            {
                 Button.IsRepeatButton = IsRepeatButton.Value;
+            }
+
             if (InitialRepeatInterval.HasValue)
+            {
                 Button.InitialRepeatInterval = InitialRepeatInterval.Value;
+            }
+
             if (RepeatInterval.HasValue)
+            {
                 Button.RepeatInterval = RepeatInterval.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -205,7 +246,10 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Child in base.GetChildren())
+            {
                 yield return Child;
+            }
+
             yield return Border;
         }
     }
@@ -253,9 +297,14 @@ namespace MGUI.Core.UI.XAML
             MessagesContainer.ApplySettings(ChatBox, ChatBox.MessagesContainer, false);
 
             if (MaxMessageLength.HasValue)
+            {
                 ChatBox.MaxMessageLength = MaxMessageLength.Value;
+            }
+
             if (MaxMessages.HasValue)
+            {
                 ChatBox.MaxMessages = MaxMessages.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren()
@@ -303,25 +352,49 @@ namespace MGUI.Core.UI.XAML
             Button.ApplySettings(CheckBox, CheckBox.ButtonComponent.Element, true);
 
             if (CheckBoxComponentSize.HasValue)
+            {
                 CheckBox.CheckBoxComponentSize = CheckBoxComponentSize.Value;
+            }
+
             if (SpacingWidth.HasValue)
+            {
                 CheckBox.SpacingWidth = SpacingWidth.Value;
+            }
 
             if (CheckMarkColor.HasValue)
+            {
                 CheckBox.CheckMarkColor = CheckMarkColor.Value.ToXNAColor();
+            }
+
             if (IsCheckMarkShadowed.HasValue)
+            {
                 CheckBox.IsCheckMarkShadowed = IsCheckMarkShadowed.Value;
+            }
+
             if (CheckMarkShadowColor.HasValue)
+            {
                 CheckBox.CheckMarkShadowColor = CheckMarkShadowColor.Value.ToXNAColor();
+            }
+
             if (CheckMarkShadowOffset.HasValue)
+            {
                 CheckBox.CheckMarkShadowOffset = new Point(CheckMarkShadowOffset.Value.Width, CheckMarkShadowOffset.Value.Height);
+            }
 
             if (IsThreeState.HasValue)
+            {
                 CheckBox.IsThreeState = IsThreeState.Value;
+            }
+
             if (IsChecked.HasValue || IsThreeState.HasValue)
+            {
                 CheckBox.IsChecked = IsChecked;
+            }
+
             if (IsReadonly.HasValue)
+            {
                 CheckBox.IsReadonly = IsReadonly.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -329,7 +402,10 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
+
             yield return Button;
         }
     }
@@ -414,15 +490,22 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return Border;
             yield return DropdownArrow;
 
             if (DropdownItemTemplate?.Content != null)
+            {
                 yield return DropdownItemTemplate.Content;
+            }
+
             if (SelectedItemTemplate?.Content != null)
+            {
                 yield return SelectedItemTemplate.Content;
+            }
         }
     }
 
@@ -473,33 +556,69 @@ namespace MGUI.Core.UI.XAML
             HeadersPanel.ApplySettings(Expander, Expander.HeadersPanelComponent.Element, false);
 
             if (ExpanderButtonSize.HasValue)
+            {
                 Expander.ExpanderButtonSize = ExpanderButtonSize.Value;
+            }
+
             if (ExpanderButtonBorderBrush != null)
+            {
                 Expander.ExpanderButtonBorderBrush = ExpanderButtonBorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (ExpanderButtonBorderThickness.HasValue)
+            {
                 Expander.ExpanderButtonBorderThickness = ExpanderButtonBorderThickness.Value.ToThickness();
+            }
+
             if (ExpanderButtonExpandedBackgroundBrush != null)
+            {
                 Expander.ExpanderButtonBackgroundBrush.SelectedValue = ExpanderButtonExpandedBackgroundBrush.ToFillBrush(Desktop, Element);
+            }
+
             if (ExpanderButtonCollapsedBackgroundBrush != null)
+            {
                 Expander.ExpanderButtonBackgroundBrush.NormalValue = ExpanderButtonCollapsedBackgroundBrush.ToFillBrush(Desktop, Element);
+            }
+
             if (ExpanderDropdownArrowColor.HasValue)
+            {
                 Expander.ExpanderDropdownArrowColor = ExpanderDropdownArrowColor.Value.ToXNAColor();
+            }
+
             if (ExpanderDropdownArrowSize.HasValue)
+            {
                 Expander.ExpanderDropdownArrowSize = ExpanderDropdownArrowSize.Value;
+            }
 
             if (HeaderSpacingWidth.HasValue)
+            {
                 Expander.HeaderSpacingWidth = HeaderSpacingWidth.Value;
+            }
+
             if (Header != null)
+            {
                 Expander.Header = Header.ToElement<MGElement>(Element.SelfOrParentWindow, Parent);
+            }
+
             if (HeaderVerticalAlignment.HasValue)
+            {
                 Expander.HeaderVerticalAlignment = HeaderVerticalAlignment.Value;
+            }
 
             if (IsExpanded.HasValue)
+            {
                 Expander.IsExpanded = IsExpanded.Value;
+            }
+
             if (ExpandedVisibility.HasValue)
+            {
                 Expander.ExpandedVisibility = ExpandedVisibility.Value;
+            }
+
             if (CollapsedVisibility.HasValue)
+            {
                 Expander.CollapsedVisibility = CollapsedVisibility.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -507,12 +626,16 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return ExpanderToggleButton;
 
             if (Header != null)
+            {
                 yield return Header;
+            }
 
             yield return HeadersPanel;
         }
@@ -520,7 +643,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGExpander TypedElement)
             {
                 yield return (ExpanderButtonBorderBrush, TypedElement.ExpanderButtonBorderBrush, nameof(MGExpander.ExpanderButtonBorderBrush));
@@ -634,39 +760,74 @@ namespace MGUI.Core.UI.XAML
             SelectedColorValue.ApplySettings(ColorPicker, ColorPicker.SelectedColorValue, false);
 
             if (Columns.HasValue)
+            {
                 ColorPicker.Columns = Columns.Value;
+            }
+
             if (ColorSize.HasValue)
+            {
                 ColorPicker.ColorSize = ColorSize.Value.ToSize();
+            }
+
             if (RowSpacing.HasValue)
+            {
                 ColorPicker.RowSpacing = RowSpacing.Value;
+            }
+
             if (ColumnSpacing.HasValue)
+            {
                 ColorPicker.ColumnSpacing = ColumnSpacing.Value;
+            }
 
             if (SelectedColorBorderBrush != null)
+            {
                 ColorPicker.SelectedColorBorderBrush = SelectedColorBorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (SelectedColorBorderThickness.HasValue)
+            {
                 ColorPicker.SelectedColorBorderThickness = SelectedColorBorderThickness.Value.ToThickness();
+            }
+
             if (UnselectedColorBorderBrush != null)
+            {
                 ColorPicker.UnselectedColorBorderBrush = UnselectedColorBorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (UnselectedColorBorderThickness.HasValue)
+            {
                 ColorPicker.UnselectedColorBorderThickness = UnselectedColorBorderThickness.Value.ToThickness();
+            }
 
             if (HoveredColorOverlay != null)
+            {
                 ColorPicker.HoveredColorOverlay = HoveredColorOverlay.ToFillBrush(Desktop, Element);
+            }
+
             if (SelectedColorOverlay != null)
+            {
                 ColorPicker.SelectedColorOverlay = SelectedColorOverlay.ToFillBrush(Desktop, Element);
+            }
 
             if (AllowMultiSelect.HasValue)
+            {
                 ColorPicker.AllowMultiSelect = AllowMultiSelect.Value;
+            }
 
             if (ShowSelectedColorLabel.HasValue)
+            {
                 ColorPicker.ShowSelectedColorLabel = ShowSelectedColorLabel.Value;
+            }
 
             if (ColorPalette.HasValue)
+            {
                 ColorPicker.SetColors(ColorPalette.Value, !Columns.HasValue);
+            }
 
             if (SelectedColor.HasValue)
+            {
                 ColorPicker.SelectedColor = SelectedColor.Value.ToXNAColor();
+            }
 
             //base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -682,7 +843,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGGridColorPicker TypedElement)
             {
                 yield return (SelectedColorBorderBrush, TypedElement.SelectedColorBorderBrush, nameof(MGGridColorPicker.SelectedColorBorderBrush));
@@ -732,17 +896,34 @@ namespace MGUI.Core.UI.XAML
             HeaderPresenter.ApplySettings(GroupBox, GroupBox.HeaderPresenter, false);
 
             if (BorderBrush != null)
+            {
                 GroupBox.BorderBrush = (MGUniformBorderBrush)BorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (BorderThickness.HasValue)
+            {
                 GroupBox.BorderThickness = BorderThickness.Value.ToThickness();
+            }
+
             if (IsExpandable.HasValue)
+            {
                 GroupBox.IsExpandable = IsExpandable.Value;
+            }
+
             if (Header != null)
+            {
                 GroupBox.Header = Header.ToElement<MGElement>(Element.SelfOrParentWindow, Parent);
+            }
+
             if (HeaderHorizontalMargin.HasValue)
+            {
                 GroupBox.HeaderHorizontalMargin = HeaderHorizontalMargin.Value;
+            }
+
             if (HeaderHorizontalPadding.HasValue)
+            {
                 GroupBox.HeaderHorizontalPadding = HeaderHorizontalPadding.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -750,13 +931,17 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return Expander;
             yield return HeaderPresenter;
 
             if (Header != null)
+            {
                 yield return Header;
+            }
         }
     }
 
@@ -783,9 +968,14 @@ namespace MGUI.Core.UI.XAML
             MGImage Image = Element as MGImage;
 
             if (TextureColor.HasValue)
+            {
                 Image.TextureColor = TextureColor.Value.ToXNAColor();
+            }
+
             if (Stretch.HasValue)
+            {
                 Image.Stretch = Stretch.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
@@ -796,7 +986,10 @@ namespace MGUI.Core.UI.XAML
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
             if (sourceType == typeof(string))
+            {
                 return true;
+            }
+
             return base.CanConvertFrom(context, sourceType);
         }
 
@@ -832,13 +1025,24 @@ namespace MGUI.Core.UI.XAML
             MGInputConsumer InputConsumer = Element as MGInputConsumer;
 
             if (HandlesMousePresses.HasValue)
+            {
                 InputConsumer.HandlesMousePresses = HandlesMousePresses.Value;
+            }
+
             if (HandlesMouseReleases.HasValue)
+            {
                 InputConsumer.HandlesMouseReleases = HandlesMouseReleases.Value;
+            }
+
             if (HandlesMouseDrags.HasValue)
+            {
                 InputConsumer.HandlesMouseDrags = HandlesMouseDrags.Value;
+            }
+
             if (HandlesMouseScroll.HasValue)
+            {
                 InputConsumer.HandlesMouseScroll = HandlesMouseScroll.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -865,9 +1069,14 @@ namespace MGUI.Core.UI.XAML
             MGOverlayHost Host = Element as MGOverlayHost;
 
             if (OverlayBackground != null)
+            {
                 Host.OverlayBackground = OverlayBackground.ToFillBrush(Desktop, Element);
+            }
+
             if (IsModal.HasValue)
+            {
                 Host.IsModal = IsModal.Value;
+            }
 
             if (IncludeContent)
             {
@@ -883,16 +1092,23 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Child in base.GetChildren())
+            {
                 yield return Child;
+            }
 
             foreach (Overlay Overlay in Overlays)
+            {
                 yield return Overlay;
+            }
         }
 
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGOverlayHost TypedElement)
             {
                 yield return (OverlayBackground, TypedElement.OverlayBackground, nameof(MGOverlayHost.OverlayBackground));
@@ -938,7 +1154,9 @@ namespace MGUI.Core.UI.XAML
                 return Overlay;
             }
             else
+            {
                 throw new InvalidOperationException($"The {nameof(Parent)} {nameof(MGElement)} of an {nameof(MGOverlay)} should be of type {nameof(MGOverlayHost)}");
+            }
         }
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
@@ -949,11 +1167,19 @@ namespace MGUI.Core.UI.XAML
             CloseButton.ApplySettings(Parent, Overlay.CloseButtonComponent.Element, true);
 
             if (ZIndex.HasValue)
+            {
                 Overlay.ZIndex = ZIndex.Value;
+            }
+
             if (ShowCloseButton.HasValue)
+            {
                 Overlay.ShowCloseButton = ShowCloseButton.Value;
+            }
+
             if (IsOpen.HasValue)
+            {
                 Overlay.IsOpen = IsOpen.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -961,7 +1187,10 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
+
             yield return Border;
             yield return CloseButton;
         }
@@ -981,7 +1210,9 @@ namespace MGUI.Core.UI.XAML
             MGPasswordBox PasswordBox = Element as MGPasswordBox;
 
             if (PasswordCharacter.HasValue)
+            {
                 PasswordBox.PasswordCharacter = PasswordCharacter.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -1048,31 +1279,59 @@ namespace MGUI.Core.UI.XAML
             (ValueTextBlock ?? new()).ApplySettings(Parent, ProgressBar.ValueComponent.Element, false);
 
             if (ShowValue.HasValue)
+            {
                 ProgressBar.ShowValue = ShowValue.Value;
+            }
+
             if (ValueDisplayFormat != null)
+            {
                 ProgressBar.ValueDisplayFormat = ValueDisplayFormat;
+            }
+
             if (NumberFormat != null)
+            {
                 ProgressBar.NumberFormat = NumberFormat;
+            }
 
             if (Minimum.HasValue)
+            {
                 ProgressBar.Minimum = Minimum.Value;
+            }
+
             if (Maximum.HasValue)
+            {
                 ProgressBar.Maximum = Maximum.Value;
+            }
+
             if (Value.HasValue)
+            {
                 ProgressBar.Value = Value.Value;
+            }
 
             if (Size.HasValue)
+            {
                 ProgressBar.Size = Size.Value;
+            }
 
             if (CompletedBrush != null)
+            {
                 ProgressBar.CompletedBrush.NormalValue = CompletedBrush.ToFillBrush(Desktop, Element);
+            }
+
             if (IncompleteBrush != null)
+            {
                 ProgressBar.IncompleteBrush.NormalValue = IncompleteBrush.ToFillBrush(Desktop, Element);
+            }
 
             if (Orientation.HasValue)
+            {
                 ProgressBar.Orientation = Orientation.Value;
+            }
+
             if (IsReversed.HasValue)
+            {
                 ProgressBar.IsReversed = IsReversed.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren()
@@ -1085,7 +1344,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGProgressBar TypedElement)
             {
                 yield return (CompletedBrush, TypedElement.CompletedBrush?.NormalValue, $"{nameof(MGProgressBar.CompletedBrush)}.{nameof(VisualStateFillBrush.NormalValue)}");
@@ -1169,48 +1431,99 @@ namespace MGUI.Core.UI.XAML
             Border.ApplySettings(ProgressButton, ProgressButton.BorderComponent.Element, false);
 
             if (ActionWhenProcessing.HasValue)
+            {
                 ProgressButton.ActionWhenProcessing = ActionWhenProcessing.Value;
+            }
+
             if (ActionWhenPaused.HasValue)
+            {
                 ProgressButton.ActionWhenPaused = ActionWhenPaused.Value;
+            }
+
             if (ActionWhenCompleted.HasValue)
+            {
                 ProgressButton.ActionWhenCompleted = ActionWhenCompleted.Value;
+            }
+
             if (ActionOnCompleted.HasValue)
+            {
                 ProgressButton.ActionOnCompleted = ActionOnCompleted.Value;
+            }
 
             if (HideWhenPaused.HasValue)
+            {
                 ProgressButton.HideWhenPaused = HideWhenPaused.Value;
+            }
+
             if (IsPaused.HasValue)
+            {
                 ProgressButton.IsPaused = IsPaused.Value;
+            }
 
             if (Minimum.HasValue)
+            {
                 ProgressButton.Minimum = Minimum.Value;
+            }
+
             if (Maximum.HasValue)
+            {
                 ProgressButton.Maximum = Maximum.Value;
+            }
+
             if (Value.HasValue)
+            {
                 ProgressButton.Value = Value.Value;
+            }
 
             if (Duration.HasValue)
+            {
                 ProgressButton.Duration = Duration.Value;
+            }
 
             if (Orientation.HasValue)
+            {
                 ProgressButton.Orientation = Orientation.Value;
+            }
+
             if (IsReversed.HasValue)
+            {
                 ProgressButton.IsReversed = IsReversed.Value;
+            }
+
             if (ProgressBarAlignment.HasValue)
+            {
                 ProgressButton.ProgressBarAlignment = ProgressBarAlignment.Value;
+            }
+
             if (ProgressBarSize.HasValue)
+            {
                 ProgressButton.ProgressBarSize = ProgressBarSize.Value;
+            }
+
             if (ProgressBarMargin.HasValue)
+            {
                 ProgressButton.ProgressBarMargin = ProgressBarMargin.Value.ToThickness();
+            }
 
             if (ProgressBarBorderThickness.HasValue)
+            {
                 ProgressButton.ProgressBarBorderThickness = ProgressBarBorderThickness.Value.ToThickness();
+            }
+
             if (ProgressBarBorderBrush != null)
+            {
                 ProgressButton.ProgressBarBorderBrush = ProgressBarBorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (ProgressBarBackground != null)
+            {
                 ProgressButton.ProgressBarBackground = ProgressBarBackground.ToFillBrush(Desktop, Element);
+            }
+
             if (ProgressBarForeground != null)
+            {
                 ProgressButton.ProgressBarForeground = ProgressBarForeground.ToFillBrush(Desktop, Element);
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -1218,14 +1531,20 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Child in base.GetChildren())
+            {
                 yield return Child;
+            }
+
             yield return Border;
         }
 
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGProgressButton TypedElement)
             {
                 yield return (ProgressBarBorderBrush, TypedElement.ProgressBarBorderBrush, nameof(MGProgressButton.ProgressBarBorderBrush));
@@ -1274,21 +1593,44 @@ namespace MGUI.Core.UI.XAML
             Button.ApplySettings(Parent, RadioButton.ButtonComponent.Element, false);
 
             if (BubbleComponentSize.HasValue)
+            {
                 RadioButton.BubbleComponentSize = BubbleComponentSize.Value;
+            }
+
             if (BubbleComponentBorderColor.HasValue)
+            {
                 RadioButton.BubbleComponentBorderColor = BubbleComponentBorderColor.Value.ToXNAColor();
+            }
+
             if (BubbleComponentBorderThickness.HasValue)
+            {
                 RadioButton.BubbleComponentBorderThickness = BubbleComponentBorderThickness.Value;
+            }
+
             if (BubbleComponentBackground.HasValue)
+            {
                 RadioButton.BubbleComponentBackground.NormalValue = BubbleComponentBackground.Value.ToXNAColor();
+            }
+
             if (HoveredHighlightColor.HasValue)
+            {
                 RadioButton.BubbleComponentBackground.FocusedColor = HoveredHighlightColor.Value.ToXNAColor();
+            }
+
             if (BubbleCheckedColor.HasValue)
+            {
                 RadioButton.BubbleCheckedColor = BubbleCheckedColor.Value.ToXNAColor();
+            }
+
             if (SpacingWidth.HasValue)
+            {
                 RadioButton.SpacingWidth = SpacingWidth.Value;
+            }
+
             if (IsChecked.HasValue)
+            {
                 RadioButton.IsChecked = IsChecked.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -1296,7 +1638,9 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return Button;
         }
@@ -1356,43 +1700,89 @@ namespace MGUI.Core.UI.XAML
             MGRatingControl RatingControl = Element as MGRatingControl;
 
             if (ItemShape.HasValue)
+            {
                 RatingControl.ItemShape = ItemShape.Value;
+            }
+
             if (ItemSize.HasValue)
+            {
                 RatingControl.ItemSize = ItemSize.Value;
+            }
+
             if (Spacing.HasValue)
+            {
                 RatingControl.Spacing = Spacing.Value;
+            }
+
             if (Minimum.HasValue || Maximum.HasValue)
+            {
                 RatingControl.SetRange(Minimum ?? RatingControl.Minimum, Maximum ?? RatingControl.Maximum);
+            }
+
             if (Value.HasValue)
+            {
                 RatingControl.SetValue(Value.Value);
+            }
+
             if (UseDiscreteValues.HasValue)
+            {
                 RatingControl.UseDiscreteValues = UseDiscreteValues.Value;
+            }
+
             if (DiscreteValueInterval.HasValue)
+            {
                 RatingControl.DiscreteValueInterval = DiscreteValueInterval.Value;
+            }
 
             if (UnfilledShapeStrokeThickness.HasValue)
+            {
                 RatingControl.UnfilledShapeStrokeThickness = UnfilledShapeStrokeThickness.Value;
+            }
+
             if (UnfilledShapeStrokeColor.HasValue)
+            {
                 RatingControl.UnfilledShapeStrokeColor = UnfilledShapeStrokeColor.Value.ToXNAColor();
+            }
+
             if (UnfilledShapeFillColor.HasValue)
+            {
                 RatingControl.UnfilledShapeFillColor = UnfilledShapeFillColor.Value.ToXNAColor();
+            }
 
             if (FilledShapeStrokeThickness.HasValue)
+            {
                 RatingControl.FilledShapeStrokeThickness = FilledShapeStrokeThickness.Value;
+            }
+
             if (FilledShapeStrokeColor.HasValue)
+            {
                 RatingControl.FilledShapeStrokeColor = FilledShapeStrokeColor.Value.ToXNAColor();
+            }
+
             if (FilledShapeFillColor.HasValue)
+            {
                 RatingControl.FilledShapeFillColor = FilledShapeFillColor.Value.ToXNAColor();
+            }
 
             if (PreviewShapeStrokeThickness.HasValue)
+            {
                 RatingControl.PreviewShapeStrokeThickness = PreviewShapeStrokeThickness.Value;
+            }
+
             if (PreviewShapeStrokeColor.HasValue)
+            {
                 RatingControl.PreviewShapeStrokeColor = PreviewShapeStrokeColor.Value.ToXNAColor();
+            }
+
             if (PreviewShapeFillColor.HasValue)
+            {
                 RatingControl.PreviewShapeFillColor = PreviewShapeFillColor.Value.ToXNAColor();
+            }
 
             if (IsReadonly.HasValue)
+            {
                 RatingControl.IsReadonly = IsReadonly.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
@@ -1419,16 +1809,29 @@ namespace MGUI.Core.UI.XAML
             MGRectangle Rectangle = Element as MGRectangle;
 
             if (Stroke.HasValue)
+            {
                 Rectangle.Stroke = Stroke.Value.ToXNAColor();
+            }
+
             if (StrokeThickness.HasValue)
+            {
                 Rectangle.StrokeThickness = StrokeThickness.Value;
+            }
+
             if (Fill != null)
+            {
                 Rectangle.Fill = Fill.ToFillBrush(Desktop, Element);
+            }
 
             if (Width.HasValue)
+            {
                 Rectangle.Width = Width.Value;
+            }
+
             if (Height.HasValue)
+            {
                 Rectangle.Height = Height.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
@@ -1436,7 +1839,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGRectangle TypedElement)
             {
                 yield return (Fill, TypedElement.Fill, nameof(MGRectangle.Fill));
@@ -1463,11 +1869,19 @@ namespace MGUI.Core.UI.XAML
             MGResizeGrip ResizeGrip = Element as MGResizeGrip;
 
             if (Foreground.HasValue)
+            {
                 ResizeGrip.Foreground = new(Foreground.Value.ToXNAColor());
+            }
+
             if (MaxDots.HasValue)
+            {
                 ResizeGrip.MaxDots = MaxDots.Value;
+            }
+
             if (Spacing.HasValue)
+            {
                 ResizeGrip.Spacing = Spacing.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
@@ -1512,23 +1926,44 @@ namespace MGUI.Core.UI.XAML
             MGScrollViewer ScrollViewer = Element as MGScrollViewer;
 
             if (VerticalScrollBarVisibility.HasValue)
+            {
                 ScrollViewer.VerticalScrollBarVisibility = VerticalScrollBarVisibility.Value;
+            }
+
             if (HorizontalScrollBarVisibility.HasValue)
+            {
                 ScrollViewer.HorizontalScrollBarVisibility = HorizontalScrollBarVisibility.Value;
+            }
+
             if (VerticalOffset.HasValue)
+            {
                 ScrollViewer.VerticalOffset = VerticalOffset.Value;
+            }
+
             if (HorizontalOffset.HasValue)
+            {
                 ScrollViewer.HorizontalOffset = HorizontalOffset.Value;
+            }
 
             if (ScrollBarUnfocusedOuterBrush != null)
+            {
                 ScrollViewer.ScrollBarOuterBrush.NormalValue = ScrollBarUnfocusedOuterBrush.ToFillBrush(Desktop, Element);
+            }
+
             if (ScrollBarFocusedOuterBrush != null)
+            {
                 ScrollViewer.ScrollBarOuterBrush.SelectedValue = ScrollBarFocusedOuterBrush.ToFillBrush(Desktop, Element);
+            }
 
             if (ScrollBarUnfocusedInnerBrush != null)
+            {
                 ScrollViewer.ScrollBarInnerBrush.NormalValue = ScrollBarUnfocusedInnerBrush.ToFillBrush(Desktop, Element);
+            }
+
             if (ScrollBarFocusedInnerBrush != null)
+            {
                 ScrollViewer.ScrollBarInnerBrush.SelectedValue = ScrollBarFocusedInnerBrush.ToFillBrush(Desktop, Element);
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -1536,7 +1971,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGScrollViewer TypedElement)
             {
                 yield return (ScrollBarUnfocusedOuterBrush, TypedElement.ScrollBarOuterBrush?.NormalValue, $"{nameof(MGScrollViewer.ScrollBarOuterBrush)}.{nameof(VisualStateFillBrush.NormalValue)}");
@@ -1564,9 +2002,14 @@ namespace MGUI.Core.UI.XAML
             MGSeparator Separator = Element as MGSeparator;
 
             if (Orientation.HasValue)
+            {
                 Separator.Orientation = Orientation.Value;
+            }
+
             if (Size.HasValue)
+            {
                 Separator.Size = Size.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
@@ -1642,58 +2085,119 @@ namespace MGUI.Core.UI.XAML
             MGSlider Slider = Element as MGSlider;
 
             if (Minimum.HasValue || MaxHeight.HasValue)
+            {
                 Slider.SetRange(Minimum ?? Slider.Minimum, Maximum ?? Slider.Maximum);
+            }
+
             if (Value.HasValue)
+            {
                 Slider.SetValue(Value.Value);
+            }
 
             if (UseDiscreteValues.HasValue)
+            {
                 Slider.UseDiscreteValues = UseDiscreteValues.Value;
+            }
+
             if (DiscreteValueInterval.HasValue)
+            {
                 Slider.DiscreteValueInterval = DiscreteValueInterval.Value;
+            }
 
             if (NumberLineSize.HasValue)
+            {
                 Slider.NumberLineSize = NumberLineSize.Value;
+            }
+
             if (NumberLineBorderThickness.HasValue)
+            {
                 Slider.NumberLineBorderThickness = NumberLineBorderThickness.Value.ToThickness();
+            }
+
             if (NumberLineBorderBrush != null)
+            {
                 Slider.NumberLineBorderBrush = NumberLineBorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (NumberLineFillBrush != null)
+            {
                 Slider.NumberLineFillBrush = NumberLineFillBrush.ToFillBrush(Desktop, Element);
+            }
 
             if (TickFrequency.HasValue)
+            {
                 Slider.TickFrequency = TickFrequency.Value;
+            }
+
             if (DrawTicks.HasValue)
+            {
                 Slider.DrawTicks = DrawTicks.Value;
+            }
+
             if (TickWidth.HasValue)
+            {
                 Slider.TickWidth = TickWidth.Value;
+            }
+
             if (TickHeight.HasValue)
+            {
                 Slider.TickHeight = TickHeight.Value;
+            }
+
             if (TickBorderThickness.HasValue)
+            {
                 Slider.TickBorderThickness = TickBorderThickness.Value.ToThickness();
+            }
+
             if (TickBorderBrush != null)
+            {
                 Slider.TickBorderBrush = TickBorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (TickFillBrush != null)
+            {
                 Slider.TickFillBrush = TickFillBrush.ToFillBrush(Desktop, Element);
+            }
 
             if (ThumbWidth.HasValue)
+            {
                 Slider.ThumbWidth = ThumbWidth.Value;
+            }
+
             if (ThumbHeight.HasValue)
+            {
                 Slider.ThumbHeight = ThumbHeight.Value;
+            }
+
             if (ThumbBorderThickness.HasValue)
+            {
                 Slider.ThumbBorderThickness = ThumbBorderThickness.Value.ToThickness();
+            }
+
             if (ThumbBorderBrush != null)
+            {
                 Slider.ThumbBorderBrush = ThumbBorderBrush.ToBorderBrush(Desktop, Element);
+            }
+
             if (ThumbFillBrush != null)
+            {
                 Slider.ThumbFillBrush = ThumbFillBrush.ToFillBrush(Desktop, Element);
+            }
 
             if (Orientation.HasValue)
+            {
                 Slider.Orientation = Orientation.Value;
+            }
 
             if (Foreground != null)
+            {
                 Slider.Foreground = Foreground.ToFillBrush(Desktop, Element);
+            }
 
             if (AcceptsMouseScrollWheel.HasValue)
+            {
                 Slider.AcceptsMouseScrollWheel = AcceptsMouseScrollWheel.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
@@ -1701,7 +2205,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGSlider TypedElement)
             {
                 yield return (NumberLineBorderBrush, TypedElement.NumberLineBorderBrush, nameof(MGSlider.NumberLineBorderBrush));
@@ -1755,11 +2262,19 @@ namespace MGUI.Core.UI.XAML
             Button.ApplySettings(Parent, Spoiler.ButtonComponent.Element, false);
 
             if (UnspoiledText != null)
+            {
                 Spoiler.UnspoiledText = UnspoiledText;
+            }
+
             if (UnspoiledTextAlignment.HasValue)
+            {
                 Spoiler.UnspoiledTextAlignment = UnspoiledTextAlignment.Value;
+            }
+
             if (IsRevealed.HasValue)
+            {
                 Spoiler.IsRevealed = IsRevealed.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -1767,7 +2282,9 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return Button;
         }
@@ -1814,17 +2331,30 @@ namespace MGUI.Core.UI.XAML
             Value.ApplySettings(Parent, StopWatch.ValueComponent.Element, false);
 
             if (ValueDisplayFormat != null)
+            {
                 StopWatch.ValueDisplayFormat = ValueDisplayFormat;
+            }
+
             if (Elapsed.HasValue)
+            {
                 StopWatch.Elapsed = Elapsed.Value;
+            }
+
             if (TimeScale.HasValue)
+            {
                 StopWatch.TimeScale = TimeScale.Value;
+            }
+
             if (IsRunning.HasValue)
             {
                 if (IsRunning.Value)
+                {
                     StopWatch.Start();
+                }
                 else
+                {
                     StopWatch.Stop();
+                }
             }
         }
 
@@ -1882,9 +2412,14 @@ namespace MGUI.Core.UI.XAML
             HeadersPanel.ApplySettings(TabControl, TabControl.HeadersPanelElement, false);
 
             if (HeaderAreaBackground != null)
+            {
                 TabControl.HeaderAreaBackground.NormalValue = HeaderAreaBackground.ToFillBrush(Desktop, Element);
+            }
+
             if (TabHeaderPosition.HasValue)
+            {
                 TabControl.TabHeaderPosition = TabHeaderPosition.Value;
+            }
 
             if (SelectedTabHeaderTemplate != null)
             {
@@ -1898,10 +2433,15 @@ namespace MGUI.Core.UI.XAML
                     //  If the user specifies a Background but not a SelectedBackground, they probably
                     //  meant to specify a SelectedBackground since the regular Background would do nothing
                     if (SelectedTabHeaderTemplate.Background != null && SelectedTabHeaderTemplate.SelectedBackground == null)
+                    {
                         Button.BackgroundBrush.SelectedValue = Button.BackgroundBrush.NormalValue;
+                    }
+
                     //  Same as above but for TextForeground
                     if (SelectedTabHeaderTemplate.TextForeground != null && SelectedTabHeaderTemplate.SelectedTextForeground == null)
+                    {
                         Button.DefaultTextForeground.SelectedValue = Button.DefaultTextForeground.NormalValue;
+                    }
 
                     return Button;
                 };
@@ -1933,13 +2473,18 @@ namespace MGUI.Core.UI.XAML
             yield return HeadersPanel;
 
             foreach (TabItem Tab in Tabs)
+            {
                 yield return Tab;
+            }
         }
 
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGTabControl TypedElement)
             {
                 yield return (HeaderAreaBackground, TypedElement.HeaderAreaBackground?.NormalValue, $"{nameof(MGTabControl.HeaderAreaBackground)}.{nameof(VisualStateFillBrush.NormalValue)}");
@@ -1965,7 +2510,9 @@ namespace MGUI.Core.UI.XAML
                 return TabControl.AddTab(HeaderElement, ContentElement);
             }
             else
+            {
                 throw new InvalidOperationException($"The {nameof(Parent)} {nameof(MGElement)} of an {nameof(MGTabItem)} should be of type {nameof(MGTabControl)}");
+            }
         }
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
@@ -1973,7 +2520,9 @@ namespace MGUI.Core.UI.XAML
             MGTabItem TabItem = Element as MGTabItem;
 
             if (IsTabSelected.HasValue)
+            {
                 TabItem.IsTabSelected = IsTabSelected.Value;
+            }
 
             //base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -1981,10 +2530,14 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             if (Header != null)
+            {
                 yield return Header;
+            }
         }
     }
 
@@ -2041,44 +2594,89 @@ namespace MGUI.Core.UI.XAML
             MGTextBlock TextBlock = Element as MGTextBlock;
 
             if (FontFamily != null || FontSize.HasValue)
+            {
                 TextBlock.TrySetFont(FontFamily ?? TextBlock.FontFamily, FontSize ?? TextBlock.FontSize);
+            }
 
             if (IsBold.HasValue)
+            {
                 TextBlock.IsBold = IsBold.Value;
+            }
+
             if (IsItalic.HasValue)
+            {
                 TextBlock.IsItalic = IsItalic.Value;
+            }
+
             if (IsUnderlined.HasValue)
+            {
                 TextBlock.IsUnderlined = IsUnderlined.Value;
+            }
 
             if (IsShadowed.HasValue)
+            {
                 TextBlock.IsShadowed = IsShadowed.Value;
+            }
+
             if (ShadowOffset.HasValue)
+            {
                 TextBlock.ShadowOffset = new Point(ShadowOffset.Value.Width, ShadowOffset.Value.Height);
+            }
+
             if (ShadowColor.HasValue)
+            {
                 TextBlock.ShadowColor = ShadowColor.Value.ToXNAColor();
+            }
 
             if (AllowsInlineFormatting.HasValue)
+            {
                 TextBlock.AllowsInlineFormatting = AllowsInlineFormatting.Value;
+            }
 
             if (Foreground.HasValue)
+            {
                 TextBlock.Foreground.NormalValue = Foreground.Value.ToXNAColor();
+            }
+
             if (Text != null)
+            {
                 TextBlock.Text = Text;
+            }
+
             if (MinLines.HasValue)
+            {
                 TextBlock.MinLines = MinLines.Value;
+            }
+
             if (MaxLines.HasValue)
+            {
                 TextBlock.MaxLines = MaxLines.Value;
+            }
+
             if (WrapText.HasValue)
+            {
                 TextBlock.WrapText = WrapText.Value;
+            }
+
             if (LinePadding.HasValue)
+            {
                 TextBlock.LinePadding = LinePadding.Value;
+            }
+
             if (TextAlignment.HasValue)
+            {
                 TextBlock.TextAlignment = TextAlignment.Value;
+            }
 
             if (TextCharactersPerSecond.HasValue)
+            {
                 TextBlock.TextCharactersPerSecond = TextCharactersPerSecond.Value;
+            }
+
             if (TextProgress.HasValue)
+            {
                 TextBlock.TextProgress = TextProgress.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
@@ -2177,62 +2775,124 @@ namespace MGUI.Core.UI.XAML
             ResizeGrip.ApplySettings(Parent, TextBox.ResizeGripComponent.Element, false);
 
             if (Text != null)
+            {
                 TextBox.SetText(Text);
+            }
+
             if (FontSize.HasValue)
+            {
                 TextBox.TrySetFontSize(FontSize.Value);
+            }
+
             if (WrapText.HasValue)
+            {
                 TextBox.WrapText = WrapText.Value;
+            }
+
             if (MinLines.HasValue)
+            {
                 TextBox.MinLines = MinLines.Value;
+            }
+
             if (MaxLines.HasValue)
+            {
                 TextBox.MaxLines = MaxLines.Value;
+            }
 
             if (PlaceholderText != null)
+            {
                 TextBox.PlaceholderText = PlaceholderText;
+            }
 
             if (CharacterLimit.HasValue)
+            {
                 TextBox.CharacterLimit = CharacterLimit.Value;
+            }
+
             if (ShowCharacterCount.HasValue)
+            {
                 TextBox.ShowCharacterCount = ShowCharacterCount.Value;
+            }
+
             if (LimitedCharacterCountFormatString != null)
+            {
                 TextBox.LimitedCharacterCountFormatString = LimitedCharacterCountFormatString;
+            }
+
             if (LimitlessCharacterCountFormatString != null)
+            {
                 TextBox.LimitlessCharacterCountFormatString = LimitlessCharacterCountFormatString;
+            }
 
             if (FocusedSelectionForegroundColor != null)
+            {
                 TextBox.FocusedSelectionForegroundColor = FocusedSelectionForegroundColor.Value.ToXNAColor();
+            }
+
             if (FocusedSelectionBackgroundColor != null)
+            {
                 TextBox.FocusedSelectionBackgroundColor = FocusedSelectionBackgroundColor.Value.ToXNAColor();
+            }
+
             if (UnfocusedSelectionForegroundColor != null)
+            {
                 TextBox.UnfocusedSelectionForegroundColor = UnfocusedSelectionForegroundColor.Value.ToXNAColor();
+            }
+
             if (UnfocusedSelectionBackgroundColor != null)
+            {
                 TextBox.UnfocusedSelectionBackgroundColor = UnfocusedSelectionBackgroundColor.Value.ToXNAColor();
+            }
 
             if (AllowsTextSelection.HasValue)
+            {
                 TextBox.AllowsTextSelection = AllowsTextSelection.Value;
+            }
 
             if (UndoRedoHistorySize.HasValue)
+            {
                 TextBox.UndoRedoHistorySize = UndoRedoHistorySize.Value;
+            }
 
             if (IsReadonly.HasValue)
+            {
                 TextBox.IsReadonly = IsReadonly.Value;
+            }
 
             if (AcceptsReturn.HasValue)
+            {
                 TextBox.AcceptsReturn = AcceptsReturn.Value;
+            }
+
             if (AcceptsTab.HasValue)
+            {
                 TextBox.AcceptsTab = AcceptsTab.Value;
+            }
 
             if (IsHeldKeyRepeated.HasValue)
+            {
                 TextBox.IsHeldKeyRepeated = IsHeldKeyRepeated.Value;
+            }
+
             if (InitialKeyRepeatDelay.HasValue)
+            {
                 TextBox.InitialKeyRepeatDelay = InitialKeyRepeatDelay.Value;
+            }
+
             if (KeyRepeatInterval.HasValue)
+            {
                 TextBox.KeyRepeatInterval = KeyRepeatInterval.Value;
+            }
+
             if (TextEntryMode.HasValue)
+            {
                 TextBox.TextEntryMode = TextEntryMode.Value;
+            }
 
             if (IsUserResizable.HasValue)
+            {
                 TextBox.IsUserResizable = IsUserResizable.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren()
@@ -2293,23 +2953,38 @@ namespace MGUI.Core.UI.XAML
             Value.ApplySettings(Parent, Timer.ValueComponent.Element, false);
 
             if (ValueDisplayFormat != null)
+            {
                 Timer.ValueDisplayFormat = ValueDisplayFormat;
+            }
+
             if (RemainingDuration.HasValue)
+            {
                 Timer.RemainingDuration = RemainingDuration.Value;
+            }
+
             if (RemainingDurationStringFormat != null)
+            {
                 Timer.RemainingDurationToString = TimeSpan => TimeSpan.ToString(RemainingDurationStringFormat);
+            }
 
             //if (AllowsNegativeDuration.HasValue)
             //    Timer.AllowsNegativeDuration = AllowsNegativeDuration.Value;
 
             if (TimeScale.HasValue)
+            {
                 Timer.TimeScale = TimeScale.Value;
+            }
+
             if (IsPaused.HasValue)
             {
                 if (IsPaused.Value)
+                {
                     Timer.Pause();
+                }
                 else
+                {
                     Timer.Resume();
+                }
             }
         }
 
@@ -2357,11 +3032,19 @@ namespace MGUI.Core.UI.XAML
             Border.ApplySettings(Parent, ToggleButton.BorderComponent.Element, false);
 
             if (CheckedBackgroundBrush != null)
+            {
                 ToggleButton.CheckedBackgroundBrush = CheckedBackgroundBrush.ToFillBrush(Desktop, Element);
+            }
+
             if (CheckedTextForeground.HasValue)
+            {
                 ToggleButton.CheckedTextForeground = CheckedTextForeground.Value.ToXNAColor();
+            }
+
             if (IsChecked.HasValue)
+            {
                 ToggleButton.IsChecked = IsChecked.Value;
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -2369,7 +3052,9 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return Border;
         }
@@ -2377,7 +3062,10 @@ namespace MGUI.Core.UI.XAML
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGToggleButton TypedElement)
             {
                 yield return (CheckedBackgroundBrush, TypedElement.CheckedBackgroundBrush, nameof(MGToggleButton.CheckedBackgroundBrush));
@@ -2407,11 +3095,19 @@ namespace MGUI.Core.UI.XAML
             MGToolTip ToolTip = Element as MGToolTip;
 
             if (ShowOnDisabled.HasValue)
+            {
                 ToolTip.ShowOnDisabled = ShowOnDisabled.Value;
+            }
+
             if (ShowDelay.HasValue)
+            {
                 ToolTip.ShowDelayOverride = ShowDelay.Value;
+            }
+
             if (DrawOffset.HasValue)
+            {
                 ToolTip.DrawOffset = new Point(DrawOffset.Value.Width, DrawOffset.Value.Height);
+            }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
         }
@@ -2422,7 +3118,10 @@ namespace MGUI.Core.UI.XAML
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
             if (sourceType == typeof(string))
+            {
                 return true;
+            }
+
             return base.CanConvertFrom(context, sourceType);
         }
 
@@ -2473,12 +3172,19 @@ namespace MGUI.Core.UI.XAML
             Border.ApplySettings(TreeView, TreeView.OuterBorder, false);
 
             if (IndentSize.HasValue)
+            {
                 TreeView.IndentSize = IndentSize.Value;
+            }
 
             if (SelectionBackgroundBrush != null)
+            {
                 TreeView.SelectionBackgroundBrush = new VisualStateFillBrush(SelectionBackgroundBrush.ToFillBrush(TreeView.GetDesktop(), TreeView));
+            }
+
             if (SelectionForeground.HasValue)
+            {
                 TreeView.SelectionForeground = SelectionForeground.Value.ToXNAColor();
+            }
 
             // Add TreeViewItems
             if (IncludeContent)
@@ -2497,14 +3203,20 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
+
             yield return Border;
         }
 
         protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
         {
             foreach (var Item in base.GetBindableObjects(Element))
+            {
                 yield return Item;
+            }
+
             if (Element is MGTreeView TypedElement)
             {
                 yield return (SelectionBackgroundBrush, TypedElement.SelectionBackgroundBrush, nameof(MGTreeView.SelectionBackgroundBrush));
@@ -2530,10 +3242,14 @@ namespace MGUI.Core.UI.XAML
             MGTreeViewItem TreeViewItem = Element as MGTreeViewItem;
 
             if (!string.IsNullOrEmpty(Header))
+            {
                 TreeViewItem.Header = Header;
+            }
 
             if (IsExpanded.HasValue)
+            {
                 TreeViewItem.IsExpanded = IsExpanded.Value;
+            }
 
             // Add child TreeViewItems
             if (IncludeContent)
@@ -2552,7 +3268,9 @@ namespace MGUI.Core.UI.XAML
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
         }
     }
 
@@ -2636,7 +3354,10 @@ namespace MGUI.Core.UI.XAML
             int WindowHeight = Math.Clamp(Height ?? 0, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
             MGWindow Instance = new(Window, Left ?? 0, Top ?? 0, WindowWidth, WindowHeight, Theme);
             foreach (Window Nested in NestedWindows)
+            {
                 Instance.AddNestedWindow(Nested.ToElement<MGWindow>(Window, Window));
+            }
+
             return Instance;
         }
 
@@ -2663,22 +3384,34 @@ namespace MGUI.Core.UI.XAML
             CloseButton.ApplySettings(Window, Window.CloseButtonElement, true);
 
             if (IsUserResizable.HasValue)
+            {
                 Window.IsUserResizable = IsUserResizable.Value;
+            }
 
             if (ModalWindow != null)
+            {
                 Window.ModalWindow = ModalWindow.ToElement<MGWindow>(Window, Window);
+            }
 
             if (TitleText != null)
+            {
                 Window.TitleText = TitleText;
+            }
 
             if (CanCloseWindow.HasValue)
+            {
                 Window.CanCloseWindow = CanCloseWindow.Value;
+            }
 
             if (IsTopmost.HasValue)
+            {
                 Window.IsTopmost = IsTopmost.Value;
+            }
 
             if (IsDraggable.HasValue)
+            {
                 Window.IsDraggable = IsDraggable.Value;
+            }
 
             if (TitleBar.Children.Any())
             {
@@ -2686,55 +3419,90 @@ namespace MGUI.Core.UI.XAML
                 using (TitleBarDP.AllowChangingContentTemporarily())
                 {
                     foreach (MGElement Child in TitleBarDP.Children)
+                    {
                         Child.Visibility = UI.Visibility.Collapsed;
+                    }
+
                     foreach (Element Child in TitleBar.Children)
+                    {
                         TitleBarDP.TryAddChild(Child.ToElement<MGElement>(Window, TitleBarDP), Child.Dock);
+                    }
                 }
             }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
 
             if (WindowStyle != null)
+            {
                 Window.WindowStyle = WindowStyle.Value;
+            }
 
             //  Apply these properties after setting WindowStyle because they may have been overwritten when setting WindowStyle to WindowStyle.None
             if (AllowsClickThrough.HasValue)
+            {
                 Window.AllowsClickThrough = AllowsClickThrough.Value;
+            }
+
             if (Padding != null)
+            {
                 Window.Padding = Padding.Value.ToThickness();
+            }
+
             if (IsTitleBarVisible.HasValue)
+            {
                 Window.IsTitleBarVisible = IsTitleBarVisible.Value;
+            }
+
             if (IsCloseButtonVisible.HasValue)
+            {
                 Window.IsCloseButtonVisible = IsCloseButtonVisible.Value;
+            }
+
             ApplyBackground(Element);
             Border.ApplySettings(Window, Window.BorderComponent.Element, IncludeContent);
 
             if (SizeToContent != null)
+            {
                 Window.ApplySizeToContent(SizeToContent.Value, 10, 10, null, null, false);
+            }
             else if (!Width.HasValue && !Height.HasValue)
+            {
                 Window.ApplySizeToContent(UI.SizeToContent.WidthAndHeight, 10, 10, null, null, false);
+            }
             else if (!Width.HasValue)
+            {
                 Window.ApplySizeToContent(UI.SizeToContent.Width, 10, 10, null, null, false);
+            }
             else if (!Height.HasValue)
+            {
                 Window.ApplySizeToContent(UI.SizeToContent.Height, 10, 10, null, null, false);
+            }
 
             if (Scale != null)
+            {
                 Window.Scale = Scale.Value;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren()
         {
             foreach (Element Element in base.GetChildren())
+            {
                 yield return Element;
+            }
 
             yield return ResizeGrip;
             yield return Border;
 
             if (ModalWindow != null)
+            {
                 yield return ModalWindow;
+            }
 
             foreach (Window Window in NestedWindows)
+            {
                 yield return Window;
+            }
 
             yield return TitleBar;
             yield return TitleBarTextBlock;
