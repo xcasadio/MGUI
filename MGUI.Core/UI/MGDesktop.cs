@@ -29,8 +29,14 @@ namespace MGUI.Core.UI
     public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost, IContextMenuHost
     {
         public MainRenderer Renderer { get; }
+        public UIView View { get; private set; }
         public InputTracker InputTracker => Renderer.Input;
         public FontManager FontManager => Renderer.FontManager;
+
+        internal void AttachView(UIView View)
+        {
+            this.View = View ?? throw new ArgumentNullException(nameof(View));
+        }
 
         internal static bool HasKeyboardActivity(KeyboardTracker keyboard)
             => keyboard.CurrentKeyPressedEvents.Values.Any(x => x != null)
@@ -1018,6 +1024,7 @@ namespace MGUI.Core.UI
             this.Renderer = Renderer;
             Windows = new();
             Resources = new(new MGTheme(Renderer.FontManager.DefaultFontFamily));
+            _ = new UIView(this, Renderer.Surface);
 
             OverlayWindow = new(this, 0, 0, ValidScreenBounds.Width, ValidScreenBounds.Height)
             {
