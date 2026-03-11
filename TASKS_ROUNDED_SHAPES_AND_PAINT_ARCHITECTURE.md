@@ -55,23 +55,23 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 1. Faire un audit ciblé des points d’entrée de rendu de formes
 
-- [ ] Identifier tous les contrôles et composants qui dessinent :
-  - [ ] un fond ;
-  - [ ] une bordure ;
-  - [ ] un rectangle ;
-  - [ ] une forme assimilée à une box.
-- [ ] Lister précisément :
-  - [ ] où la géométrie est construite ;
-  - [ ] où le paint est appliqué ;
-  - [ ] quels appels utilisent directement `Rectangle`, `Thickness`, `Polygon`, `Triangle`, etc.
-- [ ] Produire un mini rapport technique `Docs/shape-rendering-audit.md`.
+- [x] Identifier tous les contrôles et composants qui dessinent :
+  - [x] un fond ;
+  - [x] une bordure ;
+  - [x] un rectangle ;
+  - [x] une forme assimilée à une box.
+- [x] Lister précisément :
+  - [x] où la géométrie est construite ;
+  - [x] où le paint est appliqué ;
+  - [x] quels appels utilisent directement `Rectangle`, `Thickness`, `Polygon`, `Triangle`, etc.
+- [x] Produire un mini rapport technique `Docs/shape-rendering-audit.md`.
 
 #### Critère d’acceptation
 
-- [ ] Le rapport liste clairement :
-  - [ ] les classes concernées ;
-  - [ ] les responsabilités actuelles ;
-  - [ ] les points de couplage à casser.
+- [x] Le rapport liste clairement :
+  - [x] les classes concernées ;
+  - [x] les responsabilités actuelles ;
+  - [x] les points de couplage à casser.
 
 ---
 
@@ -184,6 +184,8 @@ Refactorer le pipeline de rendu des formes UI pour :
   - [ ] draw border ring.
 - [ ] Ne pas exposer tout de suite une API inutilement énorme.
 - [ ] Prévoir une implémentation propre qui s’appuie sur la géométrie construite.
+- [ ] Borner explicitement la phase 1 aux primitives nécessaires pour les cas solid fill / solid stroke / border ring arrondi.
+- [ ] Ne pas imposer dans cette étape une solution complète pour tous les paints avancés sur formes arrondies.
 
 #### Critère d’acceptation
 
@@ -191,6 +193,7 @@ Refactorer le pipeline de rendu des formes UI pour :
   - [ ] un fond arrondi ;
   - [ ] une bordure arrondie avec épaisseur ;
   - [ ] un rectangle classique via fast path.
+- [ ] Les primitives de phase 1 suffisent pour brancher les premiers painters arrondis sans figer prématurément l’API des futurs gradients/textures.
 
 ---
 
@@ -211,11 +214,40 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 9. Faire évoluer l’interface des border brushes
+### 9. Définir une stratégie de compatibilité transitoire des APIs de paint
+
+- [ ] Introduire une phase de transition explicite entre les signatures actuelles basées sur `Rectangle` / `Thickness` et les futures entrées basées sur `BoxShape` ou géométrie calculée.
+- [ ] Définir si cette transition passe par :
+  - [ ] des surcharges temporaires ;
+  - [ ] des adapters ;
+  - [ ] des helpers de bridge centralisés.
+- [ ] Interdire les migrations ad hoc différentes brush par brush.
+
+#### Critère d’acceptation
+
+- [ ] Un agent peut migrer progressivement les paints sans refactor brutal de toute l’API publique.
+- [ ] Le chemin de migration est défini avant la modification des interfaces `IBorderBrush` et `IFillBrush`.
+
+---
+
+### 10. Clarifier le cycle de vie des paints stateful ou animés
+
+- [ ] Identifier les paints qui ne sont pas purement stateless et qui nécessitent une logique `Update` ou un état interne.
+- [ ] Définir comment ce cycle de vie s’articule avec la nouvelle séparation shape / geometry / paint.
+- [ ] Vérifier explicitement le cas des brushes composés et des brushes animés.
+
+#### Critère d’acceptation
+
+- [ ] La nouvelle architecture ne casse pas les paints animés ou stateful.
+- [ ] Le contrat de mise à jour est documenté avant la migration des brushes existants.
+
+---
+
+### 11. Faire évoluer l’interface des border brushes
 
 - [ ] Modifier l’API des border brushes pour qu’ils travaillent à partir d’une shape commune plutôt qu’à partir de simples bounds rectangulaires.
-- [ ] Prévoir une phase de compatibilité transitoire si nécessaire.
 - [ ] Éviter une refactorisation brutale de tous les brushes à la fois.
+- [ ] S’appuyer sur la stratégie de compatibilité définie à l’étape précédente.
 
 #### Critère d’acceptation
 
@@ -224,11 +256,12 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 10. Faire évoluer l’interface des fill brushes
+### 12. Faire évoluer l’interface des fill brushes
 
 - [ ] Permettre aux fill brushes de peindre une forme de box, pas seulement un rectangle brut.
 - [ ] Prévoir que les futurs gradients et textures puissent réutiliser la même entrée.
 - [ ] Garder éventuellement une surcharge de compatibilité temporaire.
+- [ ] Éviter de forcer dès cette étape une abstraction trop riche qui figerait inutilement les paints avancés.
 
 #### Critère d’acceptation
 
@@ -236,7 +269,7 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 11. Refactorer `MGBorder` pour utiliser la nouvelle architecture
+### 13. Refactorer `MGBorder` pour utiliser la nouvelle architecture
 
 - [ ] Ajouter `CornerRadius` à `MGBorder`.
 - [ ] Construire une `BoxShape` à partir de :
@@ -254,20 +287,22 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 12. Refactorer `MGRectangle` pour utiliser la nouvelle architecture
+### 14. Refactorer `MGRectangle` pour utiliser la nouvelle architecture
 
 - [ ] Ajouter `CornerRadius`.
 - [ ] Remplacer la logique directe actuelle par l’utilisation du modèle de shape.
 - [ ] Vérifier que `MGRectangle` et `MGBorder` convergent vers la même façon de dessiner une box.
+- [ ] Conserver autant que raisonnable la façade publique existante (`Stroke`, `StrokeThickness`, `Fill`) en la faisant reposer en interne sur la nouvelle architecture.
 
 #### Critère d’acceptation
 
 - [ ] `MGRectangle` ne contient pas sa propre implémentation spéciale des rounded corners.
 - [ ] Le comportement reste cohérent avec `MGBorder`.
+- [ ] La migration n’impose pas un changement d’usage inutile aux consommateurs existants de `MGRectangle`.
 
 ---
 
-### 13. Refactorer les border brushes existants un par un
+### 15. Refactorer les border brushes existants un par un
 
 - [ ] Migrer progressivement :
   - [ ] border brush uniforme ;
@@ -286,7 +321,44 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 14. Introduire une stratégie de caching géométrique
+### 16. Refactorer les fill brushes existants un par un
+
+- [ ] Migrer progressivement :
+  - [ ] fill brush uniforme ;
+  - [ ] gradient fill brush ;
+  - [ ] texture fill brush ;
+  - [ ] brushes composés ou spécialisés.
+- [ ] Pour chaque brush :
+  - [ ] enlever les hypothèses rectangulaires implicites qui doivent appartenir à la shape ou à la géométrie ;
+  - [ ] conserver sa responsabilité de paint ;
+  - [ ] documenter clairement les limitations transitoires si un paint avancé ne supporte pas encore complètement les rounded shapes.
+
+#### Critère d’acceptation
+
+- [ ] Les fill brushes sont migrés progressivement sans re-dupliquer la logique géométrique.
+- [ ] Les limitations de phase 1 sur les paints avancés sont explicites et localisées.
+
+---
+
+### 17. Ajouter une étape de validation / clamp des rayons et épaisseurs
+
+- [ ] Gérer proprement les cas invalides :
+  - [ ] rayons trop grands par rapport à la taille ;
+  - [ ] inner radius négatif ;
+  - [ ] border thickness trop grande ;
+  - [ ] dimensions nulles ou très petites.
+- [ ] Définir une stratégie de clamp déterministe et documentée.
+- [ ] Appliquer cette normalisation avant les chemins de génération et avant tout éventuel caching géométrique.
+
+#### Critère d’acceptation
+
+- [ ] Aucun rendu cassé ou exception inattendue sur des valeurs extrêmes.
+- [ ] Les résultats restent visuellement cohérents.
+- [ ] Les entrées utilisées comme clé de cache sont déjà normalisées.
+
+---
+
+### 18. Introduire une stratégie de caching géométrique
 
 - [ ] Identifier les cas où la géométrie peut être réutilisée entre frames.
 - [ ] Définir une clé de cache basée sur :
@@ -304,23 +376,7 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 15. Ajouter une étape de validation / clamp des rayons et épaisseurs
-
-- [ ] Gérer proprement les cas invalides :
-  - [ ] rayons trop grands par rapport à la taille ;
-  - [ ] inner radius négatif ;
-  - [ ] border thickness trop grande ;
-  - [ ] dimensions nulles ou très petites.
-- [ ] Définir une stratégie de clamp déterministe et documentée.
-
-#### Critère d’acceptation
-
-- [ ] Aucun rendu cassé ou exception inattendue sur des valeurs extrêmes.
-- [ ] Les résultats restent visuellement cohérents.
-
----
-
-### 16. Préparer l’architecture pour les paints avancés
+### 19. Préparer l’architecture pour les paints avancés
 
 - [ ] Vérifier que le nouveau modèle permet naturellement d’ajouter plus tard :
   - [ ] gradient fills ;
@@ -330,14 +386,16 @@ Refactorer le pipeline de rendu des formes UI pour :
   - [ ] brushes composés.
 - [ ] Ajouter des TODO structurés ou interfaces d’extension là où c’est pertinent.
 - [ ] Ne pas implémenter tous les paints maintenant, mais s’assurer que l’architecture les permet.
+- [ ] Distinguer explicitement ce qui est “supporté en phase 1” de ce qui est seulement “préparé par le design”.
 
 #### Critère d’acceptation
 
 - [ ] Le design n’est pas limité à "solid color rounded rectangle".
+- [ ] L’absence éventuelle de support complet pour certains paints avancés sur rounded shapes n’est pas ambiguë.
 
 ---
 
-### 17. Exposer `CornerRadius` sur les contrôles qui encapsulent déjà un border
+### 20. Exposer `CornerRadius` sur les contrôles qui encapsulent déjà un border
 
 - [ ] Identifier les contrôles qui reposent sur un `MGBorder` interne.
 - [ ] Exposer proprement `CornerRadius` là où cela a du sens.
@@ -349,22 +407,24 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 18. Ajouter les conversions et sérialisations utiles
+### 21. Ajouter les conversions et sérialisations utiles
 
-- [ ] Vérifier si `CornerRadius` doit être supporté dans :
+- [ ] Ajouter un support minimal de `CornerRadius` dans les chemins de configuration indispensables de la phase 1, en priorité :
   - [ ] XAML ;
   - [ ] styles ;
-  - [ ] thèmes ;
-  - [ ] sérialisation interne.
+  - [ ] thèmes.
+- [ ] Évaluer séparément si une sérialisation interne dédiée est nécessaire dès cette phase.
 - [ ] Ajouter les converters nécessaires avec une syntaxe propre et cohérente.
+- [ ] Différer les raffinements secondaires qui ne bloquent pas l’adoption ni les tests de la phase 1.
 
 #### Critère d’acceptation
 
 - [ ] Un utilisateur du framework peut configurer un corner radius sans code custom.
+- [ ] Le support minimal est disponible suffisamment tôt pour tester la fonctionnalité via markup et thèmes.
 
 ---
 
-### 19. Ajouter des tests visuels et techniques
+### 22. Ajouter des tests visuels et techniques
 
 - [ ] Ajouter des tests ou samples couvrant :
   - [ ] rectangle simple ;
@@ -385,7 +445,7 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 20. Ajouter une documentation d’architecture finale
+### 23. Ajouter une documentation d’architecture finale
 
 - [ ] Documenter la nouvelle séparation :
   - [ ] shape model ;
@@ -408,7 +468,7 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ## Tâches de fin de phase
 
-### 21. Nettoyer les anciens chemins devenus obsolètes
+### 24. Nettoyer les anciens chemins devenus obsolètes
 
 - [ ] Supprimer les helpers devenus inutiles.
 - [ ] Supprimer les duplications rectangulaires anciennes si elles ne servent plus qu’à contourner l’ancien design.
@@ -421,7 +481,7 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ---
 
-### 22. Identifier la phase 2 : clip arrondi et hit testing de forme
+### 25. Identifier la phase 2 : clip arrondi et hit testing de forme
 
 - [ ] Rédiger un document de suite expliquant comment brancher :
   - [ ] rounded clipping ;
@@ -446,20 +506,23 @@ Refactorer le pipeline de rendu des formes UI pour :
 6. structure de géométrie réutilisable
 7. primitives de rendu rounded shapes
 8. fast path rectangle
-9. évolution des border brushes
-10. évolution des fill brushes
-11. refactor `MGBorder`
-12. refactor `MGRectangle`
-13. migration des brushes existants
-14. cache géométrique
-15. clamp/validation
-16. préparation paints avancés
-17. exposition dans les contrôles composés
-18. XAML / converters / styles
-19. tests visuels
-20. doc finale
-21. nettoyage
-22. roadmap clip/hit test
+9. stratégie de compatibilité transitoire des APIs
+10. cycle de vie des paints stateful / animés
+11. évolution des border brushes
+12. évolution des fill brushes
+13. refactor `MGBorder`
+14. refactor `MGRectangle`
+15. migration des border brushes existants
+16. migration des fill brushes existants
+17. clamp/validation
+18. cache géométrique
+19. préparation paints avancés
+20. exposition dans les contrôles composés
+21. support minimal XAML / converters / styles
+22. tests visuels
+23. doc finale
+24. nettoyage
+25. roadmap clip/hit test
 
 ---
 
@@ -473,12 +536,19 @@ Refactorer le pipeline de rendu des formes UI pour :
   - coins arrondis,
   - bordures d’épaisseur variable,
   - fills et strokes réutilisables ;
+- un support de phase 1 clairement assumé pour :
+  - solid fill,
+  - solid stroke,
+  - border ring arrondi,
+  - fast path rectangle non arrondi ;
 - une base saine pour :
   - gradients,
   - textures,
   - clipping arrondi,
   - theming moderne,
   - nouveaux contrôles.
+
+Les paints avancés n’ont pas besoin d’être tous entièrement implémentés sur rounded shapes dans cette phase, mais l’architecture doit rendre leur ajout ultérieur naturel et sans recouplage géométrique.
 
 ---
 
