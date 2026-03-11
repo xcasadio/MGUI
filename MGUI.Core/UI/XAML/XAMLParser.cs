@@ -213,7 +213,7 @@ namespace MGUI.Core.UI.XAML
             }
         }
 
-        /// <param name="SanitizeXAMLString">If true, the given <paramref name="XAMLString"/> will be pre-processed via the following logic:<para/>
+        /// <param name="SanitizeXAMLString">If true, the markup loaded from <paramref name="Source"/> will be pre-processed via the following logic:<para/>
         /// 1. Trim leading and trailing whitespace<br/>
         /// 2. Insert required XML namespaces (such as "xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation")<br/>
         /// 3. Replace type names with their fully-qualified names, such as "Button" -> "MGUI:Button" where the "MGUI" namespace prefix points to the URI defined by <see cref="XMLLocalNameSpaceUri"/><para/>
@@ -221,19 +221,34 @@ namespace MGUI.Core.UI.XAML
         /// <param name="ReplaceLinebreakLiterals">If true, the literal string @"\n" will be replaced with "&#38;#x0a;", which is the XAML encoding of the linebreak character '\n'.<br/>
         /// If false, setting the text of an <see cref="MGTextBlock"/> requires encoding the '\n' character as "&#38;#x0a;"<para/>
         /// See also: <see href="https://stackoverflow.com/a/183435/11689514"/></param>
-        public static T Load<T>(MGWindow Window, string XAMLString, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
-            where T : MGElement
+        private static string PrepareMarkup(XamlDocumentSource Source, bool SanitizeXAMLString, bool ReplaceLinebreakLiterals)
         {
+            if (Source == null)
+                throw new ArgumentNullException(nameof(Source));
+
+            string XAMLString = Source.LoadContent();
             if (SanitizeXAMLString)
                 XAMLString = ValidateXAMLString(XAMLString);
             if (ReplaceLinebreakLiterals)
                 XAMLString = XAMLString.Replace(@"\n", "&#x0a;");
+
+            return XAMLString;
+        }
+
+        public static T Load<T>(MGWindow Window, XamlDocumentSource Source, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            where T : MGElement
+        {
+            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
             Element Parsed = (Element)XamlServices.Parse(XAMLString);
             Parsed.ProcessStyles(Window.GetResources());
             return Parsed.ToElement<T>(Window, null);
         }
 
-        /// <param name="SanitizeXAMLString">If true, the given <paramref name="XAMLString"/> will be pre-processed via the following logic:<para/>
+        public static T Load<T>(MGWindow Window, string XAMLString, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            where T : MGElement
+            => Load<T>(Window, XamlDocumentSource.FromString(XAMLString), SanitizeXAMLString, ReplaceLinebreakLiterals);
+
+        /// <param name="SanitizeXAMLString">If true, the markup loaded from <paramref name="Source"/> will be pre-processed via the following logic:<para/>
         /// 1. Trim leading and trailing whitespace<br/>
         /// 2. Insert required XML namespaces (such as "xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation")<br/>
         /// 3. Replace type names with their fully-qualified names, such as "Button" -> "MGUI:Button" where the "MGUI" namespace prefix points to the URI defined by <see cref="XMLLocalNameSpaceUri"/><para/>
@@ -241,15 +256,15 @@ namespace MGUI.Core.UI.XAML
         /// <param name="ReplaceLinebreakLiterals">If true, the literal string @"\n" will be replaced with "&#38;#x0a;", which is the XAML encoding of the linebreak character '\n'.<br/>
         /// If false, setting the text of an <see cref="MGTextBlock"/> requires encoding the '\n' character as "&#38;#x0a;"<para/>
         /// See also: <see href="https://stackoverflow.com/a/183435/11689514"/></param>
-        public static MGWindow LoadRootWindow(MGDesktop Desktop, string XAMLString, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+        public static MGWindow LoadRootWindow(MGDesktop Desktop, XamlDocumentSource Source, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         {
-            if (SanitizeXAMLString)
-                XAMLString = ValidateXAMLString(XAMLString);
-            if (ReplaceLinebreakLiterals)
-                XAMLString = XAMLString.Replace(@"\n", "&#x0a;");
+            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
             Window Parsed = (Window)XamlServices.Parse(XAMLString);
             Parsed.ProcessStyles(Desktop.Resources);
             return Parsed.ToElement(Desktop);
         }
+
+        public static MGWindow LoadRootWindow(MGDesktop Desktop, string XAMLString, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => LoadRootWindow(Desktop, XamlDocumentSource.FromString(XAMLString), SanitizeXAMLString, ReplaceLinebreakLiterals);
     }
 }

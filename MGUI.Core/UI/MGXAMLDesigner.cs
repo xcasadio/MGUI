@@ -251,12 +251,12 @@ namespace MGUI.Core.UI
             MGElement Result;
             try
             {
-                string Markup;
+                XamlDocumentSource Source;
                 if (IsReadingInputFromFile)
-                    Markup = File.ReadAllText(FromFilePath);
+                    Source = XamlDocumentSource.FromFile(FromFilePath);
                 else
-                    Markup = FromStringTextBoxComponent.Text;
-                Result = XAMLParser.Load<MGElement>(SelfOrParentWindow, Markup, !IsReadingInputFromFile, true);
+                    Source = XamlDocumentSource.FromString(FromStringTextBoxComponent.Text, "Designer Text Input");
+                Result = XAMLParser.Load<MGElement>(SelfOrParentWindow, Source, !IsReadingInputFromFile, true);
                 Result.DataContextOverride = ParsedContentDataContext;
             }
             catch (Exception ex)
