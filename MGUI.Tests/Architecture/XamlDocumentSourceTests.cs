@@ -42,7 +42,7 @@ public class XamlDocumentSourceTests
 
         Assert.Contains("XamlDocumentSource.FromFile", designerSource);
         Assert.Contains("XamlDocumentSource.FromString", designerSource);
-        Assert.Contains("XAMLParser.Load<MGElement>(SelfOrParentWindow, Source", designerSource);
+        Assert.Contains("UIToolingService.LoadPreview(SelfOrParentWindow, Source", designerSource);
     }
 
     [Fact]

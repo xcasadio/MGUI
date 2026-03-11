@@ -267,6 +267,14 @@ namespace MGUI.Core.UI.XAML
             where T : MGElement
             => Load<T>(Window, XamlDocumentSource.FromString(XAMLString), SanitizeXAMLString, ReplaceLinebreakLiterals);
 
+        public static MGElement LoadPreview(MGWindow Window, XamlDocumentSource Source, object DataContext = null,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+        {
+            MGElement Result = Load<MGElement>(Window, Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            Result.DataContextOverride = DataContext;
+            return Result;
+        }
+
         /// <param name="SanitizeXAMLString">If true, the markup loaded from <paramref name="Source"/> will be pre-processed via the following logic:<para/>
         /// 1. Trim leading and trailing whitespace<br/>
         /// 2. Insert required XML namespaces (such as "xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation")<br/>

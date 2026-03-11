@@ -14,6 +14,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Diagnostics;
 using System.IO;
+using MGUI.Shared.Input;
 
 namespace MGUI.Samples
 {

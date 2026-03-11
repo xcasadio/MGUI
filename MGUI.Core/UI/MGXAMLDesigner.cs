@@ -4,6 +4,7 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Text;
 using MGUI.Core.UI.XAML;
+using MGUI.Core.Tooling;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
 using System;
@@ -256,8 +257,7 @@ namespace MGUI.Core.UI
                     Source = XamlDocumentSource.FromFile(FromFilePath);
                 else
                     Source = XamlDocumentSource.FromString(FromStringTextBoxComponent.Text, "Designer Text Input");
-                Result = XAMLParser.Load<MGElement>(SelfOrParentWindow, Source, !IsReadingInputFromFile, true);
-                Result.DataContextOverride = ParsedContentDataContext;
+                Result = UIToolingService.LoadPreview(SelfOrParentWindow, Source, ParsedContentDataContext, !IsReadingInputFromFile, true);
             }
             catch (Exception ex)
             {

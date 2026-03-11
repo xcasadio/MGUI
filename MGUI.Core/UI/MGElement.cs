@@ -2742,6 +2742,9 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
             bool IncludeToolTips = true, bool IncludeContextMenus = true, TreeTraversalMode TraversalMode = TreeTraversalMode.Preorder)
             where T : MGElement
             => TraverseVisualTree<T>(IncludeSelf, IncludeComponents, IncludeToolTips, IncludeContextMenus, TraversalMode).Where(x => Predicate(x));
+
+        public IEnumerable<MGElement> EnumerateVisualTree(bool IncludeSelf = true)
+            => TraverseVisualTree(IncludeSelf, true, true, true, TreeTraversalMode.Preorder);
         #endregion Visual Tree
 	}
 }
