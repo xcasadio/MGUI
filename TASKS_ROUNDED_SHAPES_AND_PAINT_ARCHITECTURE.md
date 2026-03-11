@@ -258,14 +258,14 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 12. Faire évoluer l’interface des fill brushes
 
-- [ ] Permettre aux fill brushes de peindre une forme de box, pas seulement un rectangle brut.
-- [ ] Prévoir que les futurs gradients et textures puissent réutiliser la même entrée.
-- [ ] Garder éventuellement une surcharge de compatibilité temporaire.
-- [ ] Éviter de forcer dès cette étape une abstraction trop riche qui figerait inutilement les paints avancés.
+- [x] Permettre aux fill brushes de peindre une forme de box, pas seulement un rectangle brut.
+- [x] Prévoir que les futurs gradients et textures puissent réutiliser la même entrée.
+- [x] Garder éventuellement une surcharge de compatibilité temporaire.
+- [x] Éviter de forcer dès cette étape une abstraction trop riche qui figerait inutilement les paints avancés.
 
 #### Critère d’acceptation
 
-- [ ] Un fill brush peut remplir un rounded rectangle sans reconstruire lui-même la géométrie.
+- [x] Un fill brush peut remplir un rounded rectangle sans reconstruire lui-même la géométrie.
 
 ---
 

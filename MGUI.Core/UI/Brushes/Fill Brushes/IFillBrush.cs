@@ -11,6 +11,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using DrawingColor = System.Drawing.Color;
 using ColorTranslator = System.Drawing.ColorTranslator;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -30,6 +31,8 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
     {
         /// <summary>Draws this brush using the abstract render context carried by <see cref="ElementDrawArgs"/>.</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds);
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+            => Draw(DA, Element, Shape.OuterBounds);
         public MGUniformBorderBrush AsUniformBorderBrush() => new(this);
 
         /// <summary>Attempts to darken this <see cref="IFillBrush"/>'s color by the given <paramref name="ShadowIntensity"/> if it is a <see cref="MGSolidFillBrush"/></summary>

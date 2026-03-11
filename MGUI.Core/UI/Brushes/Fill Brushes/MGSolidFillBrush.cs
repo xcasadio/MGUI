@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -52,6 +53,24 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 MGUI.Shared.Rendering.IUIRenderContext context = DA.Context;
                 (context as MGUI.Shared.Rendering.DrawTransaction)?.FillRectangle(DA.Offset.ToVector2(), Bounds, ActualColor);
             }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            Color actualColor = Color * DA.Opacity;
+            if (actualColor == Color.Transparent)
+            {
+                return;
+            }
+
+            MGUI.Shared.Rendering.IUIRenderContext context = DA.Context;
+            MGUI.Shared.Rendering.DrawTransaction drawTransaction = context as MGUI.Shared.Rendering.DrawTransaction;
+            if (drawTransaction == null)
+            {
+                return;
+            }
+
+            drawTransaction.FillRoundedRectangle(DA.Offset.ToVector2(), Geometry, actualColor);
         }
 
         public override string ToString() => $"{nameof(MGSolidFillBrush)}: {Color}";
