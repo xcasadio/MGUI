@@ -30,6 +30,7 @@ namespace MGUI.Core.UI
     {
         public MainRenderer Renderer { get; }
         public UIView View { get; private set; }
+        public UIViewState State { get; }
         public InputTracker InputTracker => Renderer.Input;
         public FontManager FontManager => Renderer.FontManager;
 
@@ -627,13 +628,12 @@ namespace MGUI.Core.UI
 
         #region ToolTip
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MGToolTip _ActiveToolTip;
         public MGToolTip ActiveToolTip
         {
-            get => _ActiveToolTip;
+            get => State.ActiveToolTip;
             private set
             {
-                if (_ActiveToolTip != value)
+                if (State.ActiveToolTip != value)
                 {
                     bool Cancellable = true;
                     if (ActiveToolTip != null && value != null && ActiveToolTip.Host == value.Host)
@@ -653,7 +653,7 @@ namespace MGUI.Core.UI
                         ActiveToolTip.Host.ToolTipChanged -= Host_ToolTipChanged;
                     }
 
-                    _ActiveToolTip = value;
+                    State.ActiveToolTip = value;
                     NPC(nameof(ActiveToolTip));
 
                     if (ActiveToolTip != null)
@@ -674,7 +674,11 @@ namespace MGUI.Core.UI
         public event EventHandler<CancelEventArgs<MGToolTip>> ToolTipOpening;
         public event EventHandler<MGToolTip> ToolTipOpened;
 
-        internal MGToolTip QueuedToolTip { get; set; } = null;
+        internal MGToolTip QueuedToolTip
+        {
+            get => State.QueuedToolTip;
+            set => State.QueuedToolTip = value;
+        }
 
         /// <summary>Default value: 0.3s</summary>
         public static TimeSpan DefaultToolTipShowDelay { get; set; } = TimeSpan.FromSeconds(0.30);
@@ -698,11 +702,9 @@ namespace MGUI.Core.UI
         #endregion ToolTip
 
         #region Context Menu
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MGContextMenu _ActiveContextMenu;
         /// <summary>The currently open <see cref="MGContextMenu"/>.<para/>
         /// To set this value, use <see cref="TryCloseActiveContextMenu"/> or <see cref="TryOpenContextMenu(MGContextMenu, Point)"/></summary>
-        public MGContextMenu ActiveContextMenu => _ActiveContextMenu;
+        public MGContextMenu ActiveContextMenu => State.ActiveContextMenu;
 
         /// <returns>True if there was no <see cref="ActiveContextMenu"/> or it was successfully closed.<br/>
         /// False if the action was cancelled such as via <see cref="ContextMenuClosing"/>'s <see cref="ContextMenuOpeningClosingEventArgs"/>.Cancel.</returns>
@@ -726,7 +728,7 @@ namespace MGUI.Core.UI
 
                 ActiveContextMenu.InvokeContextMenuClosing();
 
-                _ActiveContextMenu = null;
+                State.ActiveContextMenu = null;
                 NPC(nameof(ActiveContextMenu));
 
                 Previous.InvokeContextMenuClosed();
@@ -771,7 +773,7 @@ namespace MGUI.Core.UI
                 if (!Menu.InvokeContextMenuOpening())
                     return false;
 
-                _ActiveContextMenu = Menu;
+                State.ActiveContextMenu = Menu;
 
                 int MinWidth = 100;
                 int MinHeight = 40;
@@ -869,7 +871,6 @@ namespace MGUI.Core.UI
         internal MGElement QueuedFocusedKeyboardHandler => _QueuedFocusedKeyboardHandler?.Target;
         internal KeyboardFocusSource? QueuedFocusedKeyboardHandlerSource => _QueuedFocusedKeyboardHandler?.Source;
         internal KeyboardFocusSource LastFocusChangeSource { get; private set; } = KeyboardFocusSource.Programmatic;
-        private readonly Dictionary<MGWindow, MGElement> WindowFocusHistory = new();
 
         internal void QueueFocusedKeyboardHandler(MGElement target, KeyboardFocusSource source)
         {
@@ -884,16 +885,14 @@ namespace MGUI.Core.UI
 
         internal void ClearQueuedFocusedKeyboardHandler() => _QueuedFocusedKeyboardHandler = null;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MGElement _FocusedKeyboardHandler;
         /// <summary>The <see cref="MGElement"/> that should handle Keyboard inputs, if any.<para/>
         /// Only <see cref="MGElement"/>'s where <see cref="MGElement.CanHandleKeyboardInput"/> is true can be set as the <see cref="FocusedKeyboardHandler"/></summary>
         public MGElement FocusedKeyboardHandler
         {
-            get => _FocusedKeyboardHandler;
+            get => State.FocusedKeyboardHandler;
             private set
             {
-                if (_FocusedKeyboardHandler != value)
+                if (State.FocusedKeyboardHandler != value)
                 {
                     if (value != null && !value.CanHandleKeyboardInput)
                         throw new InvalidOperationException($"{nameof(MGWindow)}.{nameof(FocusedKeyboardHandler)} cannot be set to an value with {nameof(MGElement)}.{nameof(MGElement.CanHandleKeyboardInput)}=false.");
@@ -905,13 +904,13 @@ namespace MGUI.Core.UI
                     if (Previous is MGTextBox PreviousTextBox)
                         PreviousTextBox.ReadonlyChanged -= TextBox_ReadonlyChanged;
 
-                    _FocusedKeyboardHandler = value;
+                    State.FocusedKeyboardHandler = value;
 
                     if (FocusedKeyboardHandler is MGTextBox CurrentTextBox)
                         CurrentTextBox.ReadonlyChanged += TextBox_ReadonlyChanged;
 
                     if (FocusedKeyboardHandler?.SelfOrParentWindow != null)
-                        WindowFocusHistory[FocusedKeyboardHandler.SelfOrParentWindow] = FocusedKeyboardHandler;
+                        State.WindowFocusHistory[FocusedKeyboardHandler.SelfOrParentWindow] = FocusedKeyboardHandler;
 
                     if (FocusedKeyboardHandler != null && ShouldAutoScrollFocusedElement(LastFocusChangeSource))
                         EnsureFocusedElementVisible(FocusedKeyboardHandler);
@@ -952,7 +951,7 @@ namespace MGUI.Core.UI
                 return GetFocusableElements(root).FirstOrDefault();
 
             MGElement defaultFocus = window.DefaultFocusElement;
-            MGElement lastFocused = WindowFocusHistory.TryGetValue(window, out MGElement previousFocus) ? previousFocus : null;
+            MGElement lastFocused = State.WindowFocusHistory.TryGetValue(window, out MGElement previousFocus) ? previousFocus : null;
             MGElement firstFocusable = GetFocusableElements(window).FirstOrDefault();
 
             defaultFocus = IsNavigationTarget(defaultFocus) && window.IsSelfOrAncestorOf(defaultFocus) ? defaultFocus : null;
@@ -986,7 +985,7 @@ namespace MGUI.Core.UI
             if (window == null)
                 return;
 
-            WindowFocusHistory.Remove(window);
+            State.WindowFocusHistory.Remove(window);
 
             if (QueuedFocusedKeyboardHandler?.SelfOrParentWindow == window)
                 ClearQueuedFocusedKeyboardHandler();
@@ -1022,6 +1021,7 @@ namespace MGUI.Core.UI
             }
 
             this.Renderer = Renderer;
+            State = new();
             Windows = new();
             Resources = new(new MGTheme(Renderer.FontManager.DefaultFontFamily));
             _ = new UIView(this, Renderer.Surface);
