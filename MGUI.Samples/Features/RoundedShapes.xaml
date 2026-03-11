@@ -1,0 +1,59 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Width="760" Height="560" TitleText="Rounded Shapes" Padding="12" Background="rgb(34,38,43)" CornerRadius="10">
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="TextForeground" Value="White" />
+        </Style>
+        <Style TargetType="Border">
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="Background" Value="rgb(56,63,72)" />
+            <Setter Property="BorderBrush" Value="rgb(96,108,122)" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="Transparent">
+        <StackPanel Orientation="Vertical" Spacing="12">
+            <TextBlock FontSize="16" IsBold="True" Text="Rounded shape regression surface" />
+            <TextBlock Text="This sample is intended for manual inspection of simple, uniform, asymmetric, thick-border, tiny-size, and semi-transparent rounded scenarios." />
+
+            <Border>
+                <StackPanel Orientation="Vertical" Spacing="8">
+                    <TextBlock IsBold="True" Text="Rectangles" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Rectangle Width="120" Height="56" Stroke="White" StrokeThickness="2" Fill="rgb(77,163,255)" />
+                        <Rectangle Width="120" Height="56" Stroke="White" StrokeThickness="2" Fill="rgb(77,163,255)" CornerRadius="12" />
+                        <Rectangle Width="120" Height="56" Stroke="White" StrokeThickness="4" Fill="rgba(255,140,0,180)" CornerRadius="4,18,24,8" />
+                        <Rectangle Width="56" Height="32" Stroke="White" StrokeThickness="8" Fill="rgba(0,200,160,180)" CornerRadius="16" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border>
+                <StackPanel Orientation="Vertical" Spacing="8">
+                    <TextBlock IsBold="True" Text="Brushes" />
+                    <Rectangle Width="300" Height="50" Stroke="White" StrokeThickness="3" Fill="#5AA9FF" CornerRadius="14" />
+                    <Rectangle Width="300" Height="50" Stroke="White|Orange|Lime|HotPink" StrokeThickness="4" Fill="rgb(44,48,54)" CornerRadius="6,18,6,18" />
+                    <Border BorderBrush="#A5C8FF|#FFD17A|#FFA5A5|#9AE6B4" BorderThickness="5" CornerRadius="18" Background="rgba(255,255,255,30)">
+                        <TextBlock Text="Semi-transparent fill over rounded border" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border>
+                <StackPanel Orientation="Vertical" Spacing="8">
+                    <TextBlock IsBold="True" Text="Nested controls" />
+                    <Button CornerRadius="14" BorderThickness="2" BorderBrush="White" Background="rgb(77,163,255)" Padding="12,6">Rounded Button</Button>
+                    <TextBox CornerRadius="10" BorderThickness="2" BorderBrush="White" Background="rgb(44,48,54)" Text="Rounded TextBox" />
+                    <ComboBox CornerRadius="10" BorderThickness="2" BorderBrush="White" Background="rgb(44,48,54)" SelectedIndex="0">
+                        <TextBlock Text="First option" />
+                        <TextBlock Text="Second option" />
+                    </ComboBox>
+                    <ProgressBar CornerRadius="10" BorderThickness="2" BorderBrush="White" Width="320" Height="28" Minimum="0" Maximum="100" Value="66" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

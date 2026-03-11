@@ -427,21 +427,21 @@ Refactorer le pipeline de rendu des formes UI pour :
 ### 22. Ajouter des tests visuels et techniques
 
 - [ ] Ajouter des tests ou samples couvrant :
-  - [ ] rectangle simple ;
-  - [ ] rectangle arrondi uniforme ;
-  - [ ] rectangle arrondi asymétrique ;
-  - [ ] bordure épaisse ;
-  - [ ] très petite taille ;
-  - [ ] forte épaisseur ;
-  - [ ] brush uniforme ;
-  - [ ] brush banded ;
-  - [ ] brush docked.
-- [ ] Ajouter des captures ou démos dans un sample UI.
+  - [x] rectangle simple ;
+  - [x] rectangle arrondi uniforme ;
+  - [x] rectangle arrondi asymétrique ;
+  - [x] bordure épaisse ;
+  - [x] très petite taille ;
+  - [x] forte épaisseur ;
+  - [x] brush uniforme ;
+  - [x] brush banded ;
+  - [x] brush docked.
+- [x] Ajouter des captures ou démos dans un sample UI.
 
 #### Critère d’acceptation
 
-- [ ] Les cas de base et limites sont vérifiés.
-- [ ] La non-régression visuelle est observable.
+- [x] Les cas de base et limites sont vérifiés.
+- [x] La non-régression visuelle est observable.
 
 ---
 
