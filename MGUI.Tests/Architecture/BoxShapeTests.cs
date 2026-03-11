@@ -13,8 +13,11 @@ public class BoxShapeTests
 
         MGBoxShape normalized = shape.Normalize();
 
-        Assert.Equal(new Thickness(0, 2, 8, 4), normalized.BorderThickness);
-        Assert.Equal(new Rectangle(10, 22, 0, 0), normalized.InnerBounds);
+        Assert.Equal(8, normalized.BorderThickness.Left);
+        Assert.Equal(4, normalized.BorderThickness.Top);
+        Assert.Equal(0, normalized.BorderThickness.Right);
+        Assert.Equal(2, normalized.BorderThickness.Bottom);
+        Assert.Equal(new Rectangle(18, 24, 0, 0), normalized.InnerBounds);
     }
 
     [Fact]
@@ -36,7 +39,7 @@ public class BoxShapeTests
             new Thickness(2, 4, 6, 8),
             new MGCornerRadius(10, 11, 12, 13));
 
-        Assert.Equal(new MGCornerRadius(6, 5, 4, 5), shape.InnerCornerRadius);
+        Assert.Equal(new MGCornerRadius(4, 2, 1, 2), shape.InnerCornerRadius);
     }
 
     [Fact]
@@ -48,5 +51,27 @@ public class BoxShapeTests
         Assert.False(shape.HasRoundedCorners);
         Assert.Equal(shape.OuterBounds, shape.InnerBounds);
         Assert.Equal(MGCornerRadius.Zero, shape.InnerCornerRadius);
+    }
+
+    [Fact]
+    public void Normalize_ClampsNegativeValuesToZero()
+    {
+        MGBoxShape shape = new(new Rectangle(0, 0, 10, 10), new Thickness(-1, -2, 3, 4), new MGCornerRadius(-5, 4, -3, 2));
+
+        MGBoxShape normalized = shape.Normalize();
+
+        Assert.Equal(new Thickness(0, 0, 3, 4), normalized.BorderThickness);
+        Assert.Equal(new MGCornerRadius(0, 4, 0, 2), normalized.CornerRadius);
+    }
+
+    [Fact]
+    public void InnerCornerRadius_IsClampedWhenBorderConsumesTooMuchSpace()
+    {
+        MGBoxShape shape = new(new Rectangle(0, 0, 6, 6), new Thickness(3), new MGCornerRadius(5));
+
+        MGBoxShape normalized = shape.Normalize();
+
+        Assert.Equal(new Rectangle(3, 3, 0, 0), normalized.InnerBounds);
+        Assert.Equal(MGCornerRadius.Zero, normalized.InnerCornerRadius);
     }
 }

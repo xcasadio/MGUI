@@ -342,19 +342,19 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 17. Ajouter une étape de validation / clamp des rayons et épaisseurs
 
-- [ ] Gérer proprement les cas invalides :
-  - [ ] rayons trop grands par rapport à la taille ;
-  - [ ] inner radius négatif ;
-  - [ ] border thickness trop grande ;
-  - [ ] dimensions nulles ou très petites.
-- [ ] Définir une stratégie de clamp déterministe et documentée.
-- [ ] Appliquer cette normalisation avant les chemins de génération et avant tout éventuel caching géométrique.
+- [x] Gérer proprement les cas invalides :
+  - [x] rayons trop grands par rapport à la taille ;
+  - [x] inner radius négatif ;
+  - [x] border thickness trop grande ;
+  - [x] dimensions nulles ou très petites.
+- [x] Définir une stratégie de clamp déterministe et documentée.
+- [x] Appliquer cette normalisation avant les chemins de génération et avant tout éventuel caching géométrique.
 
 #### Critère d’acceptation
 
-- [ ] Aucun rendu cassé ou exception inattendue sur des valeurs extrêmes.
-- [ ] Les résultats restent visuellement cohérents.
-- [ ] Les entrées utilisées comme clé de cache sont déjà normalisées.
+- [x] Aucun rendu cassé ou exception inattendue sur des valeurs extrêmes.
+- [x] Les résultats restent visuellement cohérents.
+- [x] Les entrées utilisées comme clé de cache sont déjà normalisées.
 
 ---
 
