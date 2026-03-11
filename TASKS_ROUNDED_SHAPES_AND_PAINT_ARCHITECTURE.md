@@ -426,7 +426,7 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 22. Ajouter des tests visuels et techniques
 
-- [ ] Ajouter des tests ou samples couvrant :
+- [x] Ajouter des tests ou samples couvrant :
   - [x] rectangle simple ;
   - [x] rectangle arrondi uniforme ;
   - [x] rectangle arrondi asymétrique ;
