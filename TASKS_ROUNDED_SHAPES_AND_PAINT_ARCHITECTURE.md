@@ -378,20 +378,20 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 19. Préparer l’architecture pour les paints avancés
 
-- [ ] Vérifier que le nouveau modèle permet naturellement d’ajouter plus tard :
-  - [ ] gradient fills ;
-  - [ ] textured fills ;
-  - [ ] textured borders ;
-  - [ ] strokes multi-bandes ;
-  - [ ] brushes composés.
-- [ ] Ajouter des TODO structurés ou interfaces d’extension là où c’est pertinent.
-- [ ] Ne pas implémenter tous les paints maintenant, mais s’assurer que l’architecture les permet.
-- [ ] Distinguer explicitement ce qui est “supporté en phase 1” de ce qui est seulement “préparé par le design”.
+- [x] Vérifier que le nouveau modèle permet naturellement d’ajouter plus tard :
+  - [x] gradient fills ;
+  - [x] textured fills ;
+  - [x] textured borders ;
+  - [x] strokes multi-bandes ;
+  - [x] brushes composés.
+- [x] Ajouter des TODO structurés ou interfaces d’extension là où c’est pertinent.
+- [x] Ne pas implémenter tous les paints maintenant, mais s’assurer que l’architecture les permet.
+- [x] Distinguer explicitement ce qui est “supporté en phase 1” de ce qui est seulement “préparé par le design”.
 
 #### Critère d’acceptation
 
-- [ ] Le design n’est pas limité à "solid color rounded rectangle".
-- [ ] L’absence éventuelle de support complet pour certains paints avancés sur rounded shapes n’est pas ambiguë.
+- [x] Le design n’est pas limité à "solid color rounded rectangle".
+- [x] L’absence éventuelle de support complet pour certains paints avancés sur rounded shapes n’est pas ambiguë.
 
 ---
 
