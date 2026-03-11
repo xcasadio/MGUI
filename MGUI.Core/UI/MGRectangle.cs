@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI
 {
@@ -99,6 +101,22 @@ namespace MGUI.Core.UI
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private MGCornerRadius _CornerRadius;
+        public MGCornerRadius CornerRadius
+        {
+            get => _CornerRadius;
+            set
+            {
+                if (!_CornerRadius.Equals(value))
+                {
+                    _CornerRadius = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(CornerRadius));
+                }
+            }
+        }
+
         public MGRectangle(MGWindow Window, int Width, int Height, Color Stroke, int StrokeThickness, Color Fill)
             : this(Window, Width, Height, Stroke, StrokeThickness, Fill.AsFillBrush()) { }
 
@@ -113,6 +131,7 @@ namespace MGUI.Core.UI
                 this.Stroke = Stroke;
                 this.StrokeThickness = StrokeThickness;
                 this.Fill = Fill;
+                this.CornerRadius = MGCornerRadius.Zero;
 
                 HorizontalAlignment = HorizontalAlignment.Center;
                 VerticalAlignment = VerticalAlignment.Center;
@@ -133,10 +152,13 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            Fill?.Draw(DA, this, ActualBounds);
+            MGBoxShape shape = new MGBoxShape(ActualBounds, new Thickness(StrokeThickness), CornerRadius).Normalize();
+            MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+
+            Fill?.Draw(DA, this, shape, geometry);
             if (StrokeThickness > 0)
             {
-                DA.DT.StrokeRectangle(DA.Offset.ToVector2(), ActualBounds, Stroke * DA.Opacity, new(StrokeThickness));
+                new MGUniformBorderBrush(Stroke.AsFillBrush()).Draw(DA, this, shape, geometry);
             }
         }
     }

@@ -289,16 +289,16 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 14. Refactorer `MGRectangle` pour utiliser la nouvelle architecture
 
-- [ ] Ajouter `CornerRadius`.
-- [ ] Remplacer la logique directe actuelle par l’utilisation du modèle de shape.
-- [ ] Vérifier que `MGRectangle` et `MGBorder` convergent vers la même façon de dessiner une box.
-- [ ] Conserver autant que raisonnable la façade publique existante (`Stroke`, `StrokeThickness`, `Fill`) en la faisant reposer en interne sur la nouvelle architecture.
+- [x] Ajouter `CornerRadius`.
+- [x] Remplacer la logique directe actuelle par l’utilisation du modèle de shape.
+- [x] Vérifier que `MGRectangle` et `MGBorder` convergent vers la même façon de dessiner une box.
+- [x] Conserver autant que raisonnable la façade publique existante (`Stroke`, `StrokeThickness`, `Fill`) en la faisant reposer en interne sur la nouvelle architecture.
 
 #### Critère d’acceptation
 
-- [ ] `MGRectangle` ne contient pas sa propre implémentation spéciale des rounded corners.
-- [ ] Le comportement reste cohérent avec `MGBorder`.
-- [ ] La migration n’impose pas un changement d’usage inutile aux consommateurs existants de `MGRectangle`.
+- [x] `MGRectangle` ne contient pas sa propre implémentation spéciale des rounded corners.
+- [x] Le comportement reste cohérent avec `MGBorder`.
+- [x] La migration n’impose pas un changement d’usage inutile aux consommateurs existants de `MGRectangle`.
 
 ---
 
