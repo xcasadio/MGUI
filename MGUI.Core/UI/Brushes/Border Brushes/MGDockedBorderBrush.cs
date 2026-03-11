@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MGUI.Shared.Rendering;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
 {
@@ -113,6 +114,69 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 {
                     Bottom.Draw(DA, Element, new(Bounds.Left, Bounds.Bottom - BT.Bottom, Bounds.Width, BT.Bottom));
                 }
+            }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            Thickness borderThickness = Shape.NormalizedBorderThickness;
+            if (borderThickness.IsEmpty())
+            {
+                return;
+            }
+
+            if (!Shape.HasRoundedCorners)
+            {
+                Draw(DA, Element, Shape.OuterBounds, borderThickness);
+                return;
+            }
+
+            if (!IsSolidColorsOnly)
+            {
+                Draw(DA, Element, Shape.OuterBounds, borderThickness);
+                return;
+            }
+
+            Rectangle outerBounds = Shape.OuterBounds;
+            Rectangle innerBounds = Shape.InnerBounds;
+            Vector2 origin = DA.Offset.ToVector2();
+            for (int i = 0; i + 2 < Geometry.BorderRingIndices.Count; i += 3)
+            {
+                Vector2 v0 = Geometry.Vertices[Geometry.BorderRingIndices[i]];
+                Vector2 v1 = Geometry.Vertices[Geometry.BorderRingIndices[i + 1]];
+                Vector2 v2 = Geometry.Vertices[Geometry.BorderRingIndices[i + 2]];
+
+                DA.DT.FillTriangle(
+                    origin,
+                    v0, GetVertexColor(v0, outerBounds, innerBounds) * DA.Opacity,
+                    v1, GetVertexColor(v1, outerBounds, innerBounds) * DA.Opacity,
+                    v2, GetVertexColor(v2, outerBounds, innerBounds) * DA.Opacity);
+            }
+        }
+
+        private Color GetVertexColor(Vector2 vertex, Rectangle outerBounds, Rectangle innerBounds)
+        {
+            float leftDistance = MathF.Min(Math.Abs(vertex.X - outerBounds.Left), Math.Abs(vertex.X - innerBounds.Left));
+            float topDistance = MathF.Min(Math.Abs(vertex.Y - outerBounds.Top), Math.Abs(vertex.Y - innerBounds.Top));
+            float rightDistance = MathF.Min(Math.Abs(vertex.X - outerBounds.Right), Math.Abs(vertex.X - innerBounds.Right));
+            float bottomDistance = MathF.Min(Math.Abs(vertex.Y - outerBounds.Bottom), Math.Abs(vertex.Y - innerBounds.Bottom));
+
+            float minimumDistance = MathF.Min(MathF.Min(leftDistance, topDistance), MathF.Min(rightDistance, bottomDistance));
+            if (minimumDistance == leftDistance)
+            {
+                return ((MGSolidFillBrush)Left).Color;
+            }
+            else if (minimumDistance == topDistance)
+            {
+                return ((MGSolidFillBrush)Top).Color;
+            }
+            else if (minimumDistance == rightDistance)
+            {
+                return ((MGSolidFillBrush)Right).Color;
+            }
+            else
+            {
+                return ((MGSolidFillBrush)Bottom).Color;
             }
         }
 

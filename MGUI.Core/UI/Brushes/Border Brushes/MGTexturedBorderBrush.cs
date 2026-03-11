@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
 {
@@ -305,6 +306,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 }
             }
         }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+            => Draw(DA, Element, Shape.OuterBounds, Shape.NormalizedBorderThickness);
 
         public IBorderBrush Copy() => new MGTexturedBorderBrush(EdgeTexture, EdgeColor, CornerTexture, CornerColor, Transforms, Opacity);
     }

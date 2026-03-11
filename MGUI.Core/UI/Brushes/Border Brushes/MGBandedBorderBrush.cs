@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
 {
@@ -87,6 +88,45 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 Band.Brush.Draw(DA, Element, RemainingBounds, BandThickness);
 
                 RemainingBounds = RemainingBounds.GetCompressed(BandThickness);
+            }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            if (!Bands.Any())
+            {
+                return;
+            }
+
+            double totalWeight = Bands.Sum(x => x.ThicknessWeight);
+            MGBoxShape remainingShape = Shape.Normalize();
+
+            foreach (MGBorderBand band in Bands)
+            {
+                Thickness remainingThickness = remainingShape.NormalizedBorderThickness;
+                if (remainingThickness.IsEmpty())
+                {
+                    break;
+                }
+
+                double percentageThickness = band.ThicknessWeight / totalWeight;
+                Thickness bandThickness = new(
+                    (int)(remainingThickness.Left * percentageThickness),
+                    (int)(remainingThickness.Top * percentageThickness),
+                    (int)(remainingThickness.Right * percentageThickness),
+                    (int)(remainingThickness.Bottom * percentageThickness));
+
+                MGBoxShape bandShape = new(remainingShape.OuterBounds, bandThickness, remainingShape.NormalizedCornerRadius);
+                MGBoxGeometry bandGeometry = MGBoxGeometryBuilder.Build(bandShape, Geometry.CornerSegmentCount);
+                band.Brush.Draw(DA, Element, bandGeometry.Shape, bandGeometry);
+
+                Thickness nextThickness = new(
+                    Math.Max(0, remainingThickness.Left - bandGeometry.Shape.NormalizedBorderThickness.Left),
+                    Math.Max(0, remainingThickness.Top - bandGeometry.Shape.NormalizedBorderThickness.Top),
+                    Math.Max(0, remainingThickness.Right - bandGeometry.Shape.NormalizedBorderThickness.Right),
+                    Math.Max(0, remainingThickness.Bottom - bandGeometry.Shape.NormalizedBorderThickness.Bottom));
+
+                remainingShape = new MGBoxShape(bandGeometry.Shape.InnerBounds, nextThickness, bandGeometry.Shape.InnerCornerRadius).Normalize();
             }
         }
 

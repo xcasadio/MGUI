@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
 {
@@ -841,6 +842,42 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 					}
                     break;
 				default: throw new NotImplementedException($"Unrecognized {nameof(HighlightAnimation)}: {AnimationType}");
+			}
+		}
+
+		public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+		{
+			Underlay?.Draw(DA, Element, Shape, Geometry);
+
+			if (!IsEnabled || HighlightColor == Color.Transparent)
+			{
+				return;
+			}
+
+			if (AnimationType is HighlightAnimation.Progress or HighlightAnimation.Scan)
+			{
+				Draw(DA, Element, Shape.OuterBounds, Shape.NormalizedBorderThickness);
+				return;
+			}
+
+			double progress = ActualAnimationProgress;
+			switch (AnimationType)
+			{
+				case HighlightAnimation.Pulse:
+					double fadePercent = PulseFadeDuration / PulseCycleDuration;
+					if (progress < fadePercent)
+					{
+						float opacityScalar = 1.0f - (float)(progress / fadePercent);
+						HighlightBorderBrush.Draw(DA.SetOpacity(DA.Opacity * opacityScalar), Element, Shape, Geometry);
+					}
+					break;
+				case HighlightAnimation.Flash:
+					bool isVisible = progress <= FlashShowDuration / FlashCycleDuration;
+					if (isVisible)
+					{
+						HighlightBorderBrush.Draw(DA, Element, Shape, Geometry);
+					}
+					break;
 			}
 		}
 

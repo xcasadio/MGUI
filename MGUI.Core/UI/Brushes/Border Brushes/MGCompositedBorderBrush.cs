@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
 {
@@ -34,6 +35,14 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             foreach (IBorderBrush Brush in Brushes)
             {
                 Brush.Draw(DA, Element, Bounds, BT);
+            }
+        }
+
+        public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            foreach (IBorderBrush Brush in Brushes)
+            {
+                Brush.Draw(DA, Element, Shape, Geometry);
             }
         }
 

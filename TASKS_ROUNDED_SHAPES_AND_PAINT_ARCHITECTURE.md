@@ -304,20 +304,20 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 15. Refactorer les border brushes existants un par un
 
-- [ ] Migrer progressivement :
-  - [ ] border brush uniforme ;
-  - [ ] border brush docked ;
-  - [ ] border brush banded ;
-  - [ ] brushes composés ou spécialisés.
-- [ ] Pour chaque brush :
-  - [ ] enlever la géométrie implicite rectangulaire ;
-  - [ ] le faire travailler avec la géométrie fournie ;
-  - [ ] garder son rôle de paint.
+- [x] Migrer progressivement :
+  - [x] border brush uniforme ;
+  - [x] border brush docked ;
+  - [x] border brush banded ;
+  - [x] brushes composés ou spécialisés.
+- [x] Pour chaque brush :
+  - [x] enlever la géométrie implicite rectangulaire ;
+  - [x] le faire travailler avec la géométrie fournie ;
+  - [x] garder son rôle de paint.
 
 #### Critère d’acceptation
 
-- [ ] Chaque brush devient plus simple.
-- [ ] Les brushes ne manipulent plus directement la topologie complète de la forme sauf si c’est leur responsabilité explicite.
+- [x] Chaque brush devient plus simple.
+- [x] Les brushes ne manipulent plus directement la topologie complète de la forme sauf si c’est leur responsabilité explicite.
 
 ---
 
