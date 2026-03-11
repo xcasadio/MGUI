@@ -94,6 +94,8 @@ namespace MGUI.Shared.Rendering
         public IRenderHost Host { get; }
         public IRawInputSource RawInputSource { get; }
         public IUISurface Surface { get; }
+        private List<IUIView> MutableViews { get; } = new();
+        public IReadOnlyList<IUIView> Views => MutableViews;
 
         public GraphicsDevice GraphicsDevice => Host.GraphicsDevice;
         public GraphicsDevice GD => GraphicsDevice;
@@ -136,6 +138,31 @@ namespace MGUI.Shared.Rendering
         private TimeSpan PreviousUpdateTimeSpan = TimeSpan.Zero;
 
         public Rectangle GetViewport(int Margin) => Surface.GetBounds().GetCompressed(Margin);
+
+        public void RegisterView(IUIView View)
+        {
+            if (View == null)
+                throw new ArgumentNullException(nameof(View));
+
+            if (!MutableViews.Contains(View))
+                MutableViews.Add(View);
+        }
+
+        public bool UnregisterView(IUIView View)
+            => View != null && MutableViews.Remove(View);
+
+        public void UpdateViews()
+        {
+            foreach (IUIView View in MutableViews)
+                View.Update();
+        }
+
+        public void DrawViews(float Opacity = 1.0f, DrawSettings InitialDrawSettings = null)
+        {
+            using DrawTransaction DT = new(this, InitialDrawSettings ?? DrawSettings.Default, false);
+            foreach (IUIView View in MutableViews)
+                View.Draw(DT, Opacity);
+        }
 
         private static IRawInputSource ResolveInputSource(IRenderHost Host, IRawInputSource RawInputSource)
         {

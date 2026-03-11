@@ -29,4 +29,12 @@ public class UIViewTests
         Assert.NotNull(viewProperty);
         Assert.Equal(typeof(UIView), viewProperty!.PropertyType);
     }
+
+    [Fact]
+    public void MainRenderer_ExposesViewsCollectionAndRegistrationMethods()
+    {
+        Assert.NotNull(typeof(MainRenderer).GetProperty(nameof(MainRenderer.Views), BindingFlags.Instance | BindingFlags.Public));
+        Assert.NotNull(typeof(MainRenderer).GetMethod(nameof(MainRenderer.RegisterView), BindingFlags.Instance | BindingFlags.Public));
+        Assert.NotNull(typeof(MainRenderer).GetMethod(nameof(MainRenderer.UnregisterView), BindingFlags.Instance | BindingFlags.Public));
+    }
 }

@@ -37,6 +37,7 @@ namespace MGUI.Core.UI
         internal void AttachView(UIView View)
         {
             this.View = View ?? throw new ArgumentNullException(nameof(View));
+            Renderer.RegisterView(View);
         }
 
         internal static bool HasKeyboardActivity(KeyboardTracker keyboard)
