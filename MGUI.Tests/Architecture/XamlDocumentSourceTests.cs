@@ -44,4 +44,13 @@ public class XamlDocumentSourceTests
         Assert.Contains("XamlDocumentSource.FromString", designerSource);
         Assert.Contains("XAMLParser.Load<MGElement>(SelfOrParentWindow, Source", designerSource);
     }
+
+    [Fact]
+    public void Parser_CanExposeReusableDefinitionPhase()
+    {
+        Element parsed = XAMLParser.ParseElementDefinition(XamlDocumentSource.FromString("<Grid />"), null, true, true);
+
+        Assert.NotNull(parsed);
+        Assert.Equal("Grid", parsed.GetType().Name);
+    }
 }

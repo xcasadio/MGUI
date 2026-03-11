@@ -235,12 +235,31 @@ namespace MGUI.Core.UI.XAML
             return XAMLString;
         }
 
+        public static TDefinition ParseDefinition<TDefinition>(XamlDocumentSource Source, MGResources Resources = null,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            where TDefinition : Element
+        {
+            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            TDefinition Parsed = (TDefinition)XamlServices.Parse(XAMLString);
+
+            if (Resources != null)
+                Parsed.ProcessStyles(Resources);
+
+            return Parsed;
+        }
+
+        public static Element ParseElementDefinition(XamlDocumentSource Source, MGResources Resources = null,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => ParseDefinition<Element>(Source, Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
+        public static Window ParseWindowDefinition(XamlDocumentSource Source, MGResources Resources = null,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => ParseDefinition<Window>(Source, Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
         public static T Load<T>(MGWindow Window, XamlDocumentSource Source, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
             where T : MGElement
         {
-            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-            Element Parsed = (Element)XamlServices.Parse(XAMLString);
-            Parsed.ProcessStyles(Window.GetResources());
+            Element Parsed = ParseElementDefinition(Source, Window.GetResources(), SanitizeXAMLString, ReplaceLinebreakLiterals);
             return Parsed.ToElement<T>(Window, null);
         }
 
@@ -258,9 +277,7 @@ namespace MGUI.Core.UI.XAML
         /// See also: <see href="https://stackoverflow.com/a/183435/11689514"/></param>
         public static MGWindow LoadRootWindow(MGDesktop Desktop, XamlDocumentSource Source, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         {
-            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-            Window Parsed = (Window)XamlServices.Parse(XAMLString);
-            Parsed.ProcessStyles(Desktop.Resources);
+            Window Parsed = ParseWindowDefinition(Source, Desktop.Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
             return Parsed.ToElement(Desktop);
         }
 
