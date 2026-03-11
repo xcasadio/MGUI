@@ -470,14 +470,14 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 24. Nettoyer les anciens chemins devenus obsolètes
 
-- [ ] Supprimer les helpers devenus inutiles.
-- [ ] Supprimer les duplications rectangulaires anciennes si elles ne servent plus qu’à contourner l’ancien design.
-- [ ] Renommer les types / méthodes si besoin pour garder une API cohérente.
+- [x] Supprimer les helpers devenus inutiles.
+- [x] Supprimer les duplications rectangulaires anciennes si elles ne servent plus qu’à contourner l’ancien design.
+- [x] Renommer les types / méthodes si besoin pour garder une API cohérente.
 
 #### Critère d’acceptation
 
-- [ ] L’architecture finale est lisible.
-- [ ] Il ne reste pas de vieux chemins contradictoires inutiles.
+- [x] L’architecture finale est lisible.
+- [x] Il ne reste pas de vieux chemins contradictoires inutiles.
 
 ---
 

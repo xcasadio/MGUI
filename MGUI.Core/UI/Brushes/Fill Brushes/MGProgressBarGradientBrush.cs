@@ -36,29 +36,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         {
             if (ProgressBar != null && DA.Opacity > 0 && !DA.Opacity.IsAlmostZero())
             {
-                float Progress = ProgressBar.ValuePercent / 100f;
-
-                float Min, Max;
-                Color c1, c2;
-                if (Progress > 0.5f)
-                {
-                    Min = 0.5f;
-                    Max = 1.0f;
-                    c1 = MiddleValueColor;
-                    c2 = MaximumValueColor;
-                }
-                else
-                {
-                    Min = 0f;
-                    Max = 0.5f;
-                    c1 = MinimumValueColor;
-                    c2 = MiddleValueColor;
-                }
-
-                Progress = (Progress - Min) / (Max - Min);
-                int Alpha = (int)(c1.A * (1.0f - Progress) + c2.A * Progress);
-                Color FillColor = new Color(Color.Lerp(c1, c2, Progress), Alpha) * DA.Opacity;
-                DA.DT.FillRectangle(DA.Offset.ToVector2(), Bounds, FillColor);
+                DA.DT.FillRectangle(DA.Offset.ToVector2(), Bounds, GetFillColor(DA.Opacity));
             }
         }
 
@@ -69,6 +47,11 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 return;
             }
 
+            DA.DT.FillRoundedRectangle(DA.Offset.ToVector2(), Geometry, GetFillColor(DA.Opacity));
+        }
+
+        private Color GetFillColor(float opacity)
+        {
             float progress = ProgressBar.ValuePercent / 100f;
 
             float min;
@@ -92,8 +75,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
             progress = (progress - min) / (max - min);
             int alpha = (int)(c1.A * (1.0f - progress) + c2.A * progress);
-            Color fillColor = new Color(Color.Lerp(c1, c2, progress), alpha) * DA.Opacity;
-            DA.DT.FillRoundedRectangle(DA.Offset.ToVector2(), Geometry, fillColor);
+            return new Color(Color.Lerp(c1, c2, progress), alpha) * opacity;
         }
 
         public override string ToString() => $"{nameof(MGProgressBarGradientBrush)}: {MinimumValueColor} - {MaximumValueColor}";
