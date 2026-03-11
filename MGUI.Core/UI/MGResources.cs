@@ -21,9 +21,43 @@ namespace MGUI.Core.UI
     /// For example: the name of the command that an <see cref="MGButton"/> executes when clicked, the name of a <see cref="Texture2D"/> that an <see cref="MGImage"/> draws,
     /// or the name of an object in <see cref="StaticResources"/> for databinding purposes.<para/>
     /// This instance is usually accessed via <see cref="MGDesktop.Resources"/> (See also: <see cref="MGElement.GetResources"/>)</summary>
+    public class MGResourceDefinitions
+    {
+        private MGResources Owner { get; }
+
+        internal MGResourceDefinitions(MGResources Owner)
+        {
+            this.Owner = Owner ?? throw new ArgumentNullException(nameof(Owner));
+        }
+
+        public IReadOnlyDictionary<string, Action<MGElement>> Commands => Owner.Commands;
+        public IReadOnlyDictionary<string, MGToolTip> NamedToolTips => Owner.NamedToolTips;
+        public IReadOnlyDictionary<string, MGTheme> Themes => Owner.Themes;
+        public MGTheme DefaultTheme => Owner.DefaultTheme;
+        public IReadOnlyDictionary<MGElementType, Style> ImplicitStyles => Owner.ImplicitStyles;
+        public IReadOnlyDictionary<string, Style> Styles => Owner.Styles;
+        public IReadOnlyDictionary<string, object> StaticResources => Owner.StaticResources;
+        public IReadOnlyDictionary<string, MGElementTemplate> ElementTemplates => Owner.ElementTemplates;
+    }
+
+    public class MGResourceRuntimeCache
+    {
+        private MGResources Owner { get; }
+
+        internal MGResourceRuntimeCache(MGResources Owner)
+        {
+            this.Owner = Owner ?? throw new ArgumentNullException(nameof(Owner));
+        }
+
+        public IUIAssetProvider AssetProvider => Owner.AssetProvider;
+        public IReadOnlyDictionary<string, MGTextureData> Textures => Owner.Textures;
+    }
+
     public class MGResources
     {
         public IUIAssetProvider AssetProvider { get; }
+        public MGResourceDefinitions Definitions { get; }
+        public MGResourceRuntimeCache RuntimeCache { get; }
 
         public MGResources(FontManager FontManager)
             : this(new MGTheme(FontManager.DefaultFontFamily), null) { }
@@ -38,6 +72,8 @@ namespace MGUI.Core.UI
         {
             this.DefaultTheme = DefaultTheme ?? throw new ArgumentNullException(nameof(DefaultTheme));
             this.AssetProvider = AssetProvider;
+            Definitions = new(this);
+            RuntimeCache = new(this);
         }
 
         #region Textures
