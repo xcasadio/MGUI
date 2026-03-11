@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI.XAML;
+using MGUI.Shared.Assets;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Rendering;
 using MGUI.Shared.Text;
@@ -22,12 +23,21 @@ namespace MGUI.Core.UI
     /// This instance is usually accessed via <see cref="MGDesktop.Resources"/> (See also: <see cref="MGElement.GetResources"/>)</summary>
     public class MGResources
     {
+        public IUIAssetProvider AssetProvider { get; }
+
         public MGResources(FontManager FontManager)
-            : this(new MGTheme(FontManager.DefaultFontFamily)) { }
+            : this(new MGTheme(FontManager.DefaultFontFamily), null) { }
+
+        public MGResources(FontManager FontManager, IUIAssetProvider AssetProvider)
+            : this(new MGTheme(FontManager.DefaultFontFamily), AssetProvider) { }
 
         public MGResources(MGTheme DefaultTheme)
+            : this(DefaultTheme, null) { }
+
+        public MGResources(MGTheme DefaultTheme, IUIAssetProvider AssetProvider)
         {
             this.DefaultTheme = DefaultTheme ?? throw new ArgumentNullException(nameof(DefaultTheme));
+            this.AssetProvider = AssetProvider;
         }
 
         #region Textures
@@ -62,6 +72,15 @@ namespace MGUI.Core.UI
                 Data = default;
                 return false;
             }
+        }
+
+        public bool TryLoadTexture(string Name, string AssetName)
+        {
+            if (AssetProvider == null || !AssetProvider.TryLoadTexture(AssetName, out Texture2D Texture))
+                return false;
+
+            AddTexture(Name, new(Texture));
+            return true;
         }
 
         internal (int? Width, int? Height) GetTextureDimensions(string Name)

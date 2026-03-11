@@ -1,4 +1,5 @@
 ﻿using MGUI.Shared.Helpers;
+using MGUI.Shared.Assets;
 using MGUI.Shared.Input;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
@@ -107,6 +108,7 @@ namespace MGUI.Shared.Rendering
         public ContentManager Content { get; }
 
         public FontManager FontManager { get; }
+        public IUIAssetProvider AssetProvider { get; }
 
         private ITextEngine _textEngine;
         /// <summary>
@@ -178,7 +180,7 @@ namespace MGUI.Shared.Rendering
 
         /// <param name="Host">Consider using an instance of <see cref="GameRenderHost{TObservableGame}"/> to quickly create an implementation of <see cref="IRenderHost"/></param>
         /// <param name="RawInputSource">Optional explicit raw-input provider. If null, <paramref name="Host"/> must implement <see cref="IRawInputSource"/>.</param>
-        public MainRenderer(IRenderHost Host, IRawInputSource RawInputSource = null, IUISurface Surface = null)
+        public MainRenderer(IRenderHost Host, IRawInputSource RawInputSource = null, IUISurface Surface = null, IUIAssetProvider AssetProvider = null)
         {
             this.Host = Host;
             this.RawInputSource = ResolveInputSource(Host, RawInputSource);
@@ -187,6 +189,7 @@ namespace MGUI.Shared.Rendering
             PrimitiveBatch = new(GraphicsDevice, 1024);
             Content = new(Host, "Content");
             FontManager = new(Content, "Arial");
+            this.AssetProvider = AssetProvider ?? new RendererAssetProvider(Content, FontManager);
             TextEngine = new SpriteFontTextEngine(FontManager);
             Input = new();
 
