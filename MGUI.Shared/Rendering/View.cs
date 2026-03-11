@@ -14,8 +14,9 @@ using System.Threading.Tasks;
 namespace MGUI.Shared.Rendering
 {
     [DebuggerStepThrough]
-    public readonly record struct DrawBaseArgs(TimeSpan TS, DrawTransaction DT, float Opacity)
+    public readonly record struct DrawBaseArgs(TimeSpan TS, IUIRenderContext Context, float Opacity)
     {
+        public DrawTransaction DT => Context as DrawTransaction;
         public DrawBaseArgs SetOpacity(float Value) => new(TS, DT, Value);
         public DrawBaseArgs MultiplyOpacity(float Scalar) => new(TS, DT, Opacity * Scalar);
     }
@@ -25,6 +26,7 @@ namespace MGUI.Shared.Rendering
     {
         public readonly DrawBaseArgs BA;
         public TimeSpan TS => BA.TS;
+        public IUIRenderContext Context => BA.Context;
         public DrawTransaction DT => BA.DT;
         public float Opacity => BA.Opacity;
 

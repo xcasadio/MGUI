@@ -33,6 +33,7 @@ namespace MGUI.Core.UI
     public readonly record struct ElementDrawArgs(DrawBaseArgs BA, VisualState VisualState, Point Offset)
     {
         public TimeSpan TS => BA.TS;
+        public IUIRenderContext Context => BA.Context;
         public DrawTransaction DT => BA.DT;
         public float Opacity => BA.Opacity;
         public bool IsEnabled => !VisualState.IsDisabled;
