@@ -178,22 +178,22 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 7. Ajouter dans le moteur de rendu des primitives de haut niveau pour les rounded shapes
 
-- [ ] Étendre `DrawTransaction` ou la couche équivalente avec des méthodes dédiées :
-  - [ ] fill rounded rectangle ;
-  - [ ] stroke rounded rectangle ;
-  - [ ] draw border ring.
-- [ ] Ne pas exposer tout de suite une API inutilement énorme.
-- [ ] Prévoir une implémentation propre qui s’appuie sur la géométrie construite.
-- [ ] Borner explicitement la phase 1 aux primitives nécessaires pour les cas solid fill / solid stroke / border ring arrondi.
-- [ ] Ne pas imposer dans cette étape une solution complète pour tous les paints avancés sur formes arrondies.
+- [x] Étendre `DrawTransaction` ou la couche équivalente avec des méthodes dédiées :
+  - [x] fill rounded rectangle ;
+  - [x] stroke rounded rectangle ;
+  - [x] draw border ring.
+- [x] Ne pas exposer tout de suite une API inutilement énorme.
+- [x] Prévoir une implémentation propre qui s’appuie sur la géométrie construite.
+- [x] Borner explicitement la phase 1 aux primitives nécessaires pour les cas solid fill / solid stroke / border ring arrondi.
+- [x] Ne pas imposer dans cette étape une solution complète pour tous les paints avancés sur formes arrondies.
 
 #### Critère d’acceptation
 
-- [ ] Le moteur sait dessiner :
-  - [ ] un fond arrondi ;
-  - [ ] une bordure arrondie avec épaisseur ;
-  - [ ] un rectangle classique via fast path.
-- [ ] Les primitives de phase 1 suffisent pour brancher les premiers painters arrondis sans figer prématurément l’API des futurs gradients/textures.
+- [x] Le moteur sait dessiner :
+  - [x] un fond arrondi ;
+  - [x] une bordure arrondie avec épaisseur ;
+  - [x] un rectangle classique via fast path.
+- [x] Les primitives de phase 1 suffisent pour brancher les premiers painters arrondis sans figer prématurément l’API des futurs gradients/textures.
 
 ---
 
