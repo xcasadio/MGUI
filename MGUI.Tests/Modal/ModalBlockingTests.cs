@@ -1,5 +1,8 @@
 namespace MGUI.Tests.Modal;
 
+using MGUI.Core.UI;
+using System.Reflection;
+
 /// <summary>
 /// Unit tests for the centralised modal-window input-blocking mechanism introduced in Task 3a
 /// (pure logic, no MonoGame runtime required).
@@ -163,5 +166,23 @@ public class ModalBlockingTests
             isVisible: true, isEnabled: true, isHitTestVisible: false,
             parentCanMouse: true, hasModalWindow: false);
         Assert.False(can);
+    }
+
+    [Fact]
+    public void MGWindow_ExposesStackableModalCollection()
+    {
+        PropertyInfo? modalWindowsProperty = typeof(MGWindow).GetProperty(nameof(MGWindow.ModalWindows), BindingFlags.Instance | BindingFlags.Public);
+
+        Assert.NotNull(modalWindowsProperty);
+        Assert.Equal(typeof(IReadOnlyList<MGWindow>), modalWindowsProperty!.PropertyType);
+    }
+
+    [Fact]
+    public void MGDesktop_ExposesActiveModalWindowStack()
+    {
+        PropertyInfo? activeModalWindowsProperty = typeof(MGDesktop).GetProperty(nameof(MGDesktop.ActiveModalWindows), BindingFlags.Instance | BindingFlags.Public);
+
+        Assert.NotNull(activeModalWindowsProperty);
+        Assert.Equal(typeof(IReadOnlyList<MGWindow>), activeModalWindowsProperty!.PropertyType);
     }
 }

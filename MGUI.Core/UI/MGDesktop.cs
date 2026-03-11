@@ -28,11 +28,40 @@ namespace MGUI.Core.UI
     /// and handles mutual exclusion with things like input handling or ensuring there is only 1 <see cref="MGToolTip"/> or <see cref="MGContextMenu"/> on the user interface at a time.</summary>
     public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost, IContextMenuHost
     {
+        private sealed record ModalStackEntry(MGWindow Owner, MGWindow Modal);
+
         public MainRenderer Renderer { get; }
         public UIView View { get; private set; }
         public UIViewState State { get; }
         public InputTracker InputTracker => Renderer.Input;
         public FontManager FontManager => Renderer.FontManager;
+        private List<ModalStackEntry> ModalStackEntries { get; } = new();
+        public IReadOnlyList<MGWindow> ActiveModalWindows => ModalStackEntries.Select(x => x.Modal).ToList();
+
+        internal void SyncModalStack(MGWindow owner, IReadOnlyList<MGWindow> modalWindows)
+        {
+            ModalStackEntries.RemoveAll(x => x.Owner == owner);
+
+            if (owner != null && modalWindows != null)
+            {
+                foreach (MGWindow modalWindow in modalWindows)
+                {
+                    if (modalWindow != null)
+                        ModalStackEntries.Add(new(owner, modalWindow));
+                }
+            }
+
+            NPC(nameof(ActiveModalWindows));
+        }
+
+        internal void UnregisterModalWindow(MGWindow modalWindow)
+        {
+            if (modalWindow == null)
+                return;
+
+            if (ModalStackEntries.RemoveAll(x => x.Modal == modalWindow) > 0)
+                NPC(nameof(ActiveModalWindows));
+        }
 
         internal void AttachView(UIView View)
         {
@@ -985,6 +1014,8 @@ namespace MGUI.Core.UI
         {
             if (window == null)
                 return;
+
+            UnregisterModalWindow(window);
 
             State.WindowFocusHistory.Remove(window);
 

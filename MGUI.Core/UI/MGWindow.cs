@@ -365,28 +365,89 @@ namespace MGUI.Core.UI
 
         #region Nested Windows
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MGWindow _ModalWindow;
+        private readonly List<MGWindow> _ModalWindows;
+        public IReadOnlyList<MGWindow> ModalWindows => _ModalWindows;
+
         /// <summary>A child <see cref="MGWindow"/> of this <see cref="MGWindow"/>, which blocks all input handling on this <see cref="MGWindow"/></summary>
         public MGWindow ModalWindow
         {
-            get => _ModalWindow;
-            set
+            get => _ModalWindows.LastOrDefault();
+            set => SetModalWindow(value);
+        }
+
+        private void SetModalWindow(MGWindow value)
+        {
+            if (_ModalWindows.Count == 1 && ReferenceEquals(_ModalWindows[0], value))
+                return;
+
+            MGWindow previousTopModal = ModalWindow;
+            List<MGWindow> previousModalWindows = _ModalWindows.ToList();
+
+            _ModalWindows.Clear();
+            if (value != null)
+                _ModalWindows.Add(value);
+
+            SynchronizeModalState(previousModalWindows, previousTopModal);
+        }
+
+        public void PushModalWindow(MGWindow modalWindow)
+        {
+            if (modalWindow == null)
+                throw new ArgumentNullException(nameof(modalWindow));
+            if (_ModalWindows.Contains(modalWindow))
+                throw new ArgumentException("Cannot add the same modal window multiple times.", nameof(modalWindow));
+            if (modalWindow == this)
+                throw new ArgumentException("Cannot add a window as a modal child of itself.", nameof(modalWindow));
+
+            MGWindow previousTopModal = ModalWindow;
+            List<MGWindow> previousModalWindows = _ModalWindows.ToList();
+            _ModalWindows.Add(modalWindow);
+            SynchronizeModalState(previousModalWindows, previousTopModal);
+        }
+
+        public bool RemoveModalWindow(MGWindow modalWindow)
+        {
+            if (modalWindow == null || !_ModalWindows.Contains(modalWindow))
+                return false;
+
+            MGWindow previousTopModal = ModalWindow;
+            List<MGWindow> previousModalWindows = _ModalWindows.ToList();
+            _ModalWindows.Remove(modalWindow);
+            SynchronizeModalState(previousModalWindows, previousTopModal);
+            return true;
+        }
+
+        private void SynchronizeModalState(IReadOnlyList<MGWindow> previousModalWindows, MGWindow previousTopModal)
+        {
+            IReadOnlyList<MGWindow> currentModalWindows = _ModalWindows.ToList();
+            MGWindow currentTopModal = ModalWindow;
+
+            foreach (MGWindow removedModal in previousModalWindows.Where(x => !currentModalWindows.Contains(x)))
             {
-                if (_ModalWindow != value)
-                {
-                    MGWindow Previous = ModalWindow;
-                    _ModalWindow = value;
-                    if (_ModalWindow != null)
-                        Desktop.NotifyWindowOpened(_ModalWindow);
-                    NPC(nameof(ModalWindow));
-                    NPC(nameof(HasModalWindow));
-                    Previous?.NPC(nameof(IsModalWindow));
-                    ModalWindow?.NPC(nameof(IsModalWindow));
-                }
+                Desktop.NotifyWindowClosed(removedModal);
+                removedModal.NPC(nameof(IsModalWindow));
+            }
+
+            foreach (MGWindow addedModal in currentModalWindows.Where(x => !previousModalWindows.Contains(x)))
+            {
+                Desktop.NotifyWindowOpened(addedModal);
+                addedModal.NPC(nameof(IsModalWindow));
+            }
+
+            Desktop.SyncModalStack(this, currentModalWindows);
+
+            NPC(nameof(ModalWindows));
+            NPC(nameof(ModalWindow));
+            NPC(nameof(HasModalWindow));
+
+            if (!ReferenceEquals(previousTopModal, currentTopModal))
+            {
+                previousTopModal?.NPC(nameof(IsModalWindow));
+                currentTopModal?.NPC(nameof(IsModalWindow));
             }
         }
         /// <summary>True if a modal window is being displayed overtop of this window.</summary>
-        public bool HasModalWindow => ModalWindow != null;
+        public bool HasModalWindow => _ModalWindows.Count > 0;
         /// <summary>True if this window instance is the modal window of its parent window.</summary>
         public bool IsModalWindow => ParentWindow?.ModalWindow == this;
 
@@ -546,7 +607,7 @@ namespace MGUI.Core.UI
             if (!CanCloseWindow)
                 return false;
 
-            if ((ParentWindow != null && (ParentWindow.NestedWindows.Contains(this) || ParentWindow.ModalWindow == this)) 
+            if ((ParentWindow != null && (ParentWindow.NestedWindows.Contains(this) || ParentWindow.ModalWindows.Contains(this))) 
                 || (ParentWindow == null && Desktop.Windows.Contains(this)))
             {
                 if (WindowClosing != null)
@@ -558,10 +619,9 @@ namespace MGUI.Core.UI
                 }
 
                 bool IsClosed = false;
-                if (ParentWindow != null && ParentWindow.ModalWindow == this)
+                if (ParentWindow != null && ParentWindow.ModalWindows.Contains(this))
                 {
-                    ParentWindow.ModalWindow = null;
-                    IsClosed = true;
+                    IsClosed = ParentWindow.RemoveModalWindow(this);
                 }    
                 if (ParentWindow != null && ParentWindow.NestedWindows.Contains(this))
                     IsClosed = ParentWindow.RemoveNestedWindow(this);
@@ -849,9 +909,9 @@ namespace MGUI.Core.UI
                 MouseHandler.DragStartCondition = DragStartCondition.Both;
 
                 RadioButtonGroups = new();
+                _ModalWindows = new();
                 _NestedWindows = new();
                 _NamedToolTips = new();
-                ModalWindow = null;
 
                 this.Left = Left;
                 PreviousLeft = Left;
@@ -1147,10 +1207,10 @@ namespace MGUI.Core.UI
                             Nested.Top += Delta.Y;
                         }
 
-                        if (ModalWindow != null)
+                        foreach (MGWindow modalWindow in _ModalWindows)
                         {
-                            ModalWindow.Left += Delta.X;
-                            ModalWindow.Top += Delta.Y;
+                            modalWindow.Left += Delta.X;
+                            modalWindow.Top += Delta.Y;
                         }
 
                         MouseHandler.Tracker.CurrentButtonReleasedEvents[MouseButton.Left]?.SetHandledBy(this, false);
@@ -1417,7 +1477,7 @@ namespace MGUI.Core.UI
             OnBeginDrawNestedWindows?.Invoke(this, DA);
 
             //  Draw a transparent black overlay if there is a Modal window overtop of this window
-            if (ModalWindow != null)
+            if (HasModalWindow)
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), LayoutBounds, Color.Black * 0.5f);
 
             foreach (MGWindow Nested in _NestedWindows.OrderBy(x => x.IsTopmost))
