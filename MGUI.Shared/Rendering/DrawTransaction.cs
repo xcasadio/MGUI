@@ -27,7 +27,7 @@ namespace MGUI.Shared.Rendering
         Primitives
     }
 
-    public class DrawTransaction : IDisposable
+    public class DrawTransaction : IUIRenderContext, IDisposable
     {
         public MainRenderer Renderer { get; }
         [Obsolete("Access fonts through MainRenderer.TextEngine / ITextEngine instead.")]
