@@ -397,13 +397,13 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 20. Exposer `CornerRadius` sur les contrôles qui encapsulent déjà un border
 
-- [ ] Identifier les contrôles qui reposent sur un `MGBorder` interne.
-- [ ] Exposer proprement `CornerRadius` là où cela a du sens.
-- [ ] Éviter la duplication de propriété si elle peut être relayée proprement.
+- [x] Identifier les contrôles qui reposent sur un `MGBorder` interne.
+- [x] Exposer proprement `CornerRadius` là où cela a du sens.
+- [x] Éviter la duplication de propriété si elle peut être relayée proprement.
 
 #### Critère d’acceptation
 
-- [ ] Les contrôles réutilisent la fonctionnalité sans réimplémenter le rendu.
+- [x] Les contrôles réutilisent la fonctionnalité sans réimplémenter le rendu.
 
 ---
 

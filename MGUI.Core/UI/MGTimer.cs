@@ -71,6 +71,12 @@ namespace MGUI.Core.UI
             get => BorderElement.BorderThickness;
             set => BorderElement.BorderThickness = value;
         }
+
+        public MGCornerRadius CornerRadius
+        {
+            get => BorderElement.CornerRadius;
+            set => BorderElement.CornerRadius = value;
+        }
         #endregion Border
 
         /// <summary>Provides direct access to the textblock component that displays this timer's <see cref="RemainingDuration"/> time.</summary>
@@ -300,6 +306,7 @@ namespace MGUI.Core.UI
                 AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 ValueElement = new(Window, "", Color.White, GetTheme().FontSettings.MediumFontSize);
                 ValueComponent = new(ValueElement, false, false, true, true, false, false, true,

@@ -38,6 +38,12 @@ namespace MGUI.Core.UI
             get => BorderElement.BorderThickness;
             set => BorderElement.BorderThickness = value;
         }
+
+        public MGCornerRadius CornerRadius
+        {
+            get => BorderElement.CornerRadius;
+            set => BorderElement.CornerRadius = value;
+        }
         #endregion Border
 
         private MGComponent<MGDockPanel> MainContent { get; }
@@ -118,6 +124,7 @@ namespace MGUI.Core.UI
                 BorderElement = new(ParentWindow, new(1), MGUniformBorderBrush.Black);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 MGDockPanel DockPanel = new(ParentWindow);
                 MainContent = new(DockPanel, false, false, true, true, false, false, true,

@@ -65,6 +65,12 @@ namespace MGUI.Core.UI
             get => BorderElement.BorderThickness;
             set => BorderElement.BorderThickness = value;
         }
+
+        public MGCornerRadius CornerRadius
+        {
+            get => BorderElement.CornerRadius;
+            set => BorderElement.CornerRadius = value;
+        }
         #endregion Border
 
         #region Dropdown Arrow
@@ -637,6 +643,7 @@ namespace MGUI.Core.UI
                 AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 DropdownArrowElement = new(Window) { PreferredWidth = DropdownArrowPaddedWidth, PreferredHeight = DropdownArrowPaddedHeight };
                 DropdownArrowComponent = new(DropdownArrowElement, false, true, false, true, true, false, false,

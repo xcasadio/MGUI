@@ -54,6 +54,12 @@ namespace MGUI.Core.UI
                 }
             }
         }
+
+        public MGCornerRadius CornerRadius
+        {
+            get => BorderElement.CornerRadius;
+            set => BorderElement.CornerRadius = value;
+        }
         #endregion Border
 
         /// <summary>The primary header of this <see cref="MGGroupBox"/> which contains both the <see cref="Expander"/> and the <see cref="HeaderPresenter"/></summary>
@@ -147,6 +153,7 @@ namespace MGUI.Core.UI
                 BorderElement.ManagedParent = this;
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 Expander = new(Window);
                 Expander.Margin = new(0, 0, 5, 0);

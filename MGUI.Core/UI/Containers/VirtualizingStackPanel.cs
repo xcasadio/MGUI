@@ -33,6 +33,12 @@ namespace MGUI.Core.UI.Containers
             get => BorderElement.BorderThickness;
             set => BorderElement.BorderThickness = value;
         }
+
+        public MGCornerRadius CornerRadius
+        {
+            get => BorderElement.CornerRadius;
+            set => BorderElement.CornerRadius = value;
+        }
         #endregion Border
 
         #region Virtual data
@@ -195,6 +201,7 @@ namespace MGUI.Core.UI.Containers
                 BorderElement = new MGBorder(window);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 VerticalAlignment = VerticalAlignment.Top;
                 CanChangeContent = false;

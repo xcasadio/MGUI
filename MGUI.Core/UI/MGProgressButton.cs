@@ -73,6 +73,12 @@ namespace MGUI.Core.UI
             set => BorderElement.BorderThickness = value;
         }
 
+        public MGCornerRadius CornerRadius
+        {
+            get => BorderElement.CornerRadius;
+            set => BorderElement.CornerRadius = value;
+        }
+
         protected override IEnumerable<IBorderBrush> GetBorderBrushes()
         {
             foreach (IBorderBrush Brush in base.GetBorderBrushes())
@@ -625,6 +631,7 @@ namespace MGUI.Core.UI
                 AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;

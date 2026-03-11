@@ -32,6 +32,12 @@ namespace MGUI.Core.UI.Containers.Grids
             get => BorderElement.BorderThickness;
             set => BorderElement.BorderThickness = value;
         }
+
+        public MGCornerRadius CornerRadius
+        {
+            get => BorderElement.CornerRadius;
+            set => BorderElement.CornerRadius = value;
+        }
         #endregion Border
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -232,6 +238,7 @@ namespace MGUI.Core.UI.Containers.Grids
                 AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 MGTheme Theme = GetTheme();
 
