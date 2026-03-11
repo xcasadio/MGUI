@@ -447,22 +447,22 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 23. Ajouter une documentation d’architecture finale
 
-- [ ] Documenter la nouvelle séparation :
-  - [ ] shape model ;
-  - [ ] geometry builder ;
-  - [ ] draw transaction ;
-  - [ ] fill paints ;
-  - [ ] border paints ;
-  - [ ] future clip shape.
-- [ ] Expliquer comment ajouter un nouveau paint sans casser l’architecture.
-- [ ] Expliquer comment ajouter plus tard une nouvelle shape.
+- [x] Documenter la nouvelle séparation :
+  - [x] shape model ;
+  - [x] geometry builder ;
+  - [x] draw transaction ;
+  - [x] fill paints ;
+  - [x] border paints ;
+  - [x] future clip shape.
+- [x] Expliquer comment ajouter un nouveau paint sans casser l’architecture.
+- [x] Expliquer comment ajouter plus tard une nouvelle shape.
 
 #### Critère d’acceptation
 
-- [ ] Un nouveau contributeur comprend où coder :
-  - [ ] une nouvelle géométrie ;
-  - [ ] un nouveau brush ;
-  - [ ] une nouvelle primitive de rendu.
+- [x] Un nouveau contributeur comprend où coder :
+  - [x] une nouvelle géométrie ;
+  - [x] un nouveau brush ;
+  - [x] une nouvelle primitive de rendu.
 
 ---
 
