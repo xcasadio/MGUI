@@ -100,23 +100,23 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 3. Introduire un modèle de shape commun pour les box UI
 
-- [ ] Créer une structure dédiée représentant une box à dessiner.
-- [ ] Cette structure doit contenir au minimum :
-  - [ ] bounds externes ;
-  - [ ] épaisseur de bordure ;
-  - [ ] corner radius.
-- [ ] Ajouter des helpers pour calculer :
-  - [ ] bounds internes ;
-  - [ ] corner radius interne ;
-  - [ ] validité / clamp des valeurs.
+- [x] Créer une structure dédiée représentant une box à dessiner.
+- [x] Cette structure doit contenir au minimum :
+  - [x] bounds externes ;
+  - [x] épaisseur de bordure ;
+  - [x] corner radius.
+- [x] Ajouter des helpers pour calculer :
+  - [x] bounds internes ;
+  - [x] corner radius interne ;
+  - [x] validité / clamp des valeurs.
 
 #### Critère d’acceptation
 
-- [ ] Un seul type permet d’exprimer :
-  - [ ] fond rectangulaire ;
-  - [ ] fond arrondi ;
-  - [ ] bordure rectangulaire ;
-  - [ ] bordure arrondie à épaisseur variable.
+- [x] Un seul type permet d’exprimer :
+  - [x] fond rectangulaire ;
+  - [x] fond arrondi ;
+  - [x] bordure rectangulaire ;
+  - [x] bordure arrondie à épaisseur variable.
 
 ---
 
