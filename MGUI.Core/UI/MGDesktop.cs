@@ -1009,33 +1009,8 @@ namespace MGUI.Core.UI
         /// <summary>Convenience property that just returns <see cref="Resources"/>.<see cref="MGResources.DefaultTheme"/></summary>
         public MGTheme Theme => Resources.DefaultTheme;
 
-        public MGDesktop(MainRenderer Renderer)
+        public void LoadDefaultResources()
         {
-            ApartmentState ThreadState = Thread.CurrentThread.GetApartmentState();
-            if (ThreadState != ApartmentState.STA)
-            {
-                Debug.WriteLine(
-                    $"WARNING: {nameof(MGUI)}.{nameof(Core)}.{nameof(UI)}.{nameof(MGDesktop)} is being instantiated from a thread whose {nameof(ApartmentState)}={ThreadState}. " +
-                    $"You may experience unforeseen issues when running from a non-{ApartmentState.STA} {nameof(ApartmentState)}. " +
-                    $"It is recommended to add the {nameof(STAThreadAttribute)} (\"[STAThread]\") to your program's main entry function to avoid issues."
-                );
-            }
-
-            this.Renderer = Renderer;
-            State = new();
-            Windows = new();
-            Resources = new(new MGTheme(Renderer.FontManager.DefaultFontFamily));
-            _ = new UIView(this, Renderer.Surface);
-
-            OverlayWindow = new(this, 0, 0, ValidScreenBounds.Width, ValidScreenBounds.Height)
-            {
-                WindowStyle = WindowStyle.None,
-                AllowsClickThrough = true
-            };
-            OverlayHost = new(OverlayWindow) { Name = OverlayName };
-            OverlayWindow.SetContent(OverlayHost);
-            OverlayWindow.CanChangeContent = false;
-
             #region Sample Icons
             Texture2D CheckMark_64x64 = Renderer.Content.Load<Texture2D>(Path.Combine("Icons", "CheckMark_64x64"));
             Resources.AddTexture("CheckMark_64x64", new(CheckMark_64x64));
@@ -1110,7 +1085,6 @@ namespace MGUI.Core.UI
                 "minimize-white",             "DockMinimize",
                 "pin-white",                  "DockPin",
                 "pin-off-white",              "DockPinOff",
-                // panel direction icons — dashed = per-panel joystick, solid = host-edge
                 "panel-left-dashed-white",    "DockPanelLeftDashed",
                 "panel-right-dashed-white",   "DockPanelRightDashed",
                 "panel-top-dashed-white",     "DockPanelTopDashed",
@@ -1131,9 +1105,37 @@ namespace MGUI.Core.UI
                     Texture2D DockTex = Renderer.Content.Load<Texture2D>(Path.Combine("Icons", "docking", fileName));
                     Resources.AddTexture(resourceId, new(DockTex));
                 }
-                catch { /* icon not found — skip silently */ }
+                catch { }
             }
             #endregion Docking Icons
+        }
+
+        public MGDesktop(MainRenderer Renderer)
+        {
+            ApartmentState ThreadState = Thread.CurrentThread.GetApartmentState();
+            if (ThreadState != ApartmentState.STA)
+            {
+                Debug.WriteLine(
+                    $"WARNING: {nameof(MGUI)}.{nameof(Core)}.{nameof(UI)}.{nameof(MGDesktop)} is being instantiated from a thread whose {nameof(ApartmentState)}={ThreadState}. " +
+                    $"You may experience unforeseen issues when running from a non-{ApartmentState.STA} {nameof(ApartmentState)}. " +
+                    $"It is recommended to add the {nameof(STAThreadAttribute)} (\"[STAThread]\") to your program's main entry function to avoid issues."
+                );
+            }
+
+            this.Renderer = Renderer;
+            State = new();
+            Windows = new();
+            Resources = new(new MGTheme(Renderer.FontManager.DefaultFontFamily));
+            _ = new UIView(this, Renderer.Surface);
+
+            OverlayWindow = new(this, 0, 0, ValidScreenBounds.Width, ValidScreenBounds.Height)
+            {
+                WindowStyle = WindowStyle.None,
+                AllowsClickThrough = true
+            };
+            OverlayHost = new(OverlayWindow) { Name = OverlayName };
+            OverlayWindow.SetContent(OverlayHost);
+            OverlayWindow.CanChangeContent = false;
 
             ToolTipShowDelay = DefaultToolTipShowDelay;
 

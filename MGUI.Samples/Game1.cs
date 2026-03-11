@@ -49,6 +49,7 @@ namespace MGUI.Samples
 
             MGUIRenderer = new(new GameRenderHost<Game1>(this), new MonoGameRawInputSource());
             Desktop = new(MGUIRenderer);
+            Desktop.LoadDefaultResources();
 
             InitializeTextEngines();
 
