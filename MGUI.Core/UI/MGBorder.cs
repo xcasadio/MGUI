@@ -10,6 +10,7 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI
 {
@@ -54,6 +55,26 @@ namespace MGUI.Core.UI
 
         public event EventHandler<EventArgs<Thickness>> OnBorderThicknessChanged;
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private MGCornerRadius _CornerRadius;
+        public MGCornerRadius CornerRadius
+        {
+            get => _CornerRadius;
+            set
+            {
+                if (!_CornerRadius.Equals(value))
+                {
+                    MGCornerRadius previous = CornerRadius;
+                    _CornerRadius = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(CornerRadius));
+                    OnCornerRadiusChanged?.Invoke(this, new(previous, CornerRadius));
+                }
+            }
+        }
+
+        public event EventHandler<EventArgs<MGCornerRadius>> OnCornerRadiusChanged;
+
         public MGBorder(MGWindow Window)
             : this(Window, new(1), MGUniformBorderBrush.Black) { }
 
@@ -67,6 +88,7 @@ namespace MGUI.Core.UI
             {
                 this.BorderBrush = BorderBrush;
                 this.BorderThickness = BorderThickness;
+                this.CornerRadius = MGCornerRadius.Zero;
             }
         }
 
@@ -80,10 +102,31 @@ namespace MGUI.Core.UI
 
         protected override bool CanConsumeSpaceInSingleDimension => true;
 
+        private MGBoxShape CreateBoxShape(Rectangle layoutBounds) => new MGBoxShape(layoutBounds, BorderThickness, CornerRadius).Normalize();
+
+        private MGBoxShape CreateBackgroundShape(Rectangle layoutBounds)
+        {
+            MGBoxShape boxShape = CreateBoxShape(layoutBounds);
+            Rectangle backgroundBounds = boxShape.InnerBounds.GetCompressed(BackgroundRenderPadding);
+            return new MGBoxShape(backgroundBounds, new Thickness(0), boxShape.InnerCornerRadius).Normalize();
+        }
+
+        public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
+        {
+            MGBoxShape backgroundShape = CreateBackgroundShape(LayoutBounds);
+            MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
+            BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+
+            SecondaryVisualState secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
+            BackgroundBrush.GetFillOverlay(secondaryState)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+        }
+
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
-            BorderBrush?.Draw(DA, this, LayoutBounds, BorderThickness);
-            DrawSelfBaseImplementation(DA, LayoutBounds);
+            MGBoxShape boxShape = CreateBoxShape(LayoutBounds);
+            MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(boxShape);
+            BorderBrush?.Draw(DA, this, boxShape, geometry);
+            BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, boxShape, geometry);
         }
     }
 }

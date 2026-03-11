@@ -271,19 +271,19 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 13. Refactorer `MGBorder` pour utiliser la nouvelle architecture
 
-- [ ] Ajouter `CornerRadius` à `MGBorder`.
-- [ ] Construire une `BoxShape` à partir de :
-  - [ ] `LayoutBounds`
-  - [ ] `BorderThickness`
-  - [ ] `CornerRadius`
-- [ ] Déléguer le rendu :
-  - [ ] du fond au fill paint ;
-  - [ ] de la bordure au border paint ;
-  - [ ] sans logique géométrique interne du contrôle.
+- [x] Ajouter `CornerRadius` à `MGBorder`.
+- [x] Construire une `BoxShape` à partir de :
+  - [x] `LayoutBounds`
+  - [x] `BorderThickness`
+  - [x] `CornerRadius`
+- [x] Déléguer le rendu :
+  - [x] du fond au fill paint ;
+  - [x] de la bordure au border paint ;
+  - [x] sans logique géométrique interne du contrôle.
 
 #### Critère d’acceptation
 
-- [ ] `MGBorder` devient un consommateur de la nouvelle architecture, pas un lieu de calcul géométrique.
+- [x] `MGBorder` devient un consommateur de la nouvelle architecture, pas un lieu de calcul géométrique.
 
 ---
 
