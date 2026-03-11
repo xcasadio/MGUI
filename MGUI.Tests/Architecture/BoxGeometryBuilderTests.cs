@@ -7,6 +7,11 @@ namespace MGUI.Tests.Architecture;
 
 public class BoxGeometryBuilderTests
 {
+    public BoxGeometryBuilderTests()
+    {
+        MGBoxGeometryBuilder.ClearCache();
+    }
+
     [Fact]
     public void RectangleShape_UsesFastPathAndFourOuterPoints()
     {
@@ -59,5 +64,20 @@ public class BoxGeometryBuilderTests
 
         Assert.Equal(1, geometry.CornerSegmentCount);
         Assert.True(geometry.OuterContour.Count >= 8);
+    }
+
+    [Fact]
+    public void EquivalentNormalizedShapes_ReuseCachedGeometry()
+    {
+        MGBoxShape unclamped = new(new Rectangle(0, 0, 30, 20), new Thickness(50), new MGCornerRadius(40));
+        MGBoxShape normalized = unclamped.Normalize();
+
+        MGBoxGeometry first = MGBoxGeometryBuilder.Build(unclamped, 6);
+        MGBoxGeometry second = MGBoxGeometryBuilder.Build(normalized, 6);
+        MGBoxGeometry differentTessellation = MGBoxGeometryBuilder.Build(normalized, 7);
+
+        Assert.Equal(2, MGBoxGeometryBuilder.CachedGeometryCount);
+        Assert.Same(first.Vertices, second.Vertices);
+        Assert.NotSame(first.Vertices, differentTessellation.Vertices);
     }
 }

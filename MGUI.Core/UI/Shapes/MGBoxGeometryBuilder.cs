@@ -1,15 +1,38 @@
 using Microsoft.Xna.Framework;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace MGUI.Core.UI.Shapes
 {
     public static class MGBoxGeometryBuilder
     {
-        public static MGBoxGeometry Build(MGBoxShape shape, int cornerSegmentCount = 8)
+        private readonly record struct CacheKey(MGBoxShape Shape, int CornerSegmentCount, float Scale);
+
+        private static readonly ConcurrentDictionary<CacheKey, MGBoxGeometry> Cache = new();
+
+        public static int CachedGeometryCount => Cache.Count;
+
+        public static void ClearCache() => Cache.Clear();
+
+        public static MGBoxGeometry Build(MGBoxShape shape, int cornerSegmentCount = 8, float scale = 1.0f)
         {
             MGBoxShape normalized = shape.Normalize();
             int actualCornerSegmentCount = Math.Max(1, cornerSegmentCount);
+            CacheKey key = new(normalized, actualCornerSegmentCount, scale);
+
+            if (Cache.TryGetValue(key, out MGBoxGeometry cachedGeometry))
+            {
+                return cachedGeometry;
+            }
+
+            MGBoxGeometry geometry = BuildUncached(normalized, actualCornerSegmentCount);
+            Cache[key] = geometry;
+            return geometry;
+        }
+
+        private static MGBoxGeometry BuildUncached(MGBoxShape normalized, int actualCornerSegmentCount)
+        {
             bool usesRectangleFastPath = !normalized.HasRoundedCorners;
 
             Vector2[] outerContour = BuildContour(normalized.OuterBounds, normalized.NormalizedCornerRadius, actualCornerSegmentCount);

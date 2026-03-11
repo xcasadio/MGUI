@@ -360,19 +360,19 @@ Refactorer le pipeline de rendu des formes UI pour :
 
 ### 18. Introduire une stratégie de caching géométrique
 
-- [ ] Identifier les cas où la géométrie peut être réutilisée entre frames.
-- [ ] Définir une clé de cache basée sur :
-  - [ ] taille ;
-  - [ ] épaisseur ;
-  - [ ] corner radius ;
-  - [ ] niveau de tessellation ;
-  - [ ] éventuellement DPI / scale.
-- [ ] Ajouter un cache local propre, simple et maîtrisé.
+- [x] Identifier les cas où la géométrie peut être réutilisée entre frames.
+- [x] Définir une clé de cache basée sur :
+  - [x] taille ;
+  - [x] épaisseur ;
+  - [x] corner radius ;
+  - [x] niveau de tessellation ;
+  - [x] éventuellement DPI / scale.
+- [x] Ajouter un cache local propre, simple et maîtrisé.
 
 #### Critère d’acceptation
 
-- [ ] La géométrie d’un même rounded rectangle n’est pas recalculée à chaque frame sans raison.
-- [ ] Le cache est invalidé correctement.
+- [x] La géométrie d’un même rounded rectangle n’est pas recalculée à chaque frame sans raison.
+- [x] Le cache est invalidé correctement.
 
 ---
 
