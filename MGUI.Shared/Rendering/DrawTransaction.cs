@@ -93,7 +93,10 @@ namespace MGUI.Shared.Rendering
                 switch (Context)
                 {
                     case DrawContext.Sprites: CurrentSettings.BeginDraw(SB); break;
-                    case DrawContext.Primitives: PB.Begin(PrimitiveProjectionMatrix, CurrentSettings.Transform); break;
+                    case DrawContext.Primitives:
+                        ApplyPrimitiveDeviceStates();
+                        PB.Begin(PrimitiveProjectionMatrix, CurrentSettings.Transform);
+                        break;
                     default: throw new NotImplementedException($"Unrecognized {nameof(DrawContext)}: {Context}");
                 }
 
@@ -114,6 +117,14 @@ namespace MGUI.Shared.Rendering
 
                 CurrentContext = DrawContext.None;
             }
+        }
+
+        private void ApplyPrimitiveDeviceStates()
+        {
+            GD.BlendState = CurrentSettings.BlendState;
+            GD.DepthStencilState = CurrentSettings.DepthStencilState;
+            GD.RasterizerState = CurrentSettings.RasterizerState;
+            GD.SamplerStates[0] = CurrentSettings.SamplerState;
         }
 
         #region Draw
