@@ -52,6 +52,7 @@ namespace MGUI.Shared.Rendering
 
         public DrawSettings CurrentSettings { get; private set; }
         public DrawSettings PreviousSettings { get; private set; }
+        public ClipDiagnosticsSnapshot ClipDiagnostics => ClipManager.GetDiagnostics();
 
         /// <param name="Settings">See also: <see cref="DrawSettings.Default"/></param>
         /// <param name="DeferBegin">If true, <see cref="SpriteBatch.Begin(SpriteSortMode, BlendState, SamplerState, DepthStencilState, RasterizerState, Effect, Matrix?)"/> or <see cref="PrimitiveBatch.Begin(ref Matrix, ref Matrix)"/><para/>
@@ -949,6 +950,9 @@ namespace MGUI.Shared.Rendering
 
         public ClipScope PushClipTemporary(ClipDefinition Definition)
             => ClipManager.Push(Definition);
+
+        public string GetClipDiagnosticsDebugText()
+            => ClipDiagnostics.ToDebugString();
 
         public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {

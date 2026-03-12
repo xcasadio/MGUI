@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 namespace MGUI.Shared.Rendering
 {
+    internal readonly record struct RenderTargetLease(RenderTarget2D Target, bool WasReused);
+
     internal readonly record struct RenderTargetPoolKey(int Width, int Height, SurfaceFormat SurfaceFormat, DepthFormat DepthFormat,
         int MultiSampleCount, RenderTargetUsage Usage);
 
@@ -15,7 +17,7 @@ namespace MGUI.Shared.Rendering
         private readonly Dictionary<RenderTargetPoolKey, Stack<RenderTarget2D>> _Available = new();
         private int _TotalPooledTargets;
 
-        public RenderTarget2D Rent(GraphicsDevice graphicsDevice, int width, int height, bool preserveContents)
+        public RenderTargetLease Rent(GraphicsDevice graphicsDevice, int width, int height, bool preserveContents)
         {
             RenderTargetPoolKey key = CreateKey(width, height, preserveContents);
             if (_Available.TryGetValue(key, out Stack<RenderTarget2D> stack))
@@ -26,12 +28,12 @@ namespace MGUI.Shared.Rendering
                     _TotalPooledTargets--;
                     if (!target.IsDisposed)
                     {
-                        return target;
+                        return new(target, true);
                     }
                 }
             }
 
-            return Helpers.RenderUtils.CreateRenderTarget(graphicsDevice, width, height, preserveContents);
+            return new(Helpers.RenderUtils.CreateRenderTarget(graphicsDevice, width, height, preserveContents), false);
         }
 
         public void Return(RenderTarget2D renderTarget)

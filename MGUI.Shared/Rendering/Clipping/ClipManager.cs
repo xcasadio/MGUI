@@ -9,6 +9,12 @@ namespace MGUI.Shared.Rendering.Clipping
     {
         private readonly DrawTransaction _Owner;
         private readonly ClipBackendCapabilities _Capabilities;
+        private int _ScissorClipCount;
+        private int _StencilClipCount;
+        private int _MaskClipCount;
+        private int _MaxStencilDepth;
+        private int _TemporaryRenderTargetRentCount;
+        private int _TemporaryRenderTargetReuseCount;
 
         public ClipManager(DrawTransaction owner)
         {
@@ -19,6 +25,10 @@ namespace MGUI.Shared.Rendering.Clipping
         public ClipResolveResult Resolve(ClipDefinition definition)
             => ClipStrategyResolver.Resolve(definition, _Capabilities);
 
+        public ClipDiagnosticsSnapshot GetDiagnostics()
+            => new(_ScissorClipCount, _StencilClipCount, _MaskClipCount, _MaxStencilDepth,
+                _TemporaryRenderTargetRentCount, _TemporaryRenderTargetReuseCount);
+
         public ClipScope Push(ClipDefinition definition)
         {
             ClipResolveResult resolution = Resolve(definition);
@@ -26,11 +36,17 @@ namespace MGUI.Shared.Rendering.Clipping
             return resolution.Strategy switch
             {
                 ClipStrategy.None => new(resolution, () => { }),
-                ClipStrategy.Scissor => _Owner.PushRectangleClipCore(resolution.Effective.Shape.Bounds, resolution.Effective.IntersectWithCurrentClip, resolution),
+                ClipStrategy.Scissor => PushScissor(resolution),
                 ClipStrategy.Stencil => PushStencil(resolution),
                 ClipStrategy.Mask => PushMask(resolution),
                 _ => throw new NotSupportedException($"Clip strategy '{resolution.Strategy}' is not available until the corresponding backend is installed.")
             };
+        }
+
+        private ClipScope PushScissor(ClipResolveResult resolution)
+        {
+            _ScissorClipCount++;
+            return _Owner.PushRectangleClipCore(resolution.Effective.Shape.Bounds, resolution.Effective.IntersectWithCurrentClip, resolution);
         }
 
         private int _StencilDepth;
@@ -53,6 +69,8 @@ namespace MGUI.Shared.Rendering.Clipping
 
             int parentDepth = _StencilDepth;
             int childDepth = _StencilDepth + 1;
+            _StencilClipCount++;
+            _MaxStencilDepth = Math.Max(_MaxStencilDepth, childDepth);
 
             using (_Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
             {
@@ -103,7 +121,14 @@ namespace MGUI.Shared.Rendering.Clipping
                 return new ClipScope(resolution, () => { });
             }
 
-            RenderTarget2D maskTarget = _Owner.Renderer.RenderTargetPool.Rent(_Owner.GD, bounds.Width, bounds.Height, false);
+            RenderTargetLease renderTargetLease = _Owner.Renderer.RenderTargetPool.Rent(_Owner.GD, bounds.Width, bounds.Height, false);
+            RenderTarget2D maskTarget = renderTargetLease.Target;
+            _MaskClipCount++;
+            _TemporaryRenderTargetRentCount++;
+            if (renderTargetLease.WasReused)
+            {
+                _TemporaryRenderTargetReuseCount++;
+            }
 
             IDisposable depthStencilDisableScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
             {
