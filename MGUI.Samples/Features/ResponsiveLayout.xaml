@@ -1,0 +1,59 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="0" Top="0" Width="1600" Height="900"
+        WindowStyle="None" Padding="0" BorderThickness="0" IsUserResizable="False"
+        TitleText="Responsive Layout Demo">
+    <ResponsiveRoot Background="#E8E3D6" UseResponsiveLayout="True">
+        <Border Offset="72,72,72,72" Padding="36" CornerRadius="18" Background="#F7F2E8" BorderThickness="2" BorderBrush="Black">
+            <DockPanel>
+                <Border Dock="Top" Margin="0,0,0,24" Padding="24" CornerRadius="10" Background="#1F4D3C">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Responsive Screen" FontSize="28" Foreground="White" UseResponsiveTextScale="True" IsBold="True" />
+                        <TextBlock Text="Design resolution, global UI scale, anchors, clamps and independent text scaling." FontSize="14" Foreground="#F3E8D0" UseResponsiveTextScale="True" WrapText="True" />
+                    </StackPanel>
+                </Border>
+
+                <Grid Dock="Top" Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border GridColumn="0" Padding="22" CornerRadius="12" Background="#D8E6D8" BorderThickness="1" BorderBrush="#6F8B78">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Main Layout Column" FontSize="20" UseResponsiveTextScale="True" IsBold="True" Foreground="#173728" />
+                            <TextBlock Text="This panel is arranged with existing layout containers. Internal spacing and text metrics follow the responsive settings when the screen participates in responsive layout." FontSize="14" UseResponsiveTextScale="True" WrapText="True" Foreground="#284536" />
+                            <Border Padding="16" CornerRadius="8" Background="#F7F2E8" BorderThickness="1" BorderBrush="#95A795">
+                                <TextBlock Text="Min/max clamps keep content readable instead of shrinking forever on small viewports or exploding on large ones." FontSize="13" UseResponsiveTextScale="True" WrapText="True" Foreground="#2C3A2F" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border GridColumn="2" Padding="22" CornerRadius="12" Background="#F1D9A5" BorderThickness="1" BorderBrush="#8D6E2F">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Side Panel" FontSize="20" UseResponsiveTextScale="True" IsBold="True" Foreground="#4F3510" />
+                            <TextBlock Text="Use layouts for structure and anchors only for HUD-like elements." FontSize="14" UseResponsiveTextScale="True" WrapText="True" Foreground="#5A4217" />
+                            <TextBlock Text="Resize the game window to see the desktop metrics update this screen." FontSize="13" UseResponsiveTextScale="True" WrapText="True" Foreground="#5A4217" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Padding="18" CornerRadius="12" Background="#D8DDE9" BorderThickness="1" BorderBrush="#6A7488">
+                    <TextBlock Text="Footer content still uses standard layout semantics. Responsive behavior stays additive instead of replacing the framework's existing containers." FontSize="14" UseResponsiveTextScale="True" WrapText="True" Foreground="#253046" />
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <Border ResponsiveAnchor="TopRight" Offset="24,24,24,24" Padding="14,10,14,10" CornerRadius="999" Background="#8B1E3F" BorderThickness="1" BorderBrush="Black">
+            <TextBlock Text="ANCHOR: TOP RIGHT" FontSize="12" UseResponsiveTextScale="True" IsBold="True" Foreground="White" />
+        </Border>
+
+        <Border ResponsiveAnchor="BottomLeft" Offset="24,24,24,24" Padding="16,10,16,10" CornerRadius="999" Background="#264653" BorderThickness="1" BorderBrush="Black">
+            <TextBlock Text="ANCHOR: BOTTOM LEFT" FontSize="12" UseResponsiveTextScale="True" IsBold="True" Foreground="#F8F3E7" />
+        </Border>
+
+        <Border ResponsiveAnchor="BottomRight" Offset="24,24,24,24" Padding="16,10,16,10" CornerRadius="999" Background="#6B8E23" BorderThickness="1" BorderBrush="Black">
+            <TextBlock Text="TEXT SCALE IS SEPARATE" FontSize="12" UseResponsiveTextScale="True" IsBold="True" Foreground="#111111" />
+        </Border>
+    </ResponsiveRoot>
+</Window>
