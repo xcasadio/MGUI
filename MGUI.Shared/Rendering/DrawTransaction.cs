@@ -1,4 +1,5 @@
 ﻿using MGUI.Shared.Helpers;
+using MGUI.Shared.Rendering.Clipping;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
 using Microsoft.Xna.Framework;
@@ -930,6 +931,66 @@ namespace MGUI.Shared.Rendering
             return SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
         }
 
+        public ClipResolveResult ResolveClip(ClipDefinition Definition)
+        {
+            ArgumentNullException.ThrowIfNull(Definition);
+
+            return Definition.Kind switch
+            {
+                ClipKind.None => new(Definition, Definition, ClipStrategy.None, false),
+                ClipKind.Rectangle => new(Definition, Definition, ClipStrategy.Scissor, false),
+                ClipKind.RoundedRectangle or ClipKind.ArbitraryGeometry when Definition.AllowRectangleFallback
+                    => new(Definition, ClipDefinition.Rectangle(Definition.Shape.Bounds, Definition.IntersectWithCurrentClip, debugName: Definition.DebugName),
+                        ClipStrategy.Scissor, true),
+                ClipKind.RoundedRectangle => new(Definition, Definition, ClipStrategy.Stencil, false),
+                ClipKind.ArbitraryGeometry => new(Definition, Definition, ClipStrategy.Mask, false),
+                _ => throw new NotImplementedException($"Unrecognized {nameof(ClipKind)}: {Definition.Kind}")
+            };
+        }
+
+        public ClipScope PushClipTemporary(ClipDefinition Definition)
+        {
+            ClipResolveResult Resolution = ResolveClip(Definition);
+
+            return Resolution.Strategy switch
+            {
+                ClipStrategy.None => new(Resolution, () => { }),
+                ClipStrategy.Scissor => PushRectangleClip(Resolution.Effective.Shape.Bounds, Resolution.Effective.IntersectWithCurrentClip),
+                _ => throw new NotSupportedException($"Clip strategy '{Resolution.Strategy}' is not available until a clip manager is installed.")
+            };
+        }
+
+        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        {
+            Rectangle PreviousBounds = SB.GraphicsDevice.ScissorRectangle;
+            bool PreviousScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
+
+            SetClipTarget(Bounds, IntersectWithCurrentClipTarget);
+
+            ClipDefinition Requested = Bounds.HasValue
+                ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget)
+                : ClipDefinition.None();
+            ClipResolveResult Resolution = Bounds.HasValue
+                ? new(Requested, Requested, ClipStrategy.Scissor, false)
+                : new(Requested, Requested, ClipStrategy.None, false);
+
+            return new ClipScope(Resolution, () =>
+            {
+                EndDraw(CurrentContext);
+                SB.GraphicsDevice.ScissorRectangle = PreviousBounds;
+
+                bool CurrentScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
+                if (PreviousScissorState && !CurrentScissorState)
+                {
+                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
+                }
+                else if (!PreviousScissorState && CurrentScissorState)
+                {
+                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
+                }
+            });
+        }
+
         /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering.</summary>
         public void SetEffect(Effect Effect)
             => SetDrawSettings(CurrentSettings with { Effect = Effect });
@@ -971,8 +1032,7 @@ namespace MGUI.Shared.Rendering
         /// the clip target will be the intersection of the current clip target and the given <paramref name="Bounds"/></param>
         public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
-            return new TemporaryChange<Rectangle?>(SB.GraphicsDevice.ScissorRectangle, Bounds, 
-                x => SetClipTarget(x, IntersectWithCurrentClipTarget), x => SetClipTarget(x, false));
+            return PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
         }
 
         public void DisableClipTarget()

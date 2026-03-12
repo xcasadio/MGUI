@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Shared.Rendering
 {
@@ -13,6 +14,9 @@ namespace MGUI.Shared.Rendering
 
         public IDisposable SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor);
         public IDisposable SetTransformTemporary(Matrix Transform);
+        public ClipResolveResult ResolveClip(ClipDefinition Definition);
+        public ClipScope PushClipTemporary(ClipDefinition Definition);
+        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);
         public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);
     }
 }
