@@ -95,6 +95,8 @@ namespace MGUI.Shared.Rendering.Clipping
         {
             ClipGeometry geometry = resolution.Effective.Shape.Geometry ?? throw new InvalidOperationException(
                 $"Clip '{resolution.Effective.DebugName ?? resolution.Effective.Kind.ToString()}' requires clip geometry for mask rendering.");
+            // Bounds are always expressed in the current render-target space. Geometry stays in local draw space and
+            // is shifted into the temporary target through the active transform so RenderScale and parent transforms stay aligned.
             Rectangle bounds = resolution.Effective.Shape.Bounds;
             if (bounds.Width <= 0 || bounds.Height <= 0)
             {

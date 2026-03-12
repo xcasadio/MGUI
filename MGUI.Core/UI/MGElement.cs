@@ -2138,6 +2138,9 @@ namespace MGUI.Core.UI
                     Matrix.CreateScale(Scale) *
                     Matrix.CreateTranslation(new Vector3(TargetBounds.Center.ToVector2(), 0));
                 TempTransform = DA.DT.SetTransformTemporary(DA.DT.CurrentSettings.Transform * Transform);
+
+                // Rectangle clip bounds are re-evaluated in render-target space after the transform is applied.
+                // Geometry clips keep their local vertices and rely on the active draw transform for stencil/mask backends.
                 TargetBounds = TargetBounds.CreateTransformedF(Transform).RoundUp();
             }
 
