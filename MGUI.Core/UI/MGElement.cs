@@ -2170,7 +2170,7 @@ namespace MGUI.Core.UI
 
                     if (DrawOverlayBrushEnabled)
                     {
-                        OverlayBrush?.Draw(DA, this, GetBackgroundBounds(LayoutBounds));
+                        DrawOverlayBrush(DA, LayoutBounds);
                     }
 
                     OnEndingDraw?.Invoke(this, DrawEventArgs);
@@ -2242,6 +2242,21 @@ namespace MGUI.Core.UI
 
         public virtual void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds) 
             => DrawSelfBaseImplementation(DA, LayoutBounds);
+
+        protected virtual void DrawOverlayBrush(ElementDrawArgs DA, Rectangle LayoutBounds)
+        {
+            if (HasBorder && !GetBorder().CornerRadius.IsZero)
+            {
+                MGBoxShape boxShape = new MGBoxShape(LayoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
+                Rectangle backgroundBounds = boxShape.InnerBounds.GetCompressed(BackgroundRenderPadding);
+                MGBoxShape backgroundShape = new(backgroundBounds, new Thickness(0), boxShape.InnerCornerRadius);
+                MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
+                OverlayBrush?.Draw(DA, this, backgroundShape, backgroundGeometry);
+                return;
+            }
+
+            OverlayBrush?.Draw(DA, this, GetBackgroundBounds(LayoutBounds));
+        }
 
         protected void DrawSelfBaseImplementation(ElementDrawArgs DA, Rectangle LayoutBounds)
         {

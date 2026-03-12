@@ -180,8 +180,9 @@ Even when the host control can be rounded, several overlay or subordinate paint 
 ### Common pipeline-level rectangle overlays
 
 - `MGElement.OverlayBrush?.Draw(..., Rectangle)`
-  - still uses background bounds rectangle;
-  - not shape-aware by default.
+  - was a rectangle-only common path;
+  - is now shape-aware for rounded border-backed controls through the shared `MGElement` overlay hook;
+  - still falls back to rectangle for non-rounded or rectangle-first elements.
 
 ### Control-specific rectangle overlay or sub-paint examples
 
@@ -265,3 +266,59 @@ Docking overlays, docking previews, separators, grid cell overlays, many slider 
 - no shape-aware hit testing rollout.
 
 The goal is to isolate architectural responsibilities so a future composable clip pipeline can be introduced cleanly.
+
+---
+
+## Special Cases To Carry Into The Next Phase
+
+### `MGScrollViewer`
+
+- current clip: rectangle viewport plus direct scissor usage
+- target clip: explicit contents clip request, likely still rectangle by default
+- risk: high, because scrolling semantics, child culling, and scrollbar painting are coupled to current bounds behavior
+
+### `MGWindow`
+
+- current clip: host clip is still rectangle-based, while some internal visual chrome is already shape-aware
+- target clip: separate host chrome painting from future child-content clip
+- risk: high, because title bar, modal behavior, overlays, and root window ownership all meet here
+
+### `MGTextBox`
+
+- current clip: scroll mode uses rectangular clipping while visual chrome may be rounded
+- target clip: explicit contents clip with independently shaped chrome
+- risk: high, because text layout, caret, selection, and scrolling are sensitive to clipping changes
+
+### `MGContextMenu` and popup orchestration
+
+- current clip: imperative clip clearing / replacement in some flows
+- target clip: explicit popup clip ownership with clearer scope boundaries
+- risk: medium to high, because popup layering can easily leak clip state
+
+### Docking overlays and previews
+
+- current clip: mostly none or rectangle-based
+- target clip: mostly unchanged
+- risk: low, but these controls must remain documented exceptions so the future design does not over-generalize rounded clipping
+
+---
+
+## Residual Technical Debt
+
+- several control-specific paint paths are still rectangle-first by design or by legacy implementation;
+- `MGScrollViewer` and `MGRatingControl` still contain direct scissor usage outside a shared clip abstraction;
+- hit testing remains rectangle-based even when visual shape is rounded;
+- the rendering contract still exposes only rectangle clipping at the UI boundary;
+- special-case popup and overlay flows still manage clip state imperatively.
+
+### Must be resolved before stencil/mask rollout
+
+- renderer-facing clip abstraction
+- explicit clip ownership / scope model
+- stable separation of self clip versus contents clip in the shared UI pipeline
+
+### Can remain for a later migration phase
+
+- rectangle-first decorative primitives
+- broad migration of non-box controls to shape-aware paint
+- shape-aware hit testing
