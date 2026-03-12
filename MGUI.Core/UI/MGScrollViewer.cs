@@ -12,6 +12,7 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Mouse;
 using System.Diagnostics;
+using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI
 {
@@ -917,22 +918,24 @@ namespace MGUI.Core.UI
 
         protected override void DrawContents(ElementDrawArgs DA)
         {
-            Rectangle ScreenBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, ContentViewport.GetTranslated(DA.Offset));
-            using (DA.Context.PushRectangleClip(ScreenBounds, true))
-            {
-                Point NewOffset = DA.Offset - new Point((int)HorizontalOffset, (int)VerticalOffset);
-                ElementDrawArgs adjustedDA = DA with { Offset = NewOffset };
+            Point NewOffset = DA.Offset - new Point((int)HorizontalOffset, (int)VerticalOffset);
+            ElementDrawArgs adjustedDA = DA with { Offset = NewOffset };
 
-                // CPU-side frustum culling (Task 15): skip direct content children whose ActualLayoutBounds
-                // is empty (fully clipped), avoiding unnecessary Draw() call overhead for off-viewport elements.
-                foreach (MGElement child in GetChildren())
+            // CPU-side frustum culling (Task 15): skip direct content children whose ActualLayoutBounds
+            // is empty (fully clipped), avoiding unnecessary Draw() call overhead for off-viewport elements.
+            foreach (MGElement child in GetChildren())
+            {
+                if (!child.ActualLayoutBounds.IsEmpty)
                 {
-                    if (!child.ActualLayoutBounds.IsEmpty)
-                    {
-                        child.Draw(adjustedDA);
-                    }
+                    child.Draw(adjustedDA);
                 }
             }
+        }
+
+        internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        {
+            Rectangle screenBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, ContentViewport.GetTranslated(DA.Offset));
+            return CreateRectangleClipDefinition(screenBounds, $"{ElementType}.Viewport");
         }
     }
 }

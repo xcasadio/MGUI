@@ -2099,6 +2099,11 @@ namespace MGUI.Core.UI
             => ClipDefinition.RoundedRectangle(targetBounds, cornerRadius.ToClipCornerRadius(), geometry: geometry.ToClipGeometry(),
                 intersectWithCurrentClip: true, allowRectangleFallback: allowRectangleFallback, debugName: debugName);
 
+        protected ClipDefinition CreateGeometryClipDefinition(Rectangle targetBounds, MGUI.Shared.Rendering.Clipping.ClipGeometry geometry,
+            string debugName, bool allowRectangleFallback = false)
+            => ClipDefinition.ArbitraryGeometry(targetBounds, geometry, intersectWithCurrentClip: true,
+                allowRectangleFallback: allowRectangleFallback, debugName: debugName);
+
         internal virtual ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
             => ClipToBounds ? CreateRectangleClipDefinition(targetBounds, $"{ElementType}.Self") : null;
 

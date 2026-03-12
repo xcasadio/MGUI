@@ -37,6 +37,17 @@ public class BorderShapeAdoptionTests
     }
 
     [Fact]
+    public void MGScrollViewer_OverridesViewportContentClipDefinition()
+    {
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var method = typeof(MGScrollViewer).GetMethod("GetContentsClipDefinition", flags);
+
+        Assert.NotNull(method);
+        Assert.Equal(typeof(MGScrollViewer), method!.DeclaringType);
+        Assert.Equal(typeof(ClipDefinition), method.ReturnType);
+    }
+
+    [Fact]
     public void MGElement_ExposesBackgroundBorderOverlayToggle()
     {
         var property = typeof(MGElement).GetProperty(nameof(MGElement.DrawBackgroundBorderOverlayEnabled));
