@@ -1,4 +1,7 @@
 using System;
+using MGUI.Shared.Helpers;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace MGUI.Shared.Rendering.Clipping
 {
@@ -37,6 +40,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 ClipStrategy.None => new(resolution, () => { }),
                 ClipStrategy.Scissor => _Owner.PushRectangleClipCore(resolution.Effective.Shape.Bounds, resolution.Effective.IntersectWithCurrentClip, resolution),
                 ClipStrategy.Stencil => PushStencil(resolution),
+                ClipStrategy.Mask => PushMask(resolution),
                 _ => throw new NotSupportedException($"Clip strategy '{resolution.Strategy}' is not available until the corresponding backend is installed.")
             };
         }
@@ -96,6 +100,60 @@ namespace MGUI.Shared.Rendering.Clipping
                 }
 
                 _StencilDepth = parentDepth;
+            });
+        }
+
+        private ClipScope PushMask(ClipResolveResult resolution)
+        {
+            ClipGeometry geometry = resolution.Effective.Shape.Geometry ?? throw new InvalidOperationException(
+                $"Clip '{resolution.Effective.DebugName ?? resolution.Effective.Kind.ToString()}' requires clip geometry for mask rendering.");
+            Rectangle bounds = resolution.Effective.Shape.Bounds;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                return new ClipScope(resolution, () => { });
+            }
+
+            RenderTarget2D maskTarget = RenderUtils.CreateRenderTarget(_Owner.GD, bounds.Width, bounds.Height, false);
+
+            IDisposable depthStencilDisableScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
+            {
+                DepthStencilType = DepthStencilType.None,
+            });
+            IDisposable renderTargetScope = _Owner.SetRenderTargetTemporary(maskTarget, Color.Transparent);
+            ClipScope clipDisableScope = _Owner.PushRectangleClip(null, false);
+            IDisposable transformScope = _Owner.SetTransformTemporary(_Owner.CurrentSettings.Transform * Matrix.CreateTranslation(-bounds.Left, -bounds.Top, 0));
+
+            using (_Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
+            {
+                BlendType = BlendType.Opaque,
+                DepthStencilType = DepthStencilType.None,
+            }))
+            {
+                for (int i = 0; i + 2 < geometry.Indices.Count; i += 3)
+                {
+                    Vector2 v0 = geometry.Vertices[geometry.Indices[i]];
+                    Vector2 v1 = geometry.Vertices[geometry.Indices[i + 1]];
+                    Vector2 v2 = geometry.Vertices[geometry.Indices[i + 2]];
+                    _Owner.FillTriangle(Vector2.Zero, v0, Color.Black, v1, Color.Black, v2, Color.Black);
+                }
+            }
+
+            IDisposable maskedContentScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
+            {
+                BlendType = BlendType.DestinationAlphaMask,
+                DepthStencilType = DepthStencilType.None,
+            });
+
+            return new ClipScope(resolution, () =>
+            {
+                maskedContentScope.Dispose();
+                transformScope.Dispose();
+                renderTargetScope.Dispose();
+                clipDisableScope.Dispose();
+                depthStencilDisableScope.Dispose();
+
+                _Owner.DrawTextureTo(maskTarget, null, bounds);
+                maskTarget.Dispose();
             });
         }
     }

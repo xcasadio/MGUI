@@ -30,7 +30,9 @@ namespace MGUI.Shared.Rendering
         /// <summary><see cref="BlendState.Opaque"/></summary>
         Opaque,
         /// <summary>Disables color writes while allowing depth/stencil side effects.</summary>
-        ColorWriteDisable
+        ColorWriteDisable,
+        /// <summary>Uses the destination alpha channel as a mask while preserving ordinary alpha compositing.</summary>
+        DestinationAlphaMask
     }
 
     public enum SamplerType
@@ -105,7 +107,17 @@ namespace MGUI.Shared.Rendering
             { BlendType.AlphaBlend, BlendState.AlphaBlend },
             { BlendType.NonPremultiplied, BlendState.NonPremultiplied },
             { BlendType.Opaque, BlendState.Opaque },
-            { BlendType.ColorWriteDisable, new BlendState { ColorWriteChannels = ColorWriteChannels.None, ColorWriteChannels1 = ColorWriteChannels.None, ColorWriteChannels2 = ColorWriteChannels.None, ColorWriteChannels3 = ColorWriteChannels.None } }
+            { BlendType.ColorWriteDisable, new BlendState { ColorWriteChannels = ColorWriteChannels.None, ColorWriteChannels1 = ColorWriteChannels.None, ColorWriteChannels2 = ColorWriteChannels.None, ColorWriteChannels3 = ColorWriteChannels.None } },
+            { BlendType.DestinationAlphaMask, new BlendState
+                {
+                    ColorSourceBlend = Blend.DestinationAlpha,
+                    ColorDestinationBlend = Blend.InverseSourceAlpha,
+                    ColorBlendFunction = BlendFunction.Add,
+                    AlphaSourceBlend = Blend.DestinationAlpha,
+                    AlphaDestinationBlend = Blend.InverseSourceAlpha,
+                    AlphaBlendFunction = BlendFunction.Add,
+                }
+            }
         };
 
         private static readonly Dictionary<SamplerType, SamplerState> SamplerMap = new()
