@@ -2104,6 +2104,8 @@ namespace MGUI.Core.UI
             => ClipDefinition.ArbitraryGeometry(targetBounds, geometry, intersectWithCurrentClip: true,
                 allowRectangleFallback: allowRectangleFallback, debugName: debugName);
 
+        // These hooks describe the logical clip that should constrain drawing. They do not participate in
+        // background, border, or overlay painting; those continue to use the existing shape paint pipeline.
         internal virtual ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
             => ClipToBounds ? CreateRectangleClipDefinition(targetBounds, $"{ElementType}.Self") : null;
 
@@ -2146,7 +2148,8 @@ namespace MGUI.Core.UI
 			{
 				using (SelfClipDefinition == null ? null : DA.Context.PushClipTemporary(SelfClipDefinition))
 				{
-                    // Decorative layers follow the element's self clip. Content-only clipping starts later.
+                    // Decorative layers follow the element's self clip. Content-only clipping starts later,
+                    // so rounded shape paint remains independent from whichever clip backend gets selected.
                     foreach (MGElement Component in _componentsDrawBeforeBackground)
                     {
                         Component.Draw(DA);

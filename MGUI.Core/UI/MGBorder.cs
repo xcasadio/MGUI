@@ -148,6 +148,8 @@ namespace MGUI.Core.UI
                 return null;
             }
 
+            // Rounded border/background paint still uses the box-shape brushes directly.
+            // This hook only declares the content clip that should be resolved by the renderer.
             MGBoxShape backgroundShape = CreateBackgroundShape(layoutBounds);
             Rectangle clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
             if (backgroundShape.InnerCornerRadius.IsZero)
