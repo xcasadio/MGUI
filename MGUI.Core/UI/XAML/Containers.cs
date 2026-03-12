@@ -600,4 +600,25 @@ namespace MGUI.Core.UI.XAML
             }
         }
     }
+
+    public class ResponsiveRoot : MultiContentHost
+    {
+        public override MGElementType ElementType => MGElementType.OverlayPanel;
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGResponsiveRoot(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGResponsiveRoot ResponsiveRoot = Element as MGResponsiveRoot;
+
+            if (IncludeContent)
+            {
+                foreach (Element Child in Children)
+                {
+                    MGElement ChildElement = Child.ToElement<MGElement>(ResponsiveRoot.ParentWindow, ResponsiveRoot);
+                    ResponsiveRoot.TryAddChild(ChildElement, Child.Offset.ToThickness(), Child.ZIndex);
+                }
+            }
+        }
+    }
 }

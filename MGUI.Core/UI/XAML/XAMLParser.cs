@@ -96,6 +96,7 @@ namespace MGUI.Core.UI.XAML
             { "DockPanel", nameof(DockPanel) },
             { "StackPanel", nameof(StackPanel) },
             { "OverlayPanel", nameof(OverlayPanel) },
+            { "ResponsiveRoot", nameof(ResponsiveRoot) },
 
             { "Style", nameof(Style) },
             { "Setter", nameof(Setter) },
@@ -130,7 +131,8 @@ namespace MGUI.Core.UI.XAML
             { "UG", nameof(UniformGrid) },
             { "DP", nameof(DockPanel) },
             { "SP", nameof(StackPanel) },
-            { "OP", nameof(OverlayPanel) }
+            { "OP", nameof(OverlayPanel) },
+            { "RR", nameof(ResponsiveRoot) }
         };
 
         private static string ValidateXAMLString(string XAMLString)

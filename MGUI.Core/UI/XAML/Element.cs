@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using XNAColor = Microsoft.Xna.Framework.Color;
+using MGUI.Core.UI.Responsive;
 
 namespace MGUI.Core.UI.XAML
 {
@@ -64,6 +65,13 @@ namespace MGUI.Core.UI.XAML
         public int? MaxWidth { get; set; }
         [Category("Layout")]
         public int? MaxHeight { get; set; }
+
+        [Category("Layout")]
+        public bool? UseResponsiveLayout { get; set; }
+        [Category("Layout")]
+        public bool? ScaleSpacingWithResponsive { get; set; }
+        [Category("Layout")]
+        public bool? ScaleDimensionsWithResponsive { get; set; }
 
         [Browsable(false)]
         public int? PreferredWidth { get; set; }
@@ -178,6 +186,9 @@ namespace MGUI.Core.UI.XAML
         /// <summary>Used by <see cref="OverlayPanel"/>'s children</summary>
         [Category("Attached")]
         public Thickness Offset { get; set; } = new();
+        /// <summary>Used by <see cref="OverlayPanel"/> and <see cref="ResponsiveRoot"/> children.</summary>
+        [Category("Attached")]
+        public ResponsiveAnchor? ResponsiveAnchor { get; set; }
         /// <summary>Used by <see cref="OverlayPanel"/>'s children and by <see cref="Overlay"/>s.</summary>
         [Category("Attached")]
         public double? ZIndex { get; set; } = null;
@@ -300,6 +311,21 @@ namespace MGUI.Core.UI.XAML
                     Element.MaxHeight = MaxHeight.Value;
                 }
 
+                if (UseResponsiveLayout.HasValue)
+                {
+                    Element.UseResponsiveLayout = UseResponsiveLayout.Value;
+                }
+
+                if (ScaleSpacingWithResponsive.HasValue)
+                {
+                    Element.ScaleSpacingWithResponsive = ScaleSpacingWithResponsive.Value;
+                }
+
+                if (ScaleDimensionsWithResponsive.HasValue)
+                {
+                    Element.ScaleDimensionsWithResponsive = ScaleDimensionsWithResponsive.Value;
+                }
+
                 if (PreferredWidth.HasValue)
                 {
                     Element.PreferredWidth = PreferredWidth.Value;
@@ -371,6 +397,11 @@ namespace MGUI.Core.UI.XAML
                 if (ClipToBounds.HasValue)
                 {
                     Element.ClipToBounds = ClipToBounds.Value;
+                }
+
+                if (ResponsiveAnchor.HasValue)
+                {
+                    Element.ResponsiveAnchor = ResponsiveAnchor.Value;
                 }
 
                 if (Opacity.HasValue)
