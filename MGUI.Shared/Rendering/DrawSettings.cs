@@ -56,13 +56,19 @@ namespace MGUI.Shared.Rendering
         /// <summary><see cref="DepthStencilState.DepthRead"/></summary>
         DepthRead,
         /// <summary><see cref="DepthStencilState.None"/></summary>
-        None
+        None,
+        /// <summary>Writes to stencil by incrementing values that pass the current stencil test.</summary>
+        StencilWriteIncrement,
+        /// <summary>Reads only pixels whose stencil value equals the supplied reference.</summary>
+        StencilReadEqual,
+        /// <summary>Restores stencil by decrementing values that equal the supplied reference.</summary>
+        StencilRestoreDecrement
     }
 
     /// <summary>Stores settings used by <see cref="SpriteBatch.Begin(SpriteSortMode, BlendState, SamplerState, DepthStencilState, RasterizerState, Effect, Matrix?)"/></summary>
     public record class DrawSettings(Matrix Transform, RasterizerType RasterizerType = RasterizerType.SolidScissorTest, SpriteSortMode Sort = SpriteSortMode.Deferred,
         BlendType BlendType = BlendType.AlphaBlend, SamplerType SamplerType = SamplerType.PointClamp, DepthStencilType DepthStencilType = DepthStencilType.None,
-        Effect Effect = null)
+        Effect Effect = null, int StencilReference = 0, int StencilReadMask = 0xFF, int StencilWriteMask = 0xFF)
     {
         private Matrix? _InverseTransform;
         public Matrix InverseTransform
@@ -117,10 +123,71 @@ namespace MGUI.Shared.Rendering
             { DepthStencilType.None, DepthStencilState.None }
         };
 
+        private static readonly Dictionary<(DepthStencilType Type, int Reference, int ReadMask, int WriteMask), DepthStencilState> CustomDepthStencilMap = new();
+
         public RasterizerState RasterizerState => RasterizerMap[RasterizerType];
         public BlendState BlendState => BlendMap[BlendType];
         public SamplerState SamplerState => SamplerMap[SamplerType];
-        public DepthStencilState DepthStencilState => DepthStencilMap[DepthStencilType];
+        public DepthStencilState DepthStencilState
+        {
+            get
+            {
+                if (DepthStencilMap.TryGetValue(DepthStencilType, out DepthStencilState Existing))
+                {
+                    return Existing;
+                }
+
+                var key = (DepthStencilType, StencilReference, StencilReadMask, StencilWriteMask);
+                if (!CustomDepthStencilMap.TryGetValue(key, out DepthStencilState Result))
+                {
+                    Result = CreateDepthStencilState(DepthStencilType, StencilReference, StencilReadMask, StencilWriteMask);
+                    CustomDepthStencilMap.Add(key, Result);
+                }
+                return Result;
+            }
+        }
+
+        private static DepthStencilState CreateDepthStencilState(DepthStencilType type, int reference, int readMask, int writeMask)
+            => type switch
+            {
+                DepthStencilType.StencilWriteIncrement => new DepthStencilState
+                {
+                    StencilEnable = true,
+                    ReferenceStencil = reference,
+                    StencilMask = readMask,
+                    StencilWriteMask = writeMask,
+                    StencilFunction = CompareFunction.Equal,
+                    StencilPass = StencilOperation.Increment,
+                    StencilFail = StencilOperation.Keep,
+                    StencilDepthBufferFail = StencilOperation.Keep,
+                    DepthBufferEnable = false,
+                },
+                DepthStencilType.StencilReadEqual => new DepthStencilState
+                {
+                    StencilEnable = true,
+                    ReferenceStencil = reference,
+                    StencilMask = readMask,
+                    StencilWriteMask = writeMask,
+                    StencilFunction = CompareFunction.Equal,
+                    StencilPass = StencilOperation.Keep,
+                    StencilFail = StencilOperation.Keep,
+                    StencilDepthBufferFail = StencilOperation.Keep,
+                    DepthBufferEnable = false,
+                },
+                DepthStencilType.StencilRestoreDecrement => new DepthStencilState
+                {
+                    StencilEnable = true,
+                    ReferenceStencil = reference,
+                    StencilMask = readMask,
+                    StencilWriteMask = writeMask,
+                    StencilFunction = CompareFunction.Equal,
+                    StencilPass = StencilOperation.Decrement,
+                    StencilFail = StencilOperation.Keep,
+                    StencilDepthBufferFail = StencilOperation.Keep,
+                    DepthBufferEnable = false,
+                },
+                _ => throw new NotImplementedException($"Unrecognized {nameof(DepthStencilType)}: {type}")
+            };
 
         public void BeginDraw(SpriteBatch SB) => SB.Begin(Sort, BlendState, SamplerState, DepthStencilState, RasterizerState, Effect, Transform);
     }
