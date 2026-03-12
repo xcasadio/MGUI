@@ -1,7 +1,7 @@
 using MGUI.Core.UI;
-using MGUI.Core.UI.Clipping;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
+using MGUI.Shared.Rendering.Clipping;
 using Microsoft.Xna.Framework;
 using System.Reflection;
 
@@ -14,15 +14,26 @@ public class BorderShapeAdoptionTests
     {
         BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
 
-        var selfClipMethod = typeof(MGElement).GetMethod("GetSelfClipRequest", flags);
-        var contentsClipMethod = typeof(MGElement).GetMethod("GetContentsClipRequest", flags);
+        var selfClipMethod = typeof(MGElement).GetMethod("GetSelfClipDefinition", flags);
+        var contentsClipMethod = typeof(MGElement).GetMethod("GetContentsClipDefinition", flags);
 
         Assert.NotNull(selfClipMethod);
         Assert.NotNull(contentsClipMethod);
-        Assert.Equal(typeof(ElementClipRequest?), selfClipMethod!.ReturnType);
-        Assert.Equal(typeof(ElementClipRequest?), contentsClipMethod!.ReturnType);
-        Assert.Equal(new[] { typeof(Rectangle) }, selfClipMethod.GetParameters().Select(x => x.ParameterType));
-        Assert.Equal(new[] { typeof(Rectangle) }, contentsClipMethod.GetParameters().Select(x => x.ParameterType));
+        Assert.Equal(typeof(ClipDefinition), selfClipMethod!.ReturnType);
+        Assert.Equal(typeof(ClipDefinition), contentsClipMethod!.ReturnType);
+        Assert.Equal(new[] { typeof(ElementDrawArgs), typeof(Rectangle), typeof(Rectangle) }, selfClipMethod.GetParameters().Select(x => x.ParameterType));
+        Assert.Equal(new[] { typeof(ElementDrawArgs), typeof(Rectangle), typeof(Rectangle) }, contentsClipMethod.GetParameters().Select(x => x.ParameterType));
+    }
+
+    [Fact]
+    public void MGBorder_OverridesContentClipDefinition()
+    {
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var method = typeof(MGBorder).GetMethod("GetContentsClipDefinition", flags);
+
+        Assert.NotNull(method);
+        Assert.Equal(typeof(MGBorder), method!.DeclaringType);
+        Assert.Equal(typeof(ClipDefinition), method.ReturnType);
     }
 
     [Fact]

@@ -21,7 +21,7 @@ using System.ComponentModel;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.DragDrop;
 using MGUI.Core.UI.Shapes;
-using MGUI.Core.UI.Clipping;
+using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI
 {
@@ -2088,10 +2088,21 @@ namespace MGUI.Core.UI
             }
         }
 
-        internal virtual ElementClipRequest? GetSelfClipRequest(Rectangle targetBounds)
-            => ClipToBounds ? ElementClipRequest.Rectangle(targetBounds, true) : null;
+        protected Rectangle TransformClipBounds(ElementDrawArgs DA, Rectangle bounds)
+            => bounds.GetTranslated(DA.Offset).CreateTransformedF(DA.DT.CurrentSettings.Transform).RoundUp();
 
-        internal virtual ElementClipRequest? GetContentsClipRequest(Rectangle targetBounds)
+        protected ClipDefinition CreateRectangleClipDefinition(Rectangle targetBounds, string debugName)
+            => ClipDefinition.Rectangle(targetBounds, true, debugName: debugName);
+
+        protected ClipDefinition CreateRoundedClipDefinition(Rectangle targetBounds, MGCornerRadius cornerRadius, MGBoxGeometry geometry,
+            string debugName, bool allowRectangleFallback = false)
+            => ClipDefinition.RoundedRectangle(targetBounds, cornerRadius.ToClipCornerRadius(), geometry: geometry.ToClipGeometry(),
+                intersectWithCurrentClip: true, allowRectangleFallback: allowRectangleFallback, debugName: debugName);
+
+        internal virtual ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+            => ClipToBounds ? CreateRectangleClipDefinition(targetBounds, $"{ElementType}.Self") : null;
+
+        internal virtual ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
             => null;
 
         public virtual void Draw(ElementDrawArgs DA)
@@ -2113,7 +2124,6 @@ namespace MGUI.Core.UI
 
             //  Apply render scale, if any
             IDisposable TempTransform = null;
-            IDisposable TempScissorRect = null;
             if (RenderScale?.TryGetScale(VisualState, out float Scale) == true)
             {
                 Matrix Transform =
@@ -2122,20 +2132,16 @@ namespace MGUI.Core.UI
                     Matrix.CreateTranslation(new Vector3(TargetBounds.Center.ToVector2(), 0));
                 TempTransform = DA.DT.SetTransformTemporary(DA.DT.CurrentSettings.Transform * Transform);
                 TargetBounds = TargetBounds.CreateTransformedF(Transform).RoundUp();
-                if (DA.DT.CurrentSettings.RasterizerState.ScissorTestEnable)
-                {
-                    Rectangle NewScissorBounds = DA.DT.GD.ScissorRectangle.CreateTransformedF(Transform).RoundUp();
-                    TempScissorRect = DA.DT.SetClipTargetTemporary(NewScissorBounds, false);
-                }
             }
 
-			ElementClipRequest? SelfClipRequest = GetSelfClipRequest(TargetBounds);
-			ElementClipRequest? ContentsClipRequest = GetContentsClipRequest(TargetBounds);
+			ClipDefinition SelfClipDefinition = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
+			ClipDefinition ContentsClipDefinition = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);
 
             if (!DA.DT.CurrentSettings.RasterizerState.ScissorTestEnable || TargetBounds.Intersects(DA.DT.GD.ScissorRectangle))
 			{
-				using (SelfClipRequest?.Push(DA.Context))
+				using (SelfClipDefinition == null ? null : DA.Context.PushClipTemporary(SelfClipDefinition))
 				{
+                    // Decorative layers follow the element's self clip. Content-only clipping starts later.
                     foreach (MGElement Component in _componentsDrawBeforeBackground)
                     {
                         Component.Draw(DA);
@@ -2153,7 +2159,7 @@ namespace MGUI.Core.UI
 
                     DrawSelf(DA, LayoutBounds);
 
-                    using (ContentsClipRequest?.Push(DA.Context))
+                    using (ContentsClipDefinition == null ? null : DA.Context.PushClipTemporary(ContentsClipDefinition))
                     {
 						foreach (MGElement Component in _componentsDrawBeforeContents)
                         {
@@ -2182,7 +2188,6 @@ namespace MGUI.Core.UI
 			}
 
             TempTransform?.Dispose();
-            TempScissorRect?.Dispose();
 
             OnEndDraw?.Invoke(this, DrawEventArgs);
 		}

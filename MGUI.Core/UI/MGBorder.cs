@@ -11,6 +11,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
 using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI
 {
@@ -138,6 +139,25 @@ namespace MGUI.Core.UI
             {
                 BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, boxShape, geometry);
             }
+        }
+
+        internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        {
+            if (!ClipToBounds)
+            {
+                return null;
+            }
+
+            MGBoxShape backgroundShape = CreateBackgroundShape(layoutBounds);
+            Rectangle clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
+            if (backgroundShape.InnerCornerRadius.IsZero)
+            {
+                return CreateRectangleClipDefinition(clipBounds, $"{ElementType}.Contents");
+            }
+
+            MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
+            return CreateRoundedClipDefinition(clipBounds, backgroundShape.InnerCornerRadius, backgroundGeometry,
+                $"{ElementType}.Contents", allowRectangleFallback: true);
         }
     }
 }
