@@ -1015,6 +1015,28 @@ namespace MGUI.Shared.Rendering
         public IDisposable SetEffectTemporary(Effect Effect)
             => SetDrawSettingsTemporary(CurrentSettings with { Effect = Effect });
 
+        internal void ClearStencil(int StencilValue = 0)
+        {
+            EndDraw(CurrentContext);
+            GD.Clear(ClearOptions.Stencil, Color.Transparent, 0.0f, StencilValue);
+        }
+
+        internal void DrawClipGeometry(ClipGeometry Geometry)
+        {
+            if (Geometry.IsEmpty)
+            {
+                return;
+            }
+
+            for (int i = 0; i + 2 < Geometry.Indices.Count; i += 3)
+            {
+                Vector2 v0 = Geometry.Vertices[Geometry.Indices[i]];
+                Vector2 v1 = Geometry.Vertices[Geometry.Indices[i + 1]];
+                Vector2 v2 = Geometry.Vertices[Geometry.Indices[i + 2]];
+                FillTriangle(Vector2.Zero, v0, Color.White, v1, Color.White, v2, Color.White);
+            }
+        }
+
         /// <param name="IntersectWithCurrentClipTarget">If true, rather than replacing the clip target with the given <paramref name="Bounds"/>,<br/>
         /// the clip target will be the intersection of the current clip target and the given <paramref name="Bounds"/></param>
         public void SetClipTarget(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)

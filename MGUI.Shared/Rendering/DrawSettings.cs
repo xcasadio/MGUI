@@ -28,7 +28,9 @@ namespace MGUI.Shared.Rendering
         /// <summary><see cref="BlendState.NonPremultiplied"/></summary>
         NonPremultiplied,
         /// <summary><see cref="BlendState.Opaque"/></summary>
-        Opaque
+        Opaque,
+        /// <summary>Disables color writes while allowing depth/stencil side effects.</summary>
+        ColorWriteDisable
     }
 
     public enum SamplerType
@@ -102,7 +104,8 @@ namespace MGUI.Shared.Rendering
             { BlendType.Additive, BlendState.Additive },
             { BlendType.AlphaBlend, BlendState.AlphaBlend },
             { BlendType.NonPremultiplied, BlendState.NonPremultiplied },
-            { BlendType.Opaque, BlendState.Opaque }
+            { BlendType.Opaque, BlendState.Opaque },
+            { BlendType.ColorWriteDisable, new BlendState { ColorWriteChannels = ColorWriteChannels.None, ColorWriteChannels1 = ColorWriteChannels.None, ColorWriteChannels2 = ColorWriteChannels.None, ColorWriteChannels3 = ColorWriteChannels.None } }
         };
 
         private static readonly Dictionary<SamplerType, SamplerState> SamplerMap = new()
