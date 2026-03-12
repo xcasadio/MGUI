@@ -59,6 +59,8 @@ namespace MGUI.Core.UI.XAML
         [Category("Layout")]
         public GridLength Length { get; set; }
         [Category("Layout")]
+        public GridLength Width { get => Length; set => Length = value; }
+        [Category("Layout")]
         public int? MinWidth { get; set; }
         [Category("Layout")]
         public int? MaxWidth { get; set; }
@@ -69,6 +71,8 @@ namespace MGUI.Core.UI.XAML
     {
         [Category("Layout")]
         public GridLength Length { get; set; }
+        [Category("Layout")]
+        public GridLength Height { get => Length; set => Length = value; }
         [Category("Layout")]
         public int? MinHeight { get; set; }
         [Category("Layout")]

@@ -178,6 +178,7 @@ namespace MGUI.Samples
         public FormattedTextTokenizerTestSample FormattedTextTokenizerTest { get; }
         public PerformanceTest PerformanceTest { get; }
         public RoundedShapesSamples RoundedShapesSamples { get; }
+        public ResponsiveLayoutSample ResponsiveLayoutSample { get; }
         #endregion Features
 
         #region Dialogs
@@ -240,6 +241,7 @@ namespace MGUI.Samples
             FormattedTextTokenizerTest = new(Content, Desktop);
             PerformanceTest = new(Content, Desktop);
             RoundedShapesSamples = new(Content, Desktop);
+            ResponsiveLayoutSample = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs

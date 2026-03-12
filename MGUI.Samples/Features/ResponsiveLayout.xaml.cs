@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework.Content;
 using MGUI.Core.UI;
+using MGUI.Core.UI.Containers;
 using MGUI.Shared.Helpers;
 
 namespace MGUI.Samples.Features
@@ -23,6 +24,9 @@ namespace MGUI.Samples.Features
             Window.BorderThickness = new(0);
             Window.IsUserResizable = false;
             SyncToViewport();
+
+            MGButton closeButton = Window.GetElementByName<MGButton>("CloseButton");
+            closeButton.AddCommandHandler((btn, e) => Hide());
 
             desktop.ResponsiveMetricsChanged += (sender, e) => SyncToViewport();
         }

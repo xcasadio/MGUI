@@ -15,7 +15,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using MGUI.Shared.Input;
-using MGUI.Samples.Features;
 
 namespace MGUI.Samples
 {
@@ -26,7 +25,6 @@ namespace MGUI.Samples
 
         private MainRenderer MGUIRenderer { get; set; }
         private MGDesktop Desktop { get; set; }
-        private ResponsiveLayoutSample ResponsiveLayoutSample { get; set; }
 
         private KeyboardState _prevKeyboardState;
 
@@ -59,9 +57,6 @@ namespace MGUI.Samples
             //  This is a dialog with toggle buttons to launch other dialogs
             Compendium Compendium = new(Content, Desktop);
             Compendium.Show();
-
-            ResponsiveLayoutSample = new(Content, Desktop);
-            ResponsiveLayoutSample.Show();
 
             base.Initialize();
         }

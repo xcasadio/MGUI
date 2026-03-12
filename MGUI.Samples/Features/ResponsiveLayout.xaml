@@ -48,6 +48,11 @@
             <TextBlock Text="ANCHOR: TOP RIGHT" FontSize="12" UseResponsiveTextScale="True" IsBold="True" Foreground="White" />
         </Border>
 
+        <Button Name="CloseButton" ResponsiveAnchor="TopLeft" Offset="24,24,24,24" Padding="14,8,14,8"
+                BorderThickness="1" BorderBrush="Black" Background="#F4E7D3">
+            <TextBlock Text="Close Responsive Demo" FontSize="12" UseResponsiveTextScale="True" IsBold="True" Foreground="#1E1E1E" />
+        </Button>
+
         <Border ResponsiveAnchor="BottomLeft" Offset="24,24,24,24" Padding="16,10,16,10" CornerRadius="999" Background="#264653" BorderThickness="1" BorderBrush="Black">
             <TextBlock Text="ANCHOR: BOTTOM LEFT" FontSize="12" UseResponsiveTextScale="True" IsBold="True" Foreground="#F8F3E7" />
         </Border>
