@@ -107,6 +107,7 @@ namespace MGUI.Shared.Rendering
         public SpriteBatch SB => SpriteBatch;
         public PrimitiveBatch PrimitiveBatch { get; }
         public PrimitiveBatch PB => PrimitiveBatch;
+        internal RenderTargetPool RenderTargetPool { get; } = new();
 
         public ContentManager Content { get; }
 

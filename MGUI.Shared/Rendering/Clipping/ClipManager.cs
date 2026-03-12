@@ -103,7 +103,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 return new ClipScope(resolution, () => { });
             }
 
-            RenderTarget2D maskTarget = RenderUtils.CreateRenderTarget(_Owner.GD, bounds.Width, bounds.Height, false);
+            RenderTarget2D maskTarget = _Owner.Renderer.RenderTargetPool.Rent(_Owner.GD, bounds.Width, bounds.Height, false);
 
             IDisposable depthStencilDisableScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
             {
@@ -143,7 +143,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 depthStencilDisableScope.Dispose();
 
                 _Owner.DrawTextureTo(maskTarget, null, bounds);
-                maskTarget.Dispose();
+                _Owner.Renderer.RenderTargetPool.Return(maskTarget);
             });
         }
     }
