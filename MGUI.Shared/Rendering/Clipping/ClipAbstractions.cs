@@ -49,7 +49,7 @@ namespace MGUI.Shared.Rendering.Clipping
         public static ClipShape Rectangle(Rectangle bounds) => new(bounds, ClipCornerRadius.Zero, null);
         public static ClipShape RoundedRectangle(Rectangle bounds, ClipCornerRadius cornerRadius, ClipGeometry? geometry = null)
             => new(bounds, cornerRadius, geometry);
-        public static ClipShape Geometry(Rectangle bounds, ClipGeometry geometry)
+        public static ClipShape FromGeometry(Rectangle bounds, ClipGeometry geometry)
             => new(bounds, ClipCornerRadius.Zero, geometry);
     }
 
@@ -77,7 +77,7 @@ namespace MGUI.Shared.Rendering.Clipping
         public static ClipDefinition ArbitraryGeometry(Rectangle bounds, ClipGeometry geometry, bool intersectWithCurrentClip = true,
             ClipStrategyPreference strategyPreference = ClipStrategyPreference.Default, bool allowRectangleFallback = false,
             string debugName = null)
-            => new(ClipKind.ArbitraryGeometry, ClipShape.Geometry(bounds, geometry), intersectWithCurrentClip,
+            => new(ClipKind.ArbitraryGeometry, ClipShape.FromGeometry(bounds, geometry), intersectWithCurrentClip,
                 strategyPreference, allowRectangleFallback, debugName);
     }
 

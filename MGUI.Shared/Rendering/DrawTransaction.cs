@@ -48,6 +48,7 @@ namespace MGUI.Shared.Rendering
         private DrawContext CurrentContext = DrawContext.None;
 
         private Matrix PrimitiveProjectionMatrix { get; }
+        private ClipManager ClipManager { get; }
 
         public DrawSettings CurrentSettings { get; private set; }
         public DrawSettings PreviousSettings { get; private set; }
@@ -61,6 +62,7 @@ namespace MGUI.Shared.Rendering
             this.Renderer = Renderer ?? throw new ArgumentNullException(nameof(Renderer));
             PD = new PrimitiveDrawing(PB);
             CurrentSettings = Settings ?? throw new ArgumentNullException(nameof(Settings));
+            ClipManager = new(this);
 
             PrimitiveProjectionMatrix = Matrix.CreateOrthographicOffCenter(0, GD.Viewport.Width, GD.Viewport.Height, 0, 0, 1);
 
@@ -932,47 +934,50 @@ namespace MGUI.Shared.Rendering
         }
 
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
-        {
-            ArgumentNullException.ThrowIfNull(Definition);
-
-            return Definition.Kind switch
-            {
-                ClipKind.None => new(Definition, Definition, ClipStrategy.None, false),
-                ClipKind.Rectangle => new(Definition, Definition, ClipStrategy.Scissor, false),
-                ClipKind.RoundedRectangle or ClipKind.ArbitraryGeometry when Definition.AllowRectangleFallback
-                    => new(Definition, ClipDefinition.Rectangle(Definition.Shape.Bounds, Definition.IntersectWithCurrentClip, debugName: Definition.DebugName),
-                        ClipStrategy.Scissor, true),
-                ClipKind.RoundedRectangle => new(Definition, Definition, ClipStrategy.Stencil, false),
-                ClipKind.ArbitraryGeometry => new(Definition, Definition, ClipStrategy.Mask, false),
-                _ => throw new NotImplementedException($"Unrecognized {nameof(ClipKind)}: {Definition.Kind}")
-            };
-        }
+            => ClipManager.Resolve(Definition);
 
         public ClipScope PushClipTemporary(ClipDefinition Definition)
-        {
-            ClipResolveResult Resolution = ResolveClip(Definition);
-
-            return Resolution.Strategy switch
-            {
-                ClipStrategy.None => new(Resolution, () => { }),
-                ClipStrategy.Scissor => PushRectangleClip(Resolution.Effective.Shape.Bounds, Resolution.Effective.IntersectWithCurrentClip),
-                _ => throw new NotSupportedException($"Clip strategy '{Resolution.Strategy}' is not available until a clip manager is installed.")
-            };
-        }
+            => ClipManager.Push(Definition);
 
         public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        {
+            if (!Bounds.HasValue)
+            {
+                Rectangle previousBounds = SB.GraphicsDevice.ScissorRectangle;
+                bool previousScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
+                SetClipTarget(null, false);
+
+                ClipDefinition requested = ClipDefinition.None(false);
+                ClipResolveResult resolution = new(requested, requested, ClipStrategy.None, false);
+                return new ClipScope(resolution, () =>
+                {
+                    EndDraw(CurrentContext);
+                    SB.GraphicsDevice.ScissorRectangle = previousBounds;
+
+                    bool currentScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
+                    if (previousScissorState && !currentScissorState)
+                    {
+                        SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
+                    }
+                    else if (!previousScissorState && currentScissorState)
+                    {
+                        SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
+                    }
+                });
+            }
+
+            ClipDefinition definition = Bounds.HasValue
+                ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget)
+                : ClipDefinition.None();
+            return PushClipTemporary(definition);
+        }
+
+        internal ClipScope PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult Resolution)
         {
             Rectangle PreviousBounds = SB.GraphicsDevice.ScissorRectangle;
             bool PreviousScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
 
             SetClipTarget(Bounds, IntersectWithCurrentClipTarget);
-
-            ClipDefinition Requested = Bounds.HasValue
-                ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget)
-                : ClipDefinition.None();
-            ClipResolveResult Resolution = Bounds.HasValue
-                ? new(Requested, Requested, ClipStrategy.Scissor, false)
-                : new(Requested, Requested, ClipStrategy.None, false);
 
             return new ClipScope(Resolution, () =>
             {
