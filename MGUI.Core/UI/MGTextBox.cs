@@ -15,6 +15,7 @@ using System.Diagnostics;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Keyboard;
+using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI
 {
@@ -1107,7 +1108,7 @@ namespace MGUI.Core.UI
                 this.IsUserResizable = IsUserResizable;
 
                 PlaceholderTextBlockElement = new(Window, "");
-                PlaceholderTextBlockComponent = new(PlaceholderTextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf,
+                PlaceholderTextBlockComponent = new(PlaceholderTextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     true, true, false, false, false, false, true,
                     (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
                 AddComponent(PlaceholderTextBlockComponent);
@@ -1117,7 +1118,7 @@ namespace MGUI.Core.UI
                 CharacterCountElement = new(Window, (Text?.Length ?? 0).ToString());
                 CharacterCountElement.Margin = new(0, 0, 8, 4);
                 CharacterCountElement.TrySetFont(GetDesktop().FontManager.DefaultFontFamily, 9);
-                CharacterCountComponent = new(CharacterCountElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf,
+                CharacterCountComponent = new(CharacterCountElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     true, false, false, false, false, true, true,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, ComponentSize.Size));
                 AddComponent(CharacterCountComponent);
@@ -1128,7 +1129,7 @@ namespace MGUI.Core.UI
 
                 TextBlockElement = new(Window, "");
                 TextBlockElement.ClipToBounds = false;
-                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeSelf,
+                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     false, false, true, true, false, false, true,
                     (AvailableBounds, ComponentSize) =>
                     {
@@ -1750,9 +1751,14 @@ namespace MGUI.Core.UI
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+            => DrawSelfBaseImplementation(DA, LayoutBounds);
+
+        protected override void DrawContents(ElementDrawArgs DA)
         {
-            DrawSelfBaseImplementation(DA, LayoutBounds);
             Caret.Draw(DA, LayoutBounds);
         }
+
+        internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+            => CreateBorderBackedContentsClipDefinition(DA, layoutBounds, $"{ElementType}.Contents");
     }
 }

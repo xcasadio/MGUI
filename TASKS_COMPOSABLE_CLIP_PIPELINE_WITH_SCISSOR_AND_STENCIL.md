@@ -1,3 +1,5 @@
+> Statut: termine. Implementation livree avec commits incrementaux et documentation finale dans `Docs/composable-clip-pipeline-architecture.md`.
+
 ## Contexte
 
 Après audit et refactor préparatoire, MGUI doit évoluer vers une architecture de clipping composable.

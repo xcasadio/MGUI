@@ -107,13 +107,6 @@ namespace MGUI.Core.UI
 
         private MGBoxShape CreateBoxShape(Rectangle layoutBounds) => new MGBoxShape(layoutBounds, BorderThickness, CornerRadius).Normalize();
 
-        private MGBoxShape CreateBackgroundShape(Rectangle layoutBounds)
-        {
-            MGBoxShape boxShape = CreateBoxShape(layoutBounds);
-            Rectangle backgroundBounds = boxShape.InnerBounds.GetCompressed(BackgroundRenderPadding);
-            return new MGBoxShape(backgroundBounds, new Thickness(0), boxShape.InnerCornerRadius).Normalize();
-        }
-
         public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             if (!DrawBackgroundAndOverlay)
@@ -121,12 +114,20 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            MGBoxShape backgroundShape = CreateBackgroundShape(LayoutBounds);
-            MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
-            BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+            if (TryGetRoundedBackgroundShapeAndGeometry(LayoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, true))
+            {
+                BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+
+                SecondaryVisualState roundedSecondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
+                BackgroundBrush.GetFillOverlay(roundedSecondaryState)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+                return;
+            }
+
+            Rectangle backgroundBounds = LayoutBounds.GetCompressed(BorderThickness).GetCompressed(BackgroundRenderPadding);
+            BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundBounds);
 
             SecondaryVisualState secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
-            BackgroundBrush.GetFillOverlay(secondaryState)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+            BackgroundBrush.GetFillOverlay(secondaryState)?.Draw(DA, this, backgroundBounds);
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
@@ -150,16 +151,7 @@ namespace MGUI.Core.UI
 
             // Rounded border/background paint still uses the box-shape brushes directly.
             // This hook only declares the content clip that should be resolved by the renderer.
-            MGBoxShape backgroundShape = CreateBackgroundShape(layoutBounds);
-            Rectangle clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
-            if (backgroundShape.InnerCornerRadius.IsZero)
-            {
-                return CreateRectangleClipDefinition(clipBounds, $"{ElementType}.Contents");
-            }
-
-            MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
-            return CreateRoundedClipDefinition(clipBounds, backgroundShape.InnerCornerRadius, backgroundGeometry,
-                $"{ElementType}.Contents", allowRectangleFallback: true);
+            return CreateBorderBackedContentsClipDefinition(DA, layoutBounds, $"{ElementType}.Contents");
         }
     }
 }

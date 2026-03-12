@@ -1160,7 +1160,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.Overlay;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -2444,7 +2444,7 @@ namespace MGUI.Core.UI.XAML
     {
         public override MGElementType ElementType => MGElementType.TabControl;
 
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -2768,7 +2768,7 @@ namespace MGUI.Core.UI.XAML
     {
         public override MGElementType ElementType => MGElementType.TextBox;
 
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -3249,7 +3249,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.TreeView;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

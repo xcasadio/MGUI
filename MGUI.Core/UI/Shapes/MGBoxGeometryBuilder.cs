@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MGUI.Core.UI.Shapes
 {
@@ -29,6 +30,51 @@ namespace MGUI.Core.UI.Shapes
             MGBoxGeometry geometry = BuildUncached(normalized, actualCornerSegmentCount);
             Cache[key] = geometry;
             return geometry;
+        }
+
+        internal static MGBoxGeometry BuildInteriorFillGeometry(MGBoxGeometry borderGeometry, float overlapPixels = 0.0f)
+        {
+            MGBoxShape fillShape = new MGBoxShape(borderGeometry.Shape.InnerBounds, new MonoGame.Extended.Thickness(0), borderGeometry.Shape.InnerCornerRadius).Normalize();
+            if (!borderGeometry.HasInnerContour)
+            {
+                return Build(fillShape, borderGeometry.CornerSegmentCount);
+            }
+
+            Vector2[] contour = overlapPixels > 0
+                ? ExpandContourTowardOuter(borderGeometry.OuterContour, borderGeometry.InnerContour, overlapPixels)
+                : borderGeometry.InnerContour.ToArray();
+            int[] fillIndices = BuildFillIndices(contour.Length);
+            return new MGBoxGeometry(
+                fillShape,
+                contour,
+                Array.Empty<Vector2>(),
+                contour,
+                fillIndices,
+                Array.Empty<int>(),
+                borderGeometry.CornerSegmentCount,
+                !fillShape.HasRoundedCorners);
+        }
+
+        private static Vector2[] ExpandContourTowardOuter(IReadOnlyList<Vector2> outerContour, IReadOnlyList<Vector2> innerContour, float overlapPixels)
+        {
+            Vector2[] expanded = new Vector2[innerContour.Count];
+            for (int i = 0; i < innerContour.Count; i++)
+            {
+                Vector2 inner = innerContour[i];
+                Vector2 outer = outerContour[i];
+                Vector2 delta = outer - inner;
+                float distance = delta.Length();
+                if (distance <= 0.001f)
+                {
+                    expanded[i] = inner;
+                    continue;
+                }
+
+                float t = Math.Min(1.0f, overlapPixels / distance);
+                expanded[i] = inner + delta * t;
+            }
+
+            return expanded;
         }
 
         private static MGBoxGeometry BuildUncached(MGBoxShape normalized, int actualCornerSegmentCount)

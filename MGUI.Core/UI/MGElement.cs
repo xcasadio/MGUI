@@ -2099,10 +2099,39 @@ namespace MGUI.Core.UI
             => ClipDefinition.RoundedRectangle(targetBounds, cornerRadius.ToClipCornerRadius(), geometry: geometry.ToClipGeometry(),
                 intersectWithCurrentClip: true, allowRectangleFallback: allowRectangleFallback, debugName: debugName);
 
+        protected ClipDefinition CreateRoundedClipDefinition(Rectangle targetBounds, MGCornerRadius cornerRadius, ClipGeometry geometry,
+            string debugName, bool allowRectangleFallback = false)
+            => ClipDefinition.RoundedRectangle(targetBounds, cornerRadius.ToClipCornerRadius(), geometry: geometry,
+                intersectWithCurrentClip: true, allowRectangleFallback: allowRectangleFallback, debugName: debugName);
+
         protected ClipDefinition CreateGeometryClipDefinition(Rectangle targetBounds, MGUI.Shared.Rendering.Clipping.ClipGeometry geometry,
             string debugName, bool allowRectangleFallback = false)
             => ClipDefinition.ArbitraryGeometry(targetBounds, geometry, intersectWithCurrentClip: true,
                 allowRectangleFallback: allowRectangleFallback, debugName: debugName);
+
+        protected ClipDefinition CreateBorderBackedContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, string debugName)
+        {
+            if (!HasBorder)
+            {
+                return null;
+            }
+
+            if (!TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, false))
+            {
+                Rectangle backgroundBounds = GetBackgroundBounds(layoutBounds);
+                Rectangle rectangleClipBounds = TransformClipBounds(DA, backgroundBounds);
+                return CreateRectangleClipDefinition(rectangleClipBounds, debugName);
+            }
+
+            Rectangle clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
+            if (backgroundShape.InnerCornerRadius.IsZero)
+            {
+                return CreateRectangleClipDefinition(clipBounds, debugName);
+            }
+
+            return CreateRoundedClipDefinition(clipBounds, backgroundShape.InnerCornerRadius, backgroundGeometry.ToClipGeometry(DA.Offset),
+                debugName, allowRectangleFallback: true);
+        }
 
         // These hooks describe the logical clip that should constrain drawing. They do not participate in
         // background, border, or overlay painting; those continue to use the existing shape paint pipeline.
@@ -2235,14 +2264,38 @@ namespace MGUI.Core.UI
             return BackgroundBounds;
         }
 
-        public virtual void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
-		{
+        protected bool TryGetRoundedBackgroundShapeAndGeometry(Rectangle layoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry,
+            bool overlapUnderBorder)
+        {
             if (HasBorder && !GetBorder().CornerRadius.IsZero)
             {
-                MGBoxShape boxShape = new MGBoxShape(LayoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
+                MGBoxShape boxShape = new MGBoxShape(layoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
+                if (BackgroundRenderPadding.IsEmpty())
+                {
+                    MGBoxGeometry boxGeometry = MGBoxGeometryBuilder.Build(boxShape);
+                    if (boxGeometry.HasInnerContour)
+                    {
+                        backgroundGeometry = MGBoxGeometryBuilder.BuildInteriorFillGeometry(boxGeometry, overlapUnderBorder ? 1.0f : 0.0f);
+                        backgroundShape = backgroundGeometry.Shape;
+                        return true;
+                    }
+                }
+
                 Rectangle backgroundBounds = boxShape.InnerBounds.GetCompressed(BackgroundRenderPadding);
-                MGBoxShape backgroundShape = new(backgroundBounds, new Thickness(0), boxShape.InnerCornerRadius);
-                MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
+                backgroundShape = new MGBoxShape(backgroundBounds, new Thickness(0), boxShape.InnerCornerRadius).Normalize();
+                backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
+                return true;
+            }
+
+            backgroundShape = default;
+            backgroundGeometry = default;
+            return false;
+        }
+
+        public virtual void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
+		{
+            if (TryGetRoundedBackgroundShapeAndGeometry(LayoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, true))
+            {
                 BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
 
                 SecondaryVisualState secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
@@ -2261,12 +2314,8 @@ namespace MGUI.Core.UI
 
         protected virtual void DrawOverlayBrush(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
-            if (HasBorder && !GetBorder().CornerRadius.IsZero)
+            if (TryGetRoundedBackgroundShapeAndGeometry(LayoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, true))
             {
-                MGBoxShape boxShape = new MGBoxShape(LayoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
-                Rectangle backgroundBounds = boxShape.InnerBounds.GetCompressed(BackgroundRenderPadding);
-                MGBoxShape backgroundShape = new(backgroundBounds, new Thickness(0), boxShape.InnerCornerRadius);
-                MGBoxGeometry backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
                 OverlayBrush?.Draw(DA, this, backgroundShape, backgroundGeometry);
                 return;
             }
