@@ -22,6 +22,7 @@ using System.IO;
 using System.Threading;
 using MGUI.Shared.Text.Engines;
 using MGUI.Core.UI.Navigation;
+using MGUI.Core.UI.Responsive;
 
 namespace MGUI.Core.UI
 {
@@ -933,6 +934,56 @@ namespace MGUI.Core.UI
         /// For example, an <see cref="MGContextMenu"/> will attempt to position itself such that it is not rendered outside of these bounds.</summary>
         public Rectangle ValidScreenBounds => View?.Surface.GetBounds() ?? Renderer.Surface.GetBounds();
 
+        private UIResponsiveSettings _ResponsiveSettings = UIResponsiveSettings.Default;
+        public UIResponsiveSettings ResponsiveSettings
+        {
+            get => _ResponsiveSettings;
+            set
+            {
+                if (_ResponsiveSettings != value)
+                {
+                    UIResponsiveSettings previous = _ResponsiveSettings;
+                    _ResponsiveSettings = value;
+                    NPC(nameof(ResponsiveSettings));
+                    RecalculateResponsiveMetrics(true);
+                }
+            }
+        }
+
+        private float _EffectiveDpiScale = 1.0f;
+        public float EffectiveDpiScale
+        {
+            get => _EffectiveDpiScale;
+            set
+            {
+                float actualValue = Math.Max(0.1f, value);
+                if (!_EffectiveDpiScale.Equals(actualValue))
+                {
+                    _EffectiveDpiScale = actualValue;
+                    NPC(nameof(EffectiveDpiScale));
+                    RecalculateResponsiveMetrics(true);
+                }
+            }
+        }
+
+        private UIResolvedMetrics _ResponsiveMetrics;
+        public UIResolvedMetrics ResponsiveMetrics
+        {
+            get => _ResponsiveMetrics;
+            private set
+            {
+                if (_ResponsiveMetrics != value)
+                {
+                    UIResolvedMetrics previous = _ResponsiveMetrics;
+                    _ResponsiveMetrics = value;
+                    NPC(nameof(ResponsiveMetrics));
+                    ResponsiveMetricsChanged?.Invoke(this, new(previous, _ResponsiveMetrics));
+                }
+            }
+        }
+
+        public event EventHandler<EventArgs<UIResolvedMetrics>> ResponsiveMetricsChanged;
+
         public MGResources Resources { get; }
         /// <summary>Convenience property that just returns <see cref="Resources"/>.<see cref="MGResources.DefaultTheme"/></summary>
         public MGTheme Theme => Resources.DefaultTheme;
@@ -1054,6 +1105,7 @@ namespace MGUI.Core.UI
             Windows = new();
             Resources = new(new MGTheme(Renderer.AssetProvider.FontManager.DefaultFontFamily), Renderer.AssetProvider);
             _ = new UIView(this, Renderer.Surface);
+            _ResponsiveMetrics = UIResponsiveResolver.Resolve(ResponsiveSettings, ValidScreenBounds.Size, EffectiveDpiScale);
 
             OverlayWindow = new(this, 0, 0, ValidScreenBounds.Width, ValidScreenBounds.Height)
             {
@@ -1090,21 +1142,61 @@ namespace MGUI.Core.UI
             //  Recalculate the layout of text-based elements when the text-rendering backend changes
             Renderer.TextEngineChanged += (sender, e) =>
             {
-                foreach (MGWindow window in Windows)
-                {
-                    foreach (MGTextBlock tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
-                    {
-                        tb.RefreshTextEngine();
-                    }
-                }
+                RefreshTextLayouts();
                 //  Note: We don't need to call InvalidateAllLayouts() because the parent elements of MGTextBlocks will already receive LayoutChanged notifications.
                 //  The only reason InvalidateAllLayouts would be needed is if an MGElement instance other than MGTextBlock rendered text in its DrawSelf method
                 //  (currently, all text-drawing is funnelled through MGTextBlocks, even for things like MGTimer/MGStopWatch/MGTextBox)
             };
         }
 
+        private void RefreshTextLayouts()
+        {
+            foreach (MGWindow window in Windows)
+            {
+                foreach (MGTextBlock tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+                {
+                    tb.RefreshTextEngine();
+                }
+            }
+
+            if (OverlayWindow != null)
+            {
+                foreach (MGTextBlock tb in OverlayWindow.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+                {
+                    tb.RefreshTextEngine();
+                }
+            }
+        }
+
+        private void InvalidateResponsiveLayouts()
+        {
+            foreach (MGWindow window in Windows)
+            {
+                window.InvalidateLayoutTree();
+            }
+
+            OverlayWindow?.InvalidateLayoutTree();
+        }
+
+        private void RecalculateResponsiveMetrics(bool invalidateLayouts)
+        {
+            UIResolvedMetrics resolved = UIResponsiveResolver.Resolve(ResponsiveSettings, ValidScreenBounds.Size, EffectiveDpiScale);
+            if (resolved != ResponsiveMetrics)
+            {
+                ResponsiveMetrics = resolved;
+
+                if (invalidateLayouts)
+                {
+                    RefreshTextLayouts();
+                    InvalidateResponsiveLayouts();
+                }
+            }
+        }
+
         public void Update()
         {
+            RecalculateResponsiveMetrics(true);
+
             //  Revalidate the size/position of the OverlayWindow
             if (ValidScreenBounds != new Rectangle(OverlayWindow.Left, OverlayWindow.Top, OverlayWindow.WindowWidth, OverlayWindow.WindowHeight))
             {
