@@ -21,6 +21,7 @@ using System.ComponentModel;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.DragDrop;
 using MGUI.Core.UI.Shapes;
+using MGUI.Core.UI.Clipping;
 
 namespace MGUI.Core.UI
 {
@@ -2087,6 +2088,12 @@ namespace MGUI.Core.UI
             }
         }
 
+        internal virtual ElementClipRequest? GetSelfClipRequest(Rectangle targetBounds)
+            => ClipToBounds ? ElementClipRequest.Rectangle(targetBounds, true) : null;
+
+        internal virtual ElementClipRequest? GetContentsClipRequest(Rectangle targetBounds)
+            => null;
+
         public virtual void Draw(ElementDrawArgs DA)
 		{
 			RecentDrawWasClipped = false;
@@ -2122,9 +2129,12 @@ namespace MGUI.Core.UI
                 }
             }
 
-            if (!ClipToBounds || !DA.DT.CurrentSettings.RasterizerState.ScissorTestEnable || TargetBounds.Intersects(DA.DT.GD.ScissorRectangle))
+			ElementClipRequest? SelfClipRequest = GetSelfClipRequest(TargetBounds);
+			ElementClipRequest? ContentsClipRequest = GetContentsClipRequest(TargetBounds);
+
+            if (!DA.DT.CurrentSettings.RasterizerState.ScissorTestEnable || TargetBounds.Intersects(DA.DT.GD.ScissorRectangle))
 			{
-				using (ClipToBounds ? DA.DT.SetClipTargetTemporary(TargetBounds, true) : null)
+				using (SelfClipRequest?.Push(DA.Context))
 				{
                     foreach (MGElement Component in _componentsDrawBeforeBackground)
                     {
@@ -2143,16 +2153,19 @@ namespace MGUI.Core.UI
 
                     DrawSelf(DA, LayoutBounds);
 
-					foreach (MGElement Component in _componentsDrawBeforeContents)
+                    using (ContentsClipRequest?.Push(DA.Context))
                     {
-                        Component.Draw(DA);
-                    }
+						foreach (MGElement Component in _componentsDrawBeforeContents)
+                        {
+                            Component.Draw(DA);
+                        }
 
-                    DrawContents(DA);
+                        DrawContents(DA);
 
-                    foreach (MGElement Component in _componentsDrawAfterContents)
-                    {
-                        Component.Draw(DA);
+                        foreach (MGElement Component in _componentsDrawAfterContents)
+                        {
+                            Component.Draw(DA);
+                        }
                     }
 
                     if (DrawOverlayBrushEnabled)
