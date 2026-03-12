@@ -7,6 +7,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Responsive;
 
 namespace MGUI.Core.UI.Containers
 {
@@ -125,12 +126,52 @@ namespace MGUI.Core.UI.Containers
 
         public override IEnumerable<MGElement> GetChildren() => SortedChildren.Select(x => x.Item);
 
+        internal static Rectangle CreateAnchoredBounds(Rectangle availableBounds, Size desiredSize, ResponsiveAnchor anchor)
+        {
+            int width = Math.Min(availableBounds.Width, Math.Max(0, desiredSize.Width));
+            int height = Math.Min(availableBounds.Height, Math.Max(0, desiredSize.Height));
+
+            return anchor switch
+            {
+                ResponsiveAnchor.TopLeft => new Rectangle(availableBounds.Left, availableBounds.Top, width, height),
+                ResponsiveAnchor.TopCenter => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top, width, height),
+                ResponsiveAnchor.TopRight => new Rectangle(availableBounds.Right - width, availableBounds.Top, width, height),
+                ResponsiveAnchor.MiddleLeft => new Rectangle(availableBounds.Left, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
+                ResponsiveAnchor.Center => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
+                ResponsiveAnchor.MiddleRight => new Rectangle(availableBounds.Right - width, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
+                ResponsiveAnchor.BottomLeft => new Rectangle(availableBounds.Left, availableBounds.Bottom - height, width, height),
+                ResponsiveAnchor.BottomCenter => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Bottom - height, width, height),
+                ResponsiveAnchor.BottomRight => new Rectangle(availableBounds.Right - width, availableBounds.Bottom - height, width, height),
+                ResponsiveAnchor.StretchHorizontal => new Rectangle(availableBounds.Left, availableBounds.Top + (availableBounds.Height - height) / 2, availableBounds.Width, height),
+                ResponsiveAnchor.StretchVertical => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top, width, availableBounds.Height),
+                ResponsiveAnchor.Stretch => availableBounds,
+                _ => availableBounds,
+            };
+        }
+
         protected override void UpdateContentLayout(Rectangle Bounds)
         {
             foreach (OverlayPanelChild Child in SortedChildren)
             {
-                Thickness Offset = Child.Offset;
-                Child.Item.UpdateLayout(Bounds.GetCompressed(Offset));
+                Thickness offset = Child.Item.ResolveExternalSpacing(Child.Offset);
+                Rectangle availableBounds = Bounds.GetCompressed(offset);
+
+                if (availableBounds.Width <= 0 || availableBounds.Height <= 0)
+                {
+                    Child.Item.UpdateLayout(Rectangle.Empty);
+                    continue;
+                }
+
+                if (Child.Item.ResponsiveAnchor == ResponsiveAnchor.None)
+                {
+                    Child.Item.UpdateLayout(availableBounds);
+                }
+                else
+                {
+                    Child.Item.UpdateMeasurement(availableBounds.Size, out _, out Thickness fullSize, out _, out _);
+                    Rectangle anchoredBounds = CreateAnchoredBounds(availableBounds, fullSize.Size, Child.Item.ResponsiveAnchor);
+                    Child.Item.UpdateLayout(anchoredBounds);
+                }
             }
         }
 
@@ -143,7 +184,7 @@ namespace MGUI.Core.UI.Containers
                 foreach (OverlayPanelChild Child in PanelChildren)
                 {
                     Child.Item.UpdateMeasurement(AvailableSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
-                    Thickness Offset = Child.Offset;
+                    Thickness Offset = Child.Item.ResolveExternalSpacing(Child.Offset);
                     RequestedSizes.Add(Child.Item, FullSize.Size.Add(Offset.Size, 0, 0));
                 }
 

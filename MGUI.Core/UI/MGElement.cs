@@ -21,6 +21,7 @@ using System.ComponentModel;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.DragDrop;
 using MGUI.Core.UI.Shapes;
+using MGUI.Core.UI.Responsive;
 using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI
@@ -418,6 +419,91 @@ namespace MGUI.Core.UI
 
 		public event EventHandler<EventArgs<string>> OnNameChanged;
 
+        #region Responsive
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool? _UseResponsiveLayout;
+        public bool? UseResponsiveLayout
+        {
+            get => _UseResponsiveLayout;
+            set
+            {
+                if (_UseResponsiveLayout != value)
+                {
+                    _UseResponsiveLayout = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(UseResponsiveLayout));
+                    NPC(nameof(IsResponsiveLayoutEnabled));
+                }
+            }
+        }
+
+        public bool IsResponsiveLayoutEnabled => UseResponsiveLayout ?? Parent?.IsResponsiveLayoutEnabled ?? false;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _ScaleSpacingWithResponsive = true;
+        public bool ScaleSpacingWithResponsive
+        {
+            get => _ScaleSpacingWithResponsive;
+            set
+            {
+                if (_ScaleSpacingWithResponsive != value)
+                {
+                    _ScaleSpacingWithResponsive = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(ScaleSpacingWithResponsive));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _ScaleDimensionsWithResponsive = true;
+        public bool ScaleDimensionsWithResponsive
+        {
+            get => _ScaleDimensionsWithResponsive;
+            set
+            {
+                if (_ScaleDimensionsWithResponsive != value)
+                {
+                    _ScaleDimensionsWithResponsive = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(ScaleDimensionsWithResponsive));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ResponsiveAnchor _ResponsiveAnchor;
+        public ResponsiveAnchor ResponsiveAnchor
+        {
+            get => _ResponsiveAnchor;
+            set
+            {
+                if (_ResponsiveAnchor != value)
+                {
+                    _ResponsiveAnchor = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(ResponsiveAnchor));
+                }
+            }
+        }
+
+        protected float ResponsiveLayoutScaleFactor => IsResponsiveLayoutEnabled && ScaleDimensionsWithResponsive ? GetDesktop().ResponsiveMetrics.UIScaleFactor : 1.0f;
+        protected float ResponsiveSpacingScaleFactor => IsResponsiveLayoutEnabled && ScaleSpacingWithResponsive ? GetDesktop().ResponsiveMetrics.UIScaleFactor : 1.0f;
+
+        internal Thickness ResolvedMargin => ScaleSpacingWithResponsive ? UIResponsiveMath.ScaleThickness(_Margin, ResponsiveSpacingScaleFactor) : _Margin;
+        internal Thickness ResolvedPadding => ScaleSpacingWithResponsive ? UIResponsiveMath.ScaleThickness(_Padding, ResponsiveSpacingScaleFactor) : _Padding;
+
+        internal int? ResolvedMinWidth => ScaleDimensionsWithResponsive ? UIResponsiveMath.ScaleNullableInt(_MinWidth, ResponsiveLayoutScaleFactor) : _MinWidth;
+        internal int? ResolvedMinHeight => ScaleDimensionsWithResponsive ? UIResponsiveMath.ScaleNullableInt(_MinHeight, ResponsiveLayoutScaleFactor) : _MinHeight;
+        internal int? ResolvedMaxWidth => ScaleDimensionsWithResponsive ? UIResponsiveMath.ScaleNullableInt(_MaxWidth, ResponsiveLayoutScaleFactor) : _MaxWidth;
+        internal int? ResolvedMaxHeight => ScaleDimensionsWithResponsive ? UIResponsiveMath.ScaleNullableInt(_MaxHeight, ResponsiveLayoutScaleFactor) : _MaxHeight;
+        internal int? ResolvedPreferredWidth => ScaleDimensionsWithResponsive ? UIResponsiveMath.ScaleNullableInt(_PreferredWidth, ResponsiveLayoutScaleFactor) : _PreferredWidth;
+        internal int? ResolvedPreferredHeight => ScaleDimensionsWithResponsive ? UIResponsiveMath.ScaleNullableInt(_PreferredHeight, ResponsiveLayoutScaleFactor) : _PreferredHeight;
+
+        internal Thickness ResolveExternalSpacing(Thickness value)
+            => IsResponsiveLayoutEnabled && ScaleSpacingWithResponsive ? UIResponsiveMath.ScaleThickness(value, ResponsiveSpacingScaleFactor) : value;
+        #endregion Responsive
+
         #region Margin / Padding
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Thickness _Margin;
@@ -473,27 +559,27 @@ namespace MGUI.Core.UI
 
         /// <summary>Total width of <see cref="Margin"/> (<see cref="Thickness.Left"/> + <see cref="Thickness.Right"/>)</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public int HorizontalMargin => Margin.Width;
+        public int HorizontalMargin => ResolvedMargin.Width;
         /// <summary>Total height of <see cref="Margin"/> (<see cref="Thickness.Top"/> + <see cref="Thickness.Bottom"/>)</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public int VerticalMargin => Margin.Height;
+        public int VerticalMargin => ResolvedMargin.Height;
         /// <summary>Total size of <see cref="Margin"/><para/>
         /// Width = <see cref="Thickness.Left"/> + <see cref="Thickness.Right"/>;<br/>
         /// Height = <see cref="Thickness.Top"/> + <see cref="Thickness.Bottom"/>;</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Size MarginSize => Margin.Size;
+        public Size MarginSize => ResolvedMargin.Size;
 
         /// <summary>Total width of <see cref="Padding"/> (<see cref="Thickness.Left"/> + <see cref="Thickness.Right"/>)</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public int HorizontalPadding => Padding.Width;
+        public int HorizontalPadding => ResolvedPadding.Width;
         /// <summary>Total height of <see cref="Padding"/> (<see cref="Thickness.Top"/> + <see cref="Thickness.Bottom"/>)</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public int VerticalPadding => Padding.Height;
+        public int VerticalPadding => ResolvedPadding.Height;
         /// <summary>Total size of <see cref="Padding"/><para/>
         /// Width = <see cref="Thickness.Left"/> + <see cref="Thickness.Right"/>;<br/>
         /// Height = <see cref="Thickness.Top"/> + <see cref="Thickness.Bottom"/>;</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Size PaddingSize => Padding.Size;
+        public Size PaddingSize => ResolvedPadding.Size;
 
         /// <summary>Total width of <see cref="Margin"/> + <see cref="Padding"/> (<see cref="Thickness.Left"/> + <see cref="Thickness.Right"/>)</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -685,24 +771,24 @@ namespace MGUI.Core.UI
         /// This value does not include <see cref="Margin"/>.<para/>
         /// See also: <see cref="MinSizeIncludingMargin"/>, <see cref="MaxSize"/>, <see cref="MaxSizeIncludingMargin"/></summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Size MinSize => new(MinWidth ?? 0, MinHeight ?? 0);
+        public Size MinSize => new(ResolvedMinWidth ?? 0, ResolvedMinHeight ?? 0);
         /// <summary>Combination of <see cref="MinWidth"/> and <see cref="MinHeight"/>. Uses 0 if value is not specified.<para/>
         /// This value includes <see cref="Margin"/>.<para/>
         /// See also: <see cref="MinSize"/>, <see cref="MaxSize"/>, <see cref="MaxSizeIncludingMargin"/></summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Size MinSizeIncludingMargin => new(MinWidth.HasValue ? MinWidth.Value + HorizontalMargin : 0, MinHeight.HasValue ? MinHeight.Value + VerticalMargin : 0);
+        public Size MinSizeIncludingMargin => new(ResolvedMinWidth.HasValue ? ResolvedMinWidth.Value + HorizontalMargin : 0, ResolvedMinHeight.HasValue ? ResolvedMinHeight.Value + VerticalMargin : 0);
 
         /// <summary>Combination of <see cref="MinWidth"/> and <see cref="MinHeight"/>. Uses <see cref="int.MaxValue"/> if value is not specified.<para/>
         /// This value does not include <see cref="Margin"/>.<para/>
         /// See also: <see cref="MaxSizeIncludingMargin"/>, <see cref="MinSize"/>, <see cref="MinSizeIncludingMargin"/></summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Size MaxSize => new(MaxWidth ?? int.MaxValue, MaxHeight ?? int.MaxValue);
+        public Size MaxSize => new(ResolvedMaxWidth ?? int.MaxValue, ResolvedMaxHeight ?? int.MaxValue);
 
         /// <summary>Combination of <see cref="MinWidth"/> and <see cref="MinHeight"/>. Uses <see cref="int.MaxValue"/> if value is not specified.<para/>
         /// This value includes <see cref="Margin"/>.<para/>
         /// See also: <see cref="MaxSize"/>, <see cref="MinSize"/>, <see cref="MinSizeIncludingMargin"/></summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Size MaxSizeIncludingMargin => new(MaxWidth.HasValue ? MaxWidth.Value + HorizontalMargin : int.MaxValue, MaxHeight.HasValue ? MaxHeight.Value + VerticalMargin : int.MaxValue);
+        public Size MaxSizeIncludingMargin => new(ResolvedMaxWidth.HasValue ? ResolvedMaxWidth.Value + HorizontalMargin : int.MaxValue, ResolvedMaxHeight.HasValue ? ResolvedMaxHeight.Value + VerticalMargin : int.MaxValue);
         #endregion Min / Max Size
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -759,10 +845,10 @@ namespace MGUI.Core.UI
 
         /// <summary>Same as <see cref="PreferredWidth"/>, except this includes the <see cref="HorizontalMargin"/></summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public int? ActualPreferredWidth => PreferredWidth.HasValue ? Math.Max(0, PreferredWidth.Value + HorizontalMargin) : PreferredWidth;
+        public int? ActualPreferredWidth => ResolvedPreferredWidth.HasValue ? Math.Max(0, ResolvedPreferredWidth.Value + HorizontalMargin) : ResolvedPreferredWidth;
         /// <summary>Same as <see cref="PreferredHeight"/>, except this includes the <see cref="VerticalMargin"/></summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public int? ActualPreferredHeight => PreferredHeight.HasValue ? Math.Max(0, PreferredHeight.Value + VerticalMargin) : PreferredHeight;
+        public int? ActualPreferredHeight => ResolvedPreferredHeight.HasValue ? Math.Max(0, ResolvedPreferredHeight.Value + VerticalMargin) : ResolvedPreferredHeight;
         #endregion Size
 
         #region ToolTip
@@ -2468,17 +2554,17 @@ namespace MGUI.Core.UI
                     else
                     {
                         //  Account for cases where stretching horizontally or vertically would cause the bounds to exceed MaxWidth and/or MaxHeight
-                        HorizontalAlignment ActualHorizontalAlignment = MaxWidth.HasValue && HorizontalAlignment == HorizontalAlignment.Stretch && AllocatedBounds.Width > MaxWidth.Value + HorizontalMargin ?
+                        HorizontalAlignment ActualHorizontalAlignment = ResolvedMaxWidth.HasValue && HorizontalAlignment == HorizontalAlignment.Stretch && AllocatedBounds.Width > ResolvedMaxWidth.Value + HorizontalMargin ?
                             HorizontalAlignment.Center :
                             HorizontalAlignment;
-                        VerticalAlignment ActualVerticalAlignment = MaxHeight.HasValue && VerticalAlignment == VerticalAlignment.Stretch && AllocatedBounds.Height > MaxHeight.Value + VerticalMargin ?
+                        VerticalAlignment ActualVerticalAlignment = ResolvedMaxHeight.HasValue && VerticalAlignment == VerticalAlignment.Stretch && AllocatedBounds.Height > ResolvedMaxHeight.Value + VerticalMargin ?
                             VerticalAlignment.Center :
                             VerticalAlignment;
 
                         Size RenderSize = new(ConsumedWidth, ConsumedHeight);
                         RenderBounds = ApplyAlignment(AllocatedBounds, ActualHorizontalAlignment, ActualVerticalAlignment, RenderSize);
 
-                        LayoutBounds = new(RenderBounds.Left + Margin.Left, RenderBounds.Top + Margin.Top,
+                        LayoutBounds = new(RenderBounds.Left + ResolvedMargin.Left, RenderBounds.Top + ResolvedMargin.Top,
                             RenderBounds.Width - HorizontalMargin, RenderBounds.Height - VerticalMargin);
                         if (LayoutBounds.Width <= 0 || LayoutBounds.Height <= 0)
                         {
@@ -2733,7 +2819,7 @@ namespace MGUI.Core.UI
 			Thickness Total = new(0);
             Size RemainingSize = AvailableSize;
 
-			Thickness MarginAndPadding = Margin.Add(Padding);
+            Thickness MarginAndPadding = ResolvedMargin.Add(ResolvedPadding);
 			Total = Total.Add(MarginAndPadding);
             RemainingSize = RemainingSize.Subtract(MarginSize, 0, 0);
 
