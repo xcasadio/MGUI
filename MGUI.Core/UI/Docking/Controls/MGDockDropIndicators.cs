@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
+using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -193,6 +194,12 @@ public class MGDockDropIndicators : MGElement
         _hostEdgeVisible = false;
         _hostEdgeActiveZone = DockZone.None;
     }
+
+    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => null;
+
+    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => null;
 
     /// <summary>
     /// Returns the host-edge zone whose indicator square contains <paramref name="screenPosition"/>,

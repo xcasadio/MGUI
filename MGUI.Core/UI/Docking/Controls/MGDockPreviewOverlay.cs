@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -138,6 +139,12 @@ public class MGDockPreviewOverlay : MGElement
     {
         IsPreviewVisible = false;
     }
+
+    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => null;
+
+    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => null;
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {

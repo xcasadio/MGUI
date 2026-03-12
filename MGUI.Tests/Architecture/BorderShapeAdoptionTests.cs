@@ -1,6 +1,7 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
+using MGUI.Core.UI.Docking.Controls;
 using MGUI.Shared.Rendering.Clipping;
 using Microsoft.Xna.Framework;
 using System.Reflection;
@@ -45,6 +46,20 @@ public class BorderShapeAdoptionTests
         Assert.NotNull(method);
         Assert.Equal(typeof(MGScrollViewer), method!.DeclaringType);
         Assert.Equal(typeof(ClipDefinition), method.ReturnType);
+    }
+
+    [Fact]
+    public void DockingOverlays_ExplicitlyOptOutOfElementClipScopes()
+    {
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+
+        var previewMethod = typeof(MGDockPreviewOverlay).GetMethod("GetSelfClipDefinition", flags);
+        var indicatorsMethod = typeof(MGDockDropIndicators).GetMethod("GetSelfClipDefinition", flags);
+
+        Assert.NotNull(previewMethod);
+        Assert.NotNull(indicatorsMethod);
+        Assert.Equal(typeof(MGDockPreviewOverlay), previewMethod!.DeclaringType);
+        Assert.Equal(typeof(MGDockDropIndicators), indicatorsMethod!.DeclaringType);
     }
 
     [Fact]
