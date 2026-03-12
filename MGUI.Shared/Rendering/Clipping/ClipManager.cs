@@ -8,28 +8,16 @@ namespace MGUI.Shared.Rendering.Clipping
     internal sealed class ClipManager
     {
         private readonly DrawTransaction _Owner;
+        private readonly ClipBackendCapabilities _Capabilities;
 
         public ClipManager(DrawTransaction owner)
         {
             _Owner = owner ?? throw new ArgumentNullException(nameof(owner));
+            _Capabilities = ClipBackendCapabilities.Default;
         }
 
         public ClipResolveResult Resolve(ClipDefinition definition)
-        {
-            ArgumentNullException.ThrowIfNull(definition);
-
-            return definition.Kind switch
-            {
-                ClipKind.None => new(definition, definition, ClipStrategy.None, false),
-                ClipKind.Rectangle => new(definition, definition, ClipStrategy.Scissor, false),
-                ClipKind.RoundedRectangle or ClipKind.ArbitraryGeometry when definition.AllowRectangleFallback
-                    => new(definition, ClipDefinition.Rectangle(definition.Shape.Bounds, definition.IntersectWithCurrentClip, debugName: definition.DebugName),
-                        ClipStrategy.Scissor, true),
-                ClipKind.RoundedRectangle => new(definition, definition, ClipStrategy.Stencil, false),
-                ClipKind.ArbitraryGeometry => new(definition, definition, ClipStrategy.Mask, false),
-                _ => throw new NotImplementedException($"Unrecognized {nameof(ClipKind)}: {definition.Kind}")
-            };
-        }
+            => ClipStrategyResolver.Resolve(definition, _Capabilities);
 
         public ClipScope Push(ClipDefinition definition)
         {
