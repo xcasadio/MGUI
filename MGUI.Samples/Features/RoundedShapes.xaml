@@ -17,7 +17,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="Transparent">
         <StackPanel Orientation="Vertical" Spacing="12">
             <TextBlock FontSize="16" IsBold="True" Text="Rounded shape regression surface" />
-            <TextBlock Text="This sample is intended for manual inspection of simple, uniform, asymmetric, thick-border, tiny-size, and semi-transparent rounded scenarios." />
+            <TextBlock Text="This sample is intended for manual inspection of simple, uniform, asymmetric, thick-border, tiny-size, semi-transparent, and clip-pipeline rounded scenarios." />
 
             <Border>
                 <StackPanel Orientation="Vertical" Spacing="8">
@@ -52,6 +52,42 @@
                         <TextBlock Text="Second option" />
                     </ComboBox>
                     <ProgressBar CornerRadius="10" BorderThickness="2" BorderBrush="White" Width="320" Height="28" Minimum="0" Maximum="100" Value="66" />
+                </StackPanel>
+            </Border>
+
+            <Border>
+                <StackPanel Orientation="Vertical" Spacing="8">
+                    <TextBlock IsBold="True" Text="Clip pipeline" />
+                    <TextBlock Text="Manual checks: rounded parent clips oversized child content, nested rounded+rectangle combinations stay stable, scroll content remains clipped, and RenderScale still respects clip bounds." />
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Border Width="220" Height="96" CornerRadius="20" ClipToBounds="True" Background="rgb(67,84,99)" BorderBrush="White" BorderThickness="2" Padding="10">
+                            <StackPanel Orientation="Horizontal" Spacing="-18">
+                                <Rectangle Width="88" Height="72" Fill="rgba(255,120,120,200)" CornerRadius="18" />
+                                <Rectangle Width="88" Height="72" Fill="rgba(120,220,255,190)" CornerRadius="18" RenderScale="1.1" />
+                                <Rectangle Width="88" Height="72" Fill="rgba(255,220,120,200)" CornerRadius="18" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Width="220" Height="96" CornerRadius="0" ClipToBounds="True" Background="rgb(67,84,99)" BorderBrush="White" BorderThickness="2" Padding="10">
+                            <Border Width="180" Height="72" CornerRadius="18" ClipToBounds="True" Background="rgba(120,180,255,70)" BorderBrush="rgb(120,220,255)" BorderThickness="2">
+                                <Rectangle Width="220" Height="72" Fill="White|Orange|Lime|HotPink" RenderScale="1.08" />
+                            </Border>
+                        </Border>
+                    </StackPanel>
+
+                    <Border Width="460" Height="150" CornerRadius="18" ClipToBounds="True" Background="rgb(48,53,60)" BorderBrush="White" BorderThickness="2" Padding="10">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Background="Transparent">
+                            <StackPanel Orientation="Vertical" Spacing="8">
+                                <TextBlock Text="Rounded ScrollViewer viewport clip" />
+                                <Rectangle Width="420" Height="32" Fill="rgba(77,163,255,180)" CornerRadius="12" />
+                                <Rectangle Width="420" Height="32" Fill="rgba(255,140,0,180)" CornerRadius="12" />
+                                <Rectangle Width="420" Height="32" Fill="rgba(120,255,160,180)" CornerRadius="12" />
+                                <Rectangle Width="420" Height="32" Fill="rgba(255,120,180,180)" CornerRadius="12" />
+                                <Rectangle Width="420" Height="32" Fill="rgba(180,120,255,180)" CornerRadius="12" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
                 </StackPanel>
             </Border>
         </StackPanel>
