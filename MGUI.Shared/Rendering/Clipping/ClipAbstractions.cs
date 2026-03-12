@@ -62,7 +62,7 @@ namespace MGUI.Shared.Rendering.Clipping
         string DebugName = null)
     {
         public static ClipDefinition None(bool intersectWithCurrentClip = false, string debugName = null)
-            => new(ClipKind.None, ClipShape.Rectangle(Rectangle.Empty), intersectWithCurrentClip, ClipStrategyPreference.Default, false, debugName);
+            => new(ClipKind.None, ClipShape.Rectangle(Microsoft.Xna.Framework.Rectangle.Empty), intersectWithCurrentClip, ClipStrategyPreference.Default, false, debugName);
 
         public static ClipDefinition Rectangle(Rectangle bounds, bool intersectWithCurrentClip = true,
             ClipStrategyPreference strategyPreference = ClipStrategyPreference.Default, string debugName = null)
