@@ -17,6 +17,9 @@ namespace MGUI.Shared.Rendering
         public ClipResolveResult ResolveClip(ClipDefinition Definition);
         public ClipScope PushClipTemporary(ClipDefinition Definition);
         public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);
+
+        // Compatibility shim for existing rectangle-only callers during migration.
+        // New code should prefer PushRectangleClip(...) or PushClipTemporary(...).
         public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);
     }
 }

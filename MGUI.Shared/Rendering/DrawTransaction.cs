@@ -1070,6 +1070,7 @@ namespace MGUI.Shared.Rendering
             }
         }
 
+        /// <summary>Compatibility wrapper kept for rectangle-only migration paths.</summary>
         /// <param name="IntersectWithCurrentClipTarget">If true, rather than replacing the clip target with the given <paramref name="Bounds"/>,<br/>
         /// the clip target will be the intersection of the current clip target and the given <paramref name="Bounds"/></param>
         public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)

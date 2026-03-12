@@ -6,6 +6,15 @@ namespace MGUI.Tests.Architecture;
 public class ClipPipelineStrategyTests
 {
     [Fact]
+    public void RenderContext_KeepsLegacyRectangleClipShim()
+    {
+        var method = typeof(MGUI.Shared.Rendering.IUIRenderContext).GetMethod("SetClipTargetTemporary");
+
+        Assert.NotNull(method);
+        Assert.Equal(typeof(IDisposable), method!.ReturnType);
+    }
+
+    [Fact]
     public void RectangleClip_ResolvesToScissor()
     {
         ClipDefinition definition = ClipDefinition.Rectangle(new Rectangle(10, 20, 100, 40), true, debugName: "Rect");
