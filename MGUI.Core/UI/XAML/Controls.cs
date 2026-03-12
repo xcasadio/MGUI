@@ -2662,6 +2662,8 @@ namespace MGUI.Core.UI.XAML
         public float? LinePadding { get; set; }
         [Category("Layout")]
         public HorizontalAlignment? TextAlignment { get; set; }
+        [Category("Layout")]
+        public bool? UseResponsiveTextScale { get; set; }
 
         [Category("Behavior")]
         public double? TextProgress { get; set; }
@@ -2747,6 +2749,11 @@ namespace MGUI.Core.UI.XAML
             if (TextAlignment.HasValue)
             {
                 TextBlock.TextAlignment = TextAlignment.Value;
+            }
+
+            if (UseResponsiveTextScale.HasValue)
+            {
+                TextBlock.UseResponsiveTextScale = UseResponsiveTextScale.Value;
             }
 
             if (TextCharactersPerSecond.HasValue)

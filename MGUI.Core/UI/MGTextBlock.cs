@@ -15,6 +15,7 @@ using MGUI.Shared.Text.Engines;
 using MGUI.Shared.Rendering;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Input.Mouse;
+using MGUI.Core.UI.Responsive;
 
 namespace MGUI.Core.UI
 {
@@ -39,6 +40,27 @@ namespace MGUI.Core.UI
         // ── ITextEngine-backed resolved fonts (one per style variant) ─────────────
         /// <summary>Shortcut to the active <see cref="ITextEngine"/> from the parent Desktop.</summary>
         private ITextEngine TextEngine => GetTextEngine();
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool? _UseResponsiveTextScale;
+        public bool? UseResponsiveTextScale
+        {
+            get => _UseResponsiveTextScale;
+            set
+            {
+                if (_UseResponsiveTextScale != value)
+                {
+                    _UseResponsiveTextScale = value;
+                    RefreshTextEngine();
+                    NPC(nameof(UseResponsiveTextScale));
+                }
+            }
+        }
+
+        private bool IsResponsiveTextScaleEnabled => UseResponsiveTextScale ?? IsResponsiveLayoutEnabled;
+        private float ResponsiveTextScaleFactor => IsResponsiveTextScaleEnabled ? GetDesktop().ResponsiveMetrics.TextScaleFactor : 1.0f;
+        private float EffectiveLinePadding => IsResponsiveTextScaleEnabled ? LinePadding * ResponsiveTextScaleFactor : LinePadding;
+        private int EffectiveFontSize => Math.Max(1, UIResponsiveMath.ScaleInt(_FontSize, ResponsiveTextScaleFactor));
 
         internal ResolvedFont RF_Regular    { get; private set; }
         internal ResolvedFont RF_Bold       { get; private set; }
@@ -75,7 +97,8 @@ namespace MGUI.Core.UI
                 int PreviousFontSize = FontSize;
 
                 // Validate that the requested font exists before committing the change
-                if (!GetDesktop().FontManager.TryGetFont(FontFamily, CustomFontStyles.Normal, FontSize, true, out _, out _, out _, out _, out _))
+                int effectiveFontSize = Math.Max(1, UIResponsiveMath.ScaleInt(FontSize, ResponsiveTextScaleFactor));
+                if (!GetDesktop().FontManager.TryGetFont(FontFamily, CustomFontStyles.Normal, effectiveFontSize, true, out _, out _, out _, out _, out _))
                 {
                     return false;
                 }
@@ -85,10 +108,10 @@ namespace MGUI.Core.UI
 
                 // Resolve ITextEngine handles for all 4 style variants
                 ITextEngine engine = TextEngine;
-                RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, _FontSize, CustomFontStyles.Normal));
-                RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, _FontSize, CustomFontStyles.Bold));
-                RF_Italic     = engine.ResolveFont(new FontSpec(_FontFamily, _FontSize, CustomFontStyles.Italic));
-                RF_BoldItalic = engine.ResolveFont(new FontSpec(_FontFamily, _FontSize, CustomFontStyles.Bold | CustomFontStyles.Italic));
+                RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Normal));
+                RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold));
+                RF_Italic     = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Italic));
+                RF_BoldItalic = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold | CustomFontStyles.Italic));
 
                 SpaceWidth = RF_Regular.SpaceWidth;
 
@@ -121,10 +144,10 @@ namespace MGUI.Core.UI
         internal void RefreshTextEngine()
         {
             ITextEngine engine = TextEngine;
-            RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, _FontSize, CustomFontStyles.Normal));
-            RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, _FontSize, CustomFontStyles.Bold));
-            RF_Italic     = engine.ResolveFont(new FontSpec(_FontFamily, _FontSize, CustomFontStyles.Italic));
-            RF_BoldItalic = engine.ResolveFont(new FontSpec(_FontFamily, _FontSize, CustomFontStyles.Bold | CustomFontStyles.Italic));
+            RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Normal));
+            RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold));
+            RF_Italic     = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Italic));
+            RF_BoldItalic = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold | CustomFontStyles.Italic));
             SpaceWidth    = RF_Regular.SpaceWidth;
             InvokeLayoutChanged(); // clears RecentSelfMeasurements + fires LayoutChanged
         }
@@ -480,7 +503,7 @@ namespace MGUI.Core.UI
 
         internal void UpdateLines()
         {
-            Lines = MGTextLine.ParseLines(this, LayoutBounds.Width - Padding.Width, WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
+            Lines = MGTextLine.ParseLines(this, Math.Max(0, LayoutBounds.Width - HorizontalPadding), WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
             NPC(nameof(Lines));
         }
 
@@ -705,10 +728,10 @@ namespace MGUI.Core.UI
                 MeasuredLines = MeasuredLines.Take(MaxLines.Value).ToList();
             }
 
-            Vector2 Size = new(MeasuredLines.Select(x => x.LineWidth).DefaultIfEmpty(0).Max(), MeasuredLines.Sum(x => x.LineTotalHeight) + LinePadding * Math.Max(0, MeasuredLines.Count - 1));
+            Vector2 Size = new(MeasuredLines.Select(x => x.LineWidth).DefaultIfEmpty(0).Max(), MeasuredLines.Sum(x => x.LineTotalHeight) + EffectiveLinePadding * Math.Max(0, MeasuredLines.Count - 1));
             if (MinLines > MeasuredLines.Count)
             {
-                Size = Size.SetY(Size.Y + (MinLines - MeasuredLines.Count) * (RF_Regular.LineHeight + LinePadding));
+                Size = Size.SetY(Size.Y + (MinLines - MeasuredLines.Count) * (RF_Regular.LineHeight + EffectiveLinePadding));
             }
 
             Thickness Measurement = new((int)Math.Ceiling(Size.X), (int)Math.Ceiling(Size.Y), 0, 0);
@@ -793,11 +816,13 @@ namespace MGUI.Core.UI
 
             int RemainingCharacters = TextProgress.HasValue ? (int)(TextProgress.Value * NumCharacters) : NumCharacters;
 
-            float CurrentY = LayoutBounds.Top + Padding.Top;
+            Thickness padding = ResolvedPadding;
+
+            float CurrentY = LayoutBounds.Top + padding.Top;
 
             foreach (MGTextLine Line in Lines)
             {
-                Rectangle LineBounds = new(LayoutBounds.Left + Padding.Left, (int)CurrentY, LayoutBounds.Width - PaddingSize.Width, (int)Line.LineTotalHeight);
+                Rectangle LineBounds = new(LayoutBounds.Left + padding.Left, (int)CurrentY, LayoutBounds.Width - PaddingSize.Width, (int)Line.LineTotalHeight);
                 float CurrentX = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.LineWidth, (int)Line.LineTotalHeight)).Left;
                 float TextYPosition = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.LineWidth, (int)Line.LineTextHeight)).Y;
 
@@ -920,7 +945,7 @@ namespace MGUI.Core.UI
                     }
                 }
 
-                CurrentY += Line.LineTotalHeight + LinePadding;
+                CurrentY += Line.LineTotalHeight + EffectiveLinePadding;
 
                 if (TextProgress.HasValue && RemainingCharacters <= 0)
                 {
