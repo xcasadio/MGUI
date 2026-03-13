@@ -1,0 +1,99 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:System="clr-namespace:System;assembly=mscorlib"
+        Left="460" Top="30" Width="760" Height="720" TitleText="Style / Theme Refactor" Padding="10">
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Black" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="Style / Theme Refactor" HorizontalAlignment="Center" />
+            <TextBlock Text="This sample demonstrates the refactored theme pipeline with built-in control templates, XAML ControlTemplate references, and runtime theme switching." />
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top" Text="Switch the active theme at runtime. The same controls keep their behavior while their theme-driven values are reapplied." />
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                    <Button Name="ApplyDarkBlueThemeButton" Content="Dark Blue Theme" />
+                    <Button Name="ApplyLightThemeButton" Content="Light Gray Theme" />
+                    <TextBlock Name="ActiveThemeText" VerticalAlignment="Center" Text="Active theme: Dark Blue" />
+                </StackPanel>
+            </DockPanel>
+            <Separator />
+
+            <Grid RowLengths="Auto,Auto" ColumnLengths="*,*" RowSpacing="10" ColumnSpacing="12">
+                <Border Row="0" Column="0" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
+                    <StackPanel Orientation="Vertical" Spacing="8">
+                        <TextBlock StyleNames="Header1" Text="Selection Controls" />
+                        <ComboBox Name="SampleComboBox" ItemType="{x:Type System:String}" Width="220" HorizontalAlignment="Left" ControlTemplate="ComboBox.Default">
+                            <System:String>Low</System:String>
+                            <System:String>Medium</System:String>
+                            <System:String>High</System:String>
+                        </ComboBox>
+                        <ListBox Name="SampleListBox" ItemType="{x:Type System:String}" Width="260" Height="150" Header="Template-backed ListBox" ControlTemplate="ListBox.Default" />
+                        <TreeView Width="260" Height="170" ControlTemplate="TreeView.Default">
+                            <TreeViewItem Header="Characters" IsExpanded="True">
+                                <TreeViewItem Header="Warrior" />
+                                <TreeViewItem Header="Mage" />
+                                <TreeViewItem Header="Rogue" />
+                            </TreeViewItem>
+                            <TreeViewItem Header="Inventory" IsExpanded="True">
+                                <TreeViewItem Header="Consumables" />
+                                <TreeViewItem Header="Weapons" />
+                            </TreeViewItem>
+                        </TreeView>
+                    </StackPanel>
+                </Border>
+
+                <Border Row="0" Column="1" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
+                    <StackPanel Orientation="Vertical" Spacing="8">
+                        <TextBlock StyleNames="Header1" Text="Composite Controls" />
+                        <TabControl Name="SampleTabControl" Height="220" ControlTemplate="TabControl.Default">
+                            <TabItem Header="Overview">
+                                <TextBlock Text="The tab headers are created via the control template defaults and remain overrideable from XAML." />
+                            </TabItem>
+                            <TabItem Header="Resources">
+                                <TextBlock Text="Themes, styles, and template-backed composites now share the same resource hierarchy." />
+                            </TabItem>
+                            <TabItem Header="States">
+                                <TextBlock Text="Hover, pressed and selected visuals are projected through template parts instead of ad hoc control code." />
+                            </TabItem>
+                        </TabControl>
+                        <ContextMenu Name="SampleContextMenu" TitleText="Actions" ControlTemplate="ContextMenu.Default">
+                            <ContextMenuButton Text="Open" />
+                            <ContextMenuButton Text="Duplicate" />
+                            <ContextMenuButton Text="Delete" />
+                        </ContextMenu>
+                        <Button Name="OpenContextMenuButton" Content="Open Sample Context Menu" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
+
+                <Border Row="1" Column="0" ColumnSpan="2" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
+                    <StackPanel Orientation="Vertical" Spacing="6">
+                        <TextBlock StyleNames="Header1" Text="Migration Notes" />
+                        <TextBlock Text="The refactor keeps the runtime behavior in controls and moves default chrome decisions into named control templates resolved through MGResources." />
+                        <TextBox Name="ExampleXamlText" Height="170" IsReadonly="True" Background="rgb(12,16,82)" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

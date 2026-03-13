@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI.Docking.Controls;
@@ -19,17 +20,15 @@ public class MGDockDropIndicators : MGElement
     private const int ZoneSpacing = 4;    // Spacing between zones
     private const int BorderWidth = 2;
 
-    // ── Per-panel joystick colours ──────────────────────────────────────────
-    private static readonly Color InactiveColor = new Color(100, 100, 100, 180);
-    private static readonly Color ActiveColor   = new Color(0, 122, 204, 230);
-    private static readonly Color BorderColor   = new Color(255, 255, 255, 200);
-
-    // ── Host-edge indicator colours (slightly different tint) ────────────────
-    private static readonly Color HostInactiveColor = new Color(80, 80, 120, 180);
-    private static readonly Color HostActiveColor   = new Color(0, 160, 80, 230);
-    // ── Disabled zone colours (forbidden by docking rules) ───────────────────
-    private static readonly Color DisabledColor       = new Color(40, 40, 40, 100);
-    private static readonly Color DisabledBorderColor = new Color(70, 70, 70, 120);
+    public Color InactiveColor { get; set; } = new Color(100, 100, 100, 180);
+    public Color ActiveColor { get; set; } = new Color(0, 122, 204, 230);
+    public Color BorderColor { get; set; } = new Color(255, 255, 255, 200);
+    public Color HostInactiveColor { get; set; } = new Color(80, 80, 120, 180);
+    public Color HostActiveColor { get; set; } = new Color(0, 160, 80, 230);
+    public Color DisabledColor { get; set; } = new Color(40, 40, 40, 100);
+    public Color DisabledBorderColor { get; set; } = new Color(70, 70, 70, 120);
+    public Color SymbolColor { get; set; } = Color.White;
+    public Color DisabledSymbolColor { get; set; } = new Color(100, 100, 100, 150);
 
     /// <summary>Zones that are currently forbidden by docking rules and should be drawn grayed out.</summary>
     private readonly HashSet<DockZone> _disabledZones = new HashSet<DockZone>();
@@ -127,6 +126,7 @@ public class MGDockDropIndicators : MGElement
             // Full stretch to cover entire parent area
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
+            ControlTemplateName = MGControlTemplateCatalog.DockDropIndicatorsTemplateName;
         }
     }
 
@@ -451,11 +451,11 @@ public class MGDockDropIndicators : MGElement
         DrawBorder(DA, rect, borderCol, BorderWidth);
         if (!isDisabled)
         {
-            DrawZoneSymbol(DA, rect, zone, Color.White, isHostEdge);
+            DrawZoneSymbol(DA, rect, zone, SymbolColor, isHostEdge);
         }
         else
         {
-            DrawZoneSymbol(DA, rect, zone, new Color(100, 100, 100, 150), isHostEdge);
+            DrawZoneSymbol(DA, rect, zone, DisabledSymbolColor, isHostEdge);
         }
     }
 

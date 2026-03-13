@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Input.Mouse;
 
 namespace MGUI.Core.UI.Docking.Controls;
@@ -80,6 +81,9 @@ public class MGDockSplitterBar : MGElement
         }
     }
 
+    public Color HoverOverlayColor { get; set; } = new Color(150, 200, 255, 120);
+    public Color PressedOverlayColor { get; set; } = new Color(100, 180, 255, 180);
+
     /// <summary>
     /// Gets the parent MGDockSplitContainer, if any.
     /// </summary>
@@ -113,6 +117,7 @@ public class MGDockSplitterBar : MGElement
             NormalBrush = new MGSolidFillBrush(new Color(64, 64, 64));        // Dark gray
             HoverBrush = new MGSolidFillBrush(new Color(100, 150, 200));      // Blue highlight
             PressedBrush = new MGSolidFillBrush(new Color(70, 130, 180));     // Darker blue when dragging
+            ControlTemplateName = MGControlTemplateCatalog.DockSplitterTemplateName;
 
             // Subscribe to mouse press event to start dragging
             MouseHandler.LMBPressedInside += OnLMBPressed;
@@ -285,8 +290,8 @@ public class MGDockSplitterBar : MGElement
         if (IsHovered || IsDragging)
         {
             Color highlightColor = IsDragging 
-                ? new Color(100, 180, 255, 180)  // Bright blue when dragging
-                : new Color(150, 200, 255, 120);  // Lighter blue when hovering
+                ? PressedOverlayColor
+                : HoverOverlayColor;
 
             // Draw highlight overlay
             Rectangle highlightBounds = LayoutBounds;

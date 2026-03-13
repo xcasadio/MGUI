@@ -13,11 +13,15 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
     public class MGTabControl : MGHeaderedContentPresenter
     {
+        public const string BorderPartName = "PART_Border";
+        public const string HeadersPanelPartName = "PART_HeadersPanel";
+
         internal static int GetAdjacentTabIndex(int currentIndex, int count, UINavigationAction action)
         {
             if (count <= 0)
@@ -425,6 +429,7 @@ namespace MGUI.Core.UI
             {
                 //  Create the StackPanel that hosts the Tab Headers
                 HeadersPanelElement = new(Window, Orientation.Horizontal);
+                RegisterTemplatePart(HeadersPanelPartName, HeadersPanelElement);
                 HeadersPanelElement.CanChangeContent = false;
                 HeadersPanelElement.Spacing = 0;
                 Header = HeadersPanelElement;
@@ -475,13 +480,13 @@ namespace MGUI.Core.UI
                 HeaderPositionChanged += (sender, e) => { ApplyHeadersPanelSettings(); };
 
                 BorderElement = new(Window);
+                RegisterTemplatePart(BorderPartName, BorderElement);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
-                Padding = new(12);
                 IsFocusable = true;
 
                 ActualTabHeaders = new();
@@ -512,21 +517,7 @@ namespace MGUI.Core.UI
                     }
                 };
 
-                SelectedTabHeaderTemplate = (MGTabItem TabItem) =>
-                {
-                    MGButton Button = new(TabItem.SelfOrParentWindow, x => TabItem.IsTabSelected = true);
-                    Button.IsFocusable = false;
-                    ApplyDefaultSelectedTabHeaderStyle(Button);
-                    return Button;
-                };
-
-                UnselectedTabHeaderTemplate = (MGTabItem TabItem) =>
-                {
-                    MGButton Button = new(TabItem.SelfOrParentWindow, x => TabItem.IsTabSelected = true);
-                    Button.IsFocusable = false;
-                    ApplyDefaultUnselectedTabHeaderStyle(Button);
-                    return Button;
-                };
+                ControlTemplateName = MGControlTemplateCatalog.TabControlTemplateName;
             }
         }
 

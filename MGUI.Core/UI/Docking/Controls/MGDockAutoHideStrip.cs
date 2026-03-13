@@ -6,6 +6,7 @@ using MonoGame.Extended;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Text;
 
 namespace MGUI.Core.UI.Docking.Controls;
@@ -48,6 +49,16 @@ public class MGDockAutoHideStrip : MGElement
     // Mapping from button → panel so we know which one was clicked
     private readonly Dictionary<MGBorder, DockPanelNode> _buttonMap = new Dictionary<MGBorder, DockPanelNode>();
 
+    public VisualStateFillBrush ButtonBackgroundBrush { get; set; } =
+        new VisualStateFillBrush(
+            new MGSolidFillBrush(new Color(37, 37, 38)),
+            new Color(62, 62, 66),
+            PressedModifierType.Darken,
+            0.10f);
+
+    public Color TextColor { get; set; } = new Color(200, 200, 200);
+    public Color SeparatorColor { get; set; } = new Color(60, 60, 65);
+
     /// <summary>Fired when the user clicks a panel button in the strip.</summary>
     public event EventHandler<DockPanelNode> PanelActivated;
 
@@ -63,6 +74,7 @@ public class MGDockAutoHideStrip : MGElement
 
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment   = VerticalAlignment.Stretch;
+            ControlTemplateName = MGControlTemplateCatalog.DockAutoHideStripTemplateName;
         }
     }
 
@@ -101,7 +113,20 @@ public class MGDockAutoHideStrip : MGElement
             };
         }
 
+        ApplyThemeVisuals();
         LayoutChanged(this, true);
+    }
+
+    public void ApplyThemeVisuals()
+    {
+        foreach (var btn in _buttons)
+        {
+            btn.BackgroundBrush = ButtonBackgroundBrush;
+            if (btn.Content is MGTextBlock label)
+            {
+                label.DefaultTextForeground.NormalValue = TextColor;
+            }
+        }
     }
 
     // ── Text-measurement helper ───────────────────────────────────────
@@ -135,11 +160,7 @@ public class MGDockAutoHideStrip : MGElement
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment   = VerticalAlignment.Stretch
         };
-        body.BackgroundBrush = new VisualStateFillBrush(
-            new MGSolidFillBrush(new Color(37, 37, 38)),
-            new Color(62, 62, 66),
-            PressedModifierType.Darken,
-            0.10f);
+        body.BackgroundBrush = ButtonBackgroundBrush;
 
         // Only add a label for horizontal strips; vertical strips use rotated DrawContents text
         if (IsHorizontal)
@@ -152,7 +173,7 @@ public class MGDockAutoHideStrip : MGElement
                 VerticalAlignment   = VerticalAlignment.Center,
                 Padding             = new XAML.Thickness(4, 2, 4, 2).ToThickness()
             };
-            label.DefaultTextForeground.NormalValue = new Color(200, 200, 200);
+            label.DefaultTextForeground.NormalValue = TextColor;
             body.SetContent(label);
         }
         return body;
@@ -254,7 +275,7 @@ public class MGDockAutoHideStrip : MGElement
                     Vector2 pos      = new Vector2(
                         btn.LayoutBounds.X + btn.LayoutBounds.Width  / 2f,
                         btn.LayoutBounds.Y + btn.LayoutBounds.Height / 2f);
-                    Color textColor  = new Color(200, 200, 200) * DA.Opacity;
+                    Color textColor  = TextColor * DA.Opacity;
                     DA.DT.DrawTextViaEngine(resolved, title, pos, textColor, origin, scale, -MathF.PI / 2f);
                 }
             }
@@ -262,7 +283,7 @@ public class MGDockAutoHideStrip : MGElement
 
         var LayoutBounds = this.LayoutBounds;
         // Draw a thin separator line on the inner edge
-        var sepColor = new Color(60, 60, 65) * DA.Opacity;
+        var sepColor = SeparatorColor * DA.Opacity;
         switch (_side)
         {
             case AutoHideSide.Left:

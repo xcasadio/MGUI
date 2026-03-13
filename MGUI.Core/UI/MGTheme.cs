@@ -89,6 +89,48 @@ namespace MGUI.Core.UI
         }
     }
 
+    public class MGThemeDockingSettings
+    {
+        public IFillBrush TabNormalBackground { get; set; }
+        public IFillBrush TabHoverBackground { get; set; }
+        public IFillBrush TabActiveBackground { get; set; }
+        public Color TabActiveAccentColor { get; set; }
+        public Color TabHoverAccentColor { get; set; }
+        public Color TabActiveTextColor { get; set; }
+        public Color TabInactiveTextColor { get; set; }
+        public Color TabActiveIconColor { get; set; }
+        public Color TabInactiveIconColor { get; set; }
+
+        public IFillBrush AutoHideDrawerBackground { get; set; }
+        public IFillBrush AutoHideDrawerHeaderBackground { get; set; }
+        public VisualStateFillBrush AutoHideButtonBackground { get; set; }
+        public Color AutoHideHeaderTextColor { get; set; }
+        public Color AutoHideIconColor { get; set; }
+        public Color AutoHideBorderColor { get; set; }
+        public Color AutoHideGripColor { get; set; }
+
+        public IFillBrush AutoHideStripBackground { get; set; }
+        public VisualStateFillBrush AutoHideStripButtonBackground { get; set; }
+        public Color AutoHideStripTextColor { get; set; }
+        public Color AutoHideStripSeparatorColor { get; set; }
+
+        public IFillBrush SplitterNormalBrush { get; set; }
+        public IFillBrush SplitterHoverBrush { get; set; }
+        public IFillBrush SplitterPressedBrush { get; set; }
+        public Color SplitterHoverOverlayColor { get; set; }
+        public Color SplitterPressedOverlayColor { get; set; }
+
+        public Color DropIndicatorInactiveColor { get; set; }
+        public Color DropIndicatorActiveColor { get; set; }
+        public Color DropIndicatorBorderColor { get; set; }
+        public Color DropIndicatorHostInactiveColor { get; set; }
+        public Color DropIndicatorHostActiveColor { get; set; }
+        public Color DropIndicatorDisabledColor { get; set; }
+        public Color DropIndicatorDisabledBorderColor { get; set; }
+        public Color DropIndicatorSymbolColor { get; set; }
+        public Color DropIndicatorDisabledSymbolColor { get; set; }
+    }
+
     public class MGTheme
     {
         #region Background
@@ -196,6 +238,7 @@ namespace MGUI.Core.UI
         public VisualStateSetting<Color?> ToolTipTextForeground { get; set; }
 
         public ThemeFontSettings FontSettings { get; }
+        public MGThemeDockingSettings Docking { get; }
 
         public enum BuiltInTheme
         {
@@ -614,6 +657,56 @@ namespace MGUI.Core.UI
                             Color.White * 0.05f, PressedModifierType.Darken, 0.06f)
                     );
 
+                Docking = new MGThemeDockingSettings()
+                {
+                    TabNormalBackground = new MGSolidFillBrush(new Color(45, 45, 48)),
+                    TabHoverBackground = new MGSolidFillBrush(new Color(62, 62, 66)),
+                    TabActiveBackground = new MGSolidFillBrush(new Color(37, 37, 38)),
+                    TabActiveAccentColor = PrimaryColor.Brighten(0.20f),
+                    TabHoverAccentColor = Color.Lerp(PrimaryColor, Color.White, 0.35f) * 0.70f,
+                    TabActiveTextColor = Color.White,
+                    TabInactiveTextColor = new Color(200, 200, 200),
+                    TabActiveIconColor = Color.White,
+                    TabInactiveIconColor = new Color(180, 180, 180),
+
+                    AutoHideDrawerBackground = new MGSolidFillBrush(new Color(37, 37, 38)),
+                    AutoHideDrawerHeaderBackground = new MGSolidFillBrush(new Color(45, 45, 48)),
+                    AutoHideButtonBackground = new VisualStateFillBrush(
+                        (IFillBrush)null,
+                        new Color(62, 62, 66),
+                        PressedModifierType.Darken,
+                        0.10f),
+                    AutoHideHeaderTextColor = TextColor,
+                    AutoHideIconColor = new Color(200, 200, 200),
+                    AutoHideBorderColor = new Color(80, 80, 85),
+                    AutoHideGripColor = new Color(100, 100, 110),
+
+                    AutoHideStripBackground = new MGSolidFillBrush(new Color(30, 30, 32)),
+                    AutoHideStripButtonBackground = new VisualStateFillBrush(
+                        new MGSolidFillBrush(new Color(37, 37, 38)),
+                        new Color(62, 62, 66),
+                        PressedModifierType.Darken,
+                        0.10f),
+                    AutoHideStripTextColor = new Color(200, 200, 200),
+                    AutoHideStripSeparatorColor = new Color(60, 60, 65),
+
+                    SplitterNormalBrush = new MGSolidFillBrush(new Color(64, 64, 64)),
+                    SplitterHoverBrush = new MGSolidFillBrush(Color.Lerp(PrimaryColor, Color.White, 0.22f)),
+                    SplitterPressedBrush = new MGSolidFillBrush(PrimaryColor.Brighten(0.08f)),
+                    SplitterHoverOverlayColor = Color.Lerp(PrimaryColor, Color.White, 0.45f) * 0.47f,
+                    SplitterPressedOverlayColor = Color.Lerp(PrimaryColor, Color.White, 0.25f) * 0.70f,
+
+                    DropIndicatorInactiveColor = new Color(100, 100, 100, 180),
+                    DropIndicatorActiveColor = new Color(PrimaryColor.R, PrimaryColor.G, PrimaryColor.B, (byte)230),
+                    DropIndicatorBorderColor = new Color(255, 255, 255, 200),
+                    DropIndicatorHostInactiveColor = new Color(80, 80, 120, 180),
+                    DropIndicatorHostActiveColor = new Color(0, 160, 80, 230),
+                    DropIndicatorDisabledColor = new Color(40, 40, 40, 100),
+                    DropIndicatorDisabledBorderColor = new Color(70, 70, 70, 120),
+                    DropIndicatorSymbolColor = Color.White,
+                    DropIndicatorDisabledSymbolColor = new Color(100, 100, 100, 150)
+                };
+
                 TextBlockFallbackForeground =
                     new ThemeManagedVisualStateColorBrush(
                         new VisualStateColorBrush(TextColor)
@@ -869,6 +962,56 @@ namespace MGUI.Core.UI
                             SolidFillBrushes.SemiBlack,
                             Color.White * 0.05f, PressedModifierType.Darken, 0.06f)
                     );
+
+                Docking = new MGThemeDockingSettings()
+                {
+                    TabNormalBackground = new MGSolidFillBrush(new Color(214, 214, 214)),
+                    TabHoverBackground = new MGSolidFillBrush(new Color(232, 232, 232)),
+                    TabActiveBackground = new MGSolidFillBrush(Color.White),
+                    TabActiveAccentColor = new Color(60, 120, 255),
+                    TabHoverAccentColor = new Color(96, 148, 255, 180),
+                    TabActiveTextColor = Color.Black,
+                    TabInactiveTextColor = new Color(40, 40, 40),
+                    TabActiveIconColor = Color.Black,
+                    TabInactiveIconColor = new Color(80, 80, 80),
+
+                    AutoHideDrawerBackground = SolidFillBrushes.White,
+                    AutoHideDrawerHeaderBackground = new MGSolidFillBrush(new Color(224, 224, 224)),
+                    AutoHideButtonBackground = new VisualStateFillBrush(
+                        (IFillBrush)null,
+                        Color.LightBlue * 0.50f,
+                        PressedModifierType.Darken,
+                        0.06f),
+                    AutoHideHeaderTextColor = Color.Black,
+                    AutoHideIconColor = new Color(64, 64, 64),
+                    AutoHideBorderColor = new Color(150, 150, 150),
+                    AutoHideGripColor = new Color(200, 200, 200),
+
+                    AutoHideStripBackground = new MGSolidFillBrush(new Color(236, 236, 236)),
+                    AutoHideStripButtonBackground = new VisualStateFillBrush(
+                        new MGSolidFillBrush(new Color(224, 224, 224)),
+                        Color.LightBlue * 0.50f,
+                        PressedModifierType.Darken,
+                        0.06f),
+                    AutoHideStripTextColor = Color.Black,
+                    AutoHideStripSeparatorColor = new Color(150, 150, 150),
+
+                    SplitterNormalBrush = new MGSolidFillBrush(new Color(170, 170, 170)),
+                    SplitterHoverBrush = new MGSolidFillBrush(new Color(110, 170, 255)),
+                    SplitterPressedBrush = new MGSolidFillBrush(new Color(70, 130, 220)),
+                    SplitterHoverOverlayColor = new Color(130, 185, 255, 120),
+                    SplitterPressedOverlayColor = new Color(90, 160, 255, 180),
+
+                    DropIndicatorInactiveColor = new Color(140, 140, 140, 180),
+                    DropIndicatorActiveColor = new Color(60, 120, 255, 230),
+                    DropIndicatorBorderColor = new Color(32, 32, 32, 200),
+                    DropIndicatorHostInactiveColor = new Color(140, 140, 180, 180),
+                    DropIndicatorHostActiveColor = new Color(0, 160, 80, 230),
+                    DropIndicatorDisabledColor = new Color(170, 170, 170, 100),
+                    DropIndicatorDisabledBorderColor = new Color(120, 120, 120, 140),
+                    DropIndicatorSymbolColor = Color.White,
+                    DropIndicatorDisabledSymbolColor = new Color(90, 90, 90, 150)
+                };
 
                 TextBlockFallbackForeground =
                     new ThemeManagedVisualStateColorBrush(

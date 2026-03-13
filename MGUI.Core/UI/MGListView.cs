@@ -16,6 +16,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Styling;
 using MonoGame.Extended;
 using Thickness = MonoGame.Extended.Thickness;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
@@ -416,6 +417,7 @@ namespace MGUI.Core.UI
                 _Columns = new();
 
                 SelectionMode = GridSelectionMode.None;
+                ControlTemplateName = MGControlTemplateCatalog.ListViewTemplateName;
 
                 DataGrid.SelectionChanged += (sender, e) =>
                 {

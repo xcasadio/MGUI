@@ -5,6 +5,7 @@ using MonoGame.Extended;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -14,6 +15,11 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockAutoHideDrawer : MGElement
 {
+    public const string HeaderPartName = "PART_Header";
+    public const string TitleLabelPartName = "PART_TitleLabel";
+    public const string PinButtonPartName = "PART_PinButton";
+    public const string CloseButtonPartName = "PART_CloseButton";
+
     // ── Constants ─────────────────────────────────────────────────────
     private const int HeaderHeight    = 28;
     private const int HeaderBtnSize   = 22; // square icon-only buttons
@@ -54,6 +60,25 @@ public class MGDockAutoHideDrawer : MGElement
     private readonly MGBorder     _closeBtn;
     private MGElement             _content; // replaced when ActivePanel changes
 
+    private Color _headerTextColor = Color.White;
+    public Color HeaderTextColor
+    {
+        get => _headerTextColor;
+        set
+        {
+            if (_headerTextColor != value)
+            {
+                _headerTextColor = value;
+                _titleLabel.DefaultTextForeground.NormalValue = value;
+                NPC(nameof(HeaderTextColor));
+            }
+        }
+    }
+
+    public Color IconColor { get; set; } = new Color(200, 200, 200);
+    public Color BorderColor { get; set; } = new Color(80, 80, 85);
+    public Color ResizeGripColor { get; set; } = new Color(100, 100, 110);
+
     // ── Events ─────────────────────────────────────────────────────────
     /// <summary>Fired when the user clicks the Pin button — requests the panel be returned to the layout.</summary>
     public event EventHandler<DockPanelNode> PinRequested;
@@ -89,6 +114,7 @@ public class MGDockAutoHideDrawer : MGElement
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment   = VerticalAlignment.Top
             };
+            RegisterTemplatePart(HeaderPartName, _header);
             _header.BackgroundBrush.NormalValue = new MGSolidFillBrush(new Color(45, 45, 48));
 
             _titleLabel = new MGTextBlock(window, "")
@@ -99,6 +125,7 @@ public class MGDockAutoHideDrawer : MGElement
                 VerticalAlignment   = VerticalAlignment.Center,
                 Padding             = new XAML.Thickness(6, 2, 4, 2).ToThickness()
             };
+            RegisterTemplatePart(TitleLabelPartName, _titleLabel);
             _titleLabel.DefaultTextForeground.NormalValue = Color.White;
 
             _pinBtn = CreateHeaderButton(window, () =>
@@ -108,6 +135,7 @@ public class MGDockAutoHideDrawer : MGElement
                     PinRequested?.Invoke(this, _activePanel);
                 }
             });
+            RegisterTemplatePart(PinButtonPartName, _pinBtn);
 
             _closeBtn = CreateHeaderButton(window, () =>
             {
@@ -120,6 +148,7 @@ public class MGDockAutoHideDrawer : MGElement
                     CloseRequested?.Invoke(this, EventArgs.Empty);
                 }
             });
+            RegisterTemplatePart(CloseButtonPartName, _closeBtn);
 
             _header.SetParent(this);
 
@@ -129,6 +158,7 @@ public class MGDockAutoHideDrawer : MGElement
             _titleLabel.SetParent(this);
             _pinBtn.SetParent(this);
             _closeBtn.SetParent(this);
+            ControlTemplateName = MGControlTemplateCatalog.DockAutoHideDrawerTemplateName;
         }
     }
 
@@ -309,7 +339,7 @@ public class MGDockAutoHideDrawer : MGElement
                 pb.X + (pb.Width  - iconSize) / 2,
                 pb.Y + (pb.Height - iconSize) / 2,
                 iconSize, iconSize);
-            GetResources().TryDrawTexture(DA.DT, "DockPin", iconRect, DA.Opacity, new Color(200, 200, 200));
+            GetResources().TryDrawTexture(DA.DT, "DockPin", iconRect, DA.Opacity, IconColor);
         }
 
         // ── Draw close icon centred in the close button ───────────────────────
@@ -321,13 +351,13 @@ public class MGDockAutoHideDrawer : MGElement
                 cb.X + (cb.Width  - iconSize) / 2,
                 cb.Y + (cb.Height - iconSize) / 2,
                 iconSize, iconSize);
-            if (!GetResources().TryDrawTexture(DA.DT, "DockClose", iconRect, DA.Opacity, new Color(200, 200, 200)))
+            if (!GetResources().TryDrawTexture(DA.DT, "DockClose", iconRect, DA.Opacity, IconColor))
             {
                 // Fallback: × cross
                 float cx = cb.X + cb.Width  * 0.5f;
                 float cy = cb.Y + cb.Height * 0.5f;
                 const float half = 4.5f;
-                var col = new Color(200, 200, 200) * DA.Opacity;
+                var col = IconColor * DA.Opacity;
                 DA.DT.StrokeLineSegment(Vector2.Zero, new Vector2(cx - half, cy - half), new Vector2(cx + half, cy + half), col, 1.5f);
                 DA.DT.StrokeLineSegment(Vector2.Zero, new Vector2(cx + half, cy - half), new Vector2(cx - half, cy + half), col, 1.5f);
             }
@@ -335,7 +365,7 @@ public class MGDockAutoHideDrawer : MGElement
 
         var LayoutBounds = this.LayoutBounds;
         // Draw a visible border
-        var borderColor = new Color(80, 80, 85) * DA.Opacity;
+        var borderColor = BorderColor * DA.Opacity;
         // Top
         DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width, 1), borderColor);
         // Bottom
@@ -349,7 +379,7 @@ public class MGDockAutoHideDrawer : MGElement
         Rectangle grip = GetResizeGripRect(LayoutBounds);
         if (grip.Width > 0)
         {
-            var gripColor = new Color(100, 100, 110) * DA.Opacity;
+            var gripColor = ResizeGripColor * DA.Opacity;
             DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(grip.X, grip.Y, grip.Width, grip.Height), gripColor);
         }
     }

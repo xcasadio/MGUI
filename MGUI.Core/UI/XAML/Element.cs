@@ -225,6 +225,9 @@ namespace MGUI.Core.UI.XAML
         [Category("Appearance")]
         public string StyleNames { get; set; }
 
+        [Category("Appearance")]
+        public string ControlTemplate { get; set; }
+
         [Category("Attached")]
         public Dictionary<string, object> AttachedProperties { get; set; } = new();
 
@@ -260,6 +263,11 @@ namespace MGUI.Core.UI.XAML
                 if (Name != null)
                 {
                     Element.Name = Name;
+                }
+
+                if (!string.IsNullOrWhiteSpace(ControlTemplate))
+                {
+                    Element.ControlTemplateName = ControlTemplate;
                 }
 
                 if (Margin.HasValue)

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -17,6 +18,10 @@ namespace MGUI.Core.UI
     /// </summary>
     public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandler
     {
+        public const string OuterBorderPartName = "PART_OuterBorder";
+        public const string ScrollViewerPartName = "PART_ScrollViewer";
+        public const string ItemsPanelPartName = "PART_ItemsPanel";
+
         internal static int GetNextVisibleNavigationIndex(int currentIndex, int count, UINavigationAction action)
         {
             if (count <= 0)
@@ -255,11 +260,14 @@ namespace MGUI.Core.UI
                 _VisibleItemsCache = new List<MGTreeViewItem>();
 
                 OuterBorder = new MGBorder(Window);
+                RegisterTemplatePart(OuterBorderPartName, OuterBorder);
                 // Note: Do NOT add OuterBorder as a component via AddComponent(BorderComponent)
                 // because it will be set as Content, which would cause double layout calculation
 
                 ScrollViewer = new MGScrollViewer(Window);
+                RegisterTemplatePart(ScrollViewerPartName, ScrollViewer);
                 ItemsPanel = new MGStackPanel(Window, Orientation.Vertical);
+                RegisterTemplatePart(ItemsPanelPartName, ItemsPanel);
                 ItemsPanel.CanChangeContent = false;
 
                 ScrollViewer.SetContent(ItemsPanel);
@@ -283,6 +291,7 @@ namespace MGUI.Core.UI
                 ScrollViewer.Padding = new MonoGame.Extended.Thickness(0);
                 ItemsPanel.Margin = new MonoGame.Extended.Thickness(0);
                 ItemsPanel.Padding = new MonoGame.Extended.Thickness(0);
+                ControlTemplateName = MGControlTemplateCatalog.TreeViewTemplateName;
             }
 
             // Enable keyboard navigation

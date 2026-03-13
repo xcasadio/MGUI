@@ -13,6 +13,7 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.XAML;
+using MGUI.Core.UI.Styling;
 using Microsoft.Xna.Framework.Graphics;
 using System.Diagnostics;
 using Thickness = MonoGame.Extended.Thickness;
@@ -27,6 +28,15 @@ namespace MGUI.Core.UI
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to. Usually this would be: <see cref="string"/> for simple text-choices</typeparam>
     public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisibilityHandler
     {
+        public const string BorderPartName = "PART_Border";
+        public const string DropdownArrowPartName = "PART_DropdownArrow";
+        public const string DropdownWindowPartName = "PART_DropdownWindow";
+        public const string DropdownHeaderPresenterPartName = "PART_DropdownHeaderPresenter";
+        public const string DropdownFooterPresenterPartName = "PART_DropdownFooterPresenter";
+        public const string DropdownItemsPanelPartName = "PART_DropdownItemsPanel";
+        public const string DropdownScrollViewerPartName = "PART_DropdownScrollViewer";
+        public const string DropdownDockPanelPartName = "PART_DropdownDockPanel";
+
         internal static int GetNextNavigationIndex(int currentIndex, int itemCount, UINavigationAction action)
         {
             if (itemCount <= 0)
@@ -639,6 +649,7 @@ namespace MGUI.Core.UI
             {
                 IsFocusable = true;
                 BorderElement = new(Window, BorderThickness, BorderBrush);
+                RegisterTemplatePart(BorderPartName, BorderElement);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
@@ -646,6 +657,7 @@ namespace MGUI.Core.UI
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 DropdownArrowElement = new(Window) { PreferredWidth = DropdownArrowPaddedWidth, PreferredHeight = DropdownArrowPaddedHeight };
+                RegisterTemplatePart(DropdownArrowPartName, DropdownArrowElement);
                 DropdownArrowComponent = new(DropdownArrowElement, false, true, false, true, true, false, false,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Center, ComponentSize.Size));
                 AddComponent(DropdownArrowComponent);
@@ -683,6 +695,7 @@ namespace MGUI.Core.UI
                     IsTitleBarVisible = false,
                     Scale = SelfOrParentWindow.Scale
                 };
+                RegisterTemplatePart(DropdownWindowPartName, Dropdown);
                 Dropdown.WindowMouseHandler.LMBReleasedInside += (sender, e) =>
                 {
                     if (HoveredItem != null)
@@ -712,16 +725,20 @@ namespace MGUI.Core.UI
 
                 //  Create the placeholders for the Header and Footer
                 DropdownHeaderPresenter = new(Dropdown);
+                RegisterTemplatePart(DropdownHeaderPresenterPartName, DropdownHeaderPresenter);
                 DropdownHeaderPresenter.CanChangeContent = false;
                 DropdownFooterPresenter = new(Dropdown);
+                RegisterTemplatePart(DropdownFooterPresenterPartName, DropdownFooterPresenter);
                 DropdownFooterPresenter.CanChangeContent = false;
 
                 //  Create the StackPanel and ScrollViewer that host the items list
                 DropdownStackPanel = new(Dropdown, Orientation.Vertical);
+                RegisterTemplatePart(DropdownItemsPanelPartName, DropdownStackPanel);
                 DropdownStackPanel.Spacing = 0;
                 DropdownStackPanel.CanChangeContent = false;
                 DropdownStackPanel.ManagedParent = Dropdown;
                 DropdownScrollViewer = new(Dropdown, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled);
+                RegisterTemplatePart(DropdownScrollViewerPartName, DropdownScrollViewer);
                 DropdownScrollViewer.Padding = new(0);
                 DropdownScrollViewer.SetContent(DropdownStackPanel);
                 DropdownScrollViewer.CanChangeContent = false;
@@ -729,6 +746,7 @@ namespace MGUI.Core.UI
 
                 //  Set the dropdown's content
                 DropdownDockPanel = new(Dropdown, true);
+                RegisterTemplatePart(DropdownDockPanelPartName, DropdownDockPanel);
                 DropdownDockPanel.TryAddChild(DropdownHeaderPresenter, Dock.Top);
                 DropdownDockPanel.TryAddChild(DropdownFooterPresenter, Dock.Bottom);
                 DropdownDockPanel.TryAddChild(DropdownScrollViewer, Dock.Top);
@@ -745,6 +763,7 @@ namespace MGUI.Core.UI
                     return Button;
                 };
                 SelectedItemTemplate = item => new MGTextBlock(Window, item.ToString()) { WrapText = false, VerticalAlignment = VerticalAlignment.Center };
+                ControlTemplateName = MGControlTemplateCatalog.ComboBoxTemplateName;
 
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {

@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using Thickness = MonoGame.Extended.Thickness;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
 using MGUI.Shared.Helpers;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -1381,6 +1382,7 @@ namespace MGUI.Core.UI
                 SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
                 SelectionMode = ListBoxSelectionMode.Single;
                 CanDeselectByClickingSelectedItem = true;
+                ControlTemplateName = MGControlTemplateCatalog.ListBoxTemplateName;
 
                 GetDesktop().Renderer.Host.EndUpdate += (sender, e) =>
                 {

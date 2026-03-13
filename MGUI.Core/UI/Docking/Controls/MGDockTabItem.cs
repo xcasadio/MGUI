@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Input.Mouse;
 
 namespace MGUI.Core.UI.Docking.Controls;
@@ -99,6 +100,13 @@ public class MGDockTabItem : MGElement
             }
         }
     }
+
+    public Color ActiveAccentColor { get; set; } = new Color(0, 180, 255);
+    public Color HoverAccentColor { get; set; } = new Color(100, 150, 200, 180);
+    public Color ActiveTextColor { get; set; } = Color.White;
+    public Color InactiveTextColor { get; set; } = new Color(200, 200, 200);
+    public Color ActiveIconColor { get; set; } = Color.White;
+    public Color InactiveIconColor { get; set; } = new Color(180, 180, 180);
 
     private MGTextBlock _titleText;
     private MGBorder _closeButton;
@@ -216,6 +224,7 @@ public class MGDockTabItem : MGElement
             NormalBrush = new MGSolidFillBrush(new Color(45, 45, 48));      // Dark gray (inactive)
             HoverBrush = new MGSolidFillBrush(new Color(62, 62, 66));       // Lighter gray (hover)
             ActiveBrush = new MGSolidFillBrush(new Color(37, 37, 38));      // Slightly darker but will have bright accent line
+            ControlTemplateName = MGControlTemplateCatalog.DockTabItemTemplateName;
 
             // Create title text — single-line only; the tab width adapts to its content
             _titleText = new MGTextBlock(window, panel?.Title ?? "Tab")
@@ -361,20 +370,21 @@ public class MGDockTabItem : MGElement
         // Update text color based on active state for better readability
         if (_titleText != null)
         {
-            // Active tabs get brighter text
             _titleText.DefaultTextForeground.NormalValue = IsActive
-                ? Color.White               // Bright white for active
-                : new Color(200, 200, 200); // Slightly dimmed for inactive
+                ? ActiveTextColor
+                : InactiveTextColor;
         }
 
         // Update close button text color
         if (_closeButtonText != null)
         {
             _closeButtonText.DefaultTextForeground.NormalValue = IsActive
-                ? Color.White
-                : new Color(180, 180, 180);
+                ? ActiveIconColor
+                : InactiveIconColor;
         }
     }
+
+    public void RefreshThemeVisuals() => UpdateVisuals();
 
     /// <summary>
     /// Handles the start of a drag operation on this tab item.
@@ -547,10 +557,9 @@ public class MGDockTabItem : MGElement
                 accentHeight
             );
                 
-            Color accentColor = new Color(0, 180, 255); // Bright blue accent
             DA.DT.FillRectangle(Vector2.Zero, 
                 new RectangleF(accentBounds.X, accentBounds.Y, accentBounds.Width, accentBounds.Height),
-                accentColor);
+                ActiveAccentColor);
         }
         // Draw subtle hover indicator for inactive tabs
         else if (IsHovered)
@@ -564,10 +573,9 @@ public class MGDockTabItem : MGElement
                 hoverLineHeight
             );
                 
-            Color hoverLineColor = new Color(100, 150, 200, 180); // Semi-transparent blue
             DA.DT.FillRectangle(Vector2.Zero,
                 new RectangleF(hoverBounds.X, hoverBounds.Y, hoverBounds.Width, hoverBounds.Height),
-                hoverLineColor);
+                HoverAccentColor);
         }
 
         DrawSelfBaseImplementation(DA, LayoutBounds);
@@ -590,7 +598,7 @@ public class MGDockTabItem : MGElement
                 cb.X + (cb.Width  - iconSize) / 2,
                 cb.Y + (cb.Height - iconSize) / 2,
                 iconSize, iconSize);
-            Color closeColor = IsActive ? Color.White : new Color(180, 180, 180);
+            Color closeColor = IsActive ? ActiveIconColor : InactiveIconColor;
 
             if (!GetResources().TryDrawTexture(DA.DT, "DockClose", iconRect, 1f, closeColor))
             {
@@ -618,7 +626,7 @@ public class MGDockTabItem : MGElement
                 iconSize, iconSize);
 
             // Neutral grey: DockPinOff when pinned (click → auto-hide), DockPin when auto-hidden (click → re-pin)
-            Color pinColor = new Color(180, 180, 180);
+            Color pinColor = InactiveIconColor;
             string pinIcon = Panel.IsPinned ? "DockPinOff" : "DockPin";
 
             if (!GetResources().TryDrawTexture(DA.DT, pinIcon, iconRect, 1f, pinColor))

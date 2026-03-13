@@ -147,7 +147,7 @@ Critere d'acceptation:
 - hover, pressed, focused, selected, disabled sont projetes sans logique dupliquee ;
 - les templates peuvent reagir aux etats du controle parent.
 
-### 9. ⬜ Migrer les controles composites prioritaires
+### 9. ✅ Migrer les controles composites prioritaires
 
 But:
 prouver la valeur de la nouvelle architecture sur les controles a plus forte dette.
@@ -163,7 +163,7 @@ Critere d'acceptation:
 - ces controles deviennent significativement plus lookless ;
 - leur apparence de base vient d'un package de theme / style plutot que du code du controle.
 
-### 10. ⬜ Migrer `MGComboBox`, `MGTreeView`, `MGTabControl`
+### 10. ✅ Migrer `MGComboBox`, `MGTreeView`, `MGTabControl`
 
 But:
 stabiliser les patterns avant d'attaquer le docking.
@@ -179,7 +179,7 @@ Critere d'acceptation:
 - les controles reutilisent les memes primitives de templating et visual states ;
 - le theme change sans patchs specifiques a chaque controle.
 
-### 11. ⬜ Migrer le sous-systeme docking
+### 11. ✅ Migrer le sous-systeme docking
 
 But:
 traiter la zone la plus couplee une fois les primitives stabilisees.
@@ -195,7 +195,7 @@ Critere d'acceptation:
 - le docking utilise les memes conventions de theme/style/template que le reste du framework ;
 - le renderer ne porte pas de logique theming specifique au docking.
 
-### 12. ⬜ Rationnaliser `MGTheme`
+### 12. ✅ Rationnaliser `MGTheme`
 
 But:
 separer tokens semantiques, styles de controle et themes built-in.
@@ -211,7 +211,7 @@ Critere d'acceptation:
 - le core UI ne depend plus d'un format de theme monolithique ;
 - plusieurs packages de theme peuvent coexister proprement.
 
-### 13. ⬜ Exposer les nouvelles notions en API publique et en XAML
+### 13. ✅ Exposer les nouvelles notions en API publique et en XAML
 
 But:
 rendre la nouvelle architecture utilisable sans imperative code partout.
@@ -227,7 +227,7 @@ Critere d'acceptation:
 - un ecran themeable peut etre decrit principalement en XAML ;
 - les APIs publiques sont coherentes et peu redondantes.
 
-### 14. ⬜ Ajouter la couverture de tests structurels et runtime
+### 14. ✅ Ajouter la couverture de tests structurels et runtime
 
 But:
 stabiliser la refonte.
@@ -245,7 +245,7 @@ Critere d'acceptation:
 - les regressions de precedence et de propagation sont detectables rapidement ;
 - la refonte n'est pas dependante de captures visuelles fragiles.
 
-### 15. ⬜ Ajouter samples et guide de migration
+### 15. ✅ Ajouter samples et guide de migration
 
 But:
 valider l'adoption et documenter la transition.

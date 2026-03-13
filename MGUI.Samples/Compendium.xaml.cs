@@ -179,6 +179,7 @@ namespace MGUI.Samples
         public PerformanceTest PerformanceTest { get; }
         public RoundedShapesSamples RoundedShapesSamples { get; }
         public ResponsiveLayoutSample ResponsiveLayoutSample { get; }
+        public StyleThemeRefactorSample StyleThemeRefactorSample { get; }
         #endregion Features
 
         #region Dialogs
@@ -242,6 +243,7 @@ namespace MGUI.Samples
             PerformanceTest = new(Content, Desktop);
             RoundedShapesSamples = new(Content, Desktop);
             ResponsiveLayoutSample = new(Content, Desktop);
+            StyleThemeRefactorSample = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs
