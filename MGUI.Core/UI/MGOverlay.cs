@@ -23,6 +23,8 @@ namespace MGUI.Core.UI
     /// for the same content, at most only 1 of them will be visibile/interactable at a time.</summary>
     public class MGOverlayHost : MGSingleContentHost
     {
+        public const string ActiveOverlayPresenterPartName = "PART_ActiveOverlayPresenter";
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private List<MGOverlay> _Overlays { get; } = new();
         public IReadOnlyList<MGOverlay> Overlays => _Overlays;
@@ -209,6 +211,7 @@ namespace MGUI.Core.UI
                 Padding = new(4);
 
                 ActiveOverlayPresenter = new(Window, true);
+                RegisterTemplatePart(ActiveOverlayPresenterPartName, ActiveOverlayPresenter);
                 ActiveOverlayPresenterComponent = new(ActiveOverlayPresenter, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, true,
                     (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
                 ActiveOverlayPresenter.Visibility = Visibility.Collapsed;
@@ -372,6 +375,9 @@ namespace MGUI.Core.UI
     /// <summary>Represents an overlay overtop of a piece of content. To instantiate this class, create an <see cref="MGOverlayHost"/> and call <see cref="MGOverlayHost.AddOverlay(MGElement, bool)"/></summary>
     public class MGOverlay : MGSingleContentHost
     {
+        public const string BorderPartName = "PART_Border";
+        public const string CloseButtonPartName = "PART_CloseButton";
+
         public MGOverlayHost Host { get; }
 
         #region Border
@@ -499,6 +505,7 @@ namespace MGUI.Core.UI
                 Padding = new(5);
 
                 BorderElement = new(Host.ParentWindow, new(1), Color.Black.AsFillBrush());
+                RegisterTemplatePart(BorderPartName, BorderElement);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
@@ -506,6 +513,7 @@ namespace MGUI.Core.UI
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 CloseButton = new(Host.ParentWindow, x => IsOpen = false);
+                RegisterTemplatePart(CloseButtonPartName, CloseButton);
                 CloseButton.MinWidth = 12;
                 CloseButton.MinHeight = 12;
                 CloseButton.BackgroundBrush = new(Color.Crimson.AsFillBrush() * 0.8f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);

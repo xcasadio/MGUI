@@ -3,6 +3,7 @@ using MonoGame.Extended;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Styling;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -128,7 +129,13 @@ namespace MGUI.Core.UI
 
     public abstract class MGWrappedContextMenuItem : MGContextMenuItem
     {
+        public const string ContentWrapperPartName = "PART_ContentWrapper";
+        public const string HeaderPresenterPartName = "PART_HeaderPresenter";
+        public const string SubmenuArrowPartName = "PART_SubmenuArrow";
+        public const string ShortcutTextPartName = "PART_ShortcutText";
+
         protected MGContentPresenter HeaderPresenter { get; }
+        private MGVisualStateProjection ContentWrapperVisualStateProjection { get; set; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGButton _ContentWrapper;
@@ -156,6 +163,7 @@ namespace MGUI.Core.UI
                     //  Set new wrapper's content
                     if (ContentWrapper != null)
                     {
+                        RegisterTemplatePart(ContentWrapperPartName, ContentWrapper);
                         ContentWrapper.IsFocusable = false;
                         ContentWrapper.CanChangeContent = false;
                         using (ContentWrapper.AllowChangingContentTemporarily())
@@ -171,6 +179,7 @@ namespace MGUI.Core.UI
                     }
 
                     NPC(nameof(ContentWrapper));
+                    RefreshVisualStateProjection();
                     OnContentWrapperChanged();
                 }
             }
@@ -232,6 +241,8 @@ namespace MGUI.Core.UI
                             Container.TryAddChild(MenuItemContent, Dock.Left);
                         }
                     }
+
+                    RefreshVisualStateProjection();
 
                     NPC(nameof(MenuItemContent));
                 }
@@ -331,6 +342,7 @@ namespace MGUI.Core.UI
             Container.CanChangeContent = false;
 
             HeaderPresenter = new(Menu);
+            RegisterTemplatePart(HeaderPresenterPartName, HeaderPresenter);
             HeaderPresenter.VerticalAlignment = VerticalAlignment.Center;
             HeaderPresenter.CanChangeContent = false;
             HeaderPresenter.PreferredWidth = Menu.HeaderSize.Width;
@@ -353,6 +365,7 @@ namespace MGUI.Core.UI
 
             // Shortcut text label — starts collapsed; visible once ShortcutText is assigned
             _ShortcutTextBlock = new MGTextBlock(Menu, "", Color.LightGray, Menu.GetTheme().FontSettings.ContextMenuFontSize);
+            RegisterTemplatePart(ShortcutTextPartName, _ShortcutTextBlock);
             _ShortcutTextBlock.Margin = new Thickness(18, 0, 0, 0);
             _ShortcutTextBlock.VerticalAlignment = VerticalAlignment.Center;
             _ShortcutTextBlock.HorizontalAlignment = HorizontalAlignment.Right;
@@ -367,6 +380,7 @@ namespace MGUI.Core.UI
             this.ContentWrapper = ContentWrapper;
 
             SubmenuArrowElement = new(Menu, SubmenuArrowWidth, SubmenuArrowHeight, Color.Transparent, 0, Color.Transparent);
+            RegisterTemplatePart(SubmenuArrowPartName, SubmenuArrowElement);
             SubmenuArrowElement.Margin = new(0, 5, DefaultSubmenuArrowRightMargin, 5);
             SubmenuArrowElement.Visibility = Visibility.Collapsed;
             SubmenuArrowComponent = new(SubmenuArrowElement, true, true, false, false, false, false, false,
@@ -397,6 +411,28 @@ namespace MGUI.Core.UI
             MouseHandler.MovedInside += (sender, e) => { OpenSubmenu(); };
             MouseHandler.Scrolled += (sender, e) => { CloseSubmenuIfNotHovered(); };
             MouseHandler.MovedOutside += (sender, e) => { CloseSubmenuIfNotHovered(); };
+        }
+
+        private void RefreshVisualStateProjection()
+        {
+            ContentWrapperVisualStateProjection?.Dispose();
+            if (ContentWrapper != null)
+            {
+                ContentWrapperVisualStateProjection = new(ContentWrapper, (_, CurrentState) =>
+                {
+                    bool IsHighlighted = CurrentState.IsPressedOrHovered || CurrentState.IsSelected || Submenu?.IsContextMenuOpen == true;
+                    HeaderPresenter.IsSelected = IsHighlighted;
+                    if (_ShortcutTextBlock != null)
+                    {
+                        _ShortcutTextBlock.IsSelected = IsHighlighted;
+                    }
+
+                    if (MenuItemContent != null)
+                    {
+                        MenuItemContent.IsSelected = IsHighlighted;
+                    }
+                });
+            }
         }
     }
 

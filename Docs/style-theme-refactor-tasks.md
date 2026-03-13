@@ -12,9 +12,14 @@ Cette liste est derivee du rapport d'audit et sert de backlog ordonne pour un ag
 - Favoriser les adaptateurs temporaires plutot que les ruptures brutales d'API.
 - Ajouter des tests logiques avant les migrations les plus couplantes.
 
+## Legende de statut
+
+- ✅ termine
+- ⬜ a faire
+
 ## Ordre de priorite
 
-### 1. Definir les invariants de precedence des valeurs
+### 1. ✅ Definir les invariants de precedence des valeurs
 
 But:
 figer une table de precedence officielle entre valeur locale, style implicite, style explicite, template, theme, heritage et fallback.
@@ -30,7 +35,7 @@ Critere d'acceptation:
 - la precedence est explicite, stable et referencee par le code futur ;
 - les proprietes layout et visuelles sont distinguees.
 
-### 2. Introduire un modele central de valeurs resolues
+### 2. ✅ Introduire un modele central de valeurs resolues
 
 But:
 poser les types centraux necessaires avant toute reecriture massive.
@@ -46,7 +51,7 @@ Critere d'acceptation:
 - le modele compile sans casser les controles ;
 - les tests peuvent exprimer la precedence attendue.
 
-### 3. Ajouter des resources dictionaries hierarchiques
+### 3. ✅ Ajouter des resources dictionaries hierarchiques
 
 But:
 faire evoluer `MGResources` d'un registre desktop vers un systeme de lookup par scope.
@@ -62,7 +67,7 @@ Critere d'acceptation:
 - une ressource peut etre resolue avec fallback coherent ;
 - les bindings sur ressources ne sont plus limites au desktop global.
 
-### 4. Introduire `StaticResource` et `DynamicResource`
+### 4. ✅ Introduire `StaticResource` et `DynamicResource`
 
 But:
 separer clairement resolution a la creation et resolution reactive.
@@ -78,7 +83,7 @@ Critere d'acceptation:
 - un changement de ressource dynamique peut invalider les cibles concernees ;
 - une ressource statique reste resolue une seule fois.
 
-### 5. Introduire l'invalidation theme/style runtime
+### 5. ✅ Introduire l'invalidation theme/style runtime
 
 But:
 rendre possible un vrai theme switch sans code ad hoc.
@@ -94,7 +99,7 @@ Critere d'acceptation:
 - un theme switch simple met a jour un ecran sans reparse complet ;
 - les performances restent previsible.
 
-### 6. Ajouter une abstraction officielle de `ControlTemplate`
+### 6. ✅ Ajouter une abstraction officielle de `ControlTemplate`
 
 But:
 separer structure visuelle et logique de controle.
@@ -110,7 +115,7 @@ Critere d'acceptation:
 - un controle composite peut remplacer sa structure sans reimplementer sa logique ;
 - la precedence style/template est definie clairement.
 
-### 7. Formaliser les template parts et presenters
+### 7. ✅ Formaliser les template parts et presenters
 
 But:
 standardiser les sous-parties visuelles des controles composites.
@@ -126,7 +131,7 @@ Critere d'acceptation:
 - les gros controles composites ont des parts identifiees ;
 - les points d'extension publics convergent.
 
-### 8. Introduire une couche de projection des visual states
+### 8. ✅ Introduire une couche de projection des visual states
 
 But:
 faire des etats visuels une couche autonome et composable.
@@ -142,7 +147,7 @@ Critere d'acceptation:
 - hover, pressed, focused, selected, disabled sont projetes sans logique dupliquee ;
 - les templates peuvent reagir aux etats du controle parent.
 
-### 9. Migrer les controles composites prioritaires
+### 9. ⬜ Migrer les controles composites prioritaires
 
 But:
 prouver la valeur de la nouvelle architecture sur les controles a plus forte dette.
@@ -158,7 +163,7 @@ Critere d'acceptation:
 - ces controles deviennent significativement plus lookless ;
 - leur apparence de base vient d'un package de theme / style plutot que du code du controle.
 
-### 10. Migrer `MGComboBox`, `MGTreeView`, `MGTabControl`
+### 10. ⬜ Migrer `MGComboBox`, `MGTreeView`, `MGTabControl`
 
 But:
 stabiliser les patterns avant d'attaquer le docking.
@@ -174,7 +179,7 @@ Critere d'acceptation:
 - les controles reutilisent les memes primitives de templating et visual states ;
 - le theme change sans patchs specifiques a chaque controle.
 
-### 11. Migrer le sous-systeme docking
+### 11. ⬜ Migrer le sous-systeme docking
 
 But:
 traiter la zone la plus couplee une fois les primitives stabilisees.
@@ -190,7 +195,7 @@ Critere d'acceptation:
 - le docking utilise les memes conventions de theme/style/template que le reste du framework ;
 - le renderer ne porte pas de logique theming specifique au docking.
 
-### 12. Rationnaliser `MGTheme`
+### 12. ⬜ Rationnaliser `MGTheme`
 
 But:
 separer tokens semantiques, styles de controle et themes built-in.
@@ -206,7 +211,7 @@ Critere d'acceptation:
 - le core UI ne depend plus d'un format de theme monolithique ;
 - plusieurs packages de theme peuvent coexister proprement.
 
-### 13. Exposer les nouvelles notions en API publique et en XAML
+### 13. ⬜ Exposer les nouvelles notions en API publique et en XAML
 
 But:
 rendre la nouvelle architecture utilisable sans imperative code partout.
@@ -222,7 +227,7 @@ Critere d'acceptation:
 - un ecran themeable peut etre decrit principalement en XAML ;
 - les APIs publiques sont coherentes et peu redondantes.
 
-### 14. Ajouter la couverture de tests structurels et runtime
+### 14. ⬜ Ajouter la couverture de tests structurels et runtime
 
 But:
 stabiliser la refonte.
@@ -240,7 +245,7 @@ Critere d'acceptation:
 - les regressions de precedence et de propagation sont detectables rapidement ;
 - la refonte n'est pas dependante de captures visuelles fragiles.
 
-### 15. Ajouter samples et guide de migration
+### 15. ⬜ Ajouter samples et guide de migration
 
 But:
 valider l'adoption et documenter la transition.

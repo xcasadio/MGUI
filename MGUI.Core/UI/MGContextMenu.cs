@@ -43,6 +43,9 @@ namespace MGUI.Core.UI
 
     public class MGContextMenu : MGWindow, IContextMenuHost
     {
+        public const string ScrollViewerPartName = "PART_ScrollViewer";
+        public const string ItemsPanelPartName = "PART_ItemsPanel";
+
         public static Rectangle FitMenuToViewport(Rectangle Anchor, Size Size, Rectangle Viewport)
         {
             int ActualX = Anchor.Right;
@@ -646,10 +649,12 @@ namespace MGUI.Core.UI
                 IsCloseButtonVisible = false;
 
                 ItemsPanel = new(this, Orientation.Vertical);
+                RegisterTemplatePart(ItemsPanelPartName, ItemsPanel);
                 ItemsPanel.Spacing = 2;
                 ItemsPanel.ManagedParent = this;
                 MGScrollViewer SV = new(this, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled);
                 ScrollViewerElement = SV;
+                RegisterTemplatePart(ScrollViewerPartName, ScrollViewerElement);
                 SV.Padding = new(0);
                 SV.SetContent(ItemsPanel);
                 SV.ManagedParent = this;

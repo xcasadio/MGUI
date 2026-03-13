@@ -27,6 +27,11 @@ namespace MGUI.Core.UI
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to.</typeparam>
     public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisibilityHandler
     {
+        public const string DockPanelPartName = "PART_DockPanel";
+        public const string HeaderGridPartName = "PART_HeaderGrid";
+        public const string ScrollViewerPartName = "PART_ScrollViewer";
+        public const string DataGridPartName = "PART_DataGrid";
+
         internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
         {
             if (count <= 0)
@@ -345,6 +350,7 @@ namespace MGUI.Core.UI
                 IFillBrush GridLineBrush = SolidFillBrushes.Black;
 
                 HeaderGrid = new(Window);
+                RegisterTemplatePart(HeaderGridPartName, HeaderGrid);
                 HeaderGrid.AddRow(GridLength.Auto);
                 HeaderGrid.GridLinesVisibility = GridLinesVisibility.All;
                 HeaderGrid.RowSpacing = Spacing;
@@ -357,6 +363,7 @@ namespace MGUI.Core.UI
                 HeaderGrid.CanChangeContent = false;
 
                 DataGrid = new(Window);
+                RegisterTemplatePart(DataGridPartName, DataGrid);
                 DataGrid.GridLinesVisibility = GridLinesVisibility.AllVertical | GridLinesVisibility.InnerHorizontal | GridLinesVisibility.BottomEdge; // Don't draw TopEdge gridline since the header grid already has a BottomEdge gridline
                 DataGrid.Padding = new(0, GridLineMargin, 0, 0); // Normally the top would already be padded if we were drawing a TopEdge gridline. But since we're not, manually pad it
                 DataGrid.RowSpacing = Spacing;
@@ -375,6 +382,7 @@ namespace MGUI.Core.UI
                 TopRightCornerPlaceholder.BackgroundBrush = HeaderGrid.BackgroundBrush;
 
                 ScrollViewer = new(Window, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled);
+                RegisterTemplatePart(ScrollViewerPartName, ScrollViewer);
                 ScrollViewer.SetContent(DataGrid);
                 ScrollViewer.CanChangeContent = false;
                 ScrollViewer.VerticalScrollBarBoundsChanged += (sender, e) => {
@@ -387,6 +395,7 @@ namespace MGUI.Core.UI
                 HeaderGridWrapper.CanChangeContent = false;
 
                 DockPanelElement = new(Window);
+                RegisterTemplatePart(DockPanelPartName, DockPanelElement);
                 DockPanelElement.TryAddChild(HeaderGridWrapper, Dock.Top);
                 DockPanelElement.TryAddChild(ScrollViewer, Dock.Bottom);
                 //DockPanelElement.VerticalAlignment = VerticalAlignment.Top;

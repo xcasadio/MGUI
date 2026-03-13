@@ -38,6 +38,13 @@ namespace MGUI.Core.UI
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to.</typeparam>
     public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandler
     {
+        public const string OuterBorderPartName = "PART_OuterBorder";
+        public const string InnerBorderPartName = "PART_InnerBorder";
+        public const string TitleBorderPartName = "PART_TitleBorder";
+        public const string TitlePresenterPartName = "PART_TitlePresenter";
+        public const string ScrollViewerPartName = "PART_ScrollViewer";
+        public const string ItemsPanelPartName = "PART_ItemsPanel";
+
         internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
         {
             if (count <= 0)
@@ -1313,6 +1320,7 @@ namespace MGUI.Core.UI
             {
                 //  Create the outer border
                 OuterBorder = new(ParentWindow, 0, SolidFillBrushes.Black);
+                RegisterTemplatePart(OuterBorderPartName, OuterBorder);
                 OuterBorderComponent = MGComponentBase.Create(OuterBorder);
                 AddComponent(OuterBorderComponent);
                 OuterBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(OuterBorderBrush)); };
@@ -1320,12 +1328,14 @@ namespace MGUI.Core.UI
 
                 //  Create the title bar
                 TitleBorder = new(ParentWindow);
+                RegisterTemplatePart(TitleBorderPartName, TitleBorder);
                 TitleBorder.Padding = new(6, 3);
                 TitleBorder.BackgroundBrush = GetTheme().TitleBackground.GetValue(true);
                 TitleBorder.DefaultTextForeground.SetAll(Color.White);
                 TitleBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(TitleBorderBrush)); };
                 TitleBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(TitleBorderThickness)); };
                 TitlePresenter = new(ParentWindow);
+                RegisterTemplatePart(TitlePresenterPartName, TitlePresenter);
                 TitlePresenter.VerticalAlignment = VerticalAlignment.Center;
                 TitleBorder.SetContent(TitlePresenter);
                 TitleBorder.CanChangeContent = false;
@@ -1336,6 +1346,7 @@ namespace MGUI.Core.UI
 
                 //  Create the inner border
                 InnerBorder = new(ParentWindow);
+                RegisterTemplatePart(InnerBorderPartName, InnerBorder);
                 InnerBorderComponent = new(InnerBorder, true, false, true, true, false, false, false,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Stretch, ComponentSize.Size));
                 AddComponent(InnerBorderComponent);
@@ -1344,9 +1355,11 @@ namespace MGUI.Core.UI
 
                 //  Create the scrollviewer and itemspanel
                 ItemsPanel = new(ParentWindow, Orientation.Vertical);
+                RegisterTemplatePart(ItemsPanelPartName, ItemsPanel);
                 ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
                 ItemsPanel.CanChangeContent = false;
                 ScrollViewer = new(ParentWindow);
+                RegisterTemplatePart(ScrollViewerPartName, ScrollViewer);
                 ScrollViewer.Padding = new(0, 0);
                 ScrollViewer.SetContent(ItemsPanel);
                 ScrollViewer.CanChangeContent = false;

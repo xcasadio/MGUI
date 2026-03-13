@@ -36,6 +36,12 @@ namespace MGUI.Core.UI
 
     public class MGWindow : MGSingleContentHost
     {
+        public const string BorderPartName = "PART_Border";
+        public const string TitleBarPartName = "PART_TitleBar";
+        public const string TitleBarTextPartName = "PART_TitleBarText";
+        public const string CloseButtonPartName = "PART_CloseButton";
+        public const string ResizeGripPartName = "PART_ResizeGrip";
+
         public MGDesktop Desktop { get; }
         public MGElement DefaultFocusElement { get; set; }
 
@@ -995,6 +1001,7 @@ namespace MGUI.Core.UI
                 Padding = DefaultWindowPadding;
 
                 BorderElement = new(this, DefaultWindowBorderThickness, MGUniformBorderBrush.Black);
+                RegisterTemplatePart(BorderPartName, BorderElement);
                 BorderComponent = MGComponentBase.Create(BorderElement);
                 AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
@@ -1002,6 +1009,7 @@ namespace MGUI.Core.UI
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 TitleBarElement = new(this);
+                RegisterTemplatePart(TitleBarPartName, TitleBarElement);
                 TitleBarElement.Padding = new(2);
                 TitleBarElement.MinHeight = 24;
                 TitleBarElement.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -1028,6 +1036,7 @@ namespace MGUI.Core.UI
 #endif
 
                 CloseButtonElement = new(this, x => { TryCloseWindow(); });
+                RegisterTemplatePart(CloseButtonPartName, CloseButtonElement);
                 CloseButtonElement.MinWidth = 12;
                 CloseButtonElement.MinHeight = 12;
                 CloseButtonElement.BackgroundBrush = new(Color.Crimson.AsFillBrush() * 0.5f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
@@ -1050,6 +1059,7 @@ namespace MGUI.Core.UI
                     TextAlignment = HorizontalAlignment.Left,
                     DefaultTextForeground = new VisualStateSetting<Color?>(Color.White, Color.White, Color.White)
                 };
+                RegisterTemplatePart(TitleBarTextPartName, TitleBarTextBlockElement);
                 TitleText = null;
 
                 TitleBarElement.TryAddChild(CloseButtonElement, Dock.Right);
@@ -1059,6 +1069,7 @@ namespace MGUI.Core.UI
                 IsTitleBarVisible = true;
 
                 ResizeGripElement = new(this);
+                RegisterTemplatePart(ResizeGripPartName, ResizeGripElement);
                 ResizeGripComponent = MGComponentBase.Create(ResizeGripElement);
                 AddComponent(ResizeGripComponent);
                 IsUserResizable = true;

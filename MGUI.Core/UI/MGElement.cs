@@ -190,7 +190,46 @@ namespace MGUI.Core.UI
             private MGResources _LocalResources;
             public MGResources LocalResources => _LocalResources;
             public MGResources GetResources() => _LocalResources ?? GetInheritedResources();
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly Dictionary<string, MGElement> _TemplateParts = new(StringComparer.Ordinal);
+        public IReadOnlyDictionary<string, MGElement> TemplateParts => _TemplateParts;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private MGControlTemplate _ControlTemplate;
+        public MGControlTemplate ControlTemplate
+        {
+            get => _ControlTemplate;
+            set
+            {
+                if (_ControlTemplate != value)
+                {
+                    _ControlTemplate = value;
+                    ApplyControlTemplate();
+                    NPC(nameof(ControlTemplate));
+                }
+            }
+        }
+
         public bool TryGetElementByName(string Name, out MGElement NamedElement) => SelfOrParentWindow.TryGetElementByName(Name, out NamedElement);
+        public bool TryGetTemplatePart(string Name, out MGElement Part) => _TemplateParts.TryGetValue(Name, out Part);
+
+        protected internal void RegisterTemplatePart(string Name, MGElement Part)
+        {
+            if (string.IsNullOrWhiteSpace(Name) || Part == null)
+            {
+                return;
+            }
+
+            _TemplateParts[Name] = Part;
+            if (ControlTemplate != null)
+            {
+                ApplyControlTemplate();
+            }
+        }
+
+        protected internal virtual void ApplyControlTemplate()
+            => ControlTemplate?.Apply(this);
 
             protected MGResources GetInheritedResources()
             {

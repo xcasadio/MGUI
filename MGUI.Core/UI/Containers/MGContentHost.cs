@@ -195,6 +195,8 @@ namespace MGUI.Core.UI.Containers
     /// <summary>Represents an <see cref="MGElement"/> that is capable of hosting exactly one child <see cref="MGElement"/> as its content, such as an <see cref="MGBorder"/>.</summary>
     public abstract class MGSingleContentHost : MGContentHost
     {
+        public const string ContentPartName = "PART_Content";
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected MGElement _Content;
         public MGElement Content { get => _Content; }
@@ -217,6 +219,7 @@ namespace MGUI.Core.UI.Containers
                 if (_Content != null)
                 {
                     _Content.SetParent(this);
+                    RegisterTemplatePart(ContentPartName, _Content);
                     InvokeContentAdded(_Content);
                 }
                 LayoutChanged(this, true);
@@ -334,6 +337,7 @@ namespace MGUI.Core.UI.Containers
                 if (_Content != null && !SuppressContentAddedAndRemoved)
                 {
                     _Content.SetParent(this);
+                    RegisterTemplatePart(ContentPartName, _Content);
                     InvokeContentAdded(_Content);
                 }
                 LayoutChanged(this, true);
@@ -348,6 +352,8 @@ namespace MGUI.Core.UI.Containers
     /// <summary>A wrapper element that displays a <see cref="Header"/> at a given <see cref="HeaderPosition"/> in addition to the <see cref="MGSingleContentHost.Content"/></summary>
     public class MGHeaderedContentPresenter : MGSingleContentHost
     {
+        public const string HeaderPresenterPartName = "PART_HeaderPresenter";
+
         public MGElement Header
         {
             get => HeaderPresenter.Content;
@@ -499,6 +505,7 @@ namespace MGUI.Core.UI.Containers
                 HeaderPresenter = new(Window);
                 HeaderPresenter.HorizontalAlignment = HorizontalAlignment.Center;
                 HeaderPresenter.VerticalAlignment = VerticalAlignment.Center;
+                RegisterTemplatePart(HeaderPresenterPartName, HeaderPresenter);
                 HeaderPresenterComponent = new(HeaderPresenter, false, false, false, false, false, false, false,
                     (AvailableBounds, ComponentSize) => HeaderPosition switch
                     {

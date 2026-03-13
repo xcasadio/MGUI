@@ -39,6 +39,7 @@ namespace MGUI.Core.UI
         public IReadOnlyDictionary<string, Style> Styles => Owner.Styles;
         public IReadOnlyDictionary<string, object> StaticResources => Owner.StaticResources;
         public IReadOnlyDictionary<string, MGElementTemplate> ElementTemplates => Owner.ElementTemplates;
+        public IReadOnlyDictionary<string, MGControlTemplate> ControlTemplates => Owner.ControlTemplates;
     }
 
     public class MGResourceRuntimeCache
@@ -597,6 +598,50 @@ namespace MGUI.Core.UI
         public event EventHandler<(string Name, object PreviousValue, object Value)> OnStaticResourceChanged;
         public event EventHandler<(string Name, object Value)> OnStaticResourceRemoved;
         #endregion StaticResources
+
+        #region Control Templates
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly Dictionary<string, MGControlTemplate> _ControlTemplates = new();
+        public IReadOnlyDictionary<string, MGControlTemplate> ControlTemplates => _ControlTemplates;
+
+        public void AddControlTemplate(MGControlTemplate Template)
+        {
+            _ControlTemplates.Add(Template.Name, Template);
+            OnControlTemplateAdded?.Invoke(this, (Template.Name, Template));
+        }
+
+        public bool RemoveControlTemplate(string Name)
+        {
+            if (_ControlTemplates.TryGetValue(Name, out MGControlTemplate Template))
+            {
+                _ControlTemplates.Remove(Name);
+                OnControlTemplateRemoved?.Invoke(this, (Name, Template));
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool TryGetControlTemplate(string Name, out MGControlTemplate Template)
+        {
+            if (Name != null && _ControlTemplates.TryGetValue(Name, out Template))
+            {
+                return true;
+            }
+            else if (Parent?.TryGetControlTemplate(Name, out Template) == true)
+            {
+                return true;
+            }
+            else
+            {
+                Template = null;
+                return false;
+            }
+        }
+
+        public event EventHandler<(string Name, MGControlTemplate Template)> OnControlTemplateAdded;
+        public event EventHandler<(string Name, MGControlTemplate Template)> OnControlTemplateRemoved;
+        #endregion Control Templates
 
         #region Element Templates
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
