@@ -78,9 +78,9 @@
                             </TabItem>
                         </TabControl>
                         <ContextMenu Name="SampleContextMenu" TitleText="Actions" ControlTemplate="ContextMenu.Default">
-                            <ContextMenuButton Text="Open" />
-                            <ContextMenuButton Text="Duplicate" />
-                            <ContextMenuButton Text="Delete" />
+                            <ContextMenuButton Content="Open" />
+                            <ContextMenuButton Content="Duplicate" />
+                            <ContextMenuButton Content="Delete" />
                         </ContextMenu>
                         <Button Name="OpenContextMenuButton" Content="Open Sample Context Menu" HorizontalAlignment="Left" />
                     </StackPanel>
