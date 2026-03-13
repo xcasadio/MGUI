@@ -1,0 +1,773 @@
+<ThemeDefinitionsDocument xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core">
+  <ThemeDefinition Name="Dark_Blue" IsBuiltIn="True">
+    <ThemeDefinition.Backgrounds>
+      <ThemeBackgroundDefinition ElementType="Button">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,108,214)"
+                                               SelectedValue="rgb(0,108,214)"
+                                               FocusedValue="rgb(41,132,221)"
+                                               DisabledValue="rgb(0,108,214) * 0.5"
+                                               FocusedColor="White * 0.12"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ProgressButton">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,108,214)"
+                                               SelectedValue="rgb(0,108,214)"
+                                               FocusedValue="rgb(41,132,221)"
+                                               DisabledValue="rgb(0,108,214) * 0.5"
+                                               FocusedColor="White * 0.12"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ComboBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,108,214)"
+                                               SelectedValue="rgb(0,108,214)"
+                                               FocusedValue="rgb(41,132,221)"
+                                               DisabledValue="rgb(0,108,214) * 0.5"
+                                               FocusedColor="White * 0.12"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ContextMenu">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="GridSplitter">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="GroupBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ListBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ListView">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ProgressBar">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="TabControl">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ChatBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="PasswordBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,108,214)"
+                                               FocusedValue="rgb(26,123,218)"
+                                               FocusedColor="White * 0.08"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="TextBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,108,214)"
+                                               FocusedValue="rgb(26,123,218)"
+                                               FocusedColor="White * 0.08"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="Separator">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,59,118)"
+                                               FocusedColor="White * 0.04"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="Stopwatch">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,59,118)"
+                                               FocusedColor="White * 0.04"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="Timer">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,59,118)"
+                                               FocusedColor="White * 0.04"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="MenuBar">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,59,118)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="MenuBarItem">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.12"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ToggleButton">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,59,118)"
+                                               SelectedValue="rgb(0,108,214)"
+                                               FocusedValue="rgb(41,91,140)"
+                                               DisabledValue="rgb(0,59,118) * 0.5"
+                                               FocusedColor="White * 0.12"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ToolTip">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(56,56,56) * 0.85"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="Window">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,10,18)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+    </ThemeDefinition.Backgrounds>
+    <ThemeDefinition.Properties>
+      <ThemePropertyDefinition Target="ComboBoxDropdownBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ComboBoxDropdownItemBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition SelectedValue="Yellow * 0.65"
+                                               FocusedColor="LightBlue * 0.4"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="DropdownArrowColor" Color="White" />
+      <ThemePropertyDefinition Target="ListBoxItemBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition SelectedValue="Yellow * 0.65"
+                                               FocusedColor="LightBlue * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.04" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ListBoxItemAlternatingRowBackgrounds">
+        <ThemePropertyDefinition.FillBrushes>
+          <SolidFillBrush Color="rgb(11,27,69)" />
+          <SolidFillBrush Color="rgb(21,37,79)" />
+        </ThemePropertyDefinition.FillBrushes>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="TreeViewSelectionBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Yellow * 0.65"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.04" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="TreeViewSelectionForeground" Color="White" />
+      <ThemePropertyDefinition Target="TreeViewExpanderArrowColor" Color="White" />
+      <ThemePropertyDefinition Target="TreeViewBorderBrush" BorderBrush="rgb(11,28,72)" />
+      <ThemePropertyDefinition Target="TreeViewBorderThickness" Thickness="1" />
+      <ThemePropertyDefinition Target="TreeViewIndentSize" Integer="20" />
+      <ThemePropertyDefinition Target="TreeViewExpanderButtonSize" Integer="16" />
+      <ThemePropertyDefinition Target="GridSplitterForeground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,108,214)"
+                                               FocusedColor="White * 0.22"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ProgressButtonForeground" FillBrush="rgb(0,70,139)" />
+      <ThemePropertyDefinition Target="ProgressBarCompletedBrush">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,108,214)"
+                                               FocusedColor="White * 0.02"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ProgressBarIncompleteBrush">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Transparent"
+                                               FocusedColor="White * 0.01"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="CheckMarkColor" Color="Black" />
+      <ThemePropertyDefinition Target="RadioButtonBubbleBackground">
+        <ThemePropertyDefinition.VisualStateColorBrush>
+          <ThemeVisualStateColorBrushDefinition NormalValue="rgb(0,108,214)"
+                                                FocusedColor="White * 0.12"
+                                                PressedModifierType="Darken"
+                                                PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateColorBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="RadioButtonCheckedFillColor" Color="Black" />
+      <ThemePropertyDefinition Target="ResizeGripForeground">
+        <ThemePropertyDefinition.VisualStateColorBrush>
+          <ThemeVisualStateColorBrushDefinition NormalValue="rgb(0,108,214)"
+                                                FocusedColor="White * 0.36"
+                                                PressedModifierType="Brighten"
+                                                PressedModifier="0.2" />
+        </ThemePropertyDefinition.VisualStateColorBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ScrollBarOuterBrush">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.06"
+                                               PressedModifierType="Brighten"
+                                               PressedModifier="0">
+            <ThemeVisualStateFillBrushDefinition.NormalValue>
+              <BorderedFillBrush BorderThickness="1" BorderBrush="rgb(26,42,83)" FillBrush="rgb(0,10,18)" PadFillBoundsByBorderThickness="True" />
+            </ThemeVisualStateFillBrushDefinition.NormalValue>
+          </ThemeVisualStateFillBrushDefinition>
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ScrollBarInnerBrush">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.02"
+                                               PressedModifierType="Brighten"
+                                               PressedModifier="0">
+            <ThemeVisualStateFillBrushDefinition.NormalValue>
+              <BorderedFillBrush BorderThickness="1" BorderBrush="rgb(26,42,83)" FillBrush="rgb(0,59,118)" />
+            </ThemeVisualStateFillBrushDefinition.NormalValue>
+            <ThemeVisualStateFillBrushDefinition.FocusedValue>
+              <BorderedFillBrush BorderThickness="1" BorderBrush="rgb(26,42,83)" FillBrush="rgb(0,108,214)" />
+            </ThemeVisualStateFillBrushDefinition.FocusedValue>
+            <ThemeVisualStateFillBrushDefinition.DisabledValue>
+              <BorderedFillBrush BorderThickness="1" BorderBrush="rgb(26,42,83)" FillBrush="rgb(0,59,118) * 0.5" />
+            </ThemeVisualStateFillBrushDefinition.DisabledValue>
+          </ThemeVisualStateFillBrushDefinition>
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="SliderForeground" FillBrush="rgb(0,108,214)" />
+      <ThemePropertyDefinition Target="SliderThumbFillBrush" FillBrush="rgb(0,97,193)" />
+      <ThemePropertyDefinition Target="SliderOverlay">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.12"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="SelectedTabHeaderBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,108,214)"
+                                               FocusedColor="White * 0.12"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="UnselectedTabHeaderBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,59,118)"
+                                               FocusedColor="White * 0.12"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="SpoilerUnspoiledBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Black * 0.5"
+                                               FocusedColor="White * 0.15"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="TextBoxFocusedSelectionForeground" Color="White" />
+      <ThemePropertyDefinition Target="TextBoxFocusedSelectionBackground" Color="Black" />
+      <ThemePropertyDefinition Target="TextBoxUnfocusedSelectionForeground" Color="White" />
+      <ThemePropertyDefinition Target="TextBoxUnfocusedSelectionBackground" Color="rgb(210,240,255) * 0.4" />
+      <ThemePropertyDefinition Target="TitleBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,52,103)"
+                                               FocusedColor="White * 0.05"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ToolTipTextForeground">
+        <ThemePropertyDefinition.VisualStateColorBrush>
+          <ThemeVisualStateColorBrushDefinition NormalValue="rgb(240,240,240)" />
+        </ThemePropertyDefinition.VisualStateColorBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="TextBlockFallbackForeground">
+        <ThemePropertyDefinition.VisualStateColorBrush>
+          <ThemeVisualStateColorBrushDefinition NormalValue="White" />
+        </ThemePropertyDefinition.VisualStateColorBrush>
+      </ThemePropertyDefinition>
+    </ThemeDefinition.Properties>
+    <ThemeDefinition.Docking>
+      <ThemeDockingSettingsDefinition TabNormalBackground="rgb(45,45,48)"
+                                      TabHoverBackground="rgb(62,62,66)"
+                                      TabActiveBackground="rgb(37,37,38)"
+                                      TabActiveAccentColor="rgb(51,137,222)"
+                                      TabHoverAccentColor="rgb(89,159,228) * 0.70"
+                                      TabActiveTextColor="White"
+                                      TabInactiveTextColor="rgb(200,200,200)"
+                                      TabActiveIconColor="White"
+                                      TabInactiveIconColor="rgb(180,180,180)"
+                                      AutoHideDrawerBackground="rgb(37,37,38)"
+                                      AutoHideDrawerHeaderBackground="rgb(45,45,48)"
+                                      AutoHideHeaderTextColor="White"
+                                      AutoHideIconColor="rgb(200,200,200)"
+                                      AutoHideBorderColor="rgb(80,80,85)"
+                                      AutoHideGripColor="rgb(100,100,110)"
+                                      AutoHideStripBackground="rgb(30,30,32)"
+                                      AutoHideStripTextColor="rgb(200,200,200)"
+                                      AutoHideStripSeparatorColor="rgb(60,60,65)"
+                                      SplitterNormalBrush="rgb(64,64,64)"
+                                      SplitterHoverBrush="rgb(56,140,223)"
+                                      SplitterPressedBrush="rgb(20,120,217)"
+                                      SplitterHoverOverlayColor="rgb(115,174,232) * 0.47"
+                                      SplitterPressedOverlayColor="rgb(64,145,224) * 0.70"
+                                      DropIndicatorInactiveColor="rgba(100,100,100,180)"
+                                      DropIndicatorActiveColor="rgba(0,108,214,230)"
+                                      DropIndicatorBorderColor="rgba(255,255,255,200)"
+                                      DropIndicatorHostInactiveColor="rgba(80,80,120,180)"
+                                      DropIndicatorHostActiveColor="rgba(0,160,80,230)"
+                                      DropIndicatorDisabledColor="rgba(40,40,40,100)"
+                                      DropIndicatorDisabledBorderColor="rgba(70,70,70,120)"
+                                      DropIndicatorSymbolColor="White"
+                                      DropIndicatorDisabledSymbolColor="rgba(100,100,100,150)">
+        <ThemeDockingSettingsDefinition.AutoHideButtonBackground>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="rgb(62,62,66)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.10" />
+        </ThemeDockingSettingsDefinition.AutoHideButtonBackground>
+        <ThemeDockingSettingsDefinition.AutoHideStripButtonBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(37,37,38)"
+                                               FocusedColor="rgb(62,62,66)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.10" />
+        </ThemeDockingSettingsDefinition.AutoHideStripButtonBackground>
+      </ThemeDockingSettingsDefinition>
+    </ThemeDefinition.Docking>
+  </ThemeDefinition>
+
+  <ThemeDefinition Name="Light_Gray" IsBuiltIn="True">
+    <ThemeDefinition.Backgrounds>
+      <ThemeBackgroundDefinition ElementType="Button">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(238,241,244)"
+                                               SelectedValue="rgb(238,241,244)"
+                                               FocusedValue="rgb(243,245,247)"
+                                               DisabledValue="rgb(238,241,244) * 0.5"
+                                               FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ComboBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(238,241,244)"
+                                               SelectedValue="rgb(238,241,244)"
+                                               FocusedValue="rgb(243,245,247)"
+                                               DisabledValue="rgb(238,241,244) * 0.5"
+                                               FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ContextMenu">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="GridSplitter">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="GroupBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(242,245,247)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ListBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(242,245,247)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ListView">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(242,245,247)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ProgressBar">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(242,245,247)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="TabControl">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(242,245,247)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ChatBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(242,245,247)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="PasswordBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)"
+                                               FocusedValue="rgb(241,244,246)"
+                                               FocusedColor="White * 0.25"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="TextBox">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)"
+                                               FocusedValue="rgb(241,244,246)"
+                                               FocusedColor="White * 0.25"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="Separator">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Black * 0.5"
+                                               FocusedColor="White * 0.04"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="Stopwatch">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Black * 0.5"
+                                               FocusedColor="White * 0.04"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="Timer">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Black * 0.5"
+                                               FocusedColor="White * 0.04"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="MenuBar">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(238,241,244)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="MenuBarItem">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="rgba(188,202,218,190)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ToggleButton">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(238,241,244)"
+                                               SelectedValue="rgb(152,171,191)"
+                                               FocusedValue="rgb(198,209,220)"
+                                               DisabledValue="rgb(238,241,244) * 0.5"
+                                               FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="ToolTip">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgba(255,255,210,204)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="Window">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+    </ThemeDefinition.Backgrounds>
+    <ThemeDefinition.Properties>
+      <ThemePropertyDefinition Target="ComboBoxDropdownBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ComboBoxDropdownItemBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition SelectedValue="Yellow * 0.65"
+                                               FocusedColor="rgb(170,187,205) * 0.70"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="DropdownArrowColor" Color="Black" />
+      <ThemePropertyDefinition Target="ListBoxItemBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition SelectedValue="Yellow * 0.65"
+                                               FocusedColor="rgb(170,187,205) * 0.40"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.04" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ListBoxItemAlternatingRowBackgrounds">
+        <ThemePropertyDefinition.FillBrushes>
+          <SolidFillBrush Color="rgb(239,243,245)" />
+          <SolidFillBrush Color="rgb(243,246,248)" />
+        </ThemePropertyDefinition.FillBrushes>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="TreeViewSelectionBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Yellow * 0.65"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.04" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="TreeViewSelectionForeground" Color="Black" />
+      <ThemePropertyDefinition Target="TreeViewExpanderArrowColor" Color="Black" />
+      <ThemePropertyDefinition Target="TreeViewBorderBrush" BorderBrush="Gray" />
+      <ThemePropertyDefinition Target="TreeViewBorderThickness" Thickness="1" />
+      <ThemePropertyDefinition Target="TreeViewIndentSize" Integer="20" />
+      <ThemePropertyDefinition Target="TreeViewExpanderButtonSize" Integer="16" />
+      <ThemePropertyDefinition Target="GridSplitterForeground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Black * 0.5"
+                                               FocusedColor="White * 0.25"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ProgressBarCompletedBrush">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Green"
+                                               FocusedColor="White * 0.02"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ProgressBarIncompleteBrush">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Black * 0.5"
+                                               FocusedColor="White * 0.01"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="CheckMarkColor" Color="Green" />
+      <ThemePropertyDefinition Target="RadioButtonBubbleBackground">
+        <ThemePropertyDefinition.VisualStateColorBrush>
+          <ThemeVisualStateColorBrushDefinition NormalValue="rgb(238,241,244)"
+                                                FocusedColor="White * 0.18"
+                                                PressedModifierType="Darken"
+                                                PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateColorBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="RadioButtonCheckedFillColor" Color="Green" />
+      <ThemePropertyDefinition Target="ResizeGripForeground">
+        <ThemePropertyDefinition.VisualStateColorBrush>
+          <ThemeVisualStateColorBrushDefinition NormalValue="Black"
+                                                FocusedColor="White * 0.36"
+                                                PressedModifierType="Brighten"
+                                                PressedModifier="0.2" />
+        </ThemePropertyDefinition.VisualStateColorBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ScrollBarOuterBrush">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.04"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0">
+            <ThemeVisualStateFillBrushDefinition.NormalValue>
+              <BorderedFillBrush BorderThickness="1" BorderBrush="Black" FillBrush="rgb(88,88,88)" PadFillBoundsByBorderThickness="True" />
+            </ThemeVisualStateFillBrushDefinition.NormalValue>
+          </ThemeVisualStateFillBrushDefinition>
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ScrollBarInnerBrush">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.02"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0">
+            <ThemeVisualStateFillBrushDefinition.NormalValue>
+              <BorderedFillBrush BorderThickness="1" BorderBrush="Black" FillBrush="rgb(204,204,204)" />
+            </ThemeVisualStateFillBrushDefinition.NormalValue>
+            <ThemeVisualStateFillBrushDefinition.FocusedValue>
+              <BorderedFillBrush BorderThickness="1" BorderBrush="Black" FillBrush="rgb(232,232,232)" />
+            </ThemeVisualStateFillBrushDefinition.FocusedValue>
+            <ThemeVisualStateFillBrushDefinition.DisabledValue>
+              <BorderedFillBrush BorderThickness="1" BorderBrush="Black" FillBrush="rgb(204,204,204) * 0.5" />
+            </ThemeVisualStateFillBrushDefinition.DisabledValue>
+          </ThemeVisualStateFillBrushDefinition>
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="SliderForeground" FillBrush="rgb(238,241,244)" />
+      <ThemePropertyDefinition Target="SliderThumbFillBrush" FillBrush="rgb(214,217,220)" />
+      <ThemePropertyDefinition Target="SliderOverlay">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="SelectedTabHeaderBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)"
+                                               FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="UnselectedTabHeaderBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(238,241,244)"
+                                               FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="SpoilerUnspoiledBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Black * 0.5"
+                                               FocusedColor="White * 0.18"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="TextBoxFocusedSelectionBackground" Color="rgb(133,153,174)" />
+      <ThemePropertyDefinition Target="TextBoxFocusedSelectionForeground" Color="White" />
+      <ThemePropertyDefinition Target="TextBoxUnfocusedSelectionBackground" Color="rgb(170,187,205) * 0.35" />
+      <ThemePropertyDefinition Target="TextBoxUnfocusedSelectionForeground" Color="White" />
+      <ThemePropertyDefinition Target="TitleBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(238,241,244)"
+                                               FocusedColor="rgba(188,202,218,190) * 0.75"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.04" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ToolTipTextForeground">
+        <ThemePropertyDefinition.VisualStateColorBrush>
+          <ThemeVisualStateColorBrushDefinition NormalValue="rgb(24,24,24)" />
+        </ThemePropertyDefinition.VisualStateColorBrush>
+      </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="TextBlockFallbackForeground">
+        <ThemePropertyDefinition.VisualStateColorBrush>
+          <ThemeVisualStateColorBrushDefinition NormalValue="Black" />
+        </ThemePropertyDefinition.VisualStateColorBrush>
+      </ThemePropertyDefinition>
+    </ThemeDefinition.Properties>
+    <ThemeDefinition.Docking>
+      <ThemeDockingSettingsDefinition TabNormalBackground="rgb(236,240,243)"
+                                      TabHoverBackground="rgb(242,245,247)"
+                                      TabActiveBackground="rgb(246,248,250)"
+                                      TabActiveAccentColor="rgb(152,171,191)"
+                                      TabHoverAccentColor="rgba(188,202,218,190)"
+                                      TabActiveTextColor="Black"
+                                      TabInactiveTextColor="rgb(40,40,40)"
+                                      TabActiveIconColor="Black"
+                                      TabInactiveIconColor="rgb(80,80,80)"
+                                      AutoHideDrawerBackground="rgb(246,248,250)"
+                                      AutoHideDrawerHeaderBackground="rgb(238,241,244)"
+                                      AutoHideHeaderTextColor="Black"
+                                      AutoHideIconColor="rgb(64,64,64)"
+                                      AutoHideBorderColor="rgb(150,150,150)"
+                                      AutoHideGripColor="rgb(200,200,200)"
+                                      AutoHideStripBackground="rgb(242,245,247)"
+                                      AutoHideStripTextColor="Black"
+                                      AutoHideStripSeparatorColor="rgb(150,150,150)"
+                                      SplitterNormalBrush="rgb(188,193,198)"
+                                      SplitterHoverBrush="rgb(178,193,210)"
+                                      SplitterPressedBrush="rgb(133,153,174)"
+                                      SplitterHoverOverlayColor="rgba(174,194,220,120)"
+                                      SplitterPressedOverlayColor="rgba(150,176,210,180)"
+                                      DropIndicatorInactiveColor="rgba(140,140,140,180)"
+                                      DropIndicatorActiveColor="rgba(152,171,191,230)"
+                                      DropIndicatorBorderColor="rgba(32,32,32,200)"
+                                      DropIndicatorHostInactiveColor="rgba(140,140,180,180)"
+                                      DropIndicatorHostActiveColor="rgba(0,160,80,230)"
+                                      DropIndicatorDisabledColor="rgba(170,170,170,100)"
+                                      DropIndicatorDisabledBorderColor="rgba(120,120,120,140)"
+                                      DropIndicatorSymbolColor="White"
+                                      DropIndicatorDisabledSymbolColor="rgba(90,90,90,150)">
+        <ThemeDockingSettingsDefinition.AutoHideButtonBackground>
+          <ThemeVisualStateFillBrushDefinition FocusedColor="rgba(188,202,218,190)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeDockingSettingsDefinition.AutoHideButtonBackground>
+        <ThemeDockingSettingsDefinition.AutoHideStripButtonBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(236,240,243)"
+                                               FocusedColor="rgba(188,202,218,190)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeDockingSettingsDefinition.AutoHideStripButtonBackground>
+      </ThemeDockingSettingsDefinition>
+    </ThemeDefinition.Docking>
+  </ThemeDefinition>
+</ThemeDefinitionsDocument>

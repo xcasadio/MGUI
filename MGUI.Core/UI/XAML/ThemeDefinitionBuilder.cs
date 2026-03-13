@@ -24,7 +24,7 @@ namespace MGUI.Core.UI.XAML
                 throw new InvalidOperationException($"A {nameof(ThemeDefinition)} requires a default font family either from the definition, the base theme, or the caller.");
             }
 
-            MGTheme Result = BaseTheme?.Copy() ?? new MGTheme(FontFamily);
+            MGTheme Result = BaseTheme?.Copy() ?? MGTheme.CreateEmpty(FontFamily);
             Apply(Result, Definition, FontFamily);
             return Result;
         }
@@ -481,6 +481,10 @@ namespace MGUI.Core.UI.XAML
             }
 
             VisualStateSetting<Color?> Result = Current?.GetCopy() ?? new VisualStateSetting<Color?>(null, null, null, null);
+            if (Current == null && Definition.NormalValue.HasValue)
+            {
+                Result.SetAll(Definition.NormalValue.Value.ToXNAColor());
+            }
             if (Definition.NormalValue.HasValue) Result.NormalValue = Definition.NormalValue.Value.ToXNAColor();
             if (Definition.SelectedValue.HasValue) Result.SelectedValue = Definition.SelectedValue.Value.ToXNAColor();
             if (Definition.FocusedValue.HasValue) Result.FocusedValue = Definition.FocusedValue.Value.ToXNAColor();
@@ -491,6 +495,10 @@ namespace MGUI.Core.UI.XAML
         private static VisualStateSetting<Color?> ApplyColorSetting(ThemeVisualStateColorSettingDefinition Definition, VisualStateSetting<Color?> Current)
         {
             VisualStateSetting<Color?> Result = Current?.GetCopy() ?? new VisualStateSetting<Color?>(null, null, null, null);
+            if (Current == null && Definition.NormalValue.HasValue)
+            {
+                Result.SetAll(Definition.NormalValue.Value.ToXNAColor());
+            }
             if (Definition.NormalValue.HasValue) Result.NormalValue = Definition.NormalValue.Value.ToXNAColor();
             if (Definition.SelectedValue.HasValue) Result.SelectedValue = Definition.SelectedValue.Value.ToXNAColor();
             if (Definition.FocusedValue.HasValue) Result.FocusedValue = Definition.FocusedValue.Value.ToXNAColor();
@@ -501,6 +509,11 @@ namespace MGUI.Core.UI.XAML
         private static VisualStateFillBrush ApplyVisualStateFillBrush(ThemeVisualStateFillBrushDefinition Definition, VisualStateFillBrush Current)
         {
             VisualStateFillBrush Result = Current?.Copy() ?? new VisualStateFillBrush((IFillBrush)null);
+            if (Current == null && Definition.NormalValue != null)
+            {
+                IFillBrush NormalBrush = ToFillBrush(Definition.NormalValue);
+                Result.SetAll(NormalBrush);
+            }
             if (Definition.NormalValue != null) Result.NormalValue = ToFillBrush(Definition.NormalValue);
             if (Definition.SelectedValue != null) Result.SelectedValue = ToFillBrush(Definition.SelectedValue);
             if (Definition.FocusedValue != null) Result.FocusedValue = ToFillBrush(Definition.FocusedValue);
@@ -516,6 +529,10 @@ namespace MGUI.Core.UI.XAML
         private static VisualStateColorBrush ApplyVisualStateColorBrush(ThemeVisualStateColorBrushDefinition Definition, VisualStateColorBrush Current)
         {
             VisualStateColorBrush Result = Current?.Copy() ?? new VisualStateColorBrush(default(Color));
+            if (Current == null && Definition.NormalValue.HasValue)
+            {
+                Result.SetAll(Definition.NormalValue.Value.ToXNAColor());
+            }
             if (Definition.NormalValue.HasValue) Result.NormalValue = Definition.NormalValue.Value.ToXNAColor();
             if (Definition.SelectedValue.HasValue) Result.SelectedValue = Definition.SelectedValue.Value.ToXNAColor();
             if (Definition.FocusedValue.HasValue) Result.FocusedValue = Definition.FocusedValue.Value.ToXNAColor();

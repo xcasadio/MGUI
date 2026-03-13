@@ -93,6 +93,27 @@ public class ThemeDefinitionTests
     }
 
     [Fact]
+    public void ThemeDefinitionLoader_Resolves_BuiltIn_Base_Themes()
+    {
+        MGResources resources = new(MGTheme.CreateEmpty("Arial"));
+
+        string xaml = @"
+<ThemeDefinition xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core""
+                 Name=""DerivedTheme""
+                 BasedOn=""Dark_Blue"">
+  <ThemeDefinition.FontSettings>
+    <ThemeFontSettingsDefinition DefaultFontSize=""15"" />
+  </ThemeDefinition.FontSettings>
+</ThemeDefinition>
+";
+
+        IReadOnlyDictionary<string, MGTheme> themes = resources.LoadThemesFromXaml(XamlDocumentSource.FromString(xaml));
+
+        Assert.Equal(15, themes["DerivedTheme"].FontSettings.DefaultFontSize);
+        Assert.Equal(Color.White, themes["DerivedTheme"].DropdownArrowColor);
+    }
+
+    [Fact]
     public void ThemeDefinitionLoader_Rejects_Cycles()
     {
         ThemeDefinition first = new() { Name = "A", BasedOn = "B" };

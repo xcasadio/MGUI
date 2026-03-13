@@ -1,5 +1,6 @@
 <ThemeDefinition xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-                 Name="Debug1_Theme">
+                 Name="Debug1_Theme"
+                 BasedOn="Dark_Blue">
   <ThemeDefinition.FontSettings>
     <ThemeFontSettingsDefinition ContextMenuFontSize="8"
                                  SmallFontSize="8"

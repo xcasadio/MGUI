@@ -380,6 +380,22 @@ namespace MGUI.Core.UI
             return DefaultValue ?? DefaultTheme;
         }
 
+        public bool TryGetTheme(string Name, out MGTheme Theme)
+        {
+            if (Name != null && _Themes.TryGetValue(Name, out Theme))
+            {
+                return true;
+            }
+
+            if (Parent?.TryGetTheme(Name, out Theme) == true)
+            {
+                return true;
+            }
+
+            Theme = null;
+            return false;
+        }
+
         public event EventHandler<(string Name, MGTheme Theme)> OnThemeAdded;
         public event EventHandler<(string Name, MGTheme Theme)> OnThemeRemoved;
         public event EventHandler<(MGTheme PreviousTheme, MGTheme Theme)> OnDefaultThemeChanged;

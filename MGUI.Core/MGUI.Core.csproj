@@ -31,4 +31,13 @@
   <ItemGroup>
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Page Remove="UI\Themes\BuiltInThemes.xaml" />
+    <None Remove="UI\Themes\BuiltInThemes.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="UI\Themes\BuiltInThemes.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

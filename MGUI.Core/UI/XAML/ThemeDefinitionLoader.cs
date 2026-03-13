@@ -68,7 +68,20 @@ namespace MGUI.Core.UI.XAML
             string FontFamily = DefaultFontFamily ?? Resources.DefaultTheme?.FontSettings?.DefaultFontFamily;
             IReadOnlyDictionary<string, MGTheme> Themes = BuildThemes(
                 Definitions,
-                Name => Resources.GetThemeOrDefault(Name, null, WarnIfNotFound: false),
+                Name =>
+                {
+                    if (Resources.TryGetTheme(Name, out MGTheme ExistingTheme))
+                    {
+                        return ExistingTheme;
+                    }
+
+                    if (MGTheme.TryCreateBuiltInTheme(Name, FontFamily, out MGTheme BuiltInTheme))
+                    {
+                        return BuiltInTheme;
+                    }
+
+                    return null;
+                },
                 FontFamily);
 
             foreach (KeyValuePair<string, MGTheme> Item in Themes)
