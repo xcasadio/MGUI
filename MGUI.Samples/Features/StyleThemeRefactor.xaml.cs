@@ -6,8 +6,6 @@ namespace MGUI.Samples.Features
 {
     public class StyleThemeRefactorSample : SampleBase
     {
-        private MGTheme.BuiltInTheme CurrentThemeType { get; set; } = MGTheme.BuiltInTheme.Dark_Blue;
-
         public StyleThemeRefactorSample(ContentManager Content, MGDesktop Desktop)
             : base(Content, Desktop, nameof(Features), "StyleThemeRefactor.xaml")
         {
@@ -57,14 +55,8 @@ namespace MGUI.Samples.Features
 
         private void ApplyTheme(MGTheme.BuiltInTheme builtInTheme, string label, MGTextBlock statusText)
         {
-            if (builtInTheme == CurrentThemeType)
-            {
-                return;
-            }
-
             string fontFamily = Desktop.Theme.FontSettings.DefaultFontFamily;
             Window.GetResources().DefaultTheme = new MGTheme(builtInTheme, fontFamily);
-            CurrentThemeType = builtInTheme;
             statusText.SetText($"Active theme: {label}");
         }
     }

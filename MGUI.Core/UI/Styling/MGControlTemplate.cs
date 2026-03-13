@@ -6,10 +6,12 @@ namespace MGUI.Core.UI.Styling
     {
         public MGElement Owner { get; }
         public MGWindow Window => Owner?.SelfOrParentWindow;
+        public bool IsThemeRefresh { get; }
 
-        public MGControlTemplateContext(MGElement Owner)
+        public MGControlTemplateContext(MGElement Owner, bool IsThemeRefresh = false)
         {
             this.Owner = Owner;
+            this.IsThemeRefresh = IsThemeRefresh;
         }
 
         public bool TryGetPart(string Name, out MGElement Part)
@@ -45,14 +47,14 @@ namespace MGUI.Core.UI.Styling
             this.ApplyAction = ApplyAction ?? throw new ArgumentNullException(nameof(ApplyAction));
         }
 
-        public void Apply(MGElement Owner)
+        public void Apply(MGElement Owner, bool IsThemeRefresh = false)
         {
             if (Owner == null)
             {
                 throw new ArgumentNullException(nameof(Owner));
             }
 
-            Apply(new MGControlTemplateContext(Owner));
+            Apply(new MGControlTemplateContext(Owner, IsThemeRefresh));
         }
 
         public void Apply(MGControlTemplateContext Context)

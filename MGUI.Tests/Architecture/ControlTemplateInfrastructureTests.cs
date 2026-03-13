@@ -93,4 +93,15 @@ public class ControlTemplateInfrastructureTests
     {
         Assert.Equal(typeof(string), typeof(Element).GetProperty(nameof(Element.ControlTemplate))?.PropertyType);
     }
+
+    [Fact]
+    public void Control_Template_Context_Flags_Theme_Refresh()
+    {
+        bool? observedFlag = null;
+        MGControlTemplate template = new("Window.Chrome", context => observedFlag = context.IsThemeRefresh);
+
+        template.Apply(new MGControlTemplateContext(null, true));
+
+        Assert.True(observedFlag);
+    }
 }

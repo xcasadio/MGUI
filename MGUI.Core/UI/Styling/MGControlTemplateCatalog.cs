@@ -74,36 +74,40 @@ namespace MGUI.Core.UI.Styling
             MGTextBlock TitleText = Context.GetRequiredPart<MGTextBlock>(MGWindow.TitleBarTextPartName);
             MGButton CloseButton = Context.GetRequiredPart<MGButton>(MGWindow.CloseButtonPartName);
 
-            Window.Padding = new(5);
-            Border.BorderThickness = new(2);
-            Border.BorderBrush = MGUniformBorderBrush.Black;
-
-            TitleBar.Padding = new(2);
-            TitleBar.MinHeight = 24;
-            TitleBar.BackgroundBrush = Theme.TitleBackground.GetValue(true);
-            TitleBar.DrawBackgroundEnabled = false;
-
-            CloseButton.MinWidth = 12;
-            CloseButton.MinHeight = 12;
-            CloseButton.BackgroundBrush = new(Color.Crimson.AsFillBrush() * 0.5f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
-            CloseButton.BorderBrush = MGUniformBorderBrush.Black;
-            CloseButton.BorderThickness = new(1);
-            CloseButton.Margin = new(1, 1, 1, 1 + Border.BorderThickness.Bottom);
-            CloseButton.Padding = new(4, -1);
-            CloseButton.VerticalAlignment = VerticalAlignment.Center;
-            CloseButton.VerticalContentAlignment = VerticalAlignment.Center;
-            CloseButton.HorizontalContentAlignment = HorizontalAlignment.Center;
-            if (CloseButton.Content == null)
+            if (!Context.IsThemeRefresh)
             {
-                CloseButton.SetContent(new MGTextBlock(Window, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
+                Window.Padding = new(5);
+                Border.BorderThickness = new(2);
+                Border.BorderBrush = MGUniformBorderBrush.Black;
+
+                TitleBar.Padding = new(2);
+                TitleBar.MinHeight = 24;
+
+                CloseButton.MinWidth = 12;
+                CloseButton.MinHeight = 12;
+                CloseButton.BackgroundBrush = new(Color.Crimson.AsFillBrush() * 0.5f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
+                CloseButton.BorderBrush = MGUniformBorderBrush.Black;
+                CloseButton.BorderThickness = new(1);
+                CloseButton.Margin = new(1, 1, 1, 1 + Border.BorderThickness.Bottom);
+                CloseButton.Padding = new(4, -1);
+                CloseButton.VerticalAlignment = VerticalAlignment.Center;
+                CloseButton.VerticalContentAlignment = VerticalAlignment.Center;
+                CloseButton.HorizontalContentAlignment = HorizontalAlignment.Center;
+                if (CloseButton.Content == null)
+                {
+                    CloseButton.SetContent(new MGTextBlock(Window, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
+                }
+
+                TitleText.Margin = new(4, 0);
+                TitleText.Padding = new(0);
+                TitleText.HorizontalAlignment = HorizontalAlignment.Stretch;
+                TitleText.VerticalAlignment = VerticalAlignment.Center;
+                TitleText.TextAlignment = HorizontalAlignment.Left;
+                TitleText.DefaultTextForeground = new(Color.White, Color.White, Color.White);
             }
 
-            TitleText.Margin = new(4, 0);
-            TitleText.Padding = new(0);
-            TitleText.HorizontalAlignment = HorizontalAlignment.Stretch;
-            TitleText.VerticalAlignment = VerticalAlignment.Center;
-            TitleText.TextAlignment = HorizontalAlignment.Left;
-            TitleText.DefaultTextForeground = new(Color.White, Color.White, Color.White);
+            TitleBar.BackgroundBrush = Theme.TitleBackground.GetValue(true);
+            TitleBar.DrawBackgroundEnabled = false;
         }
 
         private static void ApplyOverlayTemplate(MGControlTemplateContext Context)
@@ -116,19 +120,22 @@ namespace MGUI.Core.UI.Styling
             MGBorder Border = Context.GetRequiredPart<MGBorder>(MGOverlay.BorderPartName);
             MGButton CloseButton = Context.GetRequiredPart<MGButton>(MGOverlay.CloseButtonPartName);
 
-            Overlay.Padding = new(5);
-            Border.BorderThickness = new(1);
-            Border.BorderBrush = MGUniformBorderBrush.Black;
-
-            CloseButton.MinWidth = 12;
-            CloseButton.MinHeight = 12;
-            CloseButton.BackgroundBrush = new(Color.Crimson.AsFillBrush() * 0.8f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
-            CloseButton.BorderBrush = MGUniformBorderBrush.Black;
-            CloseButton.BorderThickness = new(1);
-            CloseButton.Padding = new(4, -1);
-            if (CloseButton.Content == null)
+            if (!Context.IsThemeRefresh)
             {
-                CloseButton.SetContent(new MGTextBlock(Overlay.Host.ParentWindow, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
+                Overlay.Padding = new(5);
+                Border.BorderThickness = new(1);
+                Border.BorderBrush = MGUniformBorderBrush.Black;
+
+                CloseButton.MinWidth = 12;
+                CloseButton.MinHeight = 12;
+                CloseButton.BackgroundBrush = new(Color.Crimson.AsFillBrush() * 0.8f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
+                CloseButton.BorderBrush = MGUniformBorderBrush.Black;
+                CloseButton.BorderThickness = new(1);
+                CloseButton.Padding = new(4, -1);
+                if (CloseButton.Content == null)
+                {
+                    CloseButton.SetContent(new MGTextBlock(Overlay.Host.ParentWindow, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
+                }
             }
         }
 
@@ -139,9 +146,12 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Menu.Padding = new(1);
-            Menu.BorderBrush = MGUniformBorderBrush.Gray;
-            Menu.BorderThickness = new(1);
+            if (!Context.IsThemeRefresh)
+            {
+                Menu.Padding = new(1);
+                Menu.BorderBrush = MGUniformBorderBrush.Gray;
+                Menu.BorderThickness = new(1);
+            }
         }
 
         private static void ApplyContextMenuItemTemplate(MGControlTemplateContext Context)
@@ -155,11 +165,14 @@ namespace MGUI.Core.UI.Styling
             MGTextBlock ShortcutText = Context.GetRequiredPart<MGTextBlock>(MGWrappedContextMenuItem.ShortcutTextPartName);
             MGElement Arrow = Context.GetRequiredPart<MGElement>(MGWrappedContextMenuItem.SubmenuArrowPartName);
 
-            HeaderPresenter.Margin = new(0, 0, 5, 0);
-            HeaderPresenter.BackgroundBrush = new(null);
-            ShortcutText.Margin = new Thickness(18, 0, 0, 0);
-            ShortcutText.Foreground = new(Color.LightGray, Color.LightGray, Color.LightGray);
-            Arrow.Margin = new(0, 5, MGWrappedContextMenuItem.DefaultSubmenuArrowRightMargin, 5);
+            if (!Context.IsThemeRefresh)
+            {
+                HeaderPresenter.Margin = new(0, 0, 5, 0);
+                HeaderPresenter.BackgroundBrush = new(null);
+                ShortcutText.Margin = new Thickness(18, 0, 0, 0);
+                ShortcutText.Foreground = new(Color.LightGray, Color.LightGray, Color.LightGray);
+                Arrow.Margin = new(0, 5, MGWrappedContextMenuItem.DefaultSubmenuArrowRightMargin, 5);
+            }
         }
 
         private static void ApplyListBoxTemplate(MGControlTemplateContext Context)
@@ -177,19 +190,22 @@ namespace MGUI.Core.UI.Styling
             MGScrollViewer ScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGListBox<object>.ScrollViewerPartName);
             MGStackPanel ItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGListBox<object>.ItemsPanelPartName);
 
-            OuterBorder.BackgroundBrush = new VisualStateFillBrush(SolidFillBrushes.Black);
-            TitleBorder.Padding = new(6, 3);
             TitleBorder.BackgroundBrush = Theme.TitleBackground.GetValue(true);
-            TitleBorder.DefaultTextForeground.SetAll(Color.White);
-            TitleBorder.BorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
-            TitleBorder.BorderThickness = new(1, 1, 1, 0);
-            InnerBorder.BorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
-            InnerBorder.BorderThickness = new(1);
-            ScrollViewer.Padding = new(0);
-            ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
-            ItemsPanel.BorderThickness = new(1);
-            ItemsPanel.BorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
-            TitlePresenter.VerticalAlignment = VerticalAlignment.Center;
+            if (!Context.IsThemeRefresh)
+            {
+                OuterBorder.BackgroundBrush = new VisualStateFillBrush(SolidFillBrushes.Black);
+                TitleBorder.Padding = new(6, 3);
+                TitleBorder.DefaultTextForeground.SetAll(Color.White);
+                TitleBorder.BorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
+                TitleBorder.BorderThickness = new(1, 1, 1, 0);
+                InnerBorder.BorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
+                InnerBorder.BorderThickness = new(1);
+                ScrollViewer.Padding = new(0);
+                ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
+                ItemsPanel.BorderThickness = new(1);
+                ItemsPanel.BorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
+                TitlePresenter.VerticalAlignment = VerticalAlignment.Center;
+            }
         }
 
         private static void ApplyListViewTemplate(MGControlTemplateContext Context)
@@ -204,11 +220,14 @@ namespace MGUI.Core.UI.Styling
             MGGrid DataGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.DataGridPartName);
 
             HeaderGrid.BackgroundBrush = Theme.TitleBackground.GetValue(true);
-            HeaderGrid.DefaultTextForeground.SetAll(Color.White);
-            HeaderGrid.HorizontalGridLineBrush = SolidFillBrushes.Black;
-            HeaderGrid.VerticalGridLineBrush = SolidFillBrushes.Black;
-            DataGrid.HorizontalGridLineBrush = SolidFillBrushes.Black;
-            DataGrid.VerticalGridLineBrush = SolidFillBrushes.Black;
+            if (!Context.IsThemeRefresh)
+            {
+                HeaderGrid.DefaultTextForeground.SetAll(Color.White);
+                HeaderGrid.HorizontalGridLineBrush = SolidFillBrushes.Black;
+                HeaderGrid.VerticalGridLineBrush = SolidFillBrushes.Black;
+                DataGrid.HorizontalGridLineBrush = SolidFillBrushes.Black;
+                DataGrid.VerticalGridLineBrush = SolidFillBrushes.Black;
+            }
         }
 
         private static void ApplyComboBoxTemplate(MGControlTemplateContext Context)
@@ -225,17 +244,20 @@ namespace MGUI.Core.UI.Styling
             MGScrollViewer DropdownScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGComboBox<object>.DropdownScrollViewerPartName);
             MGStackPanel DropdownItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGComboBox<object>.DropdownItemsPanelPartName);
 
-            Context.Owner.Padding = new(4, 2, 4, 2);
-            Context.Owner.MinHeight = 26;
-            Border.BorderBrush ??= MGUniformBorderBrush.Black;
-            DropdownArrow.Margin = new(MGComboBox<object>.DefaultDropdownArrowLeftMargin, 0, MGComboBox<object>.DefaultDropdownArrowRightMargin, 0);
-            Dropdown.PreferredWidth = Math.Max(Dropdown.PreferredWidth ?? 0, 100);
-            Dropdown.BorderThickness = new(1);
-            Dropdown.BorderBrush = MGUniformBorderBrush.Gray;
+            if (!Context.IsThemeRefresh)
+            {
+                Context.Owner.Padding = new(4, 2, 4, 2);
+                Context.Owner.MinHeight = 26;
+                Border.BorderBrush ??= MGUniformBorderBrush.Black;
+                DropdownArrow.Margin = new(MGComboBox<object>.DefaultDropdownArrowLeftMargin, 0, MGComboBox<object>.DefaultDropdownArrowRightMargin, 0);
+                Dropdown.PreferredWidth = Math.Max(Dropdown.PreferredWidth ?? 0, 100);
+                Dropdown.BorderThickness = new(1);
+                Dropdown.BorderBrush = MGUniformBorderBrush.Gray;
+                Dropdown.Padding = new(0);
+                DropdownScrollViewer.Padding = new(0);
+                DropdownItemsPanel.Spacing = 0;
+            }
             Dropdown.BackgroundBrush = Theme.ComboBoxDropdownBackground.GetValue(true);
-            Dropdown.Padding = new(0);
-            DropdownScrollViewer.Padding = new(0);
-            DropdownItemsPanel.Spacing = 0;
         }
 
         private static void ApplyTreeViewTemplate(MGControlTemplateContext Context)
@@ -252,9 +274,12 @@ namespace MGUI.Core.UI.Styling
 
             OuterBorder.BorderBrush = Theme?.TreeViewBorderBrush ?? MGUniformBorderBrush.Black;
             OuterBorder.BorderThickness = Theme?.TreeViewBorderThickness ?? new Thickness(1);
-            ScrollViewer.Padding = new(0);
-            ItemsPanel.Padding = new(0);
-            ItemsPanel.Spacing = 0;
+            if (!Context.IsThemeRefresh)
+            {
+                ScrollViewer.Padding = new(0);
+                ItemsPanel.Padding = new(0);
+                ItemsPanel.Spacing = 0;
+            }
             VisualStateFillBrush SelectionBrush = Theme?.TreeViewSelectionBackground?.GetValue(true);
             TreeView.SelectionBackgroundBrush = SelectionBrush ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue));
             TreeView.SelectionForeground = Theme?.TreeViewSelectionForeground ?? Color.Black;
@@ -272,31 +297,34 @@ namespace MGUI.Core.UI.Styling
             MGBorder Border = Context.GetRequiredPart<MGBorder>(MGTabControl.BorderPartName);
             MGStackPanel HeadersPanel = Context.GetRequiredPart<MGStackPanel>(MGTabControl.HeadersPanelPartName);
 
-            TabControl.Padding = new(12);
-            Border.BorderBrush = MGUniformBorderBrush.Black;
-            Border.BorderThickness = new(1);
-            HeadersPanel.Spacing = 0;
+            if (!Context.IsThemeRefresh)
+            {
+                TabControl.Padding = new(12);
+                Border.BorderBrush = MGUniformBorderBrush.Black;
+                Border.BorderThickness = new(1);
+                HeadersPanel.Spacing = 0;
+
+                TabControl.SelectedTabHeaderTemplate = (MGTabItem TabItem) =>
+                {
+                    MGButton Button = new(TabItem.SelfOrParentWindow, _ => TabItem.IsTabSelected = true)
+                    {
+                        IsFocusable = false
+                    };
+                    TabControl.ApplyDefaultSelectedTabHeaderStyle(Button);
+                    return Button;
+                };
+
+                TabControl.UnselectedTabHeaderTemplate = (MGTabItem TabItem) =>
+                {
+                    MGButton Button = new(TabItem.SelfOrParentWindow, _ => TabItem.IsTabSelected = true)
+                    {
+                        IsFocusable = false
+                    };
+                    TabControl.ApplyDefaultUnselectedTabHeaderStyle(Button);
+                    return Button;
+                };
+            }
             HeadersPanel.BackgroundBrush = Theme.TitleBackground.GetValue(true);
-
-            TabControl.SelectedTabHeaderTemplate = (MGTabItem TabItem) =>
-            {
-                MGButton Button = new(TabItem.SelfOrParentWindow, _ => TabItem.IsTabSelected = true)
-                {
-                    IsFocusable = false
-                };
-                TabControl.ApplyDefaultSelectedTabHeaderStyle(Button);
-                return Button;
-            };
-
-            TabControl.UnselectedTabHeaderTemplate = (MGTabItem TabItem) =>
-            {
-                MGButton Button = new(TabItem.SelfOrParentWindow, _ => TabItem.IsTabSelected = true)
-                {
-                    IsFocusable = false
-                };
-                TabControl.ApplyDefaultUnselectedTabHeaderStyle(Button);
-                return Button;
-            };
         }
 
         private static void ApplyDockTabItemTemplate(MGControlTemplateContext Context)

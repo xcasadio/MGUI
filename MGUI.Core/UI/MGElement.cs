@@ -205,7 +205,7 @@ namespace MGUI.Core.UI
                 if (_ControlTemplate != value)
                 {
                     _ControlTemplate = value;
-                    ApplyControlTemplate();
+                    ApplyControlTemplate(false);
                     NPC(nameof(ControlTemplate));
                 }
             }
@@ -221,7 +221,7 @@ namespace MGUI.Core.UI
                 if (_ControlTemplateName != value)
                 {
                     _ControlTemplateName = value;
-                    ApplyControlTemplate();
+                    ApplyControlTemplate(false);
                     NPC(nameof(ControlTemplateName));
                 }
             }
@@ -240,11 +240,11 @@ namespace MGUI.Core.UI
             _TemplateParts[Name] = Part;
             if (ControlTemplate != null)
             {
-                ApplyControlTemplate();
+                ApplyControlTemplate(false);
             }
         }
 
-        protected internal virtual void ApplyControlTemplate()
+        protected internal virtual void ApplyControlTemplate(bool IsThemeRefresh)
         {
             MGControlTemplate Template = ControlTemplate;
             if (Template == null && !string.IsNullOrWhiteSpace(ControlTemplateName))
@@ -252,7 +252,7 @@ namespace MGUI.Core.UI
                 GetResources().TryGetControlTemplate(ControlTemplateName, out Template);
             }
 
-            Template?.Apply(this);
+            Template?.Apply(this, IsThemeRefresh);
         }
 
             protected MGResources GetInheritedResources()
@@ -289,7 +289,7 @@ namespace MGUI.Core.UI
             internal void NotifyThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
             {
                 OnThemeChanged(PreviousTheme, CurrentTheme);
-                ApplyControlTemplate();
+                ApplyControlTemplate(true);
 
                 UIInvalidationKind Invalidation = GetThemeInvalidation(PreviousTheme, CurrentTheme);
                 if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)
