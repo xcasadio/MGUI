@@ -115,4 +115,19 @@ public class ControlTemplateInfrastructureTests
         Assert.Equal(new MonoGame.Extended.Thickness(2), theme.Window.TitleBarPadding);
         Assert.Equal(24, theme.Window.TitleBarMinHeight);
     }
+
+    [Fact]
+    public void Theme_Exposes_Composite_Control_Default_Groups()
+    {
+        MGTheme theme = new("Arial");
+
+        Assert.NotNull(theme.Overlay);
+        Assert.NotNull(theme.ContextMenu);
+        Assert.NotNull(theme.ContextMenuItem);
+        Assert.NotNull(theme.ListBox);
+        Assert.NotNull(theme.ListView);
+        Assert.NotNull(theme.ComboBox);
+        Assert.NotNull(theme.TreeViewTemplate);
+        Assert.NotNull(theme.TabControl);
+    }
 }

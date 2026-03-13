@@ -48,8 +48,97 @@ namespace MGUI.Core.UI
     {
         public Thickness Padding { get; set; } = new(5);
         public Thickness BorderThickness { get; set; } = new(2);
+        public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
         public Thickness TitleBarPadding { get; set; } = new(2);
         public int TitleBarMinHeight { get; set; } = 24;
+        public VisualStateFillBrush CloseButtonBackground { get; set; } = new(Color.Crimson.AsFillBrush() * 0.5f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
+        public IBorderBrush CloseButtonBorderBrush { get; set; } = MGUniformBorderBrush.Black;
+        public Thickness CloseButtonBorderThickness { get; set; } = new(1);
+        public Thickness CloseButtonMargin { get; set; } = new(1, 1, 1, 3);
+        public Thickness CloseButtonPadding { get; set; } = new(4, -1);
+        public int CloseButtonMinWidth { get; set; } = 12;
+        public int CloseButtonMinHeight { get; set; } = 12;
+        public Thickness TitleTextMargin { get; set; } = new(4, 0);
+        public Thickness TitleTextPadding { get; set; } = new(0);
+        public VisualStateSetting<Color?> TitleTextForeground { get; set; } = new(Color.White, Color.White, Color.White);
+    }
+
+    public class MGThemeOverlaySettings
+    {
+        public Thickness Padding { get; set; } = new(5);
+        public Thickness BorderThickness { get; set; } = new(1);
+        public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+        public VisualStateFillBrush CloseButtonBackground { get; set; } = new(Color.Crimson.AsFillBrush() * 0.8f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
+        public IBorderBrush CloseButtonBorderBrush { get; set; } = MGUniformBorderBrush.Black;
+        public Thickness CloseButtonBorderThickness { get; set; } = new(1);
+        public Thickness CloseButtonPadding { get; set; } = new(4, -1);
+        public int CloseButtonMinWidth { get; set; } = 12;
+        public int CloseButtonMinHeight { get; set; } = 12;
+    }
+
+    public class MGThemeContextMenuSettings
+    {
+        public Thickness Padding { get; set; } = new(1);
+        public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Gray;
+        public Thickness BorderThickness { get; set; } = new(1);
+    }
+
+    public class MGThemeContextMenuItemSettings
+    {
+        public Thickness HeaderMargin { get; set; } = new(0, 0, 5, 0);
+        public VisualStateFillBrush HeaderBackground { get; set; } = new(null);
+        public Thickness ShortcutMargin { get; set; } = new(18, 0, 0, 0);
+        public VisualStateSetting<Color?> ShortcutForeground { get; set; } = new(Color.LightGray, Color.LightGray, Color.LightGray);
+        public Thickness SubmenuArrowMargin { get; set; } = new(0, 5, 8, 5);
+    }
+
+    public class MGThemeListBoxSettings
+    {
+        public VisualStateFillBrush OuterBackground { get; set; } = new(SolidFillBrushes.Black);
+        public Thickness TitlePadding { get; set; } = new(6, 3);
+        public VisualStateSetting<Color?> TitleForeground { get; set; } = new(Color.White, Color.White, Color.White);
+        public IBorderBrush TitleBorderBrush { get; set; } = SolidFillBrushes.Black.AsUniformBorderBrush();
+        public Thickness TitleBorderThickness { get; set; } = new(1, 1, 1, 0);
+        public IBorderBrush InnerBorderBrush { get; set; } = SolidFillBrushes.Black.AsUniformBorderBrush();
+        public Thickness InnerBorderThickness { get; set; } = new(1);
+        public Thickness ScrollViewerPadding { get; set; } = new(0);
+        public IBorderBrush ItemsPanelBorderBrush { get; set; } = SolidFillBrushes.Black.AsUniformBorderBrush();
+        public Thickness ItemsPanelBorderThickness { get; set; } = new(1);
+    }
+
+    public class MGThemeListViewSettings
+    {
+        public VisualStateSetting<Color?> HeaderForeground { get; set; } = new(Color.White, Color.White, Color.White);
+        public IFillBrush GridLineBrush { get; set; } = SolidFillBrushes.Black;
+    }
+
+    public class MGThemeComboBoxSettings
+    {
+        public Thickness Padding { get; set; } = new(4, 2, 4, 2);
+        public int MinHeight { get; set; } = 26;
+        public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+        public Thickness DropdownArrowMargin { get; set; } = new(6, 0, 4, 0);
+        public int DropdownMinWidth { get; set; } = 100;
+        public Thickness DropdownBorderThickness { get; set; } = new(1);
+        public IBorderBrush DropdownBorderBrush { get; set; } = MGUniformBorderBrush.Gray;
+        public Thickness DropdownPadding { get; set; } = new(0);
+        public Thickness DropdownScrollViewerPadding { get; set; } = new(0);
+        public int DropdownItemsSpacing { get; set; } = 0;
+    }
+
+    public class MGThemeTreeViewTemplateSettings
+    {
+        public Thickness ScrollViewerPadding { get; set; } = new(0);
+        public Thickness ItemsPanelPadding { get; set; } = new(0);
+        public int ItemsPanelSpacing { get; set; } = 0;
+    }
+
+    public class MGThemeTabControlSettings
+    {
+        public Thickness Padding { get; set; } = new(12);
+        public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+        public Thickness BorderThickness { get; set; } = new(1);
+        public int HeadersSpacing { get; set; } = 0;
     }
 
     public class ThemeFontSettings
@@ -247,6 +336,14 @@ namespace MGUI.Core.UI
 
         public ThemeFontSettings FontSettings { get; }
         public MGThemeWindowSettings Window { get; }
+        public MGThemeOverlaySettings Overlay { get; }
+        public MGThemeContextMenuSettings ContextMenu { get; }
+        public MGThemeContextMenuItemSettings ContextMenuItem { get; }
+        public MGThemeListBoxSettings ListBox { get; }
+        public MGThemeListViewSettings ListView { get; }
+        public MGThemeComboBoxSettings ComboBox { get; }
+        public MGThemeTreeViewTemplateSettings TreeViewTemplate { get; }
+        public MGThemeTabControlSettings TabControl { get; }
         public MGThemeDockingSettings Docking { get; }
 
         public enum BuiltInTheme
@@ -273,6 +370,14 @@ namespace MGUI.Core.UI
         {
             FontSettings = new(DefaultFontFamily);
             Window = new();
+            Overlay = new();
+            ContextMenu = new();
+            ContextMenuItem = new();
+            ListBox = new();
+            ListView = new();
+            ComboBox = new();
+            TreeViewTemplate = new();
+            TabControl = new();
             ToolTipOffset = new(6, 6);
 
             _Backgrounds = new();
@@ -724,10 +829,17 @@ namespace MGUI.Core.UI
             }
             else if (ThemeType == BuiltInTheme.Light_Gray)
             {
-                Color PrimaryColor = Color.LightGray;
+                Color PrimaryColor = new(238, 241, 244);
                 MGSolidFillBrush PrimaryBG = new(PrimaryColor);
-                Color BrightNeutralColor = Color.White;
+                Color BrightNeutralColor = new(242, 245, 247);
                 IFillBrush BrightNeutralBrush = BrightNeutralColor.AsFillBrush();
+                Color LightSurfaceColor = new(246, 248, 250);
+                IFillBrush LightSurfaceBrush = LightSurfaceColor.AsFillBrush();
+                Color SoftBlue = new(152, 171, 191);
+                Color SoftBlueHover = new(178, 193, 210);
+                Color SoftBluePressed = new(133, 153, 174);
+                Color SoftBlueOverlay = new(188, 202, 218, 190);
+                Color SoftBlueSelection = new(170, 187, 205);
 
                 //  Button/ComboBox
                 ThemeManagedVisualStateFillBrush ButtonBG =
@@ -744,7 +856,7 @@ namespace MGUI.Core.UI
                 ThemeManagedVisualStateFillBrush ContextMenuBG =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            BrightNeutralBrush,
+                            LightSurfaceBrush,
                             null, PressedModifierType.Darken, 0.06f)
                     );
                 _Backgrounds[MGElementType.ContextMenu] = ContextMenuBG;
@@ -776,7 +888,7 @@ namespace MGUI.Core.UI
                 ThemeManagedVisualStateFillBrush TextBoxBG =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            PrimaryBG,
+                            LightSurfaceBrush,
                             Color.White * 0.25f, PressedModifierType.Darken, 0f)
                     );
                 TextBoxBG.GetValue(false).FocusedValue = Color.Lerp(Color.White, PrimaryColor, 0.82f).AsFillBrush();
@@ -808,17 +920,17 @@ namespace MGUI.Core.UI
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
                             null,
-                            Color.LightBlue * 0.5f, PressedModifierType.Darken, 0.06f)
+                            SoftBlueOverlay, PressedModifierType.Darken, 0.06f)
                     );
 
                 //  ToggleButton
                 ThemeManagedVisualStateFillBrush ToggleButtonBG =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            PrimaryBG, Color.LightBlue.AsFillBrush(), PrimaryBG * 0.5f,
+                            PrimaryBG, SoftBlue.AsFillBrush(), PrimaryBG * 0.5f,
                             Color.White * 0.18f, PressedModifierType.Darken, 0.06f)
                     );
-                ToggleButtonBG.GetValue(false).FocusedValue = Color.Lerp(Color.White, Color.LightBlue, 0.55f).AsFillBrush();
+                ToggleButtonBG.GetValue(false).FocusedValue = Color.Lerp(Color.White, SoftBlue, 0.55f).AsFillBrush();
                 _Backgrounds[MGElementType.ToggleButton] = new ThemeManagedVisualStateFillBrush(ToggleButtonBG.GetValue(true));
 
                 //  ToolTip
@@ -833,7 +945,7 @@ namespace MGUI.Core.UI
                 ToolTipTextForeground = new VisualStateSetting<Color?>(ToolTipForegroundColor, ToolTipForegroundColor, ToolTipForegroundColor);
 
                 //  Window
-                IFillBrush DimNeutralBackground = SolidFillBrushes.LightGray;
+                IFillBrush DimNeutralBackground = LightSurfaceBrush;
                 ThemeManagedVisualStateFillBrush WindowBG =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
@@ -845,14 +957,14 @@ namespace MGUI.Core.UI
                 ComboBoxDropdownBackground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            SolidFillBrushes.White,
+                            LightSurfaceBrush,
                             null, PressedModifierType.Darken, 0.06f)
                     );
                 ComboBoxDropdownItemBackground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
                             null, Color.Yellow.AsFillBrush() * 0.65f, null,
-                            Color.LightBlue * 0.8f, PressedModifierType.Darken, 0.06f)
+                            SoftBlueSelection * 0.70f, PressedModifierType.Darken, 0.06f)
                     );
 
                 DropdownArrowColor = Color.Black;
@@ -861,12 +973,12 @@ namespace MGUI.Core.UI
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
                             null, Color.Yellow.AsFillBrush() * 0.65f, null,
-                            Color.LightBlue * 0.4f, PressedModifierType.Darken, 0.04f)
+                            SoftBlueSelection * 0.40f, PressedModifierType.Darken, 0.04f)
                     );
                 ListBoxItemAlternatingRowBackgrounds = new List<ThemeManagedFillBrush>()
                 {
-                    new ThemeManagedFillBrush(BrightNeutralColor.Darken(0.04f).AsFillBrush()),
-                    new ThemeManagedFillBrush(BrightNeutralColor.Brighten(0.04f).AsFillBrush())
+                    new ThemeManagedFillBrush(BrightNeutralColor.Darken(0.01f).AsFillBrush()),
+                    new ThemeManagedFillBrush(BrightNeutralColor.Brighten(0.005f).AsFillBrush())
                 };
 
                 TreeViewSelectionBackground =
@@ -944,7 +1056,7 @@ namespace MGUI.Core.UI
                 SelectedTabHeaderBackground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            SolidFillBrushes.White,
+                            LightSurfaceBrush,
                             Color.White * 0.18f, PressedModifierType.Darken, 0.06f)
                     );
                 UnselectedTabHeaderBackground =
@@ -961,35 +1073,35 @@ namespace MGUI.Core.UI
                             Color.White * 0.18f, PressedModifierType.Darken, 0.06f)
                     );
 
-                TextBoxFocusedSelectionBackground = new(60, 120, 255);
+                TextBoxFocusedSelectionBackground = SoftBluePressed;
                 TextBoxFocusedSelectionForeground = Color.White;
-                TextBoxUnfocusedSelectionBackground = new Color(210, 240, 255) * 0.4f;
+                TextBoxUnfocusedSelectionBackground = SoftBlueSelection * 0.35f;
                 TextBoxUnfocusedSelectionForeground = Color.White;
 
                 TitleBackground =
                     new ThemeManagedVisualStateFillBrush(
                         new VisualStateFillBrush(
-                            SolidFillBrushes.SemiBlack,
-                            Color.White * 0.05f, PressedModifierType.Darken, 0.06f)
+                            PrimaryBG,
+                            SoftBlueOverlay * 0.75f, PressedModifierType.Darken, 0.04f)
                     );
 
                 Docking = new MGThemeDockingSettings()
                 {
-                    TabNormalBackground = new MGSolidFillBrush(new Color(214, 214, 214)),
-                    TabHoverBackground = new MGSolidFillBrush(new Color(232, 232, 232)),
-                    TabActiveBackground = new MGSolidFillBrush(Color.White),
-                    TabActiveAccentColor = new Color(60, 120, 255),
-                    TabHoverAccentColor = new Color(96, 148, 255, 180),
+                    TabNormalBackground = new MGSolidFillBrush(new Color(236, 240, 243)),
+                    TabHoverBackground = new MGSolidFillBrush(new Color(242, 245, 247)),
+                    TabActiveBackground = new MGSolidFillBrush(LightSurfaceColor),
+                    TabActiveAccentColor = SoftBlue,
+                    TabHoverAccentColor = SoftBlueOverlay,
                     TabActiveTextColor = Color.Black,
                     TabInactiveTextColor = new Color(40, 40, 40),
                     TabActiveIconColor = Color.Black,
                     TabInactiveIconColor = new Color(80, 80, 80),
 
-                    AutoHideDrawerBackground = SolidFillBrushes.White,
-                    AutoHideDrawerHeaderBackground = new MGSolidFillBrush(new Color(224, 224, 224)),
+                    AutoHideDrawerBackground = LightSurfaceBrush,
+                    AutoHideDrawerHeaderBackground = new MGSolidFillBrush(new Color(238, 241, 244)),
                     AutoHideButtonBackground = new VisualStateFillBrush(
                         (IFillBrush)null,
-                        Color.LightBlue * 0.50f,
+                        SoftBlueOverlay,
                         PressedModifierType.Darken,
                         0.06f),
                     AutoHideHeaderTextColor = Color.Black,
@@ -997,23 +1109,23 @@ namespace MGUI.Core.UI
                     AutoHideBorderColor = new Color(150, 150, 150),
                     AutoHideGripColor = new Color(200, 200, 200),
 
-                    AutoHideStripBackground = new MGSolidFillBrush(new Color(236, 236, 236)),
+                    AutoHideStripBackground = new MGSolidFillBrush(new Color(242, 245, 247)),
                     AutoHideStripButtonBackground = new VisualStateFillBrush(
-                        new MGSolidFillBrush(new Color(224, 224, 224)),
-                        Color.LightBlue * 0.50f,
+                        new MGSolidFillBrush(new Color(236, 240, 243)),
+                        SoftBlueOverlay,
                         PressedModifierType.Darken,
                         0.06f),
                     AutoHideStripTextColor = Color.Black,
                     AutoHideStripSeparatorColor = new Color(150, 150, 150),
 
-                    SplitterNormalBrush = new MGSolidFillBrush(new Color(170, 170, 170)),
-                    SplitterHoverBrush = new MGSolidFillBrush(new Color(110, 170, 255)),
-                    SplitterPressedBrush = new MGSolidFillBrush(new Color(70, 130, 220)),
-                    SplitterHoverOverlayColor = new Color(130, 185, 255, 120),
-                    SplitterPressedOverlayColor = new Color(90, 160, 255, 180),
+                    SplitterNormalBrush = new MGSolidFillBrush(new Color(188, 193, 198)),
+                    SplitterHoverBrush = new MGSolidFillBrush(SoftBlueHover),
+                    SplitterPressedBrush = new MGSolidFillBrush(SoftBluePressed),
+                    SplitterHoverOverlayColor = new Color(174, 194, 220, 120),
+                    SplitterPressedOverlayColor = new Color(150, 176, 210, 180),
 
                     DropIndicatorInactiveColor = new Color(140, 140, 140, 180),
-                    DropIndicatorActiveColor = new Color(60, 120, 255, 230),
+                    DropIndicatorActiveColor = new Color(SoftBlue.R, SoftBlue.G, SoftBlue.B, (byte)230),
                     DropIndicatorBorderColor = new Color(32, 32, 32, 200),
                     DropIndicatorHostInactiveColor = new Color(140, 140, 180, 180),
                     DropIndicatorHostActiveColor = new Color(0, 160, 80, 230),
