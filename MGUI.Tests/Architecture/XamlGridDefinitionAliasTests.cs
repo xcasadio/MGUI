@@ -1,6 +1,7 @@
 using System.ComponentModel;
-using MGUI.Core.UI.Containers.Grids;
-using MGUI.Core.UI.XAML;
+using GridLength = MGUI.Core.UI.Containers.Grids.GridLength;
+using XamlColumnDefinition = MGUI.Core.UI.XAML.ColumnDefinition;
+using XamlRowDefinition = MGUI.Core.UI.XAML.RowDefinition;
 
 namespace MGUI.Tests.Architecture;
 
@@ -12,7 +13,7 @@ public class XamlGridDefinitionAliasTests
         var converter = TypeDescriptor.GetConverter(typeof(GridLength));
         GridLength star = (GridLength)converter.ConvertFromInvariantString("2*")!;
 
-        ColumnDefinition definition = new() { Width = star };
+        XamlColumnDefinition definition = new() { Width = star };
 
         Assert.Equal(star, definition.Length);
         Assert.Equal(star, definition.Width);
@@ -24,7 +25,7 @@ public class XamlGridDefinitionAliasTests
         var converter = TypeDescriptor.GetConverter(typeof(GridLength));
         GridLength auto = (GridLength)converter.ConvertFromInvariantString("Auto")!;
 
-        RowDefinition definition = new() { Height = auto };
+        XamlRowDefinition definition = new() { Height = auto };
 
         Assert.Equal(auto, definition.Length);
         Assert.Equal(auto, definition.Height);
