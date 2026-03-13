@@ -24,11 +24,12 @@ L'objectif cible est le suivant:
 
 ## Legende de statut
 
+- ✅ termine
 - ⬜ a faire
 
 ## Ordre de priorite
 
-### 1. ⬜ Definir l'architecture de `ThemeDefinition`
+### 1. ✅ Definir l'architecture de `ThemeDefinition`
 
 But:
 figer la frontiere entre le modele declaratif XAML et l'objet runtime `MGTheme`.
@@ -45,7 +46,7 @@ Critere d'acceptation:
 - la separation `definition declarative` / `theme runtime` est explicite ;
 - le modele cible est suffisamment precis pour guider l'implementation sans reecriture majeure.
 
-### 2. ⬜ Introduire les types XAML de definition de theme
+### 2. ✅ Introduire les types XAML de definition de theme
 
 But:
 creer les types bindables necessaires pour representer un theme declaratif sans reutiliser directement `MGTheme`.
@@ -61,7 +62,7 @@ Critere d'acceptation:
 - les types compilent et sont instanciables via le parser XAML ;
 - la structure declarative ne depend pas des wrappers internes de `MGTheme`.
 
-### 3. ⬜ Definir la regle de fusion `BasedOn`
+### 3. ✅ Definir la regle de fusion `BasedOn`
 
 But:
 permettre a un theme declaratif d'heriter d'un autre sans ambiguite.
@@ -77,7 +78,7 @@ Critere d'acceptation:
 - un theme partiel peut overrider un parent de facon deterministe ;
 - les cycles ou references invalides remontent une erreur exploitable.
 
-### 4. ⬜ Ajouter la conversion `ThemeDefinition -> MGTheme`
+### 4. ✅ Ajouter la conversion `ThemeDefinition -> MGTheme`
 
 But:
 convertir la definition declarative en theme runtime exploitable par les controles existants.
@@ -94,7 +95,7 @@ Critere d'acceptation:
 - un `ThemeDefinition` complet produit un `MGTheme` fonctionnel ;
 - la conversion est testable independamment du parser XAML.
 
-### 5. ⬜ Ajouter l'enregistrement automatique des themes definis en XAML
+### 5. ✅ Ajouter l'enregistrement automatique des themes definis en XAML
 
 But:
 rendre les themes declaratifs discoverables par le pipeline de ressources existant.
@@ -111,7 +112,7 @@ Critere d'acceptation:
 - un theme defini en XAML peut etre resolu via son nom ;
 - les usages existants de `ThemeName` continuent de fonctionner sans adaptation large.
 
-### 6. ⬜ Introduire le chargement XAML de themes comme ressources de premier niveau
+### 6. ✅ Introduire le chargement XAML de themes comme ressources de premier niveau
 
 But:
 permettre de declarer proprement un ou plusieurs themes dans un fichier ou package de ressources.
@@ -128,7 +129,7 @@ Critere d'acceptation:
 - un fichier XAML peut enregistrer plusieurs themes nommes ;
 - le chargement est suffisamment simple pour remplacer les declarations en C# dans les samples.
 
-### 7. ⬜ Ajouter les tests de parsing, fusion et conversion
+### 7. ✅ Ajouter les tests de parsing, fusion et conversion
 
 But:
 stabiliser la nouvelle couche avant toute migration des themes existants.
@@ -146,7 +147,7 @@ Critere d'acceptation:
 - la couche `ThemeDefinition` est couverte hors rendu visuel ;
 - les regressions de resolution et de fusion sont detectables rapidement.
 
-### 8. ⬜ Migrer les samples pour consommer un theme XAML nomme
+### 8. ✅ Migrer les samples pour consommer un theme XAML nomme
 
 But:
 valider le pipeline complet sur un cas reel avant de toucher aux built-in.
@@ -162,7 +163,7 @@ Critere d'acceptation:
 - un sample existant charge et applique un theme defini hors C# ;
 - la demonstration couvre chargement, registre de themes et resolution par nom.
 
-### 9. ⬜ Introduire les fichiers XAML des themes built-in conserves
+### 9. ✅ Introduire les fichiers XAML des themes built-in conserves
 
 But:
 sortir les deux themes de reference du code imperative et les replacer dans des definitions declaratives.
@@ -179,7 +180,7 @@ Critere d'acceptation:
 - `Dark_Blue` et `Light_Gray` existent comme definitions XAML de reference ;
 - la source de verite de ces deux themes n'est plus une branche imperative dans `MGTheme`.
 
-### 10. ⬜ Rebrancher le chargement built-in sur les definitions XAML
+### 10. ✅ Rebrancher le chargement built-in sur les definitions XAML
 
 But:
 faire des built-in conserves de vrais themes charges depuis XAML et convertis au runtime.
@@ -196,7 +197,7 @@ Critere d'acceptation:
 - les built-in `Dark_Blue` et `Light_Gray` sont effectivement charges depuis XAML ;
 - le code runtime ne duplique plus leurs valeurs de theme en dur.
 
-### 11. ⬜ Supprimer les autres built-in et nettoyer l'API de compatibilite
+### 11. ✅ Supprimer les autres built-in et nettoyer l'API de compatibilite
 
 But:
 aligner le code avec le nouveau perimetre voulu des themes de demonstration.
@@ -213,7 +214,7 @@ Critere d'acceptation:
 - seuls `Dark_Blue` et `Light_Gray` restent exposes comme built-in supportes ;
 - le code lie aux autres variantes ne subsiste pas sans justification.
 
-### 12. ⬜ Documenter le format et la migration des themes
+### 12. ✅ Documenter le format et la migration des themes
 
 But:
 permettre a un utilisateur ou a un agent de creer un theme sans lire le coeur du moteur.
@@ -248,3 +249,13 @@ Critere d'acceptation:
 ## Note finale
 
 Le succes de ce chantier ne se mesurera pas au fait de pouvoir instancier `MGTheme` dans le parser. Il se mesurera a la capacite de declarer, composer, charger et faire evoluer un theme en XAML sans exposer inutilement les details internes du runtime theming.
+
+Etat actuel:
+
+- l'architecture `ThemeDefinition` est documentee ;
+- le parser XAML charge `ThemeDefinition` et `ThemeDefinitionsDocument` ;
+- `BasedOn` est resolu depuis le document courant, les ressources runtime et les built-in ;
+- la conversion vers `MGTheme` est centralisee dans un builder dedie ;
+- `MGResources` peut charger et enregistrer automatiquement des themes depuis XAML ;
+- un sample a ete migre sur un theme XAML nomme ;
+- les built-in conserves `Dark_Blue` et `Light_Gray` proviennent de `MGUI.Core/UI/Themes/BuiltInThemes.xaml`.
