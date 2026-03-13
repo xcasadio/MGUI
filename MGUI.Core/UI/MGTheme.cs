@@ -1141,5 +1141,179 @@ namespace MGUI.Core.UI
                     );
             }
         }
+
+        private MGTheme(MGTheme Source)
+            : this(Source?.FontSettings?.DefaultFontFamily ?? throw new ArgumentNullException(nameof(Source)))
+        {
+            ApplyFrom(Source);
+        }
+
+        public MGTheme Copy() => new(this);
+
+        private void ApplyFrom(MGTheme Source)
+        {
+            foreach (MGElementType Type in Enum.GetValues(typeof(MGElementType)))
+            {
+                SetBackgroundBrush(Type, Source.GetBackgroundBrush(Type));
+            }
+
+            ComboBoxDropdownBackground.Value = Source.ComboBoxDropdownBackground.GetValue(true);
+            ComboBoxDropdownItemBackground.Value = Source.ComboBoxDropdownItemBackground.GetValue(true);
+            CheckMarkColor = Source.CheckMarkColor;
+            DropdownArrowColor = Source.DropdownArrowColor;
+            GridSplitterForeground.Value = Source.GridSplitterForeground.GetValue(true);
+            ListBoxItemBackground.Value = Source.ListBoxItemBackground.GetValue(true);
+
+            ListBoxItemAlternatingRowBackgrounds.Clear();
+            foreach (ThemeManagedFillBrush Background in Source.ListBoxItemAlternatingRowBackgrounds)
+            {
+                ListBoxItemAlternatingRowBackgrounds.Add(new ThemeManagedFillBrush(Background.GetValue(true)));
+            }
+
+            TreeViewSelectionBackground.Value = Source.TreeViewSelectionBackground.GetValue(true);
+            TreeViewSelectionForeground = Source.TreeViewSelectionForeground;
+            TreeViewExpanderArrowColor = Source.TreeViewExpanderArrowColor;
+            TreeViewBorderBrush = Source.TreeViewBorderBrush?.Copy();
+            TreeViewBorderThickness = Source.TreeViewBorderThickness;
+            TreeViewIndentSize = Source.TreeViewIndentSize;
+            TreeViewExpanderButtonSize = Source.TreeViewExpanderButtonSize;
+            ProgressButtonForeground.Value = Source.ProgressButtonForeground.GetValue(true);
+            ProgressBarCompletedBrush.Value = Source.ProgressBarCompletedBrush.GetValue(true);
+            ProgressBarIncompleteBrush.Value = Source.ProgressBarIncompleteBrush.GetValue(true);
+            RadioButtonBubbleBackground = new ThemeManagedVisualStateColorBrush(Source.RadioButtonBubbleBackground.GetValue(true));
+            RadioButtonCheckedFillColor = Source.RadioButtonCheckedFillColor;
+            ResizeGripForeground.Value = Source.ResizeGripForeground.GetValue(true);
+            ScrollBarOuterBrush.Value = Source.ScrollBarOuterBrush.GetValue(true);
+            ScrollBarInnerBrush.Value = Source.ScrollBarInnerBrush.GetValue(true);
+            SliderForeground.Value = Source.SliderForeground.GetValue(true);
+            SliderThumbFillBrush.Value = Source.SliderThumbFillBrush.GetValue(true);
+            SliderOverlay.Value = Source.SliderOverlay.GetValue(true);
+            SpoilerUnspoiledBackground.Value = Source.SpoilerUnspoiledBackground.GetValue(true);
+            SelectedTabHeaderBackground.Value = Source.SelectedTabHeaderBackground.GetValue(true);
+            UnselectedTabHeaderBackground.Value = Source.UnselectedTabHeaderBackground.GetValue(true);
+            TextBoxFocusedSelectionForeground = Source.TextBoxFocusedSelectionForeground;
+            TextBoxFocusedSelectionBackground = Source.TextBoxFocusedSelectionBackground;
+            TextBoxUnfocusedSelectionForeground = Source.TextBoxUnfocusedSelectionForeground;
+            TextBoxUnfocusedSelectionBackground = Source.TextBoxUnfocusedSelectionBackground;
+            TitleBackground.Value = Source.TitleBackground.GetValue(true);
+            TextBlockFallbackForeground.Value = Source.TextBlockFallbackForeground.GetValue(true);
+            ToolTipOffset = Source.ToolTipOffset;
+            ToolTipTextForeground = Source.ToolTipTextForeground?.GetCopy();
+
+            FontSettings.ContextMenuFontSize = Source.FontSettings.ContextMenuFontSize;
+            FontSettings.SmallFontSize = Source.FontSettings.SmallFontSize;
+            FontSettings.MediumFontSize = Source.FontSettings.MediumFontSize;
+            FontSettings.LargeFontSize = Source.FontSettings.LargeFontSize;
+            FontSettings.DefaultFontSize = Source.FontSettings.DefaultFontSize;
+            FontSettings.UseExactScale = Source.FontSettings.UseExactScale;
+            FontSettings.DefaultFontFamily = Source.FontSettings.DefaultFontFamily;
+            FontSettings.DefaultFontShadowOffset = Source.FontSettings.DefaultFontShadowOffset;
+            FontSettings.DefaultFontShadowColor = Source.FontSettings.DefaultFontShadowColor;
+
+            Window.Padding = Source.Window.Padding;
+            Window.BorderThickness = Source.Window.BorderThickness;
+            Window.BorderBrush = Source.Window.BorderBrush?.Copy();
+            Window.TitleBarPadding = Source.Window.TitleBarPadding;
+            Window.TitleBarMinHeight = Source.Window.TitleBarMinHeight;
+            Window.CloseButtonBackground = Source.Window.CloseButtonBackground?.Copy();
+            Window.CloseButtonBorderBrush = Source.Window.CloseButtonBorderBrush?.Copy();
+            Window.CloseButtonBorderThickness = Source.Window.CloseButtonBorderThickness;
+            Window.CloseButtonMargin = Source.Window.CloseButtonMargin;
+            Window.CloseButtonPadding = Source.Window.CloseButtonPadding;
+            Window.CloseButtonMinWidth = Source.Window.CloseButtonMinWidth;
+            Window.CloseButtonMinHeight = Source.Window.CloseButtonMinHeight;
+            Window.TitleTextMargin = Source.Window.TitleTextMargin;
+            Window.TitleTextPadding = Source.Window.TitleTextPadding;
+            Window.TitleTextForeground = Source.Window.TitleTextForeground?.GetCopy();
+
+            Overlay.Padding = Source.Overlay.Padding;
+            Overlay.BorderThickness = Source.Overlay.BorderThickness;
+            Overlay.BorderBrush = Source.Overlay.BorderBrush?.Copy();
+            Overlay.CloseButtonBackground = Source.Overlay.CloseButtonBackground?.Copy();
+            Overlay.CloseButtonBorderBrush = Source.Overlay.CloseButtonBorderBrush?.Copy();
+            Overlay.CloseButtonBorderThickness = Source.Overlay.CloseButtonBorderThickness;
+            Overlay.CloseButtonPadding = Source.Overlay.CloseButtonPadding;
+            Overlay.CloseButtonMinWidth = Source.Overlay.CloseButtonMinWidth;
+            Overlay.CloseButtonMinHeight = Source.Overlay.CloseButtonMinHeight;
+
+            ContextMenu.Padding = Source.ContextMenu.Padding;
+            ContextMenu.BorderBrush = Source.ContextMenu.BorderBrush?.Copy();
+            ContextMenu.BorderThickness = Source.ContextMenu.BorderThickness;
+
+            ContextMenuItem.HeaderMargin = Source.ContextMenuItem.HeaderMargin;
+            ContextMenuItem.HeaderBackground = Source.ContextMenuItem.HeaderBackground?.Copy();
+            ContextMenuItem.ShortcutMargin = Source.ContextMenuItem.ShortcutMargin;
+            ContextMenuItem.ShortcutForeground = Source.ContextMenuItem.ShortcutForeground?.GetCopy();
+            ContextMenuItem.SubmenuArrowMargin = Source.ContextMenuItem.SubmenuArrowMargin;
+
+            ListBox.OuterBackground = Source.ListBox.OuterBackground?.Copy();
+            ListBox.TitlePadding = Source.ListBox.TitlePadding;
+            ListBox.TitleForeground = Source.ListBox.TitleForeground?.GetCopy();
+            ListBox.TitleBorderBrush = Source.ListBox.TitleBorderBrush?.Copy();
+            ListBox.TitleBorderThickness = Source.ListBox.TitleBorderThickness;
+            ListBox.InnerBorderBrush = Source.ListBox.InnerBorderBrush?.Copy();
+            ListBox.InnerBorderThickness = Source.ListBox.InnerBorderThickness;
+            ListBox.ScrollViewerPadding = Source.ListBox.ScrollViewerPadding;
+            ListBox.ItemsPanelBorderBrush = Source.ListBox.ItemsPanelBorderBrush?.Copy();
+            ListBox.ItemsPanelBorderThickness = Source.ListBox.ItemsPanelBorderThickness;
+
+            ListView.HeaderForeground = Source.ListView.HeaderForeground?.GetCopy();
+            ListView.GridLineBrush = Source.ListView.GridLineBrush?.Copy();
+
+            ComboBox.Padding = Source.ComboBox.Padding;
+            ComboBox.MinHeight = Source.ComboBox.MinHeight;
+            ComboBox.BorderBrush = Source.ComboBox.BorderBrush?.Copy();
+            ComboBox.DropdownArrowMargin = Source.ComboBox.DropdownArrowMargin;
+            ComboBox.DropdownMinWidth = Source.ComboBox.DropdownMinWidth;
+            ComboBox.DropdownBorderThickness = Source.ComboBox.DropdownBorderThickness;
+            ComboBox.DropdownBorderBrush = Source.ComboBox.DropdownBorderBrush?.Copy();
+            ComboBox.DropdownPadding = Source.ComboBox.DropdownPadding;
+            ComboBox.DropdownScrollViewerPadding = Source.ComboBox.DropdownScrollViewerPadding;
+            ComboBox.DropdownItemsSpacing = Source.ComboBox.DropdownItemsSpacing;
+
+            TreeViewTemplate.ScrollViewerPadding = Source.TreeViewTemplate.ScrollViewerPadding;
+            TreeViewTemplate.ItemsPanelPadding = Source.TreeViewTemplate.ItemsPanelPadding;
+            TreeViewTemplate.ItemsPanelSpacing = Source.TreeViewTemplate.ItemsPanelSpacing;
+
+            TabControl.Padding = Source.TabControl.Padding;
+            TabControl.BorderBrush = Source.TabControl.BorderBrush?.Copy();
+            TabControl.BorderThickness = Source.TabControl.BorderThickness;
+            TabControl.HeadersSpacing = Source.TabControl.HeadersSpacing;
+
+            Docking.TabNormalBackground = Source.Docking.TabNormalBackground?.Copy();
+            Docking.TabHoverBackground = Source.Docking.TabHoverBackground?.Copy();
+            Docking.TabActiveBackground = Source.Docking.TabActiveBackground?.Copy();
+            Docking.TabActiveAccentColor = Source.Docking.TabActiveAccentColor;
+            Docking.TabHoverAccentColor = Source.Docking.TabHoverAccentColor;
+            Docking.TabActiveTextColor = Source.Docking.TabActiveTextColor;
+            Docking.TabInactiveTextColor = Source.Docking.TabInactiveTextColor;
+            Docking.TabActiveIconColor = Source.Docking.TabActiveIconColor;
+            Docking.TabInactiveIconColor = Source.Docking.TabInactiveIconColor;
+            Docking.AutoHideDrawerBackground = Source.Docking.AutoHideDrawerBackground?.Copy();
+            Docking.AutoHideDrawerHeaderBackground = Source.Docking.AutoHideDrawerHeaderBackground?.Copy();
+            Docking.AutoHideButtonBackground = Source.Docking.AutoHideButtonBackground?.Copy();
+            Docking.AutoHideHeaderTextColor = Source.Docking.AutoHideHeaderTextColor;
+            Docking.AutoHideIconColor = Source.Docking.AutoHideIconColor;
+            Docking.AutoHideBorderColor = Source.Docking.AutoHideBorderColor;
+            Docking.AutoHideGripColor = Source.Docking.AutoHideGripColor;
+            Docking.AutoHideStripBackground = Source.Docking.AutoHideStripBackground?.Copy();
+            Docking.AutoHideStripButtonBackground = Source.Docking.AutoHideStripButtonBackground?.Copy();
+            Docking.AutoHideStripTextColor = Source.Docking.AutoHideStripTextColor;
+            Docking.AutoHideStripSeparatorColor = Source.Docking.AutoHideStripSeparatorColor;
+            Docking.SplitterNormalBrush = Source.Docking.SplitterNormalBrush?.Copy();
+            Docking.SplitterHoverBrush = Source.Docking.SplitterHoverBrush?.Copy();
+            Docking.SplitterPressedBrush = Source.Docking.SplitterPressedBrush?.Copy();
+            Docking.SplitterHoverOverlayColor = Source.Docking.SplitterHoverOverlayColor;
+            Docking.SplitterPressedOverlayColor = Source.Docking.SplitterPressedOverlayColor;
+            Docking.DropIndicatorInactiveColor = Source.Docking.DropIndicatorInactiveColor;
+            Docking.DropIndicatorActiveColor = Source.Docking.DropIndicatorActiveColor;
+            Docking.DropIndicatorBorderColor = Source.Docking.DropIndicatorBorderColor;
+            Docking.DropIndicatorHostInactiveColor = Source.Docking.DropIndicatorHostInactiveColor;
+            Docking.DropIndicatorHostActiveColor = Source.Docking.DropIndicatorHostActiveColor;
+            Docking.DropIndicatorDisabledColor = Source.Docking.DropIndicatorDisabledColor;
+            Docking.DropIndicatorDisabledBorderColor = Source.Docking.DropIndicatorDisabledBorderColor;
+            Docking.DropIndicatorSymbolColor = Source.Docking.DropIndicatorSymbolColor;
+            Docking.DropIndicatorDisabledSymbolColor = Source.Docking.DropIndicatorDisabledSymbolColor;
+        }
     }
 }
