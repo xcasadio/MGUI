@@ -1,0 +1,21 @@
+<ThemeDefinition xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+                 Name="Debug1_Theme">
+  <ThemeDefinition.FontSettings>
+    <ThemeFontSettingsDefinition ContextMenuFontSize="8"
+                                 SmallFontSize="8"
+                                 MediumFontSize="10"
+                                 LargeFontSize="12"
+                                 DefaultFontSize="9" />
+  </ThemeDefinition.FontSettings>
+  <ThemeDefinition.Window>
+    <ThemeWindowSettingsDefinition Padding="4"
+                                   TitleBarMinHeight="22" />
+  </ThemeDefinition.Window>
+  <ThemeDefinition.Properties>
+    <ThemePropertyDefinition Target="ToolTipOffset">
+      <ThemePropertyDefinition.Point>
+        <ThemePointDefinition X="8" Y="8" />
+      </ThemePropertyDefinition.Point>
+    </ThemePropertyDefinition>
+  </ThemeDefinition.Properties>
+</ThemeDefinition>

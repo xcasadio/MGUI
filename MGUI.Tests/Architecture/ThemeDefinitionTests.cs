@@ -1,0 +1,104 @@
+using MGUI.Core.UI;
+using MGUI.Core.UI.XAML;
+using Microsoft.Xna.Framework;
+
+namespace MGUI.Tests.Architecture;
+
+public class ThemeDefinitionTests
+{
+    [Fact]
+    public void ThemeDefinition_Can_Be_Parsed_From_Xaml()
+    {
+        string xaml = @"
+<ThemeDefinition xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core""
+                 Name=""TestTheme""
+                 BasedOn=""BaseTheme"">
+  <ThemeDefinition.FontSettings>
+    <ThemeFontSettingsDefinition DefaultFontSize=""17"" />
+  </ThemeDefinition.FontSettings>
+  <ThemeDefinition.Properties>
+    <ThemePropertyDefinition Target=""DropdownArrowColor"" Color=""Red"" />
+  </ThemeDefinition.Properties>
+</ThemeDefinition>
+";
+
+        ThemeDefinition definition = XAMLParser.ParseObjectDefinition<ThemeDefinition>(XamlDocumentSource.FromString(xaml));
+
+        Assert.Equal("TestTheme", definition.Name);
+        Assert.Equal("BaseTheme", definition.BasedOn);
+        Assert.Equal(17, definition.FontSettings.DefaultFontSize);
+        Assert.Single(definition.Properties);
+        Assert.Equal(ThemePropertyTarget.DropdownArrowColor, definition.Properties[0].Target);
+    }
+
+    [Fact]
+    public void ThemeDefinitionBuilder_Applies_Partial_Overrides_Over_Base_Theme()
+    {
+        MGTheme baseTheme = new(MGTheme.BuiltInTheme.Dark_Blue, "Arial");
+        ThemeDefinition definition = new()
+        {
+            Name = "OverlayTheme",
+            FontSettings = new ThemeFontSettingsDefinition { DefaultFontSize = 18 },
+            Properties = new()
+            {
+                new ThemePropertyDefinition
+                {
+                    Target = ThemePropertyTarget.DropdownArrowColor,
+                    Color = new XAMLColor(255, 0, 0, 255)
+                },
+                new ThemePropertyDefinition
+                {
+                    Target = ThemePropertyTarget.ToolTipOffset,
+                    Point = new ThemePointDefinition { X = 12, Y = 18 }
+                }
+            }
+        };
+
+        MGTheme built = ThemeDefinitionBuilder.Build(definition, "Arial", baseTheme);
+
+        Assert.Equal(18, built.FontSettings.DefaultFontSize);
+        Assert.Equal(Color.Red, built.DropdownArrowColor);
+        Assert.Equal(new Point(12, 18), built.ToolTipOffset);
+        Assert.Equal(baseTheme.Window.Padding, built.Window.Padding);
+    }
+
+    [Fact]
+    public void ThemeDefinitionLoader_Resolves_BasedOn_From_Same_Document_And_Resources()
+    {
+        MGResources resources = new(new MGTheme(MGTheme.BuiltInTheme.Dark_Blue, "Arial"));
+        resources.AddTheme("BaseTheme", new MGTheme(MGTheme.BuiltInTheme.Dark_Blue, "Arial"));
+
+        string xaml = @"
+<ThemeDefinitionsDocument xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"">
+  <ThemeDefinition Name=""ChildTheme"" BasedOn=""BaseTheme"">
+    <ThemeDefinition.Properties>
+      <ThemePropertyDefinition Target=""DropdownArrowColor"" Color=""Black"" />
+    </ThemeDefinition.Properties>
+  </ThemeDefinition>
+  <ThemeDefinition Name=""GrandChildTheme"" BasedOn=""ChildTheme"">
+    <ThemeDefinition.FontSettings>
+      <ThemeFontSettingsDefinition DefaultFontSize=""19"" />
+    </ThemeDefinition.FontSettings>
+  </ThemeDefinition>
+</ThemeDefinitionsDocument>
+";
+
+        IReadOnlyDictionary<string, MGTheme> themes = resources.LoadThemesFromXaml(XamlDocumentSource.FromString(xaml));
+
+        Assert.Equal(2, themes.Count);
+        Assert.Equal(Color.Black, themes["ChildTheme"].DropdownArrowColor);
+        Assert.Equal(19, themes["GrandChildTheme"].FontSettings.DefaultFontSize);
+        Assert.Equal(Color.Black, themes["GrandChildTheme"].DropdownArrowColor);
+        Assert.Same(themes["GrandChildTheme"], resources.GetThemeOrDefault("GrandChildTheme", null, false));
+    }
+
+    [Fact]
+    public void ThemeDefinitionLoader_Rejects_Cycles()
+    {
+        ThemeDefinition first = new() { Name = "A", BasedOn = "B" };
+        ThemeDefinition second = new() { Name = "B", BasedOn = "A" };
+
+        Assert.Throws<InvalidOperationException>(() =>
+            ThemeDefinitionLoader.BuildThemes(new[] { first, second }, _ => null, "Arial"));
+    }
+}

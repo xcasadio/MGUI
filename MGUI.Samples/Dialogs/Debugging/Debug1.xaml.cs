@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Content;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
@@ -20,9 +21,9 @@ namespace MGUI.Samples.Dialogs.Debugging
     {
         private static void InitializeResources(ContentManager Content, MGDesktop Desktop)
         {
-            MGTheme Theme = new(MGTheme.BuiltInTheme.Dark_Blue, Desktop.Theme.FontSettings.DefaultFontFamily);
-            Theme.FontSettings.AdjustAllFontSizes(-2);
-            Desktop.Resources.AddTheme("Debug1_Theme", Theme);
+            string ResourceName = $"{nameof(MGUI)}.{nameof(Samples)}.{nameof(Dialogs)}.{nameof(Debugging)}.Debug1.Theme.xaml";
+            string ThemeXaml = GeneralUtils.ReadEmbeddedResourceAsString(Assembly.GetExecutingAssembly(), ResourceName);
+            Desktop.Resources.LoadThemesFromXaml(XamlDocumentSource.FromString(ThemeXaml, ResourceName));
         }
 
         public MGOverlay Overlay1 { get; }

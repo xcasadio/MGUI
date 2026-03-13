@@ -49,6 +49,7 @@
     <None Remove="Controls\UniformGrid.xaml" />
     <None Remove="Controls\Window.xaml" />
     <None Remove="Dialogs\Debugging\Debug1.xaml" />
+    <None Remove="Dialogs\Debugging\Debug1.Theme.xaml" />
     <None Remove="Dialogs\Debugging\Debug2.xaml" />
     <None Remove="Dialogs\FF7\FF7Inventory.xaml" />
     <None Remove="Dialogs\Registration.xaml" />
@@ -149,6 +150,9 @@
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
     <EmbeddedResource Include="Dialogs\Debugging\Debug1.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\Debugging\Debug1.Theme.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
     <EmbeddedResource Include="Dialogs\Debugging\Debug2.xaml">
