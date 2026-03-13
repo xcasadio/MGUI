@@ -1520,7 +1520,7 @@ namespace MGUI.Core.UI
             }
         }
         /// <summary>The currently-active value from <see cref="DefaultTextForeground"/>, based on <see cref="VisualState"/></summary>
-        public Color? CurrentDefaultTextForeground => DefaultTextForeground.GetValue(VisualState.Primary);
+        public Color? CurrentDefaultTextForeground => DefaultTextForeground.GetValue(VisualState.Primary) ?? DefaultTextForeground.NormalValue;
         /// <summary>This property prioritizes <see cref="CurrentDefaultTextForeground"/> if it has a value.<br/>
         /// Else traverses up the visual tree until finding the first non-null <see cref="CurrentDefaultTextForeground"/>.</summary>
         public Color? DerivedDefaultTextForeground => CurrentDefaultTextForeground ?? Parent?.DerivedDefaultTextForeground;

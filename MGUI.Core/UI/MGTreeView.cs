@@ -501,6 +501,19 @@ namespace MGUI.Core.UI
             }
         }
 
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            ApplyDefaultStyles();
+
+            if (SelectedItem != null)
+            {
+                SelectedItem.SetSelected(false);
+                SelectedItem.SetSelected(true);
+            }
+        }
+
         private void Items_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             using (ItemsPanel.AllowChangingContentTemporarily())

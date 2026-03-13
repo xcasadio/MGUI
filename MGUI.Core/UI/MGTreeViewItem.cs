@@ -31,6 +31,7 @@ public class MGTreeViewItem : MGSingleContentHost
     internal MGTreeView _OwnerTreeView;
     private object _HeaderTemplate;
     private VisualStateFillBrush _PreviousHeaderBackgroundBrush;
+    private VisualStateSetting<Color?> _PreviousHeaderForeground;
     private long? _LastHeaderBodySequenceId;
 
     /// <summary>
@@ -473,11 +474,14 @@ public class MGTreeViewItem : MGSingleContentHost
         if (selected && OwnerTreeView != null)
         {
             _PreviousHeaderBackgroundBrush = HeaderPanel.BackgroundBrush;
+            _PreviousHeaderForeground = HeaderContainer.DefaultTextForeground?.GetCopy();
             HeaderPanel.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
+            HeaderContainer.DefaultTextForeground = new VisualStateSetting<Color?>(OwnerTreeView.SelectionForeground);
         }
         else
         {
             HeaderPanel.BackgroundBrush = _PreviousHeaderBackgroundBrush;
+            HeaderContainer.DefaultTextForeground = _PreviousHeaderForeground ?? new VisualStateSetting<Color?>(null, null, null, null);
         }
     }
 

@@ -126,6 +126,7 @@ namespace MGUI.Core.UI
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
                 Padding = new(4, 2, 4, 2);
+                CheckedTextForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;
 
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {
@@ -134,6 +135,17 @@ namespace MGUI.Core.UI
                 };
 
                 this.IsChecked = IsChecked;
+            }
+        }
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme != null)
+            {
+                BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.ToggleButton);
+                CheckedTextForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;
             }
         }
 

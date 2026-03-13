@@ -220,6 +220,16 @@ namespace MGUI.Core.UI
             }
         }
 
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme != null)
+            {
+                BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.Button);
+            }
+        }
+
         internal static BaseMouseReleasedEventArgs CreateNavigationReleasedEventArgs()
         {
             BaseMousePressedEventArgs pressedArgs = new(null, MouseButton.Left, Point.Zero, TimeSpan.Zero);

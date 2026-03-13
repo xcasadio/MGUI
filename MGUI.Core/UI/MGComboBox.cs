@@ -394,6 +394,7 @@ namespace MGUI.Core.UI
             Target.Margin = 0;
             Target.IsFocusable = false;
             Target.BackgroundBrush = GetTheme().ComboBoxDropdownItemBackground.GetValue(true);
+            Target.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
             Target.HorizontalAlignment = HorizontalAlignment.Stretch;
             Target.HorizontalContentAlignment = HorizontalAlignment.Left;
             Target.VerticalAlignment = VerticalAlignment.Stretch;
@@ -770,6 +771,31 @@ namespace MGUI.Core.UI
                     IsDropdownOpen = !IsDropdownOpen;
                     e.SetHandledBy(this, false);
                 };
+            }
+        }
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme == null)
+            {
+                return;
+            }
+
+            BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.ComboBox);
+            DropdownArrowColor = CurrentTheme.DropdownArrowColor;
+            Dropdown.BackgroundBrush = CurrentTheme.ComboBoxDropdownBackground.GetValue(true);
+
+            if (TemplatedItems != null)
+            {
+                foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
+                {
+                    if (item?.Element != null)
+                    {
+                        ApplyDefaultDropdownButtonSettings(item.Element);
+                    }
+                }
             }
         }
 

@@ -343,6 +343,16 @@
         </ThemePropertyDefinition.VisualStateColorBrush>
       </ThemePropertyDefinition>
     </ThemeDefinition.Properties>
+    <ThemeDefinition.Window>
+      <ThemeWindowSettingsDefinition>
+        <ThemeWindowSettingsDefinition.TitleTextForeground>
+          <ThemeVisualStateColorSettingDefinition NormalValue="White"
+                                                 SelectedValue="White"
+                                                 FocusedValue="White"
+                                                 DisabledValue="White" />
+        </ThemeWindowSettingsDefinition.TitleTextForeground>
+      </ThemeWindowSettingsDefinition>
+    </ThemeDefinition.Window>
     <ThemeDefinition.Docking>
       <ThemeDockingSettingsDefinition TabNormalBackground="rgb(45,45,48)"
                                       TabHoverBackground="rgb(62,62,66)"
@@ -563,7 +573,8 @@
       </ThemePropertyDefinition>
       <ThemePropertyDefinition Target="ComboBoxDropdownItemBackground">
         <ThemePropertyDefinition.VisualStateFillBrush>
-          <ThemeVisualStateFillBrushDefinition SelectedValue="Yellow * 0.65"
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)"
+                                               SelectedValue="Yellow * 0.65"
                                                FocusedColor="rgb(170,187,205) * 0.70"
                                                PressedModifierType="Darken"
                                                PressedModifier="0.06" />
@@ -572,7 +583,8 @@
       <ThemePropertyDefinition Target="DropdownArrowColor" Color="Black" />
       <ThemePropertyDefinition Target="ListBoxItemBackground">
         <ThemePropertyDefinition.VisualStateFillBrush>
-          <ThemeVisualStateFillBrushDefinition SelectedValue="Yellow * 0.65"
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)"
+                                               SelectedValue="Yellow * 0.65"
                                                FocusedColor="rgb(170,187,205) * 0.40"
                                                PressedModifierType="Darken"
                                                PressedModifier="0.04" />
@@ -723,6 +735,56 @@
         </ThemePropertyDefinition.VisualStateColorBrush>
       </ThemePropertyDefinition>
     </ThemeDefinition.Properties>
+    <ThemeDefinition.Window>
+      <ThemeWindowSettingsDefinition>
+        <ThemeWindowSettingsDefinition.TitleTextForeground>
+          <ThemeVisualStateColorSettingDefinition NormalValue="Black"
+                                                 SelectedValue="Black"
+                                                 FocusedValue="Black"
+                                                 DisabledValue="Black" />
+        </ThemeWindowSettingsDefinition.TitleTextForeground>
+      </ThemeWindowSettingsDefinition>
+    </ThemeDefinition.Window>
+    <ThemeDefinition.ContextMenuItem>
+      <ThemeContextMenuItemSettingsDefinition>
+        <ThemeContextMenuItemSettingsDefinition.ShortcutForeground>
+          <ThemeVisualStateColorSettingDefinition NormalValue="Black"
+                                                 SelectedValue="Black"
+                                                 FocusedValue="Black"
+                                                 DisabledValue="Black" />
+        </ThemeContextMenuItemSettingsDefinition.ShortcutForeground>
+      </ThemeContextMenuItemSettingsDefinition>
+    </ThemeDefinition.ContextMenuItem>
+    <ThemeDefinition.ListBox>
+      <ThemeListBoxSettingsDefinition TitleBorderBrush="rgb(150,150,150)"
+                                      TitleBorderThickness="1,1,1,0"
+                                      InnerBorderBrush="rgb(150,150,150)"
+                                      InnerBorderThickness="1"
+                                      ItemsPanelBorderBrush="rgb(150,150,150)"
+                                      ItemsPanelBorderThickness="1">
+        <ThemeListBoxSettingsDefinition.OuterBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(242,245,247)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeListBoxSettingsDefinition.OuterBackground>
+        <ThemeListBoxSettingsDefinition.TitleForeground>
+          <ThemeVisualStateColorSettingDefinition NormalValue="Black"
+                                                 SelectedValue="Black"
+                                                 FocusedValue="Black"
+                                                 DisabledValue="Black" />
+        </ThemeListBoxSettingsDefinition.TitleForeground>
+      </ThemeListBoxSettingsDefinition>
+    </ThemeDefinition.ListBox>
+    <ThemeDefinition.ListView>
+      <ThemeListViewSettingsDefinition GridLineBrush="rgb(150,150,150)">
+        <ThemeListViewSettingsDefinition.HeaderForeground>
+          <ThemeVisualStateColorSettingDefinition NormalValue="Black"
+                                                 SelectedValue="Black"
+                                                 FocusedValue="Black"
+                                                 DisabledValue="Black" />
+        </ThemeListViewSettingsDefinition.HeaderForeground>
+      </ThemeListViewSettingsDefinition>
+    </ThemeDefinition.ListView>
     <ThemeDefinition.Docking>
       <ThemeDockingSettingsDefinition TabNormalBackground="rgb(236,240,243)"
                                       TabHoverBackground="rgb(242,245,247)"

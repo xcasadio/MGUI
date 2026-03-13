@@ -233,6 +233,7 @@ namespace MGUI.Core.UI
             Button.VerticalAlignment = VerticalAlignment.Stretch;
 
             Button.BackgroundBrush = GetTheme().ComboBoxDropdownItemBackground.GetValue(true);
+            Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
 
             return Button;
         }

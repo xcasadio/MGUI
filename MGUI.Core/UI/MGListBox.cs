@@ -1262,6 +1262,7 @@ namespace MGUI.Core.UI
             Item.BorderThickness = DefaultItemBorderThickness;
             Item.Padding = new(6, 4);
             Item.BackgroundBrush = GetTheme().ListBoxItemBackground.GetValue(true);
+            Item.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

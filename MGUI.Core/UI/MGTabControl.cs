@@ -163,7 +163,7 @@ namespace MGUI.Core.UI
             Button.BorderBrush = MGUniformBorderBrush.Black;
             Button.Padding = new(8, 5, 8, 5);
             Button.BackgroundBrush = GetTheme().SelectedTabHeaderBackground.GetValue(true);
-            //Button.DefaultTextForeground.SetAll(Color.Black);
+            Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
 
             switch (TabHeaderPosition)
             {
@@ -191,7 +191,7 @@ namespace MGUI.Core.UI
         {
             Button.BorderBrush = MGUniformBorderBrush.Gray;
             Button.BackgroundBrush = GetTheme().UnselectedTabHeaderBackground.GetValue(true);
-            //Button.DefaultTextForeground.SetAll(Color.Black);
+            Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
 
             switch (TabHeaderPosition)
             {
@@ -518,6 +518,23 @@ namespace MGUI.Core.UI
                 };
 
                 ControlTemplateName = MGControlTemplateCatalog.TabControlTemplateName;
+            }
+        }
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme == null)
+            {
+                return;
+            }
+
+            BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.TabControl);
+
+            foreach (MGTabItem tab in ActualTabHeaders.Keys.ToList())
+            {
+                UpdateHeaderWrapper(tab);
             }
         }
 
