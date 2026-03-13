@@ -74,14 +74,14 @@ namespace MGUI.Core.UI.Styling
             MGTextBlock TitleText = Context.GetRequiredPart<MGTextBlock>(MGWindow.TitleBarTextPartName);
             MGButton CloseButton = Context.GetRequiredPart<MGButton>(MGWindow.CloseButtonPartName);
 
+            Context.ApplyThemeDefault("Window.Padding", Theme.Window.Padding, () => Window.Padding, value => Window.Padding = value);
+            Context.ApplyThemeDefault("Window.BorderThickness", Theme.Window.BorderThickness, () => Border.BorderThickness, value => Border.BorderThickness = value);
+            Context.ApplyThemeDefault("Window.TitleBarPadding", Theme.Window.TitleBarPadding, () => TitleBar.Padding, value => TitleBar.Padding = value);
+            Context.ApplyThemeDefault("Window.TitleBarMinHeight", Theme.Window.TitleBarMinHeight, () => TitleBar.MinHeight ?? 0, value => TitleBar.MinHeight = value);
+
             if (!Context.IsThemeRefresh)
             {
-                Window.Padding = new(5);
-                Border.BorderThickness = new(2);
                 Border.BorderBrush = MGUniformBorderBrush.Black;
-
-                TitleBar.Padding = new(2);
-                TitleBar.MinHeight = 24;
 
                 CloseButton.MinWidth = 12;
                 CloseButton.MinHeight = 12;

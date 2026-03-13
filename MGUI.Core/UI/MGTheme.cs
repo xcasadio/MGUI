@@ -44,6 +44,14 @@ namespace MGUI.Core.UI
         public ThemeManagedVisualStateColorBrush(VisualStateColorBrush Value) : base(Value) { }
     }
 
+    public class MGThemeWindowSettings
+    {
+        public Thickness Padding { get; set; } = new(5);
+        public Thickness BorderThickness { get; set; } = new(2);
+        public Thickness TitleBarPadding { get; set; } = new(2);
+        public int TitleBarMinHeight { get; set; } = 24;
+    }
+
     public class ThemeFontSettings
     {
         /// <summary>The default fontsize for content inside an <see cref="MGContextMenu"/>, such as <see cref="MGContextMenuButton"/> and <see cref="MGContextMenuToggle"/></summary>
@@ -238,6 +246,7 @@ namespace MGUI.Core.UI
         public VisualStateSetting<Color?> ToolTipTextForeground { get; set; }
 
         public ThemeFontSettings FontSettings { get; }
+        public MGThemeWindowSettings Window { get; }
         public MGThemeDockingSettings Docking { get; }
 
         public enum BuiltInTheme
@@ -263,6 +272,7 @@ namespace MGUI.Core.UI
         public MGTheme(BuiltInTheme ThemeType, string DefaultFontFamily)
         {
             FontSettings = new(DefaultFontFamily);
+            Window = new();
             ToolTipOffset = new(6, 6);
 
             _Backgrounds = new();

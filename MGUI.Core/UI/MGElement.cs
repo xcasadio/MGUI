@@ -196,6 +196,9 @@ namespace MGUI.Core.UI
         public IReadOnlyDictionary<string, MGElement> TemplateParts => _TemplateParts;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly Dictionary<string, object> _AppliedTemplateDefaults = new(StringComparer.Ordinal);
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGControlTemplate _ControlTemplate;
         public MGControlTemplate ControlTemplate
         {
@@ -229,6 +232,21 @@ namespace MGUI.Core.UI
 
         public bool TryGetElementByName(string Name, out MGElement NamedElement) => SelfOrParentWindow.TryGetElementByName(Name, out NamedElement);
         public bool TryGetTemplatePart(string Name, out MGElement Part) => _TemplateParts.TryGetValue(Name, out Part);
+
+        internal bool TryGetAppliedTemplateDefault<T>(string Name, out T Value)
+        {
+            if (_AppliedTemplateDefaults.TryGetValue(Name, out object Existing) && Existing is T Typed)
+            {
+                Value = Typed;
+                return true;
+            }
+
+            Value = default;
+            return false;
+        }
+
+        internal void SetAppliedTemplateDefault<T>(string Name, T Value)
+            => _AppliedTemplateDefaults[Name] = Value;
 
         protected internal void RegisterTemplatePart(string Name, MGElement Part)
         {

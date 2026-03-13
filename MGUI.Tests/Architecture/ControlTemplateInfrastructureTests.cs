@@ -104,4 +104,15 @@ public class ControlTemplateInfrastructureTests
 
         Assert.True(observedFlag);
     }
+
+    [Fact]
+    public void Theme_Exposes_Window_Chrome_Defaults()
+    {
+        MGTheme theme = new("Arial");
+
+        Assert.Equal(new MonoGame.Extended.Thickness(5), theme.Window.Padding);
+        Assert.Equal(new MonoGame.Extended.Thickness(2), theme.Window.BorderThickness);
+        Assert.Equal(new MonoGame.Extended.Thickness(2), theme.Window.TitleBarPadding);
+        Assert.Equal(24, theme.Window.TitleBarMinHeight);
+    }
 }

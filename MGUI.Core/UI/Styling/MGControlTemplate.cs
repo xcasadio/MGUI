@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MGUI.Core.UI.Styling
 {
@@ -33,6 +34,33 @@ namespace MGUI.Core.UI.Styling
             }
 
             return TypedPart;
+        }
+
+        public void ApplyThemeDefault<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue, IEqualityComparer<T> Comparer = null)
+        {
+            if (Owner == null)
+            {
+                throw new InvalidOperationException($"{nameof(ApplyThemeDefault)} requires a non-null owner.");
+            }
+
+            if (GetCurrentValue == null)
+            {
+                throw new ArgumentNullException(nameof(GetCurrentValue));
+            }
+
+            if (SetValue == null)
+            {
+                throw new ArgumentNullException(nameof(SetValue));
+            }
+
+            Comparer ??= EqualityComparer<T>.Default;
+            T CurrentValue = GetCurrentValue();
+            bool HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out T PreviousValue);
+            if (!IsThemeRefresh || !HasPrevious || Comparer.Equals(CurrentValue, PreviousValue))
+            {
+                SetValue(Value);
+                Owner.SetAppliedTemplateDefault(Name, Value);
+            }
         }
     }
 
