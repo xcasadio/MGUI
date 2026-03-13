@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI.XAML;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Assets;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Rendering;
@@ -55,25 +56,43 @@ namespace MGUI.Core.UI
 
     public class MGResources
     {
+        public UIResourceScope Scope { get; }
+        public MGResources Parent { get; private set; }
         public IUIAssetProvider AssetProvider { get; }
         public MGResourceDefinitions Definitions { get; }
         public MGResourceRuntimeCache RuntimeCache { get; }
 
         public MGResources(FontManager FontManager)
-            : this(new MGTheme(FontManager.DefaultFontFamily), null) { }
+            : this(new MGTheme(FontManager.DefaultFontFamily), null, null, UIResourceScope.Desktop) { }
 
         public MGResources(FontManager FontManager, IUIAssetProvider AssetProvider)
-            : this(new MGTheme(FontManager.DefaultFontFamily), AssetProvider) { }
+            : this(new MGTheme(FontManager.DefaultFontFamily), AssetProvider, null, UIResourceScope.Desktop) { }
 
         public MGResources(MGTheme DefaultTheme)
-            : this(DefaultTheme, null) { }
+            : this(DefaultTheme, null, null, UIResourceScope.Desktop) { }
 
         public MGResources(MGTheme DefaultTheme, IUIAssetProvider AssetProvider)
+            : this(DefaultTheme, AssetProvider, null, UIResourceScope.Desktop) { }
+
+        public MGResources(MGResources Parent, UIResourceScope Scope)
+            : this(null, Parent?.AssetProvider, Parent, Scope) { }
+
+        public MGResources(MGTheme DefaultTheme, IUIAssetProvider AssetProvider, MGResources Parent, UIResourceScope Scope)
         {
-            this.DefaultTheme = DefaultTheme ?? throw new ArgumentNullException(nameof(DefaultTheme));
-            this.AssetProvider = AssetProvider;
+            this.Parent = Parent;
+            this.Scope = Scope;
+            this.AssetProvider = AssetProvider ?? Parent?.AssetProvider;
+            _DefaultTheme = DefaultTheme;
             Definitions = new(this);
             RuntimeCache = new(this);
+        }
+
+        public void SetParent(MGResources Parent)
+        {
+            if (!ReferenceEquals(this, Parent))
+            {
+                this.Parent = Parent;
+            }
         }
 
         #region Textures
@@ -104,6 +123,10 @@ namespace MGUI.Core.UI
         public bool TryGetTexture(string Name, out MGTextureData Data)
         {
             if (Name != null && _Textures.TryGetValue(Name, out Data))
+            {
+                return true;
+            }
+            else if (Parent?.TryGetTexture(Name, out Data) == true)
             {
                 return true;
             }
@@ -213,6 +236,10 @@ namespace MGUI.Core.UI
             {
                 return true;
             }
+            else if (Parent?.TryGetCommand(Name, out Command) == true)
+            {
+                return true;
+            }
             else
             {
                 Command = null;
@@ -245,6 +272,11 @@ namespace MGUI.Core.UI
         public bool TryGetNamedToolTip(string Name, out MGToolTip ToolTip)
         {
             if (Name != null && _NamedToolTips.TryGetValue(Name, out ToolTip))
+            {
+                return true;
+            }
+
+            if (Parent?.TryGetNamedToolTip(Name, out ToolTip) == true)
             {
                 return true;
             }
@@ -289,6 +321,14 @@ namespace MGUI.Core.UI
                 {
                     return Result;
                 }
+                else if (Parent != null)
+                {
+                    MGTheme ParentTheme = Parent.GetThemeOrDefault(Name, null, WarnIfNotFound: false);
+                    if (ParentTheme != null)
+                    {
+                        return ParentTheme;
+                    }
+                }
                 else if (WarnIfNotFound)
                 {
                     Debug.WriteLine($"Warning - No {nameof(MGTheme)} was found with the name '{Name}' in {nameof(MGResources)}.{nameof(Themes)}");
@@ -309,7 +349,7 @@ namespace MGUI.Core.UI
         /// This value cannot be null.</summary>
         public MGTheme DefaultTheme
         {
-            get => _DefaultTheme;
+            get => _DefaultTheme ?? Parent?.DefaultTheme ?? throw new InvalidOperationException($"{nameof(MGResources)} must define a {nameof(DefaultTheme)} or inherit one from its parent scope.");
             set => _DefaultTheme = value ?? throw new ArgumentNullException(nameof(DefaultTheme));
         }
         #endregion Themes
@@ -377,6 +417,33 @@ namespace MGUI.Core.UI
         /// See also: <see cref="ImplicitStyles"/> for anonymous type-based desktop-level styles.</summary>
         public IReadOnlyDictionary<string, Style> Styles => _Styles;
 
+        public bool TryGetStyle(string Name, out Style Style)
+        {
+            if (Name != null && _Styles.TryGetValue(Name, out Style))
+            {
+                return true;
+            }
+
+            if (Parent?.TryGetStyle(Name, out Style) == true)
+            {
+                return true;
+            }
+
+            Style = null;
+            return false;
+        }
+
+        public IReadOnlyDictionary<MGElementType, Style> GetMergedImplicitStyles()
+        {
+            Dictionary<MGElementType, Style> Result = Parent?.GetMergedImplicitStyles().ToDictionary(x => x.Key, x => x.Value) ?? new();
+            foreach (KeyValuePair<MGElementType, Style> KVP in _ImplicitStyles)
+            {
+                Result[KVP.Key] = KVP.Value;
+            }
+
+            return Result;
+        }
+
         public void AddStyle(string Name, Style Style)
         {
             _Styles.Add(Name, Style);
@@ -433,6 +500,10 @@ namespace MGUI.Core.UI
             {
                 return true;
             }
+            else if (Parent?.TryGetStaticResource(Name, out Value) == true)
+            {
+                return true;
+            }
             else
             {
                 Value = null;
@@ -472,6 +543,10 @@ namespace MGUI.Core.UI
         public bool TryGetElementTemplate(string Name, out MGElementTemplate Template)
         {
             if (Name != null && _ElementTemplates.TryGetValue(Name, out Template))
+            {
+                return true;
+            }
+            else if (Parent?.TryGetElementTemplate(Name, out Template) == true)
             {
                 return true;
             }

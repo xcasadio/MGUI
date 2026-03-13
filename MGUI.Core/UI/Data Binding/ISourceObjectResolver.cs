@@ -102,7 +102,7 @@ namespace MGUI.Core.UI.Data_Binding
 
         public object ResolveSourceObject(object TargetObject)
         {
-            if (TargetObject is IResourcesResolver Resolver && Resolver.GetResources()?.StaticResources.TryGetValue(ResourceName, out object Resource) == true)
+            if (TargetObject is IResourcesResolver Resolver && Resolver.GetResources()?.TryGetStaticResource(ResourceName, out object Resource) == true)
             {
                 return Resource;
             }

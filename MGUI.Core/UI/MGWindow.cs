@@ -19,6 +19,7 @@ using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework.Graphics;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Shapes;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -953,6 +954,7 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 this.Desktop = Desktop ?? throw new ArgumentNullException(nameof(Desktop));
+                _ = EnsureResourceScope(UIResourceScope.Window);
                 Theme = WindowTheme;
 
                 MGTheme ActualTheme = GetTheme();

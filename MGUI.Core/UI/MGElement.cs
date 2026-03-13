@@ -17,6 +17,7 @@ using MGUI.Shared.Input;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Data_Binding;
+using MGUI.Core.UI.Styling;
 using System.ComponentModel;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.DragDrop;
@@ -186,8 +187,40 @@ namespace MGUI.Core.UI
 		public MGDesktop GetDesktop() => SelfOrParentWindow.Desktop;
         /// <summary>Prioritizes <see cref="MGWindow.Theme"/>. If null, falls back to <see cref="MGDesktop.Theme"/></summary>
         public MGTheme GetTheme() => SelfOrParentWindow.Theme ?? GetDesktop().Theme;
-        public MGResources GetResources() => GetDesktop().Resources;
+            private MGResources _LocalResources;
+            public MGResources LocalResources => _LocalResources;
+            public MGResources GetResources() => _LocalResources ?? GetInheritedResources();
         public bool TryGetElementByName(string Name, out MGElement NamedElement) => SelfOrParentWindow.TryGetElementByName(Name, out NamedElement);
+
+            protected MGResources GetInheritedResources()
+            {
+                if (Parent != null)
+                {
+                    return Parent.GetResources();
+                }
+                else if (ParentWindow != null)
+                {
+                    return ParentWindow.GetResources();
+                }
+                else
+                {
+                    return GetDesktop().Resources;
+                }
+            }
+
+            public MGResources EnsureResourceScope(UIResourceScope Scope = UIResourceScope.Subtree)
+            {
+                if (_LocalResources == null)
+                {
+                    _LocalResources = new(GetInheritedResources(), Scope);
+                }
+                else
+                {
+                    _LocalResources.SetParent(GetInheritedResources());
+                }
+
+                return _LocalResources;
+            }
 
         /// <summary>
         /// Optional per-element <see cref="ITextEngine"/> override.
@@ -260,6 +293,7 @@ namespace MGUI.Core.UI
             {
                 MGElement Previous = Parent;
                 _Parent = Value;
+                _LocalResources?.SetParent(GetInheritedResources());
                 NPC(nameof(Parent));
                 OnParentChanged?.Invoke(this, new(Previous, Parent));
             }
