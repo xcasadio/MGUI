@@ -95,6 +95,14 @@ namespace MGUI.Core.UI
             }
         }
 
+        public IEnumerable<MGResources> EnumerateSelfAndAncestors()
+        {
+            for (MGResources Current = this; Current != null; Current = Current.Parent)
+            {
+                yield return Current;
+            }
+        }
+
         #region Textures
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly Dictionary<string, MGTextureData> _Textures = new();
@@ -480,6 +488,21 @@ namespace MGUI.Core.UI
             OnStaticResourceAdded?.Invoke(this, (Name, Value));
         }
 
+        public void SetStaticResource(string Name, object Value)
+        {
+            if (_StaticResources.TryGetValue(Name, out object PreviousValue))
+            {
+                _StaticResources[Name] = Value;
+                OnStaticResourceChanged?.Invoke(this, (Name, PreviousValue, Value));
+            }
+            else
+            {
+                _StaticResources.Add(Name, Value);
+                OnStaticResourceAdded?.Invoke(this, (Name, Value));
+                OnStaticResourceChanged?.Invoke(this, (Name, null, Value));
+            }
+        }
+
         public bool RemoveStaticResource(string Name)
         {
             if (_StaticResources.TryGetValue(Name, out object Value))
@@ -512,6 +535,7 @@ namespace MGUI.Core.UI
         }
 
         public event EventHandler<(string Name, object Value)> OnStaticResourceAdded;
+        public event EventHandler<(string Name, object PreviousValue, object Value)> OnStaticResourceChanged;
         public event EventHandler<(string Name, object Value)> OnStaticResourceRemoved;
         #endregion StaticResources
 

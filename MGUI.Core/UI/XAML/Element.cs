@@ -1,6 +1,7 @@
 ﻿using MGUI.Core.UI.Data_Binding;
 using MGUI.Core.UI.Data_Binding.Converters;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Styling;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -374,6 +375,8 @@ namespace MGUI.Core.UI.XAML
                 ApplyBackground(Element);
                 Element.OverlayBrush = Overlay?.ToFillBrush(Desktop, Element);
 
+                ApplyResourceReferences(Element, this, Element, MapTargetPath);
+
                 if (TextForeground.HasValue)
                 {
                     Element.DefaultTextForeground.NormalValue = TextForeground.Value.ToXNAColor();
@@ -415,6 +418,16 @@ namespace MGUI.Core.UI.XAML
                 }
 
                 Element.Tag = Tag;
+
+                foreach (var (Source, Target, _) in GetBaseBindableObjects(Element))
+                {
+                    ApplyResourceReferences(Element, Source, Target, null);
+                }
+
+                foreach (var (Source, Target, _) in GetBindableObjects(Element))
+                {
+                    ApplyResourceReferences(Element, Source, Target, null);
+                }
 
                 if (IncludeBindings)
                 {
@@ -523,6 +536,24 @@ namespace MGUI.Core.UI.XAML
         /// <param name="Element"></param>
         protected virtual IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element) 
             => Enumerable.Empty<(XAMLBindableBase Source, object Target, string TargetPath)>();
+
+        private void ApplyResourceReferences(MGElement HostElement, XAMLBindableBase Source, object Target, Func<string, string> ResolveTargetPath)
+        {
+            if (Source?.ResourceReferences?.Any() != true || Target == null)
+            {
+                return;
+            }
+
+            foreach (UIResourceReferenceConfig ResourceReference in Source.ResourceReferences)
+            {
+                string TargetPath = ResolveTargetPath?.Invoke(ResourceReference.TargetPath) ?? ResourceReference.TargetPath;
+                UIResourceReferenceConfig AppliedReference = ResourceReference with { TargetPath = TargetPath };
+                _ = UIResourceReferenceApplicator.Apply(HostElement, Target, AppliedReference, HostElement.GetResources());
+            }
+        }
+
+        private string MapTargetPath(string TargetPath)
+            => BindingPathMappings.TryGetValue(TargetPath, out string ActualPath) ? ActualPath : TargetPath;
 
         //  DataBindings are defined in XAML (so they are applied to the properties of the XAML types)
         //  but are bound to the properties of the actual type (such as MGUI.Core.UI.MGButton instead of MGUI.Core.UI.XAML.Button).

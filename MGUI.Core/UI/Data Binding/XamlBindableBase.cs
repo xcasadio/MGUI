@@ -1,5 +1,6 @@
 ﻿using MGUI.Core.UI.XAML;
 using MGUI.Shared.Helpers;
+using MGUI.Core.UI.Styling;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +32,9 @@ namespace MGUI.Core.UI.Data_Binding
         /// the entire window's XAML content is parsed/post-processed (otherwise the source object of the data-binding wouldn't exist yet and ElementName references might not be resolvable).<para/>
         /// So this property allows temporarily storing the necessary binding data during parsing, then copying it to the underlying type after it's created, then creating the binding after all other window content is done processing.</summary>
         protected internal List<BindingConfig> Bindings { get; } = new();
+
+        /// <summary>Temporarily stores XAML resource references so they can be applied once the runtime object graph exists.</summary>
+        protected internal List<UIResourceReferenceConfig> ResourceReferences { get; } = new();
 
         /// <summary>Enumerates all nested <see cref="XAMLBindableBase"/> objects that are properties of this <see cref="XAMLBindableBase"/>.</summary>
         protected internal virtual IEnumerable<(XAMLBindableBase Item, string Path)> GetNestedBindableObjects() => Enumerable.Empty<(XAMLBindableBase, string)>();
