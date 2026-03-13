@@ -23,6 +23,7 @@ using System.Threading;
 using MGUI.Shared.Text.Engines;
 using MGUI.Core.UI.Navigation;
 using MGUI.Core.UI.Responsive;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -1104,6 +1105,7 @@ namespace MGUI.Core.UI
             NavigationService = new(this);
             Windows = new();
             Resources = new(new MGTheme(Renderer.AssetProvider.FontManager.DefaultFontFamily), Renderer.AssetProvider);
+            MGControlTemplateCatalog.RegisterDefaults(Resources);
             _ = new UIView(this, Renderer.Surface);
             _ResponsiveMetrics = UIResponsiveResolver.Resolve(ResponsiveSettings, ValidScreenBounds.Size, EffectiveDpiScale);
 

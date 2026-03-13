@@ -1073,6 +1073,7 @@ namespace MGUI.Core.UI
                 ResizeGripComponent = MGComponentBase.Create(ResizeGripElement);
                 AddComponent(ResizeGripComponent);
                 IsUserResizable = true;
+                ControlTemplateName = MGControlTemplateCatalog.WindowTemplateName;
 
                 HorizontalAlignment = HorizontalAlignment.Stretch;
                 VerticalAlignment = VerticalAlignment.Stretch;

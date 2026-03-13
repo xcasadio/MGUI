@@ -411,6 +411,8 @@ namespace MGUI.Core.UI
             MouseHandler.MovedInside += (sender, e) => { OpenSubmenu(); };
             MouseHandler.Scrolled += (sender, e) => { CloseSubmenuIfNotHovered(); };
             MouseHandler.MovedOutside += (sender, e) => { CloseSubmenuIfNotHovered(); };
+
+            ControlTemplateName = MGControlTemplateCatalog.ContextMenuItemTemplateName;
         }
 
         private void RefreshVisualStateProjection()

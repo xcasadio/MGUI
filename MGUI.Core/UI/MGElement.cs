@@ -211,6 +211,22 @@ namespace MGUI.Core.UI
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _ControlTemplateName;
+        public string ControlTemplateName
+        {
+            get => _ControlTemplateName;
+            set
+            {
+                if (_ControlTemplateName != value)
+                {
+                    _ControlTemplateName = value;
+                    ApplyControlTemplate();
+                    NPC(nameof(ControlTemplateName));
+                }
+            }
+        }
+
         public bool TryGetElementByName(string Name, out MGElement NamedElement) => SelfOrParentWindow.TryGetElementByName(Name, out NamedElement);
         public bool TryGetTemplatePart(string Name, out MGElement Part) => _TemplateParts.TryGetValue(Name, out Part);
 
@@ -229,7 +245,15 @@ namespace MGUI.Core.UI
         }
 
         protected internal virtual void ApplyControlTemplate()
-            => ControlTemplate?.Apply(this);
+        {
+            MGControlTemplate Template = ControlTemplate;
+            if (Template == null && !string.IsNullOrWhiteSpace(ControlTemplateName))
+            {
+                GetResources().TryGetControlTemplate(ControlTemplateName, out Template);
+            }
+
+            Template?.Apply(this);
+        }
 
             protected MGResources GetInheritedResources()
             {
@@ -265,6 +289,7 @@ namespace MGUI.Core.UI
             internal void NotifyThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
             {
                 OnThemeChanged(PreviousTheme, CurrentTheme);
+                ApplyControlTemplate();
 
                 UIInvalidationKind Invalidation = GetThemeInvalidation(PreviousTheme, CurrentTheme);
                 if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)

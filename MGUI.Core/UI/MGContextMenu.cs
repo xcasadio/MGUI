@@ -13,6 +13,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -678,6 +679,7 @@ namespace MGUI.Core.UI
                 MaxWidth = 600;
                 MinHeight = 50;
                 MaxHeight = 600;
+                ControlTemplateName = MGControlTemplateCatalog.ContextMenuTemplateName;
 
                 HeaderSize = new Size(14, 14);
 

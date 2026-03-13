@@ -14,6 +14,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -529,6 +530,7 @@ namespace MGUI.Core.UI
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Top, ComponentSize.Size));
                 AddComponent(CloseButtonComponent);
                 ShowCloseButton = false;
+                ControlTemplateName = MGControlTemplateCatalog.OverlayTemplateName;
             }
         }
     }
