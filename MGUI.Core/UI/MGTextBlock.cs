@@ -16,6 +16,7 @@ using MGUI.Shared.Rendering;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Core.UI.Responsive;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -133,6 +134,34 @@ namespace MGUI.Core.UI
             {
                 return true;
             }
+        }
+
+        protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().FontManager.DefaultFontFamily;
+            int PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
+            bool UsesThemeFontFamily = string.Equals(FontFamily, PreviousDefaultFontFamily, StringComparison.Ordinal);
+            bool UsesThemeFontSize = FontSize == PreviousDefaultFontSize;
+            return UsesThemeFontFamily || UsesThemeFontSize
+                ? UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Draw
+                : UIInvalidationKind.Draw;
+        }
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().FontManager.DefaultFontFamily;
+            string CurrentDefaultFontFamily = CurrentTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().FontManager.DefaultFontFamily;
+            int PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
+            int CurrentDefaultFontSize = CurrentTheme?.FontSettings.DefaultFontSize ?? FontSize;
+
+            bool UsesThemeFontFamily = string.Equals(FontFamily, PreviousDefaultFontFamily, StringComparison.Ordinal);
+            bool UsesThemeFontSize = FontSize == PreviousDefaultFontSize;
+            if (UsesThemeFontFamily || UsesThemeFontSize)
+            {
+                _ = TrySetFont(UsesThemeFontFamily ? CurrentDefaultFontFamily : FontFamily, UsesThemeFontSize ? CurrentDefaultFontSize : FontSize);
+            }
+
+            NPC(nameof(ActualForeground));
         }
 
         /// <summary>

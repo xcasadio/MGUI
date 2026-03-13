@@ -79,19 +79,48 @@ namespace MGUI.Core.UI
 
         public MGResources(MGTheme DefaultTheme, IUIAssetProvider AssetProvider, MGResources Parent, UIResourceScope Scope)
         {
-            this.Parent = Parent;
             this.Scope = Scope;
             this.AssetProvider = AssetProvider ?? Parent?.AssetProvider;
             _DefaultTheme = DefaultTheme;
             Definitions = new(this);
             RuntimeCache = new(this);
+            SetParent(Parent);
         }
 
         public void SetParent(MGResources Parent)
         {
             if (!ReferenceEquals(this, Parent))
             {
+                MGTheme PreviousTheme = _DefaultTheme == null ? this.Parent?.DefaultTheme : null;
+
+                if (this.Parent != null)
+                {
+                    this.Parent.OnDefaultThemeChanged -= Parent_OnDefaultThemeChanged;
+                }
+
                 this.Parent = Parent;
+
+                if (this.Parent != null)
+                {
+                    this.Parent.OnDefaultThemeChanged += Parent_OnDefaultThemeChanged;
+                }
+
+                if (_DefaultTheme == null)
+                {
+                    MGTheme CurrentTheme = this.Parent?.DefaultTheme;
+                    if (!ReferenceEquals(PreviousTheme, CurrentTheme) && PreviousTheme != null && CurrentTheme != null)
+                    {
+                        OnDefaultThemeChanged?.Invoke(this, (PreviousTheme, CurrentTheme));
+                    }
+                }
+            }
+        }
+
+        private void Parent_OnDefaultThemeChanged(object sender, (MGTheme PreviousTheme, MGTheme Theme) e)
+        {
+            if (_DefaultTheme == null)
+            {
+                OnDefaultThemeChanged?.Invoke(this, e);
             }
         }
 
@@ -348,17 +377,47 @@ namespace MGUI.Core.UI
 
         public event EventHandler<(string Name, MGTheme Theme)> OnThemeAdded;
         public event EventHandler<(string Name, MGTheme Theme)> OnThemeRemoved;
+        public event EventHandler<(MGTheme PreviousTheme, MGTheme Theme)> OnDefaultThemeChanged;
 
         private MGTheme _DefaultTheme;
-        /// <summary>The <see cref="MGTheme"/> to assign to an <see cref="MGWindow"/> after parsing a XAML string (unless the window explicitly specifies a different theme).<para/>
-        /// Note: Changing this value will not dynamically update the theme of any windows that have already been parsed. This value is only applied once on each window, when the XAML is parsed.<br/>
-        /// So if you do change this value, you may want to re-parse your XAML content to initialize a new window.<para/>
-        /// See also: <see cref="XAMLParser.LoadRootWindow(MGDesktop, string, bool, bool)"/><para/>
-        /// This value cannot be null.</summary>
+        public bool HasLocalDefaultTheme => _DefaultTheme != null;
+
+        /// <summary>The effective default theme for this scope. If no local override exists, inherits from <see cref="Parent"/>.</summary>
         public MGTheme DefaultTheme
         {
             get => _DefaultTheme ?? Parent?.DefaultTheme ?? throw new InvalidOperationException($"{nameof(MGResources)} must define a {nameof(DefaultTheme)} or inherit one from its parent scope.");
-            set => _DefaultTheme = value ?? throw new ArgumentNullException(nameof(DefaultTheme));
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(DefaultTheme));
+                }
+
+                MGTheme PreviousTheme = DefaultTheme;
+                if (!ReferenceEquals(_DefaultTheme, value))
+                {
+                    _DefaultTheme = value;
+                    MGTheme CurrentTheme = DefaultTheme;
+                    if (!ReferenceEquals(PreviousTheme, CurrentTheme))
+                    {
+                        OnDefaultThemeChanged?.Invoke(this, (PreviousTheme, CurrentTheme));
+                    }
+                }
+            }
+        }
+
+        public void ClearDefaultThemeOverride()
+        {
+            if (_DefaultTheme != null)
+            {
+                MGTheme PreviousTheme = DefaultTheme;
+                _DefaultTheme = null;
+                MGTheme CurrentTheme = DefaultTheme;
+                if (!ReferenceEquals(PreviousTheme, CurrentTheme))
+                {
+                    OnDefaultThemeChanged?.Invoke(this, (PreviousTheme, CurrentTheme));
+                }
+            }
         }
         #endregion Themes
 

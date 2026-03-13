@@ -791,6 +791,15 @@ namespace MGUI.Core.UI
                 if (_Theme != value)
                 {
                     _Theme = value;
+                    MGResources Resources = EnsureResourceScope(UIResourceScope.Window);
+                    if (value == null)
+                    {
+                        Resources.ClearDefaultThemeOverride();
+                    }
+                    else
+                    {
+                        Resources.DefaultTheme = value;
+                    }
                     NPC(nameof(Theme));
                 }
             }

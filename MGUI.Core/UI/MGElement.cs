@@ -185,8 +185,8 @@ namespace MGUI.Core.UI
         public string UniqueId { get; }
 
 		public MGDesktop GetDesktop() => SelfOrParentWindow.Desktop;
-        /// <summary>Prioritizes <see cref="MGWindow.Theme"/>. If null, falls back to <see cref="MGDesktop.Theme"/></summary>
-        public MGTheme GetTheme() => SelfOrParentWindow.Theme ?? GetDesktop().Theme;
+        /// <summary>Resolves the effective theme from the current resource scope.</summary>
+        public MGTheme GetTheme() => GetResources().DefaultTheme;
             private MGResources _LocalResources;
             public MGResources LocalResources => _LocalResources;
             public MGResources GetResources() => _LocalResources ?? GetInheritedResources();
@@ -213,6 +213,7 @@ namespace MGUI.Core.UI
                 if (_LocalResources == null)
                 {
                     _LocalResources = new(GetInheritedResources(), Scope);
+                    _LocalResources.OnDefaultThemeChanged += (_, e) => NotifyThemeChanged(e.PreviousTheme, e.Theme);
                 }
                 else
                 {
@@ -221,6 +222,40 @@ namespace MGUI.Core.UI
 
                 return _LocalResources;
             }
+
+            internal void NotifyThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+            {
+                OnThemeChanged(PreviousTheme, CurrentTheme);
+
+                UIInvalidationKind Invalidation = GetThemeInvalidation(PreviousTheme, CurrentTheme);
+                if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)
+                {
+                    InvalidateLayout();
+                }
+
+                IReadOnlyList<MGElement> Children = GetVisualTreeChildren(true, true);
+                for (int i = 0; i < Children.Count; i++)
+                {
+                    MGElement Child = Children[i];
+                    if (Child.LocalResources == null)
+                    {
+                        Child.NotifyThemeChanged(PreviousTheme, CurrentTheme);
+                    }
+                }
+
+                foreach (MGComponentBase Component in Components)
+                {
+                    if (Component.BaseElement.LocalResources == null)
+                    {
+                        Component.BaseElement.NotifyThemeChanged(PreviousTheme, CurrentTheme);
+                    }
+                }
+            }
+
+            protected internal virtual UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
+                => UIInvalidationKind.Draw;
+
+            protected internal virtual void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme) { }
 
         /// <summary>
         /// Optional per-element <see cref="ITextEngine"/> override.
