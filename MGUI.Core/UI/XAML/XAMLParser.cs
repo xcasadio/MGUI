@@ -272,6 +272,13 @@ namespace MGUI.Core.UI.XAML
             return Parsed;
         }
 
+        public static TDefinition ParseObjectDefinition<TDefinition>(XamlDocumentSource Source,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+        {
+            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            return (TDefinition)XamlServices.Parse(XAMLString);
+        }
+
         public static Element ParseElementDefinition(XamlDocumentSource Source, MGResources Resources = null,
             bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
             => ParseDefinition<Element>(Source, Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
