@@ -450,6 +450,7 @@ public class MGDockTabGroup : MGElement
         }
 
         _activeContentContainer.SetParent(this);
+        InvalidateVtcCache();
         LayoutChanged(this, true);
 
         // Notify
