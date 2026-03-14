@@ -506,7 +506,7 @@ Resultat:
 - La dette se situe dans les controles qui continuent de dessiner ou de piloter une partie du feedback avec du code ad hoc, des `SpoofIsHoveredWhileDrawingBackground`, ou des calculs specifiques de survol/pression locaux.
 - Le besoin minimal d'un futur systeme de visual states n'est pas une machine complexe de transitions, mais une generalisation de la projection et de la resolution de valeurs visual-state-aware sur les proprietes visuelles les plus importantes.
 
-### 🟡 7. Auditer la frontiere renderer / theme / controle
+### ✅ 7. Auditer la frontiere renderer / theme / controle
 
 But:
 garantir que la refonte future ne pousse pas de logique de theming dans le renderer.
@@ -523,7 +523,15 @@ Livrable:
 - liste des violations actuelles ;
 - risques de performance associes.
 
-### ⚪ 8. Auditer le changement de theme runtime
+Resultat:
+
+- La frontiere basse est globalement saine: le renderer travaille surtout a partir de brushes, geometries et draw calls deja resolves, sans embarquer lui-meme une logique de theme globale.
+- Les violations observees sont surtout cote controles: certains widgets dessinent directement leur skin ou une partie de leur iconographie en lisant des tokens de theme au moment du draw, au lieu de consommer une couche visuelle deja resolue.
+- `MGScrollViewer`, `MGComboBox`, `MGContextMenuItem`, `MGCheckBox` et plusieurs controles de docking montrent des exemples de draw specifique par controle; ce n'est pas forcement mauvais pour le runtime, mais cela reduit la capacite de skinning uniforme.
+- La cible architecturale retenue est donc: renderer neutre, brushes et formes generiques, decisions de skin resolues au-dessus, et exceptions de draw direct reservees aux primitives justifiees par la perf ou la simplicite.
+- Les risques de performance associes viennent surtout des allocations de geometrie a chaud et de la multiplication de wrappers/chromes internes, plus que d'un couplage direct du renderer a `MGTheme`.
+
+### 🟡 8. Auditer le changement de theme runtime
 
 But:
 verifier si MGUI peut evoluer vers un theme switch propre sans reparse global brutal.
