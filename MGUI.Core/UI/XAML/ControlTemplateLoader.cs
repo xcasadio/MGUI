@@ -67,13 +67,24 @@ namespace MGUI.Core.UI.XAML
             return templates;
         }
 
-        private static Styling.MGControlTemplate CreateTemplate(ControlTemplateDefinition Definition)
+        public static Styling.MGControlTemplate CreateTemplate(ControlTemplateDefinition Definition,
+            Action<Styling.MGControlTemplateContext> ApplyDefaults)
         {
+            if (Definition == null)
+            {
+                throw new ArgumentNullException(nameof(Definition));
+            }
+
             return new Styling.MGControlTemplate(
                 Definition.Name,
                 context => BuildStructure(Definition, context),
                 null,
-                _ => { });
+                ApplyDefaults ?? (_ => { }));
+        }
+
+        private static Styling.MGControlTemplate CreateTemplate(ControlTemplateDefinition Definition)
+        {
+            return CreateTemplate(Definition, null);
         }
 
         private static Styling.MGControlTemplateStructure BuildStructure(ControlTemplateDefinition Definition, Styling.MGControlTemplateContext Context)

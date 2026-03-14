@@ -1,7 +1,9 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
+using MGUI.Shared.Helpers;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 
@@ -133,6 +135,8 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockDropIndicatorsTemplateName, out _));
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.WindowTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.OverlayTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.ListBoxTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.ListViewTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.ComboBoxTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.TabControlTemplateName].SupportsStructure);
     }
@@ -202,6 +206,8 @@ public class ControlTemplateInfrastructureTests
         Assert.Equal(typeof(MGWindow), typeof(MGWindow).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGContextMenu), typeof(MGContextMenu).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGOverlay), typeof(MGOverlay).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+        Assert.Equal(typeof(MGListBox<>), typeof(MGListBox<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+        Assert.Equal(typeof(MGListView<>), typeof(MGListView<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGTabControl), typeof(MGTabControl).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGComboBox<>), typeof(MGComboBox<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
     }
@@ -264,5 +270,19 @@ public class ControlTemplateInfrastructureTests
 
         Assert.True(setContentIndex >= 0);
         Assert.True(lockIndex > setContentIndex);
+    }
+
+    [Fact]
+    public void Built_In_Control_Template_Xaml_Defines_ListBox_And_ListView_Structures()
+    {
+        const string resourceName = "MGUI.Core.UI.Templates.BuiltInControlTemplates.xaml";
+        string markup = GeneralUtils.ReadEmbeddedResourceAsString(typeof(MGControlTemplateCatalog).Assembly, resourceName);
+
+        IReadOnlyList<ControlTemplateDefinition> definitions = ControlTemplateLoader.ParseDefinitions(XamlDocumentSource.FromString(markup, resourceName));
+
+        Assert.Contains(definitions, x => x.Name == MGControlTemplateCatalog.ListBoxTemplateName);
+        Assert.Contains(definitions, x => x.Name == MGControlTemplateCatalog.ListViewTemplateName);
+        Assert.Contains(definitions.Single(x => x.Name == MGControlTemplateCatalog.ListBoxTemplateName).Parts, x => x.Name == MGListBox<object>.ItemsPanelPartName);
+        Assert.Contains(definitions.Single(x => x.Name == MGControlTemplateCatalog.ListViewTemplateName).Parts, x => x.Name == MGListView<object>.DataGridPartName);
     }
 }

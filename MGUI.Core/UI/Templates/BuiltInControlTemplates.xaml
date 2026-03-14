@@ -1,0 +1,44 @@
+<ControlTemplates xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core">
+  <ControlTemplate Name="ListBox.Default" TargetType="ListBox">
+    <ControlTemplate.Parts>
+      <TemplatePart Name="PART_OuterBorder" />
+      <TemplatePart Name="PART_TitleBorder" />
+      <TemplatePart Name="PART_TitlePresenter" />
+      <TemplatePart Name="PART_InnerBorder" />
+      <TemplatePart Name="PART_ScrollViewer" />
+      <TemplatePart Name="PART_ItemsPanel" />
+    </ControlTemplate.Parts>
+    <Border Name="PART_OuterBorder">
+      <DockPanel>
+        <Border Name="PART_TitleBorder" Dock="Top">
+          <ContentPresenter Name="PART_TitlePresenter" />
+        </Border>
+        <Border Name="PART_InnerBorder" Dock="Bottom">
+          <ScrollViewer Name="PART_ScrollViewer">
+            <StackPanel Name="PART_ItemsPanel" Orientation="Vertical" />
+          </ScrollViewer>
+        </Border>
+      </DockPanel>
+    </Border>
+  </ControlTemplate>
+
+  <ControlTemplate Name="ListView.Default" TargetType="ListView">
+    <ControlTemplate.Parts>
+      <TemplatePart Name="PART_DockPanel" />
+      <TemplatePart Name="PART_HeaderGrid" />
+      <TemplatePart Name="PART_ScrollViewer" />
+      <TemplatePart Name="PART_DataGrid" />
+      <TemplatePart Name="PART_HeaderGridWrapper" />
+      <TemplatePart Name="PART_HeaderSpacer" />
+    </ControlTemplate.Parts>
+    <DockPanel Name="PART_DockPanel">
+      <DockPanel Name="PART_HeaderGridWrapper" Dock="Top">
+        <Border Name="PART_HeaderSpacer" Dock="Right" />
+        <Grid Name="PART_HeaderGrid" Dock="Left" RowLengths="Auto" />
+      </DockPanel>
+      <ScrollViewer Name="PART_ScrollViewer" Dock="Bottom" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Name="PART_DataGrid" />
+      </ScrollViewer>
+    </DockPanel>
+  </ControlTemplate>
+</ControlTemplates>

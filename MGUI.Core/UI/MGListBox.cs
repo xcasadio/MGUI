@@ -46,6 +46,16 @@ namespace MGUI.Core.UI
         public const string ScrollViewerPartName = "PART_ScrollViewer";
         public const string ItemsPanelPartName = "PART_ItemsPanel";
 
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            yield return new(OuterBorderPartName, typeof(MGBorder));
+            yield return new(InnerBorderPartName, typeof(MGBorder));
+            yield return new(TitleBorderPartName, typeof(MGBorder));
+            yield return new(TitlePresenterPartName, typeof(MGContentPresenter));
+            yield return new(ScrollViewerPartName, typeof(MGScrollViewer));
+            yield return new(ItemsPanelPartName, typeof(MGStackPanel));
+        }
+
         internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
         {
             if (count <= 0)
@@ -79,12 +89,12 @@ namespace MGUI.Core.UI
         }
 
         #region Outer Border
-        private MGComponent<MGBorder> OuterBorderComponent { get; }
+        private MGComponent<MGBorder> OuterBorderComponent { get; set; }
         /// <summary><see cref="MGListBox{TItemType}"/>es contain 3 borders:<para/>
         /// 1. <see cref="OuterBorder"/>: Wrapped around the entire <see cref="MGListBox{TItemType}"/><br/>
         /// 2. <see cref="InnerBorder"/>: Wrapped around the <see cref="ItemsPanel"/>, but not the <see cref="TitleComponent"/><br/>
         /// 3. <see cref="TitleBorder"/>: Wrapped around the <see cref="TitleComponent"/></summary>
-        public MGBorder OuterBorder { get; }
+        public MGBorder OuterBorder { get; private set; }
         public override MGBorder GetBorder() => OuterBorder;
 
         public IBorderBrush OuterBorderBrush
@@ -115,12 +125,12 @@ namespace MGUI.Core.UI
         #endregion Outer Border
 
         #region Inner Border
-        private MGComponent<MGBorder> InnerBorderComponent { get; }
+        private MGComponent<MGBorder> InnerBorderComponent { get; set; }
         /// <summary><see cref="MGListBox{TItemType}"/>es contain 3 borders:<para/>
         /// 1. <see cref="OuterBorder"/>: Wrapped around the entire <see cref="MGListBox{TItemType}"/><br/>
         /// 2. <see cref="InnerBorder"/>: Wrapped around the <see cref="ItemsPanel"/>, but not the <see cref="TitleComponent"/><br/>
         /// 3. <see cref="TitleBorder"/>: Wrapped around the <see cref="TitleComponent"/></summary>
-        public MGBorder InnerBorder { get; }
+        public MGBorder InnerBorder { get; private set; }
 
         public IBorderBrush InnerBorderBrush
         {
@@ -150,13 +160,13 @@ namespace MGUI.Core.UI
         #endregion Inner Border
 
         #region Title
-        private MGComponent<MGBorder> TitleComponent { get; }
+        private MGComponent<MGBorder> TitleComponent { get; set; }
         /// <summary><see cref="MGListBox{TItemType}"/>es contain 3 borders:<para/>
         /// 1. <see cref="OuterBorder"/>: Wrapped around the entire <see cref="MGListBox{TItemType}"/><br/>
         /// 2. <see cref="InnerBorder"/>: Wrapped around the <see cref="ItemsPanel"/>, but not the <see cref="TitleComponent"/><br/>
         /// 3. <see cref="TitleBorder"/>: Wrapped around the <see cref="TitleComponent"/></summary>
-        public MGBorder TitleBorder { get; }
-        public MGContentPresenter TitlePresenter { get; }
+        public MGBorder TitleBorder { get; private set; }
+        public MGContentPresenter TitlePresenter { get; private set; }
 
         public IBorderBrush TitleBorderBrush
         {
@@ -978,8 +988,61 @@ namespace MGUI.Core.UI
             return null;
         }
 
-        public MGScrollViewer ScrollViewer { get; }
-        public MGStackPanel ItemsPanel { get; }
+        public MGScrollViewer ScrollViewer { get; private set; }
+        public MGStackPanel ItemsPanel { get; private set; }
+
+        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            OuterBorder = Structure.Parts[OuterBorderPartName] as MGBorder;
+            TitleBorder = Structure.Parts[TitleBorderPartName] as MGBorder;
+            TitlePresenter = Structure.Parts[TitlePresenterPartName] as MGContentPresenter;
+            InnerBorder = Structure.Parts[InnerBorderPartName] as MGBorder;
+            ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
+            ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
+
+            if (OuterBorderComponent == null)
+            {
+                OuterBorderComponent = MGComponentBase.Create(OuterBorder);
+                AddComponent(OuterBorderComponent);
+                OuterBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(OuterBorderBrush)); };
+                OuterBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(OuterBorderThickness)); };
+            }
+
+            if (TitleComponent == null)
+            {
+                TitleComponent = new(TitleBorder, true, false, false, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size));
+                AddComponent(TitleComponent);
+                TitleBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(TitleBorderBrush)); };
+                TitleBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(TitleBorderThickness)); };
+            }
+
+            if (InnerBorderComponent == null)
+            {
+                InnerBorderComponent = new(InnerBorder, true, false, true, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Stretch, ComponentSize.Size));
+                AddComponent(InnerBorderComponent);
+                InnerBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(InnerBorderBrush)); };
+                InnerBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(InnerBorderThickness)); };
+            }
+
+            TitleBorder.CanChangeContent = false;
+            TitlePresenter.CanChangeContent = false;
+            TitlePresenter.VerticalAlignment = VerticalAlignment.Center;
+            ItemsPanel.ManagedParent = this;
+            ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
+            ItemsPanel.CanChangeContent = false;
+            ScrollViewer.CanChangeContent = false;
+            InnerBorder.CanChangeContent = false;
+
+            if (_Header != null)
+            {
+                using (TitlePresenter.AllowChangingContentTemporarily())
+                {
+                    TitlePresenter.SetContent(_Header);
+                }
+            }
+        }
 
         private void EnsureFocusedItemVisible()
         {
@@ -1225,9 +1288,12 @@ namespace MGUI.Core.UI
                 if (_Header != value)
                 {
                     _Header = value;
-                    using (TitlePresenter.AllowChangingContentTemporarily())
+                    if (TitlePresenter != null)
                     {
-                        TitlePresenter.SetContent(Header);
+                        using (TitlePresenter.AllowChangingContentTemporarily())
+                        {
+                            TitlePresenter.SetContent(Header);
+                        }
                     }
                     NPC(nameof(Header));
                 }
@@ -1320,62 +1386,9 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                //  Create the outer border
-                OuterBorder = new(ParentWindow, 0, SolidFillBrushes.Black);
-                RegisterTemplatePart(OuterBorderPartName, OuterBorder);
-                OuterBorderComponent = MGComponentBase.Create(OuterBorder);
-                AddComponent(OuterBorderComponent);
-                OuterBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(OuterBorderBrush)); };
-                OuterBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(OuterBorderThickness)); };
-
-                //  Create the title bar
-                TitleBorder = new(ParentWindow);
-                RegisterTemplatePart(TitleBorderPartName, TitleBorder);
-                TitleBorder.Padding = new(6, 3);
-                TitleBorder.BackgroundBrush = GetTheme().TitleBackground.GetValue(true);
-                TitleBorder.DefaultTextForeground.SetAll(Color.White);
-                TitleBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(TitleBorderBrush)); };
-                TitleBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(TitleBorderThickness)); };
-                TitlePresenter = new(ParentWindow);
-                RegisterTemplatePart(TitlePresenterPartName, TitlePresenter);
-                TitlePresenter.VerticalAlignment = VerticalAlignment.Center;
-                TitleBorder.SetContent(TitlePresenter);
-                TitleBorder.CanChangeContent = false;
-                TitlePresenter.CanChangeContent = false;
-                TitleComponent = new(TitleBorder, true, false, false, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size));
-                AddComponent(TitleComponent);
-
-                //  Create the inner border
-                InnerBorder = new(ParentWindow);
-                RegisterTemplatePart(InnerBorderPartName, InnerBorder);
-                InnerBorderComponent = new(InnerBorder, true, false, true, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Stretch, ComponentSize.Size));
-                AddComponent(InnerBorderComponent);
-                InnerBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(InnerBorderBrush)); };
-                InnerBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(InnerBorderThickness)); };
-
-                //  Create the scrollviewer and itemspanel
-                ItemsPanel = new(ParentWindow, Orientation.Vertical);
-                RegisterTemplatePart(ItemsPanelPartName, ItemsPanel);
-                ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
-                ItemsPanel.CanChangeContent = false;
-                ScrollViewer = new(ParentWindow);
-                RegisterTemplatePart(ScrollViewerPartName, ScrollViewer);
-                ScrollViewer.Padding = new(0, 0);
-                ScrollViewer.SetContent(ItemsPanel);
-                ScrollViewer.CanChangeContent = false;
-                InnerBorder.SetContent(ScrollViewer);
-                InnerBorder.CanChangeContent = false;
-
-                SetTitleAndContentBorder(SolidFillBrushes.Black, 1);
-                
                 MinHeight = 30;
 
                 AlternatingRowBackgrounds = GetTheme().ListBoxItemAlternatingRowBackgrounds.Select(x => x.GetValue(true)).ToList().AsReadOnly();
-
-                ItemsPanel.BorderThickness = DefaultItemBorderThickness;
-                ItemsPanel.BorderBrush = DefaultItemBorderBrush;
 
                 ItemContainerStyle = ApplyDefaultItemContainerStyle;
                 ItemTemplate = (item) => new MGTextBlock(ParentWindow, item.ToString()) { Padding = new(1,0) };
@@ -1384,6 +1397,9 @@ namespace MGUI.Core.UI
                 SelectionMode = ListBoxSelectionMode.Single;
                 CanDeselectByClickingSelectedItem = true;
                 ControlTemplateName = MGControlTemplateCatalog.ListBoxTemplateName;
+                SetTitleAndContentBorder(SolidFillBrushes.Black, 1);
+                ItemsPanel.BorderThickness = DefaultItemBorderThickness;
+                ItemsPanel.BorderBrush = DefaultItemBorderBrush;
 
                 GetDesktop().Renderer.Host.EndUpdate += (sender, e) =>
                 {

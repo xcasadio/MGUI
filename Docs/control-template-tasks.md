@@ -437,7 +437,7 @@ Resultat:
 - Le guide de migration a ete enrichi avec les deux garde-fous confirmes par les regressions recentes: tolerer la phase de template de base sur les derives et conserver un etat logique hors-visuel pour les proprietes qui pilotent des parts.
 - La revue conclut que `ListBox` et `ListView` sont la prochaine vague la plus sure car ils exposent deja des part names claires et concentrent encore une grande partie du chrome construit en dur.
 
-### 🟡 12. Migrer la prochaine vague de controles, par exemple ListBox et ListView
+### ✅ 12. Migrer la prochaine vague de controles, par exemple ListBox et ListView
 
 But:
 appliquer l'architecture structurelle a la prochaine vague de controles composites fortement hybrides.
@@ -463,9 +463,11 @@ Criteres d'acceptation:
 
 Resultat:
 
-- a completer.
+- `MGListBox` et `MGListView` declarent maintenant explicitement leurs parts requises et attachent leur structure templatee via `AttachControlTemplateStructure(...)`, au lieu de construire la majeure partie de leur chrome directement en constructeur.
+- Les constructeurs conservent les comportements metier (selection, navigation, templates d'items, focused row/item) mais deleguent la structure visuelle principale aux templates runtime.
+- Le catalogue et les tests d'infrastructure couvrent desormais cette nouvelle vague structurelle, avec validation ciblee via `dotnet test MGUI.Tests/MGUI.Tests.csproj --filter FullyQualifiedName~ControlTemplateInfrastructureTests --no-restore`.
 
-### ⚪ 13. Remplacer les templates structurels code des controles migres par de vrais assets XAML
+### ✅ 13. Remplacer les templates structurels code des controles migres par de vrais assets XAML
 
 But:
 sortir la structure visuelle des controles migres du code imperative et la definir via de vrais assets XAML embarques.
@@ -491,4 +493,6 @@ Criteres d'acceptation:
 
 Resultat:
 
-- a completer.
+- Un asset embarque `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml` definit maintenant les structures `ListBox.Default` et `ListView.Default` en XAML, avec leurs mappings de template parts.
+- `MGControlTemplateCatalog` charge ces definitions embarquees au demarrage et les combine avec les callbacks d'application de defaults existants, ce qui preserve le chrome/theme sans garder une structure imperative parallele dans le catalogue.
+- `ControlTemplateLoader` expose un point d'entree pour creer un template structurel XAML avec phase `ApplyDefaults`, et un test d'infrastructure verifie la presence et le parsing des templates embarques.

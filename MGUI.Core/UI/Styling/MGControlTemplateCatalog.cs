@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Border_Brushes;
@@ -7,11 +9,17 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Docking.Controls;
+using MGUI.Core.UI.XAML;
+using MGUI.Shared.Helpers;
+using Thickness = MonoGame.Extended.Thickness;
 
 namespace MGUI.Core.UI.Styling
 {
     public static class MGControlTemplateCatalog
     {
+        private const string BuiltInControlTemplatesResourceName = "MGUI.Core.UI.Templates.BuiltInControlTemplates.xaml";
+        private static readonly Lazy<IReadOnlyDictionary<string, ControlTemplateDefinition>> BuiltInXamlTemplateDefinitions = new(LoadBuiltInXamlTemplateDefinitions);
+
         public const string WindowTemplateName = "Window.Default";
         public const string OverlayTemplateName = "Overlay.Default";
         public const string ContextMenuTemplateName = "ContextMenu.Default";
@@ -38,8 +46,8 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, CreateOverlayTemplate());
             Register(Resources, ContextMenuTemplateName, ApplyContextMenuTemplate);
             Register(Resources, ContextMenuItemTemplateName, ApplyContextMenuItemTemplate);
-            Register(Resources, ListBoxTemplateName, ApplyListBoxTemplate);
-            Register(Resources, ListViewTemplateName, ApplyListViewTemplate);
+            Register(Resources, CreateBuiltInXamlTemplate(ListBoxTemplateName, ApplyListBoxTemplate));
+            Register(Resources, CreateBuiltInXamlTemplate(ListViewTemplateName, ApplyListViewTemplate));
             Register(Resources, CreateComboBoxTemplate());
             Register(Resources, TreeViewTemplateName, ApplyTreeViewTemplate);
             Register(Resources, CreateTabControlTemplate());
@@ -52,6 +60,25 @@ namespace MGUI.Core.UI.Styling
 
         private static bool IsGenericControl(MGElement Owner, Type GenericDefinition)
             => Owner?.GetType().IsGenericType == true && Owner.GetType().GetGenericTypeDefinition() == GenericDefinition;
+
+        private static IReadOnlyDictionary<string, ControlTemplateDefinition> LoadBuiltInXamlTemplateDefinitions()
+        {
+            string markup = GeneralUtils.ReadEmbeddedResourceAsString(Assembly.GetExecutingAssembly(), BuiltInControlTemplatesResourceName);
+            return ControlTemplateLoader.ParseDefinitions(XamlDocumentSource.FromString(markup, BuiltInControlTemplatesResourceName))
+                .Where(x => x != null && !string.IsNullOrWhiteSpace(x.Name))
+                .ToDictionary(x => x.Name, StringComparer.Ordinal);
+        }
+
+        private static MGControlTemplate CreateBuiltInXamlTemplate(string name,
+            Action<MGControlTemplateContext> applyDefaults)
+        {
+            if (!BuiltInXamlTemplateDefinitions.Value.TryGetValue(name, out ControlTemplateDefinition definition))
+            {
+                throw new InvalidOperationException($"Missing built-in control template asset definition '{name}'.");
+            }
+
+            return ControlTemplateLoader.CreateTemplate(definition, applyDefaults);
+        }
 
         private static MGControlTemplate CreateWindowTemplate()
             => new(WindowTemplateName, CreateWindowTemplateStructure, null, ApplyWindowTemplate);

@@ -32,6 +32,16 @@ namespace MGUI.Core.UI
         public const string HeaderGridPartName = "PART_HeaderGrid";
         public const string ScrollViewerPartName = "PART_ScrollViewer";
         public const string DataGridPartName = "PART_DataGrid";
+        internal const string HeaderGridWrapperPartName = "PART_HeaderGridWrapper";
+        internal const string HeaderSpacerPartName = "PART_HeaderSpacer";
+
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            yield return new(DockPanelPartName, typeof(MGDockPanel));
+            yield return new(HeaderGridPartName, typeof(MGGrid));
+            yield return new(ScrollViewerPartName, typeof(MGScrollViewer));
+            yield return new(DataGridPartName, typeof(MGGrid));
+        }
 
         internal static int GetNextNavigationIndex(int currentIndex, int count, UINavigationAction action, int pageSize = 10)
         {
@@ -313,12 +323,18 @@ namespace MGUI.Core.UI
             }
         }
 
-        public MGDockPanel DockPanelElement { get; }
+        private readonly int InitialSpacing;
+        private readonly int InitialGridLineMargin;
+        private readonly IFillBrush DefaultGridLineBrush = SolidFillBrushes.Black;
+        private MGDockPanel HeaderGridWrapper { get; set; }
+        private MGBorder HeaderSpacer { get; set; }
+
+        public MGDockPanel DockPanelElement { get; private set; }
         /// <summary>The <see cref="MGGrid"/> that contains the column headers</summary>
-        public MGGrid HeaderGrid { get; }
-        public MGScrollViewer ScrollViewer { get; }
+        public MGGrid HeaderGrid { get; private set; }
+        public MGScrollViewer ScrollViewer { get; private set; }
         /// <summary>The <see cref="MGGrid"/> that contains the rows of data, based on <see cref="ItemsSource"/></summary>
-        public MGGrid DataGrid { get; }
+        public MGGrid DataGrid { get; private set; }
 
         /// <summary>Default value: <see cref="GridSelectionMode.None"/></summary>
         public GridSelectionMode SelectionMode
@@ -346,69 +362,11 @@ namespace MGUI.Core.UI
         public MGListView(MGWindow Window, int Spacing, int GridLineMargin)
             : base(Window, MGElementType.ListView)
         {
+            InitialSpacing = Spacing;
+            InitialGridLineMargin = GridLineMargin;
+
             using (BeginInitializing())
             {
-                IFillBrush GridLineBrush = SolidFillBrushes.Black;
-
-                HeaderGrid = new(Window);
-                RegisterTemplatePart(HeaderGridPartName, HeaderGrid);
-                HeaderGrid.AddRow(GridLength.Auto);
-                HeaderGrid.GridLinesVisibility = GridLinesVisibility.All;
-                HeaderGrid.RowSpacing = Spacing;
-                HeaderGrid.ColumnSpacing = Spacing;
-                HeaderGrid.GridLineMargin = GridLineMargin;
-                HeaderGrid.HorizontalGridLineBrush = GridLineBrush;
-                HeaderGrid.VerticalGridLineBrush = GridLineBrush;
-                HeaderGrid.BackgroundBrush = GetTheme().TitleBackground.GetValue(true);
-                HeaderGrid.DefaultTextForeground.SetAll(Color.White);
-                HeaderGrid.CanChangeContent = false;
-
-                DataGrid = new(Window);
-                RegisterTemplatePart(DataGridPartName, DataGrid);
-                DataGrid.GridLinesVisibility = GridLinesVisibility.AllVertical | GridLinesVisibility.InnerHorizontal | GridLinesVisibility.BottomEdge; // Don't draw TopEdge gridline since the header grid already has a BottomEdge gridline
-                DataGrid.Padding = new(0, GridLineMargin, 0, 0); // Normally the top would already be padded if we were drawing a TopEdge gridline. But since we're not, manually pad it
-                DataGrid.RowSpacing = Spacing;
-                DataGrid.ColumnSpacing = Spacing;
-                DataGrid.GridLineMargin = GridLineMargin;
-                DataGrid.HorizontalGridLineBrush = GridLineBrush;
-                DataGrid.VerticalGridLineBrush = GridLineBrush;
-                DataGrid.CanChangeContent = false;
-
-                DataGrid.SelectionChanged += (sender, e) => { SelectionChanged?.Invoke(this, e); };
-
-                //  Create a content-less element that will be placed to the right of the HeaderGrid, whose width will always match the width of the vertical scrollbar.
-                //  If the DataGrid needs to reserve width on the right edge for a vertical scrollbar, this width will also be reserved in the HeaderGrid
-                int TopRightCornerBorderThickness = Math.Max(0, Spacing - GridLineMargin * 2);
-                MGBorder TopRightCornerPlaceholder = new(Window, new Thickness(0, TopRightCornerBorderThickness, TopRightCornerBorderThickness, TopRightCornerBorderThickness), MGUniformBorderBrush.Black); //null as IBorderBrush);
-                TopRightCornerPlaceholder.BackgroundBrush = HeaderGrid.BackgroundBrush;
-
-                ScrollViewer = new(Window, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled);
-                RegisterTemplatePart(ScrollViewerPartName, ScrollViewer);
-                ScrollViewer.SetContent(DataGrid);
-                ScrollViewer.CanChangeContent = false;
-                ScrollViewer.VerticalScrollBarBoundsChanged += (sender, e) => {
-                    TopRightCornerPlaceholder.PreferredWidth = e?.Width ?? 0;
-                };
-
-                MGDockPanel HeaderGridWrapper = new(Window);
-                HeaderGridWrapper.TryAddChild(TopRightCornerPlaceholder, Dock.Right);
-                HeaderGridWrapper.TryAddChild(HeaderGrid, Dock.Left);
-                HeaderGridWrapper.CanChangeContent = false;
-
-                DockPanelElement = new(Window);
-                RegisterTemplatePart(DockPanelPartName, DockPanelElement);
-                DockPanelElement.TryAddChild(HeaderGridWrapper, Dock.Top);
-                DockPanelElement.TryAddChild(ScrollViewer, Dock.Bottom);
-                //DockPanelElement.VerticalAlignment = VerticalAlignment.Top;
-                DockPanelElement.CanChangeContent = false;
-                SetContent(DockPanelElement);
-                CanChangeContent = false;
-
-                HeaderGrid.ManagedParent = this;
-                DataGrid.ManagedParent = this;
-                ScrollViewer.ManagedParent = this;
-                DockPanelElement.ManagedParent = this;
-
                 VerticalAlignment = VerticalAlignment.Top;
 
                 RowHeight = null;
@@ -416,20 +374,84 @@ namespace MGUI.Core.UI
 
                 _Columns = new();
 
-                SelectionMode = GridSelectionMode.None;
                 ControlTemplateName = MGControlTemplateCatalog.ListViewTemplateName;
-
-                DataGrid.SelectionChanged += (sender, e) =>
-                {
-                    if (e.HasValue && DataGrid.Rows.Count > 0)
-                    {
-                        FocusedRowIndex = DataGrid.GetRowIndex(e.Value.Cell.Row);
-                    }
-                };
+                SelectionMode = GridSelectionMode.None;
 
                 IsFocusable = true;
                 KeyboardHandler.Pressed += OnListViewKeyPressed;
             }
+        }
+
+        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            DockPanelElement = Structure.Parts[DockPanelPartName] as MGDockPanel;
+            HeaderGrid = Structure.Parts[HeaderGridPartName] as MGGrid;
+            ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
+            DataGrid = Structure.Parts[DataGridPartName] as MGGrid;
+            HeaderGridWrapper = Structure.Parts[HeaderGridWrapperPartName] as MGDockPanel;
+            HeaderSpacer = Structure.Parts[HeaderSpacerPartName] as MGBorder;
+
+            using (AllowChangingContentTemporarily())
+            {
+                SetContent(Structure.Root);
+            }
+            CanChangeContent = false;
+
+            HeaderGrid.ManagedParent = this;
+            DataGrid.ManagedParent = this;
+            ScrollViewer.ManagedParent = this;
+            DockPanelElement.ManagedParent = this;
+
+            HeaderGrid.CanChangeContent = false;
+            DataGrid.CanChangeContent = false;
+            ScrollViewer.CanChangeContent = false;
+            HeaderGridWrapper.CanChangeContent = false;
+            DockPanelElement.CanChangeContent = false;
+
+            if (!HeaderGrid.Rows.Any())
+            {
+                HeaderGrid.AddRow(GridLength.Auto);
+            }
+
+            HeaderGrid.GridLinesVisibility = GridLinesVisibility.All;
+            HeaderGrid.RowSpacing = InitialSpacing;
+            HeaderGrid.ColumnSpacing = InitialSpacing;
+            HeaderGrid.GridLineMargin = InitialGridLineMargin;
+            HeaderGrid.HorizontalGridLineBrush = DefaultGridLineBrush;
+            HeaderGrid.VerticalGridLineBrush = DefaultGridLineBrush;
+
+            DataGrid.GridLinesVisibility = GridLinesVisibility.AllVertical | GridLinesVisibility.InnerHorizontal | GridLinesVisibility.BottomEdge;
+            DataGrid.Padding = new(0, InitialGridLineMargin, 0, 0);
+            DataGrid.RowSpacing = InitialSpacing;
+            DataGrid.ColumnSpacing = InitialSpacing;
+            DataGrid.GridLineMargin = InitialGridLineMargin;
+            DataGrid.HorizontalGridLineBrush = DefaultGridLineBrush;
+            DataGrid.VerticalGridLineBrush = DefaultGridLineBrush;
+
+            if (HeaderSpacer != null)
+            {
+                int borderThickness = Math.Max(0, InitialSpacing - InitialGridLineMargin * 2);
+                HeaderSpacer.BorderThickness = new Thickness(0, borderThickness, borderThickness, borderThickness);
+                HeaderSpacer.BorderBrush = MGUniformBorderBrush.Black;
+                HeaderSpacer.BackgroundBrush = HeaderGrid.BackgroundBrush;
+            }
+
+            ScrollViewer.VerticalScrollBarBoundsChanged += (sender, e) =>
+            {
+                if (HeaderSpacer != null)
+                {
+                    HeaderSpacer.PreferredWidth = e?.Width ?? 0;
+                }
+            };
+
+            DataGrid.SelectionChanged += (sender, e) => { SelectionChanged?.Invoke(this, e); };
+            DataGrid.SelectionChanged += (sender, e) =>
+            {
+                if (e.HasValue && DataGrid.Rows.Count > 0)
+                {
+                    FocusedRowIndex = DataGrid.GetRowIndex(e.Value.Cell.Row);
+                }
+            };
         }
 
         #region FocusedRowIndex

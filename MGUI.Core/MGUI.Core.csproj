@@ -34,9 +34,14 @@
   <ItemGroup>
     <Page Remove="UI\Themes\BuiltInThemes.xaml" />
     <None Remove="UI\Themes\BuiltInThemes.xaml" />
+    <Page Remove="UI\Templates\BuiltInControlTemplates.xaml" />
+    <None Remove="UI\Templates\BuiltInControlTemplates.xaml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="UI\Themes\BuiltInThemes.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\Templates\BuiltInControlTemplates.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
   </ItemGroup>
