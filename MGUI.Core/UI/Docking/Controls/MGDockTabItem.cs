@@ -232,7 +232,8 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 WrapText = false,
-                Padding = new XAML.Thickness(8, 4, 4, 4).ToThickness()
+                Padding = new XAML.Thickness(8, 4, 4, 4).ToThickness(),
+                IsHitTestVisible = false,
             };
             _titleText.SetParent(this);
 
@@ -250,7 +251,8 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 // Empty text — the X cross is drawn directly in DrawContents
-                Padding = new XAML.Thickness(4, 2, 4, 2).ToThickness()
+                Padding = new XAML.Thickness(4, 2, 4, 2).ToThickness(),
+                IsHitTestVisible = false,
             };
             _closeButton.SetContent(_closeButtonText);
                 

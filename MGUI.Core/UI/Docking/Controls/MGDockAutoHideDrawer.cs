@@ -123,7 +123,8 @@ public class MGDockAutoHideDrawer : MGElement
                 WrapText            = false,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment   = VerticalAlignment.Center,
-                Padding             = new XAML.Thickness(6, 2, 4, 2).ToThickness()
+                Padding             = new XAML.Thickness(6, 2, 4, 2).ToThickness(),
+                IsHitTestVisible    = false,
             };
             RegisterTemplatePart(TitleLabelPartName, _titleLabel);
             _titleLabel.DefaultTextForeground.NormalValue = Color.White;

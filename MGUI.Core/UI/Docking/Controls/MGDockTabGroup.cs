@@ -289,7 +289,8 @@ public class MGDockTabGroup : MGElement
             FontSize             = 14,
             HorizontalAlignment  = HorizontalAlignment.Center,
             VerticalAlignment    = VerticalAlignment.Center,
-            Padding              = new XAML.Thickness(4, 2, 4, 2).ToThickness()
+            Padding              = new XAML.Thickness(4, 2, 4, 2).ToThickness(),
+            IsHitTestVisible     = false,
         };
 
         body.MouseHandler.LMBReleasedInside += (_, e) =>

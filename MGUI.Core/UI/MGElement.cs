@@ -1292,6 +1292,7 @@ namespace MGUI.Core.UI
         private bool _cachedComputedEnabled;
         private bool _cachedComputedHTVisible;
         private bool _cachedParentCanReceiveMouse = true;
+        private bool _cachedHasModalWindow;
         // ---- End dirty-flag fields ------------------------------------------------
 
 		bool IKeyboardHandlerHost.HasKeyboardFocus() => GetDesktop().FocusedKeyboardHandler == this;
@@ -2194,26 +2195,23 @@ namespace MGUI.Core.UI
             // The inputs are: Visibility, ComputedIsEnabled, ComputedIsHitTestVisible, RecentDrawWasClipped (tracked
             // by _inputStateDirty), and the parent's _CanReceiveMouseInput (checked explicitly each frame).
             bool parentCanMouse = Parent?._CanReceiveMouseInput ?? true;
+            bool hasModalWindow = SelfOrParentWindow?.HasModalWindow == true;
             if (_inputStateDirty ||
                 ComputedIsEnabled != _cachedComputedEnabled ||
                 ComputedIsHitTestVisible != _cachedComputedHTVisible ||
-                parentCanMouse != _cachedParentCanReceiveMouse)
+                parentCanMouse != _cachedParentCanReceiveMouse ||
+                hasModalWindow != _cachedHasModalWindow)
             {
                 _inputStateDirty = false;
                 bool BaseCanReceiveInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible
                     && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
-                _CanReceiveMouseInput    = BaseCanReceiveInput && parentCanMouse;
+                _CanReceiveMouseInput    = BaseCanReceiveInput && parentCanMouse && !hasModalWindow;
                 _CanReceiveKeyboardInput = BaseCanReceiveInput && (Parent?._CanReceiveKeyboardInput ?? true);
                 _cachedComputedEnabled       = ComputedIsEnabled;
                 _cachedComputedHTVisible     = ComputedIsHitTestVisible;
                 _cachedParentCanReceiveMouse = parentCanMouse;
+                _cachedHasModalWindow        = hasModalWindow;
             }
-
-            // Modal-window override: applied outside the cached block so it is re-evaluated every tick
-            // without needing a dirty flag.  Elements inside the modal window have
-            // SelfOrParentWindow == the modal itself (which has HasModalWindow == false unless a
-            // second modal opens), so they are correctly allowed to receive input.
-            _CanReceiveMouseInput &= !(SelfOrParentWindow?.HasModalWindow == true);
 
             OnBeginUpdateContents?.Invoke(this, UpdateEventArgs);
 
@@ -2267,7 +2265,6 @@ namespace MGUI.Core.UI
             ToolTip = null;
             return false;
         }
-
 		protected virtual void UpdateContents(ElementUpdateArgs UA)
         {
             IReadOnlyList<MGElement> inactiveChildren = GetVisualTreeChildren(true, false);

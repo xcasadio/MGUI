@@ -70,6 +70,10 @@ namespace MGUI.Core.UI
                     {
                         ContentWrapper.IsFocusable = false;
                         ContentWrapper.CanChangeContent = false;
+                        if (_ItemContent != null)
+                        {
+                            _ItemContent.IsHitTestVisible = false;
+                        }
                         using (ContentWrapper.AllowChangingContentTemporarily())
                             ContentWrapper.SetContent(_ItemContent);
                     }

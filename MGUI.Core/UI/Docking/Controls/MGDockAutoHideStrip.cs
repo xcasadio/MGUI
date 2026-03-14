@@ -171,7 +171,8 @@ public class MGDockAutoHideStrip : MGElement
                 WrapText            = false,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment   = VerticalAlignment.Center,
-                Padding             = new XAML.Thickness(4, 2, 4, 2).ToThickness()
+                Padding             = new XAML.Thickness(4, 2, 4, 2).ToThickness(),
+                IsHitTestVisible    = false,
             };
             label.DefaultTextForeground.NormalValue = TextColor;
             body.SetContent(label);

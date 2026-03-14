@@ -806,7 +806,6 @@ namespace MGUI.Shared.Input.Mouse
                 }
             }
         }
-
         private bool IsValid = true;
         /// <summary>Permanently invalidates this <see cref="MouseHandler"/> so that it will not receive and invoke any further mouse-related events.</summary>
         public void Unsubscribe()
