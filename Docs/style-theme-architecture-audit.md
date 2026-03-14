@@ -456,7 +456,7 @@ Resultat:
 - La distinction style/theme est correcte dans l'intention, mais brouillee en pratique par les controles qui continuent d'aller directement lire `GetTheme()` pour definir des valeurs qui pourraient relever d'un style ou d'un template.
 - Priorite de refonte confirmee: ne pas enrichir les styles a l'aveugle avant d'avoir stabilise la resolution runtime des valeurs et la frontiere entre style, template et theme.
 
-### 🟡 5. Auditer les templates et le caractere lookless des controles
+### ✅ 5. Auditer les templates et le caractere lookless des controles
 
 But:
 determiner si les controles peuvent evoluer vers des control templates sans casser leur logique.
@@ -473,7 +473,15 @@ Livrable:
 - liste des controles les plus couples a leur skin ;
 - faisabilite d'une migration vers `ControlTemplate`.
 
-### ⚪ 6. Auditer les visual states
+Resultat:
+
+- Le constat central est confirme: `MGControlTemplate` n'est pas aujourd'hui un vrai template de structure. Il applique des defaults sur des `TemplateParts` deja crees par le controle au lieu de construire ou remplacer la structure visuelle.
+- Les controles les plus avances sur ce plan sont surtout ceux du docking et certains wrappers de menu contextuel, qui exposent des parts stables et des proprietes visuelles dediees.
+- Les controles hybrides majeurs sont `MGWindow`, `MGOverlay`, `MGContextMenu`, `MGListBox<T>`, `MGListView<T>` et `MGTreeView`: ils ont des parts et des templates, mais continuent de construire eux-memes une grande partie de leur chrome.
+- Les controles les plus couples a leur skin restent `MGComboBox<T>`, `MGTabControl`, `MGTextBox`, `MGToolTip`, `MGScrollViewer` et plusieurs widgets de base qui lisent le theme en constructeur ou dans `OnThemeChanged(...)`.
+- Une migration vers un vrai `ControlTemplate` est faisable, mais elle doit etre selective et progressive: d'abord documenter l'applicateur de chrome actuel, puis introduire un niveau structurel pour les controles composites cibles.
+
+### 🟡 6. Auditer les visual states
 
 But:
 evaluer si l'etat visuel est une couche autonome ou un effet secondaire de logique de controle.
