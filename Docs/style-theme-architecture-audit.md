@@ -350,7 +350,13 @@ Chaque constat doit suivre le format ci-dessous:
 
 Les taches ci-dessous sont destinees a un agent d'audit, pas a un agent d'implementation.
 
-### 1. Cartographier l'architecture actuelle
+Legende de statut:
+
+- ⚪ a faire
+- 🟡 en cours
+- ✅ termine
+
+### ✅ 1. Cartographier l'architecture actuelle
 
 But:
 etablir la carte des composants qui participent aux styles, themes, ressources, templates et etats visuels.
@@ -367,7 +373,15 @@ Livrable:
 - liste des fichiers pivots ;
 - premiere liste de zones a risque.
 
-### 2. Auditer la precedence des valeurs et l'invalidation
+Resultat:
+
+- La cartographie centrale a ete etablie autour de `MGResources`, `MGElement`, `XAML.Element`, `MGControlTemplate`, `MGElementTemplate`, `UIResourceReferenceApplicator`, `MGVisualStateProjection`, `MGDesktop` et `UIFocusNavigationService`.
+- Le pipeline observe est separe en cinq couches: ressources, controles, styles XAML, templates, etats visuels/navigation, avec une frontiere de rendu en dessous.
+- Les fichiers pivots confirmes sont `MGUI.Core/UI/MGResources.cs`, `MGUI.Core/UI/MGElement.cs`, `MGUI.Core/UI/XAML/Element.cs`, `MGUI.Core/UI/Styling/MGControlTemplate.cs`, `MGUI.Core/UI/Styling/MGControlTemplateCatalog.cs`, `MGUI.Core/UI/XAML/Themes.cs`, `MGUI.Core/UI/MGTheme.cs` et `MGUI.Core/UI/MGDesktop.cs`.
+- Les premieres zones a risque confirmees sont le couplage theme/constructeur dans plusieurs controles composites, le caractere non structurel des `ControlTemplate`, et la resolution de valeurs encore dispersee entre theme, styles XAML et code imperatif.
+- Le livrable detaille correspondant est centralise dans `Docs/audit-theme-style-runtime-deep.md`.
+
+### 🟡 2. Auditer la precedence des valeurs et l'invalidation
 
 But:
 comprendre comment une valeur visuelle arrive effectivement sur un controle et ce qui se passe quand elle change.
@@ -384,7 +398,7 @@ Livrable:
 - liste des invalidations existantes ;
 - liste des proprietes problematiques.
 
-### 3. Auditer le systeme de ressources
+### ⚪ 3. Auditer le systeme de ressources
 
 But:
 evaluer si `MGResources` peut devenir la base d'un vrai resource system hierarchique.
@@ -401,7 +415,7 @@ Livrable:
 - limites actuelles ;
 - recommandations structurelles.
 
-### 4. Auditer le systeme de styles
+### ⚪ 4. Auditer le systeme de styles
 
 But:
 mesurer l'ecart entre styles actuels et un styling system robuste.
@@ -418,7 +432,7 @@ Livrable:
 - constats de couplage ;
 - priorites de refonte.
 
-### 5. Auditer les templates et le caractere lookless des controles
+### ⚪ 5. Auditer les templates et le caractere lookless des controles
 
 But:
 determiner si les controles peuvent evoluer vers des control templates sans casser leur logique.
@@ -435,7 +449,7 @@ Livrable:
 - liste des controles les plus couples a leur skin ;
 - faisabilite d'une migration vers `ControlTemplate`.
 
-### 6. Auditer les visual states
+### ⚪ 6. Auditer les visual states
 
 But:
 evaluer si l'etat visuel est une couche autonome ou un effet secondaire de logique de controle.
@@ -452,7 +466,7 @@ Livrable:
 - dette de separation logic / visual ;
 - besoins minimaux d'un futur visual state system.
 
-### 7. Auditer la frontiere renderer / theme / controle
+### ⚪ 7. Auditer la frontiere renderer / theme / controle
 
 But:
 garantir que la refonte future ne pousse pas de logique de theming dans le renderer.
@@ -469,7 +483,7 @@ Livrable:
 - liste des violations actuelles ;
 - risques de performance associes.
 
-### 8. Auditer le changement de theme runtime
+### ⚪ 8. Auditer le changement de theme runtime
 
 But:
 verifier si MGUI peut evoluer vers un theme switch propre sans reparse global brutal.
@@ -486,7 +500,7 @@ Livrable:
 - liste des blocages ;
 - conditions necessaires pour supporter des ressources dynamiques.
 
-### 9. Auditer les hotspots controle par controle
+### ⚪ 9. Auditer les hotspots controle par controle
 
 But:
 prioriser les controles qui feront derailer une refonte si on les ignore.
@@ -503,7 +517,7 @@ Livrable:
 - severite ;
 - ordre de migration recommande.
 
-### 10. Convertir l'audit en backlog de refonte
+### ⚪ 10. Convertir l'audit en backlog de refonte
 
 But:
 transformer l'audit en plan d'action sequence pour un agent implementeur.
