@@ -46,7 +46,7 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, CreateOverlayTemplate());
             Register(Resources, ContextMenuTemplateName, ApplyContextMenuTemplate);
             Register(Resources, ContextMenuItemTemplateName, ApplyContextMenuItemTemplate);
-            Register(Resources, CreateBuiltInXamlTemplate(ListBoxTemplateName, ApplyListBoxTemplate));
+            Register(Resources, CreateListBoxTemplate());
             Register(Resources, CreateBuiltInXamlTemplate(ListViewTemplateName, ApplyListViewTemplate));
             Register(Resources, CreateComboBoxTemplate());
             Register(Resources, TreeViewTemplateName, ApplyTreeViewTemplate);
@@ -85,6 +85,9 @@ namespace MGUI.Core.UI.Styling
 
         private static MGControlTemplate CreateOverlayTemplate()
             => new(OverlayTemplateName, CreateOverlayTemplateStructure, null, ApplyOverlayTemplate);
+
+        private static MGControlTemplate CreateListBoxTemplate()
+            => new(ListBoxTemplateName, CreateListBoxTemplateStructure, null, ApplyListBoxTemplate);
 
         private static MGControlTemplate CreateComboBoxTemplate()
             => new(ComboBoxTemplateName, CreateComboBoxTemplateStructure, null, ApplyComboBoxTemplate);
@@ -229,6 +232,41 @@ namespace MGUI.Core.UI.Styling
             structure.AddPart(MGComboBox<object>.DropdownItemsPanelPartName, dropdownStackPanel);
             structure.AddPart(MGComboBox<object>.DropdownScrollViewerPartName, dropdownScrollViewer);
             structure.AddPart(MGComboBox<object>.DropdownDockPanelPartName, dropdownDockPanel);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateListBoxTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (!IsGenericControl(Context.Owner, typeof(MGListBox<>)))
+            {
+                return null;
+            }
+
+            MGWindow window = Context.Owner.SelfOrParentWindow;
+            MGBorder outerBorder = new(window, 0, SolidFillBrushes.Black);
+            MGBorder titleBorder = new(window);
+            MGContentPresenter titlePresenter = new(window);
+            MGBorder innerBorder = new(window);
+            MGStackPanel itemsPanel = new(window, Orientation.Vertical) { ManagedParent = Context.Owner };
+            MGScrollViewer scrollViewer = new(window);
+
+            titleBorder.SetContent(titlePresenter);
+            scrollViewer.SetContent(itemsPanel);
+            innerBorder.SetContent(scrollViewer);
+
+            titleBorder.CanChangeContent = false;
+            titlePresenter.CanChangeContent = false;
+            itemsPanel.CanChangeContent = false;
+            scrollViewer.CanChangeContent = false;
+            innerBorder.CanChangeContent = false;
+
+            MGControlTemplateStructure structure = new(outerBorder);
+            structure.AddPart(MGListBox<object>.OuterBorderPartName, outerBorder);
+            structure.AddPart(MGListBox<object>.TitleBorderPartName, titleBorder);
+            structure.AddPart(MGListBox<object>.TitlePresenterPartName, titlePresenter);
+            structure.AddPart(MGListBox<object>.InnerBorderPartName, innerBorder);
+            structure.AddPart(MGListBox<object>.ScrollViewerPartName, scrollViewer);
+            structure.AddPart(MGListBox<object>.ItemsPanelPartName, itemsPanel);
             return structure;
         }
 

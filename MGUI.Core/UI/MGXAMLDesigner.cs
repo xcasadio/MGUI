@@ -34,7 +34,7 @@ namespace MGUI.Core.UI
 
         /// <summary>True if the input xaml is being read from the file at <see cref="FromFilePath"/>.<br/>
         /// False if it's being read from the <see cref="FromStringTextBoxComponent"/>'s Text.</summary>
-        public bool IsReadingInputFromFile => TabControlComponent.SelectedTabIndex == 0 && !string.IsNullOrEmpty(FromFilePath) && File.Exists(FromFilePath);
+        public bool IsReadingInputFromFile => TabControlComponent.SelectedTabIndex == 1 && !string.IsNullOrEmpty(FromFilePath) && File.Exists(FromFilePath);
 
         public MGTextBox FromStringTextBoxComponent { get; }
         public MGTextBox FromFileTextBoxComponent { get; }
@@ -139,8 +139,8 @@ namespace MGUI.Core.UI
                 //  Create the tab control
                 TabControlComponent = new(ParentWindow);
                 TabControlComponent.Padding = new(8);
-                TabControlComponent.AddTab("From File", FilePathStackPanel);
                 TabControlComponent.AddTab("From String", MarkupScrollViewer);
+                TabControlComponent.AddTab("From File", FilePathStackPanel);
                 TabControlComponent.SelectedTabChanged += (sender, e) => { RefreshParsedContent(); };
 
                 MarkupPresenter = new(ParentWindow);

@@ -122,6 +122,11 @@ namespace MGUI.Core.UI.XAML
                 }
             }
 
+            foreach (MGElement element in namedElements.Values.Distinct())
+            {
+                element.Name = null;
+            }
+
             return structure;
         }
     }

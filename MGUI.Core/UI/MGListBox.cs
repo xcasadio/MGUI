@@ -1032,8 +1032,44 @@ namespace MGUI.Core.UI
             ItemsPanel.ManagedParent = this;
             ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
             ItemsPanel.CanChangeContent = false;
+
+            MGElement activeItemsHost = IsVirtualizing && _virtualizingPanel != null ? _virtualizingPanel : ItemsPanel;
+            using (TitleBorder.AllowChangingContentTemporarily())
+            {
+                TitleBorder.SetContent(TitlePresenter);
+            }
+            using (ScrollViewer.AllowChangingContentTemporarily())
+            {
+                ScrollViewer.SetContent(activeItemsHost);
+            }
+            using (InnerBorder.AllowChangingContentTemporarily())
+            {
+                InnerBorder.SetContent(ScrollViewer);
+            }
+
             ScrollViewer.CanChangeContent = false;
             InnerBorder.CanChangeContent = false;
+
+            ItemsPanel.BorderThickness = DefaultItemBorderThickness;
+            ItemsPanel.BorderBrush = DefaultItemBorderBrush;
+
+            if (!IsVirtualizing && InternalItems != null)
+            {
+                using (ItemsPanel.AllowChangingContentTemporarily())
+                {
+                    _ = ItemsPanel.TryRemoveAll();
+                    foreach (MGListBoxItem<TItemType> item in InternalItems)
+                    {
+                        _ = ItemsPanel.TryAddChild(item.ContentPresenter);
+                    }
+                }
+            }
+            else if (IsVirtualizing && _virtualizingPanel != null)
+            {
+                _virtualizingPanel.BorderThickness = DefaultItemBorderThickness;
+                _virtualizingPanel.BorderBrush = DefaultItemBorderBrush;
+                _virtualizingPanel.InvalidateData();
+            }
 
             if (_Header != null)
             {

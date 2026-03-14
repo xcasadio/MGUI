@@ -467,7 +467,7 @@ Resultat:
 - Les constructeurs conservent les comportements metier (selection, navigation, templates d'items, focused row/item) mais deleguent la structure visuelle principale aux templates runtime.
 - Le catalogue et les tests d'infrastructure couvrent desormais cette nouvelle vague structurelle, avec validation ciblee via `dotnet test MGUI.Tests/MGUI.Tests.csproj --filter FullyQualifiedName~ControlTemplateInfrastructureTests --no-restore`.
 
-### ✅ 13. Remplacer les templates structurels code des controles migres par de vrais assets XAML
+### 🟡 13. Remplacer les templates structurels code des controles migres par de vrais assets XAML
 
 But:
 sortir la structure visuelle des controles migres du code imperative et la definir via de vrais assets XAML embarques.
@@ -493,6 +493,6 @@ Criteres d'acceptation:
 
 Resultat:
 
-- Un asset embarque `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml` definit maintenant les structures `ListBox.Default` et `ListView.Default` en XAML, avec leurs mappings de template parts.
-- `MGControlTemplateCatalog` charge ces definitions embarquees au demarrage et les combine avec les callbacks d'application de defaults existants, ce qui preserve le chrome/theme sans garder une structure imperative parallele dans le catalogue.
-- `ControlTemplateLoader` expose un point d'entree pour creer un template structurel XAML avec phase `ApplyDefaults`, et un test d'infrastructure verifie la presence et le parsing des templates embarques.
+- Un asset embarque `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml` definit actuellement la structure `ListView.Default` en XAML, avec son mapping de template parts, et le pipeline de chargement embarque est en place.
+- Le support XAML a aussi ete valide pour les templates structurels simples ou en sous-arborescence unique, via `ControlTemplateLoader` et les tests d'infrastructure associes.
+- `ListBox.Default` a ete temporairement remis sur son builder structurel code pour restaurer le comportement runtime. La forme actuelle du format/template runtime ne couvre pas encore proprement ses parts rendues comme composants independants. Cette tache reste donc a finaliser pour `ListBox`.
