@@ -481,7 +481,7 @@ Resultat:
 - Les controles les plus couples a leur skin restent `MGComboBox<T>`, `MGTabControl`, `MGTextBox`, `MGToolTip`, `MGScrollViewer` et plusieurs widgets de base qui lisent le theme en constructeur ou dans `OnThemeChanged(...)`.
 - Une migration vers un vrai `ControlTemplate` est faisable, mais elle doit etre selective et progressive: d'abord documenter l'applicateur de chrome actuel, puis introduire un niveau structurel pour les controles composites cibles.
 
-### 🟡 6. Auditer les visual states
+### ✅ 6. Auditer les visual states
 
 But:
 evaluer si l'etat visuel est une couche autonome ou un effet secondaire de logique de controle.
@@ -498,7 +498,15 @@ Livrable:
 - dette de separation logic / visual ;
 - besoins minimaux d'un futur visual state system.
 
-### ⚪ 7. Auditer la frontiere renderer / theme / controle
+Resultat:
+
+- Le socle de calcul d'etat est sain: `MGElement` centralise `VisualState`, derive `PrimaryVisualState` (`Normal`, `Focused`, `Selected`, `Disabled`) et `SecondaryVisualState` (`None`, `Hovered`, `Pressed`), puis diffuse `VisualStateChanged`.
+- La navigation clavier/manette est deja alignee avec cette couche, via `UINavigationAction`, `MGDesktop` et `UIFocusNavigationService`, ce qui est un bon point pour un framework de jeu multi-input.
+- `MGVisualStateProjection` constitue une bonne abstraction pour projeter l'etat parent vers des composants internes sans recoder la logique partout. `MGContextMenuItem` en est un bon exemple.
+- La dette se situe dans les controles qui continuent de dessiner ou de piloter une partie du feedback avec du code ad hoc, des `SpoofIsHoveredWhileDrawingBackground`, ou des calculs specifiques de survol/pression locaux.
+- Le besoin minimal d'un futur systeme de visual states n'est pas une machine complexe de transitions, mais une generalisation de la projection et de la resolution de valeurs visual-state-aware sur les proprietes visuelles les plus importantes.
+
+### 🟡 7. Auditer la frontiere renderer / theme / controle
 
 But:
 garantir que la refonte future ne pousse pas de logique de theming dans le renderer.
