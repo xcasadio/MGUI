@@ -293,7 +293,7 @@ Resultat:
 - `MGWindow` et `MGOverlay` attachent ces parts structurelles a leurs composants existants via `AttachControlTemplateStructure(...)`, ce qui preserve leur logique de fermeture, border rendering et theme refresh.
 - Les tests de catalogue verrouillent que ces deux templates passent bien par le chemin structurel.
 
-### ⚪ 8. Migrer ComboBox et TabControl vers des templates plus structurels
+### ✅ 8. Migrer ComboBox et TabControl vers des templates plus structurels
 
 But:
 attaquer deux controles hybrides majeurs qui beneficieront le plus d'un vrai `ControlTemplate`.
@@ -316,6 +316,12 @@ Criteres d'acceptation:
 - les deux controles peuvent utiliser une structure templatee plus riche ;
 - le couplage au theme en constructeur diminue nettement ;
 - aucune regression evidente sur l'usage courant.
+
+Resultat:
+
+- `ComboBox.Default` et `TabControl.Default` sont maintenant des templates structurels du catalogue, au lieu d'un simple applicateur de defaults sur des parts construites en constructeur.
+- `MGComboBox` et `MGTabControl` attachent leurs parts structurelles lors du cycle de template, puis conservent leurs comportements existants de dropdown, navigation, headers et refresh de theme.
+- Les assertions d'infrastructure couvrent desormais ces deux templates structurels en plus de `Window` et `Overlay`.
 
 ### ⚪ 9. Ajouter diagnostics et outillage pour les ControlTemplate XAML
 

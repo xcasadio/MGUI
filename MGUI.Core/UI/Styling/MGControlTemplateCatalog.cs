@@ -40,9 +40,9 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, ContextMenuItemTemplateName, ApplyContextMenuItemTemplate);
             Register(Resources, ListBoxTemplateName, ApplyListBoxTemplate);
             Register(Resources, ListViewTemplateName, ApplyListViewTemplate);
-            Register(Resources, ComboBoxTemplateName, ApplyComboBoxTemplate);
+            Register(Resources, CreateComboBoxTemplate());
             Register(Resources, TreeViewTemplateName, ApplyTreeViewTemplate);
-            Register(Resources, TabControlTemplateName, ApplyTabControlTemplate);
+            Register(Resources, CreateTabControlTemplate());
             Register(Resources, DockTabItemTemplateName, ApplyDockTabItemTemplate);
             Register(Resources, DockAutoHideDrawerTemplateName, ApplyDockAutoHideDrawerTemplate);
             Register(Resources, DockAutoHideStripTemplateName, ApplyDockAutoHideStripTemplate);
@@ -58,6 +58,12 @@ namespace MGUI.Core.UI.Styling
 
         private static MGControlTemplate CreateOverlayTemplate()
             => new(OverlayTemplateName, CreateOverlayTemplateStructure, null, ApplyOverlayTemplate);
+
+        private static MGControlTemplate CreateComboBoxTemplate()
+            => new(ComboBoxTemplateName, CreateComboBoxTemplateStructure, null, ApplyComboBoxTemplate);
+
+        private static MGControlTemplate CreateTabControlTemplate()
+            => new(TabControlTemplateName, CreateTabControlTemplateStructure, null, ApplyTabControlTemplate);
 
         private static void Register(MGResources Resources, string Name, Action<MGControlTemplateContext> Apply)
         {
@@ -143,6 +149,74 @@ namespace MGUI.Core.UI.Styling
             MGControlTemplateStructure structure = new(closeButton);
             structure.AddPart(MGOverlay.BorderPartName, border);
             structure.AddPart(MGOverlay.CloseButtonPartName, closeButton);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateComboBoxTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (!IsGenericControl(Context.Owner, typeof(MGComboBox<>)) || Context.Owner is not MGSingleContentHost owner)
+            {
+                return null;
+            }
+
+            MGWindow window = owner.SelfOrParentWindow;
+            MGBorder border = new(window, new Thickness(1), MGUniformBorderBrush.Black);
+            MGContentPresenter dropdownArrow = new(window) { PreferredWidth = MGComboBox<object>.DropdownArrowPaddedWidth, PreferredHeight = MGComboBox<object>.DropdownArrowPaddedHeight };
+            MGWindow dropdown = new(window, 0, 0, 100, 300, window.Theme)
+            {
+                ManagedParent = owner,
+                IsUserResizable = false,
+                IsTitleBarVisible = false,
+                Scale = window.Scale,
+            };
+            MGContentPresenter dropdownHeaderPresenter = new(dropdown) { CanChangeContent = false };
+            MGContentPresenter dropdownFooterPresenter = new(dropdown) { CanChangeContent = false };
+            MGStackPanel dropdownStackPanel = new(dropdown, Orientation.Vertical) { Spacing = 0, CanChangeContent = false, ManagedParent = dropdown };
+            MGScrollViewer dropdownScrollViewer = new(dropdown, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled) { Padding = new(0), CanChangeContent = false, ManagedParent = dropdown };
+            MGDockPanel dropdownDockPanel = new(dropdown, true) { CanChangeContent = false };
+
+            dropdownArrow.Margin = new(MGComboBox<object>.DefaultDropdownArrowLeftMargin, 0, MGComboBox<object>.DefaultDropdownArrowRightMargin, 0);
+            dropdown.BorderThickness = new(1);
+            dropdown.BorderBrush = MGUniformBorderBrush.Gray;
+            dropdown.BackgroundBrush = owner.GetTheme().ComboBoxDropdownBackground.GetValue(true);
+            dropdown.Padding = new(0);
+
+            dropdownScrollViewer.SetContent(dropdownStackPanel);
+            dropdownDockPanel.TryAddChild(dropdownHeaderPresenter, Dock.Top);
+            dropdownDockPanel.TryAddChild(dropdownFooterPresenter, Dock.Bottom);
+            dropdownDockPanel.TryAddChild(dropdownScrollViewer, Dock.Top);
+            dropdown.SetContent(dropdownDockPanel);
+            dropdown.CanChangeContent = false;
+
+            MGControlTemplateStructure structure = new(dropdownDockPanel);
+            structure.AddPart(MGComboBox<object>.BorderPartName, border);
+            structure.AddPart(MGComboBox<object>.DropdownArrowPartName, dropdownArrow);
+            structure.AddPart(MGComboBox<object>.DropdownWindowPartName, dropdown);
+            structure.AddPart(MGComboBox<object>.DropdownHeaderPresenterPartName, dropdownHeaderPresenter);
+            structure.AddPart(MGComboBox<object>.DropdownFooterPresenterPartName, dropdownFooterPresenter);
+            structure.AddPart(MGComboBox<object>.DropdownItemsPanelPartName, dropdownStackPanel);
+            structure.AddPart(MGComboBox<object>.DropdownScrollViewerPartName, dropdownScrollViewer);
+            structure.AddPart(MGComboBox<object>.DropdownDockPanelPartName, dropdownDockPanel);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateTabControlTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGTabControl TabControl)
+            {
+                return null;
+            }
+
+            MGBorder border = new(TabControl.SelfOrParentWindow);
+            MGStackPanel headersPanel = new(TabControl.SelfOrParentWindow, Orientation.Horizontal)
+            {
+                CanChangeContent = false,
+                Spacing = 0,
+            };
+
+            MGControlTemplateStructure structure = new(headersPanel);
+            structure.AddPart(MGTabControl.BorderPartName, border);
+            structure.AddPart(MGTabControl.HeadersPanelPartName, headersPanel);
             return structure;
         }
 

@@ -91,8 +91,8 @@ namespace MGUI.Core.UI
 
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; }
-        private MGBorder BorderElement { get; }
+        public MGComponent<MGBorder> BorderComponent { get; private set; }
+        private MGBorder BorderElement { get; set; }
         public override MGBorder GetBorder() => BorderElement;
 
         public IBorderBrush BorderBrush
@@ -117,7 +117,7 @@ namespace MGUI.Core.UI
         #region Tab Headers
         /// <summary>The <see cref="MGStackPanel"/> that contains the tab headers.<para/>
         /// See also: <see cref="TabHeaderPosition"/></summary>
-        public MGStackPanel HeadersPanelElement { get; }
+        public MGStackPanel HeadersPanelElement { get; private set; }
 
         public Dock TabHeaderPosition
         {
@@ -295,6 +295,66 @@ namespace MGUI.Core.UI
         private Dictionary<MGTabItem, MGButton> ActualTabHeaders { get; }
         #endregion Tab Headers
 
+        private void ApplyHeadersPanelSettings()
+        {
+            if (HeadersPanelElement == null)
+            {
+                return;
+            }
+
+            Dock Position = TabHeaderPosition;
+            switch (Position)
+            {
+                case Dock.Left:
+                    HeadersPanelElement.Orientation = Orientation.Vertical;
+                    HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Right;
+                    HeadersPanelElement.VerticalAlignment = VerticalAlignment.Stretch;
+                    HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+                    HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Top;
+                    break;
+                case Dock.Top:
+                    HeadersPanelElement.Orientation = Orientation.Horizontal;
+                    HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    HeadersPanelElement.VerticalAlignment = VerticalAlignment.Bottom;
+                    HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Left;
+                    HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Stretch;
+                    break;
+                case Dock.Right:
+                    HeadersPanelElement.Orientation = Orientation.Vertical;
+                    HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Left;
+                    HeadersPanelElement.VerticalAlignment = VerticalAlignment.Stretch;
+                    HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+                    HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Top;
+                    break;
+                case Dock.Bottom:
+                    HeadersPanelElement.Orientation = Orientation.Horizontal;
+                    HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    HeadersPanelElement.VerticalAlignment = VerticalAlignment.Top;
+                    HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Left;
+                    HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Stretch;
+                    break;
+            }
+        }
+
+        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            HeadersPanelElement = Structure.Parts[HeadersPanelPartName] as MGStackPanel;
+            BorderElement = Structure.Parts[BorderPartName] as MGBorder;
+
+            if (BorderComponent == null)
+            {
+                BorderComponent = MGComponentBase.Create(BorderElement);
+                AddComponent(BorderComponent);
+                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            }
+
+            HeadersPanelElement.CanChangeContent = false;
+            Header = HeadersPanelElement;
+            ApplyHeadersPanelSettings();
+        }
+
         #region Tabs
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ObservableCollection<MGTabItem> _Tabs { get; }
@@ -433,65 +493,14 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                //  Create the StackPanel that hosts the Tab Headers
-                HeadersPanelElement = new(Window, Orientation.Horizontal);
-                RegisterTemplatePart(HeadersPanelPartName, HeadersPanelElement);
-                HeadersPanelElement.CanChangeContent = false;
-                HeadersPanelElement.Spacing = 0;
-                Header = HeadersPanelElement;
                 HeaderChanging += (sender, e) => { e.Cancel = true; }; // Disallow changing the Header
-
-                void ApplyHeadersPanelSettings()
-                {
-                    Dock Position = TabHeaderPosition;
-                    switch (Position)
-                    {
-                        case Dock.Left:
-                            HeadersPanelElement.Orientation = Orientation.Vertical;
-                            HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Right;
-                            HeadersPanelElement.VerticalAlignment = VerticalAlignment.Stretch;
-                            HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                            HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Top;
-                            break;
-                        case Dock.Top:
-                            HeadersPanelElement.Orientation = Orientation.Horizontal;
-                            HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Stretch;
-                            HeadersPanelElement.VerticalAlignment = VerticalAlignment.Bottom;
-                            HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Left;
-                            HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Stretch;
-                            break;
-                        case Dock.Right:
-                            HeadersPanelElement.Orientation = Orientation.Vertical;
-                            HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Left;
-                            HeadersPanelElement.VerticalAlignment = VerticalAlignment.Stretch;
-                            HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                            HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Top;
-                            break;
-                        case Dock.Bottom:
-                            HeadersPanelElement.Orientation = Orientation.Horizontal;
-                            HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Stretch;
-                            HeadersPanelElement.VerticalAlignment = VerticalAlignment.Top;
-                            HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Left;
-                            HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Stretch;
-                            break;
-                    }
-                }
 
                 HeaderPresenter.HorizontalAlignment = HorizontalAlignment.Stretch;
                 HeaderPresenter.VerticalAlignment = VerticalAlignment.Stretch;
                 Spacing = 0;
 
                 HeaderPosition = Dock.Top;
-                ApplyHeadersPanelSettings();
                 HeaderPositionChanged += (sender, e) => { ApplyHeadersPanelSettings(); };
-
-                BorderElement = new(Window);
-                RegisterTemplatePart(BorderPartName, BorderElement);
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 IsFocusable = true;
 

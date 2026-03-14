@@ -72,8 +72,8 @@ namespace MGUI.Core.UI
 
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; }
-        private MGBorder BorderElement { get; }
+        public MGComponent<MGBorder> BorderComponent { get; private set; }
+        private MGBorder BorderElement { get; set; }
         public override MGBorder GetBorder() => BorderElement;
 
         public IBorderBrush BorderBrush
@@ -97,8 +97,8 @@ namespace MGUI.Core.UI
 
         #region Dropdown Arrow
         /// <summary>Provides direct access to the dropdown part of this combobox.</summary>
-        public MGComponent<MGContentPresenter> DropdownArrowComponent { get; }
-        public MGContentPresenter DropdownArrowElement { get; }
+        public MGComponent<MGContentPresenter> DropdownArrowComponent { get; private set; }
+        public MGContentPresenter DropdownArrowElement { get; private set; }
 
         /// <summary>The width of the <see cref="MGContentPresenter"/> that hosts the dropdown arrow. This should be >= <see cref="DropdownArrowWidth"/></summary>
         public const int DropdownArrowPaddedWidth = 16;
@@ -486,14 +486,14 @@ namespace MGUI.Core.UI
         /// Warning - be careful when editing properties on this object. Some changes could break the combobox's functionality,<br/>
         /// such as setting <see cref="MGWindow.IsTitleBarVisible"/> and <see cref="MGWindow.IsCloseButtonVisible"/> to true, and then clicking the close button.<para/>
         /// See also: <see cref="DropdownScrollViewer"/>, <see cref="DropdownStackPanel"/></summary>
-        public MGWindow Dropdown { get; }
+        public MGWindow Dropdown { get; private set; }
         /// <summary>The <see cref="MGScrollViewer"/> that the <see cref="Dropdown"/>'s Content is wrapped in.<para/>
         /// See also: <see cref="Dropdown"/>, <see cref="DropdownStackPanel"/></summary>
-        public MGScrollViewer DropdownScrollViewer { get; }
+        public MGScrollViewer DropdownScrollViewer { get; private set; }
         /// <summary>The <see cref="MGStackPanel"/> that the <see cref="ItemsSource"/>'s rows are added to.<para/>
         /// See also: <see cref="Dropdown"/>, <see cref="DropdownScrollViewer"/></summary>
-        public MGStackPanel DropdownStackPanel { get; }
-        private MGDockPanel DropdownDockPanel { get; }
+        public MGStackPanel DropdownStackPanel { get; private set; }
+        private MGDockPanel DropdownDockPanel { get; set; }
 
         private bool IsDropdownContentValid;
         private void DropdownContentChanged()
@@ -601,8 +601,70 @@ namespace MGUI.Core.UI
             }
         }
 
-        private MGContentPresenter DropdownHeaderPresenter { get; }
-        private MGContentPresenter DropdownFooterPresenter { get; }
+        private MGContentPresenter DropdownHeaderPresenter { get; set; }
+        private MGContentPresenter DropdownFooterPresenter { get; set; }
+
+        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            BorderElement = Structure.Parts[BorderPartName] as MGBorder;
+            DropdownArrowElement = Structure.Parts[DropdownArrowPartName] as MGContentPresenter;
+            Dropdown = Structure.Parts[DropdownWindowPartName] as MGWindow;
+            DropdownHeaderPresenter = Structure.Parts[DropdownHeaderPresenterPartName] as MGContentPresenter;
+            DropdownFooterPresenter = Structure.Parts[DropdownFooterPresenterPartName] as MGContentPresenter;
+            DropdownStackPanel = Structure.Parts[DropdownItemsPanelPartName] as MGStackPanel;
+            DropdownScrollViewer = Structure.Parts[DropdownScrollViewerPartName] as MGScrollViewer;
+            DropdownDockPanel = Structure.Parts[DropdownDockPanelPartName] as MGDockPanel;
+
+            if (BorderComponent == null)
+            {
+                BorderComponent = MGComponentBase.Create(BorderElement);
+                AddComponent(BorderComponent);
+                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            }
+
+            if (DropdownArrowComponent == null)
+            {
+                DropdownArrowComponent = new(DropdownArrowElement, false, true, false, true, true, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Center, ComponentSize.Size));
+                AddComponent(DropdownArrowComponent);
+
+                DropdownArrowElement.OnEndingDraw += (sender, e) =>
+                {
+                    Rectangle ArrowElementFullBounds = DropdownArrowElement.LayoutBounds;
+                    Rectangle ArrowPartBounds = ApplyAlignment(ArrowElementFullBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(DropdownArrowWidth, DropdownArrowHeight));
+                    List<Vector2> ArrowVertices = new() {
+                        ArrowPartBounds.TopLeft().ToVector2(), ArrowPartBounds.TopRight().ToVector2(), new(ArrowPartBounds.Center.X, ArrowPartBounds.Bottom)
+                    };
+                    e.DA.DT.FillPolygon(e.DA.Offset.ToVector2(), ArrowVertices, DropdownArrowColor * e.DA.Opacity);
+                };
+            }
+
+            Dropdown.WindowMouseHandler.LMBReleasedInside += (sender, e) =>
+            {
+                if (HoveredItem != null)
+                {
+                    e.SetHandledBy(Dropdown, false);
+                    SelectedTemplatedItem = HoveredItem;
+                    IsDropdownOpen = false;
+                }
+            };
+            Dropdown.WindowMouseHandler.ReleasedOutside += (sender, e) =>
+            {
+                if (IsDropdownOpen)
+                {
+                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    if (!Dropdown.RenderBounds.ContainsInclusive(LayoutSpacePosition))
+                    {
+                        IsDropdownOpen = false;
+                        e.SetHandledBy(Dropdown, false);
+                    }
+                }
+            };
+            Dropdown.HoveredElementChanged += (sender, e) => { UpdateHoveredDropdownItem(); };
+            DropdownArrowColor = GetTheme().DropdownArrowColor;
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGElement _DropdownHeader;
@@ -661,33 +723,6 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 IsFocusable = true;
-                BorderElement = new(Window, BorderThickness, BorderBrush);
-                RegisterTemplatePart(BorderPartName, BorderElement);
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
-
-                DropdownArrowElement = new(Window) { PreferredWidth = DropdownArrowPaddedWidth, PreferredHeight = DropdownArrowPaddedHeight };
-                RegisterTemplatePart(DropdownArrowPartName, DropdownArrowElement);
-                DropdownArrowComponent = new(DropdownArrowElement, false, true, false, true, true, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Center, ComponentSize.Size));
-                AddComponent(DropdownArrowComponent);
-
-                DropdownArrowElement.Margin = new(DefaultDropdownArrowLeftMargin, 0, DefaultDropdownArrowRightMargin, 0);
-                DropdownArrowColor = GetTheme().DropdownArrowColor;
-
-                DropdownArrowElement.OnEndingDraw += (sender, e) =>
-                {
-                    Rectangle ArrowElementFullBounds = DropdownArrowElement.LayoutBounds;
-                    Rectangle ArrowPartBounds = ApplyAlignment(ArrowElementFullBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(DropdownArrowWidth, DropdownArrowHeight));
-                    List<Vector2> ArrowVertices = new() {
-                        ArrowPartBounds.TopLeft().ToVector2(), ArrowPartBounds.TopRight().ToVector2(), new(ArrowPartBounds.Center.X, ArrowPartBounds.Bottom)
-                    };
-                    e.DA.DT.FillPolygon(e.DA.Offset.ToVector2(), ArrowVertices, DropdownArrowColor * e.DA.Opacity);
-                };
-
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
                 Padding = new(4, 2, 4, 2);
@@ -695,79 +730,12 @@ namespace MGUI.Core.UI
                 MinHeight = 26;
 
                 CanChangeContent = false;
+                ControlTemplateName = MGControlTemplateCatalog.ComboBoxTemplateName;
 
                 SelfOrParentWindow.ScaleChanged += (sender, e) =>
                 {
                     Dropdown.Scale = e.NewValue;
                 };
-
-                Dropdown = new(Window, 0, 0, 100, 300, SelfOrParentWindow.Theme)
-                {
-                    ManagedParent = this,
-                    IsUserResizable = false,
-                    IsTitleBarVisible = false,
-                    Scale = SelfOrParentWindow.Scale
-                };
-                RegisterTemplatePart(DropdownWindowPartName, Dropdown);
-                Dropdown.WindowMouseHandler.LMBReleasedInside += (sender, e) =>
-                {
-                    if (HoveredItem != null)
-                    {
-                        e.SetHandledBy(Dropdown, false);
-                        SelectedTemplatedItem = HoveredItem;
-                        IsDropdownOpen = false;
-                    }
-                };
-                Dropdown.WindowMouseHandler.ReleasedOutside += (sender, e) =>
-                {
-                    if (IsDropdownOpen)
-                    {
-                        Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                        if (!Dropdown.RenderBounds.ContainsInclusive(LayoutSpacePosition))
-                        {
-                            IsDropdownOpen = false;
-                            e.SetHandledBy(Dropdown, false);
-                        }
-                    }
-                };
-
-                Dropdown.BorderThickness = new(1);
-                Dropdown.BorderBrush = MGUniformBorderBrush.Gray;
-                Dropdown.BackgroundBrush = GetTheme().ComboBoxDropdownBackground.GetValue(true);
-                Dropdown.Padding = new(0);
-
-                //  Create the placeholders for the Header and Footer
-                DropdownHeaderPresenter = new(Dropdown);
-                RegisterTemplatePart(DropdownHeaderPresenterPartName, DropdownHeaderPresenter);
-                DropdownHeaderPresenter.CanChangeContent = false;
-                DropdownFooterPresenter = new(Dropdown);
-                RegisterTemplatePart(DropdownFooterPresenterPartName, DropdownFooterPresenter);
-                DropdownFooterPresenter.CanChangeContent = false;
-
-                //  Create the StackPanel and ScrollViewer that host the items list
-                DropdownStackPanel = new(Dropdown, Orientation.Vertical);
-                RegisterTemplatePart(DropdownItemsPanelPartName, DropdownStackPanel);
-                DropdownStackPanel.Spacing = 0;
-                DropdownStackPanel.CanChangeContent = false;
-                DropdownStackPanel.ManagedParent = Dropdown;
-                DropdownScrollViewer = new(Dropdown, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled);
-                RegisterTemplatePart(DropdownScrollViewerPartName, DropdownScrollViewer);
-                DropdownScrollViewer.Padding = new(0);
-                DropdownScrollViewer.SetContent(DropdownStackPanel);
-                DropdownScrollViewer.CanChangeContent = false;
-                DropdownScrollViewer.ManagedParent = Dropdown;
-
-                //  Set the dropdown's content
-                DropdownDockPanel = new(Dropdown, true);
-                RegisterTemplatePart(DropdownDockPanelPartName, DropdownDockPanel);
-                DropdownDockPanel.TryAddChild(DropdownHeaderPresenter, Dock.Top);
-                DropdownDockPanel.TryAddChild(DropdownFooterPresenter, Dock.Bottom);
-                DropdownDockPanel.TryAddChild(DropdownScrollViewer, Dock.Top);
-                DropdownDockPanel.CanChangeContent = false;
-                Dropdown.SetContent(DropdownDockPanel);
-                Dropdown.CanChangeContent = false;
-
-                Dropdown.HoveredElementChanged += (sender, e) => { UpdateHoveredDropdownItem(); };
 
                 DropdownItemTemplate = item =>
                 {
@@ -776,7 +744,6 @@ namespace MGUI.Core.UI
                     return Button;
                 };
                 SelectedItemTemplate = item => new MGTextBlock(Window, item.ToString()) { WrapText = false, VerticalAlignment = VerticalAlignment.Center };
-                ControlTemplateName = MGControlTemplateCatalog.ComboBoxTemplateName;
 
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {
