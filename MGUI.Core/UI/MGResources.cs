@@ -353,6 +353,10 @@ namespace MGUI.Core.UI
             string DefaultFontFamily = null, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
             => ThemeDefinitionLoader.LoadAndRegister(this, Source, DefaultFontFamily, SanitizeXAMLString, ReplaceLinebreakLiterals);
 
+        public IReadOnlyDictionary<string, MGControlTemplate> LoadControlTemplatesFromXaml(XamlDocumentSource Source,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => ControlTemplateLoader.LoadAndRegister(this, Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
         /// <param name="DefaultValue">The default theme to return if there is no theme with the given <paramref name="Name"/>. Uses <see cref="DefaultTheme"/> if null.</param>
         /// <param name="WarnIfNotFound">If a <paramref name="Name"/> is specified but no corresponding theme is found, a warning will be written via <see cref="Debug.WriteLine(string?)"/></param>
         public MGTheme GetThemeOrDefault(string Name, MGTheme DefaultValue = null, bool WarnIfNotFound = true)

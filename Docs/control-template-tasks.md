@@ -144,7 +144,7 @@ Resultat:
 - Le format couvre le nom du template, le type cible, la racine visuelle, des mappings explicites de parts et une zone `Notes` pour documenter les limitations de premiere iteration.
 - Des tests de parsing valident un template unitaire et un document multi-templates.
 
-### ⚪ 3. Charger et enregistrer les ControlTemplate XAML dans MGResources
+### ✅ 3. Charger et enregistrer les ControlTemplate XAML dans MGResources
 
 But:
 brancher les templates XAML sur `MGResources` comme des ressources de premier ordre.
@@ -167,6 +167,12 @@ Criteres d'acceptation:
 - `MGResources` peut resoudre un template defini en XAML par son nom ;
 - un scope enfant peut surcharger un template parent ;
 - le comportement est stable et testable.
+
+Resultat:
+
+- `ControlTemplateLoader` parse des documents ou templates unitaires, puis les convertit en `MGControlTemplate` structurels en s'appuyant sur la racine XAML et les mappings de parts.
+- `MGResources.LoadControlTemplatesFromXaml(...)` enregistre ces templates comme des ressources de premier ordre, avec remplacement explicite a nom egal et conservation du fallback hierarchique existant.
+- Des tests couvrent le chargement nominal et l'override parent/enfant d'un template XAML.
 
 ### ⚪ 4. Instancier la structure d'un ControlTemplate au runtime
 
