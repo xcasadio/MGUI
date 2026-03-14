@@ -406,7 +406,7 @@ Resultat:
 - `MGTextBlock` est le cas le plus abouti: il surcharge `GetThemeInvalidation(...)` pour distinguer un changement purement visuel d'un changement de police qui affecte `Measure|Arrange|Draw`.
 - Les proprietes problematiques sont celles qui sont themables mais encore stockees comme valeurs locales simples sans trace de source ni invalidation semantique standardisee: paddings, bordures, backgrounds, foregrounds et tailles injectes par les controles composites.
 
-### 🟡 3. Auditer le systeme de ressources
+### ✅ 3. Auditer le systeme de ressources
 
 But:
 evaluer si `MGResources` peut devenir la base d'un vrai resource system hierarchique.
@@ -423,7 +423,15 @@ Livrable:
 - limites actuelles ;
 - recommandations structurelles.
 
-### ⚪ 4. Auditer le systeme de styles
+Resultat:
+
+- `MGResources` est deja un vrai systeme de scopes hierarchiques pour themes, styles, ressources statiques, `ControlTemplate` et `ElementTemplate`, avec fallback parent coherent entre `Desktop`, `Window`, `Subtree` et `Template`.
+- La separation `Definitions` / `RuntimeCache` est saine et deja testee, notamment pour differencier les ressources nommees du cache runtime des textures.
+- Les `StaticResource` et `DynamicResource` existent reellement. `UIResourceReferenceApplicator` sait reappliquer une resource dynamique quand une valeur change ou quand un fallback parent redevient actif.
+- Le packaging de theme reste toutefois encore surtout porte par `MGTheme`, qui demeure un objet assez monolithique meme si les definitions XAML permettent des themes derives et partiels.
+- La limite structurelle principale est le cycle de vie des abonnements dynamiques: le rebind fonctionne, mais l'architecture actuelle ne montre pas encore de nettoyage explicite des handlers en fin de vie d'un element.
+
+### 🟡 4. Auditer le systeme de styles
 
 But:
 mesurer l'ecart entre styles actuels et un styling system robuste.
