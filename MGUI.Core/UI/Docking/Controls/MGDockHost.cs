@@ -2068,12 +2068,14 @@ public class MGDockHost : MGSingleContentHost
         DockLayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Last root node we subscribed to (to allow clean unsubscribe on structural changes).</summary>
+    /// <summary>Last root node whose tab-group active-panel changes we subscribed to.</summary>
     private DockNode _subscribedRootNode;
 
     /// <summary>
     /// Unsubscribes from the previously subscribed root tree and subscribes to the current one.
-    /// Safe to call multiple times — avoids double-subscription.
+    /// Only tab-group active-panel changes are tracked here. Structural/layout-affecting model
+    /// changes already flow through DockLayoutModel.LayoutChanged, so duplicating the generic
+    /// PropertyChanged subscription here would rebuild the host twice for the same mutation.
     /// </summary>
     private void SyncNodeSubscriptions()
     {
@@ -2092,18 +2094,13 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Subscribes to PropertyChanged events for a node and its children.
+    /// Subscribes to tab-group active-panel changes for a node and its children.
     /// </summary>
     private void SubscribeToNode(DockNode node)
     {
         if (node == null)
         {
             return;
-        }
-
-        if (node is INotifyPropertyChanged notifyNode)
-        {
-            notifyNode.PropertyChanged += OnNodePropertyChanged;
         }
 
         // Subscribe to children
@@ -2123,18 +2120,13 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Unsubscribes from PropertyChanged events for a node and its children.
+    /// Unsubscribes from tab-group active-panel changes for a node and its children.
     /// </summary>
     private void UnsubscribeFromNode(DockNode node)
     {
         if (node == null)
         {
             return;
-        }
-
-        if (node is INotifyPropertyChanged notifyNode)
-        {
-            notifyNode.PropertyChanged -= OnNodePropertyChanged;
         }
 
         // Unsubscribe from children
@@ -2150,25 +2142,6 @@ public class MGDockHost : MGSingleContentHost
         {
             tabGroup.PropertyChanged -= OnTabGroupPropertyChanged;
         }
-    }
-
-    private void OnNodePropertyChanged(object sender, PropertyChangedEventArgs e)
-    {
-        // ActivePanelId / ActivePanel changes on a tab group do NOT require a visual-tree
-        // rebuild: the tab strip already handles them in OnGroupNodePropertyChanged and
-        // OnTabGroupPropertyChanged above.  Triggering a full rebuild here would recreate
-        // every MGDockSplitContainer from the model — resetting any split ratio that was
-        // still in-flight (e.g. if CommitRatioToModel fired its own PropertyChanged before
-        // the model write completed).
-        if (sender is DockTabGroupNode &&
-            (e.PropertyName == nameof(DockTabGroupNode.ActivePanelId) ||
-             e.PropertyName == nameof(DockTabGroupNode.ActivePanel)))
-        {
-            return;
-        }
-
-        // TODO: Replace the full rebuild with targeted partial updates for other changes.
-        RebuildVisualTree();
     }
 
     private void OnTabGroupPropertyChanged(object sender, PropertyChangedEventArgs e)
