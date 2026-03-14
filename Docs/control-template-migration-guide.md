@@ -54,6 +54,8 @@ Ce guide decrit l'etat cible atteint par la premiere iteration des `ControlTempl
 - le changement de template structurel en cours de vie d'un controle a composants reste plus couteux que le simple refresh de theme ;
 - le loader XAML ne porte pas encore un DSL complet d'attachement custom pour tous les cas composites ;
 - la validation couvre deja les parts, mais pas encore toutes les contraintes comportementales inter-parts.
+- les controles derives d'un type deja template (`MGContextMenu` depuis `MGWindow`) doivent tolerer la phase de template de base pendant leur construction.
+- les proprietes qui pilotent des parts templatees doivent conserver un etat logique hors-visuel jusqu'a l'attachement des parts.
 
 ## Prochaines migrations recommandees
 

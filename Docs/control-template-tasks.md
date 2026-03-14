@@ -401,3 +401,94 @@ La mission est reussie si:
 - les parts requises sont validees proprement ;
 - le cout runtime reste compatible avec MGUI ;
 - le fichier de suivi a bien ete mis a jour tache par tache avec un commit entre chaque etape.
+
+## Taches supplementaires
+
+### ✅ 11. Faire une passe de revue ciblee sur les risques runtime restants des templates structurels
+
+But:
+identifier les fragilites runtime encore presentes apres la premiere vague de migrations structurelles, en se concentrant sur les risques d'instanciation, de re-attachement, de validation de parts et de comportements hybrides restants.
+
+Travail attendu:
+
+- auditer les chemins runtime actuels des templates structurels et des controles encore hybrides ;
+- identifier les patterns de risque restants, en particulier:
+  - proprietes qui supposent l'existence immediate des parts templatees ;
+  - changements de template en cours de vie ;
+  - retention de composants internes et d'evenements lors des re-attachements ;
+  - cohabitation entre templates structurels et controles encore construits en dur ;
+- produire une note de synthese exploitable pour les migrations suivantes.
+
+Livrable:
+
+- note de revue ciblee des risques runtime restants ;
+- mise a jour du guide de migration si necessaire ;
+- filets de securite de test si un pattern recurrent doit etre epingle.
+
+Criteres d'acceptation:
+
+- les principaux risques runtime restants sont explicitement nommes et relies a du code reel ;
+- la note permet d'orienter les migrations suivantes sans re-decouverte importante ;
+- les recommandations restent compatibles avec les contraintes runtime de MGUI.
+
+Resultat:
+
+- Une note ciblee `Docs/control-template-runtime-risk-review.md` recense les risques runtime restants les plus probables: acces aux parts avant attachement, conflit de template de base pendant la construction, cohabitation hybride entre parts manuelles et parts structurelles, et limites actuelles du changement de template sur les controles composites.
+- Le guide de migration a ete enrichi avec les deux garde-fous confirmes par les regressions recentes: tolerer la phase de template de base sur les derives et conserver un etat logique hors-visuel pour les proprietes qui pilotent des parts.
+- La revue conclut que `ListBox` et `ListView` sont la prochaine vague la plus sure car ils exposent deja des part names claires et concentrent encore une grande partie du chrome construit en dur.
+
+### 🟡 12. Migrer la prochaine vague de controles, par exemple ListBox et ListView
+
+But:
+appliquer l'architecture structurelle a la prochaine vague de controles composites fortement hybrides.
+
+Travail attendu:
+
+- migrer `MGListBox` vers un template structurel avec parts explicites et attachement runtime ;
+- migrer `MGListView` vers un template structurel avec parts explicites et attachement runtime ;
+- conserver les comportements de selection, scroll, headers, templates d'items et refresh de theme ;
+- ajouter les tests de non-regression les plus utiles sur ces deux controles.
+
+Livrable:
+
+- migration de `ListBox` ;
+- migration de `ListView` ;
+- mise a jour du catalogue et des tests d'infrastructure associes.
+
+Criteres d'acceptation:
+
+- les deux controles consomment une structure de template au runtime ;
+- le chrome construit en dur dans leurs constructeurs diminue nettement ;
+- les parts requises et l'attachement runtime sont valides et testables.
+
+Resultat:
+
+- a completer.
+
+### ⚪ 13. Remplacer les templates structurels code des controles migres par de vrais assets XAML
+
+But:
+sortir la structure visuelle des controles migres du code imperative et la definir via de vrais assets XAML embarques.
+
+Travail attendu:
+
+- creer des assets XAML pour les templates structurels des controles migres ;
+- les embarquer dans `MGUI.Core` et les charger pendant l'enregistrement des templates par defaut ;
+- conserver l'application des defaults de chrome et la compatibilite runtime ;
+- couvrir le chargement des assets et leur resolution par nom.
+
+Livrable:
+
+- assets XAML embarques pour les templates migres ;
+- chargement automatique dans le pipeline des templates par defaut ;
+- tests de chargement et de presence des templates embarques.
+
+Criteres d'acceptation:
+
+- `ListBox` et `ListView` utilisent des structures templatees venant d'assets XAML ;
+- le code catalogue ne contient plus leur structure imperative principale ;
+- les assets peuvent etre resolus et instancies via `MGResources`.
+
+Resultat:
+
+- a completer.
