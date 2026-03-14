@@ -581,7 +581,7 @@ Resultat:
 - L'ordre de migration recommande est confirme: d'abord les fondations runtime de resolution et diagnostic, ensuite les controles composites les plus hybrides, puis les widgets de base qui consomment encore le theme en direct.
 - Cette priorisation minimise le risque de regression pour une UI de jeu video, car elle consolide d'abord le pipeline avant de multiplier les migrations visuelles controle par controle.
 
-### 🟡 10. Convertir l'audit en backlog de refonte
+### ✅ 10. Convertir l'audit en backlog de refonte
 
 But:
 transformer l'audit en plan d'action sequence pour un agent implementeur.
@@ -597,6 +597,14 @@ Livrable:
 - liste de taches ordonnee ;
 - criteres d'acceptation ;
 - risques et preconditions par tache.
+
+Resultat:
+
+- Le backlog de refonte a ete formalise dans `Docs/audit-theme-style-runtime-deep.md`, avec une priorisation qui separe fondations runtime, migration des controles composites, hygiene perf/allocation, et outillage de debug.
+- Les premieres fondations recommandees sont: resolution de valeurs sur un sous-ensemble cible, cycle de vie propre des `DynamicResource`, diagnostics de source de valeur, et clarification du role exact du `ControlTemplate` actuel.
+- Les integrations suivantes sont les migrations progressives de `ComboBox`, `TabControl`, `TextBox`, `ToolTip` et `ScrollViewer`, puis l'alignement des widgets de base encore couples au theme.
+- Les adoptions tardives concernent les variantes denses d'editeur, le refresh de style sur sous-arbre, et les vues debug avancees pour inspecter scopes, parts et origines de valeurs.
+- Le backlog est donc pret pour un agent implementeur, avec un ordre de travail qui cherche d'abord a stabiliser le pipeline, puis a faire migrer les controles sans sur-architecturer MGUI.
 
 ## Resultat attendu a la fin de l'audit
 
