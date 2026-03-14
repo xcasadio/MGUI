@@ -47,6 +47,22 @@ namespace MGUI.Core.UI
         public const string ScrollViewerPartName = "PART_ScrollViewer";
         public const string ItemsPanelPartName = "PART_ItemsPanel";
 
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            if (string.Equals(AppliedControlTemplateName, MGControlTemplateCatalog.WindowTemplateName, StringComparison.Ordinal))
+            {
+                foreach (MGControlTemplatePartRequirement requirement in base.GetRequiredControlTemplateParts())
+                {
+                    yield return requirement;
+                }
+
+                yield break;
+            }
+
+            yield return new(ScrollViewerPartName, typeof(MGScrollViewer));
+            yield return new(ItemsPanelPartName, typeof(MGStackPanel));
+        }
+
         public static Rectangle FitMenuToViewport(Rectangle Anchor, Size Size, Rectangle Viewport)
         {
             int ActualX = Anchor.Right;

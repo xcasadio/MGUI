@@ -353,9 +353,22 @@ namespace MGUI.Core.UI
             get => _IsUserResizable;
             set
             {
-                _IsUserResizable = value;
-                ResizeGripElement.Visibility = IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
-                NPC(nameof(IsUserResizable));
+                if (_IsUserResizable != value)
+                {
+                    _IsUserResizable = value;
+                    if (ResizeGripElement != null)
+                    {
+                        ResizeGripElement.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                    NPC(nameof(IsUserResizable));
+                }
+                else
+                {
+                    if (ResizeGripElement != null)
+                    {
+                        ResizeGripElement.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                }
             }
         }
         #endregion Resizing
@@ -591,33 +604,54 @@ namespace MGUI.Core.UI
         /// <summary>The textblock element that contains this window's <see cref="TitleText"/> in the title-bar.</summary>
         public MGTextBlock TitleBarTextBlockElement { get; private set; }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _TitleText;
+
         /// <summary>This property is functionally equivalent to <see cref="TitleBarTextBlockElement"/>'s <see cref="MGTextBlock.Text"/> property.<para/>
         /// See also: <see cref="IsTitleBarVisible"/></summary>
         public string TitleText
         {
-            get => TitleBarTextBlockElement.Text;
+            get => TitleBarTextBlockElement?.Text ?? _TitleText;
             set
             {
-                if (TitleBarTextBlockElement.Text != value)
+                if (TitleText != value)
                 {
-                    TitleBarTextBlockElement.Text = value;
+                    _TitleText = value;
+                    if (TitleBarTextBlockElement != null)
+                    {
+                        TitleBarTextBlockElement.Text = value;
+                    }
                     NPC(nameof(TitleText));
                 }
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsTitleBarVisible;
+
         /// <summary>True if the title bar should be visible at the top of this <see cref="MGWindow"/><para/>
         /// Default value: true for most types of <see cref="MGWindow"/>, false for <see cref="MGToolTip"/></summary>
         public bool IsTitleBarVisible
         {
-            get => TitleBarElement.Visibility == Visibility.Visible;
+            get => TitleBarElement?.Visibility == Visibility.Visible || (TitleBarElement == null && _IsTitleBarVisible);
             set
             {
                 Visibility ActualValue = value ? Visibility.Visible : Visibility.Collapsed;
-                if (TitleBarElement.Visibility != ActualValue)
+                if (_IsTitleBarVisible != value)
                 {
-                    TitleBarElement.Visibility = ActualValue;
+                    _IsTitleBarVisible = value;
+                    if (TitleBarElement != null)
+                    {
+                        TitleBarElement.Visibility = ActualValue;
+                    }
                     NPC(nameof(IsTitleBarVisible));
+                }
+                else
+                {
+                    if (TitleBarElement != null)
+                    {
+                        TitleBarElement.Visibility = ActualValue;
+                    }
                 }
             }
         }
@@ -625,16 +659,30 @@ namespace MGUI.Core.UI
         #region Close
         public MGButton CloseButtonElement { get; private set; }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsCloseButtonVisible;
+
         public bool IsCloseButtonVisible
         {
-            get => CloseButtonElement.Visibility == Visibility.Visible;
+            get => CloseButtonElement?.Visibility == Visibility.Visible || (CloseButtonElement == null && _IsCloseButtonVisible);
             set
             {
                 Visibility ActualValue = value ? Visibility.Visible : Visibility.Collapsed;
-                if (CloseButtonElement.Visibility != ActualValue)
+                if (_IsCloseButtonVisible != value)
                 {
-                    CloseButtonElement.Visibility = ActualValue;
+                    _IsCloseButtonVisible = value;
+                    if (CloseButtonElement != null)
+                    {
+                        CloseButtonElement.Visibility = ActualValue;
+                    }
                     NPC(nameof(IsCloseButtonVisible));
+                }
+                else
+                {
+                    if (CloseButtonElement != null)
+                    {
+                        CloseButtonElement.Visibility = ActualValue;
+                    }
                 }
             }
         }
@@ -686,7 +734,9 @@ namespace MGUI.Core.UI
 
             TitleBarElement.DrawBackgroundEnabled = false;
             TitleBarElement.CanChangeContent = false;
-            IsTitleBarVisible = true;
+            TitleText = _TitleText;
+            IsTitleBarVisible = _IsTitleBarVisible;
+            IsCloseButtonVisible = _IsCloseButtonVisible;
             IsUserResizable = _IsUserResizable;
         }
 
@@ -1046,10 +1096,12 @@ namespace MGUI.Core.UI
                 Padding = DefaultWindowPadding;
 
                 _IsUserResizable = true;
-                TitleText = null;
+                _IsTitleBarVisible = true;
+                _IsCloseButtonVisible = true;
                 ControlTemplateName = MGControlTemplateCatalog.WindowTemplateName;
                 TitleText = null;
                 IsTitleBarVisible = true;
+                IsCloseButtonVisible = true;
                 IsUserResizable = true;
 
                 HorizontalAlignment = HorizontalAlignment.Stretch;

@@ -169,11 +169,11 @@ namespace MGUI.Core.UI.Styling
                 IsTitleBarVisible = false,
                 Scale = window.Scale,
             };
-            MGContentPresenter dropdownHeaderPresenter = new(dropdown) { CanChangeContent = false };
-            MGContentPresenter dropdownFooterPresenter = new(dropdown) { CanChangeContent = false };
-            MGStackPanel dropdownStackPanel = new(dropdown, Orientation.Vertical) { Spacing = 0, CanChangeContent = false, ManagedParent = dropdown };
-            MGScrollViewer dropdownScrollViewer = new(dropdown, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled) { Padding = new(0), CanChangeContent = false, ManagedParent = dropdown };
-            MGDockPanel dropdownDockPanel = new(dropdown, true) { CanChangeContent = false };
+            MGContentPresenter dropdownHeaderPresenter = new(dropdown);
+            MGContentPresenter dropdownFooterPresenter = new(dropdown);
+            MGStackPanel dropdownStackPanel = new(dropdown, Orientation.Vertical) { Spacing = 0, ManagedParent = dropdown };
+            MGScrollViewer dropdownScrollViewer = new(dropdown, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled) { Padding = new(0), ManagedParent = dropdown };
+            MGDockPanel dropdownDockPanel = new(dropdown, true);
 
             dropdownArrow.Margin = new(MGComboBox<object>.DefaultDropdownArrowLeftMargin, 0, MGComboBox<object>.DefaultDropdownArrowRightMargin, 0);
             dropdown.BorderThickness = new(1);
@@ -186,6 +186,11 @@ namespace MGUI.Core.UI.Styling
             dropdownDockPanel.TryAddChild(dropdownFooterPresenter, Dock.Bottom);
             dropdownDockPanel.TryAddChild(dropdownScrollViewer, Dock.Top);
             dropdown.SetContent(dropdownDockPanel);
+            dropdownHeaderPresenter.CanChangeContent = false;
+            dropdownFooterPresenter.CanChangeContent = false;
+            dropdownStackPanel.CanChangeContent = false;
+            dropdownScrollViewer.CanChangeContent = false;
+            dropdownDockPanel.CanChangeContent = false;
             dropdown.CanChangeContent = false;
 
             MGControlTemplateStructure structure = new(dropdownDockPanel);

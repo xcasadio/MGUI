@@ -3,6 +3,7 @@ using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
 using System.IO;
 using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace MGUI.Tests.Architecture;
 
@@ -199,6 +200,7 @@ public class ControlTemplateInfrastructureTests
     public void Control_Template_Requirement_Metadata_Is_Declared_For_Migrating_Controls()
     {
         Assert.Equal(typeof(MGWindow), typeof(MGWindow).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+        Assert.Equal(typeof(MGContextMenu), typeof(MGContextMenu).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGOverlay), typeof(MGOverlay).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGTabControl), typeof(MGTabControl).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGComboBox<>), typeof(MGComboBox<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
@@ -211,5 +213,56 @@ public class ControlTemplateInfrastructureTests
 
         Assert.Contains("UIValueResolutionSource.Template", source);
         Assert.Contains("Owner.InvalidateLayout();", source);
+    }
+
+    [Fact]
+#pragma warning disable SYSLIB0050
+    public void MGWindow_Chrome_Properties_Can_Be_Set_Before_Template_Parts_Attach()
+#pragma warning restore SYSLIB0050
+    {
+        MGWindow window = (MGWindow)FormatterServices.GetUninitializedObject(typeof(MGWindow));
+
+        window.TitleText = "Docking System Demo";
+        window.IsTitleBarVisible = true;
+        window.IsCloseButtonVisible = true;
+        window.IsUserResizable = true;
+
+        Assert.Equal("Docking System Demo", window.TitleText);
+        Assert.True(window.IsTitleBarVisible);
+        Assert.True(window.IsCloseButtonVisible);
+        Assert.True(window.IsUserResizable);
+    }
+
+    [Fact]
+    public void MGContextMenu_Requirements_Handle_Base_Window_Template_During_Construction()
+    {
+        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+
+        Assert.Contains("MGControlTemplateCatalog.WindowTemplateName", source);
+        Assert.Contains("base.GetRequiredControlTemplateParts()", source);
+    }
+
+    [Fact]
+#pragma warning disable SYSLIB0050
+    public void MGOverlay_Close_Button_Can_Be_Configured_Before_Template_Parts_Attach()
+#pragma warning restore SYSLIB0050
+    {
+        MGOverlay overlay = (MGOverlay)FormatterServices.GetUninitializedObject(typeof(MGOverlay));
+
+        overlay.ShowCloseButton = true;
+
+        Assert.True(overlay.ShowCloseButton);
+    }
+
+    [Fact]
+    public void ComboBox_Template_Sets_Initial_Content_Before_Locking_Content_Hosts()
+    {
+        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        int setContentIndex = source.IndexOf("dropdownScrollViewer.SetContent(dropdownStackPanel);", StringComparison.Ordinal);
+        int lockIndex = source.IndexOf("dropdownScrollViewer.CanChangeContent = false;", StringComparison.Ordinal);
+
+        Assert.True(setContentIndex >= 0);
+        Assert.True(lockIndex > setContentIndex);
     }
 }

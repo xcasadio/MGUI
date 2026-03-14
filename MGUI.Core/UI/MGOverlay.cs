@@ -489,6 +489,9 @@ namespace MGUI.Core.UI
         /// (Meaning this button might be rendered overtop of other overlay content. You may wish to add a top and/or right <see cref="MGElement.Padding"/> to your overlay content to avoid overlaps with the close button).</summary>
         public MGButton CloseButton { get; private set; }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _ShowCloseButton;
+
         protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
         {
             BorderElement = Structure.Parts[BorderPartName] as MGBorder;
@@ -509,14 +512,31 @@ namespace MGUI.Core.UI
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Top, ComponentSize.Size));
                 AddComponent(CloseButtonComponent);
             }
+
+            ShowCloseButton = _ShowCloseButton;
         }
 
         /// <summary><see langword="true"/> if the <see cref="CloseButton"/> should be displayed in the top-right corner.<para/>
         /// Default value: <see langword="false"/></summary>
         public bool ShowCloseButton
         {
-            get => CloseButton.Visibility == Visibility.Visible;
-            set => CloseButton.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            get => CloseButton?.Visibility == Visibility.Visible || (CloseButton == null && _ShowCloseButton);
+            set
+            {
+                if (_ShowCloseButton != value)
+                {
+                    _ShowCloseButton = value;
+                    if (CloseButton != null)
+                    {
+                        CloseButton.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                    NPC(nameof(ShowCloseButton));
+                }
+                else if (CloseButton != null)
+                {
+                    CloseButton.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
         }
 
         /// <summary>To instantiate an <see cref="MGOverlay"/>, use <see cref="MGOverlayHost.AddOverlay(MGElement, bool)"/></summary>
