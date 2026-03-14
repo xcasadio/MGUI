@@ -381,7 +381,7 @@ Resultat:
 - Les premieres zones a risque confirmees sont le couplage theme/constructeur dans plusieurs controles composites, le caractere non structurel des `ControlTemplate`, et la resolution de valeurs encore dispersee entre theme, styles XAML et code imperatif.
 - Le livrable detaille correspondant est centralise dans `Docs/audit-theme-style-runtime-deep.md`.
 
-### 🟡 2. Auditer la precedence des valeurs et l'invalidation
+### ✅ 2. Auditer la precedence des valeurs et l'invalidation
 
 But:
 comprendre comment une valeur visuelle arrive effectivement sur un controle et ce qui se passe quand elle change.
@@ -398,7 +398,15 @@ Livrable:
 - liste des invalidations existantes ;
 - liste des proprietes problematiques.
 
-### ⚪ 3. Auditer le systeme de ressources
+Resultat:
+
+- La precedence cible est explicitement definie dans `UIValuePrecedence`: `Animation > LocalValue > LocalBinding > VisualState > Template > ExplicitStyle > ImplicitStyle > DynamicResource > Theme > Inherited > DefaultValue`.
+- Cette precedence n'est pas encore appliquee par un moteur runtime unifie. En pratique, les styles implicites et explicites s'appliquent surtout au parsing XAML, les themes s'appliquent via constructeurs et `OnThemeChanged(...)`, et les valeurs locales via setters C# ordinaires.
+- L'invalidation de theme est centralisee dans `MGElement.NotifyThemeChanged(...)`, avec propagation recursive et appel a `ApplyControlTemplate(true)`, mais la semantique fine reste majoritairement manuelle.
+- `MGTextBlock` est le cas le plus abouti: il surcharge `GetThemeInvalidation(...)` pour distinguer un changement purement visuel d'un changement de police qui affecte `Measure|Arrange|Draw`.
+- Les proprietes problematiques sont celles qui sont themables mais encore stockees comme valeurs locales simples sans trace de source ni invalidation semantique standardisee: paddings, bordures, backgrounds, foregrounds et tailles injectes par les controles composites.
+
+### 🟡 3. Auditer le systeme de ressources
 
 But:
 evaluer si `MGResources` peut devenir la base d'un vrai resource system hierarchique.
