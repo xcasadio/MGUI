@@ -556,7 +556,7 @@ Resultat:
 - Les conditions necessaires pour supporter proprement des ressources dynamiques et un theme switch plus riche sont maintenant claires: source de valeur inspectable, invalidation semantique par propriete, et hygiene des abonnements dynamiques.
 - En l'etat, un theme switch est plausible pour des cas simples, mais pas encore suffisamment predictible pour servir de contrat fort sur des arbres d'UI denses et fortement composites.
 
-### 🟡 9. Auditer les hotspots controle par controle
+### ✅ 9. Auditer les hotspots controle par controle
 
 But:
 prioriser les controles qui feront derailer une refonte si on les ignore.
@@ -573,7 +573,15 @@ Livrable:
 - severite ;
 - ordre de migration recommande.
 
-### ⚪ 10. Convertir l'audit en backlog de refonte
+Resultat:
+
+- Hotspots critiques ou eleves confirms: `MGComboBox<T>`, `MGTabControl`, `MGTextBox`, `MGToolTip`, `MGScrollViewer`, puis les widgets de base encore fortement themes en code (`MGButton`, `MGToggleButton`, `MGCheckBox`, `MGRadioButton`, `MGProgressBar`, `MGProgressButton`, `MGSlider`, `MGResizeGrip`, `MGMenuBar`).
+- Hotspots intermediaires: `MGWindow`, `MGOverlay`, `MGContextMenu`, `MGListBox<T>`, `MGListView<T>`, `MGTreeView`, qui disposent deja de parts et de templates mais gardent une part visible de chrome construit en dur.
+- Zone la plus saine a preserver: le docking, qui combine deja `MGTheme.Docking`, `ControlTemplateName`, template parts nommees et proprietes de chrome relativement bien isolees.
+- L'ordre de migration recommande est confirme: d'abord les fondations runtime de resolution et diagnostic, ensuite les controles composites les plus hybrides, puis les widgets de base qui consomment encore le theme en direct.
+- Cette priorisation minimise le risque de regression pour une UI de jeu video, car elle consolide d'abord le pipeline avant de multiplier les migrations visuelles controle par controle.
+
+### 🟡 10. Convertir l'audit en backlog de refonte
 
 But:
 transformer l'audit en plan d'action sequence pour un agent implementeur.
