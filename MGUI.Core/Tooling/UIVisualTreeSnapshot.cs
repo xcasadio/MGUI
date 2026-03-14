@@ -9,6 +9,9 @@ namespace MGUI.Core.Tooling
         MGElementType ElementType,
         Rectangle LayoutBounds,
         Rectangle ActualLayoutBounds,
+    string AppliedControlTemplate,
+    IReadOnlyDictionary<string, string> TemplateParts,
+    string LastControlTemplateError,
         int Depth,
         IReadOnlyList<UIVisualTreeSnapshot> Children);
 }

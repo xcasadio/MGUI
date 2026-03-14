@@ -323,7 +323,7 @@ Resultat:
 - `MGComboBox` et `MGTabControl` attachent leurs parts structurelles lors du cycle de template, puis conservent leurs comportements existants de dropdown, navigation, headers et refresh de theme.
 - Les assertions d'infrastructure couvrent desormais ces deux templates structurels en plus de `Window` et `Overlay`.
 
-### ⚪ 9. Ajouter diagnostics et outillage pour les ControlTemplate XAML
+### ✅ 9. Ajouter diagnostics et outillage pour les ControlTemplate XAML
 
 But:
 rendre le systeme deboguable pour l'editeur et pour les auteurs de templates.
@@ -346,6 +346,12 @@ Criteres d'acceptation:
 - un template applique est identifiable ;
 - les parts disponibles sont inspectables ;
 - un echec de template est rapide a diagnostiquer.
+
+Resultat:
+
+- `MGElement` expose maintenant le nom du template applique et le dernier message d'erreur de validation/template observe.
+- `UIToolingService.CaptureVisualTree(...)` embarque ces informations dans `UIVisualTreeSnapshot`, avec la liste des parts enregistrees et leur type runtime.
+- Les tests d'outillage verrouillent cette nouvelle surface de diagnostic pour l'editeur et les outils internes.
 
 ### ⚪ 10. Stabilisation, documentation et guide de migration
 

@@ -17,6 +17,8 @@ public class ToolingHooksTests
     {
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.CaptureVisualTree), BindingFlags.Static | BindingFlags.Public));
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.LoadPreview), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.AppliedControlTemplate)));
+        Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.TemplateParts)));
     }
 
     [Fact]

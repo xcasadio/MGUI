@@ -209,6 +209,11 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGControlTemplate _ControlTemplate;
+        public string AppliedControlTemplateName => ControlTemplate?.Name ?? ControlTemplateName;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public string LastControlTemplateError { get; private set; }
+
         public MGControlTemplate ControlTemplate
         {
             get => _ControlTemplate;
@@ -405,40 +410,49 @@ namespace MGUI.Core.UI
                 GetResources().TryGetControlTemplate(ControlTemplateName, out Template);
             }
 
-            bool TemplateChanged = !ReferenceEquals(_AppliedStructuredTemplate, Template);
-            if (TemplateChanged)
+            try
             {
-                ClearInstantiatedTemplateStructure();
-            }
-
-            if (!IsThemeRefresh && Template?.SupportsStructure == true && (_AppliedTemplateStructure == null || TemplateChanged))
-            {
-                MGControlTemplateContext Context = new(this, false);
-                MGControlTemplateStructure Structure = Template.CreateStructure(Context);
-                if (Structure != null)
+                bool TemplateChanged = !ReferenceEquals(_AppliedStructuredTemplate, Template);
+                if (TemplateChanged)
                 {
-                    RegisterInstantiatedTemplateStructure(Structure);
-
-                    if (Template.SupportsAttachment)
-                    {
-                        Template.AttachStructure(Context, Structure);
-                    }
-                    else
-                    {
-                        AttachControlTemplateStructure(Structure);
-                    }
-
-                    _AppliedTemplateStructure = Structure;
-                    _AppliedStructuredTemplate = Template;
+                    ClearInstantiatedTemplateStructure();
                 }
-            }
 
-            if (Template != null)
+                if (!IsThemeRefresh && Template?.SupportsStructure == true && (_AppliedTemplateStructure == null || TemplateChanged))
+                {
+                    MGControlTemplateContext Context = new(this, false);
+                    MGControlTemplateStructure Structure = Template.CreateStructure(Context);
+                    if (Structure != null)
+                    {
+                        RegisterInstantiatedTemplateStructure(Structure);
+
+                        if (Template.SupportsAttachment)
+                        {
+                            Template.AttachStructure(Context, Structure);
+                        }
+                        else
+                        {
+                            AttachControlTemplateStructure(Structure);
+                        }
+
+                        _AppliedTemplateStructure = Structure;
+                        _AppliedStructuredTemplate = Template;
+                    }
+                }
+
+                if (Template != null)
+                {
+                    ValidateControlTemplateParts();
+                }
+
+                Template?.Apply(this, IsThemeRefresh);
+                LastControlTemplateError = null;
+            }
+            catch (Exception ex)
             {
-                ValidateControlTemplateParts();
+                LastControlTemplateError = ex.Message;
+                throw;
             }
-
-            Template?.Apply(this, IsThemeRefresh);
         }
 
             protected MGResources GetInheritedResources()

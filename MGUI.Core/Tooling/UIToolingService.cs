@@ -24,11 +24,17 @@ namespace MGUI.Core.Tooling
                 .Select(child => CreateSnapshot(child, depth + 1))
                 .ToList();
 
+            Dictionary<string, string> templateParts = element.TemplateParts
+                .ToDictionary(x => x.Key, x => x.Value?.GetType().Name ?? nameof(MGElement));
+
             return new(
                 element.Name,
                 element.ElementType,
                 element.LayoutBounds,
                 element.ActualLayoutBounds,
+                element.AppliedControlTemplateName,
+                templateParts,
+                element.LastControlTemplateError,
                 depth,
                 children);
         }
