@@ -100,6 +100,9 @@ namespace MGUI.Core.UI.XAML
 
             { "Style", nameof(Style) },
             { "Setter", nameof(Setter) },
+            { "ControlTemplates", nameof(ControlTemplatesDocument) },
+            { "ControlTemplate", nameof(ControlTemplateDefinition) },
+            { "TemplatePart", nameof(TemplatePartDefinition) },
 
             //  Abbreviated names
             { "CP", nameof(ContentPresenter) },

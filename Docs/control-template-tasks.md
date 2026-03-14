@@ -109,7 +109,7 @@ Resultat:
 - `MGControlTemplateStructure` formalise la sortie de la phase structurelle et sert de point d'ancrage pour la suite de la migration runtime/XAML.
 - Les tests d'infrastructure couvrent la compatibilite legacy et le nouveau contrat lifecycle.
 
-### ⚪ 2. Ajouter des definitions XAML de ControlTemplate
+### ✅ 2. Ajouter des definitions XAML de ControlTemplate
 
 But:
 introduire une representation XAML des `ControlTemplate` sans encore migrer tous les controles.
@@ -137,6 +137,12 @@ Criteres d'acceptation:
 - un `ControlTemplate` simple peut etre decrit en XAML sans code imperative additionnel ;
 - le parser produit une definition exploitable par le runtime ;
 - le format reste assez petit pour un framework jeu.
+
+Resultat:
+
+- Une nouvelle couche XAML `ControlTemplatesDocument` / `ControlTemplateDefinition` / `TemplatePartDefinition` existe desormais, avec des aliases markup publics permettant d'ecrire directement `<ControlTemplate>` et `<TemplatePart>`.
+- Le format couvre le nom du template, le type cible, la racine visuelle, des mappings explicites de parts et une zone `Notes` pour documenter les limitations de premiere iteration.
+- Des tests de parsing valident un template unitaire et un document multi-templates.
 
 ### ⚪ 3. Charger et enregistrer les ControlTemplate XAML dans MGResources
 
