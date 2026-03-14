@@ -353,7 +353,7 @@ Resultat:
 - `UIToolingService.CaptureVisualTree(...)` embarque ces informations dans `UIVisualTreeSnapshot`, avec la liste des parts enregistrees et leur type runtime.
 - Les tests d'outillage verrouillent cette nouvelle surface de diagnostic pour l'editeur et les outils internes.
 
-### ⚪ 10. Stabilisation, documentation et guide de migration
+### ✅ 10. Stabilisation, documentation et guide de migration
 
 But:
 terminer la sequence avec une base durable pour d'autres migrations.
@@ -376,6 +376,12 @@ Criteres d'acceptation:
 - un autre agent peut reprendre le travail sans re-decouverte majeure ;
 - les concepts et les frontieres d'architecture sont clairs ;
 - la sequence de migration future est explicite.
+
+Resultat:
+
+- Un guide dedie `Docs/control-template-migration-guide.md` documente la frontiere entre `ElementTemplate`, `ControlTemplate` code et `ControlTemplate` XAML, ainsi que le workflow de migration d'un controle composite.
+- Le fichier de suivi a ete tenu a jour tache par tache avec les resultats et les commits correspondants.
+- Validation finale executee: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter Architecture`. Un echec subsiste hors perimetre sur `BoxGeometryBuilderTests.EquivalentNormalizedShapes_ReuseCachedGeometry` (attendu 2, obtenu 8), non modifie ici.
 
 ## Risques a surveiller pendant l'implementation
 
