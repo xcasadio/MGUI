@@ -76,10 +76,14 @@ namespace MGUI.Core.UI.Styling
         }
 
         public void ApplyThemeDefault<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue, IEqualityComparer<T> Comparer = null)
+            => ApplyTemplateValue(Name, Value, GetCurrentValue, SetValue, UIInvalidationKind.Draw, Comparer);
+
+        public void ApplyTemplateValue<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue,
+            UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
         {
             if (Owner == null)
             {
-                throw new InvalidOperationException($"{nameof(ApplyThemeDefault)} requires a non-null owner.");
+                throw new InvalidOperationException($"{nameof(ApplyTemplateValue)} requires a non-null owner.");
             }
 
             if (GetCurrentValue == null)
@@ -94,11 +98,16 @@ namespace MGUI.Core.UI.Styling
 
             Comparer ??= EqualityComparer<T>.Default;
             T CurrentValue = GetCurrentValue();
-            bool HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out T PreviousValue);
-            if (!IsThemeRefresh || !HasPrevious || Comparer.Equals(CurrentValue, PreviousValue))
+            bool HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out UIResolvedValue<T> PreviousValue);
+            if (!IsThemeRefresh || !HasPrevious || Comparer.Equals(CurrentValue, PreviousValue.Value))
             {
                 SetValue(Value);
-                Owner.SetAppliedTemplateDefault(Name, Value);
+                Owner.SetAppliedTemplateDefault(Name, new UIResolvedValue<T>(Value, UIValueResolutionSource.Template(Invalidation, Name)));
+
+                if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)
+                {
+                    Owner.InvalidateLayout();
+                }
             }
         }
     }

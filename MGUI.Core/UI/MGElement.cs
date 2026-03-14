@@ -274,17 +274,50 @@ namespace MGUI.Core.UI
 
         internal bool TryGetAppliedTemplateDefault<T>(string Name, out T Value)
         {
-            if (_AppliedTemplateDefaults.TryGetValue(Name, out object Existing) && Existing is T Typed)
+            if (_AppliedTemplateDefaults.TryGetValue(Name, out object Existing))
             {
-                Value = Typed;
-                return true;
+                if (Existing is UIResolvedValue<T> Resolved)
+                {
+                    Value = Resolved.Value;
+                    return Resolved.IsSet;
+                }
+
+                if (Existing is T Typed)
+                {
+                    Value = Typed;
+                    return true;
+                }
             }
 
             Value = default;
             return false;
         }
 
+        internal bool TryGetAppliedTemplateDefault<T>(string Name, out UIResolvedValue<T> Value)
+        {
+            if (_AppliedTemplateDefaults.TryGetValue(Name, out object Existing))
+            {
+                if (Existing is UIResolvedValue<T> Resolved)
+                {
+                    Value = Resolved;
+                    return Resolved.IsSet;
+                }
+
+                if (Existing is T Typed)
+                {
+                    Value = new(Typed, UIValueResolutionSource.Template(UIInvalidationKind.Draw, Name));
+                    return true;
+                }
+            }
+
+            Value = UIResolvedValue<T>.Unset(UIInvalidationKind.Draw);
+            return false;
+        }
+
         internal void SetAppliedTemplateDefault<T>(string Name, T Value)
+            => SetAppliedTemplateDefault(Name, new UIResolvedValue<T>(Value, UIValueResolutionSource.Template(UIInvalidationKind.Draw, Name)));
+
+        internal void SetAppliedTemplateDefault<T>(string Name, UIResolvedValue<T> Value)
             => _AppliedTemplateDefaults[Name] = Value;
 
         protected internal void RegisterTemplatePart(string Name, MGElement Part)

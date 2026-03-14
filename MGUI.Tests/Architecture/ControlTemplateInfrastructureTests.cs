@@ -199,4 +199,13 @@ public class ControlTemplateInfrastructureTests
         Assert.Equal(typeof(MGTabControl), typeof(MGTabControl).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGComboBox<>), typeof(MGComboBox<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
     }
+
+    [Fact]
+    public void Control_Template_Value_Application_Uses_Template_Source_Metadata()
+    {
+        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplate.cs");
+
+        Assert.Contains("UIValueResolutionSource.Template", source);
+        Assert.Contains("Owner.InvalidateLayout();", source);
+    }
 }

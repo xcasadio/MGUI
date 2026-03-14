@@ -234,7 +234,7 @@ Resultat:
 - `MGWindow`, `MGOverlay`, `MGComboBox` et `MGTabControl` declarent leurs parts attendues, ce qui prepare les migrations structurelles suivantes.
 - Les messages d'erreur de `GetRequiredPart<T>` et de la validation centrale listent le type attendu, le type reel et les parts disponibles pour accelerer le diagnostic.
 
-### ⚪ 6. Faire le pont precedence / template / invalidation
+### ✅ 6. Faire le pont precedence / template / invalidation
 
 But:
 integrer le template structurel dans une resolution de valeurs previsible.
@@ -257,6 +257,12 @@ Criteres d'acceptation:
 - une valeur locale ne se fait pas ecraser par un template ;
 - une valeur de template peut surcharger un default/theme quand c'est attendu ;
 - les invalidations restent localisees et coherentes.
+
+Resultat:
+
+- Les valeurs appliquees depuis un `ControlTemplate` sont maintenant stockees avec un `UIResolvedValue<T>` marque comme source `Template`, ce qui aligne le runtime avec le modele de precedence deja documente.
+- `MGControlTemplateContext.ApplyTemplateValue(...)` centralise l'application de valeurs templatees et declenche une invalidation layout uniquement pour les invalidations de type measure/arrange/structure.
+- Le chemin historique `ApplyThemeDefault(...)` reste disponible mais delegue au nouveau chemin template-aware pour conserver la compatibilite du catalogue existant.
 
 ### ⚪ 7. Migrer Window et Overlay vers des templates plus structurels
 
