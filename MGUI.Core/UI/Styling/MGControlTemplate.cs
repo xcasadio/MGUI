@@ -3,6 +3,37 @@ using System.Collections.Generic;
 
 namespace MGUI.Core.UI.Styling
 {
+    /// <summary>Represents the visual structure materialized by a <see cref="MGControlTemplate"/>.
+    /// The structure phase creates elements and names the parts that the owner will later attach and consume.</summary>
+    public sealed class MGControlTemplateStructure
+    {
+        public MGElement Root { get; }
+        public IReadOnlyDictionary<string, MGElement> Parts => _Parts;
+
+        private readonly Dictionary<string, MGElement> _Parts;
+
+        public MGControlTemplateStructure(MGElement Root)
+            : this(Root, null)
+        {
+        }
+
+        public MGControlTemplateStructure(MGElement Root, IReadOnlyDictionary<string, MGElement> Parts)
+        {
+            this.Root = Root;
+            _Parts = Parts == null ? new(StringComparer.Ordinal) : new(Parts, StringComparer.Ordinal);
+        }
+
+        public void AddPart(string Name, MGElement Part)
+        {
+            if (!string.IsNullOrWhiteSpace(Name) && Part != null)
+            {
+                _Parts[Name] = Part;
+            }
+        }
+
+        public bool TryGetPart(string Name, out MGElement Part) => _Parts.TryGetValue(Name, out Part);
+    }
+
     public sealed class MGControlTemplateContext
     {
         public MGElement Owner { get; }
@@ -67,12 +98,31 @@ namespace MGUI.Core.UI.Styling
     public sealed class MGControlTemplate
     {
         public string Name { get; }
-        private Action<MGControlTemplateContext> ApplyAction { get; }
+        private Func<MGControlTemplateContext, MGControlTemplateStructure> CreateStructureAction { get; }
+        private Action<MGControlTemplateContext, MGControlTemplateStructure> AttachStructureAction { get; }
+        private Action<MGControlTemplateContext> ApplyDefaultsAction { get; }
+
+        /// <summary>True when the template can create a visual structure instead of only applying defaults to pre-existing parts.</summary>
+        public bool SupportsStructure => CreateStructureAction != null;
+
+        /// <summary>True when the template can attach a created structure to the owner.
+        /// Attachment is intentionally separate from structure creation so templates can be parsed or cached without mutating the live visual tree.</summary>
+        public bool SupportsAttachment => AttachStructureAction != null;
 
         public MGControlTemplate(string Name, Action<MGControlTemplateContext> ApplyAction)
+            : this(Name, null, null, ApplyAction)
+        {
+        }
+
+        public MGControlTemplate(string Name,
+            Func<MGControlTemplateContext, MGControlTemplateStructure> CreateStructure,
+            Action<MGControlTemplateContext, MGControlTemplateStructure> AttachStructure,
+            Action<MGControlTemplateContext> ApplyDefaults)
         {
             this.Name = Name ?? throw new ArgumentNullException(nameof(Name));
-            this.ApplyAction = ApplyAction ?? throw new ArgumentNullException(nameof(ApplyAction));
+            CreateStructureAction = CreateStructure;
+            AttachStructureAction = AttachStructure;
+            ApplyDefaultsAction = ApplyDefaults ?? throw new ArgumentNullException(nameof(ApplyDefaults));
         }
 
         public void Apply(MGElement Owner, bool IsThemeRefresh = false)
@@ -92,7 +142,48 @@ namespace MGUI.Core.UI.Styling
                 throw new ArgumentNullException(nameof(Context));
             }
 
-            ApplyAction(Context);
+            ApplyDefaults(Context);
+        }
+
+        /// <summary>Creates the template structure for a control instance.
+        /// This phase must be side-effect free with regard to the owner's live visual tree.</summary>
+        public MGControlTemplateStructure CreateStructure(MGControlTemplateContext Context)
+        {
+            if (Context == null)
+            {
+                throw new ArgumentNullException(nameof(Context));
+            }
+
+            return CreateStructureAction?.Invoke(Context);
+        }
+
+        /// <summary>Attaches a previously created structure to the owner.
+        /// Theme refreshes should not call this unless the template identity actually changed.</summary>
+        public void AttachStructure(MGControlTemplateContext Context, MGControlTemplateStructure Structure)
+        {
+            if (Context == null)
+            {
+                throw new ArgumentNullException(nameof(Context));
+            }
+
+            if (Structure == null)
+            {
+                throw new ArgumentNullException(nameof(Structure));
+            }
+
+            AttachStructureAction?.Invoke(Context, Structure);
+        }
+
+        /// <summary>Applies chrome defaults onto the owner and its parts.
+        /// This phase is safe to re-run during theme refreshes and remains the compatibility path for the existing catalog.</summary>
+        public void ApplyDefaults(MGControlTemplateContext Context)
+        {
+            if (Context == null)
+            {
+                throw new ArgumentNullException(nameof(Context));
+            }
+
+            ApplyDefaultsAction(Context);
         }
     }
 }

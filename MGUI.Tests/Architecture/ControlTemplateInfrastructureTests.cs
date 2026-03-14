@@ -47,6 +47,48 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Control_Template_Can_Expose_Structure_And_Defaults_As_Separate_Phases()
+    {
+        MGControlTemplateStructure attachedStructure = null;
+        int applyDefaultsCount = 0;
+
+        MGControlTemplate template = new(
+            "Window.Structured",
+            context =>
+            {
+                return new MGControlTemplateStructure(null);
+            },
+            (_, structure) => attachedStructure = structure,
+            _ => applyDefaultsCount++);
+
+        MGControlTemplateContext context = new(null);
+
+        MGControlTemplateStructure structure = template.CreateStructure(context);
+        template.AttachStructure(context, structure);
+        template.ApplyDefaults(context);
+
+        Assert.True(template.SupportsStructure);
+        Assert.True(template.SupportsAttachment);
+        Assert.Null(structure.Root);
+        Assert.Same(structure, attachedStructure);
+        Assert.Equal(1, applyDefaultsCount);
+    }
+
+    [Fact]
+    public void Legacy_Control_Template_Apply_Remains_Defaults_Only()
+    {
+        bool applyDefaultsCalled = false;
+        MGControlTemplate template = new("Legacy", _ => applyDefaultsCalled = true);
+
+        template.Apply(new MGControlTemplateContext(null));
+
+        Assert.False(template.SupportsStructure);
+        Assert.False(template.SupportsAttachment);
+        Assert.True(applyDefaultsCalled);
+        Assert.Null(template.CreateStructure(new MGControlTemplateContext(null)));
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;
