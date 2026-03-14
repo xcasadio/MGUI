@@ -531,7 +531,7 @@ Resultat:
 - La cible architecturale retenue est donc: renderer neutre, brushes et formes generiques, decisions de skin resolues au-dessus, et exceptions de draw direct reservees aux primitives justifiees par la perf ou la simplicite.
 - Les risques de performance associes viennent surtout des allocations de geometrie a chaud et de la multiplication de wrappers/chromes internes, plus que d'un couplage direct du renderer a `MGTheme`.
 
-### 🟡 8. Auditer le changement de theme runtime
+### ✅ 8. Auditer le changement de theme runtime
 
 But:
 verifier si MGUI peut evoluer vers un theme switch propre sans reparse global brutal.
@@ -548,7 +548,15 @@ Livrable:
 - liste des blocages ;
 - conditions necessaires pour supporter des ressources dynamiques.
 
-### ⚪ 9. Auditer les hotspots controle par controle
+Resultat:
+
+- Le theme switch runtime est aujourd'hui partiellement supporte: `MGResources.DefaultTheme` propage bien `OnDefaultThemeChanged`, `MGElement.NotifyThemeChanged(...)` descend dans l'arbre, et `ApplyControlTemplate(true)` permet de reappliquer des defaults de chrome.
+- Le blocage principal n'est plus l'absence totale de propagation, mais le caractere hybride des controles: beaucoup de valeurs ont ete copiees depuis le theme vers des proprietes locales ou des composants internes, puis gerees manuellement par `OnThemeChanged(...)`.
+- La granularite d'invalidation reste limitee. Par defaut, un changement de theme vaut surtout pour le draw, sauf quelques surcharges explicites comme `MGTextBlock`.
+- Les conditions necessaires pour supporter proprement des ressources dynamiques et un theme switch plus riche sont maintenant claires: source de valeur inspectable, invalidation semantique par propriete, et hygiene des abonnements dynamiques.
+- En l'etat, un theme switch est plausible pour des cas simples, mais pas encore suffisamment predictible pour servir de contrat fort sur des arbres d'UI denses et fortement composites.
+
+### 🟡 9. Auditer les hotspots controle par controle
 
 But:
 prioriser les controles qui feront derailer une refonte si on les ignore.
