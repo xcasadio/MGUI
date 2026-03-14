@@ -431,7 +431,7 @@ Resultat:
 - Le packaging de theme reste toutefois encore surtout porte par `MGTheme`, qui demeure un objet assez monolithique meme si les definitions XAML permettent des themes derives et partiels.
 - La limite structurelle principale est le cycle de vie des abonnements dynamiques: le rebind fonctionne, mais l'architecture actuelle ne montre pas encore de nettoyage explicite des handlers en fin de vie d'un element.
 
-### 🟡 4. Auditer le systeme de styles
+### ✅ 4. Auditer le systeme de styles
 
 But:
 mesurer l'ecart entre styles actuels et un styling system robuste.
@@ -448,7 +448,15 @@ Livrable:
 - constats de couplage ;
 - priorites de refonte.
 
-### ⚪ 5. Auditer les templates et le caractere lookless des controles
+Resultat:
+
+- Le systeme de styles actuel est robuste pour un pipeline declaratif XAML: styles implicites par type, styles nommes, merge avec les scopes parents et respect des valeurs explicitement definies dans le XAML.
+- La logique vit principalement dans `XAML.Element.ProcessStyles(...)`, ce qui confirme que le styling est aujourd'hui surtout un mecanisme de parsing et non un moteur runtime reactif.
+- `BasedOn`, triggers, selectors et reevaluation globale d'un sous-arbre deja instancie ne sont pas visibles dans l'architecture auditee. C'est une absence fonctionnelle, pas encore un bug, mais elle limite fortement les variantes de skin et de densite a chaud.
+- La distinction style/theme est correcte dans l'intention, mais brouillee en pratique par les controles qui continuent d'aller directement lire `GetTheme()` pour definir des valeurs qui pourraient relever d'un style ou d'un template.
+- Priorite de refonte confirmee: ne pas enrichir les styles a l'aveugle avant d'avoir stabilise la resolution runtime des valeurs et la frontiere entre style, template et theme.
+
+### 🟡 5. Auditer les templates et le caractere lookless des controles
 
 But:
 determiner si les controles peuvent evoluer vers des control templates sans casser leur logique.
