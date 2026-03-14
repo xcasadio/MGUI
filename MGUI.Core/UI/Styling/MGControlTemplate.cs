@@ -12,18 +12,26 @@ namespace MGUI.Core.UI.Styling
     {
         public MGElement Root { get; }
         public IReadOnlyDictionary<string, MGElement> Parts => _Parts;
+        public IReadOnlyList<MGElement> DetachedRoots => _DetachedRoots;
 
         private readonly Dictionary<string, MGElement> _Parts;
+        private readonly List<MGElement> _DetachedRoots;
 
         public MGControlTemplateStructure(MGElement Root)
-            : this(Root, null)
+            : this(Root, null, null)
         {
         }
 
         public MGControlTemplateStructure(MGElement Root, IReadOnlyDictionary<string, MGElement> Parts)
+            : this(Root, Parts, null)
+        {
+        }
+
+        public MGControlTemplateStructure(MGElement Root, IReadOnlyDictionary<string, MGElement> Parts, IReadOnlyList<MGElement> DetachedRoots)
         {
             this.Root = Root;
             _Parts = Parts == null ? new(StringComparer.Ordinal) : new(Parts, StringComparer.Ordinal);
+            _DetachedRoots = DetachedRoots == null ? new() : new(DetachedRoots.Where(x => x != null));
         }
 
         public void AddPart(string Name, MGElement Part)

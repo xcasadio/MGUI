@@ -1,5 +1,16 @@
 <ControlTemplates xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core">
   <ControlTemplate Name="ListBox.Default" TargetType="ListBox">
+    <ControlTemplate.DetachedRoots>
+      <Border Name="PART_OuterBorder" />
+      <Border Name="PART_TitleBorder">
+        <ContentPresenter Name="PART_TitlePresenter" />
+      </Border>
+      <Border Name="PART_InnerBorder">
+        <ScrollViewer Name="PART_ScrollViewer">
+          <StackPanel Name="PART_ItemsPanel" Orientation="Vertical" />
+        </ScrollViewer>
+      </Border>
+    </ControlTemplate.DetachedRoots>
     <ControlTemplate.Parts>
       <TemplatePart Name="PART_OuterBorder" />
       <TemplatePart Name="PART_TitleBorder" />
@@ -8,18 +19,6 @@
       <TemplatePart Name="PART_ScrollViewer" />
       <TemplatePart Name="PART_ItemsPanel" />
     </ControlTemplate.Parts>
-    <Border Name="PART_OuterBorder">
-      <DockPanel>
-        <Border Name="PART_TitleBorder" Dock="Top">
-          <ContentPresenter Name="PART_TitlePresenter" />
-        </Border>
-        <Border Name="PART_InnerBorder" Dock="Bottom">
-          <ScrollViewer Name="PART_ScrollViewer">
-            <StackPanel Name="PART_ItemsPanel" Orientation="Vertical" />
-          </ScrollViewer>
-        </Border>
-      </DockPanel>
-    </Border>
   </ControlTemplate>
 
   <ControlTemplate Name="ListView.Default" TargetType="ListView">

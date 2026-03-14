@@ -350,8 +350,27 @@ namespace MGUI.Core.UI
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
             }
 
+            using (HeaderPresenter.AllowChangingContentTemporarily())
+            {
+                HeaderPresenter.SetContent(HeadersPanelElement);
+            }
+
+            if (_Tabs != null && ActualTabHeaders != null)
+            {
+                using (HeadersPanelElement.AllowChangingContentTemporarily())
+                {
+                    _ = HeadersPanelElement.TryRemoveAll();
+                    foreach (MGTabItem tab in _Tabs)
+                    {
+                        if (ActualTabHeaders.TryGetValue(tab, out MGButton headerWrapper))
+                        {
+                            _ = HeadersPanelElement.TryAddChild(headerWrapper);
+                        }
+                    }
+                }
+            }
+
             HeadersPanelElement.CanChangeContent = false;
-            Header = HeadersPanelElement;
             ApplyHeadersPanelSettings();
         }
 

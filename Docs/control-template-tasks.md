@@ -467,7 +467,7 @@ Resultat:
 - Les constructeurs conservent les comportements metier (selection, navigation, templates d'items, focused row/item) mais deleguent la structure visuelle principale aux templates runtime.
 - Le catalogue et les tests d'infrastructure couvrent desormais cette nouvelle vague structurelle, avec validation ciblee via `dotnet test MGUI.Tests/MGUI.Tests.csproj --filter FullyQualifiedName~ControlTemplateInfrastructureTests --no-restore`.
 
-### 🟡 13. Remplacer les templates structurels code des controles migres par de vrais assets XAML
+### ✅ 13. Remplacer les templates structurels code des controles migres par de vrais assets XAML
 
 But:
 sortir la structure visuelle des controles migres du code imperative et la definir via de vrais assets XAML embarques.
@@ -493,6 +493,215 @@ Criteres d'acceptation:
 
 Resultat:
 
-- Un asset embarque `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml` definit actuellement la structure `ListView.Default` en XAML, avec son mapping de template parts, et le pipeline de chargement embarque est en place.
-- Le support XAML a aussi ete valide pour les templates structurels simples ou en sous-arborescence unique, via `ControlTemplateLoader` et les tests d'infrastructure associes.
-- `ListBox.Default` a ete temporairement remis sur son builder structurel code pour restaurer le comportement runtime. La forme actuelle du format/template runtime ne couvre pas encore proprement ses parts rendues comme composants independants. Cette tache reste donc a finaliser pour `ListBox`.
+- Un asset embarque `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml` definit maintenant `ListBox.Default` et `ListView.Default` en XAML, avec leur mapping de `TemplatePart` respectif.
+- `ListBox.Default` utilise le contrat etendu a base de `DetachedRoots`, ce qui lui permet de conserver son attachement runtime par composants sans revenir a un builder structurel code dans le catalogue.
+- Le pipeline de chargement embarque, les tests d'infrastructure et le build borne des samples valident que les deux controles migrent bien via assets XAML tout en conservant leur comportement principal.
+
+## Taches supplementaires
+
+### ✅ 14. Etendre le contrat runtime/XAML pour les parts structurelles hors sous-arborescence unique
+
+But:
+permettre a un `ControlTemplate` XAML de decrire non seulement une racine visuelle unique, mais aussi les parts structurelles qui doivent etre attachees comme composants independants ou references hors de cette sous-arborescence.
+
+Travail attendu:
+
+- auditer la limite actuelle de `ControlTemplateLoader` et `MGControlTemplateStructure` sur les controles a composants multiples ;
+- definir un modele minimal pour declarer des parts non strictement attachees a la racine visuelle unique ;
+- etendre le runtime sans casser les templates XAML deja supportes ;
+- documenter clairement les contraintes de cycle de vie et de parentage de ces parts.
+
+Livrable:
+
+- extension du contrat runtime/XAML pour les parts hors sous-arborescence ;
+- tests d'infrastructure couvrant au moins un cas avec part attachee hors racine ;
+- mise a jour de la documentation de migration/template.
+
+Criteres d'acceptation:
+
+- un template XAML peut declarer les parts necessaires a un controle composite a composants multiples ;
+- le runtime peut enregistrer et attacher ces parts sans collision de noms ni perte de comportement ;
+- les templates XAML simples deja existants continuent a fonctionner sans changement.
+
+Resultat:
+
+- `MGControlTemplateStructure` peut maintenant porter une liste de `DetachedRoots` en plus de la racine principale, ce qui permet d'exprimer des parts structurelles hors sous-arborescence unique sans casser les templates existants.
+- `ControlTemplateLoader` instancie desormais ces racines detachees, les integre au mapping des `TemplatePart`, puis continue a neutraliser les noms temporaires apres resolution pour eviter les collisions runtime.
+- Les tests d'infrastructure couvrent la persistence runtime de ces racines detachees ainsi que leur declaration XAML, et la validation ciblee `dotnet test MGUI.Tests/MGUI.Tests.csproj --filter FullyQualifiedName~ControlTemplateInfrastructureTests --no-restore` est verte.
+
+### ✅ 15. Finaliser la migration XAML de ListBox sur le contrat etendu
+
+But:
+revenir sur `ListBox.Default` pour le sortir de son builder structurel code et le faire consommer integralement via un asset XAML compatible avec le contrat etendu.
+
+Travail attendu:
+
+- reappliquer `ListBox.Default` via un asset XAML representant correctement ses parts et composants ;
+- supprimer le fallback structurel code reintroduit dans le catalogue ;
+- valider le rendu des items, du header, du scroll et des modes de virtualisation ;
+- ajouter une regression ciblee sur le sample `ListBox` et/ou sur le runtime de structure.
+
+Livrable:
+
+- `ListBox.Default` a nouveau defini en XAML ;
+- suppression du builder structurel code temporaire du catalogue ;
+- tests de non-regression associes.
+
+Criteres d'acceptation:
+
+- les items du `ListBox` s'affichent correctement avec le template XAML ;
+- le comportement clavier/souris et le header restent inchanges ;
+- le catalogue n'a plus de structure imperative principale pour `ListBox.Default`.
+
+Resultat:
+
+- `ListBox.Default` est de nouveau entierement defini dans `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml`, cette fois avec trois `DetachedRoots` couvrant `OuterBorder`, `TitleBorder` et `InnerBorder`.
+- `MGControlTemplateCatalog` a ete simplifie pour recharger `ListBox.Default` depuis l'asset embarque, et le fallback structurel code temporaire a ete retire.
+- La regression d'infrastructure verifie maintenant explicitement que le template embarque `ListBox.Default` n'a plus de racine unique et declare bien ses racines detachees, ce qui protege le cas qui avait casse l'affichage des items.
+
+### ✅ 16. Revalider et clore la tache 13 avec matrice d'acceptation explicite
+
+But:
+refermer proprement la tache 13 une fois `ListBox` et `ListView` de nouveau alignes sur l'objectif cible, avec une validation explicite des cas runtime principaux.
+
+Travail attendu:
+
+- remettre a jour `Docs/control-template-tasks.md` et le guide de migration avec l'etat final ;
+- executer une validation ciblee sur `ListBox`, `ListView` et `XAMLDesigner` ;
+- documenter les limites restantes, s'il en subsiste, sans laisser de divergence entre le fichier de suivi et le code reel.
+
+Livrable:
+
+- fichier de suivi aligne avec l'etat reel ;
+- validation ciblee documentee ;
+- fermeture propre de la tache 13 si les criteres sont bien atteints.
+
+Criteres d'acceptation:
+
+- plus aucun ecart entre le suivi et l'implementation reelle ;
+- `ListBox` et `ListView` sont tous deux couverts par la validation finale ;
+- le workflow de migration futur est plus clair pour les prochains controles composites.
+
+Resultat:
+
+- Le fichier de suivi et le guide de migration ont ete remis en phase avec l'implementation finale: `ListBox` et `ListView` sont tous deux traites comme templates XAML embarques, et le contrat `DetachedRoots` est documente.
+- Matrice de validation explicite:
+  - `ListBox` / `ListView` / loader XAML: `dotnet test MGUI.Tests/MGUI.Tests.csproj --filter FullyQualifiedName~ControlTemplateInfrastructureTests --no-restore` -> vert.
+  - surface d'integration samples, y compris `XAMLDesigner`: `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` -> vert.
+- Les limites restantes sont des limites generales de DSL d'attachement custom pour futurs controles composites, plus une divergence entre `ListBox` et `ListView` ou entre le suivi et le code reel.
+
+### ✅ 17. Migrer TreeView vers un ControlTemplate structurel complet
+
+But:
+sortir la structure visuelle principale de `MGTreeView` du code imperative pour l'aligner sur la meme architecture template/runtime que les autres controles composites deja migres.
+
+Travail attendu:
+
+- declarer explicitement les `TemplatePart` requises de `MGTreeView` ;
+- extraire la structure visuelle principale vers un `ControlTemplate` structurel ;
+- attacher les parts dans le runtime sans casser l'indentation, la selection, le scroll ni l'expansion des items ;
+- ajouter des tests cibles sur la structure et les comportements critiques.
+
+Livrable:
+
+- `MGTreeView` pilote sa structure via `ControlTemplate` ;
+- le catalogue ou un asset XAML embarque porte sa structure par defaut ;
+- couverture de regression sur les parts et le comportement principal.
+
+Criteres d'acceptation:
+
+- `TreeView` n'assemble plus son chrome principal uniquement dans son constructeur ;
+- les items, l'indentation et la selection restent fonctionnels ;
+- les parts attendues sont validables via le pipeline de templates.
+
+Resultat:
+
+- `MGTreeView` declare maintenant explicitement ses parts requises (`OuterBorder`, `ScrollViewer`, `ItemsPanel`) et les attache via `AttachControlTemplateStructure(...)` au lieu d'assembler son chrome principal uniquement dans son constructeur.
+- `MGControlTemplateCatalog` enregistre desormais `TreeView.Default` comme template structurel code-backed, avec creation de structure dediee puis application des defaults visuels existants via `ApplyTreeViewTemplate(...)`.
+- La validation ciblee `dotnet test MGUI.Tests/MGUI.Tests.csproj --filter "FullyQualifiedName~TreeView|FullyQualifiedName~TextBox" --no-restore`, la couverture d'infrastructure des templates et le build borne des samples sont verts.
+
+### ✅ 18. Migrer TextBox vers un ControlTemplate structurel testable
+
+But:
+formaliser `TextBox` comme controle composite templateable afin de sortir son chrome editable du code imperative et de clarifier ses parts runtime.
+
+Travail attendu:
+
+- identifier et declarer les parts visuelles indispensables de `TextBox` ;
+- separer la logique d'edition, de focus et de selection de sa structure visuelle ;
+- migrer la structure par defaut vers un template structurel puis vers un asset XAML si le contrat est suffisant ;
+- ajouter des regressions ciblees sur focus, caret, selection et rendu du contenu.
+
+Livrable:
+
+- `TextBox` structurellement template ;
+- parts explicites et attachement runtime documente ;
+- tests cibles sur les cas d'edition principaux.
+
+Criteres d'acceptation:
+
+- le chrome de `TextBox` est principalement defini par template ;
+- le comportement clavier/souris existant reste intact ;
+- les defaults visuels restent pilotables sans recoder la structure en dur.
+
+Resultat:
+
+- `MGTextBox` expose maintenant des `TemplatePart` explicites pour son border, son text block principal, son placeholder, son compteur de caracteres et son resize grip, avec attachement runtime dedie.
+- `TextBox.Default` est enregistre comme template structurel code-backed dans le catalogue, ce qui sort le chrome principal du constructeur tout en conservant la logique d'edition, de caret, de selection et de raccourcis dans le controle lui-meme.
+- La couverture d'infrastructure verifie que `TextBox.Default` fait partie des templates structurels par defaut, et les tests ciblant `TextBox` / `TreeView` ainsi que le build des samples restent verts apres migration.
+
+### ⚪ 19. Migrer la prochaine vague de controles Docking encore hybrides
+
+But:
+reduire le chrome imperative restant dans les controles de docking qui melangent encore logique metier et structure visuelle.
+
+Travail attendu:
+
+- identifier les controles de docking les plus hybrides encore hors pipeline template ;
+- prioriser ceux dont la structure est stable et dont les `TemplatePart` sont naturellement exposables ;
+- migrer leur chrome principal vers des templates structurels avec attachement runtime ;
+- ajouter une validation ciblee sur les interactions de docking les plus sensibles.
+
+Livrable:
+
+- au moins une premiere vague de controles docking migres ;
+- reduction nette du code de chrome imperative dans cette zone ;
+- tests ou validations cibles documentant les comportements preserves.
+
+Criteres d'acceptation:
+
+- les controles choisis declarent explicitement leurs parts et consomment un template structurel ;
+- les comportements critiques de docking restent stables ;
+- le backlog restant de docking devient plus clair et plus borne.
+
+Resultat:
+
+- a completer.
+
+### ⚪ 20. Modeliser les controles composites avec overlays ou fenetres auxiliaires
+
+But:
+etendre proprement la migration aux controles composites qui pilotent des overlays, popups ou fenetres auxiliaires, la ou un simple sous-arbre visuel unique ne suffit pas toujours.
+
+Travail attendu:
+
+- inventorier les controles concernes et distinguer ceux qui relevent du contrat actuel de ceux qui necessitent un point d'extension supplementaire ;
+- formaliser la frontiere entre structure templatee, composants detaches et surfaces auxiliaires ;
+- migrer un premier controle representatif si le contrat actuel suffit, sinon produire la tache d'extension minimale manquante ;
+- documenter les contraintes de cycle de vie, parentage et fermeture de ces surfaces auxiliaires.
+
+Livrable:
+
+- note d'architecture ou premiere migration representative pour cette famille de controles ;
+- backlog clarifie entre cas deja supportables et cas demandant une extension du runtime ;
+- validation ciblee sur l'ouverture, l'attachement et la fermeture des surfaces auxiliaires.
+
+Criteres d'acceptation:
+
+- la strategie de migration des controles avec overlays ou fenetres auxiliaires est explicite ;
+- au moins un cas representatif est borne par du code ou par une specification technique exploitable ;
+- les prochaines taches peuvent etre executees sans redecouverte architecturale majeure.
+
+Resultat:
+
+- a completer.

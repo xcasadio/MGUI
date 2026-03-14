@@ -20,13 +20,13 @@ Ce guide decrit l'etat cible atteint par la premiere iteration des `ControlTempl
 
 `ControlTemplate` XAML
 
-- decrit un nom de template, un type cible, une racine visuelle et des parts nommees ;
+- decrit un nom de template, un type cible, une racine visuelle optionnelle, des `DetachedRoots` optionnelles et des parts nommees ;
 - est charge via `MGResources.LoadControlTemplatesFromXaml(...)` ;
 - convient pour definir la structure visuelle et les parts d'un controle sans recompiler du code imperative pour la structure elle-meme.
 
 ## Workflow auteur
 
-1. Ecrire un `ControlTemplate` XAML minimal avec une racine et des `TemplatePart` nommees.
+1. Ecrire un `ControlTemplate` XAML minimal avec une racine et/ou des `DetachedRoots`, puis declarer les `TemplatePart` nommees.
 2. Charger le document via `MGResources.LoadControlTemplatesFromXaml(...)`.
 3. Assigner `ControlTemplateName` sur le controle cible.
 4. Utiliser `UIToolingService.CaptureVisualTree(...)` pour verifier:
@@ -45,21 +45,21 @@ Ce guide decrit l'etat cible atteint par la premiere iteration des `ControlTempl
 
 ## Etat de la premiere iteration
 
-- `Window`, `Overlay`, `ComboBox` et `TabControl` utilisent des templates structurels du catalogue.
+- `Window`, `Overlay`, `ComboBox`, `TabControl`, `TreeView` et `TextBox` utilisent des templates structurels du catalogue.
+- `ListBox` et `ListView` consomment maintenant leurs templates structurels par defaut depuis l'asset embarque `BuiltInControlTemplates.xaml`.
 - Les templates XAML peuvent etre parses, charges dans `MGResources` et instancies en runtime.
+- Les templates XAML peuvent maintenant exposer des parts situees hors de la racine principale via `ControlTemplate.DetachedRoots`.
 - Le snapshot outillage expose le template applique, les parts presentes et le dernier echec de validation.
 
 ## Risques ouverts
 
 - le changement de template structurel en cours de vie d'un controle a composants reste plus couteux que le simple refresh de theme ;
-- le loader XAML ne porte pas encore un DSL complet d'attachement custom pour tous les cas composites ;
+- le loader XAML couvre maintenant les parts hors sous-arborescence unique, mais ne porte toujours pas un DSL complet d'attachement custom pour tous les cas composites ;
 - la validation couvre deja les parts, mais pas encore toutes les contraintes comportementales inter-parts.
 - les controles derives d'un type deja template (`MGContextMenu` depuis `MGWindow`) doivent tolerer la phase de template de base pendant leur construction.
 - les proprietes qui pilotent des parts templatees doivent conserver un etat logique hors-visuel jusqu'a l'attachement des parts.
 
 ## Prochaines migrations recommandees
 
-1. `ListBox`
-2. `ListView`
-3. `TreeView`
-4. `TextBox`
+1. `Docking` controls encore hybrides
+2. controles composites avec overlays ou fenetres auxiliaires

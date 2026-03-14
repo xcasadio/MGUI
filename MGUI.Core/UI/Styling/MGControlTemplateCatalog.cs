@@ -28,6 +28,7 @@ namespace MGUI.Core.UI.Styling
         public const string ListViewTemplateName = "ListView.Default";
         public const string ComboBoxTemplateName = "ComboBox.Default";
         public const string TreeViewTemplateName = "TreeView.Default";
+        public const string TextBoxTemplateName = "TextBox.Default";
         public const string TabControlTemplateName = "TabControl.Default";
         public const string DockTabItemTemplateName = "Dock.TabItem.Default";
         public const string DockAutoHideDrawerTemplateName = "Dock.AutoHideDrawer.Default";
@@ -46,10 +47,11 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, CreateOverlayTemplate());
             Register(Resources, ContextMenuTemplateName, ApplyContextMenuTemplate);
             Register(Resources, ContextMenuItemTemplateName, ApplyContextMenuItemTemplate);
-            Register(Resources, CreateListBoxTemplate());
+            Register(Resources, CreateBuiltInXamlTemplate(ListBoxTemplateName, ApplyListBoxTemplate));
             Register(Resources, CreateBuiltInXamlTemplate(ListViewTemplateName, ApplyListViewTemplate));
             Register(Resources, CreateComboBoxTemplate());
-            Register(Resources, TreeViewTemplateName, ApplyTreeViewTemplate);
+            Register(Resources, CreateTreeViewTemplate());
+            Register(Resources, CreateTextBoxTemplate());
             Register(Resources, CreateTabControlTemplate());
             Register(Resources, DockTabItemTemplateName, ApplyDockTabItemTemplate);
             Register(Resources, DockAutoHideDrawerTemplateName, ApplyDockAutoHideDrawerTemplate);
@@ -86,11 +88,14 @@ namespace MGUI.Core.UI.Styling
         private static MGControlTemplate CreateOverlayTemplate()
             => new(OverlayTemplateName, CreateOverlayTemplateStructure, null, ApplyOverlayTemplate);
 
-        private static MGControlTemplate CreateListBoxTemplate()
-            => new(ListBoxTemplateName, CreateListBoxTemplateStructure, null, ApplyListBoxTemplate);
-
         private static MGControlTemplate CreateComboBoxTemplate()
             => new(ComboBoxTemplateName, CreateComboBoxTemplateStructure, null, ApplyComboBoxTemplate);
+
+        private static MGControlTemplate CreateTreeViewTemplate()
+            => new(TreeViewTemplateName, CreateTreeViewTemplateStructure, null, ApplyTreeViewTemplate);
+
+        private static MGControlTemplate CreateTextBoxTemplate()
+            => new(TextBoxTemplateName, CreateTextBoxTemplateStructure, null, ApplyTextBoxTemplate);
 
         private static MGControlTemplate CreateTabControlTemplate()
             => new(TabControlTemplateName, CreateTabControlTemplateStructure, null, ApplyTabControlTemplate);
@@ -235,41 +240,6 @@ namespace MGUI.Core.UI.Styling
             return structure;
         }
 
-        private static MGControlTemplateStructure CreateListBoxTemplateStructure(MGControlTemplateContext Context)
-        {
-            if (!IsGenericControl(Context.Owner, typeof(MGListBox<>)))
-            {
-                return null;
-            }
-
-            MGWindow window = Context.Owner.SelfOrParentWindow;
-            MGBorder outerBorder = new(window, 0, SolidFillBrushes.Black);
-            MGBorder titleBorder = new(window);
-            MGContentPresenter titlePresenter = new(window);
-            MGBorder innerBorder = new(window);
-            MGStackPanel itemsPanel = new(window, Orientation.Vertical) { ManagedParent = Context.Owner };
-            MGScrollViewer scrollViewer = new(window);
-
-            titleBorder.SetContent(titlePresenter);
-            scrollViewer.SetContent(itemsPanel);
-            innerBorder.SetContent(scrollViewer);
-
-            titleBorder.CanChangeContent = false;
-            titlePresenter.CanChangeContent = false;
-            itemsPanel.CanChangeContent = false;
-            scrollViewer.CanChangeContent = false;
-            innerBorder.CanChangeContent = false;
-
-            MGControlTemplateStructure structure = new(outerBorder);
-            structure.AddPart(MGListBox<object>.OuterBorderPartName, outerBorder);
-            structure.AddPart(MGListBox<object>.TitleBorderPartName, titleBorder);
-            structure.AddPart(MGListBox<object>.TitlePresenterPartName, titlePresenter);
-            structure.AddPart(MGListBox<object>.InnerBorderPartName, innerBorder);
-            structure.AddPart(MGListBox<object>.ScrollViewerPartName, scrollViewer);
-            structure.AddPart(MGListBox<object>.ItemsPanelPartName, itemsPanel);
-            return structure;
-        }
-
         private static MGControlTemplateStructure CreateTabControlTemplateStructure(MGControlTemplateContext Context)
         {
             if (Context.Owner is not MGTabControl TabControl)
@@ -287,6 +257,77 @@ namespace MGUI.Core.UI.Styling
             MGControlTemplateStructure structure = new(headersPanel);
             structure.AddPart(MGTabControl.BorderPartName, border);
             structure.AddPart(MGTabControl.HeadersPanelPartName, headersPanel);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateTreeViewTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGTreeView treeView)
+            {
+                return null;
+            }
+
+            MGWindow window = treeView.SelfOrParentWindow;
+            MGBorder outerBorder = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+            };
+            MGScrollViewer scrollViewer = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+            };
+            MGStackPanel itemsPanel = new(window, Orientation.Vertical)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+                CanChangeContent = false,
+            };
+
+            MGControlTemplateStructure structure = new(outerBorder);
+            structure.AddPart(MGTreeView.OuterBorderPartName, outerBorder);
+            structure.AddPart(MGTreeView.ScrollViewerPartName, scrollViewer);
+            structure.AddPart(MGTreeView.ItemsPanelPartName, itemsPanel);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateTextBoxTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGTextBox textBox)
+            {
+                return null;
+            }
+
+            MGWindow window = textBox.SelfOrParentWindow;
+            MGBorder border = new(window);
+            MGResizeGrip resizeGrip = new(window);
+            MGTextBlock placeholder = new(window, string.Empty)
+            {
+                Visibility = Visibility.Collapsed,
+            };
+            MGTextBlock characterCount = new(window, "0")
+            {
+                Margin = new(0, 0, 8, 4),
+            };
+            _ = characterCount.TrySetFont(window.Desktop.FontManager.DefaultFontFamily, 9);
+            MGTextBlock textBlock = new(window, string.Empty)
+            {
+                ClipToBounds = false,
+            };
+
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGTextBox.BorderPartName, border);
+            structure.AddPart(MGTextBox.ResizeGripPartName, resizeGrip);
+            structure.AddPart(MGTextBox.PlaceholderTextBlockPartName, placeholder);
+            structure.AddPart(MGTextBox.CharacterCountPartName, characterCount);
+            structure.AddPart(MGTextBox.TextBlockPartName, textBlock);
             return structure;
         }
 
@@ -498,6 +539,20 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("TreeView.SelectionBackgroundBrush", SelectionBrush ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue)), () => TreeView.SelectionBackgroundBrush, value => TreeView.SelectionBackgroundBrush = value);
             Context.ApplyThemeDefault("TreeView.SelectionForeground", Theme?.TreeViewSelectionForeground ?? Color.Black, () => TreeView.SelectionForeground, value => TreeView.SelectionForeground = value);
             Context.ApplyThemeDefault("TreeView.IndentSize", Theme?.TreeViewIndentSize ?? TreeView.IndentSize, () => TreeView.IndentSize, value => TreeView.IndentSize = value);
+        }
+
+        private static void ApplyTextBoxTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGTextBox textBox)
+            {
+                return;
+            }
+
+            MGTheme theme = textBox.GetTheme();
+            Context.ApplyThemeDefault("TextBox.FocusedSelectionForeground", theme.TextBoxFocusedSelectionForeground, () => textBox.FocusedSelectionForegroundColor, value => textBox.FocusedSelectionForegroundColor = value);
+            Context.ApplyThemeDefault("TextBox.FocusedSelectionBackground", theme.TextBoxFocusedSelectionBackground, () => textBox.FocusedSelectionBackgroundColor, value => textBox.FocusedSelectionBackgroundColor = value);
+            Context.ApplyThemeDefault("TextBox.UnfocusedSelectionForeground", theme.TextBoxUnfocusedSelectionForeground, () => textBox.UnfocusedSelectionForegroundColor, value => textBox.UnfocusedSelectionForegroundColor = value);
+            Context.ApplyThemeDefault("TextBox.UnfocusedSelectionBackground", theme.TextBoxUnfocusedSelectionBackground, () => textBox.UnfocusedSelectionBackgroundColor, value => textBox.UnfocusedSelectionBackgroundColor = value);
         }
 
         private static void ApplyTabControlTemplate(MGControlTemplateContext Context)

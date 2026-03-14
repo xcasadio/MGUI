@@ -22,6 +22,13 @@ namespace MGUI.Core.UI
         public const string ScrollViewerPartName = "PART_ScrollViewer";
         public const string ItemsPanelPartName = "PART_ItemsPanel";
 
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            yield return new(OuterBorderPartName, typeof(MGBorder));
+            yield return new(ScrollViewerPartName, typeof(MGScrollViewer));
+            yield return new(ItemsPanelPartName, typeof(MGStackPanel));
+        }
+
         internal static int GetNextVisibleNavigationIndex(int currentIndex, int count, UINavigationAction action)
         {
             if (count <= 0)
@@ -259,44 +266,36 @@ namespace MGUI.Core.UI
 
                 _VisibleItemsCache = new List<MGTreeViewItem>();
 
-                OuterBorder = new MGBorder(Window);
-                RegisterTemplatePart(OuterBorderPartName, OuterBorder);
-                // Note: Do NOT add OuterBorder as a component via AddComponent(BorderComponent)
-                // because it will be set as Content, which would cause double layout calculation
-
-                ScrollViewer = new MGScrollViewer(Window);
-                RegisterTemplatePart(ScrollViewerPartName, ScrollViewer);
-                ItemsPanel = new MGStackPanel(Window, Orientation.Vertical);
-                RegisterTemplatePart(ItemsPanelPartName, ItemsPanel);
-                ItemsPanel.CanChangeContent = false;
-
-                ScrollViewer.SetContent(ItemsPanel);
-                OuterBorder.SetContent(ScrollViewer);
-                SetContent(OuterBorder);
-
-                ApplyDefaultStyles();
-
-                HorizontalAlignment = HorizontalAlignment.Stretch;
-                VerticalAlignment = VerticalAlignment.Stretch;
-                OuterBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
-                OuterBorder.VerticalAlignment = VerticalAlignment.Stretch;
-                ScrollViewer.HorizontalAlignment = HorizontalAlignment.Stretch;
-                ScrollViewer.VerticalAlignment = VerticalAlignment.Stretch;
-                ItemsPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
-                ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
-
-                OuterBorder.Margin = new MonoGame.Extended.Thickness(0);
-                OuterBorder.Padding = new MonoGame.Extended.Thickness(0);
-                ScrollViewer.Margin = new MonoGame.Extended.Thickness(0);
-                ScrollViewer.Padding = new MonoGame.Extended.Thickness(0);
-                ItemsPanel.Margin = new MonoGame.Extended.Thickness(0);
-                ItemsPanel.Padding = new MonoGame.Extended.Thickness(0);
                 ControlTemplateName = MGControlTemplateCatalog.TreeViewTemplateName;
+                ApplyDefaultStyles();
             }
 
             // Enable keyboard navigation
             IsFocusable = true;
             KeyboardHandler.Pressed += OnKeyPressed;
+        }
+
+        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            OuterBorder = Structure.Parts[OuterBorderPartName] as MGBorder;
+            ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
+            ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
+
+            ItemsPanel.CanChangeContent = false;
+            using (ScrollViewer.AllowChangingContentTemporarily())
+            {
+                ScrollViewer.SetContent(ItemsPanel);
+            }
+
+            using (OuterBorder.AllowChangingContentTemporarily())
+            {
+                OuterBorder.SetContent(ScrollViewer);
+            }
+
+            using (AllowChangingContentTemporarily())
+            {
+                SetContent(OuterBorder);
+            }
         }
 
         /// <summary>Handles keyboard input for navigation within the tree view.</summary>

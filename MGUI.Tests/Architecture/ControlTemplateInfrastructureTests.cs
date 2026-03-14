@@ -80,6 +80,19 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+#pragma warning disable SYSLIB0050
+    public void Control_Template_Structure_Can_Record_Detached_Roots()
+#pragma warning restore SYSLIB0050
+    {
+        MGElement detachedRoot = (MGElement)FormatterServices.GetUninitializedObject(typeof(MGTextBlock));
+
+        MGControlTemplateStructure structure = new(null, null, new[] { detachedRoot });
+
+        Assert.Single(structure.DetachedRoots);
+        Assert.Same(detachedRoot, structure.DetachedRoots[0]);
+    }
+
+    [Fact]
     public void Legacy_Control_Template_Apply_Remains_Defaults_Only()
     {
         bool applyDefaultsCalled = false;
@@ -127,6 +140,7 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ListViewTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ComboBoxTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TreeViewTemplateName, out _));
+        Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TextBoxTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TabControlTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockTabItemTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockAutoHideDrawerTemplateName, out _));
@@ -138,6 +152,8 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.ListBoxTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.ListViewTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.ComboBoxTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.TreeViewTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.TextBoxTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.TabControlTemplateName].SupportsStructure);
     }
 
@@ -201,6 +217,15 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void MGTabControl_Template_Attach_Binds_Headers_Panel_Directly_To_HeaderPresenter()
+    {
+        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
+
+        Assert.Contains("HeaderPresenter.SetContent(HeadersPanelElement);", source);
+        Assert.Contains("HeadersPanelElement.TryRemoveAll();", source);
+    }
+
+    [Fact]
     public void Control_Template_Requirement_Metadata_Is_Declared_For_Migrating_Controls()
     {
         Assert.Equal(typeof(MGWindow), typeof(MGWindow).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
@@ -208,8 +233,21 @@ public class ControlTemplateInfrastructureTests
         Assert.Equal(typeof(MGOverlay), typeof(MGOverlay).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGListBox<>), typeof(MGListBox<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGListView<>), typeof(MGListView<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+        Assert.Equal(typeof(MGTreeView), typeof(MGTreeView).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+        Assert.Equal(typeof(MGTextBox), typeof(MGTextBox).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGTabControl), typeof(MGTabControl).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
         Assert.Equal(typeof(MGComboBox<>), typeof(MGComboBox<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+    }
+
+    [Fact]
+    public void TreeView_And_TextBox_Default_Templates_Are_Structural()
+    {
+        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.Contains("CreateTreeViewTemplate()", source);
+        Assert.Contains("CreateTextBoxTemplate()", source);
+        Assert.Contains("new(TreeViewTemplateName, CreateTreeViewTemplateStructure", source);
+        Assert.Contains("new(TextBoxTemplateName, CreateTextBoxTemplateStructure", source);
     }
 
     [Fact]
@@ -279,10 +317,41 @@ public class ControlTemplateInfrastructureTests
         string markup = GeneralUtils.ReadEmbeddedResourceAsString(typeof(MGControlTemplateCatalog).Assembly, resourceName);
 
         IReadOnlyList<ControlTemplateDefinition> definitions = ControlTemplateLoader.ParseDefinitions(XamlDocumentSource.FromString(markup, resourceName));
+        ControlTemplateDefinition listBoxDefinition = definitions.Single(x => x.Name == MGControlTemplateCatalog.ListBoxTemplateName);
+        ControlTemplateDefinition listViewDefinition = definitions.Single(x => x.Name == MGControlTemplateCatalog.ListViewTemplateName);
 
-        Assert.Contains(definitions, x => x.Name == MGControlTemplateCatalog.ListBoxTemplateName);
-        Assert.Contains(definitions, x => x.Name == MGControlTemplateCatalog.ListViewTemplateName);
-        Assert.Contains(definitions.Single(x => x.Name == MGControlTemplateCatalog.ListBoxTemplateName).Parts, x => x.Name == MGListBox<object>.ItemsPanelPartName);
-        Assert.Contains(definitions.Single(x => x.Name == MGControlTemplateCatalog.ListViewTemplateName).Parts, x => x.Name == MGListView<object>.DataGridPartName);
+        Assert.Null(listBoxDefinition.Root);
+        Assert.Equal(3, listBoxDefinition.DetachedRoots.Count);
+        Assert.Contains(listBoxDefinition.Parts, x => x.Name == MGListBox<object>.ItemsPanelPartName);
+        Assert.Contains(listViewDefinition.Parts, x => x.Name == MGListView<object>.DataGridPartName);
     }
+
+    [Fact]
+    public void Control_Template_Xaml_Can_Declare_Detached_Roots()
+    {
+        const string markup = @"
+<ControlTemplate xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"" Name=""Detached.Chrome"">
+    <ControlTemplate.Root>
+        <Border Name=""PART_Root"" />
+    </ControlTemplate.Root>
+    <ControlTemplate.DetachedRoots>
+        <ContentPresenter Name=""PART_FloatingHeader"" />
+        <ScrollViewer Name=""PART_FloatingScroller"" />
+    </ControlTemplate.DetachedRoots>
+    <ControlTemplate.Parts>
+        <TemplatePart Name=""PART_Root"" />
+        <TemplatePart Name=""PART_FloatingHeader"" />
+        <TemplatePart Name=""PART_FloatingScroller"" />
+    </ControlTemplate.Parts>
+</ControlTemplate>";
+
+        ControlTemplateDefinition definition = ControlTemplateLoader
+            .ParseDefinitions(XamlDocumentSource.FromString(markup, "DetachedTemplate.xaml"))
+            .Single();
+
+        Assert.NotNull(definition.Root);
+        Assert.Equal(2, definition.DetachedRoots.Count);
+        Assert.Contains(definition.Parts, x => x.Name == "PART_FloatingHeader");
+        Assert.Contains(definition.Parts, x => x.Name == "PART_FloatingScroller");
+        }
 }

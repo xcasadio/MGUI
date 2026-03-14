@@ -14,6 +14,7 @@ using Microsoft.Xna.Framework.Input;
 using System.Diagnostics;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Rendering.Clipping;
 
@@ -29,7 +30,22 @@ namespace MGUI.Core.UI
 
     public class MGTextBox : MGElement
     {
+        public const string BorderPartName = "PART_Border";
+        public const string TextBlockPartName = "PART_TextBlock";
+        public const string PlaceholderTextBlockPartName = "PART_PlaceholderTextBlock";
+        public const string CharacterCountPartName = "PART_CharacterCount";
+        public const string ResizeGripPartName = "PART_ResizeGrip";
+
         public override bool CanHandleKeyboardInput => true;
+
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            yield return new(BorderPartName, typeof(MGBorder));
+            yield return new(TextBlockPartName, typeof(MGTextBlock));
+            yield return new(PlaceholderTextBlockPartName, typeof(MGTextBlock));
+            yield return new(CharacterCountPartName, typeof(MGTextBlock));
+            yield return new(ResizeGripPartName, typeof(MGResizeGrip));
+        }
 
         internal static bool ShouldPreserveTextEntryKey(Keys key, bool isReadonly, bool acceptsReturn, bool acceptsTab)
             => key switch
@@ -59,8 +75,8 @@ namespace MGUI.Core.UI
 
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; }
-        private MGBorder BorderElement { get; }
+        public MGComponent<MGBorder> BorderComponent { get; private set; }
+        private MGBorder BorderElement { get; set; }
         public override MGBorder GetBorder() => BorderElement;
 
         public IBorderBrush BorderBrush
@@ -84,8 +100,8 @@ namespace MGUI.Core.UI
 
         #region Text
         /// <summary>Provides direct access to the textblock component that displays this textbox's text.</summary>
-        public MGComponent<MGTextBlock> TextBlockComponent { get; }
-        private MGTextBlock TextBlockElement { get; }
+        public MGComponent<MGTextBlock> TextBlockComponent { get; private set; }
+        private MGTextBlock TextBlockElement { get; set; }
 
         protected virtual string GetTextBackingField() => _Text ?? "";
         protected virtual void SetTextBackingField(string Value) => _Text = Value;
@@ -278,8 +294,8 @@ namespace MGUI.Core.UI
 
         #region Placeholder Text
         /// <summary>Provides direct access to the textblock component that displays the <see cref="PlaceholderText"/> when <see cref="Text"/> is empty.</summary>
-        public MGComponent<MGTextBlock> PlaceholderTextBlockComponent { get; }
-        private MGTextBlock PlaceholderTextBlockElement { get; }
+        public MGComponent<MGTextBlock> PlaceholderTextBlockComponent { get; private set; }
+        private MGTextBlock PlaceholderTextBlockElement { get; set; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _PlaceholderText;
@@ -296,7 +312,10 @@ namespace MGUI.Core.UI
                 if (_PlaceholderText != value)
                 {
                     _PlaceholderText = value;
-                    PlaceholderTextBlockElement.Text = PlaceholderText;
+                    if (PlaceholderTextBlockElement != null)
+                    {
+                        PlaceholderTextBlockElement.Text = PlaceholderText;
+                    }
                     UpdatePlaceholderVisibility();
                     NPC(nameof(PlaceholderText));
                 }
@@ -305,11 +324,16 @@ namespace MGUI.Core.UI
 
         private void UpdatePlaceholderVisibility()
         {
+            if (PlaceholderTextBlockElement == null)
+            {
+                return;
+            }
+
             PlaceholderTextBlockElement.Visibility = !string.IsNullOrEmpty(PlaceholderText) && string.IsNullOrEmpty(Text) ? Visibility.Visible : Visibility.Collapsed;
         }
         #endregion Placeholder Text
 
-        internal TextRenderInfo TextRenderInfo { get; }
+        internal TextRenderInfo TextRenderInfo { get; private set; }
 
         /// <summary>The minimum # of lines to display, regardless of how many lines the actual text content requires.<para/>
         /// Default value: 0<para/>
@@ -387,22 +411,29 @@ namespace MGUI.Core.UI
         public event EventHandler<EventArgs<int?>> OnCharacterLimitChanged;
 
         /// <summary>Provides direct access to the textblock component that displays the character counts when <see cref="ShowCharacterCount"/> is true.</summary>
-        public MGComponent<MGTextBlock> CharacterCountComponent { get; }
-        private MGTextBlock CharacterCountElement { get; }
+        public MGComponent<MGTextBlock> CharacterCountComponent { get; private set; }
+        private MGTextBlock CharacterCountElement { get; set; }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _ShowCharacterCount;
 
         /// <summary>If true, the current character count will be shown in the bottom-right corner of this <see cref="MGTextBox"/>.<para/>
         /// If <see cref="CharacterLimit"/> has a non-null value, the counter will also display the limit, such as "100 / 500"</summary>
         public bool ShowCharacterCount
         {
-            get => CharacterCountElement.Visibility == Visibility.Visible;
+            get => CharacterCountElement?.Visibility == Visibility.Visible || _ShowCharacterCount;
             set
             {
                 if (ShowCharacterCount != value)
                 {
-                    CharacterCountElement.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-                    if (CharacterCountElement.Visibility == Visibility.Visible)
+                    _ShowCharacterCount = value;
+                    if (CharacterCountElement != null)
                     {
-                        UpdateCharacterCountText();
+                        CharacterCountElement.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                        if (CharacterCountElement.Visibility == Visibility.Visible)
+                        {
+                            UpdateCharacterCountText();
+                        }
                     }
 
                     NPC(nameof(ShowCharacterCount));
@@ -464,6 +495,11 @@ namespace MGUI.Core.UI
 
         private void UpdateCharacterCountText()
         {
+            if (CharacterCountElement == null)
+            {
+                return;
+            }
+
             if (ShowCharacterCount)
             {
                 string Value;
@@ -1054,15 +1090,15 @@ namespace MGUI.Core.UI
             }
         }
 
-        public MGTextCaret Caret { get; }
+        public MGTextCaret Caret { get; private set; }
 
         private StringClipboard Clipboard { get; } = new();
         private HashSet<long> ShortcutOriginStreamIds { get; } = new();
 
         #region Resizing
         /// <summary>Provides direct access to the resizer grip that appears in the bottom-right corner of this textbox when <see cref="IsUserResizable"/> is true.</summary>
-        public MGComponent<MGResizeGrip> ResizeGripComponent { get; }
-        private MGResizeGrip ResizeGripElement { get; }
+        public MGComponent<MGResizeGrip> ResizeGripComponent { get; private set; }
+        private MGResizeGrip ResizeGripElement { get; set; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsUserResizable;
@@ -1074,7 +1110,10 @@ namespace MGUI.Core.UI
             set
             {
                 _IsUserResizable = value;
-                ResizeGripElement.Visibility = IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
+                if (ResizeGripElement != null)
+                {
+                    ResizeGripElement.Visibility = IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
+                }
                 NPC(nameof(IsUserResizable));
             }
         }
@@ -1094,69 +1133,22 @@ namespace MGUI.Core.UI
             {
                 MGTheme Theme = GetTheme();
 
-                BorderElement = new(Window);
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
                 DrawBackgroundBorderOverlayEnabled = false;
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+                Padding = new(6, 2, 6, 2);
+                MinHeight = 26;
+                IsReadonly = false;
+                this.CharacterLimit = CharacterLimit;
+                AcceptsReturn = true;
+                AcceptsTab = true;
 
-                ResizeGripElement = new(Window);
-                ResizeGripComponent = MGComponentBase.Create(ResizeGripElement);
-                AddComponent(ResizeGripComponent);
+                ControlTemplateName = MGControlTemplateCatalog.TextBoxTemplateName;
+
                 this.IsUserResizable = IsUserResizable;
-
-                PlaceholderTextBlockElement = new(Window, "");
-                PlaceholderTextBlockComponent = new(PlaceholderTextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
-                    true, true, false, false, false, false, true,
-                    (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
-                AddComponent(PlaceholderTextBlockComponent);
                 PlaceholderText = null;
-                PlaceholderTextBlockElement.Visibility = Visibility.Collapsed;
-
-                CharacterCountElement = new(Window, (Text?.Length ?? 0).ToString());
-                CharacterCountElement.Margin = new(0, 0, 8, 4);
-                CharacterCountElement.TrySetFont(GetDesktop().FontManager.DefaultFontFamily, 9);
-                CharacterCountComponent = new(CharacterCountElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
-                    true, false, false, false, false, true, true,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, ComponentSize.Size));
-                AddComponent(CharacterCountComponent);
                 this.ShowCharacterCount = ShowCharacterCount;
 
                 LimitedCharacterCountFormatString = "[b]{{CharacterCount}}[/b] / [b]{{CharacterLimit}}[/b]";
                 LimitlessCharacterCountFormatString = "[b]{{CharacterCount}}[/b] character(s)";
-
-                TextBlockElement = new(Window, "");
-                TextBlockElement.ClipToBounds = false;
-                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
-                    false, false, true, true, false, false, true,
-                    (AvailableBounds, ComponentSize) =>
-                    {
-                        var Padded = AvailableBounds.GetCompressed(Padding);
-                        if (!_EnableScrolling || _TextScrollOffsetX == 0)
-                        {
-                            return Padded;
-                        }
-
-                        return new Rectangle(Padded.Left - _TextScrollOffsetX, Padded.Top,
-                            Padded.Width + _TextScrollOffsetX, Padded.Height);
-                    });
-                AddComponent(TextBlockComponent);
-
-                TextRenderInfo = new(this, TextBlockElement);
-
-                Padding = new(6, 2, 6, 2);
-
-                MinHeight = 26;
-
-                IsReadonly = false;
-                this.CharacterLimit = CharacterLimit;
-
-                AcceptsReturn = true;
-                AcceptsTab = true;
-
-                Caret = new(this, TextBlockElement);
 
                 FocusedSelectionForegroundColor = Theme.TextBoxFocusedSelectionForeground;
                 FocusedSelectionBackgroundColor = Theme.TextBoxFocusedSelectionBackground;
@@ -1326,6 +1318,73 @@ namespace MGUI.Core.UI
 
                 SyncKeyboardRepeatPolicy();
             }
+        }
+
+        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            BorderElement = Structure.Parts[BorderPartName] as MGBorder;
+            TextBlockElement = Structure.Parts[TextBlockPartName] as MGTextBlock;
+            PlaceholderTextBlockElement = Structure.Parts[PlaceholderTextBlockPartName] as MGTextBlock;
+            CharacterCountElement = Structure.Parts[CharacterCountPartName] as MGTextBlock;
+            ResizeGripElement = Structure.Parts[ResizeGripPartName] as MGResizeGrip;
+
+            if (BorderComponent == null)
+            {
+                BorderComponent = MGComponentBase.Create(BorderElement);
+                AddComponent(BorderComponent);
+                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            }
+
+            if (ResizeGripComponent == null)
+            {
+                ResizeGripComponent = MGComponentBase.Create(ResizeGripElement);
+                AddComponent(ResizeGripComponent);
+            }
+
+            if (PlaceholderTextBlockComponent == null)
+            {
+                PlaceholderTextBlockComponent = new(PlaceholderTextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+                    true, true, false, false, false, false, true,
+                    (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
+                AddComponent(PlaceholderTextBlockComponent);
+            }
+
+            if (CharacterCountComponent == null)
+            {
+                CharacterCountComponent = new(CharacterCountElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+                    true, false, false, false, false, true, true,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, ComponentSize.Size));
+                AddComponent(CharacterCountComponent);
+            }
+
+            if (TextBlockComponent == null)
+            {
+                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+                    false, false, true, true, false, false, true,
+                    (AvailableBounds, ComponentSize) =>
+                    {
+                        var padded = AvailableBounds.GetCompressed(Padding);
+                        if (!_EnableScrolling || _TextScrollOffsetX == 0)
+                        {
+                            return padded;
+                        }
+
+                        return new Rectangle(padded.Left - _TextScrollOffsetX, padded.Top,
+                            padded.Width + _TextScrollOffsetX, padded.Height);
+                    });
+                AddComponent(TextBlockComponent);
+            }
+
+            TextRenderInfo = new(this, TextBlockElement);
+            Caret = new(this, TextBlockElement);
+            PlaceholderTextBlockElement.Text = PlaceholderText;
+            PlaceholderTextBlockElement.Visibility = Visibility.Collapsed;
+            CharacterCountElement.Visibility = _ShowCharacterCount ? Visibility.Visible : Visibility.Collapsed;
+            ResizeGripElement.Visibility = IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
+            UpdatePlaceholderVisibility();
+            UpdateCharacterCountText();
         }
 
         private void SyncKeyboardRepeatPolicy()

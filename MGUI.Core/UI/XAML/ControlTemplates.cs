@@ -29,6 +29,10 @@ namespace MGUI.Core.UI.XAML
         /// Initial support intentionally focuses on a single root plus explicitly mapped parts.</summary>
         public Element Root { get; set; }
 
+        /// <summary>Additional detached visuals materialized alongside <see cref="Root"/>.
+        /// These elements are available for template-part mapping even when they are not descendants of the primary root.</summary>
+        public List<Element> DetachedRoots { get; set; } = new();
+
         public List<TemplatePartDefinition> Parts { get; set; } = new();
 
         public string Notes { get; set; }

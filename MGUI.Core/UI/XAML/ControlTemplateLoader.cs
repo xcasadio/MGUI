@@ -89,7 +89,7 @@ namespace MGUI.Core.UI.XAML
 
         private static Styling.MGControlTemplateStructure BuildStructure(ControlTemplateDefinition Definition, Styling.MGControlTemplateContext Context)
         {
-            if (Definition.Root == null)
+            if (Definition.Root == null && (Definition.DetachedRoots == null || !Definition.DetachedRoots.Any()))
             {
                 return new Styling.MGControlTemplateStructure(null);
             }
@@ -99,18 +99,36 @@ namespace MGUI.Core.UI.XAML
                 throw new InvalidOperationException($"XAML control template '{Definition.Name}' requires a live window to instantiate its structure.");
             }
 
-            MGElement root = Definition.Root.ToElement<MGElement>(Context.Window, Context.Owner);
-            Styling.MGControlTemplateStructure structure = new(root);
+            MGElement root = Definition.Root?.ToElement<MGElement>(Context.Window, Context.Owner);
+            List<MGElement> detachedRoots = Definition.DetachedRoots?
+                .Where(x => x != null)
+                .Select(x => x.ToElement<MGElement>(Context.Window, Context.Owner))
+                .Where(x => x != null)
+                .ToList() ?? new();
 
-            Dictionary<string, MGElement> namedElements = root
-                .TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder)
-                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
-                .GroupBy(x => x.Name, StringComparer.Ordinal)
-                .ToDictionary(x => x.Key, x => x.First(), StringComparer.Ordinal);
+            Styling.MGControlTemplateStructure structure = new(root, null, detachedRoots);
 
-            if (!string.IsNullOrWhiteSpace(root.Name))
+            Dictionary<string, MGElement> namedElements = new(StringComparer.Ordinal);
+
+            void collectNamedElements(MGElement candidateRoot)
             {
-                namedElements[root.Name] = root;
+                if (candidateRoot == null)
+                {
+                    return;
+                }
+
+                foreach (MGElement element in candidateRoot
+                    .TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder)
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Name)))
+                {
+                    namedElements.TryAdd(element.Name, element);
+                }
+            }
+
+            collectNamedElements(root);
+            foreach (MGElement detachedRoot in detachedRoots)
+            {
+                collectNamedElements(detachedRoot);
             }
 
             foreach (TemplatePartDefinition part in Definition.Parts)
