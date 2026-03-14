@@ -199,6 +199,15 @@ namespace MGUI.Core.UI
         private readonly Dictionary<string, object> _AppliedTemplateDefaults = new(StringComparer.Ordinal);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly HashSet<string> _InstantiatedTemplatePartNames = new(StringComparer.Ordinal);
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private MGControlTemplate _AppliedStructuredTemplate;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private MGControlTemplateStructure _AppliedTemplateStructure;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGControlTemplate _ControlTemplate;
         public MGControlTemplate ControlTemplate
         {
@@ -262,12 +271,103 @@ namespace MGUI.Core.UI
             }
         }
 
+        private void RegisterInstantiatedTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            if (Structure == null)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<string, MGElement> KVP in Structure.Parts)
+            {
+                if (!string.IsNullOrWhiteSpace(KVP.Key) && KVP.Value != null)
+                {
+                    _TemplateParts[KVP.Key] = KVP.Value;
+                    _InstantiatedTemplatePartNames.Add(KVP.Key);
+                }
+            }
+        }
+
+        private void ClearInstantiatedTemplateStructure()
+        {
+            if (_AppliedTemplateStructure == null)
+            {
+                return;
+            }
+
+            foreach (string PartName in _InstantiatedTemplatePartNames)
+            {
+                _TemplateParts.Remove(PartName);
+            }
+            _InstantiatedTemplatePartNames.Clear();
+
+            if (_AppliedTemplateStructure.Root != null && this is MGSingleContentHost SingleContentHost && ReferenceEquals(SingleContentHost.Content, _AppliedTemplateStructure.Root))
+            {
+                using (SingleContentHost.AllowChangingContentTemporarily())
+                {
+                    SingleContentHost.SetContent(null as MGElement);
+                }
+            }
+
+            _AppliedTemplateStructure = null;
+            _AppliedStructuredTemplate = null;
+        }
+
+        /// <summary>Attaches a structure created by a <see cref="MGControlTemplate"/>.
+        /// The default runtime path supports single-content hosts; more specialized controls can override this hook.</summary>
+        protected internal virtual void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            if (Structure?.Root == null)
+            {
+                return;
+            }
+
+            if (this is MGSingleContentHost SingleContentHost)
+            {
+                using (SingleContentHost.AllowChangingContentTemporarily())
+                {
+                    SingleContentHost.SetContent(Structure.Root);
+                }
+                return;
+            }
+
+            throw new InvalidOperationException($"{GetType().Name} requires a custom {nameof(AttachControlTemplateStructure)} override to consume structural control templates.");
+        }
+
         protected internal virtual void ApplyControlTemplate(bool IsThemeRefresh)
         {
             MGControlTemplate Template = ControlTemplate;
             if (Template == null && !string.IsNullOrWhiteSpace(ControlTemplateName))
             {
                 GetResources().TryGetControlTemplate(ControlTemplateName, out Template);
+            }
+
+            bool TemplateChanged = !ReferenceEquals(_AppliedStructuredTemplate, Template);
+            if (TemplateChanged)
+            {
+                ClearInstantiatedTemplateStructure();
+            }
+
+            if (!IsThemeRefresh && Template?.SupportsStructure == true && (_AppliedTemplateStructure == null || TemplateChanged))
+            {
+                MGControlTemplateContext Context = new(this, false);
+                MGControlTemplateStructure Structure = Template.CreateStructure(Context);
+                if (Structure != null)
+                {
+                    RegisterInstantiatedTemplateStructure(Structure);
+
+                    if (Template.SupportsAttachment)
+                    {
+                        Template.AttachStructure(Context, Structure);
+                    }
+                    else
+                    {
+                        AttachControlTemplateStructure(Structure);
+                    }
+
+                    _AppliedTemplateStructure = Structure;
+                    _AppliedStructuredTemplate = Template;
+                }
             }
 
             Template?.Apply(this, IsThemeRefresh);

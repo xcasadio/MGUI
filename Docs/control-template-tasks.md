@@ -174,7 +174,7 @@ Resultat:
 - `MGResources.LoadControlTemplatesFromXaml(...)` enregistre ces templates comme des ressources de premier ordre, avec remplacement explicite a nom egal et conservation du fallback hierarchique existant.
 - Des tests couvrent le chargement nominal et l'override parent/enfant d'un template XAML.
 
-### ⚪ 4. Instancier la structure d'un ControlTemplate au runtime
+### ✅ 4. Instancier la structure d'un ControlTemplate au runtime
 
 But:
 faire en sorte qu'un controle puisse recevoir une structure visuelle depuis son template, pas seulement des defaults.
@@ -197,6 +197,12 @@ Criteres d'acceptation:
 - un controle de test peut consommer un template XAML structurel ;
 - la re-application d'un theme n'entraine pas automatiquement une reconstruction complete si elle n'est pas necessaire ;
 - les parents/enfants et parts sont coherents apres instanciation.
+
+Resultat:
+
+- `MGElement.ApplyControlTemplate(...)` sait maintenant creer une structure templatee une seule fois hors refresh de theme, l'enregistrer comme structure appliquee, puis ne re-jouer que les defaults pendant les refreshs.
+- `MGElement.AttachControlTemplateStructure(...)` fournit un hook runtime pour les controles, avec un chemin generique immediat pour les `MGSingleContentHost`.
+- Les tests d'infrastructure epinglent l'existence du hook runtime et la separation explicite entre creation structurelle et refresh de theme.
 
 ### ⚪ 5. Valider les TemplateParts et les erreurs de template
 

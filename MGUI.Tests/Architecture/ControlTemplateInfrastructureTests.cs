@@ -1,6 +1,8 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
+using System.IO;
+using System.Reflection;
 
 namespace MGUI.Tests.Architecture;
 
@@ -171,5 +173,21 @@ public class ControlTemplateInfrastructureTests
         Assert.NotNull(theme.ComboBox);
         Assert.NotNull(theme.TreeViewTemplate);
         Assert.NotNull(theme.TabControl);
+    }
+
+    [Fact]
+    public void MGElement_Exposes_Runtime_Attach_Hook_For_Structural_Control_Templates()
+    {
+        Assert.NotNull(typeof(MGElement).GetMethod("AttachControlTemplateStructure", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public));
+    }
+
+    [Fact]
+    public void MGElement_Runtime_Path_Separates_Structure_From_Theme_Refresh()
+    {
+        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+
+        Assert.Contains("Template.CreateStructure", source);
+        Assert.Contains("!IsThemeRefresh", source);
+        Assert.Contains("AttachControlTemplateStructure(Structure)", source);
     }
 }
