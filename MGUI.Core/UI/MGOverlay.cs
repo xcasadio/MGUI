@@ -389,8 +389,8 @@ namespace MGUI.Core.UI
 
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; }
-        private MGBorder BorderElement { get; }
+        public MGComponent<MGBorder> BorderComponent { get; private set; }
+        private MGBorder BorderElement { get; set; }
         public override MGBorder GetBorder() => BorderElement;
 
         public IBorderBrush BorderBrush
@@ -483,11 +483,33 @@ namespace MGUI.Core.UI
         internal void InvokeOnDeactivated() => OnDeactivated?.Invoke(this, this);
         #endregion Events
 
-        public MGComponent<MGButton> CloseButtonComponent { get; }
+        public MGComponent<MGButton> CloseButtonComponent { get; private set; }
         /// <summary>Only visible if <see cref="ShowCloseButton"/> is <see langword="true" />.<para/>
         /// By default, this is placed in the top-right corner and shares its consumed space with the overlay content.<br/>
         /// (Meaning this button might be rendered overtop of other overlay content. You may wish to add a top and/or right <see cref="MGElement.Padding"/> to your overlay content to avoid overlaps with the close button).</summary>
-        public MGButton CloseButton { get; }
+        public MGButton CloseButton { get; private set; }
+
+        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            BorderElement = Structure.Parts[BorderPartName] as MGBorder;
+            CloseButton = Structure.Parts[CloseButtonPartName] as MGButton;
+
+            if (BorderComponent == null)
+            {
+                BorderComponent = MGComponentBase.Create(BorderElement);
+                AddComponent(BorderComponent);
+                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            }
+
+            if (CloseButtonComponent == null)
+            {
+                CloseButtonComponent = new(CloseButton, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Top, ComponentSize.Size));
+                AddComponent(CloseButtonComponent);
+            }
+        }
 
         /// <summary><see langword="true"/> if the <see cref="CloseButton"/> should be displayed in the top-right corner.<para/>
         /// Default value: <see langword="false"/></summary>
@@ -511,30 +533,6 @@ namespace MGUI.Core.UI
                 VerticalAlignment = VerticalAlignment.Center;
                 Padding = new(5);
 
-                BorderElement = new(Host.ParentWindow, new(1), Color.Black.AsFillBrush());
-                RegisterTemplatePart(BorderPartName, BorderElement);
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
-
-                CloseButton = new(Host.ParentWindow, x => IsOpen = false);
-                RegisterTemplatePart(CloseButtonPartName, CloseButton);
-                CloseButton.MinWidth = 12;
-                CloseButton.MinHeight = 12;
-                CloseButton.BackgroundBrush = new(Color.Crimson.AsFillBrush() * 0.8f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
-                CloseButton.BorderBrush = MGUniformBorderBrush.Black;
-                CloseButton.BorderThickness = new(1);
-                CloseButton.Margin = BorderThickness;
-                CloseButton.Padding = new(4, -1);
-                CloseButton.VerticalAlignment = VerticalAlignment.Center;
-                CloseButton.VerticalContentAlignment = VerticalAlignment.Center;
-                CloseButton.HorizontalContentAlignment = HorizontalAlignment.Center;
-                CloseButton.SetContent(new MGTextBlock(Host.ParentWindow, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
-                CloseButtonComponent = new(CloseButton, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Top, ComponentSize.Size));
-                AddComponent(CloseButtonComponent);
                 ShowCloseButton = false;
                 ControlTemplateName = MGControlTemplateCatalog.OverlayTemplateName;
             }

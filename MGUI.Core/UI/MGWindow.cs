@@ -341,8 +341,8 @@ namespace MGUI.Core.UI
 
         #region Resizing
         /// <summary>Provides direct access to the resizer grip that appears in the bottom-right corner of this textbox when <see cref="IsUserResizable"/> is true.</summary>
-        public MGComponent<MGResizeGrip> ResizeGripComponent { get; }
-        private MGResizeGrip ResizeGripElement { get; }
+        public MGComponent<MGResizeGrip> ResizeGripComponent { get; private set; }
+        private MGResizeGrip ResizeGripElement { get; set; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsUserResizable;
@@ -363,8 +363,8 @@ namespace MGUI.Core.UI
 
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; }
-        private MGBorder BorderElement { get; }
+        public MGComponent<MGBorder> BorderComponent { get; private set; }
+        private MGBorder BorderElement { get; set; }
         public override MGBorder GetBorder() => BorderElement;
 
         public IBorderBrush BorderBrush
@@ -585,11 +585,11 @@ namespace MGUI.Core.UI
         #region Title Bar
         /// <summary>Provides direct access to the dockpanel component that displays this window's title-bar content.<para/>
         /// See also: <see cref="IsTitleBarVisible"/>, <see cref="TitleBarTextBlockElement"/></summary>
-        public MGComponent<MGDockPanel> TitleBarComponent { get; }
-        private MGDockPanel TitleBarElement { get; }
+        public MGComponent<MGDockPanel> TitleBarComponent { get; private set; }
+        private MGDockPanel TitleBarElement { get; set; }
 
         /// <summary>The textblock element that contains this window's <see cref="TitleText"/> in the title-bar.</summary>
-        public MGTextBlock TitleBarTextBlockElement { get; }
+        public MGTextBlock TitleBarTextBlockElement { get; private set; }
 
         /// <summary>This property is functionally equivalent to <see cref="TitleBarTextBlockElement"/>'s <see cref="MGTextBlock.Text"/> property.<para/>
         /// See also: <see cref="IsTitleBarVisible"/></summary>
@@ -623,7 +623,7 @@ namespace MGUI.Core.UI
         }
 
         #region Close
-        public MGButton CloseButtonElement { get; }
+        public MGButton CloseButtonElement { get; private set; }
 
         public bool IsCloseButtonVisible
         {
@@ -652,6 +652,42 @@ namespace MGUI.Core.UI
                     NPC(nameof(CanCloseWindow));
                 }
             }
+        }
+
+        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        {
+            BorderElement = Structure.Parts[BorderPartName] as MGBorder;
+            TitleBarElement = Structure.Parts[TitleBarPartName] as MGDockPanel;
+            TitleBarTextBlockElement = Structure.Parts[TitleBarTextPartName] as MGTextBlock;
+            CloseButtonElement = Structure.Parts[CloseButtonPartName] as MGButton;
+            ResizeGripElement = Structure.Parts.TryGetValue(ResizeGripPartName, out MGElement resizeGrip) ? resizeGrip as MGResizeGrip : null;
+
+            if (BorderComponent == null)
+            {
+                BorderComponent = MGComponentBase.Create(BorderElement);
+                AddComponent(BorderComponent);
+                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            }
+
+            if (TitleBarComponent == null)
+            {
+                TitleBarComponent = new(TitleBarElement, true, false, true, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size));
+                AddComponent(TitleBarComponent);
+            }
+
+            if (ResizeGripElement != null && ResizeGripComponent == null)
+            {
+                ResizeGripComponent = MGComponentBase.Create(ResizeGripElement);
+                AddComponent(ResizeGripComponent);
+            }
+
+            TitleBarElement.DrawBackgroundEnabled = false;
+            TitleBarElement.CanChangeContent = false;
+            IsTitleBarVisible = true;
+            IsUserResizable = _IsUserResizable;
         }
 
         public bool TryCloseWindow()
@@ -1009,80 +1045,12 @@ namespace MGUI.Core.UI
 
                 Padding = DefaultWindowPadding;
 
-                BorderElement = new(this, DefaultWindowBorderThickness, MGUniformBorderBrush.Black);
-                RegisterTemplatePart(BorderPartName, BorderElement);
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
-
-                TitleBarElement = new(this);
-                RegisterTemplatePart(TitleBarPartName, TitleBarElement);
-                TitleBarElement.Padding = new(2);
-                TitleBarElement.MinHeight = 24;
-                TitleBarElement.HorizontalAlignment = HorizontalAlignment.Stretch;
-                TitleBarElement.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                TitleBarElement.VerticalAlignment = VerticalAlignment.Stretch;
-                TitleBarElement.VerticalContentAlignment = VerticalAlignment.Stretch;
-                TitleBarElement.BackgroundBrush = ActualTheme.TitleBackground.GetValue(true);
-                TitleBarElement.DrawBackgroundEnabled = false;
-
-                TitleBarComponent = new(TitleBarElement, true, false, true, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size));
-                AddComponent(TitleBarComponent);
-#if NEVER
-                TitleBarElement.OnEndDraw += (sender, e) =>
-                {
-                    //  Attempt to draw the window's border around just the titlebar, so that the border is also drawn just underneath the title bar
-                    if (IsTitleBarVisible)
-                    {
-                        Rectangle TargetBounds = new(TitleBarElement.LayoutBounds.Left - BorderThickness.Left, TitleBarElement.LayoutBounds.Top - BorderThickness.Top, 
-                            TitleBarElement.LayoutBounds.Width + BorderThickness.Width, TitleBarElement.LayoutBounds.Height + BorderThickness.Top + BorderThickness.Bottom / 2);
-                        BorderElement.BorderBrush.Draw(e.DA, this, TargetBounds, BorderThickness);
-                    }
-                };
-#endif
-
-                CloseButtonElement = new(this, x => { TryCloseWindow(); });
-                RegisterTemplatePart(CloseButtonPartName, CloseButtonElement);
-                CloseButtonElement.MinWidth = 12;
-                CloseButtonElement.MinHeight = 12;
-                CloseButtonElement.BackgroundBrush = new(Color.Crimson.AsFillBrush() * 0.5f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
-                CloseButtonElement.BorderBrush = MGUniformBorderBrush.Black;
-                CloseButtonElement.BorderThickness = new(1);
-                CloseButtonElement.Margin = new(1, 1, 1, 1 + BorderElement.BorderThickness.Bottom);
-                CloseButtonElement.Padding = new(4,-1);
-                CloseButtonElement.VerticalAlignment = VerticalAlignment.Center;
-                CloseButtonElement.VerticalContentAlignment = VerticalAlignment.Center;
-                CloseButtonElement.HorizontalContentAlignment = HorizontalAlignment.Center;
-                CloseButtonElement.SetContent(new MGTextBlock(this, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
-                //CloseButtonElement.CanChangeContent = false;
-
-                TitleBarTextBlockElement = new(this, null, Color.White, ActualTheme.FontSettings.SmallFontSize)
-                {
-                    Margin = new(4,0),
-                    Padding = new(0),
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    TextAlignment = HorizontalAlignment.Left,
-                    DefaultTextForeground = new VisualStateSetting<Color?>(Color.White, Color.White, Color.White)
-                };
-                RegisterTemplatePart(TitleBarTextPartName, TitleBarTextBlockElement);
+                _IsUserResizable = true;
                 TitleText = null;
-
-                TitleBarElement.TryAddChild(CloseButtonElement, Dock.Right);
-                TitleBarElement.TryAddChild(TitleBarTextBlockElement, Dock.Left);
-                TitleBarElement.CanChangeContent = false;
-
-                IsTitleBarVisible = true;
-
-                ResizeGripElement = new(this);
-                RegisterTemplatePart(ResizeGripPartName, ResizeGripElement);
-                ResizeGripComponent = MGComponentBase.Create(ResizeGripElement);
-                AddComponent(ResizeGripComponent);
-                IsUserResizable = true;
                 ControlTemplateName = MGControlTemplateCatalog.WindowTemplateName;
+                TitleText = null;
+                IsTitleBarVisible = true;
+                IsUserResizable = true;
 
                 HorizontalAlignment = HorizontalAlignment.Stretch;
                 VerticalAlignment = VerticalAlignment.Stretch;

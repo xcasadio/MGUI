@@ -264,7 +264,7 @@ Resultat:
 - `MGControlTemplateContext.ApplyTemplateValue(...)` centralise l'application de valeurs templatees et declenche une invalidation layout uniquement pour les invalidations de type measure/arrange/structure.
 - Le chemin historique `ApplyThemeDefault(...)` reste disponible mais delegue au nouveau chemin template-aware pour conserver la compatibilite du catalogue existant.
 
-### ⚪ 7. Migrer Window et Overlay vers des templates plus structurels
+### ✅ 7. Migrer Window et Overlay vers des templates plus structurels
 
 But:
 valider l'architecture sur deux controles composites centraux mais relativement contenus.
@@ -286,6 +286,12 @@ Criteres d'acceptation:
 - `Window` et `Overlay` peuvent etre skinnes via template sans reimplementer leur logique ;
 - les boutons de fermeture et bordures restent fonctionnels ;
 - le cout runtime reste raisonnable.
+
+Resultat:
+
+- Les templates catalogue `Window.Default` et `Overlay.Default` sont devenus structurels: ils creent maintenant leurs parts principales avant attachement au controle.
+- `MGWindow` et `MGOverlay` attachent ces parts structurelles a leurs composants existants via `AttachControlTemplateStructure(...)`, ce qui preserve leur logique de fermeture, border rendering et theme refresh.
+- Les tests de catalogue verrouillent que ces deux templates passent bien par le chemin structurel.
 
 ### ⚪ 8. Migrer ComboBox et TabControl vers des templates plus structurels
 

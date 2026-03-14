@@ -34,8 +34,8 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Register(Resources, WindowTemplateName, ApplyWindowTemplate);
-            Register(Resources, OverlayTemplateName, ApplyOverlayTemplate);
+            Register(Resources, CreateWindowTemplate());
+            Register(Resources, CreateOverlayTemplate());
             Register(Resources, ContextMenuTemplateName, ApplyContextMenuTemplate);
             Register(Resources, ContextMenuItemTemplateName, ApplyContextMenuItemTemplate);
             Register(Resources, ListBoxTemplateName, ApplyListBoxTemplate);
@@ -53,12 +53,97 @@ namespace MGUI.Core.UI.Styling
         private static bool IsGenericControl(MGElement Owner, Type GenericDefinition)
             => Owner?.GetType().IsGenericType == true && Owner.GetType().GetGenericTypeDefinition() == GenericDefinition;
 
+        private static MGControlTemplate CreateWindowTemplate()
+            => new(WindowTemplateName, CreateWindowTemplateStructure, null, ApplyWindowTemplate);
+
+        private static MGControlTemplate CreateOverlayTemplate()
+            => new(OverlayTemplateName, CreateOverlayTemplateStructure, null, ApplyOverlayTemplate);
+
         private static void Register(MGResources Resources, string Name, Action<MGControlTemplateContext> Apply)
         {
             if (!Resources.TryGetControlTemplate(Name, out _))
             {
                 Resources.AddControlTemplate(new(Name, Apply));
             }
+        }
+
+        private static void Register(MGResources Resources, MGControlTemplate Template)
+        {
+            if (!Resources.TryGetControlTemplate(Template.Name, out _))
+            {
+                Resources.AddControlTemplate(Template);
+            }
+        }
+
+        private static MGControlTemplateStructure CreateWindowTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGWindow Window)
+            {
+                return null;
+            }
+
+            MGBorder border = new(Window, new Thickness(2), MGUniformBorderBrush.Black);
+            MGDockPanel titleBar = new(Window)
+            {
+                Padding = new(2),
+                MinHeight = 24,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                VerticalContentAlignment = VerticalAlignment.Stretch,
+                BackgroundBrush = Window.GetTheme().TitleBackground.GetValue(true),
+                DrawBackgroundEnabled = false,
+                CanChangeContent = false,
+            };
+
+            MGButton closeButton = new(Window, _ => Window.TryCloseWindow())
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+            };
+            MGTextBlock titleText = new(Window, null, Color.White, Window.GetTheme().FontSettings.SmallFontSize)
+            {
+                Margin = new(4, 0),
+                Padding = new(0),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextAlignment = HorizontalAlignment.Left,
+                DefaultTextForeground = new VisualStateSetting<Color?>(Color.White, Color.White, Color.White)
+            };
+            MGResizeGrip resizeGrip = new(Window);
+
+            titleBar.TryAddChild(closeButton, Dock.Right);
+            titleBar.TryAddChild(titleText, Dock.Left);
+
+            MGControlTemplateStructure structure = new(titleBar);
+            structure.AddPart(MGWindow.BorderPartName, border);
+            structure.AddPart(MGWindow.TitleBarPartName, titleBar);
+            structure.AddPart(MGWindow.CloseButtonPartName, closeButton);
+            structure.AddPart(MGWindow.TitleBarTextPartName, titleText);
+            structure.AddPart(MGWindow.ResizeGripPartName, resizeGrip);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateOverlayTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGOverlay Overlay)
+            {
+                return null;
+            }
+
+            MGBorder border = new(Overlay.SelfOrParentWindow, new(1), Color.Black.AsFillBrush());
+            MGButton closeButton = new(Overlay.SelfOrParentWindow, _ => Overlay.IsOpen = false)
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+            };
+
+            MGControlTemplateStructure structure = new(closeButton);
+            structure.AddPart(MGOverlay.BorderPartName, border);
+            structure.AddPart(MGOverlay.CloseButtonPartName, closeButton);
+            return structure;
         }
 
         private static void ApplyWindowTemplate(MGControlTemplateContext Context)
