@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MGUI.Core.UI.Styling
 {
+    public readonly record struct MGControlTemplatePartRequirement(string Name, Type PartType, bool IsRequired = true);
+
     /// <summary>Represents the visual structure materialized by a <see cref="MGControlTemplate"/>.
     /// The structure phase creates elements and names the parts that the owner will later attach and consume.</summary>
     public sealed class MGControlTemplateStructure
@@ -61,7 +64,12 @@ namespace MGUI.Core.UI.Styling
         {
             if (!TryGetPart(Name, out MGElement Part) || Part is not T TypedPart)
             {
-                throw new InvalidOperationException($"Template part '{Name}' was not found on '{Owner?.GetType().Name ?? nameof(MGElement)}'.");
+                string availableParts = Owner?.TemplateParts?.Any() == true
+                    ? string.Join(", ", Owner.TemplateParts.Select(x => $"{x.Key}:{x.Value?.GetType().Name ?? nameof(MGElement)}"))
+                    : "<none>";
+                string actualType = Part?.GetType().Name ?? "<missing>";
+                throw new InvalidOperationException(
+                    $"Template part '{Name}' expected type '{typeof(T).Name}' on '{Owner?.GetType().Name ?? nameof(MGElement)}', but resolved '{actualType}'. Available parts: {availableParts}.");
             }
 
             return TypedPart;

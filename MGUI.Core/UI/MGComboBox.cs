@@ -37,6 +37,18 @@ namespace MGUI.Core.UI
         public const string DropdownScrollViewerPartName = "PART_DropdownScrollViewer";
         public const string DropdownDockPanelPartName = "PART_DropdownDockPanel";
 
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            yield return new(BorderPartName, typeof(MGBorder));
+            yield return new(DropdownArrowPartName, typeof(MGContentPresenter));
+            yield return new(DropdownWindowPartName, typeof(MGWindow));
+            yield return new(DropdownHeaderPresenterPartName, typeof(MGContentPresenter), false);
+            yield return new(DropdownFooterPresenterPartName, typeof(MGContentPresenter), false);
+            yield return new(DropdownItemsPanelPartName, typeof(MGStackPanel));
+            yield return new(DropdownScrollViewerPartName, typeof(MGScrollViewer));
+            yield return new(DropdownDockPanelPartName, typeof(MGDockPanel), false);
+        }
+
         internal static int GetNextNavigationIndex(int currentIndex, int itemCount, UINavigationAction action)
         {
             if (itemCount <= 0)

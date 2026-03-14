@@ -379,6 +379,12 @@ namespace MGUI.Core.UI
         public const string BorderPartName = "PART_Border";
         public const string CloseButtonPartName = "PART_CloseButton";
 
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            yield return new(BorderPartName, typeof(MGBorder));
+            yield return new(CloseButtonPartName, typeof(MGButton));
+        }
+
         public MGOverlayHost Host { get; }
 
         #region Border

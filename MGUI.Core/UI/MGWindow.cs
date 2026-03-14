@@ -42,6 +42,15 @@ namespace MGUI.Core.UI
         public const string CloseButtonPartName = "PART_CloseButton";
         public const string ResizeGripPartName = "PART_ResizeGrip";
 
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            yield return new(BorderPartName, typeof(MGBorder));
+            yield return new(TitleBarPartName, typeof(MGDockPanel));
+            yield return new(TitleBarTextPartName, typeof(MGTextBlock));
+            yield return new(CloseButtonPartName, typeof(MGButton));
+            yield return new(ResizeGripPartName, typeof(MGResizeGrip), false);
+        }
+
         public MGDesktop Desktop { get; }
         public MGElement DefaultFocusElement { get; set; }
 

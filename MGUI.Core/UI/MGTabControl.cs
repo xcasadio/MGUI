@@ -22,6 +22,12 @@ namespace MGUI.Core.UI
         public const string BorderPartName = "PART_Border";
         public const string HeadersPanelPartName = "PART_HeadersPanel";
 
+        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        {
+            yield return new(BorderPartName, typeof(MGBorder));
+            yield return new(HeadersPanelPartName, typeof(MGStackPanel));
+        }
+
         internal static int GetAdjacentTabIndex(int currentIndex, int count, UINavigationAction action)
         {
             if (count <= 0)

@@ -204,7 +204,7 @@ Resultat:
 - `MGElement.AttachControlTemplateStructure(...)` fournit un hook runtime pour les controles, avec un chemin generique immediat pour les `MGSingleContentHost`.
 - Les tests d'infrastructure epinglent l'existence du hook runtime et la separation explicite entre creation structurelle et refresh de theme.
 
-### ⚪ 5. Valider les TemplateParts et les erreurs de template
+### ✅ 5. Valider les TemplateParts et les erreurs de template
 
 But:
 eviter qu'un template invalide casse silencieusement le controle.
@@ -227,6 +227,12 @@ Criteres d'acceptation:
 - un template incomplet echoue avec un message exploitable ;
 - un template correct passe sans logique implicite fragile ;
 - les diagnostics aident reellement un auteur XAML.
+
+Resultat:
+
+- Un contrat explicite `MGControlTemplatePartRequirement` existe desormais et `MGElement` valide centralement les parts presentes avant l'application des defaults.
+- `MGWindow`, `MGOverlay`, `MGComboBox` et `MGTabControl` declarent leurs parts attendues, ce qui prepare les migrations structurelles suivantes.
+- Les messages d'erreur de `GetRequiredPart<T>` et de la validation centrale listent le type attendu, le type reel et les parts disponibles pour accelerer le diagnostic.
 
 ### ⚪ 6. Faire le pont precedence / template / invalidation
 

@@ -242,6 +242,36 @@ namespace MGUI.Core.UI
         public bool TryGetElementByName(string Name, out MGElement NamedElement) => SelfOrParentWindow.TryGetElementByName(Name, out NamedElement);
         public bool TryGetTemplatePart(string Name, out MGElement Part) => _TemplateParts.TryGetValue(Name, out Part);
 
+        protected internal virtual IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+            => Enumerable.Empty<MGControlTemplatePartRequirement>();
+
+        protected internal virtual void ValidateControlTemplateParts()
+        {
+            string availableParts = _TemplateParts.Any()
+                ? string.Join(", ", _TemplateParts.Select(x => $"{x.Key}:{x.Value?.GetType().Name ?? nameof(MGElement)}"))
+                : "<none>";
+
+            foreach (MGControlTemplatePartRequirement Requirement in GetRequiredControlTemplateParts())
+            {
+                if (!_TemplateParts.TryGetValue(Requirement.Name, out MGElement Part))
+                {
+                    if (Requirement.IsRequired)
+                    {
+                        throw new InvalidOperationException(
+                            $"Control template '{ControlTemplate?.Name ?? ControlTemplateName ?? "<unnamed>"}' for '{GetType().Name}' is missing required part '{Requirement.Name}' of type '{Requirement.PartType.Name}'. Available parts: {availableParts}.");
+                    }
+
+                    continue;
+                }
+
+                if (Part != null && !Requirement.PartType.IsAssignableFrom(Part.GetType()))
+                {
+                    throw new InvalidOperationException(
+                        $"Control template '{ControlTemplate?.Name ?? ControlTemplateName ?? "<unnamed>"}' for '{GetType().Name}' requires part '{Requirement.Name}' to be assignable to '{Requirement.PartType.Name}', but got '{Part.GetType().Name}'. Available parts: {availableParts}.");
+                }
+            }
+        }
+
         internal bool TryGetAppliedTemplateDefault<T>(string Name, out T Value)
         {
             if (_AppliedTemplateDefaults.TryGetValue(Name, out object Existing) && Existing is T Typed)
@@ -368,6 +398,11 @@ namespace MGUI.Core.UI
                     _AppliedTemplateStructure = Structure;
                     _AppliedStructuredTemplate = Template;
                 }
+            }
+
+            if (Template != null)
+            {
+                ValidateControlTemplateParts();
             }
 
             Template?.Apply(this, IsThemeRefresh);

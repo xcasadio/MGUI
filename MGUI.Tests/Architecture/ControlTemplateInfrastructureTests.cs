@@ -190,4 +190,13 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("!IsThemeRefresh", source);
         Assert.Contains("AttachControlTemplateStructure(Structure)", source);
     }
+
+    [Fact]
+    public void Control_Template_Requirement_Metadata_Is_Declared_For_Migrating_Controls()
+    {
+        Assert.Equal(typeof(MGWindow), typeof(MGWindow).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+        Assert.Equal(typeof(MGOverlay), typeof(MGOverlay).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+        Assert.Equal(typeof(MGTabControl), typeof(MGTabControl).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+        Assert.Equal(typeof(MGComboBox<>), typeof(MGComboBox<>).GetMethod("GetRequiredControlTemplateParts", BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType);
+    }
 }
