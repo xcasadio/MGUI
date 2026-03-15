@@ -197,13 +197,22 @@ namespace MGUI.Core.UI
         public bool IsTitleVisible
         {
             get => TitleBorder.Visibility == Visibility.Visible;
-            set
+            set => SetIsTitleVisible(value, false);
+        }
+
+        private bool AutoManageTitleVisibility { get; set; } = true;
+
+        private void SetIsTitleVisible(bool value, bool isAutomatic)
+        {
+            if (!isAutomatic)
             {
-                if (IsTitleVisible != value)
-                {
-                    TitleBorder.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-                    NPC(nameof(IsTitleVisible));
-                }
+                AutoManageTitleVisibility = false;
+            }
+
+            if (TitleBorder != null && IsTitleVisible != value)
+            {
+                TitleBorder.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                NPC(nameof(IsTitleVisible));
             }
         }
         #endregion Title
@@ -1038,6 +1047,11 @@ namespace MGUI.Core.UI
             {
                 TitleBorder.SetContent(TitlePresenter);
             }
+
+            if (AutoManageTitleVisibility)
+            {
+                SetIsTitleVisible(_Header != null, true);
+            }
             using (ScrollViewer.AllowChangingContentTemporarily())
             {
                 ScrollViewer.SetContent(activeItemsHost);
@@ -1331,6 +1345,12 @@ namespace MGUI.Core.UI
                             TitlePresenter.SetContent(Header);
                         }
                     }
+
+                    if (AutoManageTitleVisibility)
+                    {
+                        SetIsTitleVisible(Header != null, true);
+                    }
+
                     NPC(nameof(Header));
                 }
             }
@@ -1434,6 +1454,7 @@ namespace MGUI.Core.UI
                 CanDeselectByClickingSelectedItem = true;
                 ControlTemplateName = MGControlTemplateCatalog.ListBoxTemplateName;
                 SetTitleAndContentBorder(SolidFillBrushes.Black, 1);
+                SetIsTitleVisible(false, true);
                 ItemsPanel.BorderThickness = DefaultItemBorderThickness;
                 ItemsPanel.BorderBrush = DefaultItemBorderBrush;
 

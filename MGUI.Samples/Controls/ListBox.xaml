@@ -1,6 +1,7 @@
 ﻿<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Left="440" Top="20" MinHeight="0" Width="500" Height="800" TitleText="ListBox" Padding="10">
+    xmlns:System="clr-namespace:System;assembly=mscorlib"
+        Left="440" Top="20" MinHeight="0" Width="640" Height="920" TitleText="ListBox" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
@@ -26,7 +27,7 @@
             <TextBlock StyleNames="Header1" Text="ListBox:" HorizontalAlignment="Center" />
             <Separator/>
             <TextBlock>
-                Use the test list below to verify [c=Turquoise]single-click[/c] selection and [c=Turquoise]double-click[/c] detection on list items.
+                This sample covers three common ListBox scenarios: click selection, a headerless list, and an integrated large-data performance test.
             </TextBlock>
             <Separator />
 
@@ -38,13 +39,52 @@
                     <TextBlock>
                         Click an item once, then double-click one to see both counters update independently.
                     </TextBlock>
-                    <ListBox Name="ClickTestListBox" Width="260" Height="170" HorizontalAlignment="Left"
-                             xmlns:System="clr-namespace:System;assembly=mscorlib" ItemType="{x:Type System:String}" />
+                    <ListBox Name="ClickTestListBox" Width="260" Height="170" HorizontalAlignment="Left" ItemType="{x:Type System:String}" />
                     <TextBlock Name="ListBoxClickStatus" Text="Last click: none" />
                     <TextBlock Name="ListBoxDoubleClickStatus" Text="Last double-click: none" />
                     <TextBlock>
                         The sample items are created in code-behind to make it easy to extend this test later.
                     </TextBlock>
+                </StackPanel>
+            </DockPanel>
+            <Separator/>
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    A ListBox with no header should start directly with its first item. The first visible row below should be [c=Turquoise][b]Alpha[/b][/c], with no empty title band above it.
+                </TextBlock>
+                <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="3">
+                    <ListBox Name="HeaderlessListBox" Width="260" Height="140" HorizontalAlignment="Left" ItemType="{x:Type System:String}" />
+                    <TextBlock Text="Use this sample to verify that a headerless ListBox no longer renders a phantom first line." />
+                </StackPanel>
+            </DockPanel>
+            <Separator/>
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    This integrated performance section exercises virtualization, scrolling and realized-item counts directly inside the ListBox sample.
+                </TextBlock>
+                <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="6">
+                    <TextBlock Text="Load 5 000, 10 000 or 50 000 rows, then switch between virtualization modes to compare realized item counts and frame time." />
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="Items:" VerticalAlignment="Center" />
+                        <Button Name="BtnLoad5k" Content="5 000" />
+                        <Button Name="BtnLoad10k" Content="10 000" />
+                        <Button Name="BtnLoad50k" Content="50 000" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="Mode:" VerticalAlignment="Center" />
+                        <Button Name="BtnModeNever" Content="Never" />
+                        <Button Name="BtnModeAuto" Content="Auto" />
+                        <Button Name="BtnModeAlways" Content="Always" />
+                    </StackPanel>
+                    <StackPanel Orientation="Vertical" Spacing="2" Background="Black * 0.4" Padding="6,4">
+                        <TextBlock Name="TbFps" Text="FPS: -" />
+                        <TextBlock Name="TbFrameMs" Text="Frame time: - ms" />
+                        <TextBlock Name="TbElements" Text="Elements: total=0   realized=0" />
+                        <TextBlock Name="TbMode" Text="Mode: Auto  |  Virtualizing: -" />
+                    </StackPanel>
+                    <ListBox Name="PerfList" Height="320" />
                 </StackPanel>
             </DockPanel>
             <Separator/>

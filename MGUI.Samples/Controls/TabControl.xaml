@@ -81,7 +81,7 @@
 
             <DockPanel>
                 <TextBlock Dock="Top">
-                    Set [c=Turquoise][i]TabHeaderPosition[/i][/c] to change which edge the tab headers are anchored to.
+                    Set [c=Turquoise][i]TabHeaderPosition[/i][/c] to change which edge the tab headers are anchored to. The left and right samples below should keep a stable content area size while you switch between A, B and C.
                 </TextBlock>
                 <StackPanel Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="4">
                     <Grid RowLengths="80,110,80" ColumnLengths="140,140,140">

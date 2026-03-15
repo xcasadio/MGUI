@@ -1,5 +1,5 @@
 ﻿<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        Left="440" Top="20" MinHeight="0" Width="500" Height="800" TitleText="Grid" Padding="10">
+    Left="440" Top="20" MinHeight="0" Width="560" Height="820" TitleText="Grid" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
@@ -25,19 +25,72 @@
             <TextBlock StyleNames="Header1" Text="Grid:" HorizontalAlignment="Center" />
             <Separator/>
             <TextBlock>
-
+                A Grid arranges elements by rows and columns. Use fixed sizes, [i]Auto[/i] sizing, [i]*[/i] star sizing, spacing and spans to build denser layouts than a StackPanel can express cleanly.
             </TextBlock>
             <Separator />
 
             <DockPanel>
                 <TextBlock Dock="Top">
-
+                    This first sample uses explicit row and column coordinates. Each cell has a fixed place inside a 2x2 grid.
                 </TextBlock>
-                <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="2">
-                    <TextBlock>
+                <Grid Background="White * 0.1" Padding="6" Margin="0,4,0,0" RowLengths="auto,auto" ColumnLengths="160,160" RowSpacing="6" ColumnSpacing="6" HorizontalAlignment="Left">
+                    <Border Row="0" Column="0" Padding="6" Background="rgb(44,84,120)">
+                        <TextBlock Text="Row 0, Column 0" />
+                    </Border>
+                    <Border Row="0" Column="1" Padding="6" Background="rgb(86,62,110)">
+                        <TextBlock Text="Row 0, Column 1" />
+                    </Border>
+                    <Border Row="1" Column="0" Padding="6" Background="rgb(74,106,58)">
+                        <TextBlock Text="Row 1, Column 0" />
+                    </Border>
+                    <Border Row="1" Column="1" Padding="6" Background="rgb(125,86,44)">
+                        <TextBlock Text="Row 1, Column 1" />
+                    </Border>
+                </Grid>
+            </DockPanel>
+            <Separator/>
 
-                    </TextBlock>
-                </StackPanel>
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    This sample mixes fixed, star and auto columns. The center column expands, while the left and right columns keep stable widths.
+                </TextBlock>
+                <Grid Background="White * 0.1" Padding="6" Margin="0,4,0,0" RowLengths="auto,auto,auto" ColumnLengths="90,*,auto" RowSpacing="5" ColumnSpacing="8">
+                    <TextBlock Row="0" Column="0" VerticalAlignment="Center" Text="Name" />
+                    <TextBox Row="0" Column="1" Text="Responsive center column" />
+                    <Button Row="0" Column="2" Content="Apply" />
+
+                    <TextBlock Row="1" Column="0" VerticalAlignment="Center" Text="Description" />
+                    <TextBlock Row="1" Column="1" Text="The * column absorbs the remaining width, which is useful for forms, tool panels and property grids." WrapText="True" />
+                    <TextBlock Row="1" Column="2" VerticalAlignment="Center" Text="Auto" />
+
+                    <Border Row="2" Column="0" ColumnSpan="3" Padding="6" Background="Black * 0.25">
+                        <TextBlock Text="Tip: increase the window width to see the middle column grow while the auto-sized button column stays compact." />
+                    </Border>
+                </Grid>
+            </DockPanel>
+            <Separator/>
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Grids also support spans. This makes it easy to create dashboard-like layouts where one element occupies several columns or rows.
+                </TextBlock>
+                <Grid Background="White * 0.1" Padding="6" Margin="0,4,0,0" RowLengths="auto,auto,auto" ColumnLengths="*,*,*" RowSpacing="6" ColumnSpacing="6" MinHeight="170">
+                    <Border Row="0" Column="0" ColumnSpan="2" Padding="6" Background="rgb(33,92,95)">
+                        <TextBlock Text="ColumnSpan=2\nUseful for wide headers or charts." />
+                    </Border>
+                    <Border Row="0" Column="2" RowSpan="2" Padding="6" Background="rgb(112,78,37)">
+                        <TextBlock Text="RowSpan=2\nUseful for side summaries or inspectors." />
+                    </Border>
+                    <Border Row="1" Column="0" Padding="6" Background="rgb(90,44,92)">
+                        <TextBlock Text="Cell A" />
+                    </Border>
+                    <Border Row="1" Column="1" Padding="6" Background="rgb(51,96,54)">
+                        <TextBlock Text="Cell B" />
+                    </Border>
+                    <Border Row="2" Column="0" ColumnSpan="3" Padding="6" Background="Black * 0.25">
+                        <TextBlock Text="Combine spans with RowSpacing and ColumnSpacing to create cards, tables or editor layouts without extra wrapper panels." />
+                    </Border>
+                </Grid>
             </DockPanel>
             <Separator/>
 
