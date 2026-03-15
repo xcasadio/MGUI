@@ -51,6 +51,39 @@ namespace MGUI.Core.UI
             yield return new(ResizeGripPartName, typeof(MGResizeGrip), false);
         }
 
+        protected internal override void ApplyControlTemplate(bool IsThemeRefresh)
+        {
+            base.ApplyControlTemplate(IsThemeRefresh);
+
+            HashSet<string> requiredParts = GetRequiredControlTemplateParts()
+                .Select(x => x.Name)
+                .ToHashSet(StringComparer.Ordinal);
+
+            if (!requiredParts.Contains(TitleBarPartName))
+            {
+                if (TitleBarComponent != null)
+                {
+                    RemoveComponent(TitleBarComponent);
+                    TitleBarComponent = null;
+                }
+
+                TitleBarElement = null;
+                TitleBarTextBlockElement = null;
+                CloseButtonElement = null;
+            }
+
+            if (!requiredParts.Contains(ResizeGripPartName))
+            {
+                if (ResizeGripComponent != null)
+                {
+                    RemoveComponent(ResizeGripComponent);
+                    ResizeGripComponent = null;
+                }
+
+                ResizeGripElement = null;
+            }
+        }
+
         public MGDesktop Desktop { get; }
         public MGElement DefaultFocusElement { get; set; }
 
@@ -644,6 +677,7 @@ namespace MGUI.Core.UI
                     {
                         TitleBarElement.Visibility = ActualValue;
                     }
+                    RefreshTitleBarLayoutParticipation();
                     NPC(nameof(IsTitleBarVisible));
                 }
                 else
@@ -652,7 +686,17 @@ namespace MGUI.Core.UI
                     {
                         TitleBarElement.Visibility = ActualValue;
                     }
+
+                    RefreshTitleBarLayoutParticipation();
                 }
+            }
+        }
+
+        private void RefreshTitleBarLayoutParticipation()
+        {
+            if (TitleBarComponent != null)
+            {
+                TitleBarComponent.ConsumesTopSpace = _IsTitleBarVisible;
             }
         }
 
@@ -736,6 +780,7 @@ namespace MGUI.Core.UI
             TitleBarElement.CanChangeContent = false;
             TitleText = _TitleText;
             IsTitleBarVisible = _IsTitleBarVisible;
+            RefreshTitleBarLayoutParticipation();
             IsCloseButtonVisible = _IsCloseButtonVisible;
             IsUserResizable = _IsUserResizable;
         }
@@ -1659,7 +1704,7 @@ namespace MGUI.Core.UI
         {
             base.DrawBackground(DA, LayoutBounds);
 
-            if (!IsTitleBarVisible || TitleBarElement.Visibility != Visibility.Visible)
+            if (!IsTitleBarVisible || TitleBarElement == null || TitleBarElement.Visibility != Visibility.Visible)
             {
                 return;
             }

@@ -79,7 +79,7 @@ namespace MGUI.Core.UI
 
     public class MGThemeContextMenuSettings
     {
-        public Thickness Padding { get; set; } = new(1);
+        public Thickness Padding { get; set; } = new(0);
         public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Gray;
         public Thickness BorderThickness { get; set; } = new(1);
     }

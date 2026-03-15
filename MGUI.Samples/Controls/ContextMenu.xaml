@@ -195,6 +195,23 @@
                 </StackPanel>
             </DockPanel>
             <Separator/>
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    A ContextMenu with a single item should size itself to that one entry only. Right-click the button below to verify that no empty second row appears.
+                </TextBlock>
+                <StackPanel HorizontalAlignment="Left" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="4">
+                    <Button Padding="20,3">
+                        <Button.ContextMenu>
+                            <ContextMenu IsTitleBarVisible="False">
+                                <ContextMenuButton CommandId="Single.Only" Content="Only item" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                        <TextBlock Text="Right click for a single-item ContextMenu" />
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+            <Separator/>
         </StackPanel>
     </ScrollViewer>
 </Window>

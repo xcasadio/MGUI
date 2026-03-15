@@ -732,6 +732,25 @@ namespace MGUI.Core.UI
             }
         }
 
+        protected virtual bool RemoveComponent(MGComponentBase Component)
+        {
+            if (Component == null || !Components.Remove(Component))
+            {
+                return false;
+            }
+
+            Component.BaseElement.ComponentParent = null;
+            Component.BaseElement.SetParent(null);
+            _componentsDrawBeforeBackground.Remove(Component.BaseElement);
+            _componentsDrawBeforeSelf.Remove(Component.BaseElement);
+            _componentsDrawBeforeContents.Remove(Component.BaseElement);
+            _componentsDrawAfterContents.Remove(Component.BaseElement);
+            _componentsUpdateBeforeContents.Remove(Component.BaseElement);
+            _componentsUpdateAfterContents.Remove(Component.BaseElement);
+            LayoutChanged(this, true);
+            return true;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _Name;
 		/// <summary>Optional - can be null. If not null, the <see cref="SelfOrParentWindow"/> will index all child elements by their <see cref="Name"/>, so <see cref="Name"/>s must be unique.</summary>

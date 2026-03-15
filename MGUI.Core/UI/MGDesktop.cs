@@ -707,7 +707,7 @@ namespace MGUI.Core.UI
                 State.ActiveContextMenu = Menu;
 
                 int MinWidth = 100;
-                int MinHeight = 40;
+                int MinHeight = 0;
                 int MaxWidth = 1000;
                 int MaxHeight = 800;
 

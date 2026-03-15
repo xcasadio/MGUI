@@ -507,7 +507,7 @@ namespace MGUI.Core.UI
                 Menu.Scale = Scale;
 
                 int MinWidth = 100;
-                int MinHeight = 40;
+                int MinHeight = 0;
                 int MaxWidth = 1000;
                 int MaxHeight = 800;
 
@@ -686,7 +686,7 @@ namespace MGUI.Core.UI
                 IsTitleBarVisible = !string.IsNullOrEmpty(TitleText);
                 TitleBarTextBlockElement.TextAlignment = HorizontalAlignment.Center;
 
-                Padding = new(1);
+                Padding = new(0);
                 BorderBrush = MGUniformBorderBrush.Gray;
                 BorderThickness = new(1);
 
@@ -694,7 +694,7 @@ namespace MGUI.Core.UI
 
                 MinWidth = 150;
                 MaxWidth = 600;
-                MinHeight = 50;
+                MinHeight = 0;
                 MaxHeight = 600;
                 ControlTemplateName = MGControlTemplateCatalog.ContextMenuTemplateName;
 

@@ -3494,10 +3494,25 @@ namespace MGUI.Core.UI.XAML
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
         {
             MGWindow Window = Element as MGWindow;
-            ResizeGrip.ApplySettings(Window, Window.ResizeGripComponent.Element, false);
-            TitleBar.ApplySettings(Window, Window.TitleBarComponent.Element, true);
-            TitleBarTextBlock.ApplySettings(Window, Window.TitleBarTextBlockElement, false);
-            CloseButton.ApplySettings(Window, Window.CloseButtonElement, true);
+            if (Window.ResizeGripComponent?.Element != null)
+            {
+                ResizeGrip.ApplySettings(Window, Window.ResizeGripComponent.Element, false);
+            }
+
+            if (Window.TitleBarComponent?.Element != null)
+            {
+                TitleBar.ApplySettings(Window, Window.TitleBarComponent.Element, true);
+            }
+
+            if (Window.TitleBarTextBlockElement != null)
+            {
+                TitleBarTextBlock.ApplySettings(Window, Window.TitleBarTextBlockElement, false);
+            }
+
+            if (Window.CloseButtonElement != null)
+            {
+                CloseButton.ApplySettings(Window, Window.CloseButtonElement, true);
+            }
 
             if (IsUserResizable.HasValue)
             {
@@ -3529,7 +3544,7 @@ namespace MGUI.Core.UI.XAML
                 Window.IsDraggable = IsDraggable.Value;
             }
 
-            if (TitleBar.Children.Any())
+            if (TitleBar.Children.Any() && Window.TitleBarComponent?.Element != null)
             {
                 MGDockPanel TitleBarDP = Window.TitleBarComponent.Element;
                 using (TitleBarDP.AllowChangingContentTemporarily())
@@ -3575,7 +3590,10 @@ namespace MGUI.Core.UI.XAML
             }
 
             ApplyBackground(Element);
-            Border.ApplySettings(Window, Window.BorderComponent.Element, IncludeContent);
+            if (Window.BorderComponent?.Element != null)
+            {
+                Border.ApplySettings(Window, Window.BorderComponent.Element, IncludeContent);
+            }
 
             if (SizeToContent != null)
             {
