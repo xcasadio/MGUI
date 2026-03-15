@@ -103,6 +103,10 @@ namespace MGUI.Core.UI
                 if (_IndentSize != value)
                 {
                     _IndentSize = value;
+                    foreach (var item in Items)
+                    {
+                        RegisterItemRecursive(item);
+                    }
                     NPC(nameof(IndentSize));
                 }
             }
@@ -591,6 +595,7 @@ namespace MGUI.Core.UI
             }
 
             item._OwnerTreeView = this;
+            item.Level = item.ParentItem == null ? 0 : item.ParentItem.Level + 1;
             item.UpdateIndentation();
             item.Expanded -= OnItemExpanded;
             item.Expanded += OnItemExpanded;

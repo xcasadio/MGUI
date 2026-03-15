@@ -247,6 +247,12 @@ public class MGTreeViewItem : MGSingleContentHost
         {
             IndentationBorder.PreferredWidth = indent;
         }
+
+        foreach (var child in Items)
+        {
+            child.Level = Level + 1;
+            child.UpdateIndentation();
+        }
     }
 
     private void UpdateExpanderVisibility()
@@ -266,6 +272,7 @@ public class MGTreeViewItem : MGSingleContentHost
     {
         Visibility newVisibility = IsExpanded ? Visibility.Visible : Visibility.Collapsed;
         ChildrenPanel.Visibility = newVisibility;
+
         LayoutChanged(this, true);
     }
 
@@ -411,6 +418,11 @@ public class MGTreeViewItem : MGSingleContentHost
         item.Level = Level + 1;
         item._OwnerTreeView = OwnerTreeView;
         item.UpdateIndentation();
+        if (OwnerTreeView != null)
+        {
+            OwnerTreeView.RegisterItemRecursive(item);
+            OwnerTreeView.RebuildVisibleItemsCache();
+        }
     }
 
     /// <summary>
@@ -471,7 +483,12 @@ public class MGTreeViewItem : MGSingleContentHost
         }
 
         IsSelected = selected;
-        if (selected && OwnerTreeView != null)
+        RefreshSelectionVisual();
+    }
+
+    internal void RefreshSelectionVisual()
+    {
+        if (IsSelected && OwnerTreeView != null)
         {
             _PreviousHeaderBackgroundBrush = HeaderPanel.BackgroundBrush;
             _PreviousHeaderForeground = HeaderContainer.DefaultTextForeground?.GetCopy();
@@ -480,8 +497,15 @@ public class MGTreeViewItem : MGSingleContentHost
         }
         else
         {
-            HeaderPanel.BackgroundBrush = _PreviousHeaderBackgroundBrush;
-            HeaderContainer.DefaultTextForeground = _PreviousHeaderForeground ?? new VisualStateSetting<Color?>(null, null, null, null);
+            if (_PreviousHeaderBackgroundBrush != null)
+            {
+                HeaderPanel.BackgroundBrush = _PreviousHeaderBackgroundBrush;
+            }
+
+            if (_PreviousHeaderForeground != null)
+            {
+                HeaderContainer.DefaultTextForeground = _PreviousHeaderForeground;
+            }
         }
     }
 
@@ -548,6 +572,14 @@ public class MGTreeViewItem : MGSingleContentHost
     private void OnHeaderPanelRightClick(object sender, Shared.Input.Mouse.BaseMouseReleasedEventArgs e)
     {
         OwnerTreeView?.RaiseItemRightClicked(this);
+    }
+
+    protected override void UpdateContents(ElementUpdateArgs UA)
+    {
+        // A TreeView selection is local to the clicked item. Descendants should not inherit the
+        // generic Selected visual state from their selected ancestors, otherwise expanding a selected
+        // branch can repaint the entire subtree with unintended selected-state visuals.
+        base.UpdateContents(UA with { IsSelected = false });
     }
 
     /// <summary>

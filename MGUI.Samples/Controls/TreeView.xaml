@@ -1,5 +1,5 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        Left="440" Top="20" MinHeight="0" Width="500" Height="600" TitleText="TreeView" Padding="10">
+    Left="440" Top="20" MinHeight="0" Width="540" Height="700" TitleText="TreeView" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
@@ -20,14 +20,16 @@
         <StackPanel Orientation="Vertical" Spacing="10">
             <TextBlock StyleNames="Header1" Text="TreeView:" HorizontalAlignment="Center" />
             <Separator/>
-            
-            <TextBlock Text="Basic TreeView with hierarchical items:" />
-            <TreeView Width="400" IndentSize="20">
+            <TextBlock Text="The selected item should keep a visible highlight after clicking it, and nested children should remain readable after collapsing and expanding their parents." WrapText="True" />
+
+            <TreeView Name="SelectionTree" Width="430" Height="260" IndentSize="20">
                 <TreeViewItem Header="Root Item 1" IsExpanded="True">
                     <TreeViewItem Header="Child 1.1" />
                     <TreeViewItem Header="Child 1.2" IsExpanded="True">
                         <TreeViewItem Header="Grandchild 1.2.1" />
-                        <TreeViewItem Header="Grandchild 1.2.2" />
+                        <TreeViewItem Header="Grandchild 1.2.2" IsExpanded="True">
+                            <TreeViewItem Header="Great-grandchild 1.2.2.1" />
+                        </TreeViewItem>
                     </TreeViewItem>
                     <TreeViewItem Header="Child 1.3" />
                 </TreeViewItem>
@@ -39,15 +41,18 @@
                     <TreeViewItem Header="Child 3.1" />
                 </TreeViewItem>
             </TreeView>
-            
+            <TextBlock Name="SelectionStatus" Text="Selected item: none" />
+
             <Separator/>
-            
-            <TextBlock Text="TreeView with custom indent size:" />
-			<TreeView Width="400" Height="200" IndentSize="30">
+
+            <TextBlock Text="This second sample uses a larger indent size so multi-level alignment issues are easier to spot." />
+			<TreeView Name="LargeIndentTree" Width="430" Height="220" IndentSize="30">
                 <TreeViewItem Header="Documents" IsExpanded="True">
                     <TreeViewItem Header="Work" IsExpanded="True">
                         <TreeViewItem Header="Project A" />
-                        <TreeViewItem Header="Project B" />
+                        <TreeViewItem Header="Project B" IsExpanded="True">
+                            <TreeViewItem Header="Sprint Notes" />
+                        </TreeViewItem>
                     </TreeViewItem>
                     <TreeViewItem Header="Personal">
                         <TreeViewItem Header="Photos" />
