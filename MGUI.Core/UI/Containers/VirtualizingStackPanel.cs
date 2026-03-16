@@ -118,6 +118,7 @@ namespace MGUI.Core.UI.Containers
         private int _cachedLastNeeded  = -1;
 
         private MGScrollViewer _parentScrollViewer;
+        private EventHandler<EventArgs<float>> _parentVerticalOffsetChangedHandler;
 
         private void EnsureScrollViewerAttached()
         {
@@ -129,8 +130,15 @@ namespace MGUI.Core.UI.Containers
             if (TryFindParentOfType<MGScrollViewer>(out MGScrollViewer sv))
             {
                 _parentScrollViewer = sv;
-                _parentScrollViewer.VerticalOffsetChanged += (s, e) => LayoutChanged(this, true);
+                _parentVerticalOffsetChangedHandler ??= (_, _) => RequestVirtualizationLayoutRefresh();
+                _parentScrollViewer.VerticalOffsetChanged += _parentVerticalOffsetChangedHandler;
             }
+        }
+
+        private void RequestVirtualizationLayoutRefresh()
+        {
+            InvalidateLayout();
+            SelfOrParentWindow.QueueLayoutRefresh = true;
         }
 
         private void RecycleAllItems()
