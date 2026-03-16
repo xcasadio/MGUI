@@ -234,7 +234,7 @@ Resultat:
 - `MGTextBox` ne pousse plus ses couleurs de selection depuis le constructeur, laissant ce role au template `TextBox.Default`.
 - La tache reste volontairement bornee: le moteur d'edition de `MGTextBox` et la logique de donnees de `MGTreeView` n'ont pas ete rouverts.
 
-### ⚪ 5. Nettoyer la famille bouton et les controles satellites encore couples au chrome
+### ✅ 5. Nettoyer la famille bouton et les controles satellites encore couples au chrome
 
 But:
 eviter qu'un theme apparence-complete soit bloque par des controles de base encore trop lies a leur implementation visuelle.
@@ -257,6 +257,12 @@ Criteres d'acceptation:
 - les controles de base n'imposent plus un style cache difficile a contourner ;
 - les exceptions residuelles sont bornees et justifiees ;
 - la phase 2 peut s'appuyer sur ces controles sans incoherence structurelle.
+
+Resultat:
+
+- `MGToolTip` utilise maintenant `ToolTip.Default`, un `ControlTemplate` dedie qui reemploie la structure de fenetre existante mais deplace son chrome hors du constructeur.
+- Les defaults tooltip critiques (`DrawOffset`, foreground, padding, bordure, minima) sont maintenant centralises dans `MGControlTemplateCatalog`.
+- La famille bouton n'a pas ete integralement refondue dans cette tache ; les cas restant fortement relies au draw specialise (`MGCheckBox`, `MGRadioButton`) restent des exceptions volontaires pour ce chantier.
 
 ## Phase 2 - Declarer les templates par type dans un theme
 

@@ -21,6 +21,7 @@ namespace MGUI.Core.UI.Styling
         private static readonly Lazy<IReadOnlyDictionary<string, ControlTemplateDefinition>> BuiltInXamlTemplateDefinitions = new(LoadBuiltInXamlTemplateDefinitions);
 
         public const string WindowTemplateName = "Window.Default";
+        public const string ToolTipTemplateName = "ToolTip.Default";
         public const string OverlayTemplateName = "Overlay.Default";
         public const string ContextMenuTemplateName = "ContextMenu.Default";
         public const string ContextMenuItemTemplateName = "ContextMenuItem.Default";
@@ -47,6 +48,7 @@ namespace MGUI.Core.UI.Styling
             }
 
             Register(Resources, CreateWindowTemplate());
+            Register(Resources, CreateToolTipTemplate());
             Register(Resources, CreateOverlayTemplate());
             Register(Resources, ContextMenuTemplateName, ApplyContextMenuTemplate);
             Register(Resources, ContextMenuItemTemplateName, ApplyContextMenuItemTemplate);
@@ -90,6 +92,9 @@ namespace MGUI.Core.UI.Styling
 
         private static MGControlTemplate CreateWindowTemplate()
             => new(WindowTemplateName, CreateWindowTemplateStructure, null, ApplyWindowTemplate);
+
+        private static MGControlTemplate CreateToolTipTemplate()
+            => new(ToolTipTemplateName, CreateWindowTemplateStructure, null, ApplyToolTipTemplate);
 
         private static MGControlTemplate CreateOverlayTemplate()
             => new(OverlayTemplateName, CreateOverlayTemplateStructure, null, ApplyOverlayTemplate);
@@ -406,6 +411,34 @@ namespace MGUI.Core.UI.Styling
             if (!Context.IsThemeRefresh && CloseButton.Content == null)
             {
                 CloseButton.SetContent(new MGTextBlock(Overlay.Host.ParentWindow, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
+            }
+        }
+
+        private static void ApplyToolTipTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGToolTip ToolTip)
+            {
+                return;
+            }
+
+            ApplyWindowTemplate(Context);
+
+            MGBorder Border = Context.GetRequiredPart<MGBorder>(MGWindow.BorderPartName);
+            MGTheme Theme = ToolTip.GetTheme();
+
+            Context.ApplyThemeDefault("ToolTip.BorderBrush", Color.Black.AsFillBrush().AsUniformBorderBrush(), () => Border.BorderBrush, value => Border.BorderBrush = value);
+            Context.ApplyThemeDefault("ToolTip.BorderThickness", new Thickness(2), () => Border.BorderThickness, value => Border.BorderThickness = value);
+            Context.ApplyThemeDefault("ToolTip.Padding", new Thickness(6, 3), () => ToolTip.Padding, value => ToolTip.Padding = value);
+            Context.ApplyThemeDefault("ToolTip.DrawOffset", Theme.ToolTipOffset, () => ToolTip.DrawOffset, value => ToolTip.DrawOffset = value);
+            Context.ApplyThemeDefault("ToolTip.TextForeground", Theme.ToolTipTextForeground.GetCopy(), () => ToolTip.DefaultTextForeground, value => ToolTip.DefaultTextForeground = value);
+            Context.ApplyThemeDefault("ToolTip.MinWidth", 10, () => ToolTip.MinWidth ?? 0, value => ToolTip.MinWidth = value);
+            Context.ApplyThemeDefault("ToolTip.MinHeight", 10, () => ToolTip.MinHeight ?? 0, value => ToolTip.MinHeight = value);
+
+            if (!Context.IsThemeRefresh)
+            {
+                ToolTip.IsUserResizable = false;
+                ToolTip.IsTitleBarVisible = false;
+                ToolTip.IsCloseButtonVisible = false;
             }
         }
 

@@ -10,6 +10,7 @@ using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
 using MGUI.Core.UI.Data_Binding.Converters;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -78,20 +79,13 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                MGTheme ActualTheme = (this.Theme ?? Window.GetTheme());
-
                 this.Host = Host;
-                BorderBrush = Color.Black.AsFillBrush().AsUniformBorderBrush();
-                BorderThickness = new(2);
-                DrawOffset = ActualTheme.ToolTipOffset;
+                ControlTemplateName = MGControlTemplateCatalog.ToolTipTemplateName;
                 ShowOnDisabled = false;
                 ShowDelayOverride = null;
-                DefaultTextForeground = ActualTheme.ToolTipTextForeground.GetCopy();
-                Padding = new(6,3);
-                MinWidth = 10;
-                MinHeight = 10;
                 IsUserResizable = false;
                 IsTitleBarVisible = false;
+                IsCloseButtonVisible = false;
 
 #if NEVER
                 Host.OnLayoutBoundsChanged += (sender, e) =>

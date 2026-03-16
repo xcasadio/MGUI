@@ -133,6 +133,7 @@ public class ControlTemplateInfrastructureTests
         MGControlTemplateCatalog.RegisterDefaults(resources);
 
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.WindowTemplateName, out _));
+        Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ToolTipTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.OverlayTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ContextMenuTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ContextMenuItemTemplateName, out _));
@@ -304,6 +305,17 @@ public class ControlTemplateInfrastructureTests
 
         Assert.Contains("MGControlTemplateCatalog.WindowTemplateName", source);
         Assert.Contains("base.GetRequiredControlTemplateParts()", source);
+    }
+
+    [Fact]
+    public void ToolTip_Uses_Dedicated_Control_Template_Defaults()
+    {
+        string toolTipSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGToolTip.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.Contains("ControlTemplateName = MGControlTemplateCatalog.ToolTipTemplateName;", toolTipSource);
+        Assert.Contains("ToolTipTemplateName = \"ToolTip.Default\"", catalogSource);
+        Assert.Contains("ApplyToolTipTemplate", catalogSource);
     }
 
     [Fact]
