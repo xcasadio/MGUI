@@ -133,7 +133,7 @@ Frontiere controle / template retenue:
 - Le theme ne doit pas decrire la structure, mais choisir des templates et fournir les tokens visuels partages.
 - Les styles restent un mecanisme declaratif de surcharge locale ou implicite, distinct du mapping theme -> template.
 
-### ⚪ 2. Finaliser le caractere lookless de `MGTabControl`
+### ✅ 2. Finaliser le caractere lookless de `MGTabControl`
 
 But:
 faire de `MGTabControl` un controle dont le chrome et les wrappers visuels ne dependent plus d'helpers de style imperatifs internes.
@@ -160,6 +160,13 @@ Criteres d'acceptation:
 - le look des headers ne depend plus d'un helper imperatif principal dans le controle ;
 - un template alternatif peut changer la topologie visuelle du header area sans toucher au comportement ;
 - la navigation et la selection restent stables.
+
+Resultat:
+
+- `MGTabControl` ne porte plus ses styles par defaut de headers dans des helpers visuels internes.
+- Les wrappers de headers par defaut restent des `MGButton`, mais leur chrome est maintenant pilote par `SelectedTabHeaderControlTemplateName` et `UnselectedTabHeaderControlTemplateName`.
+- Le catalogue enregistre deux `ControlTemplate` dedies pour les wrappers d'onglets, ce qui rend leur apparence remplaçable comme une ressource de skin sans retoucher la logique de selection.
+- Le pont XAML a ete aligne sur ce nouveau chemin pour que les surcharges declaratives continuent de fonctionner.
 
 ### ⚪ 3. Finaliser le caractere lookless de `MGComboBox`
 

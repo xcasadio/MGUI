@@ -30,6 +30,8 @@ namespace MGUI.Core.UI.Styling
         public const string TreeViewTemplateName = "TreeView.Default";
         public const string TextBoxTemplateName = "TextBox.Default";
         public const string TabControlTemplateName = "TabControl.Default";
+        public const string SelectedTabHeaderTemplateName = "TabControl.Header.Selected";
+        public const string UnselectedTabHeaderTemplateName = "TabControl.Header.Unselected";
         public const string DockTabItemTemplateName = "Dock.TabItem.Default";
         public const string DockAutoHideDrawerTemplateName = "Dock.AutoHideDrawer.Default";
         public const string DockAutoHideStripTemplateName = "Dock.AutoHideStrip.Default";
@@ -53,6 +55,8 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, CreateTreeViewTemplate());
             Register(Resources, CreateTextBoxTemplate());
             Register(Resources, CreateTabControlTemplate());
+            Register(Resources, SelectedTabHeaderTemplateName, ApplySelectedTabHeaderTemplate);
+            Register(Resources, UnselectedTabHeaderTemplateName, ApplyUnselectedTabHeaderTemplate);
             Register(Resources, DockTabItemTemplateName, ApplyDockTabItemTemplate);
             Register(Resources, DockAutoHideDrawerTemplateName, ApplyDockAutoHideDrawerTemplate);
             Register(Resources, DockAutoHideStripTemplateName, ApplyDockAutoHideStripTemplate);
@@ -571,30 +575,83 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("TabControl.BorderThickness", Theme.TabControl.BorderThickness, () => Border.BorderThickness, value => Border.BorderThickness = value);
             Context.ApplyThemeDefault("TabControl.HeadersSpacing", Theme.TabControl.HeadersSpacing, () => HeadersPanel.Spacing, value => HeadersPanel.Spacing = value);
             Context.ApplyThemeDefault("TabControl.HeadersBackground", Theme.TitleBackground.GetValue(true), () => HeadersPanel.BackgroundBrush, value => HeadersPanel.BackgroundBrush = value);
+            Context.ApplyThemeDefault("TabControl.SelectedHeaderTemplate", SelectedTabHeaderTemplateName,
+                () => TabControl.SelectedTabHeaderControlTemplateName, value => TabControl.SelectedTabHeaderControlTemplateName = value);
+            Context.ApplyThemeDefault("TabControl.UnselectedHeaderTemplate", UnselectedTabHeaderTemplateName,
+                () => TabControl.UnselectedTabHeaderControlTemplateName, value => TabControl.UnselectedTabHeaderControlTemplateName = value);
+        }
 
-            if (!Context.IsThemeRefresh)
+        private static bool TryGetOwningTabControl(MGButton Button, out MGTabControl TabControl)
+        {
+            if (Button?.Metadata?.TryGetValue(MGTabControl.HeaderTemplateOwnerMetadataKey, out object owner) == true
+                && owner is MGTabControl typedOwner)
             {
-                TabControl.SelectedTabHeaderTemplate = (MGTabItem TabItem) =>
-                {
-                    MGButton Button = new(TabItem.SelfOrParentWindow, _ => TabItem.IsTabSelected = true)
-                    {
-                        IsFocusable = false
-                    };
-                    TabControl.ApplyDefaultSelectedTabHeaderStyle(Button);
-                    return Button;
-                };
+                TabControl = typedOwner;
+                return true;
+            }
 
-                TabControl.UnselectedTabHeaderTemplate = (MGTabItem TabItem) =>
-                {
-                    MGButton Button = new(TabItem.SelfOrParentWindow, _ => TabItem.IsTabSelected = true)
-                    {
-                        IsFocusable = false
-                    };
-                    TabControl.ApplyDefaultUnselectedTabHeaderStyle(Button);
-                    return Button;
-                };
+            TabControl = null;
+            return false;
+        }
+
+        private static void ApplyTabHeaderTemplate(MGControlTemplateContext Context, bool IsSelected)
+        {
+            if (Context.Owner is not MGButton Button || !TryGetOwningTabControl(Button, out MGTabControl TabControl))
+            {
+                return;
+            }
+
+            MGTheme theme = TabControl.GetTheme();
+            if (theme == null)
+            {
+                return;
+            }
+
+            Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderBrush" : "TabHeader.Unselected.BorderBrush",
+                IsSelected ? MGUniformBorderBrush.Black : MGUniformBorderBrush.Gray,
+                () => Button.BorderBrush,
+                value => Button.BorderBrush = value);
+            Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Background" : "TabHeader.Unselected.Background",
+                IsSelected ? theme.SelectedTabHeaderBackground.GetValue(true) : theme.UnselectedTabHeaderBackground.GetValue(true),
+                () => Button.BackgroundBrush,
+                value => Button.BackgroundBrush = value);
+            Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Foreground" : "TabHeader.Unselected.Foreground",
+                theme.TextBlockFallbackForeground.GetValue(true).NormalValue,
+                () => Button.DefaultTextForeground.NormalValue,
+                value => Button.DefaultTextForeground.SetAll(value));
+
+            switch (TabControl.TabHeaderPosition)
+            {
+                case Dock.Left:
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Left" : "TabHeader.Unselected.Padding.Left", new Thickness(6, 5, 6, 5), () => Button.Padding, value => Button.Padding = value);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderThickness.Left" : "TabHeader.Unselected.BorderThickness.Left", new Thickness(1, 1, 0, 1), () => Button.BorderThickness, value => Button.BorderThickness = value);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.HorizontalAlignment.Left" : "TabHeader.Unselected.HorizontalAlignment.Left", HorizontalAlignment.Right, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value);
+                    break;
+                case Dock.Top:
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Top" : "TabHeader.Unselected.Padding.Top", IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3), () => Button.Padding, value => Button.Padding = value);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderThickness.Top" : "TabHeader.Unselected.BorderThickness.Top", new Thickness(1, 1, 1, 0), () => Button.BorderThickness, value => Button.BorderThickness = value);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.VerticalAlignment.Top" : "TabHeader.Unselected.VerticalAlignment.Top", VerticalAlignment.Bottom, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value);
+                    break;
+                case Dock.Right:
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Right" : "TabHeader.Unselected.Padding.Right", new Thickness(6, 5, 6, 5), () => Button.Padding, value => Button.Padding = value);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderThickness.Right" : "TabHeader.Unselected.BorderThickness.Right", new Thickness(0, 1, 1, 1), () => Button.BorderThickness, value => Button.BorderThickness = value);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.HorizontalAlignment.Right" : "TabHeader.Unselected.HorizontalAlignment.Right", HorizontalAlignment.Left, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value);
+                    break;
+                case Dock.Bottom:
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Bottom" : "TabHeader.Unselected.Padding.Bottom", IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3), () => Button.Padding, value => Button.Padding = value);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderThickness.Bottom" : "TabHeader.Unselected.BorderThickness.Bottom", new Thickness(1, 0, 1, 1), () => Button.BorderThickness, value => Button.BorderThickness = value);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.VerticalAlignment.Bottom" : "TabHeader.Unselected.VerticalAlignment.Bottom", VerticalAlignment.Top, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value);
+                    break;
+                default:
+                    throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {TabControl.TabHeaderPosition}");
             }
         }
+
+        private static void ApplySelectedTabHeaderTemplate(MGControlTemplateContext Context)
+            => ApplyTabHeaderTemplate(Context, true);
+
+        private static void ApplyUnselectedTabHeaderTemplate(MGControlTemplateContext Context)
+            => ApplyTabHeaderTemplate(Context, false);
 
         private static void ApplyDockTabItemTemplate(MGControlTemplateContext Context)
         {

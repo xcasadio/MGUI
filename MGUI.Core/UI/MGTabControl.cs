@@ -21,6 +21,7 @@ namespace MGUI.Core.UI
     {
         public const string BorderPartName = "PART_Border";
         public const string HeadersPanelPartName = "PART_HeadersPanel";
+        internal const string HeaderTemplateOwnerMetadataKey = "TabControl.Owner";
 
         protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
         {
@@ -164,75 +165,10 @@ namespace MGUI.Core.UI
             }
         }
 
-        public void ApplyDefaultSelectedTabHeaderStyle(MGButton Button)
-        {
-            Button.BorderBrush = MGUniformBorderBrush.Black;
-            Button.BackgroundBrush = GetTheme().SelectedTabHeaderBackground.GetValue(true);
-            Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
-
-            switch (TabHeaderPosition)
-            {
-                case Dock.Left:
-                    Button.Padding = new(6, 5, 6, 5);
-                    Button.BorderThickness = new(1, 1, 0, 1);
-                    Button.HorizontalAlignment = HorizontalAlignment.Right;
-                    break;
-                case Dock.Top:
-                    Button.Padding = new(8, 5, 8, 5);
-                    Button.BorderThickness = new(1, 1, 1, 0);
-                    Button.VerticalAlignment = VerticalAlignment.Bottom;
-                    break;
-                case Dock.Right:
-                    Button.Padding = new(6, 5, 6, 5);
-                    Button.BorderThickness = new(0, 1, 1, 1);
-                    Button.HorizontalAlignment = HorizontalAlignment.Left;
-                    break;
-                case Dock.Bottom:
-                    Button.Padding = new(8, 5, 8, 5);
-                    Button.BorderThickness = new(1, 0, 1, 1);
-                    Button.VerticalAlignment = VerticalAlignment.Top;
-                    break;
-                default: throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {TabHeaderPosition}");
-            }
-        }
-
-        public void ApplyDefaultUnselectedTabHeaderStyle(MGButton Button)
-        {
-            Button.BorderBrush = MGUniformBorderBrush.Gray;
-            Button.BackgroundBrush = GetTheme().UnselectedTabHeaderBackground.GetValue(true);
-            Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
-
-            switch (TabHeaderPosition)
-            {
-                case Dock.Left:
-                    Button.Padding = new(6, 5, 6, 5);
-                    Button.BorderThickness = new(1, 1, 0, 1);
-                    Button.HorizontalAlignment = HorizontalAlignment.Right;
-                    break;
-                case Dock.Top:
-                    Button.Padding = new(8, 3, 8, 3);
-                    Button.BorderThickness = new(1, 1, 1, 0);
-                    Button.VerticalAlignment = VerticalAlignment.Bottom;
-                    break;
-                case Dock.Right:
-                    Button.Padding = new(6, 5, 6, 5);
-                    Button.BorderThickness = new(0, 1, 1, 1);
-                    Button.HorizontalAlignment = HorizontalAlignment.Left;
-                    break;
-                case Dock.Bottom:
-                    Button.Padding = new(8, 3, 8, 3);
-                    Button.BorderThickness = new(1, 0, 1, 1);
-                    Button.VerticalAlignment = VerticalAlignment.Top;
-                    break;
-                default: throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {TabHeaderPosition}");
-            }
-        }
-
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Func<MGTabItem, MGButton> _SelectedTabHeaderTemplate;
-        /// <summary>Creates the wrapper element that hosts the given <see cref="MGTabItem"/>'s <see cref="MGTabItem.Header"/> for the selected tab.<para/>
-        /// Default style: <see cref="ApplyDefaultSelectedTabHeaderStyle(MGButton)"/><para/>
-        /// See also: <see cref="UnselectedTabHeaderTemplate"/></summary>
+        /// <summary>Optional override factory that creates the wrapper element hosting the given <see cref="MGTabItem"/>'s <see cref="MGTabItem.Header"/> for the selected tab.<para/>
+        /// If null, the default header wrapper path is used and styled through <see cref="SelectedTabHeaderControlTemplateName"/>.</summary>
         public Func<MGTabItem, MGButton> SelectedTabHeaderTemplate
         {
             get => _SelectedTabHeaderTemplate;
@@ -256,9 +192,8 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Func<MGTabItem, MGButton> _UnselectedTabHeaderTemplate;
-        /// <summary>Creates the wrapper element that hosts the given <see cref="MGTabItem"/>'s <see cref="MGTabItem.Header"/> for tabs that aren't selected.<para/>
-        /// Default style: <see cref="ApplyDefaultUnselectedTabHeaderStyle(MGButton)"/><para/>
-        /// See also: <see cref="SelectedTabHeaderTemplate"/></summary>
+        /// <summary>Optional override factory that creates the wrapper element hosting the given <see cref="MGTabItem"/>'s <see cref="MGTabItem.Header"/> for tabs that aren't selected.<para/>
+        /// If null, the default header wrapper path is used and styled through <see cref="UnselectedTabHeaderControlTemplateName"/>.</summary>
         public Func<MGTabItem, MGButton> UnselectedTabHeaderTemplate
         {
             get => _UnselectedTabHeaderTemplate;
@@ -280,14 +215,107 @@ namespace MGUI.Core.UI
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _SelectedTabHeaderControlTemplateName;
+        public string SelectedTabHeaderControlTemplateName
+        {
+            get => _SelectedTabHeaderControlTemplateName;
+            set
+            {
+                if (_SelectedTabHeaderControlTemplateName != value)
+                {
+                    _SelectedTabHeaderControlTemplateName = value;
+                    foreach (MGTabItem tab in ActualTabHeaders.Keys.ToList())
+                    {
+                        if (tab.IsTabSelected)
+                        {
+                            UpdateHeaderWrapper(tab);
+                        }
+                    }
+                    NPC(nameof(SelectedTabHeaderControlTemplateName));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _UnselectedTabHeaderControlTemplateName;
+        public string UnselectedTabHeaderControlTemplateName
+        {
+            get => _UnselectedTabHeaderControlTemplateName;
+            set
+            {
+                if (_UnselectedTabHeaderControlTemplateName != value)
+                {
+                    _UnselectedTabHeaderControlTemplateName = value;
+                    foreach (MGTabItem tab in ActualTabHeaders.Keys.ToList())
+                    {
+                        if (!tab.IsTabSelected)
+                        {
+                            UpdateHeaderWrapper(tab);
+                        }
+                    }
+                    NPC(nameof(UnselectedTabHeaderControlTemplateName));
+                }
+            }
+        }
+
+        private bool UsesCustomHeaderFactories => SelectedTabHeaderTemplate != null || UnselectedTabHeaderTemplate != null;
+
+        private MGButton CreateDefaultHeaderWrapper(MGTabItem Tab)
+        {
+            MGButton button = new(Tab.SelfOrParentWindow, _ => Tab.IsTabSelected = true)
+            {
+                IsFocusable = false,
+            };
+            button.Metadata[HeaderTemplateOwnerMetadataKey] = this;
+            ApplyHeaderWrapperTemplate(button, Tab.IsTabSelected);
+            return button;
+        }
+
+        private MGButton CreateHeaderWrapper(MGTabItem Tab)
+        {
+            MGButton wrapper = Tab.IsTabSelected
+                ? SelectedTabHeaderTemplate?.Invoke(Tab)
+                : UnselectedTabHeaderTemplate?.Invoke(Tab);
+
+            wrapper ??= CreateDefaultHeaderWrapper(Tab);
+            wrapper.Metadata[HeaderTemplateOwnerMetadataKey] = this;
+            wrapper.IsFocusable = false;
+            ApplyHeaderWrapperTemplate(wrapper, Tab.IsTabSelected);
+            return wrapper;
+        }
+
+        private void ApplyHeaderWrapperTemplate(MGButton HeaderWrapper, bool IsSelected)
+        {
+            if (HeaderWrapper == null)
+            {
+                return;
+            }
+
+            if (!UsesCustomHeaderFactories)
+            {
+                HeaderWrapper.ControlTemplateName = IsSelected
+                    ? SelectedTabHeaderControlTemplateName
+                    : UnselectedTabHeaderControlTemplateName;
+            }
+
+            HeaderWrapper.IsSelected = IsSelected;
+            HeaderWrapper.ApplyControlTemplate(false);
+        }
+
         private void UpdateHeaderWrapper(MGTabItem Tab)
         {
             if (Tab != null && ActualTabHeaders.TryGetValue(Tab, out MGButton OldHeaderWrapper))
             {
-                MGButton NewHeaderWrapper = Tab.IsTabSelected ? SelectedTabHeaderTemplate(Tab) : UnselectedTabHeaderTemplate(Tab);
+                if (!UsesCustomHeaderFactories)
+                {
+                    ApplyHeaderWrapperTemplate(OldHeaderWrapper, Tab.IsTabSelected);
+                    return;
+                }
+
+                MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);
                 if (ManagedReplaceHeadersPanelChild(OldHeaderWrapper, NewHeaderWrapper))
                 {
-                    NewHeaderWrapper.IsSelected = Tab.IsTabSelected;
                     OldHeaderWrapper.SetContent(null as MGElement);
                     NewHeaderWrapper.SetContent(Tab.Header);
                     ActualTabHeaders[Tab] = NewHeaderWrapper;
@@ -410,7 +438,7 @@ namespace MGUI.Core.UI
         {
             MGTabItem Tab = new(this, TabHeader, TabContent);
 
-            MGButton HeaderWrapper = UnselectedTabHeaderTemplate(Tab);
+            MGButton HeaderWrapper = CreateHeaderWrapper(Tab);
             HeaderWrapper.SetContent(TabHeader);
             ActualTabHeaders.Add(Tab, HeaderWrapper);
 
@@ -522,7 +550,14 @@ namespace MGUI.Core.UI
                 Spacing = 0;
 
                 HeaderPosition = Dock.Top;
-                HeaderPositionChanged += (sender, e) => { ApplyHeadersPanelSettings(); };
+                HeaderPositionChanged += (sender, e) =>
+                {
+                    ApplyHeadersPanelSettings();
+                    foreach (MGTabItem tab in ActualTabHeaders.Keys.ToList())
+                    {
+                        UpdateHeaderWrapper(tab);
+                    }
+                };
 
                 IsFocusable = true;
 
@@ -555,6 +590,8 @@ namespace MGUI.Core.UI
                 };
 
                 ControlTemplateName = MGControlTemplateCatalog.TabControlTemplateName;
+                SelectedTabHeaderControlTemplateName = MGControlTemplateCatalog.SelectedTabHeaderTemplateName;
+                UnselectedTabHeaderControlTemplateName = MGControlTemplateCatalog.UnselectedTabHeaderTemplateName;
             }
         }
 
@@ -568,11 +605,6 @@ namespace MGUI.Core.UI
             }
 
             BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.TabControl);
-
-            foreach (MGTabItem tab in ActualTabHeaders.Keys.ToList())
-            {
-                UpdateHeaderWrapper(tab);
-            }
         }
 
         private void Tab_HeaderChanged(object sender, EventArgs<MGElement> e)

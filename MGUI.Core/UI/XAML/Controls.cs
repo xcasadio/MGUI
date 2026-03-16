@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using MGUI.Core.UI.Data_Binding;
+using MGUI.Core.UI.Styling;
 
 #if UseWPF
 using System.Windows.Markup;
@@ -2507,7 +2508,9 @@ namespace MGUI.Core.UI.XAML
                 TabControl.SelectedTabHeaderTemplate = (TabItem) =>
                 {
                     MGButton Button = new(TabItem.SelfOrParentWindow, x => TabItem.IsTabSelected = true);
-                    TabControl.ApplyDefaultSelectedTabHeaderStyle(Button);
+                    Button.Metadata[MGTabControl.HeaderTemplateOwnerMetadataKey] = TabControl;
+                    Button.ControlTemplateName = TabControl.SelectedTabHeaderControlTemplateName ?? MGControlTemplateCatalog.SelectedTabHeaderTemplateName;
+                    Button.ApplyControlTemplate(false);
                     SelectedTabHeaderTemplate.ApplySettings(TabItem, Button, true);
 
                     //  When a Tab is selected, the wrapper Button is implcitly set to IsSelected=true.
@@ -2533,7 +2536,9 @@ namespace MGUI.Core.UI.XAML
                 TabControl.UnselectedTabHeaderTemplate = (TabItem) =>
                 {
                     MGButton Button = new(TabItem.SelfOrParentWindow, x => TabItem.IsTabSelected = true);
-                    TabControl.ApplyDefaultUnselectedTabHeaderStyle(Button);
+                    Button.Metadata[MGTabControl.HeaderTemplateOwnerMetadataKey] = TabControl;
+                    Button.ControlTemplateName = TabControl.UnselectedTabHeaderControlTemplateName ?? MGControlTemplateCatalog.UnselectedTabHeaderTemplateName;
+                    Button.ApplyControlTemplate(false);
                     UnselectedTabHeaderTemplate.ApplySettings(TabItem, Button, true);
                     return Button;
                 };

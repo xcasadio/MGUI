@@ -142,6 +142,8 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TreeViewTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TextBoxTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TabControlTemplateName, out _));
+        Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.SelectedTabHeaderTemplateName, out _));
+        Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.UnselectedTabHeaderTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockTabItemTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockAutoHideDrawerTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockAutoHideStripTemplateName, out _));
@@ -223,6 +225,19 @@ public class ControlTemplateInfrastructureTests
 
         Assert.Contains("HeaderPresenter.SetContent(HeadersPanelElement);", source);
         Assert.Contains("HeadersPanelElement.TryRemoveAll();", source);
+    }
+
+    [Fact]
+    public void MGTabControl_Default_Header_Wrappers_Use_Control_Template_Names()
+    {
+        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.Contains("SelectedTabHeaderControlTemplateName", tabControlSource);
+        Assert.Contains("UnselectedTabHeaderControlTemplateName", tabControlSource);
+        Assert.Contains("HeaderWrapper.ControlTemplateName", tabControlSource);
+        Assert.Contains("SelectedTabHeaderTemplateName = \"TabControl.Header.Selected\"", catalogSource);
+        Assert.Contains("UnselectedTabHeaderTemplateName = \"TabControl.Header.Unselected\"", catalogSource);
     }
 
     [Fact]
