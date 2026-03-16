@@ -46,6 +46,7 @@ All control names are prefixed with 'MG' and many controls have similar names an
 [Wiki is under construction.](https://github.com/Videogamers0/MGUI/wiki) More documentation coming soon... maybe...
 
 Style/theme refactor notes: see [Docs/style-theme-migration-guide.md](Docs/style-theme-migration-guide.md).
+Theme-driven control template mappings: see [Docs/lookless-theme-template-guide.md](Docs/lookless-theme-template-guide.md).
   
 # Examples
   

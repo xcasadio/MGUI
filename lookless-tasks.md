@@ -397,7 +397,7 @@ Resultat:
 - Les tests verrouillent l'heritage `BasedOn`, l'override par type, la precedence `local -> theme -> fallback`, ainsi que le changement de theme via scopes de ressources parent/enfant.
 - Les themes sans section `ControlTemplates` restent compatibles et le chargement XAML des mappings fonctionne sans infrastructure supplementaire.
 
-### 🟡 10. Documenter, mettre a jour les samples et stabiliser le workflow de skinning
+### ✅ 10. Documenter, mettre a jour les samples et stabiliser le workflow de skinning
 
 But:
 livrer un mode d'emploi clair pour creer de vraies apparences themables.
@@ -420,6 +420,12 @@ Criteres d'acceptation:
 - un utilisateur peut comprendre comment creer un theme a apparence complete sans lire tout le moteur ;
 - un sample prouve qu'un meme controle peut prendre des apparences structurellement differentes selon le theme ;
 - la surface finale est coherente.
+
+Resultat:
+
+- Un guide court documente maintenant le modele final de resolution et la declaration `ThemeDefinition.ControlTemplates`.
+- Le sample `StyleThemeRefactor` enregistre un template `ListView.HeadersBottom` et deux skins (`BlueprintSkin`, `LedgerSkin`) qui appliquent des structures differentes au meme `ListView`.
+- La compilation ciblee de `MGUI.Samples` passe, ce qui verrouille le workflow de demonstration sans reouvrir le runtime principal.
 
 ## Definition de fini
 

@@ -1,6 +1,7 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:System="clr-namespace:System;assembly=mscorlib"
+    xmlns:controls="clr-namespace:MGUI.Samples.Controls;assembly=MGUI.Samples"
         Left="460" Top="30" Width="760" Height="720" TitleText="Style / Theme Refactor" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
@@ -30,11 +31,11 @@
             <Separator />
 
             <DockPanel>
-                <TextBlock Dock="Top" Text="Switch the active theme at runtime. The same controls keep their behavior while their theme-driven values are reapplied." />
+                <TextBlock Dock="Top" Text="Switch the active skin at runtime. The same controls keep their behavior while theme-selected templates and chrome are reapplied." />
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
-                    <Button Name="ApplyDarkBlueThemeButton" Content="Dark Blue Theme" />
-                    <Button Name="ApplyLightThemeButton" Content="Light Gray Theme" />
-                    <TextBlock Name="ActiveThemeText" VerticalAlignment="Center" Text="Active theme: Dark Blue" />
+                    <Button Name="ApplyBlueprintSkinButton" Content="Blueprint Skin" />
+                    <Button Name="ApplyLedgerSkinButton" Content="Ledger Skin" />
+                    <TextBlock Name="ActiveThemeText" VerticalAlignment="Center" Text="Active skin: Blueprint" />
                 </StackPanel>
             </DockPanel>
             <Separator />
@@ -49,6 +50,28 @@
                             <System:String>High</System:String>
                         </ComboBox>
                         <ListBox Name="SampleListBox" ItemType="{x:Type System:String}" Width="260" Height="150" Header="Template-backed ListBox" ControlTemplate="ListBox.Default" />
+                        <ListView Name="SampleListView" Width="320" Height="160" HorizontalAlignment="Left" ItemType="{x:Type controls:Person}">
+                            <ListViewColumn Width="48">
+                                <ListViewColumn.Header>
+                                    <TextBlock IsBold="True" TextAlignment="Center" Text="Id" />
+                                </ListViewColumn.Header>
+                                <ListViewColumn.CellTemplate>
+                                    <ContentTemplate>
+                                        <TextBlock HorizontalAlignment="Center" Foreground="LightYellow" Text="{MGBinding Path=Id, Mode=OneTime, FallbackValue='&lt;Id&gt;'}" />
+                                    </ContentTemplate>
+                                </ListViewColumn.CellTemplate>
+                            </ListViewColumn>
+                            <ListViewColumn Width="*">
+                                <ListViewColumn.Header>
+                                    <TextBlock IsBold="True" TextAlignment="Center" Text="First Name" />
+                                </ListViewColumn.Header>
+                            </ListViewColumn>
+                            <ListViewColumn Width="*">
+                                <ListViewColumn.Header>
+                                    <TextBlock IsBold="True" TextAlignment="Center" Text="Last Name" />
+                                </ListViewColumn.Header>
+                            </ListViewColumn>
+                        </ListView>
                         <TreeView Width="260" Height="170" ControlTemplate="TreeView.Default">
                             <TreeViewItem Header="Characters" IsExpanded="True">
                                 <TreeViewItem Header="Warrior" />
@@ -89,7 +112,7 @@
                 <Border Row="1" Column="0" ColumnSpan="2" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
                     <StackPanel Orientation="Vertical" Spacing="6">
                         <TextBlock StyleNames="Header1" Text="Migration Notes" />
-                        <TextBlock Text="The refactor keeps the runtime behavior in controls and moves default chrome decisions into named control templates resolved through MGResources." />
+                        <TextBlock Text="The refactor keeps runtime behavior in controls and lets themes pick named control templates by control type. In this sample, the ListView keeps the same data and behavior while the active skin moves its headers from the top to the bottom." />
                         <TextBox Name="ExampleXamlText" Height="170" IsReadonly="True" Background="rgb(12,16,82)" />
                     </StackPanel>
                 </Border>
