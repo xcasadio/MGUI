@@ -259,11 +259,15 @@ public class ControlTemplateInfrastructureTests
     public void TreeView_And_TextBox_Default_Templates_Are_Structural()
     {
         string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string treeViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs");
+        string textBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs");
 
         Assert.Contains("CreateTreeViewTemplate()", source);
         Assert.Contains("CreateTextBoxTemplate()", source);
         Assert.Contains("new(TreeViewTemplateName, CreateTreeViewTemplateStructure", source);
         Assert.Contains("new(TextBoxTemplateName, CreateTextBoxTemplateStructure", source);
+        Assert.DoesNotContain("ApplyDefaultStyles();", treeViewSource);
+        Assert.DoesNotContain("FocusedSelectionForegroundColor = Theme.TextBoxFocusedSelectionForeground;", textBoxSource);
     }
 
     [Fact]

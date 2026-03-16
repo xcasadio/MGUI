@@ -204,7 +204,7 @@ Resultat:
 - Le catalogue enregistre `ComboBox.DropdownItem.Default`, ce qui rend le chrome des lignes de dropdown remplaçable sans reouvrir la logique de selection.
 - `OnThemeChanged(...)` ne repousse plus directement le background principal du controle ni celui de la fenetre dropdown, laissant ce chrome au pipeline de templates.
 
-### ⚪ 4. Migrer `MGTextBox` et `MGTreeView` vers une structure plus lookless
+### ✅ 4. Migrer `MGTextBox` et `MGTreeView` vers une structure plus lookless
 
 But:
 etendre le modele lookless aux controles composites encore hybrides qui ont deja une base templateable.
@@ -227,6 +227,12 @@ Criteres d'acceptation:
 - les deux controles exposent une separation plus nette entre comportement et apparence ;
 - les elements de chrome majeurs ne sont plus recrées ou restyles ad hoc dans les chemins courants ;
 - le pipeline runtime reste stable.
+
+Resultat:
+
+- `MGTreeView` n'utilise plus son ancien chemin `ApplyDefaultStyles()` ; son chrome repasse entierement par `MGControlTemplateCatalog` et la reapplication de theme du pipeline template.
+- `MGTextBox` ne pousse plus ses couleurs de selection depuis le constructeur, laissant ce role au template `TextBox.Default`.
+- La tache reste volontairement bornee: le moteur d'edition de `MGTextBox` et la logique de donnees de `MGTreeView` n'ont pas ete rouverts.
 
 ### ⚪ 5. Nettoyer la famille bouton et les controles satellites encore couples au chrome
 

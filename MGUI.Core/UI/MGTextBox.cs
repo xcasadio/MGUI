@@ -1131,8 +1131,6 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                MGTheme Theme = GetTheme();
-
                 DrawBackgroundBorderOverlayEnabled = false;
                 Padding = new(6, 2, 6, 2);
                 MinHeight = 26;
@@ -1149,11 +1147,6 @@ namespace MGUI.Core.UI
 
                 LimitedCharacterCountFormatString = "[b]{{CharacterCount}}[/b] / [b]{{CharacterLimit}}[/b]";
                 LimitlessCharacterCountFormatString = "[b]{{CharacterCount}}[/b] character(s)";
-
-                FocusedSelectionForegroundColor = Theme.TextBoxFocusedSelectionForeground;
-                FocusedSelectionBackgroundColor = Theme.TextBoxFocusedSelectionBackground;
-                UnfocusedSelectionForegroundColor = Theme.TextBoxUnfocusedSelectionForeground;
-                UnfocusedSelectionBackgroundColor = Theme.TextBoxUnfocusedSelectionBackground;
 
                 MouseHandler.LMBPressedInside += (sender, e) =>
                 {

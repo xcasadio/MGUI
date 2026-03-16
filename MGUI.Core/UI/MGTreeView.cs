@@ -271,7 +271,6 @@ namespace MGUI.Core.UI
                 _VisibleItemsCache = new List<MGTreeViewItem>();
 
                 ControlTemplateName = MGControlTemplateCatalog.TreeViewTemplateName;
-                ApplyDefaultStyles();
             }
 
             // Enable keyboard navigation
@@ -484,31 +483,9 @@ namespace MGUI.Core.UI
             }
         }
 
-        /// <summary>
-        /// Applies the default visual styles to the tree view.
-        /// </summary>
-        private void ApplyDefaultStyles()
-        {
-            var theme = GetTheme();
-            BorderBrush = theme?.TreeViewBorderBrush ?? MGUniformBorderBrush.Black;
-            BorderThickness = theme?.TreeViewBorderThickness ?? new MonoGame.Extended.Thickness(1);
-            SelectionBackgroundBrush = theme?.TreeViewSelectionBackground?.GetValue(true) ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue));
-            if (theme != null)
-            {
-                SelectionForeground = theme.TreeViewSelectionForeground;
-            }
-
-            if (theme != null)
-            {
-                IndentSize = theme.TreeViewIndentSize;
-            }
-        }
-
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
             base.OnThemeChanged(PreviousTheme, CurrentTheme);
-
-            ApplyDefaultStyles();
 
             if (SelectedItem != null)
             {
