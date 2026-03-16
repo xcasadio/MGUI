@@ -80,7 +80,7 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 this.Host = Host;
-                ControlTemplateName = MGControlTemplateCatalog.ToolTipTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.ToolTipTemplateName;
                 ShowOnDisabled = false;
                 ShowDelayOverride = null;
                 IsUserResizable = false;

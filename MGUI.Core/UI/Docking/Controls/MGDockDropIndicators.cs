@@ -126,7 +126,7 @@ public class MGDockDropIndicators : MGElement
             // Full stretch to cover entire parent area
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
-            ControlTemplateName = MGControlTemplateCatalog.DockDropIndicatorsTemplateName;
+            DefaultControlTemplateName = MGControlTemplateCatalog.DockDropIndicatorsTemplateName;
         }
     }
 

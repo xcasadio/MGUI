@@ -266,7 +266,7 @@ Resultat:
 
 ## Phase 2 - Declarer les templates par type dans un theme
 
-### ⚪ 6. Definir le pont entre styles, ressources et templates de controle
+### ✅ 6. Definir le pont entre styles, ressources et templates de controle
 
 But:
 stabiliser la couche de resolution qui permettra a un theme de piloter le template final sans bricolage ad hoc.
@@ -294,7 +294,13 @@ Criteres d'acceptation:
 - il n'y a pas de conflit ambigu entre theme et style ;
 - la suite des taches peut implementer le mapping sans improvisation.
 
-### ⚪ 7. Etendre `ThemeDefinition` pour decrire le template par type de controle
+Resultat:
+
+- `MGElement` distingue maintenant le template explicite local du fallback structurel du controle via `DefaultControlTemplateName` et un chemin de resolution dedie.
+- Les controles migrés n'utilisent plus leurs templates integres comme des overrides locaux, ce qui ouvre un espace propre pour le futur mapping `theme -> type -> template`.
+- Des tests d'architecture verrouillent la presence du fallback et la migration des principaux controles composites vers ce nouveau contrat.
+
+### 🟡 7. Etendre `ThemeDefinition` pour decrire le template par type de controle
 
 But:
 ajouter dans le modele declaratif de theme une section dediee au choix des `ControlTemplate` par type de controle.

@@ -764,7 +764,7 @@ namespace MGUI.Core.UI
                 MinHeight = 26;
 
                 CanChangeContent = false;
-                ControlTemplateName = MGControlTemplateCatalog.ComboBoxTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.ComboBoxTemplateName;
 
                 SelfOrParentWindow.ScaleChanged += (sender, e) =>
                 {

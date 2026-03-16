@@ -374,7 +374,7 @@ namespace MGUI.Core.UI
 
                 _Columns = new();
 
-                ControlTemplateName = MGControlTemplateCatalog.ListViewTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.ListViewTemplateName;
                 SelectionMode = GridSelectionMode.None;
 
                 IsFocusable = true;

@@ -168,6 +168,12 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void MGElement_Exposes_Default_Control_Template_Fallback()
+    {
+        Assert.Equal(typeof(string), typeof(MGElement).GetProperty(nameof(MGElement.DefaultControlTemplateName))?.PropertyType);
+    }
+
+    [Fact]
     public void Control_Template_Context_Flags_Theme_Refresh()
     {
         bool? observedFlag = null;
@@ -218,6 +224,31 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("Template.CreateStructure", source);
         Assert.Contains("!IsThemeRefresh", source);
         Assert.Contains("AttachControlTemplateStructure(Structure)", source);
+        Assert.Contains("ResolveControlTemplateName()", source);
+    }
+
+    [Fact]
+    public void Migrated_Controls_Use_Default_Control_Template_Fallback_Instead_Of_Explicit_Local_Name()
+    {
+        string[] paths = new[]
+        {
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGListView.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs",
+            @"d:\development\repo\MGUI\MGUI.Core\UI\MGToolTip.cs",
+        };
+
+        foreach (string path in paths)
+        {
+            string source = File.ReadAllText(path);
+            Assert.Contains("DefaultControlTemplateName = MGControlTemplateCatalog.", source);
+        }
     }
 
     [Fact]

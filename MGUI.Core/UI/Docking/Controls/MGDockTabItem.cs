@@ -224,7 +224,7 @@ public class MGDockTabItem : MGElement
             NormalBrush = new MGSolidFillBrush(new Color(45, 45, 48));      // Dark gray (inactive)
             HoverBrush = new MGSolidFillBrush(new Color(62, 62, 66));       // Lighter gray (hover)
             ActiveBrush = new MGSolidFillBrush(new Color(37, 37, 38));      // Slightly darker but will have bright accent line
-            ControlTemplateName = MGControlTemplateCatalog.DockTabItemTemplateName;
+            DefaultControlTemplateName = MGControlTemplateCatalog.DockTabItemTemplateName;
 
             // Create title text — single-line only; the tab width adapts to its content
             _titleText = new MGTextBlock(window, panel?.Title ?? "Tab")

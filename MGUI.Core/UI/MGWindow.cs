@@ -1143,7 +1143,7 @@ namespace MGUI.Core.UI
                 _IsUserResizable = true;
                 _IsTitleBarVisible = true;
                 _IsCloseButtonVisible = true;
-                ControlTemplateName = MGControlTemplateCatalog.WindowTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.WindowTemplateName;
                 TitleText = null;
                 IsTitleBarVisible = true;
                 IsCloseButtonVisible = true;

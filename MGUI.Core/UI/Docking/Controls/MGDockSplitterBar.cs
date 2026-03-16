@@ -117,7 +117,7 @@ public class MGDockSplitterBar : MGElement
             NormalBrush = new MGSolidFillBrush(new Color(64, 64, 64));        // Dark gray
             HoverBrush = new MGSolidFillBrush(new Color(100, 150, 200));      // Blue highlight
             PressedBrush = new MGSolidFillBrush(new Color(70, 130, 180));     // Darker blue when dragging
-            ControlTemplateName = MGControlTemplateCatalog.DockSplitterTemplateName;
+            DefaultControlTemplateName = MGControlTemplateCatalog.DockSplitterTemplateName;
 
             // Subscribe to mouse press event to start dragging
             MouseHandler.LMBPressedInside += OnLMBPressed;

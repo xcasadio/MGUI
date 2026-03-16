@@ -1139,7 +1139,7 @@ namespace MGUI.Core.UI
                 AcceptsReturn = true;
                 AcceptsTab = true;
 
-                ControlTemplateName = MGControlTemplateCatalog.TextBoxTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.TextBoxTemplateName;
 
                 this.IsUserResizable = IsUserResizable;
                 PlaceholderText = null;

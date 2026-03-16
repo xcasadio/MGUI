@@ -696,7 +696,7 @@ namespace MGUI.Core.UI
                 MaxWidth = 600;
                 MinHeight = 0;
                 MaxHeight = 600;
-                ControlTemplateName = MGControlTemplateCatalog.ContextMenuTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.ContextMenuTemplateName;
 
                 HeaderSize = new Size(14, 14);
 

@@ -554,7 +554,7 @@ namespace MGUI.Core.UI
                 Padding = new(5);
 
                 ShowCloseButton = false;
-                ControlTemplateName = MGControlTemplateCatalog.OverlayTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.OverlayTemplateName;
             }
         }
     }

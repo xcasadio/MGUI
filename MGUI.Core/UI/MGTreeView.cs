@@ -270,7 +270,7 @@ namespace MGUI.Core.UI
 
                 _VisibleItemsCache = new List<MGTreeViewItem>();
 
-                ControlTemplateName = MGControlTemplateCatalog.TreeViewTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.TreeViewTemplateName;
             }
 
             // Enable keyboard navigation

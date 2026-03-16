@@ -589,7 +589,7 @@ namespace MGUI.Core.UI
                     }
                 };
 
-                ControlTemplateName = MGControlTemplateCatalog.TabControlTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.TabControlTemplateName;
                 SelectedTabHeaderControlTemplateName = MGControlTemplateCatalog.SelectedTabHeaderTemplateName;
                 UnselectedTabHeaderControlTemplateName = MGControlTemplateCatalog.UnselectedTabHeaderTemplateName;
             }

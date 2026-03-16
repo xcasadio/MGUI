@@ -1452,7 +1452,7 @@ namespace MGUI.Core.UI
                 SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
                 SelectionMode = ListBoxSelectionMode.Single;
                 CanDeselectByClickingSelectedItem = true;
-                ControlTemplateName = MGControlTemplateCatalog.ListBoxTemplateName;
+                DefaultControlTemplateName = MGControlTemplateCatalog.ListBoxTemplateName;
                 SetTitleAndContentBorder(SolidFillBrushes.Black, 1);
                 SetIsTitleVisible(false, true);
                 ItemsPanel.BorderThickness = DefaultItemBorderThickness;

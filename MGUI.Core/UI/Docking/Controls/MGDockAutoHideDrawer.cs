@@ -159,7 +159,7 @@ public class MGDockAutoHideDrawer : MGElement
             _titleLabel.SetParent(this);
             _pinBtn.SetParent(this);
             _closeBtn.SetParent(this);
-            ControlTemplateName = MGControlTemplateCatalog.DockAutoHideDrawerTemplateName;
+            DefaultControlTemplateName = MGControlTemplateCatalog.DockAutoHideDrawerTemplateName;
         }
     }
 

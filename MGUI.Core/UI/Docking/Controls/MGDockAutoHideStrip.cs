@@ -74,7 +74,7 @@ public class MGDockAutoHideStrip : MGElement
 
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment   = VerticalAlignment.Stretch;
-            ControlTemplateName = MGControlTemplateCatalog.DockAutoHideStripTemplateName;
+            DefaultControlTemplateName = MGControlTemplateCatalog.DockAutoHideStripTemplateName;
         }
     }
 

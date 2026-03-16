@@ -209,7 +209,7 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGControlTemplate _ControlTemplate;
-        public string AppliedControlTemplateName => ControlTemplate?.Name ?? ControlTemplateName;
+        public string AppliedControlTemplateName => ControlTemplate?.Name ?? ResolveControlTemplateName();
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public string LastControlTemplateError { get; private set; }
@@ -244,6 +244,25 @@ namespace MGUI.Core.UI
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _DefaultControlTemplateName;
+        public string DefaultControlTemplateName
+        {
+            get => _DefaultControlTemplateName;
+            set
+            {
+                if (_DefaultControlTemplateName != value)
+                {
+                    _DefaultControlTemplateName = value;
+                    ApplyControlTemplate(false);
+                    NPC(nameof(DefaultControlTemplateName));
+                }
+            }
+        }
+
+        protected internal virtual string ResolveControlTemplateName()
+            => !string.IsNullOrWhiteSpace(ControlTemplateName) ? ControlTemplateName : DefaultControlTemplateName;
+
         public bool TryGetElementByName(string Name, out MGElement NamedElement) => SelfOrParentWindow.TryGetElementByName(Name, out NamedElement);
         public bool TryGetTemplatePart(string Name, out MGElement Part) => _TemplateParts.TryGetValue(Name, out Part);
 
@@ -263,7 +282,7 @@ namespace MGUI.Core.UI
                     if (Requirement.IsRequired)
                     {
                         throw new InvalidOperationException(
-                            $"Control template '{ControlTemplate?.Name ?? ControlTemplateName ?? "<unnamed>"}' for '{GetType().Name}' is missing required part '{Requirement.Name}' of type '{Requirement.PartType.Name}'. Available parts: {availableParts}.");
+                            $"Control template '{ControlTemplate?.Name ?? ResolveControlTemplateName() ?? "<unnamed>"}' for '{GetType().Name}' is missing required part '{Requirement.Name}' of type '{Requirement.PartType.Name}'. Available parts: {availableParts}.");
                     }
 
                     continue;
@@ -272,7 +291,7 @@ namespace MGUI.Core.UI
                 if (Part != null && !Requirement.PartType.IsAssignableFrom(Part.GetType()))
                 {
                     throw new InvalidOperationException(
-                        $"Control template '{ControlTemplate?.Name ?? ControlTemplateName ?? "<unnamed>"}' for '{GetType().Name}' requires part '{Requirement.Name}' to be assignable to '{Requirement.PartType.Name}', but got '{Part.GetType().Name}'. Available parts: {availableParts}.");
+                        $"Control template '{ControlTemplate?.Name ?? ResolveControlTemplateName() ?? "<unnamed>"}' for '{GetType().Name}' requires part '{Requirement.Name}' to be assignable to '{Requirement.PartType.Name}', but got '{Part.GetType().Name}'. Available parts: {availableParts}.");
                 }
             }
         }
@@ -405,9 +424,10 @@ namespace MGUI.Core.UI
         protected internal virtual void ApplyControlTemplate(bool IsThemeRefresh)
         {
             MGControlTemplate Template = ControlTemplate;
-            if (Template == null && !string.IsNullOrWhiteSpace(ControlTemplateName))
+            string ResolvedTemplateName = ResolveControlTemplateName();
+            if (Template == null && !string.IsNullOrWhiteSpace(ResolvedTemplateName))
             {
-                GetResources().TryGetControlTemplate(ControlTemplateName, out Template);
+                GetResources().TryGetControlTemplate(ResolvedTemplateName, out Template);
             }
 
             try
