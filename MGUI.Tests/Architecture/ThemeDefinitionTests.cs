@@ -1,4 +1,5 @@
 using MGUI.Core.UI;
+using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
 using Microsoft.Xna.Framework;
 
@@ -6,6 +7,37 @@ namespace MGUI.Tests.Architecture;
 
 public class ThemeDefinitionTests
 {
+  private sealed class TemplateResolutionStub
+  {
+    public MGElementType ElementType { get; init; }
+    public string? ControlTemplateName { get; set; }
+    public string? DefaultControlTemplateName { get; set; }
+    public MGResources Resources { get; }
+
+    public TemplateResolutionStub(MGResources resources, MGElementType elementType)
+    {
+      Resources = resources;
+      ElementType = elementType;
+    }
+
+    public string? ResolveControlTemplateName()
+    {
+      if (!string.IsNullOrWhiteSpace(ControlTemplateName))
+      {
+        return ControlTemplateName;
+      }
+
+      MGTheme theme = Resources.DefaultTheme;
+      if (theme != null && theme.TryGetControlTemplateMapping(ElementType, out string themeTemplateName)
+        && !string.IsNullOrWhiteSpace(themeTemplateName))
+      {
+        return themeTemplateName;
+      }
+
+      return DefaultControlTemplateName;
+    }
+  }
+
     [Fact]
     public void ThemeDefinition_Can_Be_Parsed_From_Xaml()
     {
@@ -170,6 +202,110 @@ public class ThemeDefinitionTests
         Assert.Equal(15, themes["DerivedTheme"].FontSettings.DefaultFontSize);
         Assert.Equal(Color.White, themes["DerivedTheme"].DropdownArrowColor);
     }
+
+      [Fact]
+      public void ThemeDefinitionLoader_Loads_Control_Template_Mappings_From_Xaml_Document()
+      {
+        MGResources resources = new(MGTheme.CreateEmpty("Arial"));
+
+        string xaml = @"
+    <ThemeDefinitionsDocument xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"">
+      <ThemeDefinition Name=""BaseTheme"">
+      <ThemeDefinition.ControlTemplates>
+        <ThemeControlTemplateDefinition ElementType=""ComboBox"" TemplateName=""ComboBox.Base"" />
+        <ThemeControlTemplateDefinition ElementType=""TextBox"" TemplateName=""TextBox.Base"" />
+      </ThemeDefinition.ControlTemplates>
+      </ThemeDefinition>
+      <ThemeDefinition Name=""DerivedTheme"" BasedOn=""BaseTheme"">
+      <ThemeDefinition.ControlTemplates>
+        <ThemeControlTemplateDefinition ElementType=""ComboBox"" TemplateName=""ComboBox.Derived"" />
+        <ThemeControlTemplateDefinition ElementType=""TabControl"" TemplateName=""TabControl.Derived"" />
+      </ThemeDefinition.ControlTemplates>
+      </ThemeDefinition>
+    </ThemeDefinitionsDocument>
+    ";
+
+        IReadOnlyDictionary<string, MGTheme> themes = resources.LoadThemesFromXaml(XamlDocumentSource.FromString(xaml));
+
+        Assert.True(themes["DerivedTheme"].TryGetControlTemplateMapping(MGElementType.ComboBox, out string comboBoxTemplate));
+        Assert.Equal("ComboBox.Derived", comboBoxTemplate);
+        Assert.True(themes["DerivedTheme"].TryGetControlTemplateMapping(MGElementType.TextBox, out string textBoxTemplate));
+        Assert.Equal("TextBox.Base", textBoxTemplate);
+        Assert.True(themes["DerivedTheme"].TryGetControlTemplateMapping(MGElementType.TabControl, out string tabControlTemplate));
+        Assert.Equal("TabControl.Derived", tabControlTemplate);
+      }
+
+      [Fact]
+      public void Theme_Template_Resolution_Uses_Theme_When_No_Local_Override_Is_Set()
+      {
+        MGTheme theme = MGTheme.CreateEmpty("Arial");
+        theme.SetControlTemplateMapping(MGElementType.ComboBox, "ComboBox.Themed");
+        MGResources resources = new(theme);
+        TemplateResolutionStub stub = new(resources, MGElementType.ComboBox)
+        {
+          DefaultControlTemplateName = "ComboBox.Default"
+        };
+
+        Assert.Equal("ComboBox.Themed", stub.ResolveControlTemplateName());
+      }
+
+      [Fact]
+      public void Theme_Template_Resolution_Preserves_Local_Override_Over_Theme()
+      {
+        MGTheme theme = MGTheme.CreateEmpty("Arial");
+        theme.SetControlTemplateMapping(MGElementType.ComboBox, "ComboBox.Themed");
+        MGResources resources = new(theme);
+        TemplateResolutionStub stub = new(resources, MGElementType.ComboBox)
+        {
+          ControlTemplateName = "ComboBox.Local",
+          DefaultControlTemplateName = "ComboBox.Default"
+        };
+
+        Assert.Equal("ComboBox.Local", stub.ResolveControlTemplateName());
+      }
+
+      [Fact]
+      public void Theme_Template_Resolution_Tracks_Parent_And_Child_Theme_Scopes()
+      {
+        MGTheme parentTheme = MGTheme.CreateEmpty("Arial");
+        parentTheme.SetControlTemplateMapping(MGElementType.ComboBox, "ComboBox.Parent");
+        MGTheme childTheme = MGTheme.CreateEmpty("Arial");
+        childTheme.SetControlTemplateMapping(MGElementType.ComboBox, "ComboBox.Child");
+
+        MGResources parentResources = new(parentTheme);
+        MGResources childResources = new(parentResources, UIResourceScope.Subtree);
+        TemplateResolutionStub stub = new(childResources, MGElementType.ComboBox)
+        {
+          DefaultControlTemplateName = "ComboBox.Default"
+        };
+
+        Assert.Equal("ComboBox.Parent", stub.ResolveControlTemplateName());
+
+        childResources.DefaultTheme = childTheme;
+
+        Assert.Equal("ComboBox.Child", stub.ResolveControlTemplateName());
+      }
+
+      [Fact]
+      public void Theme_Template_Resolution_Updates_When_Runtime_Theme_Changes()
+      {
+        MGTheme theme1 = MGTheme.CreateEmpty("Arial");
+        theme1.SetControlTemplateMapping(MGElementType.ComboBox, "ComboBox.Theme1");
+        MGTheme theme2 = MGTheme.CreateEmpty("Arial");
+        theme2.SetControlTemplateMapping(MGElementType.ComboBox, "ComboBox.Theme2");
+
+        MGResources resources = new(theme1);
+        TemplateResolutionStub stub = new(resources, MGElementType.ComboBox)
+        {
+          DefaultControlTemplateName = "ComboBox.Default"
+        };
+
+        Assert.Equal("ComboBox.Theme1", stub.ResolveControlTemplateName());
+
+        resources.DefaultTheme = theme2;
+
+        Assert.Equal("ComboBox.Theme2", stub.ResolveControlTemplateName());
+      }
 
     [Fact]
     public void ThemeDefinitionLoader_Rejects_Cycles()

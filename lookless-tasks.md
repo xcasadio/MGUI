@@ -363,7 +363,7 @@ Resultat:
 - `ApplyControlTemplate(...)` reconstruit la structure quand un refresh de theme change effectivement le template resolu, tout en evitant les rebuilds quand le template reste identique.
 - Des tests d'architecture verrouillent l'ordre de resolution et le comportement attendu lors d'un changement de theme.
 
-### 🟡 9. Charger le mapping depuis XAML et couvrir les cas de precedence
+### ✅ 9. Charger le mapping depuis XAML et couvrir les cas de precedence
 
 But:
 valider le pipeline complet `ThemeDefinition XAML -> runtime -> selection de template`.
@@ -391,7 +391,13 @@ Criteres d'acceptation:
 - les erreurs sont exploitables ;
 - les themes existants restent compatibles.
 
-### ⚪ 10. Documenter, mettre a jour les samples et stabiliser le workflow de skinning
+Resultat:
+
+- Le pipeline complet `ThemeDefinition XAML -> ThemeDefinitionLoader -> ThemeDefinitionBuilder -> MGTheme` est maintenant couvert sur les mappings de templates.
+- Les tests verrouillent l'heritage `BasedOn`, l'override par type, la precedence `local -> theme -> fallback`, ainsi que le changement de theme via scopes de ressources parent/enfant.
+- Les themes sans section `ControlTemplates` restent compatibles et le chargement XAML des mappings fonctionne sans infrastructure supplementaire.
+
+### 🟡 10. Documenter, mettre a jour les samples et stabiliser le workflow de skinning
 
 But:
 livrer un mode d'emploi clair pour creer de vraies apparences themables.
