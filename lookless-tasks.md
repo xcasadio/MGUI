@@ -168,7 +168,7 @@ Resultat:
 - Le catalogue enregistre deux `ControlTemplate` dedies pour les wrappers d'onglets, ce qui rend leur apparence remplaçable comme une ressource de skin sans retoucher la logique de selection.
 - Le pont XAML a ete aligne sur ce nouveau chemin pour que les surcharges declaratives continuent de fonctionner.
 
-### ⚪ 3. Finaliser le caractere lookless de `MGComboBox`
+### ✅ 3. Finaliser le caractere lookless de `MGComboBox`
 
 But:
 sortir du controle la structure et les choix de chrome encore imperativement geres par `MGComboBox`.
@@ -196,6 +196,13 @@ Criteres d'acceptation:
 - les decisions de chrome principales ne vivent plus dans `MGComboBox` ;
 - un template peut changer l'apparence fermee et la fenetre dropdown sans casser le comportement ;
 - la logique de selection reste identique.
+
+Resultat:
+
+- Le styling par defaut des boutons d'items du dropdown n'est plus applique imperativement par `MGComboBox`.
+- `MGComboBox` expose maintenant `DropdownItemControlTemplateName`, et ses items de dropdown par defaut passent par un `ControlTemplate` dedie en ressource.
+- Le catalogue enregistre `ComboBox.DropdownItem.Default`, ce qui rend le chrome des lignes de dropdown remplaçable sans reouvrir la logique de selection.
+- `OnThemeChanged(...)` ne repousse plus directement le background principal du controle ni celui de la fenetre dropdown, laissant ce chrome au pipeline de templates.
 
 ### ⚪ 4. Migrer `MGTextBox` et `MGTreeView` vers une structure plus lookless
 

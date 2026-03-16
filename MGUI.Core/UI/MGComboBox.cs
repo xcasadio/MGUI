@@ -36,6 +36,7 @@ namespace MGUI.Core.UI
         public const string DropdownItemsPanelPartName = "PART_DropdownItemsPanel";
         public const string DropdownScrollViewerPartName = "PART_DropdownScrollViewer";
         public const string DropdownDockPanelPartName = "PART_DropdownDockPanel";
+        internal const string DropdownItemTemplateOwnerMetadataKey = "ComboBox.DropdownItemOwner";
 
         protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
         {
@@ -392,6 +393,33 @@ namespace MGUI.Core.UI
         /// <summary>The default amount of padding in each item within the dropdown.</summary>
         public static Thickness DefaultDropdownItemPadding { get; set; } = new(8, 5, 8, 5);
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _DropdownItemControlTemplateName;
+        public string DropdownItemControlTemplateName
+        {
+            get => _DropdownItemControlTemplateName;
+            set
+            {
+                if (_DropdownItemControlTemplateName != value)
+                {
+                    _DropdownItemControlTemplateName = value;
+
+                    if (TemplatedItems != null)
+                    {
+                        foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
+                        {
+                            if (item?.Element != null)
+                            {
+                                ApplyDefaultDropdownButtonSettings(item.Element);
+                            }
+                        }
+                    }
+
+                    NPC(nameof(DropdownItemControlTemplateName));
+                }
+            }
+        }
+
         /// <summary>See also: <see cref="ApplyDefaultDropdownButtonSettings(MGButton)"/></summary>
         public MGButton CreateDefaultDropdownButton()
         {
@@ -402,15 +430,10 @@ namespace MGUI.Core.UI
 
         public void ApplyDefaultDropdownButtonSettings(MGButton Target)
         {
-            Target.Padding = DefaultDropdownItemPadding;
-            Target.Margin = 0;
+            Target.Metadata[DropdownItemTemplateOwnerMetadataKey] = this;
             Target.IsFocusable = false;
-            Target.BackgroundBrush = GetTheme().ComboBoxDropdownItemBackground.GetValue(true);
-            Target.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
-            Target.HorizontalAlignment = HorizontalAlignment.Stretch;
-            Target.HorizontalContentAlignment = HorizontalAlignment.Left;
-            Target.VerticalAlignment = VerticalAlignment.Stretch;
-            Target.VerticalContentAlignment = VerticalAlignment.Center;
+            Target.ControlTemplateName = DropdownItemControlTemplateName;
+            Target.ApplyControlTemplate(false);
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -664,6 +687,17 @@ namespace MGUI.Core.UI
             };
             Dropdown.HoveredElementChanged += (sender, e) => { UpdateHoveredDropdownItem(); };
             DropdownArrowColor = GetTheme().DropdownArrowColor;
+
+            if (TemplatedItems != null)
+            {
+                foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
+                {
+                    if (item?.Element != null)
+                    {
+                        ApplyDefaultDropdownButtonSettings(item.Element);
+                    }
+                }
+            }
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -750,6 +784,8 @@ namespace MGUI.Core.UI
                     IsDropdownOpen = !IsDropdownOpen;
                     e.SetHandledBy(this, false);
                 };
+
+                DropdownItemControlTemplateName = MGControlTemplateCatalog.ComboBoxDropdownItemTemplateName;
             }
         }
 
@@ -762,9 +798,7 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.ComboBox);
             DropdownArrowColor = CurrentTheme.DropdownArrowColor;
-            Dropdown.BackgroundBrush = CurrentTheme.ComboBoxDropdownBackground.GetValue(true);
 
             if (TemplatedItems != null)
             {

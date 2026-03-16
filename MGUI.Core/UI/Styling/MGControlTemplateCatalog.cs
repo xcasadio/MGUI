@@ -27,6 +27,7 @@ namespace MGUI.Core.UI.Styling
         public const string ListBoxTemplateName = "ListBox.Default";
         public const string ListViewTemplateName = "ListView.Default";
         public const string ComboBoxTemplateName = "ComboBox.Default";
+        public const string ComboBoxDropdownItemTemplateName = "ComboBox.DropdownItem.Default";
         public const string TreeViewTemplateName = "TreeView.Default";
         public const string TextBoxTemplateName = "TextBox.Default";
         public const string TabControlTemplateName = "TabControl.Default";
@@ -52,6 +53,7 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, CreateBuiltInXamlTemplate(ListBoxTemplateName, ApplyListBoxTemplate));
             Register(Resources, CreateBuiltInXamlTemplate(ListViewTemplateName, ApplyListViewTemplate));
             Register(Resources, CreateComboBoxTemplate());
+            Register(Resources, ComboBoxDropdownItemTemplateName, ApplyComboBoxDropdownItemTemplate);
             Register(Resources, CreateTreeViewTemplate());
             Register(Resources, CreateTextBoxTemplate());
             Register(Resources, CreateTabControlTemplate());
@@ -505,6 +507,7 @@ namespace MGUI.Core.UI.Styling
             MGScrollViewer DropdownScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGComboBox<object>.DropdownScrollViewerPartName);
             MGStackPanel DropdownItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGComboBox<object>.DropdownItemsPanelPartName);
 
+            Context.ApplyThemeDefault("ComboBox.Background", Theme.GetBackgroundBrush(MGElementType.ComboBox), () => Context.Owner.BackgroundBrush, value => Context.Owner.BackgroundBrush = value);
             Context.ApplyThemeDefault("ComboBox.Padding", Theme.ComboBox.Padding, () => Context.Owner.Padding, value => Context.Owner.Padding = value);
             Context.ApplyThemeDefault("ComboBox.MinHeight", Theme.ComboBox.MinHeight, () => Context.Owner.MinHeight ?? 0, value => Context.Owner.MinHeight = value);
             Context.ApplyThemeDefault("ComboBox.BorderBrush", Theme.ComboBox.BorderBrush, () => Border.BorderBrush, value => Border.BorderBrush = value);
@@ -520,6 +523,42 @@ namespace MGUI.Core.UI.Styling
             {
                 Dropdown.PreferredWidth = Math.Max(Dropdown.PreferredWidth ?? 0, Theme.ComboBox.DropdownMinWidth);
             }
+        }
+
+        private static bool TryGetComboBoxDropdownItemOwner(MGButton Button, out MGElement Owner)
+        {
+            if (Button?.Metadata?.TryGetValue(MGComboBox<object>.DropdownItemTemplateOwnerMetadataKey, out object owner) == true
+                && owner is MGElement typedOwner)
+            {
+                Owner = typedOwner;
+                return true;
+            }
+
+            Owner = null;
+            return false;
+        }
+
+        private static void ApplyComboBoxDropdownItemTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGButton Button || !TryGetComboBoxDropdownItemOwner(Button, out MGElement Owner))
+            {
+                return;
+            }
+
+            MGTheme theme = Owner.GetTheme();
+            if (theme == null)
+            {
+                return;
+            }
+
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.Padding", MGComboBox<object>.DefaultDropdownItemPadding, () => Button.Padding, value => Button.Padding = value);
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.Margin", new Thickness(0), () => Button.Margin, value => Button.Margin = value);
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.Background", theme.ComboBoxDropdownItemBackground.GetValue(true), () => Button.BackgroundBrush, value => Button.BackgroundBrush = value);
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.Foreground", theme.TextBlockFallbackForeground.GetValue(true).NormalValue, () => Button.DefaultTextForeground.NormalValue, value => Button.DefaultTextForeground.SetAll(value));
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.HorizontalAlignment", HorizontalAlignment.Stretch, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value);
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.HorizontalContentAlignment", HorizontalAlignment.Left, () => Button.HorizontalContentAlignment, value => Button.HorizontalContentAlignment = value);
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.VerticalAlignment", VerticalAlignment.Stretch, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value);
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.VerticalContentAlignment", VerticalAlignment.Center, () => Button.VerticalContentAlignment, value => Button.VerticalContentAlignment = value);
         }
 
         private static void ApplyTreeViewTemplate(MGControlTemplateContext Context)

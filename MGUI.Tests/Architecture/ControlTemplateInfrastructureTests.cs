@@ -139,6 +139,7 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ListBoxTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ListViewTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ComboBoxTemplateName, out _));
+        Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.ComboBoxDropdownItemTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TreeViewTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TextBoxTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.TabControlTemplateName, out _));
@@ -323,6 +324,18 @@ public class ControlTemplateInfrastructureTests
 
         Assert.True(setContentIndex >= 0);
         Assert.True(lockIndex > setContentIndex);
+    }
+
+    [Fact]
+    public void ComboBox_Default_Dropdown_Item_Chrome_Uses_Control_Template_Resources()
+    {
+        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.Contains("DropdownItemControlTemplateName", comboBoxSource);
+        Assert.Contains("Target.ControlTemplateName = DropdownItemControlTemplateName;", comboBoxSource);
+        Assert.Contains("ComboBoxDropdownItemTemplateName = \"ComboBox.DropdownItem.Default\"", catalogSource);
+        Assert.Contains("ApplyComboBoxDropdownItemTemplate", catalogSource);
     }
 
     [Fact]
