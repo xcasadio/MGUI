@@ -333,7 +333,7 @@ Resultat:
 - `ThemeDefinitionBuilder` projette ces mappings dans `MGTheme`, avec heritage et override par type au-dessus du theme de base.
 - Les tests couvrent le parsing XAML et la fusion des mappings sur un theme derive sans casser les themes existants qui n'en declarent pas.
 
-### 🟡 8. Brancher le mapping de templates du theme dans le runtime
+### ✅ 8. Brancher le mapping de templates du theme dans le runtime
 
 But:
 faire en sorte qu'un theme actif puisse selectionner effectivement les templates par type au runtime.
@@ -357,7 +357,13 @@ Criteres d'acceptation:
 - les overrides locaux continuent de fonctionner ;
 - le refresh de theme reste borne et predictible.
 
-### ⚪ 9. Charger le mapping depuis XAML et couvrir les cas de precedence
+Resultat:
+
+- `MGElement.ResolveControlTemplateName()` applique maintenant la precedence `ControlTemplateName` local -> mapping du theme actif (`MGElementType`) -> `DefaultControlTemplateName`.
+- `ApplyControlTemplate(...)` reconstruit la structure quand un refresh de theme change effectivement le template resolu, tout en evitant les rebuilds quand le template reste identique.
+- Des tests d'architecture verrouillent l'ordre de resolution et le comportement attendu lors d'un changement de theme.
+
+### 🟡 9. Charger le mapping depuis XAML et couvrir les cas de precedence
 
 But:
 valider le pipeline complet `ThemeDefinition XAML -> runtime -> selection de template`.

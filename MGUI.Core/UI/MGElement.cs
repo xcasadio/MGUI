@@ -261,7 +261,21 @@ namespace MGUI.Core.UI
         }
 
         protected internal virtual string ResolveControlTemplateName()
-            => !string.IsNullOrWhiteSpace(ControlTemplateName) ? ControlTemplateName : DefaultControlTemplateName;
+        {
+            if (!string.IsNullOrWhiteSpace(ControlTemplateName))
+            {
+                return ControlTemplateName;
+            }
+
+            MGTheme Theme = GetTheme();
+            if (Theme != null && Theme.TryGetControlTemplateMapping(ElementType, out string ThemeTemplateName)
+                && !string.IsNullOrWhiteSpace(ThemeTemplateName))
+            {
+                return ThemeTemplateName;
+            }
+
+            return DefaultControlTemplateName;
+        }
 
         public bool TryGetElementByName(string Name, out MGElement NamedElement) => SelfOrParentWindow.TryGetElementByName(Name, out NamedElement);
         public bool TryGetTemplatePart(string Name, out MGElement Part) => _TemplateParts.TryGetValue(Name, out Part);
@@ -438,7 +452,7 @@ namespace MGUI.Core.UI
                     ClearInstantiatedTemplateStructure();
                 }
 
-                if (!IsThemeRefresh && Template?.SupportsStructure == true && (_AppliedTemplateStructure == null || TemplateChanged))
+                if (Template?.SupportsStructure == true && (_AppliedTemplateStructure == null || TemplateChanged))
                 {
                     MGControlTemplateContext Context = new(this, false);
                     MGControlTemplateStructure Structure = Template.CreateStructure(Context);

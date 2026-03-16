@@ -222,9 +222,23 @@ public class ControlTemplateInfrastructureTests
         string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
 
         Assert.Contains("Template.CreateStructure", source);
-        Assert.Contains("!IsThemeRefresh", source);
         Assert.Contains("AttachControlTemplateStructure(Structure)", source);
         Assert.Contains("ResolveControlTemplateName()", source);
+        Assert.Contains("_AppliedTemplateStructure == null || TemplateChanged", source);
+    }
+
+    [Fact]
+    public void MGElement_Resolves_Control_Templates_In_Local_Theme_Default_Order()
+    {
+        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+
+        int localIndex = source.IndexOf("return ControlTemplateName;", StringComparison.Ordinal);
+        int themeIndex = source.IndexOf("Theme.TryGetControlTemplateMapping(ElementType", StringComparison.Ordinal);
+        int fallbackIndex = source.IndexOf("return DefaultControlTemplateName;", StringComparison.Ordinal);
+
+        Assert.True(localIndex >= 0);
+        Assert.True(themeIndex > localIndex);
+        Assert.True(fallbackIndex > themeIndex);
     }
 
     [Fact]
