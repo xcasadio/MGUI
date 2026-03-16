@@ -43,6 +43,7 @@ namespace MGUI.Core.UI.XAML
 
             ApplyFontSettings(Theme, Definition.FontSettings, DefaultFontFamily);
             ApplyBackgrounds(Theme, Definition.Backgrounds);
+            ApplyControlTemplates(Theme, Definition.ControlTemplates);
             ApplyWindow(Theme.Window, Definition.Window);
             ApplyOverlay(Theme.Overlay, Definition.Overlay);
             ApplyContextMenu(Theme.ContextMenu, Definition.ContextMenu);
@@ -54,6 +55,24 @@ namespace MGUI.Core.UI.XAML
             ApplyTabControl(Theme.TabControl, Definition.TabControl);
             ApplyDocking(Theme.Docking, Definition.Docking);
             ApplyProperties(Theme, Definition.Properties);
+        }
+
+        private static void ApplyControlTemplates(MGTheme Theme, IEnumerable<ThemeControlTemplateDefinition> Definitions)
+        {
+            if (Definitions == null)
+            {
+                return;
+            }
+
+            foreach (ThemeControlTemplateDefinition Definition in Definitions)
+            {
+                if (Definition == null || string.IsNullOrWhiteSpace(Definition.TemplateName))
+                {
+                    continue;
+                }
+
+                Theme.SetControlTemplateMapping(Definition.ElementType, Definition.TemplateName);
+            }
         }
 
         private static void ApplyFontSettings(MGTheme Theme, ThemeFontSettingsDefinition Definition, string DefaultFontFamily)

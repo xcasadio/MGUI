@@ -37,7 +37,14 @@ namespace MGUI.Core.UI.XAML
         public ThemeDockingSettingsDefinition Docking { get; set; } = new();
 
         public List<ThemeBackgroundDefinition> Backgrounds { get; set; } = new();
+        public List<ThemeControlTemplateDefinition> ControlTemplates { get; set; } = new();
         public List<ThemePropertyDefinition> Properties { get; set; } = new();
+    }
+
+    public class ThemeControlTemplateDefinition : XAMLBindableBase
+    {
+        public MGElementType ElementType { get; set; }
+        public string TemplateName { get; set; }
     }
 
     public class ThemeBackgroundDefinition : XAMLBindableBase

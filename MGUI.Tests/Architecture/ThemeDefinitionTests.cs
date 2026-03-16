@@ -13,6 +13,9 @@ public class ThemeDefinitionTests
 <ThemeDefinition xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core""
                  Name=""TestTheme""
                  BasedOn=""BaseTheme"">
+  <ThemeDefinition.ControlTemplates>
+    <ThemeControlTemplateDefinition ElementType=""ComboBox"" TemplateName=""ComboBox.Fancy"" />
+  </ThemeDefinition.ControlTemplates>
   <ThemeDefinition.FontSettings>
     <ThemeFontSettingsDefinition DefaultFontSize=""17"" />
   </ThemeDefinition.FontSettings>
@@ -26,6 +29,9 @@ public class ThemeDefinitionTests
 
         Assert.Equal("TestTheme", definition.Name);
         Assert.Equal("BaseTheme", definition.BasedOn);
+        Assert.Single(definition.ControlTemplates);
+        Assert.Equal(MGElementType.ComboBox, definition.ControlTemplates[0].ElementType);
+        Assert.Equal("ComboBox.Fancy", definition.ControlTemplates[0].TemplateName);
         Assert.Equal(17, definition.FontSettings.DefaultFontSize);
         Assert.Single(definition.Properties);
         Assert.Equal(ThemePropertyTarget.DropdownArrowColor, definition.Properties[0].Target);
@@ -38,6 +44,19 @@ public class ThemeDefinitionTests
         ThemeDefinition definition = new()
         {
             Name = "OverlayTheme",
+          ControlTemplates = new()
+          {
+            new ThemeControlTemplateDefinition
+            {
+              ElementType = MGElementType.ComboBox,
+              TemplateName = "ComboBox.Fancy"
+            },
+            new ThemeControlTemplateDefinition
+            {
+              ElementType = MGElementType.TabControl,
+              TemplateName = "TabControl.Minimal"
+            }
+          },
             FontSettings = new ThemeFontSettingsDefinition { DefaultFontSize = 18 },
             Properties = new()
             {
@@ -59,8 +78,47 @@ public class ThemeDefinitionTests
         Assert.Equal(18, built.FontSettings.DefaultFontSize);
         Assert.Equal(Color.Red, built.DropdownArrowColor);
         Assert.Equal(new Point(12, 18), built.ToolTipOffset);
+    Assert.True(built.TryGetControlTemplateMapping(MGElementType.ComboBox, out string comboBoxTemplate));
+    Assert.Equal("ComboBox.Fancy", comboBoxTemplate);
+    Assert.True(built.TryGetControlTemplateMapping(MGElementType.TabControl, out string tabControlTemplate));
+    Assert.Equal("TabControl.Minimal", tabControlTemplate);
         Assert.Equal(baseTheme.Window.Padding, built.Window.Padding);
     }
+
+  [Fact]
+  public void ThemeDefinitionBuilder_Merges_Control_Template_Mappings_Over_Base_Theme()
+  {
+    MGTheme baseTheme = MGTheme.CreateEmpty("Arial");
+    baseTheme.SetControlTemplateMapping(MGElementType.ComboBox, "ComboBox.Base");
+    baseTheme.SetControlTemplateMapping(MGElementType.TextBox, "TextBox.Base");
+
+    ThemeDefinition definition = new()
+    {
+      Name = "DerivedTheme",
+      ControlTemplates = new()
+      {
+        new ThemeControlTemplateDefinition
+        {
+          ElementType = MGElementType.ComboBox,
+          TemplateName = "ComboBox.Derived"
+        },
+        new ThemeControlTemplateDefinition
+        {
+          ElementType = MGElementType.TabControl,
+          TemplateName = "TabControl.Derived"
+        }
+      }
+    };
+
+    MGTheme built = ThemeDefinitionBuilder.Build(definition, "Arial", baseTheme);
+
+    Assert.True(built.TryGetControlTemplateMapping(MGElementType.ComboBox, out string comboBoxTemplate));
+    Assert.Equal("ComboBox.Derived", comboBoxTemplate);
+    Assert.True(built.TryGetControlTemplateMapping(MGElementType.TextBox, out string textBoxTemplate));
+    Assert.Equal("TextBox.Base", textBoxTemplate);
+    Assert.True(built.TryGetControlTemplateMapping(MGElementType.TabControl, out string tabControlTemplate));
+    Assert.Equal("TabControl.Derived", tabControlTemplate);
+  }
 
     [Fact]
     public void ThemeDefinitionLoader_Resolves_BasedOn_From_Same_Document_And_Resources()

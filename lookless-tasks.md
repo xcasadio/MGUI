@@ -300,7 +300,7 @@ Resultat:
 - Les controles migrés n'utilisent plus leurs templates integres comme des overrides locaux, ce qui ouvre un espace propre pour le futur mapping `theme -> type -> template`.
 - Des tests d'architecture verrouillent la presence du fallback et la migration des principaux controles composites vers ce nouveau contrat.
 
-### 🟡 7. Etendre `ThemeDefinition` pour decrire le template par type de controle
+### ✅ 7. Etendre `ThemeDefinition` pour decrire le template par type de controle
 
 But:
 ajouter dans le modele declaratif de theme une section dediee au choix des `ControlTemplate` par type de controle.
@@ -327,7 +327,13 @@ Criteres d'acceptation:
 - le format est suffisamment simple pour etre maintenable ;
 - la compatibilite avec les themes existants est preservee.
 
-### ⚪ 8. Brancher le mapping de templates du theme dans le runtime
+Resultat:
+
+- `ThemeDefinition` expose maintenant une section declarative `ControlTemplates` composee d'entrees `MGElementType -> TemplateName`.
+- `ThemeDefinitionBuilder` projette ces mappings dans `MGTheme`, avec heritage et override par type au-dessus du theme de base.
+- Les tests couvrent le parsing XAML et la fusion des mappings sur un theme derive sans casser les themes existants qui n'en declarent pas.
+
+### 🟡 8. Brancher le mapping de templates du theme dans le runtime
 
 But:
 faire en sorte qu'un theme actif puisse selectionner effectivement les templates par type au runtime.

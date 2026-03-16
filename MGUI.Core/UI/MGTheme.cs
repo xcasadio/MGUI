@@ -233,6 +233,7 @@ namespace MGUI.Core.UI
     {
         #region Background
         private Dictionary<MGElementType, ThemeManagedVisualStateFillBrush> _Backgrounds { get; }
+        private Dictionary<MGElementType, string> _ControlTemplateMappings { get; }
 
         public VisualStateFillBrush GetBackgroundBrush(MGElementType Type)
         {
@@ -259,6 +260,23 @@ namespace MGUI.Core.UI
             }
         }
         #endregion Background
+
+        public IReadOnlyDictionary<MGElementType, string> ControlTemplateMappings => _ControlTemplateMappings;
+
+        public void SetControlTemplateMapping(MGElementType elementType, string templateName)
+        {
+            if (string.IsNullOrWhiteSpace(templateName))
+            {
+                _ControlTemplateMappings.Remove(elementType);
+            }
+            else
+            {
+                _ControlTemplateMappings[elementType] = templateName;
+            }
+        }
+
+        public bool TryGetControlTemplateMapping(MGElementType elementType, out string templateName)
+            => _ControlTemplateMappings.TryGetValue(elementType, out templateName);
 
         public ThemeManagedVisualStateFillBrush ComboBoxDropdownBackground { get; }
         /// <summary>The default background brush to use on items in an <see cref="MGComboBox{TItemType}"/>'s dropdown.</summary>
@@ -387,6 +405,7 @@ namespace MGUI.Core.UI
             ToolTipTextForeground = new(null, null, null, null);
 
             _Backgrounds = new();
+            _ControlTemplateMappings = new();
             foreach (MGElementType Type in Enum.GetValues(typeof(MGElementType)))
             {
                 _Backgrounds[Type] = new ThemeManagedVisualStateFillBrush(new VisualStateFillBrush((IFillBrush)null));
@@ -458,6 +477,12 @@ namespace MGUI.Core.UI
             foreach (MGElementType Type in Enum.GetValues(typeof(MGElementType)))
             {
                 SetBackgroundBrush(Type, Source.GetBackgroundBrush(Type));
+            }
+
+            _ControlTemplateMappings.Clear();
+            foreach (KeyValuePair<MGElementType, string> item in Source.ControlTemplateMappings)
+            {
+                _ControlTemplateMappings[item.Key] = item.Value;
             }
 
             ComboBoxDropdownBackground.Value = Source.ComboBoxDropdownBackground.GetValue(true);
