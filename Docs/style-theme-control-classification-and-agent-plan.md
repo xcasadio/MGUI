@@ -314,9 +314,9 @@ Reason:
   - Validation: focused rendering and architecture tests.
   - Commit: `style-theme: migrate checkbox and radio visuals`
 
-- `⬜ Migrate context menu item symbols to template-owned visuals`
+- `✅ Migrate context menu item symbols to template-owned visuals`
   - Deliverable: check/radio/submenu visuals are no longer manually painted in `MGContextMenuItem`.
-  - Progress: submenu triangle rendering now uses a shared arrow primitive; check/radio symbols remain manual.
+  - Progress: submenu triangle rendering still uses the shared arrow primitive, and toggle/radio menu items now host shared symbol elements aligned to the header presenter instead of painting glyphs through `HeaderPresenter.OnEndingDraw`.
   - Validation: menu item template tests.
   - Commit: `style-theme: migrate context menu item symbol rendering`
 

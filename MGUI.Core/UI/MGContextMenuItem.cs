@@ -561,6 +561,9 @@ namespace MGUI.Core.UI
     /// <summary>Instantiated via <see cref="MGContextMenu.AddCheckBox(string, bool)"/></summary>
     public class MGContextMenuToggle : MGWrappedContextMenuItem
     {
+        private MGComponent<MGCheckStateIcon> ToggleIconComponent { get; }
+        private MGCheckStateIcon ToggleIconElement { get; }
+
         private bool _IsChecked;
         public bool IsChecked
         {
@@ -570,6 +573,10 @@ namespace MGUI.Core.UI
                 if (_IsChecked != value)
                 {
                     _IsChecked = value;
+                    if (ToggleIconElement != null)
+                    {
+                        ToggleIconElement.CheckState = value;
+                    }
                     NPC(nameof(IsChecked));
                     OnToggled?.Invoke(this, IsChecked);
                 }
@@ -594,14 +601,12 @@ namespace MGUI.Core.UI
                 ContentWrapper = Menu.ButtonWrapperTemplate(Menu);
             };
 
-            HeaderPresenter.OnEndingDraw += (sender, e) =>
-            {
-                if (this.IsChecked)
-                {
-                    e.DA.DT.FillRectangle(e.DA.Offset.ToVector2(), HeaderPresenter.LayoutBounds, Color.White * 0.3f * e.DA.Opacity);
-                    MGCheckBox.DrawCheckMark(GetDesktop(), HeaderPresenter.LayoutBounds, e.DA.DT, e.DA.Opacity, e.DA.Offset, Color.Black);
-                }
-            };
+            ToggleIconElement = new(Menu) { ManagedParent = this };
+            ToggleIconElement.MarkColor = Color.Black;
+            ToggleIconElement.CheckedFillColor = Color.White * 0.3f;
+            ToggleIconComponent = new(ToggleIconElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => HeaderPresenter.LayoutBounds);
+            AddComponent(ToggleIconComponent);
 
             this.IsChecked = IsChecked;
         }
@@ -643,6 +648,9 @@ namespace MGUI.Core.UI
     /// <summary>Instantiated via <see cref="MGContextMenu.AddRadioButton(string, string, bool)"/></summary>
     public class MGContextMenuRadioButton : MGWrappedContextMenuItem
     {
+        private MGComponent<MGRadioBulletIcon> RadioIconComponent { get; }
+        private MGRadioBulletIcon RadioIconElement { get; }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsChecked;
         public bool IsChecked
@@ -653,6 +661,10 @@ namespace MGUI.Core.UI
                 if (_IsChecked != value)
                 {
                     _IsChecked = value;
+                    if (RadioIconElement != null)
+                    {
+                        RadioIconElement.IsChecked = value;
+                    }
                     NPC(nameof(IsChecked));
                     OnToggled?.Invoke(this, IsChecked);
                 }
@@ -700,25 +712,12 @@ namespace MGUI.Core.UI
                 ContentWrapper = Menu.ButtonWrapperTemplate(Menu);
             };
 
-            HeaderPresenter.OnEndingDraw += (sender, e) =>
-            {
-                // Draw a radio bullet circle in the header area
-                Rectangle Bounds = HeaderPresenter.LayoutBounds;
-                int Diameter = Math.Min(Bounds.Width, Bounds.Height) - 4;
-                if (Diameter > 0)
-                {
-                    Point Center = Bounds.Center + e.DA.Offset;
-                    float R = Diameter / 2f;
-                    // Outer ring
-                    e.DA.DT.StrokeCircle(Center.ToVector2(), Color.White * 0.7f * e.DA.Opacity, R, 1f, 16);
-                    // Filled inner dot when checked
-                    if (this.IsChecked)
-                    {
-                        float InnerR = Math.Max(1f, R - 3f);
-                        e.DA.DT.FillCircle(Center.ToVector2(), Color.White * e.DA.Opacity, InnerR, 16);
-                    }
-                }
-            };
+            RadioIconElement = new(Menu) { ManagedParent = this };
+            RadioIconElement.RingColor = Color.White * 0.7f;
+            RadioIconElement.FillColor = Color.White;
+            RadioIconComponent = new(RadioIconElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => HeaderPresenter.LayoutBounds.GetCompressed(new Thickness(2)));
+            AddComponent(RadioIconComponent);
 
             _GroupName = GroupName;
             Menu.RegisterRadioItem(this);

@@ -723,10 +723,13 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("DrawRadioIndicator", helperSource);
         Assert.Contains("UISymbolDrawing.DrawCheckMark", symbolElementsSource);
         Assert.Contains("UISymbolDrawing.DrawRadioIndicator", symbolElementsSource);
+        Assert.Contains("ToggleIconElement = new(Menu) { ManagedParent = this }", contextMenuItemSource);
+        Assert.Contains("RadioIconElement = new(Menu) { ManagedParent = this }", contextMenuItemSource);
         Assert.Contains("CheckStateIcon = new(Window) { ManagedParent = this }", checkBoxSource);
         Assert.Contains("new(Window) { ManagedParent = this }", radioButtonSource);
         Assert.Contains("IndicatorComponent = new(IndicatorElement", radioButtonSource);
         Assert.DoesNotContain("ButtonElement.OnEndingDraw +=", checkBoxSource);
+        Assert.DoesNotContain("HeaderPresenter.OnEndingDraw +=", contextMenuItemSource);
         Assert.DoesNotContain("public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)", radioButtonSource);
         Assert.Contains("UITriangleArrowDirection", helperSource);
         Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", symbolElementsSource);
