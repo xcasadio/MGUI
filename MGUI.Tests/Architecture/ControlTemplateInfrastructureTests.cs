@@ -124,6 +124,23 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Dock_Splitter_Uses_Explicit_Surface_Accent_And_Grip_Parts()
+    {
+        string splitterSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockSplitterBar.cs");
+        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
+        string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+
+        Assert.Contains("RegisterTemplatePart(SurfacePartName, SurfaceElement)", splitterSource);
+        Assert.Contains("RegisterTemplatePart(AccentPartName, AccentElement)", splitterSource);
+        Assert.Contains("RegisterTemplatePart(GripPartName, GripElement)", splitterSource);
+        Assert.Contains("GripElement = new(window) { ManagedParent = this }", splitterSource);
+        Assert.Contains("public class MGGripDotsIcon", symbolElementsSource);
+        Assert.Contains("DrawGripDots", symbolDrawingSource);
+        Assert.DoesNotContain("public override void DrawSelf", splitterSource);
+        Assert.DoesNotContain("DrawGripDots(ElementDrawArgs DA, Rectangle bounds)", splitterSource);
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;

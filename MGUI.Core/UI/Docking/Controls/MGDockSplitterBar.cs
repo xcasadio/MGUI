@@ -2,7 +2,9 @@ using System;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Styling;
+using MGUI.Shared.Helpers;
 using MGUI.Shared.Input.Mouse;
 
 namespace MGUI.Core.UI.Docking.Controls;
@@ -13,6 +15,17 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockSplitterBar : MGElement
 {
+    public const string SurfacePartName = "PART_Surface";
+    public const string AccentPartName = "PART_Accent";
+    public const string GripPartName = "PART_Grip";
+
+    private MGBorder SurfaceElement { get; }
+    private MGComponent<MGBorder> SurfaceComponent { get; }
+    private MGBorder AccentElement { get; }
+    private MGComponent<MGBorder> AccentComponent { get; }
+    private MGGripDotsIcon GripElement { get; }
+    private MGComponent<MGGripDotsIcon> GripComponent { get; }
+
     private bool _isDragging;
     /// <summary>
     /// True if the splitter is currently being dragged.
@@ -25,6 +38,7 @@ public class MGDockSplitterBar : MGElement
             if (_isDragging != value)
             {
                 _isDragging = value;
+                SyncVisualParts();
                 NPC(nameof(IsDragging));
             }
         }
@@ -42,6 +56,7 @@ public class MGDockSplitterBar : MGElement
             if (_normalBrush != value)
             {
                 _normalBrush = value;
+                SyncVisualParts();
                 NPC(nameof(NormalBrush));
             }
         }
@@ -59,6 +74,7 @@ public class MGDockSplitterBar : MGElement
             if (_hoverBrush != value)
             {
                 _hoverBrush = value;
+                SyncVisualParts();
                 NPC(nameof(HoverBrush));
             }
         }
@@ -76,6 +92,7 @@ public class MGDockSplitterBar : MGElement
             if (_pressedBrush != value)
             {
                 _pressedBrush = value;
+                SyncVisualParts();
                 NPC(nameof(PressedBrush));
             }
         }
@@ -119,9 +136,77 @@ public class MGDockSplitterBar : MGElement
             PressedBrush = new MGSolidFillBrush(new Color(70, 130, 180));     // Darker blue when dragging
             DefaultControlTemplateName = MGControlTemplateCatalog.DockSplitterTemplateName;
 
+            SurfaceElement = new(window, new Thickness(0), (IBorderBrush)null)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+            };
+            RegisterTemplatePart(SurfacePartName, SurfaceElement);
+            SurfaceComponent = new(SurfaceElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => LayoutBounds);
+            AddComponent(SurfaceComponent);
+
+            AccentElement = new(window, new Thickness(0), (IBorderBrush)null)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+            };
+            RegisterTemplatePart(AccentPartName, AccentElement);
+            AccentComponent = new(AccentElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => GetAccentBounds());
+            AddComponent(AccentComponent);
+
+            GripElement = new(window) { ManagedParent = this };
+            RegisterTemplatePart(GripPartName, GripElement);
+            GripComponent = new(GripElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => LayoutBounds);
+            AddComponent(GripComponent);
+
+            SyncVisualParts();
+
             // Subscribe to mouse press event to start dragging
             MouseHandler.LMBPressedInside += OnLMBPressed;
         }
+    }
+
+    private Rectangle GetAccentBounds()
+    {
+        Rectangle accentBounds = LayoutBounds;
+        if (ParentSplitContainer?.Orientation == Orientation.Horizontal)
+        {
+            accentBounds.X -= 1;
+            accentBounds.Width += 2;
+        }
+        else
+        {
+            accentBounds.Y -= 1;
+            accentBounds.Height += 2;
+        }
+
+        return accentBounds;
+    }
+
+    private void SyncVisualParts()
+    {
+        if (SurfaceElement == null || AccentElement == null || GripElement == null)
+        {
+            return;
+        }
+
+        SurfaceElement.BackgroundBrush.NormalValue = IsDragging
+            ? PressedBrush
+            : IsHovered
+                ? HoverBrush
+                : NormalBrush;
+
+        bool showAccent = IsHovered || IsDragging;
+        AccentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
+        AccentElement.BackgroundBrush.NormalValue = new MGSolidFillBrush(IsDragging ? PressedOverlayColor : HoverOverlayColor);
+
+        GripElement.IsVertical = ParentSplitContainer?.Orientation == Orientation.Horizontal;
+        GripElement.DotColor = (IsHovered || IsDragging)
+            ? Color.White * 0.8f
+            : Color.White * 0.5f;
     }
 
     private void OnLMBPressed(object sender, BaseMousePressedEventArgs e)
@@ -141,6 +226,7 @@ public class MGDockSplitterBar : MGElement
     public override void UpdateSelf(ElementUpdateArgs UA)
     {
         base.UpdateSelf(UA);
+        SyncVisualParts();
 
         if (IsDragging)
         {
@@ -266,103 +352,4 @@ public class MGDockSplitterBar : MGElement
         return new Thickness(4, 4, 0, 0);
     }
         
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-    {
-        // Choose brush based on state
-        IFillBrush brush;
-        if (IsDragging)
-        {
-            brush = PressedBrush;
-        }
-        else if (IsHovered)
-        {
-            brush = HoverBrush;
-        }
-        else
-        {
-            brush = NormalBrush;
-        }
-
-        // Draw background
-        brush?.Draw(DA, this, LayoutBounds);
-
-        // Add visual highlight when hovered or dragging
-        if (IsHovered || IsDragging)
-        {
-            Color highlightColor = IsDragging 
-                ? PressedOverlayColor
-                : HoverOverlayColor;
-
-            // Draw highlight overlay
-            Rectangle highlightBounds = LayoutBounds;
-            
-            // Make the highlight slightly larger to draw attention
-            if (ParentSplitContainer?.Orientation == Orientation.Horizontal)
-            {
-                // Vertical bar - expand horizontally
-                highlightBounds.X -= 1;
-                highlightBounds.Width += 2;
-            }
-            else
-            {
-                // Horizontal bar - expand vertically
-                highlightBounds.Y -= 1;
-                highlightBounds.Height += 2;
-            }
-
-            // Draw semi-transparent highlight
-            DA.DT.FillRectangle(Vector2.Zero, 
-                new RectangleF(highlightBounds.X, highlightBounds.Y, highlightBounds.Width, highlightBounds.Height), 
-                highlightColor);
-        }
-
-        // Draw grip dots in the center (optional visual enhancement)
-        DrawGripDots(DA, LayoutBounds);
-
-        DrawSelfBaseImplementation(DA, LayoutBounds);
-    }
-
-    /// <summary>
-    /// Draws small grip dots in the center of the splitter bar.
-    /// </summary>
-    private void DrawGripDots(ElementDrawArgs DA, Rectangle bounds)
-    {
-        const int dotSize = 2;
-        const int spacing = 4;
-        const int dotCount = 5;
-
-        // Make dots more visible when hovered or dragging
-        Color dotColor = (IsHovered || IsDragging)
-            ? Color.White * 0.8f  // More opaque when hovered/dragging
-            : Color.White * 0.5f; // Semi-transparent normally
-
-        if (ParentSplitContainer?.Orientation == Orientation.Horizontal)
-        {
-            // Vertical dots for horizontal splitter
-            int centerX = bounds.X + bounds.Width / 2;
-            int centerY = bounds.Y + bounds.Height / 2;
-            int startY = centerY - (dotCount * (dotSize + spacing)) / 2;
-
-            for (int i = 0; i < dotCount; i++)
-            {
-                int dotY = startY + i * (dotSize + spacing);
-                Rectangle dotRect = new Rectangle(centerX - dotSize / 2, dotY, dotSize, dotSize);
-                DA.DT.FillRectangle(Vector2.Zero, new RectangleF(dotRect.X, dotRect.Y, dotRect.Width, dotRect.Height), dotColor);
-            }
-        }
-        else
-        {
-            // Horizontal dots for vertical splitter
-            int centerX = bounds.X + bounds.Width / 2;
-            int centerY = bounds.Y + bounds.Height / 2;
-            int startX = centerX - (dotCount * (dotSize + spacing)) / 2;
-
-            for (int i = 0; i < dotCount; i++)
-            {
-                int dotX = startX + i * (dotSize + spacing);
-                Rectangle dotRect = new Rectangle(dotX, centerY - dotSize / 2, dotSize, dotSize);
-                DA.DT.FillRectangle(Vector2.Zero, new RectangleF(dotRect.X, dotRect.Y, dotRect.Width, dotRect.Height), dotColor);
-            }
-        }
-    }
 }

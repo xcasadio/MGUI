@@ -353,4 +353,50 @@ namespace MGUI.Core.UI
             UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), layoutBounds, Direction, Color * DA.Opacity);
         }
     }
+
+    public class MGGripDotsIcon : MGElement
+    {
+        private bool _IsVertical;
+        public bool IsVertical
+        {
+            get => _IsVertical;
+            set
+            {
+                if (_IsVertical != value)
+                {
+                    _IsVertical = value;
+                    NPC(nameof(IsVertical));
+                }
+            }
+        }
+
+        private Color _DotColor;
+        public Color DotColor
+        {
+            get => _DotColor;
+            set
+            {
+                if (_DotColor != value)
+                {
+                    _DotColor = value;
+                    NPC(nameof(DotColor));
+                }
+            }
+        }
+
+        public int DotSize { get; set; } = 2;
+        public int DotSpacing { get; set; } = 4;
+        public int DotCount { get; set; } = 5;
+
+        public MGGripDotsIcon(MGWindow window)
+            : base(window, MGElementType.Misc)
+        {
+            IsHitTestVisible = false;
+        }
+
+        public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
+        {
+            UISymbolDrawing.DrawGripDots(DA.DT, DA.Offset.ToVector2(), layoutBounds, IsVertical, DotSize, DotSpacing, DotCount, DotColor * DA.Opacity);
+        }
+    }
 }

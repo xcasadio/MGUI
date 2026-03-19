@@ -337,6 +337,7 @@ Reason:
 - `🟡 Migrate docking leaf controls first`
   - Deliverable: splitter, drop indicators, preview overlay, and auto-hide strip adopt consistent template/state boundaries.
   - Progress: `MGDockPreviewOverlay` now exposes explicit `PART_Surface` and `PART_Border` visuals backed by child elements instead of painting fill and border directly in `DrawSelf`.
+  - Progress: `MGDockSplitterBar` now exposes `PART_Surface`, `PART_Accent`, and `PART_Grip`, with grip dots moved into a shared symbol element instead of a control-local `DrawSelf` path.
   - Validation: docking unit tests where available plus targeted manual verification.
   - Commit: `style-theme: migrate docking leaf visuals`
 

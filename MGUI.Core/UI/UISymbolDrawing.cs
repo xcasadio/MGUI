@@ -80,6 +80,42 @@ namespace MGUI.Core.UI
             }
         }
 
+        public static void DrawGripDots(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, bool isVertical,
+            int dotSize, int spacing, int dotCount, Color dotColor)
+        {
+            if (bounds.Width <= 0 || bounds.Height <= 0 || dotSize <= 0 || spacing < 0 || dotCount <= 0)
+            {
+                return;
+            }
+
+            if (isVertical)
+            {
+                int centerX = bounds.X + bounds.Width / 2;
+                int centerY = bounds.Y + bounds.Height / 2;
+                int startY = centerY - (dotCount * (dotSize + spacing)) / 2;
+
+                for (int index = 0; index < dotCount; index++)
+                {
+                    int dotY = startY + index * (dotSize + spacing);
+                    Rectangle dotRect = new(centerX - dotSize / 2, dotY, dotSize, dotSize);
+                    drawTransaction.FillRectangle(origin, new MonoGame.Extended.RectangleF(dotRect.X, dotRect.Y, dotRect.Width, dotRect.Height), dotColor);
+                }
+            }
+            else
+            {
+                int centerX = bounds.X + bounds.Width / 2;
+                int centerY = bounds.Y + bounds.Height / 2;
+                int startX = centerX - (dotCount * (dotSize + spacing)) / 2;
+
+                for (int index = 0; index < dotCount; index++)
+                {
+                    int dotX = startX + index * (dotSize + spacing);
+                    Rectangle dotRect = new(dotX, centerY - dotSize / 2, dotSize, dotSize);
+                    drawTransaction.FillRectangle(origin, new MonoGame.Extended.RectangleF(dotRect.X, dotRect.Y, dotRect.Width, dotRect.Height), dotColor);
+                }
+            }
+        }
+
         public static IReadOnlyList<Point> GetTriangleArrowVertices(Rectangle bounds, UITriangleArrowDirection direction)
         {
             return direction switch
