@@ -440,18 +440,4 @@ public class MGDockSplitContainer : MGElement
         SecondChild?.UpdateLayout(secondBounds);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-    {
-        // No self rendering needed - children will draw themselves
-        DrawSelfBaseImplementation(DA, LayoutBounds);
-    }
-
-    protected override void DrawContents(ElementDrawArgs DA)
-    {
-        // Draw all children
-        foreach (var child in GetChildren())
-        {
-            child?.Draw(DA);
-        }
-    }
 }

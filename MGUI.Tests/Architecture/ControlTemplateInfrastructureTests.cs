@@ -222,6 +222,16 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Dock_Split_Container_Relies_On_Child_Rendering_Only()
+    {
+        string splitContainerSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockSplitContainer.cs");
+
+        Assert.Contains("public override IEnumerable<MGElement> GetChildren()", splitContainerSource);
+        Assert.DoesNotContain("public override void DrawSelf", splitContainerSource);
+        Assert.DoesNotContain("protected override void DrawContents", splitContainerSource);
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;
