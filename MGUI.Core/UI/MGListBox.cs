@@ -1066,9 +1066,6 @@ namespace MGUI.Core.UI
             ScrollViewer.CanChangeContent = false;
             InnerBorder.CanChangeContent = false;
 
-            ItemsPanel.BorderThickness = DefaultItemBorderThickness;
-            ItemsPanel.BorderBrush = DefaultItemBorderBrush;
-
             if (!IsVirtualizing && InternalItems != null)
             {
                 using (ItemsPanel.AllowChangingContentTemporarily())
@@ -1082,8 +1079,7 @@ namespace MGUI.Core.UI
             }
             else if (IsVirtualizing && _virtualizingPanel != null)
             {
-                _virtualizingPanel.BorderThickness = DefaultItemBorderThickness;
-                _virtualizingPanel.BorderBrush = DefaultItemBorderBrush;
+                SyncVirtualizedItemsPanelChrome();
                 _virtualizingPanel.InvalidateData();
             }
 
@@ -1193,9 +1189,10 @@ namespace MGUI.Core.UI
             {
                 _virtualizingPanel = new VirtualizingStackPanel(SelfOrParentWindow);
                 _virtualizingPanel.VerticalAlignment = VerticalAlignment.Top;
-                _virtualizingPanel.BorderThickness = DefaultItemBorderThickness;
-                _virtualizingPanel.BorderBrush = DefaultItemBorderBrush;
             }
+
+            SyncVirtualizedItemsPanelChrome();
+
             int totalCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
             _virtualizingPanel.TotalItemCount = totalCount;
             _virtualizingPanel.UniformItemHeight = MeasureNaturalItemHeight();
@@ -1245,6 +1242,17 @@ namespace MGUI.Core.UI
             // to the cached range from the previous source, the VirtualizingStackPanel skips
             // re-realization entirely and keeps showing the old items — breaking filter switches.
             _virtualizingPanel.InvalidateData();
+        }
+
+        private void SyncVirtualizedItemsPanelChrome()
+        {
+            if (_virtualizingPanel == null)
+            {
+                return;
+            }
+
+            _virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? DefaultItemBorderThickness;
+            _virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? DefaultItemBorderBrush;
         }
 
         /// <summary>Estimates the pixel height of individual items for the <see cref="VirtualizingStackPanel"/>.<br/>
@@ -1455,10 +1463,7 @@ namespace MGUI.Core.UI
                 SelectionMode = ListBoxSelectionMode.Single;
                 CanDeselectByClickingSelectedItem = true;
                 DefaultControlTemplateName = MGControlTemplateCatalog.ListBoxTemplateName;
-                SetTitleAndContentBorder(SolidFillBrushes.Black, 1);
                 SetIsTitleVisible(false, true);
-                ItemsPanel.BorderThickness = DefaultItemBorderThickness;
-                ItemsPanel.BorderBrush = DefaultItemBorderBrush;
 
                 GetDesktop().Renderer.Host.EndUpdate += (sender, e) =>
                 {

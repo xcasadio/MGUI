@@ -135,6 +135,7 @@ namespace MGUI.Core.UI
         public const string ShortcutTextPartName = "PART_ShortcutText";
 
         protected MGContentPresenter HeaderPresenter { get; }
+        private MGVisualStateProjection OwnerVisualStateProjection { get; set; }
         private MGVisualStateProjection ContentWrapperVisualStateProjection { get; set; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -292,17 +293,47 @@ namespace MGUI.Core.UI
                         Submenu.ContextMenuClosed += Submenu_Closed;
                     }
 
-                    ContentWrapper.SpoofIsHoveredWhileDrawingBackground = Submenu?.IsContextMenuOpen == true;
-
+                    bool isSubmenuOpen = Submenu?.IsContextMenuOpen == true;
+                    ContentWrapper.SpoofIsHoveredWhileDrawingBackground = isSubmenuOpen;
+                    if (ContentWrapper.GetBorder() != null)
+                    {
+                        ContentWrapper.GetBorder().SpoofIsHoveredWhileDrawingBackground = isSubmenuOpen;
+                    }
                     SubmenuArrowElement.Visibility = Submenu == null ? Visibility.Collapsed : Visibility.Visible;
+                    ApplyProjectedHighlightState();
 
                     NPC(nameof(Submenu));
                 }
             }
         }
 
-        private void Submenu_Opened(object sender, EventArgs e) => ContentWrapper.SpoofIsHoveredWhileDrawingBackground = true;
-        private void Submenu_Closed(object sender, EventArgs e) => ContentWrapper.SpoofIsHoveredWhileDrawingBackground = false;
+        private void Submenu_Opened(object sender, EventArgs e)
+        {
+            if (ContentWrapper != null)
+            {
+                ContentWrapper.SpoofIsHoveredWhileDrawingBackground = true;
+                if (ContentWrapper.GetBorder() != null)
+                {
+                    ContentWrapper.GetBorder().SpoofIsHoveredWhileDrawingBackground = true;
+                }
+            }
+
+            ApplyProjectedHighlightState();
+        }
+
+        private void Submenu_Closed(object sender, EventArgs e)
+        {
+            if (ContentWrapper != null)
+            {
+                ContentWrapper.SpoofIsHoveredWhileDrawingBackground = false;
+                if (ContentWrapper.GetBorder() != null)
+                {
+                    ContentWrapper.GetBorder().SpoofIsHoveredWhileDrawingBackground = false;
+                }
+            }
+
+            ApplyProjectedHighlightState();
+        }
 
         #region ShortcutText
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -340,6 +371,7 @@ namespace MGUI.Core.UI
             Container = new(Menu);
             Container.ManagedParent = this;
             Container.CanChangeContent = false;
+            Container.IsHitTestVisible = false;
 
             HeaderPresenter = new(Menu);
             RegisterTemplatePart(HeaderPresenterPartName, HeaderPresenter);
@@ -391,10 +423,8 @@ namespace MGUI.Core.UI
             {
                 Rectangle ArrowElementFullBounds = SubmenuArrowElement.LayoutBounds;
                 Rectangle ArrowPartBounds = ApplyAlignment(ArrowElementFullBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(SubmenuArrowWidth, SubmenuArrowHeight));
-                List<Vector2> ArrowVertices = new() {
-                    ArrowPartBounds.TopLeft().ToVector2(), new(ArrowPartBounds.Right, ArrowPartBounds.Center.Y), ArrowPartBounds.BottomLeft().ToVector2()
-                };
-                e.DA.DT.FillPolygon(e.DA.Offset.ToVector2(), ArrowVertices, GetTheme().DropdownArrowColor * e.DA.Opacity);
+                UISymbolDrawing.DrawFilledTriangleArrow(e.DA.DT, e.DA.Offset.ToVector2(), ArrowPartBounds, UITriangleArrowDirection.Right,
+                    GetTheme().DropdownArrowColor * e.DA.Opacity);
             };
 
             Submenu = null;
@@ -417,23 +447,46 @@ namespace MGUI.Core.UI
 
         private void RefreshVisualStateProjection()
         {
+            OwnerVisualStateProjection?.Dispose();
             ContentWrapperVisualStateProjection?.Dispose();
+
+            OwnerVisualStateProjection = new(this, (_, __) => ApplyProjectedHighlightState());
             if (ContentWrapper != null)
             {
-                ContentWrapperVisualStateProjection = new(ContentWrapper, (_, CurrentState) =>
-                {
-                    bool IsHighlighted = CurrentState.IsPressedOrHovered || CurrentState.IsSelected || Submenu?.IsContextMenuOpen == true;
-                    HeaderPresenter.IsSelected = IsHighlighted;
-                    if (_ShortcutTextBlock != null)
-                    {
-                        _ShortcutTextBlock.IsSelected = IsHighlighted;
-                    }
+                ContentWrapperVisualStateProjection = new(ContentWrapper, (_, __) => ApplyProjectedHighlightState());
+            }
+        }
 
-                    if (MenuItemContent != null)
-                    {
-                        MenuItemContent.IsSelected = IsHighlighted;
-                    }
-                });
+        private void ApplyProjectedHighlightState()
+        {
+            VisualState ownerState = VisualState;
+            VisualState wrapperState = ContentWrapper?.VisualState ?? default;
+            bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered
+                || ownerState.IsSelected || Submenu?.IsContextMenuOpen == true;
+            bool isPressed = ownerState.IsPressed || wrapperState.IsPressed;
+
+            if (ContentWrapper != null)
+            {
+                ContentWrapper.IsSelected = isHighlighted;
+                ContentWrapper.SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;
+                ContentWrapper.SpoofIsPressedWhileDrawingBackground = isPressed;
+                if (ContentWrapper.GetBorder() != null)
+                {
+                    ContentWrapper.GetBorder().IsSelected = isHighlighted;
+                    ContentWrapper.GetBorder().SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;
+                    ContentWrapper.GetBorder().SpoofIsPressedWhileDrawingBackground = isPressed;
+                }
+            }
+
+            HeaderPresenter.IsSelected = isHighlighted;
+            if (_ShortcutTextBlock != null)
+            {
+                _ShortcutTextBlock.IsSelected = isHighlighted;
+            }
+
+            if (MenuItemContent != null)
+            {
+                MenuItemContent.IsSelected = isHighlighted;
             }
         }
     }

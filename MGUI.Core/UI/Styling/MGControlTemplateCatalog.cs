@@ -517,6 +517,7 @@ namespace MGUI.Core.UI.Styling
             MGTheme Theme = Context.Owner.GetTheme();
             MGGrid HeaderGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.HeaderGridPartName);
             MGGrid DataGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.DataGridPartName);
+            MGBorder HeaderSpacer = Context.TryGetPart(MGListView<object>.HeaderSpacerPartName, out MGElement headerSpacerPart) ? headerSpacerPart as MGBorder : null;
 
             Context.ApplyThemeDefault("ListView.HeaderBackground", Theme.TitleBackground.GetValue(true), () => HeaderGrid.BackgroundBrush, value => HeaderGrid.BackgroundBrush = value);
             Context.ApplyThemeDefault("ListView.HeaderForeground", Theme.ListView.HeaderForeground, () => HeaderGrid.DefaultTextForeground, value => HeaderGrid.DefaultTextForeground = value);
@@ -524,6 +525,12 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("ListView.HeaderVerticalGridLineBrush", Theme.ListView.GridLineBrush, () => HeaderGrid.VerticalGridLineBrush, value => HeaderGrid.VerticalGridLineBrush = value);
             Context.ApplyThemeDefault("ListView.DataHorizontalGridLineBrush", Theme.ListView.GridLineBrush, () => DataGrid.HorizontalGridLineBrush, value => DataGrid.HorizontalGridLineBrush = value);
             Context.ApplyThemeDefault("ListView.DataVerticalGridLineBrush", Theme.ListView.GridLineBrush, () => DataGrid.VerticalGridLineBrush, value => DataGrid.VerticalGridLineBrush = value);
+
+            if (HeaderSpacer != null)
+            {
+                Context.ApplyThemeDefault("ListView.HeaderSpacerBorderBrush", Theme.ListView.GridLineBrush.AsUniformBorderBrush(), () => HeaderSpacer.BorderBrush, value => HeaderSpacer.BorderBrush = value);
+                Context.ApplyThemeDefault("ListView.HeaderSpacerBackground", Theme.TitleBackground.GetValue(true), () => HeaderSpacer.BackgroundBrush, value => HeaderSpacer.BackgroundBrush = value);
+            }
         }
 
         private static void ApplyComboBoxTemplate(MGControlTemplateContext Context)
@@ -543,6 +550,9 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("ComboBox.Background", Theme.GetBackgroundBrush(MGElementType.ComboBox), () => Context.Owner.BackgroundBrush, value => Context.Owner.BackgroundBrush = value);
             Context.ApplyThemeDefault("ComboBox.Padding", Theme.ComboBox.Padding, () => Context.Owner.Padding, value => Context.Owner.Padding = value);
             Context.ApplyThemeDefault("ComboBox.MinHeight", Theme.ComboBox.MinHeight, () => Context.Owner.MinHeight ?? 0, value => Context.Owner.MinHeight = value);
+            Context.ApplyThemeDefault("ComboBox.DropdownArrowColor", Theme.DropdownArrowColor,
+                () => (Color)Context.Owner.GetType().GetProperty(nameof(MGComboBox<object>.DropdownArrowColor)).GetValue(Context.Owner),
+                value => Context.Owner.GetType().GetProperty(nameof(MGComboBox<object>.DropdownArrowColor)).SetValue(Context.Owner, value));
             Context.ApplyThemeDefault("ComboBox.BorderBrush", Theme.ComboBox.BorderBrush, () => Border.BorderBrush, value => Border.BorderBrush = value);
             Context.ApplyThemeDefault("ComboBox.DropdownArrowMargin", Theme.ComboBox.DropdownArrowMargin, () => DropdownArrow.Margin, value => DropdownArrow.Margin = value);
             Context.ApplyThemeDefault("ComboBox.DropdownBorderThickness", Theme.ComboBox.DropdownBorderThickness, () => Dropdown.BorderThickness, value => Dropdown.BorderThickness = value);
@@ -642,6 +652,7 @@ namespace MGUI.Core.UI.Styling
             MGBorder Border = Context.GetRequiredPart<MGBorder>(MGTabControl.BorderPartName);
             MGStackPanel HeadersPanel = Context.GetRequiredPart<MGStackPanel>(MGTabControl.HeadersPanelPartName);
 
+            Context.ApplyThemeDefault("TabControl.Background", Theme.GetBackgroundBrush(MGElementType.TabControl), () => TabControl.BackgroundBrush, value => TabControl.BackgroundBrush = value);
             Context.ApplyThemeDefault("TabControl.Padding", Theme.TabControl.Padding, () => TabControl.Padding, value => TabControl.Padding = value);
             Context.ApplyThemeDefault("TabControl.BorderBrush", Theme.TabControl.BorderBrush, () => Border.BorderBrush, value => Border.BorderBrush = value);
             Context.ApplyThemeDefault("TabControl.BorderThickness", Theme.TabControl.BorderThickness, () => Border.BorderThickness, value => Border.BorderThickness = value);

@@ -6,6 +6,7 @@ using MGUI.Shared.Input.Keyboard;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Styling;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -49,6 +50,9 @@ namespace MGUI.Core.UI
         #region ContentWrapper
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGButton _ContentWrapper;
+        private MGVisualStateProjection OwnerVisualStateProjection { get; set; }
+        private MGVisualStateProjection ContentWrapperVisualStateProjection { get; set; }
+
         /// <summary>The <see cref="MGButton"/> that wraps this item's content and handles click/hover interactions.</summary>
         public MGButton ContentWrapper
         {
@@ -83,6 +87,7 @@ namespace MGUI.Core.UI
 
                     NPC(nameof(ContentWrapper));
                     OnContentWrapperChanged();
+                    RefreshVisualStateProjection();
                 }
             }
         }
@@ -113,6 +118,42 @@ namespace MGUI.Core.UI
                     MenuBar.OpenItem(this);
                 }
             };
+        }
+
+        private void RefreshVisualStateProjection()
+        {
+            OwnerVisualStateProjection?.Dispose();
+            ContentWrapperVisualStateProjection?.Dispose();
+
+            OwnerVisualStateProjection = new(this, (_, __) => ApplyContentWrapperVisualState());
+            if (ContentWrapper != null)
+            {
+                ContentWrapperVisualStateProjection = new(ContentWrapper, (_, __) => ApplyContentWrapperVisualState());
+            }
+        }
+
+        private void ApplyContentWrapperVisualState()
+        {
+            if (ContentWrapper == null)
+            {
+                return;
+            }
+
+            VisualState ownerState = VisualState;
+            VisualState wrapperState = ContentWrapper.VisualState;
+            bool isPressed = ownerState.IsPressed || wrapperState.IsPressed;
+            bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered || Submenu?.IsContextMenuOpen == true;
+            ContentWrapper.IsSelected = isHighlighted;
+            ContentWrapper.SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;
+            ContentWrapper.SpoofIsPressedWhileDrawingBackground = isPressed;
+
+            MGBorder wrapperBorder = ContentWrapper.GetBorder();
+            if (wrapperBorder != null)
+            {
+                wrapperBorder.IsSelected = isHighlighted;
+                wrapperBorder.SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;
+                wrapperBorder.SpoofIsPressedWhileDrawingBackground = isPressed;
+            }
         }
 
         private MGElement _ItemContent;
@@ -157,18 +198,12 @@ namespace MGUI.Core.UI
 
         private void Submenu_Opened(object sender, EventArgs e)
         {
-            if (ContentWrapper != null)
-            {
-                ContentWrapper.SpoofIsHoveredWhileDrawingBackground = true;
-            }
+            ApplyContentWrapperVisualState();
         }
 
         private void Submenu_Closed(object sender, EventArgs e)
         {
-            if (ContentWrapper != null)
-            {
-                ContentWrapper.SpoofIsHoveredWhileDrawingBackground = false;
-            }
+            ApplyContentWrapperVisualState();
 
             MenuBar.OnSubmenuClosed(this);
         }
@@ -177,6 +212,23 @@ namespace MGUI.Core.UI
         private void Submenu_ItemToggled(object sender, MGContextMenuToggle e) => MenuBar.InvokeItemToggled(e);
         private void Submenu_ItemRadioSelected(object sender, MGContextMenuRadioButton e) => MenuBar.InvokeItemRadioSelected(e);
         #endregion Submenu
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme != null && ContentWrapper != null)
+            {
+                VisualStateFillBrush background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);
+                Color? textForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;
+                ContentWrapper.BackgroundBrush = background;
+                ContentWrapper.DefaultTextForeground.SetAll(textForeground);
+                if (ContentWrapper.GetBorder() != null)
+                {
+                    ContentWrapper.GetBorder().BackgroundBrush = background?.Copy();
+                }
+            }
+        }
 
         /// <summary>Opens the <see cref="Submenu"/> positioned directly below this item in screen space.</summary>
         internal void OpenSubmenu()
@@ -324,7 +376,11 @@ namespace MGUI.Core.UI
             Button.Margin = new Thickness(0);
             Button.HorizontalContentAlignment = HorizontalAlignment.Center;
             Button.VerticalContentAlignment = VerticalAlignment.Center;
-            Button.BackgroundBrush = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);
+            VisualStateFillBrush background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);
+            Color? textForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;
+            Button.BackgroundBrush = background;
+            Button.DefaultTextForeground.SetAll(textForeground);
+            Button.GetBorder().BackgroundBrush = background?.Copy();
             return Button;
         }
         #endregion ButtonWrapperTemplate

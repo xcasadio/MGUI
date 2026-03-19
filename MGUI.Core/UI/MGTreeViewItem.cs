@@ -596,22 +596,13 @@ public class MGTreeViewItem : MGSingleContentHost
         Rectangle expanderBounds = ExpanderButton.LayoutBounds;
         Point center = expanderBounds.Center;
         int size = 5;
-        List<Point> arrowVertices = !IsExpanded
-            ? new List<Point>
-            {
-                new(center.X - size / 2, center.Y - size),
-                new(center.X - size / 2, center.Y + size),
-                new(center.X + size / 2, center.Y)
-            }
-            : new List<Point>
-            {
-                new(center.X - size, center.Y - size / 2),
-                new(center.X + size, center.Y - size / 2),
-                new(center.X, center.Y + size / 2)
-            };
+        Rectangle arrowBounds = !IsExpanded
+            ? new Rectangle(center.X - size / 2, center.Y - size, size, size * 2)
+            : new Rectangle(center.X - size, center.Y - size / 2, size * 2, size);
 
         Color arrowColor = OwnerTreeView?.GetTheme()?.TreeViewExpanderArrowColor ?? Color.Black;
         arrowColor *= DA.Opacity;
-        DA.DT.FillPolygon(DA.Offset.ToVector2(), arrowVertices.Select(x => x.ToVector2()), arrowColor);
+        UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), arrowBounds,
+            !IsExpanded ? UITriangleArrowDirection.Right : UITriangleArrowDirection.Down, arrowColor);
     }
 }

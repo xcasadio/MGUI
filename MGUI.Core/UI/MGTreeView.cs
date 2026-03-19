@@ -123,6 +123,7 @@ namespace MGUI.Core.UI
                 if (_SelectionBackgroundBrush != value)
                 {
                     _SelectionBackgroundBrush = value;
+                    SelectedItem?.RefreshSelectionVisual();
                     NPC(nameof(SelectionBackgroundBrush));
                 }
             }
@@ -139,6 +140,7 @@ namespace MGUI.Core.UI
                 if (_SelectionForeground != value)
                 {
                     _SelectionForeground = value;
+                    SelectedItem?.RefreshSelectionVisual();
                     NPC(nameof(SelectionForeground));
                 }
             }
@@ -480,17 +482,6 @@ namespace MGUI.Core.UI
                     return true;
                 default:
                     return false;
-            }
-        }
-
-        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
-        {
-            base.OnThemeChanged(PreviousTheme, CurrentTheme);
-
-            if (SelectedItem != null)
-            {
-                SelectedItem.SetSelected(false);
-                SelectedItem.SetSelected(true);
             }
         }
 

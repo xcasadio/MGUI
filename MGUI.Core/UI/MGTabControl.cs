@@ -636,18 +636,6 @@ namespace MGUI.Core.UI
             }
         }
 
-        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
-        {
-            base.OnThemeChanged(PreviousTheme, CurrentTheme);
-
-            if (CurrentTheme == null)
-            {
-                return;
-            }
-
-            BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.TabControl);
-        }
-
         private void Tab_HeaderChanged(object sender, EventArgs<MGElement> e)
         {
             MGTabItem TabItem = sender as MGTabItem;

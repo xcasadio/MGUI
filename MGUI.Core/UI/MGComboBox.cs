@@ -658,10 +658,8 @@ namespace MGUI.Core.UI
                 {
                     Rectangle ArrowElementFullBounds = DropdownArrowElement.LayoutBounds;
                     Rectangle ArrowPartBounds = ApplyAlignment(ArrowElementFullBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(DropdownArrowWidth, DropdownArrowHeight));
-                    List<Vector2> ArrowVertices = new() {
-                        ArrowPartBounds.TopLeft().ToVector2(), ArrowPartBounds.TopRight().ToVector2(), new(ArrowPartBounds.Center.X, ArrowPartBounds.Bottom)
-                    };
-                    e.DA.DT.FillPolygon(e.DA.Offset.ToVector2(), ArrowVertices, DropdownArrowColor * e.DA.Opacity);
+                    UISymbolDrawing.DrawFilledTriangleArrow(e.DA.DT, e.DA.Offset.ToVector2(), ArrowPartBounds, UITriangleArrowDirection.Down,
+                        DropdownArrowColor * e.DA.Opacity);
                 };
             }
 
@@ -687,7 +685,6 @@ namespace MGUI.Core.UI
                 }
             };
             Dropdown.HoveredElementChanged += (sender, e) => { UpdateHoveredDropdownItem(); };
-            DropdownArrowColor = GetTheme().DropdownArrowColor;
 
             if (TemplatedItems != null)
             {
@@ -787,29 +784,6 @@ namespace MGUI.Core.UI
                 };
 
                 DropdownItemControlTemplateName = MGControlTemplateCatalog.ComboBoxDropdownItemTemplateName;
-            }
-        }
-
-        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
-        {
-            base.OnThemeChanged(PreviousTheme, CurrentTheme);
-
-            if (CurrentTheme == null)
-            {
-                return;
-            }
-
-            DropdownArrowColor = CurrentTheme.DropdownArrowColor;
-
-            if (TemplatedItems != null)
-            {
-                foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
-                {
-                    if (item?.Element != null)
-                    {
-                        ApplyDefaultDropdownButtonSettings(item.Element);
-                    }
-                }
             }
         }
 

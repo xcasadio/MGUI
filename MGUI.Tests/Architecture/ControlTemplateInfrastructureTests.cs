@@ -512,6 +512,161 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void TabControl_And_ComboBox_Theme_Dependent_Chrome_Is_Applied_From_Template_Catalog()
+    {
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.Contains("TabControl.Background", catalogSource);
+        Assert.Contains("Theme.GetBackgroundBrush(MGElementType.TabControl)", catalogSource);
+        Assert.Contains("ComboBox.DropdownArrowColor", catalogSource);
+        Assert.Contains("Theme.DropdownArrowColor", catalogSource);
+    }
+
+    [Fact]
+    public void TabControl_ComboBox_And_TreeView_No_Longer_Project_Theme_Values_In_OnThemeChanged()
+    {
+        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
+        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
+        string treeViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs");
+
+        Assert.DoesNotContain("protected internal override void OnThemeChanged", tabControlSource);
+        Assert.DoesNotContain("protected internal override void OnThemeChanged", comboBoxSource);
+        Assert.DoesNotContain("protected internal override void OnThemeChanged", treeViewSource);
+        Assert.DoesNotContain("CurrentTheme.GetBackgroundBrush(MGElementType.TabControl)", tabControlSource);
+        Assert.DoesNotContain("CurrentTheme.DropdownArrowColor", comboBoxSource);
+    }
+
+    [Fact]
+    public void TreeView_Selection_Visuals_Refresh_From_Selection_Property_Setters()
+    {
+        string treeViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs");
+
+        Assert.Contains("_SelectionBackgroundBrush = value;", treeViewSource);
+        Assert.Contains("SelectedItem?.RefreshSelectionVisual();", treeViewSource);
+        Assert.Contains("_SelectionForeground = value;", treeViewSource);
+    }
+
+    [Fact]
+    public void ListBox_Does_Not_Overwrite_Template_Owned_ItemsPanel_Chrome()
+    {
+        string listBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs");
+
+        Assert.Contains("private void SyncVirtualizedItemsPanelChrome()", listBoxSource);
+        Assert.Contains("_virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? DefaultItemBorderThickness;", listBoxSource);
+        Assert.Contains("_virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? DefaultItemBorderBrush;", listBoxSource);
+        Assert.DoesNotContain("ItemsPanel.BorderThickness = DefaultItemBorderThickness;", listBoxSource);
+        Assert.DoesNotContain("ItemsPanel.BorderBrush = DefaultItemBorderBrush;", listBoxSource);
+        Assert.DoesNotContain("SetTitleAndContentBorder(SolidFillBrushes.Black, 1);", listBoxSource);
+    }
+
+    [Fact]
+    public void ListView_Grid_Chrome_And_Header_Spacer_Use_Template_Defaults()
+    {
+        string listViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListView.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.DoesNotContain("DefaultGridLineBrush = SolidFillBrushes.Black", listViewSource);
+        Assert.DoesNotContain("HeaderGrid.HorizontalGridLineBrush = DefaultGridLineBrush;", listViewSource);
+        Assert.DoesNotContain("DataGrid.HorizontalGridLineBrush = DefaultGridLineBrush;", listViewSource);
+        Assert.DoesNotContain("HeaderSpacer.BorderBrush = MGUniformBorderBrush.Black;", listViewSource);
+        Assert.Contains("ListView.HeaderSpacerBorderBrush", catalogSource);
+        Assert.Contains("ListView.HeaderSpacerBackground", catalogSource);
+    }
+
+    [Fact]
+    public void Shared_Triangle_Arrow_Helper_Is_Used_By_Composite_And_Manual_Controls()
+    {
+        string helperSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
+        string contextMenuItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenuItem.cs");
+        string expanderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGExpander.cs");
+        string treeViewItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
+
+        Assert.Contains("public static class UISymbolDrawing", helperSource);
+        Assert.Contains("UITriangleArrowDirection", helperSource);
+        Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", comboBoxSource);
+        Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", contextMenuItemSource);
+        Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", expanderSource);
+        Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", treeViewItemSource);
+        Assert.DoesNotContain("List<Vector2> ArrowVertices", comboBoxSource);
+        Assert.DoesNotContain("List<Vector2> ArrowVertices", contextMenuItemSource);
+        Assert.DoesNotContain("List<Point> DropdownArrowVertices", expanderSource);
+        Assert.DoesNotContain("List<Point> arrowVertices", treeViewItemSource);
+    }
+
+    [Fact]
+    public void MenuBarItem_Reapplies_MenuBarItem_Background_On_Theme_Change()
+    {
+        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
+
+        Assert.Contains("protected internal override void OnThemeChanged", menuBarSource);
+        Assert.Contains("VisualStateFillBrush background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
+        Assert.Contains("Color? textForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;", menuBarSource);
+        Assert.Contains("Button.BackgroundBrush = background;", menuBarSource);
+        Assert.Contains("Button.DefaultTextForeground.SetAll(textForeground);", menuBarSource);
+        Assert.Contains("VisualStateFillBrush background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
+        Assert.Contains("Color? textForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;", menuBarSource);
+        Assert.Contains("ContentWrapper.BackgroundBrush = background;", menuBarSource);
+        Assert.Contains("ContentWrapper.DefaultTextForeground.SetAll(textForeground);", menuBarSource);
+    }
+
+    [Fact]
+    public void MenuBarItem_Projects_Owner_Visual_State_To_Internal_Button_Wrapper()
+    {
+        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
+        string builtInThemesSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Themes\BuiltInThemes.xaml");
+
+        Assert.Contains("private MGVisualStateProjection OwnerVisualStateProjection", menuBarSource);
+        Assert.Contains("private MGVisualStateProjection ContentWrapperVisualStateProjection", menuBarSource);
+        Assert.Contains("OwnerVisualStateProjection = new(this, (_, __) => ApplyContentWrapperVisualState());", menuBarSource);
+        Assert.Contains("ContentWrapperVisualStateProjection = new(ContentWrapper, (_, __) => ApplyContentWrapperVisualState());", menuBarSource);
+        Assert.Contains("bool isPressed = ownerState.IsPressed || wrapperState.IsPressed;", menuBarSource);
+        Assert.Contains("bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered || Submenu?.IsContextMenuOpen == true;", menuBarSource);
+        Assert.Contains("ContentWrapper.IsSelected = isHighlighted;", menuBarSource);
+        Assert.Contains("ContentWrapper.SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;", menuBarSource);
+        Assert.Contains("ContentWrapper.SpoofIsPressedWhileDrawingBackground = isPressed;", menuBarSource);
+        Assert.Contains("wrapperBorder.IsSelected = isHighlighted;", menuBarSource);
+        Assert.Contains("wrapperBorder.SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;", menuBarSource);
+        Assert.Contains("wrapperBorder.SpoofIsPressedWhileDrawingBackground = isPressed;", menuBarSource);
+        Assert.Contains("<ThemeDefinition Name=\"Dark_Blue\" IsBuiltIn=\"True\">", builtInThemesSource);
+        Assert.Contains("<ThemeBackgroundDefinition ElementType=\"MenuBarItem\">", builtInThemesSource);
+        Assert.Contains("SelectedValue=\"rgba(89,159,228,120)\"", builtInThemesSource);
+    }
+
+    [Fact]
+    public void ContextMenuItem_Projects_Highlight_From_Owner_And_Wrapper_States()
+    {
+        string contextMenuItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenuItem.cs");
+        string contextMenuSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+        string builtInThemesSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Themes\BuiltInThemes.xaml");
+
+        Assert.Contains("private MGVisualStateProjection OwnerVisualStateProjection", contextMenuItemSource);
+        Assert.Contains("OwnerVisualStateProjection = new(this, (_, __) => ApplyProjectedHighlightState());", contextMenuItemSource);
+        Assert.Contains("ContentWrapperVisualStateProjection = new(ContentWrapper, (_, __) => ApplyProjectedHighlightState());", contextMenuItemSource);
+        Assert.Contains("bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered", contextMenuItemSource);
+        Assert.Contains("|| ownerState.IsSelected || Submenu?.IsContextMenuOpen == true;", contextMenuItemSource);
+        Assert.Contains("Button.GetBorder().BackgroundBrush = background?.Copy();", contextMenuSource);
+        Assert.Contains("ThemeContextMenuItemSettingsDefinition.HeaderBackground", builtInThemesSource);
+        Assert.Contains("<ThemeDefinition Name=\"Dark_Blue\" IsBuiltIn=\"True\">", builtInThemesSource);
+        Assert.Contains("SelectedValue=\"rgba(89,159,228,120)\"", builtInThemesSource);
+        Assert.Contains("SelectedValue=\"rgba(188,202,218,190)\"", builtInThemesSource);
+        Assert.Contains("FocusedColor=\"rgba(188,202,218,190)\"", builtInThemesSource);
+        Assert.Contains("ContentWrapper.IsSelected = isHighlighted;", contextMenuItemSource);
+        Assert.Contains("ContentWrapper.GetBorder().IsSelected = isHighlighted;", contextMenuItemSource);
+        Assert.Contains("ContentWrapper.GetBorder().SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;", contextMenuItemSource);
+        Assert.Contains("ContentWrapper.GetBorder().SpoofIsPressedWhileDrawingBackground = isPressed;", contextMenuItemSource);
+    }
+
+    [Fact]
+    public void Expander_Initializes_Arrow_Color_From_Current_Theme()
+    {
+        string expanderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGExpander.cs");
+
+        Assert.Contains("ExpanderDropdownArrowColor = GetTheme().DropdownArrowColor;", expanderSource);
+        Assert.Contains("ExpanderDropdownArrowColor = CurrentTheme.DropdownArrowColor;", expanderSource);
+    }
+
+    [Fact]
     public void Control_Template_Xaml_Can_Declare_Detached_Roots()
     {
         const string markup = @"

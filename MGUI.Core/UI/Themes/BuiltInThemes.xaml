@@ -141,7 +141,10 @@
       </ThemeBackgroundDefinition>
       <ThemeBackgroundDefinition ElementType="MenuBarItem">
         <ThemeBackgroundDefinition.Value>
-          <ThemeVisualStateFillBrushDefinition FocusedColor="White * 0.12"
+          <ThemeVisualStateFillBrushDefinition NormalValue="Transparent"
+                                               SelectedValue="rgba(89,159,228,120)"
+                                               FocusedValue="rgba(89,159,228,120)"
+                                               FocusedColor="White * 0.12"
                                                PressedModifierType="Darken"
                                                PressedModifier="0.06" />
         </ThemeBackgroundDefinition.Value>
@@ -353,6 +356,17 @@
         </ThemeWindowSettingsDefinition.TitleTextForeground>
       </ThemeWindowSettingsDefinition>
     </ThemeDefinition.Window>
+    <ThemeDefinition.ContextMenuItem>
+      <ThemeContextMenuItemSettingsDefinition>
+        <ThemeContextMenuItemSettingsDefinition.HeaderBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Transparent"
+                                               SelectedValue="rgba(89,159,228,120)"
+                                               FocusedValue="rgba(89,159,228,120)"
+                                               FocusedColor="White * 0.12"
+                                               DisabledValue="Transparent" />
+        </ThemeContextMenuItemSettingsDefinition.HeaderBackground>
+      </ThemeContextMenuItemSettingsDefinition>
+    </ThemeDefinition.ContextMenuItem>
     <ThemeDefinition.Docking>
       <ThemeDockingSettingsDefinition TabNormalBackground="rgb(45,45,48)"
                                       TabHoverBackground="rgb(62,62,66)"
@@ -747,6 +761,13 @@
     </ThemeDefinition.Window>
     <ThemeDefinition.ContextMenuItem>
       <ThemeContextMenuItemSettingsDefinition>
+        <ThemeContextMenuItemSettingsDefinition.HeaderBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="Transparent"
+                                               SelectedValue="rgba(188,202,218,190)"
+                                               FocusedValue="rgba(188,202,218,190)"
+                                               FocusedColor="rgba(188,202,218,190)"
+                                               DisabledValue="Transparent" />
+        </ThemeContextMenuItemSettingsDefinition.HeaderBackground>
         <ThemeContextMenuItemSettingsDefinition.ShortcutForeground>
           <ThemeVisualStateColorSettingDefinition NormalValue="Black"
                                                  SelectedValue="Black"

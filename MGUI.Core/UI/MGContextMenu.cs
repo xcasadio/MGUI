@@ -249,7 +249,9 @@ namespace MGUI.Core.UI
             Button.VerticalAlignment = VerticalAlignment.Stretch;
 
             Button.BorderThickness = new(0);
-            Button.BackgroundBrush = new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
+            VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
+            Button.BackgroundBrush = background;
+            Button.GetBorder().BackgroundBrush = background?.Copy();
             Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
 
             return Button;

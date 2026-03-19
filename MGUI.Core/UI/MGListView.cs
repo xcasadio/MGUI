@@ -325,7 +325,6 @@ namespace MGUI.Core.UI
 
         private readonly int InitialSpacing;
         private readonly int InitialGridLineMargin;
-        private readonly IFillBrush DefaultGridLineBrush = SolidFillBrushes.Black;
         private MGDockPanel HeaderGridWrapper { get; set; }
         private MGBorder HeaderSpacer { get; set; }
 
@@ -417,23 +416,17 @@ namespace MGUI.Core.UI
             HeaderGrid.RowSpacing = InitialSpacing;
             HeaderGrid.ColumnSpacing = InitialSpacing;
             HeaderGrid.GridLineMargin = InitialGridLineMargin;
-            HeaderGrid.HorizontalGridLineBrush = DefaultGridLineBrush;
-            HeaderGrid.VerticalGridLineBrush = DefaultGridLineBrush;
 
             DataGrid.GridLinesVisibility = GridLinesVisibility.AllVertical | GridLinesVisibility.InnerHorizontal | GridLinesVisibility.BottomEdge;
             DataGrid.Padding = new(0, InitialGridLineMargin, 0, 0);
             DataGrid.RowSpacing = InitialSpacing;
             DataGrid.ColumnSpacing = InitialSpacing;
             DataGrid.GridLineMargin = InitialGridLineMargin;
-            DataGrid.HorizontalGridLineBrush = DefaultGridLineBrush;
-            DataGrid.VerticalGridLineBrush = DefaultGridLineBrush;
 
             if (HeaderSpacer != null)
             {
                 int borderThickness = Math.Max(0, InitialSpacing - InitialGridLineMargin * 2);
                 HeaderSpacer.BorderThickness = new Thickness(0, borderThickness, borderThickness, borderThickness);
-                HeaderSpacer.BorderBrush = MGUniformBorderBrush.Black;
-                HeaderSpacer.BackgroundBrush = HeaderGrid.BackgroundBrush;
             }
 
             ScrollViewer.VerticalScrollBarBoundsChanged += (sender, e) =>

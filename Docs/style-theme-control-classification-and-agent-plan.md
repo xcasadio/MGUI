@@ -32,7 +32,25 @@ Current state of the repo is not fully lookless.
 - Primitive controls are often theme-aware, but not fully style-system-driven.
 - Composite controls increasingly use `ControlTemplate`, but still own visual-part rebinding and state projection logic.
 - Docking controls remain the most tightly coupled area.
-- XAML styles are still mostly parse-time setters, not a complete runtime precedence system.
+- Runtime precedence, resource scopes, dynamic resource refresh, and template-part contracts now exist in code, but control-level lookless migration is still incomplete.
+
+## Verification Snapshot
+
+Status in the action list below was verified against the current repo on 2026-03-19.
+
+Verified baseline artifacts:
+
+- `Docs/style-theme-baseline-architecture.md`
+- `Docs/style-theme-migration-vocabulary.md`
+- `Docs/style-value-precedence-architecture.md`
+
+Verified architecture coverage already exists for:
+
+- precedence ordering and source metadata;
+- hierarchical resource lookup and scoped theme inheritance;
+- dynamic resource invalidation;
+- split control-template structure/attach/default phases;
+- required template-part metadata on migrated composite controls.
 
 ## Control-By-Control Grid
 
@@ -52,14 +70,14 @@ Current state of the repo is not fully lookless.
 | `MGOverlay` | B | Same pattern as `MGWindow`: template-backed, yet still tightly aware of concrete visual parts. |
 | `MGContextMenu` | C | Default template exists, but menu behavior, submenu draw orchestration, and dropdown button visuals remain code-owned. |
 | `MGContextMenuItem` | D | Significant direct visual logic, including manual symbol rendering and state spoofing. |
-| `MGListBox` | B | Template-backed composite, but still binds border/title/inner parts directly and applies theme values in control code. |
-| `MGListView` | B | Similar to `MGListBox`; template progress is real, but control still owns concrete structure assumptions. |
-| `MGComboBox` | C | Now template-backed, but dropdown structure, arrow rendering, and item button restyling remain largely imperative. |
-| `MGTreeView` | B | Has template-based structure, but still retains behavior-coupled visual assumptions. |
-| `MGTreeViewItem` | C | Manual visual state/icon drawing remains in control code. |
+| `MGListBox` | B | Template-backed composite; recent cleanup stopped constructor/attach-time chrome overrides, but title/content and panel ownership still need a final pass. |
+| `MGListView` | B | Similar to `MGListBox`; grid line and header spacer chrome now resolve through template defaults, but structural assumptions still remain in control code. |
+| `MGComboBox` | C | Now template-backed; dropdown arrow defaults now flow through the template catalog, but dropdown structure and item wrapper behavior still remain partly imperative. |
+| `MGTreeView` | B | Has template-based structure; selection visual refresh now follows property changes directly, but some behavior-coupled visual assumptions remain. |
+| `MGTreeViewItem` | C | Manual expander drawing remains, but triangle-arrow geometry now goes through a shared primitive instead of per-control polygon code. |
 | `MGTextBox` | B | Template-backed and improved, but placeholder/counter/text/caret composition is still coordinated heavily in control code. |
 | `MGPasswordBox` | B | Inherits the same strengths and limits as `MGTextBox`. |
-| `MGTabControl` | B | Good template split for main structure and headers, but header wrapper lifecycle and header panel behavior still live in control logic. |
+| `MGTabControl` | B | Good template split for main structure and headers; background defaults now come from the template catalog, but header wrapper lifecycle and header panel behavior still live in control logic. |
 | `MGTabItem` | B | Lightweight behavioral companion to `MGTabControl`, but not independently lookless. |
 | `MGCheckBox` | D | Manual checkmark drawing and button-part orchestration keep appearance strongly fused with control code. |
 | `MGRadioButton` | C | Theme hooks exist, but bubble/check visuals remain control-specific and imperative. |
@@ -69,7 +87,7 @@ Current state of the repo is not fully lookless.
 | `MGRatingControl` | C | Visual symbol rendering remains control-centric. |
 | `MGGridColorPicker` | C | Rich control with custom rendering and behavior-specific visual composition. |
 | `MGGroupBox` | C | Header framing logic still depends on control-side layout and measurement behavior. |
-| `MGExpander` | D | Header visuals and expander arrow behavior still involve direct drawing and imperative composition. |
+| `MGExpander` | D | Header visuals and expander arrow behavior still involve direct drawing and imperative composition, but arrow rendering now uses a shared primitive and theme refresh path. |
 | `MGMenuBar` | C | Menu-bar items and menu integration still mix behavioral and visual concerns. |
 | `MGSpoiler` | C | Behavior-specific appearance remains owned by control logic. |
 | `MGTimer` | A | Mostly behavioral composition over text output; low structural theme coupling. |
@@ -156,115 +174,135 @@ Reason:
 
 ### Phase 0 - Baseline And Guardrails
 
-- `⬜ Establish architecture baseline`
+- `✅ Establish architecture baseline`
   - Deliverable: short repo note confirming current precedence model, resource lookup model, theme refresh behavior, and template part rules.
   - Validation: targeted architecture tests and documentation consistency check.
   - Commit: `style-theme: document baseline architecture constraints`
 
-- `⬜ Freeze migration vocabulary`
+- `✅ Freeze migration vocabulary`
   - Deliverable: canonical definitions for `style`, `theme`, `template`, `local value`, `inherited value`, `template value`, `theme default`.
   - Validation: terminology doc reviewed against existing tests/docs.
   - Commit: `style-theme: define migration vocabulary`
 
 ### Phase 1 - Runtime Value System
 
-- `⬜ Define value precedence matrix`
+- `✅ Define value precedence matrix`
   - Deliverable: explicit precedence order covering local, explicit XAML, named style, implicit style, template, theme, inheritance, fallback.
   - Validation: add or update source-level precedence tests.
   - Commit: `style-theme: define runtime precedence matrix`
 
-- `⬜ Introduce unified resolved-value helpers`
+- `✅ Introduce unified resolved-value helpers`
   - Deliverable: central API for applying resolved values with invalidation metadata.
   - Validation: focused unit tests on precedence and invalidation source tracking.
   - Commit: `style-theme: add unified resolved value helpers`
 
-- `⬜ Move template-applied values onto the shared precedence path`
+- `✅ Move template-applied values onto the shared precedence path`
   - Deliverable: template defaults no longer behave like ad hoc local assignments.
   - Validation: targeted template precedence tests.
   - Commit: `style-theme: route template values through shared precedence`
 
 ### Phase 2 - Resource System
 
-- `⬜ Add hierarchical resource lookup`
+- `✅ Add hierarchical resource lookup`
   - Deliverable: subtree/local resource scopes resolve through parent scopes before desktop fallback.
   - Validation: resource lookup tests across nested scopes.
   - Commit: `style-theme: add hierarchical resource lookup`
 
-- `⬜ Add dynamic resource invalidation`
+- `✅ Add dynamic resource invalidation`
   - Deliverable: resource-dependent values re-resolve when a scoped resource changes.
   - Validation: focused runtime resource refresh tests.
   - Commit: `style-theme: support dynamic resource invalidation`
 
-- `⬜ Normalize theme lookup onto resource scopes`
+- `✅ Normalize theme lookup onto resource scopes`
   - Deliverable: theme resolution follows the same scope model as other resources.
   - Validation: subtree theme override tests.
   - Commit: `style-theme: align theme lookup with resource scopes`
 
 ### Phase 3 - Template Contract Stabilization
 
-- `⬜ Normalize required template part metadata`
+- `✅ Normalize required template part metadata`
   - Deliverable: every migrated composite control declares required and optional parts consistently.
   - Validation: architecture tests on required part declarations.
   - Commit: `style-theme: normalize template part contracts`
 
-- `⬜ Eliminate control-local visual literals from migrated templates`
+- `🟡 Eliminate control-local visual literals from migrated templates`
   - Deliverable: colors, padding, border literals move out of control logic into template/theme defaults where possible.
   - Validation: source-level audit tests for migrated controls.
+  - Progress: `MGTabControl.Background` and `MGComboBox.DropdownArrowColor` now resolve through template defaults; `MGTreeView` no longer relies on theme-change reselection; `MGListBox` no longer overwrites template-owned items-panel chrome during construction or template attachment; `MGListView` grid-line and header-spacer chrome now resolve through the template catalog.
   - Commit: `style-theme: remove local visual literals from migrated controls`
 
-- `⬜ Separate structural parts from visual-state defaults`
+- `✅ Separate structural parts from visual-state defaults`
   - Deliverable: template structure creation and visual default application are independently testable.
   - Validation: targeted control template architecture tests.
   - Commit: `style-theme: separate structure from visual defaults`
 
 ### Phase 4 - Composite Control Migration
 
-- `⬜ Finish MGWindow migration`
+- `🟡 Finish MGWindow migration`
   - Deliverable: window visuals are template/theme-owned, with behavior code limited to wiring and window policy.
   - Validation: targeted architecture tests and sample sanity check.
   - Commit: `style-theme: finish window lookless migration`
 
-- `⬜ Finish MGOverlay migration`
+- `🟡 Finish MGOverlay migration`
   - Deliverable: overlay close button and border visuals are fully template-driven.
   - Validation: overlay-specific template part tests.
   - Commit: `style-theme: finish overlay lookless migration`
 
-- `⬜ Finish MGListBox migration`
+- `🟡 Finish MGListBox migration`
   - Deliverable: title, outer border, inner border, and scrollviewer visuals are template-owned.
+  - Progress: removed constructor/attach-time items-panel chrome overrides and synced virtualized panel chrome from template-owned panel state.
   - Validation: list box architecture tests.
   - Commit: `style-theme: finish list box lookless migration`
 
-- `⬜ Finish MGListView migration`
+- `🟡 Finish MGListView migration`
   - Deliverable: header/data grid structure and defaults are template-owned with minimal visual logic left in control code.
+  - Progress: header/data grid grid-line brushes and header spacer chrome now come from template defaults instead of control-local literals.
   - Validation: list view template tests.
   - Commit: `style-theme: finish list view lookless migration`
 
-- `⬜ Finish MGTextBox and MGPasswordBox migration`
+- `🟡 Finish MGTextBox and MGPasswordBox migration`
   - Deliverable: border, placeholder, character count, and resize grip orchestration are template-safe and precedence-correct.
   - Validation: textbox architecture tests and focused behavior checks.
   - Commit: `style-theme: finish text box lookless migration`
 
-- `⬜ Finish MGTabControl migration`
+- `🟡 Finish MGTabControl migration`
   - Deliverable: header area, header wrappers, and selection-state defaults are template-driven without control-local visual fallbacks leaking.
+  - Progress: background theme default now applies through `MGControlTemplateCatalog` instead of `OnThemeChanged(...)`.
   - Validation: targeted tab control architecture tests.
   - Commit: `style-theme: finish tab control lookless migration`
 
-- `⬜ Finish MGComboBox migration`
+- `🟡 Finish MGComboBox migration`
   - Deliverable: dropdown arrow, dropdown window, item wrapper visuals, and header/footer defaults are template-owned.
+  - Progress: dropdown arrow color now resolves through template defaults instead of attach/theme-change control code.
   - Validation: combo box architecture tests and sample behavior check.
   - Commit: `style-theme: finish combo box lookless migration`
 
-- `⬜ Finish MGTreeView migration`
+- `🟡 Finish MGTreeView migration`
   - Deliverable: remaining visual assumptions move out of tree view control code.
+  - Progress: selection visual refresh now happens from selection property setters instead of theme-change deselect/reselect hacks.
   - Validation: tree view architecture tests.
   - Commit: `style-theme: finish tree view lookless migration`
 
 ### Phase 5 - Manual State Rendering Reduction
 
-- `⬜ Inventory manual visual-state drawing`
+- `✅ Inventory manual visual-state drawing`
   - Deliverable: list of controls using direct icon/state drawing with owner methods or draw callbacks.
   - Validation: source scan and doc update.
   - Commit: `style-theme: inventory manual state rendering hotspots`
+
+  Current verified hotspots:
+
+  - `MGCheckBox`: `ButtonElement.OnEndingDraw`, `DrawSelf`
+  - `MGRadioButton`: `DrawSelf`
+  - `MGExpander`: `ExpanderToggleButton.OnEndingDraw`
+  - `MGContextMenuItem`: `HeaderPresenter.OnEndingDraw`
+  - `MGDockAutoHideDrawer`: `DrawContents`
+  - `MGDockAutoHideStrip`: `DrawContents`
+  - `MGDockDropIndicators`: `DrawSelf`
+  - `MGDockSplitterBar`: `DrawSelf`
+  - `MGDockTabGroup`: `DrawContents`
+  - `MGDockTabItem`: `DrawContents`
+  - `MGDockPreviewOverlay`: `DrawSelf`
 
 - `⬜ Migrate checkbox and radio visuals to template/state mapping`
   - Deliverable: no hard-coded checkmark or bullet rendering in control logic except shared primitives.
@@ -273,11 +311,13 @@ Reason:
 
 - `⬜ Migrate context menu item symbols to template-owned visuals`
   - Deliverable: check/radio/submenu visuals are no longer manually painted in `MGContextMenuItem`.
+  - Progress: submenu triangle rendering now uses a shared arrow primitive; check/radio symbols remain manual.
   - Validation: menu item template tests.
   - Commit: `style-theme: migrate context menu item symbol rendering`
 
 - `⬜ Migrate expander arrow visuals`
   - Deliverable: expander icon/state rendering is no longer hard-coded in control logic.
+  - Progress: expander arrow rendering now uses the shared triangle-arrow primitive and refreshes its color through theme changes, but remains control-owned rather than template-owned.
   - Validation: expander-focused tests.
   - Commit: `style-theme: migrate expander state visuals`
 
@@ -288,12 +328,12 @@ Reason:
   - Validation: docking architecture note.
   - Commit: `style-theme: define docking visual part vocabulary`
 
-- `⬜ Migrate docking leaf controls first`
+- `🟡 Migrate docking leaf controls first`
   - Deliverable: splitter, drop indicators, preview overlay, and auto-hide strip adopt consistent template/state boundaries.
   - Validation: docking unit tests where available plus targeted manual verification.
   - Commit: `style-theme: migrate docking leaf visuals`
 
-- `⬜ Migrate docking tab controls`
+- `🟡 Migrate docking tab controls`
   - Deliverable: `MGDockTabItem` and `MGDockTabGroup` move icons and accents out of direct draw logic.
   - Validation: docking tab behavior and rendering checks.
   - Commit: `style-theme: migrate docking tab visuals`
@@ -305,32 +345,30 @@ Reason:
 
 ### Phase 7 - Final Hardening
 
-- `⬜ Add runtime theme-switch regression tests`
+- `🟡 Add runtime theme-switch regression tests`
   - Deliverable: tests covering control template refresh, theme value refresh, and subtree theme overrides.
   - Validation: targeted architecture and runtime tests.
   - Commit: `style-theme: add theme switch regression coverage`
 
-- `⬜ Add resource-scope regression tests`
+- `✅ Add resource-scope regression tests`
   - Deliverable: tests for parent/child scope lookup, overrides, and invalidation.
   - Validation: bounded test run on resource/style suites.
   - Commit: `style-theme: add resource scope regression coverage`
 
-- `⬜ Add per-control migration matrix`
+- `✅ Add per-control migration matrix`
   - Deliverable: updated doc showing every migrated control, remaining blockers, and residual coupling.
   - Validation: docs reviewed against code.
   - Commit: `style-theme: publish migration status matrix`
 
 ## Recommended Execution Order
 
-1. Phase 1
-2. Phase 2
-3. Phase 3
-4. Phase 4
-5. Phase 5
-6. Phase 6
-7. Phase 7
+1. Finish Phase 3 cleanup work
+2. Phase 4
+3. Phase 5
+4. Phase 6
+5. Phase 7
 
-Do not start large-scale control migration before Phases 1 to 3 are materially in place.
+Phases 1 and 2 are already materially in place, and Phase 3 has only targeted cleanup remaining.
 
 ## Stop Conditions For The Agent
 
