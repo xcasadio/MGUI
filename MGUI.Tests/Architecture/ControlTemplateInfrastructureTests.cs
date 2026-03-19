@@ -190,6 +190,22 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Dock_Drop_Indicators_Use_Explicit_Zone_Elements()
+    {
+        string indicatorsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockDropIndicators.cs");
+        string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+
+        Assert.Contains("internal sealed class MGDockDropZoneIndicator : MGElement", indicatorsSource);
+        Assert.Contains("LeftZoneElement = CreateZoneElement(DockZone.Left, false);", indicatorsSource);
+        Assert.Contains("HostBottomZoneElement = CreateZoneElement(DockZone.Bottom, true);", indicatorsSource);
+        Assert.Contains("public override IEnumerable<MGElement> GetChildren()", indicatorsSource);
+        Assert.Contains("SyncZoneVisuals();", indicatorsSource);
+        Assert.Contains("DrawFilledTriangleArrow", symbolDrawingSource);
+        Assert.DoesNotContain("public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)", indicatorsSource);
+        Assert.DoesNotContain("private void DrawZoneIndicator", indicatorsSource);
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;

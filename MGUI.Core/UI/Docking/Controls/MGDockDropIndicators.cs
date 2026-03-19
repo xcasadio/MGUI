@@ -7,6 +7,105 @@ using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
+internal sealed class MGDockDropZoneIndicator : MGElement
+{
+    public DockZone Zone { get; set; }
+    public bool IsHostEdge { get; set; }
+    public bool IsDisabled { get; set; }
+    public bool IsActive { get; set; }
+    public Color InactiveColor { get; set; }
+    public Color ActiveColor { get; set; }
+    public Color BorderColor { get; set; }
+    public Color HostInactiveColor { get; set; }
+    public Color HostActiveColor { get; set; }
+    public Color DisabledColor { get; set; }
+    public Color DisabledBorderColor { get; set; }
+    public Color SymbolColor { get; set; }
+    public Color DisabledSymbolColor { get; set; }
+    public int BorderWidth { get; set; }
+
+    public MGDockDropZoneIndicator(MGWindow parentWindow) : base(parentWindow, MGElementType.Custom)
+    {
+        using (BeginInitializing())
+        {
+            IsHitTestVisible = false;
+        }
+    }
+
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
+    {
+        if (layoutBounds.Width <= 0 || layoutBounds.Height <= 0)
+        {
+            return;
+        }
+
+        Color fillColor = IsDisabled
+            ? DisabledColor
+            : (IsHostEdge
+                ? (IsActive ? HostActiveColor : HostInactiveColor)
+                : (IsActive ? ActiveColor : InactiveColor));
+
+        Color borderColor = IsDisabled ? DisabledBorderColor : BorderColor;
+
+        DA.DT.FillRectangle(Vector2.Zero, new RectangleF(layoutBounds.X, layoutBounds.Y, layoutBounds.Width, layoutBounds.Height), fillColor);
+        DrawBorder(DA, layoutBounds, borderColor, BorderWidth);
+
+        DrawSymbol(DA, layoutBounds, IsDisabled ? DisabledSymbolColor : SymbolColor);
+    }
+
+    private void DrawBorder(ElementDrawArgs DA, Rectangle bounds, Color color, int thickness)
+    {
+        DA.DT.FillRectangle(Vector2.Zero, new RectangleF(bounds.X, bounds.Y, bounds.Width, thickness), color);
+        DA.DT.FillRectangle(Vector2.Zero, new RectangleF(bounds.X, bounds.Bottom - thickness, bounds.Width, thickness), color);
+        DA.DT.FillRectangle(Vector2.Zero, new RectangleF(bounds.X, bounds.Y, thickness, bounds.Height), color);
+        DA.DT.FillRectangle(Vector2.Zero, new RectangleF(bounds.Right - thickness, bounds.Y, thickness, bounds.Height), color);
+    }
+
+    private void DrawSymbol(ElementDrawArgs DA, Rectangle bounds, Color color)
+    {
+        const int iconSize = 24;
+        Rectangle iconRect = new Rectangle(
+            bounds.X + (bounds.Width - iconSize) / 2,
+            bounds.Y + (bounds.Height - iconSize) / 2,
+            iconSize,
+            iconSize);
+
+        string textureKey = Zone switch
+        {
+            DockZone.Left => IsHostEdge ? "DockPanelLeft" : "DockPanelLeftDashed",
+            DockZone.Right => IsHostEdge ? "DockPanelRight" : "DockPanelRightDashed",
+            DockZone.Top => IsHostEdge ? "DockPanelTop" : "DockPanelTopDashed",
+            DockZone.Bottom => IsHostEdge ? "DockPanelBottom" : "DockPanelBottomDashed",
+            DockZone.Center => IsHostEdge ? "DockPanelCenter" : "DockPanelCenterDashed",
+            _ => null
+        };
+
+        if (textureKey != null && GetResources().TryDrawTexture(DA.DT, textureKey, iconRect, 1f, color))
+        {
+            return;
+        }
+
+        switch (Zone)
+        {
+            case DockZone.Left:
+                UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), iconRect, UITriangleArrowDirection.Left, color * DA.Opacity);
+                break;
+            case DockZone.Right:
+                UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), iconRect, UITriangleArrowDirection.Right, color * DA.Opacity);
+                break;
+            case DockZone.Top:
+                UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), iconRect, UITriangleArrowDirection.Up, color * DA.Opacity);
+                break;
+            case DockZone.Bottom:
+                UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), iconRect, UITriangleArrowDirection.Down, color * DA.Opacity);
+                break;
+            case DockZone.Center:
+                DrawBorder(DA, new Rectangle(iconRect.X + 5, iconRect.Y + 5, iconRect.Width - 10, iconRect.Height - 10), color, 2);
+                break;
+        }
+    }
+}
+
 /// <summary>
 /// Overlay that displays a central visual indicator showing available drop zones
 /// during drag and drop operations. Shows a single indicator with Left/Right/Top/Bottom/Center zones
@@ -32,6 +131,16 @@ public class MGDockDropIndicators : MGElement
 
     /// <summary>Zones that are currently forbidden by docking rules and should be drawn grayed out.</summary>
     private readonly HashSet<DockZone> _disabledZones = new HashSet<DockZone>();
+    private MGDockDropZoneIndicator LeftZoneElement { get; }
+    private MGDockDropZoneIndicator RightZoneElement { get; }
+    private MGDockDropZoneIndicator TopZoneElement { get; }
+    private MGDockDropZoneIndicator BottomZoneElement { get; }
+    private MGDockDropZoneIndicator CenterZoneElement { get; }
+    private MGDockDropZoneIndicator HostLeftZoneElement { get; }
+    private MGDockDropZoneIndicator HostRightZoneElement { get; }
+    private MGDockDropZoneIndicator HostTopZoneElement { get; }
+    private MGDockDropZoneIndicator HostBottomZoneElement { get; }
+
     // ── Per-panel joystick state ─────────────────────────────────────────────
     private Rectangle _leftZoneRect;
     private Rectangle _rightZoneRect;
@@ -127,7 +236,32 @@ public class MGDockDropIndicators : MGElement
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
             DefaultControlTemplateName = MGControlTemplateCatalog.DockDropIndicatorsTemplateName;
+
+            LeftZoneElement = CreateZoneElement(DockZone.Left, false);
+            RightZoneElement = CreateZoneElement(DockZone.Right, false);
+            TopZoneElement = CreateZoneElement(DockZone.Top, false);
+            BottomZoneElement = CreateZoneElement(DockZone.Bottom, false);
+            CenterZoneElement = CreateZoneElement(DockZone.Center, false);
+            HostLeftZoneElement = CreateZoneElement(DockZone.Left, true);
+            HostRightZoneElement = CreateZoneElement(DockZone.Right, true);
+            HostTopZoneElement = CreateZoneElement(DockZone.Top, true);
+            HostBottomZoneElement = CreateZoneElement(DockZone.Bottom, true);
+
+            SyncZoneVisuals();
         }
+    }
+
+    private MGDockDropZoneIndicator CreateZoneElement(DockZone zone, bool isHostEdge)
+    {
+        MGDockDropZoneIndicator element = new(ParentWindow)
+        {
+            ManagedParent = this,
+            Zone = zone,
+            IsHostEdge = isHostEdge,
+            Visibility = Visibility.Collapsed,
+        };
+        element.SetParent(this);
+        return element;
     }
 
     /// <summary>
@@ -138,6 +272,7 @@ public class MGDockDropIndicators : MGElement
         TargetBounds = targetBounds;
         IsVisible = true;
         ActiveZone = DockZone.None;
+        SyncZoneVisuals();
     }
 
     /// <summary>
@@ -148,6 +283,7 @@ public class MGDockDropIndicators : MGElement
         IsVisible = false;
         ActiveZone = DockZone.None;
         _disabledZones.Clear();
+        SyncZoneVisuals();
     }
 
     /// <summary>
@@ -165,6 +301,8 @@ public class MGDockDropIndicators : MGElement
                 _disabledZones.Add(z);
             }
         }
+
+        SyncZoneVisuals();
     }
 
     // ── Host-edge indicator API ──────────────────────────────────────────────
@@ -183,6 +321,7 @@ public class MGDockDropIndicators : MGElement
         }
         _hostEdgeVisible = true;
         _hostEdgeActiveZone = DockZone.None;
+        SyncZoneVisuals();
     }
 
     /// <summary>
@@ -193,6 +332,7 @@ public class MGDockDropIndicators : MGElement
     {
         _hostEdgeVisible = false;
         _hostEdgeActiveZone = DockZone.None;
+        SyncZoneVisuals();
     }
 
     internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
@@ -243,6 +383,7 @@ public class MGDockDropIndicators : MGElement
     public void UpdateHostEdgeActiveZone(Point screenPosition)
     {
         _hostEdgeActiveZone = GetHostEdgeZoneAtPosition(screenPosition);
+        SyncZoneVisuals();
     }
 
     /// <summary>
@@ -296,6 +437,7 @@ public class MGDockDropIndicators : MGElement
     public void UpdateActiveZone(Point screenPosition)
     {
         ActiveZone = GetZoneAtPosition(screenPosition);
+        SyncZoneVisuals();
     }
 
     /// <summary>
@@ -354,6 +496,7 @@ public class MGDockDropIndicators : MGElement
         int maxY = Math.Max(_bottomZoneRect.Bottom, Math.Max(_leftZoneRect.Bottom, _centerZoneRect.Bottom));
         
         _indicatorBounds = new Rectangle(minX, minY, maxX - minX, maxY - minY);
+        SyncZoneVisuals();
     }
 
     /// <summary>
@@ -394,221 +537,56 @@ public class MGDockDropIndicators : MGElement
             midX - half,
             _hostBounds.Bottom - ZoneSize,
             ZoneSize, ZoneSize);
+
+        SyncZoneVisuals();
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    public override IEnumerable<MGElement> GetChildren()
     {
-        // Draw per-panel joystick indicators
-        if (_isVisible)
-        {
-            DrawZoneIndicator(DA, _leftZoneRect,   DockZone.Left,   false);
-            DrawZoneIndicator(DA, _rightZoneRect,  DockZone.Right,  false);
-            DrawZoneIndicator(DA, _topZoneRect,    DockZone.Top,    false);
-            DrawZoneIndicator(DA, _bottomZoneRect, DockZone.Bottom, false);
-            DrawZoneIndicator(DA, _centerZoneRect, DockZone.Center, false);
-        }
-
-        // Draw host-edge indicators (always visible during drag, independent of hovered group)
-        if (_hostEdgeVisible)
-        {
-            DrawZoneIndicator(DA, _hostLeftZoneRect,   DockZone.Left,   true);
-            DrawZoneIndicator(DA, _hostRightZoneRect,  DockZone.Right,  true);
-            DrawZoneIndicator(DA, _hostTopZoneRect,    DockZone.Top,    true);
-            DrawZoneIndicator(DA, _hostBottomZoneRect, DockZone.Bottom, true);
-        }
-
-        DrawSelfBaseImplementation(DA, LayoutBounds);
+        yield return LeftZoneElement;
+        yield return RightZoneElement;
+        yield return TopZoneElement;
+        yield return BottomZoneElement;
+        yield return CenterZoneElement;
+        yield return HostLeftZoneElement;
+        yield return HostRightZoneElement;
+        yield return HostTopZoneElement;
+        yield return HostBottomZoneElement;
     }
 
-    /// <summary>
-    /// Draws a single zone indicator with a symbol.
-    /// </summary>
-    /// <param name="isHostEdge">
-    /// True when drawing a host-edge indicator (uses a distinct colour palette and
-    /// checks <see cref="_hostEdgeActiveZone"/> for highlighting).
-    /// </param>
-    private void DrawZoneIndicator(ElementDrawArgs DA, Rectangle rect, DockZone zone, bool isHostEdge)
+    private void SyncZoneVisuals()
     {
-        bool isDisabled = !isHostEdge && _disabledZones.Contains(zone);
-        bool isActive   = !isDisabled && (isHostEdge
-            ? (zone == _hostEdgeActiveZone)
-            : (zone == ActiveZone));
+        SyncZoneElement(LeftZoneElement, _leftZoneRect, IsVisible, ActiveZone == DockZone.Left, _disabledZones.Contains(DockZone.Left));
+        SyncZoneElement(RightZoneElement, _rightZoneRect, IsVisible, ActiveZone == DockZone.Right, _disabledZones.Contains(DockZone.Right));
+        SyncZoneElement(TopZoneElement, _topZoneRect, IsVisible, ActiveZone == DockZone.Top, _disabledZones.Contains(DockZone.Top));
+        SyncZoneElement(BottomZoneElement, _bottomZoneRect, IsVisible, ActiveZone == DockZone.Bottom, _disabledZones.Contains(DockZone.Bottom));
+        SyncZoneElement(CenterZoneElement, _centerZoneRect, IsVisible, ActiveZone == DockZone.Center, _disabledZones.Contains(DockZone.Center));
 
-        Color fillColor = isDisabled
-            ? DisabledColor
-            : (isHostEdge
-                ? (isActive ? HostActiveColor   : HostInactiveColor)
-                : (isActive ? ActiveColor       : InactiveColor));
-
-        Color borderCol = isDisabled ? DisabledBorderColor : BorderColor;
-
-        DA.DT.FillRectangle(
-            Vector2.Zero,
-            new RectangleF(rect.X, rect.Y, rect.Width, rect.Height),
-            fillColor
-        );
-
-        DrawBorder(DA, rect, borderCol, BorderWidth);
-        if (!isDisabled)
-        {
-            DrawZoneSymbol(DA, rect, zone, SymbolColor, isHostEdge);
-        }
-        else
-        {
-            DrawZoneSymbol(DA, rect, zone, DisabledSymbolColor, isHostEdge);
-        }
+        SyncZoneElement(HostLeftZoneElement, _hostLeftZoneRect, _hostEdgeVisible, _hostEdgeActiveZone == DockZone.Left, false);
+        SyncZoneElement(HostRightZoneElement, _hostRightZoneRect, _hostEdgeVisible, _hostEdgeActiveZone == DockZone.Right, false);
+        SyncZoneElement(HostTopZoneElement, _hostTopZoneRect, _hostEdgeVisible, _hostEdgeActiveZone == DockZone.Top, false);
+        SyncZoneElement(HostBottomZoneElement, _hostBottomZoneRect, _hostEdgeVisible, _hostEdgeActiveZone == DockZone.Bottom, false);
     }
 
-    /// <summary>
-    /// Draws a border around a rectangle.
-    /// </summary>
-    private void DrawBorder(ElementDrawArgs DA, Rectangle rect, Color color, int thickness)
+    private void SyncZoneElement(MGDockDropZoneIndicator element, Rectangle bounds, bool isVisible, bool isActive, bool isDisabled)
     {
-        // Top
-        DA.DT.FillRectangle(
-            Vector2.Zero,
-            new RectangleF(rect.X, rect.Y, rect.Width, thickness),
-            color
-        );
-
-        // Bottom
-        DA.DT.FillRectangle(
-            Vector2.Zero,
-            new RectangleF(rect.X, rect.Bottom - thickness, rect.Width, thickness),
-            color
-        );
-
-        // Left
-        DA.DT.FillRectangle(
-            Vector2.Zero,
-            new RectangleF(rect.X, rect.Y, thickness, rect.Height),
-            color
-        );
-
-        // Right
-        DA.DT.FillRectangle(
-            Vector2.Zero,
-            new RectangleF(rect.Right - thickness, rect.Y, thickness, rect.Height),
-            color
-        );
-    }
-
-    /// <summary>
-    /// Draws the directional symbol for a zone, using texture icons when available.
-    /// </summary>
-    /// <param name="isHostEdge">
-    /// True for host-edge indicators (solid panel icons); false for per-panel joystick
-    /// (dashed panel icons).
-    /// </param>
-    private void DrawZoneSymbol(ElementDrawArgs DA, Rectangle rect, DockZone zone, Color color, bool isHostEdge)
-    {
-        const int iconSize = 24;
-        Rectangle iconRect = new Rectangle(
-            rect.X + (rect.Width  - iconSize) / 2,
-            rect.Y + (rect.Height - iconSize) / 2,
-            iconSize, iconSize);
-
-        // Choose the resource key: dashed variant for per-panel joystick, solid for host-edge
-        string textureKey = zone switch
+        element.Visibility = isVisible && bounds.Width > 0 && bounds.Height > 0 ? Visibility.Visible : Visibility.Collapsed;
+        element.InactiveColor = InactiveColor;
+        element.ActiveColor = ActiveColor;
+        element.BorderColor = BorderColor;
+        element.HostInactiveColor = HostInactiveColor;
+        element.HostActiveColor = HostActiveColor;
+        element.DisabledColor = DisabledColor;
+        element.DisabledBorderColor = DisabledBorderColor;
+        element.SymbolColor = SymbolColor;
+        element.DisabledSymbolColor = DisabledSymbolColor;
+        element.BorderWidth = BorderWidth;
+        element.IsActive = isActive;
+        element.IsDisabled = isDisabled;
+        if (element.Visibility == Visibility.Visible)
         {
-            DockZone.Left   => isHostEdge ? "DockPanelLeft"   : "DockPanelLeftDashed",
-            DockZone.Right  => isHostEdge ? "DockPanelRight"  : "DockPanelRightDashed",
-            DockZone.Top    => isHostEdge ? "DockPanelTop"    : "DockPanelTopDashed",
-            DockZone.Bottom => isHostEdge ? "DockPanelBottom" : "DockPanelBottomDashed",
-            DockZone.Center => isHostEdge ? "DockPanelCenter" : "DockPanelCenterDashed",
-            _               => null
-        };
-
-        if (textureKey != null && GetResources().TryDrawTexture(DA.DT, textureKey, iconRect, 1f, color))
-        {
-            return; // texture drawn — done
-        }
-
-        // Fallback: programmatic shape
-        int centerX   = rect.X + rect.Width  / 2;
-        int centerY   = rect.Y + rect.Height / 2;
-        int arrowSize = 10;
-
-        switch (zone)
-        {
-            case DockZone.Left:
-                DrawArrow(DA, centerX, centerY, arrowSize, 180, color);
-                break;
-            case DockZone.Right:
-                DrawArrow(DA, centerX, centerY, arrowSize, 0, color);
-                break;
-            case DockZone.Top:
-                DrawArrow(DA, centerX, centerY, arrowSize, 270, color);
-                break;
-            case DockZone.Bottom:
-                DrawArrow(DA, centerX, centerY, arrowSize, 90, color);
-                break;
-            case DockZone.Center:
-                int squareSize = 14;
-                DrawBorder(DA, new Rectangle(
-                    centerX - squareSize / 2,
-                    centerY - squareSize / 2,
-                    squareSize, squareSize), color, 2);
-                break;
+            element.UpdateLayout(bounds);
         }
     }
 
-    /// <summary>
-    /// Draws a simple arrow (as rectangles forming an arrow shape).
-    /// </summary>
-    private void DrawArrow(ElementDrawArgs DA, int centerX, int centerY, int size, float angleDegrees, Color color)
-    {
-        // Simple arrow using rectangles
-        // Draw a stem and a triangular head using filled rectangles
-        int stemLength = size;
-        int stemWidth = 3;
-        int headSize = size / 2;
-
-        switch ((int)angleDegrees)
-        {
-            case 0: // Right
-                // Stem
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new RectangleF(centerX - stemLength/2, centerY - stemWidth/2, stemLength, stemWidth),
-                    color);
-                // Arrow head (triangle approximation)
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new RectangleF(centerX + stemLength/2, centerY - headSize/2, headSize/2, headSize),
-                    color);
-                break;
-
-            case 180: // Left
-                // Stem
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new RectangleF(centerX - stemLength/2, centerY - stemWidth/2, stemLength, stemWidth),
-                    color);
-                // Arrow head
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new RectangleF(centerX - stemLength/2 - headSize/2, centerY - headSize/2, headSize/2, headSize),
-                    color);
-                break;
-
-            case 90: // Down
-                // Stem
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new RectangleF(centerX - stemWidth/2, centerY - stemLength/2, stemWidth, stemLength),
-                    color);
-                // Arrow head
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new RectangleF(centerX - headSize/2, centerY + stemLength/2, headSize, headSize/2),
-                    color);
-                break;
-
-            case 270: // Up
-                // Stem
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new RectangleF(centerX - stemWidth/2, centerY - stemLength/2, stemWidth, stemLength),
-                    color);
-                // Arrow head
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new RectangleF(centerX - headSize/2, centerY - stemLength/2 - headSize/2, headSize, headSize/2),
-                    color);
-                break;
-        }
-    }
 }
