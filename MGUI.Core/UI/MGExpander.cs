@@ -353,7 +353,6 @@ namespace MGUI.Core.UI
 
                 HeadersPanelElement.TryAddChild(ExpanderToggleButton);
                 HeadersPanelElement.CanChangeContent = false;
-
                 ExpanderDropdownArrowColor = GetTheme().DropdownArrowColor;
                 ExpanderDropdownArrowSize = DefaultExpanderDropdownArrowSize;
 
@@ -372,24 +371,18 @@ namespace MGUI.Core.UI
 
                     Size DropdownArrowSize = new Size(ExpanderDropdownArrowSize, DropdownArrowHeight);
                     Rectangle DropdownArrowBounds = ApplyAlignment(ExpanderToggleButton.LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, DropdownArrowSize);
-
-                    List<Point> DropdownArrowVertices;
                     if (this.IsExpanded)
                     {
                         DropdownArrowBounds = DropdownArrowBounds.GetTranslated(new Point(0, -1));
-                        DropdownArrowVertices = new() {
-                            DropdownArrowBounds.BottomLeft(), DropdownArrowBounds.BottomRight(), new(DropdownArrowBounds.Center.X, DropdownArrowBounds.Top)
-                        };
                     }
                     else
                     {
                         DropdownArrowBounds = DropdownArrowBounds.GetTranslated(new Point(0, 1));
-                        DropdownArrowVertices = new() {
-                            DropdownArrowBounds.TopLeft(), DropdownArrowBounds.TopRight(), new(DropdownArrowBounds.Center.X, DropdownArrowBounds.Bottom)
-                        };
                     }
 
-                    e.DA.DT.FillPolygon(e.DA.Offset.ToVector2(), DropdownArrowVertices.Select(x => x.ToVector2()), ExpanderDropdownArrowColor * e.DA.Opacity * Opacity);
+                    UISymbolDrawing.DrawFilledTriangleArrow(e.DA.DT, e.DA.Offset.ToVector2(), DropdownArrowBounds,
+                        this.IsExpanded ? UITriangleArrowDirection.Up : UITriangleArrowDirection.Down,
+                        ExpanderDropdownArrowColor * e.DA.Opacity * Opacity);
                 };
 
                 BoundItems = new();
@@ -408,6 +401,16 @@ namespace MGUI.Core.UI
                 OnContentRemoved += (sender, e) => { UnbindVisibility(e); };
 
                 this.IsExpanded = IsExpanded;
+            }
+        }
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme != null)
+            {
+                ExpanderDropdownArrowColor = CurrentTheme.DropdownArrowColor;
             }
         }
 
