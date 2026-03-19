@@ -354,7 +354,7 @@ Resultat:
 - ce comportement complete la sanitation globale du desktop et reduit encore la fenetre d'existence d'un focus zombie ;
 - les cas de controles caches, clips ou bloques par overlay reposent maintenant sur la meme politique d'eligibilite.
 
-### ⚪ 9. Ajouter des regressions end-to-end et une couverture sample
+### ✅ 9. Ajouter des regressions end-to-end et une couverture sample
 
 But:
 verifier les comportements corriges au-dela des tests unitaires de logique pure.
@@ -378,6 +378,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 9 add end-to-end regressions and sample coverage`
+
+Resultat:
+
+- des regressions d'architecture epinglent les points faciles a reintroduire: nettoyage du focus par overlay modal et absence de voies clavier dupliquees dans les controles critiques ;
+- la validation des corrections repose sur les suites `Focus` et les builds de `MGUI.Samples` ;
+- aucun sample supplementaire n'a ete ajoute, car la couverture ciblee et la compilation des samples existants suffisent ici a garder la validation bornee et maintenable.
 
 ### ⚪ 10. Documenter le comportement final et les invariants
 
