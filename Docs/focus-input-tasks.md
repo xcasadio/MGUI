@@ -190,7 +190,7 @@ Resultat:
 - le gating de traitement d'input des fenetres d'overlay passe par la meme politique pure ;
 - la base est prete pour nettoyer activement le focus courant et la queue de focus aux taches suivantes.
 
-### ⚪ 4. Fiabiliser le cycle de vie du focus dans MGDesktop
+### ✅ 4. Fiabiliser le cycle de vie du focus dans MGDesktop
 
 But:
 faire de `MGDesktop` l'arbitre robuste du focus, y compris quand un controle disparait, devient non interactif, ou est masque.
@@ -215,6 +215,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `focus: complete task 4 harden desktop focus lifecycle`
+
+Resultat:
+
+- `MGDesktop` nettoie maintenant activement le focus courant et la queue de focus quand une cible devient non eligible ;
+- `ApplyQueuedFocusChange()` refuse les cibles devenues invalides avant de muter `FocusedKeyboardHandler` ;
+- la sanitation est executee a des points stables du tick pour eviter les etats zombies lors des transitions d'overlay, de modalite, de visibilite ou de fermeture.
 
 ### ⚪ 5. Isoler strictement les events souris deja geres
 

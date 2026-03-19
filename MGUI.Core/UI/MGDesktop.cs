@@ -845,6 +845,19 @@ namespace MGUI.Core.UI
         internal void ClearQueuedFocusedKeyboardHandler() => _QueuedFocusedKeyboardHandler = null;
         internal void ClearFocusedKeyboardHandler() => FocusedKeyboardHandler = null;
 
+        private void SanitizeKeyboardFocusState()
+        {
+            if (QueuedFocusedKeyboardHandler != null && !CanElementReceiveKeyboardInput(QueuedFocusedKeyboardHandler))
+            {
+                ClearQueuedFocusedKeyboardHandler();
+            }
+
+            if (FocusedKeyboardHandler != null && !CanElementReceiveKeyboardInput(FocusedKeyboardHandler))
+            {
+                ClearFocusedKeyboardHandler();
+            }
+        }
+
         /// <summary>The <see cref="MGElement"/> that should handle Keyboard inputs, if any.<para/>
         /// Only <see cref="MGElement"/>'s where <see cref="MGElement.CanHandleKeyboardInput"/> is true can be set as the <see cref="FocusedKeyboardHandler"/></summary>
         public MGElement FocusedKeyboardHandler
@@ -924,6 +937,12 @@ namespace MGUI.Core.UI
         {
             if (_QueuedFocusedKeyboardHandler == null)
             {
+                return;
+            }
+
+            if (!CanElementReceiveKeyboardInput(QueuedFocusedKeyboardHandler))
+            {
+                ClearQueuedFocusedKeyboardHandler();
                 return;
             }
 
@@ -1248,6 +1267,8 @@ namespace MGUI.Core.UI
 
             UpdateBaseArgs BA = Renderer.UpdateArgs;
 
+            SanitizeKeyboardFocusState();
+
             MGElement focusCandidate = QueuedFocusedKeyboardHandler ?? FocusedKeyboardHandler;
             bool isTextEntryFocused = focusCandidate is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
             bool hasNavigationActivity = HasKeyboardActivity(InputTracker.Keyboard) || InputTracker.GamePad.HasActivity();
@@ -1310,7 +1331,9 @@ namespace MGUI.Core.UI
             }
 
             ActiveToolTip = QueuedToolTip;
+            SanitizeKeyboardFocusState();
             ApplyQueuedFocusChange();
+            SanitizeKeyboardFocusState();
         }
 
         /// <summary>Traverses up the visual tree, starting from the given <paramref name="Element"/>, looking for an <see cref="MGElement"/> that is fully opaque (<see cref="MGElement.Opacity"/> >= 1.0f)</summary>
