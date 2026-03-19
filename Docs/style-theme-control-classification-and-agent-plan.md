@@ -320,9 +320,9 @@ Reason:
   - Validation: menu item template tests.
   - Commit: `style-theme: migrate context menu item symbol rendering`
 
-- `⬜ Migrate expander arrow visuals`
+- `✅ Migrate expander arrow visuals`
   - Deliverable: expander icon/state rendering is no longer hard-coded in control logic.
-  - Progress: expander arrow rendering now uses the shared triangle-arrow primitive and refreshes its color through theme changes, but remains control-owned rather than template-owned.
+  - Progress: `MGExpander` now hosts a shared `MGTriangleArrowIcon` component whose bounds, direction, and color are synchronized from expander state and theme values instead of being painted through `ExpanderToggleButton.OnEndingDraw`.
   - Validation: expander-focused tests.
   - Commit: `style-theme: migrate expander state visuals`
 

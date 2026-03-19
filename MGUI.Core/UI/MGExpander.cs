@@ -22,6 +22,8 @@ namespace MGUI.Core.UI
         public static int DefaultExpanderDropdownArrowSize { get; set; } = 10;
 
         public MGToggleButton ExpanderToggleButton { get; }
+        private MGComponent<MGTriangleArrowIcon> ExpanderArrowComponent { get; }
+        private MGTriangleArrowIcon ExpanderArrowElement { get; }
 
         /// <summary>The width and height of the button part of this <see cref="MGExpander"/>'s header.<para/>
         /// Default value: <see cref="DefaultExpanderButtonSize"/></summary>
@@ -92,6 +94,10 @@ namespace MGUI.Core.UI
                 if (_ExpanderDropdownArrowColor != value)
                 {
                     _ExpanderDropdownArrowColor = value;
+                    if (ExpanderArrowElement != null)
+                    {
+                        ExpanderArrowElement.Color = value;
+                    }
                     NPC(nameof(ExpanderDropdownArrowColor));
                 }
             }
@@ -222,6 +228,10 @@ namespace MGUI.Core.UI
 
                     _IsExpanded = value;
                     ExpanderToggleButton.IsChecked = IsExpanded;
+                    if (ExpanderArrowElement != null)
+                    {
+                        ExpanderArrowElement.Direction = IsExpanded ? UITriangleArrowDirection.Up : UITriangleArrowDirection.Down;
+                    }
                     NPC(nameof(IsExpanded));
                     NPC(nameof(IsCollapsed));
 
@@ -349,6 +359,24 @@ namespace MGUI.Core.UI
                 ExpanderToggleButton.VerticalAlignment = VerticalAlignment.Center;
                 ExpanderToggleButton.ManagedParent = this;
 
+                ExpanderArrowElement = new(Window) { ManagedParent = this };
+                ExpanderArrowComponent = new(ExpanderArrowElement, false, false, false, false, false, false, false,
+                    (availableBounds, componentSize) =>
+                    {
+                        int dropdownArrowHeight = ExpanderDropdownArrowSize / 2;
+                        if (dropdownArrowHeight % 2 != 0)
+                        {
+                            dropdownArrowHeight++;
+                        }
+
+                        Size dropdownArrowSize = new(ExpanderDropdownArrowSize, dropdownArrowHeight);
+                        Rectangle dropdownArrowBounds = ApplyAlignment(ExpanderToggleButton.LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, dropdownArrowSize);
+                        return IsExpanded
+                            ? dropdownArrowBounds.GetTranslated(new Point(0, -1))
+                            : dropdownArrowBounds.GetTranslated(new Point(0, 1));
+                    });
+                AddComponent(ExpanderArrowComponent);
+
                 ExpanderButtonSize = DefaultExpanderButtonSize;
 
                 HeadersPanelElement.TryAddChild(ExpanderToggleButton);
@@ -359,30 +387,6 @@ namespace MGUI.Core.UI
                 ExpanderToggleButton.OnCheckStateChanged += (sender, e) =>
                 {
                     this.IsExpanded = ExpanderToggleButton.IsChecked;
-                };
-
-                ExpanderToggleButton.OnEndingDraw += (sender, e) =>
-                {
-                    int DropdownArrowHeight = ExpanderDropdownArrowSize / 2;
-                    if (DropdownArrowHeight % 2 != 0)
-                    {
-                        DropdownArrowHeight++;
-                    }
-
-                    Size DropdownArrowSize = new Size(ExpanderDropdownArrowSize, DropdownArrowHeight);
-                    Rectangle DropdownArrowBounds = ApplyAlignment(ExpanderToggleButton.LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, DropdownArrowSize);
-                    if (this.IsExpanded)
-                    {
-                        DropdownArrowBounds = DropdownArrowBounds.GetTranslated(new Point(0, -1));
-                    }
-                    else
-                    {
-                        DropdownArrowBounds = DropdownArrowBounds.GetTranslated(new Point(0, 1));
-                    }
-
-                    UISymbolDrawing.DrawFilledTriangleArrow(e.DA.DT, e.DA.Offset.ToVector2(), DropdownArrowBounds,
-                        this.IsExpanded ? UITriangleArrowDirection.Up : UITriangleArrowDirection.Down,
-                        ExpanderDropdownArrowColor * e.DA.Opacity * Opacity);
                 };
 
                 BoundItems = new();

@@ -725,21 +725,21 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("UISymbolDrawing.DrawRadioIndicator", symbolElementsSource);
         Assert.Contains("ToggleIconElement = new(Menu) { ManagedParent = this }", contextMenuItemSource);
         Assert.Contains("RadioIconElement = new(Menu) { ManagedParent = this }", contextMenuItemSource);
+        Assert.Contains("ExpanderArrowElement = new(Window) { ManagedParent = this }", expanderSource);
         Assert.Contains("CheckStateIcon = new(Window) { ManagedParent = this }", checkBoxSource);
         Assert.Contains("new(Window) { ManagedParent = this }", radioButtonSource);
         Assert.Contains("IndicatorComponent = new(IndicatorElement", radioButtonSource);
         Assert.DoesNotContain("ButtonElement.OnEndingDraw +=", checkBoxSource);
         Assert.DoesNotContain("HeaderPresenter.OnEndingDraw +=", contextMenuItemSource);
+        Assert.DoesNotContain("ExpanderToggleButton.OnEndingDraw +=", expanderSource);
         Assert.DoesNotContain("public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)", radioButtonSource);
         Assert.Contains("UITriangleArrowDirection", helperSource);
         Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", symbolElementsSource);
         Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", comboBoxSource);
         Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", contextMenuItemSource);
-        Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", expanderSource);
         Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", treeViewItemSource);
         Assert.DoesNotContain("List<Vector2> ArrowVertices", comboBoxSource);
         Assert.DoesNotContain("List<Vector2> ArrowVertices", contextMenuItemSource);
-        Assert.DoesNotContain("List<Point> DropdownArrowVertices", expanderSource);
         Assert.DoesNotContain("List<Point> arrowVertices", treeViewItemSource);
     }
 
