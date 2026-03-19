@@ -710,13 +710,26 @@ public class ControlTemplateInfrastructureTests
     public void Shared_Triangle_Arrow_Helper_Is_Used_By_Composite_And_Manual_Controls()
     {
         string helperSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
+        string checkBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGCheckBox.cs");
         string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
         string contextMenuItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenuItem.cs");
         string expanderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGExpander.cs");
+        string radioButtonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGRadioButton.cs");
         string treeViewItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
 
         Assert.Contains("public static class UISymbolDrawing", helperSource);
+        Assert.Contains("DrawCheckMark", helperSource);
+        Assert.Contains("DrawRadioIndicator", helperSource);
+        Assert.Contains("UISymbolDrawing.DrawCheckMark", symbolElementsSource);
+        Assert.Contains("UISymbolDrawing.DrawRadioIndicator", symbolElementsSource);
+        Assert.Contains("CheckStateIcon = new(Window) { ManagedParent = this }", checkBoxSource);
+        Assert.Contains("new(Window) { ManagedParent = this }", radioButtonSource);
+        Assert.Contains("IndicatorComponent = new(IndicatorElement", radioButtonSource);
+        Assert.DoesNotContain("ButtonElement.OnEndingDraw +=", checkBoxSource);
+        Assert.DoesNotContain("public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)", radioButtonSource);
         Assert.Contains("UITriangleArrowDirection", helperSource);
+        Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", symbolElementsSource);
         Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", comboBoxSource);
         Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", contextMenuItemSource);
         Assert.Contains("UISymbolDrawing.DrawFilledTriangleArrow", expanderSource);

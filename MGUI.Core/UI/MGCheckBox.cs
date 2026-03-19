@@ -35,6 +35,7 @@ namespace MGUI.Core.UI
         public MGComponent<MGButton> ButtonComponent { get; }
         /// <summary>The checkable button portion of this <see cref="MGCheckBox"/></summary>
         public MGButton ButtonElement { get; }
+        private MGCheckStateIcon CheckStateIcon { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private int _CheckBoxComponentSize;
@@ -87,6 +88,10 @@ namespace MGUI.Core.UI
                 if (_CheckMarkColor != value)
                 {
                     _CheckMarkColor = value;
+                    if (CheckStateIcon != null)
+                    {
+                        CheckStateIcon.MarkColor = value;
+                    }
                     NPC(nameof(CheckMarkColor));
                 }
             }
@@ -105,6 +110,10 @@ namespace MGUI.Core.UI
                 if (_IsCheckMarkShadowed != value)
                 {
                     _IsCheckMarkShadowed = value;
+                    if (CheckStateIcon != null)
+                    {
+                        CheckStateIcon.IsShadowed = value;
+                    }
                     NPC(nameof(IsCheckMarkShadowed));
                 }
             }
@@ -120,6 +129,10 @@ namespace MGUI.Core.UI
                 if (_CheckMarkShadowColor != value)
                 {
                     _CheckMarkShadowColor = value;
+                    if (CheckStateIcon != null)
+                    {
+                        CheckStateIcon.ShadowColor = value;
+                    }
                     NPC(nameof(CheckMarkShadowColor));
                 }
             }
@@ -135,6 +148,10 @@ namespace MGUI.Core.UI
                 if (_CheckMarkShadowOffset != value)
                 {
                     _CheckMarkShadowOffset = value;
+                    if (CheckStateIcon != null)
+                    {
+                        CheckStateIcon.ShadowOffset = value;
+                    }
                     NPC(nameof(CheckMarkShadowOffset));
                 }
             }
@@ -179,6 +196,10 @@ namespace MGUI.Core.UI
 
                     bool? Previous = IsChecked;
                     _IsChecked = value;
+                    if (CheckStateIcon != null)
+                    {
+                        CheckStateIcon.CheckState = value;
+                    }
                     NPC(nameof(IsChecked));
                     OnCheckStateChanged?.Invoke(this, new(Previous, IsChecked));
 
@@ -237,36 +258,11 @@ namespace MGUI.Core.UI
                 ButtonElement.MinHeight = 12;
                 ButtonElement.Padding = new(0);
 
-                ButtonElement.OnEndingDraw += (sender, e) =>
+                CheckStateIcon = new(Window) { ManagedParent = this };
+                using (ButtonElement.AllowChangingContentTemporarily())
                 {
-                    if (!this.IsChecked.HasValue)
-                    {
-                        Rectangle TargetBounds = ButtonElement.LayoutBounds.GetCompressed(ButtonElement.Padding).GetScaledFromCenter(0.60f);
-                        //  Force the bounds to be an even width/height
-                        if (TargetBounds.Width % 2 != 0 || TargetBounds.Height % 2 != 0)
-                        {
-                            TargetBounds = new(TargetBounds.Left, TargetBounds.Top, TargetBounds.Width / 2 * 2, TargetBounds.Height / 2 * 2);
-                        }
-
-                        if (IsCheckMarkShadowed)
-                        {
-                            e.DA.DT.FillRectangle(e.DA.Offset.ToVector2(), TargetBounds.GetTranslated(CheckMarkShadowOffset), CheckMarkShadowColor * e.DA.Opacity);
-                        }
-
-                        e.DA.DT.FillRectangle(e.DA.Offset.ToVector2(), TargetBounds, CheckMarkColor * e.DA.Opacity);
-
-                    }
-                    else if (this.IsChecked.Value)
-                    {
-                        Rectangle TargetBounds = ButtonElement.LayoutBounds.GetCompressed(ButtonElement.Padding);
-                        if (IsCheckMarkShadowed)
-                        {
-                            DrawCheckMark(GetDesktop(), TargetBounds, e.DA.DT, e.DA.Opacity, e.DA.Offset + CheckMarkShadowOffset, CheckMarkShadowColor);
-                        }
-
-                        DrawCheckMark(GetDesktop(), TargetBounds, e.DA.DT, e.DA.Opacity, e.DA.Offset, CheckMarkColor);
-                    }
-                };
+                    ButtonElement.SetContent(CheckStateIcon);
+                }
 
                 ButtonComponent = new(ButtonElement, false, true, true, true, false, false, false,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Left, VerticalAlignment.Center, ComponentSize.Size));
@@ -297,26 +293,9 @@ namespace MGUI.Core.UI
             return true;
         }
 
-        public static void DrawCheckMark(MGDesktop Desktop, Rectangle Bounds, DrawTransaction DT, float Opacity, Point Offset, Color Color)
+        public static void DrawCheckMark(MGDesktop desktop, Rectangle bounds, DrawTransaction drawTransaction, float opacity, Point offset, Color color)
         {
-#if true
-            Vector2 TopLeft = Bounds.TopLeft().ToVector2();
-            List<Vector2> CheckMarkVertices = new()
-            {
-                TopLeft + new Vector2(Bounds.Width * 0.2f, Bounds.Height * 0.5f),
-                TopLeft + new Vector2(Bounds.Width * 0.5f, Bounds.Height * 0.8f),
-                TopLeft + new Vector2(Bounds.Width * 0.8f, Bounds.Height * 0.12f)
-            };
-
-            foreach ((Vector2 v0, Vector2 v1) in CheckMarkVertices.SelectConsecutivePairs(false))
-            {
-                DT.StrokeLineSegment(Offset.ToVector2(), v0, v1, Color * Opacity, 2);
-            }
-#else
-            Rectangle CheckMarkBounds = Bounds.GetScaledFromCenter(0.75f).GetTranslated(Offset);
-            //Desktop.Resources.TryDrawTexture(DT, "CheckMarkGreen_12x12", CheckMarkBounds, Opacity, Color);
-            DT.DrawTextureTo(Desktop.Resources.Textures["CheckMark_64x64"], null, CheckMarkBounds, Color);
-#endif
+            UISymbolDrawing.DrawCheckMark(drawTransaction, offset.ToVector2(), bounds, color * opacity);
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)

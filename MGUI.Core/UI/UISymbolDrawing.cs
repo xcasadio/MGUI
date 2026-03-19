@@ -2,6 +2,7 @@ using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
+using MGUI.Shared.Helpers;
 
 namespace MGUI.Core.UI
 {
@@ -15,9 +16,68 @@ namespace MGUI.Core.UI
 
     public static class UISymbolDrawing
     {
+        public static void DrawCheckMark(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, Color color, float thickness = 2.0f)
+        {
+            foreach ((Vector2 v0, Vector2 v1) in GetCheckMarkVertices(bounds).SelectConsecutivePairs(false))
+            {
+                drawTransaction.StrokeLineSegment(origin, v0, v1, color, thickness);
+            }
+        }
+
+        public static IReadOnlyList<Vector2> GetCheckMarkVertices(Rectangle bounds)
+        {
+            Vector2 topLeft = bounds.TopLeft().ToVector2();
+            return new[]
+            {
+                topLeft + new Vector2(bounds.Width * 0.2f, bounds.Height * 0.5f),
+                topLeft + new Vector2(bounds.Width * 0.5f, bounds.Height * 0.8f),
+                topLeft + new Vector2(bounds.Width * 0.8f, bounds.Height * 0.12f)
+            };
+        }
+
         public static void DrawFilledTriangleArrow(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, UITriangleArrowDirection direction, Color color)
         {
             drawTransaction.FillPolygon(origin, GetTriangleArrowVertices(bounds, direction).Select(x => x.ToVector2()), color);
+        }
+
+        public static void DrawRadioIndicator(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, Color borderColor,
+            float borderThickness, Color fillColor, Color? overlayColor, bool isChecked, Color checkedColor, int numSides = 32)
+        {
+            Point center = bounds.Center;
+            int radius = bounds.Width / 2;
+
+            drawTransaction.FillCircle(center.ToVector2() + origin, fillColor, radius - borderThickness / 2.0f, numSides);
+            drawTransaction.StrokeCircle(center.ToVector2() + origin, borderColor, radius, borderThickness, numSides);
+
+            if (overlayColor.HasValue)
+            {
+                drawTransaction.FillCircle(center.ToVector2() + origin, overlayColor.Value, radius - borderThickness / 2.0f, numSides);
+                drawTransaction.StrokeCircle(center.ToVector2() + origin, overlayColor.Value, radius, borderThickness, numSides);
+            }
+
+            if (isChecked)
+            {
+                int innerRadius = radius - 4;
+                drawTransaction.FillCircle(center.ToVector2() + origin, checkedColor, innerRadius, numSides);
+            }
+        }
+
+        public static void DrawRadioBullet(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, Color ringColor, bool isChecked, Color fillColor, int numSides = 16)
+        {
+            int diameter = System.Math.Min(bounds.Width, bounds.Height) - 4;
+            if (diameter <= 0)
+            {
+                return;
+            }
+
+            Vector2 center = (bounds.Center).ToVector2() + origin;
+            float radius = diameter / 2.0f;
+            drawTransaction.StrokeCircle(center, ringColor, radius, 1.0f, numSides);
+            if (isChecked)
+            {
+                float innerRadius = System.Math.Max(1.0f, radius - 3.0f);
+                drawTransaction.FillCircle(center, fillColor, innerRadius, numSides);
+            }
         }
 
         public static IReadOnlyList<Point> GetTriangleArrowVertices(Rectangle bounds, UITriangleArrowDirection direction)

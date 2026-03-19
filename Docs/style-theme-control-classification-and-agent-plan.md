@@ -308,8 +308,9 @@ Reason:
   - `MGDockTabItem`: `DrawContents`
   - `MGDockPreviewOverlay`: `DrawSelf`
 
-- `⬜ Migrate checkbox and radio visuals to template/state mapping`
+- `✅ Migrate checkbox and radio visuals to template/state mapping`
   - Deliverable: no hard-coded checkmark or bullet rendering in control logic except shared primitives.
+  - Progress: checkbox and radio indicator drawing now goes through shared symbol elements backed by `UISymbolDrawing`, so `MGCheckBox` no longer draws via `ButtonElement.OnEndingDraw` and `MGRadioButton` no longer paints its bubble inline in `DrawSelf(...)`.
   - Validation: focused rendering and architecture tests.
   - Commit: `style-theme: migrate checkbox and radio visuals`
 

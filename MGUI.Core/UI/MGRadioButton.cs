@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Shared.Rendering;
 using MGUI.Shared.Input.Mouse;
 using System.Diagnostics;
 
@@ -133,8 +132,10 @@ namespace MGUI.Core.UI
     {
         /// <summary>Provides direct access to the button component that appears to the left of this radiobutton's content.</summary>
         public MGComponent<MGButton> ButtonComponent { get; }
+        private MGComponent<MGRadioIndicatorIcon> IndicatorComponent { get; }
         /// <summary>The checkable button portion of this <see cref="MGRadioButton"/></summary>
         private MGButton ButtonElement { get; }
+        private MGRadioIndicatorIcon IndicatorElement { get; }
 
         /// <summary>The default width/height of the checkable part of an <see cref="MGRadioButton"/></summary>
         public const int DefaultBubbleSize = 16;
@@ -160,6 +161,8 @@ namespace MGUI.Core.UI
                     Size ButtonSize = GetButtonComponentPreferredSize();
                     ButtonElement.PreferredWidth = ButtonSize.Width;
                     ButtonElement.PreferredHeight = ButtonSize.Height;
+                    IndicatorElement.PreferredWidth = ButtonSize.Width;
+                    IndicatorElement.PreferredHeight = ButtonSize.Height;
                     NPC(nameof(BubbleComponentSize));
                 }
             }
@@ -176,6 +179,10 @@ namespace MGUI.Core.UI
                 if (_BubbleComponentBorderColor != value)
                 {
                     _BubbleComponentBorderColor = value;
+                    if (IndicatorElement != null)
+                    {
+                        IndicatorElement.BorderColor = value;
+                    }
                     NPC(nameof(BubbleComponentBorderColor));
                 }
             }
@@ -194,6 +201,10 @@ namespace MGUI.Core.UI
                 if (_BubbleComponentBorderThickness != value)
                 {
                     _BubbleComponentBorderThickness = value;
+                    if (IndicatorElement != null)
+                    {
+                        IndicatorElement.BorderThickness = value;
+                    }
                     NPC(nameof(BubbleComponentBorderThickness));
                 }
             }
@@ -210,6 +221,10 @@ namespace MGUI.Core.UI
                 if (_BubbleComponentBackground != value)
                 {
                     _BubbleComponentBackground = value;
+                    if (IndicatorElement != null)
+                    {
+                        IndicatorElement.Background = value;
+                    }
                     NPC(nameof(BubbleComponentBackground));
                 }
             }
@@ -228,6 +243,10 @@ namespace MGUI.Core.UI
                 if (_BubbleCheckedColor != value)
                 {
                     _BubbleCheckedColor = value;
+                    if (IndicatorElement != null)
+                    {
+                        IndicatorElement.CheckedColor = value;
+                    }
                     NPC(nameof(BubbleCheckedColor));
                 }
             }
@@ -267,6 +286,10 @@ namespace MGUI.Core.UI
 
         internal void HandleCheckStateChanged()
         {
+            if (IndicatorElement != null)
+            {
+                IndicatorElement.IsChecked = IsChecked;
+            }
             OnCheckStateChanged?.Invoke(this, IsChecked);
             if (IsChecked)
             {
@@ -306,6 +329,11 @@ namespace MGUI.Core.UI
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Left, VerticalAlignment.Center, ComponentSize.Size));
                 AddComponent(ButtonComponent);
 
+                IndicatorElement = new(Window) { ManagedParent = this };
+                IndicatorComponent = new(IndicatorElement, false, true, true, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Left, VerticalAlignment.Center, ComponentSize.Size));
+                AddComponent(IndicatorComponent);
+
                 BubbleComponentSize = DefaultBubbleSize;
                 BubbleComponentBorderColor = Color.Black;
                 BubbleComponentBorderThickness = 1;
@@ -327,56 +355,5 @@ namespace MGUI.Core.UI
             return true;
         }
 
-        /// <summary>The number of sides to use when approximating a circle as a polygon.<para/>
-        /// Recommended value: 32</summary>
-        private const int CircleDetailLevel = 32; // 16 looks bad
-
-        public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-        {
-            DrawTransaction DT = DA.DT;
-            float Opacity = DA.Opacity;
-
-            Rectangle BubblePartBounds = ButtonElement.LayoutBounds;
-
-            Point BubbleCenter = BubblePartBounds.Center + DA.Offset;
-            int BubbleRadius = BubblePartBounds.Width / 2;
-
-            Color BubbleComponentFillColor = BubbleComponentBackground.GetUnderlay(VisualState.Primary);
-            DT.FillCircle(BubbleCenter.ToVector2(), BubbleComponentFillColor * Opacity, BubbleRadius - BubbleComponentBorderThickness / 2, CircleDetailLevel);
-            DT.StrokeCircle(BubbleCenter.ToVector2(), BubbleComponentBorderColor * Opacity, BubbleRadius, BubbleComponentBorderThickness, CircleDetailLevel);
-            //DT.StrokeAndFillCircle(BubbleCenter.ToVector2(), BubbleComponentBorderColor * Opacity, BubbleComponentFillColor * Opacity, BubbleRadius, BubbleComponentBorderThickness, CircleDetailLevel);
-
-            if (!ParentWindow.HasModalWindow)
-            {
-                Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
-                bool IsBubblePartPressed;
-                if (InputTracker.Mouse.RecentButtonPressedEvents[MouseButton.Left] != null)
-                {
-                    Point PressPositionScreenSpace = InputTracker.Mouse.RecentButtonPressedEvents[MouseButton.Left].Position;
-                    Point PressPositionLayoutSpace = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, PressPositionScreenSpace);
-                    IsBubblePartPressed = BubblePartBounds.ContainsInclusive(PressPositionLayoutSpace);
-                }
-                else
-                {
-                    IsBubblePartPressed = false;
-                }
-
-                bool IsBubblePartHovered = BubblePartBounds.ContainsInclusive(LayoutSpacePosition);
-
-                Color? Overlay = BubbleComponentBackground.GetColorOverlay(IsBubblePartPressed ? SecondaryVisualState.Pressed : IsBubblePartHovered ? SecondaryVisualState.Hovered : SecondaryVisualState.None);
-                if (Overlay.HasValue)
-                {
-                    DT.FillCircle(BubbleCenter.ToVector2(), Overlay.Value * Opacity, BubbleRadius - BubbleComponentBorderThickness / 2, CircleDetailLevel);
-                    DT.StrokeCircle(BubbleCenter.ToVector2(), Overlay.Value * Opacity, BubbleRadius, BubbleComponentBorderThickness, CircleDetailLevel);
-                    //DT.StrokeAndFillCircle(BubbleCenter.ToVector2(), Overlay.Value * Opacity, Overlay.Value * Opacity, BubbleRadius, BubbleComponentBorderThickness, CircleDetailLevel);
-                }
-            }
-
-            if (IsChecked)
-            {
-                int InnerRadius = BubbleRadius - 4;
-                DT.FillCircle(BubbleCenter.ToVector2(), BubbleCheckedColor * Opacity, InnerRadius, CircleDetailLevel);
-            }
-        }
     }
 }
