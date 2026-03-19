@@ -9,6 +9,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Shared.Helpers;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -18,6 +19,10 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockTabGroup : MGElement
 {
+    public const string AccentPartName = "PART_Accent";
+    public const string DropdownIconPartName = "PART_DropdownIcon";
+    public const string WindowStateIconPartName = "PART_WindowStateIcon";
+
     private DockTabGroupNode _groupNode;
     /// <summary>
     /// The tab group node model this control is bound to.
@@ -64,6 +69,12 @@ public class MGDockTabGroup : MGElement
     // Compact strip buttons created in the constructor
     private MGBorder _dropdownBtn;   // "..." overflow menu — visible only when tabs are hidden
     private MGBorder _maximizeBtn;   // maximize / restore toggle — always visible
+    private MGRectangle _accentElement;
+    private MGComponent<MGRectangle> _accentComponent;
+    private MGEllipsisIcon _dropdownIconElement;
+    private MGComponent<MGEllipsisIcon> _dropdownIconComponent;
+    private MGWindowStateIcon _windowStateIconElement;
+    private MGComponent<MGWindowStateIcon> _windowStateIconComponent;
 
     private const int DropdownBtnWidth = 24;
     private const int MaximizeBtnWidth = 24;
@@ -211,7 +222,46 @@ public class MGDockTabGroup : MGElement
     /// <summary>Updates the maximize / restore button label to match <see cref="IsMaximized"/>.</summary>
     private void UpdateMaximizeButtonLabel()
     {
-        // Icon is drawn directly in DrawContents — no text label needed.
+        SyncHeaderVisuals();
+    }
+
+    private Rectangle GetWindowStateIconBounds()
+    {
+        if (_maximizeBtn == null)
+        {
+            return Rectangle.Empty;
+        }
+
+        Rectangle bounds = _maximizeBtn.LayoutBounds;
+        const int iconSize = 14;
+        return new Rectangle(
+            bounds.X + (bounds.Width - iconSize) / 2,
+            bounds.Y + (bounds.Height - iconSize) / 2,
+            iconSize,
+            iconSize);
+    }
+
+    private void SyncHeaderVisuals()
+    {
+        if (_accentElement != null)
+        {
+            _accentElement.Visibility = IsActiveGroup ? Visibility.Visible : Visibility.Collapsed;
+            _accentElement.Width = LayoutBounds.Width;
+            _accentElement.Height = 2;
+            _accentElement.Fill = new Color(0, 120, 215).AsFillBrush();
+        }
+
+        if (_dropdownIconElement != null)
+        {
+            _dropdownIconElement.Visibility = _dropdownBtn?.Visibility ?? Visibility.Collapsed;
+            _dropdownIconElement.Color = new Color(200, 200, 200);
+        }
+
+        if (_windowStateIconElement != null)
+        {
+            _windowStateIconElement.Color = new Color(200, 200, 200);
+            _windowStateIconElement.IsRestoredState = _isMaximized;
+        }
     }
 
     /// <summary>
@@ -236,6 +286,19 @@ public class MGDockTabGroup : MGElement
             _activeContentContainer = CreateEmptyContent();
             _activeContentContainer.SetParent(this);
 
+            _accentElement = new(window, 0, 0, Color.Transparent, 0, Color.Transparent)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+                Visibility = Visibility.Collapsed,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+            RegisterTemplatePart(AccentPartName, _accentElement);
+            _accentComponent = new(_accentElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => new Rectangle(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width, 2));
+            AddComponent(_accentComponent);
+
             // Set group node (will trigger rebuild)
             if (groupNode != null)
             {
@@ -250,6 +313,14 @@ public class MGDockTabGroup : MGElement
             _dropdownBtn.Visibility = Visibility.Collapsed;
             _dropdownBtn.SetParent(this);
 
+            _dropdownIconElement = new(window) { ManagedParent = this };
+            _dropdownIconElement.Color = new Color(200, 200, 200);
+            RegisterTemplatePart(DropdownIconPartName, _dropdownIconElement);
+            _dropdownIconComponent = new(_dropdownIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => _dropdownBtn?.LayoutBounds ?? Rectangle.Empty);
+            AddComponent(_dropdownIconComponent);
+
             // Maximize / restore toggle — icon is drawn directly in DrawContents
             _maximizeBtn = CreateCompactButton(window, "", () =>
             {
@@ -263,6 +334,16 @@ public class MGDockTabGroup : MGElement
                 }
             });
             _maximizeBtn.SetParent(this);
+
+            _windowStateIconElement = new(window) { ManagedParent = this };
+            _windowStateIconElement.Color = new Color(200, 200, 200);
+            RegisterTemplatePart(WindowStateIconPartName, _windowStateIconElement);
+            _windowStateIconComponent = new(_windowStateIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => GetWindowStateIconBounds());
+            AddComponent(_windowStateIconComponent);
+
+            SyncHeaderVisuals();
         }
     }
 
@@ -708,6 +789,8 @@ public class MGDockTabGroup : MGElement
                 MaximizeBtnWidth, TabHeaderHeight));
         }
 
+        SyncHeaderVisuals();
+
         TabHeadersBounds = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, TabHeaderHeight);
 
         // ── Layout content area ───────────────────────────────────────────
@@ -794,121 +877,4 @@ public class MGDockTabGroup : MGElement
         _tabScrollIndex = Math.Clamp(_tabScrollIndex, 0, maxIndex);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-    {
-        // No self rendering - children handle their own drawing
-        DrawSelfBaseImplementation(DA, LayoutBounds);
-    }
-
-    protected override void DrawContents(ElementDrawArgs DA)
-    {
-        // Draw all children
-        foreach (var child in GetChildren())
-        {
-            child?.Draw(DA);
-        }
-
-        // Draw active-group accent stripe (top edge of tab header area)
-        if (IsActiveGroup)
-        {
-            DrawActiveGroupAccent(DA);
-        }
-
-        // Draw programmatic icons over their respective buttons
-        DrawDropdownIcon(DA);
-        DrawMaximizeIcon(DA);
-    }
-
-    /// <summary>
-    /// Draws a 2-pixel accent stripe at the very top of the tab-header bar to indicate
-    /// that this group is the currently active (last-focused) group.
-    /// </summary>
-    private void DrawActiveGroupAccent(ElementDrawArgs DA)
-    {
-        var lb = LayoutBounds;
-        if (lb.Width <= 0 || lb.Height <= 0)
-        {
-            return;
-        }
-
-        const int stripeH = 2;
-        DA.DT.FillRectangle(Vector2.Zero,
-            new RectangleF(lb.X, lb.Y, lb.Width, stripeH),
-            new Color(0, 120, 215));   // Windows accent blue
-    }
-
-    /// <summary>
-    /// Draws three small dots ("...") centred over the dropdown button.
-    /// Only drawn when the button is visible (overflow state).
-    /// </summary>
-    private void DrawDropdownIcon(ElementDrawArgs DA)
-    {
-        if (_dropdownBtn == null || _dropdownBtn.Visibility != Visibility.Visible)
-        {
-            return;
-        }
-
-        Rectangle b   = _dropdownBtn.LayoutBounds;
-        float     cx  = b.X + b.Width * 0.5f;
-        float     cy  = b.Y + b.Height * 0.5f;
-        Color     col = new Color(200, 200, 200);
-
-        const float dotRadius = 1.5f;
-        const float spacing   = 5f;
-        for (int i = -1; i <= 1; i++)
-        {
-            float dx = cx + i * spacing;
-            DA.DT.FillRectangle(Vector2.Zero,
-                new RectangleF(dx - dotRadius, cy - dotRadius, dotRadius * 2f, dotRadius * 2f),
-                col);
-        }
-    }
-
-    /// <summary>
-    /// Draws the maximize or restore icon centred over <see cref="_maximizeBtn"/>'s layout bounds.
-    /// Uses the <c>DockMaximize</c> / <c>DockMinimize</c> texture resources when available;
-    /// falls back to programmatic shapes otherwise.
-    /// </summary>
-    private void DrawMaximizeIcon(ElementDrawArgs DA)
-    {
-        if (_maximizeBtn == null)
-        {
-            return;
-        }
-
-        Rectangle b        = _maximizeBtn.LayoutBounds;
-        const int iconSize = 14;
-        Rectangle iconRect = new Rectangle(
-            b.X + (b.Width  - iconSize) / 2,
-            b.Y + (b.Height - iconSize) / 2,
-            iconSize, iconSize);
-        Color col      = new Color(200, 200, 200);
-        string iconKey = _isMaximized ? "DockMinimize" : "DockMaximize";
-
-        if (!GetResources().TryDrawTexture(DA.DT, iconKey, iconRect, 1f, col))
-        {
-            // Fallback: programmatic shape
-            float cx = b.X + b.Width  * 0.5f;
-            float cy = b.Y + b.Height * 0.5f;
-            if (_isMaximized)
-            {
-                // Restore: short horizontal dash  ─
-                const float halfW = 5f;
-                DA.DT.StrokeLineSegment(Vector2.Zero,
-                    new Vector2(cx - halfW, cy),
-                    new Vector2(cx + halfW, cy),
-                    col, 1.5f);
-            }
-            else
-            {
-                // Maximize: hollow square  □
-                const float halfS = 5f;
-                DA.DT.StrokeRectangle(Vector2.Zero,
-                    new RectangleF(cx - halfS, cy - halfS, halfS * 2f, halfS * 2f),
-                    col,
-                    new Thickness(1),
-                    null);
-            }
-        }
-    }
 }

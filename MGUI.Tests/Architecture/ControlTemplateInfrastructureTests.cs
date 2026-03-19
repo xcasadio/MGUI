@@ -160,6 +160,24 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Dock_Tab_Group_Uses_Explicit_Accent_And_Header_Icon_Parts()
+    {
+        string tabGroupSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockTabGroup.cs");
+        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
+        string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+
+        Assert.Contains("RegisterTemplatePart(AccentPartName, _accentElement)", tabGroupSource);
+        Assert.Contains("RegisterTemplatePart(DropdownIconPartName, _dropdownIconElement)", tabGroupSource);
+        Assert.Contains("RegisterTemplatePart(WindowStateIconPartName, _windowStateIconElement)", tabGroupSource);
+        Assert.Contains("public class MGEllipsisIcon", symbolElementsSource);
+        Assert.Contains("public class MGWindowStateIcon", symbolElementsSource);
+        Assert.Contains("DrawEllipsisIcon", symbolDrawingSource);
+        Assert.Contains("DrawWindowStateIcon", symbolDrawingSource);
+        Assert.DoesNotContain("public override void DrawSelf", tabGroupSource);
+        Assert.DoesNotContain("protected override void DrawContents", tabGroupSource);
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;

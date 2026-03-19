@@ -142,6 +142,46 @@ namespace MGUI.Core.UI
                 color, 1.5f);
         }
 
+        public static void DrawEllipsisIcon(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, Color color)
+        {
+            float centerX = bounds.X + bounds.Width * 0.5f;
+            float centerY = bounds.Y + bounds.Height * 0.5f;
+            const float dotRadius = 1.5f;
+            const float spacing = 5.0f;
+
+            for (int index = -1; index <= 1; index++)
+            {
+                float dotX = centerX + index * spacing;
+                drawTransaction.FillRectangle(origin,
+                    new MonoGame.Extended.RectangleF(dotX - dotRadius, centerY - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f),
+                    color);
+            }
+        }
+
+        public static void DrawWindowStateIcon(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, bool isRestoredState, Color color)
+        {
+            float centerX = bounds.X + bounds.Width * 0.5f;
+            float centerY = bounds.Y + bounds.Height * 0.5f;
+
+            if (isRestoredState)
+            {
+                const float halfWidth = 5.0f;
+                drawTransaction.StrokeLineSegment(origin,
+                    new Vector2(centerX - halfWidth, centerY),
+                    new Vector2(centerX + halfWidth, centerY),
+                    color, 1.5f);
+            }
+            else
+            {
+                const float halfSize = 5.0f;
+                drawTransaction.StrokeRectangle(origin,
+                    new MonoGame.Extended.RectangleF(centerX - halfSize, centerY - halfSize, halfSize * 2.0f, halfSize * 2.0f),
+                    color,
+                    new MonoGame.Extended.Thickness(1),
+                    null);
+            }
+        }
+
         public static IReadOnlyList<Point> GetTriangleArrowVertices(Rectangle bounds, UITriangleArrowDirection direction)
         {
             return direction switch

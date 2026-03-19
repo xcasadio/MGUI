@@ -485,4 +485,83 @@ namespace MGUI.Core.UI
             UISymbolDrawing.DrawDockPinIcon(DA.DT, DA.Offset.ToVector2(), layoutBounds, Color * DA.Opacity);
         }
     }
+
+    public class MGEllipsisIcon : MGElement
+    {
+        private Color _Color;
+        public Color Color
+        {
+            get => _Color;
+            set
+            {
+                if (_Color != value)
+                {
+                    _Color = value;
+                    NPC(nameof(Color));
+                }
+            }
+        }
+
+        public MGEllipsisIcon(MGWindow window)
+            : base(window, MGElementType.Misc)
+        {
+            IsHitTestVisible = false;
+        }
+
+        public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
+        {
+            UISymbolDrawing.DrawEllipsisIcon(DA.DT, DA.Offset.ToVector2(), layoutBounds, Color * DA.Opacity);
+        }
+    }
+
+    public class MGWindowStateIcon : MGElement
+    {
+        private Color _Color;
+        public Color Color
+        {
+            get => _Color;
+            set
+            {
+                if (_Color != value)
+                {
+                    _Color = value;
+                    NPC(nameof(Color));
+                }
+            }
+        }
+
+        private bool _IsRestoredState;
+        public bool IsRestoredState
+        {
+            get => _IsRestoredState;
+            set
+            {
+                if (_IsRestoredState != value)
+                {
+                    _IsRestoredState = value;
+                    NPC(nameof(IsRestoredState));
+                }
+            }
+        }
+
+        public string MaximizedTextureName { get; set; } = "DockMinimize";
+        public string NormalTextureName { get; set; } = "DockMaximize";
+
+        public MGWindowStateIcon(MGWindow window)
+            : base(window, MGElementType.Misc)
+        {
+            IsHitTestVisible = false;
+        }
+
+        public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
+        {
+            string textureName = IsRestoredState ? MaximizedTextureName : NormalTextureName;
+            if (!string.IsNullOrEmpty(textureName) && GetResources().TryDrawTexture(DA.DT, textureName, layoutBounds, DA.Opacity, Color))
+            {
+                return;
+            }
+
+            UISymbolDrawing.DrawWindowStateIcon(DA.DT, DA.Offset.ToVector2(), layoutBounds, IsRestoredState, Color * DA.Opacity);
+        }
+    }
 }
