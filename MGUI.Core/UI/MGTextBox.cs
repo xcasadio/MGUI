@@ -312,14 +312,21 @@ namespace MGUI.Core.UI
                 if (_PlaceholderText != value)
                 {
                     _PlaceholderText = value;
-                    if (PlaceholderTextBlockElement != null)
-                    {
-                        PlaceholderTextBlockElement.Text = PlaceholderText;
-                    }
-                    UpdatePlaceholderVisibility();
+                    SyncPlaceholderTextPart();
                     NPC(nameof(PlaceholderText));
                 }
             }
+        }
+
+        private void SyncPlaceholderTextPart()
+        {
+            if (PlaceholderTextBlockElement == null)
+            {
+                return;
+            }
+
+            PlaceholderTextBlockElement.Text = PlaceholderText;
+            UpdatePlaceholderVisibility();
         }
 
         private void UpdatePlaceholderVisibility()
@@ -427,17 +434,24 @@ namespace MGUI.Core.UI
                 if (ShowCharacterCount != value)
                 {
                     _ShowCharacterCount = value;
-                    if (CharacterCountElement != null)
-                    {
-                        CharacterCountElement.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-                        if (CharacterCountElement.Visibility == Visibility.Visible)
-                        {
-                            UpdateCharacterCountText();
-                        }
-                    }
+                    SyncCharacterCountVisibility();
 
                     NPC(nameof(ShowCharacterCount));
                 }
+            }
+        }
+
+        private void SyncCharacterCountVisibility()
+        {
+            if (CharacterCountElement == null)
+            {
+                return;
+            }
+
+            CharacterCountElement.Visibility = _ShowCharacterCount ? Visibility.Visible : Visibility.Collapsed;
+            if (CharacterCountElement.Visibility == Visibility.Visible)
+            {
+                UpdateCharacterCountText();
             }
         }
 
@@ -1109,12 +1123,24 @@ namespace MGUI.Core.UI
             get => _IsUserResizable;
             set
             {
-                _IsUserResizable = value;
-                if (ResizeGripElement != null)
+                if (_IsUserResizable != value)
                 {
-                    ResizeGripElement.Visibility = IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
+                    _IsUserResizable = value;
+                    SyncResizeGripVisibility();
+                    NPC(nameof(IsUserResizable));
                 }
-                NPC(nameof(IsUserResizable));
+                else
+                {
+                    SyncResizeGripVisibility();
+                }
+            }
+        }
+
+        private void SyncResizeGripVisibility()
+        {
+            if (ResizeGripElement != null)
+            {
+                ResizeGripElement.Visibility = _IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
             }
         }
         #endregion Resizing
@@ -1357,11 +1383,9 @@ namespace MGUI.Core.UI
 
             TextRenderInfo = new(this, TextBlockElement);
             Caret = new(this, TextBlockElement);
-            PlaceholderTextBlockElement.Text = PlaceholderText;
-            PlaceholderTextBlockElement.Visibility = Visibility.Collapsed;
-            CharacterCountElement.Visibility = _ShowCharacterCount ? Visibility.Visible : Visibility.Collapsed;
-            ResizeGripElement.Visibility = IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
-            UpdatePlaceholderVisibility();
+            SyncPlaceholderTextPart();
+            SyncCharacterCountVisibility();
+            SyncResizeGripVisibility();
             UpdateCharacterCountText();
         }
 

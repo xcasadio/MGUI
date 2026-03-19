@@ -265,7 +265,7 @@ Reason:
 
 - `🟡 Finish MGTextBox and MGPasswordBox migration`
   - Deliverable: border, placeholder, character count, and resize grip orchestration are template-safe and precedence-correct.
-  - Progress: selection colors, padding, and minimum height now resolve through template/theme defaults instead of constructor-local assignments.
+  - Progress: selection colors, padding, and minimum height now resolve through template/theme defaults instead of constructor-local assignments, and placeholder / character-count / resize-grip template parts are now synchronized through dedicated control helpers instead of direct attach-time part writes.
   - Validation: textbox architecture tests and focused behavior checks.
   - Commit: `style-theme: finish text box lookless migration`
 

@@ -629,11 +629,19 @@ public class ControlTemplateInfrastructureTests
     {
         string textBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs");
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        int attachIndex = textBoxSource.IndexOf("protected internal override void AttachControlTemplateStructure", StringComparison.Ordinal);
+        string attachSlice = attachIndex >= 0 ? textBoxSource.Substring(attachIndex, Math.Min(2500, textBoxSource.Length - attachIndex)) : textBoxSource;
 
         Assert.Contains("Context.ApplyTemplateValue(\"TextBox.Padding\"", catalogSource);
         Assert.Contains("Context.ApplyTemplateValue(\"TextBox.MinHeight\"", catalogSource);
+        Assert.Contains("SyncPlaceholderTextPart();", textBoxSource);
+        Assert.Contains("SyncCharacterCountVisibility();", textBoxSource);
+        Assert.Contains("SyncResizeGripVisibility();", textBoxSource);
         Assert.DoesNotContain("Padding = new(6, 2, 6, 2);", textBoxSource);
         Assert.DoesNotContain("MinHeight = 26;", textBoxSource);
+        Assert.DoesNotContain("PlaceholderTextBlockElement.Visibility = Visibility.Collapsed;", attachSlice);
+        Assert.DoesNotContain("CharacterCountElement.Visibility = _ShowCharacterCount ? Visibility.Visible : Visibility.Collapsed;", attachSlice);
+        Assert.DoesNotContain("ResizeGripElement.Visibility = IsUserResizable ? Visibility.Visible : Visibility.Collapsed;", attachSlice);
     }
 
     [Fact]
