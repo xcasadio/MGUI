@@ -515,11 +515,16 @@ public class ControlTemplateInfrastructureTests
     public void TabControl_And_ComboBox_Theme_Dependent_Chrome_Is_Applied_From_Template_Catalog()
     {
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
 
         Assert.Contains("TabControl.Background", catalogSource);
         Assert.Contains("Theme.GetBackgroundBrush(MGElementType.TabControl)", catalogSource);
         Assert.Contains("ComboBox.DropdownArrowColor", catalogSource);
         Assert.Contains("Theme.DropdownArrowColor", catalogSource);
+        Assert.Contains("ComboBox.Padding", catalogSource);
+        Assert.Contains("ComboBox.MinHeight", catalogSource);
+        Assert.DoesNotContain("Padding = new(4, 2, 4, 2);", comboBoxSource);
+        Assert.DoesNotContain("MinHeight = 26;", comboBoxSource);
     }
 
     [Fact]
@@ -571,6 +576,33 @@ public class ControlTemplateInfrastructureTests
         Assert.DoesNotContain("HeaderSpacer.BorderBrush = MGUniformBorderBrush.Black;", listViewSource);
         Assert.Contains("ListView.HeaderSpacerBorderBrush", catalogSource);
         Assert.Contains("ListView.HeaderSpacerBackground", catalogSource);
+    }
+
+    [Fact]
+    public void Window_And_Overlay_Do_Not_Hardcode_Template_Owned_Padding_In_Constructors()
+    {
+        string windowSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs");
+        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.Contains("Context.ApplyThemeDefault(\"Window.Padding\"", catalogSource);
+        Assert.Contains("Context.ApplyThemeDefault(\"Overlay.Padding\"", catalogSource);
+        Assert.DoesNotContain("Padding = new(5);", overlaySource);
+        Assert.DoesNotContain("Padding = DefaultWindowPadding;", windowSource);
+        Assert.Contains("Padding = GetTheme().Window.Padding;", windowSource);
+        Assert.Contains("BorderThickness = GetTheme().Window.BorderThickness;", windowSource);
+    }
+
+    [Fact]
+    public void TextBox_Default_Layout_Chrome_Comes_From_Template_Defaults()
+    {
+        string textBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.Contains("Context.ApplyTemplateValue(\"TextBox.Padding\"", catalogSource);
+        Assert.Contains("Context.ApplyTemplateValue(\"TextBox.MinHeight\"", catalogSource);
+        Assert.DoesNotContain("Padding = new(6, 2, 6, 2);", textBoxSource);
+        Assert.DoesNotContain("MinHeight = 26;", textBoxSource);
     }
 
     [Fact]

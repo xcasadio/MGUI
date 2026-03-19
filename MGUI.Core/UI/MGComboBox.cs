@@ -757,9 +757,6 @@ namespace MGUI.Core.UI
                 IsFocusable = true;
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
-                Padding = new(4, 2, 4, 2);
-
-                MinHeight = 26;
 
                 CanChangeContent = false;
                 DefaultControlTemplateName = MGControlTemplateCatalog.ComboBoxTemplateName;

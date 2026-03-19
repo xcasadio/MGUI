@@ -228,7 +228,7 @@ Reason:
 - `🟡 Eliminate control-local visual literals from migrated templates`
   - Deliverable: colors, padding, border literals move out of control logic into template/theme defaults where possible.
   - Validation: source-level audit tests for migrated controls.
-  - Progress: `MGTabControl.Background` and `MGComboBox.DropdownArrowColor` now resolve through template defaults; `MGTreeView` no longer relies on theme-change reselection; `MGListBox` no longer overwrites template-owned items-panel chrome during construction or template attachment; `MGListView` grid-line and header-spacer chrome now resolve through the template catalog.
+  - Progress: `MGTabControl.Background`, `MGComboBox.DropdownArrowColor`, `MGComboBox.Padding`, `MGComboBox.MinHeight`, `MGTextBox.Padding`, and `MGTextBox.MinHeight` now resolve through template defaults; `MGTreeView` no longer relies on theme-change reselection; `MGListBox` no longer overwrites template-owned items-panel chrome during construction or template attachment; `MGListView` grid-line and header-spacer chrome now resolve through the template catalog; `MGWindow` and `MGOverlay` no longer hardcode template-owned padding in constructors.
   - Commit: `style-theme: remove local visual literals from migrated controls`
 
 - `✅ Separate structural parts from visual-state defaults`
@@ -240,11 +240,13 @@ Reason:
 
 - `🟡 Finish MGWindow migration`
   - Deliverable: window visuals are template/theme-owned, with behavior code limited to wiring and window policy.
+  - Progress: constructor-level padding fallback was removed and `WindowStyle.Default` now restores current theme padding/border values instead of hard-coded literals.
   - Validation: targeted architecture tests and sample sanity check.
   - Commit: `style-theme: finish window lookless migration`
 
 - `🟡 Finish MGOverlay migration`
   - Deliverable: overlay close button and border visuals are fully template-driven.
+  - Progress: constructor-level padding fallback was removed so overlay chrome now comes from template/theme defaults instead of a local override.
   - Validation: overlay-specific template part tests.
   - Commit: `style-theme: finish overlay lookless migration`
 
@@ -262,6 +264,7 @@ Reason:
 
 - `🟡 Finish MGTextBox and MGPasswordBox migration`
   - Deliverable: border, placeholder, character count, and resize grip orchestration are template-safe and precedence-correct.
+  - Progress: selection colors, padding, and minimum height now resolve through template/theme defaults instead of constructor-local assignments.
   - Validation: textbox architecture tests and focused behavior checks.
   - Commit: `style-theme: finish text box lookless migration`
 
@@ -273,7 +276,7 @@ Reason:
 
 - `🟡 Finish MGComboBox migration`
   - Deliverable: dropdown arrow, dropdown window, item wrapper visuals, and header/footer defaults are template-owned.
-  - Progress: dropdown arrow color now resolves through template defaults instead of attach/theme-change control code.
+  - Progress: dropdown arrow color, padding, and minimum height now resolve through template defaults instead of attach/theme-change or constructor-local control code.
   - Validation: combo box architecture tests and sample behavior check.
   - Commit: `style-theme: finish combo box lookless migration`
 

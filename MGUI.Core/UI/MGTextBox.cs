@@ -1132,8 +1132,6 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 DrawBackgroundBorderOverlayEnabled = false;
-                Padding = new(6, 2, 6, 2);
-                MinHeight = 26;
                 IsReadonly = false;
                 this.CharacterLimit = CharacterLimit;
                 AcceptsReturn = true;

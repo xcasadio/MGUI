@@ -1016,9 +1016,6 @@ namespace MGUI.Core.UI
         /// <summary>If true, this <see cref="MGWindow"/>'s layout will be recomputed at the start of the next update tick.</summary>
         public bool QueueLayoutRefresh { get; set; }
 
-        private static readonly Thickness DefaultWindowPadding = new(5);
-        private static readonly Thickness DefaultWindowBorderThickness = new(2);
-
         #region Data Context
         private object _WindowDataContext;
         /// <summary>The default <see cref="MGElement.DataContext"/> for all elements that do not explicitly define a <see cref="MGElement.DataContextOverride"/>.<para/>
@@ -1130,8 +1127,6 @@ namespace MGUI.Core.UI
                 MinHeight = 50;
                 MaxWidth = 4000;
                 MaxHeight = 2000;
-
-                Padding = DefaultWindowPadding;
 
                 _IsUserResizable = true;
                 _IsTitleBarVisible = true;
@@ -1593,8 +1588,8 @@ namespace MGUI.Core.UI
                             IsTitleBarVisible = true;
                             IsCloseButtonVisible = true;
                             IsUserResizable = true;
-                            Padding = DefaultWindowPadding;
-                            BorderThickness = DefaultWindowBorderThickness;
+                            Padding = GetTheme().Window.Padding;
+                            BorderThickness = GetTheme().Window.BorderThickness;
                             BackgroundBrush = PreviousBackgroundBrush ?? BackgroundBrush;
                             break;
                         case WindowStyle.None:

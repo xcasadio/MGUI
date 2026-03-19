@@ -548,7 +548,6 @@ namespace MGUI.Core.UI
 
                 HorizontalAlignment = HorizontalAlignment.Center;
                 VerticalAlignment = VerticalAlignment.Center;
-                Padding = new(5);
 
                 ShowCloseButton = false;
                 DefaultControlTemplateName = MGControlTemplateCatalog.OverlayTemplateName;
