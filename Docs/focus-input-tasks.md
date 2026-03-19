@@ -322,7 +322,7 @@ Resultat:
 - `MGListView`, `MGTreeView` et `MGMenuBar` n'empilent plus une seconde voie de navigation clavier au-dessus de `TryHandleNavigationAction(...)` ;
 - les controles composites critiques convergent vers un contrat unique de navigation, avec moins de doubles traitements et moins de differences de `SetHandledBy(...)`.
 
-### ⚪ 8. Bloquer l'input des controles caches, occlus ou derriere overlay
+### ✅ 8. Bloquer l'input des controles caches, occlus ou derriere overlay
 
 But:
 traiter explicitement les cas visuels ou un controle existe encore dans l'arbre mais ne doit plus recevoir d'input.
@@ -347,6 +347,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `overlay: complete task 8 block hidden and occluded controls from input`
+
+Resultat:
+
+- un overlay modal actif nettoie desormais immediatement le focus courant et la queue de focus si le focus pointe encore vers le contenu derriere ;
+- ce comportement complete la sanitation globale du desktop et reduit encore la fenetre d'existence d'un focus zombie ;
+- les cas de controles caches, clips ou bloques par overlay reposent maintenant sur la meme politique d'eligibilite.
 
 ### ⚪ 9. Ajouter des regressions end-to-end et une couverture sample
 

@@ -258,6 +258,7 @@ namespace MGUI.Core.UI
                             {
                                 Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
                                 GetDesktop().ClearQueuedFocusedKeyboardHandler();
+                                GetDesktop().ClearFocusedKeyboardHandler();
                             }
                         }
                     }
