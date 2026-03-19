@@ -1,4 +1,5 @@
 using MGUI.Core.UI;
+using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
 using MGUI.Shared.Helpers;
@@ -104,6 +105,22 @@ public class ControlTemplateInfrastructureTests
         Assert.False(template.SupportsAttachment);
         Assert.True(applyDefaultsCalled);
         Assert.Null(template.CreateStructure(new MGControlTemplateContext(null)));
+    }
+
+    [Fact]
+    public void Dock_Preview_Overlay_Uses_Explicit_Surface_And_Border_Parts()
+    {
+        BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
+
+        Assert.NotNull(typeof(MGDockPreviewOverlay).GetField(nameof(MGDockPreviewOverlay.SurfacePartName), flags));
+        Assert.NotNull(typeof(MGDockPreviewOverlay).GetField(nameof(MGDockPreviewOverlay.BorderPartName), flags));
+
+        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockPreviewOverlay.cs");
+
+        Assert.Contains("RegisterTemplatePart(SurfacePartName, PreviewSurfaceElement)", source);
+        Assert.Contains("RegisterTemplatePart(BorderPartName, PreviewBorderElement)", source);
+        Assert.DoesNotContain("DA.DT.FillRectangle(", source);
+        Assert.DoesNotContain("public override void DrawSelf", source);
     }
 
     [Fact]

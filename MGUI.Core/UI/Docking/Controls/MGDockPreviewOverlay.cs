@@ -12,6 +12,14 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockPreviewOverlay : MGElement
 {
+    public const string SurfacePartName = "PART_Surface";
+    public const string BorderPartName = "PART_Border";
+
+    private MGComponent<MGRectangle> PreviewSurfaceComponent { get; }
+    private MGRectangle PreviewSurfaceElement { get; }
+    private MGComponent<MGRectangle> PreviewBorderComponent { get; }
+    private MGRectangle PreviewBorderElement { get; }
+
     private bool _isVisible;
     /// <summary>
     /// Whether the preview overlay is currently visible.
@@ -24,6 +32,7 @@ public class MGDockPreviewOverlay : MGElement
             if (_isVisible != value)
             {
                 _isVisible = value;
+                SyncPreviewVisuals();
                 NPC(nameof(IsPreviewVisible));
             }
         }
@@ -41,6 +50,7 @@ public class MGDockPreviewOverlay : MGElement
             if (_previewBounds != value)
             {
                 _previewBounds = value;
+                SyncPreviewVisuals();
                 NPC(nameof(PreviewBounds));
             }
         }
@@ -59,6 +69,10 @@ public class MGDockPreviewOverlay : MGElement
             if (_previewColor != value)
             {
                 _previewColor = value;
+                if (PreviewSurfaceElement != null)
+                {
+                    PreviewSurfaceElement.Fill = value.AsFillBrush();
+                }
                 NPC(nameof(PreviewColor));
             }
         }
@@ -77,6 +91,10 @@ public class MGDockPreviewOverlay : MGElement
             if (_borderColor != value)
             {
                 _borderColor = value;
+                if (PreviewBorderElement != null)
+                {
+                    PreviewBorderElement.Stroke = value;
+                }
                 NPC(nameof(BorderColor));
             }
         }
@@ -94,6 +112,10 @@ public class MGDockPreviewOverlay : MGElement
             if (_borderThickness != value)
             {
                 _borderThickness = value;
+                if (PreviewBorderElement != null)
+                {
+                    PreviewBorderElement.StrokeThickness = value;
+                }
                 NPC(nameof(BorderThickness));
             }
         }
@@ -119,7 +141,55 @@ public class MGDockPreviewOverlay : MGElement
             // Full stretch to cover entire parent area
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
+
+            PreviewSurfaceElement = new(window, 0, 0, Color.Transparent, 0, Color.Transparent)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+            RegisterTemplatePart(SurfacePartName, PreviewSurfaceElement);
+            PreviewSurfaceComponent = new(PreviewSurfaceElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => PreviewBounds);
+            AddComponent(PreviewSurfaceComponent);
+
+            PreviewBorderElement = new(window, 0, 0, BorderColor, BorderThickness, Color.Transparent)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+            RegisterTemplatePart(BorderPartName, PreviewBorderElement);
+            PreviewBorderComponent = new(PreviewBorderElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => PreviewBounds);
+            AddComponent(PreviewBorderComponent);
+
+            SyncPreviewVisuals();
         }
+    }
+
+    private void SyncPreviewVisuals()
+    {
+        if (PreviewSurfaceElement == null || PreviewBorderElement == null)
+        {
+            return;
+        }
+
+        bool isVisible = IsPreviewVisible && PreviewBounds.Width > 0 && PreviewBounds.Height > 0;
+        Visibility visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+
+        PreviewSurfaceElement.Visibility = visibility;
+        PreviewSurfaceElement.Width = Math.Max(0, PreviewBounds.Width);
+        PreviewSurfaceElement.Height = Math.Max(0, PreviewBounds.Height);
+        PreviewSurfaceElement.Fill = PreviewColor.AsFillBrush();
+
+        PreviewBorderElement.Visibility = visibility;
+        PreviewBorderElement.Width = Math.Max(0, PreviewBounds.Width);
+        PreviewBorderElement.Height = Math.Max(0, PreviewBounds.Height);
+        PreviewBorderElement.Stroke = BorderColor;
+        PreviewBorderElement.StrokeThickness = BorderThickness;
     }
 
     /// <summary>
@@ -146,53 +216,4 @@ public class MGDockPreviewOverlay : MGElement
     internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
         => null;
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-    {
-        if (!IsPreviewVisible || PreviewBounds.Width <= 0 || PreviewBounds.Height <= 0)
-        {
-            DrawSelfBaseImplementation(DA, LayoutBounds);
-            return;
-        }
-
-        // Draw the semi-transparent fill
-        DA.DT.FillRectangle(
-            Vector2.Zero,
-            new RectangleF(PreviewBounds.X, PreviewBounds.Y, PreviewBounds.Width, PreviewBounds.Height),
-            PreviewColor
-        );
-
-        // Draw a border for better visibility
-        if (BorderThickness > 0)
-        {
-            // Top border
-            DA.DT.FillRectangle(
-                Vector2.Zero,
-                new RectangleF(PreviewBounds.X, PreviewBounds.Y, PreviewBounds.Width, BorderThickness),
-                BorderColor
-            );
-
-            // Bottom border
-            DA.DT.FillRectangle(
-                Vector2.Zero,
-                new RectangleF(PreviewBounds.X, PreviewBounds.Bottom - BorderThickness, PreviewBounds.Width, BorderThickness),
-                BorderColor
-            );
-
-            // Left border
-            DA.DT.FillRectangle(
-                Vector2.Zero,
-                new RectangleF(PreviewBounds.X, PreviewBounds.Y, BorderThickness, PreviewBounds.Height),
-                BorderColor
-            );
-
-            // Right border
-            DA.DT.FillRectangle(
-                Vector2.Zero,
-                new RectangleF(PreviewBounds.Right - BorderThickness, PreviewBounds.Y, BorderThickness, PreviewBounds.Height),
-                BorderColor
-            );
-        }
-
-        DrawSelfBaseImplementation(DA, LayoutBounds);
-    }
 }
