@@ -15,10 +15,14 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockAutoHideDrawer : MGElement
 {
+    public const string BorderPartName = "PART_Border";
     public const string HeaderPartName = "PART_Header";
     public const string TitleLabelPartName = "PART_TitleLabel";
     public const string PinButtonPartName = "PART_PinButton";
     public const string CloseButtonPartName = "PART_CloseButton";
+    public const string PinIconPartName = "PART_PinIcon";
+    public const string CloseIconPartName = "PART_CloseIcon";
+    public const string ResizeGripPartName = "PART_ResizeGrip";
 
     // ── Constants ─────────────────────────────────────────────────────
     private const int HeaderHeight    = 28;
@@ -54,10 +58,14 @@ public class MGDockAutoHideDrawer : MGElement
     }
 
     // ── Child elements ─────────────────────────────────────────────────
+    private readonly MGBorder     _border;
     private readonly MGBorder     _header;
     private readonly MGTextBlock  _titleLabel;
     private readonly MGBorder     _pinBtn;
     private readonly MGBorder     _closeBtn;
+    private readonly MGDockPinIcon _pinIcon;
+    private readonly MGCloseIcon   _closeIcon;
+    private readonly MGBorder      _resizeGrip;
     private MGElement             _content; // replaced when ActivePanel changes
 
     private Color _headerTextColor = Color.White;
@@ -75,9 +83,50 @@ public class MGDockAutoHideDrawer : MGElement
         }
     }
 
-    public Color IconColor { get; set; } = new Color(200, 200, 200);
-    public Color BorderColor { get; set; } = new Color(80, 80, 85);
-    public Color ResizeGripColor { get; set; } = new Color(100, 100, 110);
+    private Color _iconColor = new Color(200, 200, 200);
+    public Color IconColor
+    {
+        get => _iconColor;
+        set
+        {
+            if (_iconColor != value)
+            {
+                _iconColor = value;
+                ApplyThemeVisuals();
+                NPC(nameof(IconColor));
+            }
+        }
+    }
+
+    private Color _borderColor = new Color(80, 80, 85);
+    public Color BorderColor
+    {
+        get => _borderColor;
+        set
+        {
+            if (_borderColor != value)
+            {
+                _borderColor = value;
+                ApplyThemeVisuals();
+                NPC(nameof(BorderColor));
+            }
+        }
+    }
+
+    private Color _resizeGripColor = new Color(100, 100, 110);
+    public Color ResizeGripColor
+    {
+        get => _resizeGripColor;
+        set
+        {
+            if (_resizeGripColor != value)
+            {
+                _resizeGripColor = value;
+                ApplyThemeVisuals();
+                NPC(nameof(ResizeGripColor));
+            }
+        }
+    }
 
     // ── Events ─────────────────────────────────────────────────────────
     /// <summary>Fired when the user clicks the Pin button — requests the panel be returned to the layout.</summary>
@@ -107,6 +156,16 @@ public class MGDockAutoHideDrawer : MGElement
 
             // Background
             BackgroundBrush.NormalValue = new MGSolidFillBrush(new Color(37, 37, 38));
+
+            _border = new MGBorder(window, new XAML.Thickness(1).ToThickness(), (IFillBrush)null)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            };
+            RegisterTemplatePart(BorderPartName, _border);
+            _border.SetParent(this);
 
             // ── Header ────────────────────────────────────────────────
             _header = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
@@ -138,6 +197,14 @@ public class MGDockAutoHideDrawer : MGElement
             });
             RegisterTemplatePart(PinButtonPartName, _pinBtn);
 
+            _pinIcon = new(window)
+            {
+                ManagedParent = this,
+                IsPinned = false,
+            };
+            RegisterTemplatePart(PinIconPartName, _pinIcon);
+            _pinIcon.SetParent(this);
+
             _closeBtn = CreateHeaderButton(window, () =>
             {
                 if (_activePanel != null)
@@ -151,6 +218,23 @@ public class MGDockAutoHideDrawer : MGElement
             });
             RegisterTemplatePart(CloseButtonPartName, _closeBtn);
 
+            _closeIcon = new(window)
+            {
+                ManagedParent = this,
+            };
+            RegisterTemplatePart(CloseIconPartName, _closeIcon);
+            _closeIcon.SetParent(this);
+
+            _resizeGrip = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            };
+            RegisterTemplatePart(ResizeGripPartName, _resizeGrip);
+            _resizeGrip.SetParent(this);
+
             _header.SetParent(this);
 
             _content = CreatePlaceholder();
@@ -160,7 +244,17 @@ public class MGDockAutoHideDrawer : MGElement
             _pinBtn.SetParent(this);
             _closeBtn.SetParent(this);
             DefaultControlTemplateName = MGControlTemplateCatalog.DockAutoHideDrawerTemplateName;
+            ApplyThemeVisuals();
         }
+    }
+
+    private void ApplyThemeVisuals()
+    {
+        _pinIcon.Color = IconColor;
+        _closeIcon.Color = IconColor;
+        _border.BorderBrush = BorderColor.AsFillBrush().AsUniformBorderBrush();
+        _border.BorderThickness = new MonoGame.Extended.Thickness(1);
+        _resizeGrip.BackgroundBrush.NormalValue = ResizeGripColor.AsFillBrush();
     }
 
     // ── Header-button factory ─────────────────────────────────────────
@@ -220,6 +314,7 @@ public class MGDockAutoHideDrawer : MGElement
     // ── Children ──────────────────────────────────────────────────────
     public override IEnumerable<MGElement> GetChildren()
     {
+        yield return _border;
         yield return _header;
         yield return _titleLabel;
         yield return _pinBtn;
@@ -228,6 +323,9 @@ public class MGDockAutoHideDrawer : MGElement
         {
             yield return _content;
         }
+        yield return _pinIcon;
+        yield return _closeIcon;
+        yield return _resizeGrip;
     }
 
     // ── Resize grip helpers ────────────────────────────────────────────
@@ -271,6 +369,7 @@ public class MGDockAutoHideDrawer : MGElement
 
     protected override void UpdateContentLayout(Rectangle Bounds)
     {
+        _border.UpdateLayout(Bounds);
         int headerW = Bounds.Width;
         _header.UpdateLayout(new Rectangle(Bounds.X, Bounds.Y, headerW, HeaderHeight));
 
@@ -280,11 +379,29 @@ public class MGDockAutoHideDrawer : MGElement
         _titleLabel.UpdateLayout(new Rectangle(Bounds.X, Bounds.Y, titleW, HeaderHeight));
         _pinBtn.UpdateLayout(new Rectangle(Bounds.X + titleW, btnY, HeaderBtnSize, HeaderBtnSize));
         _closeBtn.UpdateLayout(new Rectangle(Bounds.X + titleW + HeaderBtnSize, btnY, HeaderBtnSize, HeaderBtnSize));
+        _pinIcon.UpdateLayout(GetCenteredIconBounds(_pinBtn.LayoutBounds, 14));
+        _closeIcon.UpdateLayout(GetCenteredIconBounds(_closeBtn.LayoutBounds, 12));
 
         // Content below header
         int contentY = Bounds.Y + HeaderHeight;
         int contentH = Math.Max(0, Bounds.Height - HeaderHeight);
         _content?.UpdateLayout(new Rectangle(Bounds.X, contentY, Bounds.Width, contentH));
+
+        Rectangle gripBounds = GetResizeGripRect(Bounds);
+        _resizeGrip.Visibility = gripBounds.Width > 0 && gripBounds.Height > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (_resizeGrip.Visibility == Visibility.Visible)
+        {
+            _resizeGrip.UpdateLayout(gripBounds);
+        }
+    }
+
+    private static Rectangle GetCenteredIconBounds(Rectangle buttonBounds, int iconSize)
+    {
+        return new Rectangle(
+            buttonBounds.X + (buttonBounds.Width - iconSize) / 2,
+            buttonBounds.Y + (buttonBounds.Height - iconSize) / 2,
+            iconSize,
+            iconSize);
     }
 
     // ── Resize drag handling ──────────────────────────────────────────
@@ -322,66 +439,4 @@ public class MGDockAutoHideDrawer : MGElement
         }
     }
 
-    // ── Draw shadow/border ─────────────────────────────────────────────
-    protected override void DrawContents(ElementDrawArgs DA)
-    {
-        // Draw all child elements
-        foreach (var child in GetChildren())
-        {
-            child?.Draw(DA);
-        }
-
-        // ── Draw pin icon centred in the pin button ───────────────────────────
-        if (_pinBtn != null && _pinBtn.Visibility == Visibility.Visible)
-        {
-            Rectangle pb       = _pinBtn.LayoutBounds;
-            const int iconSize = 14;
-            Rectangle iconRect = new Rectangle(
-                pb.X + (pb.Width  - iconSize) / 2,
-                pb.Y + (pb.Height - iconSize) / 2,
-                iconSize, iconSize);
-            GetResources().TryDrawTexture(DA.DT, "DockPin", iconRect, DA.Opacity, IconColor);
-        }
-
-        // ── Draw close icon centred in the close button ───────────────────────
-        if (_closeBtn != null && _closeBtn.Visibility == Visibility.Visible)
-        {
-            Rectangle cb       = _closeBtn.LayoutBounds;
-            const int iconSize = 12;
-            Rectangle iconRect = new Rectangle(
-                cb.X + (cb.Width  - iconSize) / 2,
-                cb.Y + (cb.Height - iconSize) / 2,
-                iconSize, iconSize);
-            if (!GetResources().TryDrawTexture(DA.DT, "DockClose", iconRect, DA.Opacity, IconColor))
-            {
-                // Fallback: × cross
-                float cx = cb.X + cb.Width  * 0.5f;
-                float cy = cb.Y + cb.Height * 0.5f;
-                const float half = 4.5f;
-                var col = IconColor * DA.Opacity;
-                DA.DT.StrokeLineSegment(Vector2.Zero, new Vector2(cx - half, cy - half), new Vector2(cx + half, cy + half), col, 1.5f);
-                DA.DT.StrokeLineSegment(Vector2.Zero, new Vector2(cx + half, cy - half), new Vector2(cx - half, cy + half), col, 1.5f);
-            }
-        }
-
-        var LayoutBounds = this.LayoutBounds;
-        // Draw a visible border
-        var borderColor = BorderColor * DA.Opacity;
-        // Top
-        DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width, 1), borderColor);
-        // Bottom
-        DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.X, LayoutBounds.Bottom - 1, LayoutBounds.Width, 1), borderColor);
-        // Left
-        DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.X, LayoutBounds.Y, 1, LayoutBounds.Height), borderColor);
-        // Right
-        DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.Right - 1, LayoutBounds.Y, 1, LayoutBounds.Height), borderColor);
-
-        // Draw resize grip highlight on the inner edge
-        Rectangle grip = GetResizeGripRect(LayoutBounds);
-        if (grip.Width > 0)
-        {
-            var gripColor = ResizeGripColor * DA.Opacity;
-            DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(grip.X, grip.Y, grip.Width, grip.Height), gripColor);
-        }
-    }
 }

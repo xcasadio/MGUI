@@ -352,6 +352,7 @@ Reason:
 
 - `⬜ Migrate docking host/composite surfaces`
   - Deliverable: host-level overlays and drawers consume the new docking template vocabulary.
+  - Progress: `MGDockAutoHideDrawer` now exposes explicit border, resize-grip, pin-icon, and close-icon parts backed by child elements instead of drawing those visuals in `DrawContents`.
   - Validation: focused docking interaction pass.
   - Commit: `style-theme: migrate docking composite surfaces`
 

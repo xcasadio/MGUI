@@ -206,6 +206,22 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Dock_Auto_Hide_Drawer_Uses_Explicit_Border_Grip_And_Icon_Parts()
+    {
+        string drawerSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockAutoHideDrawer.cs");
+        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
+
+        Assert.Contains("RegisterTemplatePart(BorderPartName, _border)", drawerSource);
+        Assert.Contains("RegisterTemplatePart(PinIconPartName, _pinIcon)", drawerSource);
+        Assert.Contains("RegisterTemplatePart(CloseIconPartName, _closeIcon)", drawerSource);
+        Assert.Contains("RegisterTemplatePart(ResizeGripPartName, _resizeGrip)", drawerSource);
+        Assert.Contains("public class MGDockPinIcon", symbolElementsSource);
+        Assert.Contains("public class MGCloseIcon", symbolElementsSource);
+        Assert.DoesNotContain("protected override void DrawContents", drawerSource);
+        Assert.DoesNotContain("GetResources().TryDrawTexture(DA.DT, \"DockPin\"", drawerSource);
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;
