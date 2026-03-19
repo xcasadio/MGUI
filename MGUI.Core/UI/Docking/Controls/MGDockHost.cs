@@ -16,6 +16,14 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockHost : MGSingleContentHost
 {
+    public const string PreviewOverlayPartName = "PART_PreviewOverlay";
+    public const string DropIndicatorsPartName = "PART_DropIndicators";
+    public const string LeftAutoHideStripPartName = "PART_LeftAutoHideStrip";
+    public const string RightAutoHideStripPartName = "PART_RightAutoHideStrip";
+    public const string TopAutoHideStripPartName = "PART_TopAutoHideStrip";
+    public const string BottomAutoHideStripPartName = "PART_BottomAutoHideStrip";
+    public const string AutoHideDrawerPartName = "PART_AutoHideDrawer";
+
     private DockLayoutModel _layoutModel;
     /// <summary>
     /// The layout model that defines the docking structure.
@@ -296,6 +304,7 @@ public class MGDockHost : MGSingleContentHost
 
             // Initialize preview overlay
             _previewOverlay = new MGDockPreviewOverlay(window);
+            RegisterTemplatePart(PreviewOverlayPartName, _previewOverlay);
             _previewOverlayComponent = new MGComponent<MGDockPreviewOverlay>(
                 _previewOverlay,
                 ComponentUpdatePriority.AfterContents,
@@ -306,6 +315,7 @@ public class MGDockHost : MGSingleContentHost
 
             // Initialize drop indicators overlay
             _dropIndicators = new MGDockDropIndicators(window);
+            RegisterTemplatePart(DropIndicatorsPartName, _dropIndicators);
             _dropIndicatorsComponent = new MGComponent<MGDockDropIndicators>(
                 _dropIndicators,
                 ComponentUpdatePriority.AfterContents,
@@ -325,6 +335,7 @@ public class MGDockHost : MGSingleContentHost
                 strip.Visibility = Visibility.Collapsed;
                 strip.PanelActivated += (_, panel) => ShowAutoHideDrawer(panel);
                 _autoHideStrips[side] = strip;
+                RegisterTemplatePart(GetAutoHideStripPartName(side), strip);
 
                 AutoHideSide capturedSide = side;
                 var comp = new MGComponent<MGDockAutoHideStrip>(
@@ -338,6 +349,7 @@ public class MGDockHost : MGSingleContentHost
 
             // ── Auto-hide drawer overlay ───────────────────────────────────
             _autoHideDrawer = new MGDockAutoHideDrawer(window);
+            RegisterTemplatePart(AutoHideDrawerPartName, _autoHideDrawer);
             _autoHideDrawer.Visibility  = Visibility.Collapsed;
             _autoHideDrawer.PinRequested         += (_, panel) => RepinPanel(panel);
             _autoHideDrawer.PanelCloseRequested   += (_, panel) => CloseAutoHidePanel(panel);
@@ -351,6 +363,18 @@ public class MGDockHost : MGSingleContentHost
                 (avail, _) => GetDrawerBounds(avail));
             AddComponent(drawerComp);
         }
+    }
+
+    private static string GetAutoHideStripPartName(AutoHideSide side)
+    {
+        return side switch
+        {
+            AutoHideSide.Left => LeftAutoHideStripPartName,
+            AutoHideSide.Right => RightAutoHideStripPartName,
+            AutoHideSide.Top => TopAutoHideStripPartName,
+            AutoHideSide.Bottom => BottomAutoHideStripPartName,
+            _ => throw new ArgumentOutOfRangeException(nameof(side), side, null)
+        };
     }
 
     /// <summary>

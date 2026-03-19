@@ -354,6 +354,7 @@ Reason:
   - Deliverable: host-level overlays and drawers consume the new docking template vocabulary.
   - Progress: `MGDockAutoHideDrawer` now exposes explicit border, resize-grip, pin-icon, and close-icon parts backed by child elements instead of drawing those visuals in `DrawContents`.
   - Progress: `MGDockSplitContainer` now relies entirely on child rendering and no longer keeps redundant pass-through `DrawSelf`/`DrawContents` overrides.
+  - Progress: `MGDockHost` now declares explicit template parts for preview overlay, drop indicators, all four auto-hide strips, and the auto-hide drawer so host-level docking surfaces have a stable part contract.
   - Validation: focused docking interaction pass.
   - Commit: `style-theme: migrate docking composite surfaces`
 

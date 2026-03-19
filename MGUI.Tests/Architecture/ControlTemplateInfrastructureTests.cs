@@ -232,6 +232,22 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Dock_Host_Declares_Explicit_Overlay_And_Auto_Hide_Parts()
+    {
+        string hostSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockHost.cs");
+
+        Assert.Contains("public const string PreviewOverlayPartName = \"PART_PreviewOverlay\";", hostSource);
+        Assert.Contains("public const string DropIndicatorsPartName = \"PART_DropIndicators\";", hostSource);
+        Assert.Contains("public const string LeftAutoHideStripPartName = \"PART_LeftAutoHideStrip\";", hostSource);
+        Assert.Contains("public const string BottomAutoHideStripPartName = \"PART_BottomAutoHideStrip\";", hostSource);
+        Assert.Contains("public const string AutoHideDrawerPartName = \"PART_AutoHideDrawer\";", hostSource);
+        Assert.Contains("RegisterTemplatePart(PreviewOverlayPartName, _previewOverlay)", hostSource);
+        Assert.Contains("RegisterTemplatePart(DropIndicatorsPartName, _dropIndicators)", hostSource);
+        Assert.Contains("RegisterTemplatePart(GetAutoHideStripPartName(side), strip)", hostSource);
+        Assert.Contains("RegisterTemplatePart(AutoHideDrawerPartName, _autoHideDrawer)", hostSource);
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;
