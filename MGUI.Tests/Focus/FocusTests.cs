@@ -406,6 +406,70 @@ public class FocusTests
     }
 
     [Theory]
+    [InlineData(true, true, false, true)]
+    [InlineData(false, true, false, false)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, true, true, false)]
+    public void FocusInputPolicy_IsKeyboardInputEligible_ReturnsExpectedValue(bool canHandleKeyboardInput, bool canReceiveKeyboardInput, bool isBlockedByModalOrOverlay, bool expected)
+    {
+        bool actual = MGUI.Core.UI.FocusInputPolicy.IsKeyboardInputEligible(canHandleKeyboardInput, canReceiveKeyboardInput, isBlockedByModalOrOverlay);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(true, true, false, false)]
+    [InlineData(false, true, false, true)]
+    [InlineData(true, false, false, true)]
+    [InlineData(true, true, true, true)]
+    public void FocusInputPolicy_ShouldClearFocusedElement_ReturnsExpectedValue(bool canHandleKeyboardInput, bool canReceiveKeyboardInput, bool isBlockedByModalOrOverlay, bool expected)
+    {
+        bool actual = MGUI.Core.UI.FocusInputPolicy.ShouldClearFocusedElement(canHandleKeyboardInput, canReceiveKeyboardInput, isBlockedByModalOrOverlay);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(false, false, Microsoft.Xna.Framework.Input.Keys.Left, false, true, MGUI.Core.UI.UINavigationAction.MoveLeft)]
+    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Left, false, false, default(MGUI.Core.UI.UINavigationAction))]
+    [InlineData(true, false, Microsoft.Xna.Framework.Input.Keys.Left, false, true, MGUI.Core.UI.UINavigationAction.MoveLeft)]
+    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Enter, false, false, MGUI.Core.UI.UINavigationAction.Submit)]
+    [InlineData(false, false, Microsoft.Xna.Framework.Input.Keys.A, false, false, default(MGUI.Core.UI.UINavigationAction))]
+    public void FocusInputPolicy_TryGetNavigationAction_ReturnsExpectedValue(bool isTextEntryFocused, bool shouldPreserveTextEntryKey, Microsoft.Xna.Framework.Input.Keys key, bool isShiftDown, bool expectedMapped, MGUI.Core.UI.UINavigationAction expectedAction)
+    {
+        bool actualMapped = MGUI.Core.UI.FocusInputPolicy.TryGetNavigationAction(key, isShiftDown, isTextEntryFocused, shouldPreserveTextEntryKey, out var actualAction);
+
+        Assert.Equal(expectedMapped, actualMapped);
+        Assert.Equal(expectedAction, actualAction);
+    }
+
+    [Theory]
+    [InlineData(true, true, true, true)]
+    [InlineData(true, true, false, true)]
+    [InlineData(false, true, true, false)]
+    [InlineData(false, true, false, true)]
+    [InlineData(false, false, true, true)]
+    public void FocusInputPolicy_ShouldProcessWindowInputs_ReturnsExpectedValue(bool isOverlayWindow, bool hasActiveOverlay, bool overlayIsModal, bool expected)
+    {
+        bool actual = MGUI.Core.UI.FocusInputPolicy.ShouldProcessWindowInputs(isOverlayWindow, hasActiveOverlay, overlayIsModal);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(true, false, false, true)]
+    [InlineData(true, true, false, false)]
+    [InlineData(true, true, true, true)]
+    [InlineData(false, false, false, false)]
+    [InlineData(false, true, true, false)]
+    public void FocusInputPolicy_ShouldInvokeCompositeKeyboardHandler_ReturnsExpectedValue(bool hasKeyboardFocus, bool isHandled, bool invokeEvenIfHandled, bool expected)
+    {
+        bool actual = MGUI.Core.UI.FocusInputPolicy.ShouldInvokeCompositeKeyboardHandler(hasKeyboardFocus, isHandled, invokeEvenIfHandled);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(Microsoft.Xna.Framework.Input.Keys.Left, false, false, false, true)]
     [InlineData(Microsoft.Xna.Framework.Input.Keys.Home, true, false, false, true)]
     [InlineData(Microsoft.Xna.Framework.Input.Keys.Space, false, false, false, true)]

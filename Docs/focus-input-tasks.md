@@ -123,7 +123,7 @@ Resultat:
 - les overlays modaux et popups topmost bloquent deja une partie du pointeur, mais le focus et le clavier peuvent encore viser un contenu devenu non legitime dans certains cas ;
 - la meilleure strategie est de centraliser une notion unique d'eligibilite effective a l'input, puis de faire reposer dessus le focus, la navigation fallback, le clavier et les controles composites.
 
-### ⚪ 2. Ajouter une matrice de tests de regression focus/input
+### ✅ 2. Ajouter une matrice de tests de regression focus/input
 
 But:
 verrouiller les comportements attendus avant les correctifs.
@@ -149,6 +149,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 2 add focus and input regression matrix`
+
+Resultat:
+
+- une matrice de regressions pure a ete ajoutee autour de la politique focus/input ;
+- les tests couvrent l'eligibilite clavier, la retention/perte de focus, le gating navigation pour text entry, le gating input d'overlay/fenetre et l'isolation des handlers clavier composites ;
+- validation executee avec succes sur `MGUI.Tests`, `MGUI.Samples` et le filtre `Focus`.
 
 ### ⚪ 3. Centraliser la notion d'eligibilite effective a l'input
 
