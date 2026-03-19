@@ -1039,9 +1039,7 @@ namespace MGUI.Core.UI
 
             TitleBorder.CanChangeContent = false;
             TitlePresenter.CanChangeContent = false;
-            TitlePresenter.VerticalAlignment = VerticalAlignment.Center;
             ItemsPanel.ManagedParent = this;
-            ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
             ItemsPanel.CanChangeContent = false;
 
             MGElement activeItemsHost = IsVirtualizing && _virtualizingPanel != null ? _virtualizingPanel : ItemsPanel;

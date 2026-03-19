@@ -253,7 +253,7 @@ Reason:
 
 - `🟡 Finish MGListBox migration`
   - Deliverable: title, outer border, inner border, and scrollviewer visuals are template-owned.
-  - Progress: removed constructor/attach-time items-panel chrome overrides, synced virtualized panel chrome from template-owned panel state, and delegated default item-container chrome through `MGControlTemplateCatalog`.
+  - Progress: removed constructor/attach-time items-panel chrome overrides, synced virtualized panel chrome from template-owned panel state, delegated default item-container chrome through `MGControlTemplateCatalog`, and moved title/items-panel alignment defaults out of `AttachControlTemplateStructure(...)` and into template defaults.
   - Validation: list box architecture tests.
   - Commit: `style-theme: finish list box lookless migration`
 
@@ -277,7 +277,7 @@ Reason:
 
 - `🟡 Finish MGComboBox migration`
   - Deliverable: dropdown arrow, dropdown window, item wrapper visuals, and header/footer defaults are template-owned.
-  - Progress: dropdown arrow color, padding, and minimum height now resolve through template defaults instead of attach/theme-change or constructor-local control code.
+  - Progress: dropdown arrow color, padding, minimum height, and arrow margin now resolve through template defaults instead of attach/theme-change or constructor-local control code.
   - Validation: combo box architecture tests and sample behavior check.
   - Commit: `style-theme: finish combo box lookless migration`
 

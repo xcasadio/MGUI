@@ -242,7 +242,6 @@ namespace MGUI.Core.UI.Styling
             MGScrollViewer dropdownScrollViewer = new(dropdown, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled) { Padding = new(0), ManagedParent = dropdown };
             MGDockPanel dropdownDockPanel = new(dropdown, true);
 
-            dropdownArrow.Margin = new(MGComboBox<object>.DefaultDropdownArrowLeftMargin, 0, MGComboBox<object>.DefaultDropdownArrowRightMargin, 0);
             dropdown.BorderThickness = new(1);
             dropdown.BorderBrush = MGUniformBorderBrush.Gray;
             dropdown.BackgroundBrush = owner.GetTheme().ComboBoxDropdownBackground.GetValue(true);
@@ -520,12 +519,8 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("ListBox.ScrollViewerPadding", Theme.ListBox.ScrollViewerPadding, () => ScrollViewer.Padding, value => ScrollViewer.Padding = value);
             Context.ApplyThemeDefault("ListBox.ItemsPanelBorderBrush", Theme.ListBox.ItemsPanelBorderBrush, () => ItemsPanel.BorderBrush, value => ItemsPanel.BorderBrush = value);
             Context.ApplyThemeDefault("ListBox.ItemsPanelBorderThickness", Theme.ListBox.ItemsPanelBorderThickness, () => ItemsPanel.BorderThickness, value => ItemsPanel.BorderThickness = value);
-
-            if (!Context.IsThemeRefresh)
-            {
-                ItemsPanel.VerticalAlignment = VerticalAlignment.Top;
-                TitlePresenter.VerticalAlignment = VerticalAlignment.Center;
-            }
+            Context.ApplyTemplateValue("ListBox.ItemsPanelVerticalAlignment", VerticalAlignment.Top, () => ItemsPanel.VerticalAlignment, value => ItemsPanel.VerticalAlignment = value);
+            Context.ApplyTemplateValue("ListBox.TitlePresenterVerticalAlignment", VerticalAlignment.Center, () => TitlePresenter.VerticalAlignment, value => TitlePresenter.VerticalAlignment = value);
         }
 
         private static void ApplyListViewTemplate(MGControlTemplateContext Context)

@@ -522,10 +522,20 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("Theme.GetBackgroundBrush(MGElementType.TabControl)", catalogSource);
         Assert.Contains("ComboBox.DropdownArrowColor", catalogSource);
         Assert.Contains("Theme.DropdownArrowColor", catalogSource);
+        Assert.Contains("ComboBox.DropdownArrowMargin", catalogSource);
         Assert.Contains("ComboBox.Padding", catalogSource);
         Assert.Contains("ComboBox.MinHeight", catalogSource);
         Assert.DoesNotContain("Padding = new(4, 2, 4, 2);", comboBoxSource);
         Assert.DoesNotContain("MinHeight = 26;", comboBoxSource);
+    }
+
+    [Fact]
+    public void ComboBox_Default_Template_Structure_Does_Not_Hardcode_Dropdown_Arrow_Margins()
+    {
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.DoesNotContain("dropdownArrow.Margin = new(MGComboBox<object>.DefaultDropdownArrowLeftMargin, 0, MGComboBox<object>.DefaultDropdownArrowRightMargin, 0);", catalogSource);
+        Assert.Contains("Context.ApplyThemeDefault(\"ComboBox.DropdownArrowMargin\"", catalogSource);
     }
 
     [Fact]
@@ -563,9 +573,13 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("_virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush();", listBoxSource);
         Assert.Contains("public static void ApplyListBoxItemContainerDefaults", catalogSource);
         Assert.Contains("Item.Padding = DefaultListBoxItemPadding;", catalogSource);
+        Assert.Contains("Context.ApplyTemplateValue(\"ListBox.ItemsPanelVerticalAlignment\"", catalogSource);
+        Assert.Contains("Context.ApplyTemplateValue(\"ListBox.TitlePresenterVerticalAlignment\"", catalogSource);
         Assert.Contains("=> MGControlTemplateCatalog.ApplyListBoxItemContainerDefaults(this, Item);", listBoxSource);
         Assert.DoesNotContain("ItemsPanel.BorderThickness = DefaultItemBorderThickness;", listBoxSource);
         Assert.DoesNotContain("ItemsPanel.BorderBrush = DefaultItemBorderBrush;", listBoxSource);
+        Assert.DoesNotContain("TitlePresenter.VerticalAlignment = VerticalAlignment.Center;", listBoxSource);
+        Assert.DoesNotContain("ItemsPanel.VerticalAlignment = VerticalAlignment.Top;", listBoxSource);
         Assert.DoesNotContain("public readonly MGUniformBorderBrush DefaultItemBorderBrush", listBoxSource);
         Assert.DoesNotContain("public readonly Thickness DefaultItemBorderThickness", listBoxSource);
         Assert.DoesNotContain("SetTitleAndContentBorder(SolidFillBrushes.Black, 1);", listBoxSource);
