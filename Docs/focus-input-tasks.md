@@ -385,7 +385,7 @@ Resultat:
 - la validation des corrections repose sur les suites `Focus` et les builds de `MGUI.Samples` ;
 - aucun sample supplementaire n'a ete ajoute, car la couverture ciblee et la compilation des samples existants suffisent ici a garder la validation bornee et maintenable.
 
-### ⚪ 10. Documenter le comportement final et les invariants
+### ✅ 10. Documenter le comportement final et les invariants
 
 But:
 laisser une reference claire pour eviter le retour des regressions.
@@ -410,3 +410,9 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `docs: complete task 10 document focus and input behavior`
+
+Resultat:
+
+- un document de reference dedie decrit maintenant le contrat final de focus/input ;
+- les invariants, l'ordre de routage, les effets des overlays/scopes/popup et les recommandations pour les futurs controles sont formalises ;
+- ce document sert de base de reference pour les prochains agents et pour les evolutions du framework.
