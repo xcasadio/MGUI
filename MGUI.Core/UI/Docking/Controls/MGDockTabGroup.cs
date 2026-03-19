@@ -877,4 +877,12 @@ public class MGDockTabGroup : MGElement
         _tabScrollIndex = Math.Clamp(_tabScrollIndex, 0, maxIndex);
     }
 
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        foreach (var child in GetChildren())
+        {
+            child?.Draw(DA);
+        }
+    }
+
 }

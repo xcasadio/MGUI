@@ -305,4 +305,12 @@ public class MGDockAutoHideStrip : MGElement
         }
         SyncSeparatorVisuals();
     }
+
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        foreach (var child in GetChildren())
+        {
+            child?.Draw(DA);
+        }
+    }
 }

@@ -395,6 +395,14 @@ public class MGDockAutoHideDrawer : MGElement
         }
     }
 
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        foreach (var child in GetChildren())
+        {
+            child?.Draw(DA);
+        }
+    }
+
     private static Rectangle GetCenteredIconBounds(Rectangle buttonBounds, int iconSize)
     {
         return new Rectangle(

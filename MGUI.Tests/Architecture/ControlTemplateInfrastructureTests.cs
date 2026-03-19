@@ -156,7 +156,8 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("DrawCloseIcon", symbolDrawingSource);
         Assert.Contains("DrawDockPinIcon", symbolDrawingSource);
         Assert.DoesNotContain("public override void DrawSelf", tabItemSource);
-        Assert.DoesNotContain("protected override void DrawContents", tabItemSource);
+        Assert.Contains("protected override void DrawContents", tabItemSource);
+        Assert.Contains("child?.Draw(DA);", tabItemSource);
     }
 
     [Fact]
@@ -174,7 +175,8 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("DrawEllipsisIcon", symbolDrawingSource);
         Assert.Contains("DrawWindowStateIcon", symbolDrawingSource);
         Assert.DoesNotContain("public override void DrawSelf", tabGroupSource);
-        Assert.DoesNotContain("protected override void DrawContents", tabGroupSource);
+        Assert.Contains("protected override void DrawContents", tabGroupSource);
+        Assert.Contains("child?.Draw(DA);", tabGroupSource);
     }
 
     [Fact]
@@ -186,7 +188,8 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("RegisterTemplatePart(SeparatorPartName, SeparatorElement)", stripSource);
         Assert.Contains("new MGRotatedTextLabel(ParentWindow, title)", stripSource);
         Assert.Contains("public class MGRotatedTextLabel", rotatedTextSource);
-        Assert.DoesNotContain("protected override void DrawContents", stripSource);
+        Assert.Contains("protected override void DrawContents", stripSource);
+        Assert.Contains("child?.Draw(DA);", stripSource);
     }
 
     [Fact]
@@ -203,6 +206,7 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("DrawFilledTriangleArrow", symbolDrawingSource);
         Assert.DoesNotContain("public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)", indicatorsSource);
         Assert.DoesNotContain("private void DrawZoneIndicator", indicatorsSource);
+        Assert.Contains("protected override void DrawContents", indicatorsSource);
     }
 
     [Fact]
@@ -217,7 +221,8 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("RegisterTemplatePart(ResizeGripPartName, _resizeGrip)", drawerSource);
         Assert.Contains("public class MGDockPinIcon", symbolElementsSource);
         Assert.Contains("public class MGCloseIcon", symbolElementsSource);
-        Assert.DoesNotContain("protected override void DrawContents", drawerSource);
+        Assert.Contains("protected override void DrawContents", drawerSource);
+        Assert.Contains("child?.Draw(DA);", drawerSource);
         Assert.DoesNotContain("GetResources().TryDrawTexture(DA.DT, \"DockPin\"", drawerSource);
     }
 

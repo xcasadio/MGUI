@@ -630,4 +630,12 @@ public class MGDockTabItem : MGElement
 
         UpdateVisuals();
     }
+
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        foreach (var child in GetChildren())
+        {
+            child?.Draw(DA);
+        }
+    }
 }

@@ -589,4 +589,12 @@ public class MGDockDropIndicators : MGElement
         }
     }
 
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        foreach (var child in GetChildren())
+        {
+            child?.Draw(DA);
+        }
+    }
+
 }
