@@ -343,14 +343,14 @@ Reason:
   - Validation: docking unit tests where available plus targeted manual verification.
   - Commit: `style-theme: migrate docking leaf visuals`
 
-- `🟡 Migrate docking tab controls`
+- `✅ Migrate docking tab controls`
   - Deliverable: `MGDockTabItem` and `MGDockTabGroup` move icons and accents out of direct draw logic.
   - Progress: `MGDockTabItem` now exposes explicit surface, accent, close-icon, and pin-icon parts backed by shared docking symbol elements instead of drawing its accent and glyphs directly.
   - Progress: `MGDockTabGroup` now exposes explicit accent, overflow-icon, and window-state-icon parts instead of drawing the active-group stripe and compact-button glyphs in `DrawContents`.
   - Validation: docking tab behavior and rendering checks.
   - Commit: `style-theme: migrate docking tab visuals`
 
-- `⬜ Migrate docking host/composite surfaces`
+- `✅ Migrate docking host/composite surfaces`
   - Deliverable: host-level overlays and drawers consume the new docking template vocabulary.
   - Progress: `MGDockAutoHideDrawer` now exposes explicit border, resize-grip, pin-icon, and close-icon parts backed by child elements instead of drawing those visuals in `DrawContents`.
   - Progress: `MGDockSplitContainer` now relies entirely on child rendering and no longer keeps redundant pass-through `DrawSelf`/`DrawContents` overrides.
@@ -362,6 +362,7 @@ Reason:
 
 - `🟡 Add runtime theme-switch regression tests`
   - Deliverable: tests covering control template refresh, theme value refresh, and subtree theme overrides.
+  - Progress: added runtime regression coverage for template theme-refresh semantics so template defaults are reapplied only while the current value still matches the previously applied default.
   - Validation: targeted architecture and runtime tests.
   - Commit: `style-theme: add theme switch regression coverage`
 
