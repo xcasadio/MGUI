@@ -116,6 +116,32 @@ namespace MGUI.Core.UI
             }
         }
 
+        public static void DrawCloseIcon(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, Color color, float thickness = 1.5f)
+        {
+            float centerX = bounds.X + bounds.Width * 0.5f;
+            float centerY = bounds.Y + bounds.Height * 0.5f;
+            float half = System.Math.Min(bounds.Width, bounds.Height) * 0.375f;
+            drawTransaction.StrokeLineSegment(origin,
+                new Vector2(centerX - half, centerY - half), new Vector2(centerX + half, centerY + half),
+                color, thickness);
+            drawTransaction.StrokeLineSegment(origin,
+                new Vector2(centerX + half, centerY - half), new Vector2(centerX - half, centerY + half),
+                color, thickness);
+        }
+
+        public static void DrawDockPinIcon(DrawTransaction drawTransaction, Vector2 origin, Rectangle bounds, Color color)
+        {
+            float centerX = bounds.X + bounds.Width * 0.5f;
+            float centerY = bounds.Y + bounds.Height * 0.5f;
+            int halfSize = System.Math.Max(2, System.Math.Min(bounds.Width, bounds.Height) / 4);
+            drawTransaction.FillRectangle(origin,
+                new MonoGame.Extended.RectangleF(centerX - halfSize, centerY - halfSize - 1, halfSize * 2, halfSize * 2),
+                color);
+            drawTransaction.StrokeLineSegment(origin,
+                new Vector2(centerX, centerY + halfSize - 1), new Vector2(centerX, centerY + halfSize + 3),
+                color, 1.5f);
+        }
+
         public static IReadOnlyList<Point> GetTriangleArrowVertices(Rectangle bounds, UITriangleArrowDirection direction)
         {
             return direction switch

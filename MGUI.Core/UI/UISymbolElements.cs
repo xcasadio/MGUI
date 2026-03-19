@@ -399,4 +399,90 @@ namespace MGUI.Core.UI
             UISymbolDrawing.DrawGripDots(DA.DT, DA.Offset.ToVector2(), layoutBounds, IsVertical, DotSize, DotSpacing, DotCount, DotColor * DA.Opacity);
         }
     }
+
+    public class MGCloseIcon : MGElement
+    {
+        private Color _Color;
+        public Color Color
+        {
+            get => _Color;
+            set
+            {
+                if (_Color != value)
+                {
+                    _Color = value;
+                    NPC(nameof(Color));
+                }
+            }
+        }
+
+        public string TextureName { get; set; } = "DockClose";
+
+        public MGCloseIcon(MGWindow window)
+            : base(window, MGElementType.Misc)
+        {
+            IsHitTestVisible = false;
+        }
+
+        public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
+        {
+            if (!string.IsNullOrEmpty(TextureName) && GetResources().TryDrawTexture(DA.DT, TextureName, layoutBounds, DA.Opacity, Color))
+            {
+                return;
+            }
+
+            UISymbolDrawing.DrawCloseIcon(DA.DT, DA.Offset.ToVector2(), layoutBounds, Color * DA.Opacity);
+        }
+    }
+
+    public class MGDockPinIcon : MGElement
+    {
+        private Color _Color;
+        public Color Color
+        {
+            get => _Color;
+            set
+            {
+                if (_Color != value)
+                {
+                    _Color = value;
+                    NPC(nameof(Color));
+                }
+            }
+        }
+
+        private bool _IsPinned;
+        public bool IsPinned
+        {
+            get => _IsPinned;
+            set
+            {
+                if (_IsPinned != value)
+                {
+                    _IsPinned = value;
+                    NPC(nameof(IsPinned));
+                }
+            }
+        }
+
+        public string PinnedTextureName { get; set; } = "DockPinOff";
+        public string AutoHideTextureName { get; set; } = "DockPin";
+
+        public MGDockPinIcon(MGWindow window)
+            : base(window, MGElementType.Misc)
+        {
+            IsHitTestVisible = false;
+        }
+
+        public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
+        {
+            string textureName = IsPinned ? PinnedTextureName : AutoHideTextureName;
+            if (!string.IsNullOrEmpty(textureName) && GetResources().TryDrawTexture(DA.DT, textureName, layoutBounds, DA.Opacity, Color))
+            {
+                return;
+            }
+
+            UISymbolDrawing.DrawDockPinIcon(DA.DT, DA.Offset.ToVector2(), layoutBounds, Color * DA.Opacity);
+        }
+    }
 }

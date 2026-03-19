@@ -141,6 +141,25 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Dock_Tab_Item_Uses_Explicit_Accent_And_Icon_Parts()
+    {
+        string tabItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockTabItem.cs");
+        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
+        string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+
+        Assert.Contains("RegisterTemplatePart(SurfacePartName, _surfaceElement)", tabItemSource);
+        Assert.Contains("RegisterTemplatePart(AccentPartName, _accentElement)", tabItemSource);
+        Assert.Contains("RegisterTemplatePart(CloseIconPartName, _closeIconElement)", tabItemSource);
+        Assert.Contains("RegisterTemplatePart(PinIconPartName, _pinIconElement)", tabItemSource);
+        Assert.Contains("public class MGCloseIcon", symbolElementsSource);
+        Assert.Contains("public class MGDockPinIcon", symbolElementsSource);
+        Assert.Contains("DrawCloseIcon", symbolDrawingSource);
+        Assert.Contains("DrawDockPinIcon", symbolDrawingSource);
+        Assert.DoesNotContain("public override void DrawSelf", tabItemSource);
+        Assert.DoesNotContain("protected override void DrawContents", tabItemSource);
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;

@@ -2,8 +2,10 @@ using System;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Core.UI.Styling;
+using MGUI.Shared.Helpers;
 using MGUI.Shared.Input.Mouse;
 
 namespace MGUI.Core.UI.Docking.Controls;
@@ -14,6 +16,11 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockTabItem : MGElement
 {
+    public const string SurfacePartName = "PART_Surface";
+    public const string AccentPartName = "PART_Accent";
+    public const string CloseIconPartName = "PART_CloseIcon";
+    public const string PinIconPartName = "PART_PinIcon";
+
     private DockPanelNode _panel;
     /// <summary>
     /// The dock panel node this tab represents.
@@ -108,10 +115,17 @@ public class MGDockTabItem : MGElement
     public Color ActiveIconColor { get; set; } = Color.White;
     public Color InactiveIconColor { get; set; } = new Color(180, 180, 180);
 
+    private MGBorder _surfaceElement;
+    private MGComponent<MGBorder> _surfaceComponent;
+    private MGRectangle _accentElement;
+    private MGComponent<MGRectangle> _accentComponent;
     private MGTextBlock _titleText;
     private MGBorder _closeButton;
-    private MGTextBlock _closeButtonText;
+    private MGCloseIcon _closeIconElement;
+    private MGComponent<MGCloseIcon> _closeIconComponent;
     private MGBorder _pinButton;
+    private MGDockPinIcon _pinIconElement;
+    private MGComponent<MGDockPinIcon> _pinIconComponent;
 
     /// <summary>Fixed pixel width reserved for the close button (icon area + padding).</summary>
     private const int CloseButtonSize = 22;
@@ -226,6 +240,29 @@ public class MGDockTabItem : MGElement
             ActiveBrush = new MGSolidFillBrush(new Color(37, 37, 38));      // Slightly darker but will have bright accent line
             DefaultControlTemplateName = MGControlTemplateCatalog.DockTabItemTemplateName;
 
+            _surfaceElement = new(window, new XAML.Thickness(0).ToThickness(), (IBorderBrush)null)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+            };
+            RegisterTemplatePart(SurfacePartName, _surfaceElement);
+            _surfaceComponent = new(_surfaceElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => LayoutBounds);
+            AddComponent(_surfaceComponent);
+
+            _accentElement = new(window, 0, 0, Color.Transparent, 0, Color.Transparent)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+                Visibility = Visibility.Collapsed,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+            RegisterTemplatePart(AccentPartName, _accentElement);
+            _accentComponent = new(_accentElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => GetAccentBounds());
+            AddComponent(_accentComponent);
+
             // Create title text — single-line only; the tab width adapts to its content
             _titleText = new MGTextBlock(window, panel?.Title ?? "Tab")
             {
@@ -244,17 +281,13 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment   = VerticalAlignment.Stretch
             };
-                
-            _closeButtonText = new MGTextBlock(window, "")
-            {
-                FontSize = 14,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                // Empty text — the X cross is drawn directly in DrawContents
-                Padding = new XAML.Thickness(4, 2, 4, 2).ToThickness(),
-                IsHitTestVisible = false,
-            };
-            _closeButton.SetContent(_closeButtonText);
+
+            _closeIconElement = new(window) { ManagedParent = this };
+            RegisterTemplatePart(CloseIconPartName, _closeIconElement);
+            _closeIconComponent = new(_closeIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => GetCloseIconBounds());
+            AddComponent(_closeIconComponent);
                 
             // Handle close button click
             _closeButton.MouseHandler.LMBReleasedInside += (sender, e) =>
@@ -297,6 +330,13 @@ public class MGDockTabItem : MGElement
             _pinButton.IsHitTestVisible = false;
             _pinButton.SetParent(this);
 
+            _pinIconElement = new(window) { ManagedParent = this };
+            RegisterTemplatePart(PinIconPartName, _pinIconElement);
+            _pinIconComponent = new(_pinIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => GetPinIconBounds());
+            AddComponent(_pinIconComponent);
+
             // Subscribe to drag start
             MouseHandler.DragStart += OnDragStart;
 
@@ -305,7 +345,46 @@ public class MGDockTabItem : MGElement
 
             HorizontalAlignment = HorizontalAlignment.Left;
             VerticalAlignment = VerticalAlignment.Top;
+            UpdateVisuals();
         }
+    }
+
+    private Rectangle GetAccentBounds()
+    {
+        int accentHeight = IsActive ? 3 : 2;
+        return new Rectangle(LayoutBounds.X, LayoutBounds.Bottom - accentHeight, LayoutBounds.Width, accentHeight);
+    }
+
+    private Rectangle GetCloseIconBounds()
+    {
+        if (_closeButton == null)
+        {
+            return Rectangle.Empty;
+        }
+
+        Rectangle bounds = _closeButton.LayoutBounds;
+        const int iconSize = 12;
+        return new Rectangle(
+            bounds.X + (bounds.Width - iconSize) / 2,
+            bounds.Y + (bounds.Height - iconSize) / 2,
+            iconSize,
+            iconSize);
+    }
+
+    private Rectangle GetPinIconBounds()
+    {
+        if (_pinButton == null)
+        {
+            return Rectangle.Empty;
+        }
+
+        Rectangle bounds = _pinButton.LayoutBounds;
+        const int iconSize = 12;
+        return new Rectangle(
+            bounds.X + (bounds.Width - iconSize) / 2,
+            bounds.Y + (bounds.Height - iconSize) / 2,
+            iconSize,
+            iconSize);
     }
 
     /// <summary>
@@ -377,12 +456,35 @@ public class MGDockTabItem : MGElement
                 : InactiveTextColor;
         }
 
-        // Update close button text color
-        if (_closeButtonText != null)
+        if (_surfaceElement != null)
         {
-            _closeButtonText.DefaultTextForeground.NormalValue = IsActive
-                ? ActiveIconColor
-                : InactiveIconColor;
+            _surfaceElement.BackgroundBrush.NormalValue = IsActive
+                ? ActiveBrush
+                : IsHovered
+                    ? HoverBrush
+                    : NormalBrush;
+        }
+
+        if (_accentElement != null)
+        {
+            bool showAccent = IsActive || IsHovered;
+            _accentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
+            _accentElement.Width = LayoutBounds.Width;
+            _accentElement.Height = IsActive ? 3 : 2;
+            _accentElement.Fill = (IsActive ? ActiveAccentColor : HoverAccentColor).AsFillBrush();
+        }
+
+        if (_closeIconElement != null)
+        {
+            _closeIconElement.Visibility = Panel?.CanClose == true ? Visibility.Visible : Visibility.Collapsed;
+            _closeIconElement.Color = IsActive ? ActiveIconColor : InactiveIconColor;
+        }
+
+        if (_pinIconElement != null)
+        {
+            _pinIconElement.Visibility = Panel?.CanAutoHide == true ? Visibility.Visible : Visibility.Collapsed;
+            _pinIconElement.Color = InactiveIconColor;
+            _pinIconElement.IsPinned = Panel?.IsPinned == true;
         }
     }
 
@@ -525,124 +627,7 @@ public class MGDockTabItem : MGElement
                 CloseButtonSize,
                 Bounds.Height));
         }
-    }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-    {
-        // Choose background brush based on state
-        IFillBrush backgroundBrush;
-        if (IsActive)
-        {
-            backgroundBrush = ActiveBrush;
-        }
-        else if (IsHovered)
-        {
-            backgroundBrush = HoverBrush;
-        }
-        else
-        {
-            backgroundBrush = NormalBrush;
-        }
-
-        // Draw background
-        backgroundBrush?.Draw(DA, this, LayoutBounds);
-
-        // Draw visual accent for active tab
-        if (IsActive)
-        {
-            // Draw a bright accent line at the bottom of active tab
-            const int accentHeight = 3;
-            Rectangle accentBounds = new Rectangle(
-                LayoutBounds.X,
-                LayoutBounds.Bottom - accentHeight,
-                LayoutBounds.Width,
-                accentHeight
-            );
-                
-            DA.DT.FillRectangle(Vector2.Zero, 
-                new RectangleF(accentBounds.X, accentBounds.Y, accentBounds.Width, accentBounds.Height),
-                ActiveAccentColor);
-        }
-        // Draw subtle hover indicator for inactive tabs
-        else if (IsHovered)
-        {
-            // Draw a thin line at the bottom when hovered (but not active)
-            const int hoverLineHeight = 2;
-            Rectangle hoverBounds = new Rectangle(
-                LayoutBounds.X,
-                LayoutBounds.Bottom - hoverLineHeight,
-                LayoutBounds.Width,
-                hoverLineHeight
-            );
-                
-            DA.DT.FillRectangle(Vector2.Zero,
-                new RectangleF(hoverBounds.X, hoverBounds.Y, hoverBounds.Width, hoverBounds.Height),
-                HoverAccentColor);
-        }
-
-        DrawSelfBaseImplementation(DA, LayoutBounds);
-    }
-
-    protected override void DrawContents(ElementDrawArgs DA)
-    {
-        // Draw all children (title text and close button background)
-        foreach (var child in GetChildren())
-        {
-            child?.Draw(DA);
-        }
-
-        // Draw close icon
-        if (Panel?.CanClose == true && _closeButton != null)
-        {
-            Rectangle cb       = _closeButton.LayoutBounds;
-            const int iconSize = 12;
-            Rectangle iconRect = new Rectangle(
-                cb.X + (cb.Width  - iconSize) / 2,
-                cb.Y + (cb.Height - iconSize) / 2,
-                iconSize, iconSize);
-            Color closeColor = IsActive ? ActiveIconColor : InactiveIconColor;
-
-            if (!GetResources().TryDrawTexture(DA.DT, "DockClose", iconRect, 1f, closeColor))
-            {
-                // Fallback: programmatic X cross
-                float cx = cb.X + cb.Width * 0.5f;
-                float cy = cb.Y + cb.Height * 0.5f;
-                const float half = 4.5f;
-                DA.DT.StrokeLineSegment(Vector2.Zero,
-                    new Vector2(cx - half, cy - half), new Vector2(cx + half, cy + half),
-                    closeColor, 1.5f);
-                DA.DT.StrokeLineSegment(Vector2.Zero,
-                    new Vector2(cx + half, cy - half), new Vector2(cx - half, cy + half),
-                    closeColor, 1.5f);
-            }
-        }
-
-        // Draw pin / unpin icon
-        if (Panel?.CanAutoHide == true && _pinButton != null)
-        {
-            Rectangle pb       = _pinButton.LayoutBounds;
-            const int iconSize = 12;
-            Rectangle iconRect = new Rectangle(
-                pb.X + (pb.Width  - iconSize) / 2,
-                pb.Y + (pb.Height - iconSize) / 2,
-                iconSize, iconSize);
-
-            // Neutral grey: DockPinOff when pinned (click → auto-hide), DockPin when auto-hidden (click → re-pin)
-            Color pinColor = InactiveIconColor;
-            string pinIcon = Panel.IsPinned ? "DockPinOff" : "DockPin";
-
-            if (!GetResources().TryDrawTexture(DA.DT, pinIcon, iconRect, 1f, pinColor))
-            {
-                // Fallback: programmatic pin shape
-                float cx = pb.X + pb.Width * 0.5f;
-                float cy = pb.Y + pb.Height * 0.5f;
-                int hs = 3;
-                DA.DT.FillRectangle(Vector2.Zero,
-                    new MonoGame.Extended.RectangleF(cx - hs, cy - hs - 1, hs * 2, hs * 2), pinColor);
-                DA.DT.StrokeLineSegment(Vector2.Zero,
-                    new Vector2(cx, cy + hs - 1), new Vector2(cx, cy + hs + 3),
-                    pinColor, 1.5f);
-            }
-        }
+        UpdateVisuals();
     }
 }

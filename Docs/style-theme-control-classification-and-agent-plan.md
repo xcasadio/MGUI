@@ -343,6 +343,7 @@ Reason:
 
 - `🟡 Migrate docking tab controls`
   - Deliverable: `MGDockTabItem` and `MGDockTabGroup` move icons and accents out of direct draw logic.
+  - Progress: `MGDockTabItem` now exposes explicit surface, accent, close-icon, and pin-icon parts backed by shared docking symbol elements instead of drawing its accent and glyphs directly.
   - Validation: docking tab behavior and rendering checks.
   - Commit: `style-theme: migrate docking tab visuals`
 
