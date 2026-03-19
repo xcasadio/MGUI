@@ -22,6 +22,7 @@ namespace MGUI.Core.UI
         public const string BorderPartName = "PART_Border";
         public const string HeadersPanelPartName = "PART_HeadersPanel";
         internal const string HeaderTemplateOwnerMetadataKey = "TabControl.Owner";
+        internal const string DefaultHeaderWrapperMetadataKey = "TabControl.IsDefaultHeaderWrapper";
 
         protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
         {
@@ -268,6 +269,7 @@ namespace MGUI.Core.UI
                 IsFocusable = false,
             };
             button.Metadata[HeaderTemplateOwnerMetadataKey] = this;
+            button.Metadata[DefaultHeaderWrapperMetadataKey] = true;
             ApplyHeaderWrapperTemplate(button, Tab.IsTabSelected);
             return button;
         }
@@ -280,10 +282,14 @@ namespace MGUI.Core.UI
 
             wrapper ??= CreateDefaultHeaderWrapper(Tab);
             wrapper.Metadata[HeaderTemplateOwnerMetadataKey] = this;
+            wrapper.Metadata[DefaultHeaderWrapperMetadataKey] = wrapper.Metadata.ContainsKey(DefaultHeaderWrapperMetadataKey);
             wrapper.IsFocusable = false;
             ApplyHeaderWrapperTemplate(wrapper, Tab.IsTabSelected);
             return wrapper;
         }
+
+        private static bool IsDefaultHeaderWrapper(MGButton HeaderWrapper)
+            => HeaderWrapper?.Metadata?.TryGetValue(DefaultHeaderWrapperMetadataKey, out object value) == true && value is true;
 
         private void ApplyHeaderWrapperTemplate(MGButton HeaderWrapper, bool IsSelected)
         {
@@ -310,6 +316,14 @@ namespace MGUI.Core.UI
         {
             if (Tab != null && ActualTabHeaders.TryGetValue(Tab, out MGButton OldHeaderWrapper))
             {
+                if (!UsesCustomHeaderFactories && IsDefaultHeaderWrapper(OldHeaderWrapper))
+                {
+                    ApplyHeaderWrapperTemplate(OldHeaderWrapper, Tab.IsTabSelected);
+                    OldHeaderWrapper.InvalidateLayoutTree();
+                    UpdateHeadersPanelPreferredSize();
+                    return;
+                }
+
                 MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);
                 if (ManagedReplaceHeadersPanelChild(OldHeaderWrapper, NewHeaderWrapper))
                 {

@@ -71,13 +71,13 @@ Verified architecture coverage already exists for:
 | `MGContextMenu` | C | Default template exists, but menu behavior, submenu draw orchestration, and dropdown button visuals remain code-owned. |
 | `MGContextMenuItem` | D | Significant direct visual logic, including manual symbol rendering and state spoofing. |
 | `MGListBox` | B | Template-backed composite; recent cleanup stopped constructor/attach-time chrome overrides, but title/content and panel ownership still need a final pass. |
-| `MGListView` | B | Similar to `MGListBox`; grid line and header spacer chrome now resolve through template defaults, but structural assumptions still remain in control code. |
+| `MGListView` | B | Similar to `MGListBox`; list/grid spacing, grid-line margins, and header spacer chrome now resolve through template defaults, but structural ownership still remains in control code. |
 | `MGComboBox` | C | Now template-backed; dropdown arrow defaults now flow through the template catalog, but dropdown structure and item wrapper behavior still remain partly imperative. |
 | `MGTreeView` | B | Has template-based structure; selection visual refresh now follows property changes directly, but some behavior-coupled visual assumptions remain. |
 | `MGTreeViewItem` | C | Manual expander drawing remains, but triangle-arrow geometry now goes through a shared primitive instead of per-control polygon code. |
 | `MGTextBox` | B | Template-backed and improved, but placeholder/counter/text/caret composition is still coordinated heavily in control code. |
 | `MGPasswordBox` | B | Inherits the same strengths and limits as `MGTextBox`. |
-| `MGTabControl` | B | Good template split for main structure and headers; background defaults now come from the template catalog, but header wrapper lifecycle and header panel behavior still live in control logic. |
+| `MGTabControl` | B | Good template split for main structure and headers; background defaults now come from the template catalog, and default header wrappers now retemplate in place, but header panel behavior and custom-wrapper lifecycle still live in control logic. |
 | `MGTabItem` | B | Lightweight behavioral companion to `MGTabControl`, but not independently lookless. |
 | `MGCheckBox` | D | Manual checkmark drawing and button-part orchestration keep appearance strongly fused with control code. |
 | `MGRadioButton` | C | Theme hooks exist, but bubble/check visuals remain control-specific and imperative. |
@@ -228,7 +228,7 @@ Reason:
 - `🟡 Eliminate control-local visual literals from migrated templates`
   - Deliverable: colors, padding, border literals move out of control logic into template/theme defaults where possible.
   - Validation: source-level audit tests for migrated controls.
-  - Progress: `MGTabControl.Background`, `MGComboBox.DropdownArrowColor`, `MGComboBox.Padding`, `MGComboBox.MinHeight`, `MGTextBox.Padding`, and `MGTextBox.MinHeight` now resolve through template defaults; `MGTreeView` no longer relies on theme-change reselection; `MGListBox` no longer overwrites template-owned items-panel chrome during construction or template attachment and now delegates default item-container chrome through the template catalog; `MGListView` grid-line and header-spacer chrome now resolve through the template catalog; `MGWindow` and `MGOverlay` no longer hardcode template-owned padding in constructors.
+  - Progress: `MGTabControl.Background`, `MGComboBox.DropdownArrowColor`, `MGComboBox.Padding`, `MGComboBox.MinHeight`, `MGTextBox.Padding`, and `MGTextBox.MinHeight` now resolve through template defaults; `MGTreeView` no longer relies on theme-change reselection; `MGListBox` no longer overwrites template-owned items-panel chrome during construction or template attachment and now delegates default item-container chrome through the template catalog; `MGListView` grid-line brushes, spacing, grid-line margins, data-grid padding, and header-spacer chrome now resolve through the template catalog; `MGWindow` and `MGOverlay` no longer hardcode template-owned padding in constructors.
   - Commit: `style-theme: remove local visual literals from migrated controls`
 
 - `✅ Separate structural parts from visual-state defaults`
@@ -258,7 +258,7 @@ Reason:
 
 - `🟡 Finish MGListView migration`
   - Deliverable: header/data grid structure and defaults are template-owned with minimal visual logic left in control code.
-  - Progress: header/data grid grid-line brushes and header spacer chrome now come from template defaults instead of control-local literals.
+  - Progress: header/data grid grid-line brushes, spacing, grid-line margins, data-grid padding, and header spacer chrome now come from template defaults instead of control-local attach-time assignments.
   - Validation: list view template tests.
   - Commit: `style-theme: finish list view lookless migration`
 
@@ -270,7 +270,7 @@ Reason:
 
 - `🟡 Finish MGTabControl migration`
   - Deliverable: header area, header wrappers, and selection-state defaults are template-driven without control-local visual fallbacks leaking.
-  - Progress: background theme default now applies through `MGControlTemplateCatalog` instead of `OnThemeChanged(...)`.
+  - Progress: background theme default now applies through `MGControlTemplateCatalog` instead of `OnThemeChanged(...)`, and default header wrappers now update their applied control template in place instead of being recreated for every selection/template-name change.
   - Validation: targeted tab control architecture tests.
   - Commit: `style-theme: finish tab control lookless migration`
 

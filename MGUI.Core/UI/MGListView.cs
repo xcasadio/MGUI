@@ -323,8 +323,8 @@ namespace MGUI.Core.UI
             }
         }
 
-        private readonly int InitialSpacing;
-        private readonly int InitialGridLineMargin;
+        internal int TemplateDefaultSpacing { get; }
+        internal int TemplateDefaultGridLineMargin { get; }
         private MGDockPanel HeaderGridWrapper { get; set; }
         private MGBorder HeaderSpacer { get; set; }
 
@@ -361,8 +361,8 @@ namespace MGUI.Core.UI
         public MGListView(MGWindow Window, int Spacing, int GridLineMargin)
             : base(Window, MGElementType.ListView)
         {
-            InitialSpacing = Spacing;
-            InitialGridLineMargin = GridLineMargin;
+            TemplateDefaultSpacing = Spacing;
+            TemplateDefaultGridLineMargin = GridLineMargin;
 
             using (BeginInitializing())
             {
@@ -410,23 +410,6 @@ namespace MGUI.Core.UI
             if (!HeaderGrid.Rows.Any())
             {
                 HeaderGrid.AddRow(GridLength.Auto);
-            }
-
-            HeaderGrid.GridLinesVisibility = GridLinesVisibility.All;
-            HeaderGrid.RowSpacing = InitialSpacing;
-            HeaderGrid.ColumnSpacing = InitialSpacing;
-            HeaderGrid.GridLineMargin = InitialGridLineMargin;
-
-            DataGrid.GridLinesVisibility = GridLinesVisibility.AllVertical | GridLinesVisibility.InnerHorizontal | GridLinesVisibility.BottomEdge;
-            DataGrid.Padding = new(0, InitialGridLineMargin, 0, 0);
-            DataGrid.RowSpacing = InitialSpacing;
-            DataGrid.ColumnSpacing = InitialSpacing;
-            DataGrid.GridLineMargin = InitialGridLineMargin;
-
-            if (HeaderSpacer != null)
-            {
-                int borderThickness = Math.Max(0, InitialSpacing - InitialGridLineMargin * 2);
-                HeaderSpacer.BorderThickness = new Thickness(0, borderThickness, borderThickness, borderThickness);
             }
 
             ScrollViewer.VerticalScrollBarBoundsChanged += (sender, e) =>

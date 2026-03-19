@@ -303,10 +303,11 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("SelectedTabHeaderControlTemplateName", tabControlSource);
         Assert.Contains("UnselectedTabHeaderControlTemplateName", tabControlSource);
         Assert.Contains("HeaderWrapper.ControlTemplateName", tabControlSource);
+        Assert.Contains("DefaultHeaderWrapperMetadataKey", tabControlSource);
+        Assert.Contains("ApplyHeaderWrapperTemplate(OldHeaderWrapper, Tab.IsTabSelected);", tabControlSource);
+        Assert.Contains("OldHeaderWrapper.InvalidateLayoutTree();", tabControlSource);
+        Assert.Contains("if (!UsesCustomHeaderFactories && IsDefaultHeaderWrapper(OldHeaderWrapper))", tabControlSource);
         Assert.Contains("MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);", tabControlSource);
-        Assert.DoesNotContain("ApplyHeaderWrapperTemplate(OldHeaderWrapper, Tab.IsTabSelected);", tabControlSource);
-        Assert.DoesNotContain("OldHeaderWrapper.InvalidateLayoutTree();", tabControlSource);
-        Assert.Contains("ManagedReplaceHeadersPanelChild(OldHeaderWrapper, NewHeaderWrapper)", tabControlSource);
         Assert.Contains("SelectedTabHeaderTemplateName = \"TabControl.Header.Selected\"", catalogSource);
         Assert.Contains("UnselectedTabHeaderTemplateName = \"TabControl.Header.Unselected\"", catalogSource);
     }
@@ -580,6 +581,13 @@ public class ControlTemplateInfrastructureTests
         Assert.DoesNotContain("HeaderGrid.HorizontalGridLineBrush = DefaultGridLineBrush;", listViewSource);
         Assert.DoesNotContain("DataGrid.HorizontalGridLineBrush = DefaultGridLineBrush;", listViewSource);
         Assert.DoesNotContain("HeaderSpacer.BorderBrush = MGUniformBorderBrush.Black;", listViewSource);
+        Assert.DoesNotContain("HeaderGrid.RowSpacing = InitialSpacing;", listViewSource);
+        Assert.DoesNotContain("DataGrid.Padding = new(0, InitialGridLineMargin, 0, 0);", listViewSource);
+        Assert.Contains("TemplateDefaultSpacing", listViewSource);
+        Assert.Contains("TemplateDefaultGridLineMargin", listViewSource);
+        Assert.Contains("ListView.HeaderGridSpacing", catalogSource);
+        Assert.Contains("ListView.DataGridPadding", catalogSource);
+        Assert.Contains("ListView.HeaderSpacerBorderThickness", catalogSource);
         Assert.Contains("ListView.HeaderSpacerBorderBrush", catalogSource);
         Assert.Contains("ListView.HeaderSpacerBackground", catalogSource);
     }

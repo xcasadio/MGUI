@@ -539,7 +539,25 @@ namespace MGUI.Core.UI.Styling
             MGGrid HeaderGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.HeaderGridPartName);
             MGGrid DataGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.DataGridPartName);
             MGBorder HeaderSpacer = Context.TryGetPart(MGListView<object>.HeaderSpacerPartName, out MGElement headerSpacerPart) ? headerSpacerPart as MGBorder : null;
+            int spacing = (int)Context.Owner.GetType().GetProperty(nameof(MGListView<object>.TemplateDefaultSpacing)).GetValue(Context.Owner);
+            int gridLineMargin = (int)Context.Owner.GetType().GetProperty(nameof(MGListView<object>.TemplateDefaultGridLineMargin)).GetValue(Context.Owner);
 
+            Context.ApplyTemplateValue("ListView.HeaderGridLinesVisibility", GridLinesVisibility.All, () => HeaderGrid.GridLinesVisibility, value => HeaderGrid.GridLinesVisibility = value);
+            Context.ApplyTemplateValue("ListView.HeaderGridSpacing", spacing, () => HeaderGrid.RowSpacing, value =>
+            {
+                HeaderGrid.RowSpacing = value;
+                HeaderGrid.ColumnSpacing = value;
+            });
+            Context.ApplyTemplateValue("ListView.HeaderGridLineMargin", gridLineMargin, () => HeaderGrid.GridLineMargin, value => HeaderGrid.GridLineMargin = value);
+            Context.ApplyTemplateValue("ListView.DataGridLinesVisibility", GridLinesVisibility.AllVertical | GridLinesVisibility.InnerHorizontal | GridLinesVisibility.BottomEdge,
+                () => DataGrid.GridLinesVisibility, value => DataGrid.GridLinesVisibility = value);
+            Context.ApplyTemplateValue("ListView.DataGridPadding", new Thickness(0, gridLineMargin, 0, 0), () => DataGrid.Padding, value => DataGrid.Padding = value);
+            Context.ApplyTemplateValue("ListView.DataGridSpacing", spacing, () => DataGrid.RowSpacing, value =>
+            {
+                DataGrid.RowSpacing = value;
+                DataGrid.ColumnSpacing = value;
+            });
+            Context.ApplyTemplateValue("ListView.DataGridLineMargin", gridLineMargin, () => DataGrid.GridLineMargin, value => DataGrid.GridLineMargin = value);
             Context.ApplyThemeDefault("ListView.HeaderBackground", Theme.TitleBackground.GetValue(true), () => HeaderGrid.BackgroundBrush, value => HeaderGrid.BackgroundBrush = value);
             Context.ApplyThemeDefault("ListView.HeaderForeground", Theme.ListView.HeaderForeground, () => HeaderGrid.DefaultTextForeground, value => HeaderGrid.DefaultTextForeground = value);
             Context.ApplyThemeDefault("ListView.HeaderHorizontalGridLineBrush", Theme.ListView.GridLineBrush, () => HeaderGrid.HorizontalGridLineBrush, value => HeaderGrid.HorizontalGridLineBrush = value);
@@ -549,6 +567,9 @@ namespace MGUI.Core.UI.Styling
 
             if (HeaderSpacer != null)
             {
+                int borderThickness = Math.Max(0, spacing - gridLineMargin * 2);
+                Context.ApplyTemplateValue("ListView.HeaderSpacerBorderThickness", new Thickness(0, borderThickness, borderThickness, borderThickness),
+                    () => HeaderSpacer.BorderThickness, value => HeaderSpacer.BorderThickness = value);
                 Context.ApplyThemeDefault("ListView.HeaderSpacerBorderBrush", Theme.ListView.GridLineBrush.AsUniformBorderBrush(), () => HeaderSpacer.BorderBrush, value => HeaderSpacer.BorderBrush = value);
                 Context.ApplyThemeDefault("ListView.HeaderSpacerBackground", Theme.TitleBackground.GetValue(true), () => HeaderSpacer.BackgroundBrush, value => HeaderSpacer.BackgroundBrush = value);
             }
