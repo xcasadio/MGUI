@@ -66,6 +66,7 @@ namespace MGUI.Core.UI
 
     public class MGThemeOverlaySettings
     {
+        public Thickness HostPadding { get; set; } = new(4);
         public Thickness Padding { get; set; } = new(5);
         public Thickness BorderThickness { get; set; } = new(1);
         public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
@@ -599,6 +600,7 @@ namespace MGUI.Core.UI
             Window.TitleTextPadding = Source.Window.TitleTextPadding;
             Window.TitleTextForeground = Source.Window.TitleTextForeground?.GetCopy();
 
+            Overlay.HostPadding = Source.Overlay.HostPadding;
             Overlay.Padding = Source.Overlay.Padding;
             Overlay.BorderThickness = Source.Overlay.BorderThickness;
             Overlay.BorderBrush = Source.Overlay.BorderBrush?.Copy();

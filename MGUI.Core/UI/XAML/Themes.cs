@@ -182,6 +182,7 @@ namespace MGUI.Core.UI.XAML
 
     public class ThemeOverlaySettingsDefinition : XAMLBindableBase
     {
+        public Thickness? HostPadding { get; set; }
         public Thickness? Padding { get; set; }
         public Thickness? BorderThickness { get; set; }
         public BorderBrush BorderBrush { get; set; }

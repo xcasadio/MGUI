@@ -619,11 +619,17 @@ public class ControlTemplateInfrastructureTests
         string windowSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs");
         string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string themeSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTheme.cs");
+        string themeBuilderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\ThemeDefinitionBuilder.cs");
 
         Assert.Contains("Context.ApplyThemeDefault(\"Window.Padding\"", catalogSource);
         Assert.Contains("Context.ApplyThemeDefault(\"Overlay.Padding\"", catalogSource);
         Assert.DoesNotContain("Padding = new(5);", overlaySource);
+        Assert.DoesNotContain("Padding = new(4);", overlaySource);
         Assert.DoesNotContain("Padding = DefaultWindowPadding;", windowSource);
+        Assert.Contains("public Thickness HostPadding { get; set; } = new(4);", themeSource);
+        Assert.Contains("Padding = GetTheme().Overlay.HostPadding;", overlaySource);
+        Assert.Contains("Definition.HostPadding", themeBuilderSource);
         Assert.Contains("Padding = GetTheme().Window.Padding;", windowSource);
         Assert.Contains("BorderThickness = GetTheme().Window.BorderThickness;", windowSource);
     }

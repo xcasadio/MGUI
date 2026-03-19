@@ -247,7 +247,7 @@ Reason:
 
 - `🟡 Finish MGOverlay migration`
   - Deliverable: overlay close button and border visuals are fully template-driven.
-  - Progress: constructor-level padding fallback was removed so overlay chrome now comes from template/theme defaults instead of a local override.
+  - Progress: constructor-level padding fallback was removed so overlay chrome now comes from template/theme defaults instead of a local override, and `MGOverlayHost` padding now comes from overlay theme settings instead of a hard-coded constructor literal.
   - Validation: overlay-specific template part tests.
   - Commit: `style-theme: finish overlay lookless migration`
 

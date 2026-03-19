@@ -209,7 +209,7 @@ namespace MGUI.Core.UI
 
                 IsModal = true;
 
-                Padding = new(4);
+                Padding = GetTheme().Overlay.HostPadding;
 
                 ActiveOverlayPresenter = new(Window, true);
                 RegisterTemplatePart(ActiveOverlayPresenterPartName, ActiveOverlayPresenter);

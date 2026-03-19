@@ -233,6 +233,7 @@ namespace MGUI.Core.UI.XAML
                 return;
             }
 
+            if (Definition.HostPadding.HasValue) Target.HostPadding = Definition.HostPadding.Value.ToThickness();
             if (Definition.Padding.HasValue) Target.Padding = Definition.Padding.Value.ToThickness();
             if (Definition.BorderThickness.HasValue) Target.BorderThickness = Definition.BorderThickness.Value.ToThickness();
             if (Definition.BorderBrush != null) Target.BorderBrush = ToBorderBrush(Definition.BorderBrush);
