@@ -76,6 +76,9 @@ namespace MGUI.Core.UI.Styling
         public static MGElement CreateDefaultListViewCellContent<TItemType>(MGWindow Window, TItemType Item)
             => new MGTextBlock(Window, Item?.ToString() ?? string.Empty);
 
+        public static MGElement CreateDefaultCloseButtonContent(MGWindow Window)
+            => new MGTextBlock(Window, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White);
+
         public static void ApplyListBoxItemContainerDefaults(MGElement Owner, MGBorder Item)
         {
             if (Owner == null || Item == null)
@@ -431,7 +434,7 @@ namespace MGUI.Core.UI.Styling
                 TitleText.HorizontalAlignment = HorizontalAlignment.Stretch;
                 TitleText.VerticalAlignment = VerticalAlignment.Center;
                 TitleText.TextAlignment = HorizontalAlignment.Left;
-                CloseButton.SetContent(new MGTextBlock(Window, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
+                CloseButton.SetContent(CreateDefaultCloseButtonContent(Window));
             }
 
             TitleBar.DrawBackgroundEnabled = false;
@@ -460,7 +463,7 @@ namespace MGUI.Core.UI.Styling
 
             if (!Context.IsThemeRefresh && CloseButton.Content == null)
             {
-                CloseButton.SetContent(new MGTextBlock(Overlay.Host.ParentWindow, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White));
+                CloseButton.SetContent(CreateDefaultCloseButtonContent(Overlay.Host.ParentWindow));
             }
         }
 

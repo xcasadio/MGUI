@@ -245,12 +245,11 @@ Reason:
   - Validation: targeted architecture tests and sample sanity check.
   - Commit: `6165f84 style-theme: finish window lookless migration`
 
-- `🟡 Finish MGOverlay migration`
+- `✅ Finish MGOverlay migration`
   - Deliverable: overlay close button and border visuals are fully template-driven.
-  - Progress: constructor-level padding fallback was removed so overlay chrome now comes from template/theme defaults instead of a local override, and `MGOverlayHost` padding now comes from overlay theme settings instead of a hard-coded constructor literal.
-  - Remaining gap: the default close-button content is still injected imperatively in `MGControlTemplateCatalog.ApplyOverlayTemplate(...)` via `CloseButton.SetContent(new MGTextBlock(...))` rather than coming from a template-owned part/factory.
+  - Progress: constructor-level padding fallback was removed so overlay chrome now comes from template/theme defaults instead of a local override, `MGOverlayHost` padding now comes from overlay theme settings instead of a hard-coded constructor literal, and the default close-button content now resolves through a shared catalog factory instead of an inline template-apply literal.
   - Validation: overlay-specific template part tests.
-  - Relevant commits: `6684d52 controltemplate: complete task 7 migrate window and overlay`, `e3748e7 style-theme: theme overlay host padding`
+  - Commit: `style-theme: finish overlay lookless migration`
 
 - `✅ Finish MGListBox migration`
   - Deliverable: title, outer border, inner border, and scrollviewer visuals are template-owned.

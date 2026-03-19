@@ -472,11 +472,17 @@ public class ControlTemplateInfrastructureTests
     public void MGOverlay_Close_Button_Can_Be_Configured_Before_Template_Parts_Attach()
 #pragma warning restore SYSLIB0050
     {
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
         MGOverlay overlay = (MGOverlay)FormatterServices.GetUninitializedObject(typeof(MGOverlay));
 
         overlay.ShowCloseButton = true;
 
         Assert.True(overlay.ShowCloseButton);
+        Assert.Contains("public static MGElement CreateDefaultCloseButtonContent", catalogSource);
+        Assert.Contains("CloseButton.SetContent(CreateDefaultCloseButtonContent(Window));", catalogSource);
+        Assert.Contains("CloseButton.SetContent(CreateDefaultCloseButtonContent(Overlay.Host.ParentWindow));", catalogSource);
+        Assert.DoesNotContain("CloseButton.SetContent(new MGTextBlock", catalogSource);
     }
 
     [Fact]
