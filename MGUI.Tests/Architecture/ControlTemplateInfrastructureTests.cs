@@ -643,6 +643,9 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("ListView.HeaderSpacerBorderThickness", catalogSource);
         Assert.Contains("ListView.HeaderSpacerBorderBrush", catalogSource);
         Assert.Contains("ListView.HeaderSpacerBackground", catalogSource);
+        Assert.Contains("public static MGElement CreateDefaultListViewCellContent", catalogSource);
+        Assert.Contains("CellTemplate = (Item) => MGControlTemplateCatalog.CreateDefaultListViewCellContent(SelfOrParentWindow, Item);", listViewSource);
+        Assert.DoesNotContain("CellTemplate = (Item) => new MGTextBlock(SelfOrParentWindow, Item.ToString());", listViewSource);
     }
 
     [Fact]

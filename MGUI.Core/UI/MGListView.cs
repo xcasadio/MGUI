@@ -556,7 +556,7 @@ namespace MGUI.Core.UI
                 }
                 else
                 {
-                    CellTemplate = (Item) => new MGTextBlock(SelfOrParentWindow, Item.ToString());
+                    CellTemplate = (Item) => MGControlTemplateCatalog.CreateDefaultListViewCellContent(SelfOrParentWindow, Item);
                 }
 
                 AddColumn(Width, Header, CellTemplate);

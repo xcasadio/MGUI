@@ -258,12 +258,11 @@ Reason:
   - Validation: list box architecture tests.
   - Commit: `615803e style-theme: finish list box lookless migration`
 
-- `🟡 Finish MGListView migration`
+- `✅ Finish MGListView migration`
   - Deliverable: header/data grid structure and defaults are template-owned with minimal visual logic left in control code.
-  - Progress: header/data grid grid-line brushes, spacing, grid-line margins, data-grid padding, and header spacer chrome now come from template defaults instead of control-local attach-time assignments.
-  - Remaining gap: `LoadSettings(...)` still falls back to `CellTemplate = (Item) => new MGTextBlock(SelfOrParentWindow, Item.ToString());`, so the default cell content factory is still control-local instead of catalog/template-owned.
+  - Progress: header/data grid grid-line brushes, spacing, grid-line margins, data-grid padding, and header spacer chrome now come from template defaults instead of control-local attach-time assignments, and the default cell-content factory now lives in `MGControlTemplateCatalog` instead of `MGListView.LoadSettings(...)`.
   - Validation: list view template tests.
-  - Relevant commits: `ea42714 style-theme: reduce composite header and grid churn`, `91473e4 style-theme: fix list view template defaults lookup`
+  - Commit: `style-theme: finish list view lookless migration`
 
 - `✅ Finish MGTextBox and MGPasswordBox migration`
   - Deliverable: border, placeholder, character count, and resize grip orchestration are template-safe and precedence-correct.
