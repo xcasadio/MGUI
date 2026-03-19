@@ -96,6 +96,7 @@ namespace MGUI.Core.UI
 
     public class MGThemeListBoxSettings
     {
+        public int MinHeight { get; set; } = 30;
         public VisualStateFillBrush OuterBackground { get; set; } = new(SolidFillBrushes.Black);
         public Thickness TitlePadding { get; set; } = new(6, 3);
         public VisualStateSetting<Color?> TitleForeground { get; set; } = new(Color.White, Color.White, Color.White);
@@ -621,6 +622,7 @@ namespace MGUI.Core.UI
             ContextMenuItem.ShortcutForeground = Source.ContextMenuItem.ShortcutForeground?.GetCopy();
             ContextMenuItem.SubmenuArrowMargin = Source.ContextMenuItem.SubmenuArrowMargin;
 
+            ListBox.MinHeight = Source.ListBox.MinHeight;
             ListBox.OuterBackground = Source.ListBox.OuterBackground?.Copy();
             ListBox.TitlePadding = Source.ListBox.TitlePadding;
             ListBox.TitleForeground = Source.ListBox.TitleForeground?.GetCopy();

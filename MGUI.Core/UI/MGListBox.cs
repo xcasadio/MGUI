@@ -1441,12 +1441,10 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                MinHeight = 30;
-
                 AlternatingRowBackgrounds = GetTheme().ListBoxItemAlternatingRowBackgrounds.Select(x => x.GetValue(true)).ToList().AsReadOnly();
 
                 ItemContainerStyle = ApplyDefaultItemContainerStyle;
-                ItemTemplate = (item) => new MGTextBlock(ParentWindow, item.ToString()) { Padding = new(1,0) };
+                ItemTemplate = item => MGControlTemplateCatalog.CreateDefaultListBoxItemContent(ParentWindow, item);
 
                 SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
                 SelectionMode = ListBoxSelectionMode.Single;

@@ -570,16 +570,23 @@ public class ControlTemplateInfrastructureTests
     public void ListBox_Does_Not_Overwrite_Template_Owned_ItemsPanel_Chrome()
     {
         string listBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs");
+        string themeSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTheme.cs");
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
 
         Assert.Contains("private void SyncVirtualizedItemsPanelChrome()", listBoxSource);
         Assert.Contains("_virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness;", listBoxSource);
         Assert.Contains("_virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush();", listBoxSource);
+        Assert.Contains("public int MinHeight { get; set; } = 30;", themeSource);
         Assert.Contains("public static void ApplyListBoxItemContainerDefaults", catalogSource);
+        Assert.Contains("public static MGElement CreateDefaultListBoxItemContent", catalogSource);
+        Assert.Contains("Context.ApplyThemeDefault(\"ListBox.MinHeight\"", catalogSource);
         Assert.Contains("Item.Padding = DefaultListBoxItemPadding;", catalogSource);
+        Assert.Contains("ItemTemplate = item => MGControlTemplateCatalog.CreateDefaultListBoxItemContent(ParentWindow, item);", listBoxSource);
         Assert.Contains("Context.ApplyTemplateValue(\"ListBox.ItemsPanelVerticalAlignment\"", catalogSource);
         Assert.Contains("Context.ApplyTemplateValue(\"ListBox.TitlePresenterVerticalAlignment\"", catalogSource);
         Assert.Contains("=> MGControlTemplateCatalog.ApplyListBoxItemContainerDefaults(this, Item);", listBoxSource);
+        Assert.DoesNotContain("MinHeight = 30;", listBoxSource);
+        Assert.DoesNotContain("ItemTemplate = (item) => new MGTextBlock(ParentWindow, item.ToString()) { Padding = new(1,0) };", listBoxSource);
         Assert.DoesNotContain("ItemsPanel.BorderThickness = DefaultItemBorderThickness;", listBoxSource);
         Assert.DoesNotContain("ItemsPanel.BorderBrush = DefaultItemBorderBrush;", listBoxSource);
         Assert.DoesNotContain("TitlePresenter.VerticalAlignment = VerticalAlignment.Center;", listBoxSource);

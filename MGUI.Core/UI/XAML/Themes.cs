@@ -212,6 +212,7 @@ namespace MGUI.Core.UI.XAML
 
     public class ThemeListBoxSettingsDefinition : XAMLBindableBase
     {
+        public int? MinHeight { get; set; }
         public ThemeVisualStateFillBrushDefinition OuterBackground { get; set; }
         public Thickness? TitlePadding { get; set; }
         public ThemeVisualStateColorSettingDefinition TitleForeground { get; set; }

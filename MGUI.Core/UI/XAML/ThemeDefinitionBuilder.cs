@@ -278,6 +278,7 @@ namespace MGUI.Core.UI.XAML
                 return;
             }
 
+            if (Definition.MinHeight.HasValue) Target.MinHeight = Definition.MinHeight.Value;
             if (Definition.OuterBackground != null) Target.OuterBackground = ApplyVisualStateFillBrush(Definition.OuterBackground, Target.OuterBackground);
             if (Definition.TitlePadding.HasValue) Target.TitlePadding = Definition.TitlePadding.Value.ToThickness();
             if (Definition.TitleForeground != null) Target.TitleForeground = ApplyColorSetting(Definition.TitleForeground, Target.TitleForeground);

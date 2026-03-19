@@ -42,9 +42,13 @@ namespace MGUI.Core.UI.Styling
 
         public static readonly Thickness DefaultListBoxItemBorderThickness = new(0, 1);
         public static readonly Thickness DefaultListBoxItemPadding = new(6, 4);
+        public static readonly Thickness DefaultListBoxItemContentPadding = new(1, 0);
 
         public static MGUniformBorderBrush CreateDefaultListBoxItemBorderBrush()
             => new MGSolidFillBrush(Color.Black * 0.35f).AsUniformBorderBrush();
+
+        public static MGElement CreateDefaultListBoxItemContent<TItemType>(MGWindow Window, TItemType Item)
+            => new MGTextBlock(Window, Item?.ToString()) { Padding = DefaultListBoxItemContentPadding };
 
         public static void ApplyListBoxItemContainerDefaults(MGElement Owner, MGBorder Item)
         {
@@ -508,6 +512,7 @@ namespace MGUI.Core.UI.Styling
             MGScrollViewer ScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGListBox<object>.ScrollViewerPartName);
             MGStackPanel ItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGListBox<object>.ItemsPanelPartName);
 
+            Context.ApplyThemeDefault("ListBox.MinHeight", Theme.ListBox.MinHeight, () => Context.Owner.MinHeight ?? 0, value => Context.Owner.MinHeight = value);
             Context.ApplyThemeDefault("ListBox.OuterBackground", Theme.ListBox.OuterBackground, () => OuterBorder.BackgroundBrush, value => OuterBorder.BackgroundBrush = value);
             Context.ApplyThemeDefault("ListBox.TitlePadding", Theme.ListBox.TitlePadding, () => TitleBorder.Padding, value => TitleBorder.Padding = value);
             Context.ApplyThemeDefault("ListBox.TitleBackground", Theme.TitleBackground.GetValue(true), () => TitleBorder.BackgroundBrush, value => TitleBorder.BackgroundBrush = value);

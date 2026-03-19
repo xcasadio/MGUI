@@ -253,7 +253,7 @@ Reason:
 
 - `🟡 Finish MGListBox migration`
   - Deliverable: title, outer border, inner border, and scrollviewer visuals are template-owned.
-  - Progress: removed constructor/attach-time items-panel chrome overrides, synced virtualized panel chrome from template-owned panel state, delegated default item-container chrome through `MGControlTemplateCatalog`, and moved title/items-panel alignment defaults out of `AttachControlTemplateStructure(...)` and into template defaults.
+  - Progress: removed constructor/attach-time items-panel chrome overrides, synced virtualized panel chrome from template-owned panel state, delegated default item-container chrome through `MGControlTemplateCatalog`, moved title/items-panel alignment defaults out of `AttachControlTemplateStructure(...)` and into template defaults, and moved the default minimum height plus default item-content creation out of `MGListBox` constructor literals.
   - Validation: list box architecture tests.
   - Commit: `style-theme: finish list box lookless migration`
 
