@@ -702,6 +702,53 @@ namespace MGUI.Core.UI.Styling
                 () => TabControl.SelectedTabHeaderControlTemplateName, value => TabControl.SelectedTabHeaderControlTemplateName = value);
             Context.ApplyThemeDefault("TabControl.UnselectedHeaderTemplate", UnselectedTabHeaderTemplateName,
                 () => TabControl.UnselectedTabHeaderControlTemplateName, value => TabControl.UnselectedTabHeaderControlTemplateName = value);
+
+            if (!Context.IsThemeRefresh)
+            {
+                ApplyTabControlHeadersPanelSettings(TabControl, HeadersPanel);
+            }
+        }
+
+        internal static void ApplyTabControlHeadersPanelSettings(MGTabControl TabControl, MGStackPanel HeadersPanel)
+        {
+            if (TabControl == null || HeadersPanel == null)
+            {
+                return;
+            }
+
+            switch (TabControl.TabHeaderPosition)
+            {
+                case Dock.Left:
+                    HeadersPanel.Orientation = Orientation.Vertical;
+                    HeadersPanel.HorizontalAlignment = HorizontalAlignment.Right;
+                    HeadersPanel.VerticalAlignment = VerticalAlignment.Stretch;
+                    HeadersPanel.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+                    HeadersPanel.VerticalContentAlignment = VerticalAlignment.Top;
+                    break;
+                case Dock.Top:
+                    HeadersPanel.Orientation = Orientation.Horizontal;
+                    HeadersPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    HeadersPanel.VerticalAlignment = VerticalAlignment.Bottom;
+                    HeadersPanel.HorizontalContentAlignment = HorizontalAlignment.Left;
+                    HeadersPanel.VerticalContentAlignment = VerticalAlignment.Stretch;
+                    break;
+                case Dock.Right:
+                    HeadersPanel.Orientation = Orientation.Vertical;
+                    HeadersPanel.HorizontalAlignment = HorizontalAlignment.Left;
+                    HeadersPanel.VerticalAlignment = VerticalAlignment.Stretch;
+                    HeadersPanel.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+                    HeadersPanel.VerticalContentAlignment = VerticalAlignment.Top;
+                    break;
+                case Dock.Bottom:
+                    HeadersPanel.Orientation = Orientation.Horizontal;
+                    HeadersPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    HeadersPanel.VerticalAlignment = VerticalAlignment.Top;
+                    HeadersPanel.HorizontalContentAlignment = HorizontalAlignment.Left;
+                    HeadersPanel.VerticalContentAlignment = VerticalAlignment.Stretch;
+                    break;
+                default:
+                    throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {TabControl.TabHeaderPosition}");
+            }
         }
 
         private static bool TryGetOwningTabControl(MGButton Button, out MGTabControl TabControl)

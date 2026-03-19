@@ -308,6 +308,7 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("OldHeaderWrapper.InvalidateLayoutTree();", tabControlSource);
         Assert.Contains("if (!UsesCustomHeaderFactories && IsDefaultHeaderWrapper(OldHeaderWrapper))", tabControlSource);
         Assert.Contains("MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);", tabControlSource);
+        Assert.Contains("ApplyTabControlHeadersPanelSettings", catalogSource);
         Assert.Contains("SelectedTabHeaderTemplateName = \"TabControl.Header.Selected\"", catalogSource);
         Assert.Contains("UnselectedTabHeaderTemplateName = \"TabControl.Header.Unselected\"", catalogSource);
     }
@@ -324,6 +325,9 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.HorizontalAlignment.Right\" : \"TabHeader.Unselected.HorizontalAlignment.Right\", HorizontalAlignment.Left", catalogSource);
         Assert.Contains("UIInvalidationKind.Measure | UIInvalidationKind.Arrange", catalogSource);
         Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.Padding.Left\"", catalogSource);
+        Assert.Contains("MGControlTemplateCatalog.ApplyTabControlHeadersPanelSettings(this, HeadersPanelElement);", tabControlSource);
+        Assert.DoesNotContain("HeadersPanelElement.Orientation = Orientation.Vertical;", tabControlSource);
+        Assert.DoesNotContain("HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Right;", tabControlSource);
         Assert.Contains("UpdateHeadersPanelPreferredSize()", tabControlSource);
         Assert.Contains("HeadersPanelElement.PreferredWidth = maxWidth > 0 ? maxWidth : null;", tabControlSource);
         Assert.Contains("HeadersPanelElement.PreferredHeight = maxHeight > 0 ? maxHeight : null;", tabControlSource);

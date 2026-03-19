@@ -383,38 +383,7 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            Dock Position = TabHeaderPosition;
-            switch (Position)
-            {
-                case Dock.Left:
-                    HeadersPanelElement.Orientation = Orientation.Vertical;
-                    HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Right;
-                    HeadersPanelElement.VerticalAlignment = VerticalAlignment.Stretch;
-                    HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                    HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Top;
-                    break;
-                case Dock.Top:
-                    HeadersPanelElement.Orientation = Orientation.Horizontal;
-                    HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Stretch;
-                    HeadersPanelElement.VerticalAlignment = VerticalAlignment.Bottom;
-                    HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Left;
-                    HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Stretch;
-                    break;
-                case Dock.Right:
-                    HeadersPanelElement.Orientation = Orientation.Vertical;
-                    HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Left;
-                    HeadersPanelElement.VerticalAlignment = VerticalAlignment.Stretch;
-                    HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                    HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Top;
-                    break;
-                case Dock.Bottom:
-                    HeadersPanelElement.Orientation = Orientation.Horizontal;
-                    HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Stretch;
-                    HeadersPanelElement.VerticalAlignment = VerticalAlignment.Top;
-                    HeadersPanelElement.HorizontalContentAlignment = HorizontalAlignment.Left;
-                    HeadersPanelElement.VerticalContentAlignment = VerticalAlignment.Stretch;
-                    break;
-            }
+            MGControlTemplateCatalog.ApplyTabControlHeadersPanelSettings(this, HeadersPanelElement);
         }
 
         protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)

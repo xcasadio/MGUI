@@ -271,7 +271,7 @@ Reason:
 
 - `🟡 Finish MGTabControl migration`
   - Deliverable: header area, header wrappers, and selection-state defaults are template-driven without control-local visual fallbacks leaking.
-  - Progress: background theme default now applies through `MGControlTemplateCatalog` instead of `OnThemeChanged(...)`, and default header wrappers now update their applied control template in place instead of being recreated for every selection/template-name change.
+  - Progress: background theme default now applies through `MGControlTemplateCatalog` instead of `OnThemeChanged(...)`, default header wrappers now update their applied control template in place instead of being recreated for every selection/template-name change, and header-panel layout defaults are now delegated to the template catalog instead of being hard-coded inside `MGTabControl`.
   - Validation: targeted tab control architecture tests.
   - Commit: `style-theme: finish tab control lookless migration`
 
