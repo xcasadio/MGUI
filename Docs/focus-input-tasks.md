@@ -222,7 +222,7 @@ Resultat:
 - `ApplyQueuedFocusChange()` refuse les cibles devenues invalides avant de muter `FocusedKeyboardHandler` ;
 - la sanitation est executee a des points stables du tick pour eviter les etats zombies lors des transitions d'overlay, de modalite, de visibilite ou de fermeture.
 
-### ⚪ 5. Isoler strictement les events souris deja geres
+### ✅ 5. Isoler strictement les events souris deja geres
 
 But:
 une interaction pointeur consommee par un controle topmost ne doit pas impacter les autres controles hors opt-in explicite.
@@ -246,6 +246,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `input: complete task 5 enforce handled mouse event isolation`
+
+Resultat:
+
+- des regressions dediees confirment qu'un event souris gere par un handler prioritaire ne fuit pas vers un handler de plus basse priorite par defaut ;
+- l'opt-in `InvokeEvenIfHandled=true` reste disponible et teste ;
+- aucun refactor supplementaire du dispatch souris n'a ete force, car le comportement de base etait deja correct et le risque principal du chantier reste cote clavier/focus.
 
 ### ⚪ 6. Enforcer le routage clavier et la consommation des events
 

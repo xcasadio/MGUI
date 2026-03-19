@@ -314,6 +314,62 @@ public class InputEnhancedTests
     }
 
     [Fact]
+    public void MouseHandler_HandledPress_DoesNotLeakToLowerPriorityHandler()
+    {
+        InputTracker tracker = new();
+        MouseHandlerHost topHost = new(() => new Rectangle(0, 0, 100, 100));
+        MouseHandlerHost lowerHost = new(() => new Rectangle(0, 0, 100, 100));
+        MouseHandler topHandler = tracker.Mouse.CreateHandler(topHost, 20);
+        MouseHandler lowerHandler = tracker.Mouse.CreateHandler(lowerHost, 10);
+
+        int topPresses = 0;
+        int lowerPresses = 0;
+
+        topHandler.LMBPressedInside += (_, e) =>
+        {
+            topPresses++;
+            e.SetHandledBy(topHost, false);
+        };
+        lowerHandler.LMBPressedInside += (_, _) => lowerPresses++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(10, 10)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(10, 10), MouseButton.Left), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+
+        Assert.Equal(1, topPresses);
+        Assert.Equal(0, lowerPresses);
+    }
+
+    [Fact]
+    public void MouseHandler_HandledPress_StillReachesOptInLowerPriorityHandler()
+    {
+        InputTracker tracker = new();
+        MouseHandlerHost topHost = new(() => new Rectangle(0, 0, 100, 100));
+        MouseHandlerHost lowerHost = new(() => new Rectangle(0, 0, 100, 100));
+        MouseHandler topHandler = tracker.Mouse.CreateHandler(topHost, 20);
+        MouseHandler lowerHandler = tracker.Mouse.CreateHandler(lowerHost, 10, false, true);
+
+        int topPresses = 0;
+        int lowerPresses = 0;
+
+        topHandler.LMBPressedInside += (_, e) =>
+        {
+            topPresses++;
+            e.SetHandledBy(topHost, false);
+        };
+        lowerHandler.LMBPressedInside += (_, _) => lowerPresses++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(new Point(10, 10)), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(10, 10), MouseButton.Left), new KeyboardState()));
+        tracker.Mouse.UpdateHandlers();
+
+        Assert.Equal(1, topPresses);
+        Assert.Equal(1, lowerPresses);
+    }
+
+    [Fact]
     public void MouseTracker_UsesLogicalUpdateTimeForMouseEventTimestamps()
     {
         InputTracker tracker = new();
