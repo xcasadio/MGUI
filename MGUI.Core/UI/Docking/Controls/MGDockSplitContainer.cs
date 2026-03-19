@@ -440,4 +440,12 @@ public class MGDockSplitContainer : MGElement
         SecondChild?.UpdateLayout(secondBounds);
     }
 
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        foreach (var child in GetChildren())
+        {
+            child?.Draw(DA);
+        }
+    }
+
 }

@@ -360,7 +360,8 @@ namespace MGUI.Core.UI
                 ExpanderToggleButton.ManagedParent = this;
 
                 ExpanderArrowElement = new(Window) { ManagedParent = this };
-                ExpanderArrowComponent = new(ExpanderArrowElement, false, false, false, false, false, false, false,
+                ExpanderArrowComponent = new(ExpanderArrowElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                    false, false, false, false, false, false, false,
                     (availableBounds, componentSize) =>
                     {
                         int dropdownArrowHeight = ExpanderDropdownArrowSize / 2;

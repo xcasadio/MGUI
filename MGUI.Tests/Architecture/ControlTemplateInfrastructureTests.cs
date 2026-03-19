@@ -228,7 +228,8 @@ public class ControlTemplateInfrastructureTests
 
         Assert.Contains("public override IEnumerable<MGElement> GetChildren()", splitContainerSource);
         Assert.DoesNotContain("public override void DrawSelf", splitContainerSource);
-        Assert.DoesNotContain("protected override void DrawContents", splitContainerSource);
+        Assert.Contains("protected override void DrawContents", splitContainerSource);
+        Assert.Contains("child?.Draw(DA);", splitContainerSource);
     }
 
     [Fact]
@@ -954,6 +955,7 @@ public class ControlTemplateInfrastructureTests
 
         Assert.Contains("ExpanderDropdownArrowColor = GetTheme().DropdownArrowColor;", expanderSource);
         Assert.Contains("ExpanderDropdownArrowColor = CurrentTheme.DropdownArrowColor;", expanderSource);
+        Assert.Contains("ComponentDrawPriority.AfterContents", expanderSource);
     }
 
     [Fact]
