@@ -144,7 +144,7 @@ namespace MGUI.Core.UI
         {
             GetDesktop().PushFocusScope(this, GetDesktop().FocusedKeyboardHandler);
             MGContextMenuItem initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
-            initialFocusTarget?.Focus();
+            initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);
             NPC(nameof(IsContextMenuOpen));
             ContextMenuOpened?.Invoke(this, EventArgs.Empty);
         }
@@ -238,7 +238,7 @@ namespace MGUI.Core.UI
 
         public MGButton CreateDefaultDropdownButton(MGWindow Window)
         {
-            MGButton Button = new(Window ?? this, new(0), MGUniformBorderBrush.Gray);
+            MGButton Button = new(Window ?? this, new(0), MGUniformBorderBrush.Transparent);
 
             Button.Padding = new(5, 3, 20, 3);
             Button.Margin = new(0);
@@ -248,7 +248,8 @@ namespace MGUI.Core.UI
             Button.HorizontalAlignment = HorizontalAlignment.Stretch;
             Button.VerticalAlignment = VerticalAlignment.Stretch;
 
-            Button.BackgroundBrush = GetTheme().ComboBoxDropdownItemBackground.GetValue(true);
+            Button.BorderThickness = new(0);
+            Button.BackgroundBrush = new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
             Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
 
             return Button;
@@ -687,7 +688,7 @@ namespace MGUI.Core.UI
                 TitleBarTextBlockElement.TextAlignment = HorizontalAlignment.Center;
 
                 Padding = new(0);
-                BorderBrush = MGUniformBorderBrush.Gray;
+                BorderBrush = MGUniformBorderBrush.Transparent;
                 BorderThickness = new(1);
 
                 IsUserResizable = false;

@@ -233,12 +233,32 @@ public class ControlTemplateInfrastructureTests
         string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
 
         int localIndex = source.IndexOf("return ControlTemplateName;", StringComparison.Ordinal);
+        int runtimeTypeThemeIndex = source.IndexOf("Theme.TryGetControlTemplateMapping(GetType()", StringComparison.Ordinal);
         int themeIndex = source.IndexOf("Theme.TryGetControlTemplateMapping(ElementType", StringComparison.Ordinal);
         int fallbackIndex = source.IndexOf("return DefaultControlTemplateName;", StringComparison.Ordinal);
 
         Assert.True(localIndex >= 0);
-        Assert.True(themeIndex > localIndex);
+        Assert.True(runtimeTypeThemeIndex > localIndex);
+        Assert.True(themeIndex > runtimeTypeThemeIndex);
         Assert.True(fallbackIndex > themeIndex);
+    }
+
+    [Fact]
+    public void Composite_Controls_Rebind_Components_When_Template_Structure_Changes()
+    {
+        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
+        string listBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs");
+        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
+        string textBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs");
+        string windowSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs");
+        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
+
+        Assert.Contains("EnsureComponentBinding", tabControlSource);
+        Assert.Contains("EnsureComponentBinding", listBoxSource);
+        Assert.Contains("EnsureComponentBinding", comboBoxSource);
+        Assert.Contains("EnsureComponentBinding", textBoxSource);
+        Assert.Contains("EnsureComponentBinding", windowSource);
+        Assert.Contains("EnsureComponentBinding", overlaySource);
     }
 
     [Fact]
@@ -283,8 +303,70 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("SelectedTabHeaderControlTemplateName", tabControlSource);
         Assert.Contains("UnselectedTabHeaderControlTemplateName", tabControlSource);
         Assert.Contains("HeaderWrapper.ControlTemplateName", tabControlSource);
+        Assert.Contains("MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);", tabControlSource);
+        Assert.DoesNotContain("ApplyHeaderWrapperTemplate(OldHeaderWrapper, Tab.IsTabSelected);", tabControlSource);
+        Assert.DoesNotContain("OldHeaderWrapper.InvalidateLayoutTree();", tabControlSource);
+        Assert.Contains("ManagedReplaceHeadersPanelChild(OldHeaderWrapper, NewHeaderWrapper)", tabControlSource);
         Assert.Contains("SelectedTabHeaderTemplateName = \"TabControl.Header.Selected\"", catalogSource);
         Assert.Contains("UnselectedTabHeaderTemplateName = \"TabControl.Header.Unselected\"", catalogSource);
+    }
+
+    [Fact]
+    public void MGTabControl_Side_Header_Defaults_Differentiate_Selected_And_Unselected_Offsets()
+    {
+        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.Padding.Left\" : \"TabHeader.Unselected.Padding.Left\", new Thickness(6, 5, 6, 5)", catalogSource);
+        Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.Padding.Right\" : \"TabHeader.Unselected.Padding.Right\", new Thickness(6, 5, 6, 5)", catalogSource);
+        Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.HorizontalAlignment.Left\" : \"TabHeader.Unselected.HorizontalAlignment.Left\", HorizontalAlignment.Right", catalogSource);
+        Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.HorizontalAlignment.Right\" : \"TabHeader.Unselected.HorizontalAlignment.Right\", HorizontalAlignment.Left", catalogSource);
+        Assert.Contains("UIInvalidationKind.Measure | UIInvalidationKind.Arrange", catalogSource);
+        Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.Padding.Left\"", catalogSource);
+        Assert.Contains("UpdateHeadersPanelPreferredSize()", tabControlSource);
+        Assert.Contains("HeadersPanelElement.PreferredWidth = maxWidth > 0 ? maxWidth : null;", tabControlSource);
+        Assert.Contains("HeadersPanelElement.PreferredHeight = maxHeight > 0 ? maxHeight : null;", tabControlSource);
+    }
+
+    [Fact]
+    public void Focus_Scope_Restore_Uses_Pointer_Focus_To_Avoid_Context_Menu_Autoscroll()
+    {
+        string navigationServiceSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Navigation\UIFocusNavigationService.cs");
+
+        Assert.Contains("entry.RestoreFocusTarget.Focus(KeyboardFocusSource.Pointer);", navigationServiceSource);
+    }
+
+    [Fact]
+    public void MGDesktop_Does_Not_Scroll_Ancestor_Viewports_For_Floating_Context_Menu_Focus()
+    {
+        string contextMenuSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+
+        Assert.Contains("initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);", contextMenuSource);
+    }
+
+    [Fact]
+    public void MGScrollViewer_Reapplies_Theme_Scrollbar_Brushes_On_Theme_Change()
+    {
+        string scrollViewerSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGScrollViewer.cs");
+
+        Assert.Contains("protected internal override void OnThemeChanged", scrollViewerSource);
+        Assert.Contains("ScrollBarOuterBrush = CurrentTheme.ScrollBarOuterBrush.GetValue(true);", scrollViewerSource);
+        Assert.Contains("ScrollBarInnerBrush = CurrentTheme.ScrollBarInnerBrush.GetValue(true);", scrollViewerSource);
+    }
+
+    [Fact]
+    public void MGTabControl_Custom_Header_Factories_Are_Not_ReTemplated_After_Xaml_Factory_Application()
+    {
+        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
+        string xamlControlsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\Controls.cs");
+
+        Assert.Contains("if (UsesCustomHeaderFactories)", tabControlSource);
+        Assert.Contains("HeaderWrapper.IsSelected = IsSelected;", tabControlSource);
+        Assert.Contains("return;", tabControlSource);
+        Assert.Contains("HeadersPanelElement?.InvalidateLayoutTree();", tabControlSource);
+        Assert.Contains("Button.ApplyControlTemplate(false);", xamlControlsSource);
+        Assert.Contains("SelectedTabHeaderTemplate.ApplySettings(TabItem, Button, true);", xamlControlsSource);
+        Assert.Contains("UnselectedTabHeaderTemplate.ApplySettings(TabItem, Button, true);", xamlControlsSource);
     }
 
     [Fact]
@@ -320,9 +402,23 @@ public class ControlTemplateInfrastructureTests
     public void Control_Template_Value_Application_Uses_Template_Source_Metadata()
     {
         string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplate.cs");
+        string elementSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
 
         Assert.Contains("UIValueResolutionSource.Template", source);
-        Assert.Contains("Owner.InvalidateLayout();", source);
+        Assert.Contains("Owner.InvalidateTemplateValue(Invalidation);", source);
+        Assert.Contains("internal void InvalidateTemplateValue(UIInvalidationKind invalidation)", elementSource);
+        Assert.Contains("LayoutChanged(this, true);", elementSource);
+    }
+
+    [Fact]
+    public void Parent_And_Selected_State_Changes_Invalidate_Layout_Subtrees()
+    {
+        string elementSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+
+        Assert.Contains("protected internal void SetParent(MGElement Value)", elementSource);
+        Assert.Contains("InvalidateLayoutTree();", elementSource);
+        Assert.Contains("public bool IsSelected", elementSource);
+        Assert.Contains("LayoutChanged(this, true);", elementSource);
     }
 
     [Fact]

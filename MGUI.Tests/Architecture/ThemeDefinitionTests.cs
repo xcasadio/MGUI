@@ -10,14 +10,16 @@ public class ThemeDefinitionTests
   private sealed class TemplateResolutionStub
   {
     public MGElementType ElementType { get; init; }
+    public Type ControlRuntimeType { get; init; }
     public string? ControlTemplateName { get; set; }
     public string? DefaultControlTemplateName { get; set; }
     public MGResources Resources { get; }
 
-    public TemplateResolutionStub(MGResources resources, MGElementType elementType)
+    public TemplateResolutionStub(MGResources resources, MGElementType elementType, Type? controlRuntimeType = null)
     {
       Resources = resources;
       ElementType = elementType;
+      ControlRuntimeType = controlRuntimeType ?? typeof(MGElement);
     }
 
     public string? ResolveControlTemplateName()
@@ -28,10 +30,19 @@ public class ThemeDefinitionTests
       }
 
       MGTheme theme = Resources.DefaultTheme;
-      if (theme != null && theme.TryGetControlTemplateMapping(ElementType, out string themeTemplateName)
-        && !string.IsNullOrWhiteSpace(themeTemplateName))
+      if (theme != null)
       {
-        return themeTemplateName;
+        if (theme.TryGetControlTemplateMapping(ControlRuntimeType, out string runtimeTypeTemplateName)
+          && !string.IsNullOrWhiteSpace(runtimeTypeTemplateName))
+        {
+          return runtimeTypeTemplateName;
+        }
+
+        if (theme.TryGetControlTemplateMapping(ElementType, out string themeTemplateName)
+          && !string.IsNullOrWhiteSpace(themeTemplateName))
+        {
+          return themeTemplateName;
+        }
       }
 
       return DefaultControlTemplateName;
@@ -47,6 +58,7 @@ public class ThemeDefinitionTests
                  BasedOn=""BaseTheme"">
   <ThemeDefinition.ControlTemplates>
     <ThemeControlTemplateDefinition ElementType=""ComboBox"" TemplateName=""ComboBox.Fancy"" />
+    <ThemeControlTemplateDefinition ControlTypeName=""MGWindow"" TemplateName=""Window.Fancy"" />
   </ThemeDefinition.ControlTemplates>
   <ThemeDefinition.FontSettings>
     <ThemeFontSettingsDefinition DefaultFontSize=""17"" />
@@ -61,9 +73,11 @@ public class ThemeDefinitionTests
 
         Assert.Equal("TestTheme", definition.Name);
         Assert.Equal("BaseTheme", definition.BasedOn);
-        Assert.Single(definition.ControlTemplates);
+        Assert.Equal(2, definition.ControlTemplates.Count);
         Assert.Equal(MGElementType.ComboBox, definition.ControlTemplates[0].ElementType);
         Assert.Equal("ComboBox.Fancy", definition.ControlTemplates[0].TemplateName);
+        Assert.Equal("MGWindow", definition.ControlTemplates[1].ControlTypeName);
+        Assert.Equal("Window.Fancy", definition.ControlTemplates[1].TemplateName);
         Assert.Equal(17, definition.FontSettings.DefaultFontSize);
         Assert.Single(definition.Properties);
         Assert.Equal(ThemePropertyTarget.DropdownArrowColor, definition.Properties[0].Target);
@@ -87,6 +101,11 @@ public class ThemeDefinitionTests
             {
               ElementType = MGElementType.TabControl,
               TemplateName = "TabControl.Minimal"
+            },
+            new ThemeControlTemplateDefinition
+            {
+              ControlTypeName = nameof(MGWindow),
+              TemplateName = "Window.Fancy"
             }
           },
             FontSettings = new ThemeFontSettingsDefinition { DefaultFontSize = 18 },
@@ -114,6 +133,8 @@ public class ThemeDefinitionTests
     Assert.Equal("ComboBox.Fancy", comboBoxTemplate);
     Assert.True(built.TryGetControlTemplateMapping(MGElementType.TabControl, out string tabControlTemplate));
     Assert.Equal("TabControl.Minimal", tabControlTemplate);
+    Assert.True(built.TryGetControlTemplateMapping(typeof(MGWindow), out string windowTemplate));
+    Assert.Equal("Window.Fancy", windowTemplate);
         Assert.Equal(baseTheme.Window.Padding, built.Window.Padding);
     }
 
@@ -123,6 +144,7 @@ public class ThemeDefinitionTests
     MGTheme baseTheme = MGTheme.CreateEmpty("Arial");
     baseTheme.SetControlTemplateMapping(MGElementType.ComboBox, "ComboBox.Base");
     baseTheme.SetControlTemplateMapping(MGElementType.TextBox, "TextBox.Base");
+    baseTheme.SetControlTemplateMapping(typeof(MGWindow), "Window.Base");
 
     ThemeDefinition definition = new()
     {
@@ -138,6 +160,11 @@ public class ThemeDefinitionTests
         {
           ElementType = MGElementType.TabControl,
           TemplateName = "TabControl.Derived"
+        },
+        new ThemeControlTemplateDefinition
+        {
+          ControlTypeName = nameof(MGWindow),
+          TemplateName = "Window.Derived"
         }
       }
     };
@@ -150,6 +177,8 @@ public class ThemeDefinitionTests
     Assert.Equal("TextBox.Base", textBoxTemplate);
     Assert.True(built.TryGetControlTemplateMapping(MGElementType.TabControl, out string tabControlTemplate));
     Assert.Equal("TabControl.Derived", tabControlTemplate);
+    Assert.True(built.TryGetControlTemplateMapping(typeof(MGWindow), out string windowTemplate));
+    Assert.Equal("Window.Derived", windowTemplate);
   }
 
     [Fact]
@@ -214,12 +243,14 @@ public class ThemeDefinitionTests
       <ThemeDefinition.ControlTemplates>
         <ThemeControlTemplateDefinition ElementType=""ComboBox"" TemplateName=""ComboBox.Base"" />
         <ThemeControlTemplateDefinition ElementType=""TextBox"" TemplateName=""TextBox.Base"" />
+        <ThemeControlTemplateDefinition ControlTypeName=""MGWindow"" TemplateName=""Window.Base"" />
       </ThemeDefinition.ControlTemplates>
       </ThemeDefinition>
       <ThemeDefinition Name=""DerivedTheme"" BasedOn=""BaseTheme"">
       <ThemeDefinition.ControlTemplates>
         <ThemeControlTemplateDefinition ElementType=""ComboBox"" TemplateName=""ComboBox.Derived"" />
         <ThemeControlTemplateDefinition ElementType=""TabControl"" TemplateName=""TabControl.Derived"" />
+        <ThemeControlTemplateDefinition ControlTypeName=""MGOverlay"" TemplateName=""Overlay.Derived"" />
       </ThemeDefinition.ControlTemplates>
       </ThemeDefinition>
     </ThemeDefinitionsDocument>
@@ -233,6 +264,10 @@ public class ThemeDefinitionTests
         Assert.Equal("TextBox.Base", textBoxTemplate);
         Assert.True(themes["DerivedTheme"].TryGetControlTemplateMapping(MGElementType.TabControl, out string tabControlTemplate));
         Assert.Equal("TabControl.Derived", tabControlTemplate);
+        Assert.True(themes["DerivedTheme"].TryGetControlTemplateMapping(typeof(MGWindow), out string windowTemplate));
+        Assert.Equal("Window.Base", windowTemplate);
+        Assert.True(themes["DerivedTheme"].TryGetControlTemplateMapping(typeof(MGOverlay), out string overlayTemplate));
+        Assert.Equal("Overlay.Derived", overlayTemplate);
       }
 
       [Fact]
@@ -262,6 +297,21 @@ public class ThemeDefinitionTests
         };
 
         Assert.Equal("ComboBox.Local", stub.ResolveControlTemplateName());
+      }
+
+      [Fact]
+      public void Theme_Template_Resolution_Prefers_Runtime_Control_Type_Over_Element_Type()
+      {
+        MGTheme theme = MGTheme.CreateEmpty("Arial");
+        theme.SetControlTemplateMapping(MGElementType.Window, "Window.ByElementType");
+        theme.SetControlTemplateMapping(typeof(MGWindow), "Window.ByRuntimeType");
+        MGResources resources = new(theme);
+        TemplateResolutionStub stub = new(resources, MGElementType.Window, typeof(MGWindow))
+        {
+          DefaultControlTemplateName = "Window.Default"
+        };
+
+        Assert.Equal("Window.ByRuntimeType", stub.ResolveControlTemplateName());
       }
 
       [Fact]

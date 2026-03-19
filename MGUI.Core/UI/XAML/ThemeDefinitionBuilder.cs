@@ -3,6 +3,8 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 namespace MGUI.Core.UI.XAML
 {
@@ -71,7 +73,76 @@ namespace MGUI.Core.UI.XAML
                     continue;
                 }
 
-                Theme.SetControlTemplateMapping(Definition.ElementType, Definition.TemplateName);
+                bool hasTarget = false;
+
+                if (Definition.ElementType.HasValue)
+                {
+                    Theme.SetControlTemplateMapping(Definition.ElementType.Value, Definition.TemplateName);
+                    hasTarget = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(Definition.ControlTypeName))
+                {
+                    Theme.SetControlTemplateMapping(ResolveControlType(Definition.ControlTypeName), Definition.TemplateName);
+                    hasTarget = true;
+                }
+
+                if (!hasTarget)
+                {
+                    throw new InvalidOperationException($"{nameof(ThemeControlTemplateDefinition)} requires either {nameof(ThemeControlTemplateDefinition.ElementType)} or {nameof(ThemeControlTemplateDefinition.ControlTypeName)}.");
+                }
+            }
+        }
+
+        private static Type ResolveControlType(string controlTypeName)
+        {
+            Type exactType = Type.GetType(controlTypeName, throwOnError: false);
+            if (exactType != null)
+            {
+                ValidateControlType(exactType, controlTypeName);
+                return exactType;
+            }
+
+            List<Type> matches = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(GetLoadableTypes)
+                .Where(type => type != null
+                    && !type.IsAbstract
+                    && typeof(MGElement).IsAssignableFrom(type)
+                    && (string.Equals(type.FullName, controlTypeName, StringComparison.Ordinal)
+                        || string.Equals(type.Name, controlTypeName, StringComparison.Ordinal)))
+                .Distinct()
+                .ToList();
+
+            if (matches.Count == 1)
+            {
+                return matches[0];
+            }
+
+            if (matches.Count > 1)
+            {
+                throw new InvalidOperationException($"Multiple control types matched '{controlTypeName}': {string.Join(", ", matches.Select(x => x.FullName))}.");
+            }
+
+            throw new InvalidOperationException($"No control type named '{controlTypeName}' could be resolved for {nameof(ThemeControlTemplateDefinition)}.");
+        }
+
+        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                return ex.Types.Where(x => x != null);
+            }
+        }
+
+        private static void ValidateControlType(Type controlType, string controlTypeName)
+        {
+            if (!typeof(MGElement).IsAssignableFrom(controlType))
+            {
+                throw new InvalidOperationException($"Resolved control type '{controlTypeName}' does not derive from {nameof(MGElement)}.");
             }
         }
 

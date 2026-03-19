@@ -497,21 +497,18 @@ namespace MGUI.Core.UI
             BorderElement = Structure.Parts[BorderPartName] as MGBorder;
             CloseButton = Structure.Parts[CloseButtonPartName] as MGButton;
 
-            if (BorderComponent == null)
+            bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+            EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
+            if (needsBorderNotifications)
             {
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
             }
 
-            if (CloseButtonComponent == null)
-            {
-                CloseButtonComponent = new(CloseButton, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Top, ComponentSize.Size));
-                AddComponent(CloseButtonComponent);
-            }
+            EnsureComponentBinding(() => CloseButtonComponent, value => CloseButtonComponent = value, CloseButton,
+                element => new(element, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Top, ComponentSize.Size)));
 
             ShowCloseButton = _ShowCloseButton;
         }

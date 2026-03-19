@@ -268,10 +268,19 @@ namespace MGUI.Core.UI
             }
 
             MGTheme Theme = GetTheme();
-            if (Theme != null && Theme.TryGetControlTemplateMapping(ElementType, out string ThemeTemplateName)
-                && !string.IsNullOrWhiteSpace(ThemeTemplateName))
+            if (Theme != null)
             {
-                return ThemeTemplateName;
+                if (Theme.TryGetControlTemplateMapping(GetType(), out string RuntimeTypeTemplateName)
+                    && !string.IsNullOrWhiteSpace(RuntimeTypeTemplateName))
+                {
+                    return RuntimeTypeTemplateName;
+                }
+
+                if (Theme.TryGetControlTemplateMapping(ElementType, out string ThemeTemplateName)
+                    && !string.IsNullOrWhiteSpace(ThemeTemplateName))
+                {
+                    return ThemeTemplateName;
+                }
             }
 
             return DefaultControlTemplateName;
@@ -459,6 +468,7 @@ namespace MGUI.Core.UI
                     if (Structure != null)
                     {
                         RegisterInstantiatedTemplateStructure(Structure);
+                        ValidateControlTemplateParts();
 
                         if (Template.SupportsAttachment)
                         {
@@ -474,7 +484,7 @@ namespace MGUI.Core.UI
                     }
                 }
 
-                if (Template != null)
+                if (Template != null && _AppliedTemplateStructure == null)
                 {
                     ValidateControlTemplateParts();
                 }
@@ -627,6 +637,7 @@ namespace MGUI.Core.UI
                 MGElement Previous = Parent;
                 _Parent = Value;
                 _LocalResources?.SetParent(GetInheritedResources());
+                InvalidateLayoutTree();
                 NPC(nameof(Parent));
                 OnParentChanged?.Invoke(this, new(Previous, Parent));
             }
@@ -783,6 +794,38 @@ namespace MGUI.Core.UI
             _componentsUpdateAfterContents.Remove(Component.BaseElement);
             LayoutChanged(this, true);
             return true;
+        }
+
+        protected void EnsureComponentBinding<TElementType>(Func<MGComponent<TElementType>> GetComponent,
+            Action<MGComponent<TElementType>> SetComponent, TElementType Element,
+            Func<TElementType, MGComponent<TElementType>> CreateComponent)
+            where TElementType : MGElement
+        {
+            MGComponent<TElementType> Component = GetComponent();
+
+            if (Element == null)
+            {
+                if (Component != null)
+                {
+                    RemoveComponent(Component);
+                    SetComponent(null);
+                }
+                return;
+            }
+
+            if (Component != null && ReferenceEquals(Component.Element, Element))
+            {
+                return;
+            }
+
+            if (Component != null)
+            {
+                RemoveComponent(Component);
+            }
+
+            Component = CreateComponent(Element);
+            SetComponent(Component);
+            AddComponent(Component);
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1667,6 +1710,8 @@ namespace MGUI.Core.UI
                 if (_IsSelected != value)
                 {
                     _IsSelected = value;
+                    InvalidateLayoutTree();
+                    LayoutChanged(this, true);
                     NPC(nameof(IsSelected));
                 }
             }
@@ -2840,6 +2885,14 @@ namespace MGUI.Core.UI
             foreach (MGComponentBase Component in Components)
             {
                 Component.BaseElement.InvalidateLayoutTree();
+            }
+        }
+
+        internal void InvalidateTemplateValue(UIInvalidationKind invalidation)
+        {
+            if ((invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)
+            {
+                LayoutChanged(this, true);
             }
         }
 

@@ -1009,28 +1009,30 @@ namespace MGUI.Core.UI
             ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
             ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
 
-            if (OuterBorderComponent == null)
+            bool needsOuterBorderNotifications = OuterBorderComponent == null || !ReferenceEquals(OuterBorderComponent.Element, OuterBorder);
+            EnsureComponentBinding(() => OuterBorderComponent, value => OuterBorderComponent = value, OuterBorder, MGComponentBase.Create);
+            if (needsOuterBorderNotifications)
             {
-                OuterBorderComponent = MGComponentBase.Create(OuterBorder);
-                AddComponent(OuterBorderComponent);
                 OuterBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(OuterBorderBrush)); };
                 OuterBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(OuterBorderThickness)); };
             }
 
-            if (TitleComponent == null)
+            bool needsTitleNotifications = TitleComponent == null || !ReferenceEquals(TitleComponent.Element, TitleBorder);
+            EnsureComponentBinding(() => TitleComponent, value => TitleComponent = value, TitleBorder,
+                element => new(element, true, false, false, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size)));
+            if (needsTitleNotifications)
             {
-                TitleComponent = new(TitleBorder, true, false, false, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size));
-                AddComponent(TitleComponent);
                 TitleBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(TitleBorderBrush)); };
                 TitleBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(TitleBorderThickness)); };
             }
 
-            if (InnerBorderComponent == null)
+            bool needsInnerBorderNotifications = InnerBorderComponent == null || !ReferenceEquals(InnerBorderComponent.Element, InnerBorder);
+            EnsureComponentBinding(() => InnerBorderComponent, value => InnerBorderComponent = value, InnerBorder,
+                element => new(element, true, false, true, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Stretch, ComponentSize.Size)));
+            if (needsInnerBorderNotifications)
             {
-                InnerBorderComponent = new(InnerBorder, true, false, true, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Stretch, ComponentSize.Size));
-                AddComponent(InnerBorderComponent);
                 InnerBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(InnerBorderBrush)); };
                 InnerBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(InnerBorderThickness)); };
             }

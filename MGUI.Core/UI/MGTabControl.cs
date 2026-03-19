@@ -292,12 +292,15 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            if (!UsesCustomHeaderFactories)
+            if (UsesCustomHeaderFactories)
             {
-                HeaderWrapper.ControlTemplateName = IsSelected
-                    ? SelectedTabHeaderControlTemplateName
-                    : UnselectedTabHeaderControlTemplateName;
+                HeaderWrapper.IsSelected = IsSelected;
+                return;
             }
+
+            HeaderWrapper.ControlTemplateName = IsSelected
+                ? SelectedTabHeaderControlTemplateName
+                : UnselectedTabHeaderControlTemplateName;
 
             HeaderWrapper.IsSelected = IsSelected;
             HeaderWrapper.ApplyControlTemplate(false);
@@ -307,23 +310,56 @@ namespace MGUI.Core.UI
         {
             if (Tab != null && ActualTabHeaders.TryGetValue(Tab, out MGButton OldHeaderWrapper))
             {
-                if (!UsesCustomHeaderFactories)
-                {
-                    ApplyHeaderWrapperTemplate(OldHeaderWrapper, Tab.IsTabSelected);
-                    return;
-                }
-
                 MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);
                 if (ManagedReplaceHeadersPanelChild(OldHeaderWrapper, NewHeaderWrapper))
                 {
                     OldHeaderWrapper.SetContent(null as MGElement);
                     NewHeaderWrapper.SetContent(Tab.Header);
+                    NewHeaderWrapper.InvalidateLayoutTree();
                     ActualTabHeaders[Tab] = NewHeaderWrapper;
                 }
+
+                UpdateHeadersPanelPreferredSize();
             }
         }
 
         private Dictionary<MGTabItem, MGButton> ActualTabHeaders { get; }
+
+        private void UpdateHeadersPanelPreferredSize()
+        {
+            if (HeadersPanelElement == null)
+            {
+                return;
+            }
+
+            const int HeaderMeasurementLimit = 8192;
+            Size measurementBounds = new(HeaderMeasurementLimit, HeaderMeasurementLimit);
+
+            if (TabHeaderPosition == Dock.Left || TabHeaderPosition == Dock.Right)
+            {
+                int maxWidth = 0;
+                foreach (MGButton HeaderWrapper in ActualTabHeaders.Values)
+                {
+                    HeaderWrapper.UpdateMeasurement(measurementBounds, out _, out Thickness FullSize, out _, out _);
+                    maxWidth = Math.Max(maxWidth, FullSize.Width);
+                }
+
+                HeadersPanelElement.PreferredWidth = maxWidth > 0 ? maxWidth : null;
+                HeadersPanelElement.PreferredHeight = null;
+            }
+            else
+            {
+                int maxHeight = 0;
+                foreach (MGButton HeaderWrapper in ActualTabHeaders.Values)
+                {
+                    HeaderWrapper.UpdateMeasurement(measurementBounds, out _, out Thickness FullSize, out _, out _);
+                    maxHeight = Math.Max(maxHeight, FullSize.Height);
+                }
+
+                HeadersPanelElement.PreferredWidth = null;
+                HeadersPanelElement.PreferredHeight = maxHeight > 0 ? maxHeight : null;
+            }
+        }
         #endregion Tab Headers
 
         private void ApplyHeadersPanelSettings()
@@ -372,10 +408,10 @@ namespace MGUI.Core.UI
             HeadersPanelElement = Structure.Parts[HeadersPanelPartName] as MGStackPanel;
             BorderElement = Structure.Parts[BorderPartName] as MGBorder;
 
-            if (BorderComponent == null)
+            bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+            EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
+            if (needsBorderNotifications)
             {
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
@@ -403,6 +439,7 @@ namespace MGUI.Core.UI
 
             HeadersPanelElement.CanChangeContent = false;
             ApplyHeadersPanelSettings();
+            UpdateHeadersPanelPreferredSize();
         }
 
         #region Tabs
@@ -422,6 +459,7 @@ namespace MGUI.Core.UI
                 InvokeContentRemoved(Tab);
 
                 ManagedRemoveHeadersPanelChild(TabHeader);
+                UpdateHeadersPanelPreferredSize();
 
                 if (SelectedTab == Tab)
                 {
@@ -446,6 +484,7 @@ namespace MGUI.Core.UI
             InvokeContentAdded(Tab);
 
             ManagedAddHeadersPanelChild(HeaderWrapper);
+            UpdateHeadersPanelPreferredSize();
 
             if (SelectedTab == null)
             {
@@ -488,6 +527,8 @@ namespace MGUI.Core.UI
 
                 UpdateHeaderWrapper(Previous);
                 UpdateHeaderWrapper(SelectedTab);
+                HeadersPanelElement?.InvalidateLayoutTree();
+                LayoutChanged(this, true);
 
                 SetContent(SelectedTab);
                 NPC(nameof(SelectedTab));

@@ -6,7 +6,7 @@
                 BorderBrush="RGB(91,43,42)" BorderThickness="2" Background="rgb(242,191,114)" ZIndex="100" />
 
         <InputConsumer Margin="0,12,12,0">
-            <TabControl Background="RGB(255,203,123)" BorderBrush="RGB(177,78,5)" BorderThickness="0" MinWidth="300" MinHeight="300" Padding="0">
+            <TabControl Background="RGB(255,203,123)" BorderBrush="RGB(177,78,5)" BorderThickness="0" MinWidth="300" MinHeight="300" Padding="0" HeaderAreaBackground="Transparent">
                 <TabControl.HeadersPanel>
                     <StackPanel Orientation="Horizontal" Margin="35,0,0,0" Spacing="0" />
                 </TabControl.HeadersPanel>

@@ -49,8 +49,12 @@
             <DockPanel>
                 <Border StyleNames="PanelBorder" Dock="Left">
                     <!-- List of each party member -->
-                    <ListBox Name="PartyList" ItemType="{x:Type local:PartyMember}" IsTitleVisible="False" Background="Transparent" 
-                             Margin="5" AlternatingRowBackgrounds="{x:Null}" ItemsPanelBorderThickness="0" SelectionMode="None">
+                    <ListBox Name="PartyList" ItemType="{x:Type local:PartyMember}" IsTitleVisible="False" Background="Transparent"
+                             Margin="5" AlternatingRowBackgrounds="{x:Null}" OuterBorderThickness="0" InnerBorderThickness="0"
+                             TitleBorderThickness="0" ItemsPanelBorderThickness="0" SelectionMode="None">
+                        <ListBox.ScrollViewer>
+                            <ScrollViewer Padding="0" VerticalScrollBarVisibility="Disabled" />
+                        </ListBox.ScrollViewer>
                         <ListBox.ItemContainerStyle>
                             <Border BorderThickness="0" />
                         </ListBox.ItemContainerStyle>
@@ -125,8 +129,12 @@
                 <Border StyleNames="PanelBorder">
                     <OverlayPanel>
                         <!-- List of each item in the inventory -->
-                        <ListBox Name="ItemsList" ItemType="{x:Type local:InventoryItem}" IsTitleVisible="False" Background="Transparent" 
-                             Margin="10" AlternatingRowBackgrounds="{x:Null}" ItemsPanelBorderThickness="0">
+                        <ListBox Name="ItemsList" ItemType="{x:Type local:InventoryItem}" IsTitleVisible="False" Background="Transparent"
+                             Margin="10" AlternatingRowBackgrounds="{x:Null}" OuterBorderThickness="0" InnerBorderThickness="0"
+                             TitleBorderThickness="0" ItemsPanelBorderThickness="0">
+                            <ListBox.ScrollViewer>
+                                <ScrollViewer Padding="0" />
+                            </ListBox.ScrollViewer>
                             <ListBox.ItemTemplate>
                                 <ContentTemplate>
                                     <DockPanel>

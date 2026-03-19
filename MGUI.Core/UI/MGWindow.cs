@@ -754,27 +754,20 @@ namespace MGUI.Core.UI
             CloseButtonElement = Structure.Parts[CloseButtonPartName] as MGButton;
             ResizeGripElement = Structure.Parts.TryGetValue(ResizeGripPartName, out MGElement resizeGrip) ? resizeGrip as MGResizeGrip : null;
 
-            if (BorderComponent == null)
+            bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+            EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
+            if (needsBorderNotifications)
             {
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
             }
 
-            if (TitleBarComponent == null)
-            {
-                TitleBarComponent = new(TitleBarElement, true, false, true, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size));
-                AddComponent(TitleBarComponent);
-            }
+            EnsureComponentBinding(() => TitleBarComponent, value => TitleBarComponent = value, TitleBarElement,
+                element => new(element, true, false, true, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size)));
 
-            if (ResizeGripElement != null && ResizeGripComponent == null)
-            {
-                ResizeGripComponent = MGComponentBase.Create(ResizeGripElement);
-                AddComponent(ResizeGripComponent);
-            }
+            EnsureComponentBinding(() => ResizeGripComponent, value => ResizeGripComponent = value, ResizeGripElement, MGComponentBase.Create);
 
             TitleBarElement.DrawBackgroundEnabled = false;
             TitleBarElement.CanChangeContent = false;

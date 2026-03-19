@@ -873,11 +873,21 @@ namespace MGUI.Core.UI
 
         private static void EnsureFocusedElementVisible(MGElement focusedElement)
         {
+            bool encounteredContextMenuRoot = false;
             for (MGElement current = focusedElement?.Parent; current != null; current = current.Parent)
             {
+                if (current is MGContextMenu)
+                {
+                    encounteredContextMenuRoot = true;
+                    continue;
+                }
+
                 if (current is MGScrollViewer scrollViewer)
                 {
-                    scrollViewer.EnsureElementVisible(focusedElement);
+                    if (!encounteredContextMenuRoot)
+                    {
+                        scrollViewer.EnsureElementVisible(focusedElement);
+                    }
                 }
             }
         }

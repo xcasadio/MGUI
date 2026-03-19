@@ -92,7 +92,7 @@ namespace MGUI.Core.UI.Navigation
                 && (Desktop.FocusedKeyboardHandler == null || IsWithinFocusScope(scopeRoot, Desktop.FocusedKeyboardHandler, current => current.Parent));
             if (shouldRestoreFocus && IsNavigationTarget(entry.RestoreFocusTarget))
             {
-                entry.RestoreFocusTarget.Focus();
+                entry.RestoreFocusTarget.Focus(KeyboardFocusSource.Pointer);
             }
         }
 

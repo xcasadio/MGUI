@@ -679,6 +679,8 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
+            UIInvalidationKind headerLayoutInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
+
             Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderBrush" : "TabHeader.Unselected.BorderBrush",
                 IsSelected ? MGUniformBorderBrush.Black : MGUniformBorderBrush.Gray,
                 () => Button.BorderBrush,
@@ -695,24 +697,24 @@ namespace MGUI.Core.UI.Styling
             switch (TabControl.TabHeaderPosition)
             {
                 case Dock.Left:
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Left" : "TabHeader.Unselected.Padding.Left", new Thickness(6, 5, 6, 5), () => Button.Padding, value => Button.Padding = value);
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderThickness.Left" : "TabHeader.Unselected.BorderThickness.Left", new Thickness(1, 1, 0, 1), () => Button.BorderThickness, value => Button.BorderThickness = value);
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.HorizontalAlignment.Left" : "TabHeader.Unselected.HorizontalAlignment.Left", HorizontalAlignment.Right, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.Padding.Left" : "TabHeader.Unselected.Padding.Left", new Thickness(6, 5, 6, 5), () => Button.Padding, value => Button.Padding = value, headerLayoutInvalidation);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.BorderThickness.Left" : "TabHeader.Unselected.BorderThickness.Left", new Thickness(1, 1, 0, 1), () => Button.BorderThickness, value => Button.BorderThickness = value, headerLayoutInvalidation);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.HorizontalAlignment.Left" : "TabHeader.Unselected.HorizontalAlignment.Left", HorizontalAlignment.Right, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value, headerLayoutInvalidation);
                     break;
                 case Dock.Top:
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Top" : "TabHeader.Unselected.Padding.Top", IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3), () => Button.Padding, value => Button.Padding = value);
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderThickness.Top" : "TabHeader.Unselected.BorderThickness.Top", new Thickness(1, 1, 1, 0), () => Button.BorderThickness, value => Button.BorderThickness = value);
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.VerticalAlignment.Top" : "TabHeader.Unselected.VerticalAlignment.Top", VerticalAlignment.Bottom, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.Padding.Top" : "TabHeader.Unselected.Padding.Top", IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3), () => Button.Padding, value => Button.Padding = value, headerLayoutInvalidation);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.BorderThickness.Top" : "TabHeader.Unselected.BorderThickness.Top", new Thickness(1, 1, 1, 0), () => Button.BorderThickness, value => Button.BorderThickness = value, headerLayoutInvalidation);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.VerticalAlignment.Top" : "TabHeader.Unselected.VerticalAlignment.Top", VerticalAlignment.Bottom, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value, headerLayoutInvalidation);
                     break;
                 case Dock.Right:
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Right" : "TabHeader.Unselected.Padding.Right", new Thickness(6, 5, 6, 5), () => Button.Padding, value => Button.Padding = value);
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderThickness.Right" : "TabHeader.Unselected.BorderThickness.Right", new Thickness(0, 1, 1, 1), () => Button.BorderThickness, value => Button.BorderThickness = value);
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.HorizontalAlignment.Right" : "TabHeader.Unselected.HorizontalAlignment.Right", HorizontalAlignment.Left, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.Padding.Right" : "TabHeader.Unselected.Padding.Right", new Thickness(6, 5, 6, 5), () => Button.Padding, value => Button.Padding = value, headerLayoutInvalidation);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.BorderThickness.Right" : "TabHeader.Unselected.BorderThickness.Right", new Thickness(0, 1, 1, 1), () => Button.BorderThickness, value => Button.BorderThickness = value, headerLayoutInvalidation);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.HorizontalAlignment.Right" : "TabHeader.Unselected.HorizontalAlignment.Right", HorizontalAlignment.Left, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value, headerLayoutInvalidation);
                     break;
                 case Dock.Bottom:
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Bottom" : "TabHeader.Unselected.Padding.Bottom", IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3), () => Button.Padding, value => Button.Padding = value);
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderThickness.Bottom" : "TabHeader.Unselected.BorderThickness.Bottom", new Thickness(1, 0, 1, 1), () => Button.BorderThickness, value => Button.BorderThickness = value);
-                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.VerticalAlignment.Bottom" : "TabHeader.Unselected.VerticalAlignment.Bottom", VerticalAlignment.Top, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.Padding.Bottom" : "TabHeader.Unselected.Padding.Bottom", IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3), () => Button.Padding, value => Button.Padding = value, headerLayoutInvalidation);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.BorderThickness.Bottom" : "TabHeader.Unselected.BorderThickness.Bottom", new Thickness(1, 0, 1, 1), () => Button.BorderThickness, value => Button.BorderThickness = value, headerLayoutInvalidation);
+                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.VerticalAlignment.Bottom" : "TabHeader.Unselected.VerticalAlignment.Bottom", VerticalAlignment.Top, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value, headerLayoutInvalidation);
                     break;
                 default:
                     throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {TabControl.TabHeaderPosition}");

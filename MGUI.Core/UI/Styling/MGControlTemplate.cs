@@ -114,7 +114,7 @@ namespace MGUI.Core.UI.Styling
 
                 if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)
                 {
-                    Owner.InvalidateLayout();
+                    Owner.InvalidateTemplateValue(Invalidation);
                 }
             }
         }

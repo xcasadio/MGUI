@@ -669,6 +669,19 @@ namespace MGUI.Core.UI
             }
         }
 
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme == null)
+            {
+                return;
+            }
+
+            ScrollBarOuterBrush = CurrentTheme.ScrollBarOuterBrush.GetValue(true);
+            ScrollBarInnerBrush = CurrentTheme.ScrollBarInnerBrush.GetValue(true);
+        }
+
         protected override void UpdateContents(ElementUpdateArgs UA)
         {
             Point ScrollOffset = new((int)HorizontalOffset, (int)VerticalOffset);

@@ -24,13 +24,17 @@ This keeps local overrides authoritative while allowing a theme to choose a stru
   <ThemeDefinition.ControlTemplates>
     <ThemeControlTemplateDefinition ElementType="ListView"
                                     TemplateName="ListView.HeadersBottom" />
+    <ThemeControlTemplateDefinition ControlTypeName="MGDockTabItem"
+                                    TemplateName="DockTabItem.Minimal" />
     <ThemeControlTemplateDefinition ElementType="ComboBox"
                                     TemplateName="ComboBox.Default" />
   </ThemeDefinition.ControlTemplates>
 </ThemeDefinition>
 ```
 
-The mapping key is `MGElementType`, which keeps the format small and works for the generic controls already exposed through XAML.
+`ElementType` remains the broad mapping key for the built-in generic controls already exposed through XAML.
+
+`ControlTypeName` allows a theme to target a specific runtime control type when multiple controls share the same `MGElementType`, such as docking controls that currently use `MGElementType.Custom`.
 
 ## Registering Templates
 

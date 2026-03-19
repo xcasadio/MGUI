@@ -638,21 +638,22 @@ namespace MGUI.Core.UI
             DropdownScrollViewer = Structure.Parts[DropdownScrollViewerPartName] as MGScrollViewer;
             DropdownDockPanel = Structure.Parts[DropdownDockPanelPartName] as MGDockPanel;
 
-            if (BorderComponent == null)
+            bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+            EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
+            if (needsBorderNotifications)
             {
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
             }
 
-            if (DropdownArrowComponent == null)
-            {
-                DropdownArrowComponent = new(DropdownArrowElement, false, true, false, true, true, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Center, ComponentSize.Size));
-                AddComponent(DropdownArrowComponent);
+            bool needsDropdownArrowHandlers = DropdownArrowComponent == null || !ReferenceEquals(DropdownArrowComponent.Element, DropdownArrowElement);
+            EnsureComponentBinding(() => DropdownArrowComponent, value => DropdownArrowComponent = value, DropdownArrowElement,
+                element => new(element, false, true, false, true, true, false, false,
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Center, ComponentSize.Size)));
 
+            if (needsDropdownArrowHandlers)
+            {
                 DropdownArrowElement.OnEndingDraw += (sender, e) =>
                 {
                     Rectangle ArrowElementFullBounds = DropdownArrowElement.LayoutBounds;

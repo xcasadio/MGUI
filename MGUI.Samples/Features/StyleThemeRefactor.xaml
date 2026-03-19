@@ -24,7 +24,7 @@
         </Style>
     </Window.Styles>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+    <ScrollViewer Name="RootScrollViewer" VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
         <StackPanel Orientation="Vertical" Spacing="10">
             <TextBlock StyleNames="Header1" Text="Style / Theme Refactor" HorizontalAlignment="Center" />
             <TextBlock Text="This sample demonstrates the refactored theme pipeline with built-in control templates, XAML ControlTemplate references, and runtime theme switching." />
@@ -41,7 +41,7 @@
             <Separator />
 
             <Grid RowLengths="Auto,Auto" ColumnLengths="*,*" RowSpacing="10" ColumnSpacing="12">
-                <Border Row="0" Column="0" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
+                <Border Name="SelectionControlsPanelBorder" Row="0" Column="0" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
                     <StackPanel Orientation="Vertical" Spacing="8">
                         <TextBlock StyleNames="Header1" Text="Selection Controls" />
                         <ComboBox Name="SampleComboBox" ItemType="{x:Type System:String}" Width="220" HorizontalAlignment="Left" ControlTemplate="ComboBox.Default">
@@ -86,7 +86,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Row="0" Column="1" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
+                <Border Name="CompositeControlsPanelBorder" Row="0" Column="1" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
                     <StackPanel Orientation="Vertical" Spacing="8">
                         <TextBlock StyleNames="Header1" Text="Composite Controls" />
                         <TabControl Name="SampleTabControl" Height="220" ControlTemplate="TabControl.Default">
@@ -109,11 +109,11 @@
                     </StackPanel>
                 </Border>
 
-                <Border Row="1" Column="0" ColumnSpan="2" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
+                <Border Name="MigrationNotesPanelBorder" Row="1" Column="0" ColumnSpan="2" Padding="8" Background="White * 0.08" BorderBrush="Black * 0.35" BorderThickness="1">
                     <StackPanel Orientation="Vertical" Spacing="6">
                         <TextBlock StyleNames="Header1" Text="Migration Notes" />
                         <TextBlock Text="The refactor keeps runtime behavior in controls and lets themes pick named control templates by control type. In this sample, the ListView keeps the same data and behavior while the active skin moves its headers from the top to the bottom." />
-                        <TextBox Name="ExampleXamlText" Height="170" IsReadonly="True" Background="rgb(12,16,82)" />
+                        <TextBox Name="ExampleXamlText" Height="170" IsReadonly="True" />
                     </StackPanel>
                 </Border>
             </Grid>

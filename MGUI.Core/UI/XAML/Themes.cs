@@ -43,7 +43,8 @@ namespace MGUI.Core.UI.XAML
 
     public class ThemeControlTemplateDefinition : XAMLBindableBase
     {
-        public MGElementType ElementType { get; set; }
+        public MGElementType? ElementType { get; set; }
+        public string ControlTypeName { get; set; }
         public string TemplateName { get; set; }
     }
 

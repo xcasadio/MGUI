@@ -1321,40 +1321,29 @@ namespace MGUI.Core.UI
             CharacterCountElement = Structure.Parts[CharacterCountPartName] as MGTextBlock;
             ResizeGripElement = Structure.Parts[ResizeGripPartName] as MGResizeGrip;
 
-            if (BorderComponent == null)
+            bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+            EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
+            if (needsBorderNotifications)
             {
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
                 BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
             }
 
-            if (ResizeGripComponent == null)
-            {
-                ResizeGripComponent = MGComponentBase.Create(ResizeGripElement);
-                AddComponent(ResizeGripComponent);
-            }
+            EnsureComponentBinding(() => ResizeGripComponent, value => ResizeGripComponent = value, ResizeGripElement, MGComponentBase.Create);
 
-            if (PlaceholderTextBlockComponent == null)
-            {
-                PlaceholderTextBlockComponent = new(PlaceholderTextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+            EnsureComponentBinding(() => PlaceholderTextBlockComponent, value => PlaceholderTextBlockComponent = value, PlaceholderTextBlockElement,
+                element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     true, true, false, false, false, false, true,
-                    (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
-                AddComponent(PlaceholderTextBlockComponent);
-            }
+                    (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding)));
 
-            if (CharacterCountComponent == null)
-            {
-                CharacterCountComponent = new(CharacterCountElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+            EnsureComponentBinding(() => CharacterCountComponent, value => CharacterCountComponent = value, CharacterCountElement,
+                element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     true, false, false, false, false, true, true,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, ComponentSize.Size));
-                AddComponent(CharacterCountComponent);
-            }
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, ComponentSize.Size)));
 
-            if (TextBlockComponent == null)
-            {
-                TextBlockComponent = new(TextBlockElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+            EnsureComponentBinding(() => TextBlockComponent, value => TextBlockComponent = value, TextBlockElement,
+                element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     false, false, true, true, false, false, true,
                     (AvailableBounds, ComponentSize) =>
                     {
@@ -1366,9 +1355,7 @@ namespace MGUI.Core.UI
 
                         return new Rectangle(padded.Left - _TextScrollOffsetX, padded.Top,
                             padded.Width + _TextScrollOffsetX, padded.Height);
-                    });
-                AddComponent(TextBlockComponent);
-            }
+                    }));
 
             TextRenderInfo = new(this, TextBlockElement);
             Caret = new(this, TextBlockElement);

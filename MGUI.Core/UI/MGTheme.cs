@@ -234,6 +234,7 @@ namespace MGUI.Core.UI
         #region Background
         private Dictionary<MGElementType, ThemeManagedVisualStateFillBrush> _Backgrounds { get; }
         private Dictionary<MGElementType, string> _ControlTemplateMappings { get; }
+        private Dictionary<Type, string> _ControlTemplateMappingsByType { get; }
 
         public VisualStateFillBrush GetBackgroundBrush(MGElementType Type)
         {
@@ -262,6 +263,7 @@ namespace MGUI.Core.UI
         #endregion Background
 
         public IReadOnlyDictionary<MGElementType, string> ControlTemplateMappings => _ControlTemplateMappings;
+        public IReadOnlyDictionary<Type, string> ControlTemplateTypeMappings => _ControlTemplateMappingsByType;
 
         public void SetControlTemplateMapping(MGElementType elementType, string templateName)
         {
@@ -277,6 +279,42 @@ namespace MGUI.Core.UI
 
         public bool TryGetControlTemplateMapping(MGElementType elementType, out string templateName)
             => _ControlTemplateMappings.TryGetValue(elementType, out templateName);
+
+        public void SetControlTemplateMapping(Type controlType, string templateName)
+        {
+            if (controlType == null)
+            {
+                throw new ArgumentNullException(nameof(controlType));
+            }
+
+            if (!typeof(MGElement).IsAssignableFrom(controlType))
+            {
+                throw new ArgumentException($"{nameof(controlType)} must derive from {nameof(MGElement)}.", nameof(controlType));
+            }
+
+            if (string.IsNullOrWhiteSpace(templateName))
+            {
+                _ControlTemplateMappingsByType.Remove(controlType);
+            }
+            else
+            {
+                _ControlTemplateMappingsByType[controlType] = templateName;
+            }
+        }
+
+        public bool TryGetControlTemplateMapping(Type controlType, out string templateName)
+        {
+            for (Type currentType = controlType; currentType != null && typeof(MGElement).IsAssignableFrom(currentType); currentType = currentType.BaseType)
+            {
+                if (_ControlTemplateMappingsByType.TryGetValue(currentType, out templateName))
+                {
+                    return true;
+                }
+            }
+
+            templateName = null;
+            return false;
+        }
 
         public ThemeManagedVisualStateFillBrush ComboBoxDropdownBackground { get; }
         /// <summary>The default background brush to use on items in an <see cref="MGComboBox{TItemType}"/>'s dropdown.</summary>
@@ -406,6 +444,7 @@ namespace MGUI.Core.UI
 
             _Backgrounds = new();
             _ControlTemplateMappings = new();
+            _ControlTemplateMappingsByType = new();
             foreach (MGElementType Type in Enum.GetValues(typeof(MGElementType)))
             {
                 _Backgrounds[Type] = new ThemeManagedVisualStateFillBrush(new VisualStateFillBrush((IFillBrush)null));
@@ -483,6 +522,12 @@ namespace MGUI.Core.UI
             foreach (KeyValuePair<MGElementType, string> item in Source.ControlTemplateMappings)
             {
                 _ControlTemplateMappings[item.Key] = item.Value;
+            }
+
+            _ControlTemplateMappingsByType.Clear();
+            foreach (KeyValuePair<Type, string> item in Source.ControlTemplateTypeMappings)
+            {
+                _ControlTemplateMappingsByType[item.Key] = item.Value;
             }
 
             ComboBoxDropdownBackground.Value = Source.ComboBoxDropdownBackground.GetValue(true);
