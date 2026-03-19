@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:System="clr-namespace:System;assembly=mscorlib"
     xmlns:controls="clr-namespace:MGUI.Samples.Controls;assembly=MGUI.Samples"
-        Left="460" Top="30" Width="760" Height="720" TitleText="Style / Theme Refactor" Padding="10">
+    Left="460" Top="30" Width="760" Height="860" TitleText="Style / Theme Refactor" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
@@ -113,7 +113,10 @@
                     <StackPanel Orientation="Vertical" Spacing="6">
                         <TextBlock StyleNames="Header1" Text="Migration Notes" />
                         <TextBlock Text="The refactor keeps runtime behavior in controls and lets themes pick named control templates by control type. In this sample, the ListView keeps the same data and behavior while the active skin moves its headers from the top to the bottom." />
-                        <TextBox Name="ExampleXamlText" Height="170" IsReadonly="True" />
+                        <TextBlock Text="Current XAML coverage matrix" IsBold="True" />
+                        <TextBox Name="XamlCoverageMatrixText" Height="170" IsReadonly="True" />
+                        <TextBlock Text="Example theme and templates" IsBold="True" />
+                        <TextBox Name="ExampleXamlText" Height="260" IsReadonly="True" />
                     </StackPanel>
                 </Border>
             </Grid>

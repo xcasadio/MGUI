@@ -14,6 +14,71 @@ namespace MGUI.Samples.Features
     {
                 private const string SampleTemplateResourceName = "StyleThemeRefactorSample.ControlTemplates.xaml";
                 private const string SampleThemeResourceName = "StyleThemeRefactorSample.Themes.xaml";
+                                private const string SampleCoverageMatrixText = @"100% pilotable en XAML
+- ThemeDefinition / ThemeDefinitionsDocument
+- BasedOn
+- FontSettings
+- Backgrounds par MGElementType
+- ControlTemplates mappings
+- Groupes exposes: Window, Overlay, ContextMenu, ContextMenuItem, ListBox, ListView, ComboBox, TreeViewTemplate, TabControl, Docking
+- ThemePropertyTarget
+
+Partiel
+- styles XAML a base de Setter
+- ControlTemplate XAML des controles deja migres
+- controles classes B et C
+
+Pas encore complet
+- proprietes MGTheme non exposees par ThemeDefinition
+- controles encore imperatifs (ex: CheckBox, Expander, ContextMenuItem, une partie du docking)
+- skin 100% XAML de toute la librairie";
+
+                                private const string SampleThemeExcerptText = @"<ControlTemplates xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"">
+    <ControlTemplate Name=""ListView.HeadersBottom"" TargetType=""ListView"">
+        <ControlTemplate.Parts>
+            <TemplatePart Name=""PART_DockPanel"" />
+            <TemplatePart Name=""PART_ScrollViewer"" />
+            <TemplatePart Name=""PART_DataGrid"" />
+            <TemplatePart Name=""PART_HeaderGridWrapper"" />
+            <TemplatePart Name=""PART_HeaderSpacer"" />
+            <TemplatePart Name=""PART_HeaderGrid"" />
+        </ControlTemplate.Parts>
+        <DockPanel Name=""PART_DockPanel"">
+            <ScrollViewer Name=""PART_ScrollViewer"" Dock=""Top"">
+                <Grid Name=""PART_DataGrid"" />
+            </ScrollViewer>
+            <DockPanel Name=""PART_HeaderGridWrapper"" Dock=""Bottom"">
+                <Border Name=""PART_HeaderSpacer"" Dock=""Right"" />
+                <Grid Name=""PART_HeaderGrid"" Dock=""Left"" RowLengths=""Auto"" />
+            </DockPanel>
+        </DockPanel>
+    </ControlTemplate>
+</ControlTemplates>
+
+<ThemeDefinition Name=""LedgerSkin"" BasedOn=""Light_Gray"">
+    <ThemeDefinition.Window>
+        <ThemeWindowSettingsDefinition BorderBrush=""rgb(72,72,72)"" TitleBarMinHeight=""28"" />
+    </ThemeDefinition.Window>
+    <ThemeDefinition.ListView>
+        <ThemeListViewSettingsDefinition GridLineBrush=""rgb(96,96,96) * 0.65"">
+            <ThemeListViewSettingsDefinition.HeaderForeground>
+                <ThemeVisualStateColorSettingDefinition NormalValue=""Black"" />
+            </ThemeListViewSettingsDefinition.HeaderForeground>
+        </ThemeListViewSettingsDefinition>
+    </ThemeDefinition.ListView>
+    <ThemeDefinition.ComboBox>
+        <ThemeComboBoxSettingsDefinition Padding=""6,3,22,3"" BorderBrush=""rgb(96,96,96)""
+                                                                         DropdownBorderBrush=""rgb(96,96,96)"" DropdownBorderThickness=""1"" />
+    </ThemeDefinition.ComboBox>
+    <ThemeDefinition.TabControl>
+        <ThemeTabControlSettingsDefinition BorderBrush=""rgb(96,96,96)"" BorderThickness=""1"" HeadersSpacing=""2"" />
+    </ThemeDefinition.TabControl>
+    <ThemeDefinition.ControlTemplates>
+        <ThemeControlTemplateDefinition ElementType=""ListView"" TemplateName=""ListView.HeadersBottom"" />
+    </ThemeDefinition.ControlTemplates>
+</ThemeDefinition>
+
+<ListView ItemType=""{x:Type controls:Person}"" />";
 
                 private const string SampleTemplatesXaml = @"
 <ControlTemplates xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"">
@@ -54,6 +119,9 @@ namespace MGUI.Samples.Features
         </ThemeDefinition.ControlTemplates>
     </ThemeDefinition>
     <ThemeDefinition Name=""LedgerSkin"" BasedOn=""Light_Gray"">
+        <ThemeDefinition.FontSettings>
+            <ThemeFontSettingsDefinition DefaultFontSize=""11"" />
+        </ThemeDefinition.FontSettings>
         <ThemeDefinition.Backgrounds>
             <ThemeBackgroundDefinition ElementType=""Window"">
                 <ThemeBackgroundDefinition.Value>
@@ -102,7 +170,8 @@ namespace MGUI.Samples.Features
             </ThemeBackgroundDefinition>
         </ThemeDefinition.Backgrounds>
         <ThemeDefinition.Window>
-            <ThemeWindowSettingsDefinition BorderBrush=""rgb(72,72,72)"" />
+            <ThemeWindowSettingsDefinition BorderBrush=""rgb(72,72,72)""
+                                           TitleBarMinHeight=""28"" />
         </ThemeDefinition.Window>
         <ThemeDefinition.ContextMenu>
             <ThemeContextMenuSettingsDefinition BorderBrush=""rgb(96,96,96)""
@@ -136,6 +205,34 @@ namespace MGUI.Samples.Features
                 </ThemeListBoxSettingsDefinition.TitleForeground>
             </ThemeListBoxSettingsDefinition>
         </ThemeDefinition.ListBox>
+        <ThemeDefinition.ListView>
+            <ThemeListViewSettingsDefinition GridLineBrush=""rgb(96,96,96) * 0.65"">
+                <ThemeListViewSettingsDefinition.HeaderForeground>
+                    <ThemeVisualStateColorSettingDefinition NormalValue=""Black""
+                                                           SelectedValue=""Black""
+                                                           FocusedValue=""Black""
+                                                           DisabledValue=""Black * 0.7"" />
+                </ThemeListViewSettingsDefinition.HeaderForeground>
+            </ThemeListViewSettingsDefinition>
+        </ThemeDefinition.ListView>
+        <ThemeDefinition.ComboBox>
+            <ThemeComboBoxSettingsDefinition Padding=""6,3,22,3""
+                                             MinHeight=""24""
+                                             BorderBrush=""rgb(96,96,96)""
+                                             DropdownArrowMargin=""0,0,6,0""
+                                             DropdownMinWidth=""220""
+                                             DropdownBorderThickness=""1""
+                                             DropdownBorderBrush=""rgb(96,96,96)""
+                                             DropdownPadding=""2""
+                                             DropdownScrollViewerPadding=""0""
+                                             DropdownItemsSpacing=""1"" />
+        </ThemeDefinition.ComboBox>
+        <ThemeDefinition.TabControl>
+            <ThemeTabControlSettingsDefinition Padding=""0""
+                                              BorderBrush=""rgb(96,96,96)""
+                                              BorderThickness=""1""
+                                              HeadersSpacing=""2"" />
+        </ThemeDefinition.TabControl>
         <ThemeDefinition.ControlTemplates>
             <ThemeControlTemplateDefinition ElementType=""ListView"" TemplateName=""ListView.HeadersBottom"" />
         </ThemeDefinition.ControlTemplates>
@@ -179,6 +276,7 @@ namespace MGUI.Samples.Features
                         MGButton ledgerSkinButton = Window.GetElementByName<MGButton>("ApplyLedgerSkinButton");
             MGButton openContextMenuButton = Window.GetElementByName<MGButton>("OpenContextMenuButton");
             MGTextBlock activeThemeText = Window.GetElementByName<MGTextBlock>("ActiveThemeText");
+                        MGTextBox xamlCoverageMatrixText = Window.GetElementByName<MGTextBox>("XamlCoverageMatrixText");
             MGTextBox exampleXamlText = Window.GetElementByName<MGTextBox>("ExampleXamlText");
             MGContextMenu sampleContextMenu = Window.GetElementByName<MGContextMenu>("SampleContextMenu");
             MGScrollViewer rootScrollViewer = Window.GetElementByName<MGScrollViewer>("RootScrollViewer");
@@ -240,14 +338,8 @@ namespace MGUI.Samples.Features
                 e.SetHandledBy(openContextMenuButton, false);
             };
 
-            exampleXamlText.SetText(
-@"<ThemeDefinition Name=""LedgerSkin"" BasedOn=""Light_Gray"">
-    <ThemeDefinition.ControlTemplates>
-        <ThemeControlTemplateDefinition ElementType=""ListView"" TemplateName=""ListView.HeadersBottom"" />
-    </ThemeDefinition.ControlTemplates>
-</ThemeDefinition>
-
-<ListView ItemType=""{x:Type controls:Person}"" />");
+            xamlCoverageMatrixText.SetText(SampleCoverageMatrixText);
+            exampleXamlText.SetText(SampleThemeExcerptText);
 
                         ApplyTheme("BlueprintSkin", "Blueprint", activeThemeText, sampleContextMenu, sampleListBox,
                             sampleListView, exampleXamlText, openContextMenuButton, rootScrollViewer,

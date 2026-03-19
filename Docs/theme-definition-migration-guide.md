@@ -100,6 +100,49 @@ Utiliser en priorite:
 - `Properties` pour les valeurs top-level restantes ;
 - `Backgrounds` pour les backgrounds cibles par `MGElementType`.
 
+## Matrice de couverture XAML
+
+### 100% pilotable en XAML aujourd'hui
+
+- declaration d'un ou plusieurs themes via `ThemeDefinition` ou `ThemeDefinitionsDocument` ;
+- inheritance de theme via `BasedOn` ;
+- `FontSettings` ;
+- `Backgrounds` par `MGElementType` ;
+- mappings de templates via `ThemeDefinition.ControlTemplates` ;
+- groupes exposes par `ThemeDefinition` quand ils existent deja dans le contrat runtime:
+  - `Window`
+  - `Overlay`
+  - `ContextMenu`
+  - `ContextMenuItem`
+  - `ListBox`
+  - `ListView`
+  - `ComboBox`
+  - `TreeViewTemplate`
+  - `TabControl`
+  - `Docking`
+- proprietes top-level explicitement exposees par `ThemePropertyTarget`.
+
+### Partiellement pilotable en XAML
+
+- le look final des controles classes `B` ou `C` dans l'inventaire de migration ;
+- les styles XAML a base de `Setter` sur des proprietes publiques ;
+- les `ControlTemplate` XAML pour les controles deja migres vers le modele a parts/templates ;
+- les variations structurelles qui passent par un root de template et des `TemplatePart` explicites.
+
+### Pas encore completement pilotable en XAML
+
+- les proprietes de `MGTheme` qui ne sont pas exposees par `ThemeDefinition` ou `ThemePropertyTarget` ;
+- les comportements visuels encore imperatifs dans les controles classes `C` ou `D` ;
+- une skin 100% XAML de toute la bibliotheque sans appui sur le code C# existant ;
+- un systeme de styles de niveau WPF complet avec triggers generiques et visual states declaratifs globaux.
+
+### Regle pratique
+
+- si une valeur existe dans un groupe de `ThemeDefinition`, dans `Backgrounds`, dans `ControlTemplates`, ou dans `ThemePropertyTarget`, elle est pilotable en XAML ;
+- sinon il faut encore etendre le contrat C# avant de pouvoir la definir en XAML.
+
+Voir aussi l'exemple enrichi dans `MGUI.Samples/Features/StyleThemeRefactor.xaml` et `MGUI.Samples/Features/StyleThemeRefactor.xaml.cs`.
+
 ## Migration depuis un theme code en C#
 
 Avant:
