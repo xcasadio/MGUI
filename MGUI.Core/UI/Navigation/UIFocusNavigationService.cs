@@ -203,6 +203,11 @@ namespace MGUI.Core.UI.Navigation
 
         internal bool TryDispatchNavigationAction(BaseKeyPressedEventArgs e)
         {
+            if (e.IsHandled)
+            {
+                return false;
+            }
+
             MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
                 ? Desktop.FocusedKeyboardHandler
                 : null;

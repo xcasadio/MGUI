@@ -253,7 +253,7 @@ Resultat:
 - l'opt-in `InvokeEvenIfHandled=true` reste disponible et teste ;
 - aucun refactor supplementaire du dispatch souris n'a ete force, car le comportement de base etait deja correct et le risque principal du chantier reste cote clavier/focus.
 
-### ⚪ 6. Enforcer le routage clavier et la consommation des events
+### ✅ 6. Enforcer le routage clavier et la consommation des events
 
 But:
 faire en sorte que le clavier soit route comme dans un framework UI moderne: focus d'abord, fallback seulement si autorise, aucune fuite vers les controles non legitimes.
@@ -277,6 +277,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `input: complete task 6 enforce keyboard routing and consumption`
+
+Resultat:
+
+- le dispatch de navigation clavier ignore explicitement les events deja claims ;
+- la voie desktop de navigation revalide l'eligibilite effective du focus avant de router ;
+- des regressions dediees verrouillent le fait qu'un host non focus ne recoit pas de key events, y compris en presence d'opt-ins comme `InvokeEvenIfHandled`.
 
 ### ⚪ 7. Aligner les controles composites qui gerent le clavier
 

@@ -675,6 +675,54 @@ public class InputEnhancedTests
         Assert.Equal(1, newFocusedKeyUp);
     }
 
+    [Fact]
+    public void KeyboardHandler_HandledKeyDown_DoesNotReachUnfocusedHost()
+    {
+        InputTracker tracker = new();
+        KeyboardHost focusedHost = new() { HasFocus = true };
+        KeyboardHost unfocusedHost = new() { HasFocus = false };
+        KeyboardHandler focusedHandler = tracker.Keyboard.CreateHandler(focusedHost, 20);
+        KeyboardHandler unfocusedHandler = tracker.Keyboard.CreateHandler(unfocusedHost, 10, false, true);
+
+        int focusedKeyDown = 0;
+        int unfocusedKeyDown = 0;
+
+        focusedHandler.KeyDown += (_, e) =>
+        {
+            focusedKeyDown++;
+            e.SetHandledBy(focusedHost, false);
+        };
+        unfocusedHandler.KeyDown += (_, _) => unfocusedKeyDown++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+
+        Assert.Equal(1, focusedKeyDown);
+        Assert.Equal(0, unfocusedKeyDown);
+    }
+
+    [Fact]
+    public void KeyboardHandler_InvokeEvenIfHandled_DoesNotBypassFocusRequirement()
+    {
+        InputTracker tracker = new();
+        KeyboardHost focusedHost = new() { HasFocus = true };
+        KeyboardHost unfocusedHost = new() { HasFocus = false };
+        KeyboardHandler focusedHandler = tracker.Keyboard.CreateHandler(focusedHost, 20);
+        KeyboardHandler unfocusedHandler = tracker.Keyboard.CreateHandler(unfocusedHost, 10, false, true);
+
+        int unfocusedKeyUp = 0;
+
+        focusedHandler.KeyDown += (_, e) => e.SetHandledBy(focusedHost, false);
+        unfocusedHandler.KeyUp += (_, _) => unfocusedKeyUp++;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A)));
+        tracker.Keyboard.UpdateHandlers();
+        tracker.Update(CreateUpdateArgs(10, CreateMouseState(Point.Zero), new KeyboardState()));
+        tracker.Keyboard.UpdateHandlers();
+
+        Assert.Equal(0, unfocusedKeyUp);
+    }
+
     [Theory]
     [InlineData(true, 1, true)]
     [InlineData(true, 2, false)]
