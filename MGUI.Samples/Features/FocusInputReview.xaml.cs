@@ -44,6 +44,13 @@ namespace MGUI.Samples.Features
             PopupTextBox = PopupWindow.GetElementByName<MGTextBox>("PopupTextBox");
             PopupListBox = PopupWindow.GetElementByName<MGListBox<string>>("PopupListBox");
 
+            SearchTextBox.IsFocusable = true;
+            ContextMenuTextBox.IsFocusable = true;
+            CoveredTextBox.IsFocusable = true;
+            OverlayTextBox.IsFocusable = true;
+            PopupTextBox.IsFocusable = true;
+            Window.DefaultFocusElement = SearchTextBox;
+
             FilterComboBox.SetItemsSource(new[]
             {
                 "All items",
@@ -130,6 +137,7 @@ namespace MGUI.Samples.Features
                 Name = "PopupTextBox",
                 PlaceholderText = "Type here after opening the popup"
             };
+            popupTextBox.IsFocusable = true;
             content.TryAddChild(popupTextBox);
 
             MGListBox<string> popupListBox = new(popupWindow)

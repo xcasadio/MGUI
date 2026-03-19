@@ -2302,13 +2302,15 @@ namespace MGUI.Core.UI
 
         private void ComputeTopmostHoveredElement(bool IsParentEnabled, bool IsParentHitTestVisible, bool CanParentReceiveMouseInput, Vector2 unscaledMousePos, ref MGElement Result)
         {
-            if (Visibility != Visibility.Visible)
+            bool canReceiveMouseInputWhileHidden = Visibility == Visibility.Hidden && CanHandleInputsWhileHidden;
+
+            if (Visibility != Visibility.Visible && !canReceiveMouseInputWhileHidden)
             {
                 return;
             }
 
             // Skip elements that were clipped / not rendered
-            if (RecentDrawWasClipped)
+            if (RecentDrawWasClipped && !canReceiveMouseInputWhileHidden)
             {
                 return;
             }

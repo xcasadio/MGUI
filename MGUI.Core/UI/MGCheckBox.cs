@@ -35,6 +35,7 @@ namespace MGUI.Core.UI
         public MGComponent<MGButton> ButtonComponent { get; }
         /// <summary>The checkable button portion of this <see cref="MGCheckBox"/></summary>
         public MGButton ButtonElement { get; }
+        private MGComponent<MGCheckStateIcon> CheckStateIconComponent { get; }
         private MGCheckStateIcon CheckStateIcon { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -259,15 +260,14 @@ namespace MGUI.Core.UI
                 ButtonElement.Padding = new(0);
 
                 CheckStateIcon = new(Window) { ManagedParent = this };
-                using (ButtonElement.AllowChangingContentTemporarily())
-                {
-                    ButtonElement.SetContent(CheckStateIcon);
-                }
 
                 ButtonComponent = new(ButtonElement, false, true, true, true, false, false, false,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Left, VerticalAlignment.Center, ComponentSize.Size));
+                CheckStateIconComponent = new(CheckStateIcon, false, true, true, true, false, false, false,
+                    (AvailableBounds, ComponentSize) => ButtonElement.LayoutBounds.GetCompressed(ButtonElement.BorderThickness));
 
                 AddComponent(ButtonComponent);
+                AddComponent(CheckStateIconComponent);
 
                 CheckBoxComponentSize = DefaultCheckBoxSize;
                 SpacingWidth = DefaultCheckBoxSpacingWidth;

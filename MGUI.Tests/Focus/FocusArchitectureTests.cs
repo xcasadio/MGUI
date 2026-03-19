@@ -72,4 +72,64 @@ public class FocusArchitectureTests
         Assert.True(nestedUpdateIndex > modalUpdateIndex);
         Assert.Contains("This ensures the ModalWindow effectively blocks all input to NestedWindows.", windowSource);
     }
+
+    [Fact]
+    public void Desktop_Blocking_Policy_Allows_Elements_Inside_The_Active_Overlay()
+    {
+        string desktopSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
+
+        Assert.Contains("&& !OverlayHost.ActiveOverlayPresenter.IsSelfOrAncestorOf(element)", desktopSource);
+        Assert.Contains("&& !OverlayHost.ActiveOverlay.IsSelfOrAncestorOf(element)", desktopSource);
+    }
+
+    [Fact]
+    public void Button_Source_Only_Raises_Click_When_The_Press_Started_On_That_Button()
+    {
+        string buttonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGButton.cs");
+
+        Assert.Contains("bool pressedInsideThisButton = PressedArgs != null;", buttonSource);
+        Assert.Contains("if (e.IsLMB && pressedInsideThisButton)", buttonSource);
+        Assert.Contains("MouseHandler.ReleasedOutside += (sender, e) =>", buttonSource);
+    }
+
+    [Fact]
+    public void Overlay_Source_Preserves_Queued_Focus_For_Targets_Inside_The_Active_Overlay()
+    {
+        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
+
+        Assert.Contains("MGElement Queued = GetDesktop().QueuedFocusedKeyboardHandler;", overlaySource);
+        Assert.Contains("if (Queued != null && !IsInsideActiveOverlay(Queued))", overlaySource);
+        Assert.Contains("GetDesktop().ClearQueuedFocusedKeyboardHandler();", overlaySource);
+    }
+
+    [Fact]
+    public void ToggleButton_Source_Only_Toggles_When_The_Press_Started_On_That_Toggle()
+    {
+        string toggleButtonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGToggleButton.cs");
+
+        Assert.Contains("MouseHandler.LMBPressedInside += (sender, e) =>", toggleButtonSource);
+        Assert.Contains("if (PressedArgs != null)", toggleButtonSource);
+        Assert.Contains("MouseHandler.ReleasedOutside += (sender, e) =>", toggleButtonSource);
+    }
+
+    [Fact]
+    public void Element_HitTesting_Allows_Hidden_Elements_That_Explicitly_Handle_Input()
+    {
+        string elementSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+
+        Assert.Contains("bool canReceiveMouseInputWhileHidden = Visibility == Visibility.Hidden && CanHandleInputsWhileHidden;", elementSource);
+        Assert.Contains("if (Visibility != Visibility.Visible && !canReceiveMouseInputWhileHidden)", elementSource);
+        Assert.Contains("if (RecentDrawWasClipped && !canReceiveMouseInputWhileHidden)", elementSource);
+    }
+
+    [Fact]
+    public void RadioButton_Source_Handles_Clicks_Directly_On_The_Control()
+    {
+        string radioButtonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGRadioButton.cs");
+
+        Assert.Contains("MouseHandler.LMBPressedInside += (sender, e) =>", radioButtonSource);
+        Assert.Contains("MouseHandler.LMBReleasedInside += (sender, e) =>", radioButtonSource);
+        Assert.Contains("IsChecked = !IsChecked;", radioButtonSource);
+        Assert.Contains("ButtonElement.IsHitTestVisible = false;", radioButtonSource);
+    }
 }

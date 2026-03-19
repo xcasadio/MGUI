@@ -248,18 +248,30 @@ namespace MGUI.Core.UI
                 {
                     if (IsModal && ActiveOverlay != null)
                     {
-                        MGElement Focused = GetDesktop().FocusedKeyboardHandler;
-                        if (Focused != null)
+                        bool IsInsideActiveOverlay(MGElement element)
                         {
-                            bool FocusedIsInsideOverlay = Focused.TraverseVisualTree(false, false, true, false, TreeTraversalMode.Preorder)
-                                .Any(x => x == ActiveOverlayPresenter) || Focused == ActiveOverlayPresenter ||
-                                ActiveOverlayPresenter.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Contains(Focused);
-                            if (!FocusedIsInsideOverlay)
+                            if (element == null)
                             {
-                                Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
-                                GetDesktop().ClearQueuedFocusedKeyboardHandler();
-                                GetDesktop().ClearFocusedKeyboardHandler();
+                                return false;
                             }
+
+                            return element == ActiveOverlayPresenter
+                                || ActiveOverlayPresenter.IsSelfOrAncestorOf(element)
+                                || ActiveOverlay.IsSelfOrAncestorOf(element)
+                                || ActiveOverlayPresenter.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Contains(element);
+                        }
+
+                        MGElement Queued = GetDesktop().QueuedFocusedKeyboardHandler;
+                        if (Queued != null && !IsInsideActiveOverlay(Queued))
+                        {
+                            GetDesktop().ClearQueuedFocusedKeyboardHandler();
+                        }
+
+                        MGElement Focused = GetDesktop().FocusedKeyboardHandler;
+                        if (Focused != null && !IsInsideActiveOverlay(Focused))
+                        {
+                            Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
+                            GetDesktop().ClearFocusedKeyboardHandler();
                         }
                     }
                 };

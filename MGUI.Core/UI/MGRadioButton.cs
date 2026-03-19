@@ -136,6 +136,7 @@ namespace MGUI.Core.UI
         /// <summary>The checkable button portion of this <see cref="MGRadioButton"/></summary>
         private MGButton ButtonElement { get; }
         private MGRadioIndicatorIcon IndicatorElement { get; }
+        private BaseMousePressedEventArgs PressedArgs { get; set; }
 
         /// <summary>The default width/height of the checkable part of an <see cref="MGRadioButton"/></summary>
         public const int DefaultBubbleSize = 16;
@@ -318,12 +319,32 @@ namespace MGUI.Core.UI
                 this.Group = Group;
                 Group.AddRadioButton(this);
 
+                MouseHandler.LMBPressedInside += (sender, e) =>
+                {
+                    PressedArgs = e;
+                };
+                MouseHandler.LMBReleasedInside += (sender, e) =>
+                {
+                    if (PressedArgs != null)
+                    {
+                        IsChecked = !IsChecked;
+                        PressedArgs = null;
+                    }
+                };
+                MouseHandler.ReleasedOutside += (sender, e) =>
+                {
+                    if (PressedArgs != null)
+                    {
+                        PressedArgs = null;
+                    }
+                };
+
                 ButtonElement = new(Window, x => IsChecked = !IsChecked);
                 ButtonElement.IsFocusable = false;
+                ButtonElement.IsHitTestVisible = false;
                 ButtonElement.MinHeight = 8;
                 ButtonElement.MinWidth = 8;
-                ButtonElement.Visibility = Visibility.Hidden;
-                ButtonElement.CanHandleInputsWhileHidden = true;
+                ButtonElement.Opacity = 0.0f;
 
                 ButtonComponent = new(ButtonElement, false, true, true, true, false, false, false,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Left, VerticalAlignment.Center, ComponentSize.Size));
@@ -341,6 +362,7 @@ namespace MGUI.Core.UI
                 BubbleCheckedColor = GetTheme().RadioButtonCheckedFillColor;
 
                 SpacingWidth = DefaultBubbleSpacingWidth;
+                HandleCheckStateChanged();
             }
         }
 

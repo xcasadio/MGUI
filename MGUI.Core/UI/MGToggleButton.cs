@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Shared.Input.Mouse;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
 
@@ -128,15 +129,32 @@ namespace MGUI.Core.UI
                 Padding = new(4, 2, 4, 2);
                 CheckedTextForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;
 
+                MouseHandler.LMBPressedInside += (sender, e) =>
+                {
+                    PressedArgs = e;
+                };
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {
-                    this.IsChecked = GetNextCheckedState(this.IsChecked);
-                    e.SetHandledBy(this, false);
+                    if (PressedArgs != null)
+                    {
+                        this.IsChecked = GetNextCheckedState(this.IsChecked);
+                        e.SetHandledBy(this, false);
+                        PressedArgs = null;
+                    }
+                };
+                MouseHandler.ReleasedOutside += (sender, e) =>
+                {
+                    if (PressedArgs != null)
+                    {
+                        PressedArgs = null;
+                    }
                 };
 
                 this.IsChecked = IsChecked;
             }
         }
+
+        private BaseMousePressedEventArgs PressedArgs { get; set; }
 
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {

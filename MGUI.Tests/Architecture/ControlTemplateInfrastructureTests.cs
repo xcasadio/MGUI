@@ -874,8 +874,12 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("RadioIconElement = new(Menu) { ManagedParent = this }", contextMenuItemSource);
         Assert.Contains("ExpanderArrowElement = new(Window) { ManagedParent = this }", expanderSource);
         Assert.Contains("CheckStateIcon = new(Window) { ManagedParent = this }", checkBoxSource);
+        Assert.Contains("CheckStateIconComponent = new(CheckStateIcon", checkBoxSource);
         Assert.Contains("new(Window) { ManagedParent = this }", radioButtonSource);
+        Assert.Contains("ButtonElement.Opacity = 0.0f;", radioButtonSource);
         Assert.Contains("IndicatorComponent = new(IndicatorElement", radioButtonSource);
+        Assert.Contains("HandleCheckStateChanged();", radioButtonSource);
+        Assert.DoesNotContain("ButtonElement.Visibility = Visibility.Hidden;", radioButtonSource);
         Assert.DoesNotContain("ButtonElement.OnEndingDraw +=", checkBoxSource);
         Assert.DoesNotContain("HeaderPresenter.OnEndingDraw +=", contextMenuItemSource);
         Assert.DoesNotContain("ExpanderToggleButton.OnEndingDraw +=", expanderSource);

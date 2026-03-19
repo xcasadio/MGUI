@@ -237,7 +237,8 @@ namespace MGUI.Core.UI
             }
 
             if (OverlayHost?.IsModal == true && OverlayHost.ActiveOverlay != null && OverlayHost.ActiveOverlayPresenter != null
-                && !OverlayHost.ActiveOverlayPresenter.IsSelfOrAncestorOf(element))
+                && !OverlayHost.ActiveOverlayPresenter.IsSelfOrAncestorOf(element)
+                && !OverlayHost.ActiveOverlay.IsSelfOrAncestorOf(element))
             {
                 return true;
             }
