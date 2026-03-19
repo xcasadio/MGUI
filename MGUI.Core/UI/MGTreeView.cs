@@ -50,7 +50,7 @@ namespace MGUI.Core.UI
         private readonly ObservableCollection<MGTreeViewItem> _Items;
         private MGTreeViewItem _SelectedItem;
         private readonly List<MGTreeViewItem> _VisibleItemsCache;
-        private int _IndentSize = 20;
+        private int _IndentSize = MGControlTemplateCatalog.DefaultTreeViewIndentSize;
         private VisualStateFillBrush _SelectionBackgroundBrush;
         private Color _SelectionForeground;
         private System.Collections.IEnumerable _ItemsSource;

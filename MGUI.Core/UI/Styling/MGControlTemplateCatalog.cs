@@ -44,6 +44,7 @@ namespace MGUI.Core.UI.Styling
         public static readonly Thickness DefaultListBoxItemPadding = new(6, 4);
         public static readonly Thickness DefaultListBoxItemContentPadding = new(1, 0);
         public static readonly Thickness DefaultComboBoxDropdownItemPadding = new(8, 5, 8, 5);
+        public const int DefaultTreeViewIndentSize = 20;
 
         public static MGUniformBorderBrush CreateDefaultListBoxItemBorderBrush()
             => new MGSolidFillBrush(Color.Black * 0.35f).AsUniformBorderBrush();
@@ -65,6 +66,9 @@ namespace MGUI.Core.UI.Styling
 
         public static MGElement CreateDefaultComboBoxSelectedItemContent<TItemType>(MGWindow Window, TItemType Item)
             => new MGTextBlock(Window, Item?.ToString()) { WrapText = false, VerticalAlignment = VerticalAlignment.Center };
+
+        public static MGElement CreateDefaultTreeViewItemHeaderContent(MGWindow Window, object Header)
+            => new MGTextBlock(Window, Header?.ToString() ?? string.Empty);
 
         public static void ApplyListBoxItemContainerDefaults(MGElement Owner, MGBorder Item)
         {
@@ -683,7 +687,7 @@ namespace MGUI.Core.UI.Styling
             VisualStateFillBrush SelectionBrush = Theme?.TreeViewSelectionBackground?.GetValue(true);
             Context.ApplyThemeDefault("TreeView.SelectionBackgroundBrush", SelectionBrush ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue)), () => TreeView.SelectionBackgroundBrush, value => TreeView.SelectionBackgroundBrush = value);
             Context.ApplyThemeDefault("TreeView.SelectionForeground", Theme?.TreeViewSelectionForeground ?? Color.Black, () => TreeView.SelectionForeground, value => TreeView.SelectionForeground = value);
-            Context.ApplyThemeDefault("TreeView.IndentSize", Theme?.TreeViewIndentSize ?? TreeView.IndentSize, () => TreeView.IndentSize, value => TreeView.IndentSize = value);
+            Context.ApplyThemeDefault("TreeView.IndentSize", Theme?.TreeViewIndentSize ?? DefaultTreeViewIndentSize, () => TreeView.IndentSize, value => TreeView.IndentSize = value);
         }
 
         private static void ApplyTextBoxTemplate(MGControlTemplateContext Context)

@@ -568,10 +568,24 @@ public class ControlTemplateInfrastructureTests
     public void TreeView_Selection_Visuals_Refresh_From_Selection_Property_Setters()
     {
         string treeViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs");
+        string treeViewItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
 
         Assert.Contains("_SelectionBackgroundBrush = value;", treeViewSource);
         Assert.Contains("SelectedItem?.RefreshSelectionVisual();", treeViewSource);
         Assert.Contains("_SelectionForeground = value;", treeViewSource);
+        Assert.Contains("public const int DefaultTreeViewIndentSize = 20;", catalogSource);
+        Assert.Contains("public static MGElement CreateDefaultTreeViewItemHeaderContent", catalogSource);
+        Assert.Contains("private int _IndentSize = MGControlTemplateCatalog.DefaultTreeViewIndentSize;", treeViewSource);
+        Assert.Contains("Theme?.TreeViewIndentSize ?? DefaultTreeViewIndentSize", catalogSource);
+        Assert.Contains("HeaderContent = MGControlTemplateCatalog.CreateDefaultTreeViewItemHeaderContent(SelfOrParentWindow, text);", treeViewItemSource);
+        Assert.Contains("HeaderContent = MGControlTemplateCatalog.CreateDefaultTreeViewItemHeaderContent(SelfOrParentWindow, _Header);", treeViewItemSource);
+        Assert.Contains("HeaderContent = MGControlTemplateCatalog.CreateDefaultTreeViewItemHeaderContent(SelfOrParentWindow, null);", treeViewItemSource);
+        Assert.Contains("OwnerTreeView?.IndentSize ?? MGControlTemplateCatalog.DefaultTreeViewIndentSize", treeViewItemSource);
+        Assert.DoesNotContain("private int _IndentSize = 20;", treeViewSource);
+        Assert.DoesNotContain("new MGTextBlock(SelfOrParentWindow, text);", treeViewItemSource);
+        Assert.DoesNotContain("new MGTextBlock(SelfOrParentWindow, _Header.ToString());", treeViewItemSource);
+        Assert.DoesNotContain("new MGTextBlock(SelfOrParentWindow, string.Empty);", treeViewItemSource);
     }
 
     [Fact]

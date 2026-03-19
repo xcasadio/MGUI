@@ -283,7 +283,7 @@ Reason:
 
 - `🟡 Finish MGTreeView migration`
   - Deliverable: remaining visual assumptions move out of tree view control code.
-  - Progress: selection visual refresh now happens from selection property setters instead of theme-change deselect/reselect hacks.
+  - Progress: selection visual refresh now happens from selection property setters instead of theme-change deselect/reselect hacks, and the default indent fallback plus default tree-item header content creation now live in `MGControlTemplateCatalog` instead of `MGTreeView` / `MGTreeViewItem` literals.
   - Validation: tree view architecture tests.
   - Commit: `style-theme: finish tree view lookless migration`
 

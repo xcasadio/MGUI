@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Input.Mouse;
 using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
@@ -63,7 +64,7 @@ public class MGTreeViewItem : MGSingleContentHost
     {
         if (_Header is string text)
         {
-            HeaderContent = new MGTextBlock(SelfOrParentWindow, text);
+            HeaderContent = MGControlTemplateCatalog.CreateDefaultTreeViewItemHeaderContent(SelfOrParentWindow, text);
         }
         else if (_Header is MGElement element)
         {
@@ -71,11 +72,11 @@ public class MGTreeViewItem : MGSingleContentHost
         }
         else if (_Header != null)
         {
-            HeaderContent = new MGTextBlock(SelfOrParentWindow, _Header.ToString());
+            HeaderContent = MGControlTemplateCatalog.CreateDefaultTreeViewItemHeaderContent(SelfOrParentWindow, _Header);
         }
         else
         {
-            HeaderContent = new MGTextBlock(SelfOrParentWindow, string.Empty);
+            HeaderContent = MGControlTemplateCatalog.CreateDefaultTreeViewItemHeaderContent(SelfOrParentWindow, null);
         }
 
         using (HeaderContainer.AllowChangingContentTemporarily())
@@ -242,7 +243,7 @@ public class MGTreeViewItem : MGSingleContentHost
 
     internal void UpdateIndentation()
     {
-        int indent = Level * (OwnerTreeView?.IndentSize ?? 20);
+        int indent = Level * (OwnerTreeView?.IndentSize ?? MGControlTemplateCatalog.DefaultTreeViewIndentSize);
         if (IndentationBorder.PreferredWidth != indent)
         {
             IndentationBorder.PreferredWidth = indent;
