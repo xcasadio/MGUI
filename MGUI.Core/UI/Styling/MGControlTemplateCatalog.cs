@@ -40,6 +40,27 @@ namespace MGUI.Core.UI.Styling
         public const string DockSplitterTemplateName = "Dock.Splitter.Default";
         public const string DockDropIndicatorsTemplateName = "Dock.DropIndicators.Default";
 
+        public static readonly Thickness DefaultListBoxItemBorderThickness = new(0, 1);
+        public static readonly Thickness DefaultListBoxItemPadding = new(6, 4);
+
+        public static MGUniformBorderBrush CreateDefaultListBoxItemBorderBrush()
+            => new MGSolidFillBrush(Color.Black * 0.35f).AsUniformBorderBrush();
+
+        public static void ApplyListBoxItemContainerDefaults(MGElement Owner, MGBorder Item)
+        {
+            if (Owner == null || Item == null)
+            {
+                return;
+            }
+
+            MGTheme theme = Owner.GetTheme();
+            Item.BorderBrush = CreateDefaultListBoxItemBorderBrush();
+            Item.BorderThickness = DefaultListBoxItemBorderThickness;
+            Item.Padding = DefaultListBoxItemPadding;
+            Item.BackgroundBrush = theme.ListBoxItemBackground.GetValue(true);
+            Item.DefaultTextForeground.SetAll(theme.TextBlockFallbackForeground.GetValue(true).NormalValue);
+        }
+
         public static void RegisterDefaults(MGResources Resources)
         {
             if (Resources == null)

@@ -1251,8 +1251,8 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            _virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? DefaultItemBorderThickness;
-            _virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? DefaultItemBorderBrush;
+            _virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness;
+            _virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush();
         }
 
         /// <summary>Estimates the pixel height of individual items for the <see cref="VirtualizingStackPanel"/>.<br/>
@@ -1385,17 +1385,8 @@ namespace MGUI.Core.UI
 
         public event EventHandler<EventArgs> ItemTemplateChanged;
 
-        public readonly MGUniformBorderBrush DefaultItemBorderBrush = new MGSolidFillBrush(Color.Black * 0.35f).AsUniformBorderBrush();
-        public readonly Thickness DefaultItemBorderThickness = new(0, 1);
-
         public void ApplyDefaultItemContainerStyle(MGBorder Item)
-        {
-            Item.BorderBrush = DefaultItemBorderBrush;
-            Item.BorderThickness = DefaultItemBorderThickness;
-            Item.Padding = new(6, 4);
-            Item.BackgroundBrush = GetTheme().ListBoxItemBackground.GetValue(true);
-            Item.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
-        }
+            => MGControlTemplateCatalog.ApplyListBoxItemContainerDefaults(this, Item);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Action<MGBorder> _ItemContainerStyle;

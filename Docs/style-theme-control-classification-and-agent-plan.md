@@ -228,7 +228,7 @@ Reason:
 - `🟡 Eliminate control-local visual literals from migrated templates`
   - Deliverable: colors, padding, border literals move out of control logic into template/theme defaults where possible.
   - Validation: source-level audit tests for migrated controls.
-  - Progress: `MGTabControl.Background`, `MGComboBox.DropdownArrowColor`, `MGComboBox.Padding`, `MGComboBox.MinHeight`, `MGTextBox.Padding`, and `MGTextBox.MinHeight` now resolve through template defaults; `MGTreeView` no longer relies on theme-change reselection; `MGListBox` no longer overwrites template-owned items-panel chrome during construction or template attachment; `MGListView` grid-line and header-spacer chrome now resolve through the template catalog; `MGWindow` and `MGOverlay` no longer hardcode template-owned padding in constructors.
+  - Progress: `MGTabControl.Background`, `MGComboBox.DropdownArrowColor`, `MGComboBox.Padding`, `MGComboBox.MinHeight`, `MGTextBox.Padding`, and `MGTextBox.MinHeight` now resolve through template defaults; `MGTreeView` no longer relies on theme-change reselection; `MGListBox` no longer overwrites template-owned items-panel chrome during construction or template attachment and now delegates default item-container chrome through the template catalog; `MGListView` grid-line and header-spacer chrome now resolve through the template catalog; `MGWindow` and `MGOverlay` no longer hardcode template-owned padding in constructors.
   - Commit: `style-theme: remove local visual literals from migrated controls`
 
 - `✅ Separate structural parts from visual-state defaults`
@@ -252,7 +252,7 @@ Reason:
 
 - `🟡 Finish MGListBox migration`
   - Deliverable: title, outer border, inner border, and scrollviewer visuals are template-owned.
-  - Progress: removed constructor/attach-time items-panel chrome overrides and synced virtualized panel chrome from template-owned panel state.
+  - Progress: removed constructor/attach-time items-panel chrome overrides, synced virtualized panel chrome from template-owned panel state, and delegated default item-container chrome through `MGControlTemplateCatalog`.
   - Validation: list box architecture tests.
   - Commit: `style-theme: finish list box lookless migration`
 

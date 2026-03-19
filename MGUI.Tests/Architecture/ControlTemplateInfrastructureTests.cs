@@ -555,12 +555,18 @@ public class ControlTemplateInfrastructureTests
     public void ListBox_Does_Not_Overwrite_Template_Owned_ItemsPanel_Chrome()
     {
         string listBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
 
         Assert.Contains("private void SyncVirtualizedItemsPanelChrome()", listBoxSource);
-        Assert.Contains("_virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? DefaultItemBorderThickness;", listBoxSource);
-        Assert.Contains("_virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? DefaultItemBorderBrush;", listBoxSource);
+        Assert.Contains("_virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness;", listBoxSource);
+        Assert.Contains("_virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush();", listBoxSource);
+        Assert.Contains("public static void ApplyListBoxItemContainerDefaults", catalogSource);
+        Assert.Contains("Item.Padding = DefaultListBoxItemPadding;", catalogSource);
+        Assert.Contains("=> MGControlTemplateCatalog.ApplyListBoxItemContainerDefaults(this, Item);", listBoxSource);
         Assert.DoesNotContain("ItemsPanel.BorderThickness = DefaultItemBorderThickness;", listBoxSource);
         Assert.DoesNotContain("ItemsPanel.BorderBrush = DefaultItemBorderBrush;", listBoxSource);
+        Assert.DoesNotContain("public readonly MGUniformBorderBrush DefaultItemBorderBrush", listBoxSource);
+        Assert.DoesNotContain("public readonly Thickness DefaultItemBorderThickness", listBoxSource);
         Assert.DoesNotContain("SetTitleAndContentBorder(SolidFillBrushes.Black, 1);", listBoxSource);
     }
 
