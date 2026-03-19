@@ -284,7 +284,7 @@ Resultat:
 - la voie desktop de navigation revalide l'eligibilite effective du focus avant de router ;
 - des regressions dediees verrouillent le fait qu'un host non focus ne recoit pas de key events, y compris en presence d'opt-ins comme `InvokeEvenIfHandled`.
 
-### ⚪ 7. Aligner les controles composites qui gerent le clavier
+### ✅ 7. Aligner les controles composites qui gerent le clavier
 
 But:
 supprimer les divergences de comportement entre les controles comme listes, arbres, menus et combo boxes.
@@ -315,6 +315,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `controls: complete task 7 align keyboard-driven composite controls`
+
+Resultat:
+
+- `MGListBox` conserve seulement son extra specifique (`Ctrl+A`) sur le handler brut ;
+- `MGListView`, `MGTreeView` et `MGMenuBar` n'empilent plus une seconde voie de navigation clavier au-dessus de `TryHandleNavigationAction(...)` ;
+- les controles composites critiques convergent vers un contrat unique de navigation, avec moins de doubles traitements et moins de differences de `SetHandledBy(...)`.
 
 ### ⚪ 8. Bloquer l'input des controles caches, occlus ou derriere overlay
 

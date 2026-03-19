@@ -385,7 +385,6 @@ namespace MGUI.Core.UI
                 SelectionMode = GridSelectionMode.None;
 
                 IsFocusable = true;
-                KeyboardHandler.Pressed += OnListViewKeyPressed;
             }
         }
 

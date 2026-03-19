@@ -1599,6 +1599,11 @@ namespace MGUI.Core.UI
 
         private void OnListBoxKeyPressed(object sender, BaseKeyPressedEventArgs e)
         {
+            if (e.IsHandled)
+            {
+                return;
+            }
+
             int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
             if (count == 0)
             {
@@ -1616,47 +1621,6 @@ namespace MGUI.Core.UI
                     e.SetHandledBy(this, true);
                 }
                 return;
-            }
-
-            int newIndex = FocusedIndex;
-            switch (e.Key)
-            {
-                case Keys.Up:       newIndex = Math.Max(0, FocusedIndex <= 0 ? 0 : FocusedIndex - 1); break;
-                case Keys.Down:     newIndex = Math.Min(count - 1, FocusedIndex < 0 ? 0 : FocusedIndex + 1); break;
-                case Keys.Home:     newIndex = 0; break;
-                case Keys.End:      newIndex = count - 1; break;
-                case Keys.PageUp:   newIndex = Math.Max(0, FocusedIndex - 10); break;
-                case Keys.PageDown: newIndex = Math.Min(count - 1, FocusedIndex + 10); break;
-                case Keys.Space:
-                case Keys.Enter:
-                    if (FocusedIndex >= 0 && FocusedIndex < count && SelectionMode != ListBoxSelectionMode.None)
-                    {
-                        TItemType item = GetLogicalItemAt(FocusedIndex);
-                        if (item != null)
-                        {
-                            SelectItem(item, true);
-                        }
-
-                        e.SetHandledBy(this, true);
-                    }
-                    return;
-                default:
-                    return;
-            }
-
-            if (newIndex != FocusedIndex || FocusedIndex < 0)
-            {
-                FocusedIndex = newIndex;
-                ((INavigationTargetVisibilityHandler)this).EnsureNavigationTargetVisible();
-                if (SelectionMode != ListBoxSelectionMode.None)
-                {
-                    TItemType item = GetLogicalItemAt(FocusedIndex);
-                    if (item != null)
-                    {
-                        SelectItem(item, true);
-                    }
-                }
-                e.SetHandledBy(this, true);
             }
         }
 

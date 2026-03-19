@@ -512,41 +512,6 @@ namespace MGUI.Core.UI
                 MinHeight = 22;
                 Padding = new Thickness(2, 1, 2, 1);
 
-                // Keyboard navigation: ← / → moves between top-level items, Escape closes the menu
-                KeyboardHandler.Pressed += (sender, e) =>
-                {
-                    if (!IsMenuActive)
-                    {
-                        return;
-                    }
-
-                    if (e.Key == Keys.Left)
-                    {
-                        int Idx = _Items.IndexOf(ActiveItem);
-                        if (Idx > 0)
-                        {
-                            OpenItem(_Items[Idx - 1]);
-                        }
-
-                        e.SetHandledBy(this, false);
-                    }
-                    else if (e.Key == Keys.Right)
-                    {
-                        int Idx = _Items.IndexOf(ActiveItem);
-                        if (Idx >= 0 && Idx < _Items.Count - 1)
-                        {
-                            OpenItem(_Items[Idx + 1]);
-                        }
-
-                        e.SetHandledBy(this, false);
-                    }
-                    else if (e.Key == Keys.Escape)
-                    {
-                        CloseActiveItem();
-                        e.SetHandledBy(this, false);
-                    }
-                };
-
                 _Items = new();
                 _Items.CollectionChanged += (sender, e) =>
                 {

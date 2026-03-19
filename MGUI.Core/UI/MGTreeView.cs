@@ -277,7 +277,6 @@ namespace MGUI.Core.UI
 
             // Enable keyboard navigation
             IsFocusable = true;
-            KeyboardHandler.Pressed += OnKeyPressed;
         }
 
         protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
