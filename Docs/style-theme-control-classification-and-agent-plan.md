@@ -101,15 +101,15 @@ Verified architecture coverage already exists for:
 | `MGResponsiveRoot` | A | Layout/infrastructure type, not a style-heavy control. |
 | `MGContentHost` / presenters | A | Core composition primitives that support decoupling rather than fighting it. |
 | `VirtualizingStackPanel` | A | Performance/layout container, visually neutral. |
-| `MGDockTabItem` | D | Custom tab visuals, manual close icon handling, and docking-specific rendering remain control-owned. |
-| `MGDockTabGroup` | D | Strongly imperative structure and manual icon/accent rendering. |
-| `MGDockAutoHideDrawer` | D | Template name exists, but actual visuals, icons, border, and grip highlights are still drawn directly in code. |
-| `MGDockAutoHideStrip` | D | Rotated text and strip-specific rendering remain code-owned. |
-| `MGDockSplitterBar` | D | Manual splitter visuals and grip dots are hard-coded in draw logic. |
-| `MGDockDropIndicators` | D | Entire visual system is custom-rendered in code. |
-| `MGDockPreviewOverlay` | D | Preview visuals are fully imperative. |
+| `MGDockTabItem` | C | Explicit surface/accent/icon parts now exist, but tab layout, hit handling, and visual child orchestration still live in control code. |
+| `MGDockTabGroup` | C | Accent and header icons are part-backed, but overflow handling, active-content swapping, and strip composition remain imperative. |
+| `MGDockAutoHideDrawer` | C | Border, grip, and header icons are part-backed, while drawer composition and resize behavior are still control-owned. |
+| `MGDockAutoHideStrip` | C | Rotated-label and separator visuals are delegated, but strip button composition and orientation logic remain in the control. |
+| `MGDockSplitterBar` | C | Splitter chrome is now part-backed, but sizing, pointer interaction, and state projection still live in control logic. |
+| `MGDockDropIndicators` | C | Zone visuals now live in dedicated child elements, though docking-state synchronization and hit-testing remain host-controlled. |
+| `MGDockPreviewOverlay` | B | Preview chrome is reduced to explicit surface/border parts with little remaining visual coupling. |
 | `MGDockHost` | D | Orchestrator plus visual composition owner for large parts of docking UI. |
-| `MGDockSplitContainer` | C | Primarily structural, but still lives inside docking’s tightly coupled visual system. |
+| `MGDockSplitContainer` | B | Mostly structural; it now delegates visuals to child controls and retains only split layout behavior. |
 | `MGFloatingDockWindow` | C | Depends on docking visual conventions and window composition. |
 
 ## Practical Interpretation
@@ -298,15 +298,8 @@ Reason:
 
   - `MGCheckBox`: `ButtonElement.OnEndingDraw`, `DrawSelf`
   - `MGRadioButton`: `DrawSelf`
-  - `MGExpander`: `ExpanderToggleButton.OnEndingDraw`
   - `MGContextMenuItem`: `HeaderPresenter.OnEndingDraw`
-  - `MGDockAutoHideDrawer`: `DrawContents`
-  - `MGDockAutoHideStrip`: `DrawContents`
-  - `MGDockDropIndicators`: `DrawSelf`
-  - `MGDockSplitterBar`: `DrawSelf`
-  - `MGDockTabGroup`: `DrawContents`
-  - `MGDockTabItem`: `DrawContents`
-  - `MGDockPreviewOverlay`: `DrawSelf`
+  - `MGComboBox`: `DropdownArrowElement.OnEndingDraw`
 
 - `✅ Migrate checkbox and radio visuals to template/state mapping`
   - Deliverable: no hard-coded checkmark or bullet rendering in control logic except shared primitives.
@@ -360,9 +353,9 @@ Reason:
 
 ### Phase 7 - Final Hardening
 
-- `🟡 Add runtime theme-switch regression tests`
+- `✅ Add runtime theme-switch regression tests`
   - Deliverable: tests covering control template refresh, theme value refresh, and subtree theme overrides.
-  - Progress: added runtime regression coverage for template theme-refresh semantics so template defaults are reapplied only while the current value still matches the previously applied default.
+  - Progress: `ThemeRefreshRegressionTests` now cover template theme-refresh semantics so template defaults are reapplied only while the current value still matches the previously applied default, while the existing theme-scope and template-resolution suites already cover runtime theme changes and subtree overrides.
   - Validation: targeted architecture and runtime tests.
   - Commit: `style-theme: add theme switch regression coverage`
 
