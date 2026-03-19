@@ -591,12 +591,15 @@ public class ControlTemplateInfrastructureTests
         string listViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListView.cs");
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
 
+        Assert.Contains("internal interface IMGListViewTemplateDefaults", listViewSource);
+        Assert.Contains("IMGListViewTemplateDefaults", catalogSource);
         Assert.DoesNotContain("DefaultGridLineBrush = SolidFillBrushes.Black", listViewSource);
         Assert.DoesNotContain("HeaderGrid.HorizontalGridLineBrush = DefaultGridLineBrush;", listViewSource);
         Assert.DoesNotContain("DataGrid.HorizontalGridLineBrush = DefaultGridLineBrush;", listViewSource);
         Assert.DoesNotContain("HeaderSpacer.BorderBrush = MGUniformBorderBrush.Black;", listViewSource);
         Assert.DoesNotContain("HeaderGrid.RowSpacing = InitialSpacing;", listViewSource);
         Assert.DoesNotContain("DataGrid.Padding = new(0, InitialGridLineMargin, 0, 0);", listViewSource);
+        Assert.DoesNotContain("GetType().GetProperty(nameof(MGListView<object>.TemplateDefaultSpacing))", catalogSource);
         Assert.Contains("TemplateDefaultSpacing", listViewSource);
         Assert.Contains("TemplateDefaultGridLineMargin", listViewSource);
         Assert.Contains("ListView.HeaderGridSpacing", catalogSource);

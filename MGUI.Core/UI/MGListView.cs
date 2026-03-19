@@ -25,8 +25,14 @@ using ColumnDefinition = MGUI.Core.UI.Containers.Grids.ColumnDefinition;
 
 namespace MGUI.Core.UI
 {
+    internal interface IMGListViewTemplateDefaults
+    {
+        int TemplateDefaultSpacing { get; }
+        int TemplateDefaultGridLineMargin { get; }
+    }
+
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to.</typeparam>
-    public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisibilityHandler
+    public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisibilityHandler, IMGListViewTemplateDefaults
     {
         public const string DockPanelPartName = "PART_DockPanel";
         public const string HeaderGridPartName = "PART_HeaderGrid";
@@ -325,6 +331,8 @@ namespace MGUI.Core.UI
 
         internal int TemplateDefaultSpacing { get; }
         internal int TemplateDefaultGridLineMargin { get; }
+        int IMGListViewTemplateDefaults.TemplateDefaultSpacing => TemplateDefaultSpacing;
+        int IMGListViewTemplateDefaults.TemplateDefaultGridLineMargin => TemplateDefaultGridLineMargin;
         private MGDockPanel HeaderGridWrapper { get; set; }
         private MGBorder HeaderSpacer { get; set; }
 

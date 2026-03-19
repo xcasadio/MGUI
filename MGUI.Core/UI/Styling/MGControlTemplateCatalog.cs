@@ -534,8 +534,9 @@ namespace MGUI.Core.UI.Styling
             MGGrid HeaderGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.HeaderGridPartName);
             MGGrid DataGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.DataGridPartName);
             MGBorder HeaderSpacer = Context.TryGetPart(MGListView<object>.HeaderSpacerPartName, out MGElement headerSpacerPart) ? headerSpacerPart as MGBorder : null;
-            int spacing = (int)Context.Owner.GetType().GetProperty(nameof(MGListView<object>.TemplateDefaultSpacing)).GetValue(Context.Owner);
-            int gridLineMargin = (int)Context.Owner.GetType().GetProperty(nameof(MGListView<object>.TemplateDefaultGridLineMargin)).GetValue(Context.Owner);
+            IMGListViewTemplateDefaults defaults = Context.Owner as IMGListViewTemplateDefaults;
+            int spacing = defaults?.TemplateDefaultSpacing ?? 8;
+            int gridLineMargin = defaults?.TemplateDefaultGridLineMargin ?? 3;
 
             Context.ApplyTemplateValue("ListView.HeaderGridLinesVisibility", GridLinesVisibility.All, () => HeaderGrid.GridLinesVisibility, value => HeaderGrid.GridLinesVisibility = value);
             Context.ApplyTemplateValue("ListView.HeaderGridSpacing", spacing, () => HeaderGrid.RowSpacing, value =>
