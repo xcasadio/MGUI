@@ -165,6 +165,8 @@ namespace MGUI.Core.UI.XAML
     {
         public Thickness? Padding { get; set; }
         public Thickness? BorderThickness { get; set; }
+        public Thickness? ChromelessPadding { get; set; }
+        public Thickness? ChromelessBorderThickness { get; set; }
         public BorderBrush BorderBrush { get; set; }
         public Thickness? TitleBarPadding { get; set; }
         public int? TitleBarMinHeight { get; set; }

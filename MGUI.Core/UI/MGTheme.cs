@@ -49,6 +49,8 @@ namespace MGUI.Core.UI
     {
         public Thickness Padding { get; set; } = new(5);
         public Thickness BorderThickness { get; set; } = new(2);
+        public Thickness ChromelessPadding { get; set; } = new(0);
+        public Thickness ChromelessBorderThickness { get; set; } = new(0);
         public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
         public Thickness TitleBarPadding { get; set; } = new(2);
         public int TitleBarMinHeight { get; set; } = 24;
@@ -587,6 +589,8 @@ namespace MGUI.Core.UI
 
             Window.Padding = Source.Window.Padding;
             Window.BorderThickness = Source.Window.BorderThickness;
+            Window.ChromelessPadding = Source.Window.ChromelessPadding;
+            Window.ChromelessBorderThickness = Source.Window.ChromelessBorderThickness;
             Window.BorderBrush = Source.Window.BorderBrush?.Copy();
             Window.TitleBarPadding = Source.Window.TitleBarPadding;
             Window.TitleBarMinHeight = Source.Window.TitleBarMinHeight;

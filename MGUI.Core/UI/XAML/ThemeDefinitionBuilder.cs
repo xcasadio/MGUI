@@ -211,6 +211,8 @@ namespace MGUI.Core.UI.XAML
 
             if (Definition.Padding.HasValue) Target.Padding = Definition.Padding.Value.ToThickness();
             if (Definition.BorderThickness.HasValue) Target.BorderThickness = Definition.BorderThickness.Value.ToThickness();
+            if (Definition.ChromelessPadding.HasValue) Target.ChromelessPadding = Definition.ChromelessPadding.Value.ToThickness();
+            if (Definition.ChromelessBorderThickness.HasValue) Target.ChromelessBorderThickness = Definition.ChromelessBorderThickness.Value.ToThickness();
             if (Definition.BorderBrush != null) Target.BorderBrush = ToBorderBrush(Definition.BorderBrush);
             if (Definition.TitleBarPadding.HasValue) Target.TitleBarPadding = Definition.TitleBarPadding.Value.ToThickness();
             if (Definition.TitleBarMinHeight.HasValue) Target.TitleBarMinHeight = Definition.TitleBarMinHeight.Value;

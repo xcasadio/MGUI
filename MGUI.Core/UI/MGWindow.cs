@@ -1596,8 +1596,8 @@ namespace MGUI.Core.UI
                             IsTitleBarVisible = false;
                             IsCloseButtonVisible = false;
                             IsUserResizable = false;
-                            Padding = new(0);
-                            BorderThickness = new(0);
+                            Padding = GetTheme().Window.ChromelessPadding;
+                            BorderThickness = GetTheme().Window.ChromelessBorderThickness;
                             PreviousBackgroundBrush = BackgroundBrush.Copy();
                             BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
                             //  WindowStyle.None sets AllowsClickThrough=false by default so that

@@ -636,6 +636,7 @@ public class ControlTemplateInfrastructureTests
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
         string themeSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTheme.cs");
         string themeBuilderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\ThemeDefinitionBuilder.cs");
+        string xamlThemeSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\Themes.cs");
 
         Assert.Contains("Context.ApplyThemeDefault(\"Window.Padding\"", catalogSource);
         Assert.Contains("Context.ApplyThemeDefault(\"Overlay.Padding\"", catalogSource);
@@ -643,10 +644,20 @@ public class ControlTemplateInfrastructureTests
         Assert.DoesNotContain("Padding = new(4);", overlaySource);
         Assert.DoesNotContain("Padding = DefaultWindowPadding;", windowSource);
         Assert.Contains("public Thickness HostPadding { get; set; } = new(4);", themeSource);
+        Assert.Contains("public Thickness ChromelessPadding { get; set; } = new(0);", themeSource);
+        Assert.Contains("public Thickness ChromelessBorderThickness { get; set; } = new(0);", themeSource);
         Assert.Contains("Padding = GetTheme().Overlay.HostPadding;", overlaySource);
         Assert.Contains("Definition.HostPadding", themeBuilderSource);
         Assert.Contains("Padding = GetTheme().Window.Padding;", windowSource);
         Assert.Contains("BorderThickness = GetTheme().Window.BorderThickness;", windowSource);
+        Assert.Contains("Padding = GetTheme().Window.ChromelessPadding;", windowSource);
+        Assert.Contains("BorderThickness = GetTheme().Window.ChromelessBorderThickness;", windowSource);
+        Assert.Contains("Definition.ChromelessPadding", themeBuilderSource);
+        Assert.Contains("Definition.ChromelessBorderThickness", themeBuilderSource);
+        Assert.Contains("public Thickness? ChromelessPadding { get; set; }", xamlThemeSource);
+        Assert.Contains("public Thickness? ChromelessBorderThickness { get; set; }", xamlThemeSource);
+        Assert.DoesNotContain("Padding = new(0);", windowSource);
+        Assert.DoesNotContain("BorderThickness = new(0);", windowSource);
     }
 
     [Fact]

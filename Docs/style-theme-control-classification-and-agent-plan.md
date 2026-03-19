@@ -241,7 +241,7 @@ Reason:
 
 - `🟡 Finish MGWindow migration`
   - Deliverable: window visuals are template/theme-owned, with behavior code limited to wiring and window policy.
-  - Progress: constructor-level padding fallback was removed and `WindowStyle.Default` now restores current theme padding/border values instead of hard-coded literals.
+  - Progress: constructor-level padding fallback was removed, `WindowStyle.Default` now restores current theme padding/border values instead of hard-coded literals, and `WindowStyle.None` now resolves its chromeless padding/border thickness through window theme settings instead of local zero-thickness literals.
   - Validation: targeted architecture tests and sample sanity check.
   - Commit: `style-theme: finish window lookless migration`
 
