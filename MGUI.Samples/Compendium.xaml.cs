@@ -179,6 +179,7 @@ namespace MGUI.Samples
         public PerformanceTest PerformanceTest { get; }
         public RoundedShapesSamples RoundedShapesSamples { get; }
         public ResponsiveLayoutSample ResponsiveLayoutSample { get; }
+        public FocusInputReviewSample FocusInputReviewSample { get; }
         public StyleThemeRefactorSample StyleThemeRefactorSample { get; }
         #endregion Features
 
@@ -243,6 +244,7 @@ namespace MGUI.Samples
             PerformanceTest = new(Content, Desktop);
             RoundedShapesSamples = new(Content, Desktop);
             ResponsiveLayoutSample = new(Content, Desktop);
+            FocusInputReviewSample = new(Content, Desktop);
             StyleThemeRefactorSample = new(Content, Desktop);
             #endregion Features
 

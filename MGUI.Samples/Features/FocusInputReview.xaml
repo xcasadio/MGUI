@@ -1,0 +1,131 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:System="clr-namespace:System;assembly=mscorlib"
+        Left="440" Top="20" MinHeight="0" Width="760" Height="900" TitleText="Focus/Input Review" Padding="10">
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="Border">
+            <Setter Property="Background" Value="White * 0.08" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="Focus/Input Review" HorizontalAlignment="Center" />
+            <Separator/>
+            <TextBlock>
+                This sample concentrates the remaining high-risk focus/input scenarios in one place: keyboard focus transfer, ComboBox dropdowns, ContextMenu focus scopes, modal overlays, and a non-modal nested window.
+            </TextBlock>
+
+            <Border>
+                <StackPanel Orientation="Vertical" Spacing="6">
+                    <TextBlock IsBold="True" Text="Live status" />
+                    <TextBlock Name="FocusStatusText" Text="Focused element: none" />
+                    <TextBlock Name="InteractionStatusText" Text="Last interaction: none" />
+                </StackPanel>
+            </Border>
+            <Separator/>
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Keyboard routing: tab through the TextBox, ComboBox and ListBox below. Arrow keys should only affect the control that currently owns focus.
+                </TextBlock>
+                <Border Margin="0,4,0,0">
+                    <Grid RowLengths="auto,auto,auto" ColumnLengths="160,*" RowSpacing="6" ColumnSpacing="8">
+                        <TextBlock Row="0" Column="0" VerticalAlignment="Center" Text="Search box" />
+                        <TextBox Row="0" Column="1" Name="SearchTextBox" PlaceholderText="Type here, then move focus with Tab" />
+
+                        <TextBlock Row="1" Column="0" VerticalAlignment="Center" Text="Filter" />
+                        <ComboBox Row="1" Column="1" Name="FilterComboBox" HorizontalAlignment="Left" Width="240" ItemType="{x:Type System:String}" />
+
+                        <TextBlock Row="2" Column="0" VerticalAlignment="Top" Text="Results" />
+                        <ListBox Row="2" Column="1" Name="ResultsListBox" Height="150" ItemType="{x:Type System:String}" />
+                    </Grid>
+                </Border>
+            </DockPanel>
+            <Separator/>
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    ContextMenu focus scope: right-click the button, choose an action, then continue typing in the sibling TextBox. Focus should restore cleanly after the menu closes.
+                </TextBlock>
+                <Border Margin="0,4,0,0">
+                    <Grid RowLengths="auto,auto" ColumnLengths="auto,*" RowSpacing="6" ColumnSpacing="8">
+                        <Button Row="0" Column="0" Name="ContextMenuTargetButton" Padding="20,4">
+                            <Button.ContextMenu>
+                                <ContextMenu Name="ReviewContextMenu" TitleText="Actions">
+                                    <ContextMenuButton CommandId="Inspect" Content="Inspect" />
+                                    <ContextMenuButton CommandId="Duplicate" Content="Duplicate" />
+                                    <ContextMenuButton CommandId="Delete" Content="Delete" />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                            <TextBlock Text="Right click me" />
+                        </Button>
+                        <TextBox Row="0" Column="1" Name="ContextMenuTextBox" PlaceholderText="Focus should come back here after the menu closes" />
+                        <TextBlock Row="1" Column="0" ColumnSpan="2" Name="ContextMenuStatusText" Text="Context menu: closed" />
+                    </Grid>
+                </Border>
+            </DockPanel>
+            <Separator/>
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Nested child window: open the child window, type into its TextBox, then bring it to front again. Keyboard input should stay with the active child instead of leaking to the parent fields.
+                </TextBlock>
+                <Border Margin="0,4,0,0">
+                    <StackPanel Orientation="Vertical" Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Name="OpenPopupButton" Content="Open child window" />
+                            <Button Name="BringPopupToFrontButton" Content="Bring child to front" />
+                            <Button Name="ClosePopupButton" Content="Close child" />
+                        </StackPanel>
+                        <TextBox Name="ParentWindowTextBox" PlaceholderText="Parent field used to verify focus isolation against the child window" />
+                        <TextBlock Name="PopupStatusText" Text="Child window: closed" />
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+            <Separator/>
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Modal overlay: when the overlay is open, the covered TextBox and Button underneath should stop receiving input until the overlay is dismissed.
+                </TextBlock>
+                <Border Margin="0,4,0,0">
+                    <OverlayHost Name="ReviewOverlayHost" IsModal="True" MinHeight="180">
+                        <OverlayHost.Overlays>
+                            <Overlay Name="BlockingOverlay" IsOpen="False" Background="rgb(16,40,72) * 0.96" Padding="10">
+                                <StackPanel Orientation="Vertical" Spacing="6" MinWidth="320">
+                                    <TextBlock IsBold="True" Text="Modal overlay active" />
+                                    <TextBlock Text="Underlying controls are still visible, but they should not keep focus or react to keyboard input while this overlay is open." />
+                                    <TextBox Name="OverlayTextBox" PlaceholderText="Type here while the overlay is active" />
+                                    <Button Name="CloseOverlayButton" Content="Close overlay" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Overlay>
+                        </OverlayHost.Overlays>
+
+                        <Grid RowLengths="auto,auto,auto" ColumnLengths="*" RowSpacing="6">
+                            <Button Row="0" Name="OpenOverlayButton" Content="Open modal overlay" HorizontalAlignment="Left" />
+                            <TextBox Row="1" Name="CoveredTextBox" PlaceholderText="This field should lose eligibility while the overlay is open" />
+                            <Button Row="2" Name="CoveredButton" Content="Covered button" HorizontalAlignment="Left" />
+                        </Grid>
+                    </OverlayHost>
+                </Border>
+            </DockPanel>
+            <Separator/>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

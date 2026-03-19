@@ -37,6 +37,21 @@ public class FocusTests
         return Math.Abs(nextOffset - currentOffset) > 0.5f;
     }
 
+    private static bool IsBlockedByModalOrOverlayStub(
+        bool overlayIsModal,
+        bool hasActiveOverlay,
+        bool hasActiveOverlayPresenter,
+        bool overlayContainsElement,
+        bool selfOrParentWindowHasModalWindow)
+    {
+        if (overlayIsModal && hasActiveOverlay && hasActiveOverlayPresenter && !overlayContainsElement)
+        {
+            return true;
+        }
+
+        return selfOrParentWindowHasModalWindow;
+    }
+
     // ── Minimal stub that replicates the IsFocusable / auto-subscribe logic ──────
 
     /// <summary>
@@ -260,6 +275,59 @@ public class FocusTests
         var result = MGUI.Core.UI.MGDesktop.ResolveNavigationRoot<ScopeNode>(activeScopeRoot: scope, focusedWindowRoot: null, hoveredWindowRoot: hovered, topWindowRoot: top);
 
         Assert.Same(scope, result);
+    }
+
+    [Fact]
+    public void IsBlockedByModalOrOverlay_NonModalNestedWindow_DoesNotBlockKeyboardInput()
+    {
+        bool isBlocked = IsBlockedByModalOrOverlayStub(
+            overlayIsModal: false,
+            hasActiveOverlay: false,
+            hasActiveOverlayPresenter: false,
+            overlayContainsElement: false,
+            selfOrParentWindowHasModalWindow: false);
+
+        Assert.False(isBlocked);
+    }
+
+    [Fact]
+    public void IsBlockedByModalOrOverlay_ModalOverlay_BlocksElementsOutsideOverlay()
+    {
+        bool isBlocked = IsBlockedByModalOrOverlayStub(
+            overlayIsModal: true,
+            hasActiveOverlay: true,
+            hasActiveOverlayPresenter: true,
+            overlayContainsElement: false,
+            selfOrParentWindowHasModalWindow: false);
+
+        Assert.True(isBlocked);
+    }
+
+    [Fact]
+    public void IsBlockedByModalOrOverlay_ModalOverlay_DoesNotBlockElementsInsideOverlay()
+    {
+        bool isBlocked = IsBlockedByModalOrOverlayStub(
+            overlayIsModal: true,
+            hasActiveOverlay: true,
+            hasActiveOverlayPresenter: true,
+            overlayContainsElement: true,
+            selfOrParentWindowHasModalWindow: false);
+
+        Assert.False(isBlocked);
+    }
+
+    [Theory]
+    [InlineData(-4, 0, 0)]
+    [InlineData(-1, 5, 0)]
+    [InlineData(0, 5, 0)]
+    [InlineData(3, 5, 3)]
+    [InlineData(5, 5, 5)]
+    [InlineData(9, 5, 5)]
+    public void NormalizeEditableCaretIndex_ClampsIndicesUsedByPrintableEntry(int indexInOriginalText, int textLength, int expected)
+    {
+        int actual = MGUI.Core.UI.MGTextBox.NormalizeEditableCaretIndex(indexInOriginalText, textLength);
+
+        Assert.Equal(expected, actual);
     }
 
     [Fact]

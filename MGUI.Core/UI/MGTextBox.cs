@@ -69,6 +69,8 @@ namespace MGUI.Core.UI
 
         internal static bool IsControlShortcutKey(Keys key)
             => key is Keys.X or Keys.C or Keys.V or Keys.Z or Keys.Y or Keys.A or Keys.D;
+        internal static int NormalizeEditableCaretIndex(int indexInOriginalText, int textLength)
+            => Math.Clamp(indexInOriginalText, 0, Math.Max(0, textLength));
 
         internal bool ShouldPreserveTextEntryKey(Keys key)
             => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
@@ -1747,17 +1749,17 @@ namespace MGUI.Core.UI
                     }
                     else if (Caret.HasPosition)
                     {
-                        int Index = Caret.Position.Value.IndexInOriginalText;
                         StringBuilder SB = new();
                         string NewText;
                         string CurrentText = GetTextBackingField();
+                        int Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
 
                         switch (TextEntryMode)
                         {
                             case TextEntryMode.Insert:
                                 SB.Append(CurrentText.AsSpan(0, Index));
                                 SB.Append(e.PrintableValue);
-                                if (Index < Text.Length)
+                                if (Index < CurrentText.Length)
                                 {
                                     SB.Append(CurrentText.AsSpan(Index));
                                 }
@@ -1767,7 +1769,7 @@ namespace MGUI.Core.UI
                             case TextEntryMode.Overwrite:
                                 SB.Append(CurrentText.AsSpan(0, Index));
                                 SB.Append(e.PrintableValue);
-                                if (Index + 1 < Text.Length)
+                                if (Index + 1 < CurrentText.Length)
                                 {
                                     SB.Append(CurrentText.AsSpan(Index + 1));
                                 }
@@ -1786,11 +1788,11 @@ namespace MGUI.Core.UI
                         int NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
                         if (IsEnter)
                         {
-                            _ = Caret.MoveToOriginalCharacterIndexOrLeft(Caret.Position.Value.IndexInOriginalText + NumCharactersInserted, true);
+                            _ = Caret.MoveToOriginalCharacterIndexOrLeft(Index + NumCharactersInserted, true);
                         }
                         else
                         {
-                            _ = Caret.MoveToOriginalCharacterIndexOrRight(Caret.Position.Value.IndexInOriginalText + NumCharactersInserted - 1, false);
+                            _ = Caret.MoveToOriginalCharacterIndexOrRight(Index + NumCharactersInserted - 1, false);
                         }
                     }
                 }
