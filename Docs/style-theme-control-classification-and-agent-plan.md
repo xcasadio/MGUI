@@ -239,53 +239,55 @@ Reason:
 
 ### Phase 4 - Composite Control Migration
 
-- `🟡 Finish MGWindow migration`
+- `✅ Finish MGWindow migration`
   - Deliverable: window visuals are template/theme-owned, with behavior code limited to wiring and window policy.
   - Progress: constructor-level padding fallback was removed, `WindowStyle.Default` now restores current theme padding/border values instead of hard-coded literals, and `WindowStyle.None` now resolves its chromeless padding/border thickness through window theme settings instead of local zero-thickness literals.
   - Validation: targeted architecture tests and sample sanity check.
-  - Commit: `style-theme: finish window lookless migration`
+  - Commit: `6165f84 style-theme: finish window lookless migration`
 
 - `🟡 Finish MGOverlay migration`
   - Deliverable: overlay close button and border visuals are fully template-driven.
   - Progress: constructor-level padding fallback was removed so overlay chrome now comes from template/theme defaults instead of a local override, and `MGOverlayHost` padding now comes from overlay theme settings instead of a hard-coded constructor literal.
+  - Remaining gap: the default close-button content is still injected imperatively in `MGControlTemplateCatalog.ApplyOverlayTemplate(...)` via `CloseButton.SetContent(new MGTextBlock(...))` rather than coming from a template-owned part/factory.
   - Validation: overlay-specific template part tests.
-  - Commit: `style-theme: finish overlay lookless migration`
+  - Relevant commits: `6684d52 controltemplate: complete task 7 migrate window and overlay`, `e3748e7 style-theme: theme overlay host padding`
 
-- `🟡 Finish MGListBox migration`
+- `✅ Finish MGListBox migration`
   - Deliverable: title, outer border, inner border, and scrollviewer visuals are template-owned.
   - Progress: removed constructor/attach-time items-panel chrome overrides, synced virtualized panel chrome from template-owned panel state, delegated default item-container chrome through `MGControlTemplateCatalog`, moved title/items-panel alignment defaults out of `AttachControlTemplateStructure(...)` and into template defaults, and moved the default minimum height plus default item-content creation out of `MGListBox` constructor literals.
   - Validation: list box architecture tests.
-  - Commit: `style-theme: finish list box lookless migration`
+  - Commit: `615803e style-theme: finish list box lookless migration`
 
 - `🟡 Finish MGListView migration`
   - Deliverable: header/data grid structure and defaults are template-owned with minimal visual logic left in control code.
   - Progress: header/data grid grid-line brushes, spacing, grid-line margins, data-grid padding, and header spacer chrome now come from template defaults instead of control-local attach-time assignments.
+  - Remaining gap: `LoadSettings(...)` still falls back to `CellTemplate = (Item) => new MGTextBlock(SelfOrParentWindow, Item.ToString());`, so the default cell content factory is still control-local instead of catalog/template-owned.
   - Validation: list view template tests.
-  - Commit: `style-theme: finish list view lookless migration`
+  - Relevant commits: `ea42714 style-theme: reduce composite header and grid churn`, `91473e4 style-theme: fix list view template defaults lookup`
 
-- `🟡 Finish MGTextBox and MGPasswordBox migration`
+- `✅ Finish MGTextBox and MGPasswordBox migration`
   - Deliverable: border, placeholder, character count, and resize grip orchestration are template-safe and precedence-correct.
   - Progress: selection colors, padding, and minimum height now resolve through template/theme defaults instead of constructor-local assignments, and placeholder / character-count / resize-grip template parts are now synchronized through dedicated control helpers instead of direct attach-time part writes.
   - Validation: textbox architecture tests and focused behavior checks.
-  - Commit: `style-theme: finish text box lookless migration`
+  - Relevant commits: `076e2cb lookless: complete task 4 textbox and treeview lookless pass`, `1abcfaf style-theme: stabilize textbox template part sync`
 
-- `🟡 Finish MGTabControl migration`
+- `✅ Finish MGTabControl migration`
   - Deliverable: header area, header wrappers, and selection-state defaults are template-driven without control-local visual fallbacks leaking.
-  - Progress: background theme default now applies through `MGControlTemplateCatalog` instead of `OnThemeChanged(...)`, default header wrappers now update their applied control template in place instead of being recreated for every selection/template-name change, and header-panel layout defaults are now delegated to the template catalog instead of being hard-coded inside `MGTabControl`.
+  - Progress: background theme default now applies through `MGControlTemplateCatalog` instead of `OnThemeChanged(...)`, default header wrappers now update their applied control template in place instead of being recreated for every selection/template-name change, header-panel layout defaults are now delegated to the template catalog instead of being hard-coded inside `MGTabControl`, and the default string-header content factory now lives in `MGControlTemplateCatalog` instead of `MGTabControl`.
   - Validation: targeted tab control architecture tests.
   - Commit: `style-theme: finish tab control lookless migration`
 
-- `🟡 Finish MGComboBox migration`
+- `✅ Finish MGComboBox migration`
   - Deliverable: dropdown arrow, dropdown window, item wrapper visuals, and header/footer defaults are template-owned.
   - Progress: dropdown arrow color, padding, minimum height, and arrow margin now resolve through template defaults instead of attach/theme-change or constructor-local control code, and the default dropdown-item / selected-item content factories plus dropdown item padding now live in `MGControlTemplateCatalog` instead of `MGComboBox` constructor or control-local defaults.
   - Validation: combo box architecture tests and sample behavior check.
-  - Commit: `style-theme: finish combo box lookless migration`
+  - Commit: `c3ce538 style-theme: finish combo box lookless migration`
 
-- `🟡 Finish MGTreeView migration`
+- `✅ Finish MGTreeView migration`
   - Deliverable: remaining visual assumptions move out of tree view control code.
   - Progress: selection visual refresh now happens from selection property setters instead of theme-change deselect/reselect hacks, and the default indent fallback plus default tree-item header content creation now live in `MGControlTemplateCatalog` instead of `MGTreeView` / `MGTreeViewItem` literals.
   - Validation: tree view architecture tests.
-  - Commit: `style-theme: finish tree view lookless migration`
+  - Commit: `1a90abf style-theme: finish tree view lookless migration`
 
 ### Phase 5 - Manual State Rendering Reduction
 

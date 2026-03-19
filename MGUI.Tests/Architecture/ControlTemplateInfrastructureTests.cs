@@ -309,8 +309,11 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("if (!UsesCustomHeaderFactories && IsDefaultHeaderWrapper(OldHeaderWrapper))", tabControlSource);
         Assert.Contains("MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);", tabControlSource);
         Assert.Contains("ApplyTabControlHeadersPanelSettings", catalogSource);
+        Assert.Contains("public static MGElement CreateDefaultTabHeaderContent", catalogSource);
+        Assert.Contains("AddTab(MGControlTemplateCatalog.CreateDefaultTabHeaderContent(ParentWindow, TabHeader), TabContent);", tabControlSource);
         Assert.Contains("SelectedTabHeaderTemplateName = \"TabControl.Header.Selected\"", catalogSource);
         Assert.Contains("UnselectedTabHeaderTemplateName = \"TabControl.Header.Unselected\"", catalogSource);
+        Assert.DoesNotContain("=> AddTab(new MGTextBlock(ParentWindow, TabHeader), TabContent);", tabControlSource);
     }
 
     [Fact]

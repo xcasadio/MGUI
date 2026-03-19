@@ -70,6 +70,9 @@ namespace MGUI.Core.UI.Styling
         public static MGElement CreateDefaultTreeViewItemHeaderContent(MGWindow Window, object Header)
             => new MGTextBlock(Window, Header?.ToString() ?? string.Empty);
 
+        public static MGElement CreateDefaultTabHeaderContent(MGWindow Window, string Header)
+            => new MGTextBlock(Window, Header ?? string.Empty);
+
         public static void ApplyListBoxItemContainerDefaults(MGElement Owner, MGBorder Item)
         {
             if (Owner == null || Item == null)

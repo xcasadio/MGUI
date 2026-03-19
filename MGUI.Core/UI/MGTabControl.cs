@@ -453,7 +453,7 @@ namespace MGUI.Core.UI
         }
 
         public MGTabItem AddTab(string TabHeader, MGElement TabContent)
-            => AddTab(new MGTextBlock(ParentWindow, TabHeader), TabContent);
+            => AddTab(MGControlTemplateCatalog.CreateDefaultTabHeaderContent(ParentWindow, TabHeader), TabContent);
 
         public MGTabItem AddTab(MGElement TabHeader, MGElement TabContent)
         {
