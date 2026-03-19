@@ -277,7 +277,7 @@ Reason:
 
 - `🟡 Finish MGComboBox migration`
   - Deliverable: dropdown arrow, dropdown window, item wrapper visuals, and header/footer defaults are template-owned.
-  - Progress: dropdown arrow color, padding, minimum height, and arrow margin now resolve through template defaults instead of attach/theme-change or constructor-local control code.
+  - Progress: dropdown arrow color, padding, minimum height, and arrow margin now resolve through template defaults instead of attach/theme-change or constructor-local control code, and the default dropdown-item / selected-item content factories plus dropdown item padding now live in `MGControlTemplateCatalog` instead of `MGComboBox` constructor or control-local defaults.
   - Validation: combo box architecture tests and sample behavior check.
   - Commit: `style-theme: finish combo box lookless migration`
 

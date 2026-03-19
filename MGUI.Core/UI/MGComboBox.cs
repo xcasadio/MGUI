@@ -390,9 +390,6 @@ namespace MGUI.Core.UI
         #endregion Items Source
 
         #region Item Template
-        /// <summary>The default amount of padding in each item within the dropdown.</summary>
-        public static Thickness DefaultDropdownItemPadding { get; set; } = new(8, 5, 8, 5);
-
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _DropdownItemControlTemplateName;
         public string DropdownItemControlTemplateName
@@ -439,15 +436,10 @@ namespace MGUI.Core.UI
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Func<TItemType, MGButton> _DropdownItemTemplate;
         /// <summary>The template to use for items inside the dropdown.<br/>
-        /// Highly recommend to use an <see cref="MGElement"/> with Padding, such as '8,5,8,5'. See also: <see cref="DefaultDropdownItemPadding"/><para/>
-        /// Default value: <see cref="CreateDefaultDropdownButton"/>, which is then populated with an <see cref="MGTextBlock"/> whose Text is given by the <typeparamref name="TItemType"/>'s <see cref="object.ToString"/><para/>
+        /// Highly recommend to use an <see cref="MGElement"/> with padding, such as '8,5,8,5'.<para/>
+        /// Default value: <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.CreateDefaultComboBoxDropdownItem{TItemType}(MGComboBox{TItemType}, TItemType)"/><para/>
         /// <code>
-        /// DropdownItemTemplate = item =>
-        /// {
-        ///     <see cref="MGButton"/> Button = <see cref="CreateDefaultDropdownButton"/>;
-        ///     Button.SetContent(item.ToString());
-        ///     return Button;
-        /// }
+        /// DropdownItemTemplate = item => <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.CreateDefaultComboBoxDropdownItem{TItemType}(MGComboBox{TItemType}, TItemType)"/>(this, item);
         /// </code></summary>
         public Func<TItemType, MGButton> DropdownItemTemplate
         {
@@ -478,7 +470,7 @@ namespace MGUI.Core.UI
         /// <summary>The template to use for the selected item<para/>
         /// Default value:<para/>
         /// <code>
-        /// SelectedItemTemplate = item => new <see cref="MGTextBlock"/>(Window, item.ToString()) { WrapText = false, VerticalAlignment = <see cref="VerticalAlignment.Center"/> };
+        /// SelectedItemTemplate = item => <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.CreateDefaultComboBoxSelectedItemContent{TItemType}(MGWindow, TItemType)"/>(Window, item);
         /// </code></summary>
         public Func<TItemType, MGElement> SelectedItemTemplate
         {
@@ -766,13 +758,8 @@ namespace MGUI.Core.UI
                     Dropdown.Scale = e.NewValue;
                 };
 
-                DropdownItemTemplate = item =>
-                {
-                    MGButton Button = CreateDefaultDropdownButton();
-                    Button.SetContent(item.ToString());
-                    return Button;
-                };
-                SelectedItemTemplate = item => new MGTextBlock(Window, item.ToString()) { WrapText = false, VerticalAlignment = VerticalAlignment.Center };
+                DropdownItemTemplate = item => MGControlTemplateCatalog.CreateDefaultComboBoxDropdownItem(this, item);
+                SelectedItemTemplate = item => MGControlTemplateCatalog.CreateDefaultComboBoxSelectedItemContent(Window, item);
 
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {

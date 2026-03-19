@@ -43,12 +43,28 @@ namespace MGUI.Core.UI.Styling
         public static readonly Thickness DefaultListBoxItemBorderThickness = new(0, 1);
         public static readonly Thickness DefaultListBoxItemPadding = new(6, 4);
         public static readonly Thickness DefaultListBoxItemContentPadding = new(1, 0);
+        public static readonly Thickness DefaultComboBoxDropdownItemPadding = new(8, 5, 8, 5);
 
         public static MGUniformBorderBrush CreateDefaultListBoxItemBorderBrush()
             => new MGSolidFillBrush(Color.Black * 0.35f).AsUniformBorderBrush();
 
         public static MGElement CreateDefaultListBoxItemContent<TItemType>(MGWindow Window, TItemType Item)
             => new MGTextBlock(Window, Item?.ToString()) { Padding = DefaultListBoxItemContentPadding };
+
+        public static MGButton CreateDefaultComboBoxDropdownItem<TItemType>(MGComboBox<TItemType> ComboBox, TItemType Item)
+        {
+            if (ComboBox == null)
+            {
+                return null;
+            }
+
+            MGButton button = ComboBox.CreateDefaultDropdownButton();
+            button.SetContent(Item?.ToString());
+            return button;
+        }
+
+        public static MGElement CreateDefaultComboBoxSelectedItemContent<TItemType>(MGWindow Window, TItemType Item)
+            => new MGTextBlock(Window, Item?.ToString()) { WrapText = false, VerticalAlignment = VerticalAlignment.Center };
 
         public static void ApplyListBoxItemContainerDefaults(MGElement Owner, MGBorder Item)
         {
@@ -637,7 +653,7 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Context.ApplyThemeDefault("ComboBox.DropdownItem.Padding", MGComboBox<object>.DefaultDropdownItemPadding, () => Button.Padding, value => Button.Padding = value);
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.Padding", DefaultComboBoxDropdownItemPadding, () => Button.Padding, value => Button.Padding = value);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Margin", new Thickness(0), () => Button.Margin, value => Button.Margin = value);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Background", theme.ComboBoxDropdownItemBackground.GetValue(true), () => Button.BackgroundBrush, value => Button.BackgroundBrush = value);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Foreground", theme.TextBlockFallbackForeground.GetValue(true).NormalValue, () => Button.DefaultTextForeground.NormalValue, value => Button.DefaultTextForeground.SetAll(value));

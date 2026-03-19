@@ -498,6 +498,14 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("Target.ControlTemplateName = DropdownItemControlTemplateName;", comboBoxSource);
         Assert.Contains("ComboBoxDropdownItemTemplateName = \"ComboBox.DropdownItem.Default\"", catalogSource);
         Assert.Contains("ApplyComboBoxDropdownItemTemplate", catalogSource);
+        Assert.Contains("public static readonly Thickness DefaultComboBoxDropdownItemPadding = new(8, 5, 8, 5);", catalogSource);
+        Assert.Contains("public static MGButton CreateDefaultComboBoxDropdownItem", catalogSource);
+        Assert.Contains("public static MGElement CreateDefaultComboBoxSelectedItemContent", catalogSource);
+        Assert.Contains("DropdownItemTemplate = item => MGControlTemplateCatalog.CreateDefaultComboBoxDropdownItem(this, item);", comboBoxSource);
+        Assert.Contains("SelectedItemTemplate = item => MGControlTemplateCatalog.CreateDefaultComboBoxSelectedItemContent(Window, item);", comboBoxSource);
+        Assert.DoesNotContain("public static Thickness DefaultDropdownItemPadding", comboBoxSource);
+        Assert.DoesNotContain("Button.SetContent(item.ToString());", comboBoxSource);
+        Assert.DoesNotContain("SelectedItemTemplate = item => new MGTextBlock(Window, item.ToString()) { WrapText = false, VerticalAlignment = VerticalAlignment.Center };", comboBoxSource);
     }
 
     [Fact]
