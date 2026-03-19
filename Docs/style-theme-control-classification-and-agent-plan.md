@@ -328,8 +328,9 @@ Reason:
 
 ### Phase 6 - Docking Stream
 
-- `⬜ Define docking visual-part vocabulary`
+- `✅ Define docking visual-part vocabulary`
   - Deliverable: standardized parts and visual-state names for docking controls.
+  - Progress: docking part names, semantic states, and per-control mappings are now defined in `Docs/docking-visual-part-vocabulary.md` so Phase 6 migrations can reuse a single naming scheme.
   - Validation: docking architecture note.
   - Commit: `style-theme: define docking visual part vocabulary`
 
