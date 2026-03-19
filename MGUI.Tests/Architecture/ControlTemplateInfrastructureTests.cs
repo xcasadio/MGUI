@@ -178,6 +178,18 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Dock_Auto_Hide_Strip_Uses_Rotated_Label_And_Separator_Part()
+    {
+        string stripSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockAutoHideStrip.cs");
+        string rotatedTextSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGRotatedTextLabel.cs");
+
+        Assert.Contains("RegisterTemplatePart(SeparatorPartName, SeparatorElement)", stripSource);
+        Assert.Contains("new MGRotatedTextLabel(ParentWindow, title)", stripSource);
+        Assert.Contains("public class MGRotatedTextLabel", rotatedTextSource);
+        Assert.DoesNotContain("protected override void DrawContents", stripSource);
+    }
+
+    [Fact]
     public void Visual_State_Projection_Maps_State_Transitions_To_Target_Action()
     {
         bool highlighted = false;

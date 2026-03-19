@@ -7,6 +7,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Core.UI.Styling;
+using MGUI.Shared.Helpers;
 using MGUI.Shared.Text;
 
 namespace MGUI.Core.UI.Docking.Controls;
@@ -18,6 +19,8 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGDockAutoHideStrip : MGElement
 {
+    public const string SeparatorPartName = "PART_Separator";
+
     // ── Constants ─────────────────────────────────────────────────────
     /// <summary>Thickness of the strip perpendicular to its edge (pixels).</summary>
     public const int StripThickness = 24;
@@ -37,6 +40,7 @@ public class MGDockAutoHideStrip : MGElement
             if (_side != value)
             {
                 _side = value;
+                SyncSeparatorVisuals();
                 NPC(nameof(Side));
             }
         }
@@ -48,6 +52,8 @@ public class MGDockAutoHideStrip : MGElement
     private readonly List<MGBorder> _buttons = new List<MGBorder>();
     // Mapping from button → panel so we know which one was clicked
     private readonly Dictionary<MGBorder, DockPanelNode> _buttonMap = new Dictionary<MGBorder, DockPanelNode>();
+    private MGRectangle SeparatorElement { get; }
+    private MGComponent<MGRectangle> SeparatorComponent { get; }
 
     public VisualStateFillBrush ButtonBackgroundBrush { get; set; } =
         new VisualStateFillBrush(
@@ -75,7 +81,45 @@ public class MGDockAutoHideStrip : MGElement
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment   = VerticalAlignment.Stretch;
             DefaultControlTemplateName = MGControlTemplateCatalog.DockAutoHideStripTemplateName;
+
+            SeparatorElement = new(window, 0, 0, Color.Transparent, 0, Color.Transparent)
+            {
+                ManagedParent = this,
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+            RegisterTemplatePart(SeparatorPartName, SeparatorElement);
+            SeparatorComponent = new(SeparatorElement, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => GetSeparatorBounds());
+            AddComponent(SeparatorComponent);
+            SyncSeparatorVisuals();
         }
+    }
+
+    private Rectangle GetSeparatorBounds()
+    {
+        return _side switch
+        {
+            AutoHideSide.Left => new Rectangle(LayoutBounds.Right - 1, LayoutBounds.Y, 1, LayoutBounds.Height),
+            AutoHideSide.Right => new Rectangle(LayoutBounds.X, LayoutBounds.Y, 1, LayoutBounds.Height),
+            AutoHideSide.Top => new Rectangle(LayoutBounds.X, LayoutBounds.Bottom - 1, LayoutBounds.Width, 1),
+            AutoHideSide.Bottom => new Rectangle(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width, 1),
+            _ => Rectangle.Empty
+        };
+    }
+
+    private void SyncSeparatorVisuals()
+    {
+        if (SeparatorElement == null)
+        {
+            return;
+        }
+
+        Rectangle bounds = GetSeparatorBounds();
+        SeparatorElement.Width = bounds.Width;
+        SeparatorElement.Height = bounds.Height;
+        SeparatorElement.Fill = SeparatorColor.AsFillBrush();
     }
 
     // ── Panel list management ─────────────────────────────────────────
@@ -126,7 +170,13 @@ public class MGDockAutoHideStrip : MGElement
             {
                 label.DefaultTextForeground.NormalValue = TextColor;
             }
+            else if (btn.Content is MGRotatedTextLabel rotatedLabel)
+            {
+                rotatedLabel.TextColor = TextColor;
+            }
         }
+
+        SyncSeparatorVisuals();
     }
 
     // ── Text-measurement helper ───────────────────────────────────────
@@ -162,7 +212,6 @@ public class MGDockAutoHideStrip : MGElement
         };
         body.BackgroundBrush = ButtonBackgroundBrush;
 
-        // Only add a label for horizontal strips; vertical strips use rotated DrawContents text
         if (IsHorizontal)
         {
             var label = new MGTextBlock(ParentWindow, title)
@@ -175,6 +224,16 @@ public class MGDockAutoHideStrip : MGElement
                 IsHitTestVisible    = false,
             };
             label.DefaultTextForeground.NormalValue = TextColor;
+            body.SetContent(label);
+        }
+        else
+        {
+            var label = new MGRotatedTextLabel(ParentWindow, title)
+            {
+                TextColor = TextColor,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            };
             body.SetContent(label);
         }
         return body;
@@ -244,61 +303,6 @@ public class MGDockAutoHideStrip : MGElement
                 y += h + ButtonSpacing;
             }
         }
-    }
-
-    protected override void DrawContents(ElementDrawArgs DA)
-    {
-        // Draw button children
-        foreach (var child in GetChildren())
-        {
-            child?.Draw(DA);
-        }
-
-        // For Left / Right strips, draw the title text rotated 90° via the FSS text engine
-        // (vector rendering — stays crisp at any angle, unlike scaled SpriteFonts).
-        if (!IsHorizontal)
-        {
-            string family = ParentWindow.Desktop.FontManager.DefaultFontFamily;
-            var resolved  = DA.DT.TextEngine.ResolveFont(new FontSpec(family, 11, CustomFontStyles.Normal));
-            if (resolved?.NativeFont != null)
-            {
-                foreach (var (btn, panel) in _buttonMap)
-                {
-                    string title = panel.Title;
-                    if (string.IsNullOrEmpty(title))
-                    {
-                        continue;
-                    }
-
-                    float   scale    = resolved.SuggestedScale;
-                    Vector2 textSize = DA.DT.TextEngine.MeasureText(resolved, title); // unscaled
-                    Vector2 origin   = textSize / 2f;                                 // pivot at text centre
-                    Vector2 pos      = new Vector2(
-                        btn.LayoutBounds.X + btn.LayoutBounds.Width  / 2f,
-                        btn.LayoutBounds.Y + btn.LayoutBounds.Height / 2f);
-                    Color textColor  = TextColor * DA.Opacity;
-                    DA.DT.DrawTextViaEngine(resolved, title, pos, textColor, origin, scale, -MathF.PI / 2f);
-                }
-            }
-        }
-
-        var LayoutBounds = this.LayoutBounds;
-        // Draw a thin separator line on the inner edge
-        var sepColor = SeparatorColor * DA.Opacity;
-        switch (_side)
-        {
-            case AutoHideSide.Left:
-                DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.Right - 1, LayoutBounds.Y, 1, LayoutBounds.Height), sepColor);
-                break;
-            case AutoHideSide.Right:
-                DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.X, LayoutBounds.Y, 1, LayoutBounds.Height), sepColor);
-                break;
-            case AutoHideSide.Top:
-                DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.X, LayoutBounds.Bottom - 1, LayoutBounds.Width, 1), sepColor);
-                break;
-            case AutoHideSide.Bottom:
-                DA.DT.FillRectangle(Microsoft.Xna.Framework.Vector2.Zero, new RectangleF(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width, 1), sepColor);
-                break;
-        }
+        SyncSeparatorVisuals();
     }
 }
