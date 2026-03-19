@@ -225,10 +225,11 @@ Reason:
   - Validation: architecture tests on required part declarations.
   - Commit: `style-theme: normalize template part contracts`
 
-- `🟡 Eliminate control-local visual literals from migrated templates`
+- `✅ Eliminate control-local visual literals from migrated templates`
   - Deliverable: colors, padding, border literals move out of control logic into template/theme defaults where possible.
   - Validation: source-level audit tests for migrated controls.
   - Progress: `MGTabControl.Background`, `MGComboBox.DropdownArrowColor`, `MGComboBox.Padding`, `MGComboBox.MinHeight`, `MGTextBox.Padding`, and `MGTextBox.MinHeight` now resolve through template defaults; `MGTreeView` no longer relies on theme-change reselection; `MGListBox` no longer overwrites template-owned items-panel chrome during construction or template attachment and now delegates default item-container chrome through the template catalog; `MGListView` grid-line brushes, spacing, grid-line margins, data-grid padding, and header-spacer chrome now resolve through the template catalog; `MGWindow` and `MGOverlay` no longer hardcode template-owned padding in constructors.
+  - Verification note: the remaining literals found in this pass are `MGOverlayHost.Padding = new(4)`, `WindowStyle.None` zero-chrome behavior, and the fallback `MGListBox.ItemTemplate` content padding; these are phase 4 behavior/default-template follow-ups rather than migrated-template chrome injection.
   - Commit: `style-theme: remove local visual literals from migrated controls`
 
 - `✅ Separate structural parts from visual-state defaults`
