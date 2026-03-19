@@ -229,6 +229,41 @@ namespace MGUI.Core.UI
                 ? defaultFocus ?? lastFocused ?? firstFocusable
                 : lastFocused ?? defaultFocus ?? firstFocusable;
 
+        internal bool IsBlockedByModalOrOverlay(MGElement element)
+        {
+            if (element == null)
+            {
+                return false;
+            }
+
+            if (OverlayHost?.IsModal == true && OverlayHost.ActiveOverlay != null && OverlayHost.ActiveOverlayPresenter != null
+                && !OverlayHost.ActiveOverlayPresenter.IsSelfOrAncestorOf(element))
+            {
+                return true;
+            }
+
+            return element.SelfOrParentWindow?.HasModalWindow == true;
+        }
+
+        internal bool CanElementReceiveKeyboardInput(MGElement element)
+        {
+            if (element == null)
+            {
+                return false;
+            }
+
+            bool canReceiveKeyboardInput = element is IKeyboardHandlerHost keyboardHost && keyboardHost.CanReceiveKeyboardInput();
+            return FocusInputPolicy.IsKeyboardInputEligible(element.CanHandleKeyboardInput, canReceiveKeyboardInput, IsBlockedByModalOrOverlay(element));
+        }
+
+        internal bool IsNavigationTarget(MGElement element)
+            => element != null
+            && element.IsFocusable
+            && element.DerivedIsEnabled
+            && element.DerivedIsHitTestVisible
+            && element.Visibility == Visibility.Visible
+            && CanElementReceiveKeyboardInput(element);
+
         private static readonly IReadOnlyList<GamePadButton> GamePadNavigationButtons = new[]
         {
             GamePadButton.A,
@@ -370,7 +405,7 @@ namespace MGUI.Core.UI
         internal void PopFocusScope(MGElement scopeRoot)
             => NavigationService.PopFocusScope(scopeRoot);
 
-        private static MGElement GetNearestNavigationTarget(MGElement element)
+        private MGElement GetNearestNavigationTarget(MGElement element)
         {
             for (MGElement current = element; current != null; current = current.Parent)
             {
@@ -410,14 +445,7 @@ namespace MGUI.Core.UI
             return ResolveNavigationRoot(activeScopeRoot, focusedWindowRoot, hoveredWindowRoot, topWindowRoot);
         }
 
-        private static bool IsNavigationTarget(MGElement element)
-            => element != null
-            && element.IsFocusable
-            && element.DerivedIsEnabled
-            && element.DerivedIsHitTestVisible
-            && element.Visibility == Visibility.Visible;
-
-        private static IReadOnlyList<MGElement> GetFocusableElements(MGElement root)
+        private IReadOnlyList<MGElement> GetFocusableElements(MGElement root)
         {
             if (root == null)
             {
@@ -1250,7 +1278,7 @@ namespace MGUI.Core.UI
                 MGToolTip PreviousQueuedToolTip = QueuedToolTip;
 
                 bool IsOverlayWindow = Window == OverlayWindow;
-                bool ProcessInputs = (IsOverlayWindow && OverlayHost.ActiveOverlay != null) || (!IsOverlayWindow && (OverlayHost.ActiveOverlay == null || !OverlayHost.IsModal));
+                bool ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
                 Window.Update(ProcessInputs ? UA : UA with { IsHitTestVisible = false });
 
                 //  Disallow occluded windows from overriding the active ToolTip

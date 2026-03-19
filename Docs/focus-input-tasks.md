@@ -156,7 +156,7 @@ Resultat:
 - les tests couvrent l'eligibilite clavier, la retention/perte de focus, le gating navigation pour text entry, le gating input d'overlay/fenetre et l'isolation des handlers clavier composites ;
 - validation executee avec succes sur `MGUI.Tests`, `MGUI.Samples` et le filtre `Focus`.
 
-### ⚪ 3. Centraliser la notion d'eligibilite effective a l'input
+### ✅ 3. Centraliser la notion d'eligibilite effective a l'input
 
 But:
 avoir une seule source de verite pour savoir si un controle peut reellement recevoir souris et clavier sur le frame courant.
@@ -182,6 +182,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `focus: complete task 3 centralize effective input eligibility`
+
+Resultat:
+
+- `MGDesktop` expose maintenant une source unique de verite pour l'eligibilite clavier effective ;
+- la navigation et l'autofocus ne ciblent plus des elements seulement "focusables" en theorie, mais des cibles effectivement eligibles ;
+- le gating de traitement d'input des fenetres d'overlay passe par la meme politique pure ;
+- la base est prete pour nettoyer activement le focus courant et la queue de focus aux taches suivantes.
 
 ### ⚪ 4. Fiabiliser le cycle de vie du focus dans MGDesktop
 

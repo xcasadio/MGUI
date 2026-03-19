@@ -203,13 +203,11 @@ namespace MGUI.Core.UI.Navigation
 
         internal bool TryDispatchNavigationAction(BaseKeyPressedEventArgs e)
         {
-            MGElement focusedElement = Desktop.FocusedKeyboardHandler;
-            if (focusedElement is MGTextBox focusedTextBox && focusedTextBox.ShouldPreserveTextEntryKey(e.Key))
-            {
-                return false;
-            }
-
-            if (!TryMapNavigationAction(e.Key, e.Tracker.IsShiftDown, out UINavigationAction action))
+            MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
+                ? Desktop.FocusedKeyboardHandler
+                : null;
+            bool shouldPreserveTextEntryKey = focusedElement is MGTextBox focusedTextBox && focusedTextBox.ShouldPreserveTextEntryKey(e.Key);
+            if (!FocusInputPolicy.TryGetNavigationAction(e.Key, e.Tracker.IsShiftDown, focusedElement is MGTextBox, shouldPreserveTextEntryKey, out UINavigationAction action))
             {
                 return false;
             }
@@ -241,7 +239,9 @@ namespace MGUI.Core.UI.Navigation
                     continue;
                 }
 
-                MGElement focusedElement = Desktop.FocusedKeyboardHandler;
+                MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
+                    ? Desktop.FocusedKeyboardHandler
+                    : null;
                 Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
                 if (tryHandleFocusedAction?.Invoke(action) == true)
                 {
@@ -363,7 +363,7 @@ namespace MGUI.Core.UI.Navigation
             return ResolveNavigationRoot(activeScopeRoot, focusedWindowRoot, hoveredWindowRoot, topWindowRoot);
         }
 
-        private static MGElement GetNearestNavigationTarget(MGElement element)
+        private MGElement GetNearestNavigationTarget(MGElement element)
         {
             for (MGElement current = element; current != null; current = current.Parent)
             {
@@ -376,7 +376,7 @@ namespace MGUI.Core.UI.Navigation
             return null;
         }
 
-        private static IReadOnlyList<MGElement> GetFocusableElements(MGElement root)
+        private IReadOnlyList<MGElement> GetFocusableElements(MGElement root)
         {
             if (root == null)
             {
@@ -392,12 +392,8 @@ namespace MGUI.Core.UI.Navigation
                 .ToList();
         }
 
-        private static bool IsNavigationTarget(MGElement element)
-            => element != null
-            && element.IsFocusable
-            && element.DerivedIsEnabled
-            && element.DerivedIsHitTestVisible
-            && element.Visibility == Visibility.Visible;
+        private bool IsNavigationTarget(MGElement element)
+            => Desktop.IsNavigationTarget(element);
 
         private static void EnsureNavigationTargetVisible(MGElement focusedElement)
         {
