@@ -120,7 +120,7 @@ Commit recommande:
 
 - `docs: complete task 1 define input routing vocabulary and contracts`
 
-### ⚪ 2. Ajouter les modeles semantiques d'input
+### ✅ 2. Ajouter les modeles semantiques d'input
 
 But:
 
