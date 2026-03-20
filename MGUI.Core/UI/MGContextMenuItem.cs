@@ -204,6 +204,7 @@ namespace MGUI.Core.UI
                 UINavigationAction.Submit => ContentWrapper?.TryHandleNavigationAction(UINavigationAction.Submit) == true,
                 UINavigationAction.MoveRight when Submenu != null => OpenSubmenuAndConsume(),
                 UINavigationAction.MoveLeft when Menu.IsSubmenu => Menu.TryCloseContextMenu(),
+                UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Home or UINavigationAction.End => Menu.TryHandleNavigationAction(action),
                 UINavigationAction.Cancel => Menu.TryCloseContextMenu(),
                 _ => false
             };
@@ -462,7 +463,7 @@ namespace MGUI.Core.UI
             VisualState ownerState = VisualState;
             VisualState wrapperState = ContentWrapper?.VisualState ?? default;
             bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered
-                || ownerState.IsSelected || Submenu?.IsContextMenuOpen == true;
+                || ownerState.IsSelected || ownerState.IsFocused || wrapperState.IsFocused || Submenu?.IsContextMenuOpen == true;
             bool isPressed = ownerState.IsPressed || wrapperState.IsPressed;
 
             if (ContentWrapper != null)

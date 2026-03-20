@@ -173,6 +173,10 @@ namespace MGUI.Core.UI
                 {
                     if (_Submenu != null)
                     {
+                        if (_Submenu.OpenedFromMenuBarItem == this)
+                        {
+                            _Submenu.OpenedFromMenuBarItem = null;
+                        }
                         _Submenu.ItemSelected -= Submenu_ItemSelected;
                         _Submenu.ItemToggled -= Submenu_ItemToggled;
                         _Submenu.ItemRadioSelected -= Submenu_ItemRadioSelected;
@@ -184,6 +188,7 @@ namespace MGUI.Core.UI
 
                     if (_Submenu != null)
                     {
+                        _Submenu.OpenedFromMenuBarItem = this;
                         _Submenu.ItemSelected += Submenu_ItemSelected;
                         _Submenu.ItemToggled += Submenu_ItemToggled;
                         _Submenu.ItemRadioSelected += Submenu_ItemRadioSelected;
@@ -434,10 +439,11 @@ namespace MGUI.Core.UI
 
             ActiveItem = Item;
             IsMenuActive = true;
-            Item.OpenSubmenu();
 
-            // Claim keyboard focus so arrow/escape keys reach this handler
+            // Claim keyboard focus before opening the submenu so the submenu's initial focus
+            // assignment can take precedence for popup item navigation.
             GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Programmatic);
+            Item.OpenSubmenu();
         }
 
         /// <summary>Closes the dropdown of the current active item.</summary>

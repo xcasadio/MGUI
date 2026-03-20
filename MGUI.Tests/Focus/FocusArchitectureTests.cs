@@ -132,4 +132,42 @@ public class FocusArchitectureTests
         Assert.Contains("IsChecked = !IsChecked;", radioButtonSource);
         Assert.Contains("ButtonElement.IsHitTestVisible = false;", radioButtonSource);
     }
+
+    [Fact]
+    public void MenuBar_Source_Queues_Its_Own_Focus_Before_Opening_The_Submenu()
+    {
+        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
+
+        int queueFocusIndex = menuBarSource.IndexOf("GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Programmatic);", StringComparison.Ordinal);
+        int openSubmenuIndex = menuBarSource.IndexOf("Item.OpenSubmenu();", StringComparison.Ordinal);
+
+        Assert.True(queueFocusIndex >= 0);
+        Assert.True(openSubmenuIndex > queueFocusIndex);
+    }
+
+    [Fact]
+    public void ContextMenuItem_Source_Treats_Focused_State_As_Highlighted()
+    {
+        string contextMenuItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenuItem.cs");
+
+        Assert.Contains("|| ownerState.IsSelected || ownerState.IsFocused || wrapperState.IsFocused || Submenu?.IsContextMenuOpen == true;", contextMenuItemSource);
+    }
+
+    [Fact]
+    public void ContextMenu_Source_Delegates_Top_Level_MenuBar_Navigation_Back_To_The_MenuBar()
+    {
+        string contextMenuSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+
+        Assert.Contains("internal MGMenuBarItem OpenedFromMenuBarItem { get; set; }", contextMenuSource);
+        Assert.Contains("if (OpenedFromMenuBar != null && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Home or UINavigationAction.End)", contextMenuSource);
+        Assert.Contains("return OpenedFromMenuBar.TryHandleNavigationAction(action);", contextMenuSource);
+    }
+
+    [Fact]
+    public void MenuBarItem_Source_Assigns_Its_Submenu_Back_Reference_For_Top_Level_Navigation()
+    {
+        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
+
+        Assert.Contains("_Submenu.OpenedFromMenuBarItem = this;", menuBarSource);
+    }
 }

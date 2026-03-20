@@ -44,6 +44,9 @@ namespace MGUI.Core.UI
 
     public class MGContextMenu : MGWindow, IContextMenuHost
     {
+        internal MGMenuBarItem OpenedFromMenuBarItem { get; set; }
+        internal MGMenuBar OpenedFromMenuBar => OpenedFromMenuBarItem?.MenuBar;
+
         public const string ScrollViewerPartName = "PART_ScrollViewer";
         public const string ItemsPanelPartName = "PART_ItemsPanel";
 
@@ -144,7 +147,7 @@ namespace MGUI.Core.UI
         {
             GetDesktop().PushFocusScope(this, GetDesktop().FocusedKeyboardHandler);
             MGContextMenuItem initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
-            initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);
+            initialFocusTarget?.Focus(KeyboardFocusSource.Programmatic);
             NPC(nameof(IsContextMenuOpen));
             ContextMenuOpened?.Invoke(this, EventArgs.Empty);
         }
@@ -946,6 +949,16 @@ namespace MGUI.Core.UI
             {
                 ItemRadioSelected?.Invoke(this, RadioButton);
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            if (OpenedFromMenuBar != null && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Home or UINavigationAction.End)
+            {
+                return OpenedFromMenuBar.TryHandleNavigationAction(action);
+            }
+
+            return base.TryHandleNavigationAction(action);
         }
 
         public IEnumerable<TMenuItemType> GetItemsOfType<TMenuItemType>(bool IncludeSubmenus)
