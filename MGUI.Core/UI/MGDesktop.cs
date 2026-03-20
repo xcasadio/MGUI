@@ -24,6 +24,7 @@ using MGUI.Shared.Text.Engines;
 using MGUI.Core.UI.Navigation;
 using MGUI.Core.UI.Responsive;
 using MGUI.Core.UI.Styling;
+using MGUI.Shared.Input.Semantic;
 
 namespace MGUI.Core.UI
 {
@@ -219,6 +220,14 @@ namespace MGUI.Core.UI
 
         internal static KeyboardFocusSource GetNavigationFocusSource(bool isGamePadNavigation)
             => isGamePadNavigation ? KeyboardFocusSource.GamePad : KeyboardFocusSource.Keyboard;
+
+        internal static KeyboardFocusSource GetNavigationFocusSource(InputActionSource source)
+            => source switch
+            {
+                InputActionSource.GamePad => KeyboardFocusSource.GamePad,
+                InputActionSource.Programmatic => KeyboardFocusSource.Programmatic,
+                _ => KeyboardFocusSource.Keyboard,
+            };
 
         internal static bool ShouldAutoScrollFocusedElement(KeyboardFocusSource focusSource)
             => focusSource != KeyboardFocusSource.Pointer;
@@ -500,6 +509,97 @@ namespace MGUI.Core.UI
 
         private bool TryDispatchGamePadNavigationActions()
             => NavigationService.TryDispatchGamePadNavigationActions();
+
+        private static bool TryMapNavigationAction(InputAction action, out UINavigationAction navigationAction)
+        {
+            switch (action)
+            {
+                case InputAction.Submit:
+                    navigationAction = UINavigationAction.Submit;
+                    return true;
+                case InputAction.Cancel:
+                    navigationAction = UINavigationAction.Cancel;
+                    return true;
+                case InputAction.NavigateNext:
+                    navigationAction = UINavigationAction.MoveNext;
+                    return true;
+                case InputAction.NavigatePrevious:
+                    navigationAction = UINavigationAction.MovePrevious;
+                    return true;
+                case InputAction.NavigateUp:
+                    navigationAction = UINavigationAction.MoveUp;
+                    return true;
+                case InputAction.NavigateDown:
+                    navigationAction = UINavigationAction.MoveDown;
+                    return true;
+                case InputAction.NavigateLeft:
+                    navigationAction = UINavigationAction.MoveLeft;
+                    return true;
+                case InputAction.NavigateRight:
+                    navigationAction = UINavigationAction.MoveRight;
+                    return true;
+                case InputAction.NavigateHome:
+                    navigationAction = UINavigationAction.Home;
+                    return true;
+                case InputAction.NavigateEnd:
+                    navigationAction = UINavigationAction.End;
+                    return true;
+                case InputAction.NavigatePageUp:
+                    navigationAction = UINavigationAction.PageUp;
+                    return true;
+                case InputAction.NavigatePageDown:
+                    navigationAction = UINavigationAction.PageDown;
+                    return true;
+                case InputAction.OpenContext:
+                    navigationAction = UINavigationAction.OpenContext;
+                    return true;
+                case InputAction.Increment:
+                    navigationAction = UINavigationAction.Increment;
+                    return true;
+                case InputAction.Decrement:
+                    navigationAction = UINavigationAction.Decrement;
+                    return true;
+                case InputAction.ShoulderPrevious:
+                    navigationAction = UINavigationAction.ShoulderPrevious;
+                    return true;
+                case InputAction.ShoulderNext:
+                    navigationAction = UINavigationAction.ShoulderNext;
+                    return true;
+                default:
+                    navigationAction = default;
+                    return false;
+            }
+        }
+
+        private UIInputMode ResolveSemanticInputMode(InputActionSource source, UIInputMode currentMode)
+        {
+            bool isTextEntryFocused = FocusedKeyboardHandler is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
+            return source switch
+            {
+                InputActionSource.Mouse => UIInputMode.Pointer,
+                InputActionSource.Keyboard => isTextEntryFocused ? UIInputMode.TextEntry : UIInputMode.Navigation,
+                InputActionSource.GamePad => isTextEntryFocused ? UIInputMode.TextEntry : UIInputMode.Navigation,
+                _ => currentMode,
+            };
+        }
+
+        public bool ShouldCaptureGameplayInput()
+            => OverlayHost?.IsModal == true && OverlayHost.ActiveOverlay != null
+            || ActiveContextMenu != null
+            || FocusedKeyboardHandler is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
+
+        public bool TryHandleInputAction(InputActionEvent actionEvent)
+        {
+            if (!actionEvent.Action.IsUIAction() || !TryMapNavigationAction(actionEvent.Action, out UINavigationAction navigationAction))
+            {
+                return false;
+            }
+
+            ActiveInputMode = ResolveSemanticInputMode(actionEvent.Context.Source, ActiveInputMode);
+            bool handled = NavigationService.TryDispatchNavigationAction(navigationAction, GetNavigationFocusSource(actionEvent.Context.Source));
+            ApplyQueuedFocusChange();
+            return handled;
+        }
 
         /// <summary>The active <see cref="ITextEngine"/> used for all
         /// text measurement and rendering.  Assign a different engine to switch backends globally.</summary>

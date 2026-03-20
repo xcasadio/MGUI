@@ -1,5 +1,6 @@
 using MGUI.Shared.Input.GamePad;
 using MGUI.Shared.Input.Keyboard;
+using MGUI.Shared.Input;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System;
@@ -217,20 +218,39 @@ namespace MGUI.Core.UI.Navigation
                 return false;
             }
 
+            if (TryDispatchNavigationAction(action, KeyboardFocusSource.Keyboard, out IKeyboardHandlerHost handledBy))
+            {
+                e.SetHandledBy(handledBy, false);
+                return true;
+            }
+
+            return false;
+        }
+
+        internal bool TryDispatchNavigationAction(UINavigationAction action, KeyboardFocusSource source)
+            => TryDispatchNavigationAction(action, source, out _);
+
+        internal bool TryDispatchNavigationAction(UINavigationAction action, KeyboardFocusSource source, out IKeyboardHandlerHost handledBy)
+        {
+            MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
+                ? Desktop.FocusedKeyboardHandler
+                : null;
+
             Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
             if (tryHandleFocusedAction?.Invoke(action) == true)
             {
                 EnsureNavigationTargetVisible(focusedElement);
-                e.SetHandledBy(focusedElement, false);
+                handledBy = focusedElement;
                 return true;
             }
 
-            if (TryPerformFallbackNavigation(action, KeyboardFocusSource.Keyboard))
+            if (TryPerformFallbackNavigation(action, source))
             {
-                e.SetHandledBy(Desktop, false);
+                handledBy = Desktop;
                 return true;
             }
 
+            handledBy = null;
             return false;
         }
 

@@ -174,7 +174,7 @@ Commit recommande:
 
 - `feat: complete task 3 add input router core`
 
-### ⚪ 4. Integrer MGUI comme contexte UI semantique
+### ✅ 4. Integrer MGUI comme contexte UI semantique
 
 But:
 

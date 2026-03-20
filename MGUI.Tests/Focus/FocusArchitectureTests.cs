@@ -1,9 +1,26 @@
 using System.IO;
+using System.Reflection;
+using MGUI.Core.UI;
+using MGUI.Core.UI.InputRouting;
+using MGUI.Shared.Input.Semantic;
 
 namespace MGUI.Tests.Focus;
 
 public class FocusArchitectureTests
 {
+    [Fact]
+    public void Desktop_Exposes_Semantic_Input_Entry_Points()
+    {
+        Assert.NotNull(typeof(MGDesktop).GetMethod(nameof(MGDesktop.TryHandleInputAction)));
+        Assert.NotNull(typeof(MGDesktop).GetMethod(nameof(MGDesktop.ShouldCaptureGameplayInput)));
+    }
+
+    [Fact]
+    public void MGUIInputContext_Implements_Shared_Input_Context_Contract()
+    {
+        Assert.Contains(typeof(IInputContext), typeof(MGUIInputContext).GetInterfaces());
+    }
+
     [Fact]
     public void Overlay_Source_Clears_Current_And_Queued_Focus_When_Blocking_Content()
     {
