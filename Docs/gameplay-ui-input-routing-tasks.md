@@ -148,7 +148,7 @@ Commit recommande:
 
 - `feat: complete task 2 add semantic input action models`
 
-### ⚪ 3. Ajouter le routeur d'input minimal
+### ✅ 3. Ajouter le routeur d'input minimal
 
 But:
 
