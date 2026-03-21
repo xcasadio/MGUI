@@ -61,5 +61,6 @@ public class InputSemanticMappingTests
         Assert.False(InputAction.GameplayCyclePrevious.IsUIAction());
         Assert.False(InputAction.GameplayCycleNext.IsUIAction());
         Assert.False(InputAction.GameplayQuickUse.IsUIAction());
+        Assert.False(InputAction.GameplayToggleHelp.IsUIAction());
     }
 }

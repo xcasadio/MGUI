@@ -26,6 +26,7 @@ namespace MGUI.Shared.Input.Semantic
         GameplayCyclePrevious,
         GameplayCycleNext,
         GameplayQuickUse,
+        GameplayToggleHelp,
         Pause,
     }
 
@@ -39,6 +40,7 @@ namespace MGUI.Shared.Input.Semantic
                 InputAction.GameplayCyclePrevious => false,
                 InputAction.GameplayCycleNext => false,
                 InputAction.GameplayQuickUse => false,
+                InputAction.GameplayToggleHelp => false,
                 InputAction.Pause => false,
                 _ => true,
             };
