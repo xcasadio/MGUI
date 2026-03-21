@@ -19,6 +19,20 @@ namespace MGUI.MiniGame
 {
     public class MiniGame : Game, IObservableUpdate
     {
+        private sealed class QuickSlot
+        {
+            public string ItemName { get; }
+            public string DisplayName { get; }
+            public string ShortcutHint { get; }
+
+            public QuickSlot(string itemName, string displayName, string shortcutHint)
+            {
+                ItemName = itemName;
+                DisplayName = displayName;
+                ShortcutHint = shortcutHint;
+            }
+        }
+
         public sealed class ShopOffer
         {
             public string Name { get; }
@@ -63,6 +77,7 @@ namespace MGUI.MiniGame
         private MGTextBlock _moneyText;
         private MGTextBlock _interactionText;
         private MGTextBlock _statusText;
+        private MGTextBlock _quickSlotsText;
         private MGTextBlock _vendorDialogText;
         private MGTextBlock _shopMoneyText;
         private MGTextBlock _shopOwnedQuantityText;
@@ -80,8 +95,15 @@ namespace MGUI.MiniGame
         private ShopOffer _selectedShopOffer;
 
         private readonly List<CircleEntity> _entities = [];
+        private readonly List<QuickSlot> _quickSlots =
+        [
+            new QuickSlot("Potion", "Potion", "F / RT"),
+            new QuickSlot("Potion de magie", "Potion mana", "F / RT"),
+            new QuickSlot("Antidote", "Antidote", "F / RT")
+        ];
         private CircleEntity _player;
         private CircleEntity _vendor;
+        private int _selectedQuickSlotIndex;
 
         private bool _isInventoryOpen;
         private bool _isVendorDialogOpen;
@@ -161,7 +183,7 @@ namespace MGUI.MiniGame
         {
             PreviewUpdate?.Invoke(this, gameTime.TotalGameTime);
 
-            DispatchRoutedGameplayActions(gameTime.TotalGameTime);
+            DispatchRoutedInputActions(gameTime.TotalGameTime);
 
             KeyboardState currentKeyboardState = _mguiRenderer.Input.Keyboard.CurrentState;
             GamePadState currentGamePadState = _mguiRenderer.Input.GamePad.CurrentState;
@@ -269,6 +291,12 @@ namespace MGUI.MiniGame
                 Margin = new Thickness(0, 4, 0, 0)
             };
             content.TryAddChild(_statusText);
+
+            _quickSlotsText = new MGTextBlock(_hudWindow, string.Empty, Color.LightBlue, 13)
+            {
+                Margin = new Thickness(0, 6, 0, 0)
+            };
+            content.TryAddChild(_quickSlotsText);
 
             _hudWindow.SetContent(content);
             _desktop.Windows.Add(_hudWindow);
@@ -550,7 +578,21 @@ namespace MGUI.MiniGame
 
             _moneyText.SetText($"Argent : {_playerMoney}");
             _interactionText.SetText(GetInteractionPrompt(), true);
+            _quickSlotsText.SetText(GetQuickSlotsSummary(), true);
             RefreshShopContent();
+        }
+
+        private string GetQuickSlotsSummary()
+        {
+            List<string> parts = new();
+            for (int i = 0; i < _quickSlots.Count; i++)
+            {
+                QuickSlot slot = _quickSlots[i];
+                string marker = i == _selectedQuickSlotIndex ? ">" : " ";
+                parts.Add($"{marker} {slot.DisplayName} x{GetOwnedQuantity(slot.ItemName)} ({slot.ShortcutHint})");
+            }
+
+            return "Raccourcis HUD\n" + string.Join("\n", parts);
         }
 
         private string GetInteractionPrompt()
@@ -568,6 +610,11 @@ namespace MGUI.MiniGame
             if (_isInventoryOpen)
             {
                 return "Inventaire ouvert: utilisez les boutons ou I/Y pour fermer.";
+            }
+
+            if (!_desktop.ShouldCaptureGameplayInput())
+            {
+                return "HUD: Q/R ou LB/RB pour changer d'objet rapide, F ou RT pour l'utiliser.";
             }
 
             if (IsPlayerNearVendor())
@@ -651,37 +698,79 @@ namespace MGUI.MiniGame
 
         private void InitializeInputRouting()
         {
+            _desktop.UseRawNavigationInput = false;
             _inputRouter = new InputRouter();
             _inputRouter.RegisterContext(new MGUIInputContext(_desktop, 100));
+            _inputRouter.RegisterContext(new MiniGameHudInputContext(TryHandleHudAction, 50, () => !_desktop.ShouldCaptureGameplayInput()));
             _inputRouter.RegisterContext(new GameplayInputContext("MiniGame.Gameplay", TryHandleGameplayAction, 0));
         }
 
-        private void DispatchRoutedGameplayActions(TimeSpan totalElapsed)
+        private void DispatchRoutedInputActions(TimeSpan totalElapsed)
         {
             foreach (KeyValuePair<Keys, BaseKeyPressedEventArgs> keyEntry in _mguiRenderer.Input.Keyboard.CurrentKeyPressedEvents)
             {
-                if (keyEntry.Value == null || !TryMapMiniGameKeyboardAction(keyEntry.Key, out InputAction action))
+                if (keyEntry.Value == null)
                 {
                     continue;
                 }
 
-                RouteGameplayAction(action, new InputActionContext(InputActionSource.Keyboard, InputActionPhase.Pressed, totalElapsed, false, keyEntry.Key));
+                if (TryMapMiniGameUIKeyboardAction(keyEntry.Key, _mguiRenderer.Input.Keyboard.IsShiftDown, out InputAction uiAction))
+                {
+                    RouteGameplayAction(uiAction, new InputActionContext(InputActionSource.Keyboard, InputActionPhase.Pressed, totalElapsed, false, keyEntry.Key));
+                }
+
+                if (TryMapMiniGameKeyboardAction(keyEntry.Key, out InputAction gameplayAction))
+                {
+                    RouteGameplayAction(gameplayAction, new InputActionContext(InputActionSource.Keyboard, InputActionPhase.Pressed, totalElapsed, false, keyEntry.Key));
+                }
             }
 
             foreach (GamePadButton button in GamePadTracker.AllButtons)
             {
-                if (!_mguiRenderer.Input.GamePad.WasTriggered(button) || !TryMapMiniGameGamePadAction(button, out InputAction action))
+                if (!_mguiRenderer.Input.GamePad.WasTriggered(button))
                 {
                     continue;
                 }
 
-                RouteGameplayAction(action, new InputActionContext(InputActionSource.GamePad, InputActionPhase.Pressed, totalElapsed, false, GamePadButton: button));
+                if (TryMapMiniGameUIGamePadAction(button, out InputAction uiAction))
+                {
+                    RouteGameplayAction(uiAction, new InputActionContext(InputActionSource.GamePad, InputActionPhase.Pressed, totalElapsed, false, GamePadButton: button));
+                }
+
+                if (TryMapMiniGameGamePadAction(button, out InputAction gameplayAction))
+                {
+                    RouteGameplayAction(gameplayAction, new InputActionContext(InputActionSource.GamePad, InputActionPhase.Pressed, totalElapsed, false, GamePadButton: button));
+                }
             }
         }
 
         private void RouteGameplayAction(InputAction action, InputActionContext context)
         {
             _ = _inputRouter.Route(new(action, context));
+        }
+
+        private static bool TryMapMiniGameUIKeyboardAction(Keys key, bool isShiftDown, out InputAction action)
+        {
+            switch (key)
+            {
+                case Keys.Tab:
+                case Keys.Enter:
+                case Keys.Space:
+                case Keys.Escape:
+                case Keys.Up:
+                case Keys.Down:
+                case Keys.Left:
+                case Keys.Right:
+                case Keys.Home:
+                case Keys.End:
+                case Keys.PageUp:
+                case Keys.PageDown:
+                case Keys.Apps:
+                    return InputActionMapper.TryMapKeyboardAction(key, isShiftDown, out action);
+                default:
+                    action = default;
+                    return false;
+            }
         }
 
         private static bool TryMapMiniGameKeyboardAction(Keys key, out InputAction action)
@@ -694,9 +783,40 @@ namespace MGUI.MiniGame
                 case Keys.E:
                     action = InputAction.GameplayPrimary;
                     return true;
+                case Keys.Q:
+                    action = InputAction.GameplayCyclePrevious;
+                    return true;
+                case Keys.R:
+                    action = InputAction.GameplayCycleNext;
+                    return true;
+                case Keys.F:
+                    action = InputAction.GameplayQuickUse;
+                    return true;
                 case Keys.P:
                     action = InputAction.Pause;
                     return true;
+                default:
+                    action = default;
+                    return false;
+            }
+        }
+
+        private static bool TryMapMiniGameUIGamePadAction(GamePadButton button, out InputAction action)
+        {
+            switch (button)
+            {
+                case GamePadButton.A:
+                case GamePadButton.B:
+                case GamePadButton.Back:
+                case GamePadButton.DPadUp:
+                case GamePadButton.DPadDown:
+                case GamePadButton.DPadLeft:
+                case GamePadButton.DPadRight:
+                case GamePadButton.LeftStickUp:
+                case GamePadButton.LeftStickDown:
+                case GamePadButton.LeftStickLeft:
+                case GamePadButton.LeftStickRight:
+                    return InputActionMapper.TryMapGamePadAction(button, out action);
                 default:
                     action = default;
                     return false;
@@ -713,6 +833,15 @@ namespace MGUI.MiniGame
                 case GamePadButton.X:
                     action = InputAction.GameplayPrimary;
                     return true;
+                case GamePadButton.LeftShoulder:
+                    action = InputAction.GameplayCyclePrevious;
+                    return true;
+                case GamePadButton.RightShoulder:
+                    action = InputAction.GameplayCycleNext;
+                    return true;
+                case GamePadButton.RightTrigger:
+                    action = InputAction.GameplayQuickUse;
+                    return true;
                 case GamePadButton.Start:
                     action = InputAction.Pause;
                     return true;
@@ -720,6 +849,84 @@ namespace MGUI.MiniGame
                     action = default;
                     return false;
             }
+        }
+
+        private bool TryHandleHudAction(InputActionEvent actionEvent)
+        {
+            switch (actionEvent.Action)
+            {
+                case InputAction.GameplayCyclePrevious:
+                    CycleQuickSlot(-1);
+                    return true;
+                case InputAction.GameplayCycleNext:
+                    CycleQuickSlot(1);
+                    return true;
+                case InputAction.GameplayQuickUse:
+                    return UseSelectedQuickSlot();
+                default:
+                    return false;
+            }
+        }
+
+        private void CycleQuickSlot(int delta)
+        {
+            if (_quickSlots.Count == 0)
+            {
+                return;
+            }
+
+            _selectedQuickSlotIndex = (_selectedQuickSlotIndex + delta + _quickSlots.Count) % _quickSlots.Count;
+            SetStatusMessage($"Raccourci sélectionné: {_quickSlots[_selectedQuickSlotIndex].DisplayName}.");
+            UpdateHud();
+        }
+
+        private bool UseSelectedQuickSlot()
+        {
+            if (_quickSlots.Count == 0)
+            {
+                return false;
+            }
+
+            QuickSlot slot = _quickSlots[_selectedQuickSlotIndex];
+            return slot.ItemName switch
+            {
+                "Potion" => TryUseOwnedItem(slot.ItemName, () =>
+                {
+                    _playerHealth = Math.Clamp(_playerHealth + 25f, 0f, MaxHealth);
+                    SetStatusMessage("Potion utilisée via le HUD rapide.");
+                }),
+                "Potion de magie" => TryUseOwnedItem(slot.ItemName, () =>
+                {
+                    _playerMagic = Math.Clamp(_playerMagic + 30f, 0f, MaxMagic);
+                    SetStatusMessage("Potion de magie utilisée via le HUD rapide.");
+                }),
+                "Antidote" => TryUseOwnedItem(slot.ItemName, () =>
+                {
+                    SetStatusMessage("Antidote utilisé. Vous vous sentez mieux.");
+                }),
+                _ => false,
+            };
+        }
+
+        private bool TryUseOwnedItem(string itemName, Action onConsumed)
+        {
+            if (GetOwnedQuantity(itemName) <= 0)
+            {
+                SetStatusMessage($"Aucun {itemName.ToLowerInvariant()} disponible dans le raccourci.");
+                UpdateHud();
+                return true;
+            }
+
+            _ownedItems[itemName]--;
+            if (_ownedItems[itemName] <= 0)
+            {
+                _ownedItems.Remove(itemName);
+            }
+
+            onConsumed?.Invoke();
+            RefreshInventoryContent();
+            UpdateHud();
+            return true;
         }
 
         private bool TryHandleGameplayAction(InputActionEvent actionEvent)
@@ -792,23 +999,11 @@ namespace MGUI.MiniGame
 
         private void UseOwnedPotion(string itemName, float restoredHealth)
         {
-            if (GetOwnedQuantity(itemName) <= 0)
+            _ = TryUseOwnedItem(itemName, () =>
             {
-                SetStatusMessage($"Vous n'avez plus de {itemName.ToLowerInvariant()}.");
-                RefreshInventoryContent();
-                return;
-            }
-
-            _ownedItems[itemName]--;
-            if (_ownedItems[itemName] <= 0)
-            {
-                _ownedItems.Remove(itemName);
-            }
-
-            _playerHealth = Math.Clamp(_playerHealth + restoredHealth, 0f, MaxHealth);
-            SetStatusMessage($"Vous utilisez {itemName} et récupérez {restoredHealth:0} PV.");
-            RefreshInventoryContent();
-            UpdateHud();
+                _playerHealth = Math.Clamp(_playerHealth + restoredHealth, 0f, MaxHealth);
+                SetStatusMessage($"Vous utilisez {itemName} et récupérez {restoredHealth:0} PV.");
+            });
         }
 
         private bool IsPlayerNearVendor()

@@ -661,6 +661,10 @@ namespace MGUI.Core.UI
         /// Highly recommended to avoid using this unless absolutely necessary, and if you do use it, you probably shouldn't call e.SetHandledBy(...) so other elements can still receive the input.</summary>
         public KeyboardHandler HighPriorityKeyboardHandler { get; }
 
+        /// <summary>Controls whether <see cref="MGDesktop"/> should continue dispatching its built-in raw keyboard/gamepad navigation path.
+        /// Set this to false when an external <see cref="MGUI.Shared.Input.Semantic.InputRouter"/> is routing UI actions into <see cref="TryHandleInputAction(MGUI.Shared.Input.Semantic.InputActionEvent)"/>.</summary>
+        public bool UseRawNavigationInput { get; set; } = true;
+
         /// <summary>Manages drag-and-drop operations for all elements on this desktop.
         /// Call <see cref="DragDropManager.DoDragDrop"/> from a mouse-pressed handler to initiate a drag.</summary>
         public DragDropManager DragDropManager { get; private set; }
@@ -1283,7 +1287,13 @@ namespace MGUI.Core.UI
 
             HighPriorityMouseHandler.PressedInside  += (sender, e) => { ClearQueuedFocusedKeyboardHandler(); };
             HighPriorityMouseHandler.PressedOutside += (sender, e) => { ClearQueuedFocusedKeyboardHandler(); };
-            HighPriorityKeyboardHandler.Pressed += (sender, e) => { _ = TryDispatchNavigationAction(e); };
+            HighPriorityKeyboardHandler.Pressed += (sender, e) =>
+            {
+                if (UseRawNavigationInput)
+                {
+                    _ = TryDispatchNavigationAction(e);
+                }
+            };
 
             // Wire LMB release to finalize or cancel any active drag-and-drop
             HighPriorityMouseHandler.ReleasedInside  += (sender, e) => { if (e.IsLMB && DragDropManager.IsDragging)
@@ -1380,7 +1390,10 @@ namespace MGUI.Core.UI
             HighPriorityMouseHandler.ManualUpdate();
             HighPriorityKeyboardHandler.ManualUpdate();
             ApplyQueuedFocusChange();
-            _ = TryDispatchGamePadNavigationActions();
+            if (UseRawNavigationInput)
+            {
+                _ = TryDispatchGamePadNavigationActions();
+            }
             ApplyQueuedFocusChange();
 
             QueuedToolTip = null;

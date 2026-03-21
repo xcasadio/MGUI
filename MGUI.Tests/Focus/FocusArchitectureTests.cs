@@ -13,6 +13,7 @@ public class FocusArchitectureTests
     {
         Assert.NotNull(typeof(MGDesktop).GetMethod(nameof(MGDesktop.TryHandleInputAction)));
         Assert.NotNull(typeof(MGDesktop).GetMethod(nameof(MGDesktop.ShouldCaptureGameplayInput)));
+        Assert.NotNull(typeof(MGDesktop).GetProperty(nameof(MGDesktop.UseRawNavigationInput)));
     }
 
     [Fact]

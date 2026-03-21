@@ -54,4 +54,12 @@ public class InputSemanticMappingTests
         Assert.Equal(Keys.Down, actionEvent.Context.Key);
         Assert.Equal(InputAction.NavigateDown, actionEvent.Action);
     }
+
+    [Fact]
+    public void Extended_Gameplay_Actions_Are_Not_Classified_As_UI_Actions()
+    {
+        Assert.False(InputAction.GameplayCyclePrevious.IsUIAction());
+        Assert.False(InputAction.GameplayCycleNext.IsUIAction());
+        Assert.False(InputAction.GameplayQuickUse.IsUIAction());
+    }
 }

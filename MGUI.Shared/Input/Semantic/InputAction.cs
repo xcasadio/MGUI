@@ -23,6 +23,9 @@ namespace MGUI.Shared.Input.Semantic
         ShoulderNext,
         GameplayPrimary,
         GameplaySecondary,
+        GameplayCyclePrevious,
+        GameplayCycleNext,
+        GameplayQuickUse,
         Pause,
     }
 
@@ -33,6 +36,9 @@ namespace MGUI.Shared.Input.Semantic
             {
                 InputAction.GameplayPrimary => false,
                 InputAction.GameplaySecondary => false,
+                InputAction.GameplayCyclePrevious => false,
+                InputAction.GameplayCycleNext => false,
+                InputAction.GameplayQuickUse => false,
                 InputAction.Pause => false,
                 _ => true,
             };
