@@ -129,6 +129,7 @@ namespace MGUI.MiniGame
         private readonly GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private Texture2D _circleTexture;
+        private float _vendorHighlightAmount;
 
         private MainRenderer _mguiRenderer;
         private MGDesktop _desktop;
@@ -199,6 +200,9 @@ namespace MGUI.MiniGame
         private const float BaseMaxHealth = 100f;
         private const float BaseMaxMagic = 100f;
         private const float BaseMoveSpeed = 240f;
+        private const float VendorHighlightTransitionSpeed = 8f;
+        private static readonly Color VendorBaseColor = Color.DarkBlue;
+        private static readonly Color VendorHighlightColor = new(110, 150, 255);
         private float _playerHealth = 85f;
         private float _playerMagic = 60f;
         private int _playerMoney = 125;
@@ -275,6 +279,7 @@ namespace MGUI.MiniGame
                 UpdatePlayer(gameTime, currentKeyboardState, currentGamePadState);
             }
 
+            UpdateVendorVisualState(gameTime);
             UpdateHud();
             _desktop.Update();
 
@@ -322,7 +327,7 @@ namespace MGUI.MiniGame
         {
             Viewport viewport = GraphicsDevice.Viewport;
             _player = AddEntity(new Vector2(viewport.Width * 0.35f, viewport.Height * 0.5f), 22f, Color.DarkGreen, 240f);
-            _vendor = AddEntity(new Vector2(viewport.Width * 0.7f, viewport.Height * 0.45f), 26f, Color.DarkBlue);
+            _vendor = AddEntity(new Vector2(viewport.Width * 0.7f, viewport.Height * 0.45f), 26f, VendorBaseColor);
         }
 
         private void CreateHudWindow()
@@ -334,10 +339,11 @@ namespace MGUI.MiniGame
                 CanCloseWindow = false,
                 IsTopmost = true,
                 Padding = new Thickness(12),
-                BorderThickness = new Thickness(1)
+                BorderThickness = new Thickness(0),
+                DrawBackgroundEnabled = false,
             };
-            _hudWindow.BackgroundBrush.SetAll(new Color(0, 0, 0, 180).AsFillBrush());
-            _hudWindow.BorderBrush = new Color(24, 24, 24, 220).AsFillBrush().AsUniformBorderBrush();
+            _hudWindow.BackgroundBrush.SetAll(Color.Transparent.AsFillBrush());
+            _hudWindow.BorderBrush = Color.Transparent.AsFillBrush().AsUniformBorderBrush();
 
             MGStackPanel content = new(_hudWindow, Orientation.Vertical)
             {
@@ -401,6 +407,14 @@ namespace MGUI.MiniGame
                 Spacing = 10,
             };
 
+            MGScrollViewer helpScrollViewer = new(_helpWindow, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled)
+            {
+                PreferredWidth = 470,
+                PreferredHeight = 248,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            };
+
             _helpText = new MGTextBlock(_helpWindow,
                 "This sample demonstrates three routed layers: MGUI UI, an interactive HUD, and gameplay fallback.\n\n" +
                 "World controls\n" +
@@ -417,11 +431,13 @@ namespace MGUI.MiniGame
                 "- Press LB/RB while the shop is open to switch between buy and sell mode\n\n" +
                 "Close this window to start playing.",
                 Color.White,
-                15)
+                13)
             {
                 WrapText = true,
+                PreferredWidth = 446,
             };
-            content.TryAddChild(_helpText);
+            helpScrollViewer.SetContent(_helpText);
+            content.TryAddChild(helpScrollViewer);
 
             _helpCloseButton = new MGButton(_helpWindow, _ => CloseHelpWindow())
             {
@@ -857,6 +873,19 @@ namespace MGUI.MiniGame
 
             _player.Position += movement * _player.MovementSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
             ClampEntityToViewport(_player);
+        }
+
+        private void UpdateVendorVisualState(GameTime gameTime)
+        {
+            if (_vendor == null)
+            {
+                return;
+            }
+
+            float target = IsPlayerNearVendor() ? 1f : 0f;
+            float delta = (float)gameTime.ElapsedGameTime.TotalSeconds * VendorHighlightTransitionSpeed;
+            _vendorHighlightAmount = MathHelper.Lerp(_vendorHighlightAmount, target, Math.Clamp(delta, 0f, 1f));
+            _vendor.Color = Color.Lerp(VendorBaseColor, VendorHighlightColor, _vendorHighlightAmount);
         }
 
         private static Vector2 GetKeyboardMovement(KeyboardState keyboardState)
@@ -1553,6 +1582,12 @@ namespace MGUI.MiniGame
 
         private void RefreshTradeEntries()
         {
+            if (_shopOffersList == null)
+            {
+                _selectedTradeEntry = null;
+                return;
+            }
+
             string previousSelectionName = _selectedTradeEntry?.Item.Name;
             List<TradeEntry> entries = _shopMode == TradeMode.Buy
                 ? _vendorOfferItemNames.Where(_itemDefinitions.ContainsKey)
@@ -1564,7 +1599,7 @@ namespace MGUI.MiniGame
                     .OrderBy(x => x.Item.Name)
                     .ToList();
 
-            _shopOffersList?.SetItemsSource(entries);
+            _shopOffersList.SetItemsSource(entries);
             _selectedTradeEntry = entries.FirstOrDefault(x => x.Item.Name == previousSelectionName) ?? entries.FirstOrDefault();
             if (_selectedTradeEntry != null)
             {
