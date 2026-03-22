@@ -129,7 +129,6 @@ namespace MGUI.MiniGame
         private readonly GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private Texture2D _circleTexture;
-        private float _vendorHighlightAmount;
 
         private MainRenderer _mguiRenderer;
         private MGDesktop _desktop;
@@ -173,19 +172,19 @@ namespace MGUI.MiniGame
         private readonly List<QuickSlot> _quickSlots =
         [
             new QuickSlot("Potion", "Potion", "C/R or LB/RB, F/RT to use"),
-            new QuickSlot("Potion de magie", "Mana Potion", "C/R or LB/RB, F/RT to use"),
+            new QuickSlot("Mana Potion", "Mana Potion", "C/R or LB/RB, F/RT to use"),
             new QuickSlot("Antidote", "Antidote", "C/R or LB/RB, F/RT to use")
         ];
         private readonly Dictionary<string, ItemDefinition> _itemDefinitions = CreateItemDefinitions();
         private readonly List<string> _vendorOfferItemNames =
         [
             "Potion",
-            "Potion de magie",
+            "Mana Potion",
             "Antidote",
-            "Élixir",
-            "Cape du voyageur",
-            "Dague du marchand",
-            "Anneau du troc"
+            "Elixir",
+            "Traveler Cloak",
+            "Merchant Dagger",
+            "Barter Ring"
         ];
         private CircleEntity _player;
         private CircleEntity _vendor;
@@ -200,27 +199,26 @@ namespace MGUI.MiniGame
         private const float BaseMaxHealth = 100f;
         private const float BaseMaxMagic = 100f;
         private const float BaseMoveSpeed = 240f;
-        private const float VendorHighlightTransitionSpeed = 8f;
         private static readonly Color VendorBaseColor = Color.DarkBlue;
-        private static readonly Color VendorHighlightColor = new(110, 150, 255);
+        private static readonly Color VendorHighlightColor = new(70, 105, 190);
         private float _playerHealth = 85f;
         private float _playerMagic = 60f;
         private int _playerMoney = 125;
 
         private readonly Dictionary<EquipmentSlot, string> _equippedItems = new()
         {
-            [EquipmentSlot.Weapon] = "Épée en fer",
-            [EquipmentSlot.Armor] = "Tunique de cuir",
-            [EquipmentSlot.Accessory] = "Anneau de mana"
+            [EquipmentSlot.Weapon] = "Iron Sword",
+            [EquipmentSlot.Armor] = "Leather Tunic",
+            [EquipmentSlot.Accessory] = "Mana Ring"
         };
 
         private readonly Dictionary<string, int> _ownedItems = new()
         {
             ["Potion"] = 5,
-            ["Potion de magie"] = 3,
-            ["Herbe médicinale"] = 4,
+            ["Mana Potion"] = 3,
+            ["Healing Herb"] = 4,
             ["Antidote"] = 2,
-            ["Clé du marchand"] = 1
+            ["Merchant Key"] = 1
         };
 
         private const float VendorInteractionRadius = 90f;
@@ -332,7 +330,7 @@ namespace MGUI.MiniGame
 
         private void CreateHudWindow()
         {
-            _hudWindow = new MGWindow(_desktop, 16, 16, 320, 180)
+            _hudWindow = new MGWindow(_desktop, 16, 16, 360, 250)
             {
                 WindowStyle = WindowStyle.None,
                 AllowsClickThrough = true,
@@ -347,18 +345,18 @@ namespace MGUI.MiniGame
 
             MGStackPanel content = new(_hudWindow, Orientation.Vertical)
             {
-                PreferredWidth = 280,
-                PreferredHeight = 150,
+                PreferredWidth = 320,
+                PreferredHeight = 220,
                 Spacing = 6,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
 
-            content.TryAddChild(new MGTextBlock(_hudWindow, "Vie", Color.White));
+            content.TryAddChild(new MGTextBlock(_hudWindow, "Health", Color.White));
             _healthBar = CreateHudBar(Color.IndianRed, new Color(70, 20, 20));
             content.TryAddChild(_healthBar);
 
-            content.TryAddChild(new MGTextBlock(_hudWindow, "Magie", Color.White));
+            content.TryAddChild(new MGTextBlock(_hudWindow, "Magic", Color.White));
             _magicBar = CreateHudBar(Color.RoyalBlue, new Color(15, 30, 70));
             content.TryAddChild(_magicBar);
 
@@ -374,7 +372,7 @@ namespace MGUI.MiniGame
             };
             content.TryAddChild(_interactionText);
 
-            _statusText = new MGTextBlock(_hudWindow, "Déplacez-vous, ouvrez l'inventaire avec I/Y et parlez au vendeur avec E/X.", Color.White, 13)
+            _statusText = new MGTextBlock(_hudWindow, "Move around, open the inventory with I/Y, and talk to the merchant with E/X.", Color.White, 13)
             {
                 Margin = new Thickness(0, 4, 0, 0)
             };
@@ -468,7 +466,7 @@ namespace MGUI.MiniGame
         {
             _inventoryWindow = new MGWindow(_desktop, 0, 0, 420, 320)
             {
-                TitleText = "Inventaire",
+                TitleText = "Inventory",
                 IsTopmost = true
             };
             _inventoryWindow.WindowClosed += (_, _) => _isInventoryOpen = false;
@@ -489,7 +487,7 @@ namespace MGUI.MiniGame
         {
             _vendorDialogWindow = new MGWindow(_desktop, 0, 0, 380, 220)
             {
-                TitleText = "Marchand ambulant",
+                TitleText = "Traveling Merchant",
                 IsTopmost = true,
             };
             _vendorDialogWindow.WindowClosed += (_, _) => _isVendorDialogOpen = false;
@@ -502,7 +500,7 @@ namespace MGUI.MiniGame
             };
 
             _vendorDialogText = new MGTextBlock(_vendorDialogWindow,
-                "Bonjour voyageur. J'ai quelques provisions et une cape qui résiste bien à la pluie.",
+                "Hello traveler. I have a few supplies and a cloak that handles rain very well.",
                 Color.White,
                 15)
             {
@@ -514,14 +512,14 @@ namespace MGUI.MiniGame
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
             };
-            _vendorBuyButton.SetContent("Voir la boutique");
+            _vendorBuyButton.SetContent("Browse Shop");
             content.TryAddChild(_vendorBuyButton);
 
             _vendorLeaveButton = new MGButton(_vendorDialogWindow, _ => CloseVendorDialog())
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
             };
-            _vendorLeaveButton.SetContent("Repartir");
+            _vendorLeaveButton.SetContent("Leave");
             content.TryAddChild(_vendorLeaveButton);
 
             _vendorDialogWindow.DefaultFocusElement = _vendorBuyButton;
@@ -533,7 +531,7 @@ namespace MGUI.MiniGame
         {
             _shopWindow = new MGWindow(_desktop, 0, 0, 460, 340)
             {
-                TitleText = "Achat",
+                TitleText = "Shop",
                 IsTopmost = true
             };
             _shopWindow.WindowClosed += (_, _) => _isShopOpen = false;
@@ -562,7 +560,7 @@ namespace MGUI.MiniGame
                 SelectionMode = ListBoxSelectionMode.Single,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch,
-                Header = new MGTextBlock(_shopWindow, "Nom / Prix", Color.White, 14)
+                Header = new MGTextBlock(_shopWindow, "Name / Price", Color.White, 14)
             };
             _shopOffersList.ItemTemplate = CreateShopOfferListItem;
             _shopOffersList.SelectionChanged += (_, _) =>
@@ -601,7 +599,7 @@ namespace MGUI.MiniGame
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 PreferredWidth = 150
             };
-            _shopBuyButton.SetContent("Acheter");
+            _shopBuyButton.SetContent("Buy");
             rightPanel.TryAddChild(_shopBuyButton);
 
             _shopLeaveButton = new MGButton(_shopWindow, _ => CloseShopWindow())
@@ -609,10 +607,10 @@ namespace MGUI.MiniGame
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 PreferredWidth = 150
             };
-            _shopLeaveButton.SetContent("Quitter la boutique");
+            _shopLeaveButton.SetContent("Leave Shop");
             rightPanel.TryAddChild(_shopLeaveButton);
 
-            _shopStatusText = new MGTextBlock(_shopWindow, "Sélectionnez un objet puis validez l'achat.", Color.LightGray, 14);
+            _shopStatusText = new MGTextBlock(_shopWindow, "Select an item and confirm the trade.", Color.LightGray, 14);
             rightPanel.TryAddChild(_shopStatusText);
 
             body.TryAddChild(_shopOffersList, Dock.Left);
@@ -635,7 +633,7 @@ namespace MGUI.MiniGame
                 PreferredWidth = 220
             };
 
-            MGTextBlock priceText = new(_shopWindow, $"{offer.Price} or", Color.Gold, 14)
+            MGTextBlock priceText = new(_shopWindow, $"{offer.Price} gold", Color.Gold, 14)
             {
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Margin = new Thickness(8, 0, 0, 0)
@@ -659,7 +657,7 @@ namespace MGUI.MiniGame
             string previousSelection = _selectedInventoryItemName;
             _inventoryContent.TryRemoveAll();
 
-            _inventoryContent.TryAddChild(new MGTextBlock(_inventoryWindow, "Équipement courant", Color.White, 18));
+            _inventoryContent.TryAddChild(new MGTextBlock(_inventoryWindow, "Current Equipment", Color.White, 18));
 
             foreach (var equippedItem in _equippedItems)
             {
@@ -672,7 +670,7 @@ namespace MGUI.MiniGame
                     PreferredWidth = 360,
                 };
 
-                MGTextBlock equippedText = new(_inventoryWindow, $"- {slotName} : {itemName}", Color.LightGray, 14)
+                MGTextBlock equippedText = new(_inventoryWindow, $"- {slotName}: {itemName}", Color.LightGray, 14)
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch
                 };
@@ -683,13 +681,13 @@ namespace MGUI.MiniGame
                     PreferredWidth = 110,
                     HorizontalAlignment = HorizontalAlignment.Right,
                 };
-                unequipButton.SetContent($"Retirer {slotName}");
+                unequipButton.SetContent($"Unequip {slotName}");
                 equippedRow.TryAddChild(unequipButton, Dock.Right);
 
                 _inventoryContent.TryAddChild(equippedRow);
             }
 
-            _inventoryContent.TryAddChild(new MGTextBlock(_inventoryWindow, "Objets possédés", Color.White, 18)
+            _inventoryContent.TryAddChild(new MGTextBlock(_inventoryWindow, "Owned Items", Color.White, 18)
             {
                 Margin = new Thickness(0, 8, 0, 0)
             });
@@ -708,7 +706,7 @@ namespace MGUI.MiniGame
                 PreferredHeight = 160,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch,
-                Header = new MGTextBlock(_inventoryWindow, "Sélection", Color.White, 14)
+                Header = new MGTextBlock(_inventoryWindow, "Selection", Color.White, 14)
             };
             _inventoryOwnedItemsList.ItemTemplate = itemName => new MGTextBlock(_inventoryWindow, $"{itemName} x{GetOwnedQuantity(itemName)}", Color.White, 14);
             _inventoryOwnedItemsList.SelectionChanged += (_, _) =>
@@ -736,21 +734,21 @@ namespace MGUI.MiniGame
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
             };
-            _inventoryPrimaryActionButton.SetContent("Utiliser");
+            _inventoryPrimaryActionButton.SetContent("Use");
             inventoryRightPanel.TryAddChild(_inventoryPrimaryActionButton);
 
             _inventoryUsePotionButton = new MGButton(_inventoryWindow, _ => UseOwnedPotion("Potion", 25f))
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
             };
-            _inventoryUsePotionButton.SetContent($"Boire une potion rapide x{GetOwnedQuantity("Potion")}");
+            _inventoryUsePotionButton.SetContent($"Drink quick potion x{GetOwnedQuantity("Potion")}");
             inventoryRightPanel.TryAddChild(_inventoryUsePotionButton);
 
             _inventoryCloseButton = new MGButton(_inventoryWindow, _ => ToggleInventory())
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
             };
-            _inventoryCloseButton.SetContent("Fermer l'inventaire");
+            _inventoryCloseButton.SetContent("Close Inventory");
             inventoryRightPanel.TryAddChild(_inventoryCloseButton);
 
             inventoryBody.TryAddChild(_inventoryOwnedItemsList, Dock.Left);
@@ -776,8 +774,8 @@ namespace MGUI.MiniGame
 
         private void RefreshShopContent()
         {
-            _shopMoneyText?.SetText($"Votre argent : {_playerMoney} or");
-            _shopModeText?.SetText(_shopMode == TradeMode.Buy ? "Acheter au marchand" : "Revendre au marchand");
+            _shopMoneyText?.SetText($"Your gold: {_playerMoney}");
+            _shopModeText?.SetText(_shopMode == TradeMode.Buy ? "Buying from Merchant" : "Selling to Merchant");
             _shopModeToggleButton?.SetContent(_shopMode == TradeMode.Buy ? "Switch to Sell Mode" : "Switch to Buy Mode");
             RefreshTradeEntries();
         }
@@ -786,19 +784,19 @@ namespace MGUI.MiniGame
         {
             if (_selectedTradeEntry == null)
             {
-                _shopOwnedQuantityText?.SetText("Quantité : 0");
-                _shopSelectedItemText?.SetText("Aucun objet sélectionné.");
-                _shopBuyButton?.SetContent(_shopMode == TradeMode.Buy ? "Acheter" : "Vendre");
+                _shopOwnedQuantityText?.SetText("Owned: 0");
+                _shopSelectedItemText?.SetText("No item selected.");
+                _shopBuyButton?.SetContent(_shopMode == TradeMode.Buy ? "Buy" : "Sell");
                 return;
             }
 
             ItemDefinition definition = _selectedTradeEntry.Item;
             int quantityOwned = GetOwnedQuantity(definition.Name);
-            _shopOwnedQuantityText?.SetText($"Quantité : {quantityOwned}");
-            _shopSelectedItemText?.SetText($"Objet : {definition.Name}\n{definition.Description}");
+            _shopOwnedQuantityText?.SetText($"Owned: {quantityOwned}");
+            _shopSelectedItemText?.SetText($"Item: {definition.Name}\n{definition.Description}");
             _shopBuyButton?.SetContent(_shopMode == TradeMode.Buy
-                ? $"Acheter ({_selectedTradeEntry.Price} or)"
-                : $"Vendre ({_selectedTradeEntry.Price} or)");
+                ? $"Buy ({_selectedTradeEntry.Price} gold)"
+                : $"Sell ({_selectedTradeEntry.Price} gold)");
         }
 
         private void UpdateHud()
@@ -809,7 +807,7 @@ namespace MGUI.MiniGame
             _magicBar.Maximum = CurrentMaxMagic;
             _magicBar.Value = Math.Clamp(_playerMagic, 0f, CurrentMaxMagic);
 
-            _moneyText.SetText($"Argent : {_playerMoney}");
+            _moneyText.SetText($"Gold: {_playerMoney}");
             _interactionText.SetText(GetInteractionPrompt(), true);
             _quickSlotsText.SetText(GetQuickSlotsSummary(), true);
             RefreshShopContent();
@@ -825,7 +823,7 @@ namespace MGUI.MiniGame
                 parts.Add($"{marker} {slot.DisplayName} x{GetOwnedQuantity(slot.ItemName)}");
             }
 
-            return "Raccourcis HUD\n" + string.Join("\n", parts);
+            return "HUD Shortcuts\n" + string.Join("\n", parts);
         }
 
         private string GetInteractionPrompt()
@@ -837,30 +835,30 @@ namespace MGUI.MiniGame
 
             if (_isShopOpen)
             {
-                return "Boutique ouverte: Tab/Fleches/Entree pour naviguer, I ou Y pour fermer, LB/RB pour acheter ou vendre.";
+                return "Shop open: use Tab, arrows, and Enter to navigate, I or Y to close, LB/RB to switch buy and sell mode.";
             }
 
             if (_isVendorDialogOpen)
             {
-                return "Dialogue vendeur: Tab/Fleches/Entree pour choisir, I ou Y pour fermer.";
+                return "Merchant dialogue: use Tab, arrows, and Enter to choose, I or Y to close.";
             }
 
             if (_isInventoryOpen)
             {
-                return "Inventaire ouvert: utilisez les boutons ou I/Y pour fermer.";
+                return "Inventory open: use the buttons or press I/Y to close it.";
             }
 
             if (IsHudContextActive())
             {
-                return "HUD: C/R ou LB/RB pour changer d'objet rapide, F ou RT pour l'utiliser, H ou Back pour l'aide.";
+                return "HUD: C/R or LB/RB to switch quick items, F or RT to use one, H or Back for help.";
             }
 
             if (IsPlayerNearVendor())
             {
-                return "Pres du vendeur: E ou X pour parler, I ou Y pour l'inventaire, H ou Back pour l'aide.";
+                return "Near the merchant: E or X to talk, I or Y for inventory, H or Back for help.";
             }
 
-            return "Deplacement: WASD/Fleches ou stick. Inventaire: I/Y. Help: H/Back.";
+            return "Movement: WASD/arrows or left stick. Inventory: I/Y. Help: H/Back.";
         }
 
         private void UpdatePlayer(GameTime gameTime, KeyboardState keyboardState, GamePadState gamePadState)
@@ -882,10 +880,7 @@ namespace MGUI.MiniGame
                 return;
             }
 
-            float target = IsPlayerNearVendor() ? 1f : 0f;
-            float delta = (float)gameTime.ElapsedGameTime.TotalSeconds * VendorHighlightTransitionSpeed;
-            _vendorHighlightAmount = MathHelper.Lerp(_vendorHighlightAmount, target, Math.Clamp(delta, 0f, 1f));
-            _vendor.Color = Color.Lerp(VendorBaseColor, VendorHighlightColor, _vendorHighlightAmount);
+            _vendor.Color = IsPlayerNearVendor() ? VendorHighlightColor : VendorBaseColor;
         }
 
         private static Vector2 GetKeyboardMovement(KeyboardState keyboardState)
@@ -1136,7 +1131,7 @@ namespace MGUI.MiniGame
             }
 
             _selectedQuickSlotIndex = (_selectedQuickSlotIndex + delta + _quickSlots.Count) % _quickSlots.Count;
-            SetStatusMessage($"Raccourci sélectionné: {_quickSlots[_selectedQuickSlotIndex].DisplayName}.");
+            SetStatusMessage($"Selected shortcut: {_quickSlots[_selectedQuickSlotIndex].DisplayName}.");
             UpdateHud();
         }
 
@@ -1153,16 +1148,16 @@ namespace MGUI.MiniGame
                 "Potion" => TryUseOwnedItem(slot.ItemName, () =>
                 {
                     _playerHealth = Math.Clamp(_playerHealth + 25f, 0f, CurrentMaxHealth);
-                    SetStatusMessage("Potion utilisée via le HUD rapide.");
+                    SetStatusMessage("Potion used from the quick HUD.");
                 }),
-                "Potion de magie" => TryUseOwnedItem(slot.ItemName, () =>
+                "Mana Potion" => TryUseOwnedItem(slot.ItemName, () =>
                 {
                     _playerMagic = Math.Clamp(_playerMagic + 30f, 0f, CurrentMaxMagic);
-                    SetStatusMessage("Potion de magie utilisée via le HUD rapide.");
+                    SetStatusMessage("Mana potion used from the quick HUD.");
                 }),
                 "Antidote" => TryUseOwnedItem(slot.ItemName, () =>
                 {
-                    SetStatusMessage("Antidote utilisé. Vous vous sentez mieux.");
+                    SetStatusMessage("Antidote used. You feel better.");
                 }),
                 _ => false,
             };
@@ -1172,7 +1167,7 @@ namespace MGUI.MiniGame
         {
             if (GetOwnedQuantity(itemName) <= 0)
             {
-                SetStatusMessage($"Aucun {itemName.ToLowerInvariant()} disponible dans le raccourci.");
+                SetStatusMessage($"No {itemName.ToLowerInvariant()} available in that shortcut.");
                 UpdateHud();
                 return true;
             }
@@ -1212,7 +1207,7 @@ namespace MGUI.MiniGame
 
                     if (!IsPlayerNearVendor())
                     {
-                        SetStatusMessage("Le vendeur est trop loin.");
+                        SetStatusMessage("The merchant is too far away.");
                         return true;
                     }
 
@@ -1327,7 +1322,7 @@ namespace MGUI.MiniGame
             _ = TryUseOwnedItem(itemName, () =>
             {
                 _playerHealth = Math.Clamp(_playerHealth + restoredHealth, 0f, CurrentMaxHealth);
-                SetStatusMessage($"Vous utilisez {itemName} et récupérez {restoredHealth:0} PV.");
+                SetStatusMessage($"You use {itemName} and recover {restoredHealth:0} health.");
             });
         }
 
@@ -1335,21 +1330,21 @@ namespace MGUI.MiniGame
         {
             if (string.IsNullOrEmpty(_selectedInventoryItemName) || !_itemDefinitions.TryGetValue(_selectedInventoryItemName, out ItemDefinition item))
             {
-                _inventorySelectionText?.SetText("Sélectionnez un objet dans la liste.");
-                _inventoryPrimaryActionButton?.SetContent("Aucune action");
+                _inventorySelectionText?.SetText("Select an item from the list.");
+                _inventoryPrimaryActionButton?.SetContent("No Action");
                 return;
             }
 
             int quantity = GetOwnedQuantity(item.Name);
             string actionText = item.IsConsumable
-                ? $"Utiliser {item.Name}"
+                ? $"Use {item.Name}"
                 : item.IsEquippable
-                    ? $"Équiper ({GetEquipmentSlotDisplayName(item.EquipmentSlot)})"
-                    : "Aucune action";
+                    ? $"Equip ({GetEquipmentSlotDisplayName(item.EquipmentSlot)})"
+                    : "No Action";
 
-            _inventorySelectionText?.SetText($"{item.Description}\nQuantité possédée : {quantity}");
+            _inventorySelectionText?.SetText($"{item.Description}\nOwned quantity: {quantity}");
             _inventoryPrimaryActionButton?.SetContent(actionText);
-            _inventoryUsePotionButton?.SetContent($"Boire une potion rapide x{GetOwnedQuantity("Potion")}");
+            _inventoryUsePotionButton?.SetContent($"Drink quick potion x{GetOwnedQuantity("Potion")}");
         }
 
         private void ExecuteInventorySelectionAction()
@@ -1373,7 +1368,7 @@ namespace MGUI.MiniGame
                         _playerMagic = Math.Clamp(_playerMagic + item.MagicRestore, 0f, CurrentMaxMagic);
                     }
 
-                    SetStatusMessage($"{item.Name} utilisé depuis l'inventaire.");
+                    SetStatusMessage($"{item.Name} used from the inventory.");
                 });
                 return;
             }
@@ -1388,13 +1383,13 @@ namespace MGUI.MiniGame
         {
             if (!item.IsEquippable || GetOwnedQuantity(item.Name) <= 0)
             {
-                SetStatusMessage($"Impossible d'équiper {item.Name}.");
+                SetStatusMessage($"Cannot equip {item.Name}.");
                 return;
             }
 
             if (_equippedItems.TryGetValue(item.EquipmentSlot, out string currentItem) && currentItem == item.Name)
             {
-                SetStatusMessage($"{item.Name} est déjà équipé.");
+                SetStatusMessage($"{item.Name} is already equipped.");
                 return;
             }
 
@@ -1403,7 +1398,7 @@ namespace MGUI.MiniGame
             _equippedItems[item.EquipmentSlot] = item.Name;
 
             RecalculateDerivedStats();
-            SetStatusMessage($"{item.Name} équipé sur {GetEquipmentSlotDisplayName(item.EquipmentSlot)}.");
+            SetStatusMessage($"{item.Name} equipped in {GetEquipmentSlotDisplayName(item.EquipmentSlot)}.");
             RefreshInventoryContent();
             UpdateHud();
         }
@@ -1418,7 +1413,7 @@ namespace MGUI.MiniGame
             AddOwnedItem(itemName, 1);
             _equippedItems[slot] = string.Empty;
             RecalculateDerivedStats();
-            SetStatusMessage($"{itemName} retiré de {GetEquipmentSlotDisplayName(slot)}.");
+            SetStatusMessage($"{itemName} removed from {GetEquipmentSlotDisplayName(slot)}.");
             RefreshInventoryContent();
             UpdateHud();
         }
@@ -1439,7 +1434,7 @@ namespace MGUI.MiniGame
             {
                 _inventoryWindow.TryCloseWindow();
                 _isInventoryOpen = false;
-                SetStatusMessage("Inventaire fermé.");
+                SetStatusMessage("Inventory closed.");
                 return;
             }
 
@@ -1453,7 +1448,7 @@ namespace MGUI.MiniGame
             _desktop.BringToFront(_inventoryWindow);
             _isInventoryOpen = true;
             _inventoryOwnedItemsList?.Focus(KeyboardFocusSource.Programmatic);
-            SetStatusMessage("Inventaire ouvert.");
+            SetStatusMessage("Inventory opened.");
         }
 
         private void OpenVendorDialog()
@@ -1471,9 +1466,9 @@ namespace MGUI.MiniGame
 
             _desktop.BringToFront(_vendorDialogWindow);
             _isVendorDialogOpen = true;
-            _vendorDialogText.SetText("Bonjour voyageur. J'ai quelques provisions et une cape qui résiste bien à la pluie.");
+            _vendorDialogText.SetText("Hello traveler. I have a few supplies and a cloak that handles rain very well.");
             _vendorBuyButton?.Focus(KeyboardFocusSource.Programmatic);
-            SetStatusMessage("Conversation avec le vendeur.");
+            SetStatusMessage("Talking to the merchant.");
         }
 
         private void CloseVendorDialog()
@@ -1482,7 +1477,7 @@ namespace MGUI.MiniGame
             {
                 _vendorDialogWindow.TryCloseWindow();
                 _isVendorDialogOpen = false;
-                SetStatusMessage("Vous quittez le vendeur.");
+                SetStatusMessage("You leave the merchant.");
             }
         }
 
@@ -1504,8 +1499,8 @@ namespace MGUI.MiniGame
             _desktop.BringToFront(_shopWindow);
             _isShopOpen = true;
             _shopMode = TradeMode.Buy;
-            _shopStatusText.SetText("Bienvenue, voyageur.");
-            SetStatusMessage("La boutique est ouverte.");
+            _shopStatusText.SetText("Welcome, traveler.");
+            SetStatusMessage("The shop is open.");
 
             RefreshShopContent();
             RefreshShopSelectionDetails();
@@ -1518,7 +1513,7 @@ namespace MGUI.MiniGame
             {
                 _shopWindow.TryCloseWindow();
                 _isShopOpen = false;
-                SetStatusMessage("Vous quittez la boutique.");
+                SetStatusMessage("You leave the shop.");
             }
         }
 
@@ -1527,8 +1522,8 @@ namespace MGUI.MiniGame
             TradeEntry offer = _selectedTradeEntry;
             if (offer == null)
             {
-                _shopStatusText.SetText(_shopMode == TradeMode.Buy ? "Sélectionnez un objet à acheter." : "Sélectionnez un objet à vendre.");
-                SetStatusMessage("Aucun objet sélectionné.");
+                _shopStatusText.SetText(_shopMode == TradeMode.Buy ? "Select an item to buy." : "Select an item to sell.");
+                SetStatusMessage("No item selected.");
                 return;
             }
 
@@ -1536,22 +1531,22 @@ namespace MGUI.MiniGame
             {
                 if (_playerMoney < offer.Price)
                 {
-                    _shopStatusText.SetText($"Pas assez d'or pour acheter {offer.Item.Name}.");
-                    SetStatusMessage($"Vous n'avez pas assez d'or pour {offer.Item.Name}.");
+                    _shopStatusText.SetText($"Not enough gold to buy {offer.Item.Name}.");
+                    SetStatusMessage($"You do not have enough gold for {offer.Item.Name}.");
                     return;
                 }
 
                 _playerMoney -= offer.Price;
                 AddOwnedItem(offer.Item.Name, 1);
-                _shopStatusText.SetText($"{offer.Item.Name} ajouté à l'inventaire.");
-                SetStatusMessage($"Achat réussi: {offer.Item.Name}.");
+                _shopStatusText.SetText($"{offer.Item.Name} added to your inventory.");
+                SetStatusMessage($"Purchase successful: {offer.Item.Name}.");
             }
             else
             {
                 if (GetOwnedQuantity(offer.Item.Name) <= 0)
                 {
-                    _shopStatusText.SetText($"Vous n'avez plus de {offer.Item.Name} à vendre.");
-                    SetStatusMessage($"Impossible de vendre {offer.Item.Name}.");
+                    _shopStatusText.SetText($"You do not have any more {offer.Item.Name} to sell.");
+                    SetStatusMessage($"Cannot sell {offer.Item.Name}.");
                     RefreshShopContent();
                     RefreshShopSelectionDetails();
                     return;
@@ -1559,8 +1554,8 @@ namespace MGUI.MiniGame
 
                 RemoveOwnedItem(offer.Item.Name, 1);
                 _playerMoney += offer.Price;
-                _shopStatusText.SetText($"{offer.Item.Name} vendu au marchand.");
-                SetStatusMessage($"Vente réussie: {offer.Item.Name}.");
+                _shopStatusText.SetText($"{offer.Item.Name} sold to the merchant.");
+                SetStatusMessage($"Sale successful: {offer.Item.Name}.");
             }
 
             RefreshInventoryContent();
@@ -1575,7 +1570,7 @@ namespace MGUI.MiniGame
                 ? (_shopMode == TradeMode.Buy ? TradeMode.Sell : TradeMode.Buy)
                 : (_shopMode == TradeMode.Sell ? TradeMode.Buy : TradeMode.Sell);
 
-            SetStatusMessage(_shopMode == TradeMode.Buy ? "Mode achat activé." : "Mode vente activé.");
+            SetStatusMessage(_shopMode == TradeMode.Buy ? "Buy mode enabled." : "Sell mode enabled.");
             RefreshShopContent();
             RefreshShopSelectionDetails();
         }
@@ -1672,10 +1667,10 @@ namespace MGUI.MiniGame
         private static string GetEquipmentSlotDisplayName(EquipmentSlot slot)
             => slot switch
             {
-                EquipmentSlot.Weapon => "Arme",
-                EquipmentSlot.Armor => "Armure",
-                EquipmentSlot.Accessory => "Accessoire",
-                _ => "Inconnu",
+                EquipmentSlot.Weapon => "Weapon",
+                EquipmentSlot.Armor => "Armor",
+                EquipmentSlot.Accessory => "Accessory",
+                _ => "Unknown",
             };
 
         private void PositionInventoryWindow()
@@ -1804,15 +1799,15 @@ namespace MGUI.MiniGame
             return new(StringComparer.OrdinalIgnoreCase)
             {
                 ["Potion"] = new ItemDefinition("Potion", "Restores 25 health.", 12, 6, healthRestore: 25f),
-                ["Potion de magie"] = new ItemDefinition("Potion de magie", "Restores 30 magic.", 18, 9, magicRestore: 30f),
+                ["Mana Potion"] = new ItemDefinition("Mana Potion", "Restores 30 magic.", 18, 9, magicRestore: 30f),
                 ["Antidote"] = new ItemDefinition("Antidote", "Cures minor afflictions. Useful for the quick HUD demo.", 10, 5),
-                ["Élixir"] = new ItemDefinition("Élixir", "Restores 20 health and 20 magic.", 35, 18, healthRestore: 20f, magicRestore: 20f),
-                ["Cape du voyageur"] = new ItemDefinition("Cape du voyageur", "A light armor piece that boosts max health and movement speed.", 60, 30, EquipmentSlot.Armor, bonusHealth: 10f, bonusMoveSpeed: 18f),
-                ["Dague du marchand"] = new ItemDefinition("Dague du marchand", "A nimble weapon with a light movement bonus.", 45, 22, EquipmentSlot.Weapon, bonusMoveSpeed: 22f),
-                ["Anneau du troc"] = new ItemDefinition("Anneau du troc", "A bright accessory that boosts magic reserves.", 80, 40, EquipmentSlot.Accessory, bonusMagic: 25f),
-                ["Épée en fer"] = new ItemDefinition("Épée en fer", "Your reliable starting sword.", 0, 18, EquipmentSlot.Weapon, canSell: true),
-                ["Tunique de cuir"] = new ItemDefinition("Tunique de cuir", "Your starting armor. Durable and familiar.", 0, 16, EquipmentSlot.Armor, bonusHealth: 6f, canSell: true),
-                ["Anneau de mana"] = new ItemDefinition("Anneau de mana", "A starting accessory with a small mana bonus.", 0, 20, EquipmentSlot.Accessory, bonusMagic: 12f, canSell: true),
+                ["Elixir"] = new ItemDefinition("Elixir", "Restores 20 health and 20 magic.", 35, 18, healthRestore: 20f, magicRestore: 20f),
+                ["Traveler Cloak"] = new ItemDefinition("Traveler Cloak", "A light armor piece that boosts max health and movement speed.", 60, 30, EquipmentSlot.Armor, bonusHealth: 10f, bonusMoveSpeed: 18f),
+                ["Merchant Dagger"] = new ItemDefinition("Merchant Dagger", "A nimble weapon with a light movement bonus.", 45, 22, EquipmentSlot.Weapon, bonusMoveSpeed: 22f),
+                ["Barter Ring"] = new ItemDefinition("Barter Ring", "A bright accessory that boosts magic reserves.", 80, 40, EquipmentSlot.Accessory, bonusMagic: 25f),
+                ["Iron Sword"] = new ItemDefinition("Iron Sword", "Your reliable starting sword.", 0, 18, EquipmentSlot.Weapon, canSell: true),
+                ["Leather Tunic"] = new ItemDefinition("Leather Tunic", "Your starting armor. Durable and familiar.", 0, 16, EquipmentSlot.Armor, bonusHealth: 6f, canSell: true),
+                ["Mana Ring"] = new ItemDefinition("Mana Ring", "A starting accessory with a small mana bonus.", 0, 20, EquipmentSlot.Accessory, bonusMagic: 12f, canSell: true),
             };
         }
     }
