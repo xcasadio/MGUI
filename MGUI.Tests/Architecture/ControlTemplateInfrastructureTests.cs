@@ -595,6 +595,22 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void Window_Template_Adds_Title_Bar_Children_Before_Locking_Content()
+    {
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+
+        int addCloseButtonIndex = catalogSource.IndexOf("titleBar.TryAddChild(closeButton, Dock.Right);", StringComparison.Ordinal);
+        int addTitleTextIndex = catalogSource.IndexOf("titleBar.TryAddChild(titleText, Dock.Left);", StringComparison.Ordinal);
+        int lockContentIndex = catalogSource.IndexOf("titleBar.CanChangeContent = false;", StringComparison.Ordinal);
+
+        Assert.True(addCloseButtonIndex >= 0, "Window template should add the close button to the title bar.");
+        Assert.True(addTitleTextIndex >= 0, "Window template should add the title text to the title bar.");
+        Assert.True(lockContentIndex >= 0, "Window template should lock title-bar content after wiring its children.");
+        Assert.True(addCloseButtonIndex < lockContentIndex, "Window template must not lock title-bar content before adding the close button.");
+        Assert.True(addTitleTextIndex < lockContentIndex, "Window template must not lock title-bar content before adding the title text.");
+    }
+
+    [Fact]
     public void MGContextMenu_Requirements_Handle_Base_Window_Template_During_Construction()
     {
         string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");

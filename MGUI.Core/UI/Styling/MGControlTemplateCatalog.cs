@@ -199,7 +199,6 @@ namespace MGUI.Core.UI.Styling
                 VerticalContentAlignment = VerticalAlignment.Stretch,
                 BackgroundBrush = Window.GetTheme().TitleBackground.GetValue(true),
                 DrawBackgroundEnabled = false,
-                CanChangeContent = false,
             };
 
             MGButton closeButton = new(Window, _ => Window.TryCloseWindow())
@@ -221,6 +220,7 @@ namespace MGUI.Core.UI.Styling
 
             titleBar.TryAddChild(closeButton, Dock.Right);
             titleBar.TryAddChild(titleText, Dock.Left);
+            titleBar.CanChangeContent = false;
 
             MGControlTemplateStructure structure = new(titleBar);
             structure.AddPart(MGWindow.BorderPartName, border);
