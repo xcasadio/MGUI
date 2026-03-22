@@ -474,6 +474,24 @@ public class InputEnhancedTests
     }
 
     [Fact]
+    public void KeyboardTracker_IgnoresUnsupportedRawKeyCodes_WhileProcessingSupportedKeys()
+    {
+        InputTracker tracker = new();
+        Keys unsupportedKey = (Keys)255;
+
+        tracker.Update(CreateUpdateArgs(0, CreateMouseState(Point.Zero), new KeyboardState(Keys.A, unsupportedKey)));
+        BaseKeyPressedEventArgs pressed = tracker.Keyboard.CurrentKeyPressedEvents[Keys.A];
+
+        tracker.Update(CreateUpdateArgs(25, CreateMouseState(Point.Zero), new KeyboardState()));
+        BaseKeyReleasedEventArgs released = tracker.Keyboard.CurrentKeyReleasedEvents[Keys.A];
+
+        Assert.NotNull(pressed);
+        Assert.Equal("a", pressed.PrintableValue);
+        Assert.NotNull(released);
+        Assert.Equal("a", released.PrintableValue);
+    }
+
+    [Fact]
     public void KeyboardHandler_KeyDownKeyRepeatAndKeyUp_AreInvoked()
     {
         InputTracker tracker = new();

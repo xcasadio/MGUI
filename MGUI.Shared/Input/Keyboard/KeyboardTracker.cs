@@ -23,6 +23,7 @@ namespace MGUI.Shared.Input.Keyboard
     public class KeyboardTracker
     {
         public static readonly ReadOnlyCollection<Keys> AllKeys = Enum.GetValues(typeof(Keys)).Cast<Keys>().ToList().AsReadOnly();
+        private static readonly HashSet<Keys> TrackedKeys = AllKeys.ToHashSet();
 
         /// <summary>The maximum amount of time that can pass between a key press and key release 
         /// to still be registed as a Click event (<see cref="KeyboardHandler.Clicked"/>)</summary>
@@ -118,8 +119,8 @@ namespace MGUI.Shared.Input.Keyboard
                 _CurrentKeyClickedEvents[Key] = null;
             }
 
-            List<Keys> PreviousKeys = PreviousState.GetPressedKeys().ToList();
-            List<Keys> CurrentKeys = CurrentState.GetPressedKeys().ToList();
+            List<Keys> PreviousKeys = PreviousState.GetPressedKeys().Where(IsTrackedKey).ToList();
+            List<Keys> CurrentKeys = CurrentState.GetPressedKeys().Where(IsTrackedKey).ToList();
 
             //  Detect keys that were just pressed
             foreach (Keys Key in CurrentKeys)
@@ -179,6 +180,8 @@ namespace MGUI.Shared.Input.Keyboard
                 or Keys.LeftWindows or Keys.RightWindows
                 or Keys.CapsLock or Keys.NumLock or Keys.Scroll
                 or Keys.Apps or Keys.None);
+
+        private static bool IsTrackedKey(Keys key) => TrackedKeys.Contains(key);
 
         /// <summary>Should be invoked exactly once per Update tick.<para/>
         /// This method will invoke any pending keyboard events on its <see cref="Handlers"/> where <see cref="KeyboardHandler.IsManualUpdate"/> is false.</summary>
@@ -354,7 +357,7 @@ namespace MGUI.Shared.Input.Keyboard
             {
                 return PrintableValue.Value(IsShiftDown);
             }
-            else if (NonPrintableKeys.Contains(Key))
+            else if (NonPrintableKeys.Contains(Key) || UnknownKeys.Contains(Key) || !IsTrackedKey(Key))
             {
                 return NonPrintableKeyValue;
             }
