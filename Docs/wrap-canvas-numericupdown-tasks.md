@@ -369,7 +369,7 @@ Resultat:
 - des tests d'integration legers couvrent l'alias XAML `Canvas`, les helpers statiques de coordonnees attachees et l'adoption du controle comme conteneur borde ;
 - la validation globale reste soumise au blocage externe `mgcb` dans cet environnement.
 
-### ⚪ 8. Ajouter une matrice de tests de valeur, coercion et parsing pour NumericUpDown
+### ✅ 8. Ajouter une matrice de tests de valeur, coercion et parsing pour NumericUpDown
 
 But:
 verrouiller les regles de metier avant d'introduire l'UI composite.
@@ -395,6 +395,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 8 add numeric updown value and parsing tests`
+
+Resultat:
+
+- une suite de regression pure dediee a `MGNumericUpDownModel` couvre la coercion de plage, l'arrondi via `DecimalPlaces`, l'increment, le parsing invalide et le formatage ;
+- le modele central introduit pour supporter ces tests reste runtime-independent et ne depend ni du rendu ni du pipeline d'input MonoGame ;
+- les cas de synchronisation de base entre `Text`, `Value`, `Minimum`/`Maximum` et `Increment` sont verrouilles avant l'introduction du controle visuel.
 
 ### ⚪ 9. Ajouter le modele central de NumericUpDown
 
