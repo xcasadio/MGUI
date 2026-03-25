@@ -305,7 +305,7 @@ Resultat:
 - les nouveaux fichiers ne presentent pas d'erreurs C# locales ;
 - la validation `dotnet test` du projet complet reste bloquee par `mgcb` dans cet environnement.
 
-### ⚪ 6. Ajouter `MGCanvas` et ses APIs de positionnement
+### ✅ 6. Ajouter `MGCanvas` et ses APIs de positionnement
 
 But:
 introduire un container de positionnement absolu minimal, predictible et compatible XAML.
@@ -328,6 +328,14 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `feat: complete task 6 add canvas layout container`
+
+Resultat:
+
+- `MGCanvas` est ajoute comme conteneur public derive de `MGMultiContentHost` ;
+- les APIs imperative de positionnement sont exposees via `MGCanvas.SetLeft/SetTop/SetRight/SetBottom` et lisibles via les getters correspondants ;
+- le stockage des coordonnees est porte par `MGElement.Metadata`, avec invalidation layout automatique quand un enfant deja attache change de coordonnee ;
+- la voie XAML est branchee via le wrapper `Canvas` et les proprietes attachees `CanvasLeft`, `CanvasTop`, `CanvasRight`, `CanvasBottom` sur les noeuds enfants ;
+- le conteneur reste neutre cote input: les enfants conservent leur pipeline normal de focus et hit testing.
 
 ### ⚪ 7. Ajouter un sample et des tests d'integration pour Canvas
 

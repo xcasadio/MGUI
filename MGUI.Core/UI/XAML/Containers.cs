@@ -638,6 +638,49 @@ namespace MGUI.Core.UI.XAML
         }
     }
 
+    public class Canvas : MultiContentHost
+    {
+        public override MGElementType ElementType => MGElementType.Canvas;
+
+        [Category("Border")]
+        public Border Border { get; set; } = new();
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGCanvas(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGCanvas Canvas = Element as MGCanvas;
+            Border.ApplySettings(Parent, Canvas.BorderComponent.Element, false);
+
+            if (IncludeContent)
+            {
+                foreach (Element Child in Children)
+                {
+                    MGElement ChildElement = Child.ToElement<MGElement>(Canvas.ParentWindow, Canvas);
+                    MGCanvas.SetLeft(ChildElement, Child.CanvasLeft);
+                    MGCanvas.SetTop(ChildElement, Child.CanvasTop);
+                    MGCanvas.SetRight(ChildElement, Child.CanvasRight);
+                    MGCanvas.SetBottom(ChildElement, Child.CanvasBottom);
+                    Canvas.TryAddChild(ChildElement);
+                }
+            }
+        }
+    }
+
     public class OverlayPanel : MultiContentHost
     {
         public override MGElementType ElementType => MGElementType.OverlayPanel;

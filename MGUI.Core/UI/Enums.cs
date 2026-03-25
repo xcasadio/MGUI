@@ -30,6 +30,7 @@ namespace MGUI.Core.UI
         UniformGrid,
         OverlayPanel,
         WrapPanel,
+        Canvas,
 
         //  Layout
         ScrollViewer,
