@@ -431,12 +431,9 @@ namespace MGUI.Core.UI.Styling
                 Margin = new Thickness(0),
                 Padding = new Thickness(0),
             };
-            RowDefinition topRow = new(spinnerHost, GridLength.CreateWeightedLength(1));
-            RowDefinition bottomRow = new(spinnerHost, GridLength.CreateWeightedLength(1));
-            ColumnDefinition column = new(spinnerHost, GridLength.Auto);
-            spinnerHost.Rows.Add(topRow);
-            spinnerHost.Rows.Add(bottomRow);
-            spinnerHost.Columns.Add(column);
+            MGUI.Core.UI.Containers.Grids.RowDefinition topRow = spinnerHost.AddRow(GridLength.CreateWeightedLength(1));
+            MGUI.Core.UI.Containers.Grids.RowDefinition bottomRow = spinnerHost.AddRow(GridLength.CreateWeightedLength(1));
+            MGUI.Core.UI.Containers.Grids.ColumnDefinition column = spinnerHost.AddColumn(GridLength.Auto);
 
             MGButton increaseButton = new(window)
             {

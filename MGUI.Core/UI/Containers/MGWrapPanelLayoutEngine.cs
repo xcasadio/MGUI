@@ -87,7 +87,7 @@ namespace MGUI.Core.UI.Containers
         {
             if (lines.Count == 0)
             {
-                return Size.Zero;
+                return new Size(0, 0);
             }
 
             int mainSize = 0;

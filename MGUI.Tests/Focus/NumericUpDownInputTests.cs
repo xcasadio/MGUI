@@ -12,11 +12,11 @@ public class NumericUpDownInputTests
     [InlineData(Keys.Home, MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction.SetMinimum)]
     [InlineData(Keys.End, MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction.SetMaximum)]
     [InlineData(Keys.Enter, MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction.CommitText)]
-    public void GetKeyboardAdjustmentAction_MapsExpectedKeys(Keys key, MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction expected)
+    public void GetKeyboardAdjustmentAction_MapsExpectedKeys(Keys key, object expected)
     {
         MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction actual = MGUI.Core.UI.MGNumericUpDown.GetKeyboardAdjustmentAction(key);
 
-        Assert.Equal(expected, actual);
+        Assert.Equal((MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction)expected, actual);
     }
 
     [Fact]
@@ -37,11 +37,11 @@ public class NumericUpDownInputTests
     [InlineData(MGUI.Core.UI.UINavigationAction.Home, MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction.SetMinimum)]
     [InlineData(MGUI.Core.UI.UINavigationAction.End, MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction.SetMaximum)]
     [InlineData(MGUI.Core.UI.UINavigationAction.Submit, MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction.CommitText)]
-    public void GetNavigationAdjustmentAction_MapsExpectedActions(MGUI.Core.UI.UINavigationAction action, MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction expected)
+    public void GetNavigationAdjustmentAction_MapsExpectedActions(MGUI.Core.UI.UINavigationAction action, object expected)
     {
         MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction actual = MGUI.Core.UI.MGNumericUpDown.GetNavigationAdjustmentAction(action);
 
-        Assert.Equal(expected, actual);
+        Assert.Equal((MGUI.Core.UI.MGNumericUpDown.NumericAdjustmentAction)expected, actual);
     }
 
     [Fact]
