@@ -79,7 +79,10 @@ namespace MGUI.Samples.Features
             _currentItemCount = count;
             var items = new List<object>(count);
             for (int i = 0; i < count; i++)
+            {
                 items.Add($"Item {i + 1:N0}");
+            }
+
             _listBox.SetItemsSource(items);
             RefreshStats(0.0);
         }

@@ -191,6 +191,9 @@ namespace MGUI.Core.UI
 
         private void UpdateActiveOverlay() => SetActiveOverlay(_OpenOverlays.OrderByDescending(x => x.ZIndex).FirstOrDefault());
 
+        private bool IsPointerOutsideActiveOverlay(Point pointerPosition)
+            => ActiveOverlay != null && !ActiveOverlay.ActualLayoutBounds.Contains(pointerPosition);
+
         /// <summary>Invoked when <see cref="ActiveOverlay"/> changes to a new value.<para/>
         /// Note: This event is invoked after <see cref="MGOverlay.OnActivated"/> and <see cref="MGOverlay.OnDeactivated"/>.</summary>
         public event EventHandler<EventArgs<MGOverlay>> OnActiveOverlayChanged;
@@ -219,14 +222,14 @@ namespace MGUI.Core.UI
                 AddComponent(ActiveOverlayPresenterComponent);
 
                 //  Ensure all inputs are handled by the overlay presenter so they cannot fall-through to the content when an overlay is active
-                ActiveOverlayPresenter.MouseHandler.PressedInside += (sender, e) => TryHandleInputs(() => e.SetHandledBy(this, false));
-                ActiveOverlayPresenter.MouseHandler.ReleasedInside += (sender, e) => TryHandleInputs(() => e.SetHandledBy(this, false));
-                ActiveOverlayPresenter.MouseHandler.DragStart += (sender, e) => TryHandleInputs(() => e.SetHandledBy(this, false));
+                ActiveOverlayPresenter.MouseHandler.PressedInside += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
+                ActiveOverlayPresenter.MouseHandler.ReleasedInside += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
+                ActiveOverlayPresenter.MouseHandler.DragStart += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
                 ActiveOverlayPresenter.MouseHandler.Scrolled += (sender, e) =>
                 {
-                    if (Name == MGDesktop.OverlayName) // MGDesktop.OverlayHost is a special overlay that is rendered over the entire desktop, so it always swallows mouse scroll events
+                    if (Name == MGDesktop.OverlayName) // MGDesktop.OverlayHost is a special overlay that is rendered over the entire desktop, so it swallows scroll events that occur outside the active overlay
                     {
-                        TryHandleInputs(() => e.SetHandledBy(this, false));
+                        TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
                     }
                     else if (IsModal && ActiveOverlay != null && Content != null)
                     {
@@ -236,7 +239,7 @@ namespace MGUI.Core.UI
                         bool IsContentScrollable = Content.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Any(x => x.ElementType == MGElementType.ScrollViewer);
                         if (IsContentScrollable)
                         {
-                            TryHandleInputs(() => e.SetHandledBy(this, false));
+                            TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
                         }
                     }
                 };
@@ -276,9 +279,9 @@ namespace MGUI.Core.UI
                     }
                 };
 
-                void TryHandleInputs(Action SetHandled)
+                void TryHandleInputs(Point pointerPosition, Action SetHandled)
                 {
-                    if (IsModal && ActiveOverlay != null)
+                    if (IsModal && ActiveOverlay != null && IsPointerOutsideActiveOverlay(pointerPosition))
                     {
                         SetHandled();
                     }

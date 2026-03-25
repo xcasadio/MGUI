@@ -42,6 +42,22 @@ namespace MGUI.Core.UI.Containers
             List<LineInfo> lines = BuildLines(children, bounds.Size, orientation, spacing);
             Size desiredSize = GetDesiredSize(lines, orientation, spacing);
             List<Rectangle> childBounds = new(children.Count);
+            ArrangeInto(children, bounds, orientation, spacing, lines, childBounds);
+
+            return new WrapPanelLayoutResult(desiredSize, childBounds);
+        }
+
+        public static void ArrangeInto(IReadOnlyList<WrapPanelChildMeasurement> children, Rectangle bounds, Orientation orientation, int spacing,
+            List<Rectangle> childBounds)
+        {
+            List<LineInfo> lines = BuildLines(children, bounds.Size, orientation, spacing);
+            ArrangeInto(children, bounds, orientation, spacing, lines, childBounds);
+        }
+
+        private static void ArrangeInto(IReadOnlyList<WrapPanelChildMeasurement> children, Rectangle bounds, Orientation orientation, int spacing,
+            List<LineInfo> lines, List<Rectangle> childBounds)
+        {
+            childBounds.Clear();
             for (int i = 0; i < children.Count; i++)
             {
                 childBounds.Add(Rectangle.Empty);
@@ -79,8 +95,6 @@ namespace MGUI.Core.UI.Containers
                     currentX += line.CrossSize + spacing;
                 }
             }
-
-            return new WrapPanelLayoutResult(desiredSize, childBounds);
         }
 
         private static Size GetDesiredSize(List<LineInfo> lines, Orientation orientation, int spacing)

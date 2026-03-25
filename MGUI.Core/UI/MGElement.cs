@@ -2352,7 +2352,9 @@ namespace MGUI.Core.UI
                 // Use indexed for loop to avoid IReadOnlyList enumerator allocation (Task 16)
                 IReadOnlyList<MGElement> vtc = GetVisualTreeChildren(false, true);
                 for (int vtcIdx = 0; vtcIdx < vtc.Count; vtcIdx++)
+                {
                     vtc[vtcIdx].ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
+                }
             }
 
             foreach (MGElement Component in _componentsDrawAfterContents)
@@ -2551,10 +2553,15 @@ namespace MGUI.Core.UI
         {
             IReadOnlyList<MGElement> inactiveChildren = GetVisualTreeChildren(true, false);
             for (int i = inactiveChildren.Count - 1; i >= 0; i--)
+            {
                 inactiveChildren[i].Update(UA.ChangeHitTestVisible(false));
+            }
+
             IReadOnlyList<MGElement> activeChildren = GetVisualTreeChildren(false, true);
             for (int i = activeChildren.Count - 1; i >= 0; i--)
+            {
                 activeChildren[i].Update(UA);
+            }
         }
 
         public event EventHandler<ElementUpdateEventArgs> OnBeginUpdate;
@@ -2883,7 +2890,10 @@ namespace MGUI.Core.UI
             // Use indexed for loop to avoid IReadOnlyList enumerator allocation (Task 16)
             IReadOnlyList<MGElement> vtcAll = GetVisualTreeChildren(true, true);
             for (int i = 0; i < vtcAll.Count; i++)
+            {
                 vtcAll[i].InvalidateLayoutTree();
+            }
+
             foreach (MGComponentBase Component in Components)
             {
                 Component.BaseElement.InvalidateLayoutTree();
@@ -3356,24 +3366,10 @@ Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(C
                     }
 
                     IEnumerable<MGElement> children = GetChildren();
-                    IReadOnlyList<MGElement> result;
-                    if (children is IReadOnlyList<MGElement> readOnlyList)
+                    List<MGElement> result = new();
+                    foreach (MGElement Child in children)
                     {
-                        result = readOnlyList;
-                    }
-                    else if (children is List<MGElement> list)
-                    {
-                        result = list;
-                    }
-                    else
-                    {
-                        List<MGElement> built = new();
-                        foreach (MGElement Child in children)
-                        {
-                            built.Add(Child);
-                        }
-
-                        result = built;
+                        result.Add(Child);
                     }
                     _vtcCacheActiveOnly = result;
                     _vtcCacheDirty = false;

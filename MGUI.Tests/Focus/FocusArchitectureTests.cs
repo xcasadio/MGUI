@@ -121,6 +121,25 @@ public class FocusArchitectureTests
     }
 
     [Fact]
+    public void Overlay_Source_Only_Swallows_Pointer_Input_Outside_The_Active_Overlay()
+    {
+        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
+
+        Assert.Contains("private bool IsPointerOutsideActiveOverlay(Point pointerPosition)", overlaySource);
+        Assert.Contains("if (IsModal && ActiveOverlay != null && IsPointerOutsideActiveOverlay(pointerPosition))", overlaySource);
+    }
+
+    [Fact]
+    public void ContentPresenter_Source_Still_Parents_And_Invalidates_Cached_Children_When_Suppressing_Content_Events()
+    {
+        string contentHostSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Containers\MGContentHost.cs");
+
+        Assert.Contains("_Content.SetParent(this);", contentHostSource);
+        Assert.Contains("InvalidateVtcCache();", contentHostSource);
+        Assert.Contains("if (!SuppressContentAddedAndRemoved)", contentHostSource);
+    }
+
+    [Fact]
     public void ToggleButton_Source_Only_Toggles_When_The_Press_Started_On_That_Toggle()
     {
         string toggleButtonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGToggleButton.cs");

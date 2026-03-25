@@ -821,7 +821,10 @@ namespace MGUI.Core.UI
                     // In virtual mode we track by index; realized items will reflect selection
                     _selectedIndices.Clear();
                     for (int i = 0; i < _logicalItemsList.Count; i++)
+                    {
                         _selectedIndices.Add(i);
+                    }
+
                     foreach (var kvp in _realizedItems)
                     {
                         kvp.Value.ContentPresenter.IsSelected = _selectedIndices.Contains(kvp.Key);

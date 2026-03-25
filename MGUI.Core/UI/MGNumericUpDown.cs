@@ -38,6 +38,11 @@ namespace MGUI.Core.UI
                 yield return requirement;
             }
 
+            if (Model == null)
+            {
+                yield break;
+            }
+
             yield return new(SpinnerHostPartName, typeof(MGGrid));
             yield return new(IncreaseButtonPartName, typeof(MGButton));
             yield return new(DecreaseButtonPartName, typeof(MGButton));
@@ -48,6 +53,9 @@ namespace MGUI.Core.UI
 
         public MGButton IncreaseButtonElement { get; private set; }
         public MGButton DecreaseButtonElement { get; private set; }
+
+        private MGButton WiredIncreaseButtonElement { get; set; }
+        private MGButton WiredDecreaseButtonElement { get; set; }
 
         private readonly MGNumericUpDownModel Model;
         private bool IsSynchronizingText { get; set; }
@@ -190,9 +198,18 @@ namespace MGUI.Core.UI
         {
             base.AttachControlTemplateStructure(structure);
 
-            SpinnerHostElement = structure.Parts[SpinnerHostPartName] as MGGrid;
-            IncreaseButtonElement = structure.Parts[IncreaseButtonPartName] as MGButton;
-            DecreaseButtonElement = structure.Parts[DecreaseButtonPartName] as MGButton;
+            structure.Parts.TryGetValue(SpinnerHostPartName, out MGElement spinnerHostPart);
+            structure.Parts.TryGetValue(IncreaseButtonPartName, out MGElement increaseButtonPart);
+            structure.Parts.TryGetValue(DecreaseButtonPartName, out MGElement decreaseButtonPart);
+
+            SpinnerHostElement = spinnerHostPart as MGGrid;
+            IncreaseButtonElement = increaseButtonPart as MGButton;
+            DecreaseButtonElement = decreaseButtonPart as MGButton;
+
+            if (SpinnerHostElement == null || IncreaseButtonElement == null || DecreaseButtonElement == null)
+            {
+                return;
+            }
 
             EnsureComponentBinding(() => SpinnerHostComponent, value => SpinnerHostComponent = value, SpinnerHostElement,
                 element => new(element, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents,
@@ -203,15 +220,53 @@ namespace MGUI.Core.UI
                         return new Rectangle(availableBounds.Right - width, availableBounds.Top, width, availableBounds.Height);
                     }));
 
+            ReorderTemplateComponents();
             WireSpinnerButtons();
             UpdateSpinnerState();
             SyncTextFromValue();
         }
 
+        private void ReorderTemplateComponents()
+        {
+            MGComponentBase[] orderedComponents =
+            {
+                BorderComponent,
+                SpinnerHostComponent,
+                ResizeGripComponent,
+                PlaceholderTextBlockComponent,
+                CharacterCountComponent,
+                TextBlockComponent,
+            };
+
+            bool hasAnyComponent = false;
+            for (int i = 0; i < orderedComponents.Length; i++)
+            {
+                if (orderedComponents[i] != null)
+                {
+                    hasAnyComponent = true;
+                    RemoveComponent(orderedComponents[i]);
+                }
+            }
+
+            if (!hasAnyComponent)
+            {
+                return;
+            }
+
+            for (int i = 0; i < orderedComponents.Length; i++)
+            {
+                if (orderedComponents[i] != null)
+                {
+                    AddComponent(orderedComponents[i]);
+                }
+            }
+        }
+
         private void WireSpinnerButtons()
         {
-            if (IncreaseButtonElement != null)
+            if (IncreaseButtonElement != null && !ReferenceEquals(WiredIncreaseButtonElement, IncreaseButtonElement))
             {
+                WiredIncreaseButtonElement = IncreaseButtonElement;
                 IncreaseButtonElement.OnLeftClicked += (sender, e) =>
                 {
                     if (TryIncrease())
@@ -224,8 +279,9 @@ namespace MGUI.Core.UI
                 };
             }
 
-            if (DecreaseButtonElement != null)
+            if (DecreaseButtonElement != null && !ReferenceEquals(WiredDecreaseButtonElement, DecreaseButtonElement))
             {
+                WiredDecreaseButtonElement = DecreaseButtonElement;
                 DecreaseButtonElement.OnLeftClicked += (sender, e) =>
                 {
                     if (TryDecrease())

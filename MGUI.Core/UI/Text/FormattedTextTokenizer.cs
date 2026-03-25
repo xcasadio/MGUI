@@ -444,7 +444,10 @@ namespace MGUI.Core.UI.Text
                 {
                     // Add 'consecutiveEscapeCount' extra backslashes (doubling the run) + 1 escape for '['.
                     for (int k = 0; k < consecutiveEscapeCount; k++)
+                    {
                         Result.Append(EscapeOpenTagChar);
+                    }
+
                     Result.Append(EscapeOpenTagChar);
                     consecutiveEscapeCount = 0;
                 }

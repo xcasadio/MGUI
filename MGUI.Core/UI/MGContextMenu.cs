@@ -321,7 +321,9 @@ namespace MGUI.Core.UI
         public void ClearItems()
         {
             for (int i = _Items.Count - 1; i >= 0; i--)
+            {
                 _Items.RemoveAt(i);
+            }
         }
 
         /// <summary>Optional factory called every time this menu is about to open (just <em>before</em>

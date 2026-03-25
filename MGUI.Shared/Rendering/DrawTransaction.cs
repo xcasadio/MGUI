@@ -561,7 +561,9 @@ namespace MGUI.Shared.Rendering
 
             Vector2[] Vertices = GetEllipseVertices(Center, RadiusX, RadiusY, NumSides);
             for (int i = 0; i < NumSides; i++)
+            {
                 StrokeLineSegment(Vector2.Zero, Vertices[i], Vertices[(i + 1) % NumSides], Color, Thickness, Ctx);
+            }
         }
 
         /// <param name="NumSides">How many sides to use when approximating the geometry of the ellipse. Recommended: 16-32. Max value = <see cref="CircleMaxSides"/></param>

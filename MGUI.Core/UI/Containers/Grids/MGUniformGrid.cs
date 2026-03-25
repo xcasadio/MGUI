@@ -33,14 +33,18 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (Grid.IsValidRowIndex(Cell.Row))
                     {
                         for (int ColumnIndex = 0; ColumnIndex < Grid.Columns; ColumnIndex++)
+                        {
                             yield return new GridCellIndex(Cell.Row, ColumnIndex);
+                        }
                     }
                     yield break;
                 case GridSelectionMode.Column:
                     if (Grid.IsValidColumnIndex(Cell.Column))
                     {
                         for (int RowIndex = 0; RowIndex < Grid.Rows; RowIndex++)
+                        {
                             yield return new GridCellIndex(RowIndex, Cell.Column);
+                        }
                     }
                     yield break;
                 case GridSelectionMode.Cell:
@@ -75,7 +79,9 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (Rows < PreviousRows)
                     {
                         for (int i = PreviousRows - 1; i >= Rows; i--)
+                        {
                             _ = ClearRowContent(i);
+                        }
                     }
                     LayoutChanged(this, true);
                     NPC(nameof(Rows));
@@ -98,7 +104,9 @@ namespace MGUI.Core.UI.Containers.Grids
                     if (Columns < PreviousColumns)
                     {
                         for (int i = PreviousColumns - 1; i >= Columns; i--)
+                        {
                             _ = ClearColumnContent(i);
+                        }
                     }
                     LayoutChanged(this, true);
                     NPC(nameof(Columns));

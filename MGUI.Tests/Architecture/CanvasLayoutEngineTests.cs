@@ -2,6 +2,9 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace MGUI.Tests.Architecture;
 
@@ -81,7 +84,7 @@ public class CanvasLayoutEngineTests
     [Fact]
     public void Canvas_AttachedCoordinateHelpers_StoreAndReadMetadata()
     {
-        MGElement element = new MGTextBlock(null as MGWindow, string.Empty);
+        MGElement element = CreateMetadataOnlyElement();
 
         MGCanvas.SetLeft(element, 12);
         MGCanvas.SetTop(element, 18);
@@ -95,5 +98,13 @@ public class CanvasLayoutEngineTests
 
         MGCanvas.SetLeft(element, null);
         Assert.Null(MGCanvas.GetLeft(element));
+    }
+
+    private static MGElement CreateMetadataOnlyElement()
+    {
+        MGTextBlock element = (MGTextBlock)FormatterServices.GetUninitializedObject(typeof(MGTextBlock));
+        FieldInfo metadataField = typeof(MGElement).GetField("<Metadata>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        metadataField.SetValue(element, new Dictionary<string, object>());
+        return element;
     }
 }

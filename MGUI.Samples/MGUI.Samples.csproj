@@ -19,6 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Controls\Button.xaml" />
+    <None Remove="Controls\Canvas.xaml" />
     <None Remove="Controls\CheckBox.xaml" />
     <None Remove="Controls\ComboBox.xaml" />
     <None Remove="Controls\Compendium.xaml" />
@@ -48,6 +49,8 @@
     <None Remove="Controls\TreeView.xaml" />
     <None Remove="Controls\UniformGrid.xaml" />
     <None Remove="Controls\Window.xaml" />
+    <None Remove="Controls\WrapPanel.xaml" />
+    <None Remove="Controls\NumericUpDown.xaml" />
     <None Remove="Dialogs\Debugging\Debug1.xaml" />
     <None Remove="Dialogs\Debugging\Debug1.Theme.xaml" />
     <None Remove="Dialogs\Debugging\Debug2.xaml" />
@@ -76,6 +79,9 @@
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\Button.xaml" />
+    <EmbeddedResource Include="Controls\Canvas.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
     <EmbeddedResource Include="Controls\CheckBox.xaml" />
     <EmbeddedResource Include="Controls\ComboBox.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -131,6 +137,9 @@
     <EmbeddedResource Include="Controls\StackPanel.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
+    <EmbeddedResource Include="Controls\NumericUpDown.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
     <EmbeddedResource Include="Controls\TabControl.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
@@ -148,6 +157,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\UniformGrid.xaml" />
     <EmbeddedResource Include="Controls\Window.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\WrapPanel.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
     <EmbeddedResource Include="Dialogs\Debugging\Debug1.xaml">

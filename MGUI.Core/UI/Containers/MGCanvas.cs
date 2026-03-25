@@ -15,6 +15,8 @@ namespace MGUI.Core.UI.Containers
         private const string RightMetadataKey = "Canvas.Right";
         private const string BottomMetadataKey = "Canvas.Bottom";
         private static readonly Size UnlimitedMeasureSize = new(int.MaxValue / 2, int.MaxValue / 2);
+        private readonly List<CanvasChildMeasurement> _ChildMeasurements = new();
+        private readonly List<Rectangle> _ArrangedChildBounds = new();
 
         #region Border
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -145,10 +147,10 @@ namespace MGUI.Core.UI.Containers
             }
 
             List<CanvasChildMeasurement> childMeasurements = MeasureChildren();
-            CanvasLayoutResult layout = MGCanvasLayoutEngine.Arrange(childMeasurements, bounds);
+            MGCanvasLayoutEngine.ArrangeInto(childMeasurements, bounds, _ArrangedChildBounds);
             for (int i = 0; i < Children.Count; i++)
             {
-                Children[i].UpdateLayout(layout.ChildBounds[i]);
+                Children[i].UpdateLayout(_ArrangedChildBounds[i]);
             }
         }
 
@@ -165,14 +167,14 @@ namespace MGUI.Core.UI.Containers
 
         private List<CanvasChildMeasurement> MeasureChildren()
         {
-            List<CanvasChildMeasurement> result = new(Children.Count);
+            _ChildMeasurements.Clear();
             foreach (MGElement child in Children)
             {
                 child.UpdateMeasurement(UnlimitedMeasureSize, out _, out Thickness fullSize, out _, out _);
-                result.Add(new CanvasChildMeasurement(fullSize.Width, fullSize.Height, GetLeft(child), GetTop(child), GetRight(child), GetBottom(child), child.IsVisibilityCollapsed));
+                _ChildMeasurements.Add(new CanvasChildMeasurement(fullSize.Width, fullSize.Height, GetLeft(child), GetTop(child), GetRight(child), GetBottom(child), child.IsVisibilityCollapsed));
             }
 
-            return result;
+            return _ChildMeasurements;
         }
     }
 }

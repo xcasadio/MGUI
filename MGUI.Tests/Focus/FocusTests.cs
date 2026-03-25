@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace MGUI.Tests.Focus;
 
 /// <summary>Unit tests for the IsFocusable auto-focus-on-click mechanism (pure logic, no MonoGame runtime).</summary>
@@ -50,6 +52,23 @@ public class FocusTests
         }
 
         return selfOrParentWindowHasModalWindow;
+    }
+
+    private sealed class VisualTreeMutationNode
+    {
+        public List<VisualTreeMutationNode> Children { get; } = new();
+        public Action? OnUpdate { get; set; }
+
+        public void UpdateUsingSnapshot()
+        {
+            List<VisualTreeMutationNode> activeChildren = new(Children);
+            for (int i = activeChildren.Count - 1; i >= 0; i--)
+            {
+                activeChildren[i].UpdateUsingSnapshot();
+            }
+
+            OnUpdate?.Invoke();
+        }
     }
 
     // ── Minimal stub that replicates the IsFocusable / auto-subscribe logic ──────
@@ -314,6 +333,45 @@ public class FocusTests
             selfOrParentWindowHasModalWindow: false);
 
         Assert.False(isBlocked);
+    }
+
+    [Fact]
+    public void ActiveVisualTreeSnapshot_Allows_Children_To_Mutate_Collection_During_Update()
+    {
+        VisualTreeMutationNode root = new();
+        VisualTreeMutationNode first = new();
+        VisualTreeMutationNode second = new();
+        VisualTreeMutationNode third = new();
+
+        root.Children.Add(first);
+        root.Children.Add(second);
+        root.Children.Add(third);
+
+        third.OnUpdate = () => root.Children.RemoveAt(1);
+
+        Exception actual = Record.Exception(() => root.UpdateUsingSnapshot());
+
+        Assert.Null(actual);
+        Assert.Equal(2, root.Children.Count);
+        Assert.Same(first, root.Children[0]);
+        Assert.Same(third, root.Children[1]);
+    }
+
+    [Fact]
+    public void ModalOverlay_WindowProcessingPolicy_Prioritizes_Overlay_Window_Only_When_Blocking()
+    {
+        Assert.True(MGUI.Core.UI.FocusInputPolicy.ShouldProcessWindowInputs(isOverlayWindow: true, hasActiveOverlay: true, overlayIsModal: true));
+        Assert.False(MGUI.Core.UI.FocusInputPolicy.ShouldProcessWindowInputs(isOverlayWindow: false, hasActiveOverlay: true, overlayIsModal: true));
+        Assert.True(MGUI.Core.UI.FocusInputPolicy.ShouldProcessWindowInputs(isOverlayWindow: false, hasActiveOverlay: true, overlayIsModal: false));
+    }
+
+    [Fact]
+    public void DockPinIcon_Source_Uses_Pin_When_Panel_Is_Pinned_And_PinOff_When_AutoHidden()
+    {
+        string iconSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
+
+        Assert.Contains("public string PinnedTextureName { get; set; } = \"DockPin\";", iconSource);
+        Assert.Contains("public string AutoHideTextureName { get; set; } = \"DockPinOff\";", iconSource);
     }
 
     [Theory]

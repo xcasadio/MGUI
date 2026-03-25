@@ -44,6 +44,14 @@ namespace MGUI.Core.UI.Containers
         public static CanvasLayoutResult Arrange(IReadOnlyList<CanvasChildMeasurement> children, Rectangle bounds)
         {
             List<Rectangle> childBounds = new(children.Count);
+            ArrangeInto(children, bounds, childBounds);
+
+            return new CanvasLayoutResult(Measure(children), childBounds);
+        }
+
+        public static void ArrangeInto(IReadOnlyList<CanvasChildMeasurement> children, Rectangle bounds, List<Rectangle> childBounds)
+        {
+            childBounds.Clear();
             for (int i = 0; i < children.Count; i++)
             {
                 childBounds.Add(Rectangle.Empty);
@@ -61,8 +69,6 @@ namespace MGUI.Core.UI.Containers
                 int y = ResolveArrangeOffset(bounds.Top, bounds.Height, child.Height, child.Top, child.Bottom);
                 childBounds[i] = new Rectangle(x, y, child.Width, child.Height);
             }
-
-            return new CanvasLayoutResult(Measure(children), childBounds);
         }
 
         private static int ResolveDesiredOffset(int? primary, int? secondary)

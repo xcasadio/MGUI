@@ -62,8 +62,12 @@
                         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                             <TextBlock Text="Exposure:" VerticalAlignment="Center" Width="80" />
                             <NumericUpDown Width="160" Minimum="-2.00" Maximum="2.00" Value="0.25" Increment="0.25" DecimalPlaces="2" FormatString="0.00">
-                                <NumericUpDown.IncreaseButton Background="ForestGreen * 0.55" BorderBrush="White * 0.25" BorderThickness="1" />
-                                <NumericUpDown.DecreaseButton Background="Firebrick * 0.55" BorderBrush="White * 0.25" BorderThickness="1" />
+                                <NumericUpDown.IncreaseButton>
+                                    <Button Background="ForestGreen * 0.55" BorderBrush="White * 0.25" BorderThickness="1" />
+                                </NumericUpDown.IncreaseButton>
+                                <NumericUpDown.DecreaseButton>
+                                    <Button Background="Firebrick * 0.55" BorderBrush="White * 0.25" BorderThickness="1" />
+                                </NumericUpDown.DecreaseButton>
                             </NumericUpDown>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">

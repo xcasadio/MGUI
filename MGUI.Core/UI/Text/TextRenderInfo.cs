@@ -129,7 +129,9 @@ namespace MGUI.Core.UI.Text
                                 if (MathF.Abs(residual) > 0.001f)
                                 {
                                     for (int gi = 0; gi < advances.Length; gi++)
+                                    {
                                         advances[gi] += residual * (advances[gi] / glyphSum);
+                                    }
                                 }
                             }
 

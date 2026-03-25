@@ -273,7 +273,9 @@ namespace MGUI.Core.UI.Containers
                         }
                     }
                     for (int i = 0; i < count; i++)
+                    {
                         RecycleItem(toRecycle[i]);
+                    }
                 }
 
                 // Realize items newly in range

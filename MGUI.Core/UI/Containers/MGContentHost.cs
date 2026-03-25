@@ -328,19 +328,26 @@ namespace MGUI.Core.UI.Containers
                     throw new InvalidOperationException($"Cannot set {nameof(MGSingleContentHost)}.{nameof(Content)} while {nameof(CanChangeContent)} is false.");
                 }
 
-                if (_Content != null && !SuppressContentAddedAndRemoved)
+                if (_Content != null)
                 {
                     _Content.SetParent(null);
-                    InvokeContentRemoved(_Content);
+                    if (!SuppressContentAddedAndRemoved)
+                    {
+                        InvokeContentRemoved(_Content);
+                    }
                 }
                 _Content = Value;
-                if (_Content != null && !SuppressContentAddedAndRemoved)
+                if (_Content != null)
                 {
                     _Content.SetParent(this);
                     RegisterTemplatePart(ContentPartName, _Content);
-                    InvokeContentAdded(_Content);
+                    if (!SuppressContentAddedAndRemoved)
+                    {
+                        InvokeContentAdded(_Content);
+                    }
                 }
                 LayoutChanged(this, true);
+                InvalidateVtcCache();
                 NPC(nameof(Content));
                 NPC(nameof(HasContent));
             }

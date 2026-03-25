@@ -246,7 +246,10 @@ namespace MGUI.Core.UI
                 {
                     case ColorPalette._6Bit_Grayscale:
                         for (int c = 0; c <= byte.MaxValue; c += 4)
+                        {
                             Result.Add(new Color(c, c, c));
+                        }
+
                         return Result;
                     default: throw new NotImplementedException($"Unrecognized {nameof(ColorPalette)}: {Palette}");
                 };

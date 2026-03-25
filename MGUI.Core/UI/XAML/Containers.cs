@@ -671,11 +671,7 @@ namespace MGUI.Core.UI.XAML
                 foreach (Element Child in Children)
                 {
                     MGElement ChildElement = Child.ToElement<MGElement>(Canvas.ParentWindow, Canvas);
-                    MGCanvas.SetLeft(ChildElement, Child.CanvasLeft);
-                    MGCanvas.SetTop(ChildElement, Child.CanvasTop);
-                    MGCanvas.SetRight(ChildElement, Child.CanvasRight);
-                    MGCanvas.SetBottom(ChildElement, Child.CanvasBottom);
-                    Canvas.TryAddChild(ChildElement);
+                    Canvas.TryAddChild(ChildElement, Child.CanvasLeft, Child.CanvasTop, Child.CanvasRight, Child.CanvasBottom);
                 }
             }
         }

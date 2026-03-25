@@ -801,26 +801,50 @@ namespace MGUI.Core.UI.Styling
             MGButton decreaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.DecreaseButtonPartName);
 
             Context.ApplyTemplateValue("NumericUpDown.Padding", new Thickness(6, 2, 6, 2), () => numericUpDown.Padding, value => numericUpDown.Padding = value);
-            Context.ApplyTemplateValue("NumericUpDown.MinHeight", 26, () => numericUpDown.MinHeight ?? 0, value => numericUpDown.MinHeight = value);
-            Context.ApplyTemplateValue("NumericUpDown.SpinnerWidth", 20, () => spinnerHost.PreferredWidth ?? 0, value => spinnerHost.PreferredWidth = value);
-            Context.ApplyTemplateValue("NumericUpDown.SpinnerMinWidth", 18, () => increaseButton.MinWidth ?? 0, value =>
+            Context.ApplyTemplateValue("NumericUpDown.MinHeight", 28, () => numericUpDown.MinHeight ?? 0, value => numericUpDown.MinHeight = value);
+            Context.ApplyTemplateValue("NumericUpDown.SpinnerWidth", 24, () => spinnerHost.PreferredWidth ?? 0, value => spinnerHost.PreferredWidth = value);
+            Context.ApplyTemplateValue("NumericUpDown.SpinnerMinWidth", 22, () => increaseButton.MinWidth ?? 0, value =>
             {
                 increaseButton.MinWidth = value;
                 decreaseButton.MinWidth = value;
+            });
+            Context.ApplyTemplateValue("NumericUpDown.SpinnerButtonPadding", new Thickness(0), () => increaseButton.Padding, value =>
+            {
+                increaseButton.Padding = value;
+                decreaseButton.Padding = value;
             });
 
             if (!Context.IsThemeRefresh)
             {
                 if (increaseButton.Content == null)
                 {
-                    increaseButton.SetContent(new MGTextBlock(Context.Window, "+"));
+                    increaseButton.SetContent(CreateNumericSpinnerGlyph(Context.Window, "+"));
                 }
 
                 if (decreaseButton.Content == null)
                 {
-                    decreaseButton.SetContent(new MGTextBlock(Context.Window, "-"));
+                    decreaseButton.SetContent(CreateNumericSpinnerGlyph(Context.Window, "-"));
                 }
             }
+        }
+
+        private static MGTextBlock CreateNumericSpinnerGlyph(MGWindow window, string text)
+        {
+            MGTextBlock glyph = new(window, text, null, 10, false)
+            {
+                TextAlignment = HorizontalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                WrapText = false,
+                Padding = new Thickness(0),
+                Margin = new Thickness(0),
+                MinLines = 1,
+                MaxLines = 1,
+                LinePadding = 0,
+            };
+
+            return glyph;
         }
 
         private static void ApplyTabControlTemplate(MGControlTemplateContext Context)

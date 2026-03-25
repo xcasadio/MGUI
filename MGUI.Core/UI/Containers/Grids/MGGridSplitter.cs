@@ -174,22 +174,30 @@ namespace MGUI.Core.UI.Containers.Grids
 
                 _ActualToOriginalColumn = new();
                 for (int i = 0; i < ActualColumns.Count; i++)
+                {
                     _ActualToOriginalColumn.Add(ActualColumns[i], OriginalColumns[i]);
+                }
 
                 _OriginalToActualColumn = new();
                 for (int i = 0; i < OriginalColumns.Count; i++)
+                {
                     _OriginalToActualColumn.Add(OriginalColumns[i], ActualColumns[i]);
+                }
 
                 ActualRows = InheritFrom.ActualRows;
                 OriginalRows = InheritFrom.OriginalRows.Select(x => x.GetCopy()).ToList();
 
                 _ActualToOriginalRow = new();
                 for (int i = 0; i < ActualRows.Count; i++)
+                {
                     _ActualToOriginalRow.Add(ActualRows[i], OriginalRows[i]);
+                }
 
                 _OriginalToActualRow = new();
                 for (int i = 0; i < OriginalRows.Count; i++)
+                {
                     _OriginalToActualRow.Add(OriginalRows[i], ActualRows[i]);
+                }
             }
 
             public GridDragData(MGGridSplitter GridSplitter, MGGrid OwnerGrid, bool NormalizeWeightedLengths)
@@ -209,22 +217,30 @@ namespace MGUI.Core.UI.Containers.Grids
 
                 _ActualToOriginalColumn = new();
                 for (int i = 0; i < ActualColumns.Count; i++)
+                {
                     _ActualToOriginalColumn.Add(ActualColumns[i], OriginalColumns[i]);
+                }
 
                 _OriginalToActualColumn = new();
                 for (int i = 0; i < OriginalColumns.Count; i++)
+                {
                     _OriginalToActualColumn.Add(OriginalColumns[i], ActualColumns[i]);
+                }
 
                 ActualRows = OwnerGrid.Rows;
                 OriginalRows = ActualRows.Select(x => x.GetCopy()).ToList();
 
                 _ActualToOriginalRow = new();
                 for (int i = 0; i < ActualRows.Count; i++)
+                {
                     _ActualToOriginalRow.Add(ActualRows[i], OriginalRows[i]);
+                }
 
                 _OriginalToActualRow = new();
                 for (int i = 0; i < OriginalRows.Count; i++)
+                {
                     _OriginalToActualRow.Add(OriginalRows[i], ActualRows[i]);
+                }
             }
         }
 

@@ -465,8 +465,8 @@ namespace MGUI.Core.UI
             }
         }
 
-        public string PinnedTextureName { get; set; } = "DockPinOff";
-        public string AutoHideTextureName { get; set; } = "DockPin";
+        public string PinnedTextureName { get; set; } = "DockPin";
+        public string AutoHideTextureName { get; set; } = "DockPinOff";
 
         public MGDockPinIcon(MGWindow window)
             : base(window, MGElementType.Misc)

@@ -9,6 +9,9 @@ namespace MGUI.Core.UI.Containers
 {
     public class MGWrapPanel : MGMultiContentHost
     {
+        private readonly List<WrapPanelChildMeasurement> _ChildMeasurements = new();
+        private readonly List<Rectangle> _ArrangedChildBounds = new();
+
         #region Border
         public MGComponent<MGBorder> BorderComponent { get; }
         private MGBorder BorderElement { get; }
@@ -153,10 +156,10 @@ namespace MGUI.Core.UI.Containers
             }
 
             List<WrapPanelChildMeasurement> childMeasurements = MeasureChildren(bounds.Size);
-            WrapPanelLayoutResult layout = MGWrapPanelLayoutEngine.Arrange(childMeasurements, bounds, Orientation, Spacing);
+            MGWrapPanelLayoutEngine.ArrangeInto(childMeasurements, bounds, Orientation, Spacing, _ArrangedChildBounds);
             for (int i = 0; i < Children.Count; i++)
             {
-                Children[i].UpdateLayout(layout.ChildBounds[i]);
+                Children[i].UpdateLayout(_ArrangedChildBounds[i]);
             }
         }
 
@@ -174,14 +177,14 @@ namespace MGUI.Core.UI.Containers
 
         private List<WrapPanelChildMeasurement> MeasureChildren(Size availableSize)
         {
-            List<WrapPanelChildMeasurement> result = new(Children.Count);
+            _ChildMeasurements.Clear();
             foreach (MGElement child in Children)
             {
                 child.UpdateMeasurement(availableSize, out _, out Thickness fullSize, out _, out _);
-                result.Add(new WrapPanelChildMeasurement(fullSize.Width, fullSize.Height, child.IsVisibilityCollapsed));
+                _ChildMeasurements.Add(new WrapPanelChildMeasurement(fullSize.Width, fullSize.Height, child.IsVisibilityCollapsed));
             }
 
-            return result;
+            return _ChildMeasurements;
         }
     }
 }

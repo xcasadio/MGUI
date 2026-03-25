@@ -73,6 +73,14 @@ public class XamlDocumentSourceTests
     }
 
     [Fact]
+    public void Canvas_Wrapper_Preserves_Attached_Coordinates_When_Adding_Children()
+    {
+        string containersSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\Containers.cs");
+
+        Assert.Contains("Canvas.TryAddChild(ChildElement, Child.CanvasLeft, Child.CanvasTop, Child.CanvasRight, Child.CanvasBottom);", containersSource);
+    }
+
+    [Fact]
     public void Parser_Recognizes_NumericUpDown_Alias()
     {
         Element parsed = XAMLParser.ParseElementDefinition(XamlDocumentSource.FromString("<NumericUpDown Minimum=\"0\" Maximum=\"10\" Value=\"5\" />"), null, true, true);

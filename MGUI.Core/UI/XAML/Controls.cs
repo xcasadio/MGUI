@@ -3034,8 +3034,8 @@ namespace MGUI.Core.UI.XAML
 
             MGNumericUpDown numericUpDown = Element as MGNumericUpDown;
 
-            IncreaseButton.ApplySettings(Parent, numericUpDown.IncreaseButtonElement, false);
-            DecreaseButton.ApplySettings(Parent, numericUpDown.DecreaseButtonElement, false);
+            IncreaseButton.ApplySettings(numericUpDown, numericUpDown.IncreaseButtonElement, false);
+            DecreaseButton.ApplySettings(numericUpDown, numericUpDown.DecreaseButtonElement, false);
 
             if (Minimum.HasValue)
             {
