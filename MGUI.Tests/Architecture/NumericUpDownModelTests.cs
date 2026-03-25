@@ -84,6 +84,26 @@ public class NumericUpDownModelTests
     }
 
     [Fact]
+    public void TryIncreaseAndTryDecrease_ReflectRangeState()
+    {
+        MGNumericUpDownModel model = new(minimum: 0, maximum: 2, value: 1, increment: 1, decimalPlaces: 0);
+
+        Assert.False(model.IsAtMinimum);
+        Assert.False(model.IsAtMaximum);
+
+        bool increased = model.TryIncrease();
+
+        Assert.True(increased);
+        Assert.True(model.IsAtMaximum);
+        Assert.False(model.TryIncrease());
+
+        bool decreased = model.TryDecrease();
+
+        Assert.True(decreased);
+        Assert.False(model.IsAtMaximum);
+    }
+
+    [Fact]
     public void TryParseText_ReturnsFalseForInvalidInput()
     {
         MGNumericUpDownModel model = new(minimum: 0, maximum: 10, value: 4, increment: 1, decimalPlaces: 0);
@@ -148,5 +168,16 @@ public class NumericUpDownModelTests
         string formatted = model.FormatValue();
 
         Assert.Equal("1.2", formatted);
+    }
+
+    [Fact]
+    public void FormatValue_ForArbitraryInput_UsesSameCoercionRules()
+    {
+        MGNumericUpDownModel model = new(minimum: 0, maximum: 10, value: 1, increment: 1, decimalPlaces: 2);
+
+        string formatted = model.FormatValue(12.345);
+
+        Assert.Equal("10.00", formatted);
+        Assert.Equal(1, model.Value);
     }
 }

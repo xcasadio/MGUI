@@ -402,7 +402,7 @@ Resultat:
 - le modele central introduit pour supporter ces tests reste runtime-independent et ne depend ni du rendu ni du pipeline d'input MonoGame ;
 - les cas de synchronisation de base entre `Text`, `Value`, `Minimum`/`Maximum` et `Increment` sont verrouilles avant l'introduction du controle visuel.
 
-### ⚪ 9. Ajouter le modele central de NumericUpDown
+### ✅ 9. Ajouter le modele central de NumericUpDown
 
 But:
 separer la logique pure de valeur du chrome visuel et de l'input compose.
@@ -426,6 +426,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `feat: complete task 9 add numeric updown core model`
+
+Resultat:
+
+- `MGUI.Core/UI/NumericUpDown/MGNumericUpDownModel.cs` centralise desormais la coercion de plage, la validation de configuration, l'arrondi, le parsing invariant et le formatage ;
+- le modele expose aussi des helpers d'etat et d'ajustement (`TryIncrease`, `TryDecrease`, `IsAtMinimum`, `IsAtMaximum`) pour que l'UI ne re-duplique pas cette logique ;
+- les tests de la tache 8 ont ete etendus pour verrouiller ces helpers avant l'integration du controle visuel.
 
 ### ⚪ 10. Ajouter `MGNumericUpDown` comme controle composite template-friendly
 

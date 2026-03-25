@@ -11,6 +11,8 @@ namespace MGUI.Core.UI.NumericUpDown
         public double Increment { get; private set; }
         public int DecimalPlaces { get; private set; }
         public string FormatString { get; private set; }
+        public bool IsAtMinimum => Value <= Minimum;
+        public bool IsAtMaximum => Value >= Maximum;
 
         public MGNumericUpDownModel(double minimum = 0, double maximum = 100, double value = 0, double increment = 1,
             int decimalPlaces = 0, string formatString = null)
@@ -136,6 +138,9 @@ namespace MGUI.Core.UI.NumericUpDown
             return SetValue(Value + Increment * direction);
         }
 
+        public bool TryIncrease() => TryStep(1);
+        public bool TryDecrease() => TryStep(-1);
+
         public bool TryParseText(string text, out double value)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -170,6 +175,20 @@ namespace MGUI.Core.UI.NumericUpDown
             }
 
             return Value.ToString($"F{DecimalPlaces}", CultureInfo.InvariantCulture);
+        }
+
+        public string FormatValue(double value)
+        {
+            double previousValue = Value;
+            try
+            {
+                Value = CoerceValue(value, Minimum, Maximum, DecimalPlaces);
+                return FormatValue();
+            }
+            finally
+            {
+                Value = previousValue;
+            }
         }
     }
 }
