@@ -171,7 +171,7 @@ Resultat:
 - `MGNumericUpDown` part sur `double` en v1 pour limiter la complexite de parsing et de theming ;
 - les fichiers cibles et la separation entre logique pure, structure visuelle, tests et samples sont explicites.
 
-### ⚪ 2. Ajouter une matrice de tests de regression du layout pour WrapPanel
+### ✅ 2. Ajouter une matrice de tests de regression du layout pour WrapPanel
 
 But:
 verrouiller les regles de mesure et de retour a la ligne avant d'integrer le controle au runtime.
@@ -197,6 +197,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 2 add wrap panel layout regression matrix`
+
+Resultat:
+
+- une matrice de regression dediee a `WrapPanel` couvre le wrap horizontal, le wrap vertical, les enfants collapses, l'axe principal non borne, l'ordre d'arrangement et les enfants plus grands que l'espace disponible ;
+- la logique a ete isolee dans un moteur pur interne pour rendre les calculs testables hors runtime ;
+- les fichiers modifies n'ont pas d'erreurs C# signalees par l'analyse statique locale ;
+- la validation `dotnet test` du projet complet reste bloquee par l'outil externe MonoGame `mgcb` dans cet environnement, independamment des nouveaux fichiers.
 
 ### ⚪ 3. Ajouter `MGWrapPanel` et son moteur de layout
 
