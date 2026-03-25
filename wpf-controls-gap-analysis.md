@@ -12,6 +12,8 @@ Ce document identifie les contrôles WPF standard qui ne sont pas actuellement i
 - MGOverlayPanel (spécifique à MGUI)
 - MGStackPanel (équivalent: StackPanel)
 - MGUniformGrid (équivalent: UniformGrid)
+- MGWrapPanel (équivalent: WrapPanel)
+- MGCanvas (équivalent: Canvas)
 - MGScrollViewer (équivalent: ScrollViewer)
 - MGBorder (équivalent: Border)
 
@@ -44,6 +46,7 @@ Ce document identifie les contrôles WPF standard qui ne sont pas actuellement i
 ### Contrôles de Sélection et Entrée
 - MGSlider (équivalent: Slider)
 - MGProgressBar (équivalent: ProgressBar)
+- MGNumericUpDown (équivalent usuel: NumericUpDown)
 
 ### Contrôles Visuels
 - MGImage (équivalent: Image)
@@ -166,33 +169,21 @@ Ce document identifie les contrôles WPF standard qui ne sont pas actuellement i
 
 ### 7. Contrôles de Conteneur Avancés Manquants
 
-#### 7.1 WrapPanel
-**Description**: Panneau qui enroule son contenu automatiquement
-**Cas d'usage**: Galeries d'images, tags, badges
-
-#### 7.2 Canvas
-**Description**: Positionnement absolu des enfants
-**Cas d'usage**: Dessins, diagrammes, positionnement pixel-perfect
-
-#### 7.3 ViewBox
+#### 7.1 ViewBox
 **Description**: Mise à l'échelle de contenu pour remplir l'espace disponible
 **Cas d'usage**: Redimensionnement automatique d'icônes, logos
 
-#### 7.4 BulletDecorator
+#### 7.2 BulletDecorator
 **Description**: Alignement d'une puce avec du contenu
 **Cas d'usage**: Listes à puces personnalisées
 
-#### 7.5 InkCanvas
+#### 7.3 InkCanvas
 **Description**: Surface de dessin à l'encre
 **Cas d'usage**: Dessin à main levée, annotations
 
 ### 8. Contrôles de Saisie Spécialisés Manquants
 
-#### 8.1 NumericUpDown
-**Description**: Saisie numérique avec boutons +/-
-**Note**: Pas dans WPF de base mais très courant
-
-#### 8.2 MaskedTextBox
+#### 8.1 MaskedTextBox
 **Description**: TextBox avec masque de saisie (téléphone, date, etc.)
 **Note**: Pas dans WPF de base mais dans WPF Toolkit
 
@@ -242,13 +233,12 @@ Ce document identifie les contrôles WPF standard qui ne sont pas actuellement i
 ## Résumé des Priorités
 
 ### Haute Priorité (Contrôles Fréquemment Utilisés)
-1. **WrapPanel** - Layout flexible très utile
-2. **Canvas** - Positionnement absolu nécessaire pour certains scénarios
-3. **DataGrid** - Affichage de données tabulaires
-4. **Label** - Support des mnémoniques
-5. **ToolBar/StatusBar** - Shell d'application classique encore absent
-6. **Ellipse/Path** - Formes vectorielles de base
-7. **RepeatButton** - Utile pour le défilement et les interactions maintenues
+1. **DataGrid** - Affichage de données tabulaires
+2. **Label** - Support des mnémoniques
+3. **ToolBar/StatusBar** - Shell d'application classique encore absent
+4. **Ellipse/Path** - Formes vectorielles de base
+5. **RepeatButton** - Utile pour le défilement et les interactions maintenues
+6. **ViewBox** - Mise à l'échelle automatique encore absente
 
 ### Priorité Moyenne (Utiles mais Alternatives Possibles)
 1. **Calendar/DatePicker** - Sélection de dates
@@ -256,7 +246,7 @@ Ce document identifie les contrôles WPF standard qui ne sont pas actuellement i
 3. **ViewBox** - Mise à l'échelle automatique
 4. **Popup** - Fenêtres popup (MGToolTip/MGContextMenu couvrent certains cas)
 5. **Thumb** - Glisser-déposer
-6. **NumericUpDown / MaskedTextBox** - Saisie spécialisée fréquente mais non standard WPF pour l'un des deux
+6. **MaskedTextBox** - Saisie spécialisée fréquente mais non standard WPF
 
 ### Basse Priorité (Spécialisés ou Moins Pertinents pour Jeux)
 1. **Frame** - Navigation entre pages
@@ -281,16 +271,16 @@ MGUI inclut plusieurs contrôles qui n'existent pas dans WPF standard, adaptés 
 ## Conclusion
 
 MGUI implémente une base solide de contrôles WPF essentiels (environ 30+ contrôles). Les principaux manques concernent:
-- **Layouts avancés** (WrapPanel, Canvas, ViewBox)
+- **Layouts avancés restants** (ViewBox)
 - **Shell d'application complémentaire** (ToolBar, StatusBar)
 - **Données tabulaires** (DataGrid)
 - **Formes vectorielles** (Ellipse, Path, Polygon)
 - **Texte riche avancé** (RichTextBox, FlowDocument)
 
-En revanche, la situation est meilleure que dans la version précédente de cette analyse sur plusieurs points importants: **TreeView**, **Menu/MenuItem** et **GridSplitter** disposent déjà d'équivalents fonctionnels dans le dépôt (`MGTreeView`, `MGMenuBar` / `MGMenuBarItem`, `MGGridSplitter`).
+En revanche, la situation est meilleure que dans la version précédente de cette analyse sur plusieurs points importants: **TreeView**, **Menu/MenuItem**, **GridSplitter**, **WrapPanel**, **Canvas** et **NumericUpDown** disposent désormais d'équivalents fonctionnels dans le dépôt (`MGTreeView`, `MGMenuBar` / `MGMenuBarItem`, `MGGridSplitter`, `MGWrapPanel`, `MGCanvas`, `MGNumericUpDown`).
 
 Pour un framework UI de jeu, MGUI couvre bien les besoins essentiels et ajoute des contrôles spécifiques aux jeux. Les contrôles manquants sont soit moins critiques pour les jeux, soit peuvent être implémentés avec les contrôles existants.
 
 ## Plan d'implémentation lié
 
-Un plan d'exécution détaillé pour un agent IA couvrant **WrapPanel**, **Canvas** et **NumericUpDown**, avec petites tâches, statuts, commits, tests et samples, est disponible dans `Docs/wrap-canvas-numericupdown-tasks.md`.
+Le plan d'exécution détaillé pour **WrapPanel**, **Canvas** et **NumericUpDown** a été exécuté et documenté dans `Docs/wrap-canvas-numericupdown-tasks.md`, avec statuts, commits, tests et samples.

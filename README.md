@@ -4,11 +4,13 @@ MGUI is a UI framework for [MonoGame](https://www.monogame.net/) ([Src](https://
 
 All control names are prefixed with 'MG' and many controls have similar names and properties to what you might find in WPF. Currently supported controls:
 - 'Container'-like Controls that define their own logic for arranging their children:
+    - MGCanvas
   - MGDockPanel
   - MGGrid
   - MGOverlayPanel
   - MGStackPanel
   - MGUniformGrid
+    - MGWrapPanel
 - Controls that can have child Content:
   - MGBorder
   - MGButton
@@ -41,6 +43,7 @@ All control names are prefixed with 'MG' and many controls have similar names an
   - MGStopwatch
   - MGTextBlock
   - MGTextBox
+    - MGNumericUpDown
   - MGTimer
   
 [Wiki is under construction.](https://github.com/Videogamers0/MGUI/wiki) More documentation coming soon... maybe...

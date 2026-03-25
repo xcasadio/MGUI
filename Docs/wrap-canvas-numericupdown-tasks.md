@@ -533,7 +533,7 @@ Resultat:
 - le sample montre aussi une personnalisation XAML des boutons de spinner pour valider la promesse template-friendly du controle ;
 - `Compendium.xaml` et `Compendium.xaml.cs` exposent maintenant ce nouvel ecran au meme titre que les autres controles du framework.
 
-### ⚪ 13. Documenter les nouveaux controles et mettre a jour l'analyse des gaps
+### ✅ 13. Documenter les nouveaux controles et mettre a jour l'analyse des gaps
 
 But:
 laisser une trace claire de l'API, des limites v1 et de l'avancement du backlog.
@@ -554,6 +554,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `docs: complete task 13 document new controls and update gap analysis`
+
+Resultat:
+
+- `README.md` mentionne maintenant `MGWrapPanel`, `MGCanvas` et `MGNumericUpDown` dans la liste des controles supportes ;
+- `wpf-controls-gap-analysis.md` retire ces trois controles de la liste des manques, met a jour les priorites et explicite qu'ils disposent maintenant d'equivalents fonctionnels dans le depot ;
+- le plan associe dans `Docs/wrap-canvas-numericupdown-tasks.md` reste comme historique d'execution et trace des commits par tache.
 
 ## Notes de scope v1 recommande
 
