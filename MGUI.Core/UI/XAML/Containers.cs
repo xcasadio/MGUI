@@ -584,6 +584,60 @@ namespace MGUI.Core.UI.XAML
         }
     }
 
+    public class WrapPanel : MultiContentHost
+    {
+        public override MGElementType ElementType => MGElementType.WrapPanel;
+
+        [Category("Border")]
+        public Border Border { get; set; } = new();
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Layout")]
+        public Orientation? Orientation { get; set; }
+        [Category("Layout")]
+        public int? Spacing { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGWrapPanel(Window, Orientation ?? UI.Orientation.Horizontal);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGWrapPanel WrapPanel = Element as MGWrapPanel;
+            Border.ApplySettings(Parent, WrapPanel.BorderComponent.Element, false);
+
+            if (Orientation.HasValue)
+            {
+                WrapPanel.Orientation = Orientation.Value;
+            }
+
+            if (Spacing.HasValue)
+            {
+                WrapPanel.Spacing = Spacing.Value;
+            }
+
+            if (IncludeContent)
+            {
+                foreach (Element Child in Children)
+                {
+                    MGElement ChildElement = Child.ToElement<MGElement>(WrapPanel.ParentWindow, WrapPanel);
+                    WrapPanel.TryAddChild(ChildElement);
+                }
+            }
+        }
+    }
+
     public class OverlayPanel : MultiContentHost
     {
         public override MGElementType ElementType => MGElementType.OverlayPanel;

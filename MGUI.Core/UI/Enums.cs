@@ -29,7 +29,7 @@ namespace MGUI.Core.UI
         Grid,
         UniformGrid,
         OverlayPanel,
-        //WrapPanel?
+        WrapPanel,
 
         //  Layout
         ScrollViewer,
@@ -83,6 +83,7 @@ namespace MGUI.Core.UI
         //  Input
         TextBox,
         PasswordBox,
+        NumericUpDown,
         ChatBox,
         ChatBoxMessage,
         InputConsumer,

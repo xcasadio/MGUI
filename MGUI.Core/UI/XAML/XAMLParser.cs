@@ -95,6 +95,7 @@ namespace MGUI.Core.UI.XAML
             { "UniformGrid", nameof(UniformGrid) },
             { "DockPanel", nameof(DockPanel) },
             { "StackPanel", nameof(StackPanel) },
+            { "WrapPanel", nameof(WrapPanel) },
             { "OverlayPanel", nameof(OverlayPanel) },
             { "ResponsiveRoot", nameof(ResponsiveRoot) },
 
@@ -134,6 +135,7 @@ namespace MGUI.Core.UI.XAML
             { "UG", nameof(UniformGrid) },
             { "DP", nameof(DockPanel) },
             { "SP", nameof(StackPanel) },
+            { "WP", nameof(WrapPanel) },
             { "OP", nameof(OverlayPanel) },
             { "RR", nameof(ResponsiveRoot) }
         };
