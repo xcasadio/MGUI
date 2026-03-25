@@ -501,7 +501,7 @@ Resultat:
 - les interactions clavier et navigation (`Up`, `Down`, `PageUp`, `PageDown`, `Home`, `End`, `Enter`, actions semantiques) sont routees via des helpers purs testes dans `MGUI.Tests/Focus/NumericUpDownInputTests.cs` ;
 - les boutons d'incrementation se desactivent correctement selon `IsReadonly` et les bornes courantes.
 
-### ⚪ 12. Ajouter un sample et des tests d'integration pour NumericUpDown
+### ✅ 12. Ajouter un sample et des tests d'integration pour NumericUpDown
 
 But:
 valider l'experience utilisateur complete, y compris theming et usage en formulaire.
@@ -526,6 +526,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `sample: complete task 12 add numeric updown sample coverage`
+
+Resultat:
+
+- un sample dedie `MGUI.Samples/Controls/NumericUpDown.xaml` illustre les usages entier, decimal et readonly du controle ;
+- le sample montre aussi une personnalisation XAML des boutons de spinner pour valider la promesse template-friendly du controle ;
+- `Compendium.xaml` et `Compendium.xaml.cs` exposent maintenant ce nouvel ecran au meme titre que les autres controles du framework.
 
 ### ⚪ 13. Documenter les nouveaux controles et mettre a jour l'analyse des gaps
 

@@ -140,6 +140,7 @@ namespace MGUI.Samples
         public ComboBoxSamples ComboBoxSamples { get; }
         public ContextMenuSamples ContextMenuSamples { get; }
         public MenuBarSamples MenuBarSamples { get; }
+        public NumericUpDownSamples NumericUpDownSamples { get; }
         public ContextualContentPresenterSamples ContextualContentPresenterSamples { get; }
         public DockPanelSamples DockPanelSamples { get; }
         public ExpanderSamples ExpanderSamples { get; }
@@ -207,6 +208,7 @@ namespace MGUI.Samples
             ComboBoxSamples = new(Content, Desktop);
             ContextMenuSamples = new(Content, Desktop);
             MenuBarSamples = new(Content, Desktop);
+            NumericUpDownSamples = new(Content, Desktop);
             ContextualContentPresenterSamples = new(Content, Desktop);
             DockPanelSamples = new(Content, Desktop);
             ExpanderSamples = new(Content, Desktop);

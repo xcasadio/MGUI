@@ -1,0 +1,78 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="560" Top="80" Width="760" Height="720" TitleText="NumericUpDown" Padding="10">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="NumericUpDown:" HorizontalAlignment="Center" />
+            <Separator />
+            <TextBlock>
+                NumericUpDown builds on the TextBox focus model and adds bounded numeric editing with increment/decrement affordances.
+            </TextBlock>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Basic integer stepping works well for quantities, counters and settings screens.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="12" Margin="0,4,0,0">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock Text="Lives:" VerticalAlignment="Center" Width="80" />
+                        <NumericUpDown Width="140" Minimum="0" Maximum="9" Value="3" Increment="1" DecimalPlaces="0" />
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Decimal precision and formatting stay inside the same control, so designers can tune the display without custom draw code.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="12" Margin="0,4,0,0">
+                    <StackPanel Orientation="Vertical" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock Text="Volume multiplier:" VerticalAlignment="Center" Width="130" />
+                            <NumericUpDown Width="160" Minimum="0.50" Maximum="2.00" Value="1.25" Increment="0.05" DecimalPlaces="2" FormatString="0.00" />
+                        </StackPanel>
+                        <TextBlock FontSize="10" Opacity="0.8">
+                            You can type a value directly, then press Enter or move focus to normalize it.
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    The spinner buttons remain template-friendly and can be restyled independently through XAML.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="12" Margin="0,4,0,0">
+                    <StackPanel Orientation="Vertical" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock Text="Exposure:" VerticalAlignment="Center" Width="80" />
+                            <NumericUpDown Width="160" Minimum="-2.00" Maximum="2.00" Value="0.25" Increment="0.25" DecimalPlaces="2" FormatString="0.00">
+                                <NumericUpDown.IncreaseButton Background="ForestGreen * 0.55" BorderBrush="White * 0.25" BorderThickness="1" />
+                                <NumericUpDown.DecreaseButton Background="Firebrick * 0.55" BorderBrush="White * 0.25" BorderThickness="1" />
+                            </NumericUpDown>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock Text="Locked seed:" VerticalAlignment="Center" Width="80" />
+                            <NumericUpDown Width="160" Minimum="1" Maximum="9999" Value="2048" Increment="1" DecimalPlaces="0" IsReadonly="True" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
