@@ -337,7 +337,7 @@ Resultat:
 - la voie XAML est branchee via le wrapper `Canvas` et les proprietes attachees `CanvasLeft`, `CanvasTop`, `CanvasRight`, `CanvasBottom` sur les noeuds enfants ;
 - le conteneur reste neutre cote input: les enfants conservent leur pipeline normal de focus et hit testing.
 
-### ⚪ 7. Ajouter un sample et des tests d'integration pour Canvas
+### ✅ 7. Ajouter un sample et des tests d'integration pour Canvas
 
 But:
 valider les scenarios concrets de positionnement absolu et de superposition visuelle.
@@ -361,6 +361,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `sample: complete task 7 add canvas sample coverage`
+
+Resultat:
+
+- un sample `Canvas` dedie est ajoute dans `MGUI.Samples/Controls/` avec scenarios top-left, bottom-right et composition de controles interactifs ;
+- le sample est expose dans le compendium principal ;
+- des tests d'integration legers couvrent l'alias XAML `Canvas`, les helpers statiques de coordonnees attachees et l'adoption du controle comme conteneur borde ;
+- la validation globale reste soumise au blocage externe `mgcb` dans cet environnement.
 
 ### ⚪ 8. Ajouter une matrice de tests de valeur, coercion et parsing pour NumericUpDown
 

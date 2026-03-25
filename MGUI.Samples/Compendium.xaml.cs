@@ -135,6 +135,7 @@ namespace MGUI.Samples
     {
         #region Controls
         public ButtonSamples ButtonSamples { get; }
+        public CanvasSamples CanvasSamples { get; }
         public CheckBoxSamples CheckBoxSamples { get; }
         public ComboBoxSamples ComboBoxSamples { get; }
         public ContextMenuSamples ContextMenuSamples { get; }
@@ -201,6 +202,7 @@ namespace MGUI.Samples
 
             #region Controls
             ButtonSamples = new(Content, Desktop);
+            CanvasSamples = new(Content, Desktop);
             CheckBoxSamples = new(Content, Desktop);
             ComboBoxSamples = new(Content, Desktop);
             ContextMenuSamples = new(Content, Desktop);

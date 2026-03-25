@@ -1,0 +1,70 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="520" Top="60" Width="760" Height="720" TitleText="Canvas" Padding="10">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="Canvas:" HorizontalAlignment="Center" />
+            <Separator />
+            <TextBlock>
+                Canvas places each child at explicit coordinates instead of participating in a flow layout. It is useful for HUD overlays, diagrams and pixel-perfect compositions.
+            </TextBlock>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Children can be positioned relative to the top-left corner with `CanvasLeft` and `CanvasTop`.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="8" Margin="0,4,0,0">
+                    <Canvas Width="320" Height="180" Background="Black * 0.25" BorderThickness="1" BorderBrush="White * 0.35">
+                        <Rectangle CanvasLeft="12" CanvasTop="16" Width="72" Height="30" Fill="Orange" Stroke="Black" StrokeThickness="1" />
+                        <Button CanvasLeft="110" CanvasTop="20" Content="Action" Padding="10,4" />
+                        <TextBlock CanvasLeft="16" CanvasTop="72" Text="Top-left anchored content" />
+                    </Canvas>
+                </Border>
+            </DockPanel>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    `CanvasRight` and `CanvasBottom` anchor content against the far edges without introducing a dedicated overlay system.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="8" Margin="0,4,0,0">
+                    <Canvas Width="320" Height="180" Background="Black * 0.25" BorderThickness="1" BorderBrush="White * 0.35">
+                        <Button CanvasRight="12" CanvasBottom="12" Content="Confirm" Padding="10,4" />
+                        <Rectangle CanvasRight="18" CanvasTop="18" Width="54" Height="54" Fill="CornflowerBlue" Stroke="Black" StrokeThickness="1" />
+                        <TextBlock CanvasRight="14" CanvasBottom="52" Text="Bottom-right anchored" TextAlignment="Right" />
+                    </Canvas>
+                </Border>
+            </DockPanel>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Canvas preserves child interactivity, which makes it practical for HUD buttons and freely placed controls.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="8" Margin="0,4,0,0">
+                    <Canvas Width="360" Height="210" Background="Black * 0.25" BorderThickness="1" BorderBrush="White * 0.35">
+                        <Button CanvasLeft="18" CanvasTop="18" Content="Inventory" Padding="10,4" />
+                        <Button CanvasLeft="18" CanvasTop="58" Content="Map" Padding="10,4" />
+                        <Button CanvasLeft="18" CanvasTop="98" Content="Journal" Padding="10,4" />
+                        <Border CanvasLeft="150" CanvasTop="24" Background="White * 0.08" Padding="8">
+                            <TextBlock Text="Canvas is useful when the UI layout must match a custom visual composition." Width="150" WrapText="True" />
+                        </Border>
+                    </Canvas>
+                </Border>
+            </DockPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

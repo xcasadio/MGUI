@@ -62,4 +62,13 @@ public class XamlDocumentSourceTests
         Assert.NotNull(parsed);
         Assert.Equal("WrapPanel", parsed.GetType().Name);
     }
+
+    [Fact]
+    public void Parser_Recognizes_Canvas_Alias()
+    {
+        Element parsed = XAMLParser.ParseElementDefinition(XamlDocumentSource.FromString("<Canvas />"), null, true, true);
+
+        Assert.NotNull(parsed);
+        Assert.Equal("Canvas", parsed.GetType().Name);
+    }
 }

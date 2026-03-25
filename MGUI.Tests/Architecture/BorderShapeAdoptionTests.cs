@@ -3,6 +3,7 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Shapes;
+using XamlCanvas = MGUI.Core.UI.XAML.Canvas;
 using XamlOverlay = MGUI.Core.UI.XAML.Overlay;
 using XamlTabControl = MGUI.Core.UI.XAML.TabControl;
 using XamlTextBox = MGUI.Core.UI.XAML.TextBox;
@@ -166,6 +167,7 @@ public class BorderShapeAdoptionTests
             typeof(MGTimer),
             typeof(MGToggleButton),
             typeof(MGWindow),
+            typeof(MGCanvas),
             typeof(MGStackPanel),
             typeof(MGWrapPanel),
             typeof(VirtualizingStackPanel),
@@ -185,6 +187,7 @@ public class BorderShapeAdoptionTests
     [Fact]
     public void XamlInternalBorders_DoNotInheritParentImplicitStyles()
     {
+        Assert.False(new XamlCanvas().Border.InheritsParentStyles);
         Assert.False(new XamlOverlay().Border.InheritsParentStyles);
         Assert.False(new XamlTabControl().Border.InheritsParentStyles);
         Assert.False(new XamlTextBox().Border.InheritsParentStyles);

@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI;
 
 namespace MGUI.Tests.Architecture;
 
@@ -75,5 +76,24 @@ public class CanvasLayoutEngineTests
         Assert.Equal(new Rectangle(5, 5, 10, 10), result.ChildBounds[0]);
         Assert.Equal(new Rectangle(25, 15, 10, 10), result.ChildBounds[1]);
         Assert.Equal(new Rectangle(45, 25, 10, 10), result.ChildBounds[2]);
+    }
+
+    [Fact]
+    public void Canvas_AttachedCoordinateHelpers_StoreAndReadMetadata()
+    {
+        MGElement element = new MGTextBlock(null as MGWindow, string.Empty);
+
+        MGCanvas.SetLeft(element, 12);
+        MGCanvas.SetTop(element, 18);
+        MGCanvas.SetRight(element, 24);
+        MGCanvas.SetBottom(element, 30);
+
+        Assert.Equal(12, MGCanvas.GetLeft(element));
+        Assert.Equal(18, MGCanvas.GetTop(element));
+        Assert.Equal(24, MGCanvas.GetRight(element));
+        Assert.Equal(30, MGCanvas.GetBottom(element));
+
+        MGCanvas.SetLeft(element, null);
+        Assert.Null(MGCanvas.GetLeft(element));
     }
 }
