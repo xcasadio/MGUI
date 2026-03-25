@@ -156,6 +156,7 @@ namespace MGUI.Samples
         public ScrollViewerSamples ScrollViewerSamples { get; }
         public SliderSamples SliderSamples { get; }
         public StackPanelSamples StackPanelSamples { get; }
+        public WrapPanelSamples WrapPanelSamples { get; }
         public TabControlSamples TabControlSamples { get; }
         public TextBlockSamples TextBlockSamples { get; }
         public TextBoxSamples TextBoxSamples { get; }
@@ -221,6 +222,7 @@ namespace MGUI.Samples
             ScrollViewerSamples = new(Content, Desktop);
             SliderSamples = new(Content, Desktop);
             StackPanelSamples = new(Content, Desktop);
+            WrapPanelSamples = new(Content, Desktop);
             TabControlSamples = new(Content, Desktop);
             TextBlockSamples = new(Content, Desktop);
             TextBoxSamples = new(Content, Desktop);

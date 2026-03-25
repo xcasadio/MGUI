@@ -53,4 +53,13 @@ public class XamlDocumentSourceTests
         Assert.NotNull(parsed);
         Assert.Equal("Grid", parsed.GetType().Name);
     }
+
+    [Fact]
+    public void Parser_Recognizes_WrapPanel_Alias()
+    {
+        Element parsed = XAMLParser.ParseElementDefinition(XamlDocumentSource.FromString("<WrapPanel Orientation=\"Horizontal\" Spacing=\"6\" />"), null, true, true);
+
+        Assert.NotNull(parsed);
+        Assert.Equal("WrapPanel", parsed.GetType().Name);
+    }
 }

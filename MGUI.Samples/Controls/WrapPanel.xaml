@@ -1,0 +1,97 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="480" Top="40" Width="720" Height="760" TitleText="WrapPanel" Padding="10">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="Rectangle">
+            <Setter Property="Stroke" Value="Black" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="Width" Value="52" />
+            <Setter Property="Height" Value="26" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="WrapPanel:" HorizontalAlignment="Center" />
+            <Separator />
+            <TextBlock>
+                WrapPanel arranges children sequentially on one axis and automatically starts a new row or column when there is not enough remaining space.
+            </TextBlock>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    In horizontal mode, children flow left-to-right and wrap to the next row.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="8" Margin="0,4,0,0">
+                    <WrapPanel Orientation="Horizontal" Spacing="6" Width="250" Background="White * 0.08" Padding="6">
+                        <Button Content="Alpha" Padding="8,4" />
+                        <Button Content="Beta" Padding="8,4" />
+                        <Button Content="Gamma" Padding="8,4" />
+                        <Button Content="Delta" Padding="8,4" />
+                        <Button Content="Epsilon" Padding="8,4" />
+                        <Button Content="Zeta" Padding="8,4" />
+                    </WrapPanel>
+                </Border>
+            </DockPanel>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    In vertical mode, children flow top-to-bottom and wrap into the next column.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="8" Margin="0,4,0,0">
+                    <WrapPanel Orientation="Vertical" Spacing="6" Height="170" Background="White * 0.08" Padding="6">
+                        <Button Content="One" Padding="8,4" />
+                        <Button Content="Two" Padding="8,4" />
+                        <Button Content="Three" Padding="8,4" />
+                        <Button Content="Four" Padding="8,4" />
+                        <Button Content="Five" Padding="8,4" />
+                        <Button Content="Six" Padding="8,4" />
+                    </WrapPanel>
+                </Border>
+            </DockPanel>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Children can have different sizes and the panel uses the largest item in each line to define the cross-axis size of that line.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="8" Margin="0,4,0,0">
+                    <WrapPanel Orientation="Horizontal" Spacing="8" Width="320" Background="White * 0.08" Padding="6">
+                        <Rectangle Fill="Orange" Width="70" Height="32" />
+                        <Rectangle Fill="CornflowerBlue" Width="120" Height="24" />
+                        <Rectangle Fill="MediumPurple" Width="80" Height="50" />
+                        <Rectangle Fill="LightGreen" Width="140" Height="34" />
+                        <Rectangle Fill="Tomato" Width="90" Height="22" />
+                    </WrapPanel>
+                </Border>
+            </DockPanel>
+            <Separator />
+
+            <DockPanel>
+                <TextBlock Dock="Top">
+                    Reducing the available width forces earlier wraps. This is useful for chips, tags, galleries or option buttons.
+                </TextBlock>
+                <Border Dock="Top" Background="White * 0.08" Padding="8" Margin="0,4,0,0">
+                    <WrapPanel Orientation="Horizontal" Spacing="4" Width="190" Background="White * 0.08" Padding="6">
+                        <Button Content="Gameplay" Padding="6,3" />
+                        <Button Content="Audio" Padding="6,3" />
+                        <Button Content="Video" Padding="6,3" />
+                        <Button Content="Accessibility" Padding="6,3" />
+                        <Button Content="Controls" Padding="6,3" />
+                    </WrapPanel>
+                </Border>
+            </DockPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

@@ -240,7 +240,7 @@ Resultat:
 - le controle delegue ses calculs de mesure et d'arrangement au moteur pur ajoute a la tache 2 ;
 - aucun comportement d'input specifique n'a ete introduit, le panel reste strictement un conteneur de layout.
 
-### ⚪ 4. Ajouter un sample et des tests d'integration pour WrapPanel
+### ✅ 4. Ajouter un sample et des tests d'integration pour WrapPanel
 
 But:
 prouver l'utilite du controle dans de vrais ecrans et verifier sa stabilite d'integration.
@@ -264,6 +264,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `sample: complete task 4 add wrap panel sample coverage`
+
+Resultat:
+
+- un sample `WrapPanel` dedie est ajoute dans `MGUI.Samples/Controls/` avec cas horizontaux, verticaux, tailles heterogenes et contraintes d'espace reduites ;
+- le sample est expose dans le compendium principal pour etre testable visuellement ;
+- des tests d'integration legers couvrent le branchement XAML du controle et son adoption comme controle borde dans les tests d'architecture ;
+- la validation projet complet reste soumise au blocage externe `mgcb` deja constate plus haut.
 
 ### ⚪ 5. Ajouter une matrice de tests de positionnement pour Canvas
 

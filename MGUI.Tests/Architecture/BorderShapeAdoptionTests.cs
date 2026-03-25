@@ -7,6 +7,7 @@ using XamlOverlay = MGUI.Core.UI.XAML.Overlay;
 using XamlTabControl = MGUI.Core.UI.XAML.TabControl;
 using XamlTextBox = MGUI.Core.UI.XAML.TextBox;
 using XamlTreeView = MGUI.Core.UI.XAML.TreeView;
+using XamlWrapPanel = MGUI.Core.UI.XAML.WrapPanel;
 using MGUI.Shared.Rendering.Clipping;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
@@ -166,6 +167,7 @@ public class BorderShapeAdoptionTests
             typeof(MGToggleButton),
             typeof(MGWindow),
             typeof(MGStackPanel),
+            typeof(MGWrapPanel),
             typeof(VirtualizingStackPanel),
             typeof(MGGridSplitter),
             typeof(MGMenuBar),
@@ -187,5 +189,6 @@ public class BorderShapeAdoptionTests
         Assert.False(new XamlTabControl().Border.InheritsParentStyles);
         Assert.False(new XamlTextBox().Border.InheritsParentStyles);
         Assert.False(new XamlTreeView().Border.InheritsParentStyles);
+        Assert.False(new XamlWrapPanel().Border.InheritsParentStyles);
     }
 }

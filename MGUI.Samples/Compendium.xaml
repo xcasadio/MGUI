@@ -63,6 +63,7 @@
                         <ToggleButton Content="ScrollViewer" IsChecked="{MGBinding Path=ScrollViewerSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Slider" IsChecked="{MGBinding Path=SliderSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="StackPanel" IsChecked="{MGBinding Path=StackPanelSamples.IsVisible, Mode=TwoWay}" />
+                        <ToggleButton Content="WrapPanel" IsChecked="{MGBinding Path=WrapPanelSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="TabControl" IsChecked="{MGBinding Path=TabControlSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="TextBlock" IsChecked="{MGBinding Path=TextBlockSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="TextBox" IsChecked="{MGBinding Path=TextBoxSamples.IsVisible, Mode=TwoWay}" />
