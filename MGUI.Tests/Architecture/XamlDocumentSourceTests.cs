@@ -71,4 +71,13 @@ public class XamlDocumentSourceTests
         Assert.NotNull(parsed);
         Assert.Equal("Canvas", parsed.GetType().Name);
     }
+
+    [Fact]
+    public void Parser_Recognizes_NumericUpDown_Alias()
+    {
+        Element parsed = XAMLParser.ParseElementDefinition(XamlDocumentSource.FromString("<NumericUpDown Minimum=\"0\" Maximum=\"10\" Value=\"5\" />"), null, true, true);
+
+        Assert.NotNull(parsed);
+        Assert.Equal("NumericUpDown", parsed.GetType().Name);
+    }
 }

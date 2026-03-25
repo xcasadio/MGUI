@@ -3005,6 +3005,81 @@ namespace MGUI.Core.UI.XAML
         }
     }
 
+    [ContentProperty(nameof(Text))]
+    public class NumericUpDown : TextBox
+    {
+        public override MGElementType ElementType => MGElementType.NumericUpDown;
+
+        [Category("Behavior")]
+        public double? Minimum { get; set; }
+        [Category("Behavior")]
+        public double? Maximum { get; set; }
+        [Category("Behavior")]
+        public double? Value { get; set; }
+        [Category("Behavior")]
+        public double? Increment { get; set; }
+        [Category("Behavior")]
+        public int? DecimalPlaces { get; set; }
+        [Category("Appearance")]
+        public string FormatString { get; set; }
+
+        public Button IncreaseButton { get; set; } = new() { InheritsParentStyles = false };
+        public Button DecreaseButton { get; set; } = new() { InheritsParentStyles = false };
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGNumericUpDown(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            base.ApplyDerivedSettings(Parent, Element, IncludeContent);
+
+            MGNumericUpDown numericUpDown = Element as MGNumericUpDown;
+
+            IncreaseButton.ApplySettings(Parent, numericUpDown.IncreaseButtonElement, false);
+            DecreaseButton.ApplySettings(Parent, numericUpDown.DecreaseButtonElement, false);
+
+            if (Minimum.HasValue)
+            {
+                numericUpDown.Minimum = Minimum.Value;
+            }
+
+            if (Maximum.HasValue)
+            {
+                numericUpDown.Maximum = Maximum.Value;
+            }
+
+            if (Increment.HasValue)
+            {
+                numericUpDown.Increment = Increment.Value;
+            }
+
+            if (DecimalPlaces.HasValue)
+            {
+                numericUpDown.DecimalPlaces = DecimalPlaces.Value;
+            }
+
+            if (FormatString != null)
+            {
+                numericUpDown.FormatString = FormatString;
+            }
+
+            if (Value.HasValue)
+            {
+                numericUpDown.Value = Value.Value;
+            }
+        }
+
+        protected internal override IEnumerable<Element> GetChildren()
+        {
+            foreach (Element child in base.GetChildren())
+            {
+                yield return child;
+            }
+
+            yield return IncreaseButton;
+            yield return DecreaseButton;
+        }
+    }
+
     public class Timer : Element
     {
         public override MGElementType ElementType => MGElementType.Timer;

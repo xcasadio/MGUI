@@ -433,7 +433,7 @@ Resultat:
 - le modele expose aussi des helpers d'etat et d'ajustement (`TryIncrease`, `TryDecrease`, `IsAtMinimum`, `IsAtMaximum`) pour que l'UI ne re-duplique pas cette logique ;
 - les tests de la tache 8 ont ete etendus pour verrouiller ces helpers avant l'integration du controle visuel.
 
-### ⚪ 10. Ajouter `MGNumericUpDown` comme controle composite template-friendly
+### ✅ 10. Ajouter `MGNumericUpDown` comme controle composite template-friendly
 
 But:
 construire un controle public coherent avec les patterns modernes du framework.
@@ -460,6 +460,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `feat: complete task 10 add numeric updown control structure`
+
+Resultat:
+
+- `MGNumericUpDown` est ajoute comme sous-classe publique de `MGTextBox` avec un modele de valeur central et des template parts dediees pour le spinner ;
+- le template par defaut est enregistre dans `MGControlTemplateCatalog` et materialise un hote vertical pour les boutons d'increment/decrement sans draw custom monolithique ;
+- la surface XAML est branchee via `MGUI.Core/UI/XAML/Controls.cs` et les alias `NumericUpDown` / `NUD` sont ajoutes au parser ;
+- une couverture d'architecture legere verifie l'alias XAML et l'adoption des patterns de bordure sur le nouveau controle.
 
 ### ⚪ 11. Brancher le focus et les interactions de NumericUpDown
 

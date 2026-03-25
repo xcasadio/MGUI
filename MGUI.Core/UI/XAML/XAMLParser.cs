@@ -63,6 +63,7 @@ namespace MGUI.Core.UI.XAML
             { "ListBox", nameof(ListBox) },
             { "ListView", nameof(ListView) },
             { "ListViewColumn", nameof(ListViewColumn) },
+            { "NumericUpDown", nameof(NumericUpDown) },
 
             { "OverlayHost", nameof(OverlayHost) },
             { "Overlay", nameof(Overlay) },
@@ -120,6 +121,7 @@ namespace MGUI.Core.UI.XAML
             { "LB", nameof(ListBox) },
             { "LV", nameof(ListView) },
             { "LVC", nameof(ListViewColumn) },
+            { "NUD", nameof(NumericUpDown) },
             { "RB", nameof(RadioButton) },
             { "RC", nameof(RatingControl) },
             { "RG", nameof(ResizeGrip) },

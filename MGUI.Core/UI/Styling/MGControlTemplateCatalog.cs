@@ -31,6 +31,7 @@ namespace MGUI.Core.UI.Styling
         public const string ComboBoxDropdownItemTemplateName = "ComboBox.DropdownItem.Default";
         public const string TreeViewTemplateName = "TreeView.Default";
         public const string TextBoxTemplateName = "TextBox.Default";
+        public const string NumericUpDownTemplateName = "NumericUpDown.Default";
         public const string TabControlTemplateName = "TabControl.Default";
         public const string SelectedTabHeaderTemplateName = "TabControl.Header.Selected";
         public const string UnselectedTabHeaderTemplateName = "TabControl.Header.Unselected";
@@ -112,6 +113,7 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, ComboBoxDropdownItemTemplateName, ApplyComboBoxDropdownItemTemplate);
             Register(Resources, CreateTreeViewTemplate());
             Register(Resources, CreateTextBoxTemplate());
+            Register(Resources, CreateNumericUpDownTemplate());
             Register(Resources, CreateTabControlTemplate());
             Register(Resources, SelectedTabHeaderTemplateName, ApplySelectedTabHeaderTemplate);
             Register(Resources, UnselectedTabHeaderTemplateName, ApplyUnselectedTabHeaderTemplate);
@@ -161,6 +163,9 @@ namespace MGUI.Core.UI.Styling
 
         private static MGControlTemplate CreateTextBoxTemplate()
             => new(TextBoxTemplateName, CreateTextBoxTemplateStructure, null, ApplyTextBoxTemplate);
+
+        private static MGControlTemplate CreateNumericUpDownTemplate()
+            => new(NumericUpDownTemplateName, CreateNumericUpDownTemplateStructure, null, ApplyNumericUpDownTemplate);
 
         private static MGControlTemplate CreateTabControlTemplate()
             => new(TabControlTemplateName, CreateTabControlTemplateStructure, null, ApplyTabControlTemplate);
@@ -392,6 +397,76 @@ namespace MGUI.Core.UI.Styling
             structure.AddPart(MGTextBox.PlaceholderTextBlockPartName, placeholder);
             structure.AddPart(MGTextBox.CharacterCountPartName, characterCount);
             structure.AddPart(MGTextBox.TextBlockPartName, textBlock);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateNumericUpDownTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGNumericUpDown numericUpDown)
+            {
+                return null;
+            }
+
+            MGWindow window = numericUpDown.SelfOrParentWindow;
+            MGBorder border = new(window);
+            MGResizeGrip resizeGrip = new(window)
+            {
+                Visibility = Visibility.Collapsed,
+            };
+            MGTextBlock placeholder = new(window, string.Empty)
+            {
+                Visibility = Visibility.Collapsed,
+            };
+            MGTextBlock characterCount = new(window, "0")
+            {
+                Visibility = Visibility.Collapsed,
+            };
+            MGTextBlock textBlock = new(window, string.Empty)
+            {
+                ClipToBounds = false,
+            };
+
+            MGGrid spinnerHost = new(window)
+            {
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+            };
+            RowDefinition topRow = new(spinnerHost, GridLength.CreateWeightedLength(1));
+            RowDefinition bottomRow = new(spinnerHost, GridLength.CreateWeightedLength(1));
+            ColumnDefinition column = new(spinnerHost, GridLength.Auto);
+            spinnerHost.Rows.Add(topRow);
+            spinnerHost.Rows.Add(bottomRow);
+            spinnerHost.Columns.Add(column);
+
+            MGButton increaseButton = new(window)
+            {
+                Padding = new Thickness(2, 0),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+            };
+            MGButton decreaseButton = new(window)
+            {
+                Padding = new Thickness(2, 0),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+            };
+
+            spinnerHost.TryAddChild(topRow, column, increaseButton);
+            spinnerHost.TryAddChild(bottomRow, column, decreaseButton);
+
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGTextBox.BorderPartName, border);
+            structure.AddPart(MGTextBox.ResizeGripPartName, resizeGrip);
+            structure.AddPart(MGTextBox.PlaceholderTextBlockPartName, placeholder);
+            structure.AddPart(MGTextBox.CharacterCountPartName, characterCount);
+            structure.AddPart(MGTextBox.TextBlockPartName, textBlock);
+            structure.AddPart(MGNumericUpDown.SpinnerHostPartName, spinnerHost);
+            structure.AddPart(MGNumericUpDown.IncreaseButtonPartName, increaseButton);
+            structure.AddPart(MGNumericUpDown.DecreaseButtonPartName, decreaseButton);
             return structure;
         }
 
@@ -713,6 +788,42 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("TextBox.FocusedSelectionBackground", theme.TextBoxFocusedSelectionBackground, () => textBox.FocusedSelectionBackgroundColor, value => textBox.FocusedSelectionBackgroundColor = value);
             Context.ApplyThemeDefault("TextBox.UnfocusedSelectionForeground", theme.TextBoxUnfocusedSelectionForeground, () => textBox.UnfocusedSelectionForegroundColor, value => textBox.UnfocusedSelectionForegroundColor = value);
             Context.ApplyThemeDefault("TextBox.UnfocusedSelectionBackground", theme.TextBoxUnfocusedSelectionBackground, () => textBox.UnfocusedSelectionBackgroundColor, value => textBox.UnfocusedSelectionBackgroundColor = value);
+        }
+
+        private static void ApplyNumericUpDownTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGNumericUpDown numericUpDown)
+            {
+                return;
+            }
+
+            ApplyTextBoxTemplate(Context);
+
+            MGGrid spinnerHost = Context.GetRequiredPart<MGGrid>(MGNumericUpDown.SpinnerHostPartName);
+            MGButton increaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.IncreaseButtonPartName);
+            MGButton decreaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.DecreaseButtonPartName);
+
+            Context.ApplyTemplateValue("NumericUpDown.Padding", new Thickness(6, 2, 6, 2), () => numericUpDown.Padding, value => numericUpDown.Padding = value);
+            Context.ApplyTemplateValue("NumericUpDown.MinHeight", 26, () => numericUpDown.MinHeight ?? 0, value => numericUpDown.MinHeight = value);
+            Context.ApplyTemplateValue("NumericUpDown.SpinnerWidth", 20, () => spinnerHost.PreferredWidth ?? 0, value => spinnerHost.PreferredWidth = value);
+            Context.ApplyTemplateValue("NumericUpDown.SpinnerMinWidth", 18, () => increaseButton.MinWidth ?? 0, value =>
+            {
+                increaseButton.MinWidth = value;
+                decreaseButton.MinWidth = value;
+            });
+
+            if (!Context.IsThemeRefresh)
+            {
+                if (increaseButton.Content == null)
+                {
+                    increaseButton.SetContent(new MGTextBlock(Context.Window, "+"));
+                }
+
+                if (decreaseButton.Content == null)
+                {
+                    decreaseButton.SetContent(new MGTextBlock(Context.Window, "-"));
+                }
+            }
         }
 
         private static void ApplyTabControlTemplate(MGControlTemplateContext Context)
