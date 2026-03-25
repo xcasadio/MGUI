@@ -2,7 +2,9 @@ using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.NumericUpDown;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Helpers;
+using MGUI.Shared.Input.Keyboard;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using System;
 using System.Collections.Generic;
@@ -11,6 +13,18 @@ namespace MGUI.Core.UI
 {
     public class MGNumericUpDown : MGTextBox
     {
+        internal enum NumericAdjustmentAction
+        {
+            None,
+            Increase,
+            Decrease,
+            IncreaseLarge,
+            DecreaseLarge,
+            SetMinimum,
+            SetMaximum,
+            CommitText
+        }
+
         public const string SpinnerHostPartName = "PART_SpinnerHost";
         public const string IncreaseButtonPartName = "PART_IncreaseButton";
         public const string DecreaseButtonPartName = "PART_DecreaseButton";
@@ -37,6 +51,35 @@ namespace MGUI.Core.UI
 
         private readonly MGNumericUpDownModel Model;
         private bool IsSynchronizingText { get; set; }
+        private bool HasPendingTextValidationError { get; set; }
+
+        internal static NumericAdjustmentAction GetKeyboardAdjustmentAction(Keys key)
+            => key switch
+            {
+                Keys.Up => NumericAdjustmentAction.Increase,
+                Keys.Down => NumericAdjustmentAction.Decrease,
+                Keys.PageUp => NumericAdjustmentAction.IncreaseLarge,
+                Keys.PageDown => NumericAdjustmentAction.DecreaseLarge,
+                Keys.Home => NumericAdjustmentAction.SetMinimum,
+                Keys.End => NumericAdjustmentAction.SetMaximum,
+                Keys.Enter => NumericAdjustmentAction.CommitText,
+                _ => NumericAdjustmentAction.None,
+            };
+
+        internal static NumericAdjustmentAction GetNavigationAdjustmentAction(UINavigationAction action)
+            => action switch
+            {
+                UINavigationAction.MoveUp => NumericAdjustmentAction.Increase,
+                UINavigationAction.MoveDown => NumericAdjustmentAction.Decrease,
+                UINavigationAction.Increment => NumericAdjustmentAction.Increase,
+                UINavigationAction.Decrement => NumericAdjustmentAction.Decrease,
+                UINavigationAction.PageUp => NumericAdjustmentAction.IncreaseLarge,
+                UINavigationAction.PageDown => NumericAdjustmentAction.DecreaseLarge,
+                UINavigationAction.Home => NumericAdjustmentAction.SetMinimum,
+                UINavigationAction.End => NumericAdjustmentAction.SetMaximum,
+                UINavigationAction.Submit => NumericAdjustmentAction.CommitText,
+                _ => NumericAdjustmentAction.None,
+            };
 
         public double Minimum
         {
@@ -135,6 +178,11 @@ namespace MGUI.Core.UI
                 WrapText = false;
                 EnableScrolling = true;
                 SyncTextFromValue();
+
+                TextChanged += (sender, e) => HandleTextChanged();
+                ReadonlyChanged += (sender, e) => UpdateSpinnerState();
+                KeyboardHandler.Pressed += (sender, e) => HandleKeyboardPressed(e);
+                GetDesktop().FocusedKeyboardHandlerChanged += (sender, e) => HandleFocusChanged(e.PreviousValue, e.NewValue);
             }
         }
 
@@ -230,6 +278,7 @@ namespace MGUI.Core.UI
             try
             {
                 base.SetText(Model.FormatValue());
+                HasPendingTextValidationError = false;
             }
             finally
             {
@@ -250,11 +299,115 @@ namespace MGUI.Core.UI
             }
         }
 
+        private void HandleTextChanged()
+        {
+            if (IsSynchronizingText)
+            {
+                return;
+            }
+
+            if (Model.TryParseText(Text, out double parsedValue))
+            {
+                HasPendingTextValidationError = false;
+                SetValueCore(parsedValue, false);
+                UpdateSpinnerState();
+            }
+            else
+            {
+                HasPendingTextValidationError = !string.IsNullOrWhiteSpace(Text);
+            }
+        }
+
+        private void HandleFocusChanged(MGElement previous, MGElement current)
+        {
+            if (!ReferenceEquals(previous, this) || ReferenceEquals(current, this))
+            {
+                return;
+            }
+
+            CommitPendingText(false);
+        }
+
+        private void HandleKeyboardPressed(BaseKeyPressedEventArgs e)
+        {
+            if (GetDesktop().FocusedKeyboardHandler != this)
+            {
+                return;
+            }
+
+            NumericAdjustmentAction action = GetKeyboardAdjustmentAction(e.Key);
+            if (action == NumericAdjustmentAction.None)
+            {
+                return;
+            }
+
+            if (ApplyAdjustmentAction(action))
+            {
+                e.SetHandledBy(this, false);
+            }
+        }
+
+        private bool CommitPendingText(bool selectAll)
+        {
+            if (IsSynchronizingText)
+            {
+                return false;
+            }
+
+            bool valueChanged = false;
+            if (Model.TryApplyText(Text, out double parsedValue))
+            {
+                valueChanged = SetValueCore(parsedValue, true);
+            }
+            else if (HasPendingTextValidationError)
+            {
+                SyncTextFromValue();
+                valueChanged = true;
+            }
+            else
+            {
+                SyncTextFromValue();
+            }
+
+            if (selectAll)
+            {
+                SelectAll();
+            }
+
+            return valueChanged || HasPendingTextValidationError == false;
+        }
+
+        private bool ApplyAdjustmentAction(NumericAdjustmentAction action)
+        {
+            return action switch
+            {
+                NumericAdjustmentAction.Increase => TryIncrease(),
+                NumericAdjustmentAction.Decrease => TryDecrease(),
+                NumericAdjustmentAction.IncreaseLarge => TryIncreaseLarge(),
+                NumericAdjustmentAction.DecreaseLarge => TryDecreaseLarge(),
+                NumericAdjustmentAction.SetMinimum => TrySetMinimum(),
+                NumericAdjustmentAction.SetMaximum => TrySetMaximum(),
+                NumericAdjustmentAction.CommitText => CommitPendingText(true),
+                _ => false,
+            };
+        }
+
         public bool TryIncrease() => IsReadonly ? false : SetValueCore(Value + Increment, true);
         public bool TryDecrease() => IsReadonly ? false : SetValueCore(Value - Increment, true);
         public bool TryIncreaseLarge() => IsReadonly ? false : SetValueCore(Value + Increment * DefaultLargeStepMultiplier, true);
         public bool TryDecreaseLarge() => IsReadonly ? false : SetValueCore(Value - Increment * DefaultLargeStepMultiplier, true);
         public bool TrySetMinimum() => IsReadonly ? false : SetValueCore(Minimum, true);
         public bool TrySetMaximum() => IsReadonly ? false : SetValueCore(Maximum, true);
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            NumericAdjustmentAction mappedAction = GetNavigationAdjustmentAction(action);
+            if (mappedAction == NumericAdjustmentAction.None)
+            {
+                return base.TryHandleNavigationAction(action);
+            }
+
+            return ApplyAdjustmentAction(mappedAction);
+        }
     }
 }

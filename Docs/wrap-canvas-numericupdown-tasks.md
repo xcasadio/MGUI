@@ -468,7 +468,7 @@ Resultat:
 - la surface XAML est branchee via `MGUI.Core/UI/XAML/Controls.cs` et les alias `NumericUpDown` / `NUD` sont ajoutes au parser ;
 - une couverture d'architecture legere verifie l'alias XAML et l'adoption des patterns de bordure sur le nouveau controle.
 
-### ⚪ 11. Brancher le focus et les interactions de NumericUpDown
+### ✅ 11. Brancher le focus et les interactions de NumericUpDown
 
 But:
 faire du controle un bon citoyen du pipeline d'input MGUI.
@@ -493,6 +493,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `input: complete task 11 wire numeric updown focus and interaction behavior`
+
+Resultat:
+
+- `MGNumericUpDown` synchronise maintenant la saisie texte avec `Value` sans dupliquer la logique du modele ;
+- les pertes de focus normalisent ou restaurent le texte selon que le parsing est valide ou non ;
+- les interactions clavier et navigation (`Up`, `Down`, `PageUp`, `PageDown`, `Home`, `End`, `Enter`, actions semantiques) sont routees via des helpers purs testes dans `MGUI.Tests/Focus/NumericUpDownInputTests.cs` ;
+- les boutons d'incrementation se desactivent correctement selon `IsReadonly` et les bornes courantes.
 
 ### ⚪ 12. Ajouter un sample et des tests d'integration pour NumericUpDown
 
