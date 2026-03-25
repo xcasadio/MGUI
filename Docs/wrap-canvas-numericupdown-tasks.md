@@ -272,7 +272,7 @@ Resultat:
 - des tests d'integration legers couvrent le branchement XAML du controle et son adoption comme controle borde dans les tests d'architecture ;
 - la validation projet complet reste soumise au blocage externe `mgcb` deja constate plus haut.
 
-### ⚪ 5. Ajouter une matrice de tests de positionnement pour Canvas
+### ✅ 5. Ajouter une matrice de tests de positionnement pour Canvas
 
 But:
 verrouiller la politique de positionnement absolu avant de brancher un nouveau container public.
@@ -297,6 +297,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 5 add canvas positioning regression matrix`
+
+Resultat:
+
+- une matrice de regression dediee a `Canvas` couvre `Left`, `Top`, `Right`, `Bottom`, la precedence des coordonnees, le fallback a l'origine et l'impact sur la taille desiree ;
+- la logique de positionnement est isolee dans un moteur pur interne afin d'etre testee hors runtime ;
+- les nouveaux fichiers ne presentent pas d'erreurs C# locales ;
+- la validation `dotnet test` du projet complet reste bloquee par `mgcb` dans cet environnement.
 
 ### ⚪ 6. Ajouter `MGCanvas` et ses APIs de positionnement
 
