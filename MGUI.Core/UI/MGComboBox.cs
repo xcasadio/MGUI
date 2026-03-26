@@ -747,7 +747,7 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 IsFocusable = true;
-                HorizontalContentAlignment = HorizontalAlignment.Center;
+                HorizontalContentAlignment = HorizontalAlignment.Left;
                 VerticalContentAlignment = VerticalAlignment.Center;
 
                 CanChangeContent = false;

@@ -53,6 +53,34 @@ namespace MGUI.Core.UI.Styling
         public static MGElement CreateDefaultListBoxItemContent<TItemType>(MGWindow Window, TItemType Item)
             => new MGTextBlock(Window, Item?.ToString()) { Padding = DefaultListBoxItemContentPadding };
 
+        internal static MGTextBlock CreateDefaultControlTextBlock(MGWindow window, string text, bool wrapText, bool isCompact, bool reserveOneLine)
+        {
+            MGTextBlock textBlock = new(window, text ?? string.Empty)
+            {
+                WrapText = wrapText,
+                TextAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0),
+            };
+
+            if (reserveOneLine)
+            {
+                textBlock.MinLines = Math.Max(1, textBlock.MinLines);
+            }
+
+            if (isCompact)
+            {
+                textBlock.Padding = new Thickness(0);
+                textBlock.MinLines = 1;
+                textBlock.MaxLines = 1;
+                textBlock.LinePadding = 0;
+            }
+
+            return textBlock;
+        }
+
         public static MGButton CreateDefaultComboBoxDropdownItem<TItemType>(MGComboBox<TItemType> ComboBox, TItemType Item)
         {
             if (ComboBox == null)
@@ -61,12 +89,12 @@ namespace MGUI.Core.UI.Styling
             }
 
             MGButton button = ComboBox.CreateDefaultDropdownButton();
-            button.SetContent(Item?.ToString());
+            button.SetContent(CreateCompactSingleLineTextBlock(ComboBox.SelfOrParentWindow, Item?.ToString() ?? string.Empty));
             return button;
         }
 
         public static MGElement CreateDefaultComboBoxSelectedItemContent<TItemType>(MGWindow Window, TItemType Item)
-            => new MGTextBlock(Window, Item?.ToString()) { WrapText = false, VerticalAlignment = VerticalAlignment.Center };
+            => CreateDefaultControlTextBlock(Window, Item?.ToString() ?? string.Empty, false, false, false);
 
         public static MGElement CreateDefaultTreeViewItemHeaderContent(MGWindow Window, object Header)
             => new MGTextBlock(Window, Header?.ToString() ?? string.Empty);
@@ -377,19 +405,15 @@ namespace MGUI.Core.UI.Styling
             MGWindow window = textBox.SelfOrParentWindow;
             MGBorder border = new(window);
             MGResizeGrip resizeGrip = new(window);
-            MGTextBlock placeholder = new(window, string.Empty)
-            {
-                Visibility = Visibility.Collapsed,
-            };
+            MGTextBlock placeholder = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
+            placeholder.Visibility = Visibility.Collapsed;
             MGTextBlock characterCount = new(window, "0")
             {
                 Margin = new(0, 0, 8, 4),
             };
             _ = characterCount.TrySetFont(window.Desktop.FontManager.DefaultFontFamily, 9);
-            MGTextBlock textBlock = new(window, string.Empty)
-            {
-                ClipToBounds = false,
-            };
+            MGTextBlock textBlock = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
+            textBlock.ClipToBounds = false;
 
             MGControlTemplateStructure structure = new(null);
             structure.AddPart(MGTextBox.BorderPartName, border);
@@ -413,18 +437,14 @@ namespace MGUI.Core.UI.Styling
             {
                 Visibility = Visibility.Collapsed,
             };
-            MGTextBlock placeholder = new(window, string.Empty)
-            {
-                Visibility = Visibility.Collapsed,
-            };
+            MGTextBlock placeholder = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
+            placeholder.Visibility = Visibility.Collapsed;
             MGTextBlock characterCount = new(window, "0")
             {
                 Visibility = Visibility.Collapsed,
             };
-            MGTextBlock textBlock = new(window, string.Empty)
-            {
-                ClipToBounds = false,
-            };
+            MGTextBlock textBlock = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
+            textBlock.ClipToBounds = false;
 
             MGGrid spinnerHost = new(window)
             {
@@ -818,34 +838,41 @@ namespace MGUI.Core.UI.Styling
             {
                 if (increaseButton.Content == null)
                 {
-                    increaseButton.SetContent(CreateNumericSpinnerGlyph(Context.Window, "+"));
+                    increaseButton.SetContent(CreateNumericSpinnerGlyph(Context.Window, UITriangleArrowDirection.Up));
                 }
 
                 if (decreaseButton.Content == null)
                 {
-                    decreaseButton.SetContent(CreateNumericSpinnerGlyph(Context.Window, "-"));
+                    decreaseButton.SetContent(CreateNumericSpinnerGlyph(Context.Window, UITriangleArrowDirection.Down));
                 }
+            }
+
+            if (increaseButton.Content is MGTriangleArrowIcon increaseIcon)
+            {
+                increaseIcon.Color = numericUpDown.GetTheme().DropdownArrowColor;
+            }
+
+            if (decreaseButton.Content is MGTriangleArrowIcon decreaseIcon)
+            {
+                decreaseIcon.Color = numericUpDown.GetTheme().DropdownArrowColor;
             }
         }
 
-        private static MGTextBlock CreateNumericSpinnerGlyph(MGWindow window, string text)
+        private static MGTriangleArrowIcon CreateNumericSpinnerGlyph(MGWindow window, UITriangleArrowDirection direction)
         {
-            MGTextBlock glyph = new(window, text, null, 10, false)
+            return new(window)
             {
-                TextAlignment = HorizontalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Direction = direction,
+                Color = window.Theme.DropdownArrowColor,
+                PreferredWidth = 8,
+                PreferredHeight = 5,
+                HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                VerticalContentAlignment = VerticalAlignment.Center,
-                WrapText = false,
-                Padding = new Thickness(0),
-                Margin = new Thickness(0),
-                MinLines = 1,
-                MaxLines = 1,
-                LinePadding = 0,
             };
-
-            return glyph;
         }
+
+        private static MGTextBlock CreateCompactSingleLineTextBlock(MGWindow window, string text)
+            => CreateDefaultControlTextBlock(window, text, false, true, true);
 
         private static void ApplyTabControlTemplate(MGControlTemplateContext Context)
         {

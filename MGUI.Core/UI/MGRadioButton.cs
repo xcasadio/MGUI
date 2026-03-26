@@ -146,6 +146,7 @@ namespace MGUI.Core.UI
         public MGRadioButtonGroup Group { get; }
 
         private Size GetButtonComponentPreferredSize() => new(BubbleComponentSize, BubbleComponentSize);
+        private int ReservedContentLeftWidth => Math.Max(0, SpacingWidth);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private int _BubbleComponentSize;
@@ -375,6 +376,31 @@ namespace MGUI.Core.UI
 
             IsChecked = !IsChecked;
             return true;
+        }
+
+        protected override Thickness UpdateContentMeasurement(Size AvailableSize)
+        {
+            if (!HasContent)
+            {
+                return base.UpdateContentMeasurement(AvailableSize);
+            }
+
+            int reservedWidth = ReservedContentLeftWidth;
+            Size contentAvailableSize = new(Math.Max(0, AvailableSize.Width - reservedWidth), AvailableSize.Height);
+            Content.UpdateMeasurement(contentAvailableSize, out _, out Thickness contentSize, out _, out _);
+            return new Thickness(contentSize.Left + reservedWidth, contentSize.Top, contentSize.Right, contentSize.Bottom);
+        }
+
+        protected override void UpdateContentLayout(Rectangle Bounds)
+        {
+            if (!HasContent)
+            {
+                return;
+            }
+
+            int reservedWidth = ReservedContentLeftWidth;
+            Rectangle contentBounds = new(Bounds.Left + reservedWidth, Bounds.Top, Math.Max(0, Bounds.Width - reservedWidth), Bounds.Height);
+            Content.UpdateLayout(contentBounds);
         }
 
     }

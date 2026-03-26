@@ -1161,6 +1161,8 @@ namespace MGUI.Core.UI
             {
                 DrawBackgroundBorderOverlayEnabled = false;
                 IsReadonly = false;
+                HorizontalContentAlignment = HorizontalAlignment.Left;
+                VerticalContentAlignment = VerticalAlignment.Center;
                 this.CharacterLimit = CharacterLimit;
                 AcceptsReturn = true;
                 AcceptsTab = true;
@@ -1361,7 +1363,7 @@ namespace MGUI.Core.UI
             EnsureComponentBinding(() => PlaceholderTextBlockComponent, value => PlaceholderTextBlockComponent = value, PlaceholderTextBlockElement,
                 element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     true, true, false, false, false, false, true,
-                    (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding)));
+                    (AvailableBounds, ComponentSize) => GetTemplatePlaceholderBounds(AvailableBounds, ComponentSize.Size)));
 
             EnsureComponentBinding(() => CharacterCountComponent, value => CharacterCountComponent = value, CharacterCountElement,
                 element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
@@ -1371,17 +1373,7 @@ namespace MGUI.Core.UI
             EnsureComponentBinding(() => TextBlockComponent, value => TextBlockComponent = value, TextBlockElement,
                 element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     false, false, true, true, false, false, true,
-                    (AvailableBounds, ComponentSize) =>
-                    {
-                        var padded = AvailableBounds.GetCompressed(Padding);
-                        if (!_EnableScrolling || _TextScrollOffsetX == 0)
-                        {
-                            return padded;
-                        }
-
-                        return new Rectangle(padded.Left - _TextScrollOffsetX, padded.Top,
-                            padded.Width + _TextScrollOffsetX, padded.Height);
-                    }));
+                    (AvailableBounds, ComponentSize) => GetTemplateTextBlockBounds(AvailableBounds, ComponentSize.Size)));
 
             TextRenderInfo = new(this, TextBlockElement);
             Caret = new(this, TextBlockElement);
@@ -1389,6 +1381,30 @@ namespace MGUI.Core.UI
             SyncCharacterCountVisibility();
             SyncResizeGripVisibility();
             UpdateCharacterCountText();
+        }
+
+        private Rectangle GetTemplatePlaceholderBounds(Rectangle availableBounds, Size componentSize)
+        {
+            Rectangle paddedBounds = availableBounds.GetCompressed(Padding);
+            int height = Math.Min(componentSize.Height, paddedBounds.Height);
+            if (height <= 0)
+            {
+                return paddedBounds;
+            }
+
+            return ApplyAlignment(paddedBounds, HorizontalAlignment.Stretch, VerticalAlignment.Center, new Size(paddedBounds.Width, height));
+        }
+
+        private Rectangle GetTemplateTextBlockBounds(Rectangle availableBounds, Size componentSize)
+        {
+            Rectangle textBounds = GetTemplatePlaceholderBounds(availableBounds, componentSize);
+            if (!_EnableScrolling || _TextScrollOffsetX == 0)
+            {
+                return textBounds;
+            }
+
+            return new Rectangle(textBounds.Left - _TextScrollOffsetX, textBounds.Top,
+                textBounds.Width + _TextScrollOffsetX, textBounds.Height);
         }
 
         private void SyncKeyboardRepeatPolicy()

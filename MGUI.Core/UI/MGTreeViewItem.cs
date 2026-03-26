@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Input.Mouse;
@@ -172,6 +174,26 @@ public class MGTreeViewItem : MGSingleContentHost
     private MGBorder HeaderContainer { get; set; }
     private MGStackPanel ChildrenPanel { get; set; }
     private MGDockPanel HeaderPanel { get; set; }
+
+    private void ApplyExpanderButtonVisuals()
+    {
+        if (ExpanderButton == null)
+        {
+            return;
+        }
+
+        ExpanderButton.BorderThickness = new(0);
+        ExpanderButton.BorderBrush = MGUniformBorderBrush.Transparent;
+        ExpanderButton.BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
+        ExpanderButton.CheckedBackgroundBrush = SolidFillBrushes.Transparent;
+        ExpanderButton.Padding = new(0);
+        ExpanderButton.Margin = new(0, 0, 4, 0);
+        ExpanderButton.MinWidth = 10;
+        ExpanderButton.MinHeight = 10;
+        ExpanderButton.HorizontalContentAlignment = HorizontalAlignment.Center;
+        ExpanderButton.VerticalContentAlignment = VerticalAlignment.Center;
+    }
+
     public MGTreeViewItem(MGWindow Window) : base(Window, MGElementType.TreeViewItem)
     {
         using (BeginInitializing())
@@ -184,6 +206,7 @@ public class MGTreeViewItem : MGSingleContentHost
             IndentationBorder = new MGBorder(Window) { BorderThickness = new(0) };
             HeaderPanel.TryAddChild(IndentationBorder, Dock.Left);
             ExpanderButton = new MGToggleButton(Window, false);
+            ApplyExpanderButtonVisuals();
             ExpanderButton.OnCheckStateChanged += OnExpanderButtonCheckStateChanged;
             HeaderPanel.TryAddChild(ExpanderButton, Dock.Left);
             HeaderContainer = new MGBorder(Window) { BorderThickness = new(0) };
@@ -199,6 +222,12 @@ public class MGTreeViewItem : MGSingleContentHost
             mainPanel.TryAddChild(ChildrenPanel);
             SetContent(mainPanel);
         }
+    }
+
+    protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+    {
+        base.OnThemeChanged(PreviousTheme, CurrentTheme);
+        ApplyExpanderButtonVisuals();
     }
 
     private void Items_CollectionChanged(object sender,

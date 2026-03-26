@@ -536,6 +536,42 @@ namespace MGUI.Core.UI
             NPC(nameof(Lines));
         }
 
+        internal float GetRenderedTextHeight(IReadOnlyList<MGTextLine> lines)
+        {
+            if (lines == null || lines.Count == 0)
+            {
+                return 0;
+            }
+
+            return lines.Sum(x => x.LineTotalHeight) + EffectiveLinePadding * Math.Max(0, lines.Count - 1);
+        }
+
+        internal Rectangle GetPaddedLayoutBounds(Rectangle layoutBounds)
+        {
+            Thickness padding = ResolvedPadding;
+            return new Rectangle(layoutBounds.Left + padding.Left, layoutBounds.Top + padding.Top,
+                Math.Max(0, layoutBounds.Width - padding.Left - padding.Right),
+                Math.Max(0, layoutBounds.Height - padding.Top - padding.Bottom));
+        }
+
+        internal float GetRenderedTextStartY(Rectangle layoutBounds, IReadOnlyList<MGTextLine> lines)
+        {
+            return GetRenderedTextStartY(layoutBounds, GetRenderedTextHeight(lines));
+        }
+
+        internal float GetRenderedTextStartY(Rectangle layoutBounds, float renderedTextHeight)
+        {
+            Rectangle paddedBounds = GetPaddedLayoutBounds(layoutBounds);
+            if (renderedTextHeight <= 0)
+            {
+                return paddedBounds.Top;
+            }
+
+            Rectangle alignedBounds = ApplyAlignment(paddedBounds, HorizontalAlignment.Stretch, VerticalContentAlignment,
+                new Size(paddedBounds.Width, Math.Min(paddedBounds.Height, (int)Math.Ceiling(renderedTextHeight))));
+            return alignedBounds.Top;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _WrapText;
         public bool WrapText
@@ -846,12 +882,12 @@ namespace MGUI.Core.UI
             int RemainingCharacters = TextProgress.HasValue ? (int)(TextProgress.Value * NumCharacters) : NumCharacters;
 
             Thickness padding = ResolvedPadding;
-
-            float CurrentY = LayoutBounds.Top + padding.Top;
+            Rectangle paddedBounds = GetPaddedLayoutBounds(LayoutBounds);
+            float CurrentY = GetRenderedTextStartY(LayoutBounds, Lines);
 
             foreach (MGTextLine Line in Lines)
             {
-                Rectangle LineBounds = new(LayoutBounds.Left + padding.Left, (int)CurrentY, LayoutBounds.Width - PaddingSize.Width, (int)Line.LineTotalHeight);
+                Rectangle LineBounds = new(paddedBounds.Left, (int)CurrentY, paddedBounds.Width, (int)Line.LineTotalHeight);
                 float CurrentX = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.LineWidth, (int)Line.LineTotalHeight)).Left;
                 float TextYPosition = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.LineWidth, (int)Line.LineTextHeight)).Y;
 
@@ -888,6 +924,8 @@ namespace MGUI.Core.UI
                         }
 
                         Vector2 TextSize = MeasureText(ActualText, IsBold, IsItalic);
+                        Vector2 visualDrawPosition = new(CurrentX, TextYPosition);
+                        Vector2 backendDrawPosition = visualDrawPosition + resolved.DrawOrigin * drawScale;
 
                         //  Draw background
                         if (TextRun.Settings.HasBackground)
@@ -914,7 +952,7 @@ namespace MGUI.Core.UI
                             //DT.FillRectangle(Vector2.Zero, Destination, Foreground);
                         }
 
-                        Vector2 Position = new Vector2(CurrentX, TextYPosition).TransformBy(Transform);
+                        Vector2 Position = backendDrawPosition.TransformBy(Transform);
                         if (TextRun.Settings.IsShadowed)
                         {
                             //  Draw text twice, once for the shadow, then again for itself

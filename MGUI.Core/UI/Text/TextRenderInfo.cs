@@ -57,27 +57,30 @@ namespace MGUI.Core.UI.Text
             _Lines.Clear();
 
             Rectangle LayoutBounds = TextBlockElement.LayoutBounds;
-            Thickness Padding = TextBlockElement.Padding;
+            Thickness Padding = TextBlockElement.ResolvedPadding;
             float LinePadding = TextBlockElement.LinePadding;
+            Rectangle PaddedBounds = TextBlockElement.GetPaddedLayoutBounds(LayoutBounds);
 
             // engine is shared; fonts are resolved per-run to respect inline bold/italic formatting
             ITextEngine engine = TextBlockElement.GetTextEngine();
 
-            float CurrentY = LayoutBounds.Top + Padding.Top;
             if (TextBlockElement.Lines?.Any() != true)
             {
-                LineRenderInfo LineInfo = new(this, null, LineIndex, CurrentY, TextBlockElement.MeasureText("|", false, false).Y);
+                float emptyLineHeight = TextBlockElement.MeasureText("|", false, false).Y;
+                float currentY = TextBlockElement.GetRenderedTextStartY(LayoutBounds, emptyLineHeight);
+                LineRenderInfo LineInfo = new(this, null, LineIndex, currentY, emptyLineHeight);
                 _Lines.Add(LineInfo);
 
-                float X = LayoutBounds.Left + Padding.Left;
+                float X = PaddedBounds.Left;
                 LineInfo.AddCharacter(0, 0, X, DefaultCharacterWidth);
             }
             else
             {
+                float CurrentY = TextBlockElement.GetRenderedTextStartY(LayoutBounds, TextBlockElement.Lines);
                 foreach (MGTextLine Line in TextBlockElement.Lines)
                 {
                     int CharacterIndexInWrappedLines = 0;
-                    Rectangle LineBounds = new(LayoutBounds.Left + Padding.Left, (int)CurrentY, LayoutBounds.Width - TextBox.PaddingSize.Width, (int)Line.LineTotalHeight);
+                    Rectangle LineBounds = new(PaddedBounds.Left, (int)CurrentY, PaddedBounds.Width, (int)Line.LineTotalHeight);
                     float CurrentX = MGElement.ApplyAlignment(LineBounds, TextBlockElement.TextAlignment, VerticalAlignment.Center, new Size((int)Line.LineWidth, (int)Line.LineTotalHeight)).Left;
 
                     LineRenderInfo LineInfo = new(this, Line, LineIndex, LineBounds.Top, Line.LineTotalHeight);
