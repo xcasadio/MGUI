@@ -226,10 +226,22 @@ namespace MGUI.Core.UI
             }
         }
 
+        internal static (MonoGame.Extended.Size MinSize, MonoGame.Extended.Size MaxSize) GetEffectiveSizeConstraints(int MinWidth, int MinHeight, int MaxWidth, int MaxHeight)
+        {
+            int ActualMaxWidth = Math.Max(0, MaxWidth);
+            int ActualMaxHeight = Math.Max(0, MaxHeight);
+            int ActualMinWidth = Math.Clamp(MinWidth, 0, ActualMaxWidth);
+            int ActualMinHeight = Math.Clamp(MinHeight, 0, ActualMaxHeight);
+            return (new(ActualMinWidth, ActualMinHeight), new(ActualMaxWidth, ActualMaxHeight));
+        }
+
         public Size ComputeContentSize(int MinWidth = 100, int MinHeight = 100, int MaxWidth = 1920, int MaxHeight = 1080)
         {
-            Size MinSize = new(MinWidth, MinHeight);
-            Size MaxSize = new(Math.Min(GetDesktop().ValidScreenBounds.Width, MaxWidth), Math.Min(GetDesktop().ValidScreenBounds.Height, MaxHeight));
+            var (MinSize, MaxSize) = GetEffectiveSizeConstraints(
+                MinWidth,
+                MinHeight,
+                Math.Min(GetDesktop().ValidScreenBounds.Width, MaxWidth),
+                Math.Min(GetDesktop().ValidScreenBounds.Height, MaxHeight));
             UpdateMeasurement(MaxSize, out _, out Thickness FullSize, out _, out _);
             Size Size = FullSize.Size.Clamp(MinSize, MaxSize);
             return Size;
@@ -243,8 +255,11 @@ namespace MGUI.Core.UI
         /// <returns>The computed size that this <see cref="MGWindow"/> will be changed to.</returns>
         public Size ApplySizeToContent(SizeToContent Value, int MinWidth = 50, int MinHeight = 50, int? MaxWidth = 1920, int? MaxHeight = 1080, bool UpdateLayoutImmediately = true)
         {
-            Size MinSize = new(MinWidth, MinHeight);
-            Size MaxSize = new(Math.Min(GetDesktop().ValidScreenBounds.Width - Left, MaxWidth ?? int.MaxValue), Math.Min(GetDesktop().ValidScreenBounds.Height - Top, MaxHeight ?? int.MaxValue));
+            var (MinSize, MaxSize) = GetEffectiveSizeConstraints(
+                MinWidth,
+                MinHeight,
+                Math.Min(GetDesktop().ValidScreenBounds.Width - Left, MaxWidth ?? int.MaxValue),
+                Math.Min(GetDesktop().ValidScreenBounds.Height - Top, MaxHeight ?? int.MaxValue));
             Size AvailableSize = GetActualAvailableSize(new Size(WindowWidth, WindowHeight), Value).Clamp(MinSize, MaxSize);
             UpdateMeasurement(AvailableSize, out _, out Thickness FullSize, out _, out _);
             Size Size = FullSize.Size.Clamp(MinSize, MaxSize);

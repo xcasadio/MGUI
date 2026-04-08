@@ -4,3 +4,4 @@ using System.Runtime.CompilerServices;
 // DockPanelNode.AutoHideReturnGroup / AutoHideReturnZone / AutoHideReturnSplitRatio
 // which are needed to verify UnpinPanel snapshot behaviour.
 [assembly: InternalsVisibleTo("MGUI.Tests")]
+[assembly: InternalsVisibleTo("CasaEngine.Tests")]

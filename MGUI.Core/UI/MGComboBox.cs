@@ -516,6 +516,30 @@ namespace MGUI.Core.UI
             IsDropdownContentValid = false;
         }
 
+        internal static int GetFittedDropdownLeft(int PreferredLeft, int PreferredRight, int DesiredWidth, Rectangle Viewport, float Scale)
+        {
+            float ActualScale = Scale > 0 ? Scale : 1.0f;
+            int DesiredScreenWidth = Math.Min(Viewport.Width, (int)Math.Ceiling(Math.Max(0, DesiredWidth) * ActualScale));
+            int MaxLeft = Math.Max(Viewport.Left, Viewport.Right - DesiredScreenWidth);
+
+            int ActualLeft = PreferredLeft;
+            if (ActualLeft + DesiredScreenWidth > Viewport.Right)
+            {
+                ActualLeft = PreferredRight - DesiredScreenWidth;
+            }
+
+            return Math.Clamp(ActualLeft, Viewport.Left, MaxLeft);
+        }
+
+        private void PositionDropdown(int DesiredWidth)
+        {
+            Rectangle Viewport = GetDesktop().ValidScreenBounds;
+            Point TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
+            Point TopRight = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomRight());
+            Dropdown.Left = GetFittedDropdownLeft(TopLeft.X, TopRight.X, DesiredWidth, Viewport, Dropdown.Scale);
+            Dropdown.Top = TopLeft.Y;
+        }
+
         private void UpdateDropdownContent()
         {
             IsDropdownContentValid = true;
@@ -536,12 +560,25 @@ namespace MGUI.Core.UI
                 }
             }
 
-            int AvailableHeightScreenSpace = GetDesktop().ValidScreenBounds.Bottom - Dropdown.Top;
-            int ActualAvailableHeight = (int)(AvailableHeightScreenSpace / Dropdown.Scale);
-            int ActualMaxHeight = Math.Clamp(MaxDropdownHeight, 0, ActualAvailableHeight);
-            int ActualMinHeight = Math.Clamp(MinDropdownHeight, 0, ActualMaxHeight);
-            int ActualMinWidth = Math.Clamp(Math.Max(ActualWidth, MinDropdownWidth), 0, MaxDropdownWidth);
-            Dropdown.ApplySizeToContent(SizeToContent.WidthAndHeight, ActualMinWidth, ActualMinHeight, MaxDropdownWidth, ActualMaxHeight);
+            Rectangle Viewport = GetDesktop().ValidScreenBounds;
+            Point TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
+            float ActualScale = Dropdown.Scale > 0 ? Dropdown.Scale : 1.0f;
+            int ActualAvailableWidth = Math.Max(0, (int)(Viewport.Width / ActualScale));
+            int AvailableHeightScreenSpace = Viewport.Bottom - TopLeft.Y;
+            int ActualAvailableHeight = Math.Max(0, (int)(AvailableHeightScreenSpace / ActualScale));
+            var (MinSize, MaxSize) = MGWindow.GetEffectiveSizeConstraints(
+                Math.Max(ActualWidth, MinDropdownWidth),
+                MinDropdownHeight,
+                Math.Min(MaxDropdownWidth, ActualAvailableWidth),
+                Math.Min(MaxDropdownHeight, ActualAvailableHeight));
+
+            Size DesiredSize = Dropdown.ComputeContentSize(MinSize.Width, MinSize.Height, MaxSize.Width, MaxSize.Height);
+            PositionDropdown(DesiredSize.Width);
+
+            Size ActualSize = Dropdown.ApplySizeToContent(SizeToContent.WidthAndHeight, MinSize.Width, MinSize.Height, MaxSize.Width, MaxSize.Height, false);
+            PositionDropdown(ActualSize.Width);
+            Dropdown.ValidateWindowSizeAndPosition();
+            Dropdown.UpdateLayout(new Rectangle(Dropdown.Left, Dropdown.Top, Dropdown.WindowWidth, Dropdown.WindowHeight));
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -867,9 +904,7 @@ namespace MGUI.Core.UI
                 //  Should we auto-hide (or close) the dropdown?
                 //Dropdown.Visibility = RecentDrawWasClipped ? Visibility.Collapsed : Visibility.Visible;
 
-                Point TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
-                Dropdown.Left = TopLeft.X;
-                Dropdown.Top = TopLeft.Y;
+                PositionDropdown(Dropdown.WindowWidth);
                 Dropdown.ValidateWindowSizeAndPosition();
             }
         }
