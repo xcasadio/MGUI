@@ -1455,7 +1455,7 @@ namespace MGUI.Core.UI
                 DefaultControlTemplateName = MGControlTemplateCatalog.ListBoxTemplateName;
                 SetIsTitleVisible(false, true);
 
-                GetDesktop().EndUpdate += (sender, e) =>
+                GetDesktop().Runtime.EndUpdate += (sender, e) =>
                 {
                     //  Reset PressedItem to null at the end of an update tick, rather than immediately when the mouse button is released,
                     //  because other input handlers with lower priority still need a chance to read the data before it is modified.

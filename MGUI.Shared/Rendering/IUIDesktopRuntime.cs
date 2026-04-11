@@ -15,6 +15,7 @@ namespace MGUI.Shared.Rendering
         public IUIAssetProvider AssetProvider { get; }
         public ITextMeasurementEngine TextEngine { get; set; }
         public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
+        public event EventHandler<EventArgs> EndUpdate;
         public UpdateBaseArgs UpdateArgs { get; }
 
         public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin);

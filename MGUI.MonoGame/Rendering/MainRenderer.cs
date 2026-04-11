@@ -147,6 +147,7 @@ namespace MGUI.Shared.Rendering
 
         /// <summary>Invoked when <see cref="TextEngine"/> is set to a new value</summary>
         public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
+        public event EventHandler<EventArgs> EndUpdate;
 
         public InputTracker Input { get; }
         public UpdateBaseArgs UpdateArgs { get; private set; }
@@ -246,6 +247,7 @@ namespace MGUI.Shared.Rendering
             {
                 Input.Mouse.UpdateHandlers();
                 Input.Keyboard.UpdateHandlers();
+                EndUpdate?.Invoke(this, EventArgs.Empty);
             };
         }
 

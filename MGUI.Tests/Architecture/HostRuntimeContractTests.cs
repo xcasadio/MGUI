@@ -15,6 +15,8 @@ namespace MGUI.Tests.Architecture;
 
 public class HostRuntimeContractTests
 {
+    private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+
     [Fact]
     public void MainRenderer_Constructor_RequiresExplicitRenderHost()
     {
@@ -69,7 +71,7 @@ public class HostRuntimeContractTests
     [Fact]
     public void MGDesktop_Source_UsesBoundedSetOfDesktopRuntimeMembers()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGDesktop.cs"));
         HashSet<string> members = Regex.Matches(source, @"Runtime\.([A-Za-z_][A-Za-z0-9_]*)")
             .Select(match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
@@ -93,8 +95,8 @@ public class HostRuntimeContractTests
     [Fact]
     public void Repo_ShowsBothHistoricAndDelegateHostBootstrapPaths()
     {
-        string sampleSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Samples\Game1.cs");
-        string miniGameSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.MiniGame\MiniGame.cs");
+        string sampleSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Samples", "Game1.cs"));
+        string miniGameSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.MiniGame", "MiniGame.cs"));
 
         Assert.Contains("using MGUI.Backend.MonoGame;", sampleSource);
         Assert.Contains("MonoGameBackendBootstrap.Create(", sampleSource);
@@ -139,8 +141,9 @@ public class HostRuntimeContractTests
             "UpdateArgs"
         }, propertyNames);
         Assert.Equal(new[] { "CreateDrawTransaction", "RegisterView" }, methodNames);
-        Assert.Equal(new[] { "TextEngineChanged" }, eventNames);
+        Assert.Equal(new[] { "EndUpdate", "TextEngineChanged" }, eventNames);
         Assert.Equal(typeof(ITextMeasurementEngine), contractType.GetProperty(nameof(IUIDesktopRuntime.TextEngine))!.PropertyType);
+        Assert.Equal(typeof(EventHandler<EventArgs>), contractType.GetEvent(nameof(IUIDesktopRuntime.EndUpdate))!.EventHandlerType);
         Assert.Equal(typeof(EventHandler<MGUI.Shared.Helpers.EventArgs<ITextMeasurementEngine>>), contractType.GetEvent(nameof(IUIDesktopRuntime.TextEngineChanged))!.EventHandlerType);
         Assert.DoesNotContain(nameof(MainRenderer.Host), propertyNames);
         Assert.DoesNotContain(nameof(MainRenderer.GraphicsDevice), propertyNames);
