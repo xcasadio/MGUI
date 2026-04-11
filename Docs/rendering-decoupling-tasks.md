@@ -247,7 +247,7 @@ Validation:
 - `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements nullability existants hors perimetre ;
 - pas de filtre `dotnet test` ajoute a cette tache, car elle ne modifie encore aucun contrat runtime ni aucune suite de tests.
 
-### ⚪ 2. Ajouter une couverture de tests d'architecture pour la frontiere de rendu
+### ✅ 2. Ajouter une couverture de tests d'architecture pour la frontiere de rendu
 
 But:
 verrouiller la cible avant refactor.
@@ -276,6 +276,20 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 2 add rendering boundary architecture coverage`
+
+Resultat:
+
+- une suite `RenderingBoundaryArchitectureTests` borne maintenant les references directes de `MGUI.Core` a `MainRenderer`, `DrawTransaction`, `Texture2D` et `RenderTarget2D` par fichiers explicitement autorises ;
+- la suite ajoute aussi un garde-fou pour la future extraction `MGUI.Rendering.Abstractions`: si le projet apparait, il ne devra referencer ni `MonoGame` ni `Microsoft.Xna.Framework` ;
+- un test dedie verrouille l'absence de references code directes a `SpriteBatch` et `ContentManager` dans `MGUI.Core`, ce qui evite de laisser ces fuites reapparaitre pendant la migration ;
+- ces tests ne normalisent pas la dette existante ; ils la bornent pour permettre aux taches 3 a 9 de la reduire de maniere incrementale et testee.
+
+Validation:
+
+- `dotnet build .\MGUI.Shared\MGUI.Shared.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` : succes, avec avertissements XML existants hors perimetre ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements existants hors perimetre ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 6 tests passes.
 
 ### ⚪ 3. Introduire un projet de contrats backend-neutral
 
