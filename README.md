@@ -52,6 +52,13 @@ Style/theme refactor notes: see [Docs/style-theme-migration-guide.md](Docs/style
 Theme-driven control template mappings: see [Docs/lookless-theme-template-guide.md](Docs/lookless-theme-template-guide.md).
 Rendering backend overview: see [Docs/rendering-backend-architecture.md](Docs/rendering-backend-architecture.md).
 MonoGame host wiring: see [Docs/monogame-host-integration-guide.md](Docs/monogame-host-integration-guide.md).
+Custom engine backend wiring: see [Docs/custom-render-backend-integration.md](Docs/custom-render-backend-integration.md).
+
+Rendering split status:
+
+- `MGDesktop` is now wired from `IUIDesktopRuntime`, not from an implicit concrete renderer contract.
+- `MGUI.MonoGame` is the reference backend for production MonoGame apps.
+- the repo also includes a proof backend in `MGUI.Tests/Integration/EngineOwnedRenderingProofTests.cs` that demonstrates engine-owned shapes, text, and offscreen buffers through the shared runtime and draw contracts.
   
 # Examples
   

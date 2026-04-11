@@ -30,7 +30,7 @@ Responsabilites:
 - contrats et helpers partages entre le coeur UI et le backend ;
 - runtime desktop-facing `IUIDesktopRuntime` ;
 - surfaces de draw `IUIDrawContext`, `IUIRenderContext` et `IUIDrawTransaction` ;
-- contrats texte `ITextMeasurementEngine`, `IMonoGameTextRenderer` et `ITextEngine` ;
+- contrats texte `ITextMeasurementEngine`, `ITextDrawEngine` et `ITextEngine` ;
 - helpers transverses, XAML, theming partage et logique commune.
 
 `MGUI.Shared` n'est plus le proprietaire de compilation des implementations MonoGame concretes.
@@ -73,23 +73,49 @@ Responsabilites:
 4. Elle construit `MGDesktop` depuis `IUIDesktopRuntime`, pas depuis un constructeur concret par defaut.
 5. Elle charge ses ressources et utilise ensuite `MGDesktop.Update()` / `MGDesktop.Draw()` comme avant.
 
+## Flux d'integration d'un backend custom
+
+Un moteur proprietaire ne doit pas partir de `MainRenderer` ni d'un host MonoGame puis essayer de les contourner.
+
+Le flux recommande est le suivant:
+
+1. implementer un runtime applicatif qui satisfait `IUIDesktopRuntime` ;
+2. exposer une surface logique via `IUISurface`, avec `GetRenderTarget() == null` pour le backbuffer ou un `IUIRenderTarget` opaque pour une surface offscreen ;
+3. implementer un `IUIDrawTransaction` / `IUIRenderContext` capable de dessiner les shapes, les images et de changer de buffer via `SetRenderTargetTemporary(...)` ;
+4. implementer un `ITextEngine` pour la resolution, la mesure et le draw du texte ;
+5. construire `MGDesktop` directement avec ce runtime puis laisser `UIView` router le draw vers la surface choisie par le moteur ;
+6. reserver tout type concret MonoGame au seul backend `MGUI.MonoGame`.
+
+Le guide pas-a-pas est documente dans `Docs/custom-render-backend-integration.md`.
+
 ## Seams utiles pour un futur backend alternatif
 
 Les seams stabilisees par ce chantier sont les suivantes:
 
 - `IUIDesktopRuntime` pour le runtime consomme par `MGDesktop` ;
 - `IUIDrawContext` et `IUIDrawTransaction` pour les capacites de draw exposees au coeur UI ;
+- `IUIRenderContext` pour les changements temporaires de settings, clips, transforms et render targets ;
+- `IUISurface` et `IUIRenderTarget` pour la possession des buffers et surfaces offscreen ;
 - `IUIImageResource` pour les images UI ;
-- `ITextMeasurementEngine` pour la mesure/layout du texte ;
-- `IRenderHost`, `IRawInputSource` et `IUISurface` pour l'integration avec la boucle applicative et la surface logique.
+- `ITextEngine` pour la mesure/layout et le draw du texte ;
+- `IRenderHost` et `IRawInputSource` uniquement pour le backend MonoGame, pas comme prerequis d'un backend custom.
 
 Un backend non-MonoGame devrait se brancher derriere ces contrats, pas reouvrir `MGUI.Core`.
+
+## Preuve dans le repo
+
+Le repo contient maintenant une preuve executable qu'un moteur hote peut posseder le rendu sans passer par le runtime MonoGame historique:
+
+- `MGUI.Tests/Integration/EngineOwnedRenderingProofTests.cs` ajoute un runtime de preuve qui implemente `IUIDesktopRuntime`, `IUIDrawTransaction`, `ITextEngine`, `IUISurface`, `IUIRenderTarget` et `IUIAssetProvider` ;
+- le test direct valide qu'un backend hote peut dessiner des shapes, du texte et changer de buffer offscreen en restant entierement sur les contrats partages ;
+- le test d'integration `MGDesktop` / `UIView` valide qu'une vraie `MGWindow` avec `MGBorder` et `MGTextBlock` passe bien par ce backend de preuve pour les shapes, le texte et la surface offscreen.
+
+Cette preuve ne remplace pas un deuxieme backend de production, mais elle retire l'ambiguite architecturale: la separation est maintenant testee, pas seulement annoncee.
 
 ## Dette residuelle acceptee
 
 Le chantier laisse volontairement quelques ponts de compatibilite bornes:
 
-- `MGDesktop` garde `Renderer` et le constructeur `MGDesktop(MainRenderer)` pour les acces legacy ;
 - `MGResources` et `MGTextureData` gardent des overloads `DrawTransaction` pour compatibilite descendante ;
 - `MGImage`, `MGTextureData` et `MGTexturedBorderBrush` gardent des surfaces `Texture2D` limitees a des constructeurs ou proprietes legacy ;
 - les types de valeur MonoGame (`Color`, `Rectangle`, `Point`, `Vector2`, `Matrix`) restent toleres dans le coeur UI ;
@@ -101,7 +127,7 @@ Ces exceptions sont epinglees par les tests d'architecture et ne doivent pas s'e
 
 Avant:
 
-- le wiring typique faisait directement `new MainRenderer(...)` puis `new MGDesktop(renderer)` ;
+- le wiring typique faisait directement `new MainRenderer(...)` puis `new MGDesktop((IUIDesktopRuntime)renderer)` ou dependait implicitement du backend via `MGUI.Core` ;
 - les projets de demo pouvaient s'appuyer sur la reference transitive du backend via `MGUI.Core`.
 
 Maintenant:
@@ -110,10 +136,12 @@ Maintenant:
 - utiliser le namespace `MGUI.Backend.MonoGame` pour le bootstrap ;
 - preferer `MonoGameBackendBootstrap.Create(...)` pour creer le couple `Host + MainRenderer` ;
 - construire `MGDesktop` via `new MGDesktop((IUIDesktopRuntime)renderer)` dans le code consommateur ;
-- reserver `Desktop.Renderer` aux usages legacy qui ont besoin du renderer concret.
+- remplacer les usages nominaux de `DrawTransaction` par `IUIDrawTransaction` / `IUIRenderContext` / `IUIDrawContext` ;
+- remplacer les surfaces et buffers MonoGame du chemin nominal par `IUISurface`, `IUIRenderTarget` et `IUIImageResource` ;
+- traiter `MainRenderer` comme un backend de reference, pas comme le contrat implicite de la pile UI.
 
 ## Hors perimetre
 
-Ce document ne promet pas un backend multi-moteur pret a l'emploi.
+Ce document ne promet pas un backend multi-moteur de production pret a l'emploi.
 
-Le chantier livre une frontiere exploitable pour un futur backend alternatif, mais pas un second backend concret. Toute integration Unity, Godot, Stride ou autre resterait un chantier distinct.
+Le chantier livre une frontiere exploitable pour un backend alternatif et une preuve runnable dans les tests, mais pas encore une integration Unity, Godot, Stride ou autre packagée comme backend officiel. Toute integration de production dans un autre moteur resterait un chantier distinct.

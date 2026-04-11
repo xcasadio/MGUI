@@ -11,6 +11,8 @@ Le point important est le suivant:
 - choisir ensuite la facon d'heberger ce backend via `GameRenderHost<TObservableGame>` ou `DelegateRenderHost` ;
 - construire enfin `MGDesktop` depuis `IUIDesktopRuntime`.
 
+MonoGame est maintenant le backend de reference du repo, pas le contrat implicite de toute la pile UI. Pour brancher un moteur proprietaire ou un backend non-MonoGame, voir aussi `Docs/custom-render-backend-integration.md`.
+
 ## Vue d'ensemble
 
 MGUI se branche sur MonoGame a travers 4 seams complementaires:
@@ -21,6 +23,8 @@ MGUI se branche sur MonoGame a travers 4 seams complementaires:
 - `IUIDesktopRuntime` pour le sous-ensemble de runtime consomme par `MGDesktop`.
 
 Dans le repo, `MainRenderer` implemente `IUIDesktopRuntime`, et `MGUI.Backend.MonoGame.MonoGameBackendBootstrap` est le point d'entree recommande pour le construire.
+
+Si votre objectif est un backend custom, `IRenderHost` et `DelegateRenderHost` ne sont pas des prerequis generiques: ce sont des adapters MonoGame specifiques.
 
 ## Prerequis cote projet
 
@@ -149,25 +153,27 @@ L'ancien chemin reste supporte pour compatibilite descendante, mais il n'est plu
 
 ## Ce qui reste volontairement concret
 
-Ce chantier n'a pas tente de generaliser les couches suivantes:
+Ce guide reste volontairement centre sur les types MonoGame suivants:
 
 - `MainRenderer` ;
 - `DrawTransaction` ;
-- `IUIRenderContext` ;
+- `GameRenderHost<TObservableGame>` ;
+- `DelegateRenderHost` ;
 - les primitives MonoGame comme `GraphicsDevice`, `SpriteBatch`, `Texture2D` ou `PrimitiveBatch`.
 
-`MGDesktop` depend maintenant d'un contrat `IUIDesktopRuntime`, mais la voie legacy `Renderer` reste exposee pour compatibilite. Certaines integrations plus anciennes peuvent donc encore acceder au `MainRenderer` concret quand elles en ont besoin.
+En revanche, les contrats backend-neutral consommes par `MGDesktop` sont maintenant stabilises et doivent etre preferes dans le code applicatif nominal:
+
+- `IUIDesktopRuntime` ;
+- `IUIDrawTransaction` / `IUIRenderContext` / `IUIDrawContext` ;
+- `IUISurface`, `IUIRenderTarget` et `IUIImageResource` ;
+- `ITextEngine`.
+
+Si vous avez besoin du renderer concret MonoGame, traitez-le comme un backend de reference explicitement choisi par l'application, pas comme le contrat implicite du framework.
 
 Pour la vue d'ensemble complete du split `Core / Contracts / MonoGame backend` et des dettes residuelles assumees, voir aussi `Docs/rendering-backend-architecture.md`.
 
 ## Hors perimetre
 
-Ce guide ne decrit pas un backend de rendu generique par moteur.
+Ce guide reste specifique au backend `MGUI.MonoGame`.
 
-Si un support Unity, Godot, Stride ou autre devait etre ajoute un jour, il faudrait ouvrir un chantier plus large que la simple flexibilite de host MonoGame:
-
-- abstraction du runtime de draw ;
-- separation des types MonoGame du core UI ;
-- reconsideration de `DrawTransaction`, `IUIRenderContext` et des primitives de rendu.
-
-Ce n'est pas l'objectif du refactor documente ici.
+Le chantier a maintenant une preuve runnable qu'un backend non-MonoGame est possible dans `MGUI.Tests/Integration/EngineOwnedRenderingProofTests.cs`, mais l'integration d'un moteur de production autre que MonoGame est documentee separerement dans `Docs/custom-render-backend-integration.md`.
