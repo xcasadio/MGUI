@@ -2,12 +2,12 @@ using System;
 
 namespace MGUI.Shared.Rendering.Clipping
 {
-    internal readonly record struct ClipBackendCapabilities(bool SupportsScissor, bool SupportsStencil, bool SupportsMask)
+    public readonly record struct ClipBackendCapabilities(bool SupportsScissor, bool SupportsStencil, bool SupportsMask)
     {
         public static readonly ClipBackendCapabilities Default = new(true, true, true);
     }
 
-    internal static class ClipStrategyResolver
+    public static class ClipStrategyResolver
     {
         public static ClipResolveResult Resolve(ClipDefinition definition, ClipBackendCapabilities capabilities)
         {

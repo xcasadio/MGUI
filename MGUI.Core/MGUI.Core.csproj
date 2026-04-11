@@ -29,6 +29,7 @@
     <PackageReference Include="Prism.Core" Version="8.1.97" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MGUI.MonoGame\MGUI.MonoGame.csproj" />
     <ProjectReference Include="..\MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj" />
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
   </ItemGroup>

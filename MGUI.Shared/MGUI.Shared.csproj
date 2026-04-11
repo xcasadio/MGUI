@@ -19,4 +19,16 @@
     </PackageReference>
     <PackageReference Include="Prism.Core" Version="8.1.97" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Assets\MonoGameImageResource.cs" />
+    <Compile Remove="Input\MonoGameRawInputSource.cs" />
+    <Compile Remove="Rendering\BackBufferSurface.cs" />
+    <Compile Remove="Rendering\DelegateRenderHost.cs" />
+    <Compile Remove="Rendering\DrawTransaction.cs" />
+    <Compile Remove="Rendering\MainRenderer.cs" />
+    <Compile Remove="Rendering\RenderTargetPool.cs" />
+    <Compile Remove="Rendering\View.cs" />
+    <Compile Remove="Rendering\Clipping\ClipManager.cs" />
+    <Compile Remove="Text\Engines\SpriteFontTextEngine.cs" />
+  </ItemGroup>
 </Project>

@@ -115,7 +115,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
         {
-            DrawTransaction DT = DA.DT;
+            IUIRenderContext DT = DA.DT;
 
             Bounds = Bounds.GetTranslated(DA.Offset);
 

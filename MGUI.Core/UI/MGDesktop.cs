@@ -1477,7 +1477,7 @@ namespace MGUI.Core.UI
             return null;
         }
 
-        public void Draw(DrawTransaction DT, float Opacity = 1.0f)
+        public void Draw(IUIDrawTransaction DT, float Opacity = 1.0f)
         {
             DrawBaseArgs BA = new(Runtime.UpdateArgs.TotalElapsed, DT, Opacity);
             ElementDrawArgs DA = new(BA, new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
@@ -1515,7 +1515,7 @@ namespace MGUI.Core.UI
         /// <param name="InitialDrawSettings">If null, uses <see cref="DrawSettings.Default"/></param>
         public void Draw(float Opacity = 1.0f, DrawSettings InitialDrawSettings = null)
         {
-            using (DrawTransaction DT = Runtime.CreateDrawTransaction(InitialDrawSettings ?? DrawSettings.Default, false))
+            using (IUIDrawTransaction DT = Runtime.CreateDrawTransaction(InitialDrawSettings ?? DrawSettings.Default, false))
             {
                 Draw(DT, Opacity);
             }

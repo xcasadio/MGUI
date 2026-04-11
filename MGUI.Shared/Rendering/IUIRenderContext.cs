@@ -8,9 +8,10 @@ namespace MGUI.Shared.Rendering
     /// <summary>Minimal rendering contract exposed to high-level UI layers.</summary>
     public interface IUIRenderContext : IUIDrawContext
     {
-        public MainRenderer Renderer { get; }
+        public IUIDesktopRuntime Renderer { get; }
         public GraphicsDevice GD { get; }
 
+        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings, DrawContext? PreferredContext = null);
         public IDisposable SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor);
         public IDisposable SetTransformTemporary(Matrix Transform);
         public ClipResolveResult ResolveClip(ClipDefinition Definition);

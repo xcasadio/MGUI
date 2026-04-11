@@ -287,7 +287,8 @@ namespace MGUI.Samples.Dialogs
             //  Apply custom drawing logic to each Cell in the ToolBar
             UIToolBar.OnRenderCell += (sender, e) =>
             {
-                DrawTransaction DT = e.DrawArgs.DT;
+                IUIDrawContext DT = e.DrawArgs.DT;
+                DrawTransaction TextDT = (DrawTransaction)e.DrawArgs.DT;
 
                 Rectangle ActualCellBounds = e.CellBounds.GetTranslated(e.DrawArgs.Offset);
 
@@ -311,10 +312,10 @@ namespace MGUI.Samples.Dialogs
                         const int FontSize = 11;
 
                         string Text = Slot.Item.Quantity.ToString();
-                        Vector2 TextSize = DT.MeasureText(FontFamily, FontStyle, Text, FontSize);
+                        Vector2 TextSize = TextDT.MeasureText(FontFamily, FontStyle, Text, FontSize);
                         Vector2 Position = ActualCellBounds.GetCompressed(SlotBorderSize).BottomRight().ToVector2().Translate(-TextSize.X - 1, -TextSize.Y + 1);
 
-                        DT.DrawShadowedText(FontFamily, FontStyle, Text, Position, Color.White, new Color(40,40,40) * e.DrawArgs.Opacity, FontSize);
+                        TextDT.DrawShadowedText(FontFamily, FontStyle, Text, Position, Color.White, new Color(40,40,40) * e.DrawArgs.Opacity, FontSize);
                     }
                 }
 

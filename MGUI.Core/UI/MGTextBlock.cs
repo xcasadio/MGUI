@@ -869,7 +869,7 @@ namespace MGUI.Core.UI
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
             MGDesktop Desktop = GetDesktop();
-            DrawTransaction DT = DA.DT;
+            IUIDrawContext DT = DA.DT;
             float Opacity = DA.Opacity;
             Color DefaultForeground = ActualForeground;
 

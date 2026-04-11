@@ -7,7 +7,7 @@ using MGUI.Shared.Text.Engines;
 
 namespace MGUI.Shared.Rendering
 {
-    /// <summary>Desktop-facing subset of <see cref="MainRenderer"/> used by high-level UI orchestration.</summary>
+    /// <summary>Desktop-facing runtime contract used by high-level UI orchestration.</summary>
     public interface IUIDesktopRuntime
     {
         public InputTracker Input { get; }
@@ -18,7 +18,7 @@ namespace MGUI.Shared.Rendering
         public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
         public UpdateBaseArgs UpdateArgs { get; }
 
-        public DrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites);
+        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites);
         public void RegisterView(IUIView View);
     }
 }

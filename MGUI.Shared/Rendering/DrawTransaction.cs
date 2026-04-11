@@ -22,16 +22,16 @@ namespace MGUI.Shared.Rendering
     //Anytime the effect is being changed, must call SetDrawSettings/SetDrawSettingsTemporary just like SetTransform/SetTransformTemporary do
     // --> SetEffect/SetEffectTemporary are now implemented via DrawSettings.Effect; see SetEffect() and SetEffectTemporary() below.
 
-    public enum DrawContext
-    {
-        None,
-        Sprites,
-        Primitives
-    }
-
-    public class DrawTransaction : IUIRenderContext, IDisposable
+    public class DrawTransaction : IUIDrawTransaction
     {
         public MainRenderer Renderer { get; }
+        IUIDesktopRuntime IUIRenderContext.Renderer => Renderer;
+        IDisposable IUIRenderContext.SetDrawSettingsTemporary(DrawSettings Settings, DrawContext? PreferredContext)
+            => SetDrawSettingsTemporary(Settings);
+        void IUIDrawContext.FillPoint(Vector2 Center, Color Color, float Width, DrawContext? PreferredContext)
+            => FillPoint(Center, Color, Width, PointShape.Circle, PreferredContext);
+        void IUIDrawContext.StrokeAndFillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color StrokeColor, Color FillColor, float StrokeThickness, DrawContext? PreferredContext)
+            => StrokeAndFillPolygon(Origin, Vertices as IReadOnlyList<Vector2> ?? Vertices.ToList(), StrokeColor, FillColor, StrokeThickness);
         [Obsolete("Access fonts through MainRenderer.TextEngine / ITextMeasurementEngine instead.")]
         public FontManager FontManager => Renderer.FontManager;
         /// <summary>Delegates to <see cref="MainRenderer.TextEngine"/>.</summary>

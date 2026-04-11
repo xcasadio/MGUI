@@ -19,7 +19,7 @@ namespace MGUI.Core.UI
 
         public void Update() => Desktop.Update();
 
-        public void Draw(DrawTransaction DT, float opacity = 1.0f)
+        public void Draw(IUIDrawTransaction DT, float opacity = 1.0f)
         {
             if (DT == null)
             {

@@ -23,17 +23,10 @@ public class RenderingBoundaryArchitectureTests
     {
         AssertTokenFiles(CoreRoot, "DrawTransaction", new[]
         {
-            "UI/Brushes/Border Brushes/MGDockedBorderBrush.cs",
-            "UI/Brushes/Border Brushes/MGTexturedBorderBrush.cs",
-            "UI/Brushes/Fill Brushes/MGNineSliceFillBrush.cs",
             "UI/MGCheckBox.cs",
-            "UI/MGDesktop.cs",
-            "UI/MGElement.cs",
             "UI/MGRatingControl.cs",
             "UI/MGResources.cs",
-            "UI/MGTextBlock.cs",
-            "UI/MGTextureData.cs",
-            "UI/UIView.cs"
+            "UI/MGTextureData.cs"
         });
     }
 

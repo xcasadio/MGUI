@@ -38,7 +38,7 @@ namespace MGUI.Core.UI
     {
         public TimeSpan TS => BA.TS;
         public IUIRenderContext Context => BA.Context;
-        public DrawTransaction DT => BA.DT;
+        public IUIDrawTransaction DT => BA.DT;
         public float Opacity => BA.Opacity;
         public bool IsEnabled => !VisualState.IsDisabled;
         public bool IsSelected => VisualState.IsSelected;

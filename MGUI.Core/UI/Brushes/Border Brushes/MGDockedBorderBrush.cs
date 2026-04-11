@@ -53,7 +53,7 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 return;
             }
 
-            DrawTransaction DT = DA.DT;
+            IUIDrawContext DT = DA.DT;
             float Opacity = DA.Opacity;
 
             if (IsSolidColorsOnly)

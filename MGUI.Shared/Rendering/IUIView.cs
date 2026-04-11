@@ -5,6 +5,6 @@ namespace MGUI.Shared.Rendering
     {
         public IUISurface Surface { get; }
         public void Update();
-        public void Draw(DrawTransaction DT, float opacity = 1.0f);
+        public void Draw(IUIDrawTransaction DT, float opacity = 1.0f);
     }
 }

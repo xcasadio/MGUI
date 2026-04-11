@@ -149,7 +149,7 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
         {
-            DrawTransaction DT = DA.DT;
+            IUIDrawContext DT = DA.DT;
             float Opacity = DA.Opacity * this.Opacity;
 
             if (EdgeTexture.Texture?.IsDisposed == false)

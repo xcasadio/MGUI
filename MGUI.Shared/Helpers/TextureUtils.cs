@@ -39,7 +39,7 @@ namespace MGUI.Shared.Helpers
     }
 
     /// <summary>This class is intended to help create custom textures on the fly</summary>
-    internal static class TextureUtils
+    public static class TextureUtils
     {
         /// <summary>Retrieves the Texture data as a 2D Color array. Topleft is Color[0, 0]. Move right by 1 is Color[1, 0], Down by 1 is Color[0, 1].</summary>
         public static Color[,] GetDataAs2D(this Texture2D @this)

@@ -528,7 +528,7 @@ Validation:
 
 ## Phase 3 - Isoler physiquement le backend MonoGame
 
-### ⚪ 8. Isoler l'implementation MonoGame dans un backend explicite
+### ✅ 8. Isoler l'implementation MonoGame dans un backend explicite
 
 But:
 faire correspondre la structure physique des projets a la frontiere architecturale maintenant stabilisee.
@@ -555,6 +555,34 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `backend: complete task 8 isolate monogame renderer implementation`
+
+Resultat:
+
+- un projet backend explicite `MGUI.MonoGame` a ete ajoute a la solution et devient le nouveau proprietaire de compilation des implementations MonoGame concretes suivantes: `MainRenderer`, `DrawTransaction`, `GameRenderHost`, `DelegateRenderHost`, `BackBufferSurface`, `RenderTargetPool`, `ClipManager`, `MonoGameRawInputSource`, `MonoGameImageResource` et `SpriteFontTextEngine` ;
+- `MGUI.Shared.csproj` retire maintenant ces fichiers de son compile set, ce qui rend le split physique verifiable au niveau du projet sans casser les namespaces publics existants ;
+- `RendererAssetProvider` a ete extrait du fichier de contrat `IUIAssetProvider` et rehausse dans `MGUI.MonoGame`, ce qui separe enfin le contrat d'assets du chargeur MonoGame concret ;
+- pour permettre ce split sans casser le coeur UI, un contrat partage `IUIDrawTransaction` a ete introduit, `IUIDesktopRuntime.CreateDrawTransaction(...)` et `IUIView.Draw(...)` ont ete retapes sur ce contrat, et `IUIRenderContext.Renderer` cible maintenant `IUIDesktopRuntime` au lieu de `MainRenderer` ;
+- les render-loop args (`DrawBaseArgs`, `UpdateBaseArgs` et events associes) ont ete separes du type `View` pour rester dans `MGUI.Shared`, tandis que la classe `View` elle-meme est maintenant compilee par le backend MonoGame ;
+- `MGUI.Core` reference temporairement `MGUI.MonoGame` car quelques surfaces coeur exposent encore `DrawTransaction` ou d'autres types backend en public ; cette dette residuelle est volontairement laissee a la tache 9.
+
+Validation:
+
+- `dotnet restore .\MGUI.sln` : succes, necessaire apres l'ajout du projet backend ;
+- `dotnet restore .\MGUI.FontStashSharp\MGUI.FontStashSharp.csproj` : succes, pour rafraichir les assets du graphe apres ajustement des references ;
+- `dotnet build .\MGUI.Shared\MGUI.Shared.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.MonoGame\MGUI.MonoGame.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` : succes, avec avertissements XML existants hors perimetre ;
+- `dotnet build .\MGUI.FontStashSharp\MGUI.FontStashSharp.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements existants hors perimetre ;
+- `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore` : succes, avec avertissement `net6.0-windows` existant hors perimetre ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter BackendProjectSplitTests --logger "console;verbosity=minimal"` : succes, 4 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter HostRuntimeContractTests --logger "console;verbosity=minimal"` : succes, 8 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RawInputSourceTests --logger "console;verbosity=minimal"` : succes, 3 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter SurfaceAbstractionTests --logger "console;verbosity=minimal"` : succes, 3 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter UIViewTests --logger "console;verbosity=minimal"` : succes, 5 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderContextTests --logger "console;verbosity=minimal"` : succes, 8 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 7 tests passes.
 
 ### ⚪ 9. Migrer les fuites de rendu restantes dans le coeur UI
 
