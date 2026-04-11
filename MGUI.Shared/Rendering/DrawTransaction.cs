@@ -153,6 +153,10 @@ namespace MGUI.Shared.Rendering
         public void DrawTextureTo(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask)
             => DrawTextureTo(Texture.GetTexture2D(), Source, Destination, ColorMask);
 
+        public void DrawTextureTo(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask,
+            Vector2 Origin, float Rotation = 0f, float Depth = 0f, SpriteEffects Effects = SpriteEffects.None)
+            => DrawTextureTo(Texture.GetTexture2D(), Source, Destination, ColorMask, Origin, Rotation, Depth, Effects);
+
         /// <summary>Draw a texture to a given <paramref name="Destination"/> <see cref="Rectangle"/></summary>
         public void DrawTextureTo(Texture2D Texture, Rectangle? Source, Rectangle Destination, Color ColorMask,
             Vector2 Origin, float Rotation = 0f, float Depth = 0f, SpriteEffects Effects = SpriteEffects.None)
@@ -178,6 +182,10 @@ namespace MGUI.Shared.Rendering
             BeginDraw(DrawContext.Sprites);
             SB.Draw(Texture, Destination, Source, ColorMask);
         }
+
+        public void DrawTextureAt(IUIImageResource Texture, Rectangle? Source, Vector2 Destination, Color ColorMask,
+            Vector2 Origin, float Rotation = 0f, float ScaleX = 1f, float ScaleY = 1f, float Depth = 0f, SpriteEffects Effects = SpriteEffects.None)
+            => DrawTextureAt(Texture.GetTexture2D(), Source, Destination, ColorMask, Origin, Rotation, ScaleX, ScaleY, Depth, Effects);
 
         /// <summary>Draw a texture at a given <paramref name="Destination"/> point</summary>
         public void DrawTextureAt(Texture2D Texture, Rectangle? Source, Vector2 Destination, Color ColorMask,

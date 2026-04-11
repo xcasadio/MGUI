@@ -16,7 +16,6 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Rendering;
-using Microsoft.Xna.Framework.Graphics;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Shapes;
 using MGUI.Core.UI.Styling;
@@ -362,29 +361,6 @@ namespace MGUI.Core.UI
             }
         }
 
-#if NEVER
-        private void UpdateRenderTarget()
-        {
-            if (IsWindowScaled)
-                RenderTarget = RenderUtils.CreateRenderTarget(GetDesktop().Renderer.GraphicsDevice, WindowWidth, WindowHeight, true);
-            else
-                RenderTarget = null;
-        }
-
-        private RenderTarget2D _RenderTarget;
-        private RenderTarget2D RenderTarget
-        {
-            get => _RenderTarget;
-            set
-            {
-                if (_RenderTarget != value)
-                {
-                    _RenderTarget?.Dispose();
-                    _RenderTarget = value;
-                }
-            }
-        }
-#endif
         #endregion Scale
 
         #region Resizing

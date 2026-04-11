@@ -23,8 +23,6 @@ public class RenderingBoundaryArchitectureTests
     {
         AssertTokenFiles(CoreRoot, "DrawTransaction", new[]
         {
-            "UI/MGCheckBox.cs",
-            "UI/MGRatingControl.cs",
             "UI/MGResources.cs",
             "UI/MGTextureData.cs"
         });
@@ -36,7 +34,6 @@ public class RenderingBoundaryArchitectureTests
         AssertTokenFiles(CoreRoot, "Texture2D", new[]
         {
             "UI/Brushes/Border Brushes/MGTexturedBorderBrush.cs",
-            "UI/Brushes/Fill Brushes/MGNineSliceFillBrush.cs",
             "UI/MGImage.cs",
             "UI/MGTextureData.cs"
         });
@@ -45,10 +42,7 @@ public class RenderingBoundaryArchitectureTests
     [Fact]
     public void MGUI_Core_DirectRenderTarget2DReferences_AreLimitedToLegacyWindowScalingCode()
     {
-        AssertTokenFiles(CoreRoot, "RenderTarget2D", new[]
-        {
-            "UI/MGWindow.cs"
-        });
+        AssertTokenFiles(CoreRoot, "RenderTarget2D", Array.Empty<string>());
     }
 
     [Fact]

@@ -48,7 +48,7 @@ namespace MGUI.Core.UI
             },
             { 
                 RatingItemShape.Circle,
-                DrawTransaction.GetCircleVertices(Rect256.Center.ToVector2(), Math.Min(Rect256.Width / 2, Rect256.Height / 2), 32).ToList().AsReadOnly()
+                CreateCircleVertices(Rect256, 32)
             },
             { 
                 RatingItemShape.Rectangle, 
@@ -64,6 +64,25 @@ namespace MGUI.Core.UI
                 }.AsReadOnly()
             }
         };
+
+        private static ReadOnlyCollection<Vector2> CreateCircleVertices(Rectangle bounds, int sides)
+            => GetCircleVertices(bounds.Center.ToVector2(), Math.Min(bounds.Width / 2, bounds.Height / 2), sides).ToList().AsReadOnly();
+
+        private static Vector2[] GetCircleVertices(Vector2 origin, double radius, int sides, double angleOffset = 0.0)
+        {
+            const double Max = 2.0 * Math.PI;
+            Vector2[] points = new Vector2[sides];
+            double step = Max / sides;
+            double theta = angleOffset;
+
+            for (int i = 0; i < sides; i++)
+            {
+                points[i] = origin + new Vector2((float)(radius * Math.Cos(theta)), (float)(radius * Math.Sin(theta)));
+                theta += step;
+            }
+
+            return points;
+        }
 
         public RatingItemShape ItemShape { get; set; }
 

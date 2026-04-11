@@ -1,7 +1,7 @@
-﻿using MGUI.Shared.Helpers;
+﻿using MGUI.Shared.Assets;
+using MGUI.Shared.Helpers;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using System;
 using System.Collections.Generic;
@@ -38,13 +38,13 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         {
             this.TargetMargin = TargetMargin;
 
-            Texture2D Texture = Source.Texture;
-            if (Texture == null)
+            IUIImageResource Image = Source.Image;
+            if (Image == null)
             {
                 throw new ArgumentNullException(nameof(Source));
             }
 
-            Rectangle Bounds = Source.SourceRect ?? Texture.Bounds;
+            Rectangle Bounds = Source.SourceRect ?? new Rectangle(0, 0, Image.Width, Image.Height);
 
             //  Validate the source margin
             Thickness Margin;
@@ -76,19 +76,19 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             int CenterRowSize = Bounds.Height - TopRowSize - BottomRowSize;
 
             //  Compute the top row regions
-            TopLeft = new(Texture, new(Bounds.Left, Bounds.Top, LeftColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
-            TopCenter = new(Texture, new(Bounds.Left + LeftColumnSize, Bounds.Top, CenterColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
-            TopRight = new(Texture, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top, RightColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
+            TopLeft = new(Image, new(Bounds.Left, Bounds.Top, LeftColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
+            TopCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top, CenterColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
+            TopRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top, RightColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
 
             //  Compute the center row regions
-            MiddleLeft = new(Texture, new(Bounds.Left, Bounds.Top + TopRowSize, LeftColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
-            MiddleCenter = new(Texture, new(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize, CenterColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
-            MiddleRight = new(Texture, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize, RightColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
+            MiddleLeft = new(Image, new(Bounds.Left, Bounds.Top + TopRowSize, LeftColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
+            MiddleCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize, CenterColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
+            MiddleRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize, RightColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
 
             //  Compute the bottom row regions
-            BottomLeft = new(Texture, new(Bounds.Left, Bounds.Top + TopRowSize + CenterRowSize, LeftColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
-            BottomCenter = new(Texture, new(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize + CenterRowSize, CenterColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
-            BottomRight = new(Texture, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize + CenterRowSize, RightColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
+            BottomLeft = new(Image, new(Bounds.Left, Bounds.Top + TopRowSize + CenterRowSize, LeftColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
+            BottomCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize + CenterRowSize, CenterColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
+            BottomRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize + CenterRowSize, RightColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
         }
 
         /// <param name="TargetMargin">Determines the size of each slice when rendering the texture to the destination bounds.<para/>

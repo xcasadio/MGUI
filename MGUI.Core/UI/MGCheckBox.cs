@@ -293,9 +293,9 @@ namespace MGUI.Core.UI
             return true;
         }
 
-        public static void DrawCheckMark(MGDesktop desktop, Rectangle bounds, DrawTransaction drawTransaction, float opacity, Point offset, Color color)
+        public static void DrawCheckMark(MGDesktop desktop, Rectangle bounds, IUIDrawContext drawContext, float opacity, Point offset, Color color)
         {
-            UISymbolDrawing.DrawCheckMark(drawTransaction, offset.ToVector2(), bounds, color * opacity);
+            UISymbolDrawing.DrawCheckMark(drawContext, offset.ToVector2(), bounds, color * opacity);
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)

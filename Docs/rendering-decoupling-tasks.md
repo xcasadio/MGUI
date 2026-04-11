@@ -584,7 +584,7 @@ Validation:
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderContextTests --logger "console;verbosity=minimal"` : succes, 8 tests passes ;
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 7 tests passes.
 
-### ⚪ 9. Migrer les fuites de rendu restantes dans le coeur UI
+### ✅ 9. Migrer les fuites de rendu restantes dans le coeur UI
 
 But:
 fermer les derniers points d'entree backend qui resteraient dans `MGUI.Core` apres l'isolation principale.
@@ -611,6 +611,27 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `core: complete task 9 migrate remaining core rendering leaks`
+
+Resultat:
+
+- `MGCheckBox.DrawCheckMark(...)` ne depend plus de `DrawTransaction` et consomme directement `IUIDrawContext`, ce qui supprime un point d'entree backend inutile dans les controles coeur ;
+- `MGRatingControl` ne depend plus du helper statique `DrawTransaction.GetCircleVertices(...)` ; la generation de geometrie cercle necessaire au controle est maintenant locale au coeur UI ;
+- `MGNineSliceFillBrush` ne reconstruit plus ses sous-textures a partir d'un `Texture2D` concret ; il derive maintenant ses slices depuis `IUIImageResource`, ce qui retire ce brush de la matrice des fuites backend ;
+- `MGTexturedBorderBrush` continue d'exposer un constructeur legacy `Texture2D` pour compatibilite descendante, mais son chemin de draw courant passe maintenant par `IUIImageResource` et les overloads image du contrat `IUIDrawContext` ;
+- le vieux code mort de window scaling base sur `RenderTarget2D` a ete supprime de `MGWindow`, ce qui elimine totalement cette fuite backend du coeur UI ;
+- les tests d'architecture epinglent maintenant la frontiere residuelle exacte suivante dans `MGUI.Core`:
+  - `MainRenderer`: `UI/MGDesktop.cs` seulement, pour le pont legacy d'acces au renderer concret ;
+  - `DrawTransaction`: `UI/MGResources.cs` et `UI/MGTextureData.cs` seulement, pour des overloads de compatibilite ;
+  - `Texture2D`: `UI/MGImage.cs`, `UI/MGTextureData.cs` et `UI/Brushes/Border Brushes/MGTexturedBorderBrush.cs` seulement, pour les constructeurs/proprietes de compatibilite encore exposes ;
+  - `RenderTarget2D`: plus aucune occurrence dans le coeur UI.
+
+Validation:
+
+- `dotnet build .\MGUI.MonoGame\MGUI.MonoGame.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` : succes, avec avertissements XML existants hors perimetre ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements nullability existants hors perimetre ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 7 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderContextTests --logger "console;verbosity=minimal"` : succes, 8 tests passes.
 
 ### ⚪ 10. Faire adopter aux apps de demo un bootstrap backend explicite
 
