@@ -79,7 +79,7 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 return;
             }
 
-            DA.DT.DrawBorderRing(DA.Offset.ToVector2(), Geometry, solidFillBrush.Color * DA.Opacity);
+            DA.Context.DrawBorderRing(DA.Offset.ToVector2(), Geometry, solidFillBrush.Color * DA.Opacity);
         }
 
         public IBorderBrush Copy() => new MGUniformBorderBrush(Brush.Copy());

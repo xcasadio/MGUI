@@ -385,7 +385,7 @@ Validation:
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter UIViewTests --logger "console;verbosity=minimal"` : succes, 5 tests passes ;
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 6 tests passes.
 
-### ⚪ 5. Separer le contexte de rendu UI du `DrawTransaction` MonoGame
+### ✅ 5. Separer le contexte de rendu UI du `DrawTransaction` MonoGame
 
 But:
 faire en sorte que les elements UI expriment leurs besoins de draw sans recevoir directement le backend MonoGame.
@@ -412,6 +412,23 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `context: complete task 5 split ui render context from monogame transaction`
+
+Resultat:
+
+- un nouveau contrat `IUIDrawContext` existe maintenant comme surface minimale de capacites de draw pour le coeur UI ;
+- `IUIRenderContext` herite de ce contrat plus etroit, ce qui permet de conserver la compatibilite actuelle tout en offrant un point de migration hors `MainRenderer` et hors `DrawTransaction` concret ;
+- `DrawTransaction` reste l'executant MonoGame, mais il satisfait maintenant ce contrat de capacites sans exposer sa nature concrete aux call sites migres ;
+- les extensions de formes arrondies ciblent desormais `IUIDrawContext` au lieu de `DrawTransaction`, ce qui retire une dependance concrete d'un point chaud du pipeline UI ;
+- un premier groupe de call sites coeur a ete bascule sur ce contrat: `MGSolidFillBrush`, `MGTextureFillBrush`, `MGProgressBarGradientBrush`, `MGUniformBorderBrush` et `UISymbolDrawing` ;
+- la dette restante est documentee et assumee pour les taches suivantes: `MGElement`, `MGDesktop`, `MGWindow`, `MGRatingControl`, plusieurs controles de docking, des helpers de texte et d'autres chemins `DA.DT.*` restent encore concrets a cette etape.
+
+Validation:
+
+- `dotnet build .\MGUI.Shared\MGUI.Shared.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` : succes, avec avertissements XML existants hors perimetre ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements existants hors perimetre ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderContextTests --logger "console;verbosity=minimal"` : succes, 8 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RoundedRectangleRenderingApiTests --logger "console;verbosity=minimal"` : succes, 1 test passe.
 
 ### ⚪ 6. Introduire des contrats backend-neutral pour les images et ressources de draw
 

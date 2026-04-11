@@ -50,8 +50,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             Color ActualColor = Color * DA.Opacity;
             if (ActualColor != Color.Transparent)
             {
-                MGUI.Shared.Rendering.IUIRenderContext context = DA.Context;
-                (context as MGUI.Shared.Rendering.DrawTransaction)?.FillRectangle(DA.Offset.ToVector2(), Bounds, ActualColor);
+                DA.Context.FillRectangle(DA.Offset.ToVector2(), Bounds, ActualColor);
             }
         }
 
@@ -63,14 +62,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 return;
             }
 
-            MGUI.Shared.Rendering.IUIRenderContext context = DA.Context;
-            MGUI.Shared.Rendering.DrawTransaction drawTransaction = context as MGUI.Shared.Rendering.DrawTransaction;
-            if (drawTransaction == null)
-            {
-                return;
-            }
-
-            drawTransaction.FillRoundedRectangle(DA.Offset.ToVector2(), Geometry, actualColor);
+            DA.Context.FillRoundedRectangle(DA.Offset.ToVector2(), Geometry, actualColor);
         }
 
         public override string ToString() => $"{nameof(MGSolidFillBrush)}: {Color}";

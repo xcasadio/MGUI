@@ -36,7 +36,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         {
             if (ProgressBar != null && DA.Opacity > 0 && !DA.Opacity.IsAlmostZero())
             {
-                DA.DT.FillRectangle(DA.Offset.ToVector2(), Bounds, GetFillColor(DA.Opacity));
+                DA.Context.FillRectangle(DA.Offset.ToVector2(), Bounds, GetFillColor(DA.Opacity));
             }
         }
 
@@ -47,7 +47,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 return;
             }
 
-            DA.DT.FillRoundedRectangle(DA.Offset.ToVector2(), Geometry, GetFillColor(DA.Opacity));
+            DA.Context.FillRoundedRectangle(DA.Offset.ToVector2(), Geometry, GetFillColor(DA.Opacity));
         }
 
         private Color GetFillColor(float opacity)
