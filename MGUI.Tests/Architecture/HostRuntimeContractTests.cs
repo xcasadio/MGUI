@@ -46,19 +46,22 @@ public class HostRuntimeContractTests
     }
 
     [Fact]
-    public void MGDesktop_CurrentlyDependsOnConcreteMainRendererAtConstructorBoundary()
+    public void MGDesktop_ExposesDesktopRuntimeAndKeepsCompatibilityRendererPath()
     {
-        ConstructorInfo? constructor = typeof(MGDesktop).GetConstructor(new[] { typeof(MainRenderer) });
+        ConstructorInfo? runtimeConstructor = typeof(MGDesktop).GetConstructor(new[] { typeof(IUIDesktopRuntime) });
+        ConstructorInfo? compatibilityConstructor = typeof(MGDesktop).GetConstructor(new[] { typeof(MainRenderer) });
 
-        Assert.NotNull(constructor);
+        Assert.NotNull(runtimeConstructor);
+        Assert.NotNull(compatibilityConstructor);
+        Assert.Equal(typeof(IUIDesktopRuntime), typeof(MGDesktop).GetProperty(nameof(MGDesktop.Runtime))!.PropertyType);
         Assert.Equal(typeof(MainRenderer), typeof(MGDesktop).GetProperty(nameof(MGDesktop.Renderer))!.PropertyType);
     }
 
     [Fact]
-    public void MGDesktop_Source_UsesBoundedSetOfMainRendererMembers()
+    public void MGDesktop_Source_UsesBoundedSetOfDesktopRuntimeMembers()
     {
         string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
-        HashSet<string> members = Regex.Matches(source, @"Renderer\.([A-Za-z_][A-Za-z0-9_]*)")
+        HashSet<string> members = Regex.Matches(source, @"Runtime\.([A-Za-z_][A-Za-z0-9_]*)")
             .Select(match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 

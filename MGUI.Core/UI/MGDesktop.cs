@@ -34,12 +34,14 @@ namespace MGUI.Core.UI
     {
         private sealed record ModalStackEntry(MGWindow Owner, MGWindow Modal);
 
-        public MainRenderer Renderer { get; }
+        public IUIDesktopRuntime Runtime { get; }
+        public MainRenderer Renderer => Runtime as MainRenderer
+            ?? throw new InvalidOperationException($"{nameof(MGDesktop)}.{nameof(Renderer)} requires a concrete {nameof(MainRenderer)} for legacy access paths.");
         public UIView View { get; private set; }
         public UIViewState State { get; }
         public UIFocusNavigationService NavigationService { get; }
-        public InputTracker InputTracker => Renderer.Input;
-        public FontManager FontManager => Renderer.FontManager;
+        public InputTracker InputTracker => Runtime.Input;
+        public FontManager FontManager => Runtime.FontManager;
         private List<ModalStackEntry> ModalStackEntries { get; } = new();
         public IReadOnlyList<MGWindow> ActiveModalWindows => ModalStackEntries.Select(x => x.Modal).ToList();
 
@@ -77,7 +79,7 @@ namespace MGUI.Core.UI
         internal void AttachView(UIView View)
         {
             this.View = View ?? throw new ArgumentNullException(nameof(View));
-            Renderer.RegisterView(View);
+            Runtime.RegisterView(View);
         }
 
         internal static bool HasKeyboardActivity(KeyboardTracker keyboard)
@@ -605,8 +607,8 @@ namespace MGUI.Core.UI
         /// text measurement and rendering.  Assign a different engine to switch backends globally.</summary>
         public ITextEngine TextEngine
         {
-            get => Renderer.TextEngine;
-            set => Renderer.TextEngine = value;
+            get => Runtime.TextEngine;
+            set => Runtime.TextEngine = value;
         }
 
         /// <summary>
@@ -1095,7 +1097,7 @@ namespace MGUI.Core.UI
 
         /// <summary>Represents the screen space that can be occupied with <see cref="MGElement"/>s.<para/>
         /// For example, an <see cref="MGContextMenu"/> will attempt to position itself such that it is not rendered outside of these bounds.</summary>
-        public Rectangle ValidScreenBounds => View?.Surface.GetBounds() ?? Renderer.Surface.GetBounds();
+        public Rectangle ValidScreenBounds => View?.Surface.GetBounds() ?? Runtime.Surface.GetBounds();
 
         private UIResponsiveSettings _ResponsiveSettings = UIResponsiveSettings.Default;
         public UIResponsiveSettings ResponsiveSettings
@@ -1251,6 +1253,11 @@ namespace MGUI.Core.UI
         }
 
         public MGDesktop(MainRenderer Renderer)
+            : this((IUIDesktopRuntime)Renderer)
+        {
+        }
+
+        public MGDesktop(IUIDesktopRuntime Runtime)
         {
             ApartmentState ThreadState = Thread.CurrentThread.GetApartmentState();
             if (ThreadState != ApartmentState.STA)
@@ -1262,13 +1269,13 @@ namespace MGUI.Core.UI
                 );
             }
 
-            this.Renderer = Renderer;
+            this.Runtime = Runtime ?? throw new ArgumentNullException(nameof(Runtime));
             State = new();
             NavigationService = new(this);
             Windows = new();
-            Resources = new(new MGTheme(Renderer.AssetProvider.FontManager.DefaultFontFamily), Renderer.AssetProvider);
+            Resources = new(new MGTheme(Runtime.AssetProvider.FontManager.DefaultFontFamily), Runtime.AssetProvider);
             MGControlTemplateCatalog.RegisterDefaults(Resources);
-            _ = new UIView(this, Renderer.Surface);
+            _ = new UIView(this, Runtime.Surface);
             _ResponsiveMetrics = UIResponsiveResolver.Resolve(ResponsiveSettings, ValidScreenBounds.Size, EffectiveDpiScale);
 
             OverlayWindow = new(this, 0, 0, ValidScreenBounds.Width, ValidScreenBounds.Height)
@@ -1310,7 +1317,7 @@ namespace MGUI.Core.UI
             DragDropManager = new DragDropManager(this);
 
             //  Recalculate the layout of text-based elements when the text-rendering backend changes
-            Renderer.TextEngineChanged += (sender, e) =>
+            Runtime.TextEngineChanged += (sender, e) =>
             {
                 RefreshTextLayouts();
                 //  Note: We don't need to call InvalidateAllLayouts() because the parent elements of MGTextBlocks will already receive LayoutChanged notifications.
@@ -1376,7 +1383,7 @@ namespace MGUI.Core.UI
                 OverlayWindow.WindowHeight = ValidScreenBounds.Height;
             }
 
-            UpdateBaseArgs BA = Renderer.UpdateArgs;
+            UpdateBaseArgs BA = Runtime.UpdateArgs;
 
             SanitizeKeyboardFocusState();
 
@@ -1471,7 +1478,7 @@ namespace MGUI.Core.UI
 
         public void Draw(DrawTransaction DT, float Opacity = 1.0f)
         {
-            DrawBaseArgs BA = new(Renderer.UpdateArgs.TotalElapsed, DT, Opacity);
+            DrawBaseArgs BA = new(Runtime.UpdateArgs.TotalElapsed, DT, Opacity);
             ElementDrawArgs DA = new(BA, new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
 
             Rectangle ScreenBounds = ValidScreenBounds;

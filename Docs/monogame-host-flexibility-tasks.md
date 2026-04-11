@@ -286,7 +286,7 @@ Resultat:
 - cette variante n'introduit aucune duplication du pipeline de rendu ni d'input ; elle reste un simple adaptateur `IRenderHost` ;
 - les tests d'architecture epinglent l'existence de cette voie alternative sans pousser le chantier vers un faux backend multi-moteur.
 
-### ⚪ 5. Faire dependre `MGDesktop` du contrat runtime etroit
+### ✅ 5. Faire dependre `MGDesktop` du contrat runtime etroit
 
 But:
 consommer le nouveau seam cote UI haut niveau.
@@ -312,6 +312,14 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `runtime: complete task 5 route desktop through runtime contract`
+
+Resultat:
+
+- `MGDesktop` consomme maintenant `IUIDesktopRuntime` pour l'input, les fonts, la surface, les assets, le text engine, l'enregistrement des vues et `UpdateArgs` ;
+- un constructeur `MGDesktop(IUIDesktopRuntime)` existe desormais comme seam principale cote UI haut niveau ;
+- le constructeur historique `MGDesktop(MainRenderer)` est conserve et redirige vers le nouveau contrat ;
+- la propriete legacy `Renderer` est preservee pour compatibilite, mais elle n'est plus le chemin principal du code interne ;
+- le point qui reste concret volontairement est `Draw(float, DrawSettings)`, car `DrawTransaction` attend encore un `MainRenderer` et ce chantier n'ouvre pas ce refactor transversal.
 
 ### ⚪ 6. Ajouter un sample ou chemin d'integration alternatif
 
