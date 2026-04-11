@@ -121,7 +121,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 return new ClipScope(resolution, () => { });
             }
 
-            RenderTargetLease renderTargetLease = _Owner.Renderer.RenderTargetPool.Rent(_Owner.GraphicsDevice, bounds.Width, bounds.Height, false);
+            RenderTargetLease renderTargetLease = _Owner.RentTemporaryRenderTarget(bounds.Width, bounds.Height, false);
             RenderTarget2D maskTarget = renderTargetLease.Target;
             _MaskClipCount++;
             _TemporaryRenderTargetRentCount++;
@@ -168,7 +168,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 depthStencilDisableScope.Dispose();
 
                 _Owner.DrawTextureTo(maskTarget, null, bounds);
-                _Owner.Renderer.RenderTargetPool.Return(maskTarget);
+                _Owner.ReturnTemporaryRenderTarget(maskTarget);
             });
         }
     }

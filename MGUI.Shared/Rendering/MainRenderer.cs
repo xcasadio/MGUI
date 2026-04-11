@@ -3,6 +3,7 @@ using MGUI.Shared.Assets;
 using MGUI.Shared.Input;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
+using MGUI.Backend.MonoGame;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -93,21 +94,23 @@ namespace MGUI.Shared.Rendering
         }
     }
 
-    public class MainRenderer : IUIDesktopRuntime
+    public sealed class MainRenderer : IMonoGameDesktopBackend
     {
+        /// <summary>MonoGame-specific compatibility surface. Core UI code should continue to use <see cref="IUIDesktopRuntime"/>.</summary>
         public IRenderHost Host { get; }
         public IRawInputSource RawInputSource { get; }
         public IUISurface Surface { get; }
         private List<IUIView> MutableViews { get; } = new();
         public IReadOnlyList<IUIView> Views => MutableViews;
 
-        public GraphicsDevice GraphicsDevice => Host.GraphicsDevice;
-        public SpriteBatch SpriteBatch { get; }
-        public PrimitiveBatch PrimitiveBatch { get; }
+        internal GraphicsDevice GraphicsDevice => Host.GraphicsDevice;
+        internal SpriteBatch SpriteBatch { get; }
+        internal PrimitiveBatch PrimitiveBatch { get; }
         internal RenderTargetPool RenderTargetPool { get; } = new();
 
-        public ContentManager Content { get; }
+        internal ContentManager Content { get; }
 
+        /// <summary>MonoGame-specific compatibility surface. Core UI code should continue to use <see cref="ITextMeasurementEngine"/>.</summary>
         public FontManager FontManager { get; }
         public string DefaultFontFamily => FontManager.DefaultFontFamily;
         public IUIAssetProvider AssetProvider { get; }
@@ -150,7 +153,7 @@ namespace MGUI.Shared.Rendering
 
         private TimeSpan PreviousUpdateTimeSpan = TimeSpan.Zero;
 
-        public Rectangle GetViewport(int Margin) => Surface.GetBounds().GetCompressed(Margin);
+        internal Rectangle GetViewport(int Margin) => Surface.GetBounds().GetCompressed(Margin);
 
         IUIDrawTransaction IUIDesktopRuntime.CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => CreateDrawTransaction(Settings, DeferBegin);
@@ -160,6 +163,12 @@ namespace MGUI.Shared.Rendering
 
         internal IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext)
             => new DrawTransaction(this, Settings, DeferBegin, DefaultContext);
+
+        internal RenderTargetLease RentRenderTarget(int width, int height, bool preserveContents)
+            => RenderTargetPool.Rent(GraphicsDevice, width, height, preserveContents);
+
+        internal void ReturnRenderTarget(RenderTarget2D renderTarget)
+            => RenderTargetPool.Return(renderTarget);
 
         public void RegisterView(IUIView View)
         {

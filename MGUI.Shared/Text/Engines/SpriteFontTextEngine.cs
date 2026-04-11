@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MGUI.Backend.MonoGame;
 using MGUI.Shared.Rendering;
 using System;
 using System.Collections.Generic;
@@ -224,12 +225,12 @@ namespace MGUI.Shared.Text.Engines
                 return;
             }
 
-            if (drawContext is not DrawTransaction transaction)
+            if (drawContext is not IMonoGameDrawContext monoGameContext)
             {
-                throw new InvalidOperationException($"{nameof(SpriteFontTextEngine)} requires a {nameof(DrawTransaction)} draw context for the MonoGame backend.");
+                throw new InvalidOperationException($"{nameof(SpriteFontTextEngine)} requires a {nameof(IMonoGameDrawContext)} for the MonoGame backend.");
             }
 
-            transaction.SpriteBatch.DrawString(h.SF, text, position, color, rotation, origin, scale, MonoGameRenderInterop.ToSpriteEffects(flip), depth);
+            monoGameContext.SpriteBatch.DrawString(h.SF, text, position, color, rotation, origin, scale, MonoGameRenderInterop.ToSpriteEffects(flip), depth);
         }
 
         /// <inheritdoc/>

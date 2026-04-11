@@ -1,5 +1,6 @@
 ﻿using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
+using MGUI.Backend.MonoGame;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework.Content;
 using System;
@@ -92,14 +93,14 @@ namespace MGUI.Samples.Controls
             };
 
             OnEndUpdateHandler = HandleEndUpdate;
-            if (Desktop.Runtime is MainRenderer renderer && renderer.Host is IObservableUpdate observable)
+            if (Desktop.Runtime is IMonoGameDesktopBackend backend && backend.Host is IObservableUpdate observable)
             {
                 observable.EndUpdate += OnEndUpdateHandler;
             }
 
             Window.WindowClosed += (_, __) =>
             {
-                if (Desktop.Runtime is MainRenderer renderer && renderer.Host is IObservableUpdate observableHost)
+                if (Desktop.Runtime is IMonoGameDesktopBackend backend && backend.Host is IObservableUpdate observableHost)
                 {
                     observableHost.EndUpdate -= OnEndUpdateHandler;
                 }

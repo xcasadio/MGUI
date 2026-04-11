@@ -1,5 +1,6 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
+using MGUI.Backend.MonoGame;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework.Content;
 using System;
@@ -54,7 +55,7 @@ namespace MGUI.Samples.Features
 
             // --- Frame-time hook: fires at the end of every Update() tick ---
             _onEndUpdate = OnEndUpdate;
-            if (Desktop.Runtime is MainRenderer renderer && renderer.Host is IObservableUpdate observable)
+            if (Desktop.Runtime is IMonoGameDesktopBackend backend && backend.Host is IObservableUpdate observable)
             {
                 observable.EndUpdate += _onEndUpdate;
             }
@@ -62,7 +63,7 @@ namespace MGUI.Samples.Features
             // Unsubscribe when the sample window is closed
             Window.WindowClosed += (_, __) =>
             {
-                if (Desktop.Runtime is MainRenderer renderer && renderer.Host is IObservableUpdate obs)
+                if (Desktop.Runtime is IMonoGameDesktopBackend backend && backend.Host is IObservableUpdate obs)
                 {
                     obs.EndUpdate -= _onEndUpdate;
                 }

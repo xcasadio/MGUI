@@ -987,7 +987,7 @@ Validation:
 - `dotnet build .\MGUI.Samples\MGUI.Samples.csproj -c Release --no-restore` : succes ;
 - avertissements XML/nullability existants dans `MGUI.Core` et `MGUI.Tests`, ainsi que l'avertissement EOL `net6.0-windows` dans `MGUI.Samples`, inchanges et hors perimetre de la task.
 
-### ⚪ 16. Redefinir MainRenderer comme simple adapter de backend MonoGame
+### ✅ 16. Redefinir MainRenderer comme simple adapter de backend MonoGame
 
 But:
 faire de `MainRenderer` une implementation MonoGame concrete, et non plus le modele implicite du runtime de rendu.
@@ -1014,6 +1014,22 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `backend: complete task 16 redefine monogame renderer as backend adapter`
+
+Resultat:
+
+- `MainRenderer` a ete redefine comme facade MonoGame explicite via le nouveau contrat backend-specifique `IMonoGameDesktopBackend` dans `MGUI.MonoGame` ; le chemin nominal `Core` continue de ne connaitre que `IUIDesktopRuntime`, tandis que les integrations MonoGame qui ont vraiment besoin du host ou du `FontManager` passent maintenant par ce contrat backend au lieu de caster vers la forme concrete de `MainRenderer` ;
+- `DrawTransaction` n'est plus le point d'ancrage public des integrations MonoGame : il est devenu un detail backend-only, implemente `IMonoGameDrawContext` et n'expose plus ses dependances GPU concretes via sa surface publique ; les moteurs texte MonoGame (`SpriteFontTextEngine`, `FontStashSharpTextEngine`) se branchent maintenant sur ce petit contrat backend plutot que sur le type concret `DrawTransaction` ;
+- `BackBufferSurface` et `View` ont ete relegues au backend en types non publics, `ClipManager` ne remonte plus via `MainRenderer.RenderTargetPool`, et `MainRenderer` cache maintenant `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `Content` et `GetViewport(...)` en details internes du backend ;
+- les consumers MonoGame du repo ont ete reroutes vers le contrat backend explicite : `Game1`, `PerformanceTest`, `ListBoxSamples` et `SampleHUD` utilisent maintenant `IMonoGameDesktopBackend` pour les besoins host/font backend-specifiques, et `SampleHUD` ne caste plus le draw path sur `DrawTransaction` pour mesurer/dessiner le texte ;
+- la couverture d'architecture a ete durcie pour epingler cette nouvelle frontiere: presence du contrat `IMonoGameDesktopBackend`, presence du contrat `IMonoGameDrawContext`, absence des etats GPU publics sur `MainRenderer`, et non-publicite des helpers backend `DrawTransaction`, `BackBufferSurface` et `View`.
+
+Validation:
+
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-restore` : succes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~Architecture.HostRuntimeContractTests|FullyQualifiedName~Architecture.RenderContextTests|FullyQualifiedName~Architecture.SurfaceAbstractionTests|FullyQualifiedName~Architecture.Phase4RenderingArchitectureTests" --logger "console;verbosity=minimal"` : succes, 25 tests passes ;
+- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj -c Release --no-restore` : succes ;
+- `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj -c Release --no-restore` : succes ;
+- avertissements XML/nullability existants dans `MGUI.Shared`, `MGUI.MonoGame`, `MGUI.Core` et `MGUI.Tests`, ainsi que l'avertissement EOL `net6.0-windows` dans `MGUI.Samples`, inchanges et hors perimetre de la task.
 
 ### ⚪ 17. Deplacer physiquement toutes les sources de rendu concret hors de Shared
 

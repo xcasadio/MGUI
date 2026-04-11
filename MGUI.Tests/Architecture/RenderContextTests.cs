@@ -1,4 +1,5 @@
 using MGUI.Shared.Rendering;
+using MGUI.Backend.MonoGame;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Reflection;
@@ -18,6 +19,25 @@ public class RenderContextTests
     public void DrawTransaction_ImplementsIUIDrawContext()
     {
         Assert.Contains(typeof(IUIDrawContext), typeof(DrawTransaction).GetInterfaces());
+    }
+
+    [Fact]
+    public void DrawTransaction_ImplementsExplicitMonoGameDrawContextContract()
+    {
+        Assert.Contains(typeof(IMonoGameDrawContext), typeof(DrawTransaction).GetInterfaces());
+        Assert.False(typeof(DrawTransaction).IsPublic);
+        Assert.False(typeof(BackBufferSurface).IsPublic);
+        Assert.False(typeof(View).IsPublic);
+    }
+
+    [Fact]
+    public void IMonoGameDrawContext_OnlyExposesSpriteBatchForBackendSpecificDrawPaths()
+    {
+        PropertyInfo[] properties = typeof(IMonoGameDrawContext).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
+        Assert.Single(properties);
+        Assert.Equal(nameof(IMonoGameDrawContext.SpriteBatch), properties[0].Name);
+        Assert.Equal(typeof(SpriteBatch), properties[0].PropertyType);
     }
 
     [Fact]

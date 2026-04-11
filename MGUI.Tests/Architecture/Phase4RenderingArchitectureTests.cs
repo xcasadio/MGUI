@@ -28,12 +28,10 @@ public class Phase4RenderingArchitectureTests
             "Helpers/ContentUtils.cs",
             "Helpers/RenderUtils.cs",
             "Helpers/TextureUtils.cs",
-            "Rendering/Clipping/ClipManager.cs",
             "Rendering/DelegateRenderHost.cs",
             "Rendering/DrawTransaction.cs",
             "Rendering/MainRenderer.cs",
-            "Rendering/RenderTargetPool.cs",
-            "Rendering/View.cs"
+            "Rendering/RenderTargetPool.cs"
         });
 
         AssertTokenFiles(SharedRoot, "SpriteBatch", new[]
@@ -67,6 +65,7 @@ public class Phase4RenderingArchitectureTests
             "Helpers/TextureUtils.cs",
             "Rendering/Clipping/ClipManager.cs",
             "Rendering/DrawTransaction.cs",
+            "Rendering/MainRenderer.cs",
             "Rendering/RenderTargetPool.cs"
         });
 
@@ -82,8 +81,7 @@ public class Phase4RenderingArchitectureTests
         AssertTokenFiles(SharedRoot, "MainRenderer", new[]
         {
             "Rendering/DrawTransaction.cs",
-            "Rendering/MainRenderer.cs",
-            "Rendering/View.cs"
+            "Rendering/MainRenderer.cs"
         });
     }
 
@@ -118,7 +116,6 @@ public class Phase4RenderingArchitectureTests
             "Rendering/DrawTransaction.cs",
             "Rendering/MainRenderer.cs",
             "Rendering/RenderTargetPool.cs",
-            "Rendering/View.cs",
             "Text/Engines/SpriteFontTextEngine.cs",
             "Text/FontManager.cs",
             "Text/FontSet.cs",

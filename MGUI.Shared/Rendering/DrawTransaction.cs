@@ -3,6 +3,7 @@ using MGUI.Shared.Assets;
 using MGUI.Shared.Rendering.Clipping;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
+using MGUI.Backend.MonoGame;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -22,10 +23,10 @@ namespace MGUI.Shared.Rendering
     //Anytime the effect is being changed, must call SetDrawSettings/SetDrawSettingsTemporary just like SetTransform/SetTransformTemporary do
     // --> SetEffect/SetEffectTemporary are now implemented via DrawSettings.Effect; see SetEffect() and SetEffectTemporary() below.
 
-    public class DrawTransaction : IUIDrawTransaction
+    internal sealed class DrawTransaction : IMonoGameDrawContext
     {
-        public MainRenderer Renderer { get; }
-        IUIDesktopRuntime IUIRenderContext.Renderer => Renderer;
+        private MainRenderer Backend { get; }
+        IUIDesktopRuntime IUIRenderContext.Renderer => Backend;
         Rectangle? IUIRenderContext.CurrentClipBounds => CurrentClipBounds;
         IDisposable IUIRenderContext.SetDrawSettingsTemporary(DrawSettings Settings)
             => SetDrawSettingsTemporary(Settings);
@@ -50,17 +51,18 @@ namespace MGUI.Shared.Rendering
         void IUIDrawContext.StrokeAndFillCircle(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness, int NumSides)
             => StrokeAndFillCircle(Center, StrokeColor, FillColor, Radius, StrokeThickness, NumSides, null);
         /// <summary>Delegates to <see cref="MainRenderer.TextEngine"/>.</summary>
-        public ITextMeasurementEngine TextEngine => Renderer.TextEngine;
-        private ITextDrawEngine TextRenderer => Renderer.GetTextRenderer();
-        public GraphicsDevice GraphicsDevice => Renderer.GraphicsDevice;
-        public SpriteBatch SpriteBatch => Renderer.SpriteBatch;
-        private PrimitiveBatch PrimitiveBatch => Renderer.PrimitiveBatch;
+        public ITextMeasurementEngine TextEngine => Backend.TextEngine;
+        private ITextDrawEngine TextRenderer => Backend.GetTextRenderer();
+        private GraphicsDevice GraphicsDevice => Backend.GraphicsDevice;
+        SpriteBatch IMonoGameDrawContext.SpriteBatch => Backend.SpriteBatch;
+        private SpriteBatch SpriteBatch => Backend.SpriteBatch;
+        private PrimitiveBatch PrimitiveBatch => Backend.PrimitiveBatch;
         public PrimitiveDrawing PrimitiveDrawing { get; }
 
-        public SolidColorTexture BlackPixel => Renderer.GetOrCreateSolidColorTexture(Color.Black);
+        public SolidColorTexture BlackPixel => Backend.GetOrCreateSolidColorTexture(Color.Black);
         /// <summary>A solid white, 1 pixel wide/tall Texture. Useful for drawing Colored squares. 
         /// (Color can be specified in the 'Color' mask parameter of SpriteBatch.Draw(...))</summary>
-        public SolidColorTexture WhitePixel => Renderer.GetOrCreateSolidColorTexture(Color.White);
+        public SolidColorTexture WhitePixel => Backend.GetOrCreateSolidColorTexture(Color.White);
 
         private DrawContext CurrentContext = DrawContext.None;
 
@@ -80,9 +82,9 @@ namespace MGUI.Shared.Rendering
         /// <param name="DeferBegin">If true, <see cref="SpriteBatch.Begin(SpriteSortMode, BlendState, SamplerState, DepthStencilState, RasterizerState, Effect, Matrix?)"/> or <see cref="PrimitiveBatch.Begin(ref Matrix, ref Matrix)"/><para/>
         /// will not be invoked until you call a draw-related function within <see cref="DrawTransaction"/>, such as <see cref="DrawTextureTo(Texture2D, Rectangle?, Rectangle)"/></param>
         /// <param name="DefaultContext">Only relevant if <paramref name="DeferBegin"/>==false. The default drawing context to immediately start.</param>
-        public DrawTransaction(MainRenderer Renderer, DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites)
+        internal DrawTransaction(MainRenderer backend, DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites)
         {
-            this.Renderer = Renderer ?? throw new ArgumentNullException(nameof(Renderer));
+            this.Backend = backend ?? throw new ArgumentNullException(nameof(backend));
             PrimitiveDrawing = new PrimitiveDrawing(PrimitiveBatch);
             CurrentSettings = Settings ?? throw new ArgumentNullException(nameof(Settings));
             ClipManager = new(this);
@@ -547,7 +549,7 @@ namespace MGUI.Shared.Rendering
             switch (Ctx)
             {
                 case DrawContext.Sprites:
-                    Texture2D CircleTexture = Renderer.GetOrCreateWhiteCircleTexture(Radius, null, null);
+                    Texture2D CircleTexture = Backend.GetOrCreateWhiteCircleTexture(Radius, null, null);
                     float Scale = Radius * 2 / CircleTexture.Width;
                     DrawTextureAt(CircleTexture, null, Center - new Vector2(Radius), Color, Vector2.Zero, 0, Scale, Scale);
                     break;
@@ -964,6 +966,12 @@ namespace MGUI.Shared.Rendering
         public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
             => SetRenderTargetTemporary(New.GetRenderTarget2D(), ClearColor);
 
+        internal RenderTargetLease RentTemporaryRenderTarget(int width, int height, bool preserveContents)
+            => Backend.RentRenderTarget(width, height, preserveContents);
+
+        internal void ReturnTemporaryRenderTarget(RenderTarget2D renderTarget)
+            => Backend.ReturnRenderTarget(renderTarget);
+
         /// <param name="New">To change current settings, consider using '<see cref="CurrentSettings"/> with { ... }' record syntax.</param>
         public void SetDrawSettings(DrawSettings New)
         {
@@ -1099,7 +1107,7 @@ namespace MGUI.Shared.Rendering
             if (Bounds != CurrentBounds || IsScissorTesting != ShouldScissorTest)
             {
                 EndDraw(CurrentContext);
-                SpriteBatch.GraphicsDevice.ScissorRectangle = Bounds ?? Renderer.GetViewport(0);
+                SpriteBatch.GraphicsDevice.ScissorRectangle = Bounds ?? Backend.GetViewport(0);
                 if (ShouldScissorTest && !IsScissorTesting)
                 {
                     SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });

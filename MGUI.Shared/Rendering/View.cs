@@ -1,6 +1,6 @@
 ﻿using MGUI.Shared.Helpers;
+using MGUI.Backend.MonoGame;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
@@ -13,11 +13,9 @@ using System.Threading.Tasks;
 
 namespace MGUI.Shared.Rendering
 {
-    public abstract class View : ViewModelBase
+    internal abstract class View : ViewModelBase
     {
-        public MainRenderer MainRenderer { get; }
-
-        public GraphicsDevice GraphicsDevice => MainRenderer?.GraphicsDevice;
+        protected IMonoGameDesktopBackend Backend { get; }
         public ObservableCollection<View> Children { get; }
 
         private bool _IsVisible;
@@ -102,12 +100,12 @@ namespace MGUI.Shared.Rendering
             }
         }
 
-        public View(MainRenderer MainRenderer, int ScreenViewportMargin)
-            : this(MainRenderer, MainRenderer.GetViewport(ScreenViewportMargin)) { }
+        protected View(IMonoGameDesktopBackend Backend, int ScreenViewportMargin)
+            : this(Backend, Backend.Surface.GetBounds().GetCompressed(ScreenViewportMargin)) { }
 
-        public View(MainRenderer MainRenderer, Rectangle ScreenViewport)
+        protected View(IMonoGameDesktopBackend Backend, Rectangle ScreenViewport)
         {
-            this.MainRenderer = MainRenderer;
+            this.Backend = Backend ?? throw new ArgumentNullException(nameof(Backend));
             IsVisible = true;
             SetScreenViewportBase(ScreenViewport, null, true);
             Children = new();

@@ -24,7 +24,7 @@ namespace MGUI.Samples
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
 
-        private MainRenderer MGUIRenderer { get; set; }
+        private IMonoGameDesktopBackend MGUIRenderer { get; set; }
         private MGDesktop Desktop { get; set; }
 
         private KeyboardState _prevKeyboardState;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MGUI.Backend.MonoGame;
 using MGUI.Shared.Rendering;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
@@ -675,9 +676,9 @@ namespace MGUI.FontStashSharp
                 return;
             }
 
-            if (drawContext is not DrawTransaction transaction)
+            if (drawContext is not IMonoGameDrawContext monoGameContext)
             {
-                throw new InvalidOperationException($"{nameof(FontStashSharpTextEngine)} requires a {nameof(DrawTransaction)} draw context for the MonoGame backend.");
+                throw new InvalidOperationException($"{nameof(FontStashSharpTextEngine)} requires a {nameof(IMonoGameDrawContext)} for the MonoGame backend.");
             }
 
             // FontStashSharp's DrawText does not accept SpriteEffects directly.
@@ -695,7 +696,7 @@ namespace MGUI.FontStashSharp
                 sy = -sy;
             }
 
-            h.Font.DrawText(transaction.SpriteBatch, text, position, color,
+            h.Font.DrawText(monoGameContext.SpriteBatch, text, position, color,
                 rotation:   rotation,
                 origin:     origin,
                 scale:      new Vector2(sx, sy),

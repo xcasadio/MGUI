@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Backend.MonoGame;
 using MGUI.Core.UI;
 using Microsoft.Xna.Framework.Content;
 using System;
@@ -204,7 +205,7 @@ namespace MGUI.Samples.Dialogs
             : base(Content, Desktop, $"{nameof(Dialogs)}", $"{nameof(SampleHUD)}.xaml", () => InitializeResources(Content, Desktop))
         {
             UpdateWindowBounds();
-            if (Desktop.Runtime is MainRenderer renderer && renderer.Host is GameRenderHost<Game1> Host)
+            if (Desktop.Runtime is IMonoGameDesktopBackend backend && backend.Host is GameRenderHost<Game1> Host)
             {
                 // Store handler as a named delegate for proper unsubscription when the window closes
                 EventHandler<EventArgs> onClientSizeChanged = (sender, e) => UpdateWindowBounds();
@@ -289,7 +290,6 @@ namespace MGUI.Samples.Dialogs
             UIToolBar.OnRenderCell += (sender, e) =>
             {
                 IUIDrawContext DT = e.DrawArgs.DT;
-                DrawTransaction TextDT = (DrawTransaction)e.DrawArgs.DT;
 
                 Rectangle ActualCellBounds = e.CellBounds.GetTranslated(e.DrawArgs.Offset);
 
@@ -313,10 +313,18 @@ namespace MGUI.Samples.Dialogs
                         const int FontSize = 11;
 
                         string Text = Slot.Item.Quantity.ToString();
-                        Vector2 TextSize = TextDT.MeasureText(FontFamily, FontStyle, Text, FontSize);
+                        ResolvedFont resolved = Desktop.TextEngine.ResolveFont(new FontSpec(FontFamily, FontSize, FontStyle));
+                        if (!resolved.IsAvailable)
+                        {
+                            return;
+                        }
+
+                        Vector2 TextSize = Desktop.TextEngine.MeasureText(resolved, Text);
                         Vector2 Position = ActualCellBounds.GetCompressed(SlotBorderSize).BottomRight().ToVector2().Translate(-TextSize.X - 1, -TextSize.Y + 1);
 
-                        TextDT.DrawShadowedText(FontFamily, FontStyle, Text, Position, Color.White, new Color(40,40,40) * e.DrawArgs.Opacity, FontSize);
+                        e.DrawArgs.DT.DrawTextViaEngine(resolved, Text, Position + Vector2.One, new Color(40, 40, 40) * e.DrawArgs.Opacity,
+                            resolved.DrawOrigin, resolved.SuggestedScale);
+                        e.DrawArgs.DT.DrawTextViaEngine(resolved, Text, Position, Color.White, resolved.DrawOrigin, resolved.SuggestedScale);
                     }
                 }
 

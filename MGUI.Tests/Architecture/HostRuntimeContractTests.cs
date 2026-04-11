@@ -1,11 +1,13 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.IO;
+using MGUI.Backend.MonoGame;
 using MGUI.Core.UI;
 using MGUI.Shared.Assets;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Input;
 using MGUI.Shared.Rendering;
+using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
 using Microsoft.Xna.Framework;
 
@@ -143,6 +145,22 @@ public class HostRuntimeContractTests
         Assert.DoesNotContain(nameof(MainRenderer.Host), propertyNames);
         Assert.DoesNotContain(nameof(MainRenderer.GraphicsDevice), propertyNames);
         Assert.DoesNotContain(nameof(MainRenderer.GetViewport), methodNames);
+    }
+
+    [Fact]
+    public void MainRenderer_ExposesMonoGameSpecificAdapterContract_WithoutPublicGpuStateSurface()
+    {
+        Assert.Contains(typeof(IMonoGameDesktopBackend), typeof(MainRenderer).GetInterfaces());
+
+        PropertyInfo[] publicProperties = typeof(MainRenderer).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        string[] propertyNames = publicProperties.Select(x => x.Name).OrderBy(x => x).ToArray();
+
+        Assert.Contains(publicProperties, property => property.Name == nameof(IMonoGameDesktopBackend.Host) && property.PropertyType == typeof(IRenderHost));
+        Assert.Contains(publicProperties, property => property.Name == nameof(IMonoGameDesktopBackend.FontManager) && property.PropertyType == typeof(FontManager));
+        Assert.DoesNotContain(nameof(MainRenderer.GraphicsDevice), propertyNames);
+        Assert.DoesNotContain(nameof(MainRenderer.SpriteBatch), propertyNames);
+        Assert.DoesNotContain(nameof(MainRenderer.PrimitiveBatch), propertyNames);
+        Assert.DoesNotContain(nameof(MainRenderer.Content), propertyNames);
     }
 
     [Fact]
