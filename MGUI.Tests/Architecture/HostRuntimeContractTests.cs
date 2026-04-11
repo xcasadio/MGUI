@@ -124,4 +124,30 @@ public class HostRuntimeContractTests
         Assert.DoesNotContain(nameof(MainRenderer.GraphicsDevice), propertyNames);
         Assert.DoesNotContain(nameof(MainRenderer.GetViewport), methodNames);
     }
+
+    [Fact]
+    public void DelegateRenderHost_ProvidesAlternativeMonoGameHostPath()
+    {
+        ConstructorInfo? constructor = typeof(DelegateRenderHost).GetConstructor(new[]
+        {
+            typeof(Game),
+            typeof(Func<Rectangle>),
+            typeof(IServiceProvider)
+        });
+
+        Assert.Null(constructor);
+        Assert.Contains(typeof(IRenderHost), typeof(DelegateRenderHost).GetInterfaces());
+        Assert.DoesNotContain(typeof(IRawInputSource), typeof(DelegateRenderHost).GetInterfaces());
+
+        ConstructorInfo? expectedConstructor = typeof(DelegateRenderHost).GetConstructor(new[]
+        {
+            typeof(Microsoft.Xna.Framework.Graphics.GraphicsDevice),
+            typeof(Func<Rectangle>),
+            typeof(IServiceProvider)
+        });
+
+        Assert.NotNull(expectedConstructor);
+        Assert.NotNull(typeof(DelegateRenderHost).GetMethod(nameof(DelegateRenderHost.NotifyPreviewUpdate), BindingFlags.Instance | BindingFlags.Public));
+        Assert.NotNull(typeof(DelegateRenderHost).GetMethod(nameof(DelegateRenderHost.NotifyEndUpdate), BindingFlags.Instance | BindingFlags.Public));
+    }
 }

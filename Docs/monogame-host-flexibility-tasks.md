@@ -248,7 +248,7 @@ Resultat:
 - le contrat n'expose ni `GraphicsDevice`, ni `SpriteBatch`, ni `PrimitiveBatch`, ni `IRenderHost`, ce qui evite de glisser vers un faux backend generique ;
 - `MGDesktop` n'utilise pas encore ce contrat a cette etape ; la tache 5 fera basculer le consommateur reel.
 
-### ⚪ 4. Ajouter un adapter de host MonoGame par delegation
+### ✅ 4. Ajouter un adapter de host MonoGame par delegation
 
 But:
 couvrir un mode d'integration MonoGame plus souple que `GameRenderHost<TObservableGame>` sans toucher au pipeline de draw.
@@ -278,6 +278,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `host: complete task 4 add delegate monogame host adapter`
+
+Resultat:
+
+- `DelegateRenderHost` fournit maintenant une voie d'hebergement MonoGame plus souple que `GameRenderHost<TObservableGame>` ;
+- l'adapter garde `GraphicsDevice` concret, un delegate de viewport, un `IServiceProvider` optionnel, et des notifications explicites `NotifyPreviewUpdate(...)` / `NotifyEndUpdate()` ;
+- cette variante n'introduit aucune duplication du pipeline de rendu ni d'input ; elle reste un simple adaptateur `IRenderHost` ;
+- les tests d'architecture epinglent l'existence de cette voie alternative sans pousser le chantier vers un faux backend multi-moteur.
 
 ### ⚪ 5. Faire dependre `MGDesktop` du contrat runtime etroit
 
