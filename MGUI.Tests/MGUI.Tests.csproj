@@ -25,6 +25,7 @@
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.1.303" />
     <PackageReference Include="FontStashSharp.MonoGame" Version="1.5.4" />
+    <ProjectReference Include="..\MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj" />
     <ProjectReference Include="..\MGUI.Core\MGUI.Core.csproj" />
     <ProjectReference Include="..\MGUI.FontStashSharp\MGUI.FontStashSharp.csproj" />
   </ItemGroup>

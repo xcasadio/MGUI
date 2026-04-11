@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MGUI.Tests", "MGUI.Tests\MG
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MGUI.MiniGame", "MGUI.MiniGame\MGUI.MiniGame.csproj", "{AAAF22E4-294E-49F2-83AE-33CE040885BB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MGUI.Rendering.Abstractions", "MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj", "{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -104,6 +106,18 @@ Global
 		{AAAF22E4-294E-49F2-83AE-33CE040885BB}.Release|x64.Build.0 = Release|Any CPU
 		{AAAF22E4-294E-49F2-83AE-33CE040885BB}.Release|x86.ActiveCfg = Release|Any CPU
 		{AAAF22E4-294E-49F2-83AE-33CE040885BB}.Release|x86.Build.0 = Release|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Debug|x64.Build.0 = Debug|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Debug|x86.Build.0 = Debug|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Release|x64.ActiveCfg = Release|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Release|x64.Build.0 = Release|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Release|x86.ActiveCfg = Release|Any CPU
+		{E0A65BF7-B59C-454B-98FD-B8F46CD48C25}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

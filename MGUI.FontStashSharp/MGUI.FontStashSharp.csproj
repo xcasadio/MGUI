@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj" />
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
   </ItemGroup>
 

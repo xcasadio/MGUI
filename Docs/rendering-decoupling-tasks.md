@@ -291,7 +291,7 @@ Validation:
 - `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements existants hors perimetre ;
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 6 tests passes.
 
-### ⚪ 3. Introduire un projet de contrats backend-neutral
+### ✅ 3. Introduire un projet de contrats backend-neutral
 
 But:
 creer le lieu cible des abstractions de rendu sans encore deplacer l'implementation MonoGame.
@@ -321,6 +321,22 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `contracts: complete task 3 add backend neutral rendering contracts`
+
+Resultat:
+
+- un nouveau projet `MGUI.Rendering.Abstractions` existe maintenant dans la solution, sans package ni namespace MonoGame ;
+- le premier noyau de contrats deja reellement neutres a ete extrait physiquement dans ce projet, en conservant les namespaces publics existants pour eviter une migration artificielle des call sites ;
+- ce noyau comprend `CustomFontStyles`, `FontSpec` et `GlyphMetrics`, qui sont maintenant references depuis `MGUI.Shared`, `MGUI.Core`, `MGUI.FontStashSharp` et `MGUI.Tests` via le nouveau projet ;
+- `MGUI.Shared` n'heberge donc plus exclusivement tous les contrats texte ; il commence a redevenir un backend/runtime concret plutot qu'un fourre-tout de types partages ;
+- `IUIDesktopRuntime`, `IUISurface`, `IUIAssetProvider` et `ITextEngine` restent encore dans `MGUI.Shared` a cette etape, parce que leurs signatures trainent toujours des types ou responsabilites MonoGame ; leur extraction fonctionnelle sera traitee par les taches 4 a 7 plutot que forcee trop tot.
+
+Validation:
+
+- `dotnet build .\MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Shared\MGUI.Shared.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 6 tests passes.
 
 ## Phase 2 - Basculer le coeur UI sur des contrats de rendu
 
