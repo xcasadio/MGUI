@@ -853,7 +853,7 @@ Validation:
 - recherche ciblee des fuites `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `Texture2D`, `RenderTarget2D`, `ContentManager` et `SpriteEffects` sous `MGUI.Shared` et `MGUI.Core` ;
 - aucun build ni `dotnet test` relance pour cette tache car elle borne l'architecture et ne modifie encore aucun contrat compile.
 
-### ⚪ 13. Ajouter des tests d'architecture pour epingler une architecture sans implementation de rendu dans Shared/Core
+### ✅ 13. Ajouter des tests d'architecture pour epingler une architecture sans implementation de rendu dans Shared/Core
 
 But:
 verrouiller la cible avant de reouvrir les contrats de draw.
@@ -880,6 +880,26 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 13 pin zero-implementation rendering architecture`
+
+Resultat:
+
+- une nouvelle suite `Phase4RenderingArchitectureTests` epingle l'etat transitoire exact des fuites backend de phase 4 au lieu de reposer sur un audit manuel fragile ;
+- les tokens critiques `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `Texture2D`, `RenderTarget2D`, `ContentManager` et `MainRenderer` sont maintenant verifies avec des allowlists explicites et bornees pour `MGUI.Shared` et `MGUI.Core` ;
+- la couverture distingue explicitement deux choses: les references backend encore visibles dans `Shared/Core`, et le sous-ensemble de fichiers concrets de rendu encore physiquement presents sous `MGUI.Shared` ;
+- le test de localisation physique epingle la liste exacte des fichiers concrets encore tolerees sous `MGUI.Shared`, ce qui permettra de la reduire progressivement jusqu'a zero pendant les taches 14 a 17 ;
+- les tests de phase 2 existants restent utiles pour les seams historiques, mais la phase 4 dispose maintenant de son propre point de depart mesurable.
+
+Exceptions transitoires explicitement bornees:
+
+- cote `MGUI.Shared`, les allowlists couvrent uniquement les contrats et helpers/files deja identifies par l'audit de task 12 ;
+- cote `MGUI.Core`, seules les references `GraphicsDevice`, `Texture2D` et `MainRenderer` encore presentes dans `MGDesktop`, `MGElement`, `MGGrid`, `MGUniformGrid`, `MGImage`, `MGTextureData` et `MGTexturedBorderBrush` sont autorisees ;
+- tout nouveau fichier ou nouveau token backend ajoute hors de ces allowlists fera echouer la suite d'architecture.
+
+Validation:
+
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Release --filter FullyQualifiedName~Phase4RenderingArchitectureTests` : succes ;
+- avertissements XML/nullability existants dans `MGUI.Core` et `MGUI.Tests` inchanges et hors perimetre ;
+- un premier essai en Debug a echoue a cause d'un verrou sur `MGUI.Rendering.Abstractions.dll` dans le shell PowerShell courant, sans impact sur la validite des tests eux-memes.
 
 ### ⚪ 14. Introduire des contrats backend-neutral pour formes, texte, images, clipping et buffers
 
