@@ -340,6 +340,10 @@ public class ControlTemplateInfrastructureTests
         Assert.Equal(new MonoGame.Extended.Thickness(2), theme.Window.BorderThickness);
         Assert.Equal(new MonoGame.Extended.Thickness(2), theme.Window.TitleBarPadding);
         Assert.Equal(24, theme.Window.TitleBarMinHeight);
+        Assert.Equal(new MonoGame.Extended.Thickness(1), theme.Window.CloseButtonMargin);
+        Assert.Equal(new MonoGame.Extended.Thickness(0), theme.Window.CloseButtonPadding);
+        Assert.Equal(16, theme.Window.CloseButtonMinWidth);
+        Assert.Equal(16, theme.Window.CloseButtonMinHeight);
     }
 
     [Fact]
@@ -645,7 +649,13 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("public static MGElement CreateDefaultCloseButtonContent", catalogSource);
         Assert.Contains("CloseButton.SetContent(CreateDefaultCloseButtonContent(Window));", catalogSource);
         Assert.Contains("CloseButton.SetContent(CreateDefaultCloseButtonContent(Overlay.Host.ParentWindow));", catalogSource);
+        Assert.Contains("MGCloseIcon closeIcon = new(Window)", catalogSource);
+        Assert.Contains("PreferredWidth = 10,", catalogSource);
+        Assert.Contains("PreferredHeight = 10,", catalogSource);
+        Assert.Contains("HorizontalAlignment = HorizontalAlignment.Center,", catalogSource);
+        Assert.Contains("VerticalAlignment = VerticalAlignment.Center,", catalogSource);
         Assert.DoesNotContain("CloseButton.SetContent(new MGTextBlock", catalogSource);
+        Assert.DoesNotContain("[b][shadow=Black 1 1]x[/shadow][/b]", catalogSource);
     }
 
     [Fact]

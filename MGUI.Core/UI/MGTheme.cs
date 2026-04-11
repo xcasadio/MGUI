@@ -57,10 +57,10 @@ namespace MGUI.Core.UI
         public VisualStateFillBrush CloseButtonBackground { get; set; } = new(Color.Crimson.AsFillBrush() * 0.5f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
         public IBorderBrush CloseButtonBorderBrush { get; set; } = MGUniformBorderBrush.Black;
         public Thickness CloseButtonBorderThickness { get; set; } = new(1);
-        public Thickness CloseButtonMargin { get; set; } = new(1, 1, 1, 3);
-        public Thickness CloseButtonPadding { get; set; } = new(4, -1);
-        public int CloseButtonMinWidth { get; set; } = 12;
-        public int CloseButtonMinHeight { get; set; } = 12;
+        public Thickness CloseButtonMargin { get; set; } = new(1);
+        public Thickness CloseButtonPadding { get; set; } = new(0);
+        public int CloseButtonMinWidth { get; set; } = 16;
+        public int CloseButtonMinHeight { get; set; } = 16;
         public Thickness TitleTextMargin { get; set; } = new(4, 0);
         public Thickness TitleTextPadding { get; set; } = new(0);
         public VisualStateSetting<Color?> TitleTextForeground { get; set; } = new(Color.White, Color.White, Color.White);
@@ -75,9 +75,9 @@ namespace MGUI.Core.UI
         public VisualStateFillBrush CloseButtonBackground { get; set; } = new(Color.Crimson.AsFillBrush() * 0.8f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
         public IBorderBrush CloseButtonBorderBrush { get; set; } = MGUniformBorderBrush.Black;
         public Thickness CloseButtonBorderThickness { get; set; } = new(1);
-        public Thickness CloseButtonPadding { get; set; } = new(4, -1);
-        public int CloseButtonMinWidth { get; set; } = 12;
-        public int CloseButtonMinHeight { get; set; } = 12;
+        public Thickness CloseButtonPadding { get; set; } = new(0);
+        public int CloseButtonMinWidth { get; set; } = 16;
+        public int CloseButtonMinHeight { get; set; } = 16;
     }
 
     public class MGThemeContextMenuSettings

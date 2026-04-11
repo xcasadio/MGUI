@@ -106,7 +106,17 @@ namespace MGUI.Core.UI.Styling
             => new MGTextBlock(Window, Item?.ToString() ?? string.Empty);
 
         public static MGElement CreateDefaultCloseButtonContent(MGWindow Window)
-            => new MGTextBlock(Window, "[b][shadow=Black 1 1]x[/shadow][/b]", Color.White);
+        {
+            MGCloseIcon closeIcon = new(Window)
+            {
+                Color = Color.White,
+                PreferredWidth = 10,
+                PreferredHeight = 10,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            return closeIcon;
+        }
 
         public static void ApplyListBoxItemContainerDefaults(MGElement Owner, MGBorder Item)
         {
