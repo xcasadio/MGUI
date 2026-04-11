@@ -212,7 +212,7 @@ Resultat:
 - les samples sont verrouilles sur le chemin de bootstrap explicite `MainRenderer + GameRenderHost + MonoGameRawInputSource`, ce qui donne une baseline claire avant l'ajout d'une variante de host ;
 - la validation de cette tache a ete faite avec un filtre cible host/runtime, et non avec tout `--filter Architecture`, car la suite d'architecture globale du repo contient deja des echecs hors perimetre de ce chantier.
 
-### ⚪ 3. Introduire un contrat runtime etroit cote desktop
+### ✅ 3. Introduire un contrat runtime etroit cote desktop
 
 But:
 reduire le couplage direct de `MGDesktop` au type concret `MainRenderer` quand cette dependance n'apporte rien.
@@ -239,6 +239,14 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `runtime: complete task 3 narrow desktop runtime contract`
+
+Resultat:
+
+- une interface `IUIDesktopRuntime` existe maintenant comme contrat desktop-facing minimal au-dessus de `MainRenderer` ;
+- `MainRenderer` implemente ce contrat sans perdre son role de runtime concret MonoGame ;
+- la surface publique du contrat est volontairement petite: input, fonts, surface, assets, text engine, `UpdateArgs` et `RegisterView` ;
+- le contrat n'expose ni `GraphicsDevice`, ni `SpriteBatch`, ni `PrimitiveBatch`, ni `IRenderHost`, ce qui evite de glisser vers un faux backend generique ;
+- `MGDesktop` n'utilise pas encore ce contrat a cette etape ; la tache 5 fera basculer le consommateur reel.
 
 ### ⚪ 4. Ajouter un adapter de host MonoGame par delegation
 

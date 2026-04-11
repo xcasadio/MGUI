@@ -93,7 +93,7 @@ namespace MGUI.Shared.Rendering
         }
     }
 
-    public class MainRenderer
+    public class MainRenderer : IUIDesktopRuntime
     {
         public IRenderHost Host { get; }
         public IRawInputSource RawInputSource { get; }

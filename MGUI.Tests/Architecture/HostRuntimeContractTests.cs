@@ -86,4 +86,42 @@ public class HostRuntimeContractTests
         Assert.Contains("new(new GameRenderHost<Game1>(this), new MonoGameRawInputSource())", sampleSource);
         Assert.Contains("new MainRenderer(new GameRenderHost<MiniGame>(this), new MonoGameRawInputSource())", miniGameSource);
     }
+
+    [Fact]
+    public void MainRenderer_ImplementsSmallDesktopRuntimeContract()
+    {
+        Type contractType = typeof(IUIDesktopRuntime);
+        string[] propertyNames = contractType
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToArray();
+        string[] methodNames = contractType
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(x => !x.IsSpecialName)
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToArray();
+        string[] eventNames = contractType
+            .GetEvents(BindingFlags.Instance | BindingFlags.Public)
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToArray();
+
+        Assert.Contains(contractType, typeof(MainRenderer).GetInterfaces());
+        Assert.Equal(new[]
+        {
+            "AssetProvider",
+            "FontManager",
+            "Input",
+            "Surface",
+            "TextEngine",
+            "UpdateArgs"
+        }, propertyNames);
+        Assert.Equal(new[] { "RegisterView" }, methodNames);
+        Assert.Equal(new[] { "TextEngineChanged" }, eventNames);
+        Assert.DoesNotContain(nameof(MainRenderer.Host), propertyNames);
+        Assert.DoesNotContain(nameof(MainRenderer.GraphicsDevice), propertyNames);
+        Assert.DoesNotContain(nameof(MainRenderer.GetViewport), methodNames);
+    }
 }
