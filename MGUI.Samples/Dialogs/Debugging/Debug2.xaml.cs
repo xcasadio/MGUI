@@ -1,6 +1,7 @@
 ﻿using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Shared.Assets;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -39,16 +40,17 @@ namespace MGUI.Samples.Dialogs.Debugging
 
             Texture2D BorderEdgeTexture1 = Content.Load<Texture2D>(Path.Combine("Border Textures", "1_RightEdge"));
             Texture2D BorderCornerTexture1 = Content.Load<Texture2D>(Path.Combine("Border Textures", "1_BottomRightCorner"));
-            Resources.AddTexture("BorderEdgeRegion1", new MGTextureData(BorderEdgeTexture1));
-            Resources.AddTexture("BorderCornerRegion1", new MGTextureData(BorderCornerTexture1));
+            Resources.AddTexture("BorderEdgeRegion1", new MGTextureData(new MonoGameImageResource(BorderEdgeTexture1)));
+            Resources.AddTexture("BorderCornerRegion1", new MGTextureData(new MonoGameImageResource(BorderCornerTexture1)));
 
             //  SourceMargin=52
-            Resources.AddTexture("DEBUG_9SliceTexture1", new MGTextureData(Content.Load<Texture2D>(Path.Combine("Brush Textures", "9SliceTexture-1"))));
+            Resources.AddTexture("DEBUG_9SliceTexture1", new MGTextureData(new MonoGameImageResource(Content.Load<Texture2D>(Path.Combine("Brush Textures", "9SliceTexture-1")))));
 
             //  SourceMargin=40
             Texture2D NineSliceTextureAtlas = Content.Load<Texture2D>(Path.Combine("Brush Textures", "9SliceTextures-2"));
-            Resources.AddTexture("DEBUG_9SliceTexture2", new MGTextureData(NineSliceTextureAtlas, new Rectangle(136, 532, 128, 128)));
-            Resources.AddTexture("DEBUG_9SliceTexture3", new MGTextureData(NineSliceTextureAtlas, new Rectangle(4, 400, 128, 128)));
+            MonoGameImageResource nineSliceAtlas = new(NineSliceTextureAtlas);
+            Resources.AddTexture("DEBUG_9SliceTexture2", new MGTextureData(nineSliceAtlas, new Rectangle(136, 532, 128, 128)));
+            Resources.AddTexture("DEBUG_9SliceTexture3", new MGTextureData(nineSliceAtlas, new Rectangle(4, 400, 128, 128)));
             //Resources.AddTexture("9SliceTexture3", new MGTextureData(NineSliceTextureAtlas, new Rectangle(136, 532, 128, 128)));
         }
 

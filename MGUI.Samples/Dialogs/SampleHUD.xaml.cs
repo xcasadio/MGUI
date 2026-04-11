@@ -11,6 +11,7 @@ using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework;
 using System.Runtime.CompilerServices;
 using MGUI.Shared.Helpers;
+using MGUI.Shared.Assets;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.ObjectModel;
 using MGUI.Core.UI.Containers.Grids;
@@ -156,7 +157,7 @@ namespace MGUI.Samples.Dialogs
         {
             MGResources Resources = Desktop.Resources;
 
-            Texture2D AngryMeteor = Resources.Textures["AngryMeteor"].Texture;
+            IUIImageResource AngryMeteor = Resources.Textures["AngryMeteor"].Image;
 
             int TextureTopMargin = 6;
             int TextureSpacing = 1;
@@ -203,7 +204,7 @@ namespace MGUI.Samples.Dialogs
             : base(Content, Desktop, $"{nameof(Dialogs)}", $"{nameof(SampleHUD)}.xaml", () => InitializeResources(Content, Desktop))
         {
             UpdateWindowBounds();
-            if (Desktop.Renderer.Host is GameRenderHost<Game1> Host)
+            if (Desktop.Runtime is MainRenderer renderer && renderer.Host is GameRenderHost<Game1> Host)
             {
                 // Store handler as a named delegate for proper unsubscription when the window closes
                 EventHandler<EventArgs> onClientSizeChanged = (sender, e) => UpdateWindowBounds();
@@ -345,7 +346,7 @@ namespace MGUI.Samples.Dialogs
         public string Description { get; }
 
         public MGTextureData Icon { get; }
-        public Texture2D IconTexture => Icon.Texture;
+        public IUIImageResource IconTexture => Icon.Image;
         public Rectangle? IconSourceRect => Icon.SourceRect;
 
         public TimeSpan TotalDuration { get; }
@@ -458,7 +459,7 @@ namespace MGUI.Samples.Dialogs
 
     public readonly record struct Item(MGDesktop Desktop, string Name, string Description, MGTextureData Icon)
     {
-        public Texture2D IconTexture => Icon.Texture;
+        public IUIImageResource IconTexture => Icon.Image;
         public Rectangle? IconSourceRect => Icon.SourceRect;
     }
 

@@ -411,7 +411,7 @@ namespace MGUI.Core.UI.Styling
             {
                 Margin = new(0, 0, 8, 4),
             };
-            _ = characterCount.TrySetFont(window.Desktop.FontManager.DefaultFontFamily, 9);
+            _ = characterCount.TrySetFont(window.Desktop.DefaultFontFamily, 9);
             MGTextBlock textBlock = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
             textBlock.ClipToBounds = false;
 

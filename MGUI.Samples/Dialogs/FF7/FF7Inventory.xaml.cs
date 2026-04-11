@@ -1,6 +1,7 @@
 ﻿using MGUI.Core.UI.XAML;
 using MGUI.Core.UI;
 using MGUI.Shared.Helpers;
+using MGUI.Shared.Assets;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -162,17 +163,17 @@ namespace MGUI.Samples.Dialogs.FF7
             Window.TopLeft = WindowScreenBounds.TopLeft();
 
             ItemIcon = Content.Load<Texture2D>(Path.Combine("Icons", "Item"));
-            Desktop.Resources.AddTexture("FF7ItemIcon", new MGTextureData(ItemIcon));
+            Desktop.Resources.AddTexture("FF7ItemIcon", new MGTextureData(new MonoGameImageResource(ItemIcon)));
 
             //  Create a sample Party
             Party = new();
-            PartyMember Barret = Party.AddMember("Barret", new MGTextureData(Content.Load<Texture2D>(Path.Combine("Portraits", "Barret"))), 65077, 1601, 199);
+            PartyMember Barret = Party.AddMember("Barret", new MGTextureData(new MonoGameImageResource(Content.Load<Texture2D>(Path.Combine("Portraits", "Barret")))), 65077, 1601, 199);
             Barret.CurrentHP = (int)(Barret.CurrentHP * 0.92);
             Barret.CurrentMP = (int)(Barret.CurrentMP * 0.90);
-            PartyMember Cloud = Party.AddMember("Cloud", new MGTextureData(Content.Load<Texture2D>(Path.Combine("Portraits", "Cloud"))), 70140, 1455, 232);
+            PartyMember Cloud = Party.AddMember("Cloud", new MGTextureData(new MonoGameImageResource(Content.Load<Texture2D>(Path.Combine("Portraits", "Cloud")))), 70140, 1455, 232);
             Cloud.CurrentHP = (int)(Cloud.CurrentHP * 0.77);
             Cloud.CurrentMP = (int)(Cloud.CurrentMP * 0.48);
-            PartyMember RedXIII = Party.AddMember("Red XIII", new MGTextureData(Content.Load<Texture2D>(Path.Combine("Portraits", "Red XIII"))), 55126, 1477, 204);
+            PartyMember RedXIII = Party.AddMember("Red XIII", new MGTextureData(new MonoGameImageResource(Content.Load<Texture2D>(Path.Combine("Portraits", "Red XIII")))), 55126, 1477, 204);
             RedXIII.CurrentHP = (int)(RedXIII.CurrentHP * 0.65);
             RedXIII.CurrentMP = (int)(RedXIII.CurrentMP * 0.80);
 

@@ -10,33 +10,27 @@ public class RenderingBoundaryArchitectureTests
     private static readonly string AbstractionsProjectPath = Path.Combine(RepoRoot, "MGUI.Rendering.Abstractions", "MGUI.Rendering.Abstractions.csproj");
 
     [Fact]
-    public void MGUI_Core_DirectMainRendererReferences_AreLimitedToLegacyDesktopEntryPoint()
+    public void MGUI_Core_HasNoDirectMainRendererReferences()
     {
-        AssertTokenFiles(CoreRoot, "MainRenderer", new[]
-        {
-            "UI/MGDesktop.cs"
-        });
+        AssertTokenFiles(CoreRoot, "MainRenderer", Array.Empty<string>());
     }
 
     [Fact]
-    public void MGUI_Core_DirectDrawTransactionReferences_AreLimitedToKnownRenderingFiles()
+    public void MGUI_Core_HasNoDirectDrawTransactionReferences()
     {
-        AssertTokenFiles(CoreRoot, "DrawTransaction", new[]
-        {
-            "UI/MGResources.cs",
-            "UI/MGTextureData.cs"
-        });
+        AssertTokenFiles(CoreRoot, "DrawTransaction", Array.Empty<string>());
     }
 
     [Fact]
-    public void MGUI_Core_DirectTexture2DReferences_AreLimitedToKnownResourceFiles()
+    public void MGUI_Core_HasNoDirectTexture2DReferences()
     {
-        AssertTokenFiles(CoreRoot, "Texture2D", new[]
-        {
-            "UI/Brushes/Border Brushes/MGTexturedBorderBrush.cs",
-            "UI/MGImage.cs",
-            "UI/MGTextureData.cs"
-        });
+        AssertTokenFiles(CoreRoot, "Texture2D", Array.Empty<string>());
+    }
+
+    [Fact]
+    public void MGUI_Core_HasNoDirectFontManagerReferences()
+    {
+        AssertTokenFiles(CoreRoot, "FontManager", Array.Empty<string>());
     }
 
     [Fact]

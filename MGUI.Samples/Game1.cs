@@ -74,7 +74,7 @@ namespace MGUI.Samples
             //  You only need 1 textengine, but this sample project creates multiple engines
             //  that you can toggle between by pressing F1 for demonstration purposes
 
-            SpriteFontEngine = new SpriteFontTextEngine(Desktop.FontManager);
+            SpriteFontEngine = new SpriteFontTextEngine(MGUIRenderer.FontManager);
 
             //  Initialize the FontStashSharp text engine
             try
@@ -105,7 +105,7 @@ namespace MGUI.Samples
 
                 // Calibrate per-size advance widths to match SpriteFontTextEngine exactly.
                 // Must be called after FontSizeScale is set (via AddFontSystem overload above).
-                FontStashSharpEngine.MatchSpriteFontSizing(Desktop.FontManager);
+                FontStashSharpEngine.MatchSpriteFontSizing(MGUIRenderer.FontManager);
             }
             catch (Exception ex)
             {

@@ -9,6 +9,7 @@ using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Text;
+using MGUI.Shared.Text.Engines;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -191,14 +192,20 @@ public class MGDockAutoHideStrip : MGElement
             return ButtonMinSize;
         }
 
-        string family = ParentWindow.Desktop.FontManager.DefaultFontFamily;
-        if (!ParentWindow.Desktop.FontManager.TryGetFont(family, CustomFontStyles.Normal, 11, true,
-            out _, out SpriteFont sf, out _, out _, out float scale))
+        ITextMeasurementEngine textEngine = ParentWindow.Desktop.TextEngine;
+        ResolvedFont resolved = textEngine.ResolveFont(new FontSpec(ParentWindow.Desktop.DefaultFontFamily, 11, CustomFontStyles.Normal));
+        if (!resolved.IsAvailable)
         {
             return ButtonMinSize;
         }
 
-        int textPx = (int)Math.Ceiling(sf.MeasureString(title).X * scale);
+        float textWidth = textEngine.MeasureText(resolved, title).X;
+        if (!resolved.ExactScale.IsAlmostZero())
+        {
+            textWidth = textWidth / resolved.ExactScale * resolved.SuggestedScale;
+        }
+
+        int textPx = (int)Math.Ceiling(textWidth);
         return Math.Max(ButtonMinSize, textPx + ButtonPadding);
     }
 

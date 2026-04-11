@@ -92,14 +92,14 @@ namespace MGUI.Samples.Controls
             };
 
             OnEndUpdateHandler = HandleEndUpdate;
-            if (Desktop.Renderer.Host is IObservableUpdate observable)
+            if (Desktop.Runtime is MainRenderer renderer && renderer.Host is IObservableUpdate observable)
             {
                 observable.EndUpdate += OnEndUpdateHandler;
             }
 
             Window.WindowClosed += (_, __) =>
             {
-                if (Desktop.Renderer.Host is IObservableUpdate observableHost)
+                if (Desktop.Runtime is MainRenderer renderer && renderer.Host is IObservableUpdate observableHost)
                 {
                     observableHost.EndUpdate -= OnEndUpdateHandler;
                 }

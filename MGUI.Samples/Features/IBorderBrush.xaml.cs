@@ -2,6 +2,7 @@
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Data_Binding;
+using MGUI.Shared.Assets;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -26,8 +27,8 @@ namespace MGUI.Samples.Features
             MGResources Resources = Desktop.Resources;
             Texture2D BorderEdgeTexture1 = Content.Load<Texture2D>(Path.Combine("Border Textures", "1_RightEdge"));
             Texture2D BorderCornerTexture1 = Content.Load<Texture2D>(Path.Combine("Border Textures", "1_BottomRightCorner"));
-            Resources.AddTexture("BorderEdgeTexture1", new MGTextureData(BorderEdgeTexture1));
-            Resources.AddTexture("BorderCornerTexture1", new MGTextureData(BorderCornerTexture1));
+            Resources.AddTexture("BorderEdgeTexture1", new MGTextureData(new MonoGameImageResource(BorderEdgeTexture1)));
+            Resources.AddTexture("BorderCornerTexture1", new MGTextureData(new MonoGameImageResource(BorderCornerTexture1)));
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

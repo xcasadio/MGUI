@@ -1,5 +1,6 @@
 ﻿using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Shared.Assets;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -293,12 +294,13 @@ namespace MGUI.Samples.Features
             MGResources Resources = Desktop.Resources;
 
             //  SourceMargin=52
-            Resources.AddTexture("Samples_9SliceTexture1", new MGTextureData(Content.Load<Texture2D>(Path.Combine("Brush Textures", "9SliceTexture-1"))));
+            Resources.AddTexture("Samples_9SliceTexture1", new MGTextureData(new MonoGameImageResource(Content.Load<Texture2D>(Path.Combine("Brush Textures", "9SliceTexture-1")))));
 
             //  SourceMargin=40
             Texture2D NineSliceTextureAtlas = Content.Load<Texture2D>(Path.Combine("Brush Textures", "9SliceTextures-2"));
-            Resources.AddTexture("Samples_9SliceTexture2", new MGTextureData(NineSliceTextureAtlas, new Rectangle(136, 532, 128, 128)));
-            Resources.AddTexture("Samples_9SliceTexture3", new MGTextureData(NineSliceTextureAtlas, new Rectangle(4, 400, 128, 128)));
+            MonoGameImageResource nineSliceAtlas = new(NineSliceTextureAtlas);
+            Resources.AddTexture("Samples_9SliceTexture2", new MGTextureData(nineSliceAtlas, new Rectangle(136, 532, 128, 128)));
+            Resources.AddTexture("Samples_9SliceTexture3", new MGTextureData(nineSliceAtlas, new Rectangle(4, 400, 128, 128)));
             //Resources.AddTexture("9SliceTexture3", new MGTextureData(NineSliceTextureAtlas, new Rectangle(136, 532, 128, 128)));
         }
 

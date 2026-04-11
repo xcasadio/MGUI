@@ -48,15 +48,20 @@ public class HostRuntimeContractTests
     }
 
     [Fact]
-    public void MGDesktop_ExposesDesktopRuntimeAndKeepsCompatibilityRendererPath()
+    public void MGDesktop_ExposesDesktopRuntimeWithoutConcreteRendererPath()
     {
         ConstructorInfo? runtimeConstructor = typeof(MGDesktop).GetConstructor(new[] { typeof(IUIDesktopRuntime) });
-        ConstructorInfo? compatibilityConstructor = typeof(MGDesktop).GetConstructor(new[] { typeof(MainRenderer) });
+        ConstructorInfo[] constructors = typeof(MGDesktop).GetConstructors(BindingFlags.Instance | BindingFlags.Public);
 
         Assert.NotNull(runtimeConstructor);
-        Assert.NotNull(compatibilityConstructor);
+        Assert.DoesNotContain(constructors, constructor =>
+        {
+            ParameterInfo[] parameters = constructor.GetParameters();
+            return parameters.Length == 1 && parameters[0].ParameterType == typeof(MainRenderer);
+        });
         Assert.Equal(typeof(IUIDesktopRuntime), typeof(MGDesktop).GetProperty(nameof(MGDesktop.Runtime))!.PropertyType);
-        Assert.Equal(typeof(MainRenderer), typeof(MGDesktop).GetProperty(nameof(MGDesktop.Renderer))!.PropertyType);
+        Assert.Equal(typeof(string), typeof(MGDesktop).GetProperty(nameof(MGDesktop.DefaultFontFamily))!.PropertyType);
+        Assert.Null(typeof(MGDesktop).GetProperty("Renderer", BindingFlags.Instance | BindingFlags.Public));
     }
 
     [Fact]

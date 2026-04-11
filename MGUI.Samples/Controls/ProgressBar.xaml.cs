@@ -20,7 +20,7 @@ namespace MGUI.Samples.Controls
             {
                 MGTextureData SteelFloor = Resources.Textures["SteelFloor"];
                 Rectangle SteelFloorSourceRect = SteelFloor.SourceRect.Value;
-                Resources.AddTexture("BorderlessSteelFloor", new(SteelFloor.Texture, SteelFloorSourceRect.GetCompressed(1)));
+                Resources.AddTexture("BorderlessSteelFloor", new(SteelFloor.Image, SteelFloorSourceRect.GetCompressed(1)));
             }
         }
 

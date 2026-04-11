@@ -36,15 +36,14 @@ namespace MGUI.Core.UI
         private sealed record ModalStackEntry(MGWindow Owner, MGWindow Modal);
 
         public IUIDesktopRuntime Runtime { get; }
-        public MainRenderer Renderer => Runtime as MainRenderer
-            ?? throw new InvalidOperationException($"{nameof(MGDesktop)}.{nameof(Renderer)} requires a concrete {nameof(MainRenderer)} for legacy access paths.");
         public UIView View { get; private set; }
         public UIViewState State { get; }
         public UIFocusNavigationService NavigationService { get; }
         public InputTracker InputTracker => Runtime.Input;
-        public FontManager FontManager => Renderer.FontManager;
+        public string DefaultFontFamily => Runtime.DefaultFontFamily;
         private List<ModalStackEntry> ModalStackEntries { get; } = new();
         public IReadOnlyList<MGWindow> ActiveModalWindows => ModalStackEntries.Select(x => x.Modal).ToList();
+        internal event EventHandler EndUpdate;
 
         internal void SyncModalStack(MGWindow owner, IReadOnlyList<MGWindow> modalWindows)
         {
@@ -1253,11 +1252,6 @@ namespace MGUI.Core.UI
             #endregion Docking Icons
         }
 
-        public MGDesktop(MainRenderer Renderer)
-            : this((IUIDesktopRuntime)Renderer)
-        {
-        }
-
         public MGDesktop(IUIDesktopRuntime Runtime)
         {
             ApartmentState ThreadState = Thread.CurrentThread.GetApartmentState();
@@ -1456,6 +1450,7 @@ namespace MGUI.Core.UI
             SanitizeKeyboardFocusState();
             ApplyQueuedFocusChange();
             SanitizeKeyboardFocusState();
+            EndUpdate?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>Traverses up the visual tree, starting from the given <paramref name="Element"/>, looking for an <see cref="MGElement"/> that is fully opaque (<see cref="MGElement.Opacity"/> >= 1.0f)</summary>

@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI;
+using MGUI.Shared.Assets;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -16,7 +17,7 @@ namespace MGUI.Samples.Controls
         public ImageSamples(ContentManager Content, MGDesktop Desktop)
             : base(Content, Desktop, $"{nameof(Controls)}", "Image.xaml")
         {
-            Texture2D AngryMeteorTexture = Desktop.Resources.Textures["AngryMeteor"].Texture;
+            IUIImageResource AngryMeteorTexture = Desktop.Resources.Textures["AngryMeteor"].Image;
 
             const int TextureTopMargin = 6;
             const int TextureSpacing = 1;

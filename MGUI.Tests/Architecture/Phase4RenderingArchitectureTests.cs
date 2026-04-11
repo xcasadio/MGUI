@@ -95,16 +95,11 @@ public class Phase4RenderingArchitectureTests
         AssertTokenFiles(CoreRoot, "SpriteBatch", Array.Empty<string>());
         AssertTokenFiles(CoreRoot, "PrimitiveBatch", Array.Empty<string>());
 
-        AssertTokenFiles(CoreRoot, "Texture2D", new[]
-        {
-            "UI/Brushes/Border Brushes/MGTexturedBorderBrush.cs",
-            "UI/MGImage.cs",
-            "UI/MGTextureData.cs"
-        });
+        AssertTokenFiles(CoreRoot, "Texture2D", Array.Empty<string>());
 
         AssertTokenFiles(CoreRoot, "RenderTarget2D", Array.Empty<string>());
         AssertTokenFiles(CoreRoot, "ContentManager", Array.Empty<string>());
-        AssertTokenFiles(CoreRoot, "MainRenderer", new[] { "UI/MGDesktop.cs" });
+        AssertTokenFiles(CoreRoot, "MainRenderer", Array.Empty<string>());
     }
 
     [Fact]

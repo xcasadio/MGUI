@@ -63,12 +63,6 @@ namespace MGUI.Core.UI
         public MGResourceDefinitions Definitions { get; }
         public MGResourceRuntimeCache RuntimeCache { get; }
 
-        public MGResources(FontManager FontManager)
-            : this(new MGTheme(FontManager.DefaultFontFamily), null, null, UIResourceScope.Desktop) { }
-
-        public MGResources(FontManager FontManager, IUIAssetProvider AssetProvider)
-            : this(new MGTheme(FontManager.DefaultFontFamily), AssetProvider, null, UIResourceScope.Desktop) { }
-
         public MGResources(MGTheme DefaultTheme)
             : this(DefaultTheme, null, null, UIResourceScope.Desktop) { }
 
@@ -234,15 +228,6 @@ namespace MGUI.Core.UI
                 return false;
             }
         }
-
-        public bool TryDrawTexture(DrawTransaction DT, string Name, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
-            => TryDrawTexture((IUIDrawContext)DT, Name, TargetBounds, Opacity, Color);
-        public bool TryDrawTexture(DrawTransaction DT, MGTextureData? TextureData, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
-            => TryDrawTexture((IUIDrawContext)DT, TextureData, TargetBounds, Opacity, Color);
-        public bool TryDrawTexture(DrawTransaction DT, string Name, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
-            => TryDrawTexture((IUIDrawContext)DT, Name, Position, Width, Height, Opacity, Color);
-        public bool TryDrawTexture(DrawTransaction DT, MGTextureData? TextureData, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
-            => TryDrawTexture((IUIDrawContext)DT, TextureData, Position, Width, Height, Opacity, Color);
 
         public event EventHandler<(string Name, MGTextureData Data)> OnTextureAdded;
         public event EventHandler<(string Name, MGTextureData Data)> OnTextureRemoved;

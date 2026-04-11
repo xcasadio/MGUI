@@ -164,7 +164,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
                         Rectangle ActualSourceRect = MiddleCenter.SourceRect.Value;
                         Rectangle? SourceRect = new Rectangle(ActualSourceRect.X, ActualSourceRect.Y, Destination.Width, Destination.Height); // MiddleCenter.SourceRect;
-                        DT.DrawTextureTo(MiddleCenter.Texture, SourceRect, Destination, Color.White * MiddleCenter.Opacity * DA.Opacity);
+                        DT.DrawTextureTo(MiddleCenter.Image, SourceRect, Destination, Color.White * MiddleCenter.Opacity * DA.Opacity);
                     }
 #else
                     MiddleCenter.Draw(DT, new Rectangle(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize, CenterColumnSize, CenterRowSize), null, DA.Opacity);

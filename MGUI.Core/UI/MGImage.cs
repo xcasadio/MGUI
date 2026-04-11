@@ -205,9 +205,6 @@ namespace MGUI.Core.UI
         public MGImage(MGWindow Window, IUIImageResource Image, Rectangle? SourceRect = null, Color? TextureColor = null, Stretch Stretch = Stretch.Uniform)
             : this(Window, new MGTextureData(Image, SourceRect), TextureColor, Stretch) { }
 
-        public MGImage(MGWindow Window, Texture2D Texture, Rectangle? SourceRect = null, Color? TextureColor = null, Stretch Stretch = Stretch.Uniform)
-            : this(Window, new MGTextureData(Texture, SourceRect), TextureColor, Stretch) { }
-
         public MGImage(MGWindow Window, MGTextureData Source, Color? TextureColor = null, Stretch Stretch = Stretch.Uniform)
             : base(Window, MGElementType.Image)
         {

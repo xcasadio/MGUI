@@ -944,7 +944,7 @@ Validation:
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~Architecture.AssetProviderTests|FullyQualifiedName~Architecture.SurfaceAbstractionTests|FullyQualifiedName~Architecture.RenderContextTests|FullyQualifiedName~Architecture.HostRuntimeContractTests|FullyQualifiedName~Architecture.Phase4RenderingArchitectureTests|FullyQualifiedName~Architecture.UIViewTests"` : succes, 32 tests passes ;
 - avertissements XML/nullability existants dans `MGUI.Core`, `MGUI.Shared`, `MGUI.MonoGame` et `MGUI.Tests` inchanges et hors perimetre de la task.
 
-### ⚪ 15. Migrer Shared et Core vers les nouveaux contrats de backend de rendu
+### ✅ 15. Migrer Shared et Core vers les nouveaux contrats de backend de rendu
 
 But:
 retaper les chemins de draw du coeur UI pour qu'ils ne dependent plus d'objets ou de signatures MonoGame.
@@ -971,6 +971,21 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `core: complete task 15 migrate shared and core draw paths to backend contracts`
+
+Resultat:
+
+- `MGUI.Core` n'expose plus `MainRenderer`, `DrawTransaction`, `Texture2D` ni `FontManager` dans sa surface publique de draw/runtime ; les derniers raccourcis `MGDesktop.Renderer`, `MGDesktop(MainRenderer)`, `MGDesktop.FontManager`, `MGTextureData.Texture`, `MGTextureData.Draw(DrawTransaction, ...)`, `MGResources.TryDrawTexture(DrawTransaction, ...)` et les constructeurs `Texture2D` de `MGImage` / `MGTexturedBorderBrush` ont ete retires ;
+- le chemin nominal du desktop repose maintenant uniquement sur `IUIDesktopRuntime`, `DefaultFontFamily`, `ITextMeasurementEngine` et `IUIDrawTransaction`, avec un petit evenement interne `MGDesktop.EndUpdate` pour remplacer l'ancien crochet `Renderer.Host.EndUpdate` utilise par `MGListBox` ;
+- les call sites texte restant dans `Core` (`MGDockAutoHideStrip`, `MGRotatedTextLabel`, `MGTextBlock`, `MGControlTemplateCatalog`) ont ete reroutes vers `Runtime.DefaultFontFamily` et `TextEngine.ResolveFont(...)`, ce qui retire la derniere dependance publique au `FontManager` concret ;
+- les chemins image/brush restent maintenant fondes sur `IUIImageResource` et `IUIDrawContext` dans `MGTextureData`, `MGResources`, `MGImage`, `MGTexturedBorderBrush` et `MGNineSliceFillBrush` ; les samples qui construisaient encore des `MGTextureData` depuis des `Texture2D` bruts ont ete adaptes pour encapsuler explicitement ces textures dans `MonoGameImageResource` hors de `Core` ;
+- les tests d'architecture ont ete durcis pour figer l'objectif de phase 4: `MGUI.Core` est maintenant a zero reference directe sur `MainRenderer`, `DrawTransaction`, `Texture2D`, `RenderTarget2D`, `SpriteBatch`, `ContentManager` et `FontManager`.
+
+Validation:
+
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-restore` : succes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Release --filter "FullyQualifiedName~Architecture.AssetProviderTests|FullyQualifiedName~Architecture.SurfaceAbstractionTests|FullyQualifiedName~Architecture.RenderContextTests|FullyQualifiedName~Architecture.HostRuntimeContractTests|FullyQualifiedName~Architecture.Phase4RenderingArchitectureTests|FullyQualifiedName~Architecture.UIViewTests|FullyQualifiedName~Architecture.RenderingBoundaryArchitectureTests"` : succes, 40 tests passes ;
+- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj -c Release --no-restore` : succes ;
+- avertissements XML/nullability existants dans `MGUI.Core` et `MGUI.Tests`, ainsi que l'avertissement EOL `net6.0-windows` dans `MGUI.Samples`, inchanges et hors perimetre de la task.
 
 ### ⚪ 16. Redefinir MainRenderer comme simple adapter de backend MonoGame
 

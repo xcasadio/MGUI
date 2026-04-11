@@ -99,7 +99,8 @@ namespace MGUI.Core.UI
 
                 // Validate that the requested font exists before committing the change
                 int effectiveFontSize = Math.Max(1, UIResponsiveMath.ScaleInt(FontSize, ResponsiveTextScaleFactor));
-                if (!GetDesktop().FontManager.TryGetFont(FontFamily, CustomFontStyles.Normal, effectiveFontSize, true, out _, out _, out _, out _, out _))
+                ResolvedFont validationFont = TextEngine.ResolveFont(new FontSpec(FontFamily, effectiveFontSize, CustomFontStyles.Normal));
+                if (!validationFont.IsAvailable || validationFont.IsFallback)
                 {
                     return false;
                 }
@@ -138,7 +139,7 @@ namespace MGUI.Core.UI
 
         protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
-            string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().FontManager.DefaultFontFamily;
+            string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
             int PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
             bool UsesThemeFontFamily = string.Equals(FontFamily, PreviousDefaultFontFamily, StringComparison.Ordinal);
             bool UsesThemeFontSize = FontSize == PreviousDefaultFontSize;
@@ -149,8 +150,8 @@ namespace MGUI.Core.UI
 
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
-            string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().FontManager.DefaultFontFamily;
-            string CurrentDefaultFontFamily = CurrentTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().FontManager.DefaultFontFamily;
+            string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
+            string CurrentDefaultFontFamily = CurrentTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
             int PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
             int CurrentDefaultFontSize = CurrentTheme?.FontSettings.DefaultFontSize ?? FontSize;
 
@@ -670,7 +671,7 @@ namespace MGUI.Core.UI
 
                 MGDesktop Desktop = GetDesktop();
                 MGTheme Theme = GetTheme();
-                if (!TrySetFont(Theme.FontSettings.DefaultFontFamily ?? Desktop.FontManager.DefaultFontFamily, FontSize ?? GetTheme().FontSettings.DefaultFontSize))
+                if (!TrySetFont(Theme.FontSettings.DefaultFontFamily ?? Desktop.DefaultFontFamily, FontSize ?? GetTheme().FontSettings.DefaultFontSize))
                 {
                     throw new ArgumentException($"Default font not found.");
                 }

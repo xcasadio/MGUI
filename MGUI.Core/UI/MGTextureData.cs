@@ -2,7 +2,6 @@
 using MGUI.Shared.Assets;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using System;
 using System.Collections.Generic;
@@ -16,11 +15,6 @@ namespace MGUI.Core.UI
     /// See also: <see cref="RenderSize"/></param>
     public readonly record struct MGTextureData(IUIImageResource Image, Rectangle? SourceRect = null, float Opacity = 1f, Size? RenderSizeOverride = null)
     {
-        public MGTextureData(Texture2D Texture, Rectangle? SourceRect = null, float Opacity = 1f, Size? RenderSizeOverride = null)
-            : this(new MonoGameImageResource(Texture), SourceRect, Opacity, RenderSizeOverride) { }
-
-        public Texture2D Texture => Image.GetTexture2D();
-
         /// <summary>The actual size this texture will be drawn at if using <see cref="Draw(IUIDrawContext, Point, Microsoft.Xna.Framework.Color?, float)"/></summary>
         public Size RenderSize => RenderSizeOverride ?? SourceRect?.Size.AsSize() ?? new Size(Image.Width, Image.Height);
 
@@ -31,11 +25,5 @@ namespace MGUI.Core.UI
 
         public void Draw(IUIDrawContext Context, Rectangle Destination, Color? Color = null, float Opacity = 1f)
             => Context.DrawTextureTo(Image, SourceRect, Destination, (Color ?? Microsoft.Xna.Framework.Color.White) * this.Opacity * Opacity);
-
-        public void Draw(DrawTransaction DT, Point Position, Color? Color = null, float Opacity = 1f)
-            => Draw((IUIDrawContext)DT, Position, Color, Opacity);
-
-        public void Draw(DrawTransaction DT, Rectangle Destination, Color? Color = null, float Opacity = 1f)
-            => Draw((IUIDrawContext)DT, Destination, Color, Opacity);
     }
 }

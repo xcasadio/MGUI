@@ -2,7 +2,6 @@ using System.Reflection;
 using MGUI.Core.UI;
 using MGUI.Shared.Assets;
 using MGUI.Shared.Rendering;
-using Microsoft.Xna.Framework.Graphics;
 
 namespace MGUI.Tests.Architecture;
 
@@ -67,9 +66,9 @@ public class AssetProviderTests
     }
 
     [Fact]
-    public void MGTextureData_UsesOpaqueImageResourceContractWithLegacyTextureCompatibility()
+    public void MGTextureData_UsesOpaqueImageResourceContract()
     {
         Assert.Equal(typeof(IUIImageResource), typeof(MGTextureData).GetProperty(nameof(MGTextureData.Image))!.PropertyType);
-        Assert.Equal(typeof(Texture2D), typeof(MGTextureData).GetProperty(nameof(MGTextureData.Texture))!.PropertyType);
+        Assert.Null(typeof(MGTextureData).GetProperty("Texture", BindingFlags.Instance | BindingFlags.Public));
     }
 }

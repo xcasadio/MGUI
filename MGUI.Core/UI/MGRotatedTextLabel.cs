@@ -91,10 +91,10 @@ public class MGRotatedTextLabel : MGElement
             return;
         }
 
-        string family = ParentWindow.Desktop.FontManager.DefaultFontFamily;
+        string family = ParentWindow.Desktop.DefaultFontFamily;
         ITextMeasurementEngine textEngine = GetTextEngine();
         ResolvedFont resolved = textEngine.ResolveFont(new FontSpec(family, FontSize, CustomFontStyles.Normal));
-        if (resolved?.NativeFont == null)
+        if (!resolved.IsAvailable)
         {
             return;
         }
