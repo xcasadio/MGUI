@@ -51,13 +51,14 @@ Ce document est destine a un agent IA implementeur.
 
 ## Strategie generale
 
-Le chantier est volontairement coupe en 3 phases:
+Le chantier est maintenant coupe en 4 phases:
 
 - Phase 1: figer la frontiere. L'objectif est de cartographier les fuites MonoGame, verrouiller les limites du chantier et introduire les contrats backend-neutral minimums.
 - Phase 2: basculer le coeur UI. L'objectif est de faire dependre `MGUI.Core` de contrats de rendu, d'images et de texte plus etroits que le backend MonoGame.
 - Phase 3: isoler physiquement le backend. L'objectif est de sortir l'implementation MonoGame dans un backend explicite, puis mettre a jour les samples, la doc et les tests de stabilisation.
+- Phase 4: sortir completement l'implementation de rendu de `MGUI.Shared` et `MGUI.Core`. L'objectif est de permettre a un moteur hote de dessiner les formes, le texte et les buffers avec ses propres outils, sans dependre des primitives MonoGame dans les contrats publics.
 
-Le plan doit rester MonoGame-first pendant toute l'execution: on prepare un seam reel pour d'autres backends, mais on ne tente pas d'implementer un second moteur dans ce chantier.
+Les phases 1 a 3 ont ete menees en mode MonoGame-first pour stabiliser la frontiere. La phase 4 change explicitement de cible: MonoGame reste une implementation de reference, mais les contrats de rendu ne doivent plus etre modeles sur `GraphicsDevice`, `SpriteBatch`, `Texture2D`, `RenderTarget2D` ou d'autres details MonoGame.
 
 ## Validation minimale apres chaque tache
 
@@ -141,6 +142,14 @@ Les noms finaux de projets peuvent etre ajustes pendant la tache 1, mais la fron
 9. `core: complete task 9 migrate remaining core rendering leaks`
 10. `samples: complete task 10 adopt explicit monogame backend bootstrap`
 11. `docs: complete task 11 document rendering backend architecture`
+12. `rendering: complete task 12 audit remaining backend owned render seams`
+13. `test: complete task 13 pin zero-implementation rendering architecture`
+14. `contracts: complete task 14 add engine owned render backend contracts`
+15. `core: complete task 15 migrate shared and core draw paths to backend contracts`
+16. `backend: complete task 16 redefine monogame renderer as backend adapter`
+17. `backend: complete task 17 move concrete render sources fully out of shared`
+18. `test: complete task 18 prove engine owned shapes text and buffers`
+19. `docs: complete task 19 document custom render backend integration`
 
 ## Taches
 
@@ -718,3 +727,324 @@ Validation:
 - tache documentaire uniquement ; aucun build ni test runtime supplementaire n'etait necessaire ;
 - verification du repo: `Docs/rendering-backend-architecture.md` existe bien ;
 - verification du repo: `README.md` et `Docs/monogame-host-integration-guide.md` referencent tous deux `MonoGameBackendBootstrap.Create(...)` et sont donc aligns sur le point d'entree backend livre a la tache 10.
+
+## Phase 4 - Sortir completement le backend de rendu de Shared et Core
+
+Cette phase repart du constat suivant:
+
+- `MGUI.Core` ne depend deja plus directement du renderer concret, mais les contrats de draw publics exposent encore des types et des modes de travail MonoGame ;
+- `MGUI.Shared` contient encore des interfaces et helpers de rendu qui parlent de `Texture2D`, `RenderTarget2D`, `GraphicsDevice`, `SpriteBatch`, `SpriteEffects` ou `ContentManager` ;
+- un moteur hote ne peut donc pas encore prendre totalement en charge le dessin des formes, du texte et des buffers avec ses propres outils ;
+- les fichiers de source concrets du renderer MonoGame vivent encore physiquement sous `MGUI.Shared`, meme s'ils sont compiles par `MGUI.MonoGame`.
+
+La cible explicite de cette phase est plus forte que la precedente:
+
+- aucune implementation concrete de rendu ne doit rester dans `MGUI.Shared` ou `MGUI.Core` ;
+- `MGUI.Shared` et `MGUI.Rendering.Abstractions` ne doivent exposer que des contrats backend-neutral ;
+- la gestion du dessin des formes, du texte, des images, du clipping et des buffers offscreen doit appartenir au backend ou au moteur hote ;
+- MonoGame doit devenir une implementation concrete parmi d'autres, pas le moule des interfaces publiques.
+
+Hotspots a auditer en priorite pour cette phase:
+
+- `MGUI.Shared/Rendering/IUIDrawContext.cs`
+- `MGUI.Shared/Rendering/IUIRenderContext.cs`
+- `MGUI.Shared/Rendering/IUISurface.cs`
+- `MGUI.Shared/Assets/IUIAssetProvider.cs`
+- `MGUI.Shared/Text/Engines/IMonoGameTextRenderer.cs`
+- `MGUI.Shared/Rendering/MainRenderer.cs`
+- `MGUI.Shared/Rendering/DrawTransaction.cs`
+- `MGUI.Shared/Rendering/View.cs`
+- `MGUI.Shared/Rendering/DrawSettings.cs`
+- `MGUI.Core/UI/MGDesktop.cs`
+- `MGUI.Core/UI/MGResources.cs`
+- `MGUI.Core/UI/MGTextureData.cs`
+
+Contraintes supplementaires pour cette phase:
+
+- ne pas introduire une pseudo-abstraction qui ne ferait que renommer `SpriteBatch`, `GraphicsDevice` ou `RenderTarget2D` ;
+- ne pas laisser des fichiers d'implementation concrete sous `MGUI.Shared` une fois la phase terminee ;
+- si une compatibilite legacy doit subsister, la confiner au backend MonoGame et la couvrir par un test d'architecture explicite ;
+- si aucun second moteur reel n'est disponible dans le repo, prouver la portabilite avec un backend de test ou un harness minimal qui exerce formes, texte et buffers.
+
+### ✅ 12. Re-auditer les seams de rendu encore possedes par le backend
+
+But:
+figer la nouvelle cible complete d'extraction du backend de rendu apres les phases 1 a 3.
+
+Travail attendu:
+
+- inventorier tous les contrats, helpers et sources de `MGUI.Shared` et `MGUI.Core` qui exposent encore des primitives MonoGame ou des comportements de rendu concrets ;
+- separer clairement ce qui doit devenir backend-neutral, ce qui doit migrer vers `MGUI.MonoGame`, et ce qui peut rester simple helper partage sans contenir d'implementation de draw ;
+- documenter les blocages exacts qui empechent aujourd'hui un moteur hote de gerer lui-meme les formes, le texte et les buffers ;
+- figer la cible architecturale finale: `Shared/Core` sans implementation concrete de rendu, backend possedant totalement le draw et les buffers.
+
+Livrable:
+
+- matrice des fuites residuelles de phase 4 ;
+- liste priorisee des seams a reouvrir ;
+- decision explicite sur le futur role de `MainRenderer`, `DrawTransaction`, `View`, `IUISurface` et `IMonoGameTextRenderer`.
+
+Criteres d'acceptation:
+
+- il n'y a plus d'ambiguite sur ce qui doit quitter `Shared` et `Core` ;
+- les types MonoGame a eliminer des contrats publics sont listes explicitement ;
+- l'ordre des taches 13 a 19 est justifie par cette cartographie.
+
+Commit recommande:
+
+- `rendering: complete task 12 audit remaining backend owned render seams`
+
+Resultat:
+
+- le blocage principal n'est plus seulement la presence de `MainRenderer` dans certains chemins legacy ; ce sont surtout les contrats publics de `Shared` qui restent dessines autour de primitives MonoGame et empechent un moteur hote de posseder formes, texte et buffers sans emuler l'API MonoGame ;
+- `IUIDrawContext`, `IUIRenderContext`, `IUISurface`, `IUIAssetProvider`, `IMonoGameTextRenderer`, `IRenderHost` et `DrawSettings` forment encore un noyau de contrats backend-shaped qui doit etre reouvert avant toute extraction physique definitive ;
+- plusieurs fichiers de rendu concret sont encore physiquement sous `MGUI.Shared` et compilent comme implementation MonoGame cachee: `MainRenderer`, `DrawTransaction`, `View`, `BackBufferSurface`, `RenderTargetPool`, `ContentUtils`, `TextureUtils`, `RenderUtils`, `MonoGameImageResource` ;
+- `MGUI.Core` a encore des call sites qui observent ou exigent des details GPU concrets: scissor via `GraphicsDevice`, constructeurs `Texture2D` dans `MGImage` et `MGTexturedBorderBrush`, acces `Texture2D` dans `MGTextureData`, et commentaires/API qui continuent de modeler la ressource image comme une texture MonoGame ;
+- la cible finale retenue pour la phase 4 est la suivante: `MGUI.Core` et `MGUI.Shared` ne portent plus aucune implementation concrete de rendu ni aucun contrat public qui exige un objet GPU MonoGame ; `MGUI.MonoGame` devient le seul proprietaire des draw commands concretes, du texte backend, des surfaces offscreen et des pools de buffers ;
+- l'ordre des taches 13 a 19 est confirme: d'abord epingler l'etat cible par tests d'architecture, ensuite redessiner les contrats, puis migrer les call sites coeur, redefinir `MainRenderer`, et seulement apres deplacer physiquement les sources concretes.
+
+Types MonoGame a eliminer des contrats publics de phase 4:
+
+- `GraphicsDevice`
+- `SpriteBatch`
+- `PrimitiveBatch`
+- `Texture2D`
+- `RenderTarget2D`
+- `ContentManager`
+- `SpriteEffects`
+- `BlendState`
+- `SamplerState`
+- `RasterizerState`
+- `DepthStencilState`
+- `Effect`
+
+Matrice des fuites residuelles de phase 4:
+
+| Zone | Fuites observees | Cible retenue | Impact sur un moteur hote |
+| --- | --- | --- | --- |
+| Contrats de draw publics | `IUIDrawContext` expose encore `Texture2D` et `SpriteEffects`; `IUIRenderContext` expose `GraphicsDevice`, `SetRenderTargetTemporary(RenderTarget2D, ...)`; `IUISurface` retourne `RenderTarget2D` ; `DrawSettings` encapsule `BlendState`, `SamplerState`, `DepthStencilState`, `RasterizerState`, `Effect` et sait faire `SpriteBatch.Begin(...)` | a redefinir en contrats backend-neutral dans `MGUI.Rendering.Abstractions` | aujourd'hui un moteur hote doit fournir ou mimer des objets MonoGame au lieu de simplement implementer des capacites de draw |
+| Assets et images | `IUIAssetProvider` expose `ContentManager` et `Texture2D`; `MonoGameImageResource` et `UIImageResourceExtensions.GetTexture2D()` sont encore sous `MGUI.Shared`; `MGTextureData` garde un constructeur `Texture2D` et une propriete `Texture`; `MGImage` et `MGTexturedBorderBrush` gardent des constructeurs `Texture2D` | garder seulement des handles/contracts image neutres dans `Shared/Core`; pousser les adaptateurs `Texture2D` dans `MGUI.MonoGame` | le moteur hote ne peut pas fournir son propre format image sans retomber sur `Texture2D` |
+| Texte | `IMonoGameTextRenderer.DrawText(...)` exige `SpriteBatch` et `SpriteEffects`; `MainRenderer.TextEngine` impose encore qu'un moteur de mesure implemente aussi ce contrat de draw MonoGame | separer strictement mesure/layout et draw texte backend ; garder le draw texte MonoGame seulement dans `MGUI.MonoGame` | impossible de brancher un moteur texte proprietaire sans emuler le pipeline `SpriteBatch` |
+| Runtime et bootstrap | `MainRenderer` porte `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `ContentManager`, `FontManager`, les vues et la creation concrete de `DrawTransaction`; `IRenderHost` et `BackBufferSurface` sont encore modeles sur `GraphicsDevice` et le backbuffer MonoGame ; `View` depend directement de `MainRenderer` et expose `GraphicsDevice` | rabattre `Shared/Core` sur `IUIDesktopRuntime` + contrats backend-neutral ; releguer `MainRenderer`, `IRenderHost`, `View` et les surfaces MonoGame au backend | un backend alternatif doit aujourd'hui copier la forme de `MainRenderer` plutot que simplement implementer un runtime |
+| Buffers et surfaces offscreen | `RenderTargetPool` gere directement `RenderTarget2D`; `RenderUtils.CreateRenderTarget(...)` cree des render targets MonoGame; `IUISurface` et `SetRenderTargetTemporary(...)` exposent le buffer concret au coeur | introduire des handles de surface/buffer opaques et laisser le backend posseder l'allocation/recyclage | un moteur hote ne peut pas brancher son propre systeme de buffers sans repasser par `RenderTarget2D` |
+| Helpers GPU physiques encore sous `MGUI.Shared` | `ContentUtils`, `TextureUtils`, `RenderUtils`, `SolidColorTexture`, `RenderTargetPool`, `BackBufferSurface`, `MainRenderer`, `DrawTransaction`, `View`, `MonoGameImageResource` | sortir integralement ces sources vers `MGUI.MonoGame` ou les supprimer si elles deviennent purement legacy | la separation projet/source reste trompeuse tant que `Shared` heberge l'implementation concrete |
+| Fuites residuelles cote `MGUI.Core` | `MGElement`, `MGDesktop`, `MGGrid`, `MGUniformGrid` lisent `GraphicsDevice.ScissorRectangle`; `MGTexturedBorderBrush` et `MGImage` gardent des chemins `Texture2D`; plusieurs commentaires publics continuent de documenter les ressources UI comme des textures MonoGame | migrer ces call sites vers des capacites de clip/image backend-neutral ; cantonner tout shim legacy au backend | le coeur UI observe encore des details GPU qui ne devraient plus lui etre visibles |
+| Valeurs mathematiques et couleurs | `Color`, `Point`, `Rectangle`, `Vector2`, `Matrix` restent omnipresents | toleres provisoirement dans cette phase | ces types ne bloquent pas a eux seuls la propriete du rendu tant qu'ils ne transportent pas des ressources GPU |
+
+Seams a reouvrir en priorite:
+
+1. redefinir `IUIDrawContext`, `IUIRenderContext`, `IUISurface` et `DrawSettings` autour de capacites de draw, clip et buffer sans objet MonoGame en surface ;
+2. sortir `Texture2D` et `ContentManager` des contrats d'assets et d'images, puis migrer `MGTextureData`, `MGResources`, `MGImage`, `MGTexturedBorderBrush` et les text runs image ;
+3. decoupler le draw texte backend de la mesure/layout en supprimant l'obligation `ITextMeasurementEngine` + `IMonoGameTextRenderer` sur le meme objet runtime ;
+4. retirer les observations directes du GPU dans `MGUI.Core` (`GraphicsDevice.ScissorRectangle`, etat rasterizer, render targets) au profit de capacites de clip et de culling backend-neutral ;
+5. une fois les contrats et call sites migres, redefinir `MainRenderer` comme adapter/facade MonoGame puis deplacer physiquement tous les fichiers concrets hors de `MGUI.Shared`.
+
+Decision explicite sur les types pivots:
+
+- `MainRenderer`: doit devenir un adapter MonoGame concret dans `MGUI.MonoGame`, avec eventuellement une facade de compatibilite legacy, mais il ne doit plus modeler les contrats partages ;
+- `DrawTransaction`: doit rester l'executant concret MonoGame des nouveaux contrats de draw, vivre cote backend et ne plus etre caste depuis `Core` ;
+- `View`: doit sortir de `MGUI.Shared` et etre traite comme helper/runtime backend-side ou couche legacy ; `Core` doit continuer de ne connaitre que `IUIView` et les abstractions de runtime ;
+- `IUISurface`: doit cesser d'exposer `RenderTarget2D` et devenir soit un contrat de surface/buffer opaque, soit etre absorbe par un contrat de composition/backend target plus explicite ;
+- `IMonoGameTextRenderer`: doit rester strictement backend-specific dans `MGUI.MonoGame` et ne plus apparaitre comme contrainte des contrats partages ni du runtime coeur.
+
+Validation:
+
+- inspection ciblee des contrats et fichiers suivants: `IUIDrawContext`, `IUIRenderContext`, `IUISurface`, `IUIAssetProvider`, `IMonoGameTextRenderer`, `DrawSettings`, `MainRenderer`, `View`, `BackBufferSurface`, `RenderTargetPool`, `ContentUtils`, `TextureUtils`, `RenderUtils`, `MonoGameImageResource`, `MGTextureData`, `MGResources`, `MGImage`, `MGTexturedBorderBrush`, `MGElement`, `MGGrid`, `MGUniformGrid`, `MGDesktop` ;
+- recherche ciblee des fuites `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `Texture2D`, `RenderTarget2D`, `ContentManager` et `SpriteEffects` sous `MGUI.Shared` et `MGUI.Core` ;
+- aucun build ni `dotnet test` relance pour cette tache car elle borne l'architecture et ne modifie encore aucun contrat compile.
+
+### ⚪ 13. Ajouter des tests d'architecture pour epingler une architecture sans implementation de rendu dans Shared/Core
+
+But:
+verrouiller la cible avant de reouvrir les contrats de draw.
+
+Travail attendu:
+
+- ajouter des tests qui epinglent l'absence d'implementation concrete de rendu dans `MGUI.Shared` et `MGUI.Core` ;
+- verifier que les contrats publics cibles n'exposent plus, ou sont en train d'arreter d'exposer, `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `Texture2D`, `RenderTarget2D`, `ContentManager` et `MainRenderer` ;
+- autoriser uniquement des exceptions temporaires explicitement justifiees et bornees ;
+- distinguer les tests qui verifient les contrats publics des tests qui verifient la localisation physique des sources.
+
+Livrable:
+
+- tests d'architecture pour la phase 4 ;
+- allowlists explicites des exceptions transitoires ;
+- point de depart mesurable avant migration.
+
+Criteres d'acceptation:
+
+- une regression vers des contrats MonoGame-centriques dans `Shared` ou `Core` devient visible automatiquement ;
+- les exceptions legacy sont rares, documentees et testees ;
+- les prochaines taches peuvent durcir progressivement ces tests au lieu de repartir d'un audit manuel.
+
+Commit recommande:
+
+- `test: complete task 13 pin zero-implementation rendering architecture`
+
+### ⚪ 14. Introduire des contrats backend-neutral pour formes, texte, images, clipping et buffers
+
+But:
+faire porter au backend la responsabilite du dessin et de la gestion des buffers, au lieu de l'ancrer dans les primitives MonoGame.
+
+Travail attendu:
+
+- redefinir `IUIDrawContext`, `IUIRenderContext`, `IUISurface`, `IUIAssetProvider` et les contrats texte de draw pour qu'ils decrivent des capacites backend-neutral ;
+- sortir des signatures publiques les types `Texture2D`, `RenderTarget2D`, `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `ContentManager` et `SpriteEffects` ;
+- introduire, si necessaire, des handles opaques ou petits contrats pour les surfaces cibles, buffers offscreen, images, texte et options de draw ;
+- s'assurer que ces contrats permettent explicitement a un moteur hote de dessiner formes, texte et buffers avec sa propre implementation.
+
+Livrable:
+
+- nouveau jeu de contrats de rendu backend-neutral ;
+- adapters MonoGame immediats dans `MGUI.MonoGame` ;
+- au moins un call site reel migre pour chaque nouvelle capacite contractuelle.
+
+Criteres d'acceptation:
+
+- un backend non-MonoGame peut exprimer les memes responsabilites de rendu sans fournir d'objet MonoGame aux contrats publics ;
+- `Shared` ne contient plus d'API publique qui suppose `SpriteBatch` ou `RenderTarget2D` ;
+- les besoins de shapes, texte et buffers sont couverts par des contrats lisibles et compacts.
+
+Commit recommande:
+
+- `contracts: complete task 14 add engine owned render backend contracts`
+
+### ⚪ 15. Migrer Shared et Core vers les nouveaux contrats de backend de rendu
+
+But:
+retaper les chemins de draw du coeur UI pour qu'ils ne dependent plus d'objets ou de signatures MonoGame.
+
+Travail attendu:
+
+- migrer `MGDesktop`, `UIView`, `DrawBaseArgs`, `MGResources`, `MGTextureData`, les brushes, les shapes et les runs de texte vers les nouveaux contrats ;
+- supprimer les dependances publiques residuelles de `Core` a `MainRenderer`, `DrawTransaction` et aux ressources GPU natives ;
+- faire en sorte que `Core` ne connaisse plus qu'un runtime backend-neutral et des handles/contracts de draw backend-neutral ;
+- confiner les shims de compatibilite eventuels dans le backend MonoGame ou dans des wrappers clairement temporaires.
+
+Livrable:
+
+- coeur UI retape sur les nouveaux contrats ;
+- migrations des call sites critiques terminees ;
+- matrice d'exceptions residuelle drastiquement reduite.
+
+Criteres d'acceptation:
+
+- `MGUI.Core` peut etre compile sans API publique de draw MonoGame en surface ;
+- `MGDesktop` ne depend plus d'un renderer concret pour son chemin nominal ;
+- les derniers ponts legacy sont localises, optionnels et testes.
+
+Commit recommande:
+
+- `core: complete task 15 migrate shared and core draw paths to backend contracts`
+
+### ⚪ 16. Redefinir MainRenderer comme simple adapter de backend MonoGame
+
+But:
+faire de `MainRenderer` une implementation MonoGame concrete, et non plus le modele implicite du runtime de rendu.
+
+Travail attendu:
+
+- decider si `MainRenderer` doit etre renomme, encapsule ou conserve comme facade de compatibilite dans `MGUI.MonoGame` ;
+- retaper `DrawTransaction`, `View`, `BackBufferSurface`, `RenderTargetPool`, `ClipManager` et les helpers de draw pour qu'ils dependent du backend MonoGame concret, pas de `Shared` ;
+- supprimer du cote `Shared` toute hypothese selon laquelle le runtime concret s'appelle `MainRenderer` ;
+- si une facade `MainRenderer` est gardee, la marquer comme chemin de compatibilite borne et non comme contrat de reference.
+
+Livrable:
+
+- runtime MonoGame clairement redefine comme adapter backend ;
+- frontiere nette entre contrats partages et implementation concrete ;
+- compatibilite legacy, si necessaire, confinee au backend.
+
+Criteres d'acceptation:
+
+- les contrats publics de `Shared` et `Core` ne sont plus models par `MainRenderer` ;
+- `MainRenderer` n'est plus qu'un detail d'implementation MonoGame ou une facade de transition ;
+- un backend alternatif n'a plus a imiter la forme de `MainRenderer` pour s'integrer.
+
+Commit recommande:
+
+- `backend: complete task 16 redefine monogame renderer as backend adapter`
+
+### ⚪ 17. Deplacer physiquement toutes les sources de rendu concret hors de Shared
+
+But:
+faire correspondre la localisation physique des fichiers a la frontiere architecturale finale.
+
+Travail attendu:
+
+- deplacer reellement les sources concrates de rendu hors de `MGUI.Shared` vers `MGUI.MonoGame` ou un backend equivalent, au lieu de se contenter de linked includes ;
+- nettoyer les `.csproj` pour que `MGUI.Shared` ne porte plus de fichiers de rendu concret ni de paths historiques trompeurs ;
+- verifier les namespaces, les references de solution et les conventions d'organisation finales ;
+- ne pas deplacer de contrats backend-neutral avec ces sources concretes.
+
+Livrable:
+
+- arborescence de sources alignee sur l'architecture finale ;
+- `MGUI.Shared` sans implementation concrete de rendu ;
+- `MGUI.MonoGame` comme seul proprietaire physique des fichiers MonoGame de rendu.
+
+Criteres d'acceptation:
+
+- il n'existe plus de fichier d'implementation concrete de rendu sous `MGUI.Shared` ;
+- les projets compilent sans linked include ambigu pour les sources de draw concretes ;
+- la structure du repo reflete enfin la vraie separation des responsabilites.
+
+Commit recommande:
+
+- `backend: complete task 17 move concrete render sources fully out of shared`
+
+### ⚪ 18. Prouver qu'un backend possede par le moteur peut dessiner formes, texte et buffers
+
+But:
+verifier concretement que le nouveau design permet a un moteur hote de posseder le rendu, au-dela du seul backend MonoGame existant.
+
+Travail attendu:
+
+- ajouter un backend de preuve minimal, un harness de test ou un adapter de demonstration qui n'utilise pas le chemin de draw MonoGame historique comme unique preuve ;
+- faire implementer a ce backend de preuve les contrats necessaires pour dessiner des formes, du texte et gerer au moins un buffer/surface offscreen ;
+- brancher ce backend sur au moins un chemin reel de `MGDesktop` / `UIView` ou sur une suite de tests d'integration representative ;
+- documenter clairement ce qui est prouve par ce backend et ce qui reste hors perimetre si un moteur complet n'est pas encore integre au repo.
+
+Livrable:
+
+- backend ou harness de preuve ;
+- tests d'integration ou d'architecture associant shapes, texte et buffers ;
+- demonstration verifiable qu'un moteur hote peut posseder le rendu.
+
+Criteres d'acceptation:
+
+- la pile UI peut deleguer shapes, texte et buffers a une implementation qui ne depend pas du runtime MonoGame historique ;
+- la preuve couvre les 3 capacites demandees, pas seulement les images ;
+- l'architecture ne repose plus uniquement sur la promesse qu'un backend alternatif serait possible plus tard.
+
+Commit recommande:
+
+- `test: complete task 18 prove engine owned shapes text and buffers`
+
+### ⚪ 19. Documenter l'integration d'un backend de rendu possede par le moteur
+
+But:
+laisser un guide actionnable pour brancher un moteur hote qui dessine lui-meme les formes, le texte et les buffers.
+
+Travail attendu:
+
+- mettre a jour la doc d'architecture, le guide d'integration et le README pour decrire la nouvelle separation complete ;
+- documenter les contrats qu'un moteur doit implementer pour posseder le rendu ;
+- expliquer le statut de MonoGame: backend de reference, plus contrat implicite ;
+- lister les migrations a effectuer pour les consommateurs qui utilisaient encore `MainRenderer`, `DrawTransaction` ou des surfaces MonoGame dans le chemin nominal.
+
+Livrable:
+
+- doc d'architecture finale mise a jour ;
+- guide d'integration d'un backend custom ;
+- note de migration pour les consommateurs existants.
+
+Criteres d'acceptation:
+
+- un agent ou un contributeur humain comprend comment brancher un moteur proprietaire sans rereflechir tout le chantier ;
+- la doc explicite qui dessine les formes, qui dessine le texte et qui possede les buffers ;
+- la separation finale entre `Shared/Core` et les backends concrets est comprehensible en une seule lecture.
+
+Commit recommande:
+
+- `docs: complete task 19 document custom render backend integration`
