@@ -26,6 +26,9 @@ public class BackendProjectSplitTests
         string[] removedFiles =
         {
             "Assets\\MonoGameImageResource.cs",
+            "Helpers\\ContentUtils.cs",
+            "Helpers\\RenderUtils.cs",
+            "Helpers\\TextureUtils.cs",
             "Input\\MonoGameRawInputSource.cs",
             "Rendering\\BackBufferSurface.cs",
             "Rendering\\DelegateRenderHost.cs",
@@ -34,10 +37,44 @@ public class BackendProjectSplitTests
             "Rendering\\RenderTargetPool.cs",
             "Rendering\\View.cs",
             "Rendering\\Clipping\\ClipManager.cs",
+            "Text\\FontManager.cs",
+            "Text\\FontSet.cs",
+            "Text\\SpritefontGenerator.cs",
             "Text\\Engines\\SpriteFontTextEngine.cs"
         };
 
         Assert.All(removedFiles, removedFile => Assert.Contains($"<Compile Remove=\"{removedFile}\" />", sharedProjectSource));
+    }
+
+    [Fact]
+    public void MonoGameProject_OwnsConcreteBackendFilesLocally_WithoutLinkedIncludesFromShared()
+    {
+        string monoGameProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.MonoGame", "MGUI.MonoGame.csproj"));
+
+        Assert.DoesNotContain("<Compile Include=\"..\\MGUI.Shared\\", monoGameProjectSource, StringComparison.OrdinalIgnoreCase);
+
+        string[] expectedLocalFiles =
+        {
+            "Assets\\MonoGameImageResource.cs",
+            "Helpers\\ContentUtils.cs",
+            "Helpers\\RenderUtils.cs",
+            "Helpers\\TextureUtils.cs",
+            "Input\\MonoGameRawInputSource.cs",
+            "Rendering\\BackBufferSurface.cs",
+            "Rendering\\DelegateRenderHost.cs",
+            "Rendering\\DrawTransaction.cs",
+            "Rendering\\MainRenderer.cs",
+            "Rendering\\RenderTargetPool.cs",
+            "Rendering\\View.cs",
+            "Rendering\\Clipping\\ClipManager.cs",
+            "Text\\FontManager.cs",
+            "Text\\FontSet.cs",
+            "Text\\SpritefontGenerator.cs",
+            "Text\\Engines\\SpriteFontTextEngine.cs"
+        };
+
+        Assert.All(expectedLocalFiles, relativePath =>
+            Assert.True(File.Exists(Path.Combine(RepoRoot, "MGUI.MonoGame", relativePath)), $"Expected local backend source '{relativePath}' to exist under MGUI.MonoGame."));
     }
 
     [Fact]

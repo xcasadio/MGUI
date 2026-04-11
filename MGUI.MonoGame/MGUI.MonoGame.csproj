@@ -17,16 +17,4 @@
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.1.303" />
     <PackageReference Include="MonoGame.Extended" Version="3.8.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="..\MGUI.Shared\Assets\MonoGameImageResource.cs" Link="Assets\MonoGameImageResource.cs" />
-    <Compile Include="..\MGUI.Shared\Input\MonoGameRawInputSource.cs" Link="Input\MonoGameRawInputSource.cs" />
-    <Compile Include="..\MGUI.Shared\Rendering\BackBufferSurface.cs" Link="Rendering\BackBufferSurface.cs" />
-    <Compile Include="..\MGUI.Shared\Rendering\DelegateRenderHost.cs" Link="Rendering\DelegateRenderHost.cs" />
-    <Compile Include="..\MGUI.Shared\Rendering\DrawTransaction.cs" Link="Rendering\DrawTransaction.cs" />
-    <Compile Include="..\MGUI.Shared\Rendering\MainRenderer.cs" Link="Rendering\MainRenderer.cs" />
-    <Compile Include="..\MGUI.Shared\Rendering\RenderTargetPool.cs" Link="Rendering\RenderTargetPool.cs" />
-    <Compile Include="..\MGUI.Shared\Rendering\View.cs" Link="Rendering\View.cs" />
-    <Compile Include="..\MGUI.Shared\Rendering\Clipping\ClipManager.cs" Link="Rendering\Clipping\ClipManager.cs" />
-    <Compile Include="..\MGUI.Shared\Text\Engines\SpriteFontTextEngine.cs" Link="Text\Engines\SpriteFontTextEngine.cs" />
-  </ItemGroup>
 </Project>

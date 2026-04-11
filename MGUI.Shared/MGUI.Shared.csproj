@@ -21,6 +21,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Assets\MonoGameImageResource.cs" />
+    <Compile Remove="Helpers\ContentUtils.cs" />
+    <Compile Remove="Helpers\RenderUtils.cs" />
+    <Compile Remove="Helpers\TextureUtils.cs" />
     <Compile Remove="Input\MonoGameRawInputSource.cs" />
     <Compile Remove="Rendering\BackBufferSurface.cs" />
     <Compile Remove="Rendering\DelegateRenderHost.cs" />
@@ -29,6 +32,9 @@
     <Compile Remove="Rendering\RenderTargetPool.cs" />
     <Compile Remove="Rendering\View.cs" />
     <Compile Remove="Rendering\Clipping\ClipManager.cs" />
+    <Compile Remove="Text\FontManager.cs" />
+    <Compile Remove="Text\FontSet.cs" />
+    <Compile Remove="Text\SpritefontGenerator.cs" />
     <Compile Remove="Text\Engines\SpriteFontTextEngine.cs" />
   </ItemGroup>
 </Project>

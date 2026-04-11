@@ -1031,7 +1031,7 @@ Validation:
 - `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj -c Release --no-restore` : succes ;
 - avertissements XML/nullability existants dans `MGUI.Shared`, `MGUI.MonoGame`, `MGUI.Core` et `MGUI.Tests`, ainsi que l'avertissement EOL `net6.0-windows` dans `MGUI.Samples`, inchanges et hors perimetre de la task.
 
-### ⚪ 17. Deplacer physiquement toutes les sources de rendu concret hors de Shared
+### ✅ 17. Deplacer physiquement toutes les sources de rendu concret hors de Shared
 
 But:
 faire correspondre la localisation physique des fichiers a la frontiere architecturale finale.
@@ -1058,6 +1058,21 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `backend: complete task 17 move concrete render sources fully out of shared`
+
+Resultat:
+
+- les sources MonoGame concretes ne sont plus hebergees physiquement sous `MGUI.Shared` ; elles ont ete deplacees sous `MGUI.MonoGame` avec une arborescence backend explicite pour les assets (`MonoGameImageResource`), helpers (`ContentUtils`, `RenderUtils`, `TextureUtils`), input (`MonoGameRawInputSource`), runtime/draw (`BackBufferSurface`, `DelegateRenderHost`, `DrawTransaction`, `MainRenderer`, `RenderTargetPool`, `View`, `ClipManager`) et texte (`SpriteFontTextEngine`, `FontManager`, `FontSet`, `SpritefontGenerator`) ;
+- `MGUI.MonoGame.csproj` ne repose plus sur des linked includes pointant vers `..\MGUI.Shared\...` ; le projet compile maintenant ses fichiers backend localement, ce qui fait de `MGUI.MonoGame` le seul proprietaire physique des sources MonoGame de rendu ;
+- `MGUI.Shared.csproj` explicite maintenant la suppression de l'ensemble des anciens fichiers backend concretes de son graph de compilation, y compris les helpers et le pipeline texte MonoGame qui restaient encore physiquement dans `Shared` ;
+- la suite d'architecture a ete retendue pour refleter la cible finale de la task 17: zero token `GraphicsDevice` / `SpriteBatch` / `PrimitiveBatch` / `Texture2D` / `RenderTarget2D` / `ContentManager` / `MainRenderer` sous `MGUI.Shared`, zero fichier backend concret restant sous `MGUI.Shared`, et verification que `MGUI.MonoGame` possede localement ces fichiers sans linked include ambigu.
+
+Validation:
+
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-restore` : succes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~Architecture.BackendProjectSplitTests|FullyQualifiedName~Architecture.Phase4RenderingArchitectureTests" --logger "console;verbosity=minimal"` : succes, 10 tests passes ;
+- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj -c Release --no-restore` : succes ;
+- `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj -c Release --no-restore` : succes ;
+- avertissements XML/nullability existants dans `MGUI.Shared`, `MGUI.MonoGame`, `MGUI.Core` et `MGUI.Tests`, ainsi que l'avertissement EOL `net6.0-windows` dans `MGUI.Samples`, inchanges et hors perimetre de la task.
 
 ### ⚪ 18. Prouver qu'un backend possede par le moteur peut dessiner formes, texte et buffers
 

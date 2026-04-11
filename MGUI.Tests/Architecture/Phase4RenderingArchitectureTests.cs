@@ -23,66 +23,13 @@ public class Phase4RenderingArchitectureTests
     [Fact]
     public void MGUI_Shared_ForbiddenMonoGameTokenReferences_AreLimitedToKnownPhase4Files()
     {
-        AssertTokenFiles(SharedRoot, "GraphicsDevice", new[]
-        {
-            "Helpers/ContentUtils.cs",
-            "Helpers/RenderUtils.cs",
-            "Helpers/TextureUtils.cs",
-            "Rendering/DelegateRenderHost.cs",
-            "Rendering/DrawTransaction.cs",
-            "Rendering/MainRenderer.cs",
-            "Rendering/RenderTargetPool.cs"
-        });
-
-        AssertTokenFiles(SharedRoot, "SpriteBatch", new[]
-        {
-            "Helpers/TextureUtils.cs",
-            "Rendering/DrawTransaction.cs",
-            "Rendering/MainRenderer.cs",
-            "Text/Engines/SpriteFontTextEngine.cs"
-        });
-
-        AssertTokenFiles(SharedRoot, "PrimitiveBatch", new[]
-        {
-            "Helpers/RenderUtils.cs",
-            "Rendering/DrawTransaction.cs",
-            "Rendering/MainRenderer.cs"
-        });
-
-        AssertTokenFiles(SharedRoot, "Texture2D", new[]
-        {
-            "Assets/MonoGameImageResource.cs",
-            "Helpers/ContentUtils.cs",
-            "Helpers/TextureUtils.cs",
-            "Rendering/DrawTransaction.cs",
-            "Rendering/MainRenderer.cs"
-        });
-
-        AssertTokenFiles(SharedRoot, "RenderTarget2D", new[]
-        {
-            "Assets/MonoGameImageResource.cs",
-            "Helpers/RenderUtils.cs",
-            "Helpers/TextureUtils.cs",
-            "Rendering/Clipping/ClipManager.cs",
-            "Rendering/DrawTransaction.cs",
-            "Rendering/MainRenderer.cs",
-            "Rendering/RenderTargetPool.cs"
-        });
-
-        AssertTokenFiles(SharedRoot, "ContentManager", new[]
-        {
-            "Helpers/ContentUtils.cs",
-            "Rendering/MainRenderer.cs",
-            "Text/FontManager.cs",
-            "Text/FontSet.cs",
-            "Text/SpritefontGenerator.cs"
-        });
-
-        AssertTokenFiles(SharedRoot, "MainRenderer", new[]
-        {
-            "Rendering/DrawTransaction.cs",
-            "Rendering/MainRenderer.cs"
-        });
+        AssertTokenFiles(SharedRoot, "GraphicsDevice", Array.Empty<string>());
+        AssertTokenFiles(SharedRoot, "SpriteBatch", Array.Empty<string>());
+        AssertTokenFiles(SharedRoot, "PrimitiveBatch", Array.Empty<string>());
+        AssertTokenFiles(SharedRoot, "Texture2D", Array.Empty<string>());
+        AssertTokenFiles(SharedRoot, "RenderTarget2D", Array.Empty<string>());
+        AssertTokenFiles(SharedRoot, "ContentManager", Array.Empty<string>());
+        AssertTokenFiles(SharedRoot, "MainRenderer", Array.Empty<string>());
     }
 
     [Fact]
@@ -105,22 +52,7 @@ public class Phase4RenderingArchitectureTests
     {
         HashSet<string> actual = FindTokenFiles(SharedRoot, ForbiddenMonoGameTokens);
 
-        HashSet<string> expected = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Assets/MonoGameImageResource.cs",
-            "Helpers/ContentUtils.cs",
-            "Helpers/RenderUtils.cs",
-            "Helpers/TextureUtils.cs",
-            "Rendering/Clipping/ClipManager.cs",
-            "Rendering/DelegateRenderHost.cs",
-            "Rendering/DrawTransaction.cs",
-            "Rendering/MainRenderer.cs",
-            "Rendering/RenderTargetPool.cs",
-            "Text/Engines/SpriteFontTextEngine.cs",
-            "Text/FontManager.cs",
-            "Text/FontSet.cs",
-            "Text/SpritefontGenerator.cs"
-        };
+        HashSet<string> expected = new(StringComparer.OrdinalIgnoreCase);
 
         Assert.Equal(expected.OrderBy(x => x), actual.OrderBy(x => x));
     }
