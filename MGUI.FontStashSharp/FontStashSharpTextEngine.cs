@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MGUI.Shared.Rendering;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
 
@@ -652,7 +653,7 @@ namespace MGUI.FontStashSharp
 
         /// <inheritdoc/>
         public void DrawText(
-            SpriteBatch spriteBatch,
+            IUIDrawContext drawContext,
             ResolvedFont font,
             string text,
             Vector2 position,
@@ -661,7 +662,7 @@ namespace MGUI.FontStashSharp
             float scale,
             float rotation    = 0f,
             float depth       = 0f,
-            SpriteEffects effects = SpriteEffects.None)
+            UIDrawFlip flip = UIDrawFlip.None)
         {
             if (string.IsNullOrEmpty(text))
             {
@@ -674,22 +675,27 @@ namespace MGUI.FontStashSharp
                 return;
             }
 
+            if (drawContext is not DrawTransaction transaction)
+            {
+                throw new InvalidOperationException($"{nameof(FontStashSharpTextEngine)} requires a {nameof(DrawTransaction)} draw context for the MonoGame backend.");
+            }
+
             // FontStashSharp's DrawText does not accept SpriteEffects directly.
             // Simulate flipping by negating the scale axes and adjusting the position,
             // which is equivalent to what SpriteBatch does for sprite effects.
             float sx = scale;
             float sy = scale;
-            if ((effects & SpriteEffects.FlipHorizontally) != 0)
+            if ((flip & UIDrawFlip.Horizontal) != 0)
             {
                 sx = -sx;
             }
 
-            if ((effects & SpriteEffects.FlipVertically)   != 0)
+            if ((flip & UIDrawFlip.Vertical) != 0)
             {
                 sy = -sy;
             }
 
-            h.Font.DrawText(spriteBatch, text, position, color,
+            h.Font.DrawText(transaction.SpriteBatch, text, position, color,
                 rotation:   rotation,
                 origin:     origin,
                 scale:      new Vector2(sx, sy),

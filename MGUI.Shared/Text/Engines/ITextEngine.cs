@@ -1,10 +1,10 @@
 namespace MGUI.Shared.Text.Engines
 {
     /// <summary>
-    /// Composite MonoGame text backend contract.
+    /// Composite text engine contract combining backend-neutral measurement and draw responsibilities.
     /// <see cref="ITextMeasurementEngine"/> covers the backend-neutral resolution and measurement
-    /// surface consumed by core UI code, while <see cref="IMonoGameTextRenderer"/> covers the
-    /// concrete SpriteBatch draw path used by the MonoGame renderer.
+    /// surface consumed by core UI code, while <see cref="ITextDrawEngine"/> covers the
+    /// backend-owned draw path used by the active renderer.
     /// </summary>
-    public interface ITextEngine : ITextMeasurementEngine, IMonoGameTextRenderer { }
+    public interface ITextEngine : ITextMeasurementEngine, ITextDrawEngine { }
 }

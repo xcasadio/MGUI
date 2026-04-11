@@ -42,7 +42,7 @@ namespace MGUI.Core.UI
         public UIViewState State { get; }
         public UIFocusNavigationService NavigationService { get; }
         public InputTracker InputTracker => Runtime.Input;
-        public FontManager FontManager => Runtime.FontManager;
+        public FontManager FontManager => Renderer.FontManager;
         private List<ModalStackEntry> ModalStackEntries { get; } = new();
         public IReadOnlyList<MGWindow> ActiveModalWindows => ModalStackEntries.Select(x => x.Modal).ToList();
 
@@ -1274,7 +1274,7 @@ namespace MGUI.Core.UI
             State = new();
             NavigationService = new(this);
             Windows = new();
-            Resources = new(new MGTheme(Runtime.AssetProvider.FontManager.DefaultFontFamily), Runtime.AssetProvider);
+            Resources = new(new MGTheme(Runtime.DefaultFontFamily), Runtime.AssetProvider);
             MGControlTemplateCatalog.RegisterDefaults(Resources);
             _ = new UIView(this, Runtime.Surface);
             _ResponsiveMetrics = UIResponsiveResolver.Resolve(ResponsiveSettings, ValidScreenBounds.Size, EffectiveDpiScale);
@@ -1483,7 +1483,7 @@ namespace MGUI.Core.UI
             ElementDrawArgs DA = new(BA, new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
 
             Rectangle ScreenBounds = ValidScreenBounds;
-            if (!BA.DT.CurrentSettings.RasterizerState.ScissorTestEnable || ScreenBounds.Intersects(BA.DT.GraphicsDevice.ScissorRectangle))
+            if (!BA.DT.CurrentSettings.UsesScissorTest || !BA.DT.CurrentClipBounds.HasValue || ScreenBounds.Intersects(BA.DT.CurrentClipBounds.Value))
             {
                 using (BA.DT.SetClipTargetTemporary(ScreenBounds, true))
                 {

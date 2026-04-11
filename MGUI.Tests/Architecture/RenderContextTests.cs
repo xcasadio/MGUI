@@ -1,4 +1,7 @@
 using MGUI.Shared.Rendering;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System.Reflection;
 using System.IO;
 
 namespace MGUI.Tests.Architecture;
@@ -23,6 +26,11 @@ public class RenderContextTests
         Type contractType = typeof(IUIDrawContext);
         string[] propertyNames = contractType.GetProperties().Select(x => x.Name).OrderBy(x => x).ToArray();
         string[] methodNames = contractType.GetMethods().Where(x => !x.IsSpecialName).Select(x => x.Name).Distinct().OrderBy(x => x).ToArray();
+        Type[] parameterTypes = contractType.GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(x => !x.IsSpecialName)
+            .SelectMany(x => x.GetParameters())
+            .Select(x => x.ParameterType)
+            .ToArray();
 
         Assert.Equal(new[] { "CurrentSettings" }, propertyNames);
         Assert.Contains("DrawTextureAt", methodNames);
@@ -36,6 +44,21 @@ public class RenderContextTests
         Assert.Contains("StrokeRectangle", methodNames);
         Assert.DoesNotContain("Renderer", propertyNames);
         Assert.DoesNotContain("GD", propertyNames);
+        Assert.DoesNotContain(typeof(Texture2D), parameterTypes);
+        Assert.DoesNotContain(typeof(SpriteEffects), parameterTypes);
+    }
+
+    [Fact]
+    public void IUIRenderContext_UsesOpaqueRenderTargetAndClipBounds()
+    {
+        Type contractType = typeof(IUIRenderContext);
+        PropertyInfo[] properties = contractType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        string[] propertyNames = properties.Select(x => x.Name).OrderBy(x => x).ToArray();
+
+        Assert.Contains(properties, property => property.Name == nameof(IUIRenderContext.Renderer) && property.PropertyType == typeof(IUIDesktopRuntime));
+        Assert.Contains(properties, property => property.Name == nameof(IUIRenderContext.CurrentClipBounds) && property.PropertyType == typeof(Rectangle?));
+        Assert.NotNull(contractType.GetMethod(nameof(IUIRenderContext.SetRenderTargetTemporary), new[] { typeof(IUIRenderTarget), typeof(Color?) }));
+        Assert.DoesNotContain("GraphicsDevice", propertyNames);
     }
 
     [Fact]

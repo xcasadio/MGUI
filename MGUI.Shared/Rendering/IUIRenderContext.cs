@@ -1,6 +1,5 @@
 using System;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Shared.Rendering
@@ -9,10 +8,10 @@ namespace MGUI.Shared.Rendering
     public interface IUIRenderContext : IUIDrawContext
     {
         public IUIDesktopRuntime Renderer { get; }
-        public GraphicsDevice GraphicsDevice { get; }
+        public Rectangle? CurrentClipBounds { get; }
 
-        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings, DrawContext? PreferredContext = null);
-        public IDisposable SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor);
+        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings);
+        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor);
         public IDisposable SetTransformTemporary(Matrix Transform);
         public ClipResolveResult ResolveClip(ClipDefinition Definition);
         public ClipScope PushClipTemporary(ClipDefinition Definition);

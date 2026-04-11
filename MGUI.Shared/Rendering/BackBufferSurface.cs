@@ -1,7 +1,5 @@
 using System;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-
 namespace MGUI.Shared.Rendering
 {
     /// <summary>Default UI surface backed by the main backbuffer bounds exposed by an <see cref="IRenderHost"/>.</summary>
@@ -15,6 +13,6 @@ namespace MGUI.Shared.Rendering
         }
 
         public Rectangle GetBounds() => Host.GetBounds();
-        public RenderTarget2D GetRenderTarget() => null;
+        public IUIRenderTarget GetRenderTarget() => null;
     }
 }

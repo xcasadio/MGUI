@@ -109,23 +109,24 @@ namespace MGUI.Shared.Rendering
         public ContentManager Content { get; }
 
         public FontManager FontManager { get; }
+        public string DefaultFontFamily => FontManager.DefaultFontFamily;
         public IUIAssetProvider AssetProvider { get; }
 
         private ITextMeasurementEngine _textEngine;
         /// <summary>
         /// The active text measurement engine used for font resolution and layout.
         /// Defaults to a <see cref="SpriteFontTextEngine"/> wrapping <see cref="FontManager"/>.
-        /// At runtime, assigned engines must also implement <see cref="IMonoGameTextRenderer"/>
-        /// so the MonoGame backend can render the resolved fonts.
+        /// At runtime, assigned engines must also implement <see cref="ITextDrawEngine"/>
+        /// so the backend can render resolved fonts with its own draw implementation.
         /// </summary>
         public ITextMeasurementEngine TextEngine
         {
             get => _textEngine;
             set
             {
-                if (value is not IMonoGameTextRenderer)
+                if (value is not ITextDrawEngine)
                 {
-                    throw new ArgumentException($"{nameof(TextEngine)} must also implement {nameof(IMonoGameTextRenderer)} for the MonoGame backend.", nameof(value));
+                    throw new ArgumentException($"{nameof(TextEngine)} must also implement {nameof(ITextDrawEngine)} for the active rendering backend.", nameof(value));
                 }
 
                 ITextMeasurementEngine previous = TextEngine;
@@ -139,7 +140,7 @@ namespace MGUI.Shared.Rendering
             }
         }
 
-        internal IMonoGameTextRenderer GetTextRenderer() => (IMonoGameTextRenderer)TextEngine;
+        internal ITextDrawEngine GetTextRenderer() => (ITextDrawEngine)TextEngine;
 
         /// <summary>Invoked when <see cref="TextEngine"/> is set to a new value</summary>
         public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
@@ -151,7 +152,13 @@ namespace MGUI.Shared.Rendering
 
         public Rectangle GetViewport(int Margin) => Surface.GetBounds().GetCompressed(Margin);
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites)
+        IUIDrawTransaction IUIDesktopRuntime.CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+            => CreateDrawTransaction(Settings, DeferBegin);
+
+        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+            => CreateDrawTransaction(Settings, DeferBegin, DrawContext.Sprites);
+
+        internal IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext)
             => new DrawTransaction(this, Settings, DeferBegin, DefaultContext);
 
         public void RegisterView(IUIView View)

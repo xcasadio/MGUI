@@ -901,7 +901,7 @@ Validation:
 - avertissements XML/nullability existants dans `MGUI.Core` et `MGUI.Tests` inchanges et hors perimetre ;
 - un premier essai en Debug a echoue a cause d'un verrou sur `MGUI.Rendering.Abstractions.dll` dans le shell PowerShell courant, sans impact sur la validite des tests eux-memes.
 
-### ⚪ 14. Introduire des contrats backend-neutral pour formes, texte, images, clipping et buffers
+### ✅ 14. Introduire des contrats backend-neutral pour formes, texte, images, clipping et buffers
 
 But:
 faire porter au backend la responsabilite du dessin et de la gestion des buffers, au lieu de l'ancrer dans les primitives MonoGame.
@@ -928,6 +928,21 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `contracts: complete task 14 add engine owned render backend contracts`
+
+Resultat:
+
+- les contrats publics de draw/runtime ne fuient plus `Texture2D`, `RenderTarget2D`, `GraphicsDevice`, `SpriteBatch`, `ContentManager` ou `SpriteEffects` ; la surface publique passe maintenant par `IUIImageResource`, `IUIRenderTarget`, `UIDrawFlip`, `DrawSortMode`, `CurrentClipBounds` et `DefaultFontFamily` ;
+- `IUIAssetProvider` a ete reduit a un contrat image-only, `IUISurface` retourne un handle de buffer opaque, `IUIRenderContext` ne connait plus que des capacites de draw/runtime backend-neutral et `IUIDesktopRuntime` n'expose plus `FontManager` dans sa surface contractuelle ;
+- le contrat texte a ete scinde proprement entre mesure et draw backend avec l'ajout de `ITextDrawEngine`, la composition `ITextEngine : ITextMeasurementEngine, ITextDrawEngine` et la suppression de `IMonoGameTextRenderer` des contrats partages ;
+- le backend MonoGame dispose maintenant de ses adapters explicites (`MonoGameRenderInterop`, `MonoGameRenderTarget`, `DrawContext` cote backend) et les implementions concretes `MainRenderer`, `DrawTransaction`, `RendererAssetProvider`, `SpriteFontTextEngine` et `FontStashSharpTextEngine` ont ete retapees sur cette nouvelle frontiere ;
+- des call sites reels ont ete migres pour chaque capacite contractuelle introduite: `UIView` pour les render targets opaques, `MGDesktop`/`MGElement`/`MGGrid`/`MGUniformGrid` pour les clips backend-neutral, `MGTextureFillBrush` et `MGTexturedBorderBrush` pour les images opaques, et les draw paths texte pour le nouveau contrat `ITextDrawEngine` ;
+- des ponts legacy concretes restent encore volontaires pour la suite du chantier (`MGDesktop.Renderer`, `MGTextureData.Texture`, certaines surcharges MonoGame de `DrawTransaction`) mais ils sont maintenant confines hors des contrats publics cibles et seront traites par les tasks 15 et 16.
+
+Validation:
+
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-restore` : succes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~Architecture.AssetProviderTests|FullyQualifiedName~Architecture.SurfaceAbstractionTests|FullyQualifiedName~Architecture.RenderContextTests|FullyQualifiedName~Architecture.HostRuntimeContractTests|FullyQualifiedName~Architecture.Phase4RenderingArchitectureTests|FullyQualifiedName~Architecture.UIViewTests"` : succes, 32 tests passes ;
+- avertissements XML/nullability existants dans `MGUI.Core`, `MGUI.Shared`, `MGUI.MonoGame` et `MGUI.Tests` inchanges et hors perimetre de la task.
 
 ### ⚪ 15. Migrer Shared et Core vers les nouveaux contrats de backend de rendu
 

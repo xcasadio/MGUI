@@ -18,11 +18,11 @@ namespace MGUI.Shared.Assets
         }
 
         public IUIImageResource LoadImage(string assetName)
-            => new MonoGameImageResource(LoadTexture(assetName));
+            => new MonoGameImageResource(LoadTextureCore(assetName));
 
         public bool TryLoadImage(string assetName, out IUIImageResource image)
         {
-            if (TryLoadTexture(assetName, out Texture2D texture))
+            if (TryLoadTextureCore(assetName, out Texture2D texture))
             {
                 image = new MonoGameImageResource(texture);
                 return true;
@@ -32,14 +32,14 @@ namespace MGUI.Shared.Assets
             return false;
         }
 
-        public Texture2D LoadTexture(string assetName)
+        private Texture2D LoadTextureCore(string assetName)
             => Content.Load<Texture2D>(assetName);
 
-        public bool TryLoadTexture(string assetName, out Texture2D texture)
+        private bool TryLoadTextureCore(string assetName, out Texture2D texture)
         {
             try
             {
-                texture = LoadTexture(assetName);
+                texture = LoadTextureCore(assetName);
                 return true;
             }
             catch

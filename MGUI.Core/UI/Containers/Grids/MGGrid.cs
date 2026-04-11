@@ -987,7 +987,7 @@ namespace MGUI.Core.UI.Containers.Grids
                     //  Draw the selection overlay
                     if (HasSelection && SelectionOverlay != null)
                     {
-                        Rectangle? ScissorBounds = e.DA.DT.GraphicsDevice.RasterizerState.ScissorTestEnable ? e.DA.DT.GraphicsDevice.ScissorRectangle : null;
+                        Rectangle? ScissorBounds = e.DA.DT.CurrentClipBounds;
                         foreach (GridCell Cell in CurrentSelection.Value)
                         {
                             if (_CellBounds.TryGetValue(Cell, out Rectangle Bounds))
@@ -1385,7 +1385,7 @@ namespace MGUI.Core.UI.Containers.Grids
             //  Draw the selection background
             if (HasSelection && SelectionBackground != null)
             {
-                Rectangle? ScissorBounds = DA.DT.GraphicsDevice.RasterizerState.ScissorTestEnable ? DA.DT.GraphicsDevice.ScissorRectangle : null;
+                Rectangle? ScissorBounds = DA.DT.CurrentClipBounds;
                 foreach (GridCell Cell in CurrentSelection.Value)
                 {
                     if (_CellBounds.TryGetValue(Cell, out Rectangle Bounds))

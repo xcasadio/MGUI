@@ -26,7 +26,8 @@ namespace MGUI.Core.UI
                 throw new ArgumentNullException(nameof(DT));
             }
 
-            using (Surface.GetRenderTarget() != null ? DT.SetRenderTargetTemporary(Surface.GetRenderTarget(), null) : null)
+            IUIRenderTarget renderTarget = Surface.GetRenderTarget();
+            using (renderTarget != null ? DT.SetRenderTargetTemporary(renderTarget, null) : null)
             {
                 Desktop.Draw(DT, opacity);
             }

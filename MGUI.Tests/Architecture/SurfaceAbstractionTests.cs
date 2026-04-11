@@ -8,13 +8,12 @@ public class SurfaceAbstractionTests
     [Fact]
     public void IUISurface_ExposesBoundsAndRenderTarget()
     {
-        string[] methodNames = typeof(IUISurface)
-            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
-            .Select(x => x.Name)
-            .ToArray();
+        MethodInfo? getBoundsMethod = typeof(IUISurface).GetMethod(nameof(IUISurface.GetBounds), BindingFlags.Instance | BindingFlags.Public);
+        MethodInfo? getRenderTargetMethod = typeof(IUISurface).GetMethod(nameof(IUISurface.GetRenderTarget), BindingFlags.Instance | BindingFlags.Public);
 
-        Assert.Contains(nameof(IUISurface.GetBounds), methodNames);
-        Assert.Contains(nameof(IUISurface.GetRenderTarget), methodNames);
+        Assert.NotNull(getBoundsMethod);
+        Assert.NotNull(getRenderTargetMethod);
+        Assert.Equal(typeof(IUIRenderTarget), getRenderTargetMethod!.ReturnType);
     }
 
     [Fact]

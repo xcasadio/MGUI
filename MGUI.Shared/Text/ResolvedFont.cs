@@ -43,6 +43,7 @@ namespace MGUI.Shared.Text
 
         /// <summary>True when the requested family was not found and a fallback was used.</summary>
         public bool IsFallback { get; }
+        public bool IsAvailable => NativeFont != null;
 
         /// <summary>
         /// Opaque native font handle owned by the backend (e.g. a <c>SpriteFontHandle</c>

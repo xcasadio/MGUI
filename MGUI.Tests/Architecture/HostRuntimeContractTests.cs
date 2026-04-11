@@ -71,7 +71,7 @@ public class HostRuntimeContractTests
         {
             "AssetProvider",
             "CreateDrawTransaction",
-            "FontManager",
+            "DefaultFontFamily",
             "Input",
             "RegisterView",
             "Surface",
@@ -125,7 +125,7 @@ public class HostRuntimeContractTests
         Assert.Equal(new[]
         {
             "AssetProvider",
-            "FontManager",
+            "DefaultFontFamily",
             "Input",
             "Surface",
             "TextEngine",
@@ -141,13 +141,13 @@ public class HostRuntimeContractTests
     }
 
     [Fact]
-    public void ITextEngine_ComposesMeasurementAndMonoGameDrawContracts()
+    public void ITextEngine_ComposesMeasurementAndDrawContracts()
     {
         Type composite = typeof(ITextEngine);
         Type[] interfaces = composite.GetInterfaces();
 
         Assert.Contains(typeof(ITextMeasurementEngine), interfaces);
-        Assert.Contains(typeof(IMonoGameTextRenderer), interfaces);
+        Assert.Contains(typeof(ITextDrawEngine), interfaces);
 
         string[] measurementMethodNames = typeof(ITextMeasurementEngine)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public)
@@ -155,11 +155,18 @@ public class HostRuntimeContractTests
             .Select(x => x.Name)
             .OrderBy(x => x)
             .ToArray();
+        string[] drawMethodNames = typeof(ITextDrawEngine)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(x => !x.IsSpecialName)
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToArray();
 
-        Assert.DoesNotContain(nameof(IMonoGameTextRenderer.DrawText), measurementMethodNames);
+        Assert.DoesNotContain(nameof(ITextDrawEngine.DrawText), measurementMethodNames);
         Assert.Contains(nameof(ITextMeasurementEngine.ResolveFont), measurementMethodNames);
         Assert.Contains(nameof(ITextMeasurementEngine.MeasureText), measurementMethodNames);
         Assert.Contains(nameof(ITextMeasurementEngine.MeasureGlyph), measurementMethodNames);
+        Assert.Equal(new[] { nameof(ITextDrawEngine.DrawText) }, drawMethodNames);
     }
 
     [Fact]

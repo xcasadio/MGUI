@@ -75,7 +75,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     int tileH = UnstretchedHeight;
                     if (tileW > 0 && tileH > 0)
                     {
-                        Rectangle fullSrc = Source.SourceRect ?? new Rectangle(0, 0, Source.Texture.Width, Source.Texture.Height);
+                        Rectangle fullSrc = Source.SourceRect ?? new Rectangle(0, 0, Source.Image.Width, Source.Image.Height);
                         for (int y = Bounds.Top; y < Bounds.Bottom; y += tileH)
                         {
                             for (int x = Bounds.Left; x < Bounds.Right; x += tileW)
@@ -86,7 +86,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                                 Rectangle src = drawW < tileW || drawH < tileH
                                     ? new Rectangle(fullSrc.X, fullSrc.Y, Math.Min(drawW, fullSrc.Width), Math.Min(drawH, fullSrc.Height))
                                     : fullSrc;
-                                DA.Context.DrawTextureTo(Source.Texture, src, dest.GetTranslated(DA.Offset), drawColor);
+                                DA.Context.DrawTextureTo(Source.Image, src, dest.GetTranslated(DA.Offset), drawColor);
                             }
                         }
                     }
@@ -124,7 +124,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     throw new NotImplementedException($"Unrecognized {nameof(Stretch)}: {Stretch}");
                 }
 
-                DA.Context.DrawTextureTo(Source.Texture, Source.SourceRect, Destination.GetTranslated(DA.Offset), drawColor);
+                DA.Context.DrawTextureTo(Source.Image, Source.SourceRect, Destination.GetTranslated(DA.Offset), drawColor);
             }
         }
 

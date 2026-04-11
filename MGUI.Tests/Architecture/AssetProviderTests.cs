@@ -2,7 +2,6 @@ using System.Reflection;
 using MGUI.Core.UI;
 using MGUI.Shared.Assets;
 using MGUI.Shared.Rendering;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace MGUI.Tests.Architecture;
@@ -11,24 +10,31 @@ public class AssetProviderTests
 {
     private sealed class FakeAssetProvider : IUIAssetProvider
     {
-        public ContentManager Content => null!;
-        public MGUI.Shared.Text.FontManager FontManager => null!;
-
-        public IUIImageResource LoadImage(string assetName) => new MonoGameImageResource(null!);
+        public IUIImageResource LoadImage(string assetName) => null!;
 
         public bool TryLoadImage(string assetName, out IUIImageResource image)
         {
             image = null!;
             return false;
         }
+    }
 
-        public Texture2D LoadTexture(string assetName) => null!;
+    [Fact]
+    public void IUIAssetProvider_ExposesImageLoadingOnly()
+    {
+        Type contractType = typeof(IUIAssetProvider);
+        string[] propertyNames = contractType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToArray();
+        string[] methodNames = contractType.GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(x => !x.IsSpecialName)
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToArray();
 
-        public bool TryLoadTexture(string assetName, out Texture2D texture)
-        {
-            texture = null!;
-            return false;
-        }
+        Assert.Empty(propertyNames);
+        Assert.Equal(new[] { nameof(IUIAssetProvider.LoadImage), nameof(IUIAssetProvider.TryLoadImage) }, methodNames);
     }
 
     [Fact]

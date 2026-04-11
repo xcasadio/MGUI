@@ -1,14 +1,11 @@
-﻿using MGUI.Shared.Assets;
+using MGUI.Shared.Assets;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
@@ -33,11 +30,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
     {
         private static readonly float PI = (float)Math.PI;
 
-        /// <param name="EdgeBasis">The <see cref="Edge"/> that corresponds to a 0° rotation. The next clockwise <see cref="Edge"/> will be rotated by 90°, and the one after that 180° etc.</param>
-        /// <param name="CornerBasis">The <see cref="Corner"/> that corresponds to a 0° rotation. The next clockwise <see cref="Corner"/> will be rotated by 90°, and the one after that 180° etc.</param>
         public static TextureTransforms CreateStandardRotated(Edge EdgeBasis = Edge.Left, Corner CornerBasis = Corner.TopLeft)
         {
-            EdgeTransforms EdgeTransforms = EdgeBasis switch
+            EdgeTransforms edgeTransforms = EdgeBasis switch
             {
                 Edge.Left => new(0, PI / 2.0f, PI, PI / 2.0f * 3),
                 Edge.Top => new(PI / 2.0f * 3, 0, PI / 2.0f, PI),
@@ -46,7 +41,7 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 _ => throw new NotImplementedException($"Unrecognized {nameof(Edge)}: {EdgeBasis}")
             };
 
-            CornerTransforms CornerTransforms = CornerBasis switch
+            CornerTransforms cornerTransforms = CornerBasis switch
             {
                 Corner.TopLeft => new(0, PI / 2.0f, PI, PI / 2.0f * 3),
                 Corner.TopRight => new(PI / 2.0f * 3, 0, PI / 2.0f, PI),
@@ -55,15 +50,10 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 _ => throw new NotImplementedException($"Unrecognized {nameof(Corner)}: {CornerBasis}")
             };
 
-            return new TextureTransforms(EdgeTransforms, CornerTransforms);
+            return new TextureTransforms(edgeTransforms, cornerTransforms);
         }
     }
 
-    /// <summary>Represents rotations and reflections to apply to each edge when rendering the <see cref="MGTexturedBorderBrush.EdgeTexture"/></summary>
-    /// <param name="LeftRotation">Rotation in radians</param>
-    /// <param name="TopRotation">Rotation in radians</param>
-    /// <param name="RightRotation">Rotation in radians</param>
-    /// <param name="BottomRotation">Rotation in radians</param>
     public readonly record struct EdgeTransforms(
         float LeftRotation = 0, float TopRotation = 0, float RightRotation = 0, float BottomRotation = 0,
         SpriteEffects LeftReflections = SpriteEffects.None, SpriteEffects TopReflections = SpriteEffects.None,
@@ -75,11 +65,6 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         public bool HasBottomRotation => !BottomRotation.IsAlmostZero();
     }
 
-    /// <summary>Represents rotations and reflections to apply to each corner when rendering the <see cref="MGTexturedBorderBrush.CornerTexture"/></summary>
-    /// <param name="TopLeftRotation">Rotation in radians</param>
-    /// <param name="TopRightRotation">Rotation in radians</param>
-    /// <param name="BottomRightRotation">Rotation in radians</param>
-    /// <param name="BottomLeftRotation">Rotation in radians</param>
     public readonly record struct CornerTransforms(
         float TopLeftRotation = 0, float TopRightRotation = 0, float BottomRightRotation = 0, float BottomLeftRotation = 0,
         SpriteEffects TopLeftReflections = SpriteEffects.None, SpriteEffects TopRightReflections = SpriteEffects.None,
@@ -91,43 +76,42 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         public bool HasBottomLeftRotation => !BottomLeftRotation.IsAlmostZero();
     }
 
-    /// <summary>An <see cref="IBorderBrush"/> that is composed of 2 textures:<br/>
-    /// 1 for the edges (Left, Top, Right, Bottom), and 1 for the corners (TopLeft, TopRight, BottomRight, BottomLeft)<para/>
-    /// This brush renders the edge texture on all 4 edges, then renders the corner texture on all 4 corners, optionally applying reflections or rotations on each part<para/>
-    /// See also: <see cref="MGUniformBorderBrush"/>, <see cref="MGDockedBorderBrush"/>, <see cref="MGBandedBorderBrush"/>, <see cref="MGHighlightBorderBrush"/>, <see cref="MGCompositedBorderBrush"/></summary>
     public readonly struct MGTexturedBorderBrush : IBorderBrush
     {
+        private static UIDrawFlip ToDrawFlip(SpriteEffects effects)
+        {
+            UIDrawFlip result = UIDrawFlip.None;
+
+            if ((effects & SpriteEffects.FlipHorizontally) != 0)
+            {
+                result |= UIDrawFlip.Horizontal;
+            }
+
+            if ((effects & SpriteEffects.FlipVertically) != 0)
+            {
+                result |= UIDrawFlip.Vertical;
+            }
+
+            return result;
+        }
+
         public readonly MGTextureData EdgeTexture;
-        /// <summary>A color mask to use when drawing the <see cref="EdgeTexture"/>. Usually <see cref="Color.White"/></summary>
         public readonly Color EdgeColor;
-
         public readonly MGTextureData CornerTexture;
-        /// <summary>A color mask to use when drawing the <see cref="CornerTexture"/>. Usually <see cref="Color.White"/></summary>
         public readonly Color CornerColor;
-
         public readonly float Opacity;
-
         public readonly TextureTransforms Transforms;
 
         public MGTexturedBorderBrush()
         {
             EdgeTexture = default;
             EdgeColor = Color.White;
-
             CornerTexture = default;
             CornerColor = Color.White;
-
             Opacity = 1.0f;
-
             Transforms = new();
         }
 
-        /// <param name="EdgeTextureName">The name of the <see cref="MGTextureData"/> used to reference the <see cref="EdgeTexture"/> settings by.<br/>
-        /// This name must exist in <see cref="MGResources.Textures"/><para/>
-        /// See also: <see cref="MGElement.GetResources"/>, <see cref="MGDesktop.Resources"/>, <see cref="MGResources.Textures"/></param>
-        /// <param name="CornerTextureName">The name of the <see cref="MGTextureData"/> used to reference the <see cref="CornerTexture"/> settings by.<br/>
-        /// This name must exist in <see cref="MGResources.Textures"/><para/>
-        /// See also: <see cref="MGElement.GetResources"/>, <see cref="MGDesktop.Resources"/>, <see cref="MGResources.Textures"/></param>
         public MGTexturedBorderBrush(MGDesktop Desktop, string EdgeTextureName, string CornerTextureName, Color? EdgeColor = null, Color? CornerColor = null, TextureTransforms? Transforms = null, float Opacity = 1.0f)
             : this(Desktop.Resources.Textures[EdgeTextureName], EdgeColor, Desktop.Resources.Textures[CornerTextureName], CornerColor, Transforms, Opacity) { }
 
@@ -137,177 +121,157 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         public MGTexturedBorderBrush(IUIImageResource EdgeTexture, IUIImageResource CornerTexture, TextureTransforms? Transforms = null, float Opacity = 1.0f)
             : this(new MGTextureData(EdgeTexture), null, new MGTextureData(CornerTexture), null, Transforms, Opacity) { }
 
-        public MGTexturedBorderBrush(MGTextureData EdgeTexture, Color? EdgeColor, MGTextureData CornerTexture, Color? CornerColor, 
+        public MGTexturedBorderBrush(MGTextureData EdgeTexture, Color? EdgeColor, MGTextureData CornerTexture, Color? CornerColor,
             TextureTransforms? Transforms = null, float Opacity = 1.0f)
         {
             this.EdgeTexture = EdgeTexture;
             this.EdgeColor = EdgeColor ?? Color.White;
-
             this.CornerTexture = CornerTexture;
             this.CornerColor = CornerColor ?? Color.White;
-
             this.Opacity = Opacity;
-
             this.Transforms = Transforms ?? new();
         }
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
         {
-            IUIDrawContext DT = DA.DT;
-            float Opacity = DA.Opacity * this.Opacity;
-            IUIImageResource EdgeImage = EdgeTexture.Image;
-            IUIImageResource CornerImage = CornerTexture.Image;
+            IUIDrawContext drawContext = DA.DT;
+            float opacity = DA.Opacity * this.Opacity;
+            IUIImageResource edgeImage = EdgeTexture.Image;
+            IUIImageResource cornerImage = CornerTexture.Image;
 
-            if (EdgeImage?.IsDisposed == false)
+            if (edgeImage?.IsDisposed == false)
             {
                 Bounds = Bounds.GetTranslated(DA.Offset);
 
-                EdgeTransforms EdgeTransforms = Transforms.EdgeTransforms;
-                Color EdgeColor = this.EdgeColor * Opacity * EdgeTexture.Opacity;
+                EdgeTransforms edgeTransforms = Transforms.EdgeTransforms;
+                Color edgeColor = this.EdgeColor * opacity * EdgeTexture.Opacity;
+                int sourceWidth = EdgeTexture.RenderSize.Width;
+                int sourceHeight = EdgeTexture.RenderSize.Height;
+                Vector2 origin = new(sourceWidth / 2f, sourceHeight / 2f);
+                const float scaleOffset = 0.0001f;
 
-                int SourceWidth = EdgeTexture.RenderSize.Width;
-                int SourceHeight = EdgeTexture.RenderSize.Height;
-                Vector2 Origin = new(SourceWidth / 2f, SourceHeight / 2f);
-
-                Vector2 Scale;
-
-                //  A very small amount to increase scale values by to hopefully avoid off-by-1 pixel rounding issues when rotating
-                const float ScaleOffset = 0.0001f;
-
-                Rectangle LeftBounds = new(Bounds.Left, Bounds.Top + BT.Top, BT.Left, Bounds.Height - BT.Height);
-                if (!EdgeTransforms.HasLeftRotation)
+                Rectangle leftBounds = new(Bounds.Left, Bounds.Top + BT.Top, BT.Left, Bounds.Height - BT.Height);
+                if (!edgeTransforms.HasLeftRotation)
                 {
-                    DT.DrawTextureTo(EdgeImage, EdgeTexture.SourceRect, LeftBounds, EdgeColor, Vector2.Zero, 0, 0, EdgeTransforms.LeftReflections);
+                    drawContext.DrawTextureTo(edgeImage, EdgeTexture.SourceRect, leftBounds, edgeColor, Vector2.Zero, 0, 0, ToDrawFlip(edgeTransforms.LeftReflections));
                 }
                 else
                 {
-                    Rectangle RotatedLeftBounds = LeftBounds.CreateTransformed(Matrix.CreateRotationZ(EdgeTransforms.LeftRotation));
-                    Scale = new(Math.Abs(RotatedLeftBounds.Width) / (float)SourceWidth + ScaleOffset, Math.Abs(RotatedLeftBounds.Height) / (float)SourceHeight + ScaleOffset);
-                    DT.DrawTextureAt(EdgeImage, EdgeTexture.SourceRect, LeftBounds.Center.ToVector2(),
-                        EdgeColor, Origin, EdgeTransforms.LeftRotation, Scale.X, Scale.Y, 0, EdgeTransforms.LeftReflections);
+                    Rectangle rotatedLeftBounds = leftBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.LeftRotation));
+                    Vector2 scale = new(Math.Abs(rotatedLeftBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedLeftBounds.Height) / (float)sourceHeight + scaleOffset);
+                    drawContext.DrawTextureAt(edgeImage, EdgeTexture.SourceRect, leftBounds.Center.ToVector2(), edgeColor, origin, edgeTransforms.LeftRotation, scale.X, scale.Y, 0, ToDrawFlip(edgeTransforms.LeftReflections));
                 }
 
-                Rectangle TopBounds = new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top);
-                if (!EdgeTransforms.HasTopRotation)
+                Rectangle topBounds = new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top);
+                if (!edgeTransforms.HasTopRotation)
                 {
-                    DT.DrawTextureTo(EdgeImage, EdgeTexture.SourceRect, TopBounds, EdgeColor, Vector2.Zero, 0, 0, EdgeTransforms.TopReflections);
+                    drawContext.DrawTextureTo(edgeImage, EdgeTexture.SourceRect, topBounds, edgeColor, Vector2.Zero, 0, 0, ToDrawFlip(edgeTransforms.TopReflections));
                 }
                 else
                 {
-                    Rectangle RotatedTopBounds = TopBounds.CreateTransformed(Matrix.CreateRotationZ(EdgeTransforms.TopRotation));
-                    Scale = new(Math.Abs(RotatedTopBounds.Width) / (float)SourceWidth + ScaleOffset, Math.Abs(RotatedTopBounds.Height) / (float)SourceHeight + ScaleOffset);
-                    DT.DrawTextureAt(EdgeImage, EdgeTexture.SourceRect, TopBounds.Center.ToVector2(),
-                        EdgeColor, Origin, EdgeTransforms.TopRotation, Scale.X, Scale.Y, 0, EdgeTransforms.TopReflections);
+                    Rectangle rotatedTopBounds = topBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.TopRotation));
+                    Vector2 scale = new(Math.Abs(rotatedTopBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedTopBounds.Height) / (float)sourceHeight + scaleOffset);
+                    drawContext.DrawTextureAt(edgeImage, EdgeTexture.SourceRect, topBounds.Center.ToVector2(), edgeColor, origin, edgeTransforms.TopRotation, scale.X, scale.Y, 0, ToDrawFlip(edgeTransforms.TopReflections));
                 }
 
-                Rectangle RightBounds = new(Bounds.Right - BT.Right, Bounds.Top + BT.Top, BT.Right, Bounds.Height - BT.Height);
-                if (!EdgeTransforms.HasRightRotation)
+                Rectangle rightBounds = new(Bounds.Right - BT.Right, Bounds.Top + BT.Top, BT.Right, Bounds.Height - BT.Height);
+                if (!edgeTransforms.HasRightRotation)
                 {
-                    DT.DrawTextureTo(EdgeImage, EdgeTexture.SourceRect, RightBounds, EdgeColor, Vector2.Zero, 0, 0, EdgeTransforms.RightReflections);
+                    drawContext.DrawTextureTo(edgeImage, EdgeTexture.SourceRect, rightBounds, edgeColor, Vector2.Zero, 0, 0, ToDrawFlip(edgeTransforms.RightReflections));
                 }
                 else
                 {
-                    Rectangle RotatedRightBounds = RightBounds.CreateTransformed(Matrix.CreateRotationZ(EdgeTransforms.RightRotation));
-                    Scale = new(Math.Abs(RotatedRightBounds.Width) / (float)SourceWidth + ScaleOffset, Math.Abs(RotatedRightBounds.Height) / (float)SourceHeight + ScaleOffset);
-                    DT.DrawTextureAt(EdgeImage, EdgeTexture.SourceRect, RightBounds.Center.ToVector2(),
-                        EdgeColor, Origin, EdgeTransforms.RightRotation, Scale.X, Scale.Y, 0, EdgeTransforms.RightReflections);
+                    Rectangle rotatedRightBounds = rightBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.RightRotation));
+                    Vector2 scale = new(Math.Abs(rotatedRightBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedRightBounds.Height) / (float)sourceHeight + scaleOffset);
+                    drawContext.DrawTextureAt(edgeImage, EdgeTexture.SourceRect, rightBounds.Center.ToVector2(), edgeColor, origin, edgeTransforms.RightRotation, scale.X, scale.Y, 0, ToDrawFlip(edgeTransforms.RightReflections));
                 }
 
-                Rectangle BottomBounds = new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom);
-                if (!EdgeTransforms.HasBottomRotation)
+                Rectangle bottomBounds = new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom);
+                if (!edgeTransforms.HasBottomRotation)
                 {
-                    DT.DrawTextureTo(EdgeImage, EdgeTexture.SourceRect, BottomBounds, EdgeColor, Vector2.Zero, 0, 0, EdgeTransforms.BottomReflections);
+                    drawContext.DrawTextureTo(edgeImage, EdgeTexture.SourceRect, bottomBounds, edgeColor, Vector2.Zero, 0, 0, ToDrawFlip(edgeTransforms.BottomReflections));
                 }
                 else
                 {
-                    Rectangle RotatedBottomBounds = BottomBounds.CreateTransformed(Matrix.CreateRotationZ(EdgeTransforms.BottomRotation));
-                    Scale = new(Math.Abs(RotatedBottomBounds.Width) / (float)SourceWidth + ScaleOffset, Math.Abs(RotatedBottomBounds.Height) / (float)SourceHeight + ScaleOffset);
-                    DT.DrawTextureAt(EdgeImage, EdgeTexture.SourceRect, BottomBounds.Center.ToVector2(),
-                        EdgeColor, Origin, EdgeTransforms.BottomRotation, Scale.X, Scale.Y, 0, EdgeTransforms.BottomReflections);
+                    Rectangle rotatedBottomBounds = bottomBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.BottomRotation));
+                    Vector2 scale = new(Math.Abs(rotatedBottomBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedBottomBounds.Height) / (float)sourceHeight + scaleOffset);
+                    drawContext.DrawTextureAt(edgeImage, EdgeTexture.SourceRect, bottomBounds.Center.ToVector2(), edgeColor, origin, edgeTransforms.BottomRotation, scale.X, scale.Y, 0, ToDrawFlip(edgeTransforms.BottomReflections));
                 }
             }
 
-            if (CornerImage?.IsDisposed == false)
+            if (cornerImage?.IsDisposed == false)
             {
-                CornerTransforms CornerTransforms = Transforms.CornerTransforms;
-                Color CornerColor = this.CornerColor * Opacity *CornerTexture.Opacity;
+                CornerTransforms cornerTransforms = Transforms.CornerTransforms;
+                Color cornerColor = this.CornerColor * opacity * CornerTexture.Opacity;
+                int sourceWidth = CornerTexture.RenderSize.Width;
+                int sourceHeight = CornerTexture.RenderSize.Height;
+                Vector2 origin = new(sourceWidth / 2f, sourceHeight / 2f);
+                bool isUniformThickness = BT.Sides().All(x => x == BT.Left);
 
-                int SourceWidth = CornerTexture.RenderSize.Width;
-                int SourceHeight = CornerTexture.RenderSize.Height;
-                Vector2 Origin = new(SourceWidth / 2f, SourceHeight / 2f);
-
-                bool IsUniformThickness = BT.Sides().All(x => x == BT.Left);
-                if (IsUniformThickness)
+                if (isUniformThickness)
                 {
-                    Rectangle TopLeftBounds = new Rectangle(Bounds.Left, Bounds.Top, BT.Left, BT.Top).GetTranslated(BT.Left / 2, BT.Top / 2);
-                    DT.DrawTextureTo(CornerImage, CornerTexture.SourceRect, TopLeftBounds, CornerColor, Origin, CornerTransforms.TopLeftRotation, 0, CornerTransforms.TopLeftReflections);
+                    Rectangle topLeftBounds = new Rectangle(Bounds.Left, Bounds.Top, BT.Left, BT.Top).GetTranslated(BT.Left / 2, BT.Top / 2);
+                    drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, topLeftBounds, cornerColor, origin, cornerTransforms.TopLeftRotation, 0, ToDrawFlip(cornerTransforms.TopLeftReflections));
 
-                    Rectangle TopRightBounds = new Rectangle(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top).GetTranslated(BT.Right / 2, BT.Top / 2);
-                    DT.DrawTextureTo(CornerImage, CornerTexture.SourceRect, TopRightBounds, CornerColor, Origin, CornerTransforms.TopRightRotation, 0, CornerTransforms.TopRightReflections);
+                    Rectangle topRightBounds = new Rectangle(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top).GetTranslated(BT.Right / 2, BT.Top / 2);
+                    drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, topRightBounds, cornerColor, origin, cornerTransforms.TopRightRotation, 0, ToDrawFlip(cornerTransforms.TopRightReflections));
 
-                    Rectangle BottomRightBounds = new Rectangle(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom).GetTranslated(BT.Right / 2, BT.Bottom / 2);
-                    DT.DrawTextureTo(CornerImage, CornerTexture.SourceRect, BottomRightBounds, CornerColor, Origin, CornerTransforms.BottomRightRotation, 0, CornerTransforms.BottomRightReflections);
+                    Rectangle bottomRightBounds = new Rectangle(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom).GetTranslated(BT.Right / 2, BT.Bottom / 2);
+                    drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, bottomRightBounds, cornerColor, origin, cornerTransforms.BottomRightRotation, 0, ToDrawFlip(cornerTransforms.BottomRightReflections));
 
-                    Rectangle BottomLeftBounds = new Rectangle(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom).GetTranslated(BT.Left / 2, BT.Bottom / 2);
-                    DT.DrawTextureTo(CornerImage, CornerTexture.SourceRect, BottomLeftBounds, CornerColor, Origin, CornerTransforms.BottomLeftRotation, 0, CornerTransforms.BottomLeftReflections);
+                    Rectangle bottomLeftBounds = new Rectangle(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom).GetTranslated(BT.Left / 2, BT.Bottom / 2);
+                    drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, bottomLeftBounds, cornerColor, origin, cornerTransforms.BottomLeftRotation, 0, ToDrawFlip(cornerTransforms.BottomLeftReflections));
                 }
                 else
                 {
-                    Vector2 Scale;
+                    const float scaleOffset = 0.0001f;
 
-                    //  A very small amount to increase scale values by to hopefully avoid off-by-1 pixel rounding issues when rotating
-                    const float ScaleOffset = 0.0001f;
-
-                    Rectangle TopLeftBounds = new(Bounds.Left, Bounds.Top, BT.Left, BT.Top);
-                    if (!CornerTransforms.HasTopLeftRotation)
+                    Rectangle topLeftBounds = new(Bounds.Left, Bounds.Top, BT.Left, BT.Top);
+                    if (!cornerTransforms.HasTopLeftRotation)
                     {
-                        DT.DrawTextureTo(CornerImage, CornerTexture.SourceRect, TopLeftBounds, CornerColor, Vector2.Zero, 0, 0, CornerTransforms.TopLeftReflections);
+                        drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, topLeftBounds, cornerColor, Vector2.Zero, 0, 0, ToDrawFlip(cornerTransforms.TopLeftReflections));
                     }
                     else
                     {
-                        Rectangle RotatedTopLeftBounds = TopLeftBounds.CreateTransformed(Matrix.CreateRotationZ(CornerTransforms.TopLeftRotation));
-                        Scale = new(Math.Abs(RotatedTopLeftBounds.Width) / (float)SourceWidth + ScaleOffset, Math.Abs(RotatedTopLeftBounds.Height) / (float)SourceHeight + ScaleOffset);
-                        DT.DrawTextureAt(CornerImage, CornerTexture.SourceRect, TopLeftBounds.Center.ToVector2(),
-                            CornerColor, Origin, CornerTransforms.TopLeftRotation, Scale.X, Scale.Y, 0, CornerTransforms.TopLeftReflections);
+                        Rectangle rotatedTopLeftBounds = topLeftBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.TopLeftRotation));
+                        Vector2 scale = new(Math.Abs(rotatedTopLeftBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedTopLeftBounds.Height) / (float)sourceHeight + scaleOffset);
+                        drawContext.DrawTextureAt(cornerImage, CornerTexture.SourceRect, topLeftBounds.Center.ToVector2(), cornerColor, origin, cornerTransforms.TopLeftRotation, scale.X, scale.Y, 0, ToDrawFlip(cornerTransforms.TopLeftReflections));
                     }
 
-                    Rectangle TopRightBounds = new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top);
-                    if (!CornerTransforms.HasTopRightRotation)
+                    Rectangle topRightBounds = new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top);
+                    if (!cornerTransforms.HasTopRightRotation)
                     {
-                        DT.DrawTextureTo(CornerImage, CornerTexture.SourceRect, TopRightBounds, CornerColor, Vector2.Zero, 0, 0, CornerTransforms.TopRightReflections);
+                        drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, topRightBounds, cornerColor, Vector2.Zero, 0, 0, ToDrawFlip(cornerTransforms.TopRightReflections));
                     }
                     else
                     {
-                        Rectangle RotatedTopRightBounds = TopRightBounds.CreateTransformed(Matrix.CreateRotationZ(CornerTransforms.TopRightRotation));
-                        Scale = new(Math.Abs(RotatedTopRightBounds.Width) / (float)SourceWidth + ScaleOffset, Math.Abs(RotatedTopRightBounds.Height) / (float)SourceHeight + ScaleOffset);
-                        DT.DrawTextureAt(CornerImage, CornerTexture.SourceRect, TopRightBounds.Center.ToVector2(),
-                            CornerColor, Origin, CornerTransforms.TopRightRotation, Scale.X, Scale.Y, 0, CornerTransforms.TopRightReflections);
+                        Rectangle rotatedTopRightBounds = topRightBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.TopRightRotation));
+                        Vector2 scale = new(Math.Abs(rotatedTopRightBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedTopRightBounds.Height) / (float)sourceHeight + scaleOffset);
+                        drawContext.DrawTextureAt(cornerImage, CornerTexture.SourceRect, topRightBounds.Center.ToVector2(), cornerColor, origin, cornerTransforms.TopRightRotation, scale.X, scale.Y, 0, ToDrawFlip(cornerTransforms.TopRightReflections));
                     }
 
-                    Rectangle BottomRightBounds = new(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom);
-                    if (!CornerTransforms.HasBottomRightRotation)
+                    Rectangle bottomRightBounds = new(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom);
+                    if (!cornerTransforms.HasBottomRightRotation)
                     {
-                        DT.DrawTextureTo(CornerImage, CornerTexture.SourceRect, BottomRightBounds, CornerColor, Vector2.Zero, 0, 0, CornerTransforms.BottomRightReflections);
+                        drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, bottomRightBounds, cornerColor, Vector2.Zero, 0, 0, ToDrawFlip(cornerTransforms.BottomRightReflections));
                     }
                     else
                     {
-                        Rectangle RotatedBottomRightBounds = BottomRightBounds.CreateTransformed(Matrix.CreateRotationZ(CornerTransforms.BottomRightRotation));
-                        Scale = new(Math.Abs(RotatedBottomRightBounds.Width) / (float)SourceWidth + ScaleOffset, Math.Abs(RotatedBottomRightBounds.Height) / (float)SourceHeight + ScaleOffset);
-                        DT.DrawTextureAt(CornerImage, CornerTexture.SourceRect, BottomRightBounds.Center.ToVector2(),
-                            CornerColor, Origin, CornerTransforms.BottomRightRotation, Scale.X, Scale.Y, 0, CornerTransforms.BottomRightReflections);
+                        Rectangle rotatedBottomRightBounds = bottomRightBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.BottomRightRotation));
+                        Vector2 scale = new(Math.Abs(rotatedBottomRightBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedBottomRightBounds.Height) / (float)sourceHeight + scaleOffset);
+                        drawContext.DrawTextureAt(cornerImage, CornerTexture.SourceRect, bottomRightBounds.Center.ToVector2(), cornerColor, origin, cornerTransforms.BottomRightRotation, scale.X, scale.Y, 0, ToDrawFlip(cornerTransforms.BottomRightReflections));
                     }
 
-                    Rectangle BottomLeftBounds = new(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom);
-                    if (!CornerTransforms.HasBottomLeftRotation)
+                    Rectangle bottomLeftBounds = new(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom);
+                    if (!cornerTransforms.HasBottomLeftRotation)
                     {
-                        DT.DrawTextureTo(CornerImage, CornerTexture.SourceRect, BottomLeftBounds, CornerColor, Vector2.Zero, 0, 0, CornerTransforms.BottomLeftReflections);
+                        drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, bottomLeftBounds, cornerColor, Vector2.Zero, 0, 0, ToDrawFlip(cornerTransforms.BottomLeftReflections));
                     }
                     else
                     {
-                        Rectangle RotatedBottomLeftBounds = BottomLeftBounds.CreateTransformed(Matrix.CreateRotationZ(CornerTransforms.BottomLeftRotation));
-                        Scale = new(Math.Abs(RotatedBottomLeftBounds.Width) / (float)SourceWidth + ScaleOffset, Math.Abs(RotatedBottomLeftBounds.Height) / (float)SourceHeight + ScaleOffset);
-                        DT.DrawTextureAt(CornerImage, CornerTexture.SourceRect, BottomLeftBounds.Center.ToVector2(),
-                            CornerColor, Origin, CornerTransforms.BottomLeftRotation, Scale.X, Scale.Y, 0, CornerTransforms.BottomLeftReflections);
+                        Rectangle rotatedBottomLeftBounds = bottomLeftBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.BottomLeftRotation));
+                        Vector2 scale = new(Math.Abs(rotatedBottomLeftBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedBottomLeftBounds.Height) / (float)sourceHeight + scaleOffset);
+                        drawContext.DrawTextureAt(cornerImage, CornerTexture.SourceRect, bottomLeftBounds.Center.ToVector2(), cornerColor, origin, cornerTransforms.BottomLeftRotation, scale.X, scale.Y, 0, ToDrawFlip(cornerTransforms.BottomLeftReflections));
                     }
                 }
             }

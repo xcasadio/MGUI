@@ -7,18 +7,17 @@ namespace MGUI.Core.UI.Shapes
     public static class DrawTransactionBoxShapeExtensions
     {
         public static void FillRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxShape shape, Color color,
-            int cornerSegmentCount = 8, DrawContext? preferredContext = null)
+            int cornerSegmentCount = 8)
         {
             MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
-            FillRoundedRectangle(drawContext, origin, geometry, color, preferredContext);
+            FillRoundedRectangle(drawContext, origin, geometry, color);
         }
 
-        public static void FillRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxGeometry geometry, Color color,
-            DrawContext? preferredContext = null)
+        public static void FillRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxGeometry geometry, Color color)
         {
             if (geometry.UsesRectangleFastPath)
             {
-                drawContext.FillRectangle(origin, geometry.Shape.OuterBounds, color, preferredContext);
+                drawContext.FillRectangle(origin, geometry.Shape.OuterBounds, color);
                 return;
             }
 
@@ -26,33 +25,31 @@ namespace MGUI.Core.UI.Shapes
         }
 
         public static void StrokeRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxShape shape, Color color,
-            int cornerSegmentCount = 8, DrawContext? preferredContext = null)
+            int cornerSegmentCount = 8)
         {
             MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
-            StrokeRoundedRectangle(drawContext, origin, geometry, color, preferredContext);
+            StrokeRoundedRectangle(drawContext, origin, geometry, color);
         }
 
-        public static void StrokeRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxGeometry geometry, Color color,
-            DrawContext? preferredContext = null)
+        public static void StrokeRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxGeometry geometry, Color color)
         {
             if (geometry.UsesRectangleFastPath)
             {
-                drawContext.StrokeRectangle(origin, geometry.Shape.OuterBounds, color, geometry.Shape.NormalizedBorderThickness, preferredContext);
+                drawContext.StrokeRectangle(origin, geometry.Shape.OuterBounds, color, geometry.Shape.NormalizedBorderThickness);
                 return;
             }
 
-            drawContext.DrawBorderRing(origin, geometry, color, preferredContext);
+            drawContext.DrawBorderRing(origin, geometry, color);
         }
 
         public static void DrawBorderRing(this IUIDrawContext drawContext, Vector2 origin, MGBoxShape shape, Color color,
-            int cornerSegmentCount = 8, DrawContext? preferredContext = null)
+            int cornerSegmentCount = 8)
         {
             MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
-            drawContext.DrawBorderRing(origin, geometry, color, preferredContext);
+            drawContext.DrawBorderRing(origin, geometry, color);
         }
 
-        public static void DrawBorderRing(this IUIDrawContext drawContext, Vector2 origin, MGBoxGeometry geometry, Color color,
-            DrawContext? preferredContext = null)
+        public static void DrawBorderRing(this IUIDrawContext drawContext, Vector2 origin, MGBoxGeometry geometry, Color color)
         {
             if (!geometry.Shape.HasBorder)
             {
@@ -61,7 +58,7 @@ namespace MGUI.Core.UI.Shapes
 
             if (geometry.UsesRectangleFastPath)
             {
-                drawContext.StrokeRectangle(origin, geometry.Shape.OuterBounds, color, geometry.Shape.NormalizedBorderThickness, preferredContext);
+                drawContext.StrokeRectangle(origin, geometry.Shape.OuterBounds, color, geometry.Shape.NormalizedBorderThickness);
                 return;
             }
 

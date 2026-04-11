@@ -1,5 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MGUI.Shared.Rendering;
+using System;
 using System.Collections.Generic;
 
 namespace MGUI.Shared.Text.Engines
@@ -200,7 +202,7 @@ namespace MGUI.Shared.Text.Engines
 
         /// <inheritdoc/>
         public void DrawText(
-            SpriteBatch spriteBatch,
+            IUIDrawContext drawContext,
             ResolvedFont font,
             string text,
             Vector2 position,
@@ -209,7 +211,7 @@ namespace MGUI.Shared.Text.Engines
             float scale,
             float rotation    = 0f,
             float depth       = 0f,
-            SpriteEffects effects = SpriteEffects.None)
+            UIDrawFlip flip = UIDrawFlip.None)
         {
             if (string.IsNullOrEmpty(text))
             {
@@ -222,7 +224,12 @@ namespace MGUI.Shared.Text.Engines
                 return;
             }
 
-            spriteBatch.DrawString(h.SF, text, position, color, rotation, origin, scale, effects, depth);
+            if (drawContext is not DrawTransaction transaction)
+            {
+                throw new InvalidOperationException($"{nameof(SpriteFontTextEngine)} requires a {nameof(DrawTransaction)} draw context for the MonoGame backend.");
+            }
+
+            transaction.SpriteBatch.DrawString(h.SF, text, position, color, rotation, origin, scale, MonoGameRenderInterop.ToSpriteEffects(flip), depth);
         }
 
         /// <inheritdoc/>

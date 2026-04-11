@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,10 +68,19 @@ namespace MGUI.Shared.Rendering
         StencilRestoreDecrement
     }
 
-    /// <summary>Stores settings used by <see cref="SpriteBatch.Begin(SpriteSortMode, BlendState, SamplerState, DepthStencilState, RasterizerState, Effect, Matrix?)"/></summary>
-    public record class DrawSettings(Matrix Transform, RasterizerType RasterizerType = RasterizerType.SolidScissorTest, SpriteSortMode Sort = SpriteSortMode.Deferred,
+    public enum DrawSortMode
+    {
+        Deferred,
+        Immediate,
+        Texture,
+        BackToFront,
+        FrontToBack
+    }
+
+    /// <summary>Stores backend-neutral draw settings that a concrete renderer maps to its own batching and GPU state model.</summary>
+    public record class DrawSettings(Matrix Transform, RasterizerType RasterizerType = RasterizerType.SolidScissorTest, DrawSortMode Sort = DrawSortMode.Deferred,
         BlendType BlendType = BlendType.AlphaBlend, SamplerType SamplerType = SamplerType.PointClamp, DepthStencilType DepthStencilType = DepthStencilType.None,
-        Effect Effect = null, int StencilReference = 0, int StencilReadMask = 0xFF, int StencilWriteMask = 0xFF)
+        object BackendEffect = null, int StencilReference = 0, int StencilReadMask = 0xFF, int StencilWriteMask = 0xFF)
     {
         private Matrix? _InverseTransform;
         public Matrix InverseTransform
@@ -88,122 +96,8 @@ namespace MGUI.Shared.Rendering
         }
 
         public bool IsIdentityTransform { get; } = Transform == Matrix.Identity;
+        public bool UsesScissorTest => RasterizerType == RasterizerType.SolidScissorTest || RasterizerType == RasterizerType.WireframeScissorTest;
 
         public static DrawSettings Default => new(Matrix.Identity);
-
-        private static readonly Dictionary<RasterizerType, RasterizerState> RasterizerMap = new()
-        {
-            { RasterizerType.Default, new() { CullMode = CullMode.None } },
-            { RasterizerType.SolidScissorTest, new() { FillMode = FillMode.Solid, ScissorTestEnable = true, CullMode = CullMode.None } },
-            { RasterizerType.Solid, new() { FillMode = FillMode.Solid, ScissorTestEnable = false, CullMode = CullMode.None } },
-            { RasterizerType.WireframeScissorTest, new() { FillMode = FillMode.WireFrame, ScissorTestEnable = true, CullMode = CullMode.None } },
-            { RasterizerType.Wireframe, new() { FillMode = FillMode.WireFrame, ScissorTestEnable = false, CullMode = CullMode.None } }
-        };
-
-        private static readonly Dictionary<BlendType, BlendState> BlendMap = new()
-        {
-            { BlendType.Default, BlendState.AlphaBlend },
-            { BlendType.Additive, BlendState.Additive },
-            { BlendType.AlphaBlend, BlendState.AlphaBlend },
-            { BlendType.NonPremultiplied, BlendState.NonPremultiplied },
-            { BlendType.Opaque, BlendState.Opaque },
-            { BlendType.ColorWriteDisable, new BlendState { ColorWriteChannels = ColorWriteChannels.None, ColorWriteChannels1 = ColorWriteChannels.None, ColorWriteChannels2 = ColorWriteChannels.None, ColorWriteChannels3 = ColorWriteChannels.None } },
-            { BlendType.DestinationAlphaMask, new BlendState
-                {
-                    ColorSourceBlend = Blend.DestinationAlpha,
-                    ColorDestinationBlend = Blend.InverseSourceAlpha,
-                    ColorBlendFunction = BlendFunction.Add,
-                    AlphaSourceBlend = Blend.DestinationAlpha,
-                    AlphaDestinationBlend = Blend.InverseSourceAlpha,
-                    AlphaBlendFunction = BlendFunction.Add,
-                }
-            }
-        };
-
-        private static readonly Dictionary<SamplerType, SamplerState> SamplerMap = new()
-        {
-            { SamplerType.Default, SamplerState.LinearClamp },
-            { SamplerType.AnisotropicClamp, SamplerState.AnisotropicClamp },
-            { SamplerType.AnisotropicWrap, SamplerState.AnisotropicWrap },
-            { SamplerType.LinearClamp, SamplerState.LinearClamp },
-            { SamplerType.LinearWrap, SamplerState.LinearWrap },
-            { SamplerType.PointClamp, SamplerState.PointClamp },
-            { SamplerType.PointWrap, SamplerState.PointWrap },
-        };
-
-        private static readonly Dictionary<DepthStencilType, DepthStencilState> DepthStencilMap = new()
-        {
-            { DepthStencilType.Default, DepthStencilState.None },
-            { DepthStencilType.DepthRead, DepthStencilState.DepthRead },
-            { DepthStencilType.None, DepthStencilState.None }
-        };
-
-        private static readonly Dictionary<(DepthStencilType Type, int Reference, int ReadMask, int WriteMask), DepthStencilState> CustomDepthStencilMap = new();
-
-        public RasterizerState RasterizerState => RasterizerMap[RasterizerType];
-        public BlendState BlendState => BlendMap[BlendType];
-        public SamplerState SamplerState => SamplerMap[SamplerType];
-        public DepthStencilState DepthStencilState
-        {
-            get
-            {
-                if (DepthStencilMap.TryGetValue(DepthStencilType, out DepthStencilState Existing))
-                {
-                    return Existing;
-                }
-
-                var key = (DepthStencilType, StencilReference, StencilReadMask, StencilWriteMask);
-                if (!CustomDepthStencilMap.TryGetValue(key, out DepthStencilState Result))
-                {
-                    Result = CreateDepthStencilState(DepthStencilType, StencilReference, StencilReadMask, StencilWriteMask);
-                    CustomDepthStencilMap.Add(key, Result);
-                }
-                return Result;
-            }
-        }
-
-        private static DepthStencilState CreateDepthStencilState(DepthStencilType type, int reference, int readMask, int writeMask)
-            => type switch
-            {
-                DepthStencilType.StencilWriteIncrement => new DepthStencilState
-                {
-                    StencilEnable = true,
-                    ReferenceStencil = reference,
-                    StencilMask = readMask,
-                    StencilWriteMask = writeMask,
-                    StencilFunction = CompareFunction.Equal,
-                    StencilPass = StencilOperation.Increment,
-                    StencilFail = StencilOperation.Keep,
-                    StencilDepthBufferFail = StencilOperation.Keep,
-                    DepthBufferEnable = false,
-                },
-                DepthStencilType.StencilReadEqual => new DepthStencilState
-                {
-                    StencilEnable = true,
-                    ReferenceStencil = reference,
-                    StencilMask = readMask,
-                    StencilWriteMask = writeMask,
-                    StencilFunction = CompareFunction.Equal,
-                    StencilPass = StencilOperation.Keep,
-                    StencilFail = StencilOperation.Keep,
-                    StencilDepthBufferFail = StencilOperation.Keep,
-                    DepthBufferEnable = false,
-                },
-                DepthStencilType.StencilRestoreDecrement => new DepthStencilState
-                {
-                    StencilEnable = true,
-                    ReferenceStencil = reference,
-                    StencilMask = readMask,
-                    StencilWriteMask = writeMask,
-                    StencilFunction = CompareFunction.Equal,
-                    StencilPass = StencilOperation.Decrement,
-                    StencilFail = StencilOperation.Keep,
-                    StencilDepthBufferFail = StencilOperation.Keep,
-                    DepthBufferEnable = false,
-                },
-                _ => throw new NotImplementedException($"Unrecognized {nameof(DepthStencilType)}: {type}")
-            };
-
-        public void BeginDraw(SpriteBatch SB) => SB.Begin(Sort, BlendState, SamplerState, DepthStencilState, RasterizerState, Effect, Transform);
     }
 }

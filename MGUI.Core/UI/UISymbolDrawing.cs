@@ -177,8 +177,7 @@ namespace MGUI.Core.UI
                 drawContext.StrokeRectangle(origin,
                     new MonoGame.Extended.RectangleF(centerX - halfSize, centerY - halfSize, halfSize * 2.0f, halfSize * 2.0f),
                     color,
-                    new MonoGame.Extended.Thickness(1),
-                    null);
+                    new MonoGame.Extended.Thickness(1));
             }
         }
 
