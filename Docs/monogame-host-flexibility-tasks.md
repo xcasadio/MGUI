@@ -174,7 +174,7 @@ Frontiere explicite avec un futur chantier multi-moteur:
 - il ouvre seulement une seam plus propre entre hebergement MonoGame et runtime UI haut niveau ;
 - si un chantier multi-moteur existe un jour, il devra partir de cette seam, mais avec un perimetre bien plus large que celui-ci.
 
-### ⚪ 2. Ajouter une couverture de tests d'architecture pour le contrat host/runtime
+### ✅ 2. Ajouter une couverture de tests d'architecture pour le contrat host/runtime
 
 But:
 verrouiller le perimetre avant refactor.
@@ -203,6 +203,14 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 2 add host runtime architecture coverage`
+
+Resultat:
+
+- une suite `HostRuntimeContractTests` verrouille maintenant le contrat de construction explicite de `MainRenderer` autour de `IRenderHost` ;
+- les tests epinglent le fait que `GameRenderHost<TObservableGame>` reste la voie historique supportee pour un host MonoGame ;
+- le couplage actuel de `MGDesktop` au type concret `MainRenderer` est desormais borne par un test qui liste explicitement les membres runtime consommes ;
+- les samples sont verrouilles sur le chemin de bootstrap explicite `MainRenderer + GameRenderHost + MonoGameRawInputSource`, ce qui donne une baseline claire avant l'ajout d'une variante de host ;
+- la validation de cette tache a ete faite avec un filtre cible host/runtime, et non avec tout `--filter Architecture`, car la suite d'architecture globale du repo contient deja des echecs hors perimetre de ce chantier.
 
 ### ⚪ 3. Introduire un contrat runtime etroit cote desktop
 
