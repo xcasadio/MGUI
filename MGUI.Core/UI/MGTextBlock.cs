@@ -38,9 +38,9 @@ namespace MGUI.Core.UI
         /// </summary>
         internal float SpaceWidth { get; private set; }
 
-        // ── ITextEngine-backed resolved fonts (one per style variant) ─────────────
-        /// <summary>Shortcut to the active <see cref="ITextEngine"/> from the parent Desktop.</summary>
-        private ITextEngine TextEngine => GetTextEngine();
+        // ── ITextMeasurementEngine-backed resolved fonts (one per style variant) ─────────────
+        /// <summary>Shortcut to the active <see cref="ITextMeasurementEngine"/> from the parent Desktop.</summary>
+        private ITextMeasurementEngine TextEngine => GetTextEngine();
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool? _UseResponsiveTextScale;
@@ -107,8 +107,8 @@ namespace MGUI.Core.UI
                 _FontFamily = FontFamily;
                 _FontSize = FontSize;
 
-                // Resolve ITextEngine handles for all 4 style variants
-                ITextEngine engine = TextEngine;
+                // Resolve text-measurement handles for all 4 style variants
+                ITextMeasurementEngine engine = TextEngine;
                 RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Normal));
                 RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold));
                 RF_Italic     = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Italic));
@@ -165,14 +165,14 @@ namespace MGUI.Core.UI
         }
 
         /// <summary>
-        /// Re-resolves all four font-style handles from the currently active <see cref="ITextEngine"/>
+        /// Re-resolves all four font-style handles from the currently active <see cref="ITextMeasurementEngine"/>
         /// and invalidates both the layout and the self-measurement cache.<para/>
         /// Called by <see cref="MGDesktop.RecalculateTextLayouts"/> after a runtime engine switch so
         /// that new engine metrics (e.g. different scale factors) are reflected immediately.
         /// </summary>
         internal void RefreshTextEngine()
         {
-            ITextEngine engine = TextEngine;
+            ITextMeasurementEngine engine = TextEngine;
             RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Normal));
             RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold));
             RF_Italic     = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Italic));
@@ -697,8 +697,8 @@ namespace MGUI.Core.UI
         public override string ToString() => $"{base.ToString()}: \"{Text?.Truncate(100)}\"";
 
         /// <summary>
-        /// Measures the rendered size of <paramref name="Text"/> using the active <see cref="ITextEngine"/>.
-        /// Delegates to <see cref="ITextEngine.MeasureText"/> (whole-string) so that kerning is accounted
+        /// Measures the rendered size of <paramref name="Text"/> using the active <see cref="ITextMeasurementEngine"/>.
+        /// Delegates to <see cref="ITextMeasurementEngine.MeasureText"/> (whole-string) so that kerning is accounted
         /// for correctly.
         /// </summary>
         public Vector2 MeasureText(string Text, bool IsBold, bool IsItalic)

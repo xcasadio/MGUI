@@ -32,10 +32,11 @@ namespace MGUI.Shared.Rendering
     public class DrawTransaction : IUIRenderContext, IDisposable
     {
         public MainRenderer Renderer { get; }
-        [Obsolete("Access fonts through MainRenderer.TextEngine / ITextEngine instead.")]
+        [Obsolete("Access fonts through MainRenderer.TextEngine / ITextMeasurementEngine instead.")]
         public FontManager FontManager => Renderer.FontManager;
         /// <summary>Delegates to <see cref="MainRenderer.TextEngine"/>.</summary>
-        public ITextEngine TextEngine => Renderer.TextEngine;
+        public ITextMeasurementEngine TextEngine => Renderer.TextEngine;
+        private IMonoGameTextRenderer TextRenderer => Renderer.GetTextRenderer();
         public GraphicsDevice GD => Renderer.GD;
         public SpriteBatch SB => Renderer.SB;
         private PrimitiveBatch PB => Renderer.PB;
@@ -215,7 +216,7 @@ namespace MGUI.Shared.Rendering
         /// ensuring the correct <see cref="DrawContext"/> has been started on this transaction.
         /// The <see cref="SpriteBatch"/> (<see cref="SB"/>) owned by this transaction is passed
         /// automatically and is therefore not a parameter here, unlike the lower-level
-        /// <see cref="ITextEngine.DrawText"/> overload.
+        /// <see cref="IMonoGameTextRenderer.DrawText"/> overload.
         /// </summary>
         public void DrawTextViaEngine(
             MGUI.Shared.Text.ResolvedFont Font,
@@ -234,7 +235,7 @@ namespace MGUI.Shared.Rendering
             }
 
             BeginDraw(DrawContext.Sprites);
-            TextEngine.DrawText(SB, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Effects);
+            TextRenderer.DrawText(SB, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Effects);
         }
 
         /// <param name="Family">The font to use</param>
@@ -266,8 +267,8 @@ namespace MGUI.Shared.Rendering
             Vector2 suggested = TextEngine.MeasureText(resolved, Text);
 
             BeginDraw(DrawContext.Sprites);
-            TextEngine.DrawText(SB, resolved, Text, Position + new Vector2(XOffset, YOffset), ShadowColor, resolved.DrawOrigin, scale);
-            TextEngine.DrawText(SB, resolved, Text, Position, TextColor, resolved.DrawOrigin, scale);
+            TextRenderer.DrawText(SB, resolved, Text, Position + new Vector2(XOffset, YOffset), ShadowColor, resolved.DrawOrigin, scale);
+            TextRenderer.DrawText(SB, resolved, Text, Position, TextColor, resolved.DrawOrigin, scale);
 
             if (!Exact || resolved.SuggestedScale == resolved.ExactScale)
             {
@@ -330,7 +331,7 @@ namespace MGUI.Shared.Rendering
             Vector2 suggested = TextEngine.MeasureText(resolved, Text);
 
             BeginDraw(DrawContext.Sprites);
-            TextEngine.DrawText(SB, resolved, Text, Position, Color, resolved.DrawOrigin, scale);
+            TextRenderer.DrawText(SB, resolved, Text, Position, Color, resolved.DrawOrigin, scale);
 
             if (!Exact || resolved.SuggestedScale == resolved.ExactScale)
             {

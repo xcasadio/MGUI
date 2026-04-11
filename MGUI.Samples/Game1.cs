@@ -121,8 +121,8 @@ namespace MGUI.Samples
                 return;
             }
 
-            ITextEngine CurrentEngine = Desktop.TextEngine;
-            ITextEngine NewEngine = CurrentEngine is SpriteFontTextEngine ? FontStashSharpEngine : SpriteFontEngine;
+            ITextMeasurementEngine CurrentEngine = Desktop.TextEngine;
+            ITextMeasurementEngine NewEngine = CurrentEngine is SpriteFontTextEngine ? FontStashSharpEngine : SpriteFontEngine;
             Desktop.TextEngine = NewEngine;
             Debug.WriteLine($"[TextEngine] switched to {Desktop.TextEngine.GetType().Name}");
         }

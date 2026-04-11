@@ -476,7 +476,7 @@ Validation:
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderContextTests --logger "console;verbosity=minimal"` : succes, 8 tests passes ;
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 6 tests passes.
 
-### ⚪ 7. Separer la mesure de texte du draw texte backend
+### ✅ 7. Separer la mesure de texte du draw texte backend
 
 But:
 eviter que le contrat texte du coeur UI soit pilote par les details du rendu texte MonoGame.
@@ -503,6 +503,28 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `text: complete task 7 split text measurement from backend text draw`
+
+Resultat:
+
+- le contrat texte a ete coupe en deux niveaux explicites: `ITextMeasurementEngine` porte desormais la resolution et la mesure backend-neutral, tandis que `IMonoGameTextRenderer` porte le draw texte concret via `SpriteBatch` ;
+- `ITextEngine` reste disponible comme interface composite de compatibilite pour les implementations MonoGame existantes (`SpriteFontTextEngine`, `FontStashSharpTextEngine`), mais `MGUI.Core` ne depend plus directement de ce contrat composite ;
+- `IUIDesktopRuntime.TextEngine`, `MGDesktop.TextEngine`, `MGElement.TextEngineOverride`, `MGTextBlock`, `TextRenderInfo` et `MGRotatedTextLabel` consomment maintenant le contrat de mesure seul pour la resolution de fontes, la mesure de lignes, le wrapping et le caret layout ;
+- `DrawTransaction` garde la responsabilite du draw texte backend et consomme explicitement le contrat `IMonoGameTextRenderer`, ce qui retire `SpriteBatch` de la surface visible par le coeur UI sans casser le chemin MonoGame ;
+- `MainRenderer` accepte toujours des engines texte interchangeables, mais le setter verifie maintenant qu'un engine assigne au runtime implemente aussi `IMonoGameTextRenderer`, afin de garantir que le backend MonoGame reste renderable ;
+- les garde-fous d'architecture ont ete etendus pour epingler la nouvelle frontiere: `MGUI.Core` ne doit plus referencer `ITextEngine`, et le contrat runtime expose desormais `ITextMeasurementEngine` plutot que le contrat composite.
+
+Validation:
+
+- `dotnet build .\MGUI.Shared\MGUI.Shared.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.FontStashSharp\MGUI.FontStashSharp.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` : succes, avec avertissements XML existants hors perimetre ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements existants hors perimetre ;
+- `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore` : succes, avec avertissement `net6.0-windows` existant hors perimetre ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter HostRuntimeContractTests --logger "console;verbosity=minimal"` : succes, 8 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 7 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter FSSMeasureDrawConsistencyTests --logger "console;verbosity=minimal"` : succes, 13 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter MeasureSelfOverrideConsistencyTests --logger "console;verbosity=minimal"` : succes, 10 tests passes.
 
 ## Phase 3 - Isoler physiquement le backend MonoGame
 

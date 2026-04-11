@@ -114,32 +114,39 @@ namespace MGUI.Shared.Rendering
         public FontManager FontManager { get; }
         public IUIAssetProvider AssetProvider { get; }
 
-        private ITextEngine _textEngine;
+        private ITextMeasurementEngine _textEngine;
         /// <summary>
-        /// The active text engine used for all font measurement and rendering.
+        /// The active text measurement engine used for font resolution and layout.
         /// Defaults to a <see cref="SpriteFontTextEngine"/> wrapping <see cref="FontManager"/>.
-        /// Assign a different implementation (e.g. a FontStashSharp-based engine) to switch
-        /// backends globally.  Setting a new value automatically flushes the cache of the
-        /// old engine.
+        /// At runtime, assigned engines must also implement <see cref="IMonoGameTextRenderer"/>
+        /// so the MonoGame backend can render the resolved fonts.
         /// </summary>
-        public ITextEngine TextEngine
+        public ITextMeasurementEngine TextEngine
         {
             get => _textEngine;
             set
             {
-                ITextEngine previous = TextEngine;
+                if (value is not IMonoGameTextRenderer)
+                {
+                    throw new ArgumentException($"{nameof(TextEngine)} must also implement {nameof(IMonoGameTextRenderer)} for the MonoGame backend.", nameof(value));
+                }
+
+                ITextMeasurementEngine previous = TextEngine;
                 if (_textEngine != null && !ReferenceEquals(_textEngine, value))
                 {
                     _textEngine.InvalidateCache();
                 }
 
                 _textEngine = value ?? throw new ArgumentNullException(nameof(value));
-                TextEngineChanged?.Invoke(this, new EventArgs<ITextEngine>(previous, TextEngine));
+                TextEngineChanged?.Invoke(this, new EventArgs<ITextMeasurementEngine>(previous, TextEngine));
             }
         }
 
+        internal IMonoGameTextRenderer GetTextRenderer()
+            => (IMonoGameTextRenderer)TextEngine;
+
         /// <summary>Invoked when <see cref="TextEngine"/> is set to a new value</summary>
-        public event EventHandler<EventArgs<ITextEngine>> TextEngineChanged;
+        public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
 
         public InputTracker Input { get; }
         public UpdateBaseArgs UpdateArgs { get; private set; }

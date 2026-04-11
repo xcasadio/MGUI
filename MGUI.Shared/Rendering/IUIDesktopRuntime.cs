@@ -14,8 +14,8 @@ namespace MGUI.Shared.Rendering
         public FontManager FontManager { get; }
         public IUISurface Surface { get; }
         public IUIAssetProvider AssetProvider { get; }
-        public ITextEngine TextEngine { get; set; }
-        public event EventHandler<EventArgs<ITextEngine>> TextEngineChanged;
+        public ITextMeasurementEngine TextEngine { get; set; }
+        public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
         public UpdateBaseArgs UpdateArgs { get; }
 
         public DrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites);

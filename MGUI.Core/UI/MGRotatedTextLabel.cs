@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Shared.Text;
+using MGUI.Shared.Text.Engines;
 using System;
 
 namespace MGUI.Core.UI;
@@ -91,14 +92,15 @@ public class MGRotatedTextLabel : MGElement
         }
 
         string family = ParentWindow.Desktop.FontManager.DefaultFontFamily;
-        ResolvedFont resolved = DA.DT.TextEngine.ResolveFont(new FontSpec(family, FontSize, CustomFontStyles.Normal));
+        ITextMeasurementEngine textEngine = GetTextEngine();
+        ResolvedFont resolved = textEngine.ResolveFont(new FontSpec(family, FontSize, CustomFontStyles.Normal));
         if (resolved?.NativeFont == null)
         {
             return;
         }
 
         float scale = resolved.SuggestedScale;
-        Vector2 textSize = DA.DT.TextEngine.MeasureText(resolved, Text);
+        Vector2 textSize = textEngine.MeasureText(resolved, Text);
         Vector2 origin = textSize / 2.0f;
         Vector2 position = new Vector2(
             layoutBounds.X + layoutBounds.Width / 2.0f,

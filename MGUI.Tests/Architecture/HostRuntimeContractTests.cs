@@ -3,8 +3,10 @@ using System.Text.RegularExpressions;
 using System.IO;
 using MGUI.Core.UI;
 using MGUI.Shared.Assets;
+using MGUI.Shared.Helpers;
 using MGUI.Shared.Input;
 using MGUI.Shared.Rendering;
+using MGUI.Shared.Text.Engines;
 using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Architecture;
@@ -127,9 +129,33 @@ public class HostRuntimeContractTests
         }, propertyNames);
         Assert.Equal(new[] { "CreateDrawTransaction", "RegisterView" }, methodNames);
         Assert.Equal(new[] { "TextEngineChanged" }, eventNames);
+        Assert.Equal(typeof(ITextMeasurementEngine), contractType.GetProperty(nameof(IUIDesktopRuntime.TextEngine))!.PropertyType);
+        Assert.Equal(typeof(EventHandler<MGUI.Shared.Helpers.EventArgs<ITextMeasurementEngine>>), contractType.GetEvent(nameof(IUIDesktopRuntime.TextEngineChanged))!.EventHandlerType);
         Assert.DoesNotContain(nameof(MainRenderer.Host), propertyNames);
         Assert.DoesNotContain(nameof(MainRenderer.GraphicsDevice), propertyNames);
         Assert.DoesNotContain(nameof(MainRenderer.GetViewport), methodNames);
+    }
+
+    [Fact]
+    public void ITextEngine_ComposesMeasurementAndMonoGameDrawContracts()
+    {
+        Type composite = typeof(ITextEngine);
+        Type[] interfaces = composite.GetInterfaces();
+
+        Assert.Contains(typeof(ITextMeasurementEngine), interfaces);
+        Assert.Contains(typeof(IMonoGameTextRenderer), interfaces);
+
+        string[] measurementMethodNames = typeof(ITextMeasurementEngine)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(x => !x.IsSpecialName)
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToArray();
+
+        Assert.DoesNotContain(nameof(IMonoGameTextRenderer.DrawText), measurementMethodNames);
+        Assert.Contains(nameof(ITextMeasurementEngine.ResolveFont), measurementMethodNames);
+        Assert.Contains(nameof(ITextMeasurementEngine.MeasureText), measurementMethodNames);
+        Assert.Contains(nameof(ITextMeasurementEngine.MeasureGlyph), measurementMethodNames);
     }
 
     [Fact]

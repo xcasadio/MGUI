@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 namespace MGUI.Shared.Text
 {
     /// <summary>
-    /// The result of resolving a <see cref="FontSpec"/> through an <see cref="Engines.ITextEngine"/>.
+    /// The result of resolving a <see cref="FontSpec"/> through an <see cref="Engines.ITextMeasurementEngine"/>.
     /// Consumers pass this handle to subsequent measure / draw calls — they never inspect the
     /// underlying native font object directly.
     /// </summary>

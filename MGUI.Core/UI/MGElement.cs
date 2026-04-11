@@ -566,18 +566,18 @@ namespace MGUI.Core.UI
             protected internal virtual void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme) { }
 
         /// <summary>
-        /// Optional per-element <see cref="ITextEngine"/> override.
+        /// Optional per-element <see cref="ITextMeasurementEngine"/> override.
         /// When set, this element (and any children that call <see cref="GetTextEngine"/>) will use this engine
         /// instead of the desktop-level one.
         /// </summary>
-        public ITextEngine TextEngineOverride { get; set; }
+        public ITextMeasurementEngine TextEngineOverride { get; set; }
 
         /// <summary>
-        /// Returns the <see cref="ITextEngine"/> to use for this element.
+        /// Returns the <see cref="ITextMeasurementEngine"/> to use for this element.
         /// Walks up the visual tree: first non-null <see cref="TextEngineOverride"/> wins;
         /// if none found, falls back to <see cref="MGDesktop.TextEngine"/>.
         /// </summary>
-        public ITextEngine GetTextEngine()
+        public ITextMeasurementEngine GetTextEngine()
         {
             MGElement current = this;
             while (current != null)

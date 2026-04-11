@@ -66,6 +66,12 @@ public class RenderingBoundaryArchitectureTests
     }
 
     [Fact]
+    public void MGUI_Core_UsesMeasurementTextContractInsteadOfCompositeTextEngine()
+    {
+        AssertTokenFiles(CoreRoot, "ITextEngine", Array.Empty<string>());
+    }
+
+    [Fact]
     public void RenderingAbstractionsProject_DoesNotReferenceMonoGame_WhenPresent()
     {
         if (!File.Exists(AbstractionsProjectPath))

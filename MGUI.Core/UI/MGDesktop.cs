@@ -604,9 +604,9 @@ namespace MGUI.Core.UI
             return handled;
         }
 
-        /// <summary>The active <see cref="ITextEngine"/> used for all
-        /// text measurement and rendering.  Assign a different engine to switch backends globally.</summary>
-        public ITextEngine TextEngine
+        /// <summary>The active <see cref="ITextMeasurementEngine"/> used for text resolution and measurement.
+        /// Assign a different engine to switch text backends globally.</summary>
+        public ITextMeasurementEngine TextEngine
         {
             get => Runtime.TextEngine;
             set => Runtime.TextEngine = value;

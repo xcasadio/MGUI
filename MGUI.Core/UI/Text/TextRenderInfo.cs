@@ -62,7 +62,7 @@ namespace MGUI.Core.UI.Text
             Rectangle PaddedBounds = TextBlockElement.GetPaddedLayoutBounds(LayoutBounds);
 
             // engine is shared; fonts are resolved per-run to respect inline bold/italic formatting
-            ITextEngine engine = TextBlockElement.GetTextEngine();
+            ITextMeasurementEngine engine = TextBlockElement.GetTextEngine();
 
             if (TextBlockElement.Lines?.Any() != true)
             {
