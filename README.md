@@ -50,6 +50,8 @@ All control names are prefixed with 'MG' and many controls have similar names an
 
 Style/theme refactor notes: see [Docs/style-theme-migration-guide.md](Docs/style-theme-migration-guide.md).
 Theme-driven control template mappings: see [Docs/lookless-theme-template-guide.md](Docs/lookless-theme-template-guide.md).
+Rendering backend overview: see [Docs/rendering-backend-architecture.md](Docs/rendering-backend-architecture.md).
+MonoGame host wiring: see [Docs/monogame-host-integration-guide.md](Docs/monogame-host-integration-guide.md).
   
 # Examples
   
@@ -466,14 +468,15 @@ MGUI can also parse and render your XAML markup at runtime using the MGXAMLDesig
 2. Use Visual Studio 2022 or later (since this project targets .NET 6.0, and makes use of some new-ish C# language features such as record structs (which may be unavailable in c# language version 8.0 or earlier))
 3. In your MonoGame project:
    - In the Solution Explorer:
-     - Right-click your Solution, *Add* -> *Existing Project*. Browse for `MGUI.Shared.csproj`, and `MGUI.Core.csproj`.
-     - Right-click your Project, *Add* -> *Project Reference*. Add references to `MGUI.Shared` and `MGUI.Core`.
+         - Right-click your Solution, *Add* -> *Existing Project*. Browse for `MGUI.Shared.csproj`, `MGUI.Core.csproj`, and `MGUI.MonoGame.csproj`.
+         - Right-click your Project, *Add* -> *Project Reference*. Add references to `MGUI.Shared`, `MGUI.Core`, and `MGUI.MonoGame`.
      - You may need to:
        - Right-click your game's *Content* folder, *Add* -> *Existing Item*. Browse for `MGUI\MGUI.Shared\Content\MGUI.Shared.Content.mgcb` and `MGUI\MGUI.Core\Content\MGUI.Core.Content.mgcb` and add them both as links (in the file browser dialog, click the dropdown arrow next to the *Add* button and choose *Add as link*). This step will ensure that MGUI's content .xnb files are copied to your project's bin\Content folder. This step might not be necessary.
    - In your Game class:
      - In the Initialize method:
-       - Instantiate `MGUI.Shared.Rendering.MainRenderer`
-       - Instantiate `MGUI.Core.UI.MGDesktop`
+             - Instantiate a MonoGame host such as `GameRenderHost<TObservableGame>` or `DelegateRenderHost`
+             - Create the concrete renderer via `MGUI.Backend.MonoGame.MonoGameBackendBootstrap`
+             - Instantiate `MGUI.Core.UI.MGDesktop` from `IUIDesktopRuntime`
      - Anywhere in your code, instantiate 1 or more `MGWindow` and add them to your `MGDesktop` instance via `MGDesktop.Windows`
      - In the Update method: Call `MGDesktop.Update()`
      - In the Draw method: Call `MGDesktop.Draw()`
@@ -502,8 +505,12 @@ public class Game1 : Game, IObservableUpdate
 
     protected override void Initialize()
     {
-        this.MGUIRenderer = new(new GameRenderHost<Game1>(this));
-        this.Desktop = new(MGUIRenderer);
+        MonoGameBackendSession<GameRenderHost<Game1>> backend =
+            MonoGameBackendBootstrap.Create(new GameRenderHost<Game1>(this));
+
+        this.MGUIRenderer = backend.Renderer;
+        this.Desktop = new MGDesktop((IUIDesktopRuntime)MGUIRenderer);
+        this.Desktop.LoadDefaultResources();
 
         MGWindow Window1 = new(Desktop, 50, 50, 500, 200);
         Window1.TitleText = "Sample Window with a single [b]Button[/b]: [color=yellow]Click it![/color]";

@@ -9,7 +9,7 @@ namespace MGUI.Shared.Rendering
     public interface IUIRenderContext : IUIDrawContext
     {
         public IUIDesktopRuntime Renderer { get; }
-        public GraphicsDevice GD { get; }
+        public GraphicsDevice GraphicsDevice { get; }
 
         public IDisposable SetDrawSettingsTemporary(DrawSettings Settings, DrawContext? PreferredContext = null);
         public IDisposable SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor);

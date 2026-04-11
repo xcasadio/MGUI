@@ -2,13 +2,14 @@
 
 ## Objectif
 
-Ce guide documente les 2 chemins d'integration MonoGame actuellement recommandes pour MGUI.
+Ce guide documente les 2 chemins d'integration MonoGame actuellement recommandes pour MGUI apres le decouplage du backend de rendu.
 
 Le point important est le suivant:
 
-- `MainRenderer` reste le runtime concret partage ;
-- le choix porte sur la facon d'heberger ce runtime dans une boucle MonoGame ;
-- ce chantier ne traite pas le support multi-moteur.
+- ajouter une reference directe au projet `MGUI.MonoGame` dans l'application MonoGame ;
+- utiliser `MGUI.Backend.MonoGame.MonoGameBackendBootstrap` comme point d'entree du backend concret ;
+- choisir ensuite la facon d'heberger ce backend via `GameRenderHost<TObservableGame>` ou `DelegateRenderHost` ;
+- construire enfin `MGDesktop` depuis `IUIDesktopRuntime`.
 
 ## Vue d'ensemble
 
@@ -19,7 +20,15 @@ MGUI se branche sur MonoGame a travers 4 seams complementaires:
 - `IUISurface` pour la surface logique de rendu UI ;
 - `IUIDesktopRuntime` pour le sous-ensemble de runtime consomme par `MGDesktop`.
 
-Dans le repo, `MainRenderer` implemente `IUIDesktopRuntime` et consomme un `IRenderHost`.
+Dans le repo, `MainRenderer` implemente `IUIDesktopRuntime`, et `MGUI.Backend.MonoGame.MonoGameBackendBootstrap` est le point d'entree recommande pour le construire.
+
+## Prerequis cote projet
+
+Dans votre application MonoGame:
+
+- referencer `MGUI.Core` et `MGUI.MonoGame` directement ;
+- importer le namespace `MGUI.Backend.MonoGame` pour le bootstrap ;
+- garder `MGUI.FontStashSharp` uniquement si vous utilisez ce moteur texte optionnel.
 
 ## Option 1: `GameRenderHost<TObservableGame>`
 
@@ -32,13 +41,20 @@ Utiliser cette option quand:
 Exemple minimal:
 
 ```csharp
+using MGUI.Backend.MonoGame;
+
 private MainRenderer _renderer;
 private MGDesktop _desktop;
 
 protected override void Initialize()
 {
-    _renderer = new MainRenderer(new GameRenderHost<MyGame>(this), new MonoGameRawInputSource());
-    _desktop = new MGDesktop(_renderer);
+    MonoGameBackendSession<GameRenderHost<MyGame>> backend =
+        MonoGameBackendBootstrap.Create(new GameRenderHost<MyGame>(this));
+
+    _renderer = backend.Renderer;
+    _desktop = new MGDesktop((IUIDesktopRuntime)_renderer);
+    _desktop.LoadDefaultResources();
+
     base.Initialize();
 }
 ```
@@ -58,6 +74,8 @@ Utiliser cette option quand:
 Exemple minimal:
 
 ```csharp
+using MGUI.Backend.MonoGame;
+
 private DelegateRenderHost _mguiHost;
 private MainRenderer _renderer;
 private MGDesktop _desktop;
@@ -69,8 +87,11 @@ protected override void Initialize()
         () => new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height),
         Services);
 
-    _renderer = new MainRenderer(_mguiHost, new MonoGameRawInputSource());
-    _desktop = new MGDesktop(_renderer);
+    MonoGameBackendSession<DelegateRenderHost> backend =
+        MonoGameBackendBootstrap.Create(_mguiHost);
+
+    _renderer = backend.Renderer;
+    _desktop = new MGDesktop((IUIDesktopRuntime)_renderer);
 
     base.Initialize();
 }
@@ -105,6 +126,27 @@ Choisir `DelegateRenderHost` si:
 - vous preferez injecter le viewport via un delegate ;
 - vous voulez garder la boucle d'update MonoGame comme source de verite et notifier MGUI explicitement.
 
+## Migration depuis l'ancien wiring
+
+Avant, le wiring recommande etait souvent:
+
+```csharp
+_renderer = new MainRenderer(new GameRenderHost<MyGame>(this), new MonoGameRawInputSource());
+_desktop = new MGDesktop(_renderer);
+```
+
+Le wiring prefere maintenant est:
+
+```csharp
+MonoGameBackendSession<GameRenderHost<MyGame>> backend =
+    MonoGameBackendBootstrap.Create(new GameRenderHost<MyGame>(this));
+
+_renderer = backend.Renderer;
+_desktop = new MGDesktop((IUIDesktopRuntime)_renderer);
+```
+
+L'ancien chemin reste supporte pour compatibilite descendante, mais il n'est plus le point d'entree recommande dans la documentation.
+
 ## Ce qui reste volontairement concret
 
 Ce chantier n'a pas tente de generaliser les couches suivantes:
@@ -115,6 +157,8 @@ Ce chantier n'a pas tente de generaliser les couches suivantes:
 - les primitives MonoGame comme `GraphicsDevice`, `SpriteBatch`, `Texture2D` ou `PrimitiveBatch`.
 
 `MGDesktop` depend maintenant d'un contrat `IUIDesktopRuntime`, mais la voie legacy `Renderer` reste exposee pour compatibilite. Certaines integrations plus anciennes peuvent donc encore acceder au `MainRenderer` concret quand elles en ont besoin.
+
+Pour la vue d'ensemble complete du split `Core / Contracts / MonoGame backend` et des dettes residuelles assumees, voir aussi `Docs/rendering-backend-architecture.md`.
 
 ## Hors perimetre
 

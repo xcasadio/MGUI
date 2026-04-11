@@ -2699,7 +2699,7 @@ namespace MGUI.Core.UI
 			ClipDefinition SelfClipDefinition = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
 			ClipDefinition ContentsClipDefinition = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);
 
-            if (!DA.DT.CurrentSettings.RasterizerState.ScissorTestEnable || TargetBounds.Intersects(DA.DT.GD.ScissorRectangle))
+            if (!DA.DT.CurrentSettings.RasterizerState.ScissorTestEnable || TargetBounds.Intersects(DA.DT.GraphicsDevice.ScissorRectangle))
 			{
 				using (SelfClipDefinition == null ? null : DA.Context.PushClipTemporary(SelfClipDefinition))
 				{

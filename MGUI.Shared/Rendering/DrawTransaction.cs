@@ -37,10 +37,10 @@ namespace MGUI.Shared.Rendering
         /// <summary>Delegates to <see cref="MainRenderer.TextEngine"/>.</summary>
         public ITextMeasurementEngine TextEngine => Renderer.TextEngine;
         private IMonoGameTextRenderer TextRenderer => Renderer.GetTextRenderer();
-        public GraphicsDevice GD => Renderer.GD;
-        public SpriteBatch SB => Renderer.SB;
-        private PrimitiveBatch PB => Renderer.PB;
-        public PrimitiveDrawing PD { get; }
+        public GraphicsDevice GraphicsDevice => Renderer.GraphicsDevice;
+        public SpriteBatch SpriteBatch => Renderer.SpriteBatch;
+        private PrimitiveBatch PrimitiveBatch => Renderer.PrimitiveBatch;
+        public PrimitiveDrawing PrimitiveDrawing { get; }
 
         public SolidColorTexture BlackPixel => Renderer.GetOrCreateSolidColorTexture(Color.Black);
         /// <summary>A solid white, 1 pixel wide/tall Texture. Useful for drawing Colored squares. 
@@ -63,11 +63,11 @@ namespace MGUI.Shared.Rendering
         public DrawTransaction(MainRenderer Renderer, DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites)
         {
             this.Renderer = Renderer ?? throw new ArgumentNullException(nameof(Renderer));
-            PD = new PrimitiveDrawing(PB);
+            PrimitiveDrawing = new PrimitiveDrawing(PrimitiveBatch);
             CurrentSettings = Settings ?? throw new ArgumentNullException(nameof(Settings));
             ClipManager = new(this);
 
-            PrimitiveProjectionMatrix = Matrix.CreateOrthographicOffCenter(0, GD.Viewport.Width, GD.Viewport.Height, 0, 0, 1);
+            PrimitiveProjectionMatrix = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
 
             if (!DeferBegin)
             {
@@ -95,10 +95,10 @@ namespace MGUI.Shared.Rendering
 
                 switch (Context)
                 {
-                    case DrawContext.Sprites: CurrentSettings.BeginDraw(SB); break;
+                    case DrawContext.Sprites: CurrentSettings.BeginDraw(SpriteBatch); break;
                     case DrawContext.Primitives:
                         ApplyPrimitiveDeviceStates();
-                        PB.Begin(PrimitiveProjectionMatrix, CurrentSettings.Transform);
+                        PrimitiveBatch.Begin(PrimitiveProjectionMatrix, CurrentSettings.Transform);
                         break;
                     default: throw new NotImplementedException($"Unrecognized {nameof(DrawContext)}: {Context}");
                 }
@@ -113,8 +113,8 @@ namespace MGUI.Shared.Rendering
             {
                 switch (CurrentContext)
                 {
-                    case DrawContext.Sprites: SB.End(); break;
-                    case DrawContext.Primitives: PB.End(); break;
+                    case DrawContext.Sprites: SpriteBatch.End(); break;
+                    case DrawContext.Primitives: PrimitiveBatch.End(); break;
                     default: throw new NotImplementedException($"Unrecognized {nameof(DrawContext)}: {CurrentContext}");
                 }
 
@@ -124,10 +124,10 @@ namespace MGUI.Shared.Rendering
 
         private void ApplyPrimitiveDeviceStates()
         {
-            GD.BlendState = CurrentSettings.BlendState;
-            GD.DepthStencilState = CurrentSettings.DepthStencilState;
-            GD.RasterizerState = CurrentSettings.RasterizerState;
-            GD.SamplerStates[0] = CurrentSettings.SamplerState;
+            GraphicsDevice.BlendState = CurrentSettings.BlendState;
+            GraphicsDevice.DepthStencilState = CurrentSettings.DepthStencilState;
+            GraphicsDevice.RasterizerState = CurrentSettings.RasterizerState;
+            GraphicsDevice.SamplerStates[0] = CurrentSettings.SamplerState;
         }
 
         #region Draw
@@ -147,7 +147,7 @@ namespace MGUI.Shared.Rendering
             }
 
             BeginDraw(DrawContext.Sprites);
-            SB.Draw(Texture, Destination, Source, ColorMask);
+            SpriteBatch.Draw(Texture, Destination, Source, ColorMask);
         }
 
         public void DrawTextureTo(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask)
@@ -167,7 +167,7 @@ namespace MGUI.Shared.Rendering
             }
 
             BeginDraw(DrawContext.Sprites);
-            SB.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, Effects, Depth);
+            SpriteBatch.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, Effects, Depth);
         }
 
         /// <summary>Draw a texture at a given <paramref name="Destination"/> point</summary>
@@ -180,7 +180,7 @@ namespace MGUI.Shared.Rendering
         public void DrawTextureAt(Texture2D Texture, Rectangle? Source, Vector2 Destination, Color ColorMask)
         {
             BeginDraw(DrawContext.Sprites);
-            SB.Draw(Texture, Destination, Source, ColorMask);
+            SpriteBatch.Draw(Texture, Destination, Source, ColorMask);
         }
 
         public void DrawTextureAt(IUIImageResource Texture, Rectangle? Source, Vector2 Destination, Color ColorMask,
@@ -194,11 +194,11 @@ namespace MGUI.Shared.Rendering
             BeginDraw(DrawContext.Sprites);
             if (ScaleX == ScaleY)
             {
-                SB.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, ScaleX, Effects, Depth);
+                SpriteBatch.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, ScaleX, Effects, Depth);
             }
             else
             {
-                SB.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, new Vector2(ScaleX, ScaleY), Effects, Depth);
+                SpriteBatch.Draw(Texture, Destination, Source, ColorMask, Rotation, Origin, new Vector2(ScaleX, ScaleY), Effects, Depth);
             }
         }
         #endregion Draw Texture
@@ -211,18 +211,18 @@ namespace MGUI.Shared.Rendering
             BeginDraw(DrawContext.Sprites);
             if (ScaleX == ScaleY)
             {
-                SB.DrawString(Font, Text, Position, Color, Rotation, Origin, ScaleX, Effects, Depth);
+                SpriteBatch.DrawString(Font, Text, Position, Color, Rotation, Origin, ScaleX, Effects, Depth);
             }
             else
             {
-                SB.DrawString(Font, Text, Position, Color, Rotation, Origin, new Vector2(ScaleX, ScaleY), Effects, Depth);
+                SpriteBatch.DrawString(Font, Text, Position, Color, Rotation, Origin, new Vector2(ScaleX, ScaleY), Effects, Depth);
             }
         }
 
         /// <summary>
         /// Draws <paramref name="Text"/> using the active <see cref="ITextEngine"/>, while
         /// ensuring the correct <see cref="DrawContext"/> has been started on this transaction.
-        /// The <see cref="SpriteBatch"/> (<see cref="SB"/>) owned by this transaction is passed
+        /// The <see cref="Microsoft.Xna.Framework.Graphics.SpriteBatch"/> (<see cref="SpriteBatch"/>) owned by this transaction is passed
         /// automatically and is therefore not a parameter here, unlike the lower-level
         /// <see cref="IMonoGameTextRenderer.DrawText"/> overload.
         /// </summary>
@@ -243,7 +243,7 @@ namespace MGUI.Shared.Rendering
             }
 
             BeginDraw(DrawContext.Sprites);
-            TextRenderer.DrawText(SB, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Effects);
+            TextRenderer.DrawText(SpriteBatch, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Effects);
         }
 
         /// <param name="Family">The font to use</param>
@@ -275,8 +275,8 @@ namespace MGUI.Shared.Rendering
             Vector2 suggested = TextEngine.MeasureText(resolved, Text);
 
             BeginDraw(DrawContext.Sprites);
-            TextRenderer.DrawText(SB, resolved, Text, Position + new Vector2(XOffset, YOffset), ShadowColor, resolved.DrawOrigin, scale);
-            TextRenderer.DrawText(SB, resolved, Text, Position, TextColor, resolved.DrawOrigin, scale);
+            TextRenderer.DrawText(SpriteBatch, resolved, Text, Position + new Vector2(XOffset, YOffset), ShadowColor, resolved.DrawOrigin, scale);
+            TextRenderer.DrawText(SpriteBatch, resolved, Text, Position, TextColor, resolved.DrawOrigin, scale);
 
             if (!Exact || resolved.SuggestedScale == resolved.ExactScale)
             {
@@ -339,7 +339,7 @@ namespace MGUI.Shared.Rendering
             Vector2 suggested = TextEngine.MeasureText(resolved, Text);
 
             BeginDraw(DrawContext.Sprites);
-            TextRenderer.DrawText(SB, resolved, Text, Position, Color, resolved.DrawOrigin, scale);
+            TextRenderer.DrawText(SpriteBatch, resolved, Text, Position, Color, resolved.DrawOrigin, scale);
 
             if (!Exact || resolved.SuggestedScale == resolved.ExactScale)
             {
@@ -417,7 +417,7 @@ namespace MGUI.Shared.Rendering
             switch (Ctx)
             {
                 case DrawContext.Sprites:
-                    SB.FillRectangle(Destination.GetTranslated(Origin), Color);
+                    SpriteBatch.FillRectangle(Destination.GetTranslated(Origin), Color);
                     break;
                 case DrawContext.Primitives:
                     Vector2[] RectangleVertices = new Vector2[4]
@@ -427,7 +427,7 @@ namespace MGUI.Shared.Rendering
                         new Vector2(Destination.Width, Destination.Height),
                         new Vector2(0, Destination.Height)
                     };
-                    PD.DrawSolidPolygon(Destination.Position + Origin, RectangleVertices, Color, false);
+                    PrimitiveDrawing.DrawSolidPolygon(Destination.Position + Origin, RectangleVertices, Color, false);
                     //PD.DrawSolidRectangle(Origin + Destination.Position, Destination.Width, Destination.Height, Color); // This defaults to DrawSolidPolygon(outline: true) which renders differently
                     //https://github.com/craftworkgames/MonoGame.Extended/blob/a3373ac26d90c9801b71b55679f1199fa4ec22a6/src/cs/MonoGame.Extended/VectorDraw/PrimitiveDrawing.cs
                     break;
@@ -479,7 +479,7 @@ namespace MGUI.Shared.Rendering
             switch (Ctx)
             {
                 case DrawContext.Sprites:
-                    SB.DrawCircle(Center, Radius, NumSides, Color, Thickness, 0.0f);
+                    SpriteBatch.DrawCircle(Center, Radius, NumSides, Color, Thickness, 0.0f);
                     break;
                 case DrawContext.Primitives:
                     List<Vector2> Vertices = GetCircleVertices(Center, Radius, NumSides)
@@ -529,7 +529,7 @@ namespace MGUI.Shared.Rendering
                     DrawTextureAt(CircleTexture, null, Center - new Vector2(Radius), Color, Vector2.Zero, 0, Scale, Scale);
                     break;
                 case DrawContext.Primitives:
-                    PD.DrawSolidEllipse(Center, new Vector2(Radius), NumSides, Color, false);
+                    PrimitiveDrawing.DrawSolidEllipse(Center, new Vector2(Radius), NumSides, Color, false);
                     break;
                 default: throw new NotImplementedException($"Unrecognized {nameof(DrawContext)}: {Ctx}");
             }
@@ -553,7 +553,7 @@ namespace MGUI.Shared.Rendering
             //  FillEllipse always uses the Primitives context because PD.DrawSolidEllipse is the most efficient path.
             //  No equivalent filled-ellipse primitive exists in SpriteBatch.
             BeginDraw(DrawContext.Primitives);
-            PD.DrawSolidEllipse(Center, new Vector2(RadiusX, RadiusY), NumSides, Color, false);
+            PrimitiveDrawing.DrawSolidEllipse(Center, new Vector2(RadiusX, RadiusY), NumSides, Color, false);
         }
 
         /// <param name="NumSides">How many sides to use when approximating the geometry of the ellipse. Recommended: 16-32. Max value = <see cref="CircleMaxSides"/></param>
@@ -689,7 +689,7 @@ namespace MGUI.Shared.Rendering
                 switch (Ctx)
                 {
                     case DrawContext.Sprites:
-                        SB.DrawPolygon(Origin, Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise), Color, Thickness, 0.0f);
+                        SpriteBatch.DrawPolygon(Origin, Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise), Color, Thickness, 0.0f);
                         break;
                     case DrawContext.Primitives:
                         var Edges = Vertices.SelectConsecutivePairs(true);
@@ -731,7 +731,7 @@ namespace MGUI.Shared.Rendering
             BeginDraw(DrawContext.Primitives);
             //Vector2[] CCWVertices = Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise);
             //PD.DrawSolidPolygon(Origin, CCWVertices, Color, false);
-            PD.DrawSolidPolygon(Origin, Vertices.ToArray(), Color, false);
+            PrimitiveDrawing.DrawSolidPolygon(Origin, Vertices.ToArray(), Color, false);
         }
         #endregion Polygons
 
@@ -814,7 +814,7 @@ namespace MGUI.Shared.Rendering
             switch (Ctx)
             {
                 case DrawContext.Sprites:
-                    SB.DrawLine(Origin + Start, Origin + End, Color, Thickness, 0.0f);
+                    SpriteBatch.DrawLine(Origin + Start, Origin + End, Color, Thickness, 0.0f);
                     break;
                 case DrawContext.Primitives:
                     Vector2 Offset = (End - Start).LeftNormal().NormalizedCopy().Scale(Thickness / 2f);
@@ -827,9 +827,9 @@ namespace MGUI.Shared.Rendering
 
         private void FillTrianglePrimitive(Vector2 Origin, Vector2 v0, Vector2 v1, Vector2 v2, Color Color)
         {
-            if (!PB.IsReady() || CurrentContext != DrawContext.Primitives)
+            if (!PrimitiveBatch.IsReady() || CurrentContext != DrawContext.Primitives)
             {
-                throw new InvalidOperationException($"{nameof(PrimitiveBatch)}.{nameof(PrimitiveBatch.Begin)} must be called before drawing anything.");
+                throw new InvalidOperationException($"{nameof(MonoGame.Extended.VectorDraw.PrimitiveBatch)}.{nameof(MonoGame.Extended.VectorDraw.PrimitiveBatch.Begin)} must be called before drawing anything.");
             }
             else if (CurrentSettings.RasterizerState.CullMode != CullMode.None)
             {
@@ -838,9 +838,9 @@ namespace MGUI.Shared.Rendering
                 throw new NotImplementedException(ErrorMessage);
             }
 
-            PB.AddVertex(v0 + Origin, Color, PrimitiveType.TriangleList);
-            PB.AddVertex(v1 + Origin, Color, PrimitiveType.TriangleList);
-            PB.AddVertex(v2 + Origin, Color, PrimitiveType.TriangleList);
+            PrimitiveBatch.AddVertex(v0 + Origin, Color, PrimitiveType.TriangleList);
+            PrimitiveBatch.AddVertex(v1 + Origin, Color, PrimitiveType.TriangleList);
+            PrimitiveBatch.AddVertex(v2 + Origin, Color, PrimitiveType.TriangleList);
         }
 
         public void FillTriangle(Vector2 Origin, Vector2 v0, Color c0, Vector2 v1, Color c1, Vector2 v2, Color c2)
@@ -853,9 +853,9 @@ namespace MGUI.Shared.Rendering
             }
 
             BeginDraw(DrawContext.Primitives);
-            PB.AddVertex(v0 + Origin, c0, PrimitiveType.TriangleList);
-            PB.AddVertex(v1 + Origin, c1, PrimitiveType.TriangleList);
-            PB.AddVertex(v2 + Origin, c2, PrimitiveType.TriangleList);
+            PrimitiveBatch.AddVertex(v0 + Origin, c0, PrimitiveType.TriangleList);
+            PrimitiveBatch.AddVertex(v1 + Origin, c1, PrimitiveType.TriangleList);
+            PrimitiveBatch.AddVertex(v2 + Origin, c2, PrimitiveType.TriangleList);
         }
 
         /// <summary>Fills the given quadrilateral using <see cref="SamplerType.LinearClamp"/> to produce gradient color interpolation.</summary>
@@ -872,13 +872,13 @@ namespace MGUI.Shared.Rendering
             {
                 BeginDraw(DrawContext.Primitives);
 
-                PB.AddVertex(v0 + Origin, c0, PrimitiveType.TriangleList);
-                PB.AddVertex(v1 + Origin, c1, PrimitiveType.TriangleList);
-                PB.AddVertex(v2 + Origin, c2, PrimitiveType.TriangleList);
+                PrimitiveBatch.AddVertex(v0 + Origin, c0, PrimitiveType.TriangleList);
+                PrimitiveBatch.AddVertex(v1 + Origin, c1, PrimitiveType.TriangleList);
+                PrimitiveBatch.AddVertex(v2 + Origin, c2, PrimitiveType.TriangleList);
 
-                PB.AddVertex(v2 + Origin, c2, PrimitiveType.TriangleList);
-                PB.AddVertex(v3 + Origin, c3, PrimitiveType.TriangleList);
-                PB.AddVertex(v0 + Origin, c0, PrimitiveType.TriangleList);
+                PrimitiveBatch.AddVertex(v2 + Origin, c2, PrimitiveType.TriangleList);
+                PrimitiveBatch.AddVertex(v3 + Origin, c3, PrimitiveType.TriangleList);
+                PrimitiveBatch.AddVertex(v0 + Origin, c0, PrimitiveType.TriangleList);
             }
         }
 
@@ -902,15 +902,15 @@ namespace MGUI.Shared.Rendering
         /// <param name="ClearColor">Optional. If not null, the new render target will be immediately cleared with this color. Only used if the render target actually changed.</param>
         public void SetRenderTarget(RenderTarget2D New, Color? ClearColor)
         {
-            RenderTargetBinding[] RTBs = GD.GetRenderTargets();
+            RenderTargetBinding[] RTBs = GraphicsDevice.GetRenderTargets();
             RenderTarget2D CurrentTarget = RTBs.Length == 0 ? null : RTBs[0].RenderTarget as RenderTarget2D;
             if (New != CurrentTarget)
             {
                 EndDraw(CurrentContext);
-                GD.SetRenderTarget(New);
+                GraphicsDevice.SetRenderTarget(New);
                 if (ClearColor.HasValue)
                 {
-                    GD.Clear(ClearColor.Value);
+                    GraphicsDevice.Clear(ClearColor.Value);
                 }
             }
         }
@@ -918,7 +918,7 @@ namespace MGUI.Shared.Rendering
         /// <summary>
         /// Drawing to a temporary render target example:<para/>
         /// <code xml:space="preserve">
-        /// <see cref="RenderTarget2D"/> Temp = <see cref="RenderUtils.CreateRenderTarget(GraphicsDevice, Rectangle, bool)"/>;<br/>
+        /// <see cref="RenderTarget2D"/> Temp = <see cref="RenderUtils.CreateRenderTarget(Microsoft.Xna.Framework.Graphics.GraphicsDevice, Rectangle, bool)"/>;<br/>
         /// using (Temp)<br/>
         /// {<br/>
         /// ⠀⠀⠀⠀using (<see cref="SetRenderTargetTemporary(RenderTarget2D, Color?)"/>)<br/>
@@ -932,7 +932,7 @@ namespace MGUI.Shared.Rendering
         /// <param name="ClearColor">Optional. If not null, the new render target will be immediately cleared with this color. Only used if the render target actually changed.</param>
         public IDisposable SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor)
         {
-            RenderTargetBinding[] RTBs = GD.GetRenderTargets();
+            RenderTargetBinding[] RTBs = GraphicsDevice.GetRenderTargets();
             RenderTarget2D CurrentTarget = RTBs.Length == 0 ? null : RTBs[0].RenderTarget as RenderTarget2D;
 
             return new TemporaryChange<RenderTarget2D, Color?>(CurrentTarget, New, null, ClearColor, SetRenderTarget);
@@ -973,7 +973,7 @@ namespace MGUI.Shared.Rendering
         {
             if (!Bounds.HasValue)
             {
-                Rectangle previousBounds = SB.GraphicsDevice.ScissorRectangle;
+                Rectangle previousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
                 bool previousScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
                 SetClipTarget(null, false);
 
@@ -982,7 +982,7 @@ namespace MGUI.Shared.Rendering
                 return new ClipScope(resolution, () =>
                 {
                     EndDraw(CurrentContext);
-                    SB.GraphicsDevice.ScissorRectangle = previousBounds;
+                    SpriteBatch.GraphicsDevice.ScissorRectangle = previousBounds;
 
                     bool currentScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
                     if (previousScissorState && !currentScissorState)
@@ -1004,7 +1004,7 @@ namespace MGUI.Shared.Rendering
 
         internal ClipScope PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult Resolution)
         {
-            Rectangle PreviousBounds = SB.GraphicsDevice.ScissorRectangle;
+            Rectangle PreviousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
             bool PreviousScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
 
             SetClipTarget(Bounds, IntersectWithCurrentClipTarget);
@@ -1012,7 +1012,7 @@ namespace MGUI.Shared.Rendering
             return new ClipScope(Resolution, () =>
             {
                 EndDraw(CurrentContext);
-                SB.GraphicsDevice.ScissorRectangle = PreviousBounds;
+                SpriteBatch.GraphicsDevice.ScissorRectangle = PreviousBounds;
 
                 bool CurrentScissorState = CurrentSettings.RasterizerState.ScissorTestEnable;
                 if (PreviousScissorState && !CurrentScissorState)
@@ -1037,7 +1037,7 @@ namespace MGUI.Shared.Rendering
         internal void ClearStencil(int StencilValue = 0)
         {
             EndDraw(CurrentContext);
-            GD.Clear(ClearOptions.Stencil, Color.Transparent, 0.0f, StencilValue);
+            GraphicsDevice.Clear(ClearOptions.Stencil, Color.Transparent, 0.0f, StencilValue);
         }
 
         internal void DrawClipGeometry(ClipGeometry Geometry)
@@ -1060,7 +1060,7 @@ namespace MGUI.Shared.Rendering
         /// the clip target will be the intersection of the current clip target and the given <paramref name="Bounds"/></param>
         public void SetClipTarget(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
-            Rectangle CurrentBounds = SB.GraphicsDevice.ScissorRectangle;
+            Rectangle CurrentBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
 
             bool IsScissorTesting = CurrentSettings.RasterizerState.ScissorTestEnable;
             bool ShouldScissorTest = Bounds.HasValue;
@@ -1073,7 +1073,7 @@ namespace MGUI.Shared.Rendering
             if (Bounds != CurrentBounds || IsScissorTesting != ShouldScissorTest)
             {
                 EndDraw(CurrentContext);
-                SB.GraphicsDevice.ScissorRectangle = Bounds ?? Renderer.GetViewport(0);
+                SpriteBatch.GraphicsDevice.ScissorRectangle = Bounds ?? Renderer.GetViewport(0);
                 if (ShouldScissorTest && !IsScissorTesting)
                 {
                     SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });

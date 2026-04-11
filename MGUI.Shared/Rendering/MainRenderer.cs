@@ -102,11 +102,8 @@ namespace MGUI.Shared.Rendering
         public IReadOnlyList<IUIView> Views => MutableViews;
 
         public GraphicsDevice GraphicsDevice => Host.GraphicsDevice;
-        public GraphicsDevice GD => GraphicsDevice;
         public SpriteBatch SpriteBatch { get; }
-        public SpriteBatch SB => SpriteBatch;
         public PrimitiveBatch PrimitiveBatch { get; }
-        public PrimitiveBatch PB => PrimitiveBatch;
         internal RenderTargetPool RenderTargetPool { get; } = new();
 
         public ContentManager Content { get; }
@@ -142,8 +139,7 @@ namespace MGUI.Shared.Rendering
             }
         }
 
-        internal IMonoGameTextRenderer GetTextRenderer()
-            => (IMonoGameTextRenderer)TextEngine;
+        internal IMonoGameTextRenderer GetTextRenderer() => (IMonoGameTextRenderer)TextEngine;
 
         /// <summary>Invoked when <see cref="TextEngine"/> is set to a new value</summary>
         public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
@@ -171,8 +167,7 @@ namespace MGUI.Shared.Rendering
             }
         }
 
-        public bool UnregisterView(IUIView View)
-            => View != null && MutableViews.Remove(View);
+        public bool UnregisterView(IUIView View) => View != null && MutableViews.Remove(View);
 
         public void UpdateViews()
         {
@@ -248,7 +243,7 @@ namespace MGUI.Shared.Rendering
         {
             if (!SolidColorTextures.TryGetValue(Color, out SolidColorTexture Result))
             {
-                Result = new(GD, Color);
+                Result = new(GraphicsDevice, Color);
                 SolidColorTextures.Add(Color, Result);
             }
 
@@ -285,7 +280,7 @@ namespace MGUI.Shared.Rendering
             {
                 DesiredRadius = Math.Min(DesiredRadius, MaximumRadius.Value);
                 int ActualRadius = Math.Clamp(GeneralUtils.NextPowerOf2(DesiredRadius), MinimumRadius.Value, MaximumRadius.Value);
-                Texture2D Circle = TextureUtils.CreateCircleTexture(SB, ActualRadius, Color.White, true);
+                Texture2D Circle = TextureUtils.CreateCircleTexture(SpriteBatch, ActualRadius, Color.White, true);
                 CircleTextures[ActualRadius] = Circle;
                 return Circle;
             }

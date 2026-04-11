@@ -1483,7 +1483,7 @@ namespace MGUI.Core.UI
             ElementDrawArgs DA = new(BA, new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
 
             Rectangle ScreenBounds = ValidScreenBounds;
-            if (!BA.DT.CurrentSettings.RasterizerState.ScissorTestEnable || ScreenBounds.Intersects(BA.DT.GD.ScissorRectangle))
+            if (!BA.DT.CurrentSettings.RasterizerState.ScissorTestEnable || ScreenBounds.Intersects(BA.DT.GraphicsDevice.ScissorRectangle))
             {
                 using (BA.DT.SetClipTargetTemporary(ScreenBounds, true))
                 {

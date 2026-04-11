@@ -678,7 +678,7 @@ Validation:
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter BackendProjectSplitTests --logger "console;verbosity=minimal"` : succes, 6 tests passes ;
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter HostRuntimeContractTests --logger "console;verbosity=minimal"` : succes, 8 tests passes.
 
-### ⚪ 11. Documenter l'architecture finale et les limites restantes
+### ✅ 11. Documenter l'architecture finale et les limites restantes
 
 But:
 laisser un etat final comprehensible pour un humain et pour un prochain agent.
@@ -705,3 +705,16 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `docs: complete task 11 document rendering backend architecture`
+
+Resultat:
+
+- un nouveau document `Docs/rendering-backend-architecture.md` decrit maintenant la separation finale `MGUI.Rendering.Abstractions / MGUI.Shared / MGUI.Core / MGUI.MonoGame / MGUI.FontStashSharp`, le flux d'integration recommande, les seams stabilisees et les dettes residuelles assumees ;
+- `Docs/monogame-host-integration-guide.md` a ete mis a jour pour refleter le wiring actuellement recommande via `MGUI.Backend.MonoGame.MonoGameBackendBootstrap`, avec les deux chemins `GameRenderHost<TObservableGame>` et `DelegateRenderHost` toujours documentes ;
+- le `README.md` pointe maintenant vers la doc d'architecture/backend et son bloc "Getting Started" demande explicitement une reference directe a `MGUI.MonoGame`, puis montre un exemple de bootstrap aligne sur les samples reels du repo ;
+- la note de migration consommateur est maintenant explicite: ajouter la reference `MGUI.MonoGame`, utiliser le namespace `MGUI.Backend.MonoGame`, preferer `MonoGameBackendBootstrap.Create(...)` et ne garder `Desktop.Renderer` que pour des usages legacy cibles.
+
+Validation:
+
+- tache documentaire uniquement ; aucun build ni test runtime supplementaire n'etait necessaire ;
+- verification du repo: `Docs/rendering-backend-architecture.md` existe bien ;
+- verification du repo: `README.md` et `Docs/monogame-host-integration-guide.md` referencent tous deux `MonoGameBackendBootstrap.Create(...)` et sont donc aligns sur le point d'entree backend livre a la tache 10.
