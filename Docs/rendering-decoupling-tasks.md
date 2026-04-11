@@ -1074,7 +1074,7 @@ Validation:
 - `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj -c Release --no-restore` : succes ;
 - avertissements XML/nullability existants dans `MGUI.Shared`, `MGUI.MonoGame`, `MGUI.Core` et `MGUI.Tests`, ainsi que l'avertissement EOL `net6.0-windows` dans `MGUI.Samples`, inchanges et hors perimetre de la task.
 
-### ⚪ 18. Prouver qu'un backend possede par le moteur peut dessiner formes, texte et buffers
+### ✅ 18. Prouver qu'un backend possede par le moteur peut dessiner formes, texte et buffers
 
 But:
 verifier concretement que le nouveau design permet a un moteur hote de posseder le rendu, au-dela du seul backend MonoGame existant.
@@ -1101,6 +1101,19 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: complete task 18 prove engine owned shapes text and buffers`
+
+Resultat:
+
+- un backend de preuve minimal a ete ajoute dans `MGUI.Tests/Integration/EngineOwnedRenderingProofTests.cs` sous forme d'un runtime d'enregistrement qui implemente les contrats backend-neutres (`IUIDesktopRuntime`, `IUIDrawTransaction`, `ITextEngine`, `IUISurface`, `IUIRenderTarget`, `IUIAssetProvider`) sans utiliser `MainRenderer`, `DrawTransaction` ou le pipeline MonoGame historique ;
+- la preuve couvre les trois capacites demandees: dessin de formes via les methodes `IUIDrawContext`, dessin de texte via un `ITextEngine` backend-owned, et possession d'un buffer offscreen via un `IUISurface` cible qui expose un `IUIRenderTarget` opaque ;
+- la pile UI est branchee sur un chemin reel `MGDesktop` / `UIView`: le test d'integration instancie un `MGDesktop` avec le runtime de preuve, ajoute une vraie `MGWindow` avec `MGBorder` et `MGTextBlock`, puis verifie que les shapes, le texte et le changement de render target sont tous enregistres par le backend de preuve ;
+- le backend de preuve documente explicitement ce qu'il prouve et ce qu'il ne prouve pas: il valide la separation d'architecture et la possession du rendu par le moteur hote, mais reste volontairement hors perimetre pour les details GPU reels (batching, stencil, masques et presentation ecran).
+
+Validation:
+
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-restore` : succes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~EngineOwnedRenderingProofTests" --logger "console;verbosity=minimal"` : succes, 2 tests passes ;
+- avertissements nullability/XML existants dans `MGUI.Tests`, `MGUI.Shared`, `MGUI.MonoGame` et `MGUI.Core`, inchanges et hors perimetre de la task.
 
 ### ⚪ 19. Documenter l'integration d'un backend de rendu possede par le moteur
 
