@@ -1,6 +1,9 @@
 ## Rounded Shapes Final Architecture
 
-This document is the contributor-facing summary of the phase-1 rounded shape architecture.
+This document is the contributor-facing summary of the rounded shape painting architecture introduced in phase 1.
+
+It remains the reference for how box-like shapes are normalized, tessellated, and painted.
+Rounded content clipping now exists as a separate concern in the composable clip pipeline, so this document focuses on shape painting and geometry reuse rather than clip backend selection.
 
 ### Layer split
 
@@ -34,10 +37,14 @@ This document is the contributor-facing summary of the phase-1 rounded shape arc
 - Uniform, banded, docked, and composed border paints now rely on the supplied geometry instead of rebuilding shape topology in controls.
 - Rectangle-oriented texture/highlight behaviors stay localized in those brushes until phase 2 rendering support exists.
 
-#### Future clip shape
+#### Clip integration
 
-- Rounded clipping is intentionally deferred.
-- The current architecture keeps a clean seam where a future clip primitive, stencil path, render target mask, or shape-aware hit test can attach without rewriting controls.
+- Rounded clipping is no longer deferred; it is handled by the composable clip pipeline.
+- The shape paint architecture remains separate from clip strategy selection:
+	- shape code computes reusable geometry and paints the visible chrome;
+	- clip code decides how later drawing is constrained by rectangle, stencil, or mask backends.
+- `MGBoxGeometry` is still the seam that lets rounded painting and rounded content clipping share the same normalized shape description without coupling paint code to GPU clip policy.
+- For clip backend details and migration guidance, see `Docs/composable-clip-pipeline-architecture.md` and `Docs/clip-migration-guide.md`.
 
 ### Where to add new code
 
@@ -69,7 +76,7 @@ Add it to `DrawTransactionBoxShapeExtensions` or the shared rendering layer.
 1. Decide whether the paint is a fill or a border concern.
 2. Implement the shape-aware overload.
 3. Reuse `MGBoxGeometry` for contours, fill meshes, or border rings.
-4. Keep clipping / UV / masking limitations local to the paint implementation.
+4. Keep UV / masking limitations local to the paint implementation, and only involve clip code when subsequent drawing must actually be constrained.
 5. Only extend the rendering layer when multiple paints would benefit from the same primitive.
 
 ### How to add a new shape later
@@ -80,4 +87,4 @@ Add it to `DrawTransactionBoxShapeExtensions` or the shared rendering layer.
 4. Add draw-transaction primitives for the new shape.
 5. Extend brushes only if the new shape can be painted through a common abstraction.
 
-The key rule is unchanged: controls select a shape, the geometry builder computes reusable topology, and paints only decide how that topology is colored or textured.
+The key rule is unchanged: controls select a shape, the geometry builder computes reusable topology, paints decide how that topology is colored or textured, and clip backends remain a separate pipeline layered on top when later drawing must be constrained.
