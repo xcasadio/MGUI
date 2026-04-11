@@ -1,4 +1,5 @@
 using System.IO;
+using MGUI.Backend.MonoGame;
 using MGUI.Shared.Rendering;
 
 namespace MGUI.Tests.Architecture;
@@ -48,6 +49,22 @@ public class BackendProjectSplitTests
     }
 
     [Fact]
+    public void DemoProjects_ReferenceExplicitMonoGameBackendProject()
+    {
+        string[] projectPaths =
+        {
+            Path.Combine(RepoRoot, "MGUI.MiniGame", "MGUI.MiniGame.csproj"),
+            Path.Combine(RepoRoot, "MGUI.Samples", "MGUI.Samples.csproj")
+        };
+
+        foreach (string projectPath in projectPaths)
+        {
+            string projectSource = File.ReadAllText(projectPath);
+            Assert.Contains("..\\MGUI.MonoGame\\MGUI.MonoGame.csproj", projectSource);
+        }
+    }
+
+    [Fact]
     public void RuntimeAndViewContracts_UseSharedDrawTransactionInterface()
     {
         Assert.Equal(typeof(IUIDrawTransaction), typeof(IUIDesktopRuntime)
@@ -62,5 +79,19 @@ public class BackendProjectSplitTests
         Assert.Equal(typeof(IUIDesktopRuntime), typeof(IUIRenderContext)
             .GetProperty(nameof(IUIRenderContext.Renderer))!
             .PropertyType);
+    }
+
+    [Fact]
+    public void MonoGameBackendBootstrap_ProvidesExplicitCompositionEntryPoint()
+    {
+        var createMethod = typeof(MonoGameBackendBootstrap).GetMethod(nameof(MonoGameBackendBootstrap.Create));
+
+        Assert.NotNull(createMethod);
+        Assert.True(createMethod!.IsGenericMethodDefinition);
+        Assert.Equal(typeof(MonoGameBackendSession<>), createMethod.ReturnType.GetGenericTypeDefinition());
+
+        Type closedSessionType = typeof(MonoGameBackendSession<IRenderHost>);
+        Assert.Equal(typeof(IRenderHost), closedSessionType.GetProperty(nameof(MonoGameBackendSession<IRenderHost>.Host))!.PropertyType);
+        Assert.Equal(typeof(MainRenderer), closedSessionType.GetProperty(nameof(MonoGameBackendSession<IRenderHost>.Renderer))!.PropertyType);
     }
 }

@@ -633,7 +633,7 @@ Validation:
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 7 tests passes ;
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderContextTests --logger "console;verbosity=minimal"` : succes, 8 tests passes.
 
-### ⚪ 10. Faire adopter aux apps de demo un bootstrap backend explicite
+### ✅ 10. Faire adopter aux apps de demo un bootstrap backend explicite
 
 But:
 montrer comment un consommateur branche MGUI via un backend concret sans dependre des details internes du coeur.
@@ -660,6 +660,23 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `samples: complete task 10 adopt explicit monogame backend bootstrap`
+
+Resultat:
+
+- un point d'entree de composition backend explicite a ete ajoute dans `MGUI.MonoGame` sous le namespace `MGUI.Backend.MonoGame` via `MonoGameBackendBootstrap.Create(...)`, qui construit le couple `Host + MainRenderer` sans repasser par un bootstrap concret cache dans `MGUI.Core` ;
+- `MGUI.MiniGame` reference maintenant `MGUI.MonoGame` directement et compose son runtime UI via `MonoGameBackendBootstrap.Create(new DelegateRenderHost(...))`, puis cree `MGDesktop` depuis `IUIDesktopRuntime` ;
+- `MGUI.Samples` reference maintenant `MGUI.MonoGame` directement et montre le chemin alternatif `GameRenderHost<Game1>` via le meme bootstrap backend explicite ;
+- les deux modes de host MonoGame restent donc visibles et supportes dans les demos, tout en faisant apparaitre le backend comme dependance assumee au niveau des projets consommateurs ;
+- un test d'architecture epingle desormais a la fois la reference directe des apps de demo vers `MGUI.MonoGame` et l'existence du point d'entree `MonoGameBackendBootstrap`.
+
+Validation:
+
+- `dotnet build .\MGUI.MonoGame\MGUI.MonoGame.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj --no-restore` : succes, avec avertissements XML existants hors perimetre dans `MGUI.Core` ;
+- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore` : succes, avec avertissement `net6.0-windows` existant hors perimetre ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements nullability existants hors perimetre ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter BackendProjectSplitTests --logger "console;verbosity=minimal"` : succes, 6 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter HostRuntimeContractTests --logger "console;verbosity=minimal"` : succes, 8 tests passes.
 
 ### ⚪ 11. Documenter l'architecture finale et les limites restantes
 

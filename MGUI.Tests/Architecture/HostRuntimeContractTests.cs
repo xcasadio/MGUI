@@ -89,9 +89,13 @@ public class HostRuntimeContractTests
         string sampleSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Samples\Game1.cs");
         string miniGameSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.MiniGame\MiniGame.cs");
 
-        Assert.Contains("new(new GameRenderHost<Game1>(this), new MonoGameRawInputSource())", sampleSource);
+        Assert.Contains("using MGUI.Backend.MonoGame;", sampleSource);
+        Assert.Contains("MonoGameBackendBootstrap.Create(", sampleSource);
+        Assert.Contains("new GameRenderHost<Game1>(this)", sampleSource);
+        Assert.Contains("Desktop = new MGDesktop((IUIDesktopRuntime)MGUIRenderer);", sampleSource);
         Assert.Contains("new DelegateRenderHost(", miniGameSource);
-        Assert.Contains("new MainRenderer(_mguiHost, new MonoGameRawInputSource())", miniGameSource);
+        Assert.Contains("MonoGameBackendBootstrap.Create(", miniGameSource);
+        Assert.Contains("_desktop = new MGDesktop((IUIDesktopRuntime)_mguiRenderer);", miniGameSource);
         Assert.Contains("_mguiHost.NotifyPreviewUpdate(gameTime.TotalGameTime);", miniGameSource);
         Assert.Contains("_mguiHost.NotifyEndUpdate();", miniGameSource);
     }

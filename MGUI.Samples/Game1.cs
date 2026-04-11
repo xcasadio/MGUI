@@ -2,6 +2,7 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.FontStashSharp;
+using MGUI.Backend.MonoGame;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Rendering;
@@ -48,8 +49,10 @@ namespace MGUI.Samples
 
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            MGUIRenderer = new(new GameRenderHost<Game1>(this), new MonoGameRawInputSource());
-            Desktop = new(MGUIRenderer);
+            MonoGameBackendSession<GameRenderHost<Game1>> backend = MonoGameBackendBootstrap.Create(
+                new GameRenderHost<Game1>(this));
+            MGUIRenderer = backend.Renderer;
+            Desktop = new MGDesktop((IUIDesktopRuntime)MGUIRenderer);
             Desktop.LoadDefaultResources();
 
             InitializeTextEngines();

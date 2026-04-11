@@ -6,6 +6,7 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.InputRouting;
+using MGUI.Backend.MonoGame;
 using MGUI.Shared.Input.GamePad;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Input.Semantic;
@@ -241,12 +242,14 @@ namespace MGUI.MiniGame
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            _mguiHost = new DelegateRenderHost(
-                GraphicsDevice,
-                () => new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height),
-                Services);
-            _mguiRenderer = new MainRenderer(_mguiHost, new MonoGameRawInputSource());
-            _desktop = new MGDesktop(_mguiRenderer);
+            MonoGameBackendSession<DelegateRenderHost> backend = MonoGameBackendBootstrap.Create(
+                new DelegateRenderHost(
+                    GraphicsDevice,
+                    () => new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height),
+                    Services));
+            _mguiHost = backend.Host;
+            _mguiRenderer = backend.Renderer;
+            _desktop = new MGDesktop((IUIDesktopRuntime)_mguiRenderer);
 
             CreateHudWindow();
             CreateHelpWindow();
