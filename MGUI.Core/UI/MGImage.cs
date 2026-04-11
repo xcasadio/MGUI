@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MGUI.Shared.Helpers;
+using MGUI.Shared.Assets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -201,6 +202,9 @@ namespace MGUI.Core.UI
             }
         }
 
+        public MGImage(MGWindow Window, IUIImageResource Image, Rectangle? SourceRect = null, Color? TextureColor = null, Stretch Stretch = Stretch.Uniform)
+            : this(Window, new MGTextureData(Image, SourceRect), TextureColor, Stretch) { }
+
         public MGImage(MGWindow Window, Texture2D Texture, Rectangle? SourceRect = null, Color? TextureColor = null, Stretch Stretch = Stretch.Uniform)
             : this(Window, new MGTextureData(Texture, SourceRect), TextureColor, Stretch) { }
 
@@ -328,7 +332,7 @@ namespace MGUI.Core.UI
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
-            if (ActualSource?.Texture == null)
+            if (ActualSource?.Image == null)
             {
                 return;
             }
@@ -366,7 +370,7 @@ namespace MGUI.Core.UI
                 throw new NotImplementedException($"Unrecognized {nameof(Stretch)}: {Stretch}");
             }
 
-            DA.DT.DrawTextureTo(ActualSource.Value.Texture, ActualSource.Value.SourceRect, Bounds.GetTranslated(DA.Offset), (TextureColor ?? Color.White) * DA.Opacity * ActualSource.Value.Opacity);
+            ActualSource.Value.Draw(DA.Context, Bounds.GetTranslated(DA.Offset), TextureColor, DA.Opacity);
         }
     }
 }

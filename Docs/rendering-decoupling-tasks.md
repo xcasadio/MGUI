@@ -430,7 +430,7 @@ Validation:
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderContextTests --logger "console;verbosity=minimal"` : succes, 8 tests passes ;
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RoundedRectangleRenderingApiTests --logger "console;verbosity=minimal"` : succes, 1 test passe.
 
-### ⚪ 6. Introduire des contrats backend-neutral pour les images et ressources de draw
+### ✅ 6. Introduire des contrats backend-neutral pour les images et ressources de draw
 
 But:
 retirer du coeur UI les references directes aux ressources GPU natives quand elles servent seulement a decrire du contenu UI.
@@ -457,6 +457,24 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `assets: complete task 6 add backend neutral image resource contracts`
+
+Resultat:
+
+- un handle image backend-neutral `IUIImageResource` a ete introduit dans `MGUI.Rendering.Abstractions`, puis implemente immediatement cote MonoGame via `MonoGameImageResource` ;
+- `IUIAssetProvider` expose maintenant `LoadImage(...)` et `TryLoadImage(...)`, tandis que `LoadTexture(...)` et `TryLoadTexture(...)` restent disponibles comme pont de compatibilite borne ;
+- `MGTextureData` transporte desormais un `IUIImageResource` comme payload principal, ajoute des surcharges de draw via `IUIDrawContext`, et conserve un constructeur/propriete `Texture2D` legacy pour les call sites pas encore migres ;
+- `MGResources`, `MGImage` et le bootstrap de ressources par defaut dans `MGDesktop` consomment maintenant le chemin image opaque au lieu d'exiger `Texture2D` en surface pour les cas simples de contenu visuel ;
+- le garde-fou `RenderingBoundaryArchitectureTests` a ete resserre pour refleter la reduction reelle des fuites: `Texture2D` n'apparait plus directement dans `MGDesktop` ni `MGResources`, et plusieurs helpers deja bascules vers `IUIDrawContext` sont sortis de l'allowlist `DrawTransaction` ;
+- les exceptions restantes sont volontairement bornees a cette etape: `MGTexturedBorderBrush`, `MGNineSliceFillBrush`, les ponts de compatibilite `MGTextureData.Texture` et le constructeur `MGImage(Texture2D, ...)` restent MonoGame-specifiques en attendant les migrations des taches suivantes.
+
+Validation:
+
+- `dotnet build .\MGUI.Shared\MGUI.Shared.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` : succes, avec avertissements XML existants hors perimetre ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements existants hors perimetre ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter AssetProviderTests --logger "console;verbosity=minimal"` : succes, 4 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderContextTests --logger "console;verbosity=minimal"` : succes, 8 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 6 tests passes.
 
 ### ⚪ 7. Separer la mesure de texte du draw texte backend
 

@@ -13,6 +13,7 @@ using MGUI.Shared.Input;
 using MGUI.Shared.Input.GamePad;
 using MGUI.Shared.Text;
 using MGUI.Shared.Rendering;
+using MGUI.Shared.Assets;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.DragDrop;
 using Microsoft.Xna.Framework.Graphics;
@@ -1156,10 +1157,10 @@ namespace MGUI.Core.UI
         public void LoadDefaultResources()
         {
             #region Sample Icons
-            Texture2D CheckMark_64x64 = Resources.AssetProvider.LoadTexture(Path.Combine("Icons", "CheckMark_64x64"));
+            IUIImageResource CheckMark_64x64 = Resources.AssetProvider.LoadImage(Path.Combine("Icons", "CheckMark_64x64"));
             Resources.AddTexture("CheckMark_64x64", new(CheckMark_64x64));
 
-            Texture2D AngryMeteor_MilitaryIconsSet = Resources.AssetProvider.LoadTexture(Path.Combine("Icons", "AngryMeteor_MilitaryIconsSet"));
+            IUIImageResource AngryMeteor_MilitaryIconsSet = Resources.AssetProvider.LoadImage(Path.Combine("Icons", "AngryMeteor_MilitaryIconsSet"));
             Resources.AddTexture("AngryMeteor", new(AngryMeteor_MilitaryIconsSet));
 
             int TextureTopMargin = 6;
@@ -1244,7 +1245,7 @@ namespace MGUI.Core.UI
             {
                 string fileName   = DockIconEntries[i];
                 string resourceId = DockIconEntries[i + 1];
-                if (Resources.AssetProvider.TryLoadTexture(Path.Combine("Icons", "docking", fileName), out Texture2D DockTex))
+                if (Resources.AssetProvider.TryLoadImage(Path.Combine("Icons", "docking", fileName), out IUIImageResource DockTex))
                 {
                     Resources.AddTexture(resourceId, new(DockTex));
                 }

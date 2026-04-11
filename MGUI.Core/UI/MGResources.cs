@@ -175,16 +175,19 @@ namespace MGUI.Core.UI
             }
         }
 
-        public bool TryLoadTexture(string Name, string AssetName)
+        public bool TryLoadImage(string Name, string AssetName)
         {
-            if (AssetProvider == null || !AssetProvider.TryLoadTexture(AssetName, out Texture2D Texture))
+            if (AssetProvider == null || !AssetProvider.TryLoadImage(AssetName, out IUIImageResource Image))
             {
                 return false;
             }
 
-            AddTexture(Name, new(Texture));
+            AddTexture(Name, new(Image));
             return true;
         }
+
+        public bool TryLoadTexture(string Name, string AssetName)
+            => TryLoadImage(Name, AssetName);
 
         internal (int? Width, int? Height) GetTextureDimensions(string Name)
         {
@@ -199,11 +202,11 @@ namespace MGUI.Core.UI
             }
         }
 
-        public bool TryDrawTexture(DrawTransaction DT, string Name, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
+        public bool TryDrawTexture(IUIDrawContext DT, string Name, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
             => TryDrawTexture(DT, Name, TargetBounds.TopLeft(), TargetBounds.Width, TargetBounds.Height, Opacity, Color);
-        public bool TryDrawTexture(DrawTransaction DT, MGTextureData? TextureData, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
+        public bool TryDrawTexture(IUIDrawContext DT, MGTextureData? TextureData, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
             => TryDrawTexture(DT, TextureData, TargetBounds.TopLeft(), TargetBounds.Width, TargetBounds.Height, Opacity, Color);
-        public bool TryDrawTexture(DrawTransaction DT, string Name, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
+        public bool TryDrawTexture(IUIDrawContext DT, string Name, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
         {
             if (TryGetTexture(Name, out MGTextureData TextureData))
             {
@@ -214,7 +217,7 @@ namespace MGUI.Core.UI
                 return false;
             }
         }
-        public bool TryDrawTexture(DrawTransaction DT, MGTextureData? TextureData, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
+        public bool TryDrawTexture(IUIDrawContext DT, MGTextureData? TextureData, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
         {
             if (TextureData != null)
             {
@@ -222,7 +225,7 @@ namespace MGUI.Core.UI
                 int ActualHeight = Height ?? TextureData.Value.RenderSize.Height;
                 Rectangle Destination = new(Position.X, Position.Y, ActualWidth, ActualHeight);
 
-                DT.DrawTextureTo(TextureData.Value.Texture, TextureData.Value.SourceRect, Destination, (Color ?? Microsoft.Xna.Framework.Color.White) * Opacity * TextureData.Value.Opacity);
+                TextureData.Value.Draw(DT, Destination, Color, Opacity);
 
                 return true;
             }
@@ -231,6 +234,15 @@ namespace MGUI.Core.UI
                 return false;
             }
         }
+
+        public bool TryDrawTexture(DrawTransaction DT, string Name, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
+            => TryDrawTexture((IUIDrawContext)DT, Name, TargetBounds, Opacity, Color);
+        public bool TryDrawTexture(DrawTransaction DT, MGTextureData? TextureData, Rectangle TargetBounds, float Opacity = 1.0f, Color? Color = null)
+            => TryDrawTexture((IUIDrawContext)DT, TextureData, TargetBounds, Opacity, Color);
+        public bool TryDrawTexture(DrawTransaction DT, string Name, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
+            => TryDrawTexture((IUIDrawContext)DT, Name, Position, Width, Height, Opacity, Color);
+        public bool TryDrawTexture(DrawTransaction DT, MGTextureData? TextureData, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
+            => TryDrawTexture((IUIDrawContext)DT, TextureData, Position, Width, Height, Opacity, Color);
 
         public event EventHandler<(string Name, MGTextureData Data)> OnTextureAdded;
         public event EventHandler<(string Name, MGTextureData Data)> OnTextureRemoved;

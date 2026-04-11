@@ -1,4 +1,5 @@
 ﻿using MGUI.Shared.Helpers;
+using MGUI.Shared.Assets;
 using MGUI.Shared.Rendering.Clipping;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
@@ -147,6 +148,9 @@ namespace MGUI.Shared.Rendering
             BeginDraw(DrawContext.Sprites);
             SB.Draw(Texture, Destination, Source, ColorMask);
         }
+
+        public void DrawTextureTo(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask)
+            => DrawTextureTo(Texture.GetTexture2D(), Source, Destination, ColorMask);
 
         /// <summary>Draw a texture to a given <paramref name="Destination"/> <see cref="Rectangle"/></summary>
         public void DrawTextureTo(Texture2D Texture, Rectangle? Source, Rectangle Destination, Color ColorMask,

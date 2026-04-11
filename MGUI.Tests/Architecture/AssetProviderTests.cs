@@ -3,6 +3,7 @@ using MGUI.Core.UI;
 using MGUI.Shared.Assets;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace MGUI.Tests.Architecture;
 
@@ -13,9 +14,17 @@ public class AssetProviderTests
         public ContentManager Content => null!;
         public MGUI.Shared.Text.FontManager FontManager => null!;
 
-        public Microsoft.Xna.Framework.Graphics.Texture2D LoadTexture(string assetName) => null!;
+        public IUIImageResource LoadImage(string assetName) => new MonoGameImageResource(null!);
 
-        public bool TryLoadTexture(string assetName, out Microsoft.Xna.Framework.Graphics.Texture2D texture)
+        public bool TryLoadImage(string assetName, out IUIImageResource image)
+        {
+            image = null!;
+            return false;
+        }
+
+        public Texture2D LoadTexture(string assetName) => null!;
+
+        public bool TryLoadTexture(string assetName, out Texture2D texture)
         {
             texture = null!;
             return false;
@@ -47,7 +56,14 @@ public class AssetProviderTests
     {
         string desktopSource = System.IO.File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
 
-        Assert.Contains("Resources.AssetProvider.LoadTexture", desktopSource);
-        Assert.Contains("Resources.AssetProvider.TryLoadTexture", desktopSource);
+        Assert.Contains("Resources.AssetProvider.LoadImage", desktopSource);
+        Assert.Contains("Resources.AssetProvider.TryLoadImage", desktopSource);
+    }
+
+    [Fact]
+    public void MGTextureData_UsesOpaqueImageResourceContractWithLegacyTextureCompatibility()
+    {
+        Assert.Equal(typeof(IUIImageResource), typeof(MGTextureData).GetProperty(nameof(MGTextureData.Image))!.PropertyType);
+        Assert.Equal(typeof(Texture2D), typeof(MGTextureData).GetProperty(nameof(MGTextureData.Texture))!.PropertyType);
     }
 }

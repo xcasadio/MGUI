@@ -26,8 +26,6 @@ public class RenderingBoundaryArchitectureTests
             "UI/Brushes/Border Brushes/MGDockedBorderBrush.cs",
             "UI/Brushes/Border Brushes/MGTexturedBorderBrush.cs",
             "UI/Brushes/Fill Brushes/MGNineSliceFillBrush.cs",
-            "UI/Brushes/Fill Brushes/MGSolidFillBrush.cs",
-            "UI/Brushes/Fill Brushes/MGTextureFillBrush.cs",
             "UI/MGCheckBox.cs",
             "UI/MGDesktop.cs",
             "UI/MGElement.cs",
@@ -35,8 +33,6 @@ public class RenderingBoundaryArchitectureTests
             "UI/MGResources.cs",
             "UI/MGTextBlock.cs",
             "UI/MGTextureData.cs",
-            "UI/Shapes/DrawTransactionBoxShapeExtensions.cs",
-            "UI/UISymbolDrawing.cs",
             "UI/UIView.cs"
         });
     }
@@ -48,9 +44,7 @@ public class RenderingBoundaryArchitectureTests
         {
             "UI/Brushes/Border Brushes/MGTexturedBorderBrush.cs",
             "UI/Brushes/Fill Brushes/MGNineSliceFillBrush.cs",
-            "UI/MGDesktop.cs",
             "UI/MGImage.cs",
-            "UI/MGResources.cs",
             "UI/MGTextureData.cs"
         });
     }
