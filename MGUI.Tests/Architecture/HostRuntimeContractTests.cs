@@ -81,13 +81,16 @@ public class HostRuntimeContractTests
     }
 
     [Fact]
-    public void Samples_KeepExplicitMainRendererBootstrapPath()
+    public void Repo_ShowsBothHistoricAndDelegateHostBootstrapPaths()
     {
         string sampleSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Samples\Game1.cs");
         string miniGameSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.MiniGame\MiniGame.cs");
 
         Assert.Contains("new(new GameRenderHost<Game1>(this), new MonoGameRawInputSource())", sampleSource);
-        Assert.Contains("new MainRenderer(new GameRenderHost<MiniGame>(this), new MonoGameRawInputSource())", miniGameSource);
+        Assert.Contains("new DelegateRenderHost(", miniGameSource);
+        Assert.Contains("new MainRenderer(_mguiHost, new MonoGameRawInputSource())", miniGameSource);
+        Assert.Contains("_mguiHost.NotifyPreviewUpdate(gameTime.TotalGameTime);", miniGameSource);
+        Assert.Contains("_mguiHost.NotifyEndUpdate();", miniGameSource);
     }
 
     [Fact]

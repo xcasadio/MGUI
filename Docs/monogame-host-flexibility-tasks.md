@@ -321,7 +321,7 @@ Resultat:
 - la propriete legacy `Renderer` est preservee pour compatibilite, mais elle n'est plus le chemin principal du code interne ;
 - le point qui reste concret volontairement est `Draw(float, DrawSettings)`, car `DrawTransaction` attend encore un `MainRenderer` et ce chantier n'ouvre pas ce refactor transversal.
 
-### ⚪ 6. Ajouter un sample ou chemin d'integration alternatif
+### ✅ 6. Ajouter un sample ou chemin d'integration alternatif
 
 But:
 prouver que le chantier sert un besoin reel et pas seulement un nettoyage interne.
@@ -346,6 +346,14 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `samples: complete task 6 add alternate host integration sample`
+
+Resultat:
+
+- le repo montre maintenant 2 integrations MonoGame distinctes:
+  - `MGUI.Samples` conserve le chemin historique `GameRenderHost<TObservableGame>` ;
+  - `MGUI.MiniGame` utilise desormais `DelegateRenderHost` comme voie alternative ;
+- `MGUI.MiniGame` pilote explicitement `NotifyPreviewUpdate(...)` et `NotifyEndUpdate()` autour de sa boucle `Update`, ce qui rend le wiring host lisible et minimal ;
+- ce choix evite de casser les samples qui ont encore des dependances directes a `GameRenderHost<Game1>` pour atteindre `Game.Window`.
 
 ### ⚪ 7. Documenter l'integration MonoGame et les chemins recommandes
 

@@ -130,6 +130,7 @@ namespace MGUI.MiniGame
         private SpriteBatch _spriteBatch;
         private Texture2D _circleTexture;
 
+        private DelegateRenderHost _mguiHost;
         private MainRenderer _mguiRenderer;
         private MGDesktop _desktop;
         private InputRouter _inputRouter;
@@ -240,7 +241,11 @@ namespace MGUI.MiniGame
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            _mguiRenderer = new MainRenderer(new GameRenderHost<MiniGame>(this), new MonoGameRawInputSource());
+            _mguiHost = new DelegateRenderHost(
+                GraphicsDevice,
+                () => new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height),
+                Services);
+            _mguiRenderer = new MainRenderer(_mguiHost, new MonoGameRawInputSource());
             _desktop = new MGDesktop(_mguiRenderer);
 
             CreateHudWindow();
@@ -265,6 +270,7 @@ namespace MGUI.MiniGame
 
         protected override void Update(GameTime gameTime)
         {
+            _mguiHost.NotifyPreviewUpdate(gameTime.TotalGameTime);
             PreviewUpdate?.Invoke(this, gameTime.TotalGameTime);
 
             DispatchRoutedInputActions(gameTime.TotalGameTime);
@@ -283,6 +289,7 @@ namespace MGUI.MiniGame
 
             base.Update(gameTime);
 
+            _mguiHost.NotifyEndUpdate();
             EndUpdate?.Invoke(this, EventArgs.Empty);
         }
 
