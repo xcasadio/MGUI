@@ -340,7 +340,7 @@ Validation:
 
 ## Phase 2 - Basculer le coeur UI sur des contrats de rendu
 
-### ⚪ 4. Router le bootstrap desktop et view via les abstractions
+### ✅ 4. Router le bootstrap desktop et view via les abstractions
 
 But:
 faire dependre les couches haut niveau de la UI de contrats de runtime plutot que du backend concret.
@@ -367,6 +367,23 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `runtime: complete task 4 route desktop and view bootstrap through abstractions`
+
+Resultat:
+
+- `IUIDesktopRuntime` expose maintenant `CreateDrawTransaction(...)`, ce qui permet au bootstrap haut niveau de creer son contexte de draw sans connaitre `MainRenderer` ;
+- `MainRenderer` implemente ce nouveau point d'entree comme factory du `DrawTransaction` concret ;
+- `MGDesktop.Draw(float, DrawSettings)` passe desormais par `Runtime.CreateDrawTransaction(...)` au lieu d'instancier `DrawTransaction` a partir de `Renderer` ;
+- le chemin nominal de bootstrap haut niveau n'a donc plus besoin du type concret `MainRenderer` ; la propriete `Renderer` et le constructeur legacy restent presents uniquement comme chemins de compatibilite explicites ;
+- `UIView` reste encore branche sur `IUISurface` et `DrawTransaction`, ce qui est acceptable a cette etape ; le vrai resserrement du contexte de rendu est reserve a la tache 5.
+
+Validation:
+
+- `dotnet build .\MGUI.Shared\MGUI.Shared.csproj --no-restore` : succes ;
+- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` : succes, avec avertissements XML existants hors perimetre ;
+- `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` : succes, avec avertissements existants hors perimetre ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter HostRuntimeContractTests --logger "console;verbosity=minimal"` : succes, 7 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter UIViewTests --logger "console;verbosity=minimal"` : succes, 5 tests passes ;
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter RenderingBoundaryArchitectureTests --logger "console;verbosity=minimal"` : succes, 6 tests passes.
 
 ### ⚪ 5. Separer le contexte de rendu UI du `DrawTransaction` MonoGame
 

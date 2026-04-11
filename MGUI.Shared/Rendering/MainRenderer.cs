@@ -148,6 +148,9 @@ namespace MGUI.Shared.Rendering
 
         public Rectangle GetViewport(int Margin) => Surface.GetBounds().GetCompressed(Margin);
 
+        public DrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites)
+            => new(this, Settings, DeferBegin, DefaultContext);
+
         public void RegisterView(IUIView View)
         {
             if (View == null)

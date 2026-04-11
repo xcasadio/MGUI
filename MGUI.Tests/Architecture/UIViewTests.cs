@@ -44,5 +44,6 @@ public class UIViewTests
         string desktopSource = System.IO.File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
 
         Assert.Contains("View?.Surface.GetBounds() ?? Runtime.Surface.GetBounds()", desktopSource);
+        Assert.Contains("Runtime.CreateDrawTransaction", desktopSource);
     }
 }

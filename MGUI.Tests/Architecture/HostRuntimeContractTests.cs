@@ -68,6 +68,7 @@ public class HostRuntimeContractTests
         string[] expectedMembers =
         {
             "AssetProvider",
+            "CreateDrawTransaction",
             "FontManager",
             "Input",
             "RegisterView",
@@ -124,7 +125,7 @@ public class HostRuntimeContractTests
             "TextEngine",
             "UpdateArgs"
         }, propertyNames);
-        Assert.Equal(new[] { "RegisterView" }, methodNames);
+        Assert.Equal(new[] { "CreateDrawTransaction", "RegisterView" }, methodNames);
         Assert.Equal(new[] { "TextEngineChanged" }, eventNames);
         Assert.DoesNotContain(nameof(MainRenderer.Host), propertyNames);
         Assert.DoesNotContain(nameof(MainRenderer.GraphicsDevice), propertyNames);

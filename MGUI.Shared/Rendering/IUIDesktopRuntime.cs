@@ -18,6 +18,7 @@ namespace MGUI.Shared.Rendering
         public event EventHandler<EventArgs<ITextEngine>> TextEngineChanged;
         public UpdateBaseArgs UpdateArgs { get; }
 
+        public DrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites);
         public void RegisterView(IUIView View);
     }
 }

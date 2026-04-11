@@ -1514,7 +1514,7 @@ namespace MGUI.Core.UI
         /// <param name="InitialDrawSettings">If null, uses <see cref="DrawSettings.Default"/></param>
         public void Draw(float Opacity = 1.0f, DrawSettings InitialDrawSettings = null)
         {
-            using (DrawTransaction DT = new(Renderer, InitialDrawSettings ?? DrawSettings.Default, false))
+            using (DrawTransaction DT = Runtime.CreateDrawTransaction(InitialDrawSettings ?? DrawSettings.Default, false))
             {
                 Draw(DT, Opacity);
             }
