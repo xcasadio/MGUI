@@ -355,7 +355,7 @@ Resultat:
 - `MGUI.MiniGame` pilote explicitement `NotifyPreviewUpdate(...)` et `NotifyEndUpdate()` autour de sa boucle `Update`, ce qui rend le wiring host lisible et minimal ;
 - ce choix evite de casser les samples qui ont encore des dependances directes a `GameRenderHost<Game1>` pour atteindre `Game.Window`.
 
-### ⚪ 7. Documenter l'integration MonoGame et les chemins recommandes
+### ✅ 7. Documenter l'integration MonoGame et les chemins recommandes
 
 But:
 laisser un resultat exploitable par un humain apres le refactor.
@@ -381,3 +381,10 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `docs: complete task 7 document monogame host integration`
+
+Resultat:
+
+- un guide `Docs/monogame-host-integration-guide.md` documente maintenant les 2 chemins recommandes ;
+- la doc explique quand choisir `GameRenderHost<TObservableGame>` et quand choisir `DelegateRenderHost` ;
+- elle documente explicitement ce qui reste concret dans le runtime actuel et ce qui est hors perimetre ;
+- elle renvoie vers les 2 references de code reelles du repo: `MGUI.Samples/Game1.cs` et `MGUI.MiniGame/MiniGame.cs`.
