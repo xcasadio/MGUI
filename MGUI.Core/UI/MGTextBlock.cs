@@ -926,7 +926,6 @@ namespace MGUI.Core.UI
 
                         Vector2 TextSize = MeasureText(ActualText, IsBold, IsItalic);
                         Vector2 visualDrawPosition = new(CurrentX, TextYPosition);
-                        Vector2 backendDrawPosition = visualDrawPosition + resolved.DrawOrigin * drawScale;
 
                         //  Draw background
                         if (TextRun.Settings.HasBackground)
@@ -953,7 +952,7 @@ namespace MGUI.Core.UI
                             //DT.FillRectangle(Vector2.Zero, Destination, Foreground);
                         }
 
-                        Vector2 Position = backendDrawPosition.TransformBy(Transform);
+                        Vector2 Position = visualDrawPosition.TransformBy(Transform);
                         if (TextRun.Settings.IsShadowed)
                         {
                             //  Draw text twice, once for the shadow, then again for itself
