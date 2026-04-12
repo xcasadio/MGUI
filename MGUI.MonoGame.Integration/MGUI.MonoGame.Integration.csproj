@@ -15,6 +15,19 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.1.303" />
-    <PackageReference Include="MonoGame.Extended" Version="3.8.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Helpers\ContentUtils.cs" />
+    <Compile Remove="Helpers\RenderUtils.cs" />
+    <Compile Remove="Helpers\TextureUtils.cs" />
+    <Compile Remove="Input\MonoGameRawInputSource.cs" />
+    <Compile Remove="MonoGameBackendBootstrap.cs" />
+    <Compile Remove="Rendering\BackBufferSurface.cs" />
+    <Compile Remove="Rendering\Clipping\ClipManager.cs" />
+    <Compile Remove="Rendering\DelegateRenderHost.cs" />
+    <Compile Remove="Rendering\DrawTransaction.cs" />
+    <Compile Remove="Rendering\MainRenderer.cs" />
+    <Compile Remove="Rendering\RenderTargetPool.cs" />
+    <Compile Remove="Rendering\View.cs" />
   </ItemGroup>
 </Project>

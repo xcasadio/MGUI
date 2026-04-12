@@ -57,7 +57,8 @@ Custom engine backend wiring: see [Docs/custom-render-backend-integration.md](Do
 Rendering split status:
 
 - `MGDesktop` is now wired from `IUIDesktopRuntime`, not from an implicit concrete renderer contract.
-- `MGUI.MonoGame` is the reference backend for production MonoGame apps.
+- `MGUI.MonoGame.LegacyRenderer` is the packaged upstream renderer for production MonoGame apps.
+- `MGUI.MonoGame.Integration` carries the shared MonoGame support layer used by split or engine-owned backends.
 - the repo also includes a proof backend in `MGUI.Tests/Integration/EngineOwnedRenderingProofTests.cs` that demonstrates engine-owned shapes, text, and offscreen buffers through the shared runtime and draw contracts.
   
 # Examples
@@ -475,8 +476,8 @@ MGUI can also parse and render your XAML markup at runtime using the MGXAMLDesig
 2. Use Visual Studio 2022 or later (since this project targets .NET 6.0, and makes use of some new-ish C# language features such as record structs (which may be unavailable in c# language version 8.0 or earlier))
 3. In your MonoGame project:
    - In the Solution Explorer:
-         - Right-click your Solution, *Add* -> *Existing Project*. Browse for `MGUI.Shared.csproj`, `MGUI.Core.csproj`, and `MGUI.MonoGame.csproj`.
-         - Right-click your Project, *Add* -> *Project Reference*. Add references to `MGUI.Shared`, `MGUI.Core`, and `MGUI.MonoGame`.
+         - Right-click your Solution, *Add* -> *Existing Project*. Browse for `MGUI.Shared.csproj`, `MGUI.Core.csproj`, and `MGUI.MonoGame.LegacyRenderer.csproj`.
+         - Right-click your Project, *Add* -> *Project Reference*. Add references to `MGUI.Shared`, `MGUI.Core`, and `MGUI.MonoGame.LegacyRenderer`.
      - You may need to:
        - Right-click your game's *Content* folder, *Add* -> *Existing Item*. Browse for `MGUI\MGUI.Shared\Content\MGUI.Shared.Content.mgcb` and `MGUI\MGUI.Core\Content\MGUI.Core.Content.mgcb` and add them both as links (in the file browser dialog, click the dropdown arrow next to the *Add* button and choose *Add as link*). This step will ensure that MGUI's content .xnb files are copied to your project's bin\Content folder. This step might not be necessary.
    - In your Game class:

@@ -28,6 +28,7 @@
     <ProjectReference Include="..\MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj" />
     <ProjectReference Include="..\MGUI.Core\MGUI.Core.csproj" />
     <ProjectReference Include="..\MGUI.FontStashSharp\MGUI.FontStashSharp.csproj" />
+    <ProjectReference Include="..\MGUI.MonoGame.LegacyRenderer\MGUI.MonoGame.LegacyRenderer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

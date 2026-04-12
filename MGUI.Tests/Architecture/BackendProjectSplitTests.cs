@@ -6,16 +6,19 @@ namespace MGUI.Tests.Architecture;
 
 public class BackendProjectSplitTests
 {
-    private static readonly string RepoRoot = @"d:\development\repo\MGUI";
+    private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
     [Fact]
-    public void MonoGameBackendProject_IsPresentInTheSolution()
+    public void MonoGameSplitProjects_ArePresentInTheSolution()
     {
-        string projectPath = Path.Combine(RepoRoot, "MGUI.MonoGame", "MGUI.MonoGame.csproj");
+        string integrationProjectPath = Path.Combine(RepoRoot, "MGUI.MonoGame.Integration", "MGUI.MonoGame.Integration.csproj");
+        string legacyRendererProjectPath = Path.Combine(RepoRoot, "MGUI.MonoGame.LegacyRenderer", "MGUI.MonoGame.LegacyRenderer.csproj");
         string solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.sln"));
 
-        Assert.True(File.Exists(projectPath));
-        Assert.Contains("MGUI.MonoGame\\MGUI.MonoGame.csproj", solutionSource);
+        Assert.True(File.Exists(integrationProjectPath));
+        Assert.True(File.Exists(legacyRendererProjectPath));
+        Assert.Contains("MGUI.MonoGame.Integration\\MGUI.MonoGame.Integration.csproj", solutionSource);
+        Assert.Contains("MGUI.MonoGame.LegacyRenderer\\MGUI.MonoGame.LegacyRenderer.csproj", solutionSource);
     }
 
     [Fact]
@@ -47,15 +50,12 @@ public class BackendProjectSplitTests
     }
 
     [Fact]
-    public void MonoGameProject_OwnsConcreteBackendFilesLocally_WithoutLinkedIncludesFromShared()
+    public void IntegrationProject_StripsLegacyRendererFiles()
     {
-        string monoGameProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.MonoGame", "MGUI.MonoGame.csproj"));
+        string integrationProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.MonoGame.Integration", "MGUI.MonoGame.Integration.csproj"));
 
-        Assert.DoesNotContain("<Compile Include=\"..\\MGUI.Shared\\", monoGameProjectSource, StringComparison.OrdinalIgnoreCase);
-
-        string[] expectedLocalFiles =
+        string[] removedFiles =
         {
-            "Assets\\MonoGameImageResource.cs",
             "Helpers\\ContentUtils.cs",
             "Helpers\\RenderUtils.cs",
             "Helpers\\TextureUtils.cs",
@@ -73,31 +73,68 @@ public class BackendProjectSplitTests
             "Text\\Engines\\SpriteFontTextEngine.cs"
         };
 
-        Assert.All(expectedLocalFiles, relativePath =>
-            Assert.True(File.Exists(Path.Combine(RepoRoot, "MGUI.MonoGame", relativePath)), $"Expected local backend source '{relativePath}' to exist under MGUI.MonoGame."));
+        Assert.All(removedFiles, removedFile => Assert.Contains($"<Compile Remove=\"{removedFile}\" />", integrationProjectSource));
+        Assert.DoesNotContain("PackageReference Include=\"MonoGame.Extended\"", integrationProjectSource, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void CoreProject_ReferencesExplicitMonoGameBackendProject()
+    public void LegacyRendererProject_LinksConcreteRendererFiles_FromIntegration()
     {
-        string coreProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "MGUI.Core.csproj"));
+        string legacyRendererProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.MonoGame.LegacyRenderer", "MGUI.MonoGame.LegacyRenderer.csproj"));
 
-        Assert.Contains("..\\MGUI.MonoGame\\MGUI.MonoGame.csproj", coreProjectSource);
+        Assert.Contains("..\\MGUI.MonoGame.Integration\\MGUI.MonoGame.Integration.csproj", legacyRendererProjectSource);
+
+        string[] linkedFiles =
+        {
+            "Properties\\AssemblyInfo.cs",
+            "MonoGameBackendBootstrap.cs",
+            "Helpers\\ContentUtils.cs",
+            "Helpers\\RenderUtils.cs",
+            "Helpers\\TextureUtils.cs",
+            "Input\\MonoGameRawInputSource.cs",
+            "Rendering\\BackBufferSurface.cs",
+            "Rendering\\Clipping\\ClipManager.cs",
+            "Rendering\\DelegateRenderHost.cs",
+            "Rendering\\DrawTransaction.cs",
+            "Rendering\\MainRenderer.cs",
+            "Rendering\\RenderTargetPool.cs",
+            "Rendering\\View.cs"
+        };
+
+        Assert.All(linkedFiles, relativePath =>
+            Assert.Contains($"<Compile Include=\"..\\MGUI.MonoGame.Integration\\{relativePath}\"", legacyRendererProjectSource));
     }
 
     [Fact]
-    public void DemoProjects_ReferenceExplicitMonoGameBackendProject()
+    public void CoreAndFontStashSharpProjects_ReferenceMonoGameIntegrationProject()
     {
         string[] projectPaths =
         {
-            Path.Combine(RepoRoot, "MGUI.MiniGame", "MGUI.MiniGame.csproj"),
-            Path.Combine(RepoRoot, "MGUI.Samples", "MGUI.Samples.csproj")
+            Path.Combine(RepoRoot, "MGUI.Core", "MGUI.Core.csproj"),
+            Path.Combine(RepoRoot, "MGUI.FontStashSharp", "MGUI.FontStashSharp.csproj")
         };
 
         foreach (string projectPath in projectPaths)
         {
             string projectSource = File.ReadAllText(projectPath);
-            Assert.Contains("..\\MGUI.MonoGame\\MGUI.MonoGame.csproj", projectSource);
+            Assert.Contains("..\\MGUI.MonoGame.Integration\\MGUI.MonoGame.Integration.csproj", projectSource);
+        }
+    }
+
+    [Fact]
+    public void DemoAndTestProjects_ReferenceLegacyRendererProject()
+    {
+        string[] projectPaths =
+        {
+            Path.Combine(RepoRoot, "MGUI.MiniGame", "MGUI.MiniGame.csproj"),
+            Path.Combine(RepoRoot, "MGUI.Samples", "MGUI.Samples.csproj"),
+            Path.Combine(RepoRoot, "MGUI.Tests", "MGUI.Tests.csproj")
+        };
+
+        foreach (string projectPath in projectPaths)
+        {
+            string projectSource = File.ReadAllText(projectPath);
+            Assert.Contains("..\\MGUI.MonoGame.LegacyRenderer\\MGUI.MonoGame.LegacyRenderer.csproj", projectSource);
         }
     }
 

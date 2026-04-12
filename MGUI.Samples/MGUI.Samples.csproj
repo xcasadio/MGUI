@@ -219,7 +219,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MGUI.Core\MGUI.Core.csproj" />
-    <ProjectReference Include="..\MGUI.MonoGame\MGUI.MonoGame.csproj" />
+    <ProjectReference Include="..\MGUI.MonoGame.LegacyRenderer\MGUI.MonoGame.LegacyRenderer.csproj" />
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
     <ProjectReference Include="..\MGUI.FontStashSharp\MGUI.FontStashSharp.csproj" />
   </ItemGroup>

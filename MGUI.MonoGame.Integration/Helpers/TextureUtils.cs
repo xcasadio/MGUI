@@ -10,34 +10,6 @@ using System.Threading.Tasks;
 
 namespace MGUI.Shared.Helpers
 {
-    /// <summary>Creates a 1x1 pixel texture of a solid color</summary>
-    public class SolidColorTexture : Texture2D
-    {
-        private Color _color;
-        public Color Color
-        {
-            get { return _color; }
-            set
-            {
-                if (value != _color)
-                {
-                    _color = value;
-                    SetData(new Color[] { _color });
-                }
-            }
-        }
-
-        public SolidColorTexture(GraphicsDevice GraphicsDevice) : base(GraphicsDevice, 1, 1) { }
-        public SolidColorTexture(GraphicsDevice GraphicsDevice, Color color)
-            : base(GraphicsDevice, 1, 1)
-        {
-            Color = color;
-        }
-
-        public static implicit operator Color(SolidColorTexture tex) => tex.Color;
-        //public static implicit operator SolidColorTexture(Color c) => new SolidColorTexture(RenderUtils.GD, c);
-    }
-
     /// <summary>This class is intended to help create custom textures on the fly</summary>
     public static class TextureUtils
     {

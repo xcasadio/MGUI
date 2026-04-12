@@ -6,10 +6,12 @@ Ce guide documente les 2 chemins d'integration MonoGame actuellement recommandes
 
 Le point important est le suivant:
 
-- ajouter une reference directe au projet `MGUI.MonoGame` dans l'application MonoGame ;
+- ajouter une reference directe au projet `MGUI.MonoGame.LegacyRenderer` dans l'application MonoGame ;
 - utiliser `MGUI.Backend.MonoGame.MonoGameBackendBootstrap` comme point d'entree du backend concret ;
 - choisir ensuite la facon d'heberger ce backend via `GameRenderHost<TObservableGame>` ou `DelegateRenderHost` ;
 - construire enfin `MGDesktop` depuis `IUIDesktopRuntime`.
+
+`MGUI.MonoGame.Integration` reste la couche de support partagee et n'a pas vocation a etre le seul projet reference par une application qui veut simplement utiliser le renderer upstream.
 
 MonoGame est maintenant le backend de reference du repo, pas le contrat implicite de toute la pile UI. Pour brancher un moteur proprietaire ou un backend non-MonoGame, voir aussi `Docs/custom-render-backend-integration.md`.
 
@@ -30,7 +32,7 @@ Si votre objectif est un backend custom, `IRenderHost` et `DelegateRenderHost` n
 
 Dans votre application MonoGame:
 
-- referencer `MGUI.Core` et `MGUI.MonoGame` directement ;
+- referencer `MGUI.Core` et `MGUI.MonoGame.LegacyRenderer` directement ;
 - importer le namespace `MGUI.Backend.MonoGame` pour le bootstrap ;
 - garder `MGUI.FontStashSharp` uniquement si vous utilisez ce moteur texte optionnel.
 
@@ -174,6 +176,6 @@ Pour la vue d'ensemble complete du split `Core / Contracts / MonoGame backend` e
 
 ## Hors perimetre
 
-Ce guide reste specifique au backend `MGUI.MonoGame`.
+Ce guide reste specifique au backend `MGUI.MonoGame.LegacyRenderer`.
 
 Le chantier a maintenant une preuve runnable qu'un backend non-MonoGame est possible dans `MGUI.Tests/Integration/EngineOwnedRenderingProofTests.cs`, mais l'integration d'un moteur de production autre que MonoGame est documentee separerement dans `Docs/custom-render-backend-integration.md`.

@@ -142,7 +142,7 @@ public sealed class MyTextEngine : ITextEngine
 
 ## Ce que MonoGame reste responsable de faire
 
-Le backend `MGUI.MonoGame` reste le backend de reference du repo.
+Le backend `MGUI.MonoGame.LegacyRenderer` reste le backend de reference du repo.
 
 Il fournit:
 
@@ -160,7 +160,7 @@ Si votre code utilisait encore directement les types MonoGame du chemin nominal:
 1. remplacez les parametres `MainRenderer` par `IUIDesktopRuntime` partout ou vous construisez `MGDesktop` ;
 2. remplacez les parametres `DrawTransaction` par `IUIDrawTransaction`, `IUIRenderContext` ou `IUIDrawContext` selon le besoin reel ;
 3. remplacez les images et buffers `Texture2D` / `RenderTarget2D` du chemin nominal par `IUIImageResource` / `IUIRenderTarget` ;
-4. laissez les conversions vers des types MonoGame uniquement dans `MGUI.MonoGame` ou dans votre adaptateur backend concret ;
+4. laissez les conversions vers des types MonoGame uniquement dans `MGUI.MonoGame.LegacyRenderer`, `MGUI.MonoGame.Integration` quand il s'agit de support partage, ou dans votre adaptateur backend concret ;
 5. si vous restez sur MonoGame, preferez `MonoGameBackendBootstrap.Create(...)` plutot que d'etendre `MainRenderer` comme s'il etait le contrat principal.
 
 ## Preuve disponible dans le repo

@@ -7,11 +7,9 @@ using MGUI.Backend.MonoGame;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended.VectorDraw;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -19,81 +17,6 @@ using System.Threading.Tasks;
 
 namespace MGUI.Shared.Rendering
 {
-    public interface IRenderViewport
-    {
-        /// <summary>The valid bounds of this viewport, relative to the topleft corner of the <see cref="GameWindow"/>.<para/>
-        /// To allow rendering content to the entire <see cref="GameWindow"/>, 
-        /// use a <see cref="Rectangle"/> with Left=0, Top=0, Width=<see cref="GameWindow.ClientBounds"/>.Width, Height=<see cref="GameWindow.ClientBounds"/>.Height</summary>
-        public Rectangle GetBounds();
-    }
-
-    public interface IObservableUpdate
-    {
-        /// <summary>The <see cref="TimeSpan"/> represents the total elapsed time.<para/>
-        /// See also: <see cref="GameTime.TotalGameTime"/></summary>
-        public event EventHandler<TimeSpan> PreviewUpdate;
-        public event EventHandler<EventArgs> EndUpdate;
-    }
-
-    /// <summary>For a concrete implementation, consider using <see cref="GameRenderHost{TObservableGame}"/></summary>
-    public interface IRenderHost : IRenderViewport, IObservableUpdate, IServiceProvider
-    {
-        public GraphicsDevice GraphicsDevice { get; }
-    }
-
-    public class GameRenderHost<TObservableGame> : IRenderHost, IDisposable
-        where TObservableGame : Game, IObservableUpdate
-    {
-        public TObservableGame Game { get; }
-
-        public Rectangle GetBounds() => new(0, 0, Game.Window.ClientBounds.Width, Game.Window.ClientBounds.Height);
-
-        public GraphicsDevice GraphicsDevice => Game.GraphicsDevice;
-
-        public object GetService(Type serviceType) => Game.Services.GetService(serviceType);
-
-        public event EventHandler<TimeSpan> PreviewUpdate;
-        public event EventHandler<EventArgs> EndUpdate;
-
-        private Rectangle PreviousClientBounds;
-
-        // Named handlers stored so they can be properly unsubscribed in Dispose()
-        private readonly EventHandler<TimeSpan> _onGamePreviewUpdate;
-        private readonly EventHandler<EventArgs> _onGameEndUpdate;
-        private readonly EventHandler<EventArgs> _onClientSizeChanged;
-
-        public GameRenderHost(TObservableGame Game)
-        {
-            this.Game = Game;
-
-            _onGamePreviewUpdate = (sender, e) => PreviewUpdate?.Invoke(Game, e);
-            _onGameEndUpdate = (sender, e) => EndUpdate?.Invoke(Game, e);
-            _onClientSizeChanged = (sender, e) =>
-            {
-                if (GraphicsDevice.ScissorRectangle == PreviousClientBounds)
-                {
-                    GraphicsDevice.ScissorRectangle = GetBounds();
-                }
-
-                PreviousClientBounds = GetBounds();
-            };
-
-            this.Game.PreviewUpdate += _onGamePreviewUpdate;
-            this.Game.EndUpdate += _onGameEndUpdate;
-
-            PreviousClientBounds = GetBounds();
-            Game.Window.ClientSizeChanged += _onClientSizeChanged;
-        }
-
-        public void Dispose()
-        {
-            Game.PreviewUpdate -= _onGamePreviewUpdate;
-            Game.EndUpdate -= _onGameEndUpdate;
-            Game.Window.ClientSizeChanged -= _onClientSizeChanged;
-            Debug.WriteLine($"[Dispose] {GetType().Name} unsubscribed 3 event handlers");
-        }
-    }
-
     public sealed class MainRenderer : IMonoGameDesktopBackend
     {
         /// <summary>MonoGame-specific compatibility surface. Core UI code should continue to use <see cref="IUIDesktopRuntime"/>.</summary>

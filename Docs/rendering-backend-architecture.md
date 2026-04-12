@@ -7,7 +7,8 @@ Ce document decrit l'etat final du chantier de decouplage du rendu.
 Le point clef est le suivant:
 
 - `MGUI.Core` porte la logique UI, pas le backend de draw concret ;
-- `MGUI.MonoGame` porte l'implementation MonoGame concrete et le point d'entree de composition backend ;
+- `MGUI.MonoGame.LegacyRenderer` porte l'implementation MonoGame concrete et le point d'entree de composition backend ;
+- `MGUI.MonoGame.Integration` porte la couche de support MonoGame partagee entre le coeur UI, le texte optionnel et les backends proprietaires ;
 - `MGUI.Rendering.Abstractions` et `MGUI.Shared` contiennent les contrats consommes de part et d'autre de cette frontiere ;
 - `MGUI.FontStashSharp` reste une integration texte optionnelle construite au-dessus de cette separation.
 
@@ -45,7 +46,17 @@ Responsabilites:
 
 Le coeur UI doit preferer les contrats partages et eviter de dependere du backend concret, sauf ponts legacy explicitement assumes.
 
-### `MGUI.MonoGame`
+### `MGUI.MonoGame.Integration`
+
+Responsabilites:
+
+- contrats, hosts partages et types de support MonoGame encore consommes par `MGUI.Core`, `MGUI.FontStashSharp` et des backends possedes par le moteur ;
+- infrastructure texte/image partagee qui ne doit pas forcer le pipeline renderer historique ;
+- aucun `MainRenderer`, `DrawTransaction` ou helper GPU legacy compile sur le chemin nominal.
+
+Ce projet n'est pas le backend applicatif recommande pour un consommateur MonoGame standard.
+
+### `MGUI.MonoGame.LegacyRenderer`
 
 Responsabilites:
 
@@ -54,7 +65,7 @@ Responsabilites:
 - implementation texte SpriteFont concrete ;
 - point d'entree de composition backend `MGUI.Backend.MonoGame.MonoGameBackendBootstrap`.
 
-Ce projet est la dependance concrete que les apps MonoGame doivent referencer explicitement.
+Ce projet est la dependance concrete que les apps MonoGame doivent referencer explicitement quand elles utilisent le renderer upstream fourni par MGUI.
 
 ### `MGUI.FontStashSharp`
 
@@ -65,7 +76,7 @@ Responsabilites:
 
 ## Flux d'integration recommande
 
-1. L'application MonoGame reference `MGUI.Core` et `MGUI.MonoGame` directement.
+1. L'application MonoGame reference `MGUI.Core` et `MGUI.MonoGame.LegacyRenderer` directement.
 2. Elle choisit un host MonoGame concret:
    - `GameRenderHost<TObservableGame>` si le `Game` publie deja `PreviewUpdate` et `EndUpdate` ;
    - `DelegateRenderHost` si la boucle d'update reste pilotee manuellement.
@@ -84,7 +95,7 @@ Le flux recommande est le suivant:
 3. implementer un `IUIDrawTransaction` / `IUIRenderContext` capable de dessiner les shapes, les images et de changer de buffer via `SetRenderTargetTemporary(...)` ;
 4. implementer un `ITextEngine` pour la resolution, la mesure et le draw du texte ;
 5. construire `MGDesktop` directement avec ce runtime puis laisser `UIView` router le draw vers la surface choisie par le moteur ;
-6. reserver tout type concret MonoGame au seul backend `MGUI.MonoGame`.
+6. reserver tout type concret MonoGame au seul backend `MGUI.MonoGame.LegacyRenderer`.
 
 Le guide pas-a-pas est documente dans `Docs/custom-render-backend-integration.md`.
 
@@ -119,7 +130,7 @@ Le chantier laisse volontairement quelques ponts de compatibilite bornes:
 - `MGResources` et `MGTextureData` gardent des overloads `DrawTransaction` pour compatibilite descendante ;
 - `MGImage`, `MGTextureData` et `MGTexturedBorderBrush` gardent des surfaces `Texture2D` limitees a des constructeurs ou proprietes legacy ;
 - les types de valeur MonoGame (`Color`, `Rectangle`, `Point`, `Vector2`, `Matrix`) restent toleres dans le coeur UI ;
-- `MGUI.Core` reference encore `MGUI.MonoGame` tant que ces ponts publics existent.
+- `MGUI.Core` reference encore `MGUI.MonoGame.Integration` tant que ces ponts publics existent.
 
 Ces exceptions sont epinglees par les tests d'architecture et ne doivent pas s'etendre silencieusement.
 
@@ -132,7 +143,7 @@ Avant:
 
 Maintenant:
 
-- ajouter une reference explicite a `MGUI.MonoGame` dans l'application ;
+- ajouter une reference explicite a `MGUI.MonoGame.LegacyRenderer` dans l'application ;
 - utiliser le namespace `MGUI.Backend.MonoGame` pour le bootstrap ;
 - preferer `MonoGameBackendBootstrap.Create(...)` pour creer le couple `Host + MainRenderer` ;
 - construire `MGDesktop` via `new MGDesktop((IUIDesktopRuntime)renderer)` dans le code consommateur ;

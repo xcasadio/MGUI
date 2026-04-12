@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj" />
-    <ProjectReference Include="..\MGUI.MonoGame\MGUI.MonoGame.csproj" />
+    <ProjectReference Include="..\MGUI.MonoGame.Integration\MGUI.MonoGame.Integration.csproj" />
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
   </ItemGroup>
 
