@@ -18,6 +18,8 @@ Pour la roadmap `InkkSlinger vs MGUI`, le premier jalon commun lookless est fige
 
 Dans ce cadre portefeuille, ce backlog apporte la fondation precedence/ressources/invalidation/visual states et la migration lookless des controles pilotes. Les extensions deja documentees au-dela de ce jalon ne sont pas des prerequis supplementaires pour declarer les taches portefeuille 4 et 5 closes.
 
+La validation portefeuille v1 de ce jalon est desormais fermee sur le filtre `Theme|Style|Template` et sur le sample `StyleThemeRefactor`, avec les derniers correctifs locaux appliques sur les wrappers XAML internes et la navigation de focus des context menus.
+
 ## Legende de statut
 
 - ✅ termine

@@ -535,7 +535,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.StackPanel;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -589,7 +589,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.WrapPanel;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -643,7 +643,7 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.Canvas;
 
         [Category("Border")]
-        public Border Border { get; set; } = new();
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
 
         [Category("Border")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

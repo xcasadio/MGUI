@@ -69,3 +69,14 @@ Le jalon portefeuille s'appuie sur une validation bornee, deja coherente avec la
 - `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template"`
 
 Le sample de reference principal pour la convergence lookless reste `MGUI.Samples/Features/StyleThemeRefactor.xaml`.
+
+## Validation portefeuille v1
+
+Le lot portefeuille 5 a ete revalide sur cette base avec les ajustements locaux suivants:
+
+- les `MGContextMenu` donnent leur focus initial via `KeyboardFocusSource.Pointer`, ce qui evite de faire scroller des viewports ancetres quand un menu flottant s'ouvre ;
+- la projection d'etat visuel des `MGContextMenuItem` conserve la mise en evidence venant du focus, du wrapper, de la selection et des sous-menus ouverts ;
+- les bordures internes XAML de `StackPanel`, `WrapPanel` et `Canvas` n'heritent plus des implicit styles parents, ce qui ferme la derniere fuite de style dans la tranche lookless ;
+- validation executee avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`

@@ -214,7 +214,7 @@ Resultat:
 	- `Docs/control-template-tasks.md` borne le jalon aux migrations structurelles des controles pilotes et laisse hors scope immediat les taches docking hybrides et fenetres auxiliaires ;
 - la roadmap priorisee pointe maintenant ce jalon commun comme reference de lot 2, ce qui supprime l'ambiguite entre migration pre-docking et backlogs specialises plus vastes.
 
-### ⚪ 5. Livrer le premier jalon de convergence lookless
+### ✅ 5. Livrer le premier jalon de convergence lookless
 
 But:
 fiabiliser la resolution runtime de style, theme, template, ressources et visual states sur un premier ensemble de controles de reference.
@@ -236,6 +236,19 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template`
+
+Resultat:
+
+- le premier jalon de convergence lookless est maintenant valide sur le socle commun `ThemeDefinition` + `Style` + `ControlTemplate` borne par `Docs/lookless-convergence-milestone.md` ;
+- controles pilotes confirmes dans le jalon portefeuille: `MGWindow`, `MGOverlay`, `MGListBox`, `MGListView`, `MGComboBox` et `MGTabControl` ;
+- correctifs locaux livres pour refermer la tranche rouge restante:
+	- `MGContextMenu` applique son focus initial avec `KeyboardFocusSource.Pointer`, ce qui evite l'autoscroll de viewports ancetres a l'ouverture de menus flottants ;
+	- `MGContextMenuItem` projette l'etat de highlight a partir du wrapper, du focus, de la selection et de l'ouverture de sous-menu sans perdre les invariants de template ;
+	- les wrappers XAML `StackPanel`, `WrapPanel` et `Canvas` n'heritent plus des implicit styles via leur `Border` interne ;
+- le document specialise `Docs/style-theme-refactor-tasks.md` et le cadrage commun `Docs/lookless-convergence-milestone.md` ont ete mis a jour pour acter la validation portefeuille ;
+- validation ciblee executee avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
 ### ⚪ 6. Durcir le loader XAML et ses diagnostics
 

@@ -463,7 +463,7 @@ namespace MGUI.Core.UI
             VisualState ownerState = VisualState;
             VisualState wrapperState = ContentWrapper?.VisualState ?? default;
             bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered
-                || ownerState.IsSelected || ownerState.IsFocused || wrapperState.IsFocused || Submenu?.IsContextMenuOpen == true;
+                || ownerState.IsFocused || wrapperState.IsFocused || ownerState.IsSelected || Submenu?.IsContextMenuOpen == true;
             bool isPressed = ownerState.IsPressed || wrapperState.IsPressed;
 
             if (ContentWrapper != null)

@@ -147,7 +147,7 @@ namespace MGUI.Core.UI
         {
             GetDesktop().PushFocusScope(this, GetDesktop().FocusedKeyboardHandler);
             MGContextMenuItem initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
-            initialFocusTarget?.Focus(KeyboardFocusSource.Programmatic);
+            initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);
             NPC(nameof(IsContextMenuOpen));
             ContextMenuOpened?.Invoke(this, EventArgs.Empty);
         }
