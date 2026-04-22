@@ -23,6 +23,12 @@ Ce document est destine a un agent IA implementeur.
 - Conserver les APIs publiques existantes tant qu'une tache ne demande pas explicitement de les etendre.
 - Ajouter ou adapter les tests a chaque etape quand c'est pertinent.
 
+## Cadre portefeuille
+
+Pour la roadmap `InkkSlinger vs MGUI`, le premier jalon commun lookless est fige dans `Docs/lookless-convergence-milestone.md`.
+
+Dans ce cadre, les migrations `Window`, `Overlay`, `ListBox`, `ListView`, `ComboBox` et `TabControl` appartiennent au jalon commun. Les taches encore ouvertes sur les controles docking hybrides et sur les controles a fenetres auxiliaires restent explicitement hors de ce premier jalon portefeuille.
+
 ## Legende de statut
 
 - ⚪ a faire

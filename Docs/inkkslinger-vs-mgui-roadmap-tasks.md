@@ -180,7 +180,7 @@ Resultat:
 	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~MGUI.Tests.Tooling.StableDiagnosticIdTests|FullyQualifiedName~MGUI.Tests.Architecture.ToolingHooksTests"`
 	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
-### ⚪ 4. Aligner le backlog de convergence lookless
+### ✅ 4. Aligner le backlog de convergence lookless
 
 But:
 transformer les chantiers style, theme et control template en un seul flux de convergence pilote au niveau portefeuille.
@@ -202,6 +202,17 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template`
+
+Resultat:
+
+- un document de convergence commun `Docs/lookless-convergence-milestone.md` borne maintenant explicitement le premier jalon portefeuille lookless ;
+- invariants figes pour ce jalon: precedence explicable, reevaluation runtime sans reparse complet, `TemplateParts` validables, convergence `ThemeDefinition` + `Style` + `ControlTemplate` sur le meme runtime ;
+- controles pilotes retenus pour le lot 5: `MGWindow`, `MGOverlay`, `MGListBox`, `MGListView`, `MGComboBox` et `MGTabControl` ;
+- alignement documentaire ajoute dans les trois backlogs specialises:
+	- `Docs/style-theme-refactor-tasks.md` cadre le jalon comme la cible portefeuille minimale, sans rouvrir tout le backlog ;
+	- `Docs/theme-definition-tasks.md` cadre explicitement la chaine `ThemeDefinition` -> `MGTheme` -> `MGResources` comme contribution au jalon ;
+	- `Docs/control-template-tasks.md` borne le jalon aux migrations structurelles des controles pilotes et laisse hors scope immediat les taches docking hybrides et fenetres auxiliaires ;
+- la roadmap priorisee pointe maintenant ce jalon commun comme reference de lot 2, ce qui supprime l'ambiguite entre migration pre-docking et backlogs specialises plus vastes.
 
 ### ⚪ 5. Livrer le premier jalon de convergence lookless
 

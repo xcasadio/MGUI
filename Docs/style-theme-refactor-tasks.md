@@ -12,6 +12,12 @@ Cette liste est derivee du rapport d'audit et sert de backlog ordonne pour un ag
 - Favoriser les adaptateurs temporaires plutot que les ruptures brutales d'API.
 - Ajouter des tests logiques avant les migrations les plus couplantes.
 
+## Cadre portefeuille
+
+Pour la roadmap `InkkSlinger vs MGUI`, le premier jalon commun lookless est fige dans `Docs/lookless-convergence-milestone.md`.
+
+Dans ce cadre portefeuille, ce backlog apporte la fondation precedence/ressources/invalidation/visual states et la migration lookless des controles pilotes. Les extensions deja documentees au-dela de ce jalon ne sont pas des prerequis supplementaires pour declarer les taches portefeuille 4 et 5 closes.
+
 ## Legende de statut
 
 - ✅ termine

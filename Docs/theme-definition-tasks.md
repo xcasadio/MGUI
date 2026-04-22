@@ -22,6 +22,12 @@ L'objectif cible est le suivant:
 - Favoriser une couche de definition declarative puis une couche de conversion runtime explicite.
 - Ajouter les tests au fil de l'eau, avant les migrations les plus destructrices.
 
+## Cadre portefeuille
+
+Pour la roadmap `InkkSlinger vs MGUI`, la contribution attendue de ce backlog au premier jalon commun lookless est de fournir toute la chaine declarative `ThemeDefinition` -> `MGTheme` -> `MGResources`, alignee sur `Docs/lookless-convergence-milestone.md`.
+
+Autrement dit, ce backlog fournit le versant theme du jalon portefeuille; il n'ouvre pas a lui seul un perimetre plus large que celui borne par le document de convergence commun.
+
 ## Legende de statut
 
 - ✅ termine
