@@ -9,28 +9,46 @@ namespace MGUI.Core.UI.XAML
     {
         public static IReadOnlyList<ThemeDefinition> ParseDefinitions(XamlDocumentSource Source,
             bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
-        {
-            if (Source == null)
-            {
-                throw new ArgumentNullException(nameof(Source));
-            }
+            => ParseDefinitions(Source, XamlLoaderMode.Compatibility, SanitizeXAMLString, ReplaceLinebreakLiterals);
 
-            string Markup = Source.LoadContent();
-            string RootName = XDocument.Parse(Markup).Root?.Name.LocalName;
-            if (RootName == nameof(ThemeDefinitionsDocument))
+        public static IReadOnlyList<ThemeDefinition> ParseDefinitions(XamlDocumentSource Source, XamlLoaderMode Mode,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+        {
+            return XamlLoaderDiagnostics.Execute<IReadOnlyList<ThemeDefinition>>(Source, Mode, "theme document", () =>
             {
-                ThemeDefinitionsDocument Document = XAMLParser.ParseObjectDefinition<ThemeDefinitionsDocument>(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-                return Document?.Themes ?? new List<ThemeDefinition>();
-            }
-            else if (RootName == nameof(ThemeDefinition))
-            {
-                ThemeDefinition Definition = XAMLParser.ParseObjectDefinition<ThemeDefinition>(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-                return Definition == null ? Array.Empty<ThemeDefinition>() : new[] { Definition };
-            }
-            else
-            {
-                throw new InvalidOperationException($"Unsupported theme document root '{RootName}'. Expected '{nameof(ThemeDefinition)}' or '{nameof(ThemeDefinitionsDocument)}'.");
-            }
+                if (Source == null)
+                {
+                    throw new ArgumentNullException(nameof(Source));
+                }
+
+                string markup = Source.LoadContent();
+                XDocument documentRoot = XDocument.Parse(markup, LoadOptions.SetLineInfo);
+                string rootName = documentRoot.Root?.Name.LocalName;
+                if (rootName == nameof(ThemeDefinitionsDocument))
+                {
+                    ThemeDefinitionsDocument document = XAMLParser.ParseObjectDefinition<ThemeDefinitionsDocument>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                    return document?.Themes ?? new List<ThemeDefinition>();
+                }
+
+                if (rootName == nameof(ThemeDefinition))
+                {
+                    ThemeDefinition definition = XAMLParser.ParseObjectDefinition<ThemeDefinition>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                    return definition == null ? Array.Empty<ThemeDefinition>() : new[] { definition };
+                }
+
+                if (Mode == XamlLoaderMode.Strict)
+                {
+                    throw XamlLoaderDiagnostics.CreateUnsupportedDocumentRootException(
+                        Source,
+                        "theme document",
+                        rootName,
+                        $"'{nameof(ThemeDefinition)}' or '{nameof(ThemeDefinitionsDocument)}'",
+                        documentRoot.Root is null ? null : ((System.Xml.IXmlLineInfo)documentRoot.Root).LineNumber,
+                        documentRoot.Root is null ? null : ((System.Xml.IXmlLineInfo)documentRoot.Root).LinePosition);
+                }
+
+                throw new InvalidOperationException($"Unsupported theme document root '{rootName}'. Expected '{nameof(ThemeDefinition)}' or '{nameof(ThemeDefinitionsDocument)}'.");
+            });
         }
 
         public static IReadOnlyDictionary<string, MGTheme> BuildThemes(IEnumerable<ThemeDefinition> Definitions,
@@ -58,41 +76,48 @@ namespace MGUI.Core.UI.XAML
 
         public static IReadOnlyDictionary<string, MGTheme> LoadAndRegister(MGResources Resources, XamlDocumentSource Source,
             string DefaultFontFamily = null, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => LoadAndRegister(Resources, Source, DefaultFontFamily, XamlLoaderMode.Compatibility, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
+        public static IReadOnlyDictionary<string, MGTheme> LoadAndRegister(MGResources Resources, XamlDocumentSource Source,
+            string DefaultFontFamily, XamlLoaderMode Mode, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         {
-            if (Resources == null)
+            return XamlLoaderDiagnostics.Execute<IReadOnlyDictionary<string, MGTheme>>(Source, Mode, "theme document", () =>
             {
-                throw new ArgumentNullException(nameof(Resources));
-            }
-
-            IReadOnlyList<ThemeDefinition> Definitions = ParseDefinitions(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-            string FontFamily = DefaultFontFamily ?? Resources.DefaultTheme?.FontSettings?.DefaultFontFamily;
-            IReadOnlyDictionary<string, MGTheme> Themes = BuildThemes(
-                Definitions,
-                Name =>
+                if (Resources == null)
                 {
-                    if (Resources.TryGetTheme(Name, out MGTheme ExistingTheme))
-                    {
-                        return ExistingTheme;
-                    }
-
-                    if (MGTheme.TryCreateBuiltInTheme(Name, FontFamily, out MGTheme BuiltInTheme))
-                    {
-                        return BuiltInTheme;
-                    }
-
-                    return null;
-                },
-                FontFamily);
-
-            foreach (KeyValuePair<string, MGTheme> Item in Themes)
-            {
-                if (Resources.RemoveTheme(Item.Key))
-                {
+                    throw new ArgumentNullException(nameof(Resources));
                 }
-                Resources.AddTheme(Item.Key, Item.Value);
-            }
 
-            return Themes;
+                IReadOnlyList<ThemeDefinition> Definitions = ParseDefinitions(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                string FontFamily = DefaultFontFamily ?? Resources.DefaultTheme?.FontSettings?.DefaultFontFamily;
+                IReadOnlyDictionary<string, MGTheme> Themes = BuildThemes(
+                    Definitions,
+                    Name =>
+                    {
+                        if (Resources.TryGetTheme(Name, out MGTheme ExistingTheme))
+                        {
+                            return ExistingTheme;
+                        }
+
+                        if (MGTheme.TryCreateBuiltInTheme(Name, FontFamily, out MGTheme BuiltInTheme))
+                        {
+                            return BuiltInTheme;
+                        }
+
+                        return null;
+                    },
+                    FontFamily);
+
+                foreach (KeyValuePair<string, MGTheme> Item in Themes)
+                {
+                    if (Resources.RemoveTheme(Item.Key))
+                    {
+                    }
+                    Resources.AddTheme(Item.Key, Item.Value);
+                }
+
+                return Themes;
+            });
         }
 
         private static MGTheme Resolve(string Name, IReadOnlyDictionary<string, ThemeDefinition> Definitions,

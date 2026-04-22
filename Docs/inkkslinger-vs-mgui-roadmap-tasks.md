@@ -250,7 +250,7 @@ Resultat:
 	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template"`
 	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
-### ⚪ 6. Durcir le loader XAML et ses diagnostics
+### ✅ 6. Durcir le loader XAML et ses diagnostics
 
 But:
 rendre le chargement XAML previsible, diagnostiquable et compatible avec une migration progressive.
@@ -272,6 +272,19 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~XAML|FullyQualifiedName~Markup|FullyQualifiedName~Template`
+
+Resultat:
+
+- ajout d'une enveloppe de diagnostic XAML structuree: `XamlLoaderMode`, `XamlLoaderDiagnosticCode`, `XamlLoaderDiagnostic` et `XamlLoaderException` ;
+- `XAMLParser`, `ThemeDefinitionLoader` et `ControlTemplateLoader` exposent maintenant un chemin `Strict` distinct du chemin `Compatibility`, sans casser les APIs historiques ;
+- le mode strict valide explicitement les types XAML inconnus, les setters invalides, les racines de document non supportees et les `TemplatePart` requises absentes, puis remonte un diagnostic avec source et ligne quand disponible ;
+- `MGResources` expose ces chemins stricts pour les themes et templates XAML, ce qui borne mieux le chargement des assets de reference ;
+- le sample de validation `MGXAMLDesigner` consomme desormais le chemin strict et affiche un message de diagnostic structure au lieu d'une exception brute ;
+- couverture ajoutee dans `MGUI.Tests` avec des fixtures negatives ciblees sur type inconnu, mode compat legacy, setter invalide, racine de document invalide et part manquante ;
+- validation ciblee executee avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~XAML|FullyQualifiedName~Markup|FullyQualifiedName~Template"`
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~XamlLoaderDiagnosticsTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
 ### ⚪ 7. Ajouter la matrice de scenarios, repros et docs de validation
 

@@ -9,27 +9,50 @@ namespace MGUI.Core.UI.XAML
     {
         public static IReadOnlyList<ControlTemplateDefinition> ParseDefinitions(XamlDocumentSource Source,
             bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => ParseDefinitions(Source, XamlLoaderMode.Compatibility, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
+        public static IReadOnlyList<ControlTemplateDefinition> ParseDefinitions(XamlDocumentSource Source, XamlLoaderMode Mode,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         {
-            if (Source == null)
+            return XamlLoaderDiagnostics.Execute<IReadOnlyList<ControlTemplateDefinition>>(Source, Mode, "control template document", () =>
             {
-                throw new ArgumentNullException(nameof(Source));
-            }
+                if (Source == null)
+                {
+                    throw new ArgumentNullException(nameof(Source));
+                }
 
-            string markup = Source.LoadContent();
-            string rootName = XDocument.Parse(markup).Root?.Name.LocalName;
-            if (rootName == nameof(ControlTemplatesDocument) || rootName == nameof(ControlTemplates))
-            {
-                ControlTemplatesDocument document = XAMLParser.ParseObjectDefinition<ControlTemplatesDocument>(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-                return document?.Templates ?? new List<ControlTemplateDefinition>();
-            }
+                string markup = Source.LoadContent();
+                XDocument documentRoot = XDocument.Parse(markup, LoadOptions.SetLineInfo);
+                string rootName = documentRoot.Root?.Name.LocalName;
+                IReadOnlyList<ControlTemplateDefinition> definitions;
+                if (rootName == nameof(ControlTemplatesDocument) || rootName == nameof(ControlTemplates))
+                {
+                    ControlTemplatesDocument document = XAMLParser.ParseObjectDefinition<ControlTemplatesDocument>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                    definitions = document?.Templates ?? new List<ControlTemplateDefinition>();
+                }
+                else if (rootName == nameof(ControlTemplateDefinition) || rootName == nameof(ControlTemplate))
+                {
+                    ControlTemplateDefinition definition = XAMLParser.ParseObjectDefinition<ControlTemplateDefinition>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                    definitions = definition == null ? Array.Empty<ControlTemplateDefinition>() : new[] { definition };
+                }
+                else if (Mode == XamlLoaderMode.Strict)
+                {
+                    throw XamlLoaderDiagnostics.CreateUnsupportedDocumentRootException(
+                        Source,
+                        "control template document",
+                        rootName,
+                        $"'{nameof(ControlTemplate)}' or '{nameof(ControlTemplatesDocument)}'",
+                        documentRoot.Root is null ? null : ((System.Xml.IXmlLineInfo)documentRoot.Root).LineNumber,
+                        documentRoot.Root is null ? null : ((System.Xml.IXmlLineInfo)documentRoot.Root).LinePosition);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unsupported control template document root '{rootName}'. Expected '{nameof(ControlTemplate)}' or '{nameof(ControlTemplatesDocument)}'.");
+                }
 
-            if (rootName == nameof(ControlTemplateDefinition) || rootName == nameof(ControlTemplate))
-            {
-                ControlTemplateDefinition definition = XAMLParser.ParseObjectDefinition<ControlTemplateDefinition>(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-                return definition == null ? Array.Empty<ControlTemplateDefinition>() : new[] { definition };
-            }
-
-            throw new InvalidOperationException($"Unsupported control template document root '{rootName}'. Expected '{nameof(ControlTemplate)}' or '{nameof(ControlTemplatesDocument)}'.");
+                XamlLoaderDiagnostics.ValidateRequiredTemplateParts(definitions, Source, Mode);
+                return definitions;
+            });
         }
 
         public static IReadOnlyDictionary<string, Styling.MGControlTemplate> BuildTemplates(IEnumerable<ControlTemplateDefinition> Definitions)
@@ -51,13 +74,17 @@ namespace MGUI.Core.UI.XAML
 
         public static IReadOnlyDictionary<string, Styling.MGControlTemplate> LoadAndRegister(MGResources Resources, XamlDocumentSource Source,
             bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => LoadAndRegister(Resources, Source, XamlLoaderMode.Compatibility, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
+        public static IReadOnlyDictionary<string, Styling.MGControlTemplate> LoadAndRegister(MGResources Resources, XamlDocumentSource Source,
+            XamlLoaderMode Mode, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         {
             if (Resources == null)
             {
                 throw new ArgumentNullException(nameof(Resources));
             }
 
-            IReadOnlyDictionary<string, Styling.MGControlTemplate> templates = BuildTemplates(ParseDefinitions(Source, SanitizeXAMLString, ReplaceLinebreakLiterals));
+            IReadOnlyDictionary<string, Styling.MGControlTemplate> templates = BuildTemplates(ParseDefinitions(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals));
             foreach (KeyValuePair<string, Styling.MGControlTemplate> item in templates)
             {
                 Resources.RemoveControlTemplate(item.Key);

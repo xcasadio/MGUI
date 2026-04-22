@@ -144,6 +144,46 @@ namespace MGUI.Core.UI.XAML
             { "RR", nameof(ResponsiveRoot) }
         };
 
+        internal static bool TryResolveElementNameAlias(string elementName, out string resolvedName)
+        {
+            foreach (KeyValuePair<string, string> item in ElementNameAliases)
+            {
+                if (elementName.StartsWith(item.Key, StringComparison.Ordinal))
+                {
+                    resolvedName = elementName.ReplaceFirstOccurrence(item.Key, item.Value);
+                    return true;
+                }
+            }
+
+            resolvedName = null;
+            return false;
+        }
+
+        internal static bool IsKnownElementTypeName(string localName)
+        {
+            if (string.IsNullOrWhiteSpace(localName) || localName.Contains('.', StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            return ResolveElementType(localName) != null;
+        }
+
+        internal static Type ResolveElementType(string localName)
+        {
+            if (string.IsNullOrWhiteSpace(localName) || localName.Contains('.', StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            if (TryResolveElementNameAlias(localName, out string resolvedName))
+            {
+                localName = resolvedName;
+            }
+
+            return typeof(XAMLParser).Assembly.GetType($"{typeof(XAMLParser).Namespace}.{localName}", false, false);
+        }
+
         private static string ValidateXAMLString(string XAMLString)
         {
             XAMLString = XAMLString.Trim();
@@ -215,13 +255,9 @@ namespace MGUI.Core.UI.XAML
             foreach (var Element in Document.Descendants())
             {
                 string ElementName = Element.Name.LocalName;
-                foreach (KeyValuePair<string, string> KVP in ElementNameAliases)
+                if (TryResolveElementNameAlias(ElementName, out string resolvedName))
                 {
-                    if (ElementName.StartsWith(KVP.Key))
-                    {
-                        Element.Name = XName.Get(ElementName.ReplaceFirstOccurrence(KVP.Key, KVP.Value), XMLLocalNameSpaceUri);
-                        break;
-                    }
+                    Element.Name = XName.Get(resolvedName, XMLLocalNameSpaceUri);
                 }
             }
 
@@ -269,37 +305,70 @@ namespace MGUI.Core.UI.XAML
         public static TDefinition ParseDefinition<TDefinition>(XamlDocumentSource Source, MGResources Resources = null,
             bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
             where TDefinition : Element
+            => ParseDefinition<TDefinition>(Source, Resources, XamlLoaderMode.Compatibility, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
+        public static TDefinition ParseDefinition<TDefinition>(XamlDocumentSource Source, MGResources Resources, XamlLoaderMode Mode,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            where TDefinition : Element
         {
-            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-            TDefinition Parsed = (TDefinition)XamlServices.Parse(XAMLString);
-
-            if (Resources != null)
+            return XamlLoaderDiagnostics.Execute(Source, Mode, $"{typeof(TDefinition).Name} definition", () =>
             {
-                Parsed.ProcessStyles(Resources);
-            }
+                string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                XamlLoaderDiagnostics.ValidateKnownElementNames(XAMLString, Source, $"{typeof(TDefinition).Name} definition", Mode);
 
-            return Parsed;
+                TDefinition Parsed = (TDefinition)XamlServices.Parse(XAMLString);
+
+                if (Resources != null)
+                {
+                    Parsed.ProcessStyles(Resources);
+                }
+
+                return Parsed;
+            });
         }
 
         public static TDefinition ParseObjectDefinition<TDefinition>(XamlDocumentSource Source,
             bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => ParseObjectDefinition<TDefinition>(Source, XamlLoaderMode.Compatibility, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
+        public static TDefinition ParseObjectDefinition<TDefinition>(XamlDocumentSource Source, XamlLoaderMode Mode,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         {
-            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-            return (TDefinition)XamlServices.Parse(XAMLString);
+            return XamlLoaderDiagnostics.Execute(Source, Mode, $"{typeof(TDefinition).Name} object definition", () =>
+            {
+                string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                XamlLoaderDiagnostics.ValidateKnownElementNames(XAMLString, Source, $"{typeof(TDefinition).Name} object definition", Mode);
+                return (TDefinition)XamlServices.Parse(XAMLString);
+            });
         }
 
         public static Element ParseElementDefinition(XamlDocumentSource Source, MGResources Resources = null,
             bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
             => ParseDefinition<Element>(Source, Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
 
+        public static Element ParseElementDefinition(XamlDocumentSource Source, MGResources Resources, XamlLoaderMode Mode,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => ParseDefinition<Element>(Source, Resources, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
         public static Window ParseWindowDefinition(XamlDocumentSource Source, MGResources Resources = null,
             bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
             => ParseDefinition<Window>(Source, Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
+
+        public static Window ParseWindowDefinition(XamlDocumentSource Source, MGResources Resources, XamlLoaderMode Mode,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            => ParseDefinition<Window>(Source, Resources, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
 
         public static T Load<T>(MGWindow Window, XamlDocumentSource Source, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
             where T : MGElement
         {
             Element Parsed = ParseElementDefinition(Source, Window.GetResources(), SanitizeXAMLString, ReplaceLinebreakLiterals);
+            return Parsed.ToElement<T>(Window, null);
+        }
+
+        public static T Load<T>(MGWindow Window, XamlDocumentSource Source, XamlLoaderMode Mode, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+            where T : MGElement
+        {
+            Element Parsed = ParseElementDefinition(Source, Window.GetResources(), Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
             return Parsed.ToElement<T>(Window, null);
         }
 
@@ -315,6 +384,14 @@ namespace MGUI.Core.UI.XAML
             return Result;
         }
 
+        public static MGElement LoadPreview(MGWindow Window, XamlDocumentSource Source, object DataContext, XamlLoaderMode Mode,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+        {
+            MGElement Result = Load<MGElement>(Window, Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            Result.DataContextOverride = DataContext;
+            return Result;
+        }
+
         /// <param name="SanitizeXAMLString">If true, the markup loaded from <paramref name="Source"/> will be pre-processed via the following logic:<para/>
         /// 1. Trim leading and trailing whitespace<br/>
         /// 2. Insert required XML namespaces (such as "xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation")<br/>
@@ -326,6 +403,13 @@ namespace MGUI.Core.UI.XAML
         public static MGWindow LoadRootWindow(MGDesktop Desktop, XamlDocumentSource Source, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         {
             Window Parsed = ParseWindowDefinition(Source, Desktop.Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            return Parsed.ToElement(Desktop);
+        }
+
+        public static MGWindow LoadRootWindow(MGDesktop Desktop, XamlDocumentSource Source, XamlLoaderMode Mode,
+            bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
+        {
+            Window Parsed = ParseWindowDefinition(Source, Desktop.Resources, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
             return Parsed.ToElement(Desktop);
         }
 

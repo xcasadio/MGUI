@@ -278,13 +278,36 @@ namespace MGUI.Core.UI
                     Source = XamlDocumentSource.FromString(FromStringTextBoxComponent.Text, "Designer Text Input");
                 }
 
-                Result = UIToolingService.LoadPreview(SelfOrParentWindow, Source, ParsedContentDataContext, !IsReadingInputFromFile, true);
+                Result = UIToolingService.LoadPreview(SelfOrParentWindow, Source, ParsedContentDataContext, XamlLoaderMode.Strict, !IsReadingInputFromFile, true);
             }
             catch (Exception ex)
             {
                 MGScrollViewer SV = new(SelfOrParentWindow);
                 SV.Padding = new(5);
-                string Message = FTTokenizer.EscapeMarkdown($"{ex.Message}\n\n{ex}");
+                string Message;
+                if (ex is XamlLoaderException xamlException)
+                {
+                    StringBuilder builder = new();
+                    builder.AppendLine($"[{xamlException.Diagnostic.Code}] {xamlException.Diagnostic.Message}");
+
+                    if (!string.IsNullOrWhiteSpace(xamlException.Diagnostic.SourceName))
+                    {
+                        builder.AppendLine($"Source: {xamlException.Diagnostic.SourceName}");
+                    }
+
+                    if (xamlException.Diagnostic.LineNumber.HasValue)
+                    {
+                        builder.AppendLine($"Line: {xamlException.Diagnostic.LineNumber}:{xamlException.Diagnostic.LinePosition ?? 0}");
+                    }
+
+                    builder.AppendLine();
+                    builder.Append(xamlException);
+                    Message = FTTokenizer.EscapeMarkdown(builder.ToString());
+                }
+                else
+                {
+                    Message = FTTokenizer.EscapeMarkdown($"{ex.Message}\n\n{ex}");
+                }
                 SV.SetContent(Message);
                 SV.CanChangeContent = false;
                 Result = SV;

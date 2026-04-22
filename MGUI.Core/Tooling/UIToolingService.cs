@@ -241,6 +241,12 @@ namespace MGUI.Core.Tooling
             return XAMLParser.LoadPreview(window, source, dataContext, sanitizeXamlString, replaceLinebreakLiterals);
         }
 
+        public static MGElement LoadPreview(MGWindow window, XamlDocumentSource source, object dataContext,
+            XamlLoaderMode mode, bool sanitizeXamlString = false, bool replaceLinebreakLiterals = true)
+        {
+            return XAMLParser.LoadPreview(window, source, dataContext, mode, sanitizeXamlString, replaceLinebreakLiterals);
+        }
+
         private static UIWindowDiagnosticSnapshot CreateWindowSnapshot(MGWindow window, bool isOverlayWindow)
         {
             List<UIWindowDiagnosticSnapshot> nestedWindows = new();

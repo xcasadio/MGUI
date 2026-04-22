@@ -109,6 +109,13 @@ Travail attendu:
 - creer une suite de fixtures negatives couvrant les erreurs attendues ;
 - exposer les diagnostics du loader dans au moins un sample de validation.
 
+Etat courant:
+
+- le loader expose maintenant un mode explicite `Strict` vs `Compatibility` pour le parsing XAML, les themes XAML et les `ControlTemplate` ;
+- les erreurs strictes sont remontees via `XamlLoaderException` et `XamlLoaderDiagnostic`, avec code, source et position quand l'information est disponible ;
+- la validation stricte couvre au minimum racine de document invalide, type XAML inconnu, setter invalide et `TemplatePart` requise absente ;
+- `MGXAMLDesigner` consomme ce chemin strict et affiche le diagnostic structure plutot qu'un message brut de parser.
+
 Critere d'acceptation:
 
 - un echec de chargement pointe la zone fautive avec un message actionnable ;
