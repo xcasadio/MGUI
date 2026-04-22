@@ -1,4 +1,5 @@
 ﻿using FontStashSharp;
+using MGUI.Core.Tooling;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.FontStashSharp;
@@ -144,6 +145,12 @@ namespace MGUI.Samples
             if (ks.IsKeyDown(Keys.F1) && !_prevKeyboardState.IsKeyDown(Keys.F1))
             {
                 ToggleActiveTextEngine();
+            }
+
+            if (ks.IsKeyDown(Keys.F2) && !_prevKeyboardState.IsKeyDown(Keys.F2))
+            {
+                string artifact = UIToolingService.RenderDesktopSnapshot(UIToolingService.CaptureDesktopSnapshot(Desktop));
+                Debug.WriteLine("[Diagnostics]\n" + artifact);
             }
 
             _prevKeyboardState = ks;

@@ -145,7 +145,7 @@ Resultat:
 	- les fenetres imbriquees prolongent la chaine de leur `ParentWindow` et l'overlay desktop vit sous `desktop/overlay-window` ;
 - validation ciblee executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~MGUI.Tests.Tooling.StableDiagnosticIdTests|FullyQualifiedName~MGUI.Tests.Architecture.ToolingHooksTests"`.
 
-### ⚪ 3. Ajouter snapshots, replay et artefacts de repro
+### ✅ 3. Ajouter snapshots, replay et artefacts de repro
 
 But:
 faire du harness de diagnostics un outil concret de reproduction et de regression sur les scenarios a risque.
@@ -167,6 +167,18 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Focus|FullyQualifiedName~Overlay|FullyQualifiedName~Dock`
+
+Resultat:
+
+- ajout d'un snapshot desktop borne: `UIToolingService.CaptureDesktopSnapshot(MGDesktop)` capture focus actif, tooltip, context menu, overlay actif, input courant, fenetres racine, fenetres imbriquees et l'etat runtime des noeuds de visual tree ;
+- chaque noeud de `UIVisualTreeSnapshot` transporte maintenant des signaux runtime directement exploitables par le harness: visibilite effective, hit-test, focus, hover, clipping et capacites d'input derivees ;
+- ajout d'un artefact lisible `UIToolingService.RenderDesktopSnapshot(...)` pour produire un compte rendu texte immediat des scenarios de repro ;
+- ajout d'un replay borne par frames avec assertions optionnelles: `UIToolingService.ReplayFrames(...)`, `UIInputReplayFrame`, `UIInputReplayResult` et `UIDiagnosticAssertions` ;
+- couverture ciblee dans `MGUI.Tests` sur trois axes: snapshot desktop, rendu d'artefact et replay brut + action semantique `NavigateNext` ;
+- point d'entree sample minimal livre dans `MGUI.Samples`: `F2` ecrit l'artefact diagnostics courant dans la sortie debug, ce qui donne un repro immediat sur les scenarios `FocusInputReview`/overlay/popup ;
+- validation ciblee executee avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~MGUI.Tests.Tooling.StableDiagnosticIdTests|FullyQualifiedName~MGUI.Tests.Architecture.ToolingHooksTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
 ### ⚪ 4. Aligner le backlog de convergence lookless
 

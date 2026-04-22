@@ -5,13 +5,17 @@ using MGUI.Core.UI.Containers;
 using MGUI.Shared.Assets;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Input;
+using MGUI.Shared.Input.Semantic;
 using MGUI.Shared.Rendering;
 using MGUI.Shared.Rendering.Clipping;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using System;
+using System.Linq;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace MGUI.Tests.Tooling;
 
@@ -67,6 +71,101 @@ public class StableDiagnosticIdTests
         Assert.Equal(tree.PopupContent.UniqueId, popupContentSnapshot.RuntimeUniqueId);
     }
 
+    [Fact]
+    public void CaptureDesktopSnapshot_IncludesNestedWindowsAndActiveOverlayState()
+    {
+        ToolingTree tree = CreateTree();
+
+        MGTextBox focusProbe = new(tree.Window)
+        {
+            Name = "Focus Probe"
+        };
+        focusProbe.IsFocusable = true;
+        Assert.True(tree.Scope.TryAddChild(focusProbe));
+
+        SetFocusedKeyboardHandler(tree.Desktop, focusProbe);
+
+        UIDesktopDiagnosticSnapshot focusSnapshot = UIToolingService.CaptureDesktopSnapshot(tree.Desktop);
+        Assert.Equal(UIToolingService.GetStableDiagnosticId(focusProbe), focusSnapshot.FocusedElementDiagnosticId);
+
+        UIVisualTreeSnapshot focusProbeSnapshot = FindSnapshot(focusSnapshot.Windows[0].VisualTree, UIToolingService.GetStableDiagnosticId(focusProbe));
+        Assert.True(focusProbeSnapshot.HasKeyboardFocus);
+
+        MGTextBox overlayInput = new(tree.Desktop.OverlayHost.SelfOrParentWindow)
+        {
+            Name = "Overlay Input"
+        };
+        overlayInput.IsFocusable = true;
+
+        MGOverlay overlay = tree.Desktop.OverlayHost.AddOverlay(overlayInput);
+        overlay.Name = "Blocking Overlay";
+        overlay.IsOpen = true;
+
+        tree.Runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(48), TimeSpan.FromMilliseconds(16), default, default));
+        tree.Desktop.Update();
+
+        UIDesktopDiagnosticSnapshot snapshot = UIToolingService.CaptureDesktopSnapshot(tree.Desktop);
+
+        Assert.Equal("desktop", snapshot.DesktopDiagnosticId);
+        Assert.Equal(UIToolingService.GetStableDiagnosticId(overlay), snapshot.ActiveOverlayDiagnosticId);
+        Assert.Contains(UIToolingService.GetStableDiagnosticId(overlay), snapshot.OpenOverlayDiagnosticIds);
+        Assert.Single(snapshot.Windows);
+        Assert.Single(snapshot.Windows[0].NestedWindows);
+        Assert.Equal(UIToolingService.GetStableDiagnosticId(tree.Popup), snapshot.Windows[0].NestedWindows[0].DiagnosticId);
+    }
+
+    [Fact]
+    public void RenderDesktopSnapshot_ProducesReadableArtifact()
+    {
+        ToolingTree tree = CreateTree();
+
+        string artifact = UIToolingService.RenderDesktopSnapshot(UIToolingService.CaptureDesktopSnapshot(tree.Desktop));
+
+        Assert.Contains("desktop: desktop", artifact);
+        Assert.Contains("windows:", artifact);
+        Assert.Contains(UIToolingService.GetStableDiagnosticId(tree.Window), artifact);
+    }
+
+    [Fact]
+    public void ReplayFrames_ReplaysRawInputAndSemanticActions()
+    {
+        ToolingTree tree = CreateReplayTree();
+        string firstId = UIToolingService.GetStableDiagnosticId(tree.ReplayFirstInput!);
+
+        SetFocusedKeyboardHandler(tree.Desktop, tree.ReplayFirstInput!);
+
+        UIInputReplayFrame[] frames = new[]
+        {
+            new UIInputReplayFrame(
+                "initial",
+                new UpdateBaseArgs(TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16),
+                    new MouseState(12, 18, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released),
+                    new KeyboardState(Keys.Tab)),
+                Array.Empty<InputActionEvent>()),
+            new UIInputReplayFrame(
+                "navigate-next",
+                new UpdateBaseArgs(TimeSpan.FromMilliseconds(32), TimeSpan.FromMilliseconds(16),
+                    new MouseState(18, 24, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released),
+                    new KeyboardState(Keys.Tab)),
+                new[]
+                {
+                    new InputActionEvent(
+                        InputAction.NavigateNext,
+                        new InputActionContext(InputActionSource.Keyboard, InputActionPhase.Pressed, TimeSpan.FromMilliseconds(32), Key: Keys.Tab))
+                },
+                    firstId)
+        };
+
+        UIInputReplayResult result = UIToolingService.ReplayFrames(tree.Desktop, frames, tree.Runtime.ApplyFrame);
+
+        Assert.Equal(2, result.Steps.Count);
+        Assert.Equal(new Point(12, 18), result.Steps[0].Snapshot.Input.MousePosition);
+        Assert.Contains(nameof(Keys.Tab), result.Steps[0].Snapshot.Input.PressedKeys);
+                Assert.Null(result.Steps[0].Snapshot.FocusedElementDiagnosticId);
+                Assert.Equal(firstId, result.Steps[1].Snapshot.FocusedElementDiagnosticId);
+                Assert.Contains(firstId, result.Steps[1].Artifact);
+    }
+
     private static UIVisualTreeSnapshot FindSnapshot(UIVisualTreeSnapshot root, string diagnosticId)
     {
         if (root.DiagnosticId == diagnosticId)
@@ -105,6 +204,12 @@ public class StableDiagnosticIdTests
         return null;
     }
 
+    private static void SetFocusedKeyboardHandler(MGDesktop desktop, MGElement element)
+    {
+        PropertyInfo focusedKeyboardHandler = typeof(MGDesktop).GetProperty(nameof(MGDesktop.FocusedKeyboardHandler), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!;
+        focusedKeyboardHandler.SetValue(desktop, element);
+    }
+
     private static ToolingTree CreateTree()
     {
         ToolingTestRuntime runtime = new(new Rectangle(0, 0, 1280, 720));
@@ -125,7 +230,21 @@ public class StableDiagnosticIdTests
 
         Assert.True(window.TemplateParts.ContainsKey(MGWindow.TitleBarPartName));
 
-        return new(runtime, desktop, window, scope, popup, popupContent);
+        return new(runtime, desktop, window, scope, popup, popupContent, null, null);
+    }
+
+    private static ToolingTree CreateReplayTree()
+    {
+        ToolingTree tree = CreateTree();
+        MGTextBox firstInput = new(tree.Window) { Name = "Replay First" };
+        MGTextBox secondInput = new(tree.Window) { Name = "Replay Second" };
+        firstInput.IsFocusable = true;
+        secondInput.IsFocusable = true;
+        Assert.True(tree.Scope.TryAddChild(firstInput));
+        Assert.True(tree.Scope.TryAddChild(secondInput));
+        tree.Runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(1), TimeSpan.FromMilliseconds(1), default, default));
+        tree.Desktop.Update();
+        return tree with { ReplayFirstInput = firstInput, ReplaySecondInput = secondInput };
     }
 
     private sealed record ToolingTree(
@@ -134,7 +253,9 @@ public class StableDiagnosticIdTests
         MGWindow Window,
         MGStackPanel Scope,
         MGWindow Popup,
-        MGBorder PopupContent);
+        MGBorder PopupContent,
+        MGTextBox? ReplayFirstInput,
+        MGTextBox? ReplaySecondInput);
 
     private sealed class ToolingTestRuntime : IUIDesktopRuntime
     {
@@ -173,6 +294,12 @@ public class StableDiagnosticIdTests
 
         public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => new ToolingNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
+
+        public void ApplyFrame(UpdateBaseArgs updateArgs)
+        {
+            UpdateArgs = updateArgs;
+            Input.Update(updateArgs);
+        }
 
         public void RegisterView(IUIView View)
         {
