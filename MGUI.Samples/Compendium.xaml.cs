@@ -193,6 +193,7 @@ namespace MGUI.Samples
         public IFillBrushSamples IFillBrushSamples { get; }
         public IBorderBrushSamples IBorderBrushSamples { get; }
         public AdornerLiteSamples AdornerLiteSamples { get; }
+        public TextSurfaceLiteSamples TextSurfaceLiteSamples { get; }
         public DockingDemo DockingDemo { get; }
         public NestedScrollViewerTestSample NestedScrollViewerTest { get; }
         public ComponentMeasureTestSample ComponentMeasureTest { get; }
@@ -263,6 +264,7 @@ namespace MGUI.Samples
             IFillBrushSamples = new(Content, Desktop);
             IBorderBrushSamples = new(Content, Desktop, this);
             AdornerLiteSamples = new(Content, Desktop);
+            TextSurfaceLiteSamples = new(Content, Desktop);
             DockingDemo = new(Content, Desktop);
             NestedScrollViewerTest = new(Content, Desktop);
             ComponentMeasureTest = new(Content, Desktop);

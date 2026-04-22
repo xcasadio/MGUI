@@ -99,6 +99,7 @@
                         <ToggleButton Content="BorderBrush" IsChecked="{MGBinding Path=IBorderBrushSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="FillBrush" IsChecked="{MGBinding Path=IFillBrushSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Adorner Lite" IsChecked="{MGBinding Path=AdornerLiteSamples.IsVisible, Mode=TwoWay}" />
+                        <ToggleButton Content="Text Surface Lite" IsChecked="{MGBinding Path=TextSurfaceLiteSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Rounded Shapes" IsChecked="{MGBinding Path=RoundedShapesSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Responsive Layout" IsChecked="{MGBinding Path=ResponsiveLayoutSample.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Focus/Input Review" IsChecked="{MGBinding Path=FocusInputReviewSample.IsVisible, Mode=TwoWay}" />

@@ -82,6 +82,28 @@ namespace MGUI.Core.UI
         /// <summary>The <see cref="MGButton"/> that commits the current message that is typed into the <see cref="InputTextBox"/></summary>
         public MGButton SendButton { get; }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _AllowsMessageInlineFormatting;
+        /// <summary>If true, individual message bodies may use <see cref="MGTextBlock"/> inline formatting tokens.
+        /// Default value: false to preserve historical chat semantics.</summary>
+        public bool AllowsMessageInlineFormatting
+        {
+            get => _AllowsMessageInlineFormatting;
+            set
+            {
+                if (_AllowsMessageInlineFormatting != value)
+                {
+                    _AllowsMessageInlineFormatting = value;
+                    if (MessagesContainer != null)
+                    {
+                        MessagesContainer.ItemTemplate = item => new MGChatBoxMessage(ParentWindow, this, item);
+                    }
+
+                    NPC(nameof(AllowsMessageInlineFormatting));
+                }
+            }
+        }
+
         /// <summary>A separator between the messages list and the bottom portion of the chatbox that contains the <see cref="InputTextBox"/> and <see cref="SendButton"/></summary>
         public MGSeparator Separator { get; }
 
@@ -291,7 +313,7 @@ namespace MGUI.Core.UI
                 UsernameTextBlock = new(ParentWindow, $"{Username}:");
                 UsernameTextBlock.Margin = new(0, 0, Spacing, 0);
                 UsernameTextBlock.ManagedParent = this;
-                MessageTextBlock = new(ParentWindow, Message, AllowsInlineFormatting: false);
+                MessageTextBlock = new(ParentWindow, Message, AllowsInlineFormatting: ChatBox.AllowsMessageInlineFormatting);
                 MessageTextBlock.ManagedParent = this;
 
                 DockPanel.TryAddChild(TimestampTextBlock, Dock.Left);

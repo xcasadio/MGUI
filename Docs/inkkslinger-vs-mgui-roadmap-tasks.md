@@ -421,7 +421,7 @@ Resultat:
 	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "FullyQualifiedName~Overlay|FullyQualifiedName~Dock|FullyQualifiedName~Focus"`
 
-### ⚪ 11. Livrer les ameliorations textuelles ciblees et cloturer la roadmap
+### ✅ 11. Livrer les ameliorations textuelles ciblees et cloturer la roadmap
 
 But:
 ameliorer les usages chat, log, debug et texte annote sans lancer un RichTextBox complet, puis cloturer la boucle documentaire de la roadmap.
@@ -443,6 +443,18 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Text|FullyQualifiedName~Chat|FullyQualifiedName~Focus`
+
+Resultat:
+
+- ajout d'une petite seam programmee sur `MGTextBlock` avec `SetTextRuns(...)`, `ClearTextRuns()` et `ExplicitRuns`, pour injecter du texte annote directement sans passer par une string markup ni ouvrir un document model ;
+- ajout d'un controle append-only `MGTextLogView` pour les usages console/log/debug, base sur `MGListBox` et `MGTextBlock`, avec timestamps, trimming borne et formatting inline optionnel ;
+- extension de `MGChatBox` avec `AllowsMessageInlineFormatting` afin d'activer le formatting inline par corps de message, sans changer le comportement historique par defaut ;
+- ajout d'un sample vertical `SCN-TEXT-002` raccorde au compendium et a l'index de scenarios, pour demonstrer ensemble texte annote programme, feed log/debug et chat enrichi ;
+- mise a jour de la roadmap priorisee et du rapport comparatif pour expliciter que chat/log/debug sont maintenant couverts par ces surfaces compactes, tandis qu'un vrai `RichTextBox` ou document editor reste hors scope ;
+- validation ciblee executee avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "TextSurfaceLiteTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "FullyQualifiedName~Text|FullyQualifiedName~Chat|FullyQualifiedName~Focus"`
 
 ## Hors perimetre de ce backlog
 

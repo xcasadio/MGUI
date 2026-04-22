@@ -404,6 +404,25 @@ namespace MGUI.Core.UI
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ReadOnlyCollection<MGTextRun> _ExplicitRuns;
+        /// <summary>If set, these runs are rendered directly instead of parsing <see cref="Text"/>.
+        /// This provides a compact programmatic seam for annotated text without requiring a document model.</summary>
+        public ReadOnlyCollection<MGTextRun> ExplicitRuns
+        {
+            get => _ExplicitRuns;
+            private set
+            {
+                if (!ReferenceEquals(_ExplicitRuns, value))
+                {
+                    _ExplicitRuns = value;
+                    NPC(nameof(ExplicitRuns));
+                }
+            }
+        }
+
+        public bool HasExplicitRuns => ExplicitRuns != null;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _Text;
         public string Text
         {
@@ -416,9 +435,15 @@ namespace MGUI.Core.UI
         /// For example, changing text from: "Hello World" to "Hello [bg=Red]World[/bg]" does not affect the rendered text's layout/size.</param>
         public void SetText(string Value, bool SuppressLayoutChanged = false)
         {
-            if (_Text != Value)
+            bool HadExplicitRuns = HasExplicitRuns;
+            if (_Text != Value || HadExplicitRuns)
             {
                 _Text = Value;
+                if (HadExplicitRuns)
+                {
+                    ExplicitRuns = null;
+                }
+
                 UpdateRuns();
                 if (!SuppressLayoutChanged)
                 {
@@ -430,6 +455,41 @@ namespace MGUI.Core.UI
                 }
 
                 NPC(nameof(Text));
+            }
+        }
+
+        /// <summary>Replaces parsed <see cref="Text"/> content with explicit runs.
+        /// This is intended for compact chat/log/debug annotations without introducing a full document editor.</summary>
+        public void SetTextRuns(IEnumerable<MGTextRun> Value, bool SuppressLayoutChanged = false)
+        {
+            ExplicitRuns = Value?.ToList().AsReadOnly();
+            UpdateRuns();
+            if (!SuppressLayoutChanged)
+            {
+                InvokeLayoutChanged();
+            }
+            else
+            {
+                UpdateLines();
+            }
+        }
+
+        public void ClearTextRuns(bool SuppressLayoutChanged = false)
+        {
+            if (!HasExplicitRuns)
+            {
+                return;
+            }
+
+            ExplicitRuns = null;
+            UpdateRuns();
+            if (!SuppressLayoutChanged)
+            {
+                InvokeLayoutChanged();
+            }
+            else
+            {
+                UpdateLines();
             }
         }
 
@@ -486,34 +546,39 @@ namespace MGUI.Core.UI
             }
         }
 
-        private void UpdateRuns()
+        private ReadOnlyCollection<MGTextRun> SanitizeRuns(IEnumerable<MGTextRun> SourceRuns)
         {
-            if (AllowsInlineFormatting)
+            MGDesktop Desktop = GetDesktop();
+            List<MGTextRun> Temp = new();
+
+            foreach (MGTextRun Run in SourceRuns ?? Enumerable.Empty<MGTextRun>())
             {
-                bool WasTrackingMouseClicks = IsTrackingMouseClicks;
+                MGTextRun CurrentRun = Run;
 
-                MGDesktop Desktop = GetDesktop();
-
-                IEnumerable<MGTextRun> ParsedRuns = MGTextRun.ParseRuns(Text, DefaultTextRunSettings);
-                List<MGTextRun> Temp = new();
-
-                //  Sanitize the runs
-                foreach (MGTextRun Run in ParsedRuns)
+                //  If a TextRunImage didn't specify destination dimensions, use the default size of the image
+                if (Run.RunType == TextRunType.Image && Run is MGTextRunImage ImageRun &&
+                    ImageRun.TargetWidth <= 0 && ImageRun.TargetHeight <= 0)
                 {
-                    MGTextRun CurrentRun = Run;
-
-                    //  If a TextRunImage didn't specify destination dimensions, use the default size of the image
-                    if (Run.RunType == TextRunType.Image && Run is MGTextRunImage ImageRun && 
-                        ImageRun.TargetWidth <= 0 && ImageRun.TargetHeight <= 0)
-                    {
-                        (int? DefaultWidth, int? DefaultHeight) = Desktop.Resources.GetTextureDimensions(ImageRun.SourceName);
-                        CurrentRun = new MGTextRunImage(ImageRun.SourceName, DefaultWidth ?? 0, DefaultHeight ?? 0, ImageRun.ToolTipId, ImageRun.ActionId);
-                    }
-
-                    Temp.Add(CurrentRun);
+                    (int? DefaultWidth, int? DefaultHeight) = Desktop.Resources.GetTextureDimensions(ImageRun.SourceName);
+                    CurrentRun = new MGTextRunImage(ImageRun.SourceName, DefaultWidth ?? 0, DefaultHeight ?? 0, ImageRun.ToolTipId, ImageRun.ActionId);
                 }
 
-                Runs = Temp.AsReadOnly();
+                Temp.Add(CurrentRun);
+            }
+
+            return Temp.AsReadOnly();
+        }
+
+        private void UpdateRuns()
+        {
+            if (HasExplicitRuns)
+            {
+                Runs = SanitizeRuns(ExplicitRuns);
+            }
+            else if (AllowsInlineFormatting)
+            {
+                IEnumerable<MGTextRun> ParsedRuns = MGTextRun.ParseRuns(Text, DefaultTextRunSettings);
+                Runs = SanitizeRuns(ParsedRuns);
             }
             else
             {
@@ -521,7 +586,7 @@ namespace MGUI.Core.UI
                 Runs = MGTextRun.ParseRuns(Tokens, DefaultTextRunSettings).ToList().AsReadOnly();
             }
 
-            IsTrackingMouseClicks = AllowsInlineFormatting && Runs.Any(x => x.HasAction);
+            IsTrackingMouseClicks = Runs.Any(x => x.HasAction);
 
             NPC(nameof(Runs));
             NumCharacters = Runs.Where(x => x is MGTextRunText).Cast<MGTextRunText>().Sum(x => x.Text.Length);

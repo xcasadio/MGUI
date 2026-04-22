@@ -26,6 +26,7 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 | `SCN-SHAPE-001` | shapes + clipping | les primitives arrondies et leurs clips restent coherents visuellement et servent de base aux futures shapes retained | `MGUI.Samples/Features/RoundedShapes.xaml` | `FullyQualifiedName~Shape|FullyQualifiedName~Clip` |
 | `SCN-DOCK-001` | docking | drag, split, save/load de layout et reprise des panneaux restent demonstrables sur un host de docking cible | `MGUI.Samples/Features/DockingDemo.cs` | build sample + validation docking ciblee |
 | `SCN-TEXT-001` | text | la selection et l'echappement des backslashes dans `TextBox` restent stables et demonstrables | `MGUI.Samples/Features/TextBoxBackslashTest.xaml` | build sample + filtre texte cible |
+| `SCN-TEXT-002` | text surface lite: chat + log + texte annote | les usages chat, log et debug reutilisent un petit chemin texte explicite: runs programmes pour l'annotation, feed append-only pour le log, formatting inline optionnel pour les messages de chat, sans ouvrir un RichTextBox complet | `MGUI.Samples/Features/TextSurfaceLite.xaml` | `FullyQualifiedName~Text|FullyQualifiedName~Chat|FullyQualifiedName~Focus` |
 
 ## Priorite immediate
 
@@ -36,6 +37,7 @@ Les scenarios a utiliser en priorite pour les chantiers deja ouverts par la road
 - `SCN-THEME-001` pour la convergence lookless ;
 - `SCN-MARKUP-001` pour le durcissement du loader XAML ;
 - `SCN-GRID-001` pour le chantier `DataGrid-lite` oriente outils/debug ;
+- `SCN-TEXT-002` pour la cloture des ameliorations textuelles ciblees avant tout `RichTextBox` complet ;
 - `SCN-DOCK-001` comme point d'entree visible des futures validations docking ;
 - `SCN-SHAPE-001` comme point d'entree visible du lot shapes retained.
 

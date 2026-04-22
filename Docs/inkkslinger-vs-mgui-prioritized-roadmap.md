@@ -259,7 +259,13 @@ Validation ciblee:
 
 - `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`
 - `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
-- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter FullyQualifiedName~Text|FullyQualifiedName~Chat`
+- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter FullyQualifiedName~Text|FullyQualifiedName~Chat|FullyQualifiedName~Focus`
+
+Etat courant:
+
+- la tranche ciblee est maintenant couverte par `MGTextBlock.SetTextRuns(...)`, `MGTextLogView` et `MGChatBox.AllowsMessageInlineFormatting`, ce qui ferme les usages chat/log/debug dominants sans introduire un `RichTextBox` ;
+- le sample `SCN-TEXT-002` demontre ensemble texte annote programme, log/console append-only et messages de chat avec formatting inline opt-in ;
+- restent explicitement hors scope de ce lot: document model, pagination, flow document et edition riche generalisee.
 
 ## Hors perimetre pour cette roadmap
 
