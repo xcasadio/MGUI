@@ -8,6 +8,7 @@ namespace MGUI.Samples.Features
         public RoundedShapesSamples(ContentManager Content, MGDesktop Desktop)
             : base(Content, Desktop, $"{nameof(Features)}", "RoundedShapes.xaml")
         {
+            ApplyScenarioId("SCN-SHAPE-001");
         }
     }
 }

@@ -52,6 +52,8 @@ namespace MGUI.Samples.Features
         public ActualLayoutBoundsTestSample(ContentManager Content, MGDesktop Desktop)
             : base(Content, Desktop, $"{nameof(Features)}", "ActualLayoutBoundsTest.xaml")
         {
+            ApplyScenarioId("SCN-LAYOUT-001");
+
             PaddedBorder = Window.GetElementByName<MGBorder>("PaddedBorder");
             BtnInPadded1 = Window.GetElementByName<MGButton>("BtnInPadded1");
             BtnInPadded2 = Window.GetElementByName<MGButton>("BtnInPadded2");

@@ -59,6 +59,24 @@ namespace MGUI.Samples
         public void Show() => IsVisible = true;
         public void Hide() => IsVisible = false;
 
+        protected void ApplyScenarioId(string scenarioId)
+        {
+            if (Window == null || string.IsNullOrWhiteSpace(scenarioId))
+            {
+                return;
+            }
+
+            string prefix = $"[{scenarioId}]";
+            if (Window.TitleText?.StartsWith(prefix, StringComparison.Ordinal) == true)
+            {
+                return;
+            }
+
+            Window.TitleText = string.IsNullOrWhiteSpace(Window.TitleText)
+                ? prefix
+                : $"{prefix} {Window.TitleText}";
+        }
+
         /// <param name="Initialize">Optional. This delegate is invoked before the XAML content is parsed, 
         /// so you may wish to use this delegate to add resources to <see cref="MGDesktop.Resources"/> that may be required in order to parse the XAML.</param>
         protected SampleBase(ContentManager Content, MGDesktop Desktop, string ProjectFolderName, string XAMLFilename, Action Initialize = null)

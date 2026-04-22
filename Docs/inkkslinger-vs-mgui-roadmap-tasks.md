@@ -286,7 +286,7 @@ Resultat:
 	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~XamlLoaderDiagnosticsTests"`
 	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
-### ⚪ 7. Ajouter la matrice de scenarios, repros et docs de validation
+### ✅ 7. Ajouter la matrice de scenarios, repros et docs de validation
 
 But:
 faire des scenarios de validation une surface de premier ordre du repo, pas une activite annexe.
@@ -308,6 +308,14 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Focus|FullyQualifiedName~Theme|FullyQualifiedName~Template|FullyQualifiedName~Dock`
+
+Resultat:
+
+- ajout d'un index dedie `Docs/scenario-validation-index.md` qui fixe la convention `SCN-<zone>-<nnn>` et la matrice initiale des scenarios de validation prioritaires ;
+- les points d'entree visibles du repo sont maintenant normalises autour de `SCN-FOCUS-001`, `SCN-OVERLAY-001`, `SCN-THEME-001`, `SCN-MARKUP-001`, `SCN-LAYOUT-001`, `SCN-SHAPE-001`, `SCN-DOCK-001` et `SCN-TEXT-001` ;
+- les fenetres samples de reference exposent ces memes identifiants dans leur titre, ce qui aligne la documentation, le compendium et les artefacts diagnostics sans ouvrir une nouvelle couche d'infrastructure ;
+- validation ciblee executee avec succes:
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
 ### ⚪ 8. Livrer les shapes retained v1
 

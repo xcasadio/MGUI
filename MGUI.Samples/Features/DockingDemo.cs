@@ -56,7 +56,7 @@ namespace MGUI.Samples.Features
             // Create window programmatically
             Window = new MGWindow(desktop, 100, 100, 1200, 800);
             Window.WindowStyle = WindowStyle.Default;
-            Window.TitleText = "Docking System Demo";
+            Window.TitleText = "[SCN-DOCK-001] Docking System Demo";
             Window.MinWidth = 800;
             Window.MinHeight = 600;
             Window.WindowClosed += (sender, e) => IsVisible = false;

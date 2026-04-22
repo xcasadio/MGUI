@@ -269,6 +269,8 @@ Pas encore complet
         public StyleThemeRefactorSample(ContentManager Content, MGDesktop Desktop)
             : base(Content, Desktop, nameof(Features), "StyleThemeRefactor.xaml")
         {
+                        ApplyScenarioId("SCN-THEME-001");
+
                         Window.GetResources().LoadControlTemplatesFromXaml(XamlDocumentSource.FromString(SampleTemplatesXaml, SampleTemplateResourceName));
                         Window.GetResources().LoadThemesFromXaml(XamlDocumentSource.FromString(SampleThemesXaml, SampleThemeResourceName));
 

@@ -27,6 +27,8 @@ namespace MGUI.Samples.Features
         public FocusInputReviewSample(ContentManager content, MGDesktop desktop)
             : base(content, desktop, "Features", "FocusInputReview.xaml")
         {
+            ApplyScenarioId("SCN-FOCUS-001");
+
             FocusStatusText = Window.GetElementByName<MGTextBlock>("FocusStatusText");
             InteractionStatusText = Window.GetElementByName<MGTextBlock>("InteractionStatusText");
             ContextMenuStatusText = Window.GetElementByName<MGTextBlock>("ContextMenuStatusText");
@@ -118,7 +120,7 @@ namespace MGUI.Samples.Features
         {
             MGWindow popupWindow = new(Window, 385, 150, 280, 220)
             {
-                TitleText = "Nested Review Window",
+                TitleText = "[SCN-FOCUS-001/P1] Nested Review Window",
                 IsCloseButtonVisible = false,
                 CanCloseWindow = false
             };

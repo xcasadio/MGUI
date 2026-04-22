@@ -152,6 +152,10 @@ Validation ciblee:
 - `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 - verification manuelle de l'index de scenarios et de leurs points d'entree
 
+Reference de suivi:
+
+- `Docs/scenario-validation-index.md`
+
 ## 5. Classe B - Shapes retained au-dessus des primitives deja presentes
 
 But:

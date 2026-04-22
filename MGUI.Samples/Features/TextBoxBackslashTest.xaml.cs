@@ -49,6 +49,8 @@ namespace MGUI.Samples.Features
         public TextBoxBackslashTestSample(ContentManager Content, MGDesktop Desktop)
             : base(Content, Desktop, $"{nameof(Features)}", "TextBoxBackslashTest.xaml")
         {
+            ApplyScenarioId("SCN-TEXT-001");
+
             TB1 = Window.GetElementByName<MGTextBox>("TB1");
             TB2 = Window.GetElementByName<MGTextBox>("TB2");
             TB3 = Window.GetElementByName<MGTextBox>("TB3");
