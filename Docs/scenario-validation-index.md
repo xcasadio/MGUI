@@ -21,6 +21,7 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 | `SCN-THEME-001` | theme + template + ressources | un theme switch et un changement de template restent reproductibles sans reparse complet et sans perdre la precedence visible | `MGUI.Samples/Features/StyleThemeRefactor.xaml` | `FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template` |
 | `SCN-MARKUP-001` | markup + loader XAML | le loader strict remonte un diagnostic structure pour type inconnu, setter invalide, racine invalide et part manquante, sans casser le chemin legacy | `MGUI.Samples/Dialogs/XAMLDesignerWindow.xaml` | `FullyQualifiedName~XAML|FullyQualifiedName~Markup|FullyQualifiedName~Template` |
 | `SCN-LAYOUT-001` | layout | `ActualLayoutBounds` des enfants de contenu restent bornes par le `Padding` et les infos de layout restent verifiables en direct | `MGUI.Samples/Features/ActualLayoutBoundsTest.xaml` | build sample + verification manuelle de l'ecran |
+| `SCN-GRID-001` | datagrid-lite + list view + scroll | la grille outillage v1 reste lisible sur dataset moyen, le tri de colonnes est explicable, la selection de ligne reste stable et `EnsureRowVisible` deplace effectivement le viewport | `MGUI.Samples/Controls/DataGridLite.xaml` | `FullyQualifiedName~Grid|FullyQualifiedName~ListView|FullyQualifiedName~Scroll` |
 | `SCN-SHAPE-001` | shapes + clipping | les primitives arrondies et leurs clips restent coherents visuellement et servent de base aux futures shapes retained | `MGUI.Samples/Features/RoundedShapes.xaml` | `FullyQualifiedName~Shape|FullyQualifiedName~Clip` |
 | `SCN-DOCK-001` | docking | drag, split, save/load de layout et reprise des panneaux restent demonstrables sur un host de docking cible | `MGUI.Samples/Features/DockingDemo.cs` | build sample + validation docking ciblee |
 | `SCN-TEXT-001` | text | la selection et l'echappement des backslashes dans `TextBox` restent stables et demonstrables | `MGUI.Samples/Features/TextBoxBackslashTest.xaml` | build sample + filtre texte cible |
@@ -32,6 +33,7 @@ Les scenarios a utiliser en priorite pour les chantiers deja ouverts par la road
 - `SCN-FOCUS-001` et `SCN-OVERLAY-001` pour le harness diagnostics et les regressions input/focus ;
 - `SCN-THEME-001` pour la convergence lookless ;
 - `SCN-MARKUP-001` pour le durcissement du loader XAML ;
+- `SCN-GRID-001` pour le chantier `DataGrid-lite` oriente outils/debug ;
 - `SCN-DOCK-001` comme point d'entree visible des futures validations docking ;
 - `SCN-SHAPE-001` comme point d'entree visible du lot shapes retained.
 

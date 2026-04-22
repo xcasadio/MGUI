@@ -1,0 +1,43 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:local="clr-namespace:MGUI.Samples.Controls;assembly=MGUI.Samples"
+        xmlns:System="clr-namespace:System;assembly=mscorlib"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Left="480" Top="40" Width="820" Height="620" TitleText="DataGrid Lite" Padding="10">
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+        <Style Name="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="IsBold" Value="True" />
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Orientation="Vertical" Spacing="10">
+        <TextBlock StyleNames="SectionHeader" Text="DataGrid-lite for tools and debug" />
+        <TextBlock Text="This sample demonstrates the v1 grid facade built on MGListView: read-only rows, column headers, row selection, header sort, scroll helpers, and programmatic column sizing." />
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Name="SortCpuDescButton">Sort CPU desc</Button>
+            <Button Name="ClearSortButton">Clear sort</Button>
+            <Button Name="JumpLastButton">Jump to last row</Button>
+            <Button Name="CompactWidthsButton">Compact widths</Button>
+            <Button Name="BalancedWidthsButton">Balanced widths</Button>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="16">
+            <HeaderedContentPresenter Header="Selection mode:" Spacing="8" HorizontalAlignment="Left">
+                <ComboBox Name="SelectionModeComboBox" ItemType="{x:Type System:String}" Width="100" SelectedIndex="0">
+                    <System:String>Row</System:String>
+                    <System:String>None</System:String>
+                </ComboBox>
+            </HeaderedContentPresenter>
+            <TextBlock Name="SelectionSummary" VerticalAlignment="Center" Text="Selection: &lt;none&gt;" />
+        </StackPanel>
+
+        <DataGrid Name="ProcessGrid" ItemType="{x:Type local:ProcessRecord}" Width="780" Height="470" RowHeight="26" SelectionMode="Row" />
+    </StackPanel>
+</Window>

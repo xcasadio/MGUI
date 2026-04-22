@@ -166,6 +166,7 @@ namespace MGUI.Samples
         public GridColorPickerSamples GridColorPickerSamples { get; }
         public GroupBoxSamples GroupBoxSamples { get; }
         public ImageSamples ImageSamples { get; }
+        public DataGridLiteSamples DataGridLiteSamples { get; }
         public ListBoxSamples ListBoxSamples { get; }
         public ListViewSamples ListViewSamples { get; }
         public OverlaySamples OverlaySamples { get; }
@@ -234,6 +235,7 @@ namespace MGUI.Samples
             GridColorPickerSamples = new(Content, Desktop);
             GroupBoxSamples = new(Content, Desktop);
             ImageSamples = new(Content, Desktop);
+            DataGridLiteSamples = new(Content, Desktop);
             ListBoxSamples = new(Content, Desktop);
             ListViewSamples = new(Content, Desktop);
             OverlaySamples = new(Content, Desktop);

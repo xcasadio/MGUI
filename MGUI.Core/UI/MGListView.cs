@@ -281,9 +281,22 @@ namespace MGUI.Core.UI
 
         public MGListViewColumn<TItemType> AddColumn(ListViewColumnWidth Width, MGElement Header, Func<TItemType, MGElement> ItemTemplate)
         {
-            MGListViewColumn<TItemType> Column = new(this, Width, Header, ItemTemplate);
-            _Columns.Add(Column);
-            return Column;
+            MGListViewColumn<TItemType> Column = CreateColumn(Width, Header, ItemTemplate);
+            return AddColumnCore(Column);
+        }
+
+        protected virtual MGListViewColumn<TItemType> CreateColumn(ListViewColumnWidth width, MGElement header, Func<TItemType, MGElement> itemTemplate)
+            => new(this, width, header, itemTemplate);
+
+        protected MGListViewColumn<TItemType> AddColumnCore(MGListViewColumn<TItemType> column)
+        {
+            if (column == null)
+            {
+                throw new ArgumentNullException(nameof(column));
+            }
+
+            _Columns.Add(column);
+            return column;
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

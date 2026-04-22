@@ -351,7 +351,7 @@ Resultat:
 	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RetainedShapeGeometryTests|EngineOwnedRenderingProofTests"`
 	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
-### ⚪ 9. Livrer un DataGrid-lite v1 pour outils et debug
+### ✅ 9. Livrer un DataGrid-lite v1 pour outils et debug
 
 But:
 combler l'ecart fonctionnel le plus utile cote outillage sans importer une architecture desktop lourde.
@@ -373,6 +373,18 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Grid|FullyQualifiedName~ListView|FullyQualifiedName~Scroll`
+
+Resultat:
+
+- ajout d'une facade `MGDataGrid<TItemType>` au-dessus de `MGListView<TItemType>` pour fermer le besoin outillage/debug sans reintroduire une architecture desktop lourde ;
+- ajout d'une API outillage centree sur les lignes et les colonnes: `AddTextColumn`, `AddTemplateColumn`, `SelectRow`, `EnsureRowVisible`, `SortByColumnIndex`, `ResizeColumnPixels` et `ResizeColumnWeight` ;
+- ajout d'une petite specialisation de colonne pour les headers texte avec indicateur de tri `▲/▼`, sans dupliquer la mecanique interne de `MGListView` ;
+- ajout d'une surface XAML `DataGrid` qui reutilise le chargement et le template `ListView`, plus un sample dedie `SCN-GRID-001` raccorde au compendium et a l'index de scenarios ;
+- ajout de tests d'integration cibles pour la selection de ligne, le tri, le scroll et le parse XAML du nouveau controle ;
+- validation ciblee executee avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "DataGridLiteTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "FullyQualifiedName~Grid|FullyQualifiedName~ListView|FullyQualifiedName~Scroll"`
 
 ### ⚪ 10. Livrer un Adorner-lite et des overlay decorators
 

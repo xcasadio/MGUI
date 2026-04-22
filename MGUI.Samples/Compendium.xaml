@@ -53,6 +53,7 @@
                         <ToggleButton Content="GridColorPicker" IsChecked="{MGBinding Path=GridColorPickerSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="GroupBox" IsChecked="{MGBinding Path=GroupBoxSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Image" IsChecked="{MGBinding Path=ImageSamples.IsVisible, Mode=TwoWay}" />
+                        <ToggleButton Content="DataGridLite" IsChecked="{MGBinding Path=DataGridLiteSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="ListBox" IsChecked="{MGBinding Path=ListBoxSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="ListView" IsChecked="{MGBinding Path=ListViewSamples.IsVisible, Mode=TwoWay}" />
 						<ToggleButton Content="MenuBar" IsChecked="{MGBinding Path=MenuBarSamples.IsVisible, Mode=TwoWay}" />
