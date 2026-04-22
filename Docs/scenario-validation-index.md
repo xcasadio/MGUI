@@ -18,6 +18,7 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 | --- | --- | --- | --- | --- |
 | `SCN-FOCUS-001` | focus + input | le focus clavier reste explicable pendant les transitions combo, menu contextuel, popup et overlay | `MGUI.Samples/Features/FocusInputReview.xaml` | `FullyQualifiedName~Focus|FullyQualifiedName~Input|FullyQualifiedName~Overlay` |
 | `SCN-OVERLAY-001` | overlay + popup | un overlay ou une fenetre imbriquee n'isole pas l'input de facon silencieuse et reste observable via les diagnostics desktop | `MGUI.Samples/Features/FocusInputReview.xaml` + `F2` pour dump diagnostics | `FullyQualifiedName~Focus|FullyQualifiedName~Overlay|FullyQualifiedName~Tooling` |
+| `SCN-OVERLAY-002` | adorner-lite + tooling overlays | les selection boxes, resize handles et guides restent ancres sur leur cible, non interactifs, et le preview docking continue de reutiliser la meme abstraction d'ornement visuel | `MGUI.Samples/Features/AdornerLite.xaml` | `FullyQualifiedName~Overlay|FullyQualifiedName~Dock|FullyQualifiedName~Focus` |
 | `SCN-THEME-001` | theme + template + ressources | un theme switch et un changement de template restent reproductibles sans reparse complet et sans perdre la precedence visible | `MGUI.Samples/Features/StyleThemeRefactor.xaml` | `FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template` |
 | `SCN-MARKUP-001` | markup + loader XAML | le loader strict remonte un diagnostic structure pour type inconnu, setter invalide, racine invalide et part manquante, sans casser le chemin legacy | `MGUI.Samples/Dialogs/XAMLDesignerWindow.xaml` | `FullyQualifiedName~XAML|FullyQualifiedName~Markup|FullyQualifiedName~Template` |
 | `SCN-LAYOUT-001` | layout | `ActualLayoutBounds` des enfants de contenu restent bornes par le `Padding` et les infos de layout restent verifiables en direct | `MGUI.Samples/Features/ActualLayoutBoundsTest.xaml` | build sample + verification manuelle de l'ecran |
@@ -31,6 +32,7 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 Les scenarios a utiliser en priorite pour les chantiers deja ouverts par la roadmap sont:
 
 - `SCN-FOCUS-001` et `SCN-OVERLAY-001` pour le harness diagnostics et les regressions input/focus ;
+- `SCN-OVERLAY-002` pour la couche `Adorner-lite` et les decorators de tooling/debug ;
 - `SCN-THEME-001` pour la convergence lookless ;
 - `SCN-MARKUP-001` pour le durcissement du loader XAML ;
 - `SCN-GRID-001` pour le chantier `DataGrid-lite` oriente outils/debug ;

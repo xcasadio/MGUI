@@ -1,0 +1,65 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="820" Top="40" Width="760" Height="500" TitleText="Adorner Lite" Padding="0">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="15" />
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Background" Value="White * 0.08" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="IsExpandable" Value="False" />
+        </Style>
+    </Window.Styles>
+
+    <OverlayPanel Name="AdornerSurface" Background="rgb(28,32,38)">
+        <StackPanel Orientation="Vertical" Spacing="10" Margin="16">
+            <TextBlock StyleNames="Header1" Text="Adorner-lite tooling and debug overlays" />
+            <TextBlock Text="This sample demonstrates lightweight decorators anchored to runtime elements: selection bounds, resize handles and center guides. The same surface now backs docking preview visuals through a shared adorner abstraction." />
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Name="SelectNavigatorButton" Content="Select Navigator" />
+                <Button Name="SelectMetricsButton" Content="Select Metrics" />
+                <Button Name="SelectLogsButton" Content="Select Logs" />
+                <Button Name="ToggleGuidesButton" Content="Toggle Guides" />
+            </StackPanel>
+
+            <UniformGrid Columns="3" AutoAssignCells="True" CellSize="220,220" ColumnSpacing="12" RowSpacing="12">
+                <GroupBox Name="NavigatorCard" Header="Navigator">
+                    <StackPanel Orientation="Vertical" Spacing="6">
+                        <TextBlock Text="Hierarchy" FontSize="12" IsBold="True" />
+                        <TextBlock Text="- Root Window" />
+                        <TextBlock Text="- Tools Overlay" />
+                        <TextBlock Text="- Selection Adorners" />
+                        <TextBlock Text="- Dock Preview" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Name="MetricsCard" Header="Metrics">
+                    <StackPanel Orientation="Vertical" Spacing="6">
+                        <TextBlock Text="Frame Diagnostics" FontSize="12" IsBold="True" />
+                        <TextBlock Text="Update: 0.42 ms" />
+                        <TextBlock Text="Draw: 0.73 ms" />
+                        <TextBlock Text="Clips: 3 active" />
+                        <TextBlock Text="Hovered: MetricsCard" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Name="LogsCard" Header="Logs">
+                    <StackPanel Orientation="Vertical" Spacing="6">
+                        <TextBlock Text="Interaction Log" FontSize="12" IsBold="True" />
+                        <TextBlock Text="14:03:28  Selection changed" />
+                        <TextBlock Text="14:03:29  Guides enabled" />
+                        <TextBlock Text="14:03:31  Dock target previewed" />
+                        <TextBlock Text="14:03:34  Selection moved" />
+                    </StackPanel>
+                </GroupBox>
+            </UniformGrid>
+
+            <TextBlock Name="SelectionStatusText" Text="Selected target: Navigator" />
+        </StackPanel>
+    </OverlayPanel>
+</Window>

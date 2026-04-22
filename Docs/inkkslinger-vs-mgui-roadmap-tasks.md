@@ -386,7 +386,7 @@ Resultat:
 	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "FullyQualifiedName~Grid|FullyQualifiedName~ListView|FullyQualifiedName~Scroll"`
 
-### ⚪ 10. Livrer un Adorner-lite et des overlay decorators
+### ✅ 10. Livrer un Adorner-lite et des overlay decorators
 
 But:
 offrir une couche legere pour selection boxes, handles, guides et drop indicators sans introduire un sous-systeme WPF complet.
@@ -408,6 +408,18 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Overlay|FullyQualifiedName~Dock|FullyQualifiedName~Focus`
+
+Resultat:
+
+- ajout d'une couche `Adorner-lite` compacte avec `MGAdornerLayer`, `MGAdorner`, `MGBoundsAdorner`, `MGResizeHandlesAdorner` et `MGGuideAdorner`, ancrables soit sur un `MGElement`, soit sur des bounds explicites ;
+- ajout d'un helper de geometrie ciblee pour les bounds resolves, les handles de resize et les guides, afin de garder la logique d'ancrage testable hors rendu ;
+- refactor du preview docking `MGDockPreviewOverlay` vers un simple wrapper sur `MGBoundsAdorner`, tout en conservant son API publique et son opt-out explicite du clip d'element ;
+- ajout de tests cibles sur la geometrie, l'ancrage sur element cible, les bounds explicites du preview docking et les invariants de non-interaction de la couche ;
+- ajout d'un sample public `SCN-OVERLAY-002` montrant selection box, resize handles et guides de debug, raccorde au compendium et a l'index de scenarios ;
+- validation ciblee executee avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "AdornerLiteTests|AdornerLiteGeometryTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "FullyQualifiedName~Overlay|FullyQualifiedName~Dock|FullyQualifiedName~Focus"`
 
 ### ⚪ 11. Livrer les ameliorations textuelles ciblees et cloturer la roadmap
 

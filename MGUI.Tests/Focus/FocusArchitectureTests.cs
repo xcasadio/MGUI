@@ -187,7 +187,10 @@ public class FocusArchitectureTests
     {
         string contextMenuItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenuItem.cs");
 
-        Assert.Contains("|| ownerState.IsSelected || ownerState.IsFocused || wrapperState.IsFocused || Submenu?.IsContextMenuOpen == true;", contextMenuItemSource);
+        Assert.Contains("ownerState.IsSelected", contextMenuItemSource);
+        Assert.Contains("ownerState.IsFocused", contextMenuItemSource);
+        Assert.Contains("wrapperState.IsFocused", contextMenuItemSource);
+        Assert.Contains("Submenu?.IsContextMenuOpen == true", contextMenuItemSource);
     }
 
     [Fact]

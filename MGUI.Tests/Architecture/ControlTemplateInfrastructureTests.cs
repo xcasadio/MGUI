@@ -1,4 +1,5 @@
 using MGUI.Core.UI;
+using MGUI.Core.UI.Adorners;
 using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
@@ -114,13 +115,14 @@ public class ControlTemplateInfrastructureTests
 
         Assert.NotNull(typeof(MGDockPreviewOverlay).GetField(nameof(MGDockPreviewOverlay.SurfacePartName), flags));
         Assert.NotNull(typeof(MGDockPreviewOverlay).GetField(nameof(MGDockPreviewOverlay.BorderPartName), flags));
+        Assert.True(typeof(MGBoundsAdorner).IsAssignableFrom(typeof(MGDockPreviewOverlay)));
 
         string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockPreviewOverlay.cs");
 
-        Assert.Contains("RegisterTemplatePart(SurfacePartName, PreviewSurfaceElement)", source);
-        Assert.Contains("RegisterTemplatePart(BorderPartName, PreviewBorderElement)", source);
-        Assert.DoesNotContain("DA.DT.FillRectangle(", source);
-        Assert.DoesNotContain("public override void DrawSelf", source);
+        Assert.Contains("public class MGDockPreviewOverlay : MGBoundsAdorner", source);
+        Assert.Contains("TargetBoundsOverride", source);
+        Assert.DoesNotContain("RegisterTemplatePart(SurfacePartName", source);
+        Assert.DoesNotContain("RegisterTemplatePart(BorderPartName", source);
     }
 
     [Fact]
