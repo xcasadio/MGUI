@@ -110,7 +110,7 @@ Resultat:
 	- les decorators overlay dependent d'un layering, d'un clipping et d'un focus deja durcis ;
 	- les ameliorations textuelles restent en cloture pour eviter de glisser vers un chantier `RichTextBox` hors scope.
 
-### ⚪ 2. Ajouter des identifiants de diagnostic stables
+### ✅ 2. Ajouter des identifiants de diagnostic stables
 
 But:
 poser la base minimale du harness de diagnostics pour rendre les scenarios reproductibles entre tests, samples et artefacts.
@@ -132,6 +132,18 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Focus|FullyQualifiedName~Input|FullyQualifiedName~Overlay`
+
+Resultat:
+
+- points d'attache publics ajoutes sur le tooling partage: `UIToolingService.GetStableDiagnosticId(MGDesktop)` et `UIToolingService.GetStableDiagnosticId(MGElement)` ;
+- le snapshot outillage transporte maintenant les deux niveaux d'identite utiles au harness: `DiagnosticId`/`WindowDiagnosticId` stables et `RuntimeUniqueId` pour la correlation intra-run ;
+- forme retenue pour les ids stables: `desktop/<fenetre-racine-ou-overlay>/<segment...>` ;
+- invariants documentes par l'API et verrouilles par tests:
+	- un `Name` explicite prime sur un `TemplatePart` pour eviter de masquer les scopes et contenus nommes ;
+	- un `TemplatePart` prend le relais quand l'element n'est pas nomme ;
+	- a defaut, le segment tombe sur `type[index]` avec un ordinal borne au type sibling pour limiter les glissements ;
+	- les fenetres imbriquees prolongent la chaine de leur `ParentWindow` et l'overlay desktop vit sous `desktop/overlay-window` ;
+- validation ciblee executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "FullyQualifiedName~MGUI.Tests.Tooling.StableDiagnosticIdTests|FullyQualifiedName~MGUI.Tests.Architecture.ToolingHooksTests"`.
 
 ### ⚪ 3. Ajouter snapshots, replay et artefacts de repro
 

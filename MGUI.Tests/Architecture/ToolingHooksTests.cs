@@ -16,7 +16,12 @@ public class ToolingHooksTests
     public void UIToolingService_ExposesSnapshotAndPreviewHooks()
     {
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.CaptureVisualTree), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.GetStableDiagnosticId), BindingFlags.Static | BindingFlags.Public, null, new[] { typeof(MGDesktop) }, null));
+        Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.GetStableDiagnosticId), BindingFlags.Static | BindingFlags.Public, null, new[] { typeof(MGElement) }, null));
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.LoadPreview), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.DiagnosticId)));
+        Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.WindowDiagnosticId)));
+        Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.RuntimeUniqueId)));
         Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.AppliedControlTemplate)));
         Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.TemplateParts)));
     }
