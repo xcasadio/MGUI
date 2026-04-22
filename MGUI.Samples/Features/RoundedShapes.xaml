@@ -33,6 +33,27 @@
 
             <Border>
                 <StackPanel Orientation="Vertical" Spacing="8">
+                    <TextBlock IsBold="True" Text="Retained shapes v1" />
+                    <TextBlock Text="Ellipse, Polygon, Polyline, Line, and PathLite now share retained geometry semantics for draw, hit test, and clip adoption where the shape is closed and convex." />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Ellipse Width="110" Height="70" Stroke="White" StrokeThickness="3" Fill="rgba(77,163,255,220)" />
+                        <Polygon Points="0,54 36,0 92,18 72,82 18,86" Stroke="White" StrokeThickness="3" Fill="rgba(255,140,0,210)" />
+                        <PathLite Data="M 0,24 L 20,0 L 52,10 L 80,0 L 108,24 L 82,58 L 26,58 Z" Stroke="White" StrokeThickness="3" Fill="rgba(255,120,180,170)" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Polyline Points="0,42 20,10 46,34 72,0 102,42" Stroke="rgb(120,255,160)" StrokeThickness="4" />
+                        <Line StartPoint="0,0" EndPoint="120,26" Stroke="rgb(255,220,120)" StrokeThickness="4" />
+                        <Ellipse Width="140" Height="78" Stroke="White" StrokeThickness="3" Background="White|Orange|Lime|HotPink" BackgroundRenderPadding="-18" ClipToBounds="True" />
+                    </StackPanel>
+
+                    <TextBlock Text="Manual checks: the ellipse gradient stays clipped to the curved silhouette, and the shapes only react over their actual stroke/fill instead of the full rectangular slot." />
+                </StackPanel>
+            </Border>
+
+            <Border>
+                <StackPanel Orientation="Vertical" Spacing="8">
                     <TextBlock IsBold="True" Text="Brushes" />
                     <Rectangle Width="300" Height="50" Stroke="White" StrokeThickness="3" Fill="#5AA9FF" CornerRadius="14" />
                     <Rectangle Width="300" Height="50" Stroke="White" StrokeThickness="4" Fill="White|Orange|Lime|HotPink" CornerRadius="6,18,6,18" />

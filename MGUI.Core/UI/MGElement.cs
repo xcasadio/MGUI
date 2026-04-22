@@ -1433,10 +1433,13 @@ namespace MGUI.Core.UI
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public bool IsHovered => AsIMouseHandlerHost().IsInside(InputTracker.Mouse.CurrentPosition.ToVector2());
 
+        protected internal virtual bool ContainsUnscaledInputPoint(Vector2 unscaledScreenPosition)
+            => ActualLayoutBounds.ContainsInclusive(unscaledScreenPosition);
+
         protected IMouseViewport AsIViewport() => this;
         protected IMouseHandlerHost AsIMouseHandlerHost() => this;
         bool IMouseViewport.IsInside(Vector2 Position) => 
-            ActualLayoutBounds.ContainsInclusive(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, Position)) &&
+            ContainsUnscaledInputPoint(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, Position)) &&
             GetDesktop().ValidScreenBounds.ContainsInclusive(Position);
 
         Vector2 IMouseViewport.GetOffset() => Vector2.Zero;
@@ -2335,7 +2338,7 @@ namespace MGUI.Core.UI
 
             // Early-out: if mouse is outside this element's bounds, skip self-hover and visual children
             // (visual tree children are always clipped to the parent's content area)
-            bool mouseInBounds = ActualLayoutBounds.ContainsInclusive(unscaledMousePos);
+            bool mouseInBounds = ContainsUnscaledInputPoint(unscaledMousePos);
 
             if (mouseInBounds && CanReceiveMouseInput && ComputedIsHitTestVisible && !SelfOrParentWindow.HasModalWindow && IsHovered)
             {

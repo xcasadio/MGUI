@@ -94,6 +94,11 @@ namespace MGUI.Core.UI
 
         //  Other
         Rectangle,
+        Ellipse,
+        Line,
+        Polygon,
+        Polyline,
+        PathLite,
 
         OverlayHost,
         Overlay,

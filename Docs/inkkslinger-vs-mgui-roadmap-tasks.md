@@ -317,7 +317,7 @@ Resultat:
 - validation ciblee executee avec succes:
 	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
-### ⚪ 8. Livrer les shapes retained v1
+### ✅ 8. Livrer les shapes retained v1
 
 But:
 exposer une premiere surface de shapes UI retained en capitalisant sur les primitives de rendu, sans melanger paint et clipping.
@@ -339,6 +339,17 @@ Criteres d'acceptation:
 Filtre de test recommande:
 
 - `FullyQualifiedName~Shape|FullyQualifiedName~Clip`
+
+Resultat:
+
+- ajout d'une surface retained v1 pour `Ellipse`, `Line`, `Polygon`, `Polyline` et `PathLite`, avec exposition runtime et XAML au-dessus des primitives `FillPolygon`, `StrokeAndFillPolygon` et `StrokeLineSegment` deja presentes ;
+- ajout d'un hook shape-aware dans `MGElement` pour que le hover et le hit testing puissent suivre la silhouette utile au lieu du seul rectangle englobant ;
+- adoption d'un chemin de clip non rectangulaire sur `Ellipse` via `ClipDefinition.ArbitraryGeometry`, sans casser la separation entre paint de forme et pipeline de clip ;
+- ajout de tests geometriques cibles et d'un test d'integration `XAML -> desktop -> proof backend` qui valide draw calls et clip non rectangulaire ;
+- extension du sample `RoundedShapes` pour couvrir explicitement la nouvelle surface retained v1 et la verification manuelle du clip courbe ;
+- validation ciblee executee avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RetainedShapeGeometryTests|EngineOwnedRenderingProofTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
 ### ⚪ 9. Livrer un DataGrid-lite v1 pour outils et debug
 

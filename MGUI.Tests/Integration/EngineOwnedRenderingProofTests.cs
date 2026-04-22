@@ -13,6 +13,7 @@ using MGUI.Shared.Text.Engines;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
+using MGUIXamlParser = MGUI.Core.UI.XAML.XAMLParser;
 
 namespace MGUI.Tests.Integration;
 
@@ -71,6 +72,35 @@ public class EngineOwnedRenderingProofTests
         Assert.Contains(transaction.Calls, x => x.Category == ProofDrawCallCategory.Shape && x.RenderTargetId == runtime.SurfaceRenderTarget!.Id);
         Assert.Contains(transaction.Calls, x => x.Kind == ProofDrawCallKind.DrawText && x.RenderTargetId == runtime.SurfaceRenderTarget!.Id && x.Text == "Engine-owned proof");
         Assert.True(runtime.SurfaceRenderTarget.RecordedCalls.Count >= 2);
+    }
+
+    [Fact]
+    public void XamlRetainedShapes_DrawThroughProofBackend_AndEmitNonRectClip()
+    {
+        ProofDesktopRuntime runtime = new(new Rectangle(0, 0, 640, 360));
+        runtime.AdvanceFrame(TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16));
+
+        MGDesktop desktop = new(runtime);
+        string xaml = @"<Window xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"" Width=""360"" Height=""260"" Padding=""8"" Background=""rgb(32,36,40)"">
+    <StackPanel Orientation=""Vertical"" Spacing=""8"">
+        <Ellipse Width=""120"" Height=""72"" Stroke=""White"" StrokeThickness=""4"" Fill=""rgb(77,163,255)"" Background=""White|Orange|Lime|HotPink"" BackgroundRenderPadding=""-12"" ClipToBounds=""True"" />
+        <Polygon Points=""0,52 36,0 96,18 76,82 18,86"" Stroke=""White"" StrokeThickness=""3"" Fill=""rgba(255,160,64,220)"" />
+        <Polyline Points=""0,40 20,10 48,34 74,0 104,40"" Stroke=""rgb(120,255,160)"" StrokeThickness=""4"" />
+        <Line StartPoint=""0,0"" EndPoint=""120,28"" Stroke=""White"" StrokeThickness=""4"" />
+        <PathLite Data=""M 0,24 L 20,0 L 52,10 L 80,0 L 108,24 L 82,58 L 26,58 Z"" Stroke=""rgb(255,120,180)"" StrokeThickness=""3"" Fill=""rgba(255,120,180,96)"" />
+    </StackPanel>
+</Window>";
+
+        MGWindow window = MGUIXamlParser.LoadRootWindow(desktop, xaml, false, true);
+        desktop.Windows.Add(window);
+        desktop.Update();
+
+        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.CreateDrawTransaction(DrawSettings.Default, false));
+        desktop.View.Draw(transaction, 1.0f);
+
+        Assert.Contains(transaction.Calls, x => x.Kind == ProofDrawCallKind.StrokeAndFillPolygon);
+        Assert.Contains(transaction.Calls, x => x.Kind == ProofDrawCallKind.StrokeLineSegment);
+        Assert.Contains(transaction.Calls, x => x.Kind == ProofDrawCallKind.SetClip && x.ClipBounds.HasValue);
     }
 
     private enum ProofDrawCallCategory
