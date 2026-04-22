@@ -26,6 +26,7 @@
     <None Remove="Controls\ContextMenu.xaml" />
     <None Remove="Controls\MenuBar.xaml" />
     <None Remove="Controls\ContextualContentPresenter.xaml" />
+    <None Remove="Controls\DataGridLite.xaml" />
     <None Remove="Controls\DockPanel.xaml" />
     <None Remove="Controls\Expander.xaml" />
     <None Remove="Controls\Grid.xaml" />
@@ -59,6 +60,7 @@
     <None Remove="Dialogs\SampleHUD.xaml" />
     <None Remove="Dialogs\Stardew Valley\SDVInventory.xaml" />
     <None Remove="Dialogs\XAMLDesignerWindow.xaml" />
+    <None Remove="Features\AdornerLite.xaml" />
     <None Remove="Features\DataBindings.xaml" />
     <None Remove="Features\IBorderBrush.xaml" />
     <None Remove="Features\IFillBrush.xaml" />
@@ -73,6 +75,7 @@
     <None Remove="Features\RoundedShapes.xaml" />
     <None Remove="Features\ResponsiveLayout.xaml" />
     <None Remove="Features\StyleThemeRefactor.xaml" />
+    <None Remove="Features\TextSurfaceLite.xaml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Compendium.xaml">
@@ -93,6 +96,9 @@
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\ContextualContentPresenter.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\DataGridLite.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\DockPanel.xaml">
@@ -184,6 +190,7 @@
     <EmbeddedResource Include="Dialogs\XAMLDesignerWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
+    <EmbeddedResource Include="Features\AdornerLite.xaml" />
     <EmbeddedResource Include="Features\DataBindings.xaml" />
     <EmbeddedResource Include="Features\IBorderBrush.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -204,6 +211,7 @@
     <EmbeddedResource Include="Features\RoundedShapes.xaml" />
     <EmbeddedResource Include="Features\ResponsiveLayout.xaml" />
     <EmbeddedResource Include="Features\StyleThemeRefactor.xaml" />
+    <EmbeddedResource Include="Features\TextSurfaceLite.xaml" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="..\MGUI.Shared\Content\MGUI.Shared.Content.mgcb" Link="Content\MGUI.Shared.Content.mgcb" />
