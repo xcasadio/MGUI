@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -11,13 +11,13 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj" />
-    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.1.303" />
-    <PackageReference Include="MonoGame.Extended" Version="3.8.0" />
-    <PackageReference Include="MonoGame.Extended.Content.Pipeline" Version="3.8.0" />
-    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.1.303">
+  <PackageReference Include="MonoGame.Content.Builder.Task" />
+  <PackageReference Include="MonoGame.Extended" />
+  <PackageReference Include="MonoGame.Extended.Content.Pipeline" />
+  <PackageReference Include="MonoGame.Framework.DesktopGL">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Prism.Core" Version="8.1.97" />
+  <PackageReference Include="Prism.Core" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Assets\MonoGameImageResource.cs" />

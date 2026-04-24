@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -14,7 +14,9 @@
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.1.303" />
+  <PackageReference Include="MonoGame.Framework.DesktopGL">
+    <PrivateAssets>All</PrivateAssets>
+  </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Helpers\ContentUtils.cs" />

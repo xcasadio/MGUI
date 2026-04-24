@@ -131,6 +131,7 @@ public class EngineOwnedRenderingProofTests
         public UpdateBaseArgs UpdateArgs { get; private set; }
 
         public event EventHandler<EventArgs<ITextMeasurementEngine>>? TextEngineChanged;
+        public event EventHandler<EventArgs>? EndUpdate;
 
         public ITextMeasurementEngine TextEngine
         {
@@ -162,6 +163,7 @@ public class EngineOwnedRenderingProofTests
         {
             UpdateArgs = new(totalElapsed, frameElapsed, default, default);
             Input.Update(UpdateArgs);
+            EndUpdate?.Invoke(this, EventArgs.Empty);
         }
 
         public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
