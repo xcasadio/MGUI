@@ -20,24 +20,6 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
     /// See also: <see cref="SolidFillBrushes"/>, which contains several static <see cref="MGSolidFillBrush"/> such as <see cref="SolidFillBrushes.Green"/></summary>
     public readonly struct MGSolidFillBrush : IFillBrush
     {
-        //TODO change the references to these static MGSolidFillBrushes to use the newer statics in SolidFillBrushes class
-        [Obsolete("Use SolidFillBrushes.Transparent instead.")]
-        public static readonly MGSolidFillBrush Transparent = new(Color.Transparent);
-        [Obsolete("Use SolidFillBrushes.White instead.")]
-        public static readonly MGSolidFillBrush White = new(Color.White);
-        [Obsolete("Use SolidFillBrushes.LightGray instead.")]
-        public static readonly MGSolidFillBrush LightGray = new(Color.LightGray);
-        [Obsolete("Use SolidFillBrushes.Gray instead.")]
-        public static readonly MGSolidFillBrush Gray = new(Color.Gray);
-        [Obsolete("Use SolidFillBrushes.DarkGray instead.")]
-        public static readonly MGSolidFillBrush DarkGray = new(Color.DarkGray);
-        [Obsolete("Use SolidFillBrushes.Black instead.")]
-        public static readonly MGSolidFillBrush Black = new(Color.Black);
-        [Obsolete("Use SolidFillBrushes.SemiBlack instead.")]
-        public static readonly MGSolidFillBrush SemiBlack = new(new Color(76, 74, 72));
-        [Obsolete("Use SolidFillBrushes.Yellow instead.")]
-        public static readonly MGSolidFillBrush Yellow = new(Color.Yellow);
-
         public readonly Color Color;
 
         public MGSolidFillBrush(Color Color)

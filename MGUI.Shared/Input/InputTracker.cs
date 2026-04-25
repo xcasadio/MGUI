@@ -30,11 +30,6 @@ namespace MGUI.Shared.Input
             HandledBy = default;
         }
 
-        /// <summary>Deprecated - use <see cref="SetHandledBy{T}(T, bool)"/> instead.</summary>
-        [Obsolete("Deprecated - use SetHandledBy{T}(T, bool) instead.")]
-        public void SetHandled<T>(T HandledBy, bool OverwriteIfAlreadyHandled = false) where T : THandlerType
-            => SetHandledBy(HandledBy, OverwriteIfAlreadyHandled);
-
         public void SetHandledBy<T>(T HandledBy, bool OverwriteIfAlreadyHandled = false)
             where T : THandlerType
         {
