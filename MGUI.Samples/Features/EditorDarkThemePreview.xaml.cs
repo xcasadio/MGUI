@@ -20,15 +20,21 @@ public sealed class EditorDarkThemePreviewSample : SampleBase
     private static string _themeAssetPath;
     private static string _templateAssetPath;
 
+    private readonly MGTheme _editorTheme;
+    private MGTheme _previousDesktopTheme;
+    private bool _isDesktopThemeOverridden;
+
     public EditorDarkThemePreviewSample(ContentManager content, MGDesktop desktop)
         : base(content, desktop, nameof(Features), "EditorDarkThemePreview.xaml", () => InitializeResources(desktop))
     {
         ApplyScenarioId("SCN-EDITOR-THEME-001");
 
         MGTheme editorTheme = Window.GetResources().GetThemeOrDefault(EditorThemeName, null, false);
-        if (editorTheme != null)
+        _editorTheme = editorTheme;
+
+        if (_editorTheme != null)
         {
-            Window.GetResources().DefaultTheme = editorTheme;
+            Window.GetResources().DefaultTheme = _editorTheme;
         }
 
         MGTextBlock themeStatusText = Window.GetElementByName<MGTextBlock>("ThemeStatusText");
@@ -74,8 +80,31 @@ public sealed class EditorDarkThemePreviewSample : SampleBase
         };
         toggleOverlayButton.SetContent(sampleOverlay.IsOpen ? "Hide Overlay" : "Show Overlay");
 
+        VisibilityChanged += (_, isVisible) =>
+        {
+            if (_editorTheme == null)
+            {
+                return;
+            }
+
+            if (isVisible)
+            {
+                if (!_isDesktopThemeOverridden)
+                {
+                    _previousDesktopTheme = Desktop.Resources.DefaultTheme;
+                    Desktop.Resources.DefaultTheme = _editorTheme;
+                    _isDesktopThemeOverridden = true;
+                }
+            }
+            else if (_isDesktopThemeOverridden && _previousDesktopTheme != null)
+            {
+                Desktop.Resources.DefaultTheme = _previousDesktopTheme;
+                _isDesktopThemeOverridden = false;
+            }
+        };
+
         themeStatusText.SetText(_statusMessage);
-        assetPathsText.SetText(BuildAssetReport(editorTheme != null));
+        assetPathsText.SetText(BuildAssetReport(_editorTheme != null));
     }
 
     private static void InitializeResources(MGDesktop desktop)
@@ -111,7 +140,7 @@ public sealed class EditorDarkThemePreviewSample : SampleBase
 
         bool themeLoaded = desktop.Resources.GetThemeOrDefault(EditorThemeName, null, false) != null;
         _statusMessage = themeLoaded
-            ? "CasaEditor.Dark loaded from CasaEngine.Editor content assets. Use this window to review runtime chrome, spacing, and contrast."
+            ? "CasaEditor.Dark loaded from CasaEngine.Editor content assets. Use this window to review runtime chrome, spacing, and contrast. While this preview is visible, the sample desktop also switches to CasaEditor.Dark so DockingDemo can be inspected with the same theme."
             : "Editor control template or theme assets could not be fully resolved. Check the asset report below.";
     }
 
