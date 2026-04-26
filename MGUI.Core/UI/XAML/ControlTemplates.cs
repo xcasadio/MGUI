@@ -24,6 +24,7 @@ namespace MGUI.Core.UI.XAML
     {
         public string Name { get; set; }
         public string TargetType { get; set; }
+        public string BasedOn { get; set; }
 
         /// <summary>Root visual produced by the template.
         /// Initial support intentionally focuses on a single root plus explicitly mapped parts.</summary>

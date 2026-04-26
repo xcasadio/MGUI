@@ -56,20 +56,73 @@ namespace MGUI.Core.UI.XAML
         }
 
         public static IReadOnlyDictionary<string, Styling.MGControlTemplate> BuildTemplates(IEnumerable<ControlTemplateDefinition> Definitions)
+            => BuildTemplates(Definitions, null);
+
+        public static IReadOnlyDictionary<string, Styling.MGControlTemplate> BuildTemplates(IEnumerable<ControlTemplateDefinition> Definitions,
+            Func<string, Styling.MGControlTemplate> ResolveExternalTemplate)
         {
             if (Definitions == null)
             {
                 throw new ArgumentNullException(nameof(Definitions));
             }
 
-            Dictionary<string, Styling.MGControlTemplate> result = new(StringComparer.Ordinal);
+            Dictionary<string, ControlTemplateDefinition> definitionsByName = new(StringComparer.Ordinal);
             foreach (ControlTemplateDefinition definition in Definitions.Where(x => x != null))
             {
                 string name = definition.Name ?? throw new InvalidOperationException($"{nameof(ControlTemplateDefinition)} requires a non-null {nameof(ControlTemplateDefinition.Name)}.");
-                result[name] = CreateTemplate(definition);
+                definitionsByName[name] = definition;
             }
 
-            return result;
+            Dictionary<string, Styling.MGControlTemplate> cache = new(StringComparer.Ordinal);
+            HashSet<string> visiting = new(StringComparer.Ordinal);
+
+            Styling.MGControlTemplate Resolve(string name)
+            {
+                if (cache.TryGetValue(name, out Styling.MGControlTemplate cachedTemplate))
+                {
+                    return cachedTemplate;
+                }
+
+                if (!definitionsByName.TryGetValue(name, out ControlTemplateDefinition definition))
+                {
+                    return ResolveExternalTemplate?.Invoke(name);
+                }
+
+                if (!visiting.Add(name))
+                {
+                    throw new InvalidOperationException($"Circular control template inheritance detected for '{name}'.");
+                }
+
+                try
+                {
+                    Action<Styling.MGControlTemplateContext> applyDefaults = null;
+                    if (!string.IsNullOrWhiteSpace(definition.BasedOn))
+                    {
+                        Styling.MGControlTemplate baseTemplate = Resolve(definition.BasedOn);
+                        if (baseTemplate == null)
+                        {
+                            throw new InvalidOperationException($"Control template '{definition.Name}' declares BasedOn='{definition.BasedOn}' but no matching base template was found.");
+                        }
+
+                        applyDefaults = baseTemplate.ApplyDefaults;
+                    }
+
+                    Styling.MGControlTemplate template = CreateTemplate(definition, applyDefaults);
+                    cache[name] = template;
+                    return template;
+                }
+                finally
+                {
+                    visiting.Remove(name);
+                }
+            }
+
+            foreach (string name in definitionsByName.Keys)
+            {
+                _ = Resolve(name);
+            }
+
+            return cache;
         }
 
         public static IReadOnlyDictionary<string, Styling.MGControlTemplate> LoadAndRegister(MGResources Resources, XamlDocumentSource Source,
@@ -84,7 +137,9 @@ namespace MGUI.Core.UI.XAML
                 throw new ArgumentNullException(nameof(Resources));
             }
 
-            IReadOnlyDictionary<string, Styling.MGControlTemplate> templates = BuildTemplates(ParseDefinitions(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals));
+            IReadOnlyList<ControlTemplateDefinition> definitions = ParseDefinitions(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            IReadOnlyDictionary<string, Styling.MGControlTemplate> templates = BuildTemplates(definitions,
+                name => Resources.TryGetControlTemplate(name, out Styling.MGControlTemplate template) ? template : null);
             foreach (KeyValuePair<string, Styling.MGControlTemplate> item in templates)
             {
                 Resources.RemoveControlTemplate(item.Key);
