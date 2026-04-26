@@ -692,7 +692,10 @@ namespace MGUI.Core.UI
 
                 this.TitleText = TitleText;
                 IsTitleBarVisible = !string.IsNullOrEmpty(TitleText);
-                TitleBarTextBlockElement.TextAlignment = HorizontalAlignment.Center;
+                if (TitleBarTextBlockElement != null)
+                {
+                    TitleBarTextBlockElement.TextAlignment = HorizontalAlignment.Center;
+                }
 
                 Padding = new(0);
                 BorderBrush = MGUniformBorderBrush.Transparent;

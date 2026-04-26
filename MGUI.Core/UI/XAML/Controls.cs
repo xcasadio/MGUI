@@ -1930,7 +1930,7 @@ namespace MGUI.Core.UI.XAML
         public int? Spacing { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
-            => throw new InvalidOperationException($"Unsupported feature - cannot instantiate {nameof(MGResizeGrip)} through XAML.");
+            => new MGResizeGrip(Window);
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
         {
