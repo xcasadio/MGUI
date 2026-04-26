@@ -205,6 +205,7 @@ namespace MGUI.Samples
         public ResponsiveLayoutSample ResponsiveLayoutSample { get; }
         public FocusInputReviewSample FocusInputReviewSample { get; }
         public StyleThemeRefactorSample StyleThemeRefactorSample { get; }
+        public EditorDarkThemePreviewSample EditorDarkThemePreviewSample { get; }
         #endregion Features
 
         #region Dialogs
@@ -276,6 +277,7 @@ namespace MGUI.Samples
             ResponsiveLayoutSample = new(Content, Desktop);
             FocusInputReviewSample = new(Content, Desktop);
             StyleThemeRefactorSample = new(Content, Desktop);
+            EditorDarkThemePreviewSample = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs
