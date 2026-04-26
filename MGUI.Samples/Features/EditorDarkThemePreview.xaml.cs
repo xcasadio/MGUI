@@ -4,6 +4,7 @@ using System.IO;
 using MGUI.Core.UI;
 using MGUI.Core.UI.XAML;
 using MGUI.Samples.Controls;
+using MGUI.Shared.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 
@@ -21,6 +22,7 @@ public sealed class EditorDarkThemePreviewSample : SampleBase
     private static string _templateAssetPath;
 
     private readonly MGTheme _editorTheme;
+    private readonly bool _isUsingFontFallback;
     private MGTheme _previousDesktopTheme;
     private bool _isDesktopThemeOverridden;
 
@@ -30,7 +32,7 @@ public sealed class EditorDarkThemePreviewSample : SampleBase
         ApplyScenarioId("SCN-EDITOR-THEME-001");
 
         MGTheme editorTheme = Window.GetResources().GetThemeOrDefault(EditorThemeName, null, false);
-        _editorTheme = editorTheme;
+        (_editorTheme, _isUsingFontFallback) = ResolvePreviewTheme(editorTheme);
 
         if (_editorTheme != null)
         {
@@ -103,7 +105,7 @@ public sealed class EditorDarkThemePreviewSample : SampleBase
             }
         };
 
-        themeStatusText.SetText(_statusMessage);
+        themeStatusText.SetText(BuildThemeStatusMessage(_editorTheme != null));
         assetPathsText.SetText(BuildAssetReport(_editorTheme != null));
     }
 
@@ -144,7 +146,22 @@ public sealed class EditorDarkThemePreviewSample : SampleBase
             : "Editor control template or theme assets could not be fully resolved. Check the asset report below.";
     }
 
-    private static string BuildAssetReport(bool themeResolved)
+    private string BuildThemeStatusMessage(bool themeResolved)
+    {
+        if (!themeResolved)
+        {
+            return _statusMessage;
+        }
+
+        if (_isUsingFontFallback)
+        {
+            return $"CasaEditor.Dark loaded from CasaEngine.Editor content assets. The active sample text engine does not expose '{EditorThemeName}'s default font family, so this preview falls back to the desktop default font '{Desktop.DefaultFontFamily}' while keeping the editor chrome and templates.";
+        }
+
+        return _statusMessage;
+    }
+
+    private string BuildAssetReport(bool themeResolved)
     {
         return string.Join(Environment.NewLine, new[]
         {
@@ -152,7 +169,38 @@ public sealed class EditorDarkThemePreviewSample : SampleBase
             $"Theme file: {_themeAssetPath ?? "not found"}",
             $"Control templates file: {_templateAssetPath ?? "not found"}",
             $"Expected theme name: {EditorThemeName}",
+            $"Requested font family: {_editorTheme?.FontSettings.DefaultFontFamily ?? "not resolved"}",
+            $"Desktop default font family: {Desktop.DefaultFontFamily}",
         });
+    }
+
+    private (MGTheme Theme, bool UsesFontFallback) ResolvePreviewTheme(MGTheme editorTheme)
+    {
+        if (editorTheme == null)
+        {
+            return (null, false);
+        }
+
+        string requestedFontFamily = editorTheme.FontSettings.DefaultFontFamily;
+        if (IsFontFamilyAvailable(requestedFontFamily, editorTheme.FontSettings.DefaultFontSize))
+        {
+            return (editorTheme, false);
+        }
+
+        MGTheme fallbackTheme = editorTheme.Copy();
+        fallbackTheme.FontSettings.DefaultFontFamily = Desktop.DefaultFontFamily;
+        return (fallbackTheme, true);
+    }
+
+    private bool IsFontFamilyAvailable(string fontFamily, int fontSize)
+    {
+        if (string.IsNullOrWhiteSpace(fontFamily))
+        {
+            return true;
+        }
+
+        ResolvedFont resolved = Desktop.TextEngine.ResolveFont(FontSpec.Normal(fontFamily, Math.Max(1, fontSize)));
+        return resolved.IsAvailable && !resolved.IsFallback;
     }
 
     private static string TryFindRepoRoot(string baseDirectory)
