@@ -553,6 +553,22 @@ namespace MGUI.Core.UI.XAML
                         if (Definition.VisualStateColorBrush != null)
                             Theme.TextBlockFallbackForeground.Value = ApplyVisualStateColorBrush(Definition.VisualStateColorBrush, Theme.TextBlockFallbackForeground.GetValue(true));
                         break;
+                    case ThemePropertyTarget.DefaultTextBlockWrapText:
+                        if (Definition.Boolean.HasValue)
+                            Theme.DefaultTextBlockWrapText = Definition.Boolean.Value;
+                        break;
+                    case ThemePropertyTarget.DefaultTextBlockAutoWidthFromContent:
+                        if (Definition.Boolean.HasValue)
+                            Theme.DefaultTextBlockAutoWidthFromContent = Definition.Boolean.Value;
+                        break;
+                    case ThemePropertyTarget.DefaultButtonAutoWidthFromContent:
+                        if (Definition.Boolean.HasValue)
+                            Theme.DefaultButtonAutoWidthFromContent = Definition.Boolean.Value;
+                        break;
+                    case ThemePropertyTarget.DefaultComboBoxAutoWidthFromContent:
+                        if (Definition.Boolean.HasValue)
+                            Theme.DefaultComboBoxAutoWidthFromContent = Definition.Boolean.Value;
+                        break;
                     case ThemePropertyTarget.ToolTipOffset:
                         if (Definition.Point != null)
                             Theme.ToolTipOffset = new Point(Definition.Point.X, Definition.Point.Y);

@@ -90,6 +90,10 @@ namespace MGUI.Core.UI.XAML
         TextBoxUnfocusedSelectionBackground,
         TitleBackground,
         TextBlockFallbackForeground,
+        DefaultTextBlockWrapText,
+        DefaultTextBlockAutoWidthFromContent,
+        DefaultButtonAutoWidthFromContent,
+        DefaultComboBoxAutoWidthFromContent,
         ToolTipOffset,
         ToolTipTextForeground,
     }

@@ -28,6 +28,24 @@ namespace MGUI.Core.UI
     /// <typeparam name="TItemType">The type that the ItemsSource will be bound to. Usually this would be: <see cref="string"/> for simple text-choices</typeparam>
     public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisibilityHandler
     {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _AutoWidthFromContent;
+        public bool AutoWidthFromContent
+        {
+            get => _AutoWidthFromContent;
+            set
+            {
+                if (_AutoWidthFromContent != value)
+                {
+                    _AutoWidthFromContent = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(AutoWidthFromContent));
+                }
+            }
+        }
+
+        protected internal override bool IgnorePreferredWidthDuringMeasure => AutoWidthFromContent;
+
         public const string BorderPartName = "PART_Border";
         public const string DropdownArrowPartName = "PART_DropdownArrow";
         public const string DropdownWindowPartName = "PART_DropdownWindow";
@@ -783,6 +801,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                AutoWidthFromContent = GetTheme().DefaultComboBoxAutoWidthFromContent;
                 IsFocusable = true;
                 HorizontalContentAlignment = HorizontalAlignment.Left;
                 VerticalContentAlignment = VerticalAlignment.Center;

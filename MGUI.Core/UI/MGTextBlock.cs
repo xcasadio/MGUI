@@ -23,6 +23,24 @@ namespace MGUI.Core.UI
     public class MGTextBlock : MGElement, ITextMeasurer
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _AutoWidthFromContent;
+        public bool AutoWidthFromContent
+        {
+            get => _AutoWidthFromContent;
+            set
+            {
+                if (_AutoWidthFromContent != value)
+                {
+                    _AutoWidthFromContent = value;
+                    InvokeLayoutChanged();
+                    NPC(nameof(AutoWidthFromContent));
+                }
+            }
+        }
+
+        protected internal override bool IgnorePreferredWidthDuringMeasure => AutoWidthFromContent;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _FontFamily;
         /// <summary>To set this value, use <see cref="TrySetFont(string, int)"/></summary>
         public string FontFamily { get => _FontFamily; set => _ = TrySetFont(value, FontSize); }
@@ -732,10 +750,10 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                WrapText = true;
-
                 MGDesktop Desktop = GetDesktop();
                 MGTheme Theme = GetTheme();
+                WrapText = Theme.DefaultTextBlockWrapText;
+                AutoWidthFromContent = Theme.DefaultTextBlockAutoWidthFromContent;
                 if (!TrySetFont(Theme.FontSettings.DefaultFontFamily ?? Desktop.DefaultFontFamily, FontSize ?? GetTheme().FontSettings.DefaultFontSize))
                 {
                     throw new ArgumentException($"Default font not found.");

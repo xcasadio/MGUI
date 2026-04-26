@@ -388,6 +388,18 @@ namespace MGUI.Core.UI
         /// <summary>The fallback value to use for <see cref="MGTextBlock.ActualForeground"/> when there is no foreground color applied to the <see cref="MGTextBlock"/> or its parents.</summary>
         public ThemeManagedVisualStateColorBrush TextBlockFallbackForeground { get; }
 
+        /// <summary>The default value to use for <see cref="MGTextBlock.WrapText"/> when a text block is created without an explicit wrapping preference.</summary>
+        public bool DefaultTextBlockWrapText { get; set; }
+
+        /// <summary>If true, editor-created <see cref="MGTextBlock"/> controls size horizontally from their content instead of honoring a preferred width.</summary>
+        public bool DefaultTextBlockAutoWidthFromContent { get; set; }
+
+        /// <summary>If true, <see cref="MGButton"/> controls size horizontally from their content instead of honoring a preferred width.</summary>
+        public bool DefaultButtonAutoWidthFromContent { get; set; }
+
+        /// <summary>If true, <see cref="MGComboBox{TItemType}"/> controls size horizontally from their selected content instead of honoring a preferred width.</summary>
+        public bool DefaultComboBoxAutoWidthFromContent { get; set; }
+
         /// <summary>The default offset from the current mouse position to draw <see cref="MGToolTip"/>s at.<br/>
         /// This value is used to initialize <see cref="MGToolTip.DrawOffset"/><para/>
         /// Default value: (6, 6)</summary>
@@ -475,6 +487,10 @@ namespace MGUI.Core.UI
             UnselectedTabHeaderBackground = new(new VisualStateFillBrush((IFillBrush)null));
             TitleBackground = new(new VisualStateFillBrush((IFillBrush)null));
             TextBlockFallbackForeground = new(new VisualStateColorBrush(default(Color)));
+            DefaultTextBlockWrapText = true;
+            DefaultTextBlockAutoWidthFromContent = false;
+            DefaultButtonAutoWidthFromContent = false;
+            DefaultComboBoxAutoWidthFromContent = false;
         }
 
         internal static MGTheme CreateEmpty(string DefaultFontFamily) => new(DefaultFontFamily, true);
@@ -574,6 +590,10 @@ namespace MGUI.Core.UI
             TextBoxUnfocusedSelectionBackground = Source.TextBoxUnfocusedSelectionBackground;
             TitleBackground.Value = Source.TitleBackground.GetValue(true);
             TextBlockFallbackForeground.Value = Source.TextBlockFallbackForeground.GetValue(true);
+            DefaultTextBlockWrapText = Source.DefaultTextBlockWrapText;
+            DefaultTextBlockAutoWidthFromContent = Source.DefaultTextBlockAutoWidthFromContent;
+            DefaultButtonAutoWidthFromContent = Source.DefaultButtonAutoWidthFromContent;
+            DefaultComboBoxAutoWidthFromContent = Source.DefaultComboBoxAutoWidthFromContent;
             ToolTipOffset = Source.ToolTipOffset;
             ToolTipTextForeground = Source.ToolTipTextForeground?.GetCopy();
 

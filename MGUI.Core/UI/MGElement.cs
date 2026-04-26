@@ -3212,9 +3212,12 @@ namespace MGUI.Core.UI
 			AvailableSize = AvailableSize.AsZeroOrGreater();
 
             //  Truncate the available size based on this element's MaxSize and preferred width/height
-			Size RemainingSize = new(
-                Math.Clamp(AvailableSize.Width, 0, Math.Min(ActualPreferredWidth ?? int.MaxValue, MaxSizeIncludingMargin.Width)), 
-                Math.Clamp(AvailableSize.Height, 0, Math.Min(ActualPreferredHeight ?? int.MaxValue, MaxSizeIncludingMargin.Height))
+            int? actualPreferredWidth = IgnorePreferredWidthDuringMeasure ? null : ActualPreferredWidth;
+            int? actualPreferredHeight = IgnorePreferredHeightDuringMeasure ? null : ActualPreferredHeight;
+
+            Size RemainingSize = new(
+                Math.Clamp(AvailableSize.Width, 0, Math.Min(actualPreferredWidth ?? int.MaxValue, MaxSizeIncludingMargin.Width)), 
+                Math.Clamp(AvailableSize.Height, 0, Math.Min(actualPreferredHeight ?? int.MaxValue, MaxSizeIncludingMargin.Height))
             );
 
             if (!TryGetRecentSelfMeasurement(RemainingSize, out SelfSize, out SharedSize, out ContentSize))
@@ -3234,9 +3237,9 @@ namespace MGUI.Core.UI
 				UnsharedSelfSize.Bottom + Math.Max(SharedSize.Bottom, ContentSize.Bottom));
 
 			//  Adjust width/height based on preferred values
-			if (ActualPreferredWidth.HasValue || ActualPreferredHeight.HasValue)
+            if (actualPreferredWidth.HasValue || actualPreferredHeight.HasValue)
 			{
-				Size PreferredSize = new(ActualPreferredWidth ?? FullSize.Width, ActualPreferredHeight ?? FullSize.Height);
+             Size PreferredSize = new(actualPreferredWidth ?? FullSize.Width, actualPreferredHeight ?? FullSize.Height);
 				FullSize = FullSize.Clamp(PreferredSize, PreferredSize);
 			}
 
@@ -3247,10 +3250,13 @@ namespace MGUI.Core.UI
             {
                 FullSize = new(0);
             }
-
             ElementMeasurement FullMeasurement = new(AvailableSize, FullSize, SharedSize, ContentSize);
             CacheFullMeasurement(FullMeasurement);
         }
+
+        protected internal virtual bool IgnorePreferredWidthDuringMeasure => false;
+
+        protected internal virtual bool IgnorePreferredHeightDuringMeasure => false;
 
         /// <summary>Returns the screen space required to display this <see cref="MGElement"/> if it has no child elements.<para/>
         /// For simple elements, this accounts for <see cref="Margin"/> and <see cref="Padding"/>.<br/>

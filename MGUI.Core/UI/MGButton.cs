@@ -16,6 +16,24 @@ namespace MGUI.Core.UI
 {
     public class MGButton : MGSingleContentHost
     {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _AutoWidthFromContent;
+        public bool AutoWidthFromContent
+        {
+            get => _AutoWidthFromContent;
+            set
+            {
+                if (_AutoWidthFromContent != value)
+                {
+                    _AutoWidthFromContent = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(AutoWidthFromContent));
+                }
+            }
+        }
+
+        protected internal override bool IgnorePreferredWidthDuringMeasure => AutoWidthFromContent;
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -161,6 +179,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
+                AutoWidthFromContent = GetTheme().DefaultButtonAutoWidthFromContent;
                 IsFocusable = true;
                 MinWidth = 16;
                 MinHeight = 16;
