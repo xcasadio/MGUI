@@ -769,7 +769,7 @@ namespace MGUI.Core.UI
                 this.Foreground = new VisualStateSetting<Color?>(Foreground, Foreground, Foreground);
                 LinePadding = 2;
                 TextAlignment = HorizontalAlignment.Left;
-                Padding = new(1,2,1,1);
+                Padding = new(1,1,1,1);
                 VerticalContentAlignment = VerticalAlignment.Center;
                 TextProgress = null;
                 TextCharactersPerSecond = null;

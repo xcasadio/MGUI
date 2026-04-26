@@ -193,7 +193,7 @@ namespace MGUI.Core.UI
 
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
-                Padding = new(4,2,4,2);
+                Padding = new(4,1,4,1);
 
                 MouseHandler.PressedInside += (sender, e) =>
                 { 

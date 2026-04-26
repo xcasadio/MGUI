@@ -809,8 +809,8 @@ namespace MGUI.Core.UI.Styling
             }
 
             MGTheme theme = textBox.GetTheme();
-            Context.ApplyTemplateValue("TextBox.Padding", new Thickness(6, 2, 6, 2), () => textBox.Padding, value => textBox.Padding = value);
-            Context.ApplyTemplateValue("TextBox.MinHeight", 26, () => textBox.MinHeight ?? 0, value => textBox.MinHeight = value);
+            Context.ApplyTemplateValue("TextBox.Padding", new Thickness(6, 1, 6, 1), () => textBox.Padding, value => textBox.Padding = value);
+            Context.ApplyTemplateValue("TextBox.MinHeight", 24, () => textBox.MinHeight ?? 0, value => textBox.MinHeight = value);
             Context.ApplyThemeDefault("TextBox.FocusedSelectionForeground", theme.TextBoxFocusedSelectionForeground, () => textBox.FocusedSelectionForegroundColor, value => textBox.FocusedSelectionForegroundColor = value);
             Context.ApplyThemeDefault("TextBox.FocusedSelectionBackground", theme.TextBoxFocusedSelectionBackground, () => textBox.FocusedSelectionBackgroundColor, value => textBox.FocusedSelectionBackgroundColor = value);
             Context.ApplyThemeDefault("TextBox.UnfocusedSelectionForeground", theme.TextBoxUnfocusedSelectionForeground, () => textBox.UnfocusedSelectionForegroundColor, value => textBox.UnfocusedSelectionForegroundColor = value);
