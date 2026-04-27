@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Assets;
+using MGUI.Shared.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -152,6 +153,22 @@ namespace MGUI.Core.UI
         private int UnstretchedWidth => ActualSource?.RenderSize.Width ?? 0;
         private int UnstretchedHeight => ActualSource?.RenderSize.Height ?? 0;
         private double UnstretchedAspectRatio => UnstretchedHeight == 0 ? 1.0 : UnstretchedWidth * 1.0 / UnstretchedHeight;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _UseLinearFilteringWhenDownscaling = true;
+        /// <summary>When true, images temporarily switch to linear sampling while being rendered smaller than their source size.</summary>
+        public bool UseLinearFilteringWhenDownscaling
+        {
+            get => _UseLinearFilteringWhenDownscaling;
+            set
+            {
+                if (_UseLinearFilteringWhenDownscaling != value)
+                {
+                    _UseLinearFilteringWhenDownscaling = value;
+                    NPC(nameof(UseLinearFilteringWhenDownscaling));
+                }
+            }
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Stretch _Stretch;
@@ -367,7 +384,23 @@ namespace MGUI.Core.UI
                 throw new NotImplementedException($"Unrecognized {nameof(Stretch)}: {Stretch}");
             }
 
-            ActualSource.Value.Draw(DA.Context, Bounds.GetTranslated(DA.Offset), TextureColor, DA.Opacity);
+            Rectangle destinationBounds = Bounds.GetTranslated(DA.Offset);
+            bool isDownscaling = destinationBounds.Width < UnstretchedWidth || destinationBounds.Height < UnstretchedHeight;
+            bool shouldUseLinearFiltering = UseLinearFilteringWhenDownscaling
+                && isDownscaling
+                && (DA.Context.CurrentSettings.SamplerType == SamplerType.PointClamp || DA.Context.CurrentSettings.SamplerType == SamplerType.PointWrap);
+
+            if (shouldUseLinearFiltering)
+            {
+                using (DA.Context.SetDrawSettingsTemporary(DA.Context.CurrentSettings with { SamplerType = SamplerType.LinearClamp }))
+                {
+                    ActualSource.Value.Draw(DA.Context, destinationBounds, TextureColor, DA.Opacity);
+                }
+            }
+            else
+            {
+                ActualSource.Value.Draw(DA.Context, destinationBounds, TextureColor, DA.Opacity);
+            }
         }
     }
 }
