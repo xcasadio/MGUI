@@ -53,6 +53,8 @@ namespace MGUI.Core.UI
         private int _IndentSize = MGControlTemplateCatalog.DefaultTreeViewIndentSize;
         private VisualStateFillBrush _SelectionBackgroundBrush;
         private Color _SelectionForeground;
+        private ScrollBarVisibility _VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+        private ScrollBarVisibility _HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         private System.Collections.IEnumerable _ItemsSource;
         private string _ChildrenPropertyName = "Children";
 
@@ -65,6 +67,48 @@ namespace MGUI.Core.UI
         /// Gets the scroll viewer that provides scrolling functionality for the tree view.
         /// </summary>
         public MGScrollViewer ScrollViewer { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the visibility mode of the vertical scrollbar used by the tree view.
+        /// </summary>
+        public ScrollBarVisibility VerticalScrollBarVisibility
+        {
+            get => ScrollViewer?.VerticalScrollBarVisibility ?? _VerticalScrollBarVisibility;
+            set
+            {
+                if (_VerticalScrollBarVisibility != value)
+                {
+                    _VerticalScrollBarVisibility = value;
+                    if (ScrollViewer != null)
+                    {
+                        ScrollViewer.VerticalScrollBarVisibility = value;
+                    }
+
+                    NPC(nameof(VerticalScrollBarVisibility));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the visibility mode of the horizontal scrollbar used by the tree view.
+        /// </summary>
+        public ScrollBarVisibility HorizontalScrollBarVisibility
+        {
+            get => ScrollViewer?.HorizontalScrollBarVisibility ?? _HorizontalScrollBarVisibility;
+            set
+            {
+                if (_HorizontalScrollBarVisibility != value)
+                {
+                    _HorizontalScrollBarVisibility = value;
+                    if (ScrollViewer != null)
+                    {
+                        ScrollViewer.HorizontalScrollBarVisibility = value;
+                    }
+
+                    NPC(nameof(HorizontalScrollBarVisibility));
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the panel that contains all root-level tree view items.
@@ -284,6 +328,9 @@ namespace MGUI.Core.UI
             OuterBorder = Structure.Parts[OuterBorderPartName] as MGBorder;
             ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
             ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
+
+            ScrollViewer.VerticalScrollBarVisibility = _VerticalScrollBarVisibility;
+            ScrollViewer.HorizontalScrollBarVisibility = _HorizontalScrollBarVisibility;
 
             ItemsPanel.CanChangeContent = false;
             using (ScrollViewer.AllowChangingContentTemporarily())
