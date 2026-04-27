@@ -324,8 +324,12 @@ namespace MGUI.Core.UI
         /// <summary>The default background brush to use on items in an <see cref="MGComboBox{TItemType}"/>'s dropdown.</summary>
         public ThemeManagedVisualStateFillBrush ComboBoxDropdownItemBackground { get; }
 
+        /// <summary>The default value to use for <see cref="MGCheckBox.CheckBoxComponentSize"/></summary>
+        public int CheckBoxComponentSize { get; set; }
         /// <summary>The default value to use for <see cref="MGCheckBox.CheckMarkColor"/></summary>
         public Color CheckMarkColor { get; set; }
+        /// <summary>The default value to use for <see cref="MGCheckBox.CheckedIndicatorStyle"/></summary>
+        public CheckIndicatorStyle CheckBoxCheckedIndicatorStyle { get; set; }
 
         public Color DropdownArrowColor { get; set; }
 
@@ -468,6 +472,8 @@ namespace MGUI.Core.UI
 
             ComboBoxDropdownBackground = new(new VisualStateFillBrush((IFillBrush)null));
             ComboBoxDropdownItemBackground = new(new VisualStateFillBrush((IFillBrush)null));
+            CheckBoxComponentSize = MGCheckBox.DefaultCheckBoxSize;
+            CheckBoxCheckedIndicatorStyle = CheckIndicatorStyle.CheckMark;
             GridSplitterForeground = new(new VisualStateFillBrush((IFillBrush)null));
             ListBoxItemBackground = new(new VisualStateFillBrush((IFillBrush)null));
             ListBoxItemAlternatingRowBackgrounds = new();
@@ -552,7 +558,9 @@ namespace MGUI.Core.UI
 
             ComboBoxDropdownBackground.Value = Source.ComboBoxDropdownBackground.GetValue(true);
             ComboBoxDropdownItemBackground.Value = Source.ComboBoxDropdownItemBackground.GetValue(true);
+            CheckBoxComponentSize = Source.CheckBoxComponentSize;
             CheckMarkColor = Source.CheckMarkColor;
+            CheckBoxCheckedIndicatorStyle = Source.CheckBoxCheckedIndicatorStyle;
             DropdownArrowColor = Source.DropdownArrowColor;
             GridSplitterForeground.Value = Source.GridSplitterForeground.GetValue(true);
             ListBoxItemBackground.Value = Source.ListBoxItemBackground.GetValue(true);

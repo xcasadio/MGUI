@@ -58,7 +58,9 @@ namespace MGUI.Core.UI.XAML
     {
         ComboBoxDropdownBackground,
         ComboBoxDropdownItemBackground,
+        CheckBoxComponentSize,
         CheckMarkColor,
+        CheckBoxCheckedIndicatorStyle,
         DropdownArrowColor,
         GridSplitterForeground,
         ListBoxItemBackground,

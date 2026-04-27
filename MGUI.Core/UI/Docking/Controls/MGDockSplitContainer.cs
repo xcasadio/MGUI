@@ -298,10 +298,7 @@ public class MGDockSplitContainer : MGElement
             }
         }
 
-        float minRatio = (float)effectiveMinFirstSize / availableSize;
-        float maxRatio = (float)(availableSize - effectiveMinSecondSize) / availableSize;
-
-        return Math.Clamp(ratio, minRatio, maxRatio);
+        return DockSplitSizing.ClampRatioToMinSizes(ratio, availableSize, effectiveMinFirstSize, effectiveMinSecondSize);
     }
 
     public override IEnumerable<MGElement> GetChildren()
@@ -378,25 +375,7 @@ public class MGDockSplitContainer : MGElement
             // Horizontal split: side by side
             int availableWidth = Bounds.Width - SplitterThickness;
                 
-            // Calculate sizes based on ratio
-            int firstWidth = (int)(availableWidth * SplitRatio);
-            int secondWidth = availableWidth - firstWidth;
-
-            // Apply min size constraints
-            if (firstWidth < MinFirstSize)
-            {
-                firstWidth = MinFirstSize;
-                secondWidth = availableWidth - firstWidth;
-            }
-            if (secondWidth < MinSecondSize)
-            {
-                secondWidth = MinSecondSize;
-                firstWidth = availableWidth - secondWidth;
-            }
-
-            // Ensure we don't go negative
-            firstWidth = Math.Max(0, firstWidth);
-            secondWidth = Math.Max(0, secondWidth);
+            DockSplitSizing.ComputeChildSizes(SplitRatio, availableWidth, MinFirstSize, MinSecondSize, out int firstWidth, out int secondWidth);
 
             // Calculate bounds
             firstBounds = new Rectangle(Bounds.X, Bounds.Y, firstWidth, Bounds.Height);
@@ -408,25 +387,7 @@ public class MGDockSplitContainer : MGElement
             // Vertical split: top and bottom
             int availableHeight = Bounds.Height - SplitterThickness;
                 
-            // Calculate sizes based on ratio
-            int firstHeight = (int)(availableHeight * SplitRatio);
-            int secondHeight = availableHeight - firstHeight;
-
-            // Apply min size constraints
-            if (firstHeight < MinFirstSize)
-            {
-                firstHeight = MinFirstSize;
-                secondHeight = availableHeight - firstHeight;
-            }
-            if (secondHeight < MinSecondSize)
-            {
-                secondHeight = MinSecondSize;
-                firstHeight = availableHeight - secondHeight;
-            }
-
-            // Ensure we don't go negative
-            firstHeight = Math.Max(0, firstHeight);
-            secondHeight = Math.Max(0, secondHeight);
+            DockSplitSizing.ComputeChildSizes(SplitRatio, availableHeight, MinFirstSize, MinSecondSize, out int firstHeight, out int secondHeight);
 
             // Calculate bounds
             firstBounds = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, firstHeight);

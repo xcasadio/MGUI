@@ -419,9 +419,20 @@ namespace MGUI.Core.UI.XAML
                         if (Definition.VisualStateFillBrush != null)
                             Theme.ComboBoxDropdownItemBackground.Value = ApplyVisualStateFillBrush(Definition.VisualStateFillBrush, Theme.ComboBoxDropdownItemBackground.GetValue(true));
                         break;
+                    case ThemePropertyTarget.CheckBoxComponentSize:
+                        if (Definition.Integer.HasValue)
+                            Theme.CheckBoxComponentSize = Definition.Integer.Value;
+                        break;
                     case ThemePropertyTarget.CheckMarkColor:
                         if (Definition.Color.HasValue)
                             Theme.CheckMarkColor = Definition.Color.Value.ToXNAColor();
+                        break;
+                    case ThemePropertyTarget.CheckBoxCheckedIndicatorStyle:
+                        if (!string.IsNullOrWhiteSpace(Definition.String)
+                            && Enum.TryParse(Definition.String, true, out CheckIndicatorStyle checkedIndicatorStyle))
+                        {
+                            Theme.CheckBoxCheckedIndicatorStyle = checkedIndicatorStyle;
+                        }
                         break;
                     case ThemePropertyTarget.DropdownArrowColor:
                         if (Definition.Color.HasValue)

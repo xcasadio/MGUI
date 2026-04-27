@@ -52,6 +52,8 @@ namespace MGUI.Core.UI
                     _CheckBoxComponentSize = value;
 
                     Size ButtonSize = new(CheckBoxComponentSize, CheckBoxComponentSize);
+                    ButtonElement.MinWidth = ButtonSize.Width;
+                    ButtonElement.MinHeight = ButtonSize.Height;
                     ButtonElement.PreferredWidth = ButtonSize.Width;
                     ButtonElement.PreferredHeight = ButtonSize.Height;
 
@@ -94,6 +96,26 @@ namespace MGUI.Core.UI
                         CheckStateIcon.MarkColor = value;
                     }
                     NPC(nameof(CheckMarkColor));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private CheckIndicatorStyle _CheckedIndicatorStyle;
+        public CheckIndicatorStyle CheckedIndicatorStyle
+        {
+            get => _CheckedIndicatorStyle;
+            set
+            {
+                if (_CheckedIndicatorStyle != value)
+                {
+                    _CheckedIndicatorStyle = value;
+                    if (CheckStateIcon != null)
+                    {
+                        CheckStateIcon.CheckedIndicatorStyle = value;
+                    }
+
+                    NPC(nameof(CheckedIndicatorStyle));
                 }
             }
         }
@@ -269,9 +291,10 @@ namespace MGUI.Core.UI
                 AddComponent(ButtonComponent);
                 AddComponent(CheckStateIconComponent);
 
-                CheckBoxComponentSize = DefaultCheckBoxSize;
+                CheckBoxComponentSize = GetTheme().CheckBoxComponentSize;
                 SpacingWidth = DefaultCheckBoxSpacingWidth;
                 CheckMarkColor = GetTheme().CheckMarkColor;
+                CheckedIndicatorStyle = GetTheme().CheckBoxCheckedIndicatorStyle;
                 IsCheckMarkShadowed = false;
                 CheckMarkShadowColor = Color.Black;
                 CheckMarkShadowOffset = new(0, 1);

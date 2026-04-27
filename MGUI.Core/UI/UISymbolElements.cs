@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
@@ -6,6 +7,12 @@ using MGUI.Shared.Input.Mouse;
 
 namespace MGUI.Core.UI
 {
+    public enum CheckIndicatorStyle
+    {
+        CheckMark,
+        FilledSquare,
+    }
+
     public class MGCheckStateIcon : MGElement
     {
         private bool? _CheckState;
@@ -92,6 +99,20 @@ namespace MGUI.Core.UI
             }
         }
 
+        private CheckIndicatorStyle _CheckedIndicatorStyle;
+        public CheckIndicatorStyle CheckedIndicatorStyle
+        {
+            get => _CheckedIndicatorStyle;
+            set
+            {
+                if (_CheckedIndicatorStyle != value)
+                {
+                    _CheckedIndicatorStyle = value;
+                    NPC(nameof(CheckedIndicatorStyle));
+                }
+            }
+        }
+
         private Color _IndeterminateFillColor;
         public Color IndeterminateFillColor
         {
@@ -111,7 +132,15 @@ namespace MGUI.Core.UI
         {
             IsHitTestVisible = false;
             CheckedFillColor = Color.Transparent;
+            CheckedIndicatorStyle = CheckIndicatorStyle.CheckMark;
             IndeterminateFillColor = Color.Transparent;
+        }
+
+        private static Rectangle GetCheckedSquareBounds(Rectangle bounds)
+        {
+            int padding = Math.Max(2, Math.Min(bounds.Width, bounds.Height) / 4);
+            Rectangle targetBounds = bounds.GetCompressed(padding);
+            return targetBounds.Width > 0 && targetBounds.Height > 0 ? targetBounds : bounds;
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
@@ -136,17 +165,32 @@ namespace MGUI.Core.UI
             }
             else if (CheckState.Value)
             {
-                if (CheckedFillColor != Color.Transparent)
+                if (CheckedIndicatorStyle == CheckIndicatorStyle.FilledSquare)
                 {
-                    DA.DT.FillRectangle(origin, layoutBounds, CheckedFillColor * DA.Opacity);
-                }
+                    Rectangle targetBounds = GetCheckedSquareBounds(layoutBounds);
+                    Color fillColor = CheckedFillColor == Color.Transparent ? MarkColor : CheckedFillColor;
 
-                if (IsShadowed)
+                    if (IsShadowed)
+                    {
+                        DA.DT.FillRectangle(origin, targetBounds.GetTranslated(ShadowOffset), ShadowColor * DA.Opacity);
+                    }
+
+                    DA.DT.FillRectangle(origin, targetBounds, fillColor * DA.Opacity);
+                }
+                else
                 {
-                    UISymbolDrawing.DrawCheckMark(DA.DT, origin, layoutBounds.GetTranslated(ShadowOffset), ShadowColor * DA.Opacity);
-                }
+                    if (CheckedFillColor != Color.Transparent)
+                    {
+                        DA.DT.FillRectangle(origin, layoutBounds, CheckedFillColor * DA.Opacity);
+                    }
 
-                UISymbolDrawing.DrawCheckMark(DA.DT, origin, layoutBounds, MarkColor * DA.Opacity);
+                    if (IsShadowed)
+                    {
+                        UISymbolDrawing.DrawCheckMark(DA.DT, origin, layoutBounds.GetTranslated(ShadowOffset), ShadowColor * DA.Opacity);
+                    }
+
+                    UISymbolDrawing.DrawCheckMark(DA.DT, origin, layoutBounds, MarkColor * DA.Opacity);
+                }
             }
         }
     }

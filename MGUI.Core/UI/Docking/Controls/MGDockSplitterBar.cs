@@ -323,11 +323,7 @@ public class MGDockSplitterBar : MGElement
             return ratio;
         }
 
-        // Calculate min/max ratios based on min sizes
-        float minRatio = (float)minFirstSize / availableSize;
-        float maxRatio = (float)(availableSize - minSecondSize) / availableSize;
-
-        return Math.Clamp(ratio, minRatio, maxRatio);
+        return DockSplitSizing.ClampRatioToMinSizes(ratio, availableSize, minFirstSize, minSecondSize);
     }
 
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
