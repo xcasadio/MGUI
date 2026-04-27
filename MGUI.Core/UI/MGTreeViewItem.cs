@@ -34,8 +34,11 @@ public class MGTreeViewItem : MGSingleContentHost
     internal MGTreeView _OwnerTreeView;
     private object _HeaderTemplate;
     private VisualStateFillBrush _PreviousHeaderBackgroundBrush;
+    private VisualStateFillBrush _PreviousHeaderContainerBackgroundBrush;
+    private VisualStateFillBrush _PreviousExpanderBackgroundBrush;
     private VisualStateSetting<Color?> _PreviousHeaderForeground;
     private long? _LastHeaderBodySequenceId;
+    private bool _HasStoredSelectionVisualState;
 
     /// <summary>
     /// Gets the visual element that displays the header content.
@@ -228,6 +231,7 @@ public class MGTreeViewItem : MGSingleContentHost
     {
         base.OnThemeChanged(PreviousTheme, CurrentTheme);
         ApplyExpanderButtonVisuals();
+        RefreshSelectionVisual();
     }
 
     private void Items_CollectionChanged(object sender,
@@ -520,22 +524,40 @@ public class MGTreeViewItem : MGSingleContentHost
     {
         if (IsSelected && OwnerTreeView != null)
         {
-            _PreviousHeaderBackgroundBrush = HeaderPanel.BackgroundBrush;
-            _PreviousHeaderForeground = HeaderContainer.DefaultTextForeground?.GetCopy();
-            HeaderPanel.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
-            HeaderContainer.DefaultTextForeground = new VisualStateSetting<Color?>(OwnerTreeView.SelectionForeground);
-        }
-        else
-        {
-            if (_PreviousHeaderBackgroundBrush != null)
+            if (!_HasStoredSelectionVisualState)
             {
-                HeaderPanel.BackgroundBrush = _PreviousHeaderBackgroundBrush;
+                _PreviousHeaderBackgroundBrush = HeaderPanel.BackgroundBrush;
+                _PreviousHeaderContainerBackgroundBrush = HeaderContainer.BackgroundBrush;
+                _PreviousExpanderBackgroundBrush = ExpanderButton?.BackgroundBrush;
+                _PreviousHeaderForeground = HeaderContainer.DefaultTextForeground?.GetCopy();
+                _HasStoredSelectionVisualState = true;
             }
 
-            if (_PreviousHeaderForeground != null)
+            HeaderPanel.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
+            HeaderContainer.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
+            if (ExpanderButton != null)
             {
-                HeaderContainer.DefaultTextForeground = _PreviousHeaderForeground;
+                ExpanderButton.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
             }
+
+            HeaderContainer.DefaultTextForeground = new VisualStateSetting<Color?>(OwnerTreeView.SelectionForeground);
+        }
+        else if (_HasStoredSelectionVisualState)
+        {
+            HeaderPanel.BackgroundBrush = _PreviousHeaderBackgroundBrush;
+            HeaderContainer.BackgroundBrush = _PreviousHeaderContainerBackgroundBrush;
+            if (ExpanderButton != null)
+            {
+                ExpanderButton.BackgroundBrush = _PreviousExpanderBackgroundBrush;
+            }
+
+            HeaderContainer.DefaultTextForeground = _PreviousHeaderForeground;
+
+            _PreviousHeaderBackgroundBrush = null;
+            _PreviousHeaderContainerBackgroundBrush = null;
+            _PreviousExpanderBackgroundBrush = null;
+            _PreviousHeaderForeground = null;
+            _HasStoredSelectionVisualState = false;
         }
     }
 
