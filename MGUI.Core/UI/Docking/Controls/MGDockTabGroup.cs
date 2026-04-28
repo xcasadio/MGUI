@@ -244,7 +244,12 @@ public class MGDockTabGroup : MGElement
     {
         if (_accentElement != null)
         {
-            _accentElement.Visibility = Visibility.Collapsed;
+            Color accentColor = GetTheme()?.Docking?.TabActiveAccentColor ?? Color.Transparent;
+            bool showAccent = IsActiveGroup && accentColor.A > 0;
+            _accentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
+            _accentElement.Width = LayoutBounds.Width;
+            _accentElement.Height = 2;
+            _accentElement.Fill = accentColor.AsFillBrush();
         }
 
         if (_dropdownIconElement != null)
