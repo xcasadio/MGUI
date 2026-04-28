@@ -281,6 +281,7 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment   = VerticalAlignment.Stretch
             };
+            _closeButton.BackgroundBrush = new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f);
 
             _closeIconElement = new(window) { ManagedParent = this };
             RegisterTemplatePart(CloseIconPartName, _closeIconElement);
@@ -326,6 +327,7 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment   = VerticalAlignment.Stretch
             };
+            _pinButton.BackgroundBrush = new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f);
             // Pin button is purely visual — mouse events pass through to the tab item.
             _pinButton.IsHitTestVisible = false;
             _pinButton.SetParent(this);
@@ -385,6 +387,19 @@ public class MGDockTabItem : MGElement
             bounds.Y + (bounds.Height - iconSize) / 2,
             iconSize,
             iconSize);
+    }
+
+    private static void SyncAccessoryButtonBackground(MGBorder button, IFillBrush background)
+    {
+        if (button?.BackgroundBrush == null)
+        {
+            return;
+        }
+
+        button.BackgroundBrush.NormalValue = background;
+        button.BackgroundBrush.SelectedValue = background;
+        button.BackgroundBrush.FocusedValue = background;
+        button.BackgroundBrush.DisabledValue = background;
     }
 
     /// <summary>
@@ -458,11 +473,14 @@ public class MGDockTabItem : MGElement
 
         if (_surfaceElement != null)
         {
-            _surfaceElement.BackgroundBrush.NormalValue = IsActive
+            IFillBrush effectiveBackground = IsActive
                 ? ActiveBrush
                 : IsHovered
                     ? HoverBrush
                     : NormalBrush;
+            _surfaceElement.BackgroundBrush.NormalValue = effectiveBackground;
+            SyncAccessoryButtonBackground(_closeButton, effectiveBackground);
+            SyncAccessoryButtonBackground(_pinButton, effectiveBackground);
         }
 
         if (_accentElement != null)
