@@ -756,7 +756,7 @@ namespace MGUI.Core.UI
                 AutoWidthFromContent = Theme.DefaultTextBlockAutoWidthFromContent;
                 if (!TrySetFont(Theme.FontSettings.DefaultFontFamily ?? Desktop.DefaultFontFamily, FontSize ?? GetTheme().FontSettings.DefaultFontSize))
                 {
-                    throw new ArgumentException($"Default font not found.");
+                    throw new ArgumentException("Default font not found.");
                 }
 
                 this.AllowsInlineFormatting = AllowsInlineFormatting;
