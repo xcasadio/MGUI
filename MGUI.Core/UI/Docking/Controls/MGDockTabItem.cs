@@ -467,11 +467,12 @@ public class MGDockTabItem : MGElement
 
         if (_accentElement != null)
         {
-            bool showAccent = IsActive || IsHovered;
+            Color accentColor = IsActive ? ActiveAccentColor : HoverAccentColor;
+            bool showAccent = (IsActive || IsHovered) && accentColor.A > 0;
             _accentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
             _accentElement.Width = LayoutBounds.Width;
             _accentElement.Height = IsActive ? 3 : 2;
-            _accentElement.Fill = (IsActive ? ActiveAccentColor : HoverAccentColor).AsFillBrush();
+            _accentElement.Fill = accentColor.AsFillBrush();
         }
 
         if (_closeIconElement != null)

@@ -106,8 +106,7 @@ public class MGDockTabGroup : MGElement
 
     private bool _isActiveGroup;
     /// <summary>
-    /// When true this group contains the currently active (last-focused) panel.
-    /// A thin accent stripe is drawn at the top of the tab bar to highlight the active group.
+    /// Tracks whether this group contains the currently active (last-focused) panel.
     /// Set by <see cref="MGDockHost"/> whenever <see cref="MGDockHost.ActiveDockable"/> changes.
     /// </summary>
     public bool IsActiveGroup
@@ -245,10 +244,7 @@ public class MGDockTabGroup : MGElement
     {
         if (_accentElement != null)
         {
-            _accentElement.Visibility = IsActiveGroup ? Visibility.Visible : Visibility.Collapsed;
-            _accentElement.Width = LayoutBounds.Width;
-            _accentElement.Height = 2;
-            _accentElement.Fill = new Color(0, 120, 215).AsFillBrush();
+            _accentElement.Visibility = Visibility.Collapsed;
         }
 
         if (_dropdownIconElement != null)
