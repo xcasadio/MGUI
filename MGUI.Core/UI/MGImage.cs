@@ -156,6 +156,8 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _UseLinearFilteringWhenDownscaling = true;
+        private DrawSettings _CachedLinearFilteringBaseSettings;
+        private DrawSettings _CachedLinearFilteringSettings;
         /// <summary>When true, images temporarily switch to linear sampling while being rendered smaller than their source size.</summary>
         public bool UseLinearFilteringWhenDownscaling
         {
@@ -168,6 +170,19 @@ namespace MGUI.Core.UI
                     NPC(nameof(UseLinearFilteringWhenDownscaling));
                 }
             }
+        }
+
+        private DrawSettings GetLinearFilteringSettings(DrawSettings baseSettings)
+        {
+            ArgumentNullException.ThrowIfNull(baseSettings);
+
+            if (!ReferenceEquals(_CachedLinearFilteringBaseSettings, baseSettings))
+            {
+                _CachedLinearFilteringBaseSettings = baseSettings;
+                _CachedLinearFilteringSettings = baseSettings with { SamplerType = SamplerType.LinearClamp };
+            }
+
+            return _CachedLinearFilteringSettings;
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -392,9 +407,15 @@ namespace MGUI.Core.UI
 
             if (shouldUseLinearFiltering)
             {
-                using (DA.Context.SetDrawSettingsTemporary(DA.Context.CurrentSettings with { SamplerType = SamplerType.LinearClamp }))
+                DrawSettings previousSettings = DA.Context.CurrentSettings;
+                DA.Context.SetDrawSettings(GetLinearFilteringSettings(previousSettings));
+                try
                 {
                     ActualSource.Value.Draw(DA.Context, destinationBounds, TextureColor, DA.Opacity);
+                }
+                finally
+                {
+                    DA.Context.SetDrawSettings(previousSettings);
                 }
             }
             else

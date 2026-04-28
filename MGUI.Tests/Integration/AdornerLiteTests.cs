@@ -254,10 +254,15 @@ public class AdornerLiteTests
         {
         }
 
+        public void SetDrawSettings(DrawSettings Settings)
+        {
+            CurrentSettings = Settings ?? DrawSettings.Default;
+        }
+
         public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
         {
             DrawSettings previous = CurrentSettings;
-            CurrentSettings = Settings ?? DrawSettings.Default;
+            SetDrawSettings(Settings);
             return new DisposableAction(() => CurrentSettings = previous);
         }
 

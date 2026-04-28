@@ -18,6 +18,25 @@ namespace MGUI.Tests.Integration;
 public class TextSurfaceLiteTests
 {
     [Fact]
+    public void MGImage_Downscaling_Uses_Direct_DrawSettings_Switch()
+    {
+        TextSurfaceHarness harness = CreateHarness(window => new MGImage(window, new TextSurfaceTestImageResource("downscaled-image", 64, 64), Stretch: Stretch.Fill)
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            PreferredWidth = 16,
+            PreferredHeight = 16,
+        });
+
+        harness.Desktop.Draw();
+
+        Assert.NotNull(harness.Runtime.LastDrawTransaction);
+        TextSurfaceNoOpDrawTransaction transaction = harness.Runtime.LastDrawTransaction!;
+        Assert.Equal(0, transaction.SetDrawSettingsTemporaryCallCount);
+        Assert.Equal(2, transaction.SetDrawSettingsCallCount);
+    }
+
+    [Fact]
     public void SetTextRuns_OverridesParsedTextUntilCleared()
     {
         TextSurfaceHarness harness = CreateHarness(window => new MGTextBlock(window, "[color=Red]Alpha[/color]"));
@@ -107,6 +126,7 @@ public class TextSurfaceLiteTests
         private ITextMeasurementEngine _textEngine;
 
         public InputTracker Input { get; } = new();
+        public TextSurfaceNoOpDrawTransaction? LastDrawTransaction { get; private set; }
         public string DefaultFontFamily { get; } = "TestSans";
         public IUISurface Surface { get; }
         public IUIAssetProvider AssetProvider { get; }
@@ -138,7 +158,10 @@ public class TextSurfaceLiteTests
         }
 
         public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
-            => new TextSurfaceNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
+        {
+            LastDrawTransaction = new TextSurfaceNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
+            return LastDrawTransaction;
+        }
 
         public void ApplyFrame(UpdateBaseArgs updateArgs)
         {
@@ -158,6 +181,8 @@ public class TextSurfaceLiteTests
         public DrawSettings CurrentSettings { get; private set; }
         public IUIDesktopRuntime Renderer { get; }
         public Rectangle? CurrentClipBounds => _currentClipBounds;
+        public int SetDrawSettingsCallCount { get; private set; }
+        public int SetDrawSettingsTemporaryCallCount { get; private set; }
 
         public TextSurfaceNoOpDrawTransaction(IUIDesktopRuntime renderer, DrawSettings settings)
         {
@@ -233,10 +258,17 @@ public class TextSurfaceLiteTests
         {
         }
 
+        public void SetDrawSettings(DrawSettings Settings)
+        {
+            CurrentSettings = Settings ?? DrawSettings.Default;
+            SetDrawSettingsCallCount++;
+        }
+
         public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
         {
             DrawSettings previous = CurrentSettings;
-            CurrentSettings = Settings ?? DrawSettings.Default;
+            SetDrawSettingsTemporaryCallCount++;
+            SetDrawSettings(Settings);
             return new DisposableAction(() => CurrentSettings = previous);
         }
 

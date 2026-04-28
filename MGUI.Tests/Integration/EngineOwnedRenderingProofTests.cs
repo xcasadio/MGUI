@@ -289,11 +289,16 @@ public class EngineOwnedRenderingProofTests
         public void StrokeAndFillCircle(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness = 1.0f, int NumSides = 32)
             => Record(ProofDrawCallKind.StrokeAndFillCircle, ProofDrawCallCategory.Shape);
 
+        public void SetDrawSettings(DrawSettings Settings)
+        {
+            CurrentSettings = Settings ?? throw new ArgumentNullException(nameof(Settings));
+            Record(ProofDrawCallKind.SetDrawSettings, ProofDrawCallCategory.State);
+        }
+
         public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
         {
             DrawSettings previous = CurrentSettings;
-            CurrentSettings = Settings ?? throw new ArgumentNullException(nameof(Settings));
-            Record(ProofDrawCallKind.SetDrawSettings, ProofDrawCallCategory.State);
+            SetDrawSettings(Settings);
 
             return new DisposableAction(() => CurrentSettings = previous);
         }

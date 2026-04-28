@@ -10,6 +10,7 @@ namespace MGUI.Shared.Rendering
         public IUIDesktopRuntime Renderer { get; }
         public Rectangle? CurrentClipBounds { get; }
 
+        public void SetDrawSettings(DrawSettings Settings);
         public IDisposable SetDrawSettingsTemporary(DrawSettings Settings);
         public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor);
         public IDisposable SetTransformTemporary(Matrix Transform);
