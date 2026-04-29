@@ -1,3 +1,5 @@
+using Microsoft.Xna.Framework.Input;
+
 namespace MGUI.Core.UI.TextEditing
 {
     public sealed class MGRichTextCompletionPopupController
@@ -21,6 +23,17 @@ namespace MGUI.Core.UI.TextEditing
             IsOpen = false;
             Result = MGRichTextCompletionResult.Empty;
             SelectedIndex = -1;
+        }
+
+        public bool TryHandleDismissKey(Keys key)
+        {
+            if (!IsOpen || key != Keys.Escape)
+            {
+                return false;
+            }
+
+            Close();
+            return true;
         }
 
         public bool MoveSelection(int delta)

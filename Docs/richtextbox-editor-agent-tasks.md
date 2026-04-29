@@ -598,7 +598,7 @@ Resultat:
 - Resultat validation: builds Core et Samples OK avec avertissements existants.
 - Commit effectue: `docs: complete task 12 document rich textbox editor v1`.
 
-### ⚪ 13. Stabiliser les scenarios editeur et fermer la tranche v1
+### ✅ 13. Stabiliser les scenarios editeur et fermer la tranche v1
 
 But:
 consolider les regressions potentielles avant de considerer la feature livree.
@@ -630,4 +630,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Validation finale lancee sur la tranche RichTextBox v1: build Core, build Samples, tests popup et filtre large texte/input/focus/overlay/clip.
+- Relecture du nouveau controle: `MGRichTextBox` n'ajoute pas de surcharge `Update` ou `Draw`; les allocations nouvelles sont bornees aux changements de texte, aux reconstructions de spans, aux requetes de completion et au sample, pas aux frames inactives.
+- Cas limites verifies par les tests et la relecture: document vide, ranges clamps, lignes multiples, selection multi-ligne via `MGTextSelectionState`, completion sans provider, completion sans items, acceptation de completion, fermeture popup par `Escape`, absence de theme editeur externe grace au fallback sample.
+- Correctif stabilisation ajoute: `MGRichTextCompletionPopupController.TryHandleDismissKey(Keys.Escape)` et raccord clavier dans `MGRichTextBox` pour fermer la popup sans modifier le texte.
+- Validations executees avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxCompletionPopupTests"`
+	- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBox|TextEditing|Syntax|Completion|TextBox|Focus|Overlay|Clip" --logger "console;verbosity=minimal"`
+- Resultat validation: 4 tests popup passes, 344 tests cibles passes, 0 echec ; builds Core et Samples OK.
+- Les avertissements restants sont les avertissements existants deja observes dans les projets partages/tests.
+- Commit effectue: `test: complete task 13 stabilize editor scenarios`.

@@ -2,6 +2,7 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.Text;
 using MGUI.Core.UI.TextEditing;
+using MGUI.Shared.Input.Keyboard;
 using System;
 using System.Collections.Generic;
 
@@ -140,6 +141,17 @@ namespace MGUI.Core.UI
                 AcceptsTab = true;
                 ShowLineNumbers = showLineNumbers;
                 TabSize = tabSize;
+
+                KeyboardHandler.Pressed += (_, e) => HandleCompletionPopupKey(e);
+                KeyboardHandler.KeyRepeat += (_, e) => HandleCompletionPopupKey(e);
+            }
+        }
+
+        private void HandleCompletionPopupKey(BaseKeyPressedEventArgs e)
+        {
+            if (CompletionPopup.TryHandleDismissKey(e.Key))
+            {
+                e.SetHandledBy(this, false);
             }
         }
 

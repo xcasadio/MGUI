@@ -1,4 +1,5 @@
 using MGUI.Core.UI.TextEditing;
+using Microsoft.Xna.Framework.Input;
 
 namespace MGUI.Tests.Text;
 
@@ -46,6 +47,19 @@ public class RichTextBoxCompletionPopupTests
         Assert.Equal("class", acceptance.InsertText);
         Assert.Equal(new MGTextRange(0, 3), acceptance.ReplacementRange);
         Assert.Equal(5, acceptance.NewCaretIndex);
+    }
+
+    [Fact]
+    public void TryHandleDismissKey_ClosesOpenPopupForEscape()
+    {
+        MGRichTextCompletionPopupController popup = new();
+        popup.Open(CreateResult("class"));
+
+        bool handled = popup.TryHandleDismissKey(Keys.Escape);
+
+        Assert.True(handled);
+        Assert.False(popup.IsOpen);
+        Assert.Equal(-1, popup.SelectedIndex);
     }
 
     private static MGRichTextCompletionResult CreateResult(params string[] labels)
