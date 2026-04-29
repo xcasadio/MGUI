@@ -3006,6 +3006,35 @@ namespace MGUI.Core.UI.XAML
     }
 
     [ContentProperty(nameof(Text))]
+    public class RichTextBox : TextBox
+    {
+        public override MGElementType ElementType => MGElementType.RichTextBox;
+
+        [Category("Behavior")]
+        public int? TabSize { get; set; }
+        [Category("Appearance")]
+        public bool? ShowLineNumbers { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGRichTextBox(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            base.ApplyDerivedSettings(Parent, Element, IncludeContent);
+
+            MGRichTextBox richTextBox = Element as MGRichTextBox;
+            if (TabSize.HasValue)
+            {
+                richTextBox.TabSize = TabSize.Value;
+            }
+
+            if (ShowLineNumbers.HasValue)
+            {
+                richTextBox.ShowLineNumbers = ShowLineNumbers.Value;
+            }
+        }
+    }
+
+    [ContentProperty(nameof(Text))]
     public class NumericUpDown : TextBox
     {
         public override MGElementType ElementType => MGElementType.NumericUpDown;

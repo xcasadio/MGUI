@@ -83,6 +83,7 @@ namespace MGUI.Core.UI
 
         //  Input
         TextBox,
+        RichTextBox,
         PasswordBox,
         NumericUpDown,
         ChatBox,

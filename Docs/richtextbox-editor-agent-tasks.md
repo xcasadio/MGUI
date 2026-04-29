@@ -261,7 +261,7 @@ Resultat:
 - Resultat validation: 52 tests passes, 0 echec ; warnings existants dans le repo, sans nouveau blocage lie a cette tache.
 - Commit effectue: `refactor: complete task 4 share textbox editing helpers`.
 
-### ⚪ 5. Ajouter le shell du controle MGRichTextBox
+### ✅ 5. Ajouter le shell du controle MGRichTextBox
 
 But:
 introduire le controle, ses parts template et son integration XAML sans encore livrer la coloration complete.
@@ -294,7 +294,16 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Ajout du controle public `MGRichTextBox`, derive prudemment de `MGTextBox` pour reutiliser le layout, les template parts et l'input existants pendant la tranche shell.
+- Ajout de `MGElementType.RichTextBox` et du mapping XAML `RichTextBox`, avec proprietes `TabSize` et `ShowLineNumbers`.
+- `MGRichTextBox` synchronise un `MGTextBuffer`, expose `CaretIndex` et `SelectionState`, et conserve le template par defaut `TextBox.Default` pour rester coherent avec le theme existant.
+- Ajout de `RichTextBoxShellTests` pour verifier l'enregistrement enum et le mapping XAML.
+- Validations executees avec succes:
+	- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxShellTests"`
+- Note validation: le filtre large recommande `RichTextBox|Architecture` compile mais declenche deux echecs d'architecture existants et sans lien avec cette tache (`ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`, `BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`).
+- Commit effectue: `feat: complete task 5 add rich textbox shell`.
 
 ### ⚪ 6. Rendre des spans de texte styles sans modifier le texte source
 
