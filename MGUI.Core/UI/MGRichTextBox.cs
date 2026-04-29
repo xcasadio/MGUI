@@ -132,6 +132,15 @@ namespace MGUI.Core.UI
             NPC(nameof(HasStyledSpans));
         }
 
+        public MGTextEditResult ApplyTextEdit(MGTextRange range, string text)
+        {
+            MGTextBuffer previewBuffer = new(Text);
+            MGTextEditResult editResult = previewBuffer.ApplyEdit(range, text);
+            SetText(previewBuffer.Text);
+            SelectionState = MGTextSelectionState.EmptyAt(editResult.CaretIndexAfterEdit);
+            return editResult;
+        }
+
         protected override bool SetText(string Value, bool ExecuteEvenIfSameValue)
         {
             string normalizedValue = MGTextBuffer.NormalizeLineEndings(Value);

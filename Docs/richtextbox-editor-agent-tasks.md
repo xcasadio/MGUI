@@ -347,7 +347,7 @@ Resultat:
 - Resultat validation: 3 tests passes, 0 echec ; build sample OK.
 - Commit effectue: `feat: complete task 6 render styled text spans`.
 
-### ⚪ 7. Brancher l'edition clavier, souris, selection et undo/redo
+### ✅ 7. Brancher l'edition clavier, souris, selection et undo/redo
 
 But:
 faire de `MGRichTextBox` une vraie surface editable, pas seulement une vue coloree.
@@ -379,7 +379,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- `MGRichTextBox` conserve l'input clavier/souris, caret, selection et undo/redo de `MGTextBox` pendant cette v1, ce qui evite de dupliquer le pipeline d'input existant.
+- Ajout de `ApplyTextEdit(...)` sur `MGRichTextBox` pour appliquer des edits programmes via ranges texte, synchroniser `Text`, `TextBuffer` et `SelectionState`.
+- Ajout d'un controleur pur `MGRichTextEditController` couvrant remplacement de selection, insertion, backspace, delete-forward, selection, select-all, undo et redo.
+- Ajout de `RichTextBoxEditingControllerTests` pour verrouiller edition multi-ligne/model, selection et restauration undo/redo sans dependance rendu.
+- Validations executees avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxEditingControllerTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+- Resultat validation: 4 tests passes, 0 echec ; build sample OK.
+- Commit effectue: `input: complete task 7 wire rich textbox editing behavior`.
 
 ### ⚪ 8. Ajouter les services de coloration syntaxique
 
