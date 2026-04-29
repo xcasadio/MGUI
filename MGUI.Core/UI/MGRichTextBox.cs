@@ -1,6 +1,9 @@
+using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Styling;
+using MGUI.Core.UI.Text;
 using MGUI.Core.UI.TextEditing;
 using System;
+using System.Collections.Generic;
 
 namespace MGUI.Core.UI
 {
@@ -8,8 +11,11 @@ namespace MGUI.Core.UI
     {
         private int _tabSize;
         private bool _showLineNumbers;
+        private readonly List<MGStyledTextSpan> _styledSpans = new();
 
         public MGTextBuffer TextBuffer { get; } = new();
+        public IReadOnlyList<MGStyledTextSpan> StyledSpans => _styledSpans;
+        public bool HasStyledSpans => _styledSpans.Count > 0;
 
         public int TabSize
         {
@@ -92,6 +98,40 @@ namespace MGUI.Core.UI
             }
         }
 
+        public void SetStyledSpans(IEnumerable<MGStyledTextSpan> spans)
+        {
+            _styledSpans.Clear();
+            if (spans != null)
+            {
+                foreach (MGStyledTextSpan span in spans)
+                {
+                    MGStyledTextSpan clampedSpan = span.Clamp(Text.Length);
+                    if (!clampedSpan.IsEmpty)
+                    {
+                        _styledSpans.Add(clampedSpan);
+                    }
+                }
+            }
+
+            SortStyledSpans(_styledSpans);
+            RebuildStyledTextRuns();
+            NPC(nameof(StyledSpans));
+            NPC(nameof(HasStyledSpans));
+        }
+
+        public void ClearStyledSpans()
+        {
+            if (_styledSpans.Count == 0)
+            {
+                return;
+            }
+
+            _styledSpans.Clear();
+            TextBlockComponent.Element.ClearTextRuns();
+            NPC(nameof(StyledSpans));
+            NPC(nameof(HasStyledSpans));
+        }
+
         protected override bool SetText(string Value, bool ExecuteEvenIfSameValue)
         {
             string normalizedValue = MGTextBuffer.NormalizeLineEndings(Value);
@@ -102,7 +142,88 @@ namespace MGUI.Core.UI
                 NPC(nameof(TextBuffer));
             }
 
+            if (HasStyledSpans)
+            {
+                RebuildStyledTextRuns();
+            }
+
             return changed;
+        }
+
+        internal static IReadOnlyList<MGTextRun> BuildStyledTextRuns(string text, IEnumerable<MGStyledTextSpan> spans)
+        {
+            string sourceText = text ?? string.Empty;
+            List<MGStyledTextSpan> orderedSpans = new();
+            if (spans != null)
+            {
+                foreach (MGStyledTextSpan span in spans)
+                {
+                    MGStyledTextSpan clampedSpan = span.Clamp(sourceText.Length);
+                    if (!clampedSpan.IsEmpty)
+                    {
+                        orderedSpans.Add(clampedSpan);
+                    }
+                }
+            }
+
+            SortStyledSpans(orderedSpans);
+
+            List<MGTextRun> runs = new();
+            int cursor = 0;
+            for (int spanIndex = 0; spanIndex < orderedSpans.Count; spanIndex++)
+            {
+                MGStyledTextSpan span = orderedSpans[spanIndex];
+                int spanStartIndex = Math.Max(cursor, span.Range.StartIndex);
+                int spanEndIndex = Math.Max(spanStartIndex, span.Range.EndIndex);
+
+                AddTextRun(runs, sourceText, cursor, spanStartIndex, MGRichTextStyle.Default);
+                AddTextRun(runs, sourceText, spanStartIndex, spanEndIndex, span.Style);
+                cursor = Math.Max(cursor, spanEndIndex);
+            }
+
+            AddTextRun(runs, sourceText, cursor, sourceText.Length, MGRichTextStyle.Default);
+            return runs;
+        }
+
+        private void RebuildStyledTextRuns()
+        {
+            if (_styledSpans.Count == 0)
+            {
+                TextBlockComponent.Element.ClearTextRuns();
+                return;
+            }
+
+            TextBlockComponent.Element.SetTextRuns(BuildStyledTextRuns(Text, _styledSpans));
+        }
+
+        private static void SortStyledSpans(List<MGStyledTextSpan> spans)
+        {
+            spans.Sort((left, right) =>
+            {
+                int startComparison = left.Range.StartIndex.CompareTo(right.Range.StartIndex);
+                return startComparison != 0 ? startComparison : left.Range.EndIndex.CompareTo(right.Range.EndIndex);
+            });
+        }
+
+        private static void AddTextRun(List<MGTextRun> runs, string text, int startIndex, int endIndex, MGRichTextStyle style)
+        {
+            if (endIndex <= startIndex)
+            {
+                return;
+            }
+
+            string runText = text.Substring(startIndex, endIndex - startIndex);
+            runs.Add(new MGTextRunText(runText, ToTextRunConfig(style), null, null));
+        }
+
+        private static MGTextRunConfig ToTextRunConfig(MGRichTextStyle style)
+        {
+            MGTextRunUnderlineConfig underline = style.IsUnderlined ? new MGTextRunUnderlineConfig(true) : default;
+            MGTextRunBackgroundConfig background = style.Background.HasValue
+                ? new MGTextRunBackgroundConfig(style.Background.Value.AsFillBrush())
+                : default;
+
+            return new MGTextRunConfig(style.IsBold, style.IsItalic, 1.0f, style.Foreground, underline, background);
         }
     }
 }

@@ -305,7 +305,7 @@ Resultat:
 - Note validation: le filtre large recommande `RichTextBox|Architecture` compile mais declenche deux echecs d'architecture existants et sans lien avec cette tache (`ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`, `BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`).
 - Commit effectue: `feat: complete task 5 add rich textbox shell`.
 
-### ⚪ 6. Rendre des spans de texte styles sans modifier le texte source
+### ✅ 6. Rendre des spans de texte styles sans modifier le texte source
 
 But:
 poser la base de la coloration syntaxique et de la selection visuelle.
@@ -337,7 +337,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Ajout d'une couche de spans stylés non destructifs dans `MGRichTextBox`: `SetStyledSpans(...)`, `ClearStyledSpans()`, `StyledSpans`, `HasStyledSpans`.
+- Conversion texte brut + `MGStyledTextSpan` vers `MGTextRunText` via `BuildStyledTextRuns(...)`, en reutilisant `MGTextBlock.SetTextRuns(...)` et sans injecter de markdown dans `Text`.
+- Les spans sont clampes, tries, et rendus hors chemin `Draw`; la generation se fait lors du changement de spans ou de texte.
+- Ajout de `RichTextBoxStyledRunTests` couvrant conversion en runs, clamp/order, overlap simple et preservation du texte source.
+- Validations executees avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxStyledRunTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+- Resultat validation: 3 tests passes, 0 echec ; build sample OK.
+- Commit effectue: `feat: complete task 6 render styled text spans`.
 
 ### ⚪ 7. Brancher l'edition clavier, souris, selection et undo/redo
 
