@@ -389,7 +389,7 @@ Resultat:
 - Resultat validation: 4 tests passes, 0 echec ; build sample OK.
 - Commit effectue: `input: complete task 7 wire rich textbox editing behavior`.
 
-### ⚪ 8. Ajouter les services de coloration syntaxique
+### ✅ 8. Ajouter les services de coloration syntaxique
 
 But:
 permettre au controle de recevoir des spans de syntaxe sans connaitre le langage.
@@ -421,7 +421,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Ajout du contrat injectable `IRichTextSyntaxHighlighter`, du contexte/resultat de highlight et de `MGRichTextSyntaxPalette`.
+- Ajout de `PlainTextSyntaxHighlighter` et d'un highlighter lexical demo `CSharpRichTextSyntaxHighlighter` couvrant keywords, types simples, strings, nombres et commentaires ligne.
+- `MGRichTextBox.SyntaxHighlighter` et `SyntaxPalette` declenchent maintenant `RefreshSyntaxHighlighting()` et appliquent les spans via la couche non destructive de la tache 6.
+- Ajout de `RichTextBoxSyntaxHighlighterTests` pour verifier PlainText, classifications C# et palette injectable.
+- Validations executees avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxSyntaxHighlighterTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+- Resultat validation: 3 tests passes, 0 echec ; build sample OK.
+- Commit effectue: `feat: complete task 8 add syntax highlighting services`.
 
 ### ⚪ 9. Ajouter le modele d'autocompletion
 

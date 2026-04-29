@@ -11,11 +11,41 @@ namespace MGUI.Core.UI
     {
         private int _tabSize;
         private bool _showLineNumbers;
+        private IRichTextSyntaxHighlighter _syntaxHighlighter;
+        private MGRichTextSyntaxPalette _syntaxPalette;
         private readonly List<MGStyledTextSpan> _styledSpans = new();
 
         public MGTextBuffer TextBuffer { get; } = new();
         public IReadOnlyList<MGStyledTextSpan> StyledSpans => _styledSpans;
         public bool HasStyledSpans => _styledSpans.Count > 0;
+
+        public IRichTextSyntaxHighlighter SyntaxHighlighter
+        {
+            get => _syntaxHighlighter;
+            set
+            {
+                if (!ReferenceEquals(_syntaxHighlighter, value))
+                {
+                    _syntaxHighlighter = value;
+                    RefreshSyntaxHighlighting();
+                    NPC(nameof(SyntaxHighlighter));
+                }
+            }
+        }
+
+        public MGRichTextSyntaxPalette SyntaxPalette
+        {
+            get => _syntaxPalette ?? MGRichTextSyntaxPalette.Default;
+            set
+            {
+                if (!ReferenceEquals(_syntaxPalette, value))
+                {
+                    _syntaxPalette = value;
+                    RefreshSyntaxHighlighting();
+                    NPC(nameof(SyntaxPalette));
+                }
+            }
+        }
 
         public int TabSize
         {
@@ -151,12 +181,35 @@ namespace MGUI.Core.UI
                 NPC(nameof(TextBuffer));
             }
 
-            if (HasStyledSpans)
+            if (SyntaxHighlighter != null)
+            {
+                RefreshSyntaxHighlighting();
+            }
+            else if (HasStyledSpans)
             {
                 RebuildStyledTextRuns();
             }
 
             return changed;
+        }
+
+        public void RefreshSyntaxHighlighting()
+        {
+            if (SyntaxHighlighter == null)
+            {
+                if (HasStyledSpans)
+                {
+                    ClearStyledSpans();
+                }
+
+                return;
+            }
+
+            MGRichTextHighlightResult result = SyntaxHighlighter.Highlight(new MGRichTextHighlightContext(Text, TextBuffer.Version, SyntaxPalette));
+            if (result.Version == TextBuffer.Version)
+            {
+                SetStyledSpans(result.Spans);
+            }
         }
 
         internal static IReadOnlyList<MGTextRun> BuildStyledTextRuns(string text, IEnumerable<MGStyledTextSpan> spans)
