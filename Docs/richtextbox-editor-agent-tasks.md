@@ -153,7 +153,7 @@ Resultat:
 - Validation documentaire effectuee: chemins et contraintes du plan verifies contre `MGTextBox`, `MGTextBlock`, `TextRenderInfo`, les samples texte et `EditorDarkThemePreview`.
 - Commit effectue: `docs: complete task 1 define rich textbox editor scope`.
 
-### ⚪ 2. Ajouter une matrice de tests pour buffer, ranges et lignes
+### ✅ 2. Ajouter une matrice de tests pour buffer, ranges et lignes
 
 But:
 verrouiller la logique pure avant de toucher au rendu ou a l'input.
@@ -181,7 +181,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Ajout de la matrice `RichTextBoxTextBufferTests` couvrant normalisation des retours ligne, index ligne/colonne, ranges inverses/clampes, replace/delete, conversion de ranges multi-lignes en spans et expansion visuelle des tabulations.
+- Ajout des contrats texte purs necessaires a la compilation des tests: `MGTextPosition`, `MGTextRange`, `MGTextLineSpan` et une premiere version de `MGTextBuffer` dans `MGUI.Core/UI/TextEditing/`.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxTextBufferTests"`.
+- Resultat validation: 9 tests passes, 0 echec ; warnings existants dans le repo, sans nouveau blocage lie a cette tache.
+- Commit effectue: `test: complete task 2 add text buffer range tests`.
 
 ### ⚪ 3. Ajouter le modele d'edition texte partageable
 
