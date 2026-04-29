@@ -431,7 +431,7 @@ Resultat:
 - Resultat validation: 3 tests passes, 0 echec ; build sample OK.
 - Commit effectue: `feat: complete task 8 add syntax highlighting services`.
 
-### ⚪ 9. Ajouter le modele d'autocompletion
+### ✅ 9. Ajouter le modele d'autocompletion
 
 But:
 separer le calcul des suggestions de leur affichage.
@@ -461,7 +461,16 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Ajout du modele d'autocompletion: `IRichTextCompletionProvider`, contexte, trigger, item, resultat et operation d'acceptation.
+- Ajout de `MGRichTextCompletionService` pour calculer le prefixe courant, le range de remplacement, filtrer par prefixe et produire l'acceptation.
+- Ajout du provider demo `CSharpKeywordCompletionProvider` pour les mots cles C# les plus utiles au sample.
+- `MGRichTextBox` expose maintenant `CompletionProvider`, `RequestCompletions(...)` et `AcceptCompletion(...)`.
+- Ajout de `RichTextBoxCompletionModelTests` couvrant contexte/prefixe, provider C# filtre et acceptation.
+- Validations executees avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxCompletionModelTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+- Resultat validation: 3 tests passes, 0 echec ; build sample OK.
+- Commit effectue: `feat: complete task 9 add completion model services`.
 
 ### ⚪ 10. Ajouter la popup d'autocompletion UI
 

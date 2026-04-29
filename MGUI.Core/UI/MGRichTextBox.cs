@@ -12,6 +12,7 @@ namespace MGUI.Core.UI
         private int _tabSize;
         private bool _showLineNumbers;
         private IRichTextSyntaxHighlighter _syntaxHighlighter;
+        private IRichTextCompletionProvider _completionProvider;
         private MGRichTextSyntaxPalette _syntaxPalette;
         private readonly List<MGStyledTextSpan> _styledSpans = new();
 
@@ -43,6 +44,19 @@ namespace MGUI.Core.UI
                     _syntaxPalette = value;
                     RefreshSyntaxHighlighting();
                     NPC(nameof(SyntaxPalette));
+                }
+            }
+        }
+
+        public IRichTextCompletionProvider CompletionProvider
+        {
+            get => _completionProvider;
+            set
+            {
+                if (!ReferenceEquals(_completionProvider, value))
+                {
+                    _completionProvider = value;
+                    NPC(nameof(CompletionProvider));
                 }
             }
         }
@@ -169,6 +183,31 @@ namespace MGUI.Core.UI
             SetText(previewBuffer.Text);
             SelectionState = MGTextSelectionState.EmptyAt(editResult.CaretIndexAfterEdit);
             return editResult;
+        }
+
+        public MGRichTextCompletionResult RequestCompletions(MGRichTextCompletionTrigger trigger = MGRichTextCompletionTrigger.Manual,
+            char? triggerCharacter = null)
+        {
+            if (CompletionProvider == null)
+            {
+                return MGRichTextCompletionResult.Empty;
+            }
+
+            MGRichTextCompletionContext context = MGRichTextCompletionService.CreateContext(Text, CaretIndex, trigger, triggerCharacter, TextBuffer.Version);
+            return CompletionProvider.GetCompletions(context);
+        }
+
+        public bool AcceptCompletion(MGRichTextCompletionItem item, MGTextRange replacementRange)
+        {
+            if (item == null)
+            {
+                return false;
+            }
+
+            MGRichTextCompletionAcceptance acceptance = MGRichTextCompletionService.CreateAcceptance(item, replacementRange);
+            ApplyTextEdit(acceptance.ReplacementRange, acceptance.InsertText);
+            SelectionState = MGTextSelectionState.EmptyAt(acceptance.NewCaretIndex);
+            return true;
         }
 
         protected override bool SetText(string Value, bool ExecuteEvenIfSameValue)
