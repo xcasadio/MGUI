@@ -224,7 +224,7 @@ Resultat:
 - Resultat validation: 15 tests passes, 0 echec ; warnings existants dans le repo, sans nouveau blocage lie a cette tache.
 - Commit effectue: `feat: complete task 3 add text editing model`.
 
-### ⚪ 4. Partager prudemment les helpers utiles de MGTextBox
+### ✅ 4. Partager prudemment les helpers utiles de MGTextBox
 
 But:
 eviter de dupliquer la logique clavier/caret existante tout en limitant le risque de regression sur `MGTextBox`.
@@ -253,7 +253,13 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Extraction de `MGTextEditingInputHelpers` pour les decisions clavier partageables: touches preservees en mode texte, repetition de touche, raccourcis Ctrl et normalisation d'index caret.
+- Extraction de `MGTextUndoStack<T>` pour reutiliser une pile undo/redo bornee sans garder la classe privee `LimitedStack<T>` dans `MGTextBox`.
+- `MGTextBox` conserve ses wrappers statiques internes existants et forward vers les helpers extraits, ce qui limite le risque de regression pour les tests et usages internes actuels.
+- Ajout de `RichTextBoxTextEditingInputHelperTests` couvrant les helpers clavier, les wrappers de compatibilite `MGTextBox` et le trimming de la pile undo.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "TextBox|TextEditing|RichTextBox"`.
+- Resultat validation: 52 tests passes, 0 echec ; warnings existants dans le repo, sans nouveau blocage lie a cette tache.
+- Commit effectue: `refactor: complete task 4 share textbox editing helpers`.
 
 ### ⚪ 5. Ajouter le shell du controle MGRichTextBox
 

@@ -15,6 +15,7 @@ using System.Diagnostics;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Styling;
+using MGUI.Core.UI.TextEditing;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Rendering.Clipping;
 
@@ -48,29 +49,22 @@ namespace MGUI.Core.UI
         }
 
         internal static bool ShouldPreserveTextEntryKey(Keys key, bool isReadonly, bool acceptsReturn, bool acceptsTab)
-            => key switch
-            {
-                Keys.Left or Keys.Right or Keys.Up or Keys.Down or Keys.Home or Keys.End => true,
-                Keys.Space => !isReadonly,
-                Keys.Enter => !isReadonly && acceptsReturn,
-                Keys.Tab => !isReadonly && acceptsTab,
-                _ => false
-            };
+            => MGTextEditingInputHelpers.ShouldPreserveTextEntryKey(key, isReadonly, acceptsReturn, acceptsTab);
 
         internal static bool ShouldProcessRepeatedKey(bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
-            => isHeldKeyRepeated && !isControlDown && (isPrintableKey || key is Keys.Back or Keys.Delete or Keys.Left or Keys.Right or Keys.Up or Keys.Down);
+            => MGTextEditingInputHelpers.ShouldProcessRepeatedKey(isHeldKeyRepeated, isControlDown, isPrintableKey, key);
 
         internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
             => ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key, false);
 
         internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key,
             bool streamStartedAsControlShortcut)
-            => hasKeyboardFocus && !streamStartedAsControlShortcut && ShouldProcessRepeatedKey(isHeldKeyRepeated, isControlDown, isPrintableKey, key);
+            => MGTextEditingInputHelpers.ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key, streamStartedAsControlShortcut);
 
         internal static bool IsControlShortcutKey(Keys key)
-            => key is Keys.X or Keys.C or Keys.V or Keys.Z or Keys.Y or Keys.A or Keys.D;
+            => MGTextEditingInputHelpers.IsControlShortcutKey(key);
         internal static int NormalizeEditableCaretIndex(int indexInOriginalText, int textLength)
-            => Math.Clamp(indexInOriginalText, 0, Math.Max(0, textLength));
+            => MGTextEditingInputHelpers.NormalizeEditableCaretIndex(indexInOriginalText, textLength);
 
         internal bool ShouldPreserveTextEntryKey(Keys key)
             => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
@@ -810,78 +804,6 @@ namespace MGUI.Core.UI
         #endregion Mouse History
 
         #region Undo / Redo
-        private class LimitedStack<T>
-        {
-            private List<T> Stack;
-            public int Count => Stack.Count;
-
-            private int Limit;
-            /// <summary>If the previous limit is greater than <paramref name="Value"/>, the oldest items will be removed.</summary>
-            /// <param name="Value"></param>
-            public void SetLimit(int Value)
-            {
-                if (Value <= 0)
-                {
-                    throw new ArgumentOutOfRangeException($"{nameof(LimitedStack<T>)}.{nameof(Limit)} cannot be <= 0.");
-                }
-
-                if (Value != Limit)
-                {
-                    if (Value > Count)
-                    {
-                        Limit = Value;
-                    }
-                    else
-                    {
-                        Stack = new(Stack.Skip(Count - Value));
-                    }
-                }
-            }
-
-            public LimitedStack(int Limit)
-            {
-                this.Limit = Limit;
-                Stack = new(Limit);
-            }
-
-            public void Clear() => Stack.Clear();
-
-            public T Peek() => Stack[^1];
-
-            public void Push(T Item)
-            {
-                if (Stack.Count == Limit)
-                {
-                    Stack.RemoveAt(0);
-                }
-
-                Stack.Add(Item);
-            }
-
-            public T Pop()
-            {
-                T Item = Peek();
-                Stack.RemoveAt(Stack.Count - 1);
-                return Item;
-            }
-
-            public bool TryPop(out T Item)
-            {
-                if (Stack.Count > 0)
-                {
-                    Item = Pop();
-                    return true;
-                }
-                else
-                {
-                    Item = default;
-                    return false;
-                }
-            }
-
-            public override string ToString() => $"{nameof(LimitedStack<T>)}: {Count} / {Limit} (Top={Peek})";
-        }
-
         public const int DefaultUndoRedoHistorySize = 20;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -906,7 +828,7 @@ namespace MGUI.Core.UI
         private record struct RestorableState(MGTextCaret.CaretPosition? CaretPosition, TextSelection? Selection, string Text);
         private RestorableState CreateRestorableState() => new(Caret.Position, CurrentSelection, GetTextBackingField());
 
-        private readonly LimitedStack<RestorableState> UndoStack = new(DefaultUndoRedoHistorySize);
+        private readonly MGTextUndoStack<RestorableState> UndoStack = new(DefaultUndoRedoHistorySize);
 
         private void AddUndoState(RestorableState State) => UndoStack.Push(State);
 
@@ -939,7 +861,7 @@ namespace MGUI.Core.UI
             finally { IsExecutingUndoRedo = false; }
         }
 
-        private readonly LimitedStack<RestorableState> RedoStack = new(DefaultUndoRedoHistorySize);
+        private readonly MGTextUndoStack<RestorableState> RedoStack = new(DefaultUndoRedoHistorySize);
 
         private void AddRedoState(RestorableState State) => RedoStack.Push(State);
         private void ClearRedoStack() => RedoStack.Clear();
