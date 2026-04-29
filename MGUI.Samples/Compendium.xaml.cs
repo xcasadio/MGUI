@@ -206,6 +206,7 @@ namespace MGUI.Samples
         public FocusInputReviewSample FocusInputReviewSample { get; }
         public StyleThemeRefactorSample StyleThemeRefactorSample { get; }
         public EditorDarkThemePreviewSample EditorDarkThemePreviewSample { get; }
+        public EditorRichTextBoxSample EditorRichTextBoxSample { get; }
         #endregion Features
 
         #region Dialogs
@@ -278,6 +279,7 @@ namespace MGUI.Samples
             FocusInputReviewSample = new(Content, Desktop);
             StyleThemeRefactorSample = new(Content, Desktop);
             EditorDarkThemePreviewSample = new(Content, Desktop);
+            EditorRichTextBoxSample = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs

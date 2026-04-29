@@ -514,7 +514,7 @@ Resultat:
 - Resultat validation: 3 tests passes, 0 echec ; build sample OK.
 - Commit effectue: `ui: complete task 10 add completion popup`.
 
-### ⚪ 11. Ajouter le sample editeur riche dans MGUI.Samples
+### ✅ 11. Ajouter le sample editeur riche dans MGUI.Samples
 
 But:
 rendre la feature visible et testable par l'utilisateur final du sample.
@@ -547,7 +547,16 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Ajout du sample `MGUI.Samples/Features/EditorRichTextBox.xaml` et de son code-behind `EditorRichTextBox.xaml.cs`.
+- Enregistrement dans `Compendium.xaml`, `Compendium.xaml.cs` et `MGUI.Samples.csproj` pour rendre la fenetre disponible et embarquer le XAML comme ressource.
+- Le sample expose `SCN-EDITOR-RTB-001`, charge un texte C# representatif, active `CSharpRichTextSyntaxHighlighter`, branche `CSharpKeywordCompletionProvider` et affiche les suggestions via une `ListBox` MGUI.
+- Ajout du scenario `SCN-EDITOR-RTB-001` dans `Docs/scenario-validation-index.md`.
+- Validation graphique manuelle non lancee depuis l'agent; l'environnement de validation retenu est le build sample plus les tests cibles.
+- Validations executees avec succes:
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBox|Completion|Syntax"`
+- Resultat validation: build sample OK ; 39 tests passes, 0 echec.
+- Commit effectue: `sample: complete task 11 add editor rich textbox sample`.
 
 ### ⚪ 12. Documenter l'API et mettre a jour l'analyse des gaps
 

@@ -73,6 +73,7 @@
     <None Remove="Features\PerformanceTest.xaml" />
     <None Remove="Features\FocusInputReview.xaml" />
     <None Remove="Features\EditorDarkThemePreview.xaml" />
+    <None Remove="Features\EditorRichTextBox.xaml" />
     <None Remove="Features\RoundedShapes.xaml" />
     <None Remove="Features\ResponsiveLayout.xaml" />
     <None Remove="Features\StyleThemeRefactor.xaml" />
@@ -210,6 +211,7 @@
     <EmbeddedResource Include="Features\PerformanceTest.xaml" />
     <EmbeddedResource Include="Features\FocusInputReview.xaml" />
     <EmbeddedResource Include="Features\EditorDarkThemePreview.xaml" />
+    <EmbeddedResource Include="Features\EditorRichTextBox.xaml" />
     <EmbeddedResource Include="Features\RoundedShapes.xaml" />
     <EmbeddedResource Include="Features\ResponsiveLayout.xaml" />
     <EmbeddedResource Include="Features\StyleThemeRefactor.xaml" />

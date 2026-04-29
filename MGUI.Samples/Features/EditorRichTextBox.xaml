@@ -1,0 +1,46 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:System="clr-namespace:System;assembly=mscorlib"
+        Left="960" Top="50" Width="960" Height="640" TitleText="SCN-EDITOR-RTB-001 RichTextBox Editor" Padding="0">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Background" Value="White * 0.06" />
+            <Setter Property="IsExpandable" Value="False" />
+        </Style>
+    </Window.Styles>
+
+    <OverlayPanel Background="rgb(24,28,34)">
+        <Grid Margin="12" RowLengths="Auto,*,Auto" ColumnLengths="*,260" RowSpacing="8" ColumnSpacing="10">
+            <StackPanel Row="0" Column="0" ColumnSpan="2" Orientation="Horizontal" Spacing="6">
+                <Button Name="CompleteButton" Content="Complete" />
+                <Button Name="PreviousCompletionButton" Content="Previous" />
+                <Button Name="NextCompletionButton" Content="Next" />
+                <Button Name="AcceptCompletionButton" Content="Accept" />
+                <Button Name="ResetTextButton" Content="Reset" />
+            </StackPanel>
+
+            <RichTextBox Name="EditorTextBox"
+                         Row="1" Column="0"
+                         MinLines="20"
+                         MaxLines="20"
+                         WrapText="False"
+                         ShowLineNumbers="True"
+                         TabSize="4"
+                         IsUserResizable="False" />
+
+            <GroupBox Row="1" Column="1" Header="Completions">
+                <ListBox Name="CompletionList" ItemType="{x:Type System:String}" Height="500" />
+            </GroupBox>
+
+            <TextBlock Name="StatusText" Row="2" Column="0" ColumnSpan="2" Text="Ready" />
+        </Grid>
+    </OverlayPanel>
+</Window>

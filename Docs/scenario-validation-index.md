@@ -27,6 +27,7 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 | `SCN-DOCK-001` | docking | drag, split, save/load de layout et reprise des panneaux restent demonstrables sur un host de docking cible | `MGUI.Samples/Features/DockingDemo.cs` | build sample + validation docking ciblee |
 | `SCN-TEXT-001` | text | la selection et l'echappement des backslashes dans `TextBox` restent stables et demonstrables | `MGUI.Samples/Features/TextBoxBackslashTest.xaml` | build sample + filtre texte cible |
 | `SCN-TEXT-002` | text surface lite: chat + log + texte annote | les usages chat, log et debug reutilisent un petit chemin texte explicite: runs programmes pour l'annotation, feed append-only pour le log, formatting inline optionnel pour les messages de chat, sans ouvrir un RichTextBox complet | `MGUI.Samples/Features/TextSurfaceLite.xaml` | `FullyQualifiedName~Text|FullyQualifiedName~Chat|FullyQualifiedName~Focus` |
+| `SCN-EDITOR-RTB-001` | rich textbox editor | l'editeur RichTextBox sample reste editable, colore lexicalement et capable d'accepter une completion C# demo | `MGUI.Samples/Features/EditorRichTextBox.xaml` | build sample + `FullyQualifiedName~RichTextBox|FullyQualifiedName~Completion|FullyQualifiedName~Syntax` |
 
 ## Priorite immediate
 
@@ -38,6 +39,7 @@ Les scenarios a utiliser en priorite pour les chantiers deja ouverts par la road
 - `SCN-MARKUP-001` pour le durcissement du loader XAML ;
 - `SCN-GRID-001` pour le chantier `DataGrid-lite` oriente outils/debug ;
 - `SCN-TEXT-002` pour la cloture des ameliorations textuelles ciblees avant tout `RichTextBox` complet ;
+- `SCN-EDITOR-RTB-001` pour la tranche RichTextBox editeur, coloration syntaxique et autocompletion ;
 - `SCN-DOCK-001` comme point d'entree visible des futures validations docking ;
 - `SCN-SHAPE-001` comme point d'entree visible du lot shapes retained.
 
