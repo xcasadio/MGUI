@@ -54,9 +54,13 @@ namespace MGUI.Core.UI.TextEditing
             => Replace(range, string.Empty);
 
         public MGTextRange Replace(MGTextRange range, string text)
+            => ApplyEdit(range, text).InsertedRange;
+
+        public MGTextEditResult ApplyEdit(MGTextRange range, string text)
         {
             MGTextRange removedRange = NormalizeRange(range);
             string insertionText = NormalizeLineEndings(text);
+            string removedText = GetText(removedRange);
             string nextText = _text.Remove(removedRange.StartIndex, removedRange.Length).Insert(removedRange.StartIndex, insertionText);
 
             if (nextText != _text)
@@ -66,7 +70,27 @@ namespace MGUI.Core.UI.TextEditing
                 RebuildLineStarts();
             }
 
-            return MGTextRange.FromStartAndLength(removedRange.StartIndex, insertionText.Length);
+            MGTextRange insertedRange = MGTextRange.FromStartAndLength(removedRange.StartIndex, insertionText.Length);
+            return new MGTextEditResult(removedRange, insertedRange, removedText, insertionText, Version);
+        }
+
+        public string GetText(MGTextRange range)
+        {
+            MGTextRange actualRange = NormalizeRange(range);
+            return _text.Substring(actualRange.StartIndex, actualRange.Length);
+        }
+
+        public MGTextBufferSnapshot CreateSnapshot()
+            => new(_text, Version, _lineStarts);
+
+        public bool RestoreSnapshot(MGTextBufferSnapshot snapshot)
+        {
+            if (snapshot == null)
+            {
+                throw new ArgumentNullException(nameof(snapshot));
+            }
+
+            return SetText(snapshot.Text);
         }
 
         public bool TryGetPosition(int index, out MGTextPosition position)

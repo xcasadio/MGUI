@@ -187,7 +187,7 @@ Resultat:
 - Resultat validation: 9 tests passes, 0 echec ; warnings existants dans le repo, sans nouveau blocage lie a cette tache.
 - Commit effectue: `test: complete task 2 add text buffer range tests`.
 
-### ⚪ 3. Ajouter le modele d'edition texte partageable
+### ✅ 3. Ajouter le modele d'edition texte partageable
 
 But:
 fournir un noyau testable pour texte, lignes, spans et operations d'edition.
@@ -217,7 +217,12 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Extension du modele texte avec `MGTextEditResult`, `MGTextBufferSnapshot`, `MGTextSelectionState`, `MGRichTextStyle` et `MGStyledTextSpan`.
+- `MGTextBuffer` expose maintenant `ApplyEdit(...)`, `GetText(...)`, `CreateSnapshot()` et `RestoreSnapshot(...)`, tout en conservant les helpers `Insert`, `Delete` et `Replace` poses a la tache 2.
+- Ajout de tests `RichTextBoxTextEditingModelTests` couvrant resultats d'edition detailles, snapshots immuables, restauration, selection anchor/active et styles de spans.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxTextBufferTests|RichTextBoxTextEditingModelTests"`.
+- Resultat validation: 15 tests passes, 0 echec ; warnings existants dans le repo, sans nouveau blocage lie a cette tache.
+- Commit effectue: `feat: complete task 3 add text editing model`.
 
 ### ⚪ 4. Partager prudemment les helpers utiles de MGTextBox
 
