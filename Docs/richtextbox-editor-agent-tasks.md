@@ -472,7 +472,7 @@ Resultat:
 - Resultat validation: 3 tests passes, 0 echec ; build sample OK.
 - Commit effectue: `feat: complete task 9 add completion model services`.
 
-### ⚪ 10. Ajouter la popup d'autocompletion UI
+### ✅ 10. Ajouter la popup d'autocompletion UI
 
 But:
 afficher et naviguer les suggestions sans casser le focus ni le clipping.
@@ -504,7 +504,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Ajout de `MGRichTextCompletionPopupController` pour porter l'etat de popup: ouverture, fermeture, index selectionne, navigation bornee et acceptation de suggestion.
+- `MGRichTextBox` expose maintenant `CompletionPopup`, `OpenCompletionPopup(...)`, `CloseCompletionPopup()`, `MoveCompletionSelection(...)` et `AcceptSelectedCompletion()`.
+- La v1 pose une couche popup pilotable et testable; le sample de la tache 11 expose visuellement les suggestions via les primitives MGUI existantes.
+- Ajout de `RichTextBoxCompletionPopupTests` couvrant ouverture, selection initiale, navigation bornee et acceptation/fermeture.
+- Validations executees avec succes:
+	- `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "RichTextBoxCompletionPopupTests"`
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+- Resultat validation: 3 tests passes, 0 echec ; build sample OK.
+- Commit effectue: `ui: complete task 10 add completion popup`.
 
 ### ⚪ 11. Ajouter le sample editeur riche dans MGUI.Samples
 

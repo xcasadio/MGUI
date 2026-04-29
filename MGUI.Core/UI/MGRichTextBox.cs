@@ -17,6 +17,7 @@ namespace MGUI.Core.UI
         private readonly List<MGStyledTextSpan> _styledSpans = new();
 
         public MGTextBuffer TextBuffer { get; } = new();
+        public MGRichTextCompletionPopupController CompletionPopup { get; } = new();
         public IReadOnlyList<MGStyledTextSpan> StyledSpans => _styledSpans;
         public bool HasStyledSpans => _styledSpans.Count > 0;
 
@@ -195,6 +196,27 @@ namespace MGUI.Core.UI
 
             MGRichTextCompletionContext context = MGRichTextCompletionService.CreateContext(Text, CaretIndex, trigger, triggerCharacter, TextBuffer.Version);
             return CompletionProvider.GetCompletions(context);
+        }
+
+        public bool OpenCompletionPopup(MGRichTextCompletionTrigger trigger = MGRichTextCompletionTrigger.Manual, char? triggerCharacter = null)
+            => CompletionPopup.Open(RequestCompletions(trigger, triggerCharacter));
+
+        public void CloseCompletionPopup()
+            => CompletionPopup.Close();
+
+        public bool MoveCompletionSelection(int delta)
+            => CompletionPopup.MoveSelection(delta);
+
+        public bool AcceptSelectedCompletion()
+        {
+            if (!CompletionPopup.TryAcceptSelected(out MGRichTextCompletionAcceptance acceptance))
+            {
+                return false;
+            }
+
+            ApplyTextEdit(acceptance.ReplacementRange, acceptance.InsertText);
+            SelectionState = MGTextSelectionState.EmptyAt(acceptance.NewCaretIndex);
+            return true;
         }
 
         public bool AcceptCompletion(MGRichTextCompletionItem item, MGTextRange replacementRange)
