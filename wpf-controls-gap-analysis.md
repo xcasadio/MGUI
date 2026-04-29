@@ -41,6 +41,7 @@ Ce document identifie les contrôles WPF standard qui ne sont pas actuellement i
 ### Contrôles de Texte
 - MGTextBlock (équivalent: TextBlock)
 - MGTextBox (équivalent: TextBox)
+- MGRichTextBox (équivalent partiel: RichTextBox orienté éditeur v1, texte brut + spans stylés)
 - MGPasswordBox (équivalent: PasswordBox)
 
 ### Contrôles de Sélection et Entrée
@@ -120,11 +121,14 @@ Ce document identifie les contrôles WPF standard qui ne sont pas actuellement i
 **Description**: Barre d'état en bas de fenêtre
 **Cas d'usage**: Affichage d'informations de statut, progression
 
-### 4. Contrôles de Texte Avancés Manquants
+### 4. Contrôles de Texte Avancés Partiellement Couverts ou Manquants
 
 #### 4.1 RichTextBox
-**Description**: Éditeur de texte riche avec formatage (gras, italique, couleurs, etc.)
-**Cas d'usage**: Éditeurs de texte, chat avec formatage
+**Etat MGUI**: partiellement couvert par `MGRichTextBox` v1.
+**Description**: éditeur de texte riche avec formatage (gras, italique, couleurs, etc.)
+**Couverture actuelle**: texte brut editable, buffer/ranges/lignes testables, spans de style non destructifs, coloration syntaxique injectable, completion injectable et sample `SCN-EDITOR-RTB-001` dans `MGUI.Samples/Features/EditorRichTextBox.xaml`.
+**Limites v1**: pas de `FlowDocument`, pas de RTF/HTML, pas de modele de paragraphes WPF, pas de client LSP complet, pas de virtualisation grand document.
+**Cas d'usage couverts**: petits editeurs d'outillage, snippets C#, prompts d'agents IA, champs texte enrichis par classification.
 
 #### 4.2 FlowDocumentReader
 **Description**: Lecteur de documents avec pagination, zoom

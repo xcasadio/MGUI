@@ -43,6 +43,7 @@ All control names are prefixed with 'MG' and many controls have similar names an
   - MGStopwatch
   - MGTextBlock
   - MGTextBox
+    - MGRichTextBox
     - MGNumericUpDown
   - MGTimer
   
@@ -53,6 +54,7 @@ Theme-driven control template mappings: see [Docs/lookless-theme-template-guide.
 Rendering backend overview: see [Docs/rendering-backend-architecture.md](Docs/rendering-backend-architecture.md).
 MonoGame host wiring: see [Docs/monogame-host-integration-guide.md](Docs/monogame-host-integration-guide.md).
 Custom engine backend wiring: see [Docs/custom-render-backend-integration.md](Docs/custom-render-backend-integration.md).
+RichTextBox editor v1: see [Docs/richtextbox-editor-v1-guide.md](Docs/richtextbox-editor-v1-guide.md).
 
 Rendering split status:
 

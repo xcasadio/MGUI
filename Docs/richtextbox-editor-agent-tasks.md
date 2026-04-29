@@ -558,7 +558,7 @@ Resultat:
 - Resultat validation: build sample OK ; 39 tests passes, 0 echec.
 - Commit effectue: `sample: complete task 11 add editor rich textbox sample`.
 
-### ⚪ 12. Documenter l'API et mettre a jour l'analyse des gaps
+### ✅ 12. Documenter l'API et mettre a jour l'analyse des gaps
 
 But:
 clarifier ce que la v1 livre et ce qui reste a faire.
@@ -588,7 +588,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent implementant la tache.
+- Ajout de `Docs/richtextbox-editor-v1-guide.md` avec scope v1, snippets XAML/C#, branchement de `IRichTextSyntaxHighlighter`, branchement de `IRichTextCompletionProvider`, pieces publiques et limites connues.
+- `README.md` reference maintenant `MGRichTextBox` dans la liste des controles et pointe vers le guide v1.
+- `wpf-controls-gap-analysis.md` indique que `RichTextBox` est partiellement couvert par `MGRichTextBox` v1, avec les limites explicites: pas de `FlowDocument`, pas de RTF/HTML, pas de LSP complet.
+- Les references au sample `SCN-EDITOR-RTB-001` et aux fichiers `MGUI.Samples/Features/EditorRichTextBox.xaml(.cs)` sont documentees.
+- Validations executees avec succes:
+	- `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
+	- `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`
+- Resultat validation: builds Core et Samples OK avec avertissements existants.
+- Commit effectue: `docs: complete task 12 document rich textbox editor v1`.
 
 ### ⚪ 13. Stabiliser les scenarios editeur et fermer la tranche v1
 
