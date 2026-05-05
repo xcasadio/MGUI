@@ -19,6 +19,7 @@ namespace MGUI.Core.UI.Styling
     {
         private const string BuiltInControlTemplatesResourceName = "MGUI.Core.UI.Templates.BuiltInControlTemplates.xaml";
         private static readonly Lazy<IReadOnlyDictionary<string, ControlTemplateDefinition>> BuiltInXamlTemplateDefinitions = new(LoadBuiltInXamlTemplateDefinitions);
+        private static readonly StringComparer TemplateNameComparer = StringComparer.Ordinal;
 
         public const string WindowTemplateName = "Window.Default";
         public const string ToolTipTemplateName = "ToolTip.Default";
@@ -160,6 +161,18 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, DockAutoHideStripTemplateName, ApplyDockAutoHideStripTemplate);
             Register(Resources, DockSplitterTemplateName, ApplyDockSplitterTemplate);
             Register(Resources, DockDropIndicatorsTemplateName, ApplyDockDropIndicatorsTemplate);
+
+            IReadOnlyDictionary<string, MGControlTemplate> builtInXamlTemplates = ControlTemplateLoader.BuildTemplates(
+                BuiltInXamlTemplateDefinitions.Value.Values,
+                name => Resources.TryGetControlTemplate(name, out MGControlTemplate template) ? template : null);
+
+            foreach (KeyValuePair<string, MGControlTemplate> item in builtInXamlTemplates)
+            {
+                if (!Resources.TryGetControlTemplate(item.Key, out _))
+                {
+                    Resources.AddControlTemplate(item.Value);
+                }
+            }
         }
 
         private static bool IsGenericControl(MGElement Owner, Type GenericDefinition)
