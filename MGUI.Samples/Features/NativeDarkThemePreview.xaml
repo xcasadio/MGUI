@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:controls="clr-namespace:MGUI.Samples.Controls;assembly=MGUI.Samples"
-        Left="520" Top="40" Width="860" Height="840" TitleText="Editor Dark Theme Preview" Padding="10">
+        Left="520" Top="40" Width="860" Height="840" TitleText="Native Dark Theme Preview" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
@@ -24,8 +24,8 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="6,3">
         <StackPanel Orientation="Vertical" Spacing="10">
-            <TextBlock StyleNames="Header1" Text="CasaEditor.Dark Preview" HorizontalAlignment="Center" />
-            <TextBlock Text="This sample loads the real editor theme and control templates from CasaEngine.Editor content files, then previews representative controls without forcing control templates in XAML." WrapText="True" />
+            <TextBlock StyleNames="Header1" Text="MGUI Dark Preview" HorizontalAlignment="Center" />
+            <TextBlock Text="This sample previews the native MGUI built-in Dark theme and its embedded control templates, without loading any theme assets from CasaEngine.Editor." WrapText="True" />
             <TextBlock Name="ThemeStatusText" WrapText="True" />
             <Separator />
 

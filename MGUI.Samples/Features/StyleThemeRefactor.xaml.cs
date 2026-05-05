@@ -55,28 +55,14 @@ Pas encore complet
     </ControlTemplate>
 </ControlTemplates>
 
-<ThemeDefinition Name=""LedgerSkin"" BasedOn=""Light_Gray"">
-    <ThemeDefinition.Window>
-        <ThemeWindowSettingsDefinition BorderBrush=""rgb(72,72,72)"" TitleBarMinHeight=""28"" />
-    </ThemeDefinition.Window>
-    <ThemeDefinition.ListView>
-        <ThemeListViewSettingsDefinition GridLineBrush=""rgb(96,96,96) * 0.65"">
-            <ThemeListViewSettingsDefinition.HeaderForeground>
-                <ThemeVisualStateColorSettingDefinition NormalValue=""Black"" />
-            </ThemeListViewSettingsDefinition.HeaderForeground>
-        </ThemeListViewSettingsDefinition>
-    </ThemeDefinition.ListView>
-    <ThemeDefinition.ComboBox>
-        <ThemeComboBoxSettingsDefinition Padding=""6,3,22,3"" BorderBrush=""rgb(96,96,96)""
-                                                                         DropdownBorderBrush=""rgb(96,96,96)"" DropdownBorderThickness=""1"" />
-    </ThemeDefinition.ComboBox>
-    <ThemeDefinition.TabControl>
-        <ThemeTabControlSettingsDefinition BorderBrush=""rgb(96,96,96)"" BorderThickness=""1"" HeadersSpacing=""2"" />
-    </ThemeDefinition.TabControl>
+<ThemeDefinition Name=""BlueprintSkin"" BasedOn=""Dark_Blue"">
     <ThemeDefinition.ControlTemplates>
-        <ThemeControlTemplateDefinition ElementType=""ListView"" TemplateName=""ListView.HeadersBottom"" />
+        <ThemeControlTemplateDefinition ElementType=""ListView"" TemplateName=""ListView.Default"" />
     </ThemeDefinition.ControlTemplates>
 </ThemeDefinition>
+
+MGTheme darkTheme = new(MGTheme.BuiltInTheme.Dark, desktop.DefaultFontFamily);
+desktop.Resources.AddTheme(""DarkSkin"", darkTheme);
 
 <ListView ItemType=""{x:Type controls:Person}"" />";
 
@@ -118,151 +104,6 @@ Pas encore complet
             <ThemeControlTemplateDefinition ElementType=""ListView"" TemplateName=""ListView.Default"" />
         </ThemeDefinition.ControlTemplates>
     </ThemeDefinition>
-    <ThemeDefinition Name=""LedgerSkin"" BasedOn=""Light_Gray"">
-        <ThemeDefinition.FontSettings>
-            <ThemeFontSettingsDefinition DefaultFontSize=""11"" />
-        </ThemeDefinition.FontSettings>
-        <ThemeDefinition.Backgrounds>
-            <ThemeBackgroundDefinition ElementType=""Window"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(72,72,72)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-            <ThemeBackgroundDefinition ElementType=""ScrollViewer"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(96,96,96)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-            <ThemeBackgroundDefinition ElementType=""Button"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(228,231,235)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-            <ThemeBackgroundDefinition ElementType=""ComboBox"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(236,239,242)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-            <ThemeBackgroundDefinition ElementType=""ContextMenu"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(236,239,242)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-            <ThemeBackgroundDefinition ElementType=""ListBox"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(224,228,232)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-            <ThemeBackgroundDefinition ElementType=""ListView"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(230,234,238)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-            <ThemeBackgroundDefinition ElementType=""TabControl"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(218,222,226)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-            <ThemeBackgroundDefinition ElementType=""TextBox"">
-                <ThemeBackgroundDefinition.Value>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(242,245,248)"" />
-                </ThemeBackgroundDefinition.Value>
-            </ThemeBackgroundDefinition>
-        </ThemeDefinition.Backgrounds>
-        <ThemeDefinition.Window>
-            <ThemeWindowSettingsDefinition BorderBrush=""rgb(72,72,72)""
-                                           TitleBarMinHeight=""28"" />
-        </ThemeDefinition.Window>
-        <ThemeDefinition.ContextMenu>
-            <ThemeContextMenuSettingsDefinition BorderBrush=""rgb(96,96,96)""
-                                               BorderThickness=""1"" />
-        </ThemeDefinition.ContextMenu>
-        <ThemeDefinition.ContextMenuItem>
-            <ThemeContextMenuItemSettingsDefinition>
-                <ThemeContextMenuItemSettingsDefinition.HeaderBackground>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(236,239,242)""
-                                                         FocusedValue=""rgb(220,224,228)""
-                                                         SelectedValue=""rgb(220,224,228)""
-                                                         DisabledValue=""rgb(236,239,242) * 0.7"" />
-                </ThemeContextMenuItemSettingsDefinition.HeaderBackground>
-            </ThemeContextMenuItemSettingsDefinition>
-        </ThemeDefinition.ContextMenuItem>
-        <ThemeDefinition.ListBox>
-            <ThemeListBoxSettingsDefinition TitleBorderBrush=""rgb(96,96,96)""
-                                            TitleBorderThickness=""1,1,1,0""
-                                            InnerBorderBrush=""rgb(96,96,96)""
-                                            InnerBorderThickness=""1""
-                                            ItemsPanelBorderBrush=""rgb(96,96,96)""
-                                            ItemsPanelBorderThickness=""1"">
-                <ThemeListBoxSettingsDefinition.OuterBackground>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(224,228,232)"" />
-                </ThemeListBoxSettingsDefinition.OuterBackground>
-                <ThemeListBoxSettingsDefinition.TitleForeground>
-                    <ThemeVisualStateColorSettingDefinition NormalValue=""Black""
-                                                           SelectedValue=""Black""
-                                                           FocusedValue=""Black""
-                                                           DisabledValue=""Black"" />
-                </ThemeListBoxSettingsDefinition.TitleForeground>
-            </ThemeListBoxSettingsDefinition>
-        </ThemeDefinition.ListBox>
-        <ThemeDefinition.ListView>
-            <ThemeListViewSettingsDefinition GridLineBrush=""rgb(96,96,96) * 0.65"">
-                <ThemeListViewSettingsDefinition.HeaderForeground>
-                    <ThemeVisualStateColorSettingDefinition NormalValue=""Black""
-                                                           SelectedValue=""Black""
-                                                           FocusedValue=""Black""
-                                                           DisabledValue=""Black * 0.7"" />
-                </ThemeListViewSettingsDefinition.HeaderForeground>
-            </ThemeListViewSettingsDefinition>
-        </ThemeDefinition.ListView>
-        <ThemeDefinition.ComboBox>
-            <ThemeComboBoxSettingsDefinition Padding=""6,3,22,3""
-                                             MinHeight=""24""
-                                             BorderBrush=""rgb(96,96,96)""
-                                             DropdownArrowMargin=""0,0,6,0""
-                                             DropdownMinWidth=""220""
-                                             DropdownBorderThickness=""1""
-                                             DropdownBorderBrush=""rgb(96,96,96)""
-                                             DropdownPadding=""2""
-                                             DropdownScrollViewerPadding=""0""
-                                             DropdownItemsSpacing=""1"" />
-        </ThemeDefinition.ComboBox>
-        <ThemeDefinition.TabControl>
-            <ThemeTabControlSettingsDefinition Padding=""0""
-                                              BorderBrush=""rgb(96,96,96)""
-                                              BorderThickness=""1""
-                                              HeadersSpacing=""2"" />
-        </ThemeDefinition.TabControl>
-        <ThemeDefinition.ControlTemplates>
-            <ThemeControlTemplateDefinition ElementType=""ListView"" TemplateName=""ListView.HeadersBottom"" />
-        </ThemeDefinition.ControlTemplates>
-        <ThemeDefinition.Properties>
-            <ThemePropertyDefinition Target=""ScrollBarOuterBrush"">
-                <ThemePropertyDefinition.VisualStateFillBrush>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(72,72,72)""
-                                                         FocusedValue=""rgb(84,84,84)""
-                                                         SelectedValue=""rgb(84,84,84)""
-                                                         DisabledValue=""rgb(72,72,72) * 0.6"" />
-                </ThemePropertyDefinition.VisualStateFillBrush>
-            </ThemePropertyDefinition>
-            <ThemePropertyDefinition Target=""ScrollBarInnerBrush"">
-                <ThemePropertyDefinition.VisualStateFillBrush>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(208,212,216)""
-                                                         FocusedValue=""rgb(220,224,228)""
-                                                         SelectedValue=""rgb(220,224,228)""
-                                                         DisabledValue=""rgb(208,212,216) * 0.7"" />
-                </ThemePropertyDefinition.VisualStateFillBrush>
-            </ThemePropertyDefinition>
-            <ThemePropertyDefinition Target=""ListBoxItemBackground"">
-                <ThemePropertyDefinition.VisualStateFillBrush>
-                    <ThemeVisualStateFillBrushDefinition NormalValue=""rgb(236,239,242)""
-                                                         FocusedValue=""rgb(220,224,228)""
-                                                         SelectedValue=""rgb(220,224,228)""
-                                                         DisabledValue=""rgb(236,239,242) * 0.7"" />
-                </ThemePropertyDefinition.VisualStateFillBrush>
-            </ThemePropertyDefinition>
-        </ThemeDefinition.Properties>
-    </ThemeDefinition>
 </ThemeDefinitionsDocument>
 ";
 
@@ -275,7 +116,9 @@ Pas encore complet
                         Window.GetResources().LoadThemesFromXaml(XamlDocumentSource.FromString(SampleThemesXaml, SampleThemeResourceName));
 
                         MGButton blueprintSkinButton = Window.GetElementByName<MGButton>("ApplyBlueprintSkinButton");
-                        MGButton ledgerSkinButton = Window.GetElementByName<MGButton>("ApplyLedgerSkinButton");
+                        Window.GetResources().AddTheme("DarkSkin", new MGTheme(MGTheme.BuiltInTheme.Dark, Desktop.DefaultFontFamily));
+
+                        MGButton darkSkinButton = Window.GetElementByName<MGButton>("ApplyDarkSkinButton");
             MGButton openContextMenuButton = Window.GetElementByName<MGButton>("OpenContextMenuButton");
             MGTextBlock activeThemeText = Window.GetElementByName<MGTextBlock>("ActiveThemeText");
                         MGTextBox xamlCoverageMatrixText = Window.GetElementByName<MGTextBox>("XamlCoverageMatrixText");
@@ -321,17 +164,17 @@ Pas encore complet
                                     selectionControlsPanelBackground, compositeControlsPanelBackground, migrationNotesPanelBackground,
                                     selectionControlsPanelBorderBrush, compositeControlsPanelBorderBrush, migrationNotesPanelBorderBrush,
                                     selectionControlsPanelBorder, compositeControlsPanelBorder, migrationNotesPanelBorder,
-                                    blueprintSkinButton, ledgerSkinButton);
+                                    blueprintSkinButton, darkSkinButton);
                 return true;
             };
-                        ledgerSkinButton.Command = _ =>
+                        darkSkinButton.Command = _ =>
             {
-                                ApplyTheme("LedgerSkin", "Ledger", activeThemeText, sampleContextMenu, sampleListBox,
+                                ApplyTheme("DarkSkin", "Dark", activeThemeText, sampleContextMenu, sampleListBox,
                                     sampleListView, exampleXamlText, openContextMenuButton, rootScrollViewer,
                                     selectionControlsPanelBackground, compositeControlsPanelBackground, migrationNotesPanelBackground,
                                     selectionControlsPanelBorderBrush, compositeControlsPanelBorderBrush, migrationNotesPanelBorderBrush,
                                     selectionControlsPanelBorder, compositeControlsPanelBorder, migrationNotesPanelBorder,
-                                    blueprintSkinButton, ledgerSkinButton);
+                                    blueprintSkinButton, darkSkinButton);
                 return true;
             };
             openContextMenuButton.MouseHandler.LMBReleasedInside += (_, e) =>
@@ -348,7 +191,7 @@ Pas encore complet
                             selectionControlsPanelBackground, compositeControlsPanelBackground, migrationNotesPanelBackground,
                             selectionControlsPanelBorderBrush, compositeControlsPanelBorderBrush, migrationNotesPanelBorderBrush,
                             selectionControlsPanelBorder, compositeControlsPanelBorder, migrationNotesPanelBorder,
-                            blueprintSkinButton, ledgerSkinButton);
+                            blueprintSkinButton, darkSkinButton);
         }
 
                     private void ApplyTheme(string themeName, string label, MGTextBlock statusText,
@@ -357,7 +200,7 @@ Pas encore complet
                         VisualStateFillBrush selectionControlsPanelBackground, VisualStateFillBrush compositeControlsPanelBackground, VisualStateFillBrush migrationNotesPanelBackground,
                         IBorderBrush selectionControlsPanelBorderBrush, IBorderBrush compositeControlsPanelBorderBrush, IBorderBrush migrationNotesPanelBorderBrush,
                         MGBorder selectionControlsPanelBorder, MGBorder compositeControlsPanelBorder, MGBorder migrationNotesPanelBorder,
-                        MGButton blueprintSkinButton, MGButton ledgerSkinButton)
+                        MGButton blueprintSkinButton, MGButton darkSkinButton)
         {
                         MGTheme theme = Window.GetResources().GetThemeOrDefault(themeName, null, false);
                         if (theme != null)
@@ -365,10 +208,10 @@ Pas encore complet
                                 Window.GetResources().DefaultTheme = theme;
                             Color fallbackTextColor = theme.TextBlockFallbackForeground.GetValue(true).NormalValue;
                             var darkGrayBorderBrush = new MGSolidFillBrush(new Color(72, 72, 72)).AsUniformBorderBrush();
-                            bool isLedgerSkin = themeName == "LedgerSkin";
-                            var ledgerSelectionPanelBrush = theme.GetBackgroundBrush(MGElementType.ListBox);
-                            var ledgerCompositePanelBrush = theme.GetBackgroundBrush(MGElementType.TabControl);
-                            var ledgerNotesPanelBrush = theme.GetBackgroundBrush(MGElementType.TextBox);
+                            bool isDarkSkin = themeName == "DarkSkin";
+                            var darkSelectionPanelBrush = theme.GetBackgroundBrush(MGElementType.ListBox);
+                            var darkCompositePanelBrush = theme.GetBackgroundBrush(MGElementType.TabControl);
+                            var darkNotesPanelBrush = theme.GetBackgroundBrush(MGElementType.TextBox);
 
                             Window.BorderBrush = theme.Window.BorderBrush?.Copy() ?? Window.BorderBrush;
                             Window.BackgroundBrush = theme.GetBackgroundBrush(MGElementType.Window);
@@ -403,15 +246,15 @@ Pas encore complet
 
                             openContextMenuButton.DefaultTextForeground.SetAll(fallbackTextColor);
                             blueprintSkinButton.DefaultTextForeground.SetAll(fallbackTextColor);
-                            ledgerSkinButton.DefaultTextForeground.SetAll(fallbackTextColor);
+                            darkSkinButton.DefaultTextForeground.SetAll(fallbackTextColor);
 
-                            selectionControlsPanelBorder.BackgroundBrush = isLedgerSkin ? ledgerSelectionPanelBrush : selectionControlsPanelBackground?.Copy();
-                            compositeControlsPanelBorder.BackgroundBrush = isLedgerSkin ? ledgerCompositePanelBrush : compositeControlsPanelBackground?.Copy();
-                            migrationNotesPanelBorder.BackgroundBrush = isLedgerSkin ? ledgerNotesPanelBrush : migrationNotesPanelBackground?.Copy();
+                            selectionControlsPanelBorder.BackgroundBrush = isDarkSkin ? darkSelectionPanelBrush : selectionControlsPanelBackground?.Copy();
+                            compositeControlsPanelBorder.BackgroundBrush = isDarkSkin ? darkCompositePanelBrush : compositeControlsPanelBackground?.Copy();
+                            migrationNotesPanelBorder.BackgroundBrush = isDarkSkin ? darkNotesPanelBrush : migrationNotesPanelBackground?.Copy();
 
-                            selectionControlsPanelBorder.BorderBrush = isLedgerSkin ? darkGrayBorderBrush.Copy() : selectionControlsPanelBorderBrush?.Copy();
-                            compositeControlsPanelBorder.BorderBrush = isLedgerSkin ? darkGrayBorderBrush.Copy() : compositeControlsPanelBorderBrush?.Copy();
-                            migrationNotesPanelBorder.BorderBrush = isLedgerSkin ? darkGrayBorderBrush.Copy() : migrationNotesPanelBorderBrush?.Copy();
+                            selectionControlsPanelBorder.BorderBrush = isDarkSkin ? darkGrayBorderBrush.Copy() : selectionControlsPanelBorderBrush?.Copy();
+                            compositeControlsPanelBorder.BorderBrush = isDarkSkin ? darkGrayBorderBrush.Copy() : compositeControlsPanelBorderBrush?.Copy();
+                            migrationNotesPanelBorder.BorderBrush = isDarkSkin ? darkGrayBorderBrush.Copy() : migrationNotesPanelBorderBrush?.Copy();
 
                                 statusText.SetText($"Active skin: {label}");
                         }
