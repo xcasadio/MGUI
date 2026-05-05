@@ -205,7 +205,6 @@ namespace MGUI.Samples
         public ResponsiveLayoutSample ResponsiveLayoutSample { get; }
         public FocusInputReviewSample FocusInputReviewSample { get; }
         public StyleThemeRefactorSample StyleThemeRefactorSample { get; }
-        public EditorDarkThemePreviewSample EditorDarkThemePreviewSample { get; }
         public NativeDarkThemePreviewSample NativeDarkThemePreviewSample { get; }
         public EditorRichTextBoxSample EditorRichTextBoxSample { get; }
         #endregion Features
@@ -279,7 +278,6 @@ namespace MGUI.Samples
             ResponsiveLayoutSample = new(Content, Desktop);
             FocusInputReviewSample = new(Content, Desktop);
             StyleThemeRefactorSample = new(Content, Desktop);
-            EditorDarkThemePreviewSample = new(Content, Desktop);
             NativeDarkThemePreviewSample = new(Content, Desktop);
             EditorRichTextBoxSample = new(Content, Desktop);
             #endregion Features
