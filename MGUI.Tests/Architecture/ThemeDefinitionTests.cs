@@ -1,4 +1,6 @@
 using MGUI.Core.UI;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
 using Microsoft.Xna.Framework;
@@ -366,4 +368,43 @@ public class ThemeDefinitionTests
         Assert.Throws<InvalidOperationException>(() =>
             ThemeDefinitionLoader.BuildThemes(new[] { first, second }, _ => null, "Arial"));
     }
+
+      [Fact]
+      public void BuiltInTheme_Dark_Can_Be_Created()
+      {
+        MGTheme theme = new(MGTheme.BuiltInTheme.Dark, "Arial");
+
+        Assert.Equal(new Color(30, 30, 30), ((MGSolidFillBrush)theme.GetBackgroundBrush(MGElementType.Window).NormalValue).Color);
+        Assert.Equal(new Color(210, 210, 210), theme.DropdownArrowColor);
+        Assert.Equal(Color.Transparent, theme.Docking.TabActiveAccentColor);
+        Assert.Equal(CheckIndicatorStyle.FilledSquare, theme.CheckBoxCheckedIndicatorStyle);
+      }
+
+      [Fact]
+      public void BuiltInTheme_Dark_Maps_Control_Templates()
+      {
+        MGTheme theme = new(MGTheme.BuiltInTheme.Dark, "Arial");
+
+        Assert.True(theme.TryGetControlTemplateMapping(MGElementType.Window, out string windowTemplate));
+        Assert.Equal("Dark.Window", windowTemplate);
+        Assert.True(theme.TryGetControlTemplateMapping(MGElementType.ListBox, out string listBoxTemplate));
+        Assert.Equal("Dark.ListBox", listBoxTemplate);
+        Assert.True(theme.TryGetControlTemplateMapping(MGElementType.ComboBox, out string comboBoxTemplate));
+        Assert.Equal("Dark.ComboBox", comboBoxTemplate);
+        Assert.True(theme.TryGetControlTemplateMapping(MGElementType.TabControl, out string tabControlTemplate));
+        Assert.Equal("Dark.TabControl", tabControlTemplate);
+        Assert.True(theme.TryGetControlTemplateMapping(typeof(MGDockTabItem), out string dockTabTemplate));
+        Assert.Equal("Dark.DockTabItem", dockTabTemplate);
+      }
+
+      [Fact]
+      public void BuiltInTheme_Dark_Does_Not_Replace_Default_Constructor()
+      {
+        MGTheme defaultTheme = new("Arial");
+        MGTheme darkBlueTheme = new(MGTheme.BuiltInTheme.Dark_Blue, "Arial");
+
+        Assert.Equal(((MGSolidFillBrush)darkBlueTheme.GetBackgroundBrush(MGElementType.Window).NormalValue).Color,
+          ((MGSolidFillBrush)defaultTheme.GetBackgroundBrush(MGElementType.Window).NormalValue).Color);
+        Assert.Equal(darkBlueTheme.DropdownArrowColor, defaultTheme.DropdownArrowColor);
+      }
 }

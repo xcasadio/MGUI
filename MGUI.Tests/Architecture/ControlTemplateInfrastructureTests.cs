@@ -109,6 +109,18 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void BuiltIn_Control_Template_Catalog_Registers_Dark_Templates()
+    {
+        MGResources resources = new(new MGTheme("Arial"));
+
+        MGControlTemplateCatalog.RegisterDefaults(resources);
+
+        Assert.True(resources.TryGetControlTemplate("Dark.Window", out _));
+        Assert.True(resources.TryGetControlTemplate("Dark.ListBox", out _));
+        Assert.True(resources.TryGetControlTemplate("Dark.DockSplitter", out _));
+    }
+
+    [Fact]
     public void Dock_Preview_Overlay_Uses_Explicit_Surface_And_Border_Parts()
     {
         BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
