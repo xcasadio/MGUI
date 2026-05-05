@@ -58,6 +58,9 @@ public sealed class NativeDarkThemePreviewSample : SampleBase
             new(4, "Fabric", "Override", false),
         });
 
+        ApplyPreviewChrome(themeStatusText, assetPathsText, sampleListBox, sampleListView, openContextMenuButton,
+            sampleContextMenu, toggleOverlayButton);
+
         openContextMenuButton.MouseHandler.LMBReleasedInside += (_, e) =>
         {
             sampleContextMenu.TryOpenContextMenu(openContextMenuButton.LayoutBounds);
@@ -97,6 +100,39 @@ public sealed class NativeDarkThemePreviewSample : SampleBase
 
         themeStatusText.SetText(BuildThemeStatusMessage(_editorTheme != null));
         assetPathsText.SetText(BuildAssetReport(_editorTheme != null));
+    }
+
+    private void ApplyPreviewChrome(MGTextBlock themeStatusText, MGTextBox assetPathsText, MGListBox<string> sampleListBox,
+        MGListView<Person> sampleListView, MGButton openContextMenuButton, MGContextMenu sampleContextMenu,
+        MGButton toggleOverlayButton)
+    {
+        if (_editorTheme == null)
+        {
+            return;
+        }
+
+        Color fallbackTextColor = _editorTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;
+
+        themeStatusText.DefaultTextForeground.SetAll(fallbackTextColor);
+
+        assetPathsText.BackgroundBrush = _editorTheme.GetBackgroundBrush(MGElementType.TextBox);
+        assetPathsText.GetBorder().BackgroundBrush = _editorTheme.GetBackgroundBrush(MGElementType.TextBox);
+        assetPathsText.DefaultTextForeground.SetAll(fallbackTextColor);
+
+        sampleListBox.BackgroundBrush = _editorTheme.GetBackgroundBrush(MGElementType.ListBox);
+
+        sampleListView.BackgroundBrush = _editorTheme.GetBackgroundBrush(MGElementType.ListView);
+        sampleListView.HeaderGrid.BackgroundBrush = _editorTheme.TitleBackground.GetValue(true);
+        sampleListView.HeaderGrid.DefaultTextForeground.SetAll(fallbackTextColor);
+        sampleListView.DataGrid.BackgroundBrush = _editorTheme.GetBackgroundBrush(MGElementType.ListView);
+        sampleListView.DataGrid.DefaultTextForeground.SetAll(fallbackTextColor);
+
+        sampleContextMenu.BackgroundBrush = _editorTheme.GetBackgroundBrush(MGElementType.ContextMenu);
+        sampleContextMenu.BorderBrush = _editorTheme.ContextMenu.BorderBrush?.Copy() ?? sampleContextMenu.BorderBrush;
+        sampleContextMenu.ButtonWrapperTemplate = sampleContextMenu.CreateDefaultDropdownButton;
+
+        openContextMenuButton.DefaultTextForeground.SetAll(fallbackTextColor);
+        toggleOverlayButton.DefaultTextForeground.SetAll(fallbackTextColor);
     }
 
     private string BuildThemeStatusMessage(bool themeResolved)

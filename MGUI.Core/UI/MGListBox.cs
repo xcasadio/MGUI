@@ -1439,12 +1439,45 @@ namespace MGUI.Core.UI
             }
         }
 
+        private ReadOnlyCollection<IFillBrush> CreateThemeAlternatingRowBackgrounds(MGTheme theme)
+        {
+            List<IFillBrush> backgrounds = new();
+            if (theme?.ListBoxItemAlternatingRowBackgrounds != null)
+            {
+                foreach (var background in theme.ListBoxItemAlternatingRowBackgrounds)
+                {
+                    backgrounds.Add(background.GetValue(true));
+                }
+            }
+
+            return backgrounds.AsReadOnly();
+        }
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme == null)
+            {
+                return;
+            }
+
+            AlternatingRowBackgrounds = CreateThemeAlternatingRowBackgrounds(CurrentTheme);
+            if (ItemContainerStyle == ApplyDefaultItemContainerStyle && InternalItems != null)
+            {
+                foreach (var item in InternalItems)
+                {
+                    ApplyDefaultItemContainerStyle(item.ContentPresenter);
+                }
+            }
+        }
+
         public MGListBox(MGWindow ParentWindow)
             : base(ParentWindow, MGElementType.ListBox)
         {
             using (BeginInitializing())
             {
-                AlternatingRowBackgrounds = GetTheme().ListBoxItemAlternatingRowBackgrounds.Select(x => x.GetValue(true)).ToList().AsReadOnly();
+                    AlternatingRowBackgrounds = CreateThemeAlternatingRowBackgrounds(GetTheme());
 
                 ItemContainerStyle = ApplyDefaultItemContainerStyle;
                 ItemTemplate = item => MGControlTemplateCatalog.CreateDefaultListBoxItemContent(ParentWindow, item);

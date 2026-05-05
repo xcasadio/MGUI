@@ -17,6 +17,35 @@ namespace MGUI.Core.UI;
 /// </summary>
 public class MGTreeViewItem : MGSingleContentHost
 {
+    private sealed class TreeViewExpanderToggleButton : MGToggleButton
+    {
+        public TreeViewExpanderToggleButton(MGWindow window, bool isChecked)
+            : base(window, isChecked)
+        {
+            ApplyNeutralChrome();
+        }
+
+        public void ApplyNeutralChrome()
+        {
+            BorderThickness = new(0);
+            BorderBrush = MGUniformBorderBrush.Transparent;
+            BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
+            CheckedBackgroundBrush = SolidFillBrushes.Transparent;
+            Padding = new(0);
+            Margin = new(0, 0, 4, 0);
+            MinWidth = 10;
+            MinHeight = 10;
+            HorizontalContentAlignment = HorizontalAlignment.Center;
+            VerticalContentAlignment = VerticalAlignment.Center;
+        }
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+            ApplyNeutralChrome();
+        }
+    }
+
     internal static bool ShouldToggleExpansionOnHeaderClick(bool hasItems, int clickCount)
         => hasItems && clickCount == 1;
 
@@ -173,7 +202,7 @@ public class MGTreeViewItem : MGSingleContentHost
     public event EventHandler Collapsed;
 
     private MGBorder IndentationBorder { get; set; }
-    private MGToggleButton ExpanderButton { get; set; }
+    private TreeViewExpanderToggleButton ExpanderButton { get; set; }
     private MGBorder HeaderContainer { get; set; }
     private MGStackPanel ChildrenPanel { get; set; }
     private MGDockPanel HeaderPanel { get; set; }
@@ -185,16 +214,7 @@ public class MGTreeViewItem : MGSingleContentHost
             return;
         }
 
-        ExpanderButton.BorderThickness = new(0);
-        ExpanderButton.BorderBrush = MGUniformBorderBrush.Transparent;
-        ExpanderButton.BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
-        ExpanderButton.CheckedBackgroundBrush = SolidFillBrushes.Transparent;
-        ExpanderButton.Padding = new(0);
-        ExpanderButton.Margin = new(0, 0, 4, 0);
-        ExpanderButton.MinWidth = 10;
-        ExpanderButton.MinHeight = 10;
-        ExpanderButton.HorizontalContentAlignment = HorizontalAlignment.Center;
-        ExpanderButton.VerticalContentAlignment = VerticalAlignment.Center;
+        ExpanderButton.ApplyNeutralChrome();
     }
 
     public MGTreeViewItem(MGWindow Window) : base(Window, MGElementType.TreeViewItem)
@@ -208,7 +228,7 @@ public class MGTreeViewItem : MGSingleContentHost
             HeaderPanel = new MGDockPanel(Window);
             IndentationBorder = new MGBorder(Window) { BorderThickness = new(0) };
             HeaderPanel.TryAddChild(IndentationBorder, Dock.Left);
-            ExpanderButton = new MGToggleButton(Window, false);
+            ExpanderButton = new TreeViewExpanderToggleButton(Window, false);
             ApplyExpanderButtonVisuals();
             ExpanderButton.OnCheckStateChanged += OnExpanderButtonCheckStateChanged;
             HeaderPanel.TryAddChild(ExpanderButton, Dock.Left);
@@ -537,7 +557,9 @@ public class MGTreeViewItem : MGSingleContentHost
             HeaderContainer.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
             if (ExpanderButton != null)
             {
-                ExpanderButton.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
+                VisualStateFillBrush expanderSelectionBackground = OwnerTreeView.SelectionBackgroundBrush?.Copy();
+                expanderSelectionBackground?.SetAll(expanderSelectionBackground.NormalValue);
+                ExpanderButton.BackgroundBrush = expanderSelectionBackground;
             }
 
             HeaderContainer.DefaultTextForeground = new VisualStateSetting<Color?>(OwnerTreeView.SelectionForeground);
