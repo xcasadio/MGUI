@@ -19,8 +19,8 @@ This keeps local overrides authoritative while allowing a theme to choose a stru
 
 ```xaml
 <ThemeDefinition xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-                 Name="LedgerSkin"
-                 BasedOn="Light_Gray">
+                 Name="DarkSkin"
+                 BasedOn="Dark">
   <ThemeDefinition.ControlTemplates>
     <ThemeControlTemplateDefinition ElementType="ListView"
                                     TemplateName="ListView.HeadersBottom" />
@@ -57,6 +57,6 @@ See `MGUI.Samples/Features/StyleThemeRefactor.xaml` and `MGUI.Samples/Features/S
 That sample registers a custom `ListView.HeadersBottom` template and two themes:
 
 - `BlueprintSkin` keeps `ListView.Default`
-- `LedgerSkin` maps `ListView` to `ListView.HeadersBottom`
+- `DarkSkin` maps `ListView` to `ListView.HeadersBottom`
 
 Switching themes keeps the same `ListView` behavior and data while moving the header row from the top to the bottom.

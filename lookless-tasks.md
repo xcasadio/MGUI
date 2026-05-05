@@ -424,7 +424,7 @@ Criteres d'acceptation:
 Resultat:
 
 - Un guide court documente maintenant le modele final de resolution et la declaration `ThemeDefinition.ControlTemplates`.
-- Le sample `StyleThemeRefactor` enregistre un template `ListView.HeadersBottom` et deux skins (`BlueprintSkin`, `LedgerSkin`) qui appliquent des structures differentes au meme `ListView`.
+- Le sample `StyleThemeRefactor` enregistre un template `ListView.HeadersBottom` et deux skins (`BlueprintSkin`, `DarkSkin`) qui appliquent des structures differentes au meme `ListView`.
 - La compilation ciblee de `MGUI.Samples` passe, ce qui verrouille le workflow de demonstration sans reouvrir le runtime principal.
 
 ## Definition de fini

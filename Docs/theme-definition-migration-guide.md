@@ -14,7 +14,7 @@ Le pipeline vise est le suivant:
 - Un theme peut heriter d'un autre via `BasedOn`.
 - `MGResources` peut charger un ou plusieurs themes depuis XAML et les enregistrer automatiquement.
 - `ThemeName` continue de fonctionner sur les fenetres et resout les themes via `MGResources.Themes`.
-- Les built-in conserves `Dark_Blue` et `Light_Gray` sont maintenant declares dans [MGUI.Core/UI/Themes/BuiltInThemes.xaml](MGUI.Core/UI/Themes/BuiltInThemes.xaml).
+- Les built-in supportes `Dark`, `Dark_Blue` et `Light_Gray` sont maintenant declares dans [MGUI.Core/UI/Themes/BuiltInThemes.xaml](MGUI.Core/UI/Themes/BuiltInThemes.xaml).
 
 ## Format supporte
 
@@ -28,7 +28,7 @@ Deux racines XAML sont supportees:
 ```xaml
 <ThemeDefinition xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
                  Name="MyTheme"
-                 BasedOn="Dark_Blue">
+                 BasedOn="Dark">
   <ThemeDefinition.FontSettings>
     <ThemeFontSettingsDefinition DefaultFontSize="15" />
   </ThemeDefinition.FontSettings>
@@ -43,7 +43,7 @@ Deux racines XAML sont supportees:
 
 ```xaml
 <ThemeDefinitionsDocument xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core">
-  <ThemeDefinition Name="BaseDark" BasedOn="Dark_Blue" />
+  <ThemeDefinition Name="BaseDark" BasedOn="Dark" />
 
   <ThemeDefinition Name="DebugTheme" BasedOn="BaseDark">
     <ThemeDefinition.Window>
@@ -148,7 +148,10 @@ Voir aussi l'exemple enrichi dans `MGUI.Samples/Features/StyleThemeRefactor.xaml
 Avant:
 
 ```csharp
-MGTheme theme = new(MGTheme.BuiltInTheme.Dark_Blue, desktop.Theme.FontSettings.DefaultFontFamily);
+MGTheme darkTheme = new(MGTheme.BuiltInTheme.Dark, desktop.DefaultFontFamily);
+desktop.Resources.DefaultTheme = darkTheme;
+
+MGTheme theme = darkTheme.Copy();
 theme.FontSettings.DefaultFontSize = 15;
 theme.DropdownArrowColor = Color.Black;
 desktop.Resources.AddTheme("MyTheme", theme);
@@ -159,7 +162,7 @@ Apres:
 ```xaml
 <ThemeDefinition xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
                  Name="MyTheme"
-                 BasedOn="Dark_Blue">
+                 BasedOn="Dark">
   <ThemeDefinition.FontSettings>
     <ThemeFontSettingsDefinition DefaultFontSize="15" />
   </ThemeDefinition.FontSettings>
@@ -175,14 +178,17 @@ Puis:
 desktop.Resources.LoadThemesFromXaml(XamlDocumentSource.FromFile(themeFilePath));
 ```
 
-## Built-in conserves
+## Built-in supportes
 
-Le perimetre built-in supporte est maintenant limite a:
+Le perimetre built-in supporte est maintenant:
 
+- `Dark`
 - `Dark_Blue`
 - `Light_Gray`
 
-Les autres variantes built-in ont ete retirees du contrat public.
+`Dark` est le theme sombre natif recommande pour les nouveaux usages.
+
+`Dark_Blue` reste disponible pour compatibilite. Dans `MGUI.Samples`, il peut etre presente sous le label `Blueprint` pour distinguer le theme historique du nouveau `Dark`.
 
 ## Recommandations
 

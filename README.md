@@ -56,6 +56,19 @@ MonoGame host wiring: see [Docs/monogame-host-integration-guide.md](Docs/monogam
 Custom engine backend wiring: see [Docs/custom-render-backend-integration.md](Docs/custom-render-backend-integration.md).
 RichTextBox editor v1: see [Docs/richtextbox-editor-v1-guide.md](Docs/richtextbox-editor-v1-guide.md).
 
+Built-in themes:
+
+- `Dark` is the native dark theme recommended for new integrations.
+- `Dark_Blue` remains available for compatibility and is presented as `Blueprint` in the sample theme switcher.
+- `Light_Gray` remains available as the light built-in alternative.
+
+Minimal runtime usage:
+
+```csharp
+MGTheme darkTheme = new(MGTheme.BuiltInTheme.Dark, desktop.DefaultFontFamily);
+desktop.Resources.DefaultTheme = darkTheme;
+```
+
 Rendering split status:
 
 - `MGDesktop` is now wired from `IUIDesktopRuntime`, not from an implicit concrete renderer contract.
