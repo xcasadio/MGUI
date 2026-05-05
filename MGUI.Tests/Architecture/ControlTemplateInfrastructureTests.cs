@@ -785,6 +785,46 @@ public class ControlTemplateInfrastructureTests
     }
 
     [Fact]
+    public void TreeViewItem_Selection_Uses_Flat_Background_For_Expander_Button()
+    {
+        string treeViewItemSource = File.ReadAllText(@"d:\development\repo\CasaEngineMonogame\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
+
+        Assert.Contains("OwnerTreeView.SelectionBackgroundBrush?.Copy()", treeViewItemSource);
+        Assert.Contains("expanderSelectionBackground?.SetAll(expanderSelectionBackground.NormalValue);", treeViewItemSource);
+    }
+
+    [Fact]
+    public void TreeViewItem_Uses_Dedicated_Expander_Button_To_Reapply_Neutral_Chrome_After_Theme_Refresh()
+    {
+        string treeViewItemSource = File.ReadAllText(@"d:\development\repo\CasaEngineMonogame\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
+
+        Assert.Contains("private sealed class TreeViewExpanderToggleButton : MGToggleButton", treeViewItemSource);
+        Assert.Contains("ApplyNeutralChrome();", treeViewItemSource);
+        Assert.Contains("ExpanderButton = new TreeViewExpanderToggleButton(Window, false);", treeViewItemSource);
+    }
+
+    [Fact]
+    public void ListBox_Rehydrates_Theme_Dependent_Row_Chrome_On_Theme_Refresh()
+    {
+        string listBoxSource = File.ReadAllText(@"d:\development\repo\CasaEngineMonogame\MGUI\MGUI.Core\UI\MGListBox.cs");
+
+        Assert.Contains("protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)", listBoxSource);
+        Assert.Contains("AlternatingRowBackgrounds = CreateThemeAlternatingRowBackgrounds(CurrentTheme);", listBoxSource);
+        Assert.Contains("ItemContainerStyle == ApplyDefaultItemContainerStyle && InternalItems != null", listBoxSource);
+        Assert.Contains("ApplyDefaultItemContainerStyle(item.ContentPresenter);", listBoxSource);
+    }
+
+    [Fact]
+    public void ContextMenu_Default_Wrapper_Template_Rebuilds_On_Theme_Refresh()
+    {
+        string contextMenuSource = File.ReadAllText(@"d:\development\repo\CasaEngineMonogame\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+
+        Assert.Contains("protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)", contextMenuSource);
+        Assert.Contains("ButtonWrapperTemplate == CreateDefaultDropdownButton", contextMenuSource);
+        Assert.Contains("ButtonWrapperTemplateChanged?.Invoke(this, EventArgs.Empty);", contextMenuSource);
+    }
+
+    [Fact]
     public void ListBox_Does_Not_Overwrite_Template_Owned_ItemsPanel_Chrome()
     {
         string listBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs");

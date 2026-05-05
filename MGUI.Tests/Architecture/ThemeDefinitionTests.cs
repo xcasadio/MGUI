@@ -375,6 +375,7 @@ public class ThemeDefinitionTests
         MGTheme theme = new(MGTheme.BuiltInTheme.Dark, "Arial");
 
         Assert.Equal(new Color(30, 30, 30), ((MGSolidFillBrush)theme.GetBackgroundBrush(MGElementType.Window).NormalValue).Color);
+        Assert.Equal(new Color(37, 37, 38), ((MGSolidFillBrush)theme.ComboBoxDropdownBackground.GetValue(true).NormalValue).Color);
         Assert.Equal(new Color(210, 210, 210), theme.DropdownArrowColor);
         Assert.Equal(Color.Transparent, theme.Docking.TabActiveAccentColor);
         Assert.Equal(CheckIndicatorStyle.FilledSquare, theme.CheckBoxCheckedIndicatorStyle);

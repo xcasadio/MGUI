@@ -160,7 +160,7 @@ desktop.Resources.AddTheme(""DarkSkin"", darkTheme);
                         blueprintSkinButton.Command = _ =>
             {
                                 ApplyTheme("BlueprintSkin", "Blueprint", activeThemeText, sampleContextMenu, sampleListBox,
-                                    sampleListView, exampleXamlText, openContextMenuButton, rootScrollViewer,
+                                    sampleListView, xamlCoverageMatrixText, exampleXamlText, openContextMenuButton, rootScrollViewer,
                                     selectionControlsPanelBackground, compositeControlsPanelBackground, migrationNotesPanelBackground,
                                     selectionControlsPanelBorderBrush, compositeControlsPanelBorderBrush, migrationNotesPanelBorderBrush,
                                     selectionControlsPanelBorder, compositeControlsPanelBorder, migrationNotesPanelBorder,
@@ -170,7 +170,7 @@ desktop.Resources.AddTheme(""DarkSkin"", darkTheme);
                         darkSkinButton.Command = _ =>
             {
                                 ApplyTheme("DarkSkin", "Dark", activeThemeText, sampleContextMenu, sampleListBox,
-                                    sampleListView, exampleXamlText, openContextMenuButton, rootScrollViewer,
+                                    sampleListView, xamlCoverageMatrixText, exampleXamlText, openContextMenuButton, rootScrollViewer,
                                     selectionControlsPanelBackground, compositeControlsPanelBackground, migrationNotesPanelBackground,
                                     selectionControlsPanelBorderBrush, compositeControlsPanelBorderBrush, migrationNotesPanelBorderBrush,
                                     selectionControlsPanelBorder, compositeControlsPanelBorder, migrationNotesPanelBorder,
@@ -187,7 +187,7 @@ desktop.Resources.AddTheme(""DarkSkin"", darkTheme);
             exampleXamlText.SetText(SampleThemeExcerptText);
 
                         ApplyTheme("BlueprintSkin", "Blueprint", activeThemeText, sampleContextMenu, sampleListBox,
-                            sampleListView, exampleXamlText, openContextMenuButton, rootScrollViewer,
+                            sampleListView, xamlCoverageMatrixText, exampleXamlText, openContextMenuButton, rootScrollViewer,
                             selectionControlsPanelBackground, compositeControlsPanelBackground, migrationNotesPanelBackground,
                             selectionControlsPanelBorderBrush, compositeControlsPanelBorderBrush, migrationNotesPanelBorderBrush,
                             selectionControlsPanelBorder, compositeControlsPanelBorder, migrationNotesPanelBorder,
@@ -196,7 +196,8 @@ desktop.Resources.AddTheme(""DarkSkin"", darkTheme);
 
                     private void ApplyTheme(string themeName, string label, MGTextBlock statusText,
                         MGContextMenu sampleContextMenu, MGListBox<string> sampleListBox,
-                        MGListView<Person> sampleListView, MGTextBox exampleXamlText, MGButton openContextMenuButton, MGScrollViewer rootScrollViewer,
+                        MGListView<Person> sampleListView, MGTextBox xamlCoverageMatrixText, MGTextBox exampleXamlText,
+                        MGButton openContextMenuButton, MGScrollViewer rootScrollViewer,
                         VisualStateFillBrush selectionControlsPanelBackground, VisualStateFillBrush compositeControlsPanelBackground, VisualStateFillBrush migrationNotesPanelBackground,
                         IBorderBrush selectionControlsPanelBorderBrush, IBorderBrush compositeControlsPanelBorderBrush, IBorderBrush migrationNotesPanelBorderBrush,
                         MGBorder selectionControlsPanelBorder, MGBorder compositeControlsPanelBorder, MGBorder migrationNotesPanelBorder,
@@ -239,6 +240,10 @@ desktop.Resources.AddTheme(""DarkSkin"", darkTheme);
                             sampleListView.HeaderGrid.DefaultTextForeground.SetAll(fallbackTextColor);
                             sampleListView.DataGrid.BackgroundBrush = theme.GetBackgroundBrush(MGElementType.ListView);
                             sampleListView.DataGrid.DefaultTextForeground.SetAll(fallbackTextColor);
+
+                            xamlCoverageMatrixText.BackgroundBrush = theme.GetBackgroundBrush(MGElementType.TextBox);
+                            xamlCoverageMatrixText.GetBorder().BackgroundBrush = theme.GetBackgroundBrush(MGElementType.TextBox);
+                            xamlCoverageMatrixText.DefaultTextForeground.SetAll(fallbackTextColor);
 
                             exampleXamlText.BackgroundBrush = theme.GetBackgroundBrush(MGElementType.TextBox);
                             exampleXamlText.GetBorder().BackgroundBrush = theme.GetBackgroundBrush(MGElementType.TextBox);

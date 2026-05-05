@@ -1053,6 +1053,13 @@
                                                DisabledValue="Transparent" />
         </ThemePropertyDefinition.VisualStateFillBrush>
       </ThemePropertyDefinition>
+      <ThemePropertyDefinition Target="ComboBoxDropdownBackground">
+        <ThemePropertyDefinition.VisualStateFillBrush>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(37,37,38)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.05" />
+        </ThemePropertyDefinition.VisualStateFillBrush>
+      </ThemePropertyDefinition>
       <ThemePropertyDefinition Target="ComboBoxDropdownItemBackground">
         <ThemePropertyDefinition.VisualStateFillBrush>
           <ThemeVisualStateFillBrushDefinition NormalValue="Transparent"

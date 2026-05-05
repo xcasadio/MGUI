@@ -280,6 +280,16 @@ namespace MGUI.Core.UI
 
         public event EventHandler<EventArgs> ButtonWrapperTemplateChanged;
 
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            if (CurrentTheme != null && ButtonWrapperTemplate == CreateDefaultDropdownButton)
+            {
+                ButtonWrapperTemplateChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         #region Items
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ObservableCollection<MGContextMenuItem> _Items { get; }
