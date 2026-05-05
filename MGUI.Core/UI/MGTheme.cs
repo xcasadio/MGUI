@@ -427,6 +427,7 @@ namespace MGUI.Core.UI
         {
             Light_Gray,
             Dark_Blue,
+            Dark,
         }
 
         public MGTheme(string DefaultFontFamily)
