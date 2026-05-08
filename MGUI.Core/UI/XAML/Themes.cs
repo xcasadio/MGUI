@@ -31,6 +31,7 @@ namespace MGUI.Core.UI.XAML
         public ThemeContextMenuItemSettingsDefinition ContextMenuItem { get; set; } = new();
         public ThemeListBoxSettingsDefinition ListBox { get; set; } = new();
         public ThemeListViewSettingsDefinition ListView { get; set; } = new();
+        public ThemePropertyGridSettingsDefinition PropertyGrid { get; set; } = new();
         public ThemeComboBoxSettingsDefinition ComboBox { get; set; } = new();
         public ThemeTreeViewTemplateSettingsDefinition TreeViewTemplate { get; set; } = new();
         public ThemeTabControlSettingsDefinition TabControl { get; set; } = new();
@@ -237,6 +238,24 @@ namespace MGUI.Core.UI.XAML
     {
         public ThemeVisualStateColorSettingDefinition HeaderForeground { get; set; }
         public FillBrush GridLineBrush { get; set; }
+    }
+
+    public class ThemePropertyGridSettingsDefinition : XAMLBindableBase
+    {
+        public Thickness? Padding { get; set; }
+        public BorderBrush BorderBrush { get; set; }
+        public Thickness? BorderThickness { get; set; }
+        public Thickness? ScrollViewerPadding { get; set; }
+        public int? CategoriesSpacing { get; set; }
+        public ThemeVisualStateFillBrushDefinition CategoryHeaderBackground { get; set; }
+        public ThemeVisualStateColorBrushDefinition CategoryHeaderForeground { get; set; }
+        public Thickness? CategoryHeaderPadding { get; set; }
+        public int? CategoryHeaderMinHeight { get; set; }
+        public XAMLColor? CategoryArrowColor { get; set; }
+        public Thickness? RowPadding { get; set; }
+        public int? RowsSpacing { get; set; }
+        public FillBrush RowSeparatorBrush { get; set; }
+        public BorderBrush InvalidEditorBorderBrush { get; set; }
     }
 
     public class ThemeComboBoxSettingsDefinition : XAMLBindableBase

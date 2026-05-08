@@ -68,6 +68,7 @@ namespace MGUI.Core.UI
         MenuBarItem,
 
         //  Data Display
+        PropertyGrid,
         ListView,
         ListBox,
         TreeView,

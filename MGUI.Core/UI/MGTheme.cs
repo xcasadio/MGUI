@@ -117,6 +117,24 @@ namespace MGUI.Core.UI
         public IFillBrush GridLineBrush { get; set; } = SolidFillBrushes.Black;
     }
 
+    public class MGThemePropertyGridSettings
+    {
+        public Thickness Padding { get; set; } = new(0);
+        public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+        public Thickness BorderThickness { get; set; } = new(1);
+        public Thickness ScrollViewerPadding { get; set; } = new(0);
+        public int CategoriesSpacing { get; set; } = 4;
+        public VisualStateFillBrush CategoryHeaderBackground { get; set; } = new(new MGSolidFillBrush(Color.Black * 0.35f));
+        public VisualStateColorBrush CategoryHeaderForeground { get; set; } = new(Color.White);
+        public Thickness CategoryHeaderPadding { get; set; } = new(8, 4);
+        public int CategoryHeaderMinHeight { get; set; } = 24;
+        public Color CategoryArrowColor { get; set; } = Color.White;
+        public Thickness RowPadding { get; set; } = new(8, 4);
+        public int RowsSpacing { get; set; } = 0;
+        public IFillBrush RowSeparatorBrush { get; set; } = new MGSolidFillBrush(Color.Black * 0.35f);
+        public IBorderBrush InvalidEditorBorderBrush { get; set; } = new MGSolidFillBrush(Color.OrangeRed).AsUniformBorderBrush();
+    }
+
     public class MGThemeComboBoxSettings
     {
         public Thickness Padding { get; set; } = new(4, 2, 4, 2);
@@ -418,6 +436,7 @@ namespace MGUI.Core.UI
         public MGThemeContextMenuItemSettings ContextMenuItem { get; }
         public MGThemeListBoxSettings ListBox { get; }
         public MGThemeListViewSettings ListView { get; }
+        public MGThemePropertyGridSettings PropertyGrid { get; }
         public MGThemeComboBoxSettings ComboBox { get; }
         public MGThemeTreeViewTemplateSettings TreeViewTemplate { get; }
         public MGThemeTabControlSettings TabControl { get; }
@@ -456,6 +475,7 @@ namespace MGUI.Core.UI
             ContextMenuItem = new();
             ListBox = new();
             ListView = new();
+            PropertyGrid = new();
             ComboBox = new();
             TreeViewTemplate = new();
             TabControl = new();
@@ -669,6 +689,21 @@ namespace MGUI.Core.UI
 
             ListView.HeaderForeground = Source.ListView.HeaderForeground?.GetCopy();
             ListView.GridLineBrush = Source.ListView.GridLineBrush?.Copy();
+
+            PropertyGrid.Padding = Source.PropertyGrid.Padding;
+            PropertyGrid.BorderBrush = Source.PropertyGrid.BorderBrush?.Copy();
+            PropertyGrid.BorderThickness = Source.PropertyGrid.BorderThickness;
+            PropertyGrid.ScrollViewerPadding = Source.PropertyGrid.ScrollViewerPadding;
+            PropertyGrid.CategoriesSpacing = Source.PropertyGrid.CategoriesSpacing;
+            PropertyGrid.CategoryHeaderBackground = Source.PropertyGrid.CategoryHeaderBackground?.Copy();
+            PropertyGrid.CategoryHeaderForeground = Source.PropertyGrid.CategoryHeaderForeground?.Copy();
+            PropertyGrid.CategoryHeaderPadding = Source.PropertyGrid.CategoryHeaderPadding;
+            PropertyGrid.CategoryHeaderMinHeight = Source.PropertyGrid.CategoryHeaderMinHeight;
+            PropertyGrid.CategoryArrowColor = Source.PropertyGrid.CategoryArrowColor;
+            PropertyGrid.RowPadding = Source.PropertyGrid.RowPadding;
+            PropertyGrid.RowsSpacing = Source.PropertyGrid.RowsSpacing;
+            PropertyGrid.RowSeparatorBrush = Source.PropertyGrid.RowSeparatorBrush?.Copy();
+            PropertyGrid.InvalidEditorBorderBrush = Source.PropertyGrid.InvalidEditorBorderBrush?.Copy();
 
             ComboBox.Padding = Source.ComboBox.Padding;
             ComboBox.MinHeight = Source.ComboBox.MinHeight;

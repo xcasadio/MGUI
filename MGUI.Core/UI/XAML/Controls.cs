@@ -1265,6 +1265,57 @@ namespace MGUI.Core.UI.XAML
         }
     }
 
+    public class PropertyGrid : Element
+    {
+        public override MGElementType ElementType => MGElementType.PropertyGrid;
+
+        [Category("Border")]
+        public Border Border { get; set; } = new() { InheritsParentStyles = false };
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
+
+        [Category("Border")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Browsable(false)]
+        public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+        [Category("Layout")]
+        public int? LabelColumnWidth { get; set; }
+
+        [Category("Data")]
+        public object SelectedObject { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGPropertyGrid(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGPropertyGrid propertyGrid = Element as MGPropertyGrid;
+            Border.ApplySettings(propertyGrid, propertyGrid.OuterBorder, false);
+
+            if (LabelColumnWidth.HasValue)
+            {
+                propertyGrid.LabelColumnWidth = LabelColumnWidth.Value;
+            }
+
+            if (SelectedObject != null)
+            {
+                propertyGrid.SelectedObject = SelectedObject;
+            }
+        }
+
+        protected internal override IEnumerable<Element> GetChildren()
+        {
+            yield return Border;
+        }
+    }
+
     public class ProgressBar : Element
     {
         public override MGElementType ElementType => MGElementType.ProgressBar;

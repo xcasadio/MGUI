@@ -28,6 +28,7 @@ namespace MGUI.Core.UI.Styling
         public const string ContextMenuItemTemplateName = "ContextMenuItem.Default";
         public const string ListBoxTemplateName = "ListBox.Default";
         public const string ListViewTemplateName = "ListView.Default";
+        public const string PropertyGridTemplateName = "PropertyGrid.Default";
         public const string ComboBoxTemplateName = "ComboBox.Default";
         public const string ComboBoxDropdownItemTemplateName = "ComboBox.DropdownItem.Default";
         public const string TreeViewTemplateName = "TreeView.Default";
@@ -148,6 +149,7 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, ContextMenuItemTemplateName, ApplyContextMenuItemTemplate);
             Register(Resources, CreateBuiltInXamlTemplate(ListBoxTemplateName, ApplyListBoxTemplate));
             Register(Resources, CreateBuiltInXamlTemplate(ListViewTemplateName, ApplyListViewTemplate));
+            Register(Resources, CreatePropertyGridTemplate());
             Register(Resources, CreateComboBoxTemplate());
             Register(Resources, ComboBoxDropdownItemTemplateName, ApplyComboBoxDropdownItemTemplate);
             Register(Resources, CreateTreeViewTemplate());
@@ -208,6 +210,9 @@ namespace MGUI.Core.UI.Styling
 
         private static MGControlTemplate CreateComboBoxTemplate()
             => new(ComboBoxTemplateName, CreateComboBoxTemplateStructure, null, ApplyComboBoxTemplate);
+
+        private static MGControlTemplate CreatePropertyGridTemplate()
+            => new(PropertyGridTemplateName, CreatePropertyGridTemplateStructure, null, ApplyPropertyGridTemplate);
 
         private static MGControlTemplate CreateTreeViewTemplate()
             => new(TreeViewTemplateName, CreateTreeViewTemplateStructure, null, ApplyTreeViewTemplate);
@@ -415,6 +420,44 @@ namespace MGUI.Core.UI.Styling
             structure.AddPart(MGTreeView.OuterBorderPartName, outerBorder);
             structure.AddPart(MGTreeView.ScrollViewerPartName, scrollViewer);
             structure.AddPart(MGTreeView.ItemsPanelPartName, itemsPanel);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreatePropertyGridTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGPropertyGrid propertyGrid)
+            {
+                return null;
+            }
+
+            MGWindow window = propertyGrid.SelfOrParentWindow;
+            MGBorder outerBorder = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+            };
+            MGScrollViewer scrollViewer = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+            };
+            MGStackPanel categoriesPanel = new(window, Orientation.Vertical)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+                CanChangeContent = false,
+            };
+
+            MGControlTemplateStructure structure = new(outerBorder);
+            structure.AddPart(MGPropertyGrid.OuterBorderPartName, outerBorder);
+            structure.AddPart(MGPropertyGrid.ScrollViewerPartName, scrollViewer);
+            structure.AddPart(MGPropertyGrid.CategoriesPanelPartName, categoriesPanel);
             return structure;
         }
 
@@ -812,6 +855,26 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("TreeView.SelectionBackgroundBrush", SelectionBrush ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue)), () => TreeView.SelectionBackgroundBrush, value => TreeView.SelectionBackgroundBrush = value);
             Context.ApplyThemeDefault("TreeView.SelectionForeground", Theme?.TreeViewSelectionForeground ?? Color.Black, () => TreeView.SelectionForeground, value => TreeView.SelectionForeground = value);
             Context.ApplyThemeDefault("TreeView.IndentSize", Theme?.TreeViewIndentSize ?? DefaultTreeViewIndentSize, () => TreeView.IndentSize, value => TreeView.IndentSize = value);
+        }
+
+        private static void ApplyPropertyGridTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGPropertyGrid propertyGrid)
+            {
+                return;
+            }
+
+            MGTheme theme = propertyGrid.GetTheme();
+            MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGPropertyGrid.OuterBorderPartName);
+            MGScrollViewer scrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGPropertyGrid.ScrollViewerPartName);
+            MGStackPanel categoriesPanel = Context.GetRequiredPart<MGStackPanel>(MGPropertyGrid.CategoriesPanelPartName);
+
+            Context.ApplyThemeDefault("PropertyGrid.Padding", theme.PropertyGrid.Padding, () => propertyGrid.Padding, value => propertyGrid.Padding = value);
+            Context.ApplyThemeDefault("PropertyGrid.BorderBrush", theme.PropertyGrid.BorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
+            Context.ApplyThemeDefault("PropertyGrid.BorderThickness", theme.PropertyGrid.BorderThickness, () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
+            Context.ApplyThemeDefault("PropertyGrid.ScrollViewerPadding", theme.PropertyGrid.ScrollViewerPadding, () => scrollViewer.Padding, value => scrollViewer.Padding = value);
+            Context.ApplyThemeDefault("PropertyGrid.CategoriesSpacing", theme.PropertyGrid.CategoriesSpacing, () => categoriesPanel.Spacing, value => categoriesPanel.Spacing = value);
+            Context.ApplyTemplateValue("PropertyGrid.CategoriesPanelVerticalAlignment", VerticalAlignment.Top, () => categoriesPanel.VerticalAlignment, value => categoriesPanel.VerticalAlignment = value);
         }
 
         private static void ApplyTextBoxTemplate(MGControlTemplateContext Context)

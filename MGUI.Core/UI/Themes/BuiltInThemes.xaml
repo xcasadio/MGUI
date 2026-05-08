@@ -69,6 +69,13 @@
                                                PressedModifier="0.06" />
         </ThemeBackgroundDefinition.Value>
       </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="PropertyGrid">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
       <ThemeBackgroundDefinition ElementType="ProgressBar">
         <ThemeBackgroundDefinition.Value>
           <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)"
@@ -367,6 +374,33 @@
         </ThemeContextMenuItemSettingsDefinition.HeaderBackground>
       </ThemeContextMenuItemSettingsDefinition>
     </ThemeDefinition.ContextMenuItem>
+    <ThemeDefinition.PropertyGrid>
+      <ThemePropertyGridSettingsDefinition Padding="0"
+                                           BorderBrush="rgb(11,28,72)"
+                                           BorderThickness="1"
+                                           ScrollViewerPadding="0"
+                                           CategoriesSpacing="4"
+                                           CategoryHeaderPadding="8,4"
+                                           CategoryHeaderMinHeight="24"
+                                           CategoryArrowColor="White"
+                                           RowPadding="8,4"
+                                           RowsSpacing="0"
+                                           RowSeparatorBrush="rgb(0,59,118)"
+                                           InvalidEditorBorderBrush="rgb(255,140,0)">
+        <ThemePropertyGridSettingsDefinition.CategoryHeaderBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,52,103)"
+                                               FocusedColor="White * 0.05"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyGridSettingsDefinition.CategoryHeaderBackground>
+        <ThemePropertyGridSettingsDefinition.CategoryHeaderForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="White"
+                                                FocusedColor="White * 0.08"
+                                                PressedModifierType="Darken"
+                                                PressedModifier="0.04" />
+        </ThemePropertyGridSettingsDefinition.CategoryHeaderForeground>
+      </ThemePropertyGridSettingsDefinition>
+    </ThemeDefinition.PropertyGrid>
     <ThemeDefinition.Docking>
       <ThemeDockingSettingsDefinition TabNormalBackground="rgb(45,45,48)"
                                       TabHoverBackground="rgb(62,62,66)"
@@ -806,6 +840,34 @@
         </ThemeListViewSettingsDefinition.HeaderForeground>
       </ThemeListViewSettingsDefinition>
     </ThemeDefinition.ListView>
+
+    <ThemeDefinition.PropertyGrid>
+      <ThemePropertyGridSettingsDefinition Padding="0"
+                                           BorderBrush="rgb(11,28,72)"
+                                           BorderThickness="1"
+                                           ScrollViewerPadding="0"
+                                           CategoriesSpacing="4"
+                                           CategoryHeaderPadding="8,4"
+                                           CategoryHeaderMinHeight="24"
+                                           CategoryArrowColor="White"
+                                           RowPadding="8,4"
+                                           RowsSpacing="0"
+                                           RowSeparatorBrush="rgb(0,59,118)"
+                                           InvalidEditorBorderBrush="rgb(255,140,0)">
+        <ThemePropertyGridSettingsDefinition.CategoryHeaderBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,52,103)"
+                                               FocusedColor="White * 0.05"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.06" />
+        </ThemePropertyGridSettingsDefinition.CategoryHeaderBackground>
+        <ThemePropertyGridSettingsDefinition.CategoryHeaderForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="White"
+                                                FocusedColor="White * 0.08"
+                                                PressedModifierType="Darken"
+                                                PressedModifier="0.04" />
+        </ThemePropertyGridSettingsDefinition.CategoryHeaderForeground>
+      </ThemePropertyGridSettingsDefinition>
+    </ThemeDefinition.PropertyGrid>
     <ThemeDefinition.Docking>
       <ThemeDockingSettingsDefinition TabNormalBackground="rgb(236,240,243)"
                                       TabHoverBackground="rgb(242,245,247)"
@@ -970,6 +1032,13 @@
         </ThemeBackgroundDefinition.Value>
       </ThemeBackgroundDefinition>
       <ThemeBackgroundDefinition ElementType="ListView">
+        <ThemeBackgroundDefinition.Value>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(42,42,42)"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.04" />
+        </ThemeBackgroundDefinition.Value>
+      </ThemeBackgroundDefinition>
+      <ThemeBackgroundDefinition ElementType="PropertyGrid">
         <ThemeBackgroundDefinition.Value>
           <ThemeVisualStateFillBrushDefinition NormalValue="rgb(42,42,42)"
                                                PressedModifierType="Darken"
@@ -1268,6 +1337,37 @@
         </ThemeListViewSettingsDefinition.HeaderForeground>
       </ThemeListViewSettingsDefinition>
     </ThemeDefinition.ListView>
+
+    <ThemeDefinition.PropertyGrid>
+      <ThemePropertyGridSettingsDefinition Padding="0"
+                                           BorderBrush="rgb(63,63,63)"
+                                           BorderThickness="1"
+                                           ScrollViewerPadding="0"
+                                           CategoriesSpacing="4"
+                                           CategoryHeaderPadding="8,4"
+                                           CategoryHeaderMinHeight="24"
+                                           CategoryArrowColor="rgb(180,180,180)"
+                                           RowPadding="8,4"
+                                           RowsSpacing="0"
+                                           RowSeparatorBrush="rgb(63,63,63)"
+                                           InvalidEditorBorderBrush="rgb(214,117,0)">
+        <ThemePropertyGridSettingsDefinition.CategoryHeaderBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(45,45,48)"
+                                               FocusedValue="rgb(54,54,58)"
+                                               FocusedColor="White * 0.03"
+                                               PressedModifierType="Darken"
+                                               PressedModifier="0.04" />
+        </ThemePropertyGridSettingsDefinition.CategoryHeaderBackground>
+        <ThemePropertyGridSettingsDefinition.CategoryHeaderForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="rgb(210,210,210)"
+                                                FocusedValue="rgb(230,230,230)"
+                                                DisabledValue="rgb(110,110,110)"
+                                                FocusedColor="White * 0.02"
+                                                PressedModifierType="Darken"
+                                                PressedModifier="0.04" />
+        </ThemePropertyGridSettingsDefinition.CategoryHeaderForeground>
+      </ThemePropertyGridSettingsDefinition>
+    </ThemeDefinition.PropertyGrid>
 
     <ThemeDefinition.ComboBox>
       <ThemeComboBoxSettingsDefinition Padding="8,2"

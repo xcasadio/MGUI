@@ -52,6 +52,7 @@ namespace MGUI.Core.UI.XAML
             ApplyContextMenuItem(Theme.ContextMenuItem, Definition.ContextMenuItem);
             ApplyListBox(Theme.ListBox, Definition.ListBox);
             ApplyListView(Theme.ListView, Definition.ListView);
+            ApplyPropertyGrid(Theme.PropertyGrid, Definition.PropertyGrid);
             ApplyComboBox(Theme.ComboBox, Definition.ComboBox);
             ApplyTreeViewTemplate(Theme.TreeViewTemplate, Definition.TreeViewTemplate);
             ApplyTabControl(Theme.TabControl, Definition.TabControl);
@@ -302,6 +303,29 @@ namespace MGUI.Core.UI.XAML
 
             if (Definition.HeaderForeground != null) Target.HeaderForeground = ApplyColorSetting(Definition.HeaderForeground, Target.HeaderForeground);
             if (Definition.GridLineBrush != null) Target.GridLineBrush = ToFillBrush(Definition.GridLineBrush);
+        }
+
+        private static void ApplyPropertyGrid(MGThemePropertyGridSettings Target, ThemePropertyGridSettingsDefinition Definition)
+        {
+            if (Definition == null)
+            {
+                return;
+            }
+
+            if (Definition.Padding.HasValue) Target.Padding = Definition.Padding.Value.ToThickness();
+            if (Definition.BorderBrush != null) Target.BorderBrush = ToBorderBrush(Definition.BorderBrush);
+            if (Definition.BorderThickness.HasValue) Target.BorderThickness = Definition.BorderThickness.Value.ToThickness();
+            if (Definition.ScrollViewerPadding.HasValue) Target.ScrollViewerPadding = Definition.ScrollViewerPadding.Value.ToThickness();
+            if (Definition.CategoriesSpacing.HasValue) Target.CategoriesSpacing = Definition.CategoriesSpacing.Value;
+            if (Definition.CategoryHeaderBackground != null) Target.CategoryHeaderBackground = ApplyVisualStateFillBrush(Definition.CategoryHeaderBackground, Target.CategoryHeaderBackground);
+            if (Definition.CategoryHeaderForeground != null) Target.CategoryHeaderForeground = ApplyVisualStateColorBrush(Definition.CategoryHeaderForeground, Target.CategoryHeaderForeground);
+            if (Definition.CategoryHeaderPadding.HasValue) Target.CategoryHeaderPadding = Definition.CategoryHeaderPadding.Value.ToThickness();
+            if (Definition.CategoryHeaderMinHeight.HasValue) Target.CategoryHeaderMinHeight = Definition.CategoryHeaderMinHeight.Value;
+            if (Definition.CategoryArrowColor.HasValue) Target.CategoryArrowColor = Definition.CategoryArrowColor.Value.ToXNAColor();
+            if (Definition.RowPadding.HasValue) Target.RowPadding = Definition.RowPadding.Value.ToThickness();
+            if (Definition.RowsSpacing.HasValue) Target.RowsSpacing = Definition.RowsSpacing.Value;
+            if (Definition.RowSeparatorBrush != null) Target.RowSeparatorBrush = ToFillBrush(Definition.RowSeparatorBrush);
+            if (Definition.InvalidEditorBorderBrush != null) Target.InvalidEditorBorderBrush = ToBorderBrush(Definition.InvalidEditorBorderBrush);
         }
 
         private static void ApplyComboBox(MGThemeComboBoxSettings Target, ThemeComboBoxSettingsDefinition Definition)
