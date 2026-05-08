@@ -150,6 +150,18 @@ public class FocusArchitectureTests
     }
 
     [Fact]
+    public void CheckBox_Source_Handles_Label_Clicks_Without_Double_Toggling_Button_Clicks()
+    {
+        string checkBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGCheckBox.cs");
+
+        Assert.Contains("MouseHandler.LMBPressedInside += (sender, e) =>", checkBoxSource);
+        Assert.Contains("MouseHandler.LMBReleasedInside += (sender, e) =>", checkBoxSource);
+        Assert.Contains("if (!e.IsHandled && TryToggleCheckedState())", checkBoxSource);
+        Assert.Contains("MouseHandler.ReleasedOutside += (sender, e) =>", checkBoxSource);
+        Assert.Contains("PressedArgs = null;", checkBoxSource);
+    }
+
+    [Fact]
     public void Element_HitTesting_Allows_Hidden_Elements_That_Explicitly_Handle_Input()
     {
         string elementSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");

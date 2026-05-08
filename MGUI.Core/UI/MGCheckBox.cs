@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Rendering;
 using System.Diagnostics;
 
@@ -243,7 +244,7 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsReadonly;
-        /// <summary>If true, the user will be unable to modify <see cref="IsChecked"/> by manually clicking the <see cref="ButtonElement"/>.<para/>
+        /// <summary>If true, the user will be unable to modify <see cref="IsChecked"/> by manually clicking this checkbox.<para/>
         /// Default value: false</summary>
         public bool IsReadonly
         {
@@ -263,18 +264,54 @@ namespace MGUI.Core.UI
         public event EventHandler<EventArgs> OnChecked;
         public event EventHandler<EventArgs> OnUnchecked;
 
+        private BaseMousePressedEventArgs PressedArgs { get; set; }
+
+        private bool TryToggleCheckedState()
+        {
+            if (IsReadonly)
+            {
+                return false;
+            }
+
+            IsChecked = GetNextCheckedState(IsChecked, IsThreeState);
+            return true;
+        }
+
         public MGCheckBox(MGWindow Window, bool? IsChecked = false)
             : base(Window, MGElementType.CheckBox)
         {
             using (BeginInitializing())
             {
                 IsFocusable = true;
+
+                MouseHandler.LMBPressedInside += (sender, e) =>
+                {
+                    PressedArgs = e;
+                };
+                MouseHandler.LMBReleasedInside += (sender, e) =>
+                {
+                    if (PressedArgs != null)
+                    {
+                        if (!e.IsHandled && TryToggleCheckedState())
+                        {
+                            e.SetHandledBy(this, false);
+                        }
+
+                        PressedArgs = null;
+                    }
+                };
+                MouseHandler.ReleasedOutside += (sender, e) =>
+                {
+                    if (PressedArgs != null)
+                    {
+                        PressedArgs = null;
+                    }
+                };
+
                 ButtonElement = new(Window, new(1), MGUniformBorderBrush.Black, x =>
                 {
-                    if (!IsReadonly)
-                    {
-                        this.IsChecked = GetNextCheckedState(this.IsChecked, IsThreeState);
-                    }
+                    PressedArgs = null;
+                    TryToggleCheckedState();
                 });
                 ButtonElement.IsFocusable = false;
                 ButtonElement.MinWidth = 12;
@@ -312,7 +349,7 @@ namespace MGUI.Core.UI
                 return false;
             }
 
-            IsChecked = GetNextCheckedState(IsChecked, IsThreeState);
+            TryToggleCheckedState();
             return true;
         }
 
