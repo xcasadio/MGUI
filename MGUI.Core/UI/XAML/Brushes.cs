@@ -64,6 +64,8 @@ namespace MGUI.Core.UI.XAML
     [TypeConverter(typeof(FillBrushStringConverter))]
     public abstract class FillBrush : XAMLBindableBase
     {
+        public static implicit operator FillBrush(XAMLColor color) => new SolidFillBrush(color);
+
         public abstract IFillBrush ToFillBrush(MGDesktop Desktop, MGElement Element);
     }
 

@@ -353,6 +353,15 @@ namespace MGUI.Core.UI
             return true;
         }
 
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+            CheckBoxComponentSize = GetTheme().CheckBoxComponentSize;
+            CheckMarkColor = GetTheme().CheckMarkColor;
+            CheckedIndicatorStyle = GetTheme().CheckBoxCheckedIndicatorStyle;
+        }
+
         public static void DrawCheckMark(MGDesktop desktop, Rectangle bounds, IUIDrawContext drawContext, float opacity, Point offset, Color color)
         {
             UISymbolDrawing.DrawCheckMark(drawContext, offset.ToVector2(), bounds, color * opacity);

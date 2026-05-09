@@ -1,5 +1,5 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        Left="440" Top="20" MinHeight="0" Width="560" Height="520" TitleText="PropertyGrid" Padding="10">
+    Left="440" Top="20" MinHeight="0" Width="560" Height="580" TitleText="PropertyGrid" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
@@ -20,7 +20,7 @@
         <TextBlock StyleNames="Header1" Text="PropertyGrid:" HorizontalAlignment="Center" />
         <Separator />
         <TextBlock WrapText="True"
-                   Text="This sample refreshes the PropertyGrid every frame. Use the buttons below to switch the selected object and mutate it externally without rebuilding the UI." />
+                   Text="This sample keeps the PropertyGrid refreshed every frame, animates grouped values in place, includes a Manual category that does not update in real time, and lets you switch between the built-in Dark_Blue and Dark themes." />
 
         <StackPanel Orientation="Horizontal" Spacing="6">
             <Button Name="SwapObjectButton" Content="Swap Object" />
@@ -28,6 +28,12 @@
             <TextBlock Name="ActiveObjectLabel" VerticalAlignment="Center" />
         </StackPanel>
 
-        <PropertyGrid Name="Inspector" Height="400" LabelColumnWidth="180" />
+        <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Name="UseDarkBlueThemeButton" Content="Dark_Blue" />
+            <Button Name="UseDarkThemeButton" Content="Dark" />
+            <TextBlock Name="ThemeStatusLabel" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <PropertyGrid Name="Inspector" Height="420" LabelColumnWidth="180" />
     </StackPanel>
 </Window>

@@ -119,7 +119,7 @@ namespace MGUI.Core.UI.XAML
         [Category("Border")]
         public float? StrokeThickness { get; set; }
         [Category("Appearance")]
-        public XAMLColor? Fill { get; set; }
+        public FillBrush Fill { get; set; }
         [Category("Appearance")]
         public int? SegmentCount { get; set; }
 
@@ -127,10 +127,11 @@ namespace MGUI.Core.UI.XAML
             => new MGEllipse(Window, Width ?? 16, Height ?? 16,
                 Stroke?.ToXNAColor() ?? Color.White,
                 StrokeThickness ?? 1f,
-                Fill?.ToXNAColor() ?? Color.Transparent);
+            Color.Transparent);
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
         {
+            MGDesktop Desktop = Element.GetDesktop();
             MGEllipse ellipse = Element as MGEllipse;
 
             if (Stroke.HasValue)
@@ -143,9 +144,9 @@ namespace MGUI.Core.UI.XAML
                 ellipse.StrokeThickness = StrokeThickness.Value;
             }
 
-            if (Fill.HasValue)
+            if (Fill != null)
             {
-                ellipse.Fill = Fill.Value.ToXNAColor();
+                ellipse.FillBrush = Fill.ToFillBrush(Desktop, Element);
             }
 
             if (SegmentCount.HasValue)
@@ -266,17 +267,18 @@ namespace MGUI.Core.UI.XAML
         [Category("Border")]
         public float? StrokeThickness { get; set; }
         [Category("Appearance")]
-        public XAMLColor? Fill { get; set; }
+        public FillBrush Fill { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
             => new MGPolygon(Window,
                 ShapeXamlParser.ParsePoints(Points),
                 Stroke?.ToXNAColor() ?? Color.White,
                 StrokeThickness ?? 1f,
-                Fill?.ToXNAColor() ?? Color.Transparent);
+            Color.Transparent);
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
         {
+            MGDesktop Desktop = Element.GetDesktop();
             MGPolygon polygon = Element as MGPolygon;
 
             if (!string.IsNullOrWhiteSpace(Points))
@@ -294,9 +296,9 @@ namespace MGUI.Core.UI.XAML
                 polygon.StrokeThickness = StrokeThickness.Value;
             }
 
-            if (Fill.HasValue)
+            if (Fill != null)
             {
-                polygon.Fill = Fill.Value.ToXNAColor();
+                polygon.FillBrush = Fill.ToFillBrush(Desktop, Element);
             }
         }
 
@@ -314,17 +316,18 @@ namespace MGUI.Core.UI.XAML
         [Category("Border")]
         public float? StrokeThickness { get; set; }
         [Category("Appearance")]
-        public XAMLColor? Fill { get; set; }
+        public FillBrush Fill { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
             => new MGPathLite(Window,
                 ShapeXamlParser.ParsePathLiteCommands(Data),
                 Stroke?.ToXNAColor() ?? Color.White,
                 StrokeThickness ?? 1f,
-                Fill?.ToXNAColor() ?? Color.Transparent);
+            Color.Transparent);
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
         {
+            MGDesktop Desktop = Element.GetDesktop();
             MGPathLite pathLite = Element as MGPathLite;
 
             if (!string.IsNullOrWhiteSpace(Data))
@@ -342,9 +345,9 @@ namespace MGUI.Core.UI.XAML
                 pathLite.StrokeThickness = StrokeThickness.Value;
             }
 
-            if (Fill.HasValue)
+            if (Fill != null)
             {
-                pathLite.Fill = Fill.Value.ToXNAColor();
+                pathLite.FillBrush = Fill.ToFillBrush(Desktop, Element);
             }
         }
 

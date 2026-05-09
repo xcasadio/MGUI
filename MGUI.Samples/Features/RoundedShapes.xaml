@@ -1,5 +1,5 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        Width="760" Height="560" TitleText="Rounded Shapes" Padding="12" Background="rgb(34,38,43)" CornerRadius="10">
+    Width="760" Height="560" TitleText="Rounded Shapes" Padding="12" Background="rgb(34,38,43)">
     <Window.Styles>
         <Style TargetType="TextBlock">
             <Setter Property="TextForeground" Value="White" />
@@ -45,10 +45,10 @@
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <Polyline Points="0,42 20,10 46,34 72,0 102,42" Stroke="rgb(120,255,160)" StrokeThickness="4" />
                         <Line StartPoint="0,0" EndPoint="120,26" Stroke="rgb(255,220,120)" StrokeThickness="4" />
-                        <Ellipse Width="140" Height="78" Stroke="White" StrokeThickness="3" Background="White|Orange|Lime|HotPink" BackgroundRenderPadding="-18" ClipToBounds="True" />
+                        <Ellipse Width="140" Height="78" Stroke="White" StrokeThickness="3" Fill="White|Orange|Lime|HotPink" />
                     </StackPanel>
 
-                    <TextBlock Text="Manual checks: the ellipse gradient stays clipped to the curved silhouette, and the shapes only react over their actual stroke/fill instead of the full rectangular slot." />
+                    <TextBlock Text="Manual checks: the ellipse brush fill follows the curved silhouette, and the shapes only react over their actual stroke/fill instead of the full rectangular slot." />
                 </StackPanel>
             </Border>
 

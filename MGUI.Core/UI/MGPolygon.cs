@@ -30,14 +30,22 @@ namespace MGUI.Core.UI
 
             MGPointShapePlacement placement = GetPlacement(layoutBounds);
             Vector2 origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
-            Color fillColor = Fill * DA.Opacity;
             Color strokeColor = Stroke * DA.Opacity;
+            bool hasSolidFill = TryGetSolidFillColor(DA.Opacity, out Color fillColor);
+            bool hasBrushFill = HasVisibleFill && !hasSolidFill;
 
-            if (HasVisibleFill && HasVisibleStroke)
+            if (hasBrushFill)
+            {
+                ClipGeometry clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, origin);
+                DrawClippedFillBrush(DA, placement.Bounds,
+                    CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), clipGeometry, $"{ElementType}.Fill", allowRectangleFallback: true));
+            }
+
+            if (hasSolidFill && HasVisibleStroke)
             {
                 DA.Context.StrokeAndFillPolygon(origin, NormalizedPoints, strokeColor, fillColor, StrokeThickness);
             }
-            else if (HasVisibleFill)
+            else if (hasSolidFill)
             {
                 DA.Context.FillPolygon(origin, NormalizedPoints, fillColor);
             }
@@ -77,12 +85,12 @@ namespace MGUI.Core.UI
             }
 
             MGPointShapePlacement placement = GetPlacement(layoutBounds);
-            if (NormalizedPoints.Length < 3 || !MGVectorShapeHelper.IsConvexPolygon(NormalizedPoints))
+            if (NormalizedPoints.Length < 3)
             {
                 return CreateRectangleClipDefinition(TransformClipBounds(DA, placement.Bounds), $"{ElementType}.Self");
             }
 
-            ClipGeometry geometry = MGVectorShapeHelper.CreateTriangleFanClipGeometry(NormalizedPoints, DA.Offset.ToVector2() + placement.GeometryOrigin);
+            ClipGeometry geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, DA.Offset.ToVector2() + placement.GeometryOrigin);
             return CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true);
         }
     }

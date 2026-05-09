@@ -203,7 +203,7 @@ namespace MGUI.Core.UI
             }
         }
 
-        private void UpdateFormattedText(bool Silent)
+        protected virtual void UpdateFormattedText(bool Silent)
         {
             string EscapedText = FTTokenizer.EscapeMarkdown(Text);
             string FormattedText = EscapedText;
@@ -229,7 +229,7 @@ namespace MGUI.Core.UI
                 string BGColor = HasFocus ? FocusedSelectionBackgroundColorString : UnfocusedSelectionBackgroundColorString;
 
                 string SelectionStartMarkdown = $"[fg={FGColor}][bg={BGColor}]";
-                string SelectionEndMarkdown = @"[\bg][\fg]";
+                string SelectionEndMarkdown = "[/bg][/fg]";
 
                 int ActualStartIndex = Math.Clamp(CurrentSelection.Value.StartIndex, 0, EscapedIndices.Count - 1);
                 int ActualEndIndex = Math.Clamp(CurrentSelection.Value.EndIndex, ActualStartIndex, EscapedIndices.Count - 1);

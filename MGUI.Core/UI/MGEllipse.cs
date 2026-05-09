@@ -105,14 +105,22 @@ namespace MGUI.Core.UI
             }
 
             Vector2 origin = DA.Offset.ToVector2() + bounds.Location.ToVector2();
-            Color fillColor = Fill * DA.Opacity;
             Color strokeColor = Stroke * DA.Opacity;
+            bool hasSolidFill = TryGetSolidFillColor(DA.Opacity, out Color fillColor);
+            bool hasBrushFill = HasVisibleFill && !hasSolidFill;
 
-            if (HasVisibleFill && HasVisibleStroke)
+            if (hasBrushFill)
+            {
+                MGUI.Shared.Rendering.Clipping.ClipGeometry clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(_CachedVertices, origin);
+                DrawClippedFillBrush(DA, bounds,
+                    CreateGeometryClipDefinition(TransformClipBounds(DA, bounds), clipGeometry, $"{ElementType}.Fill"));
+            }
+
+            if (hasSolidFill && HasVisibleStroke)
             {
                 DA.Context.StrokeAndFillPolygon(origin, _CachedVertices, strokeColor, fillColor, StrokeThickness);
             }
-            else if (HasVisibleFill)
+            else if (hasSolidFill)
             {
                 DA.Context.FillPolygon(origin, _CachedVertices, fillColor);
             }
@@ -158,7 +166,7 @@ namespace MGUI.Core.UI
             }
 
             Vector2 translation = DA.Offset.ToVector2() + bounds.Location.ToVector2();
-            MGUI.Shared.Rendering.Clipping.ClipGeometry geometry = MGVectorShapeHelper.CreateTriangleFanClipGeometry(_CachedVertices, translation);
+            MGUI.Shared.Rendering.Clipping.ClipGeometry geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(_CachedVertices, translation);
             return CreateGeometryClipDefinition(TransformClipBounds(DA, bounds), geometry, $"{ElementType}.Self");
         }
 

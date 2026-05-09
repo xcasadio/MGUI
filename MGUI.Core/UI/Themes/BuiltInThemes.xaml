@@ -383,7 +383,7 @@
                                            CategoryHeaderPadding="8,4"
                                            CategoryHeaderMinHeight="24"
                                            CategoryArrowColor="White"
-                                           RowPadding="8,4"
+                                           RowPadding="8,2"
                                            RowsSpacing="0"
                                            RowSeparatorBrush="rgb(0,59,118)"
                                            InvalidEditorBorderBrush="rgb(255,140,0)">
@@ -850,7 +850,7 @@
                                            CategoryHeaderPadding="8,4"
                                            CategoryHeaderMinHeight="24"
                                            CategoryArrowColor="White"
-                                           RowPadding="8,4"
+                                           RowPadding="8,2"
                                            RowsSpacing="0"
                                            RowSeparatorBrush="rgb(0,59,118)"
                                            InvalidEditorBorderBrush="rgb(255,140,0)">
@@ -1347,7 +1347,7 @@
                                            CategoryHeaderPadding="8,4"
                                            CategoryHeaderMinHeight="24"
                                            CategoryArrowColor="rgb(180,180,180)"
-                                           RowPadding="8,4"
+                                           RowPadding="8,2"
                                            RowsSpacing="0"
                                            RowSeparatorBrush="rgb(63,63,63)"
                                            InvalidEditorBorderBrush="rgb(214,117,0)">

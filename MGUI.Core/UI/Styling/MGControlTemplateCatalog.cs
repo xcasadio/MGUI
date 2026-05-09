@@ -869,6 +869,7 @@ namespace MGUI.Core.UI.Styling
             MGScrollViewer scrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGPropertyGrid.ScrollViewerPartName);
             MGStackPanel categoriesPanel = Context.GetRequiredPart<MGStackPanel>(MGPropertyGrid.CategoriesPanelPartName);
 
+            Context.ApplyThemeDefault("PropertyGrid.Background", theme.GetBackgroundBrush(MGElementType.PropertyGrid), () => propertyGrid.BackgroundBrush, value => propertyGrid.BackgroundBrush = value);
             Context.ApplyThemeDefault("PropertyGrid.Padding", theme.PropertyGrid.Padding, () => propertyGrid.Padding, value => propertyGrid.Padding = value);
             Context.ApplyThemeDefault("PropertyGrid.BorderBrush", theme.PropertyGrid.BorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
             Context.ApplyThemeDefault("PropertyGrid.BorderThickness", theme.PropertyGrid.BorderThickness, () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
@@ -885,6 +886,7 @@ namespace MGUI.Core.UI.Styling
             }
 
             MGTheme theme = textBox.GetTheme();
+            Context.ApplyThemeDefault("TextBox.Background", theme.GetBackgroundBrush(MGElementType.TextBox), () => textBox.BackgroundBrush, value => textBox.BackgroundBrush = value);
             Context.ApplyTemplateValue("TextBox.Padding", new Thickness(6, 1, 6, 1), () => textBox.Padding, value => textBox.Padding = value);
             Context.ApplyTemplateValue("TextBox.MinHeight", 24, () => textBox.MinHeight ?? 0, value => textBox.MinHeight = value);
             Context.ApplyThemeDefault("TextBox.FocusedSelectionForeground", theme.TextBoxFocusedSelectionForeground, () => textBox.FocusedSelectionForegroundColor, value => textBox.FocusedSelectionForegroundColor = value);

@@ -31,7 +31,7 @@ Default mapping:
 
 - rectangle -> scissor
 - rounded rectangle -> stencil
-- arbitrary geometry -> mask
+- arbitrary geometry -> stencil
 - rectangle fallback -> scissor when explicitly allowed
 
 Additional fallback rules remain centralized so `MGElement` and controls stay backend-agnostic.
@@ -62,7 +62,7 @@ Important rule:
 
 ## Fallback: Mask / Render Target
 
-Arbitrary geometry and unsupported non-rectangular cases use a render-target mask fallback.
+Unsupported non-rectangular cases use a render-target mask fallback when stencil is unavailable.
 
 - temporary render targets are now pooled by size/format;
 - mask clips allocate from transformed bounds in render-target space;

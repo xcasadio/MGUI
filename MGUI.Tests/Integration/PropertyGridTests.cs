@@ -1,4 +1,6 @@
 using MGUI.Core.UI;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Text;
 using MGUI.Shared.Assets;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Input;
@@ -34,6 +36,180 @@ public class PropertyGridTests
     }
 
     [Fact]
+    public void PropertyGrid_LiveRefresh_Supports_Dark_And_DarkBlue_Themes()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f }, refreshOnEndUpdate: true);
+        MGTextBox positionTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGTextBox opacityTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.Opacity));
+        MGCheckBox visibleCheckBox = GetCheckBoxEditor(harness.Grid, nameof(InspectableEntity.Visible));
+
+        object transformCategory = GetCategoryView(harness.Grid, "Transform");
+        Assert.NotNull(transformCategory);
+        Assert.NotNull(GetCategoryView(harness.Grid, "Rendering"));
+
+        ApplyWindowTheme(harness.Window, MGTheme.BuiltInTheme.Dark_Blue);
+        Assert.Equal(Color.White, GetCategoryArrowColor(transformCategory));
+        Assert.Equal(visibleCheckBox.GetTheme().CheckMarkColor, visibleCheckBox.CheckMarkColor);
+        Assert.Equal(visibleCheckBox.GetTheme().CheckBoxCheckedIndicatorStyle, visibleCheckBox.CheckedIndicatorStyle);
+
+        harness.Entity.PositionX = 77;
+        harness.Entity.Opacity = 0.25f;
+        AdvanceFrame(harness, TimeSpan.FromMilliseconds(32), TimeSpan.FromMilliseconds(16));
+
+        Assert.Equal("77", positionTextBox.Text);
+        Assert.Equal("0.25", opacityTextBox.Text);
+
+        ApplyWindowTheme(harness.Window, MGTheme.BuiltInTheme.Dark);
+        Assert.Equal(new Color(180, 180, 180), GetCategoryArrowColor(transformCategory));
+        Assert.Equal(visibleCheckBox.GetTheme().CheckMarkColor, visibleCheckBox.CheckMarkColor);
+        Assert.Equal(visibleCheckBox.GetTheme().CheckBoxCheckedIndicatorStyle, visibleCheckBox.CheckedIndicatorStyle);
+    }
+
+    [Fact]
+    public void PropertyGrid_And_Generated_TextBoxes_Update_Backgrounds_When_Theme_Changes()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f });
+        MGTextBox positionTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        ApplyWindowTheme(harness.Window, MGTheme.BuiltInTheme.Dark_Blue);
+        Assert.Equal(GetThemeBackgroundColor(harness.Grid), GetUniformBackgroundColor(harness.Grid));
+        Assert.Equal(GetThemeBackgroundColor(positionTextBox), GetUniformBackgroundColor(positionTextBox));
+
+        ApplyWindowTheme(harness.Window, MGTheme.BuiltInTheme.Dark);
+
+        Assert.Equal(GetThemeBackgroundColor(harness.Grid), GetUniformBackgroundColor(harness.Grid));
+        Assert.Equal(GetThemeBackgroundColor(positionTextBox), GetUniformBackgroundColor(positionTextBox));
+    }
+
+    [Fact]
+    public void PropertyGrid_Uses_Compact_Row_Padding_And_Centers_Labels_With_Editors()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f });
+
+        ApplyWindowTheme(harness.Window, MGTheme.BuiltInTheme.Dark_Blue);
+        AdvanceFrame(harness, TimeSpan.FromMilliseconds(32), TimeSpan.FromMilliseconds(16));
+
+        MGBorder positionRowRoot = GetRowRoot(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGBorder visibleRowRoot = GetRowRoot(harness.Grid, nameof(InspectableEntity.Visible));
+        MGTextBlock positionLabel = GetRowLabel(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGElement positionEditor = GetRowEditorElement(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGTextBlock visibleLabel = GetRowLabel(harness.Grid, nameof(InspectableEntity.Visible));
+        MGElement visibleEditor = GetRowEditorElement(harness.Grid, nameof(InspectableEntity.Visible));
+
+        Assert.Equal(2, positionRowRoot.Padding.Top);
+        Assert.Equal(2, positionRowRoot.Padding.Bottom);
+        Assert.Equal(2, visibleRowRoot.Padding.Top);
+        Assert.Equal(2, visibleRowRoot.Padding.Bottom);
+        Assert.InRange(Math.Abs(positionLabel.ActualLayoutBounds.Center.Y - positionEditor.ActualLayoutBounds.Center.Y), 0, 1);
+        Assert.InRange(Math.Abs(visibleLabel.ActualLayoutBounds.Center.Y - visibleEditor.ActualLayoutBounds.Center.Y), 0, 1);
+    }
+
+    [Fact]
+    public void PropertyGrid_Centers_TextBox_Text_With_Row_Label()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 88797, Name = "Player", Visible = true, Opacity = 0.5f });
+
+        MGTextBlock positionLabel = GetRowLabel(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGTextBox positionTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGTextBlock positionEditorText = GetTextBoxDisplayText(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        int labelCenter = positionLabel.ActualLayoutBounds.Center.Y;
+        int textCenter = positionEditorText.ActualLayoutBounds.Center.Y;
+        int textBoxCenter = positionTextBox.ActualLayoutBounds.Center.Y;
+        MGTextLine labelLine = Assert.Single(positionLabel.Lines);
+        MGTextLine textLine = Assert.Single(positionEditorText.Lines);
+
+        Assert.InRange(Math.Abs(labelCenter - textCenter), 0, 1);
+        Assert.InRange(Math.Abs(textBoxCenter - textCenter), 0, 1);
+        Assert.True(labelLine.LineTotalHeight >= labelLine.LineTextHeight);
+        Assert.True(textLine.LineTotalHeight >= textLine.LineTextHeight);
+    }
+
+    [Fact]
+    public void PropertyGrid_TextBox_Text_Draw_Compensates_For_DrawOrigin()
+    {
+        PropertyGridTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+        runtime.TextEngine = new PropertyGridTestTextEngine(runtime.DefaultFontFamily, new Vector2(0, 3));
+        runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16), default, default));
+
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 24, 24, 440, 300)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new Thickness(0)
+        };
+
+        MGPropertyGrid grid = new(window)
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            LabelColumnWidth = 160,
+            SelectedObject = new InspectableEntity { PositionX = 88797, Name = "Player", Visible = true, Opacity = 0.5f },
+        };
+
+        window.SetContent(grid);
+        desktop.Windows.Add(window);
+        desktop.Update();
+        desktop.Update();
+
+        MGTextBlock positionEditorText = GetTextBoxDisplayText(grid, nameof(InspectableEntity.PositionX));
+        runtime.ResetDrawCapture();
+        desktop.Draw();
+
+        DrawnTextCall drawCall = Assert.Single(runtime.DrawnTextCalls, x => x.Text == "88797");
+        float actualVisualTop = drawCall.Position.Y - (drawCall.Origin.Y * drawCall.Scale);
+        float expectedVisualTop = GetRenderedTextStartY(positionEditorText);
+
+        Assert.InRange(Math.Abs(actualVisualTop - expectedVisualTop), 0, 1);
+    }
+
+    [Fact]
+    public void PropertyGrid_Applies_Visible_Text_Foregrounds_To_Generated_Content()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f });
+
+        MGTextBlock transformHeader = GetCategoryHeaderText(harness.Grid, "Transform");
+        MGTextBlock positionLabel = GetRowLabel(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGTextBlock positionEditorText = GetTextBoxDisplayText(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        Assert.Equal(Color.White, transformHeader.ActualForeground);
+        Assert.Equal(Color.White, positionLabel.ActualForeground);
+        Assert.Equal(Color.White, positionEditorText.ActualForeground);
+
+        ApplyWindowTheme(harness.Window, MGTheme.BuiltInTheme.Dark);
+
+        Assert.Equal(new Color(210, 210, 210), transformHeader.ActualForeground);
+        Assert.Equal(new Color(210, 210, 210), positionLabel.ActualForeground);
+        Assert.Equal(new Color(210, 210, 210), positionEditorText.ActualForeground);
+    }
+
+    [Fact]
+    public void PropertyGrid_Draws_Generated_Text_Content()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f });
+        MGTextBlock transformHeader = GetCategoryHeaderText(harness.Grid, "Transform");
+        MGTextBlock positionLabel = GetRowLabel(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGTextBlock positionEditorText = GetTextBoxDisplayText(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        Assert.True(transformHeader.Lines?.Count > 0,
+            $"Header lines were empty. Text='{transformHeader.Text}', ActualBounds={transformHeader.ActualLayoutBounds}, LayoutBounds={transformHeader.LayoutBounds}");
+        Assert.True(positionLabel.Lines?.Count > 0,
+            $"Label lines were empty. Text='{positionLabel.Text}', ActualBounds={positionLabel.ActualLayoutBounds}, LayoutBounds={positionLabel.LayoutBounds}");
+        Assert.True(positionEditorText.Lines?.Count > 0,
+            $"Editor lines were empty. Text='{positionEditorText.Text}', ActualBounds={positionEditorText.ActualLayoutBounds}, LayoutBounds={positionEditorText.LayoutBounds}");
+
+        harness.Runtime.ResetDrawCapture();
+        harness.Desktop.Draw();
+
+        Assert.Contains("Transform", harness.Runtime.DrawnTexts);
+        Assert.Contains("Rendering", harness.Runtime.DrawnTexts);
+        Assert.Contains(nameof(InspectableEntity.PositionX), harness.Runtime.DrawnTexts);
+        Assert.Contains("12", harness.Runtime.DrawnTexts);
+        Assert.Contains("0.5", harness.Runtime.DrawnTexts);
+        Assert.Contains("Player", harness.Runtime.DrawnTexts);
+    }
+
+    [Fact]
     public void RefreshVisibleValues_DoesNotOverwrite_TextBeingEdited()
     {
         PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f });
@@ -47,6 +223,103 @@ public class PropertyGridTests
 
         Assert.Equal("12.", positionTextBox.Text);
         Assert.Equal(99, harness.Entity.PositionX);
+    }
+
+    [Fact]
+    public void LiveRefresh_While_TextEditor_IsFocused_Keeps_User_Text_Visible_Across_Update_And_Draw()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f }, refreshOnEndUpdate: true);
+        MGTextBox positionTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        SetFocusedKeyboardHandler(harness.Desktop, positionTextBox);
+        positionTextBox.SetText("123456");
+
+        for (int frame = 0; frame < 4; frame++)
+        {
+            harness.Entity.PositionX = 50 + frame;
+            AdvanceFrame(harness, TimeSpan.FromMilliseconds(32 + (frame * 16)), TimeSpan.FromMilliseconds(16));
+
+            harness.Runtime.ResetDrawCapture();
+            harness.Desktop.Draw();
+
+            Assert.Same(positionTextBox, harness.Desktop.FocusedKeyboardHandler);
+            Assert.Equal("123456", positionTextBox.Text);
+            Assert.Contains("123456", harness.Runtime.DrawnTexts);
+        }
+    }
+
+    [Fact]
+    public void LiveRefresh_While_NumericEditor_Text_IsTemporarilyInvalid_Keeps_User_Text_Visible_Across_Update_And_Draw()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f }, refreshOnEndUpdate: true);
+        MGTextBox positionTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        SetFocusedKeyboardHandler(harness.Desktop, positionTextBox);
+        positionTextBox.SetText("12.");
+
+        for (int frame = 0; frame < 4; frame++)
+        {
+            harness.Entity.PositionX = 50 + frame;
+            AdvanceFrame(harness, TimeSpan.FromMilliseconds(32 + (frame * 16)), TimeSpan.FromMilliseconds(16));
+
+            harness.Runtime.ResetDrawCapture();
+            harness.Desktop.Draw();
+
+            Assert.Same(positionTextBox, harness.Desktop.FocusedKeyboardHandler);
+            Assert.Equal("12.", positionTextBox.Text);
+            Assert.Contains("12.", harness.Runtime.DrawnTexts);
+        }
+    }
+
+    [Fact]
+    public void NumericEditor_InvalidIntermediateText_DoesNotChange_EditorLayoutBounds()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f }, refreshOnEndUpdate: true);
+        MGElement positionEditor = GetRowEditorElement(harness.Grid, nameof(InspectableEntity.PositionX));
+        MGTextBox positionTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        Rectangle initialEditorBounds = positionEditor.ActualLayoutBounds;
+        Rectangle initialTextBoxBounds = positionTextBox.ActualLayoutBounds;
+
+        SetFocusedKeyboardHandler(harness.Desktop, positionTextBox);
+        positionTextBox.SetText("12.");
+
+        AdvanceFrame(harness, TimeSpan.FromMilliseconds(32), TimeSpan.FromMilliseconds(16));
+
+        Assert.Equal(initialEditorBounds, positionEditor.ActualLayoutBounds);
+        Assert.Equal(initialTextBoxBounds, positionTextBox.ActualLayoutBounds);
+    }
+
+    [Fact]
+    public void RefreshVisibleValues_DoesNotOverwrite_Text_WhenTextEditorFocusIsQueued()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f });
+        MGTextBox positionTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        QueueFocusedKeyboardHandler(harness.Desktop, positionTextBox);
+        positionTextBox.SetText("123456");
+
+        harness.Entity.PositionX = 99;
+        harness.Grid.RefreshVisibleValues();
+
+        Assert.Equal("123456", positionTextBox.Text);
+    }
+
+    [Fact]
+    public void SelectedText_InPropertyGridEditor_RemainsVisible_And_Uses_Valid_ClosingMarkdown()
+    {
+        PropertyGridHarness harness = CreateHarness(new InspectableEntity { PositionX = 12, Name = "Player", Visible = true, Opacity = 0.5f });
+        MGTextBox positionTextBox = GetTextBoxEditor(harness.Grid, nameof(InspectableEntity.PositionX));
+
+        SetFocusedKeyboardHandler(harness.Desktop, positionTextBox);
+        positionTextBox.CurrentSelection = new MGTextBox.TextSelection(0, positionTextBox.Text.Length);
+
+        harness.Runtime.ResetDrawCapture();
+        harness.Desktop.Draw();
+
+        Assert.Contains("[/bg][/fg]", positionTextBox.FormattedText);
+        Assert.DoesNotContain("[\\bg][\\fg]", positionTextBox.FormattedText);
+        Assert.Contains("12", harness.Runtime.DrawnTexts);
     }
 
     [Fact]
@@ -97,7 +370,7 @@ public class PropertyGridTests
         Assert.True(GetCategoryCollapsed(rebuiltCategory));
     }
 
-    private static PropertyGridHarness CreateHarness(InspectableEntity entity)
+    private static PropertyGridHarness CreateHarness(InspectableEntity entity, bool refreshOnEndUpdate = false)
     {
         PropertyGridTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
         runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16), default, default));
@@ -116,6 +389,11 @@ public class PropertyGridTests
             LabelColumnWidth = 160,
             SelectedObject = entity,
         };
+
+        if (refreshOnEndUpdate)
+        {
+            window.OnEndUpdate += (sender, e) => grid.RefreshVisibleValues();
+        }
 
         window.SetContent(grid);
         desktop.Windows.Add(window);
@@ -177,10 +455,105 @@ public class PropertyGridTests
         throw new InvalidOperationException($"No text editor was found for descriptor '{descriptorName}'.");
     }
 
+    private static MGCheckBox GetCheckBoxEditor(MGPropertyGrid grid, string descriptorName)
+    {
+        object editor = GetRowEditor(grid, descriptorName);
+        return (MGCheckBox)editor.GetType().GetField("CheckBox", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(editor)!;
+    }
+
+    private static MGTextBlock GetCategoryHeaderText(MGPropertyGrid grid, string categoryName)
+    {
+        object categoryView = GetCategoryView(grid, categoryName);
+        return (MGTextBlock)categoryView.GetType().GetProperty("HeaderText", BindingFlags.Public | BindingFlags.Instance)!.GetValue(categoryView)!;
+    }
+
+    private static MGTextBlock GetRowLabel(MGPropertyGrid grid, string descriptorName)
+    {
+        object row = GetRowView(grid, descriptorName);
+        return (MGTextBlock)row.GetType().GetField("Label", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(row)!;
+    }
+
+    private static MGBorder GetRowRoot(MGPropertyGrid grid, string descriptorName)
+    {
+        object row = GetRowView(grid, descriptorName);
+        return (MGBorder)row.GetType().GetProperty("Root", BindingFlags.Public | BindingFlags.Instance)!.GetValue(row)!;
+    }
+
+    private static MGElement GetRowEditorElement(MGPropertyGrid grid, string descriptorName)
+    {
+        object editor = GetRowEditor(grid, descriptorName);
+        return (MGElement)editor.GetType().GetProperty("Element", BindingFlags.Public | BindingFlags.Instance)!.GetValue(editor)!;
+    }
+
+    private static object GetRowEditor(MGPropertyGrid grid, string descriptorName)
+    {
+        object row = GetRowView(grid, descriptorName);
+        return row.GetType().GetProperty("Editor", BindingFlags.Public | BindingFlags.Instance)!.GetValue(row)!;
+    }
+
+    private static MGTextBlock GetTextBoxDisplayText(MGPropertyGrid grid, string descriptorName)
+    {
+        MGTextBox textBox = GetTextBoxEditor(grid, descriptorName);
+        return (MGTextBlock)typeof(MGTextBox).GetProperty("TextBlockElement", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(textBox)!;
+    }
+
+    private static object GetRowView(MGPropertyGrid grid, string descriptorName)
+    {
+        foreach (object categoryView in GetCategoryViews(grid))
+        {
+            IList rows = (IList)categoryView.GetType().GetProperty("Rows", BindingFlags.Public | BindingFlags.Instance)!.GetValue(categoryView)!;
+            foreach (object row in rows)
+            {
+                object descriptor = row.GetType().GetProperty("Descriptor", BindingFlags.Public | BindingFlags.Instance)!.GetValue(row)!;
+                string name = (string)descriptor.GetType().GetProperty(nameof(MGPropertyGridDescriptor.Name), BindingFlags.Public | BindingFlags.Instance)!.GetValue(descriptor)!;
+                if (name == descriptorName)
+                {
+                    return row;
+                }
+            }
+        }
+
+        throw new InvalidOperationException($"No row was found for descriptor '{descriptorName}'.");
+    }
+
     private static void SetFocusedKeyboardHandler(MGDesktop desktop, MGElement? element)
     {
         MethodInfo setter = typeof(MGDesktop).GetProperty(nameof(MGDesktop.FocusedKeyboardHandler), BindingFlags.Public | BindingFlags.Instance)!.GetSetMethod(true)!;
         setter.Invoke(desktop, new object?[] { element });
+    }
+
+    private static void QueueFocusedKeyboardHandler(MGDesktop desktop, MGElement? element)
+    {
+        MethodInfo method = typeof(MGDesktop).GetMethod("QueueFocusedKeyboardHandler", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        method.Invoke(desktop, new object?[] { element, KeyboardFocusSource.Pointer });
+    }
+
+    private static void ApplyWindowTheme(MGWindow window, MGTheme.BuiltInTheme themeType)
+        => window.GetResources().DefaultTheme = new MGTheme(themeType, window.Desktop.DefaultFontFamily);
+
+    private static float GetRenderedTextStartY(MGTextBlock textBlock)
+    {
+        MethodInfo method = typeof(MGTextBlock).GetMethod("GetRenderedTextStartY", BindingFlags.Instance | BindingFlags.NonPublic, null,
+            new[] { typeof(Rectangle), typeof(IReadOnlyList<MGTextLine>) }, null)!;
+        return (float)method.Invoke(textBlock, new object[] { textBlock.ActualLayoutBounds, textBlock.Lines })!;
+    }
+
+    private static Color GetUniformBackgroundColor(MGElement element)
+    {
+        MGSolidFillBrush brush = Assert.IsType<MGSolidFillBrush>(element.BackgroundBrush.NormalValue);
+        return brush.Color;
+    }
+
+    private static Color GetThemeBackgroundColor(MGElement element)
+    {
+        MGSolidFillBrush brush = Assert.IsType<MGSolidFillBrush>(element.GetTheme().GetBackgroundBrush(element.ElementType).NormalValue);
+        return brush.Color;
+    }
+
+    private static void AdvanceFrame(PropertyGridHarness harness, TimeSpan totalElapsed, TimeSpan frameElapsed)
+    {
+        harness.Runtime.ApplyFrame(new UpdateBaseArgs(totalElapsed, frameElapsed, default, default));
+        harness.Desktop.Update();
     }
 
     private static void SetCategoryCollapsed(object categoryView, bool value)
@@ -188,6 +561,12 @@ public class PropertyGridTests
 
     private static bool GetCategoryCollapsed(object categoryView)
         => (bool)categoryView.GetType().GetProperty("IsCollapsed", BindingFlags.Public | BindingFlags.Instance)!.GetValue(categoryView)!;
+
+    private static Color GetCategoryArrowColor(object categoryView)
+    {
+        MGTriangleArrowIcon arrowIcon = (MGTriangleArrowIcon)categoryView.GetType().GetProperty("ArrowIcon", BindingFlags.Public | BindingFlags.Instance)!.GetValue(categoryView)!;
+        return arrowIcon.Color;
+    }
 
     private sealed class InspectableEntity
     {
@@ -218,6 +597,8 @@ public class PropertyGridTests
 
     private readonly record struct PropertyGridHarness(PropertyGridTestRuntime Runtime, MGDesktop Desktop, MGWindow Window, MGPropertyGrid Grid, InspectableEntity Entity);
 
+    private readonly record struct DrawnTextCall(string Text, Vector2 Position, Vector2 Origin, float Scale);
+
     private sealed class PropertyGridTestRuntime : IUIDesktopRuntime
     {
         private ITextMeasurementEngine _textEngine;
@@ -226,6 +607,8 @@ public class PropertyGridTests
         public string DefaultFontFamily { get; } = "TestSans";
         public IUISurface Surface { get; }
         public IUIAssetProvider AssetProvider { get; }
+        public List<string> DrawnTexts { get; } = new();
+        public List<DrawnTextCall> DrawnTextCalls { get; } = new();
         public UpdateBaseArgs UpdateArgs { get; private set; } = new(TimeSpan.Zero, TimeSpan.Zero, default, default);
 
         public event EventHandler<EventArgs<ITextMeasurementEngine>>? TextEngineChanged;
@@ -251,6 +634,12 @@ public class PropertyGridTests
             Surface = new PropertyGridTestSurface(surfaceBounds, new PropertyGridTestRenderTarget(surfaceBounds.Width, surfaceBounds.Height));
             AssetProvider = new PropertyGridTestAssetProvider();
             _textEngine = new PropertyGridTestTextEngine(DefaultFontFamily);
+        }
+
+        public void ResetDrawCapture()
+        {
+            DrawnTexts.Clear();
+            DrawnTextCalls.Clear();
         }
 
         public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
@@ -298,6 +687,11 @@ public class PropertyGridTests
         public void DrawTextViaEngine(ResolvedFont Font, string Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
             float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
         {
+            if (Renderer is PropertyGridTestRuntime runtime && !string.IsNullOrWhiteSpace(Text))
+            {
+                runtime.DrawnTexts.Add(Text);
+                runtime.DrawnTextCalls.Add(new(Text, Position, Origin, Scale));
+            }
         }
 
         public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color)
@@ -419,7 +813,7 @@ public class PropertyGridTests
 
         public IUIImageResource LoadImage(string assetName)
         {
-            if (!_images.TryGetValue(assetName, out PropertyGridTestImageResource image))
+            if (!_images.TryGetValue(assetName, out PropertyGridTestImageResource? image))
             {
                 image = new(assetName, 16, 16);
                 _images[assetName] = image;
@@ -461,10 +855,12 @@ public class PropertyGridTests
     private sealed class PropertyGridTestTextEngine : ITextMeasurementEngine
     {
         private readonly string _defaultFontFamily;
+        private readonly Vector2 _drawOrigin;
 
-        public PropertyGridTestTextEngine(string defaultFontFamily)
+        public PropertyGridTestTextEngine(string defaultFontFamily, Vector2? drawOrigin = null)
         {
             _defaultFontFamily = defaultFontFamily;
+            _drawOrigin = drawOrigin ?? Vector2.Zero;
         }
 
         public ResolvedFont ResolveFont(FontSpec spec)
@@ -474,7 +870,7 @@ public class PropertyGridTests
                 ? FontSpec.Normal(_defaultFontFamily, size)
                 : spec;
 
-            return new ResolvedFont(effectiveSpec, size, 1.0f, 1.0f, size, Math.Max(1.0f, size * 0.5f), Vector2.Zero, false, new object());
+            return new ResolvedFont(effectiveSpec, size, 1.0f, 1.0f, size, Math.Max(1.0f, size * 0.5f), _drawOrigin, false, new object());
         }
 
         public Vector2 MeasureText(ResolvedFont font, string text)

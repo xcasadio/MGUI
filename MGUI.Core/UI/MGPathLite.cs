@@ -65,8 +65,9 @@ namespace MGUI.Core.UI
 
             MGPointShapePlacement placement = GetPlacement(layoutBounds);
             Vector2 origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
-            Color fillColor = Fill * DA.Opacity;
             Color strokeColor = Stroke * DA.Opacity;
+            bool hasSolidFill = TryGetSolidFillColor(DA.Opacity, out Color fillColor);
+            bool hasBrushFill = HasVisibleFill && !hasSolidFill;
 
             for (int i = 0; i < _Figures.Length; i++)
             {
@@ -76,13 +77,20 @@ namespace MGUI.Core.UI
                     continue;
                 }
 
-                if (figure.IsClosed && figure.Points.Count >= 3 && HasVisibleFill && HasVisibleStroke)
+                if (figure.IsClosed && figure.Points.Count >= 3 && hasBrushFill)
+                {
+                    ClipGeometry clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, origin);
+                    DrawClippedFillBrush(DA, placement.Bounds,
+                        CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), clipGeometry, $"{ElementType}.Fill", allowRectangleFallback: true));
+                }
+
+                if (figure.IsClosed && figure.Points.Count >= 3 && hasSolidFill && HasVisibleStroke)
                 {
                     DA.Context.StrokeAndFillPolygon(origin, figure.Points, strokeColor, fillColor, StrokeThickness);
                 }
                 else
                 {
-                    if (figure.IsClosed && figure.Points.Count >= 3 && HasVisibleFill)
+                    if (figure.IsClosed && figure.Points.Count >= 3 && hasSolidFill)
                     {
                         DA.Context.FillPolygon(origin, figure.Points, fillColor);
                     }
@@ -138,12 +146,12 @@ namespace MGUI.Core.UI
 
             MGPathLiteFigure figure = _Figures[0];
             MGPointShapePlacement placement = GetPlacement(layoutBounds);
-            if (!figure.IsClosed || figure.Points.Count < 3 || !MGVectorShapeHelper.IsConvexPolygon(figure.Points))
+            if (!figure.IsClosed || figure.Points.Count < 3)
             {
                 return CreateRectangleClipDefinition(TransformClipBounds(DA, placement.Bounds), $"{ElementType}.Self");
             }
 
-            ClipGeometry geometry = MGVectorShapeHelper.CreateTriangleFanClipGeometry(figure.Points, DA.Offset.ToVector2() + placement.GeometryOrigin);
+            ClipGeometry geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, DA.Offset.ToVector2() + placement.GeometryOrigin);
             return CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true);
         }
 

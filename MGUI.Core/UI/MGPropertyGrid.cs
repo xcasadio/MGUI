@@ -15,6 +15,8 @@ namespace MGUI.Core.UI
 {
     public class MGPropertyGrid : MGSingleContentHost
     {
+        private const int DefaultRowControlMinHeight = 24;
+
         public const string OuterBorderPartName = "PART_OuterBorder";
         public const string ScrollViewerPartName = "PART_ScrollViewer";
         public const string CategoriesPanelPartName = "PART_CategoriesPanel";
@@ -432,25 +434,22 @@ namespace MGUI.Core.UI
                 HeaderButton = new(window, _ => IsCollapsed = !IsCollapsed)
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
                     VerticalContentAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0),
                     Padding = new Thickness(0),
                     BorderThickness = new Thickness(0),
                 };
 
-                MGGrid headerGrid = new(window)
+                MGStackPanel headerPanel = new(window, Orientation.Horizontal)
                 {
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0),
                     Padding = new Thickness(0),
-                    ColumnSpacing = 8,
+                    Spacing = 8,
                     CanChangeContent = false,
                 };
-                headerGrid.AddRow(GridLength.Auto);
-                headerGrid.AddColumn(GridLength.CreatePixelLength(12));
-                headerGrid.AddColumn(GridLength.CreateWeightedLength(1.0));
 
                 ArrowIcon = new(window)
                 {
@@ -467,12 +466,15 @@ namespace MGUI.Core.UI
                     Margin = new Thickness(0),
                 };
 
-                headerGrid.TryAddChild(0, 0, ArrowIcon);
-                headerGrid.TryAddChild(0, 1, HeaderText);
+                using (headerPanel.AllowChangingContentTemporarily())
+                {
+                    headerPanel.TryAddChild(ArrowIcon);
+                    headerPanel.TryAddChild(HeaderText);
+                }
 
                 using (HeaderButton.AllowChangingContentTemporarily())
                 {
-                    HeaderButton.SetContent(headerGrid);
+                    HeaderButton.SetContent(headerPanel);
                 }
 
                 RowsPanel = new(window, Orientation.Vertical)
@@ -515,12 +517,14 @@ namespace MGUI.Core.UI
 
             public void ApplyTheme(MGThemePropertyGridSettings settings)
             {
+                VisualStateSetting<Color?> headerForeground = ToTextColorSetting(settings.CategoryHeaderForeground?.Copy());
                 HeaderButton.BackgroundBrush = settings.CategoryHeaderBackground?.Copy();
-                HeaderButton.DefaultTextForeground = ToTextColorSetting(settings.CategoryHeaderForeground?.Copy());
+                HeaderButton.DefaultTextForeground = headerForeground;
                 HeaderButton.Padding = settings.CategoryHeaderPadding;
                 HeaderButton.MinHeight = settings.CategoryHeaderMinHeight;
                 ArrowIcon.Color = settings.CategoryArrowColor;
                 HeaderText.Foreground = new VisualStateSetting<Color?>((Color?)null, null, null, null);
+                HeaderText.DefaultTextForeground = headerForeground.GetCopy();
                 RowsPanel.Spacing = settings.RowsSpacing;
             }
 
@@ -543,9 +547,9 @@ namespace MGUI.Core.UI
             public object LastKnownValue { get; private set; }
             public IPropertyGridEditor Editor { get; }
 
-            private readonly MGGrid LayoutGrid;
-            private readonly ColumnDefinition LabelColumn;
+            private readonly MGDockPanel LayoutPanel;
             private readonly MGPropertyGrid Owner;
+            private readonly MGTextBlock Label;
 
             public PropertyGridRowView(MGPropertyGrid owner, PropertyGridCategoryView category, MGPropertyGridDescriptor descriptor)
             {
@@ -562,35 +566,37 @@ namespace MGUI.Core.UI
                     Padding = new Thickness(0),
                 };
 
-                LayoutGrid = new(window)
+                LayoutPanel = new(window)
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0),
                     Padding = new Thickness(0),
-                    ColumnSpacing = 8,
                     CanChangeContent = false,
                 };
-                LayoutGrid.AddRow(GridLength.Auto);
-                LabelColumn = LayoutGrid.AddColumn(GridLength.CreatePixelLength(owner.LabelColumnWidth));
-                LayoutGrid.AddColumn(GridLength.CreateWeightedLength(1.0));
 
-                MGTextBlock label = new(window, descriptor.DisplayName ?? descriptor.Name)
+                Label = new(window, descriptor.DisplayName ?? descriptor.Name)
                 {
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0),
+                    Margin = new Thickness(0, 0, 8, 0),
+                    MinHeight = DefaultRowControlMinHeight,
+                    PreferredWidth = owner.LabelColumnWidth,
                 };
-                LayoutGrid.TryAddChild(0, 0, label);
 
                 Editor = CreateEditor(owner, descriptor);
                 Editor.SetReadOnly(descriptor.IsReadOnly);
                 Editor.ValueCommitted += Editor_ValueCommitted;
-                LayoutGrid.TryAddChild(0, 1, Editor.Element);
+
+                using (LayoutPanel.AllowChangingContentTemporarily())
+                {
+                    LayoutPanel.TryAddChild(Label, Dock.Left);
+                    LayoutPanel.TryAddChild(Editor.Element, Dock.Left);
+                }
 
                 using (Root.AllowChangingContentTemporarily())
                 {
-                    Root.SetContent(LayoutGrid);
+                    Root.SetContent(LayoutPanel);
                 }
             }
 
@@ -598,13 +604,18 @@ namespace MGUI.Core.UI
                 => Owner.CommitRowValue(this, value);
 
             public void SetLabelColumnWidth(int value)
-                => LabelColumn.Length = GridLength.CreatePixelLength(Math.Max(0, value));
+                => Label.PreferredWidth = Math.Max(0, value);
 
             public void ApplyTheme(MGThemePropertyGridSettings settings)
             {
+                VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
+                VisualStateSetting<Color?> textForeground = ToTextColorSetting(themeText?.Copy());
+
                 Root.Padding = settings.RowPadding;
                 Root.BorderThickness = settings.RowSeparatorBrush != null ? new Thickness(0, 0, 0, 1) : new Thickness(0);
                 Root.BorderBrush = settings.RowSeparatorBrush?.AsUniformBorderBrush();
+                Root.DefaultTextForeground = textForeground.GetCopy();
+                Label.DefaultTextForeground = textForeground.GetCopy();
                 Editor.ApplyTheme(settings);
             }
 
@@ -691,6 +702,7 @@ namespace MGUI.Core.UI
                 {
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
+                    MinHeight = DefaultRowControlMinHeight,
                     SpacingWidth = 0,
                     IsThreeState = false,
                 };
@@ -723,6 +735,8 @@ namespace MGUI.Core.UI
 
             public override void ApplyTheme(MGThemePropertyGridSettings settings)
             {
+                VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
+                CheckBox.DefaultTextForeground = ToTextColorSetting(themeText?.Copy());
             }
 
             public override void Dispose()
@@ -734,6 +748,7 @@ namespace MGUI.Core.UI
             private readonly MGPropertyGridEditorKind EditorKind;
             private readonly MGBorder HostBorder;
             private readonly MGTextBox TextBox;
+            private readonly IBorderBrush DefaultTextBoxBorderBrush;
             private IBorderBrush InvalidBorderBrush;
             private bool HasValidationError;
             private readonly EventHandler<EventArgs<string>> TextChangedHandler;
@@ -741,7 +756,15 @@ namespace MGUI.Core.UI
             private readonly EventHandler<EventArgs<MGElement>> FocusChangedHandler;
 
             public override MGElement Element => HostBorder;
-            public override bool IsEditing => Owner.GetDesktop().FocusedKeyboardHandler == TextBox;
+            public override bool IsEditing
+            {
+                get
+                {
+                    MGDesktop desktop = Owner.GetDesktop();
+                    return ReferenceEquals(desktop.FocusedKeyboardHandler, TextBox)
+                        || ReferenceEquals(desktop.QueuedFocusedKeyboardHandler, TextBox);
+                }
+            }
 
             public TextPropertyGridEditor(MGPropertyGrid owner, MGPropertyGridEditorKind editorKind)
                 : base(owner)
@@ -758,11 +781,13 @@ namespace MGUI.Core.UI
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Center,
                 };
+                DefaultTextBoxBorderBrush = TextBox.BorderBrush;
 
                 HostBorder = new(owner.SelfOrParentWindow)
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Center,
+                    MinHeight = DefaultRowControlMinHeight,
                     Padding = new Thickness(0),
                     BorderThickness = new Thickness(0),
                 };
@@ -809,7 +834,10 @@ namespace MGUI.Core.UI
 
             public override void ApplyTheme(MGThemePropertyGridSettings settings)
             {
+                VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
                 InvalidBorderBrush = settings.InvalidEditorBorderBrush?.Copy();
+                HostBorder.DefaultTextForeground = ToTextColorSetting(themeText?.Copy());
+                TextBox.DefaultTextForeground = ToTextColorSetting(themeText?.Copy());
                 UpdateValidationVisual();
             }
 
@@ -846,8 +874,9 @@ namespace MGUI.Core.UI
                         && !TryParseValue(EditorKind, LastPresentedValue, TextBox.Text, out _);
                 }
 
-                HostBorder.BorderThickness = HasValidationError ? new Thickness(1) : new Thickness(0);
-                HostBorder.BorderBrush = HasValidationError ? InvalidBorderBrush : null;
+                HostBorder.BorderThickness = new Thickness(0);
+                HostBorder.BorderBrush = null;
+                TextBox.BorderBrush = HasValidationError ? InvalidBorderBrush ?? MGUniformBorderBrush.Transparent : DefaultTextBoxBorderBrush;
             }
 
             public override void Dispose()

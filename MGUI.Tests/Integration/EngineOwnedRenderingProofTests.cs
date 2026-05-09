@@ -83,7 +83,7 @@ public class EngineOwnedRenderingProofTests
         MGDesktop desktop = new(runtime);
         string xaml = @"<Window xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"" Width=""360"" Height=""260"" Padding=""8"" Background=""rgb(32,36,40)"">
     <StackPanel Orientation=""Vertical"" Spacing=""8"">
-        <Ellipse Width=""120"" Height=""72"" Stroke=""White"" StrokeThickness=""4"" Fill=""rgb(77,163,255)"" Background=""White|Orange|Lime|HotPink"" BackgroundRenderPadding=""-12"" ClipToBounds=""True"" />
+        <Ellipse Width=""120"" Height=""72"" Stroke=""White"" StrokeThickness=""4"" Fill=""White|Orange|Lime|HotPink"" />
         <Polygon Points=""0,52 36,0 96,18 76,82 18,86"" Stroke=""White"" StrokeThickness=""3"" Fill=""rgba(255,160,64,220)"" />
         <Polyline Points=""0,40 20,10 48,34 74,0 104,40"" Stroke=""rgb(120,255,160)"" StrokeThickness=""4"" />
         <Line StartPoint=""0,0"" EndPoint=""120,28"" Stroke=""White"" StrokeThickness=""4"" />

@@ -1,5 +1,6 @@
 using MGUI.Shared.Rendering.Clipping;
 using Microsoft.Xna.Framework;
+using MonoGame.Extended.Triangulation;
 using MonoGame.Extended;
 using System;
 using System.Collections.Generic;
@@ -242,6 +243,30 @@ namespace MGUI.Core.UI.Shapes
             }
 
             return new ClipGeometry(vertices, indices);
+        }
+
+        public static ClipGeometry CreateTriangulatedClipGeometry(IReadOnlyList<Vector2> points, Vector2 translation)
+        {
+            if (points == null || points.Count < 3)
+            {
+                return new ClipGeometry(Array.Empty<Vector2>(), Array.Empty<int>());
+            }
+
+            Vector2[] sourceVertices = new Vector2[points.Count];
+            for (int i = 0; i < points.Count; i++)
+            {
+                sourceVertices[i] = points[i];
+            }
+
+            Vector2[] orderedVertices = Triangulator.EnsureWindingOrder(sourceVertices, WindingOrder.CounterClockwise);
+            Triangulator.Triangulate(orderedVertices, WindingOrder.CounterClockwise, out Vector2[] triangulatedVertices, out int[] indices);
+
+            for (int i = 0; i < triangulatedVertices.Length; i++)
+            {
+                triangulatedVertices[i] += translation;
+            }
+
+            return new ClipGeometry(triangulatedVertices, indices);
         }
 
         private static float DistanceSquaredToSegment(Vector2 point, Vector2 start, Vector2 end)

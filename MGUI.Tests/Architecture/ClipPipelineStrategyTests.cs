@@ -40,7 +40,7 @@ public class ClipPipelineStrategyTests
     }
 
     [Fact]
-    public void ArbitraryGeometry_ResolvesToMask()
+    public void ArbitraryGeometry_ResolvesToStencil_WhenAvailable()
     {
         ClipDefinition definition = ClipDefinition.ArbitraryGeometry(new Rectangle(0, 0, 80, 80),
             new ClipGeometry(new[] { Vector2.Zero, new Vector2(80, 0), new Vector2(40, 80) }, new[] { 0, 1, 2 }),
@@ -48,8 +48,22 @@ public class ClipPipelineStrategyTests
 
         ClipResolveResult result = ClipStrategyResolver.Resolve(definition, ClipBackendCapabilities.Default);
 
-        Assert.Equal(ClipStrategy.Mask, result.Strategy);
+        Assert.Equal(ClipStrategy.Stencil, result.Strategy);
         Assert.False(result.UsedFallback);
+    }
+
+    [Fact]
+    public void ArbitraryGeometry_FallsBackToMask_WhenStencilIsUnavailable()
+    {
+        ClipDefinition definition = ClipDefinition.ArbitraryGeometry(new Rectangle(0, 0, 80, 80),
+            new ClipGeometry(new[] { Vector2.Zero, new Vector2(80, 0), new Vector2(40, 80) }, new[] { 0, 1, 2 }),
+            debugName: "GeometryMaskFallback");
+        ClipBackendCapabilities capabilities = new(true, false, true);
+
+        ClipResolveResult result = ClipStrategyResolver.Resolve(definition, capabilities);
+
+        Assert.Equal(ClipStrategy.Mask, result.Strategy);
+        Assert.True(result.UsedFallback);
     }
 
     [Fact]
