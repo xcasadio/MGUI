@@ -36,6 +36,7 @@ namespace MGUI.Shared.Input.GamePad
 
         public InputTracker InputTracker { get; }
 
+        public bool Enabled { get; set; } = true;
         public PlayerIndex PlayerIndex { get; set; } = PlayerIndex.One;
         public GamePadDeadZone DeadZone { get; set; } = GamePadDeadZone.IndependentAxes;
         public float ThumbstickThreshold { get; set; } = 0.5f;
@@ -66,6 +67,21 @@ namespace MGUI.Shared.Input.GamePad
 
         internal void Update(UpdateBaseArgs BA)
         {
+            if (!Enabled)
+            {
+                PreviousState = default;
+                CurrentState = default;
+
+                foreach (GamePadButton button in AllButtons)
+                {
+                    _CurrentTriggeredButtons[button] = false;
+                    _HeldSince[button] = null;
+                    _LastRepeatAt[button] = null;
+                }
+
+                return;
+            }
+
             PreviousState = CurrentState;
             CurrentState = Microsoft.Xna.Framework.Input.GamePad.GetState(PlayerIndex, DeadZone);
 

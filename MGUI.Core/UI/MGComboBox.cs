@@ -261,7 +261,7 @@ namespace MGUI.Core.UI
         public int SelectedIndex
         {
             get => SelectedTemplatedItem == null ? -1 : TemplatedItems.IndexOf(SelectedTemplatedItem);
-            set => SelectedTemplatedItem = TemplatedItems[value];
+            set => SelectedTemplatedItem = value == -1 ? null : TemplatedItems[value];
         }
 
         public event EventHandler<EventArgs<TItemType>> SelectedItemChanged;

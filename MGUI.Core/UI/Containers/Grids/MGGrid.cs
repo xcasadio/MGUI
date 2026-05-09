@@ -1503,7 +1503,7 @@ namespace MGUI.Core.UI.Containers.Grids
 
         private void DrawVerticalGridLines(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
-            if (DA.Opacity <= 0 || DA.Opacity.IsAlmostZero() || VerticalGridLineBrush == null || Columns.Count == 0 || Columns.Count == 0)
+            if (DA.Opacity <= 0 || DA.Opacity.IsAlmostZero() || VerticalGridLineBrush == null || Rows.Count == 0 || Columns.Count == 0)
             {
                 return;
             }
