@@ -30,6 +30,21 @@ namespace MGUI.Core.UI
             return descriptors;
         }
 
+        internal static IReadOnlyList<MGPropertyGridDescriptor> GetDescriptors(object instance)
+        {
+            if (instance == null)
+            {
+                throw new ArgumentNullException(nameof(instance));
+            }
+
+            if (instance is ICustomTypeDescriptor)
+            {
+                return BuildDescriptors(TypeDescriptor.GetProperties(instance));
+            }
+
+            return GetDescriptors(instance.GetType());
+        }
+
         internal static bool TryGetEditorKind(Type propertyType, out MGPropertyGridEditorKind editorKind)
         {
             if (propertyType == typeof(bool))
@@ -38,7 +53,14 @@ namespace MGUI.Core.UI
                 return true;
             }
 
-            if (propertyType == typeof(int))
+            if (propertyType == typeof(byte)
+                || propertyType == typeof(sbyte)
+                || propertyType == typeof(short)
+                || propertyType == typeof(ushort)
+                || propertyType == typeof(int)
+                || propertyType == typeof(uint)
+                || propertyType == typeof(long)
+                || propertyType == typeof(ulong))
             {
                 editorKind = MGPropertyGridEditorKind.Int;
                 return true;
@@ -100,6 +122,34 @@ namespace MGUI.Core.UI
                     Name = property.Name,
                     DisplayName = string.IsNullOrWhiteSpace(displayNameAttribute?.DisplayName) ? property.Name : displayNameAttribute.DisplayName,
                     Category = string.IsNullOrWhiteSpace(categoryAttribute?.Category) ? "Misc" : categoryAttribute.Category,
+                    PropertyType = property.PropertyType,
+                    EditorKind = editorKind,
+                    Getter = instance => property.GetValue(instance),
+                    Setter = isReadOnly ? null : (instance, value) => property.SetValue(instance, value),
+                    IsReadOnly = isReadOnly,
+                });
+            }
+
+            return result;
+        }
+
+        private static IReadOnlyList<MGPropertyGridDescriptor> BuildDescriptors(PropertyDescriptorCollection properties)
+        {
+            List<MGPropertyGridDescriptor> result = new();
+
+            foreach (PropertyDescriptor property in properties)
+            {
+                if (property == null || !TryGetEditorKind(property.PropertyType, out MGPropertyGridEditorKind editorKind))
+                {
+                    continue;
+                }
+
+                bool isReadOnly = property.IsReadOnly;
+                result.Add(new MGPropertyGridDescriptor
+                {
+                    Name = property.Name,
+                    DisplayName = string.IsNullOrWhiteSpace(property.DisplayName) ? property.Name : property.DisplayName,
+                    Category = string.IsNullOrWhiteSpace(property.Category) ? "Misc" : property.Category,
                     PropertyType = property.PropertyType,
                     EditorKind = editorKind,
                     Getter = instance => property.GetValue(instance),

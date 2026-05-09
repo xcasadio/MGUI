@@ -91,6 +91,37 @@ namespace MGUI.Core.UI
             return result;
         }
 
+        protected override void UpdateContents(ElementUpdateArgs UA)
+        {
+            // Hidden tabs remain in the visual tree for traversal and selection changes,
+            // but they should not incur a full recursive update every frame.
+            SelectedTab?.Update(UA);
+        }
+
+        protected override void LayoutChanged(MGElement Source, bool NotifyParent)
+        {
+            if (Source != null)
+            {
+                MGElement current = Source;
+                while (current != null)
+                {
+                    if (current is MGTabItem tabItem)
+                    {
+                        if (!ReferenceEquals(tabItem, SelectedTab))
+                        {
+                            return;
+                        }
+
+                        break;
+                    }
+
+                    current = current.Parent;
+                }
+            }
+
+            base.LayoutChanged(Source, NotifyParent);
+        }
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; private set; }

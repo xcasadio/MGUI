@@ -1416,6 +1416,7 @@ namespace MGUI.Core.UI
 
                 bool IsOverlayWindow = Window == OverlayWindow;
                 bool ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
+
                 Window.Update(ProcessInputs ? UA : UA with { IsHitTestVisible = false });
 
                 //  Disallow occluded windows from overriding the active ToolTip

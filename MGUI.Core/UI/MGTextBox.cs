@@ -117,13 +117,15 @@ namespace MGUI.Core.UI
         }
 
         /// <returns>True if <see cref="Text"/> value was changed.</returns>
-        public virtual bool SetText(string Value) => SetText(Value, false);
+        public virtual bool SetText(string Value) => SetText(Value, false, false);
+
+        public bool SetText(string Value, bool SuppressLayoutChanged) => SetText(Value, false, SuppressLayoutChanged);
 
         /// <param name="ExecuteEvenIfSameValue">If true, will attempt to set the value even if <see cref="Text"/> already has the same value as <paramref name="Value"/>.<para/>
         /// This is mainly intended for use by subclasses that alter the <paramref name="Value"/>, such as <see cref="MGPasswordBox"/><br/>
         /// (For example, a Password might change from "123" to "234", but this method would only see "***" -> "***"</param>
         /// <returns>True if <see cref="Text"/> value was changed.</returns>
-        protected virtual bool SetText(string Value, bool ExecuteEvenIfSameValue)
+        protected virtual bool SetText(string Value, bool ExecuteEvenIfSameValue, bool SuppressLayoutChanged)
         {
             if (!AcceptsReturn && (Value.Contains('\n') || Value.Contains('\r')))
             {
@@ -159,7 +161,7 @@ namespace MGUI.Core.UI
 
                 UpdateCharacterCountText();
                 UpdatePlaceholderVisibility();
-                UpdateFormattedText(false);
+                UpdateFormattedText(SuppressLayoutChanged);
 
                 TextChanged?.Invoke(this, new(Previous, Text));
 

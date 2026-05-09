@@ -244,10 +244,10 @@ namespace MGUI.Core.UI
             return true;
         }
 
-        protected override bool SetText(string Value, bool ExecuteEvenIfSameValue)
+        protected override bool SetText(string Value, bool ExecuteEvenIfSameValue, bool SuppressLayoutChanged)
         {
             string normalizedValue = MGTextBuffer.NormalizeLineEndings(Value);
-            bool changed = base.SetText(normalizedValue, ExecuteEvenIfSameValue);
+            bool changed = base.SetText(normalizedValue, ExecuteEvenIfSameValue, SuppressLayoutChanged);
             if (TextBuffer != null && (changed || TextBuffer.Text != Text))
             {
                 TextBuffer.SetText(Text);

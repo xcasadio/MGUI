@@ -8,6 +8,7 @@ using MGUI.Shared.Helpers;
 using MGUI.Shared.Input.Keyboard;
 using MonoGame.Extended;
 using System;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -44,6 +45,7 @@ namespace MGUI.Core.UI
             get => _SelectedObject;
             set
             {
+                bool descriptorsCanVaryPerInstance = value is ICustomTypeDescriptor || _SelectedObject is ICustomTypeDescriptor;
                 if (ReferenceEquals(_SelectedObject, value))
                 {
                     return;
@@ -62,7 +64,7 @@ namespace MGUI.Core.UI
                     return;
                 }
 
-                if (typeChanged)
+                if (typeChanged || descriptorsCanVaryPerInstance)
                 {
                     RebuildView();
                 }
@@ -134,7 +136,6 @@ namespace MGUI.Core.UI
             }
 
             RebuildView();
-            ApplyGeneratedViewTheme();
         }
 
         protected internal override void OnThemeChanged(MGTheme previousTheme, MGTheme currentTheme)
@@ -200,7 +201,7 @@ namespace MGUI.Core.UI
                 return false;
             }
 
-            Rectangle bounds = row.Root.ActualLayoutBounds;
+            Rectangle bounds = GetElementViewportBounds(row.Root);
             if (bounds.Width <= 0 || bounds.Height <= 0)
             {
                 return false;
@@ -214,6 +215,22 @@ namespace MGUI.Core.UI
             return bounds.Intersects(viewport);
         }
 
+        private Rectangle GetElementViewportBounds(MGElement element)
+        {
+            if (element == null)
+            {
+                return Rectangle.Empty;
+            }
+
+            MGElement parent = element.Parent;
+            if (parent == null)
+            {
+                return element.ActualLayoutBounds;
+            }
+
+            return parent.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, element.LayoutBounds);
+        }
+
         private void RebuildView()
         {
             CaptureCollapsedStates();
@@ -225,20 +242,21 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            _Descriptors = MGPropertyGridDescriptorCache.GetDescriptors(SelectedObjectType);
+            _Descriptors = MGPropertyGridDescriptorCache.GetDescriptors(SelectedObject);
             List<MGPropertyGridCategoryModel> categories = BuildCategories(_Descriptors);
+            MGThemePropertyGridSettings settings = GetTheme().PropertyGrid;
 
             using (CategoriesPanel.AllowChangingContentTemporarily())
             {
                 for (int categoryIndex = 0; categoryIndex < categories.Count; categoryIndex++)
                 {
                     PropertyGridCategoryView categoryView = new(this, categories[categoryIndex]);
+                    ApplyTheme(categoryView, settings);
                     _CategoryViews.Add(categoryView);
                     CategoriesPanel.TryAddChild(categoryView.Root);
                 }
             }
 
-            ApplyGeneratedViewTheme();
             RefreshAllValues();
         }
 
@@ -333,13 +351,17 @@ namespace MGUI.Core.UI
             MGThemePropertyGridSettings settings = GetTheme().PropertyGrid;
             for (int categoryIndex = 0; categoryIndex < _CategoryViews.Count; categoryIndex++)
             {
-                PropertyGridCategoryView category = _CategoryViews[categoryIndex];
-                category.ApplyTheme(settings);
+                ApplyTheme(_CategoryViews[categoryIndex], settings);
+            }
+        }
 
-                for (int rowIndex = 0; rowIndex < category.Rows.Count; rowIndex++)
-                {
-                    category.Rows[rowIndex].ApplyTheme(settings);
-                }
+        private static void ApplyTheme(PropertyGridCategoryView category, MGThemePropertyGridSettings settings)
+        {
+            category.ApplyTheme(settings);
+
+            for (int rowIndex = 0; rowIndex < category.Rows.Count; rowIndex++)
+            {
+                category.Rows[rowIndex].ApplyTheme(settings);
             }
         }
 
@@ -352,7 +374,7 @@ namespace MGUI.Core.UI
 
             return editorKind switch
             {
-                MGPropertyGridEditorKind.Int => ((int)value).ToString(CultureInfo.InvariantCulture),
+                MGPropertyGridEditorKind.Int => FormatIntegerValue(value),
                 MGPropertyGridEditorKind.Float => ((float)value).ToString("R", CultureInfo.InvariantCulture),
                 MGPropertyGridEditorKind.Double => ((double)value).ToString("R", CultureInfo.InvariantCulture),
                 MGPropertyGridEditorKind.String => value as string ?? string.Empty,
@@ -365,9 +387,9 @@ namespace MGUI.Core.UI
             switch (editorKind)
             {
                 case MGPropertyGridEditorKind.Int:
-                    if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int intValue))
+                    if (TryParseIntegerValue(previousValue?.GetType() ?? typeof(int), text, out object integerValue))
                     {
-                        value = intValue;
+                        value = integerValue;
                         return true;
                     }
                     break;
@@ -388,6 +410,83 @@ namespace MGUI.Core.UI
                 case MGPropertyGridEditorKind.String:
                     value = previousValue == null && string.IsNullOrEmpty(text) ? null : text ?? string.Empty;
                     return true;
+            }
+
+            value = null;
+            return false;
+        }
+
+        private static string FormatIntegerValue(object value)
+        {
+            if (value is IFormattable formattable)
+            {
+                return formattable.ToString(null, CultureInfo.InvariantCulture);
+            }
+
+            return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+
+        private static bool TryParseIntegerValue(Type targetType, string text, out object value)
+        {
+            Type actualType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+            switch (Type.GetTypeCode(actualType))
+            {
+                case TypeCode.Byte:
+                    if (byte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out byte byteValue))
+                    {
+                        value = byteValue;
+                        return true;
+                    }
+                    break;
+                case TypeCode.SByte:
+                    if (sbyte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out sbyte sbyteValue))
+                    {
+                        value = sbyteValue;
+                        return true;
+                    }
+                    break;
+                case TypeCode.Int16:
+                    if (short.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out short shortValue))
+                    {
+                        value = shortValue;
+                        return true;
+                    }
+                    break;
+                case TypeCode.UInt16:
+                    if (ushort.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out ushort ushortValue))
+                    {
+                        value = ushortValue;
+                        return true;
+                    }
+                    break;
+                case TypeCode.Int32:
+                    if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int intValue))
+                    {
+                        value = intValue;
+                        return true;
+                    }
+                    break;
+                case TypeCode.UInt32:
+                    if (uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint uintValue))
+                    {
+                        value = uintValue;
+                        return true;
+                    }
+                    break;
+                case TypeCode.Int64:
+                    if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long longValue))
+                    {
+                        value = longValue;
+                        return true;
+                    }
+                    break;
+                case TypeCode.UInt64:
+                    if (ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong ulongValue))
+                    {
+                        value = ulongValue;
+                        return true;
+                    }
+                    break;
             }
 
             value = null;
@@ -477,7 +576,7 @@ namespace MGUI.Core.UI
                     HeaderButton.SetContent(headerPanel);
                 }
 
-                RowsPanel = new(window, Orientation.Vertical)
+                RowsPanel = new PropertyGridRowsPanel(owner, window)
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Top,
@@ -536,6 +635,66 @@ namespace MGUI.Core.UI
                 }
 
                 Rows.Clear();
+            }
+        }
+
+        private sealed class PropertyGridRowsPanel : MGStackPanel
+        {
+            private readonly MGPropertyGrid Owner;
+            private readonly List<MGElement> VisibleChildrenBuffer = new();
+
+            public PropertyGridRowsPanel(MGPropertyGrid owner, MGWindow window)
+                : base(window, Orientation.Vertical)
+            {
+                Owner = owner;
+            }
+
+            public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
+            {
+                if (!IncludeActive)
+                {
+                    return base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
+                }
+
+                Rectangle viewport = Owner.ScrollViewer?.ContentViewport ?? Rectangle.Empty;
+                if (viewport.Width <= 0 || viewport.Height <= 0)
+                {
+                    return base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
+                }
+
+                VisibleChildrenBuffer.Clear();
+                for (int i = 0; i < Children.Count; i++)
+                {
+                    MGElement child = Children[i];
+                    Rectangle bounds = Owner.GetElementViewportBounds(child);
+                    if (bounds.Width > 0 && bounds.Height > 0 && bounds.Intersects(viewport))
+                    {
+                        VisibleChildrenBuffer.Add(child);
+                    }
+                }
+
+                return VisibleChildrenBuffer;
+            }
+
+            protected override void UpdateContents(ElementUpdateArgs UA)
+            {
+                Rectangle viewport = Owner.ScrollViewer?.ContentViewport ?? Rectangle.Empty;
+                if (viewport.Width <= 0 || viewport.Height <= 0)
+                {
+                    base.UpdateContents(UA);
+                    return;
+                }
+
+                IReadOnlyList<MGElement> activeChildren = GetVisualTreeChildren(false, true);
+                for (int i = activeChildren.Count - 1; i >= 0; i--)
+                {
+                    MGElement child = activeChildren[i];
+                    Rectangle bounds = Owner.GetElementViewportBounds(child);
+                    if (bounds.Width > 0 && bounds.Height > 0 && bounds.Intersects(viewport))
+                    {
+                        child.Update(UA);
+                    }
+                }
             }
         }
 
@@ -632,7 +791,13 @@ namespace MGUI.Core.UI
             }
 
             private static IPropertyGridEditor CreateEditor(MGPropertyGrid owner, MGPropertyGridDescriptor descriptor)
-                => descriptor.EditorKind switch
+            {
+                if (descriptor.IsReadOnly)
+                {
+                    return new ReadOnlyPropertyGridEditor(owner, descriptor.EditorKind);
+                }
+
+                return descriptor.EditorKind switch
                 {
                     MGPropertyGridEditorKind.Bool => new BoolPropertyGridEditor(owner),
                     MGPropertyGridEditorKind.Int => new TextPropertyGridEditor(owner, MGPropertyGridEditorKind.Int),
@@ -641,6 +806,7 @@ namespace MGUI.Core.UI
                     MGPropertyGridEditorKind.String => new TextPropertyGridEditor(owner, MGPropertyGridEditorKind.String),
                     _ => throw new NotSupportedException($"Unsupported {nameof(MGPropertyGridEditorKind)} '{descriptor.EditorKind}'."),
                 };
+            }
         }
 
         internal interface IPropertyGridEditor : IDisposable
@@ -743,6 +909,70 @@ namespace MGUI.Core.UI
                 => CheckBox.OnCheckStateChanged -= CheckBox_OnCheckStateChanged;
         }
 
+        private sealed class ReadOnlyPropertyGridEditor : PropertyGridEditorBase
+        {
+            private readonly MGPropertyGridEditorKind EditorKind;
+            private readonly MGBorder HostBorder;
+            private readonly MGTextBlock DisplayText;
+
+            public override MGElement Element => HostBorder;
+            public override bool IsEditing => false;
+
+            public ReadOnlyPropertyGridEditor(MGPropertyGrid owner, MGPropertyGridEditorKind editorKind)
+                : base(owner)
+            {
+                EditorKind = editorKind;
+
+                DisplayText = new(owner.SelfOrParentWindow, string.Empty)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0),
+                    MinHeight = DefaultRowControlMinHeight,
+                    IsHitTestVisible = false,
+                };
+
+                HostBorder = new(owner.SelfOrParentWindow)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    MinHeight = DefaultRowControlMinHeight,
+                    Padding = new Thickness(0),
+                    BorderThickness = new Thickness(0),
+                    IsHitTestVisible = false,
+                };
+                using (HostBorder.AllowChangingContentTemporarily())
+                {
+                    HostBorder.SetContent(DisplayText);
+                }
+            }
+
+            protected override void ApplyValueCore(object value, bool force)
+            {
+                string formattedValue = FormatValue(EditorKind, value);
+                if (force || DisplayText.Text != formattedValue)
+                {
+                    DisplayText.SetText(formattedValue, true);
+                }
+            }
+
+            public override void SetReadOnly(bool isReadOnly)
+            {
+            }
+
+            public override void ApplyTheme(MGThemePropertyGridSettings settings)
+            {
+                VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
+                VisualStateSetting<Color?> textForeground = ToTextColorSetting(themeText?.Copy());
+                HostBorder.DefaultTextForeground = textForeground.GetCopy();
+                DisplayText.DefaultTextForeground = textForeground.GetCopy();
+            }
+
+            public override void Dispose()
+            {
+            }
+        }
+
         private sealed class TextPropertyGridEditor : PropertyGridEditorBase
         {
             private readonly MGPropertyGridEditorKind EditorKind;
@@ -825,7 +1055,7 @@ namespace MGUI.Core.UI
                 string formattedValue = FormatValue(EditorKind, value);
                 if (force || TextBox.Text != formattedValue)
                 {
-                    TextBox.SetText(formattedValue);
+                    TextBox.SetText(formattedValue, SuppressLayoutChanged: true);
                 }
 
                 HasValidationError = false;

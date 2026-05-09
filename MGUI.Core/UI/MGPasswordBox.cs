@@ -44,11 +44,11 @@ namespace MGUI.Core.UI
 			NPC(nameof(Password));
         }
 
-		protected override bool SetText(string Value, bool ExecuteEvenIfSameValue)
+		protected override bool SetText(string Value, bool ExecuteEvenIfSameValue, bool SuppressLayoutChanged)
 		{
             SecureString Temp = Value?.AsSecureString();
             Value = ReplaceNormalCharactersWith(Value, PasswordCharacter);
-            if (base.SetText(Value, true))
+			if (base.SetText(Value, true, SuppressLayoutChanged))
             {
                 //Debug.WriteLine($"{nameof(MGPasswordBox)}: Password changed from: \"{Password}\" to \"{Temp?.AsPlainString()}\"");
                 _Password?.Dispose();
