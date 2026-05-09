@@ -671,10 +671,17 @@ namespace MGUI.Core.UI.XAML
             return Result;
         }
 
+        private static bool HasUnsetColorStates(VisualStateColorBrush Brush)
+            => Brush != null
+            && Brush.NormalValue == default
+            && Brush.SelectedValue == default
+            && Brush.FocusedValue == default
+            && Brush.DisabledValue == default;
+
         private static VisualStateColorBrush ApplyVisualStateColorBrush(ThemeVisualStateColorBrushDefinition Definition, VisualStateColorBrush Current)
         {
             VisualStateColorBrush Result = Current?.Copy() ?? new VisualStateColorBrush(default(Color));
-            if (Current == null && Definition.NormalValue.HasValue)
+            if ((Current == null || HasUnsetColorStates(Current)) && Definition.NormalValue.HasValue)
             {
                 Result.SetAll(Definition.NormalValue.Value.ToXNAColor());
             }

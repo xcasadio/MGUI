@@ -183,6 +183,37 @@ public class ThemeDefinitionTests
     Assert.Equal("Window.Derived", windowTemplate);
   }
 
+  [Fact]
+  public void ThemeDefinitionBuilder_Seeds_Unspecified_Text_Fallback_States_From_Normal_Value()
+  {
+    MGTheme baseTheme = MGTheme.CreateEmpty("Arial");
+    ThemeDefinition definition = new()
+    {
+      Name = "DerivedTheme",
+      Properties = new()
+      {
+        new ThemePropertyDefinition
+        {
+          Target = ThemePropertyTarget.TextBlockFallbackForeground,
+          VisualStateColorBrush = new ThemeVisualStateColorBrushDefinition
+          {
+            NormalValue = new XAMLColor(210, 210, 210, 255),
+            DisabledValue = new XAMLColor(110, 110, 110, 255)
+          }
+        }
+      }
+    };
+
+    MGTheme built = ThemeDefinitionBuilder.Build(definition, "Arial", baseTheme);
+    VisualStateColorBrush foreground = built.TextBlockFallbackForeground.GetValue(true);
+
+    Assert.NotNull(foreground);
+    Assert.Equal(new Color(210, 210, 210, 255), foreground.NormalValue);
+    Assert.Equal(new Color(210, 210, 210, 255), foreground.SelectedValue);
+    Assert.Equal(new Color(210, 210, 210, 255), foreground.FocusedValue);
+    Assert.Equal(new Color(110, 110, 110, 255), foreground.DisabledValue);
+  }
+
     [Fact]
     public void ThemeDefinitionLoader_Resolves_BasedOn_From_Same_Document_And_Resources()
     {

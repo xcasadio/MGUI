@@ -796,7 +796,10 @@ namespace MGUI.Core.UI
                     HostBorder.SetContent(TextBox);
                 }
 
-                TextChangedHandler = (sender, e) => UpdateValidationVisual();
+                TextChangedHandler = (sender, e) =>
+                {
+                    UpdateValidationVisual();
+                };
                 KeyPressedHandler = (sender, e) =>
                 {
                     if (!e.IsHandled && e.Key == Keys.Enter && IsEditing && TryCommit(revertIfInvalid: false))
