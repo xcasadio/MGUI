@@ -1,4 +1,6 @@
 using MGUI.Core.UI;
+using XnaColor = Microsoft.Xna.Framework.Color;
+using XnaVector4 = Microsoft.Xna.Framework.Vector4;
 using System.ComponentModel;
 
 namespace MGUI.Tests.PropertyGrid;
@@ -17,6 +19,8 @@ public class PropertyGridDescriptorTests
         public float Opacity { get; set; }
         public double Rotation { get; set; }
         public string Name { get; set; } = string.Empty;
+        public XnaColor Tint { get; set; }
+        public XnaVector4 Emissive { get; set; }
 
         public object? UnsupportedObject { get; set; }
 
@@ -34,12 +38,16 @@ public class PropertyGridDescriptorTests
         Assert.True(MGPropertyGridDescriptorCache.TryGetEditorKind(typeof(float), out MGPropertyGridEditorKind floatKind));
         Assert.True(MGPropertyGridDescriptorCache.TryGetEditorKind(typeof(double), out MGPropertyGridEditorKind doubleKind));
         Assert.True(MGPropertyGridDescriptorCache.TryGetEditorKind(typeof(string), out MGPropertyGridEditorKind stringKind));
+        Assert.True(MGPropertyGridDescriptorCache.TryGetEditorKind(typeof(XnaColor), out MGPropertyGridEditorKind colorKind));
+        Assert.True(MGPropertyGridDescriptorCache.TryGetEditorKind(typeof(XnaVector4), out MGPropertyGridEditorKind vectorColorKind));
 
         Assert.Equal(MGPropertyGridEditorKind.Bool, boolKind);
         Assert.Equal(MGPropertyGridEditorKind.Int, intKind);
         Assert.Equal(MGPropertyGridEditorKind.Float, floatKind);
         Assert.Equal(MGPropertyGridEditorKind.Double, doubleKind);
         Assert.Equal(MGPropertyGridEditorKind.String, stringKind);
+        Assert.Equal(MGPropertyGridEditorKind.Color, colorKind);
+        Assert.Equal(MGPropertyGridEditorKind.Color, vectorColorKind);
     }
 
     [Fact]
@@ -80,5 +88,22 @@ public class PropertyGridDescriptorTests
         Assert.Null(readOnlyName.Setter);
         Assert.True(getOnlyName.IsReadOnly);
         Assert.Null(getOnlyName.Setter);
+    }
+
+    [Fact]
+    public void ColorAdapter_RoundTrips_XnaColor_And_Vector4()
+    {
+        XnaColor color = new(51, 102, 204, 128);
+
+        Assert.True(PropertyGridColorAdapter.TryToColorValue(color, out ColorValue colorValue));
+        object roundTripColor = PropertyGridColorAdapter.ToPropertyValue(colorValue, typeof(XnaColor));
+
+        Assert.Equal(color, roundTripColor);
+
+        XnaVector4 vector = new(0.2f, 0.4f, 0.8f, 0.5f);
+        Assert.True(PropertyGridColorAdapter.TryToColorValue(vector, out ColorValue vectorValue));
+        object roundTripVector = PropertyGridColorAdapter.ToPropertyValue(vectorValue, typeof(XnaVector4));
+
+        Assert.Equal(vector, roundTripVector);
     }
 }

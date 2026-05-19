@@ -378,6 +378,7 @@ namespace MGUI.Core.UI
                 MGPropertyGridEditorKind.Float => ((float)value).ToString("R", CultureInfo.InvariantCulture),
                 MGPropertyGridEditorKind.Double => ((double)value).ToString("R", CultureInfo.InvariantCulture),
                 MGPropertyGridEditorKind.String => value as string ?? string.Empty,
+                MGPropertyGridEditorKind.Color when PropertyGridColorAdapter.TryToColorValue(value, out ColorValue colorValue) => ColorFormatter.Format(colorValue, ColorValueFormat.HexRgba),
                 _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
             };
         }
@@ -792,6 +793,13 @@ namespace MGUI.Core.UI
 
             private static IPropertyGridEditor CreateEditor(MGPropertyGrid owner, MGPropertyGridDescriptor descriptor)
             {
+                if (descriptor.EditorKind == MGPropertyGridEditorKind.Color)
+                {
+                    ColorPropertyGridEditor colorEditor = new(owner, descriptor.PropertyType);
+                    colorEditor.SetReadOnly(descriptor.IsReadOnly);
+                    return colorEditor;
+                }
+
                 if (descriptor.IsReadOnly)
                 {
                     return new ReadOnlyPropertyGridEditor(owner, descriptor.EditorKind);
@@ -1118,6 +1126,85 @@ namespace MGUI.Core.UI
                 TextBox.KeyboardHandler.Pressed -= KeyPressedHandler;
                 Owner.GetDesktop().FocusedKeyboardHandlerChanged -= FocusChangedHandler;
             }
+        }
+
+        private sealed class ColorPropertyGridEditor : PropertyGridEditorBase
+        {
+            private readonly Type PropertyType;
+            private readonly MGColorField Field;
+            private bool IsSynchronizing;
+
+            public override MGElement Element => Field;
+            public override bool IsEditing => Field.Popup.IsOpen;
+
+            public ColorPropertyGridEditor(MGPropertyGrid owner, Type propertyType)
+                : base(owner)
+            {
+                PropertyType = propertyType ?? throw new ArgumentNullException(nameof(propertyType));
+                Field = new MGColorField(owner.SelfOrParentWindow, null, new ColorPickerOptions
+                {
+                    AllowNull = Nullable.GetUnderlyingType(propertyType) != null,
+                    ShowTextInput = true,
+                    ShowAlpha = propertyType != typeof(Vector3) && propertyType != typeof(System.Numerics.Vector3),
+                    DisplayFormat = ColorValueFormat.HexRgba,
+                    CommitMode = ColorEditCommitMode.ExplicitOkCancel,
+                })
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    FieldHeight = DefaultRowControlMinHeight,
+                };
+                Field.ValueChanged += Field_ValueChanged;
+            }
+
+            private void Field_ValueChanged(object sender, ColorFieldValueChangedEventArgs e)
+            {
+                if (IsSynchronizing)
+                {
+                    return;
+                }
+
+                if (e.NewValue.HasValue)
+                {
+                    RaiseValueCommitted(PropertyGridColorAdapter.ToPropertyValue(e.NewValue.Value, PropertyType));
+                }
+                else if (Nullable.GetUnderlyingType(PropertyType) != null)
+                {
+                    RaiseValueCommitted(null);
+                }
+            }
+
+            protected override void ApplyValueCore(object value, bool force)
+            {
+                IsSynchronizing = true;
+                try
+                {
+                    Field.AllowNull = Nullable.GetUnderlyingType(PropertyType) != null;
+                    Field.IsMixed = false;
+                    if (value == null)
+                    {
+                        Field.Model.SetValueFromSource(null);
+                    }
+                    else if (PropertyGridColorAdapter.TryToColorValue(value, out ColorValue colorValue))
+                    {
+                        Field.Model.SetValueFromSource(colorValue);
+                    }
+                }
+                finally
+                {
+                    IsSynchronizing = false;
+                }
+            }
+
+            public override void SetReadOnly(bool isReadOnly)
+                => Field.IsReadOnly = isReadOnly;
+
+            public override void ApplyTheme(MGThemePropertyGridSettings settings)
+            {
+            }
+
+            public override void Dispose()
+                => Field.ValueChanged -= Field_ValueChanged;
         }
     }
 }

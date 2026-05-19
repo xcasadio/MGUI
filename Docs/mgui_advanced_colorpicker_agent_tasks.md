@@ -652,7 +652,7 @@ Resultat:
 - Le commit popup met a jour `Value`; le cancel ne modifie pas la valeur; read-only bloque reset et ouverture.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorField --logger "console;verbosity=minimal"`.
 
-### ⚪ 13. Integrer l'editeur couleur dans PropertyGrid
+### ✅ 13. Integrer l'editeur couleur dans PropertyGrid
 
 But:
 faire du nouveau champ couleur un editeur de propriete officiel pour les types couleur et vecteurs moteur.
@@ -694,7 +694,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGPropertyGridEditorKind.Color` a ete ajoute et le cache de descriptors detecte `Microsoft.Xna.Framework.Color`, `Vector3`, `Vector4`, `System.Numerics.Vector3` et `System.Numerics.Vector4`.
+- `PropertyGridColorAdapter` convertit les valeurs inspectees vers `ColorValue` et reconstruit le type source au commit, avec alpha preserve pour les types qui le supportent.
+- `MGPropertyGrid` cree maintenant un editeur `ColorPropertyGridEditor` base sur `MGColorField`; les proprietes read-only utilisent le meme champ en mode non editable.
+- Le commit du champ couleur appelle le setter de la propriete via le flux existant `ValueCommitted`/`CommitRowValue`, sans rafraichir toute la grille pendant les previews popup.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "PropertyGridDescriptor|ColorAdapter" --logger "console;verbosity=minimal"`.
 
 ### ⚪ 14. Ajouter `MGColorPaletteView` et les swatches
 

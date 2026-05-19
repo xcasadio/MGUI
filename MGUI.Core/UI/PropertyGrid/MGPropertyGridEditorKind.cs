@@ -7,5 +7,6 @@ namespace MGUI.Core.UI
         Float,
         Double,
         String,
+        Color,
     }
 }

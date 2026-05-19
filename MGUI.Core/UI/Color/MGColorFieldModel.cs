@@ -66,6 +66,9 @@ namespace MGUI.Core.UI
             return true;
         }
 
+        public void SetValueFromSource(ColorValue? value)
+            => SetValue(value);
+
         public bool ResetToDefault()
         {
             if (DefaultValue == null || IsReadOnly)

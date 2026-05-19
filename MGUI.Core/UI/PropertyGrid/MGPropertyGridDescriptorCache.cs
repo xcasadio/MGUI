@@ -47,6 +47,12 @@ namespace MGUI.Core.UI
 
         internal static bool TryGetEditorKind(Type propertyType, out MGPropertyGridEditorKind editorKind)
         {
+            if (PropertyGridColorAdapter.IsSupportedColorType(propertyType))
+            {
+                editorKind = MGPropertyGridEditorKind.Color;
+                return true;
+            }
+
             if (propertyType == typeof(bool))
             {
                 editorKind = MGPropertyGridEditorKind.Bool;
