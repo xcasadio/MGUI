@@ -102,6 +102,18 @@ public class ColorPickerModelTests
         Assert.Equal(1000f, model.TemperatureKelvin);
     }
 
+    [Fact]
+    public void GetQuickInfoText_IncludesHexRgbaAndHsvSummary()
+    {
+        MGColorPickerModel model = new(new ColorValue(1f, 0.5f, 0f, 1f), new ColorPickerConstraints());
+
+        string text = model.GetQuickInfoText();
+
+        Assert.Contains("#FF8000FF", text);
+        Assert.Contains("rgba(", text);
+        Assert.Contains("HSV(30", text);
+    }
+
     private static void AssertClose(float expected, float actual)
         => Assert.InRange(MathF.Abs(expected - actual), 0f, 0.0001f);
 }

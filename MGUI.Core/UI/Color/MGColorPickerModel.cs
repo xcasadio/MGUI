@@ -131,6 +131,13 @@ namespace MGUI.Core.UI
         public ColorValue GetToneMappedPreview()
             => ColorHdrHelper.ToneMapReinhard(Value);
 
+        public string GetQuickInfoText(ColorValueFormat hexFormat = ColorValueFormat.HexRgba)
+        {
+            ColorValue display = DisplayValue;
+            HsvColor hsv = ColorSpaceConverter.RgbToHsv(display);
+            return $"{ColorFormatter.Format(display, hexFormat)}  {ColorFormatter.Format(display, ColorValueFormat.RgbaFloat)}  HSV({MathF.Round(hsv.H)}, {hsv.S:0.###}, {hsv.V:0.###})";
+        }
+
         public void BeginEdit()
         {
             if (IsEditing)

@@ -1180,7 +1180,7 @@ Resultat:
 - Tests ajoutes pour navigation pure picker/palette.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "Color|Navigation" --logger "console;verbosity=minimal"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
 
-### ⚪ 24. Ajouter les previews avancees et backlog V3 borne
+### ✅ 24. Ajouter les previews avancees et backlog V3 borne
 
 But:
 traiter les demandes avancees sans transformer le MVP en chantier infini: contraste UI, preview contextuelle et backlog gradient/harmony/color blindness.
@@ -1218,7 +1218,16 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `ColorContrastHelper` avec luminance relative WCAG, ratio de contraste et seuil texte par defaut `4.5`.
+- `MGColorPicker` expose `ShowLightDarkPreview`, `ShowContrastWarning`, `ContrastTextColor` et `MinimumContrastRatio`.
+- Preview avancee optionnelle: la zone preview existante peut afficher avant/apres sur fond clair et fonce sans ajouter de chrome permanent au picker compact.
+- Warning contraste optionnel: le contour preview devient rouge lorsque la couleur courante ne respecte pas le ratio minimum avec `ContrastTextColor`.
+- `ColorPickerOptions`, popup et wrappers XAML propagent les options de preview/contraste.
+- `MGColorPickerModel.GetQuickInfoText(...)` fournit un resume compact hex + RGBA float + HSV pour surfaces d'inspection sans surcharger l'UI par defaut.
+- Sample `ColorPicker` active la preview clair/fonce et le warning contraste sur le picker principal, et la preview clair/fonce sur le picker light/emissive.
+- Backlog V3 documente dans `Docs/mgui_colorpicker_v3_backlog.md`: preview material/sphere/gizmo/image custom, gradient editor, ramps, harmony, generation palettes, simulations color blindness, `.gpl` et `.mgpalette`.
+- Tests ajoutes pour luminance/contraste et quick-info.
+- Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Contrast --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Color --logger "console;verbosity=minimal"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
 
 ### ⚪ 25. Documenter l'API et finaliser la migration
 

@@ -1003,6 +1003,14 @@ namespace MGUI.Core.UI.XAML
         public bool? ShowToneMappedPreview { get; set; }
         [Category("Appearance")]
         public bool? ShowTemperature { get; set; }
+        [Category("Appearance")]
+        public bool? ShowLightDarkPreview { get; set; }
+        [Category("Appearance")]
+        public bool? ShowContrastWarning { get; set; }
+        [Category("Appearance")]
+        public XAMLColorValue? ContrastTextColor { get; set; }
+        [Category("Behavior")]
+        public float? MinimumContrastRatio { get; set; }
         [Category("Behavior")]
         public float? MinIntensity { get; set; }
         [Category("Behavior")]
@@ -1029,6 +1037,10 @@ namespace MGUI.Core.UI.XAML
                 UseExposureSlider = UseExposureSlider ?? false,
                 ShowToneMappedPreview = ShowToneMappedPreview ?? false,
                 ShowTemperature = ShowTemperature ?? false,
+                ShowLightDarkPreview = ShowLightDarkPreview ?? false,
+                ShowContrastWarning = ShowContrastWarning ?? false,
+                ContrastTextColor = ContrastTextColor?.ToColorValue() ?? new ColorValue(0f, 0f, 0f, 1f),
+                MinimumContrastRatio = MinimumContrastRatio ?? ColorContrastHelper.DefaultMinimumTextContrastRatio,
                 MinIntensity = MinIntensity ?? 0f,
                 MaxIntensity = MaxIntensity ?? 16f,
                 MinKelvin = MinKelvin ?? ColorTemperatureConverter.DefaultMinKelvin,
@@ -1053,6 +1065,10 @@ namespace MGUI.Core.UI.XAML
             if (UseExposureSlider.HasValue) picker.UseExposureSlider = UseExposureSlider.Value;
             if (ShowToneMappedPreview.HasValue) picker.ShowToneMappedPreview = ShowToneMappedPreview.Value;
             if (ShowTemperature.HasValue) picker.ShowTemperature = ShowTemperature.Value;
+            if (ShowLightDarkPreview.HasValue) picker.ShowLightDarkPreview = ShowLightDarkPreview.Value;
+            if (ShowContrastWarning.HasValue) picker.ShowContrastWarning = ShowContrastWarning.Value;
+            if (ContrastTextColor.HasValue) picker.ContrastTextColor = ContrastTextColor.Value.ToColorValue();
+            if (MinimumContrastRatio.HasValue) picker.MinimumContrastRatio = MinimumContrastRatio.Value;
             if (MinIntensity.HasValue) picker.MinIntensity = MinIntensity.Value;
             if (MaxIntensity.HasValue) picker.MaxIntensity = MaxIntensity.Value;
             if (MinKelvin.HasValue) picker.MinKelvin = MinKelvin.Value;

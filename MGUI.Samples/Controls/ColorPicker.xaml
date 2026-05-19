@@ -32,7 +32,7 @@
 
             <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="6" Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="12">
-                    <ColorPicker Name="MainPicker" Value="#3366CCFF" PreviousValue="#CC6633FF" ShowAlpha="True" ShowTextInput="True" DisplayFormat="HexRgba" CommitMode="Live" />
+                    <ColorPicker Name="MainPicker" Value="#3366CCFF" PreviousValue="#CC6633FF" ShowAlpha="True" ShowTextInput="True" ShowLightDarkPreview="True" ShowContrastWarning="True" ContrastTextColor="#FFFFFFFF" DisplayFormat="HexRgba" CommitMode="Live" />
                     <StackPanel Orientation="Vertical" Spacing="6" Width="360">
                         <ColorPreview Name="MainPreview" CurrentValue="#3366CCFF" PreviousValue="#CC6633FF" ShowPrevious="True" ShowOpaqueComparison="True" PreviewWidth="180" PreviewHeight="48" />
                         <TextBlock Name="CurrentText" WrapText="True" />
@@ -54,7 +54,7 @@
             <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="6" Spacing="8">
                 <TextBlock StyleNames="Header1" Text="Light and emissive presets" />
                 <StackPanel Orientation="Horizontal" Spacing="12">
-                    <ColorPicker Name="LightPicker" Value="#FFF0D2FF" PreviousValue="#FFFFFFFF" ShowAlpha="True" ShowTextInput="True" ShowTemperature="True" IsHdr="True" ShowIntensity="True" ShowToneMappedPreview="True" MinKelvin="1000" MaxKelvin="12000" DisplayFormat="HexRgba" CommitMode="Live" />
+                    <ColorPicker Name="LightPicker" Value="#FFF0D2FF" PreviousValue="#FFFFFFFF" ShowAlpha="True" ShowTextInput="True" ShowTemperature="True" IsHdr="True" ShowIntensity="True" ShowToneMappedPreview="True" ShowLightDarkPreview="True" MinKelvin="1000" MaxKelvin="12000" DisplayFormat="HexRgba" CommitMode="Live" />
                     <StackPanel Orientation="Vertical" Spacing="6" Width="360">
                         <TextBlock Name="LightPresetText" WrapText="True" />
                         <ColorPaletteView Name="EnginePaletteView" PaletteName="Engine Presets" Columns="8" SwatchSize="22" Spacing="4" />

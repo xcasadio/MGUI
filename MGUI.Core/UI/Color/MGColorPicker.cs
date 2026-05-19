@@ -281,6 +281,10 @@ namespace MGUI.Core.UI
         public bool UseExposureSlider { get; set; }
         public bool ShowToneMappedPreview { get; set; }
         public bool ShowTemperature { get; set; }
+        public bool ShowLightDarkPreview { get; set; }
+        public bool ShowContrastWarning { get; set; }
+        public ColorValue ContrastTextColor { get; set; } = new(0f, 0f, 0f, 1f);
+        public float MinimumContrastRatio { get; set; } = ColorContrastHelper.DefaultMinimumTextContrastRatio;
         public float MinKelvin { get; set; } = ColorTemperatureConverter.DefaultMinKelvin;
         public float MaxKelvin { get; set; } = ColorTemperatureConverter.DefaultMaxKelvin;
         public float MinIntensity
@@ -388,6 +392,10 @@ namespace MGUI.Core.UI
                 UseExposureSlider = options.UseExposureSlider;
                 ShowToneMappedPreview = options.ShowToneMappedPreview;
                 ShowTemperature = options.ShowTemperature;
+                ShowLightDarkPreview = options.ShowLightDarkPreview;
+                ShowContrastWarning = options.ShowContrastWarning;
+                ContrastTextColor = options.ContrastTextColor;
+                MinimumContrastRatio = options.MinimumContrastRatio;
                 MinKelvin = options.MinKelvin;
                 MaxKelvin = options.MaxKelvin;
                 ShowEyeDropper = options.ShowEyeDropper;
@@ -1116,13 +1124,45 @@ namespace MGUI.Core.UI
         private void DrawPreview(ElementDrawArgs DA, Rectangle bounds)
         {
             Rectangle content = MGColorPreview.GetContentBounds(bounds, BorderThickness);
-            DrawCheckerboard(DA, content);
             Rectangle previousBounds = MGColorPreview.GetPreviousValueBounds(content, true);
             Rectangle currentBounds = MGColorPreview.GetCurrentValueBounds(content, true);
-            DA.DT.FillRectangle(DA.Offset.ToVector2(), previousBounds, PreviousValue.ToXnaColor() * DA.Opacity);
             ColorValue currentPreview = ShowToneMappedPreview ? Model.GetToneMappedPreview() : Value;
-            DA.DT.FillRectangle(DA.Offset.ToVector2(), currentBounds, currentPreview.ToXnaColor() * DA.Opacity);
-            DrawRectangleBorder(DA, bounds, IsHdr && Value.IsHdr ? new Color(255, 180, 0) : BorderColor);
+            if (ShowLightDarkPreview)
+            {
+                DrawLightDarkPreview(DA, previousBounds, PreviousValue);
+                DrawLightDarkPreview(DA, currentBounds, currentPreview);
+            }
+            else
+            {
+                DrawCheckerboard(DA, content);
+                DA.DT.FillRectangle(DA.Offset.ToVector2(), previousBounds, PreviousValue.ToXnaColor() * DA.Opacity);
+                DA.DT.FillRectangle(DA.Offset.ToVector2(), currentBounds, currentPreview.ToXnaColor() * DA.Opacity);
+            }
+
+            Color border = GetPreviewBorderColor(currentPreview);
+            DrawRectangleBorder(DA, bounds, border);
+        }
+
+        private void DrawLightDarkPreview(ElementDrawArgs DA, Rectangle bounds, ColorValue value)
+        {
+            int topHeight = Math.Max(1, bounds.Height / 2);
+            Rectangle lightBounds = new(bounds.X, bounds.Y, bounds.Width, topHeight);
+            Rectangle darkBounds = new(bounds.X, bounds.Y + topHeight, bounds.Width, Math.Max(0, bounds.Height - topHeight));
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), lightBounds, Color.White * DA.Opacity);
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), darkBounds, Color.Black * DA.Opacity);
+            Color overlay = value.ToXnaColor() * DA.Opacity;
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), lightBounds, overlay);
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), darkBounds, overlay);
+        }
+
+        private Color GetPreviewBorderColor(ColorValue currentPreview)
+        {
+            if (ShowContrastWarning && !ColorContrastHelper.MeetsContrast(ContrastTextColor, currentPreview, MinimumContrastRatio))
+            {
+                return Color.Red;
+            }
+
+            return IsHdr && Value.IsHdr ? new Color(255, 180, 0) : BorderColor;
         }
 
         private void DrawEyeDropperButton(ElementDrawArgs DA, Rectangle bounds)

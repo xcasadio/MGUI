@@ -12,6 +12,10 @@ namespace MGUI.Core.UI
         public bool UseExposureSlider { get; set; } = false;
         public bool ShowToneMappedPreview { get; set; } = false;
         public bool ShowTemperature { get; set; } = false;
+        public bool ShowLightDarkPreview { get; set; } = false;
+        public bool ShowContrastWarning { get; set; } = false;
+        public ColorValue ContrastTextColor { get; set; } = new(0f, 0f, 0f, 1f);
+        public float MinimumContrastRatio { get; set; } = ColorContrastHelper.DefaultMinimumTextContrastRatio;
         public float MinIntensity { get; set; } = 0f;
         public float MaxIntensity { get; set; } = 16f;
         public float MinKelvin { get; set; } = ColorTemperatureConverter.DefaultMinKelvin;
