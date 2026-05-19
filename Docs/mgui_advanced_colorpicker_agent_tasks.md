@@ -413,7 +413,7 @@ Resultat:
 - Les gradients sont rendus directement depuis les canaux sans allocation de texture par frame; les helpers de mapping valeur/position et couleur de gradient sont testables.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorSlider --logger "console;verbosity=minimal"`.
 
-### ⚪ 8. Ajouter inputs texte et numeriques synchronises
+### ✅ 8. Ajouter inputs texte et numeriques synchronises
 
 But:
 creer les briques d'edition Hex/RGB/HSV qui seront reutilisees dans le picker sans dupliquer parsing, validation et commit.
@@ -453,7 +453,10 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGColorTextInputModel` a ete ajoute comme couche de synchronisation testable pour les futurs champs `MGTextBox`.
+- Le modele synchronise `HexText`, RGB byte, alpha float et HSV depuis `ColorValue`, et applique les chemins inverses `TrySetHexText`, `TrySetRgbByteText`, `TrySetRgbFloatText` et `TrySetHsvText`.
+- Les inputs invalides mettent `HasValidationError=true`, conservent la valeur precedente et gardent le texte invalide visible pour l'UI.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorText --logger "console;verbosity=minimal"`.
 
 ### ⚪ 9. Ajouter `MGColorPicker` HSV MVP
 
