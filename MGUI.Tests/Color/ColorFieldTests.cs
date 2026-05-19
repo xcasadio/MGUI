@@ -19,6 +19,36 @@ public class ColorFieldTests
     }
 
     [Fact]
+    public void TrySetValue_FromMixedRaisesChangedEvenWhenFallbackMatches()
+    {
+        ColorValue fallback = new(1f, 0f, 0f, 1f);
+        MGColorFieldModel model = new(fallback);
+        model.SetMixedValue(fallback);
+        int changedCount = 0;
+        model.ValueChanged += (sender, e) => changedCount++;
+
+        Assert.True(model.TrySetValue(fallback));
+
+        Assert.False(model.IsMixed);
+        Assert.Equal(fallback, model.Value);
+        Assert.Equal(1, changedCount);
+    }
+
+    [Fact]
+    public void SetMixedValue_DoesNotCommitValue()
+    {
+        MGColorFieldModel model = new(new ColorValue(1f, 0f, 0f, 1f));
+        int changedCount = 0;
+        model.ValueChanged += (sender, e) => changedCount++;
+
+        model.SetMixedValue(new ColorValue(0f, 1f, 0f, 1f));
+
+        Assert.True(model.IsMixed);
+        Assert.Equal(0, changedCount);
+        Assert.Equal("Mixed", model.GetDisplayText(ColorValueFormat.HexRgba));
+    }
+
+    [Fact]
     public void TrySetValue_RejectsNullWhenNotAllowed()
     {
         MGColorFieldModel model = new(new ColorValue(1f, 0f, 0f, 1f)) { AllowNull = false };

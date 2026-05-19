@@ -188,6 +188,7 @@ namespace MGUI.Core.UI
                 DisplayFormat = options.DisplayFormat,
                 CommitMode = ColorEditCommitMode.ExplicitOkCancel,
                 Constraints = options.Constraints,
+                EditTransaction = options.EditTransaction,
             };
         }
 

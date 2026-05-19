@@ -15,5 +15,6 @@ namespace MGUI.Core.UI
         public ColorValueFormat DisplayFormat { get; set; } = ColorValueFormat.HexRgba;
         public ColorEditCommitMode CommitMode { get; set; } = ColorEditCommitMode.Live;
         public ColorPickerConstraints Constraints { get; set; } = new();
+        public IColorEditTransaction EditTransaction { get; set; } = NoOpColorEditTransaction.Instance;
     }
 }

@@ -220,6 +220,19 @@ namespace MGUI.Core.UI
         public bool ResetToDefault()
             => Model.ResetToDefault();
 
+        public void SetMixedValue(ColorValue? displayedValue = null)
+        {
+            Model.SetMixedValue(displayedValue);
+            NPC(nameof(Value));
+            NPC(nameof(IsMixed));
+        }
+
+        public void ClearMixedValue()
+        {
+            Model.ClearMixedValue();
+            NPC(nameof(IsMixed));
+        }
+
         public bool OpenPopup()
         {
             if (!CanOpenPopup)

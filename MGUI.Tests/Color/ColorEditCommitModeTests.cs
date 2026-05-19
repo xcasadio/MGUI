@@ -53,6 +53,29 @@ public class ColorEditCommitModeTests
     }
 
     [Fact]
+    public void OnMouseRelease_TransactionReceivesOneLogicalCommit()
+    {
+        RecordingColorEditTransaction transaction = new();
+        MGColorPickerModel model = new(new ColorValue(1f, 0f, 0f, 1f), new ColorPickerConstraints(), transaction)
+        {
+            CommitMode = ColorEditCommitMode.OnMouseRelease,
+        };
+
+        model.BeginEdit();
+        model.SetHue(120f);
+        model.SetAlpha(0.5f);
+        model.CommitEdit();
+
+        Assert.Equal(new[]
+        {
+            "begin:#FF0000FF",
+            "preview:#00FF00FF",
+            "preview:#00FF0080",
+            "commit:#00FF0080",
+        }, transaction.Events);
+    }
+
+    [Fact]
     public void ExplicitOkCancel_CancelRestoresInitialValue()
     {
         ColorValue initial = new(1f, 0f, 0f, 1f);
@@ -78,6 +101,31 @@ public class ColorEditCommitModeTests
     }
 
     [Fact]
+    public void ExplicitOkCancel_CancelCancelsTransactionAndRestoresPreviousCurrent()
+    {
+        ColorValue initial = new(1f, 0f, 0f, 1f);
+        RecordingColorEditTransaction transaction = new();
+        MGColorPickerModel model = new(initial, new ColorPickerConstraints(), transaction)
+        {
+            CommitMode = ColorEditCommitMode.ExplicitOkCancel,
+        };
+
+        model.BeginEdit();
+        model.SetHue(120f);
+        model.CancelEdit();
+
+        Assert.Equal(new[]
+        {
+            "begin:#FF0000FF",
+            "preview:#00FF00FF",
+            "cancel",
+        }, transaction.Events);
+        Assert.False(model.IsEditing);
+        Assert.Equal(initial, model.Value);
+        Assert.Equal(initial, model.CommittedValue);
+    }
+
+    [Fact]
     public void ExplicitOkCancel_CommitRaisesChangedAndCommitted()
     {
         MGColorPickerModel model = new(new ColorValue(1f, 0f, 0f, 1f), new ColorPickerConstraints())
@@ -96,5 +144,22 @@ public class ColorEditCommitModeTests
 
         Assert.Equal(new[] { "started", "changing", "changed", "committed" }, events);
         Assert.Equal(model.Value, model.CommittedValue);
+    }
+
+    private sealed class RecordingColorEditTransaction : IColorEditTransaction
+    {
+        public List<string> Events { get; } = new();
+
+        public void Begin(ColorValue initialValue)
+            => Events.Add($"begin:{initialValue.ToHex(ColorValueFormat.HexRgba)}");
+
+        public void Preview(ColorValue value)
+            => Events.Add($"preview:{value.ToHex(ColorValueFormat.HexRgba)}");
+
+        public void Commit(ColorValue finalValue)
+            => Events.Add($"commit:{finalValue.ToHex(ColorValueFormat.HexRgba)}");
+
+        public void Cancel()
+            => Events.Add("cancel");
     }
 }

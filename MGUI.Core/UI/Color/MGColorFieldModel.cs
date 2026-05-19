@@ -66,6 +66,15 @@ namespace MGUI.Core.UI
             return true;
         }
 
+        public void SetMixedValue(ColorValue? displayedValue = null)
+        {
+            _Value = displayedValue;
+            _IsMixed = true;
+        }
+
+        public void ClearMixedValue()
+            => _IsMixed = false;
+
         public void SetValueFromSource(ColorValue? value)
             => SetValue(value);
 
@@ -93,9 +102,10 @@ namespace MGUI.Core.UI
         private void SetValue(ColorValue? value)
         {
             ColorValue? previous = _Value;
+            bool wasMixed = _IsMixed;
             _Value = value;
             _IsMixed = false;
-            if (previous != _Value)
+            if (wasMixed || previous != _Value)
             {
                 ValueChanged?.Invoke(this, new ColorFieldValueChangedEventArgs(previous, _Value));
             }

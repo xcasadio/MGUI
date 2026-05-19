@@ -214,7 +214,7 @@ namespace MGUI.Core.UI
             : base(window, MGElementType.ColorPicker)
         {
             options ??= new ColorPickerOptions();
-            Model = new MGColorPickerModel(options.InitialValue, options.Constraints);
+            Model = new MGColorPickerModel(options.InitialValue, options.Constraints, options.EditTransaction);
             using (BeginInitializing())
             {
                 PreviousValue = options.InitialValue;

@@ -837,7 +837,7 @@ Resultat:
 - Ajout d'un test `ColorXaml` qui parse le XAML du sample `Controls/ColorPicker.xaml` en plus des controles XAML couleur.
 - Validation executee: `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Color --logger "console;verbosity=minimal"`.
 
-### ⚪ 17. Durcir undo/redo, transactions et valeurs mixed
+### ✅ 17. Durcir undo/redo, transactions et valeurs mixed
 
 But:
 preparer les usages editeur serieux: multi-object editing, transactions propres et annulation sans multiplication d'entrees undo.
@@ -877,7 +877,12 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Audit undo/redo: aucun service undo global reutilisable n'existe hors piles locales `MGTextBox`/rich text; `IColorEditTransaction` reste donc le point d'integration propre pour les editeurs hote.
+- Ajout de `NoOpColorEditTransaction` et d'une transaction injectable via `ColorPickerOptions.EditTransaction`/`MGColorPickerModel.EditTransaction`.
+- `MGColorPickerModel` appelle maintenant `Begin`, `Preview`, `Commit` et `Cancel` sur une seule transaction logique par edition/drag, avec annulation si une valeur externe remplace l'edition active.
+- `MGColorFieldModel` expose `SetMixedValue`/`ClearMixedValue`; choisir une couleur depuis un etat mixed declenche un commit meme si elle egale la valeur de fallback affichee.
+- Ajout de tests de lifecycle transaction, annulation, commit unique OnMouseRelease et comportement mixed field.
+- Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorEdit --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter PropertyGrid --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorField --logger "console;verbosity=minimal"`.
 
 ### ⚪ 18. Ajouter le service eyedropper MGUI
 

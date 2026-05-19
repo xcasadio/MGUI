@@ -16,6 +16,7 @@ namespace MGUI.Core.UI
         public MGColorTextInputModel TextInput { get; }
         public bool IsEditing { get; private set; }
         public ColorEditCommitMode CommitMode { get; set; } = ColorEditCommitMode.Live;
+        public IColorEditTransaction EditTransaction { get; set; } = NoOpColorEditTransaction.Instance;
 
         public event EventHandler<ColorValueChangingEventArgs> ValueChanging;
         public event EventHandler<ColorValueChangedEventArgs> ValueChanged;
@@ -28,15 +29,21 @@ namespace MGUI.Core.UI
         {
         }
 
-        public MGColorPickerModel(ColorValue value, ColorPickerConstraints constraints)
+        public MGColorPickerModel(ColorValue value, ColorPickerConstraints constraints, IColorEditTransaction editTransaction = null)
         {
             Constraints = constraints ?? throw new ArgumentNullException(nameof(constraints));
+            EditTransaction = editTransaction ?? NoOpColorEditTransaction.Instance;
             TextInput = new MGColorTextInputModel();
             SetValue(value, raiseEvent: false);
         }
 
         public void SetValue(ColorValue value)
         {
+            if (IsEditing)
+            {
+                EditTransaction.Cancel();
+            }
+
             ColorValue previous = _CommittedValue;
             ColorValue actual = ApplyValue(value);
             _CommittedValue = actual;
@@ -81,6 +88,7 @@ namespace MGUI.Core.UI
 
             _EditStartValue = _CommittedValue;
             IsEditing = true;
+            EditTransaction.Begin(_EditStartValue);
             EditStarted?.Invoke(this, EventArgs.Empty);
         }
 
@@ -98,6 +106,7 @@ namespace MGUI.Core.UI
                 return;
             }
 
+            EditTransaction.Preview(actual);
             ValueChanging?.Invoke(this, new ColorValueChangingEventArgs(_EditStartValue, actual));
             if (CommitMode == ColorEditCommitMode.Live)
             {
@@ -123,6 +132,7 @@ namespace MGUI.Core.UI
             }
 
             IsEditing = false;
+            EditTransaction.Commit(finalValue);
             EditCommitted?.Invoke(this, new ColorValueChangedEventArgs(_EditStartValue, finalValue));
             _EditStartValue = finalValue;
             return true;
@@ -144,6 +154,7 @@ namespace MGUI.Core.UI
             }
 
             IsEditing = false;
+            EditTransaction.Cancel();
             EditCancelled?.Invoke(this, EventArgs.Empty);
             return true;
         }
