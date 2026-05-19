@@ -700,7 +700,7 @@ Resultat:
 - Le commit du champ couleur appelle le setter de la propriete via le flux existant `ValueCommitted`/`CommitRowValue`, sans rafraichir toute la grille pendant les previews popup.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "PropertyGridDescriptor|ColorAdapter" --logger "console;verbosity=minimal"`.
 
-### ⚪ 14. Ajouter `MGColorPaletteView` et les swatches
+### ✅ 14. Ajouter `MGColorPaletteView` et les swatches
 
 But:
 reutiliser la valeur de `MGGridColorPicker` tout en introduisant un modele de palettes modernes: recentes, favorites, projet et swatches nommees.
@@ -741,7 +741,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Modeles ajoutes: `MGColorSwatch`, `MGColorPalette`, `MGColorPaletteStore` et `ColorSwatchSelectedEventArgs`.
+- `MGColorPaletteStore` fournit des palettes `Recent` et `Favorites`; les couleurs recentes sont de-dupliquees, remontees en tete et limitees par `MaxRecentColors`.
+- `MGColorPaletteView` affiche une grille de swatches, expose `SwatchSelected`, calcule la selection souris et peut etre liee a un `MGColorPicker` via `BindPicker`.
+- La selection applique la couleur au picker en respectant `CommitMode`: commit immediat pour `Live`/`OnMouseRelease`, preview en attente pour `ExplicitOkCancel`.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Palette --logger "console;verbosity=minimal"`.
 
 ### ⚪ 15. Ajouter support XAML, styles et themes
 
