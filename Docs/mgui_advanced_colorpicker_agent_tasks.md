@@ -602,7 +602,7 @@ Resultat:
 - Le focus est isole via `PushFocusScope`/`PopFocusScope`, avec focus initial sur le picker et restauration par le service de navigation.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorPickerPopup --logger "console;verbosity=minimal"`.
 
-### ⚪ 12. Ajouter `MGColorField` compact
+### ✅ 12. Ajouter `MGColorField` compact
 
 But:
 livrer le champ compact prioritaire pour PropertyGrid et formulaires, avec swatch, texte optionnel, reset et popup.
@@ -646,7 +646,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGColorField` a ete ajoute comme champ compact focusable avec swatch alpha, etat null/mixed, reset optionnel et ouverture de `MGColorPickerPopup`.
+- `MGColorFieldModel` et `ColorFieldValueChangedEventArgs` centralisent les transitions testables `Value`, `DefaultValue`, `AllowNull`, `IsMixed` et `IsReadOnly`.
+- Le champ expose les options requises: `Value`, `DefaultValue`, `AllowNull`, `IsMixed`, `ShowTextInput`, `ShowAlpha`, `ShowEyeDropper`, `IsHdr`, `DisplayFormat`, `CommitMode` et `IsReadOnly`.
+- Le commit popup met a jour `Value`; le cancel ne modifie pas la valeur; read-only bloque reset et ouverture.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorField --logger "console;verbosity=minimal"`.
 
 ### ⚪ 13. Integrer l'editeur couleur dans PropertyGrid
 
