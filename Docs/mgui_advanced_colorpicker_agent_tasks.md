@@ -747,7 +747,7 @@ Resultat:
 - La selection applique la couleur au picker en respectant `CommitMode`: commit immediat pour `Live`/`OnMouseRelease`, preview en attente pour `ExplicitOkCancel`.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Palette --logger "console;verbosity=minimal"`.
 
-### ⚪ 15. Ajouter support XAML, styles et themes
+### ✅ 15. Ajouter support XAML, styles et themes
 
 But:
 rendre les nouveaux controles declarables et stylables comme les autres controles MGUI, sans imposer un usage code-only.
@@ -786,7 +786,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `XAMLColorValue` et `ColorValueStringConverter` ont ete ajoutes pour declarer des `ColorValue` depuis les formats supportes par `ColorParser`.
+- Les controles XAML `ColorField`, `ColorPicker`, `ColorPreview` et `ColorPaletteView` ont ete ajoutes avec les proprietes principales (`Value`, `ShowAlpha`, `DisplayFormat`, `CommitMode`, `PickerMode`, etc.).
+- Les alias de noms XAML couleur sont declares dans `XAMLParser` et les controles restent des leaf elements compatibles avec le systeme de styles existant.
+- `ColorPaletteView` supporte une palette simple via `PaletteName` et `CommaSeparatedColors`; les controles conservent leurs proprietes visuelles directes pour les themes dark/light existants.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorXaml --logger "console;verbosity=minimal"`.
 
 ### ⚪ 16. Ajouter samples et couverture visuelle de base
 

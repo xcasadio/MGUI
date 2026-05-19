@@ -44,6 +44,10 @@ namespace MGUI.Core.UI.XAML
             { "Button", nameof(Button) },
             { "CheckBox", nameof(CheckBox) },
             { "ComboBox", nameof(ComboBox) },
+            { "ColorField", nameof(ColorField) },
+            { "ColorPicker", nameof(ColorPicker) },
+            { "ColorPreview", nameof(ColorPreview) },
+            { "ColorPaletteView", nameof(ColorPaletteView) },
 
             { "ContextMenu", nameof(ContextMenu) },
             { "ContextMenuButton", nameof(ContextMenuButton) },

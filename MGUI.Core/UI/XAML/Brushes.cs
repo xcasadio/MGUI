@@ -58,6 +58,39 @@ namespace MGUI.Core.UI.XAML
         public static XAMLColor ParseColor(string Value)
             => new(XNAColorStringConverter.ParseColor(Value));
     }
+
+    [TypeConverter(typeof(ColorValueStringConverter))]
+    public readonly struct XAMLColorValue
+    {
+        public ColorValue Value { get; }
+
+        public XAMLColorValue(ColorValue value)
+        {
+            Value = value;
+        }
+
+        public ColorValue ToColorValue()
+            => Value;
+
+        public override string ToString()
+            => Value.ToHex(ColorValueFormat.HexRgba);
+    }
+
+    public class ColorValueStringConverter : TypeConverter
+    {
+        public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+            => sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+
+        public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+        {
+            if (value is string stringValue && ColorParser.TryParse(stringValue, out ColorValue colorValue))
+            {
+                return new XAMLColorValue(colorValue);
+            }
+
+            return base.ConvertFrom(context, culture, value);
+        }
+    }
     #endregion Color
 
     #region Fill Brush

@@ -897,6 +897,210 @@ namespace MGUI.Core.UI.XAML
         }
     }
 
+    public class ColorField : Element
+    {
+        public override MGElementType ElementType => MGElementType.ColorField;
+
+        [Category("Data")]
+        public XAMLColorValue? Value { get; set; }
+        [Category("Data")]
+        public XAMLColorValue? DefaultValue { get; set; }
+        [Category("Behavior")]
+        public bool? AllowNull { get; set; }
+        [Category("Behavior")]
+        public bool? IsMixed { get; set; }
+        [Category("Behavior")]
+        public bool? IsReadOnly { get; set; }
+        [Category("Appearance")]
+        public bool? ShowTextInput { get; set; }
+        [Category("Appearance")]
+        public bool? ShowAlpha { get; set; }
+        [Category("Behavior")]
+        public bool? ShowEyeDropper { get; set; }
+        [Category("Behavior")]
+        public bool? IsHdr { get; set; }
+        [Category("Data")]
+        public ColorValueFormat? DisplayFormat { get; set; }
+        [Category("Behavior")]
+        public ColorEditCommitMode? CommitMode { get; set; }
+        [Category("Layout")]
+        public int? FieldWidth { get; set; }
+        [Category("Layout")]
+        public int? FieldHeight { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+        {
+            ColorPickerOptions options = CreateOptions();
+            return new MGColorField(Window, Value?.ToColorValue(), options);
+        }
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGColorField field = Element as MGColorField;
+            if (Value.HasValue) field.Value = Value.Value.ToColorValue();
+            if (DefaultValue.HasValue) field.DefaultValue = DefaultValue.Value.ToColorValue();
+            if (AllowNull.HasValue) field.AllowNull = AllowNull.Value;
+            if (IsMixed.HasValue) field.IsMixed = IsMixed.Value;
+            if (IsReadOnly.HasValue) field.IsReadOnly = IsReadOnly.Value;
+            if (ShowTextInput.HasValue) field.ShowTextInput = ShowTextInput.Value;
+            if (ShowAlpha.HasValue) field.ShowAlpha = ShowAlpha.Value;
+            if (ShowEyeDropper.HasValue) field.ShowEyeDropper = ShowEyeDropper.Value;
+            if (IsHdr.HasValue) field.IsHdr = IsHdr.Value;
+            if (DisplayFormat.HasValue) field.DisplayFormat = DisplayFormat.Value;
+            if (CommitMode.HasValue) field.CommitMode = CommitMode.Value;
+            if (FieldWidth.HasValue) field.FieldWidth = FieldWidth.Value;
+            if (FieldHeight.HasValue) field.FieldHeight = FieldHeight.Value;
+        }
+
+        private ColorPickerOptions CreateOptions()
+            => new()
+            {
+                InitialValue = Value?.ToColorValue() ?? new ColorValue(1f, 1f, 1f, 1f),
+                AllowNull = AllowNull == true,
+                ShowTextInput = ShowTextInput ?? true,
+                ShowAlpha = ShowAlpha ?? true,
+                ShowEyeDropper = ShowEyeDropper ?? false,
+                IsHdr = IsHdr ?? false,
+                DisplayFormat = DisplayFormat ?? ColorValueFormat.HexRgba,
+                CommitMode = CommitMode ?? ColorEditCommitMode.ExplicitOkCancel,
+            };
+
+        protected internal override IEnumerable<Element> GetChildren()
+            => Array.Empty<Element>();
+    }
+
+    public class ColorPicker : Element
+    {
+        public override MGElementType ElementType => MGElementType.ColorPicker;
+
+        [Category("Data")]
+        public XAMLColorValue? Value { get; set; }
+        [Category("Data")]
+        public XAMLColorValue? PreviousValue { get; set; }
+        [Category("Appearance")]
+        public bool? ShowAlpha { get; set; }
+        [Category("Appearance")]
+        public bool? ShowTextInput { get; set; }
+        [Category("Data")]
+        public ColorValueFormat? DisplayFormat { get; set; }
+        [Category("Behavior")]
+        public ColorPickerMode? PickerMode { get; set; }
+        [Category("Behavior")]
+        public ColorEditCommitMode? CommitMode { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+            => new MGColorPicker(Window, new ColorPickerOptions
+            {
+                InitialValue = Value?.ToColorValue() ?? new ColorValue(1f, 1f, 1f, 1f),
+                ShowAlpha = ShowAlpha ?? true,
+                ShowTextInput = ShowTextInput ?? true,
+                DisplayFormat = DisplayFormat ?? ColorValueFormat.HexRgba,
+                PickerMode = PickerMode ?? ColorPickerMode.Hsv,
+                CommitMode = CommitMode ?? ColorEditCommitMode.Live,
+            });
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGColorPicker picker = Element as MGColorPicker;
+            if (Value.HasValue) picker.Value = Value.Value.ToColorValue();
+            if (PreviousValue.HasValue) picker.PreviousValue = PreviousValue.Value.ToColorValue();
+            if (ShowAlpha.HasValue) picker.ShowAlpha = ShowAlpha.Value;
+            if (ShowTextInput.HasValue) picker.ShowTextInput = ShowTextInput.Value;
+            if (DisplayFormat.HasValue) picker.DisplayFormat = DisplayFormat.Value;
+            if (PickerMode.HasValue) picker.PickerMode = PickerMode.Value;
+            if (CommitMode.HasValue) picker.CommitMode = CommitMode.Value;
+        }
+
+        protected internal override IEnumerable<Element> GetChildren()
+            => Array.Empty<Element>();
+    }
+
+    public class ColorPreview : Element
+    {
+        public override MGElementType ElementType => MGElementType.ColorPreview;
+
+        [Category("Data")]
+        public XAMLColorValue? CurrentValue { get; set; }
+        [Category("Data")]
+        public XAMLColorValue? PreviousValue { get; set; }
+        [Category("Appearance")]
+        public bool? ShowPrevious { get; set; }
+        [Category("Appearance")]
+        public bool? ShowCheckerboard { get; set; }
+        [Category("Appearance")]
+        public bool? ShowOpaqueComparison { get; set; }
+        [Category("Layout")]
+        public int? PreviewWidth { get; set; }
+        [Category("Layout")]
+        public int? PreviewHeight { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+            => new MGColorPreview(Window, PreviewWidth ?? 48, PreviewHeight ?? 24);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGColorPreview preview = Element as MGColorPreview;
+            if (CurrentValue.HasValue) preview.CurrentValue = CurrentValue.Value.ToColorValue();
+            if (PreviousValue.HasValue) preview.PreviousValue = PreviousValue.Value.ToColorValue();
+            if (ShowPrevious.HasValue) preview.ShowPrevious = ShowPrevious.Value;
+            if (ShowCheckerboard.HasValue) preview.ShowCheckerboard = ShowCheckerboard.Value;
+            if (ShowOpaqueComparison.HasValue) preview.ShowOpaqueComparison = ShowOpaqueComparison.Value;
+            if (PreviewWidth.HasValue) preview.PreviewWidth = PreviewWidth.Value;
+            if (PreviewHeight.HasValue) preview.PreviewHeight = PreviewHeight.Value;
+        }
+
+        protected internal override IEnumerable<Element> GetChildren()
+            => Array.Empty<Element>();
+    }
+
+    public class ColorPaletteView : Element
+    {
+        public override MGElementType ElementType => MGElementType.ColorPaletteView;
+
+        [Category("Data")]
+        public string PaletteName { get; set; } = "Palette";
+        [Category("Data")]
+        public string CommaSeparatedColors { get; set; }
+        [Category("Layout")]
+        public int? Columns { get; set; }
+        [Category("Layout")]
+        public int? SwatchSize { get; set; }
+        [Category("Layout")]
+        public int? Spacing { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+            => new MGColorPaletteView(Window, BuildPalette());
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGColorPaletteView paletteView = Element as MGColorPaletteView;
+            paletteView.Palette = BuildPalette();
+            if (Columns.HasValue) paletteView.Columns = Columns.Value;
+            if (SwatchSize.HasValue) paletteView.SwatchSize = SwatchSize.Value;
+            if (Spacing.HasValue) paletteView.Spacing = Spacing.Value;
+        }
+
+        protected internal override IEnumerable<Element> GetChildren()
+            => Array.Empty<Element>();
+
+        private MGColorPalette BuildPalette()
+        {
+            MGColorPalette palette = new(PaletteName ?? "Palette");
+            if (!string.IsNullOrWhiteSpace(CommaSeparatedColors))
+            {
+                foreach (string item in CommaSeparatedColors.Split(','))
+                {
+                    if (ColorParser.TryParse(item.Trim(), out ColorValue value))
+                    {
+                        palette.AddSwatch(value.ToHex(ColorValueFormat.HexRgba), value);
+                    }
+                }
+            }
+
+            return palette;
+        }
+    }
+
     public class GroupBox : SingleContentHost
     {
         public override MGElementType ElementType => MGElementType.GroupBox;
