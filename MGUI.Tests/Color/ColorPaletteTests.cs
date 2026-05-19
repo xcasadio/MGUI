@@ -57,6 +57,15 @@ public class ColorPaletteTests
     }
 
     [Fact]
+    public void PaletteView_GetNavigationIndex_MapsDirectionalActions()
+    {
+        Assert.Equal(4, MGColorPaletteView.GetNavigationIndex(1, 10, 3, UINavigationAction.MoveDown));
+        Assert.Equal(1, MGColorPaletteView.GetNavigationIndex(4, 10, 3, UINavigationAction.MoveUp));
+        Assert.Equal(9, MGColorPaletteView.GetNavigationIndex(4, 10, 3, UINavigationAction.End));
+        Assert.Equal(0, MGColorPaletteView.GetNavigationIndex(4, 10, 3, UINavigationAction.Home));
+    }
+
+    [Fact]
     public void PaletteSerializer_RoundTripPreservesNamesValuesSpacesAndMetadata()
     {
         MGColorPalette palette = new("Project");

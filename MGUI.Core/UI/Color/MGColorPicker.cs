@@ -18,8 +18,26 @@ namespace MGUI.Core.UI
             Temperature,
         }
 
+        internal enum KeyboardNavigationTarget
+        {
+            SaturationValue,
+            Hue,
+            Alpha,
+            Intensity,
+            Temperature,
+        }
+
         private DragTarget ActiveDragTarget = DragTarget.None;
+        private KeyboardNavigationTarget ActiveKeyboardTarget = KeyboardNavigationTarget.SaturationValue;
         private IColorPickService _ColorPickService = UnsupportedColorPickService.Instance;
+        private Color[] HueSliderCache;
+        private int HueSliderCacheLength;
+        private ColorSpaceMode HueSliderCacheColorSpace;
+        private Color[] TemperatureSliderCache;
+        private int TemperatureSliderCacheLength;
+        private float TemperatureSliderCacheMinKelvin;
+        private float TemperatureSliderCacheMaxKelvin;
+        private ColorSpaceMode TemperatureSliderCacheColorSpace;
 
         public MGColorPickerModel Model { get; }
         public MGColorTextInputModel TextInput => Model.TextInput;
@@ -456,11 +474,56 @@ namespace MGUI.Core.UI
 
         public override bool TryHandleNavigationAction(UINavigationAction action)
         {
+            if (action is UINavigationAction.MoveNext or UINavigationAction.MovePrevious)
+            {
+                ActiveKeyboardTarget = GetNextKeyboardNavigationTarget(ActiveKeyboardTarget, ShowAlpha, ShowIntensity, ShowTemperature, action);
+                return true;
+            }
+
+            if (TryApplyKeyboardNavigation(action, ActiveKeyboardTarget, ShowAlpha, ShowIntensity, ShowTemperature))
+            {
+                return true;
+            }
+
             return action switch
             {
                 UINavigationAction.Submit when CommitMode == ColorEditCommitMode.ExplicitOkCancel && Model.IsEditing => CommitEdit(),
                 UINavigationAction.Cancel when Model.IsEditing => CancelEdit(),
                 _ => base.TryHandleNavigationAction(action),
+            };
+        }
+
+        internal static KeyboardNavigationTarget GetNextKeyboardNavigationTarget(KeyboardNavigationTarget current, bool showAlpha, bool showIntensity, bool showTemperature, UINavigationAction action)
+        {
+            KeyboardNavigationTarget[] targets = GetAvailableKeyboardTargets(showAlpha, showIntensity, showTemperature);
+            int currentIndex = Array.IndexOf(targets, current);
+            if (currentIndex < 0)
+            {
+                currentIndex = 0;
+            }
+
+            int delta = action == UINavigationAction.MovePrevious ? -1 : 1;
+            int nextIndex = (currentIndex + delta + targets.Length) % targets.Length;
+            return targets[nextIndex];
+        }
+
+        internal static bool TryApplyKeyboardNavigation(MGColorPickerModel model, KeyboardNavigationTarget target, UINavigationAction action, bool showAlpha, bool showIntensity, bool showTemperature, bool useExposureSlider, float minIntensity, float maxIntensity, float minKelvin, float maxKelvin)
+        {
+            if (model == null || !IsKeyboardTargetAvailable(target, showAlpha, showIntensity, showTemperature))
+            {
+                return false;
+            }
+
+            const float SmallPercentStep = 0.01f;
+            const float LargePercentStep = 0.1f;
+            return target switch
+            {
+                KeyboardNavigationTarget.SaturationValue => TryAdjustSaturationValue(model, action, SmallPercentStep, LargePercentStep),
+                KeyboardNavigationTarget.Hue => TryAdjustHue(model, action),
+                KeyboardNavigationTarget.Alpha => TryAdjustAlpha(model, action, SmallPercentStep, LargePercentStep),
+                KeyboardNavigationTarget.Intensity => TryAdjustIntensity(model, action, useExposureSlider, minIntensity, maxIntensity, SmallPercentStep, LargePercentStep),
+                KeyboardNavigationTarget.Temperature => TryAdjustTemperature(model, action, minKelvin, maxKelvin, SmallPercentStep, LargePercentStep),
+                _ => false,
             };
         }
 
@@ -624,6 +687,202 @@ namespace MGUI.Core.UI
             return new(bounds.X, y, bounds.Width, TextInputHeight);
         }
 
+        private bool TryApplyKeyboardNavigation(UINavigationAction action, KeyboardNavigationTarget target, bool showAlpha, bool showIntensity, bool showTemperature)
+        {
+            ColorValue previous = Value;
+            bool handled = TryApplyKeyboardNavigation(Model, target, action, showAlpha, showIntensity, showTemperature, UseExposureSlider, MinIntensity, MaxIntensity, MinKelvin, MaxKelvin);
+            if (handled && CommitMode != ColorEditCommitMode.ExplicitOkCancel && Value != previous)
+            {
+                CommitEdit();
+            }
+
+            return handled;
+        }
+
+        private static KeyboardNavigationTarget[] GetAvailableKeyboardTargets(bool showAlpha, bool showIntensity, bool showTemperature)
+        {
+            KeyboardNavigationTarget[] all = new[] { KeyboardNavigationTarget.SaturationValue, KeyboardNavigationTarget.Hue, KeyboardNavigationTarget.Alpha, KeyboardNavigationTarget.Intensity, KeyboardNavigationTarget.Temperature };
+            int count = 2 + (showAlpha ? 1 : 0) + (showIntensity ? 1 : 0) + (showTemperature ? 1 : 0);
+            KeyboardNavigationTarget[] targets = new KeyboardNavigationTarget[count];
+            int index = 0;
+            foreach (KeyboardNavigationTarget target in all)
+            {
+                if (IsKeyboardTargetAvailable(target, showAlpha, showIntensity, showTemperature))
+                {
+                    targets[index++] = target;
+                }
+            }
+
+            return targets;
+        }
+
+        private static bool IsKeyboardTargetAvailable(KeyboardNavigationTarget target, bool showAlpha, bool showIntensity, bool showTemperature)
+            => target switch
+            {
+                KeyboardNavigationTarget.Alpha => showAlpha,
+                KeyboardNavigationTarget.Intensity => showIntensity,
+                KeyboardNavigationTarget.Temperature => showTemperature,
+                _ => true,
+            };
+
+        private static bool TryAdjustSaturationValue(MGColorPickerModel model, UINavigationAction action, float smallStep, float largeStep)
+        {
+            float saturation = model.HsvValue.S;
+            float value = model.HsvValue.V;
+            switch (action)
+            {
+                case UINavigationAction.MoveLeft:
+                case UINavigationAction.Decrement:
+                    saturation -= smallStep;
+                    break;
+                case UINavigationAction.MoveRight:
+                case UINavigationAction.Increment:
+                    saturation += smallStep;
+                    break;
+                case UINavigationAction.MoveUp:
+                    value += smallStep;
+                    break;
+                case UINavigationAction.MoveDown:
+                    value -= smallStep;
+                    break;
+                case UINavigationAction.PageUp:
+                    value += largeStep;
+                    break;
+                case UINavigationAction.PageDown:
+                    value -= largeStep;
+                    break;
+                case UINavigationAction.Home:
+                    saturation = 0f;
+                    value = 0f;
+                    break;
+                case UINavigationAction.End:
+                    saturation = 1f;
+                    value = 1f;
+                    break;
+                default:
+                    return false;
+            }
+
+            model.SetSaturationValue(saturation, value);
+            return true;
+        }
+
+        private static bool TryAdjustHue(MGColorPickerModel model, UINavigationAction action)
+        {
+            float hue = model.HsvValue.H;
+            switch (action)
+            {
+                case UINavigationAction.MoveLeft:
+                case UINavigationAction.MoveDown:
+                case UINavigationAction.Decrement:
+                    hue -= 1f;
+                    break;
+                case UINavigationAction.MoveRight:
+                case UINavigationAction.MoveUp:
+                case UINavigationAction.Increment:
+                    hue += 1f;
+                    break;
+                case UINavigationAction.PageUp:
+                    hue += 15f;
+                    break;
+                case UINavigationAction.PageDown:
+                    hue -= 15f;
+                    break;
+                case UINavigationAction.Home:
+                    hue = 0f;
+                    break;
+                case UINavigationAction.End:
+                    hue = 360f;
+                    break;
+                default:
+                    return false;
+            }
+
+            model.SetHue(hue);
+            return true;
+        }
+
+        private static bool TryAdjustAlpha(MGColorPickerModel model, UINavigationAction action, float smallStep, float largeStep)
+        {
+            if (!TryGetPercentAdjustment(action, smallStep, largeStep, out float? value, out float delta))
+            {
+                return false;
+            }
+
+            model.SetAlpha(value ?? model.Value.A + delta);
+            return true;
+        }
+
+        private static bool TryAdjustIntensity(MGColorPickerModel model, UINavigationAction action, bool useExposureSlider, float minIntensity, float maxIntensity, float smallStep, float largeStep)
+        {
+            float min = Math.Min(minIntensity, maxIntensity);
+            float max = Math.Max(minIntensity, maxIntensity);
+            if (!TryGetPercentAdjustment(action, smallStep, largeStep, out float? percentValue, out float percentDelta))
+            {
+                return false;
+            }
+
+            if (percentValue.HasValue)
+            {
+                model.SetIntensity(MGColorSlider.GetValueFromPercent(percentValue.Value, min, max));
+                return true;
+            }
+
+            float currentPercent = useExposureSlider ? GetExposurePercent(model.Intensity, min, max) : MGColorSlider.GetPercentFromValue(model.Intensity, min, max);
+            float nextPercent = Math.Clamp(currentPercent + percentDelta, 0f, 1f);
+            float nextIntensity = useExposureSlider ? GetIntensityFromExposurePercent(nextPercent, min, max) : MGColorSlider.GetValueFromPercent(nextPercent, min, max);
+            model.SetIntensity(nextIntensity);
+            return true;
+        }
+
+        private static bool TryAdjustTemperature(MGColorPickerModel model, UINavigationAction action, float minKelvin, float maxKelvin, float smallStep, float largeStep)
+        {
+            if (!TryGetPercentAdjustment(action, smallStep, largeStep, out float? percentValue, out float percentDelta))
+            {
+                return false;
+            }
+
+            float min = Math.Min(minKelvin, maxKelvin);
+            float max = Math.Max(minKelvin, maxKelvin);
+            float startPercent = percentValue ?? (model.TemperatureKelvin.HasValue ? MGColorSlider.GetPercentFromValue(model.TemperatureKelvin.Value, min, max) : 0.5f);
+            float nextPercent = Math.Clamp(startPercent + percentDelta, 0f, 1f);
+            model.SetTemperatureKelvin(MGColorSlider.GetValueFromPercent(nextPercent, min, max), min, max);
+            return true;
+        }
+
+        private static bool TryGetPercentAdjustment(UINavigationAction action, float smallStep, float largeStep, out float? value, out float delta)
+        {
+            value = null;
+            delta = 0f;
+            switch (action)
+            {
+                case UINavigationAction.MoveLeft:
+                case UINavigationAction.MoveDown:
+                case UINavigationAction.Decrement:
+                    delta = -smallStep;
+                    return true;
+                case UINavigationAction.MoveRight:
+                case UINavigationAction.MoveUp:
+                case UINavigationAction.Increment:
+                    delta = smallStep;
+                    return true;
+                case UINavigationAction.PageDown:
+                    delta = -largeStep;
+                    return true;
+                case UINavigationAction.PageUp:
+                    delta = largeStep;
+                    return true;
+                case UINavigationAction.Home:
+                    value = 0f;
+                    return true;
+                case UINavigationAction.End:
+                    value = 1f;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private DragTarget HitTest(Point layoutPoint)
         {
             Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
@@ -734,11 +993,10 @@ namespace MGUI.Core.UI
         private void DrawHueSlider(ElementDrawArgs DA, Rectangle bounds)
         {
             Rectangle content = MGColorPreview.GetContentBounds(bounds, BorderThickness);
+            Color[] cache = GetHueSliderCache(content.Height);
             for (int y = content.Top; y < content.Bottom; y++)
             {
-                float percent = content.Height <= 1 ? 0f : (y - content.Top) / (float)(content.Height - 1);
-                Color color = MGColorSlider.GetGradientColor(ColorSliderChannel.Hue, percent, Value).ToXnaColor() * DA.Opacity;
-                DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(content.Left, y, content.Width, 1), color);
+                DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(content.Left, y, content.Width, 1), cache[y - content.Top] * DA.Opacity);
             }
 
             DrawVerticalSliderThumb(DA, content, MGColorSlider.GetPercentFromValue(Model.HsvValue.H, 0f, 360f));
@@ -781,25 +1039,78 @@ namespace MGUI.Core.UI
         private void DrawTemperatureSlider(ElementDrawArgs DA, Rectangle bounds)
         {
             Rectangle content = MGColorPreview.GetContentBounds(bounds, BorderThickness);
+            Color[] cache = GetTemperatureSliderCache(content.Width);
             for (int x = content.Left; x < content.Right; x++)
             {
-                float percent = content.Width <= 1 ? 0f : (x - content.Left) / (float)(content.Width - 1);
-                float kelvin = MGColorSlider.GetValueFromPercent(percent, MinKelvin, MaxKelvin);
-                ColorValue color = ColorTemperatureConverter.KelvinToRgb(kelvin, DisplayColorSpace, MinKelvin, MaxKelvin);
-                DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, content.Top, 1, content.Height), color.ToXnaColor() * DA.Opacity);
+                DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, content.Top, 1, content.Height), cache[x - content.Left] * DA.Opacity);
             }
 
             DrawRectangleBorder(DA, bounds, BorderColor);
         }
 
         private float GetExposurePercent(float intensity)
+            => GetExposurePercent(intensity, MinIntensity, MaxIntensity);
+
+        private static float GetExposurePercent(float intensity, float minIntensity, float maxIntensity)
         {
-            float min = Math.Max(0.0001f, MinIntensity);
-            float max = Math.Max(min, MaxIntensity);
+            float min = Math.Max(0.0001f, minIntensity);
+            float max = Math.Max(min, maxIntensity);
             float value = Math.Clamp(intensity, min, max);
             float minExposure = MathF.Log2(min);
             float maxExposure = MathF.Log2(max);
             return maxExposure.Equals(minExposure) ? 0f : Math.Clamp((MathF.Log2(value) - minExposure) / (maxExposure - minExposure), 0f, 1f);
+        }
+
+        private static float GetIntensityFromExposurePercent(float percent, float minIntensity, float maxIntensity)
+        {
+            float min = Math.Max(0.0001f, minIntensity);
+            float max = Math.Max(min, maxIntensity);
+            float minExposure = MathF.Log2(min);
+            float maxExposure = MathF.Log2(max);
+            return MathF.Pow(2f, minExposure + Math.Clamp(percent, 0f, 1f) * (maxExposure - minExposure));
+        }
+
+        private Color[] GetHueSliderCache(int length)
+        {
+            int actualLength = Math.Max(0, length);
+            if (HueSliderCache == null || HueSliderCacheLength != actualLength || HueSliderCacheColorSpace != Value.ColorSpace)
+            {
+                HueSliderCacheLength = actualLength;
+                HueSliderCacheColorSpace = Value.ColorSpace;
+                HueSliderCache = new Color[actualLength];
+                for (int index = 0; index < HueSliderCache.Length; index++)
+                {
+                    float percent = HueSliderCache.Length <= 1 ? 0f : index / (float)(HueSliderCache.Length - 1);
+                    HueSliderCache[index] = MGColorSlider.GetGradientColor(ColorSliderChannel.Hue, percent, Value).ToXnaColor();
+                }
+            }
+
+            return HueSliderCache;
+        }
+
+        private Color[] GetTemperatureSliderCache(int length)
+        {
+            int actualLength = Math.Max(0, length);
+            if (TemperatureSliderCache == null
+                || TemperatureSliderCacheLength != actualLength
+                || !TemperatureSliderCacheMinKelvin.Equals(MinKelvin)
+                || !TemperatureSliderCacheMaxKelvin.Equals(MaxKelvin)
+                || TemperatureSliderCacheColorSpace != DisplayColorSpace)
+            {
+                TemperatureSliderCacheLength = actualLength;
+                TemperatureSliderCacheMinKelvin = MinKelvin;
+                TemperatureSliderCacheMaxKelvin = MaxKelvin;
+                TemperatureSliderCacheColorSpace = DisplayColorSpace;
+                TemperatureSliderCache = new Color[actualLength];
+                for (int index = 0; index < TemperatureSliderCache.Length; index++)
+                {
+                    float percent = TemperatureSliderCache.Length <= 1 ? 0f : index / (float)(TemperatureSliderCache.Length - 1);
+                    float kelvin = MGColorSlider.GetValueFromPercent(percent, MinKelvin, MaxKelvin);
+                    TemperatureSliderCache[index] = ColorTemperatureConverter.KelvinToRgb(kelvin, DisplayColorSpace, MinKelvin, MaxKelvin).ToXnaColor();
+                }
+            }
+
+            return TemperatureSliderCache;
         }
 
         private void DrawPreview(ElementDrawArgs DA, Rectangle bounds)

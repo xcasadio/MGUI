@@ -1126,7 +1126,7 @@ Resultat:
 - Tests ajoutes pour roundtrip noms/couleurs/space/HDR/metadata, JSON invalide sans crash, swatches invalides/doublons, et import projet via store sans file system.
 - Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Palette --logger "console;verbosity=minimal"`.
 
-### ⚪ 23. Durcir accessibilite, navigation et performance
+### ✅ 23. Durcir accessibilite, navigation et performance
 
 But:
 stabiliser le controle pour un moteur rafraichi chaque frame, avec navigation clavier/gamepad et couts previsibles.
@@ -1169,7 +1169,16 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGColorPicker` supporte maintenant une navigation clavier/gamepad interne: `MoveNext`/`MovePrevious` parcourt les zones visibles, fleches/increment/decrement modifient la zone active, `PageUp`/`PageDown` font un grand pas, `Home`/`End` vont aux bornes, `Enter` commit et `Escape` annule en mode explicite.
+- Helpers internes testables ajoutes pour appliquer les actions de navigation aux cibles saturation/value, hue, alpha, intensity et temperature Kelvin.
+- `MGColorPickerModel` conserve le dernier Kelvin applique afin que les increments clavier temperature soient predictibles.
+- `MGColorPaletteView` ajoute `FocusedSwatchIndex`, une bordure de focus distincte, navigation directionnelle/Home/End/Page et selection par `Submit`.
+- `MGColorField` affiche maintenant des glyphes non bases uniquement sur la couleur pour les etats null et mixed.
+- `MGColorPicker` met en cache les gradients Hue et Kelvin par taille/espace/range, et `MGColorSlider` met en cache ses gradients par taille/channel/base color; ces caches sont regeneres au resize ou changement de parametres, pas a chaque draw.
+- Audit allocation: les handlers de drag couleur restent des calculs sur structs/valeurs; les nouvelles allocations de cache sont hors chemin drag et liees aux changements de dimensions ou de parametres.
+- Risques perf restants: le damier est encore dessine en tuiles rectangulaires faute d'abstraction texture/cache partagee dans cette couche; `SaturationValue` reste calcule a l'ecran car il depend de deux axes et du hue courant.
+- Tests ajoutes pour navigation pure picker/palette.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "Color|Navigation" --logger "console;verbosity=minimal"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
 
 ### ⚪ 24. Ajouter les previews avancees et backlog V3 borne
 

@@ -15,6 +15,7 @@ namespace MGUI.Core.UI
         public HsvColor HsvValue => _HsvValue;
         public ColorValue DisplayValue => GetDisplayValue();
         public ColorSpaceMode StorageColorSpace => Value.ColorSpace;
+        public float? TemperatureKelvin { get; private set; }
         public ColorSpaceMode DisplayColorSpace
         {
             get => _DisplayColorSpace;
@@ -121,7 +122,11 @@ namespace MGUI.Core.UI
             => PreviewValue(ColorHdrHelper.WithIntensity(Value, Constraints.ClampIntensity(intensity)));
 
         public void SetTemperatureKelvin(float kelvin, float minKelvin = ColorTemperatureConverter.DefaultMinKelvin, float maxKelvin = ColorTemperatureConverter.DefaultMaxKelvin)
-            => PreviewDisplayValue(ColorTemperatureConverter.KelvinToRgb(kelvin, DisplayColorSpace, minKelvin, maxKelvin).WithAlpha(Value.A));
+        {
+            float actualKelvin = ColorTemperatureConverter.ClampKelvin(kelvin, minKelvin, maxKelvin);
+            TemperatureKelvin = actualKelvin;
+            PreviewDisplayValue(ColorTemperatureConverter.KelvinToRgb(actualKelvin, DisplayColorSpace, minKelvin, maxKelvin).WithAlpha(Value.A));
+        }
 
         public ColorValue GetToneMappedPreview()
             => ColorHdrHelper.ToneMapReinhard(Value);

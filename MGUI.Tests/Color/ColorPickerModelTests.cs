@@ -68,6 +68,40 @@ public class ColorPickerModelTests
         Assert.Equal(new ColorValue(0f, 1f, 0f, 1f), color);
     }
 
+    [Fact]
+    public void KeyboardNavigation_CyclesOnlyVisibleTargets()
+    {
+        MGColorPicker.KeyboardNavigationTarget next = MGColorPicker.GetNextKeyboardNavigationTarget(
+            MGColorPicker.KeyboardNavigationTarget.Hue,
+            showAlpha: false,
+            showIntensity: true,
+            showTemperature: true,
+            UINavigationAction.MoveNext);
+
+        Assert.Equal(MGColorPicker.KeyboardNavigationTarget.Intensity, next);
+        Assert.Equal(
+            MGColorPicker.KeyboardNavigationTarget.Temperature,
+            MGColorPicker.GetNextKeyboardNavigationTarget(next, showAlpha: false, showIntensity: true, showTemperature: true, UINavigationAction.MoveNext));
+    }
+
+    [Fact]
+    public void KeyboardNavigation_AdjustsHueAlphaIntensityAndTemperature()
+    {
+        MGColorPickerModel model = new(new ColorValue(1f, 0f, 0f, 0.5f), new ColorPickerConstraints { AllowHdr = true, MaxChannelValue = 8f, MaxIntensity = 8f });
+
+        Assert.True(MGColorPicker.TryApplyKeyboardNavigation(model, MGColorPicker.KeyboardNavigationTarget.Hue, UINavigationAction.PageUp, true, true, true, false, 0f, 8f, 1000f, 12000f));
+        AssertClose(15f, model.HsvValue.H);
+
+        Assert.True(MGColorPicker.TryApplyKeyboardNavigation(model, MGColorPicker.KeyboardNavigationTarget.Alpha, UINavigationAction.MoveRight, true, true, true, false, 0f, 8f, 1000f, 12000f));
+        AssertClose(0.51f, model.Value.A);
+
+        Assert.True(MGColorPicker.TryApplyKeyboardNavigation(model, MGColorPicker.KeyboardNavigationTarget.Intensity, UINavigationAction.End, true, true, true, false, 0f, 8f, 1000f, 12000f));
+        AssertClose(8f, ColorHdrHelper.GetIntensity(model.Value));
+
+        Assert.True(MGColorPicker.TryApplyKeyboardNavigation(model, MGColorPicker.KeyboardNavigationTarget.Temperature, UINavigationAction.Home, true, true, true, false, 0f, 8f, 1000f, 12000f));
+        Assert.Equal(1000f, model.TemperatureKelvin);
+    }
+
     private static void AssertClose(float expected, float actual)
         => Assert.InRange(MathF.Abs(expected - actual), 0f, 0.0001f);
 }

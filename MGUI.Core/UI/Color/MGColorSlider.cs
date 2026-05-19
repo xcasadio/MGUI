@@ -130,6 +130,10 @@ namespace MGUI.Core.UI
         public event EventHandler DragCompleted;
 
         private bool IsDragging;
+        private Color[] GradientCache;
+        private int GradientCacheLength;
+        private ColorSliderChannel GradientCacheChannel;
+        private ColorValue GradientCacheBaseColor;
 
         public MGColorSlider(MGWindow window, ColorSliderChannel channel)
             : this(window, channel, Orientation.Horizontal)
@@ -358,22 +362,39 @@ namespace MGUI.Core.UI
         {
             if (Orientation == Orientation.Horizontal)
             {
+                Color[] cache = GetGradientCache(bounds.Width);
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    float percent = bounds.Width <= 1 ? 0f : (x - bounds.Left) / (float)(bounds.Width - 1);
-                    Color color = GetGradientColor(Channel, percent, BaseColor).ToXnaColor() * DA.Opacity;
-                    DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, bounds.Top, 1, bounds.Height), color);
+                    DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, bounds.Top, 1, bounds.Height), cache[x - bounds.Left] * DA.Opacity);
                 }
             }
             else
             {
+                Color[] cache = GetGradientCache(bounds.Height);
                 for (int y = bounds.Top; y < bounds.Bottom; y++)
                 {
-                    float percent = bounds.Height <= 1 ? 0f : (y - bounds.Top) / (float)(bounds.Height - 1);
-                    Color color = GetGradientColor(Channel, percent, BaseColor).ToXnaColor() * DA.Opacity;
-                    DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.Left, y, bounds.Width, 1), color);
+                    DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.Left, y, bounds.Width, 1), cache[y - bounds.Top] * DA.Opacity);
                 }
             }
+        }
+
+        private Color[] GetGradientCache(int length)
+        {
+            int actualLength = Math.Max(0, length);
+            if (GradientCache == null || GradientCacheLength != actualLength || GradientCacheChannel != Channel || GradientCacheBaseColor != BaseColor)
+            {
+                GradientCacheLength = actualLength;
+                GradientCacheChannel = Channel;
+                GradientCacheBaseColor = BaseColor;
+                GradientCache = new Color[actualLength];
+                for (int index = 0; index < GradientCache.Length; index++)
+                {
+                    float percent = GradientCache.Length <= 1 ? 0f : index / (float)(GradientCache.Length - 1);
+                    GradientCache[index] = GetGradientColor(Channel, percent, BaseColor).ToXnaColor();
+                }
+            }
+
+            return GradientCache;
         }
 
         private void DrawThumb(ElementDrawArgs DA, Rectangle bounds)

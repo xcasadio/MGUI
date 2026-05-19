@@ -338,10 +338,12 @@ namespace MGUI.Core.UI
             if (Model.IsMixed)
             {
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, MixedFillColor * DA.Opacity);
+                DrawMixedGlyph(DA, bounds);
             }
             else if (!Value.HasValue)
             {
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, NullFillColor * DA.Opacity);
+                DrawNullGlyph(DA, bounds);
             }
             else
             {
@@ -395,6 +397,22 @@ namespace MGUI.Core.UI
             DA.DT.FillRectangle(DA.Offset.ToVector2(), stem, stroke);
             DA.DT.FillRectangle(DA.Offset.ToVector2(), bulb, stroke);
             DrawRectangleBorder(DA, bounds, new Color(180, 180, 180));
+        }
+
+        private void DrawNullGlyph(ElementDrawArgs DA, Rectangle bounds)
+        {
+            Color stroke = BorderColor * DA.Opacity;
+            int thickness = 2;
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X + 3, bounds.Center.Y - thickness / 2, Math.Max(0, bounds.Width - 6), thickness), stroke);
+        }
+
+        private void DrawMixedGlyph(ElementDrawArgs DA, Rectangle bounds)
+        {
+            Color stroke = Color.White * DA.Opacity;
+            int thickness = 2;
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X + 3, bounds.Y + 4, Math.Max(0, bounds.Width - 6), thickness), stroke);
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X + 3, bounds.Center.Y - thickness / 2, Math.Max(0, bounds.Width - 6), thickness), stroke);
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X + 3, bounds.Bottom - 6, Math.Max(0, bounds.Width - 6), thickness), stroke);
         }
 
         private void OnColorPicked(object sender, ColorPickedEventArgs e)

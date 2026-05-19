@@ -26,6 +26,7 @@ namespace MGUI.Core.UI
         }
 
         public MGColorSwatch SelectedSwatch { get; private set; }
+        public int FocusedSwatchIndex { get; private set; } = -1;
         public MGColorPicker TargetPicker { get; private set; }
         public int Columns { get; set; } = 8;
         public int SwatchSize { get; set; } = 18;
@@ -34,6 +35,7 @@ namespace MGUI.Core.UI
         public int CheckerboardCellSize { get; set; } = 4;
         public Color BorderColor { get; set; } = Color.Black;
         public Color SelectedBorderColor { get; set; } = Color.Yellow;
+        public Color FocusedBorderColor { get; set; } = Color.White;
         public Color CheckerboardLightColor { get; set; } = new(210, 210, 210);
         public Color CheckerboardDarkColor { get; set; } = new(130, 130, 130);
 
@@ -71,6 +73,7 @@ namespace MGUI.Core.UI
             }
 
             SelectedSwatch = swatch;
+            FocusedSwatchIndex = Palette.Swatches.IndexOf(swatch);
             ApplyToTargetPicker(swatch.Value);
             SwatchSelected?.Invoke(this, new ColorSwatchSelectedEventArgs(swatch));
             NPC(nameof(SelectedSwatch));
@@ -97,7 +100,41 @@ namespace MGUI.Core.UI
                 DrawCheckerboard(DA, swatchBounds);
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), swatchBounds, Palette.Swatches[index].Value.ToXnaColor() * DA.Opacity);
                 DrawRectangleBorder(DA, swatchBounds, ReferenceEquals(Palette.Swatches[index], SelectedSwatch) ? SelectedBorderColor : BorderColor);
+                if (index == FocusedSwatchIndex && !ReferenceEquals(Palette.Swatches[index], SelectedSwatch))
+                {
+                    DrawRectangleBorder(DA, new Rectangle(swatchBounds.X + 2, swatchBounds.Y + 2, Math.Max(0, swatchBounds.Width - 4), Math.Max(0, swatchBounds.Height - 4)), FocusedBorderColor);
+                }
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            int count = Palette?.Swatches.Count ?? 0;
+            if (count == 0)
+            {
+                return false;
+            }
+
+            if (action == UINavigationAction.Submit)
+            {
+                int submitIndex = FocusedSwatchIndex >= 0 ? FocusedSwatchIndex : SelectedSwatch == null ? 0 : Palette.Swatches.IndexOf(SelectedSwatch);
+                return submitIndex >= 0 && submitIndex < count && SelectSwatch(Palette.Swatches[submitIndex]);
+            }
+
+            if (action is not (UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.MoveUp or UINavigationAction.MoveDown or UINavigationAction.MoveNext or UINavigationAction.MovePrevious or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.PageUp or UINavigationAction.PageDown))
+            {
+                return false;
+            }
+
+            int nextIndex = GetNavigationIndex(FocusedSwatchIndex, count, Columns, action);
+            if (nextIndex == FocusedSwatchIndex)
+            {
+                return false;
+            }
+
+            FocusedSwatchIndex = nextIndex;
+            NPC(nameof(FocusedSwatchIndex));
+            return true;
         }
 
         internal static Rectangle GetSwatchBounds(Rectangle bounds, int index, int columns, int swatchSize, int spacing, int borderThickness)
@@ -122,6 +159,29 @@ namespace MGUI.Core.UI
             }
 
             return null;
+        }
+
+        internal static int GetNavigationIndex(int currentIndex, int count, int columns, UINavigationAction action)
+        {
+            if (count <= 0)
+            {
+                return -1;
+            }
+
+            int actualColumns = Math.Max(1, columns);
+            int normalized = currentIndex < 0 || currentIndex >= count ? 0 : currentIndex;
+            return action switch
+            {
+                UINavigationAction.MoveLeft or UINavigationAction.MovePrevious => Math.Max(0, normalized - 1),
+                UINavigationAction.MoveRight or UINavigationAction.MoveNext => Math.Min(count - 1, normalized + 1),
+                UINavigationAction.MoveUp => Math.Max(0, normalized - actualColumns),
+                UINavigationAction.MoveDown => Math.Min(count - 1, normalized + actualColumns),
+                UINavigationAction.Home => 0,
+                UINavigationAction.End => count - 1,
+                UINavigationAction.PageUp => Math.Max(0, normalized - actualColumns * 3),
+                UINavigationAction.PageDown => Math.Min(count - 1, normalized + actualColumns * 3),
+                _ => normalized,
+            };
         }
 
         private Size GetDesiredSize()
