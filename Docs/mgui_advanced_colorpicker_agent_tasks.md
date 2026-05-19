@@ -233,7 +233,7 @@ Resultat:
 - Les gris/noirs/blancs retournent une hue stable a `0` sans NaN, et les roundtrips HSV/HSL preservent RGB dans une tolerance de `0.0001`.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorSpace --logger "console;verbosity=minimal"`.
 
-### ⚪ 4. Ajouter parsing et formatting couleur
+### ✅ 4. Ajouter parsing et formatting couleur
 
 But:
 supporter l'edition texte rapide des formats moteurs et UI avant de brancher `MGColorField` et les inputs du picker.
@@ -273,7 +273,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `ColorValueFormat`, `ColorParser` et `ColorFormatter` ont ete ajoutes.
+- Le parse par defaut traite les hex 8 digits comme `#RRGGBBAA`; `TryParse(..., ColorValueFormat.HexArgb, ...)` permet de lever explicitement l'ambiguite `#AARRGGBB`.
+- Les formats supportes couvrent `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb(...)`, `rgba(...)`, `Vector3(...)` et `Vector4(...)`, avec `CultureInfo.InvariantCulture`.
+- `ColorValue.TryParse(...)` et `ColorValue.ToHex(...)` fournissent les raccourcis utiles au reste du picker.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorParser --logger "console;verbosity=minimal"`.
 
 ### ⚪ 5. Ajouter options, contraintes et contrats d'edition
 

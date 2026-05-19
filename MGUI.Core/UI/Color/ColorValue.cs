@@ -68,6 +68,9 @@ namespace MGUI.Core.UI
         public System.Numerics.Vector4 ToSystemVector4()
             => new(R, G, B, A);
 
+        public string ToHex(ColorValueFormat format)
+            => ColorFormatter.ToHex(this, format);
+
         public static ColorValue FromXnaColor(Color color)
             => FromXnaColor(color, ColorSpaceMode.Srgb);
 
@@ -97,6 +100,9 @@ namespace MGUI.Core.UI
 
         public static ColorValue FromVector4(System.Numerics.Vector4 value, ColorSpaceMode colorSpace)
             => new(value.X, value.Y, value.Z, value.W, colorSpace, false);
+
+        public static bool TryParse(string text, out ColorValue value)
+            => ColorParser.TryParse(text, out value);
 
         public bool Equals(ColorValue other)
             => R.Equals(other.R)
