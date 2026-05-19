@@ -792,7 +792,7 @@ Resultat:
 - `ColorPaletteView` supporte une palette simple via `PaletteName` et `CommaSeparatedColors`; les controles conservent leurs proprietes visuelles directes pour les themes dark/light existants.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorXaml --logger "console;verbosity=minimal"`.
 
-### ⚪ 16. Ajouter samples et couverture visuelle de base
+### ✅ 16. Ajouter samples et couverture visuelle de base
 
 But:
 fournir une experience testable manuellement dans `MGUI.Samples` et verrouiller les workflows MVP.
@@ -831,7 +831,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout du sample `ColorPicker` dans `MGUI.Samples.Controls`, expose dans le compendium.
+- La fenetre sample montre `MGColorPicker`, `MGColorField` compact, ouverture popup, preview current/previous, palette liee au picker, slider rouge runtime, et cas read-only/disabled/null/mixed.
+- Ajout d'un `PropertyGrid` alimente par un objet contenant `Color`, `Vector3`, `Vector4`, `System.Numerics.Vector4` et une valeur texte hex; le theme peut basculer entre `Dark_Blue` et `Dark`.
+- Ajout d'un test `ColorXaml` qui parse le XAML du sample `Controls/ColorPicker.xaml` en plus des controles XAML couleur.
+- Validation executee: `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Color --logger "console;verbosity=minimal"`.
 
 ### ⚪ 17. Durcir undo/redo, transactions et valeurs mixed
 

@@ -155,6 +155,7 @@ namespace MGUI.Samples
         public ButtonSamples ButtonSamples { get; }
         public CanvasSamples CanvasSamples { get; }
         public CheckBoxSamples CheckBoxSamples { get; }
+        public ColorPickerSamples ColorPickerSamples { get; }
         public ComboBoxSamples ComboBoxSamples { get; }
         public ContextMenuSamples ContextMenuSamples { get; }
         public MenuBarSamples MenuBarSamples { get; }
@@ -229,6 +230,7 @@ namespace MGUI.Samples
             ButtonSamples = new(Content, Desktop);
             CanvasSamples = new(Content, Desktop);
             CheckBoxSamples = new(Content, Desktop);
+            ColorPickerSamples = new(Content, Desktop);
             ComboBoxSamples = new(Content, Desktop);
             ContextMenuSamples = new(Content, Desktop);
             MenuBarSamples = new(Content, Desktop);

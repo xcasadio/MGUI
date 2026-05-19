@@ -1,9 +1,11 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.XAML;
+using System.IO;
 using System.ComponentModel;
 using XamlColorField = MGUI.Core.UI.XAML.ColorField;
 using XamlColorPaletteView = MGUI.Core.UI.XAML.ColorPaletteView;
 using XamlElement = MGUI.Core.UI.XAML.Element;
+using XamlWindow = MGUI.Core.UI.XAML.Window;
 
 namespace MGUI.Tests.ColorPicker;
 
@@ -45,5 +47,28 @@ public class ColorXamlTests
         XamlColorPaletteView paletteView = Assert.IsType<XamlColorPaletteView>(parsed);
         Assert.Equal("Project", paletteView.PaletteName);
         Assert.Equal(2, paletteView.Columns);
+    }
+
+    [Fact]
+    public void XamlParser_ParsesColorPickerSampleXaml()
+    {
+        string samplePath = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "MGUI.Samples",
+            "Controls",
+            "ColorPicker.xaml"));
+        string xaml = File.ReadAllText(samplePath);
+
+        XamlElement parsed = XAMLParser.ParseElementDefinition(
+            XamlDocumentSource.FromString(xaml, "ColorPicker.xaml"),
+            null,
+            false,
+            true);
+
+        Assert.IsType<XamlWindow>(parsed);
     }
 }

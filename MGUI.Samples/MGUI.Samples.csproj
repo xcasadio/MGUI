@@ -21,6 +21,7 @@
     <None Remove="Controls\Button.xaml" />
     <None Remove="Controls\Canvas.xaml" />
     <None Remove="Controls\CheckBox.xaml" />
+    <None Remove="Controls\ColorPicker.xaml" />
     <None Remove="Controls\ComboBox.xaml" />
     <None Remove="Controls\Compendium.xaml" />
     <None Remove="Controls\ContextMenu.xaml" />
@@ -89,6 +90,9 @@
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\CheckBox.xaml" />
+    <EmbeddedResource Include="Controls\ColorPicker.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </EmbeddedResource>
     <EmbeddedResource Include="Controls\ComboBox.xaml">
       <Generator>MSBuild:Compile</Generator>
     </EmbeddedResource>

@@ -1,0 +1,87 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="440" Top="20" MinHeight="0" Width="820" Height="760" TitleText="ColorPicker" Padding="10">
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="ColorField">
+            <Setter Property="FieldWidth" Value="230" />
+            <Setter Property="FieldHeight" Value="24" />
+            <Setter Property="ShowAlpha" Value="True" />
+            <Setter Property="ShowTextInput" Value="True" />
+            <Setter Property="DisplayFormat" Value="HexRgba" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="ColorPicker:" HorizontalAlignment="Center" />
+            <Separator />
+            <TextBlock WrapText="True" Text="Advanced color controls with compact fields, popup editing, palette selection, alpha preview, slider input, state coverage, theme switching, and PropertyGrid color properties." />
+            <Separator />
+
+            <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="6" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <ColorPicker Name="MainPicker" Value="#3366CCFF" PreviousValue="#CC6633FF" ShowAlpha="True" ShowTextInput="True" DisplayFormat="HexRgba" CommitMode="Live" />
+                    <StackPanel Orientation="Vertical" Spacing="6" Width="360">
+                        <ColorPreview Name="MainPreview" CurrentValue="#3366CCFF" PreviousValue="#CC6633FF" ShowPrevious="True" ShowOpaqueComparison="True" PreviewWidth="180" PreviewHeight="48" />
+                        <TextBlock Name="CurrentText" WrapText="True" />
+                        <TextBlock Name="PreviousText" WrapText="True" />
+                        <TextBlock Name="SourceText" WrapText="True" />
+                        <Separator />
+                        <ColorField Name="CompactField" Value="#3366CCFF" DefaultValue="#3366CCFF" CommitMode="Live" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ColorField Name="PopupField" Value="#3366CCFF" DefaultValue="#3366CCFF" CommitMode="ExplicitOkCancel" FieldWidth="230" />
+                            <Button Name="OpenPopupButton" Content="Open" Width="70" />
+                        </StackPanel>
+                        <ColorPaletteView Name="PaletteView" PaletteName="Sample Palette" Columns="8" SwatchSize="22" Spacing="4"
+                                          CommaSeparatedColors="#1B263BFF,#415A77FF,#778DA9FF,#E0E1DDFF,#EF476FFF,#FFD166FF,#06D6A0FF,#118AB2FF,#073B4CFF,#F72585FF,#7209B7FF,#3A0CA3FF,#4361EEFF,#4CC9F0FF,#F77F00FF,#FCBF49FF" />
+                        <StackPanel Name="SliderHost" Orientation="Vertical" Spacing="3" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="6" Spacing="6">
+                <TextBlock StyleNames="Header1" Text="States" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <StackPanel Orientation="Vertical" Spacing="3">
+                        <TextBlock Text="Read-only" />
+                        <ColorField Name="ReadOnlyField" Value="#EF476FFF" IsReadOnly="True" />
+                    </StackPanel>
+                    <StackPanel Orientation="Vertical" Spacing="3">
+                        <TextBlock Text="Disabled" />
+                        <ColorField Name="DisabledField" Value="#06D6A0FF" IsEnabled="False" />
+                    </StackPanel>
+                    <StackPanel Orientation="Vertical" Spacing="3">
+                        <TextBlock Text="Null" />
+                        <ColorField Name="NullField" AllowNull="True" />
+                    </StackPanel>
+                    <StackPanel Orientation="Vertical" Spacing="3">
+                        <TextBlock Text="Mixed" />
+                        <ColorField Name="MixedField" Value="#778DA9FF" IsMixed="True" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="6" Spacing="6">
+                <TextBlock StyleNames="Header1" Text="PropertyGrid" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="UseDarkBlueThemeButton" Content="Dark_Blue" />
+                    <Button Name="UseDarkThemeButton" Content="Dark" />
+                    <TextBlock Name="ThemeStatusLabel" VerticalAlignment="Center" />
+                </StackPanel>
+                <PropertyGrid Name="ColorInspector" Height="240" LabelColumnWidth="190" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
