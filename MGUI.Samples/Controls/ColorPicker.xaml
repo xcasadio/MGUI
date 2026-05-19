@@ -51,6 +51,17 @@
                 </StackPanel>
             </StackPanel>
 
+            <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="6" Spacing="8">
+                <TextBlock StyleNames="Header1" Text="Light and emissive presets" />
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <ColorPicker Name="LightPicker" Value="#FFF0D2FF" PreviousValue="#FFFFFFFF" ShowAlpha="True" ShowTextInput="True" ShowTemperature="True" IsHdr="True" ShowIntensity="True" ShowToneMappedPreview="True" MinKelvin="1000" MaxKelvin="12000" DisplayFormat="HexRgba" CommitMode="Live" />
+                    <StackPanel Orientation="Vertical" Spacing="6" Width="360">
+                        <TextBlock Name="LightPresetText" WrapText="True" />
+                        <ColorPaletteView Name="EnginePaletteView" PaletteName="Engine Presets" Columns="8" SwatchSize="22" Spacing="4" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+
             <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="6" Spacing="6">
                 <TextBlock StyleNames="Header1" Text="States" />
                 <StackPanel Orientation="Horizontal" Spacing="8">

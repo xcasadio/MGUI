@@ -1029,7 +1029,7 @@ Resultat:
 - Tests ajoutes pour valeurs > 1, clamp LDR existant, normalisation ratio/intensity, bornes d'intensity et preview tonemappee non destructive.
 - Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Hdr --logger "console;verbosity=minimal"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
 
-### ⚪ 21. Ajouter temperature Kelvin et presets moteur
+### ✅ 21. Ajouter temperature Kelvin et presets moteur
 
 But:
 ajouter des presets utiles aux editeurs de materiaux, lumieres, fog, sky, UI et debug.
@@ -1069,7 +1069,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `ColorTemperatureConverter` avec conversion Kelvin -> RGB sRGB, range configurable `1000K..12000K` par defaut, clamp robuste et sortie optionnelle Linear via `ColorSpaceConverter`.
+- Ajout de `MGColorPresetCategory`, `MGColorPreset` et `MGColorEnginePresets` pour presets material, emissive HDR, light, fog, sky, UI theme, debug/gizmo et temperature.
+- Presets temperature ajoutes: candle, tungsten, warm white, neutral white, daylight, overcast et blue sky.
+- `ColorPickerOptions`, `MGColorPickerModel`, `MGColorPicker`, `MGColorPickerPopup` et les wrappers XAML exposent `ShowTemperature`, `MinKelvin` et `MaxKelvin`.
+- `MGColorPicker` affiche un slider Kelvin optionnel et applique la temperature dans l'espace d'affichage avant conversion vers l'espace de stockage.
+- `MGColorPaletteView.SetEnginePresets(...)` permet de charger les presets moteur a la demande, avec filtrage par categorie, sans les imposer aux usages UI simples.
+- Sample `ColorPicker` enrichi avec un panneau light/emissive: picker HDR/intensity/temperature et palette engine presets liee au picker.
+- Tests ajoutes pour valeurs Kelvin approximatives avec tolerance explicite, clamp de range, chemin Linear, application via model et metadata/categories de presets.
+- Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Kelvin --logger "console;verbosity=minimal"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
 
 ### ⚪ 22. Ajouter persistance de palettes
 

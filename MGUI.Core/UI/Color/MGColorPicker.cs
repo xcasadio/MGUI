@@ -15,6 +15,7 @@ namespace MGUI.Core.UI
             Hue,
             Alpha,
             Intensity,
+            Temperature,
         }
 
         private DragTarget ActiveDragTarget = DragTarget.None;
@@ -261,6 +262,9 @@ namespace MGUI.Core.UI
         public bool ShowIntensity { get; set; }
         public bool UseExposureSlider { get; set; }
         public bool ShowToneMappedPreview { get; set; }
+        public bool ShowTemperature { get; set; }
+        public float MinKelvin { get; set; } = ColorTemperatureConverter.DefaultMinKelvin;
+        public float MaxKelvin { get; set; } = ColorTemperatureConverter.DefaultMaxKelvin;
         public float MinIntensity
         {
             get => Model.Constraints.MinIntensity;
@@ -365,6 +369,9 @@ namespace MGUI.Core.UI
                 ShowIntensity = options.ShowIntensity;
                 UseExposureSlider = options.UseExposureSlider;
                 ShowToneMappedPreview = options.ShowToneMappedPreview;
+                ShowTemperature = options.ShowTemperature;
+                MinKelvin = options.MinKelvin;
+                MaxKelvin = options.MaxKelvin;
                 ShowEyeDropper = options.ShowEyeDropper;
                 ColorPickService = options.ColorPickService;
                 ShowTextInput = options.ShowTextInput;
@@ -462,7 +469,7 @@ namespace MGUI.Core.UI
             SharedSize = new(0);
             int spacing = Math.Max(0, ControlSpacing);
             int width = SaturationValueSize + spacing + SliderThickness + spacing + PreviewWidth;
-            int height = SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowIntensity ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0);
+            int height = SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowIntensity ? spacing + SliderThickness : 0) + (ShowTemperature ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0);
             return new(width, height, 0, 0);
         }
 
@@ -484,6 +491,11 @@ namespace MGUI.Core.UI
             if (ShowIntensity)
             {
                 DrawIntensitySlider(DA, GetIntensitySliderBounds(bounds));
+            }
+
+            if (ShowTemperature)
+            {
+                DrawTemperatureSlider(DA, GetTemperatureSliderBounds(bounds));
             }
 
             DrawPreview(DA, GetPreviewBounds(bounds));
@@ -512,6 +524,9 @@ namespace MGUI.Core.UI
 
         public void SetIntensity(float intensity)
             => Model.SetIntensity(intensity);
+
+        public void SetTemperatureKelvin(float kelvin)
+            => Model.SetTemperatureKelvin(kelvin, MinKelvin, MaxKelvin);
 
         public bool BeginEdit()
         {
@@ -558,7 +573,7 @@ namespace MGUI.Core.UI
             int spacing = Math.Max(0, ControlSpacing);
             return new(
                 SaturationValueSize + spacing + SliderThickness + spacing + PreviewWidth,
-                SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowIntensity ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0));
+                SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowIntensity ? spacing + SliderThickness : 0) + (ShowTemperature ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0));
         }
 
         private Rectangle GetSaturationValueBounds(Rectangle bounds)
@@ -581,6 +596,22 @@ namespace MGUI.Core.UI
             return new(bounds.X, y, SaturationValueSize, SliderThickness);
         }
 
+        private Rectangle GetTemperatureSliderBounds(Rectangle bounds)
+        {
+            int y = bounds.Y + SaturationValueSize + Math.Max(0, ControlSpacing);
+            if (ShowAlpha)
+            {
+                y += SliderThickness + Math.Max(0, ControlSpacing);
+            }
+
+            if (ShowIntensity)
+            {
+                y += SliderThickness + Math.Max(0, ControlSpacing);
+            }
+
+            return new(bounds.X, y, SaturationValueSize, SliderThickness);
+        }
+
         private Rectangle GetPreviewBounds(Rectangle bounds)
             => new(bounds.X + SaturationValueSize + Math.Max(0, ControlSpacing) + SliderThickness + Math.Max(0, ControlSpacing), bounds.Y, PreviewWidth, PreviewHeight);
 
@@ -589,7 +620,7 @@ namespace MGUI.Core.UI
 
         private Rectangle GetTextInputBounds(Rectangle bounds)
         {
-            int y = bounds.Y + SaturationValueSize + (ShowAlpha ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + (ShowIntensity ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + Math.Max(0, ControlSpacing);
+            int y = bounds.Y + SaturationValueSize + (ShowAlpha ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + (ShowIntensity ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + (ShowTemperature ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + Math.Max(0, ControlSpacing);
             return new(bounds.X, y, bounds.Width, TextInputHeight);
         }
 
@@ -621,6 +652,11 @@ namespace MGUI.Core.UI
                 return DragTarget.Intensity;
             }
 
+            if (ShowTemperature && GetTemperatureSliderBounds(bounds).Contains(layoutPoint))
+            {
+                return DragTarget.Temperature;
+            }
+
             return DragTarget.None;
         }
 
@@ -650,6 +686,11 @@ namespace MGUI.Core.UI
                     float percent = MGColorSlider.GetPercentFromPoint(layoutPoint, GetIntensitySliderBounds(bounds), Orientation.Horizontal);
                     Model.SetIntensity(GetIntensityFromPercent(percent));
                     ActiveDragTarget = DragTarget.Intensity;
+                    break;
+                case DragTarget.Temperature:
+                    float kelvinPercent = MGColorSlider.GetPercentFromPoint(layoutPoint, GetTemperatureSliderBounds(bounds), Orientation.Horizontal);
+                    Model.SetTemperatureKelvin(MGColorSlider.GetValueFromPercent(kelvinPercent, MinKelvin, MaxKelvin), MinKelvin, MaxKelvin);
+                    ActiveDragTarget = DragTarget.Temperature;
                     break;
             }
         }
@@ -735,6 +776,20 @@ namespace MGUI.Core.UI
             float currentPercent = UseExposureSlider ? GetExposurePercent(Model.Intensity) : MGColorSlider.GetPercentFromValue(Model.Intensity, MinIntensity, MaxIntensity);
             DrawHorizontalSliderThumb(DA, content, currentPercent);
             DrawRectangleBorder(DA, bounds, IsHdr && Value.IsHdr ? new Color(255, 180, 0) : BorderColor);
+        }
+
+        private void DrawTemperatureSlider(ElementDrawArgs DA, Rectangle bounds)
+        {
+            Rectangle content = MGColorPreview.GetContentBounds(bounds, BorderThickness);
+            for (int x = content.Left; x < content.Right; x++)
+            {
+                float percent = content.Width <= 1 ? 0f : (x - content.Left) / (float)(content.Width - 1);
+                float kelvin = MGColorSlider.GetValueFromPercent(percent, MinKelvin, MaxKelvin);
+                ColorValue color = ColorTemperatureConverter.KelvinToRgb(kelvin, DisplayColorSpace, MinKelvin, MaxKelvin);
+                DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, content.Top, 1, content.Height), color.ToXnaColor() * DA.Opacity);
+            }
+
+            DrawRectangleBorder(DA, bounds, BorderColor);
         }
 
         private float GetExposurePercent(float intensity)

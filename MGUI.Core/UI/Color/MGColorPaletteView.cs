@@ -60,6 +60,9 @@ namespace MGUI.Core.UI
         public void BindPicker(MGColorPicker picker)
             => TargetPicker = picker;
 
+        public void SetEnginePresets(MGColorPresetCategory? category = null, string paletteName = "Engine Presets")
+            => Palette = MGColorEnginePresets.CreatePalette(paletteName, category);
+
         public bool SelectSwatch(MGColorSwatch swatch)
         {
             if (swatch == null || Palette?.Swatches.Contains(swatch) != true)

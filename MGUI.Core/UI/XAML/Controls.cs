@@ -1001,10 +1001,16 @@ namespace MGUI.Core.UI.XAML
         public bool? UseExposureSlider { get; set; }
         [Category("Appearance")]
         public bool? ShowToneMappedPreview { get; set; }
+        [Category("Appearance")]
+        public bool? ShowTemperature { get; set; }
         [Category("Behavior")]
         public float? MinIntensity { get; set; }
         [Category("Behavior")]
         public float? MaxIntensity { get; set; }
+        [Category("Behavior")]
+        public float? MinKelvin { get; set; }
+        [Category("Behavior")]
+        public float? MaxKelvin { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
             => new MGColorPicker(Window, new ColorPickerOptions
@@ -1022,8 +1028,11 @@ namespace MGUI.Core.UI.XAML
                 ShowIntensity = ShowIntensity ?? false,
                 UseExposureSlider = UseExposureSlider ?? false,
                 ShowToneMappedPreview = ShowToneMappedPreview ?? false,
+                ShowTemperature = ShowTemperature ?? false,
                 MinIntensity = MinIntensity ?? 0f,
                 MaxIntensity = MaxIntensity ?? 16f,
+                MinKelvin = MinKelvin ?? ColorTemperatureConverter.DefaultMinKelvin,
+                MaxKelvin = MaxKelvin ?? ColorTemperatureConverter.DefaultMaxKelvin,
             });
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
@@ -1043,8 +1052,11 @@ namespace MGUI.Core.UI.XAML
             if (ShowIntensity.HasValue) picker.ShowIntensity = ShowIntensity.Value;
             if (UseExposureSlider.HasValue) picker.UseExposureSlider = UseExposureSlider.Value;
             if (ShowToneMappedPreview.HasValue) picker.ShowToneMappedPreview = ShowToneMappedPreview.Value;
+            if (ShowTemperature.HasValue) picker.ShowTemperature = ShowTemperature.Value;
             if (MinIntensity.HasValue) picker.MinIntensity = MinIntensity.Value;
             if (MaxIntensity.HasValue) picker.MaxIntensity = MaxIntensity.Value;
+            if (MinKelvin.HasValue) picker.MinKelvin = MinKelvin.Value;
+            if (MaxKelvin.HasValue) picker.MaxKelvin = MaxKelvin.Value;
         }
 
         protected internal override IEnumerable<Element> GetChildren()

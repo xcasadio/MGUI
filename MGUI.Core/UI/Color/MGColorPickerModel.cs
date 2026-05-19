@@ -120,6 +120,9 @@ namespace MGUI.Core.UI
         public void SetIntensity(float intensity)
             => PreviewValue(ColorHdrHelper.WithIntensity(Value, Constraints.ClampIntensity(intensity)));
 
+        public void SetTemperatureKelvin(float kelvin, float minKelvin = ColorTemperatureConverter.DefaultMinKelvin, float maxKelvin = ColorTemperatureConverter.DefaultMaxKelvin)
+            => PreviewDisplayValue(ColorTemperatureConverter.KelvinToRgb(kelvin, DisplayColorSpace, minKelvin, maxKelvin).WithAlpha(Value.A));
+
         public ColorValue GetToneMappedPreview()
             => ColorHdrHelper.ToneMapReinhard(Value);
 
