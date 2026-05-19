@@ -508,7 +508,7 @@ Resultat:
 - Decision MVP documentee: `ShowAlpha=false` masque le slider alpha et preserve l'alpha courant; les modes de commit detailles restent pour la tache 10.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorPickerModel --logger "console;verbosity=minimal"`.
 
-### ⚪ 10. Ajouter modes de commit et evenements d'edition
+### ✅ 10. Ajouter modes de commit et evenements d'edition
 
 But:
 separer preview live et commit final pour eviter une entree undo par pixel de souris et permettre les usages PropertyGrid/editeur.
@@ -548,7 +548,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGColorPickerModel` gere maintenant `Live`, `OnMouseRelease` et `ExplicitOkCancel` avec etat `CommittedValue`, preview courante et transaction active.
+- Evenements ajoutes et relayes par `MGColorPicker`: `ValueChanging`, `ValueChanged`, `EditStarted`, `EditCommitted`, `EditCancelled`.
+- API publique ajoutee: `BeginEdit`, `CommitEdit`, `CancelEdit`; le controle commit sur relache souris en mode `OnMouseRelease` et gere `Submit`/`Cancel` via navigation.
+- `PreviousValue` est conserve pendant la preview et mis a jour au commit; `CancelEdit` restaure la valeur initiale.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorEdit --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "ColorPickerModel|ColorText" --logger "console;verbosity=minimal"`.
 
 ### ⚪ 11. Ajouter `MGColorPickerPopup`
 

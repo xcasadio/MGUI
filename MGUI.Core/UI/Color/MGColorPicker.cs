@@ -175,6 +175,20 @@ namespace MGUI.Core.UI
         }
 
         public ColorPickerConstraints Constraints => Model.Constraints;
+
+        public ColorEditCommitMode CommitMode
+        {
+            get => Model.CommitMode;
+            set
+            {
+                if (Model.CommitMode != value)
+                {
+                    Model.CommitMode = value;
+                    NPC(nameof(CommitMode));
+                }
+            }
+        }
+
         public int ControlSpacing { get; set; } = 8;
         public int TextInputHeight { get; set; } = 22;
         public int BorderThickness { get; set; } = 1;
@@ -186,6 +200,10 @@ namespace MGUI.Core.UI
         public Color CheckerboardDarkColor { get; set; } = new(130, 130, 130);
 
         public event EventHandler<ColorValueChangedEventArgs> ValueChanged;
+        public event EventHandler<ColorValueChangingEventArgs> ValueChanging;
+        public event EventHandler EditStarted;
+        public event EventHandler<ColorValueChangedEventArgs> EditCommitted;
+        public event EventHandler EditCancelled;
 
         public MGColorPicker(MGWindow window)
             : this(window, new ColorPickerOptions())
@@ -203,6 +221,7 @@ namespace MGUI.Core.UI
                 ShowAlpha = options.ShowAlpha;
                 ShowTextInput = options.ShowTextInput;
                 PickerMode = options.PickerMode;
+                CommitMode = options.CommitMode;
                 DisplayFormat = options.DisplayFormat;
                 SaturationValueSize = 160;
                 SliderThickness = 18;
@@ -212,16 +231,34 @@ namespace MGUI.Core.UI
                 VerticalAlignment = VerticalAlignment.Top;
                 IsFocusable = true;
 
+                Model.ValueChanging += (sender, e) =>
+                {
+                    NPC(nameof(Value));
+                    ValueChanging?.Invoke(this, e);
+                };
                 Model.ValueChanged += (sender, e) =>
                 {
                     NPC(nameof(Value));
+                    if (!Model.IsEditing)
+                    {
+                        PreviousValue = e.NewValue;
+                    }
+
                     ValueChanged?.Invoke(this, e);
                 };
+                Model.EditStarted += (sender, e) => EditStarted?.Invoke(this, e);
+                Model.EditCommitted += (sender, e) =>
+                {
+                    PreviousValue = e.NewValue;
+                    EditCommitted?.Invoke(this, e);
+                };
+                Model.EditCancelled += (sender, e) => EditCancelled?.Invoke(this, e);
 
                 MouseHandler.DragStartCondition = DragStartCondition.MousePressed;
                 MouseHandler.LMBPressedInside += (sender, e) =>
                 {
                     e.SetHandledBy(this, false);
+                    Model.BeginEdit();
                     SetValueFromScreenPosition(e.Position, false);
                 };
                 MouseHandler.DragStart += (sender, e) =>
@@ -243,10 +280,25 @@ namespace MGUI.Core.UI
                 {
                     if (e.IsLMB)
                     {
+                        if (CommitMode == ColorEditCommitMode.Live || CommitMode == ColorEditCommitMode.OnMouseRelease)
+                        {
+                            CommitEdit();
+                        }
+
                         ActiveDragTarget = DragTarget.None;
                     }
                 };
             }
+        }
+
+        public override bool TryHandleNavigationAction(UINavigationAction action)
+        {
+            return action switch
+            {
+                UINavigationAction.Submit when CommitMode == ColorEditCommitMode.ExplicitOkCancel && Model.IsEditing => CommitEdit(),
+                UINavigationAction.Cancel when Model.IsEditing => CancelEdit(),
+                _ => base.TryHandleNavigationAction(action),
+            };
         }
 
         public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
@@ -291,6 +343,19 @@ namespace MGUI.Core.UI
 
         public void SetAlpha(float alpha)
             => Model.SetAlpha(alpha);
+
+        public bool BeginEdit()
+        {
+            bool wasEditing = Model.IsEditing;
+            Model.BeginEdit();
+            return !wasEditing;
+        }
+
+        public bool CommitEdit()
+            => Model.CommitEdit();
+
+        public bool CancelEdit()
+            => Model.CancelEdit();
 
         internal static ColorValue GetSaturationValueColor(float hue, float saturation, float value, ColorSpaceMode colorSpace)
             => ColorSpaceConverter.HsvToRgb(new HsvColor(hue, Math.Clamp(saturation, 0f, 1f), Math.Clamp(value, 0f, 1f), 1f), colorSpace);
