@@ -1229,7 +1229,7 @@ Resultat:
 - Tests ajoutes pour luminance/contraste et quick-info.
 - Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Contrast --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Color --logger "console;verbosity=minimal"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
 
-### ⚪ 25. Documenter l'API et finaliser la migration
+### ✅ 25. Documenter l'API et finaliser la migration
 
 But:
 clore la roadmap par une documentation utilisable et une verification de non-regression.
@@ -1272,7 +1272,14 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Mise a jour de `Docs/mgui_advanced_colorpicker_features.md` avec l'etat final implemente, les limites hors scope et les liens vers la doc utilisateur/backlog.
+- Ajout de `Docs/mgui_colorpicker_usage_guide.md` couvrant `ColorValue`, `MGColorField`, `MGColorPicker`, PropertyGrid, XAML, formats texte, ambiguite `#RRGGBBAA` vs `#AARRGGBB`, commit modes, undo/redo via `IColorEditTransaction`, sRGB/Linear, HDR/intensity, Kelvin/presets, persistance palettes, `IColorPickService` et migration depuis `MGGridColorPicker`.
+- La migration recommande de conserver `MGGridColorPicker` pour les surfaces existantes et d'utiliser `MGColorPaletteView` pour les nouvelles palettes `ColorValue`, recentes/favorites/projet et JSON.
+- Verification du plan: les taches 1-25 sont marquees `✅` et chaque tache terminee contient un bloc `Resultat`.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` reussi; `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore` reussi; `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore` reussi.
+- Validation couleur precedente conservee: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Color --logger "console;verbosity=minimal"` reussi avec 144 tests.
+- Suite complete executee: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --logger "console;verbosity=minimal"` a lance 1023 tests, avec 1020 reussis et 3 echecs hors perimetre couleur documentes ci-dessous.
+- Echecs full-suite constates: `Architecture/BoxGeometryBuilderTests.EquivalentNormalizedShapes_ReuseCachedGeometry` attend 2 et obtient 4; `Architecture/ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks` echoue sur `AmbiguousMatchException` pour `LoadPreview`; `Architecture/BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles` attend des `Compile Remove` pour des fichiers Text absents du projet integration.
 
 ## Definition of done globale
 
