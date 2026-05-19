@@ -140,7 +140,7 @@ Resultat:
 - Les themes fournissent deja `MGThemePropertyGridSettings.InvalidEditorBorderBrush`; les controles couleur devront ajouter leurs styles sans forcer une refonte globale de `MGTheme`.
 - Les tests cibles existent deja sous `MGUI.Tests/PropertyGrid` et `MGUI.Tests/Integration`; les nouveaux tests couleur peuvent etre ajoutes avec des filtres `ColorValue`, `ColorSpace`, `ColorParser`, `ColorField`, `ColorEdit`, `Palette` et `Kelvin` comme prevu.
 
-### ⚪ 2. Ajouter le modele `ColorValue`
+### ✅ 2. Ajouter le modele `ColorValue`
 
 But:
 introduire un modele couleur float independant de `Microsoft.Xna.Framework.Color`, capable de porter alpha, HDR et espace couleur sans forcer toute l'UI a rester byte-based.
@@ -182,7 +182,10 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `ColorSpaceMode` et `ColorValue` ont ete ajoutes dans `MGUI.Core/UI/Color/` avec canaux float `R/G/B/A`, espace `Srgb`/`Linear`, detection HDR explicite, conversions XNA/System.Numerics, `WithAlpha`, `WithColorSpace`, `ClampLdr`, `ToXnaColor`, egalite et hash stable.
+- Les conversions depuis `Microsoft.Xna.Framework.Color` normalisent les bytes vers `0..1`; `ToXnaColor()` clamp explicitement les valeurs LDR et preserve alpha.
+- Les tests `ColorValueTests` couvrent conversion XNA, clamp HDR/alpha, factories Vector et copies ajustees.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorValue --logger "console;verbosity=minimal"`.
 
 ### ⚪ 3. Ajouter les conversions couleur et la mathematique HSV/HSL
 
