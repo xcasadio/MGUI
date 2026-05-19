@@ -187,7 +187,7 @@ Resultat:
 - Les tests `ColorValueTests` couvrent conversion XNA, clamp HDR/alpha, factories Vector et copies ajustees.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorValue --logger "console;verbosity=minimal"`.
 
-### ⚪ 3. Ajouter les conversions couleur et la mathematique HSV/HSL
+### ✅ 3. Ajouter les conversions couleur et la mathematique HSV/HSL
 
 But:
 centraliser les conversions numeriques avant de construire les controles visuels, afin que sliders, picker, parsing et previews partagent les memes resultats.
@@ -228,7 +228,10 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `ColorSpaceConverter` centralise les conversions sRGB/Linear, RGB -> HSV, HSV -> RGB, RGB -> HSL, HSL -> RGB et la normalisation de hue.
+- Les structs `HsvColor` et `HslColor` utilisent Hue en degres `0..360`, `S/V/L` en `0..1` et preservent alpha.
+- Les gris/noirs/blancs retournent une hue stable a `0` sans NaN, et les roundtrips HSV/HSL preservent RGB dans une tolerance de `0.0001`.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorSpace --logger "console;verbosity=minimal"`.
 
 ### ⚪ 4. Ajouter parsing et formatting couleur
 
