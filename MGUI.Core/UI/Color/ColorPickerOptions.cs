@@ -16,5 +16,6 @@ namespace MGUI.Core.UI
         public ColorEditCommitMode CommitMode { get; set; } = ColorEditCommitMode.Live;
         public ColorPickerConstraints Constraints { get; set; } = new();
         public IColorEditTransaction EditTransaction { get; set; } = NoOpColorEditTransaction.Instance;
+        public IColorPickService ColorPickService { get; set; } = UnsupportedColorPickService.Instance;
     }
 }

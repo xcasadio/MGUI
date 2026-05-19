@@ -884,7 +884,7 @@ Resultat:
 - Ajout de tests de lifecycle transaction, annulation, commit unique OnMouseRelease et comportement mixed field.
 - Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorEdit --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter PropertyGrid --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorField --logger "console;verbosity=minimal"`.
 
-### ⚪ 18. Ajouter le service eyedropper MGUI
+### ✅ 18. Ajouter le service eyedropper MGUI
 
 But:
 ajouter un eyedropper decouple qui sait picker dans MGUI, un `MGImage`, un viewport connu ou un render target fourni, sans API OS globale dans `MGUI.Core`.
@@ -924,7 +924,12 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout des contrats `IColorPickService`, `ColorPickRequest` et `ColorPickedEventArgs`, plus `UnsupportedColorPickService` par defaut.
+- `ColorPickerOptions` transporte maintenant le service de pick; `MGColorPicker`, `MGColorField` et le popup le propagent et exposent `BeginEyeDropperPick`/`IsEyeDropperAvailable`.
+- Les boutons eyedropper sont optionnels: ils restent desactives/masques selon le controle quand aucun service supporte n'est injecte; un service unsupported ne demarre jamais de pick.
+- Un pick reussi applique la couleur selon le commit mode du picker; `ShowAlpha=false` preserve l'alpha courant. Un cancel ne modifie pas la valeur.
+- `MGUI.Core` n'ajoute aucune dependance OS ni API de pick ecran global; les hotes peuvent injecter un service MGUI/render-target specifique.
+- Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter EyeDropper --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorXaml --logger "console;verbosity=minimal"`.
 
 ### ⚪ 19. Ajouter workflows sRGB / Linear
 

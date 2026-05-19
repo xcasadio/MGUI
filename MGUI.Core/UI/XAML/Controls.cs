@@ -979,6 +979,8 @@ namespace MGUI.Core.UI.XAML
         public XAMLColorValue? PreviousValue { get; set; }
         [Category("Appearance")]
         public bool? ShowAlpha { get; set; }
+        [Category("Behavior")]
+        public bool? ShowEyeDropper { get; set; }
         [Category("Appearance")]
         public bool? ShowTextInput { get; set; }
         [Category("Data")]
@@ -993,6 +995,7 @@ namespace MGUI.Core.UI.XAML
             {
                 InitialValue = Value?.ToColorValue() ?? new ColorValue(1f, 1f, 1f, 1f),
                 ShowAlpha = ShowAlpha ?? true,
+                ShowEyeDropper = ShowEyeDropper ?? false,
                 ShowTextInput = ShowTextInput ?? true,
                 DisplayFormat = DisplayFormat ?? ColorValueFormat.HexRgba,
                 PickerMode = PickerMode ?? ColorPickerMode.Hsv,
@@ -1005,6 +1008,7 @@ namespace MGUI.Core.UI.XAML
             if (Value.HasValue) picker.Value = Value.Value.ToColorValue();
             if (PreviousValue.HasValue) picker.PreviousValue = PreviousValue.Value.ToColorValue();
             if (ShowAlpha.HasValue) picker.ShowAlpha = ShowAlpha.Value;
+            if (ShowEyeDropper.HasValue) picker.ShowEyeDropper = ShowEyeDropper.Value;
             if (ShowTextInput.HasValue) picker.ShowTextInput = ShowTextInput.Value;
             if (DisplayFormat.HasValue) picker.DisplayFormat = DisplayFormat.Value;
             if (PickerMode.HasValue) picker.PickerMode = PickerMode.Value;

@@ -17,6 +17,7 @@ namespace MGUI.Core.UI
         }
 
         private DragTarget ActiveDragTarget = DragTarget.None;
+        private IColorPickService _ColorPickService = UnsupportedColorPickService.Instance;
 
         public MGColorPickerModel Model { get; }
         public MGColorTextInputModel TextInput => Model.TextInput;
@@ -189,6 +190,44 @@ namespace MGUI.Core.UI
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _ShowEyeDropper;
+        public bool ShowEyeDropper
+        {
+            get => _ShowEyeDropper;
+            set
+            {
+                if (_ShowEyeDropper != value)
+                {
+                    _ShowEyeDropper = value;
+                    NPC(nameof(ShowEyeDropper));
+                }
+            }
+        }
+
+        public IColorPickService ColorPickService
+        {
+            get => _ColorPickService;
+            set
+            {
+                IColorPickService actual = value ?? UnsupportedColorPickService.Instance;
+                if (ReferenceEquals(_ColorPickService, actual))
+                {
+                    return;
+                }
+
+                _ColorPickService.ColorPicked -= OnColorPicked;
+                _ColorPickService.ColorPickCancelled -= OnColorPickCancelled;
+                _ColorPickService = actual;
+                _ColorPickService.ColorPicked += OnColorPicked;
+                _ColorPickService.ColorPickCancelled += OnColorPickCancelled;
+                NPC(nameof(ColorPickService));
+                NPC(nameof(IsEyeDropperAvailable));
+            }
+        }
+
+        public bool IsEyeDropperAvailable => ShowEyeDropper && ColorPickService.IsSupported;
+
         public int ControlSpacing { get; set; } = 8;
         public int TextInputHeight { get; set; } = 22;
         public int BorderThickness { get; set; } = 1;
@@ -219,6 +258,8 @@ namespace MGUI.Core.UI
             {
                 PreviousValue = options.InitialValue;
                 ShowAlpha = options.ShowAlpha;
+                ShowEyeDropper = options.ShowEyeDropper;
+                ColorPickService = options.ColorPickService;
                 ShowTextInput = options.ShowTextInput;
                 PickerMode = options.PickerMode;
                 CommitMode = options.CommitMode;
@@ -258,6 +299,14 @@ namespace MGUI.Core.UI
                 MouseHandler.LMBPressedInside += (sender, e) =>
                 {
                     e.SetHandledBy(this, false);
+                    Point layoutPoint = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
+                    if (IsEyeDropperAvailable && GetEyeDropperButtonBounds(bounds).Contains(layoutPoint))
+                    {
+                        _ = BeginEyeDropperPick();
+                        return;
+                    }
+
                     Model.BeginEdit();
                     SetValueFromScreenPosition(e.Position, false);
                 };
@@ -326,6 +375,11 @@ namespace MGUI.Core.UI
             }
 
             DrawPreview(DA, GetPreviewBounds(bounds));
+            if (ShowEyeDropper)
+            {
+                DrawEyeDropperButton(DA, GetEyeDropperButtonBounds(bounds));
+            }
+
             if (ShowTextInput)
             {
                 DrawTextInputStrip(DA, GetTextInputBounds(bounds));
@@ -357,6 +411,23 @@ namespace MGUI.Core.UI
         public bool CancelEdit()
             => Model.CancelEdit();
 
+        public bool BeginEyeDropperPick()
+        {
+            if (!IsEyeDropperAvailable)
+            {
+                return false;
+            }
+
+            return ColorPickService.BeginPick(new ColorPickRequest
+            {
+                PreserveAlpha = !ShowAlpha,
+                PickFromMGUIOnly = true,
+                PickFromScreen = false,
+                OutputColorSpace = Value.ColorSpace,
+                CurrentValue = Value,
+            });
+        }
+
         internal static ColorValue GetSaturationValueColor(float hue, float saturation, float value, ColorSpaceMode colorSpace)
             => ColorSpaceConverter.HsvToRgb(new HsvColor(hue, Math.Clamp(saturation, 0f, 1f), Math.Clamp(value, 0f, 1f), 1f), colorSpace);
 
@@ -387,6 +458,9 @@ namespace MGUI.Core.UI
         private Rectangle GetPreviewBounds(Rectangle bounds)
             => new(bounds.X + SaturationValueSize + Math.Max(0, ControlSpacing) + SliderThickness + Math.Max(0, ControlSpacing), bounds.Y, PreviewWidth, PreviewHeight);
 
+        private Rectangle GetEyeDropperButtonBounds(Rectangle bounds)
+            => new(GetPreviewBounds(bounds).X, GetPreviewBounds(bounds).Bottom + Math.Max(0, ControlSpacing), PreviewWidth, SliderThickness);
+
         private Rectangle GetTextInputBounds(Rectangle bounds)
         {
             int y = bounds.Y + SaturationValueSize + (ShowAlpha ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + Math.Max(0, ControlSpacing);
@@ -396,6 +470,11 @@ namespace MGUI.Core.UI
         private DragTarget HitTest(Point layoutPoint)
         {
             Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
+            if (IsEyeDropperAvailable && GetEyeDropperButtonBounds(bounds).Contains(layoutPoint))
+            {
+                return DragTarget.None;
+            }
+
             if (GetSaturationValueBounds(bounds).Contains(layoutPoint))
             {
                 return DragTarget.SaturationValue;
@@ -499,6 +578,34 @@ namespace MGUI.Core.UI
             DA.DT.FillRectangle(DA.Offset.ToVector2(), previousBounds, PreviousValue.ToXnaColor() * DA.Opacity);
             DA.DT.FillRectangle(DA.Offset.ToVector2(), currentBounds, Value.ToXnaColor() * DA.Opacity);
             DrawRectangleBorder(DA, bounds, BorderColor);
+        }
+
+        private void DrawEyeDropperButton(ElementDrawArgs DA, Rectangle bounds)
+        {
+            Color fill = IsEyeDropperAvailable ? new Color(235, 235, 235) : new Color(140, 140, 140);
+            Color stroke = IsEyeDropperAvailable ? BorderColor : new Color(90, 90, 90);
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, fill * DA.Opacity);
+            int midY = bounds.Center.Y;
+            Rectangle stem = new(bounds.X + 8, midY - 1, Math.Max(0, bounds.Width - 16), 2);
+            Rectangle bulb = new(bounds.X + 6, midY - 4, 6, 6);
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), stem, stroke * DA.Opacity);
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), bulb, stroke * DA.Opacity);
+            DrawRectangleBorder(DA, bounds, stroke);
+        }
+
+        private void OnColorPicked(object sender, ColorPickedEventArgs e)
+        {
+            ColorValue actual = ShowAlpha ? e.Value : e.Value.WithAlpha(Value.A);
+            BeginEdit();
+            Model.PreviewValue(actual);
+            if (CommitMode != ColorEditCommitMode.ExplicitOkCancel)
+            {
+                CommitEdit();
+            }
+        }
+
+        private void OnColorPickCancelled(object sender, EventArgs e)
+        {
         }
 
         private void DrawTextInputStrip(ElementDrawArgs DA, Rectangle bounds)

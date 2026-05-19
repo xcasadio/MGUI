@@ -189,6 +189,7 @@ namespace MGUI.Core.UI
                 CommitMode = ColorEditCommitMode.ExplicitOkCancel,
                 Constraints = options.Constraints,
                 EditTransaction = options.EditTransaction,
+                ColorPickService = options.ColorPickService,
             };
         }
 
