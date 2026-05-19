@@ -322,7 +322,7 @@ Resultat:
 - Les options par defaut ciblent le MVP: mode `Hsv`, format `HexRgba`, commit `Live`, texte visible, HDR desactive.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorPicker --logger "console;verbosity=minimal"`.
 
-### ⚪ 6. Ajouter `MGColorPreview`
+### ✅ 6. Ajouter `MGColorPreview`
 
 But:
 creer un controle independant de preview couleur, reutilisable par le field compact, le picker complet, les palettes et les samples.
@@ -362,7 +362,10 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGColorPreview` a ete ajoute avec `CurrentValue`, `PreviousValue`, `ShowPrevious`, `ShowCheckerboard`, `ShowOpaqueComparison`, taille preferee, damier alpha, comparaison opaque et bordure simple.
+- `MGElementType.ColorPreview` a ete ajoute pour identifier le nouveau controle.
+- La geometrie current/previous et transparent/opaque est exposee en helpers internes testables, sans dependance au runtime graphique.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorPreview --logger "console;verbosity=minimal"`.
 
 ### ⚪ 7. Ajouter les primitives `MGColorSlider`
 

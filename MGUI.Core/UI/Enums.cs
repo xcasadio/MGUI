@@ -59,6 +59,7 @@ namespace MGUI.Core.UI
         Slider,
         RatingControl,
         GridColorPicker,
+        ColorPreview,
 
         //  Menus
         ToolTip,
