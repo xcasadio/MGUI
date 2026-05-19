@@ -554,7 +554,7 @@ Resultat:
 - `PreviousValue` est conserve pendant la preview et mis a jour au commit; `CancelEdit` restaure la valeur initiale.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorEdit --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "ColorPickerModel|ColorText" --logger "console;verbosity=minimal"`.
 
-### ⚪ 11. Ajouter `MGColorPickerPopup`
+### ✅ 11. Ajouter `MGColorPickerPopup`
 
 But:
 fournir une version popup du picker utilisable depuis un champ compact sans casser focus, clavier, PropertyGrid ni overlays existants.
@@ -596,7 +596,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGColorPickerPopup` a ete ajoute autour d'une `MGWindow` imbriquee contenant un `MGColorPicker` force en `ExplicitOkCancel`.
+- Le popup expose `Open`, `OpenRelativeTo`, `CommitAndClose`, `CancelAndClose`, `TryHandleNavigationAction`, `PopupOpened`, `PopupClosed`, `EditCommitted` et `EditCancelled`.
+- Le placement suit le pattern dropdown: position relative a une ancre, clamp dans le viewport et fermeture/cancel sur release exterieur optionnel.
+- Le focus est isole via `PushFocusScope`/`PopFocusScope`, avec focus initial sur le picker et restauration par le service de navigation.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorPickerPopup --logger "console;verbosity=minimal"`.
 
 ### ⚪ 12. Ajouter `MGColorField` compact
 
