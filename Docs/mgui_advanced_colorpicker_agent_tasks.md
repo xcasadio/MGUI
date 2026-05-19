@@ -1079,7 +1079,7 @@ Resultat:
 - Tests ajoutes pour valeurs Kelvin approximatives avec tolerance explicite, clamp de range, chemin Linear, application via model et metadata/categories de presets.
 - Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Kelvin --logger "console;verbosity=minimal"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
 
-### ⚪ 22. Ajouter persistance de palettes
+### ✅ 22. Ajouter persistance de palettes
 
 But:
 permettre aux palettes projet/utilisateur d'etre importees, exportees et restaurees sans coupler le controle a un editeur specifique.
@@ -1117,7 +1117,14 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `MGColorPaletteSerializer` avec format JSON versionne: `name`, `swatches`, valeur RGBA float, `space`, `isHdr` et `metadata` string/string future-compatible.
+- Ajout de `MGColorPaletteSerializationResult` pour retourner `Success`, `Palette` et diagnostics sans jeter d'exception sur les inputs invalides.
+- Import JSON tolerant: nom de palette manquant remplace par `Palette`, swatch sans nom remplace par `Color n`, doublons renommes `Name (2)`, espaces inconnus diagnostiques et rabattus en sRGB, swatches invalides ignorees.
+- Export/import restent decouples du file system: API string JSON uniquement dans `MGUI.Core`.
+- `MGColorPaletteStore` expose maintenant `ProjectPalettes`, `AddProjectPalette`, `ExportPalette` et `TryImportProjectPalette` pour hooks recent/favorites/projet sans dependance editeur.
+- Le MVP JSON couvre les besoins actuels; `.gpl` et `.mgpalette` restent volontairement hors scope pour un backlog ulterieur.
+- Tests ajoutes pour roundtrip noms/couleurs/space/HDR/metadata, JSON invalide sans crash, swatches invalides/doublons, et import projet via store sans file system.
+- Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Palette --logger "console;verbosity=minimal"`.
 
 ### ⚪ 23. Durcir accessibilite, navigation et performance
 
