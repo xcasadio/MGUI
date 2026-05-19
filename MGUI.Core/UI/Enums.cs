@@ -61,6 +61,7 @@ namespace MGUI.Core.UI
         GridColorPicker,
         ColorPreview,
         ColorSlider,
+        ColorPicker,
 
         //  Menus
         ToolTip,

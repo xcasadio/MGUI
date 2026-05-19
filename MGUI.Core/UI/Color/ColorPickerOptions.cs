@@ -2,6 +2,7 @@ namespace MGUI.Core.UI
 {
     public sealed class ColorPickerOptions
     {
+        public ColorValue InitialValue { get; set; } = new(1f, 1f, 1f, 1f);
         public bool ShowAlpha { get; set; } = true;
         public bool ShowEyeDropper { get; set; } = false;
         public bool IsHdr { get; set; } = false;

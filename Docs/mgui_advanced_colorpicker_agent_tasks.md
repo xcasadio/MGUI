@@ -458,7 +458,7 @@ Resultat:
 - Les inputs invalides mettent `HasValidationError=true`, conservent la valeur precedente et gardent le texte invalide visible pour l'UI.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorText --logger "console;verbosity=minimal"`.
 
-### ⚪ 9. Ajouter `MGColorPicker` HSV MVP
+### ✅ 9. Ajouter `MGColorPicker` HSV MVP
 
 But:
 livrer le picker visuel principal en mode HSV classique avec alpha, preview et edition texte/RGB synchronisee.
@@ -502,7 +502,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGColorPickerModel` a ete ajoute pour centraliser la synchronisation `ColorValue`/HSV/texte sans dependance rendu.
+- `MGColorPicker` a ete ajoute avec carre Saturation/Value, hue slider vertical, alpha slider optionnel, preview previous/current, bande d'input texte synchronisee et support drag souris continu.
+- `ColorPickerOptions.InitialValue` et `MGElementType.ColorPicker` ont ete ajoutes pour construire et identifier le nouveau controle.
+- Decision MVP documentee: `ShowAlpha=false` masque le slider alpha et preserve l'alpha courant; les modes de commit detailles restent pour la tache 10.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorPickerModel --logger "console;verbosity=minimal"`.
 
 ### ⚪ 10. Ajouter modes de commit et evenements d'edition
 
