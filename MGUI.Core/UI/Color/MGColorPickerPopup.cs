@@ -184,6 +184,8 @@ namespace MGUI.Core.UI
                 ShowIntensity = options.ShowIntensity,
                 UseExposureSlider = options.UseExposureSlider,
                 ShowToneMappedPreview = options.ShowToneMappedPreview,
+                MinIntensity = options.MinIntensity,
+                MaxIntensity = options.MaxIntensity,
                 PickerMode = options.PickerMode,
                 DisplayFormat = options.DisplayFormat,
                 CommitMode = ColorEditCommitMode.ExplicitOkCancel,

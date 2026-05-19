@@ -993,6 +993,18 @@ namespace MGUI.Core.UI.XAML
         public ColorSpaceMode? StorageColorSpace { get; set; }
         [Category("Behavior")]
         public ColorSpaceMode? DisplayColorSpace { get; set; }
+        [Category("Behavior")]
+        public bool? IsHdr { get; set; }
+        [Category("Appearance")]
+        public bool? ShowIntensity { get; set; }
+        [Category("Behavior")]
+        public bool? UseExposureSlider { get; set; }
+        [Category("Appearance")]
+        public bool? ShowToneMappedPreview { get; set; }
+        [Category("Behavior")]
+        public float? MinIntensity { get; set; }
+        [Category("Behavior")]
+        public float? MaxIntensity { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
             => new MGColorPicker(Window, new ColorPickerOptions
@@ -1006,6 +1018,12 @@ namespace MGUI.Core.UI.XAML
                 CommitMode = CommitMode ?? ColorEditCommitMode.Live,
                 StorageColorSpace = StorageColorSpace ?? ColorSpaceMode.Srgb,
                 DisplayColorSpace = DisplayColorSpace ?? ColorSpaceMode.Srgb,
+                IsHdr = IsHdr ?? false,
+                ShowIntensity = ShowIntensity ?? false,
+                UseExposureSlider = UseExposureSlider ?? false,
+                ShowToneMappedPreview = ShowToneMappedPreview ?? false,
+                MinIntensity = MinIntensity ?? 0f,
+                MaxIntensity = MaxIntensity ?? 16f,
             });
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
@@ -1021,6 +1039,12 @@ namespace MGUI.Core.UI.XAML
             if (CommitMode.HasValue) picker.CommitMode = CommitMode.Value;
             if (StorageColorSpace.HasValue) picker.StoreAsLinear = StorageColorSpace.Value == ColorSpaceMode.Linear;
             if (DisplayColorSpace.HasValue) picker.DisplayColorSpace = DisplayColorSpace.Value;
+            if (IsHdr.HasValue) picker.IsHdr = IsHdr.Value;
+            if (ShowIntensity.HasValue) picker.ShowIntensity = ShowIntensity.Value;
+            if (UseExposureSlider.HasValue) picker.UseExposureSlider = UseExposureSlider.Value;
+            if (ShowToneMappedPreview.HasValue) picker.ShowToneMappedPreview = ShowToneMappedPreview.Value;
+            if (MinIntensity.HasValue) picker.MinIntensity = MinIntensity.Value;
+            if (MaxIntensity.HasValue) picker.MaxIntensity = MaxIntensity.Value;
         }
 
         protected internal override IEnumerable<Element> GetChildren()

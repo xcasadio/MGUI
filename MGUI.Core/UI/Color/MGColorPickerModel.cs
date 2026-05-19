@@ -48,6 +48,8 @@ namespace MGUI.Core.UI
         }
 
         public bool IsDisplayDifferentFromStorage => DisplayColorSpace != StorageColorSpace;
+        public float Intensity => ColorHdrHelper.GetIntensity(Value);
+        public ColorValue BaseColor => ColorHdrHelper.GetNormalizedBaseColor(Value);
         public ColorPickerConstraints Constraints { get; }
         public MGColorTextInputModel TextInput { get; }
         public bool IsEditing { get; private set; }
@@ -100,7 +102,7 @@ namespace MGUI.Core.UI
             HsvColor actualHsv = new(
                 ColorSpaceConverter.NormalizeHue(hsv.H),
                 Math.Clamp(hsv.S, 0f, 1f),
-                Math.Clamp(hsv.V, 0f, 1f),
+                Math.Clamp(hsv.V, 0f, Constraints.AllowHdr ? Constraints.MaxIntensity : 1f),
                 Math.Clamp(hsv.A, 0f, 1f));
 
             PreviewDisplayValue(ColorSpaceConverter.HsvToRgb(actualHsv, DisplayColorSpace));
@@ -114,6 +116,12 @@ namespace MGUI.Core.UI
 
         public void SetAlpha(float alpha)
             => PreviewValue(Value.WithAlpha(Math.Clamp(alpha, 0f, 1f)));
+
+        public void SetIntensity(float intensity)
+            => PreviewValue(ColorHdrHelper.WithIntensity(Value, Constraints.ClampIntensity(intensity)));
+
+        public ColorValue GetToneMappedPreview()
+            => ColorHdrHelper.ToneMapReinhard(Value);
 
         public void BeginEdit()
         {

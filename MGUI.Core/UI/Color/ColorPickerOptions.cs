@@ -11,6 +11,8 @@ namespace MGUI.Core.UI
         public bool ShowIntensity { get; set; } = false;
         public bool UseExposureSlider { get; set; } = false;
         public bool ShowToneMappedPreview { get; set; } = false;
+        public float MinIntensity { get; set; } = 0f;
+        public float MaxIntensity { get; set; } = 16f;
         public ColorPickerMode PickerMode { get; set; } = ColorPickerMode.Hsv;
         public ColorValueFormat DisplayFormat { get; set; } = ColorValueFormat.HexRgba;
         public ColorEditCommitMode CommitMode { get; set; } = ColorEditCommitMode.Live;

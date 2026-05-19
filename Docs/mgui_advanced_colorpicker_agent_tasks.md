@@ -979,7 +979,7 @@ Resultat:
 - Tests ajoutes pour roundtrip sRGB/Linear, extremes/mid-gray, preservation alpha, bascule d'affichage sans mutation de stockage, et edition display vers stockage Linear.
 - Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorSpace --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorXaml --logger "console;verbosity=minimal"`.
 
-### ⚪ 20. Ajouter HDR, intensity et preview tonemappee
+### ✅ 20. Ajouter HDR, intensity et preview tonemappee
 
 But:
 etendre le picker au cas moteur moderne ou les composantes peuvent depasser `1.0`.
@@ -1020,7 +1020,14 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `ColorHdrHelper` pour `GetIntensity`, normalisation base color + intensity, reconstruction HDR et tone mapping Reinhard explicite.
+- `ColorPickerOptions` expose maintenant `MinIntensity` et `MaxIntensity` en plus des options HDR existantes.
+- `MGColorPickerModel` supporte `SetIntensity`, `Intensity`, `BaseColor` et `GetToneMappedPreview` sans remplacer la valeur HDR stockee.
+- `MGColorPicker` active `IsHdr`, `ShowIntensity`, `UseExposureSlider`, `ShowToneMappedPreview`, `MinIntensity` et `MaxIntensity`; un slider intensity optionnel edite les valeurs HDR en respectant les bornes.
+- Le preview peut afficher une version tonemappee explicite; `ToXnaColor()` reste une conversion LDR clampée et ne modifie jamais la valeur stockee.
+- Les wrappers XAML `ColorPicker` acceptent les options HDR/intensity.
+- Tests ajoutes pour valeurs > 1, clamp LDR existant, normalisation ratio/intensity, bornes d'intensity et preview tonemappee non destructive.
+- Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter Hdr --logger "console;verbosity=minimal"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
 
 ### ⚪ 21. Ajouter temperature Kelvin et presets moteur
 

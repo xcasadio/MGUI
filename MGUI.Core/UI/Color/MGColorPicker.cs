@@ -14,6 +14,7 @@ namespace MGUI.Core.UI
             SaturationValue,
             Hue,
             Alpha,
+            Intensity,
         }
 
         private DragTarget ActiveDragTarget = DragTarget.None;
@@ -237,6 +238,49 @@ namespace MGUI.Core.UI
         public bool IsDisplayDifferentFromStorage => Model.IsDisplayDifferentFromStorage;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsHdr;
+        public bool IsHdr
+        {
+            get => _IsHdr;
+            set
+            {
+                if (_IsHdr != value)
+                {
+                    _IsHdr = value;
+                    Model.Constraints.AllowHdr = value;
+                    if (value)
+                    {
+                        Model.Constraints.MaxChannelValue = Math.Max(Model.Constraints.MaxChannelValue, MaxIntensity);
+                    }
+
+                    NPC(nameof(IsHdr));
+                }
+            }
+        }
+
+        public bool ShowIntensity { get; set; }
+        public bool UseExposureSlider { get; set; }
+        public bool ShowToneMappedPreview { get; set; }
+        public float MinIntensity
+        {
+            get => Model.Constraints.MinIntensity;
+            set => Model.Constraints.MinIntensity = value;
+        }
+
+        public float MaxIntensity
+        {
+            get => Model.Constraints.MaxIntensity;
+            set
+            {
+                Model.Constraints.MaxIntensity = value;
+                if (IsHdr)
+                {
+                    Model.Constraints.MaxChannelValue = Math.Max(Model.Constraints.MaxChannelValue, value);
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _ShowEyeDropper;
         public bool ShowEyeDropper
         {
@@ -299,8 +343,17 @@ namespace MGUI.Core.UI
             : base(window, MGElementType.ColorPicker)
         {
             options ??= new ColorPickerOptions();
+            ColorPickerConstraints constraints = options.Constraints ?? new ColorPickerConstraints();
+            constraints.AllowHdr = constraints.AllowHdr || options.IsHdr;
+            constraints.MinIntensity = options.MinIntensity;
+            constraints.MaxIntensity = options.MaxIntensity;
+            if (options.IsHdr)
+            {
+                constraints.MaxChannelValue = Math.Max(constraints.MaxChannelValue, options.MaxIntensity);
+            }
+
             ColorValue initialValue = ColorSpaceConverter.Convert(options.InitialValue, options.StorageColorSpace);
-            Model = new MGColorPickerModel(initialValue, options.Constraints, options.EditTransaction)
+            Model = new MGColorPickerModel(initialValue, constraints, options.EditTransaction)
             {
                 DisplayColorSpace = options.DisplayColorSpace,
             };
@@ -308,6 +361,10 @@ namespace MGUI.Core.UI
             {
                 PreviousValue = options.InitialValue;
                 ShowAlpha = options.ShowAlpha;
+                IsHdr = options.IsHdr;
+                ShowIntensity = options.ShowIntensity;
+                UseExposureSlider = options.UseExposureSlider;
+                ShowToneMappedPreview = options.ShowToneMappedPreview;
                 ShowEyeDropper = options.ShowEyeDropper;
                 ColorPickService = options.ColorPickService;
                 ShowTextInput = options.ShowTextInput;
@@ -405,7 +462,7 @@ namespace MGUI.Core.UI
             SharedSize = new(0);
             int spacing = Math.Max(0, ControlSpacing);
             int width = SaturationValueSize + spacing + SliderThickness + spacing + PreviewWidth;
-            int height = SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0);
+            int height = SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowIntensity ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0);
             return new(width, height, 0, 0);
         }
 
@@ -422,6 +479,11 @@ namespace MGUI.Core.UI
             if (ShowAlpha)
             {
                 DrawAlphaSlider(DA, GetAlphaSliderBounds(bounds));
+            }
+
+            if (ShowIntensity)
+            {
+                DrawIntensitySlider(DA, GetIntensitySliderBounds(bounds));
             }
 
             DrawPreview(DA, GetPreviewBounds(bounds));
@@ -447,6 +509,9 @@ namespace MGUI.Core.UI
 
         public void SetAlpha(float alpha)
             => Model.SetAlpha(alpha);
+
+        public void SetIntensity(float intensity)
+            => Model.SetIntensity(intensity);
 
         public bool BeginEdit()
         {
@@ -493,7 +558,7 @@ namespace MGUI.Core.UI
             int spacing = Math.Max(0, ControlSpacing);
             return new(
                 SaturationValueSize + spacing + SliderThickness + spacing + PreviewWidth,
-                SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0));
+                SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowIntensity ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0));
         }
 
         private Rectangle GetSaturationValueBounds(Rectangle bounds)
@@ -505,6 +570,17 @@ namespace MGUI.Core.UI
         private Rectangle GetAlphaSliderBounds(Rectangle bounds)
             => new(bounds.X, bounds.Y + SaturationValueSize + Math.Max(0, ControlSpacing), SaturationValueSize, SliderThickness);
 
+        private Rectangle GetIntensitySliderBounds(Rectangle bounds)
+        {
+            int y = bounds.Y + SaturationValueSize + Math.Max(0, ControlSpacing);
+            if (ShowAlpha)
+            {
+                y += SliderThickness + Math.Max(0, ControlSpacing);
+            }
+
+            return new(bounds.X, y, SaturationValueSize, SliderThickness);
+        }
+
         private Rectangle GetPreviewBounds(Rectangle bounds)
             => new(bounds.X + SaturationValueSize + Math.Max(0, ControlSpacing) + SliderThickness + Math.Max(0, ControlSpacing), bounds.Y, PreviewWidth, PreviewHeight);
 
@@ -513,7 +589,7 @@ namespace MGUI.Core.UI
 
         private Rectangle GetTextInputBounds(Rectangle bounds)
         {
-            int y = bounds.Y + SaturationValueSize + (ShowAlpha ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + Math.Max(0, ControlSpacing);
+            int y = bounds.Y + SaturationValueSize + (ShowAlpha ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + (ShowIntensity ? Math.Max(0, ControlSpacing) + SliderThickness : 0) + Math.Max(0, ControlSpacing);
             return new(bounds.X, y, bounds.Width, TextInputHeight);
         }
 
@@ -538,6 +614,11 @@ namespace MGUI.Core.UI
             if (ShowAlpha && GetAlphaSliderBounds(bounds).Contains(layoutPoint))
             {
                 return DragTarget.Alpha;
+            }
+
+            if (ShowIntensity && GetIntensitySliderBounds(bounds).Contains(layoutPoint))
+            {
+                return DragTarget.Intensity;
             }
 
             return DragTarget.None;
@@ -565,7 +646,27 @@ namespace MGUI.Core.UI
                     Model.SetAlpha(alpha);
                     ActiveDragTarget = DragTarget.Alpha;
                     break;
+                case DragTarget.Intensity:
+                    float percent = MGColorSlider.GetPercentFromPoint(layoutPoint, GetIntensitySliderBounds(bounds), Orientation.Horizontal);
+                    Model.SetIntensity(GetIntensityFromPercent(percent));
+                    ActiveDragTarget = DragTarget.Intensity;
+                    break;
             }
+        }
+
+        private float GetIntensityFromPercent(float percent)
+        {
+            float p = Math.Clamp(percent, 0f, 1f);
+            if (!UseExposureSlider)
+            {
+                return MGColorSlider.GetValueFromPercent(p, MinIntensity, MaxIntensity);
+            }
+
+            float min = Math.Max(0.0001f, MinIntensity);
+            float max = Math.Max(min, MaxIntensity);
+            float minExposure = MathF.Log2(min);
+            float maxExposure = MathF.Log2(max);
+            return MathF.Pow(2f, minExposure + p * (maxExposure - minExposure));
         }
 
         private void DrawSaturationValueSquare(ElementDrawArgs DA, Rectangle bounds)
@@ -619,6 +720,33 @@ namespace MGUI.Core.UI
             DrawRectangleBorder(DA, bounds, BorderColor);
         }
 
+        private void DrawIntensitySlider(ElementDrawArgs DA, Rectangle bounds)
+        {
+            Rectangle content = MGColorPreview.GetContentBounds(bounds, BorderThickness);
+            ColorValue baseColor = Model.BaseColor.WithAlpha(1f);
+            for (int x = content.Left; x < content.Right; x++)
+            {
+                float percent = content.Width <= 1 ? 0f : (x - content.Left) / (float)(content.Width - 1);
+                ColorValue hdr = ColorHdrHelper.WithIntensity(baseColor, GetIntensityFromPercent(percent));
+                ColorValue preview = ShowToneMappedPreview ? ColorHdrHelper.ToneMapReinhard(hdr) : hdr.ClampLdr();
+                DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, content.Top, 1, content.Height), preview.ToXnaColor() * DA.Opacity);
+            }
+
+            float currentPercent = UseExposureSlider ? GetExposurePercent(Model.Intensity) : MGColorSlider.GetPercentFromValue(Model.Intensity, MinIntensity, MaxIntensity);
+            DrawHorizontalSliderThumb(DA, content, currentPercent);
+            DrawRectangleBorder(DA, bounds, IsHdr && Value.IsHdr ? new Color(255, 180, 0) : BorderColor);
+        }
+
+        private float GetExposurePercent(float intensity)
+        {
+            float min = Math.Max(0.0001f, MinIntensity);
+            float max = Math.Max(min, MaxIntensity);
+            float value = Math.Clamp(intensity, min, max);
+            float minExposure = MathF.Log2(min);
+            float maxExposure = MathF.Log2(max);
+            return maxExposure.Equals(minExposure) ? 0f : Math.Clamp((MathF.Log2(value) - minExposure) / (maxExposure - minExposure), 0f, 1f);
+        }
+
         private void DrawPreview(ElementDrawArgs DA, Rectangle bounds)
         {
             Rectangle content = MGColorPreview.GetContentBounds(bounds, BorderThickness);
@@ -626,8 +754,9 @@ namespace MGUI.Core.UI
             Rectangle previousBounds = MGColorPreview.GetPreviousValueBounds(content, true);
             Rectangle currentBounds = MGColorPreview.GetCurrentValueBounds(content, true);
             DA.DT.FillRectangle(DA.Offset.ToVector2(), previousBounds, PreviousValue.ToXnaColor() * DA.Opacity);
-            DA.DT.FillRectangle(DA.Offset.ToVector2(), currentBounds, Value.ToXnaColor() * DA.Opacity);
-            DrawRectangleBorder(DA, bounds, BorderColor);
+            ColorValue currentPreview = ShowToneMappedPreview ? Model.GetToneMappedPreview() : Value;
+            DA.DT.FillRectangle(DA.Offset.ToVector2(), currentBounds, currentPreview.ToXnaColor() * DA.Opacity);
+            DrawRectangleBorder(DA, bounds, IsHdr && Value.IsHdr ? new Color(255, 180, 0) : BorderColor);
         }
 
         private void DrawEyeDropperButton(ElementDrawArgs DA, Rectangle bounds)
