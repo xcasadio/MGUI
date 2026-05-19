@@ -187,6 +187,8 @@ namespace MGUI.Core.UI
                 PickerMode = options.PickerMode,
                 DisplayFormat = options.DisplayFormat,
                 CommitMode = ColorEditCommitMode.ExplicitOkCancel,
+                StorageColorSpace = options.StorageColorSpace,
+                DisplayColorSpace = options.DisplayColorSpace,
                 Constraints = options.Constraints,
                 EditTransaction = options.EditTransaction,
                 ColorPickService = options.ColorPickService,

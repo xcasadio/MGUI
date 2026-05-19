@@ -931,7 +931,7 @@ Resultat:
 - `MGUI.Core` n'ajoute aucune dependance OS ni API de pick ecran global; les hotes peuvent injecter un service MGUI/render-target specifique.
 - Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter EyeDropper --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorXaml --logger "console;verbosity=minimal"`.
 
-### ⚪ 19. Ajouter workflows sRGB / Linear
+### ✅ 19. Ajouter workflows sRGB / Linear
 
 But:
 exposer proprement la difference entre espace d'affichage et espace de stockage pour les usages moteur modernes.
@@ -970,7 +970,14 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `ColorSpaceConverter.Convert` pour convertir explicitement un `ColorValue` entre `Srgb` et `Linear` en preservant l'alpha.
+- `ColorPickerOptions` expose `StorageColorSpace`, `DisplayColorSpace`, `StoreAsLinear` et `DisplayAsSrgb`.
+- `MGColorPickerModel` separe maintenant valeur stockee et valeur affichee: `DisplayValue`, `PreviewDisplayValue`, `GetValueForColorSpace`, `GetDisplayText`, `IsDisplayDifferentFromStorage`.
+- Les editions HSV/textuelles du picker travaillent dans l'espace d'affichage puis reconvertissent une seule fois vers l'espace de stockage.
+- `MGColorPicker` expose les proprietes runtime et ajoute un warning visuel discret sur la zone texte quand l'espace d'affichage differe de l'espace stocke.
+- Les wrappers XAML `ColorPicker` acceptent `StorageColorSpace` et `DisplayColorSpace`.
+- Tests ajoutes pour roundtrip sRGB/Linear, extremes/mid-gray, preservation alpha, bascule d'affichage sans mutation de stockage, et edition display vers stockage Linear.
+- Validation executee: `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorSpace --logger "console;verbosity=minimal"`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorXaml --logger "console;verbosity=minimal"`.
 
 ### ⚪ 20. Ajouter HDR, intensity et preview tonemappee
 

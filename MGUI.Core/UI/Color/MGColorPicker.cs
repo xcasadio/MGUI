@@ -190,6 +190,52 @@ namespace MGUI.Core.UI
             }
         }
 
+        public ColorSpaceMode DisplayColorSpace
+        {
+            get => Model.DisplayColorSpace;
+            set
+            {
+                if (Model.DisplayColorSpace != value)
+                {
+                    Model.DisplayColorSpace = value;
+                    NPC(nameof(DisplayColorSpace));
+                    NPC(nameof(DisplayAsSrgb));
+                    NPC(nameof(IsDisplayDifferentFromStorage));
+                }
+            }
+        }
+
+        public bool StoreAsLinear
+        {
+            get => Model.StoreAsLinear;
+            set
+            {
+                if (Model.StoreAsLinear != value)
+                {
+                    Model.StoreAsLinear = value;
+                    NPC(nameof(StoreAsLinear));
+                    NPC(nameof(IsDisplayDifferentFromStorage));
+                }
+            }
+        }
+
+        public bool DisplayAsSrgb
+        {
+            get => Model.DisplayAsSrgb;
+            set
+            {
+                if (Model.DisplayAsSrgb != value)
+                {
+                    Model.DisplayAsSrgb = value;
+                    NPC(nameof(DisplayAsSrgb));
+                    NPC(nameof(DisplayColorSpace));
+                    NPC(nameof(IsDisplayDifferentFromStorage));
+                }
+            }
+        }
+
+        public bool IsDisplayDifferentFromStorage => Model.IsDisplayDifferentFromStorage;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _ShowEyeDropper;
         public bool ShowEyeDropper
@@ -253,7 +299,11 @@ namespace MGUI.Core.UI
             : base(window, MGElementType.ColorPicker)
         {
             options ??= new ColorPickerOptions();
-            Model = new MGColorPickerModel(options.InitialValue, options.Constraints, options.EditTransaction);
+            ColorValue initialValue = ColorSpaceConverter.Convert(options.InitialValue, options.StorageColorSpace);
+            Model = new MGColorPickerModel(initialValue, options.Constraints, options.EditTransaction)
+            {
+                DisplayColorSpace = options.DisplayColorSpace,
+            };
             using (BeginInitializing())
             {
                 PreviousValue = options.InitialValue;
@@ -612,6 +662,10 @@ namespace MGUI.Core.UI
         {
             DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, Color.White * DA.Opacity);
             DrawRectangleBorder(DA, bounds, TextInput.HasValidationError ? Color.Red : BorderColor);
+            if (!TextInput.HasValidationError && IsDisplayDifferentFromStorage)
+            {
+                DrawRectangleBorder(DA, bounds, new Color(255, 180, 0));
+            }
         }
 
         private void DrawSaturationValueThumb(ElementDrawArgs DA, Rectangle bounds)

@@ -56,6 +56,21 @@ namespace MGUI.Core.UI
                 value.IsHdr);
         }
 
+        public static ColorValue Convert(ColorValue value, ColorSpaceMode targetColorSpace)
+        {
+            if (value.ColorSpace == targetColorSpace)
+            {
+                return value;
+            }
+
+            return targetColorSpace switch
+            {
+                ColorSpaceMode.Srgb => LinearToSrgb(value),
+                ColorSpaceMode.Linear => SrgbToLinear(value),
+                _ => value.WithColorSpace(targetColorSpace),
+            };
+        }
+
         public static HsvColor RgbToHsv(ColorValue value)
         {
             float max = MathF.Max(value.R, MathF.Max(value.G, value.B));

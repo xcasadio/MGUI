@@ -8,10 +8,46 @@ namespace MGUI.Core.UI
         private ColorValue _CommittedValue;
         private ColorValue _EditStartValue;
         private HsvColor _HsvValue;
+        private ColorSpaceMode _DisplayColorSpace = ColorSpaceMode.Srgb;
 
         public ColorValue Value => _Value;
         public ColorValue CommittedValue => _CommittedValue;
         public HsvColor HsvValue => _HsvValue;
+        public ColorValue DisplayValue => GetDisplayValue();
+        public ColorSpaceMode StorageColorSpace => Value.ColorSpace;
+        public ColorSpaceMode DisplayColorSpace
+        {
+            get => _DisplayColorSpace;
+            set
+            {
+                if (_DisplayColorSpace != value)
+                {
+                    _DisplayColorSpace = value;
+                    RefreshDisplayState();
+                }
+            }
+        }
+
+        public bool StoreAsLinear
+        {
+            get => StorageColorSpace == ColorSpaceMode.Linear;
+            set
+            {
+                ColorSpaceMode target = value ? ColorSpaceMode.Linear : ColorSpaceMode.Srgb;
+                if (StorageColorSpace != target)
+                {
+                    SetValue(ColorSpaceConverter.Convert(Value, target));
+                }
+            }
+        }
+
+        public bool DisplayAsSrgb
+        {
+            get => DisplayColorSpace == ColorSpaceMode.Srgb;
+            set => DisplayColorSpace = value ? ColorSpaceMode.Srgb : StorageColorSpace;
+        }
+
+        public bool IsDisplayDifferentFromStorage => DisplayColorSpace != StorageColorSpace;
         public ColorPickerConstraints Constraints { get; }
         public MGColorTextInputModel TextInput { get; }
         public bool IsEditing { get; private set; }
@@ -67,7 +103,7 @@ namespace MGUI.Core.UI
                 Math.Clamp(hsv.V, 0f, 1f),
                 Math.Clamp(hsv.A, 0f, 1f));
 
-            PreviewValue(ColorSpaceConverter.HsvToRgb(actualHsv, Value.ColorSpace));
+            PreviewDisplayValue(ColorSpaceConverter.HsvToRgb(actualHsv, DisplayColorSpace));
         }
 
         public void SetHue(float hue)
@@ -114,6 +150,21 @@ namespace MGUI.Core.UI
                 _CommittedValue = actual;
                 ValueChanged?.Invoke(this, new ColorValueChangedEventArgs(previousCommit, actual));
             }
+        }
+
+        public void PreviewDisplayValue(ColorValue displayValue)
+            => PreviewValue(ColorSpaceConverter.Convert(displayValue, StorageColorSpace));
+
+        public ColorValue GetDisplayValue()
+            => ColorSpaceConverter.Convert(Value, DisplayColorSpace);
+
+        public ColorValue GetValueForColorSpace(ColorSpaceMode colorSpace)
+            => ColorSpaceConverter.Convert(Value, colorSpace);
+
+        public string GetDisplayText(ColorValueFormat format, bool includeColorSpace = true)
+        {
+            string text = ColorFormatter.Format(GetDisplayValue(), format);
+            return includeColorSpace ? $"{text} [{DisplayColorSpace}]" : text;
         }
 
         public bool CommitEdit()
@@ -176,9 +227,15 @@ namespace MGUI.Core.UI
         {
             ColorValue actual = Constraints.Apply(value);
             _Value = actual;
-            _HsvValue = ColorSpaceConverter.RgbToHsv(actual);
-            TextInput.SetValue(actual);
+            RefreshDisplayState();
             return actual;
+        }
+
+        private void RefreshDisplayState()
+        {
+            ColorValue displayValue = GetDisplayValue();
+            _HsvValue = ColorSpaceConverter.RgbToHsv(displayValue);
+            TextInput.SetValue(displayValue);
         }
     }
 }

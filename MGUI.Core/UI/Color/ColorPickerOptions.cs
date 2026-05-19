@@ -14,6 +14,18 @@ namespace MGUI.Core.UI
         public ColorPickerMode PickerMode { get; set; } = ColorPickerMode.Hsv;
         public ColorValueFormat DisplayFormat { get; set; } = ColorValueFormat.HexRgba;
         public ColorEditCommitMode CommitMode { get; set; } = ColorEditCommitMode.Live;
+        public ColorSpaceMode StorageColorSpace { get; set; } = ColorSpaceMode.Srgb;
+        public ColorSpaceMode DisplayColorSpace { get; set; } = ColorSpaceMode.Srgb;
+        public bool StoreAsLinear
+        {
+            get => StorageColorSpace == ColorSpaceMode.Linear;
+            set => StorageColorSpace = value ? ColorSpaceMode.Linear : ColorSpaceMode.Srgb;
+        }
+        public bool DisplayAsSrgb
+        {
+            get => DisplayColorSpace == ColorSpaceMode.Srgb;
+            set => DisplayColorSpace = value ? ColorSpaceMode.Srgb : StorageColorSpace;
+        }
         public ColorPickerConstraints Constraints { get; set; } = new();
         public IColorEditTransaction EditTransaction { get; set; } = NoOpColorEditTransaction.Instance;
         public IColorPickService ColorPickService { get; set; } = UnsupportedColorPickService.Instance;

@@ -989,6 +989,10 @@ namespace MGUI.Core.UI.XAML
         public ColorPickerMode? PickerMode { get; set; }
         [Category("Behavior")]
         public ColorEditCommitMode? CommitMode { get; set; }
+        [Category("Behavior")]
+        public ColorSpaceMode? StorageColorSpace { get; set; }
+        [Category("Behavior")]
+        public ColorSpaceMode? DisplayColorSpace { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
             => new MGColorPicker(Window, new ColorPickerOptions
@@ -1000,6 +1004,8 @@ namespace MGUI.Core.UI.XAML
                 DisplayFormat = DisplayFormat ?? ColorValueFormat.HexRgba,
                 PickerMode = PickerMode ?? ColorPickerMode.Hsv,
                 CommitMode = CommitMode ?? ColorEditCommitMode.Live,
+                StorageColorSpace = StorageColorSpace ?? ColorSpaceMode.Srgb,
+                DisplayColorSpace = DisplayColorSpace ?? ColorSpaceMode.Srgb,
             });
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
@@ -1013,6 +1019,8 @@ namespace MGUI.Core.UI.XAML
             if (DisplayFormat.HasValue) picker.DisplayFormat = DisplayFormat.Value;
             if (PickerMode.HasValue) picker.PickerMode = PickerMode.Value;
             if (CommitMode.HasValue) picker.CommitMode = CommitMode.Value;
+            if (StorageColorSpace.HasValue) picker.StoreAsLinear = StorageColorSpace.Value == ColorSpaceMode.Linear;
+            if (DisplayColorSpace.HasValue) picker.DisplayColorSpace = DisplayColorSpace.Value;
         }
 
         protected internal override IEnumerable<Element> GetChildren()
