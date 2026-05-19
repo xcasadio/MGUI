@@ -367,7 +367,7 @@ Resultat:
 - La geometrie current/previous et transparent/opaque est exposee en helpers internes testables, sans dependance au runtime graphique.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorPreview --logger "console;verbosity=minimal"`.
 
-### ⚪ 7. Ajouter les primitives `MGColorSlider`
+### ✅ 7. Ajouter les primitives `MGColorSlider`
 
 But:
 creer un slider couleur specialise qui peut afficher hue, alpha, RGB, HSV et intensity avec gradients caches.
@@ -408,7 +408,10 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `ColorSliderChannel` et `MGColorSlider` ont ete ajoutes avec canaux `Hue`, `Alpha`, `Red`, `Green`, `Blue`, `Saturation`, `Value` et `Intensity`.
+- Le controle expose range, valeur, orientation, base color, damier alpha, drag souris, navigation clavier/gamepad via `TryHandleNavigationAction`, events `ValueChanging`/`ValueChanged` et `DragStarted`/`DragCompleted`.
+- Les gradients sont rendus directement depuis les canaux sans allocation de texture par frame; les helpers de mapping valeur/position et couleur de gradient sont testables.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorSlider --logger "console;verbosity=minimal"`.
 
 ### ⚪ 8. Ajouter inputs texte et numeriques synchronises
 
