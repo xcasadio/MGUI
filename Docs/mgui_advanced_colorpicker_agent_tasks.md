@@ -279,7 +279,7 @@ Resultat:
 - `ColorValue.TryParse(...)` et `ColorValue.ToHex(...)` fournissent les raccourcis utiles au reste du picker.
 - Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorParser --logger "console;verbosity=minimal"`.
 
-### ⚪ 5. Ajouter options, contraintes et contrats d'edition
+### ✅ 5. Ajouter options, contraintes et contrats d'edition
 
 But:
 figer les petits contrats partages avant les controles visuels: contraintes contextuelles, modes de commit, evenements et transaction d'edition.
@@ -317,7 +317,10 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Les contrats partages ont ete ajoutes: `ColorPickerConstraints`, `ColorPickerOptions`, `ColorPickerMode`, `ColorEditCommitMode`, `ColorValueChangingEventArgs`, `ColorValueChangedEventArgs` et `IColorEditTransaction`.
+- `ColorPickerConstraints.Apply(...)` applique clamp LDR par defaut, force alpha opaque quand `AllowAlpha=false`, et respecte une plage HDR configuree quand `AllowHdr=true`.
+- Les options par defaut ciblent le MVP: mode `Hsv`, format `HexRgba`, commit `Live`, texte visible, HDR desactive.
+- Validation executee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter ColorPicker --logger "console;verbosity=minimal"`.
 
 ### ⚪ 6. Ajouter `MGColorPreview`
 
