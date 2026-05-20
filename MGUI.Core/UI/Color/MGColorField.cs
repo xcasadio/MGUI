@@ -1,6 +1,8 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Shared.Input.Mouse;
+using MGUI.Shared.Text;
+using MGUI.Shared.Text.Engines;
 using System;
 using System.Diagnostics;
 
@@ -11,6 +13,9 @@ namespace MGUI.Core.UI
         public MGColorFieldModel Model { get; }
         public MGColorPickerPopup Popup { get; }
         private IColorPickService _ColorPickService = UnsupportedColorPickService.Instance;
+        private const int TextStripPadding = 4;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _CachedDisplayText = string.Empty;
 
         public ColorValue? Value
         {
@@ -91,6 +96,22 @@ namespace MGUI.Core.UI
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool? _ShowFieldTextInputOverride;
+        public bool ShowFieldTextInput
+        {
+            get => _ShowFieldTextInputOverride ?? ShowTextInput;
+            set
+            {
+                if (_ShowFieldTextInputOverride != value)
+                {
+                    _ShowFieldTextInputOverride = value;
+                    LayoutChanged(this, true);
+                    NPC(nameof(ShowFieldTextInput));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _ShowAlpha;
         public bool ShowAlpha
         {
@@ -130,7 +151,21 @@ namespace MGUI.Core.UI
 
         public bool IsEyeDropperAvailable => ShowEyeDropper && ColorPickService.IsSupported;
         public bool IsHdr { get; set; }
-        public ColorValueFormat DisplayFormat { get; set; } = ColorValueFormat.HexRgba;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ColorValueFormat _DisplayFormat = ColorValueFormat.HexRgba;
+        public ColorValueFormat DisplayFormat
+        {
+            get => _DisplayFormat;
+            set
+            {
+                if (_DisplayFormat != value)
+                {
+                    _DisplayFormat = value;
+                    RefreshDisplayText();
+                    NPC(nameof(DisplayFormat));
+                }
+            }
+        }
         public ColorEditCommitMode CommitMode { get; set; } = ColorEditCommitMode.ExplicitOkCancel;
         public int FieldWidth { get; set; } = 168;
         public int FieldHeight { get; set; } = 24;
@@ -182,6 +217,7 @@ namespace MGUI.Core.UI
 
                 Model.ValueChanged += (sender, e) =>
                 {
+                    RefreshDisplayText();
                     NPC(nameof(Value));
                     ValueChanged?.Invoke(this, e);
                 };
@@ -190,6 +226,8 @@ namespace MGUI.Core.UI
                 Popup.PopupClosed += (sender, e) => PopupClosed?.Invoke(this, e);
                 MouseHandler.LMBReleasedInside += OnReleasedInside;
             }
+
+            RefreshDisplayText();
         }
 
         public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
@@ -208,7 +246,7 @@ namespace MGUI.Core.UI
 
             DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, BackgroundColor * DA.Opacity);
             DrawSwatch(DA, GetSwatchBounds(bounds));
-            if (ShowTextInput)
+            if (ShowFieldTextInput)
             {
                 DrawTextStrip(DA, GetTextBounds(bounds));
             }
@@ -246,7 +284,7 @@ namespace MGUI.Core.UI
         }
 
         public string GetDisplayText()
-            => Model.GetDisplayText(DisplayFormat);
+            => _CachedDisplayText;
 
         public bool ResetToDefault()
             => Model.ResetToDefault();
@@ -254,6 +292,7 @@ namespace MGUI.Core.UI
         public void SetMixedValue(ColorValue? displayedValue = null)
         {
             Model.SetMixedValue(displayedValue);
+            RefreshDisplayText();
             NPC(nameof(Value));
             NPC(nameof(IsMixed));
         }
@@ -261,6 +300,7 @@ namespace MGUI.Core.UI
         public void ClearMixedValue()
         {
             Model.ClearMixedValue();
+            RefreshDisplayText();
             NPC(nameof(IsMixed));
         }
 
@@ -358,7 +398,47 @@ namespace MGUI.Core.UI
         {
             Color fill = Popup.Picker.TextInput.HasValidationError ? new Color(255, 225, 225) : new Color(248, 248, 248);
             DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, fill * DA.Opacity);
+            DrawTextStripValue(DA, bounds);
             DrawRectangleBorder(DA, bounds, Popup.Picker.TextInput.HasValidationError ? Color.Red : new Color(180, 180, 180));
+        }
+
+        private void DrawTextStripValue(ElementDrawArgs DA, Rectangle bounds)
+        {
+            if (string.IsNullOrEmpty(_CachedDisplayText) || bounds.Width <= TextStripPadding * 2 || bounds.Height <= 0)
+            {
+                return;
+            }
+
+            string fontFamily = GetTheme().FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
+            int fontSize = GetTheme().FontSettings.DefaultFontSize;
+            ITextMeasurementEngine textEngine = GetTextEngine();
+            ResolvedFont resolved = textEngine.ResolveFont(new FontSpec(fontFamily, fontSize, CustomFontStyles.Normal));
+            if (!resolved.IsAvailable)
+            {
+                return;
+            }
+
+            float drawScale = GetTheme().FontSettings.UseExactScale ? resolved.ExactScale : resolved.SuggestedScale;
+            if (Math.Abs(drawScale) <= float.Epsilon)
+            {
+                drawScale = resolved.SuggestedScale;
+                if (Math.Abs(drawScale) <= float.Epsilon)
+                {
+                    return;
+                }
+            }
+
+            float textHeight = Math.Max(0f, resolved.LineHeight * drawScale);
+            float visualX = bounds.X + TextStripPadding;
+            float visualY = bounds.Y + Math.Max(0f, (bounds.Height - textHeight) / 2f);
+            Vector2 drawPosition = new Vector2(visualX, visualY) + (resolved.DrawOrigin * drawScale) + DA.Offset.ToVector2();
+            Color foreground = GetTheme().TextBlockFallbackForeground.GetValue(false).GetValue(VisualState.Primary);
+            DA.DT.DrawTextViaEngine(resolved, _CachedDisplayText, drawPosition, foreground * DA.Opacity, resolved.DrawOrigin, drawScale);
+        }
+
+        private void RefreshDisplayText()
+        {
+            _CachedDisplayText = Model.GetDisplayText(DisplayFormat);
         }
 
         private void DrawResetButton(ElementDrawArgs DA, Rectangle bounds)
