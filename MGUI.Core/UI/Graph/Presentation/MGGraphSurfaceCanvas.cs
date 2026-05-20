@@ -101,21 +101,38 @@ namespace MGUI.Core.UI
             float thickness = Math.Max(0.1f, GraphView.EdgeThickness);
             int segmentCount = GraphView.ViewportTransform.Zoom < 0.35f ? 8 : GraphBezierGeometry.DefaultSegmentCount;
             Vector2 origin = DA.Offset.ToVector2();
+            RectangleF worldViewport = GraphView.GetCullingWorldViewport(layoutBounds);
+            int edgesVisible = 0;
+            int edgesCulled = 0;
 
             for (int edgeIndex = 0; edgeIndex < document.Edges.Count; edgeIndex++)
             {
                 GraphEdgeModel edge = document.Edges[edgeIndex];
-                if (edge == null || !TryGetPortAnchor(edge.SourcePortId, out Vector2 start) || !TryGetPortAnchor(edge.TargetPortId, out Vector2 end))
+                if (edge == null)
                 {
                     continue;
                 }
 
+                if (GraphView.EnableViewportCulling && !GraphView.CullingService.ShouldDrawEdge(document, edge, worldViewport, GraphView.SelectedEdgeIds))
+                {
+                    edgesCulled++;
+                    continue;
+                }
+
+                if (!TryGetPortAnchor(edge.SourcePortId, out Vector2 start) || !TryGetPortAnchor(edge.TargetPortId, out Vector2 end))
+                {
+                    continue;
+                }
+
+                edgesVisible++;
                 IReadOnlyList<Vector2> points = GraphView.EdgeGeometryCache.GetOrCreate(edge.Id, start, end, thickness, GraphView.ViewportTransform.Zoom, segmentCount);
                 for (int pointIndex = 1; pointIndex < points.Count; pointIndex++)
                 {
                     DA.DT.StrokeLineSegment(origin, points[pointIndex - 1], points[pointIndex], edgeColor, thickness);
                 }
             }
+
+            GraphView.SetEdgeCullingDiagnostics(edgesVisible, edgesCulled);
 
             DrawTemporaryConnection(DA, origin, edgeColor, thickness);
         }

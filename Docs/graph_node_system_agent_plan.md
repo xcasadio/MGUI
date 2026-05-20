@@ -1129,7 +1129,7 @@ Resultat:
 - Resultat validation: samples build OK; core build OK; 82 tests Graph passes, 0 echec; avertissements restants preexistants.
 - Commit effectue: `sample: complete graph task 21 add dialogue graph sample`.
 
-### ⚪ Tache 22 - Ajouter culling et garde-fous performance
+### ✅ Tache 22 - Ajouter culling et garde-fous performance
 
 But:
 eviter qu'un graphe moyen degrade Update/Draw ou le GC.
@@ -1163,7 +1163,17 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphCullingService` testable sans renderer, avec creation de viewport monde, culling nodes/comments, bounds approximatives d'edges et bypass des edges selectionnees.
+- Ajout de `GraphCullingDiagnostics` expose via `MGGraphView.CullingDiagnostics`: nodes/comments/edges visibles et culled, plus hits/misses du cache d'edges.
+- `MGGraphView` expose `EnableViewportCulling`, `CullingPadding`, `CullingService` et calcule un viewport de culling avec fallback sur la taille de la fenetre quand le layout n'est pas encore mesure.
+- `GraphDocumentViewSynchronizer` ne cree plus les controls nodes/comments hors viewport; les controls deja materialises sont mis en `Visibility.Collapsed` puis reutilises quand ils reviennent dans le viewport.
+- `MGGraphSurfaceCanvas.DrawEdges` ignore les edges dont les bounds monde n'intersectent pas le viewport, sauf si l'edge est selectionnee.
+- `GraphEdgeGeometryCache` conserve les points caches tant que start/end/thickness/zoom/segment count ne changent pas et peut maintenant pruner les edges absentes du document.
+- Les caches sont prunes lors de `SynchronizeDocument`; le rendu ne construit pas de collection par edge pendant `DrawEdges`.
+- Ajout de `GraphCullingTests` couvrant viewport monde, culling nodes/comments/edges, materialisation tardive des nodes/comments hors viewport et micro-stress a 1000 nodes sans renderer.
+- Validations executees avec succes: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphCulling|GraphGeometry|GraphView"`, `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`.
+- Resultat validation: core build OK; samples build OK; 27 tests ciblés passes, 0 echec; avertissements restants preexistants.
+- Commit effectue: `perf: complete graph task 22 add culling and cache safeguards`.
 
 ### ⚪ Tache 23 - Documenter `MGGraphView` V1
 

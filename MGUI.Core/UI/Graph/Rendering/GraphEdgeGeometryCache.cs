@@ -32,11 +32,52 @@ namespace MGUI.Core.UI.Graph
 
         public void Remove(Guid edgeId) => Cache.Remove(edgeId);
 
+        public void RetainEdges(IReadOnlyList<GraphEdgeModel> edges)
+        {
+            if (edges == null || Cache.Count == 0)
+            {
+                return;
+            }
+
+            List<Guid> missingEdgeIds = null;
+            foreach (Guid edgeId in Cache.Keys)
+            {
+                if (!ContainsEdge(edges, edgeId))
+                {
+                    missingEdgeIds ??= new List<Guid>();
+                    missingEdgeIds.Add(edgeId);
+                }
+            }
+
+            if (missingEdgeIds == null)
+            {
+                return;
+            }
+
+            for (int edgeIndex = 0; edgeIndex < missingEdgeIds.Count; edgeIndex++)
+            {
+                Cache.Remove(missingEdgeIds[edgeIndex]);
+            }
+        }
+
         public void Clear()
         {
             Cache.Clear();
             CacheHits = 0;
             CacheMisses = 0;
+        }
+
+        private static bool ContainsEdge(IReadOnlyList<GraphEdgeModel> edges, Guid edgeId)
+        {
+            for (int edgeIndex = 0; edgeIndex < edges.Count; edgeIndex++)
+            {
+                if (edges[edgeIndex]?.Id == edgeId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private sealed class CachedEdgeGeometry

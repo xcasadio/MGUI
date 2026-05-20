@@ -59,13 +59,17 @@ namespace MGUI.Core.UI
         public GraphViewportTransform ViewportTransform { get; } = new();
         public GraphViewportTransform Viewport => ViewportTransform;
         public GraphEdgeGeometryCache EdgeGeometryCache { get; } = new();
+        public GraphCullingService CullingService { get; } = new();
         public GraphCommandStack Commands { get; } = new();
         public GraphSelectionManager Selection { get; }
         public GraphConnectionController ConnectionController { get; }
         public GraphNodePalette NodePalette { get; set; } = GraphNodePalette.CreateDefault();
+        public GraphCullingDiagnostics CullingDiagnostics { get; private set; }
         public HashSet<Guid> SelectedNodeIds { get; } = new();
         public HashSet<Guid> SelectedEdgeIds { get; } = new();
         public HashSet<Guid> SelectedCommentIds { get; } = new();
+        public bool EnableViewportCulling { get; set; } = true;
+        public float CullingPadding { get; set; } = 96.0f;
         public bool ShowGrid { get; set; } = true;
         public bool AllowZoom { get; set; } = true;
         public bool AllowPan { get; set; } = true;
@@ -202,7 +206,53 @@ namespace MGUI.Core.UI
         }
 
         public void SynchronizeDocument()
-            => _Synchronizer?.Synchronize();
+        {
+            EdgeGeometryCache.RetainEdges(Document?.Edges);
+            _Synchronizer?.Synchronize();
+        }
+
+        internal Rectangle GetCullingLayoutBounds()
+        {
+            Rectangle bounds = NodesCanvas?.LayoutBounds ?? ViewportHost?.LayoutBounds ?? LayoutBounds;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                bounds = NodesCanvas?.ActualLayoutBounds ?? ViewportHost?.ActualLayoutBounds ?? ActualLayoutBounds;
+            }
+
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                bounds = SelfOrParentWindow?.LayoutBounds ?? Rectangle.Empty;
+            }
+
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                MGWindow window = SelfOrParentWindow;
+                if (window != null)
+                {
+                    bounds = new Rectangle(0, 0, window.WindowWidth, window.WindowHeight);
+                }
+            }
+
+            int width = Math.Max(1, bounds.Width);
+            int height = Math.Max(1, bounds.Height);
+            return new Rectangle(0, 0, width, height);
+        }
+
+        internal RectangleF GetCullingWorldViewport(Rectangle? layoutBounds = null)
+            => CullingService.CreateWorldViewport(ViewportTransform, layoutBounds ?? GetCullingLayoutBounds(), Math.Max(0.0f, CullingPadding));
+
+        internal void SetNodeCommentCullingDiagnostics(GraphCullingDiagnostics diagnostics)
+            => CullingDiagnostics = diagnostics;
+
+        internal void SetEdgeCullingDiagnostics(int edgesVisible, int edgesCulled)
+        {
+            GraphCullingDiagnostics diagnostics = CullingDiagnostics;
+            diagnostics.EdgesVisible = edgesVisible;
+            diagnostics.EdgesCulled = edgesCulled;
+            diagnostics.EdgeCacheHits = EdgeGeometryCache.CacheHits;
+            diagnostics.EdgeCacheMisses = EdgeGeometryCache.CacheMisses;
+            CullingDiagnostics = diagnostics;
+        }
 
         public bool TryGetNodeControl(Guid nodeId, out MGGraphNode node)
         {

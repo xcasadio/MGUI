@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MGUI.Core.UI.Containers;
 using Microsoft.Xna.Framework;
+using MonoGame.Extended;
 
 namespace MGUI.Core.UI.Graph
 {
@@ -36,15 +37,42 @@ namespace MGUI.Core.UI.Graph
             RemoveMissingNodes(modelNodeIds);
             RemoveMissingComments(modelCommentIds);
 
+            RectangleF worldViewport = GraphView.GetCullingWorldViewport();
+            GraphCullingDiagnostics diagnostics = new();
+
             for (int commentIndex = 0; commentIndex < GraphView.Document.Comments.Count; commentIndex++)
             {
-                SynchronizeComment(GraphView.Document.Comments[commentIndex]);
+                GraphCommentModel comment = GraphView.Document.Comments[commentIndex];
+                bool isVisible = !GraphView.EnableViewportCulling || GraphView.CullingService.IsCommentVisible(comment, worldViewport);
+                if (isVisible)
+                {
+                    diagnostics.CommentsVisible++;
+                    SynchronizeComment(comment);
+                }
+                else
+                {
+                    diagnostics.CommentsCulled++;
+                    SetCommentVisibility(comment?.Id ?? Guid.Empty, Visibility.Collapsed);
+                }
             }
 
             for (int nodeIndex = 0; nodeIndex < GraphView.Document.Nodes.Count; nodeIndex++)
             {
-                SynchronizeNode(GraphView.Document.Nodes[nodeIndex]);
+                GraphNodeModel node = GraphView.Document.Nodes[nodeIndex];
+                bool isVisible = !GraphView.EnableViewportCulling || GraphView.CullingService.IsNodeVisible(node, worldViewport);
+                if (isVisible)
+                {
+                    diagnostics.NodesVisible++;
+                    SynchronizeNode(node);
+                }
+                else
+                {
+                    diagnostics.NodesCulled++;
+                    SetNodeVisibility(node?.Id ?? Guid.Empty, Visibility.Collapsed);
+                }
             }
+
+            GraphView.SetNodeCommentCullingDiagnostics(diagnostics);
         }
 
         private void RemoveMissingNodes(HashSet<Guid> modelNodeIds)
@@ -114,6 +142,7 @@ namespace MGUI.Core.UI.Graph
             }
 
             commentBox.CommentId = model.Id;
+            commentBox.Visibility = Visibility.Visible;
             commentBox.Title = model.Title;
             commentBox.Text = model.Text;
             commentBox.IsSelected = GraphView.SelectedCommentIds.Contains(model.Id);
@@ -144,6 +173,7 @@ namespace MGUI.Core.UI.Graph
             }
 
             node.NodeId = model.Id;
+            node.Visibility = Visibility.Visible;
             node.Title = model.Title;
             node.IsSelected = GraphView.SelectedNodeIds.Contains(model.Id);
             node.IsCollapsed = model.IsCollapsed;
@@ -202,6 +232,22 @@ namespace MGUI.Core.UI.Graph
                     port.IsConnected = IsPortConnected(portModel.Id);
                     GraphView.RegisterGraphPort(port);
                 }
+            }
+        }
+
+        private void SetNodeVisibility(Guid nodeId, Visibility visibility)
+        {
+            if (nodeId != Guid.Empty && NodesById.TryGetValue(nodeId, out MGGraphNode node))
+            {
+                node.Visibility = visibility;
+            }
+        }
+
+        private void SetCommentVisibility(Guid commentId, Visibility visibility)
+        {
+            if (commentId != Guid.Empty && CommentsById.TryGetValue(commentId, out MGGraphCommentBox commentBox))
+            {
+                commentBox.Visibility = visibility;
             }
         }
 
