@@ -386,7 +386,7 @@ Resultat:
 - Validation attendue avant implementation: le projet compile, les tests echouent tant que le type n'existe pas.
 - Commit effectue: `test: complete graph task 04 add viewport transform tests`.
 
-### ⚪ Tache 05 - Ajouter `GraphViewportTransform`
+### ✅ Tache 05 - Ajouter `GraphViewportTransform`
 
 But:
 centraliser pan, zoom, conversions et operations de cadrage.
@@ -419,7 +419,11 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphViewportTransform` dans `MGUI.Core/UI/Graph/Interaction/`.
+- Le transform gere pan, zoom avec clamps, conversion monde/viewport/layout, zoom centre souris, snapping grille, frame origin, frame bounds et frame all sur des noeuds.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphViewportTransformTests"`.
+- Resultat validation: 7 tests passes, 0 echec; avertissements existants ou nullable dans les tests de contrat.
+- Commit effectue: `feat: complete graph task 05 add viewport transform`.
 
 ### ⚪ Tache 06 - Ajouter compatibilite de types et validation simple
 
