@@ -1079,7 +1079,7 @@ Resultat:
 - Resultat validation: build OK; 13 tests passes, 0 echec; avertissements restants preexistants.
 - Commit effectue: `feat: complete graph task 20 add simple comments`.
 
-### ⚪ Tache 21 - Ajouter un sample Dialogue Graph
+### ✅ Tache 21 - Ajouter un sample Dialogue Graph
 
 But:
 prouver l'integration utilisateur finale avec un scenario simple et concret.
@@ -1115,7 +1115,19 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `MGUI.Samples/Features/GraphViewDialogue.xaml` avec surface `GraphView`, status live et commandes Frame All, Undo, Redo, Validate, Save JSON, Load JSON et Reset.
+- Ajout de `MGUI.Samples/Features/GraphViewDialogue.xaml.cs` avec un sample `GraphViewDialogueSample` separe du controle generique.
+- Le sample definit une palette injectable avec les types de noeuds `dialogue/start`, `dialogue/line`, `dialogue/choice` et `dialogue/end`.
+- Le document precharge contient plusieurs nodes, ports, edges valides, deux comment boxes et deux erreurs volontaires de validation: port requis non connecte et edge String vers Exec ajoutee en mode non valide.
+- Le menu contextuel du `MGGraphView` reste actif via `NodePalette`, donc le sample permet l'ajout de noeuds Dialogue depuis la zone vide et la creation compatible depuis un port.
+- Les interactions generiques deja livrees demonstrent pan, zoom, selection, drag, connexion de ports et undo/redo; les boutons sample exposent aussi undo/redo explicitement.
+- Save/Load serialise le graphe via `GraphSerializer` en memoire et dans `%TEMP%\MGUI.GraphViewDialogue.json`.
+- Validation sample via `GraphDocumentValidator`, affichage des diagnostics et marquage `HasError` sur les nodes concernes.
+- Ajout de l'entree `Dialogue Graph` dans `Compendium.xaml`, propriete `GraphViewDialogueSample` et instanciation dans le code-behind.
+- `MGUI.Samples.csproj` embarque le nouveau XAML comme ressource.
+- Validations executees avec succes: `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`, `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore`, `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "Graph"`.
+- Resultat validation: samples build OK; core build OK; 82 tests Graph passes, 0 echec; avertissements restants preexistants.
+- Commit effectue: `sample: complete graph task 21 add dialogue graph sample`.
 
 ### ⚪ Tache 22 - Ajouter culling et garde-fous performance
 

@@ -74,6 +74,7 @@
     <None Remove="Features\FormattedTextTokenizerTest.xaml" />
     <None Remove="Features\PerformanceTest.xaml" />
     <None Remove="Features\FocusInputReview.xaml" />
+    <None Remove="Features\GraphViewDialogue.xaml" />
     <None Remove="Features\NativeDarkThemePreview.xaml" />
     <None Remove="Features\EditorRichTextBox.xaml" />
     <None Remove="Features\RoundedShapes.xaml" />
@@ -218,6 +219,7 @@
     <EmbeddedResource Include="Features\FormattedTextTokenizerTest.xaml" />
     <EmbeddedResource Include="Features\PerformanceTest.xaml" />
     <EmbeddedResource Include="Features\FocusInputReview.xaml" />
+    <EmbeddedResource Include="Features\GraphViewDialogue.xaml" />
     <EmbeddedResource Include="Features\NativeDarkThemePreview.xaml" />
     <EmbeddedResource Include="Features\EditorRichTextBox.xaml" />
     <EmbeddedResource Include="Features\RoundedShapes.xaml" />

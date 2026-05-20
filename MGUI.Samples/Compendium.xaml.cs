@@ -209,6 +209,7 @@ namespace MGUI.Samples
         public StyleThemeRefactorSample StyleThemeRefactorSample { get; }
         public NativeDarkThemePreviewSample NativeDarkThemePreviewSample { get; }
         public EditorRichTextBoxSample EditorRichTextBoxSample { get; }
+        public GraphViewDialogueSample GraphViewDialogueSample { get; }
         #endregion Features
 
         #region Dialogs
@@ -284,6 +285,7 @@ namespace MGUI.Samples
             StyleThemeRefactorSample = new(Content, Desktop);
             NativeDarkThemePreviewSample = new(Content, Desktop);
             EditorRichTextBoxSample = new(Content, Desktop);
+            GraphViewDialogueSample = new(Content, Desktop);
             #endregion Features
 
             #region Dialogs

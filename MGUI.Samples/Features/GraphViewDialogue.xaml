@@ -1,0 +1,37 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="440" Top="40" Width="980" Height="720" TitleText="GraphView Dialogue" Padding="10">
+    <Window.Styles>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Border">
+            <Setter Property="Background" Value="White * 0.08" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </Window.Styles>
+
+    <DockPanel>
+        <StackPanel Dock="Top" Orientation="Vertical" Spacing="6">
+            <TextBlock StyleNames="Header1" Text="Dialogue Graph" HorizontalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <Button Name="FrameAllButton" Content="Frame All" />
+                <Button Name="UndoButton" Content="Undo" />
+                <Button Name="RedoButton" Content="Redo" />
+                <Button Name="ValidateButton" Content="Validate" />
+                <Button Name="SaveGraphButton" Content="Save JSON" />
+                <Button Name="LoadGraphButton" Content="Load JSON" />
+                <Button Name="ResetGraphButton" Content="Reset" />
+            </StackPanel>
+            <Border>
+                <TextBlock Name="GraphStatusText" Text="Status: ready" WrapText="True" />
+            </Border>
+        </StackPanel>
+
+        <GraphView Name="DialogueGraphView" ShowGrid="True" AllowZoom="True" AllowPan="True" SnapToGrid="True" Margin="0,8,0,0" />
+    </DockPanel>
+</Window>
