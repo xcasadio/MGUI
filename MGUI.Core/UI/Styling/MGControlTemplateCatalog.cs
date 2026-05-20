@@ -504,7 +504,7 @@ namespace MGUI.Core.UI.Styling
                 Padding = new Thickness(0),
                 ClipToBounds = true,
             };
-            MGCanvas nodesCanvas = new(window)
+            MGCanvas nodesCanvas = new MGGraphSurfaceCanvas(window, graphView)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch,
@@ -1047,6 +1047,8 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("GraphView.BorderThickness", theme.Graph.BorderThickness, () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
             Context.ApplyThemeDefault("GraphView.ViewportClipToBounds", true, () => viewportHost.ClipToBounds, value => viewportHost.ClipToBounds = value);
             Context.ApplyThemeDefault("GraphView.NodesCanvasBackground", theme.Graph.CanvasBackground, () => nodesCanvas.BackgroundBrush, value => nodesCanvas.BackgroundBrush = value);
+            Context.ApplyThemeDefault("GraphView.GridLineBrush", theme.Graph.GridLineBrush, () => graphView.GridLineBrush, value => graphView.GridLineBrush = value);
+            Context.ApplyThemeDefault("GraphView.EdgeBrush", theme.Graph.EdgeBrush, () => graphView.EdgeBrush, value => graphView.EdgeBrush = value);
         }
 
         private static void ApplyGraphNodeTemplate(MGControlTemplateContext Context)

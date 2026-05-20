@@ -754,7 +754,7 @@ Resultat:
 - Resultat validation: 14 tests passes, 0 echec; avertissements restants preexistants ou nullable dans tests existants.
 - Commit effectue: `feat: complete graph task 13 sync document to visible nodes`.
 
-### ⚪ Tache 14 - Rendre la grille et les edges
+### ✅ Tache 14 - Rendre la grille et les edges
 
 But:
 donner un rendu lisible au graphe en respectant le pipeline MGUI.
@@ -788,7 +788,18 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout du canvas interne `MGGraphSurfaceCanvas`, utilise par le template `GraphView.Default` pour dessiner la surface du graphe avant les enfants, donc derriere les noeuds.
+- Rendu de la grille mineure/majeure via `IUIDrawTransaction.StrokeLineSegment`, sans acces direct a `SpriteBatch`.
+- La grille suit `GraphViewportTransform.Pan`, `Zoom` et `GridSize`; elle augmente son pas en zoom eloigne pour eviter un rendu trop dense.
+- Rendu des edges via segments de lignes a partir de `GraphBezierGeometry` et `GraphEdgeGeometryCache`.
+- Ajout des proprietes `GridLineBrush`, `EdgeBrush`, `EdgeThickness`, `MajorGridLineFrequency` et exposition de `EdgeGeometryCache` sur `MGGraphView`.
+- Les couleurs de grille et d'edges sont appliquees depuis `MGTheme.Graph.GridLineBrush` et `MGTheme.Graph.EdgeBrush` par le template par defaut.
+- Ajout d'un fallback d'ancrage des ports depuis le modele quand les ports visuels ne sont pas encore layoutes.
+- Mise a jour du runtime de tests graph pour enregistrer les appels `StrokeLineSegment`.
+- Ajout de `GraphViewRenderingTests` couvrant rendu grille, rendu edge, epaisseur/couleur et reutilisation du cache de geometrie.
+- Validations executees avec succes: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` et `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphGeometry|GraphView"`.
+- Resultat validation: build OK; 20 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
+- Commit effectue: `feat: complete graph task 14 render grid and edges`.
 
 ### ⚪ Tache 15 - Ajouter pan, zoom et commandes de cadrage
 

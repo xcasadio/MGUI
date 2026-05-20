@@ -66,6 +66,7 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     public DrawSettings CurrentSettings { get; private set; }
     public IUIDesktopRuntime Renderer { get; }
     public Rectangle? CurrentClipBounds => _currentClipBounds;
+    public List<GraphStrokeLineCall> StrokeLineCalls { get; } = new();
 
     public GraphNoOpDrawTransaction(IUIDesktopRuntime renderer, DrawSettings settings)
     {
@@ -101,7 +102,8 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     public void FillQuadrilateralLinearClamp(Vector2 Origin, Vector2 topLeft, Color topLeftColor, Vector2 topRight, Color topRightColor,
         Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor) { }
 
-    public void StrokeLineSegment(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness = 1.0f) { }
+    public void StrokeLineSegment(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness = 1.0f)
+        => StrokeLineCalls.Add(new(Origin, Start, End, Color, Thickness));
 
     public void FillCircle(Vector2 Center, Color Color, float Radius, int NumSides = 32) { }
 
@@ -272,3 +274,5 @@ internal sealed class GraphDisposableAction : IDisposable
         DisposeAction();
     }
 }
+
+internal readonly record struct GraphStrokeLineCall(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness);

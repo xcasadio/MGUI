@@ -28,6 +28,10 @@ namespace MGUI.Core.UI
 
         private GraphDocument _Document;
         private GraphDocumentViewSynchronizer _Synchronizer;
+        private IFillBrush _GridLineBrush = new MGSolidFillBrush(Color.White * 0.08f);
+        private IFillBrush _EdgeBrush = new MGSolidFillBrush(new Color(128, 180, 255));
+        private float _EdgeThickness = 2.0f;
+        private int _MajorGridLineFrequency = 4;
 
         public MGBorder OuterBorder { get; private set; }
         public MGOverlayPanel ViewportHost { get; private set; }
@@ -36,12 +40,67 @@ namespace MGUI.Core.UI
         public MGCanvas Surface => NodesCanvas;
         public GraphViewportTransform ViewportTransform { get; } = new();
         public GraphViewportTransform Viewport => ViewportTransform;
+        public GraphEdgeGeometryCache EdgeGeometryCache { get; } = new();
         public HashSet<Guid> SelectedNodeIds { get; } = new();
         public HashSet<Guid> SelectedEdgeIds { get; } = new();
         public bool ShowGrid { get; set; } = true;
         public bool AllowZoom { get; set; } = true;
         public bool AllowPan { get; set; } = true;
         public bool SnapToGrid { get; set; }
+
+        public IFillBrush GridLineBrush
+        {
+            get => _GridLineBrush;
+            set
+            {
+                if (_GridLineBrush != value)
+                {
+                    _GridLineBrush = value;
+                    NPC(nameof(GridLineBrush));
+                }
+            }
+        }
+
+        public IFillBrush EdgeBrush
+        {
+            get => _EdgeBrush;
+            set
+            {
+                if (_EdgeBrush != value)
+                {
+                    _EdgeBrush = value;
+                    NPC(nameof(EdgeBrush));
+                }
+            }
+        }
+
+        public float EdgeThickness
+        {
+            get => _EdgeThickness;
+            set
+            {
+                float next = Math.Max(0.1f, value);
+                if (!_EdgeThickness.Equals(next))
+                {
+                    _EdgeThickness = next;
+                    NPC(nameof(EdgeThickness));
+                }
+            }
+        }
+
+        public int MajorGridLineFrequency
+        {
+            get => _MajorGridLineFrequency;
+            set
+            {
+                int next = Math.Max(1, value);
+                if (_MajorGridLineFrequency != next)
+                {
+                    _MajorGridLineFrequency = next;
+                    NPC(nameof(MajorGridLineFrequency));
+                }
+            }
+        }
 
         public GraphDocument Document
         {
