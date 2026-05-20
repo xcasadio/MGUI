@@ -623,7 +623,7 @@ Resultat:
 - Resultat validation: 5 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
 - Commit effectue: `feat: complete graph task 10 register graph controls`.
 
-### ⚪ Tache 11 - Ajouter `MGGraphNode` et `MGGraphPort`
+### ✅ Tache 11 - Ajouter `MGGraphNode` et `MGGraphPort`
 
 But:
 fournir les controles visuels unitaires sans encore connecter tout le document.
@@ -656,7 +656,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Enrichissement de `MGGraphNode` avec `NodeId`, `Title`, `HasError`, `HasWarning`, `IsCollapsed` et reutilisation des etats MGUI existants `IsSelected`/`IsHovered`.
+- Enrichissement de `MGGraphPort` avec `PortId`, `Direction`, `ValueType`, `IsConnected`, `IsRequired` et reutilisation de `IsHovered` existant.
+- Les proprietes node/port notifient via `NPC`; `IsCollapsed` masque les parties body/ports et invalide le layout.
+- Ajout de `GetLayoutAnchor()` et `GetWorldAnchor(GraphViewportTransform)` pour calculer l'ancre d'un port apres layout.
+- Extension des wrappers XAML pour exposer les nouveaux etats node/port.
+- Ajout d'un runtime de test no-op `GraphTestRuntime` et de `GraphNodePortControlTests` couvrant templates, etats, notifications et anchors.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphNode|GraphPort|ControlTemplate"`.
+- Resultat validation: 78 tests passes, 0 echec; avertissements restants preexistants ou nullable dans tests existants.
+- Commit effectue: `feat: complete graph task 11 add node and port controls`.
 
 ### ⚪ Tache 12 - Ajouter le shell `MGGraphView`
 

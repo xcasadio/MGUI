@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
@@ -76,12 +77,29 @@ namespace MGUI.Core.UI
         }
 
         private string _Title = string.Empty;
+        private Guid _NodeId;
+        private bool _HasError;
+        private bool _HasWarning;
+        private bool _IsCollapsed;
 
         public MGBorder OuterBorder { get; private set; }
         public MGTextBlock HeaderTextBlock { get; private set; }
         public MGStackPanel PortsPanel { get; private set; }
         public MGContentPresenter BodyPresenter { get; private set; }
         public GraphNodeModel Model { get; }
+
+        public Guid NodeId
+        {
+            get => _NodeId;
+            set
+            {
+                if (_NodeId != value)
+                {
+                    _NodeId = value;
+                    NPC(nameof(NodeId));
+                }
+            }
+        }
 
         public string Title
         {
@@ -102,6 +120,47 @@ namespace MGUI.Core.UI
             }
         }
 
+        public bool HasError
+        {
+            get => _HasError;
+            set
+            {
+                if (_HasError != value)
+                {
+                    _HasError = value;
+                    NPC(nameof(HasError));
+                }
+            }
+        }
+
+        public bool HasWarning
+        {
+            get => _HasWarning;
+            set
+            {
+                if (_HasWarning != value)
+                {
+                    _HasWarning = value;
+                    NPC(nameof(HasWarning));
+                }
+            }
+        }
+
+        public bool IsCollapsed
+        {
+            get => _IsCollapsed;
+            set
+            {
+                if (_IsCollapsed != value)
+                {
+                    _IsCollapsed = value;
+                    UpdateCollapsedVisualState();
+                    LayoutChanged(this, true);
+                    NPC(nameof(IsCollapsed));
+                }
+            }
+        }
+
         public MGGraphNode(MGWindow window)
             : this(window, null) { }
 
@@ -111,7 +170,9 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 Model = model;
+                _NodeId = model?.Id ?? Guid.Empty;
                 _Title = model?.Title ?? string.Empty;
+                _IsCollapsed = model?.IsCollapsed ?? false;
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphNodeTemplateName;
             }
         }
@@ -123,6 +184,7 @@ namespace MGUI.Core.UI
             PortsPanel = structure.Parts[PortsPanelPartName] as MGStackPanel;
             BodyPresenter = structure.Parts[BodyPresenterPartName] as MGContentPresenter;
             HeaderTextBlock.Text = Title;
+            UpdateCollapsedVisualState();
 
             if (Content != null)
             {
@@ -151,6 +213,19 @@ namespace MGUI.Core.UI
 
             base.SetContentVirtual(value);
         }
+
+        private void UpdateCollapsedVisualState()
+        {
+            if (PortsPanel != null)
+            {
+                PortsPanel.Visibility = IsCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (BodyPresenter != null)
+            {
+                BodyPresenter.Visibility = IsCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            }
+        }
     }
 
     public class MGGraphPort : MGSingleContentHost
@@ -165,12 +240,54 @@ namespace MGUI.Core.UI
         }
 
         private string _PortName = string.Empty;
+        private Guid _PortId;
+        private bool _IsConnected;
+        private bool _IsRequired;
 
         public MGBorder OuterBorder { get; private set; }
         public MGTextBlock Label { get; private set; }
         public GraphPortModel Model { get; }
+
+        public Guid PortId
+        {
+            get => _PortId;
+            set
+            {
+                if (_PortId != value)
+                {
+                    _PortId = value;
+                    NPC(nameof(PortId));
+                }
+            }
+        }
         public GraphPortDirection Direction { get; set; }
         public GraphValueType ValueType { get; set; }
+
+        public bool IsConnected
+        {
+            get => _IsConnected;
+            set
+            {
+                if (_IsConnected != value)
+                {
+                    _IsConnected = value;
+                    NPC(nameof(IsConnected));
+                }
+            }
+        }
+
+        public bool IsRequired
+        {
+            get => _IsRequired;
+            set
+            {
+                if (_IsRequired != value)
+                {
+                    _IsRequired = value;
+                    NPC(nameof(IsRequired));
+                }
+            }
+        }
 
         public string PortName
         {
@@ -200,9 +317,11 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 Model = model;
+                _PortId = model?.Id ?? Guid.Empty;
                 _PortName = model?.Name ?? string.Empty;
                 Direction = model?.Direction ?? GraphPortDirection.Input;
                 ValueType = model?.ValueType ?? GraphValueType.Wildcard;
+                _IsRequired = model?.IsRequired ?? false;
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphPortTemplateName;
             }
         }
@@ -218,6 +337,18 @@ namespace MGUI.Core.UI
                 SetContent(OuterBorder);
             }
         }
+
+        public Vector2 GetLayoutAnchor()
+        {
+            Rectangle bounds = ActualLayoutBounds.Width > 0 || ActualLayoutBounds.Height > 0
+                ? ActualLayoutBounds
+                : LayoutBounds;
+            float anchorX = Direction == GraphPortDirection.Input ? bounds.Left : bounds.Right;
+            return new Vector2(anchorX, bounds.Top + bounds.Height * 0.5f);
+        }
+
+        public Vector2 GetWorldAnchor(GraphViewportTransform viewport)
+            => viewport == null ? GetLayoutAnchor() : viewport.ViewportToWorld(GetLayoutAnchor());
     }
 
     public class MGGraphCommentBox : MGSingleContentHost

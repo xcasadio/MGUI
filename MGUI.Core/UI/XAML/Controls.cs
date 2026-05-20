@@ -1634,7 +1634,15 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.GraphNode;
 
         [Category("Data")]
+        public Guid? NodeId { get; set; }
+        [Category("Data")]
         public string Title { get; set; }
+        [Category("Behavior")]
+        public bool? HasError { get; set; }
+        [Category("Behavior")]
+        public bool? HasWarning { get; set; }
+        [Category("Behavior")]
+        public bool? IsCollapsed { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGraphNode(Window);
 
@@ -1642,9 +1650,29 @@ namespace MGUI.Core.UI.XAML
         {
             MGGraphNode graphNode = Element as MGGraphNode;
 
+            if (NodeId.HasValue)
+            {
+                graphNode.NodeId = NodeId.Value;
+            }
+
             if (Title != null)
             {
                 graphNode.Title = Title;
+            }
+
+            if (HasError.HasValue)
+            {
+                graphNode.HasError = HasError.Value;
+            }
+
+            if (HasWarning.HasValue)
+            {
+                graphNode.HasWarning = HasWarning.Value;
+            }
+
+            if (IsCollapsed.HasValue)
+            {
+                graphNode.IsCollapsed = IsCollapsed.Value;
             }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);
@@ -1656,17 +1684,28 @@ namespace MGUI.Core.UI.XAML
         public override MGElementType ElementType => MGElementType.GraphPort;
 
         [Category("Data")]
+        public Guid? PortId { get; set; }
+        [Category("Data")]
         public string PortName { get; set; }
         [Category("Data")]
         public GraphPortDirection? Direction { get; set; }
         [Category("Data")]
         public GraphValueType? ValueType { get; set; }
+        [Category("Behavior")]
+        public bool? IsConnected { get; set; }
+        [Category("Behavior")]
+        public bool? IsRequired { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGraphPort(Window);
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
         {
             MGGraphPort graphPort = Element as MGGraphPort;
+
+            if (PortId.HasValue)
+            {
+                graphPort.PortId = PortId.Value;
+            }
 
             if (PortName != null)
             {
@@ -1681,6 +1720,16 @@ namespace MGUI.Core.UI.XAML
             if (ValueType.HasValue)
             {
                 graphPort.ValueType = ValueType.Value;
+            }
+
+            if (IsConnected.HasValue)
+            {
+                graphPort.IsConnected = IsConnected.Value;
+            }
+
+            if (IsRequired.HasValue)
+            {
+                graphPort.IsRequired = IsRequired.Value;
             }
         }
 
