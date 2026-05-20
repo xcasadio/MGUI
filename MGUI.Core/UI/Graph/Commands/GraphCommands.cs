@@ -312,6 +312,35 @@ namespace MGUI.Core.UI.Graph
         public bool Undo(GraphDocument document) => document != null && document.RemoveComment(Comment.Id);
     }
 
+    public sealed class DeleteCommentCommand : IGraphCommand
+    {
+        private readonly Guid CommentId;
+        private GraphCommentModel DeletedComment;
+        public string Name => "Delete Comment";
+
+        public DeleteCommentCommand(Guid commentId)
+        {
+            CommentId = commentId;
+        }
+
+        public bool Execute(GraphDocument document)
+        {
+            DeletedComment = document?.TryGetComment(CommentId);
+            return DeletedComment != null && document.RemoveComment(CommentId);
+        }
+
+        public bool Undo(GraphDocument document)
+        {
+            if (document == null || DeletedComment == null || document.TryGetComment(CommentId) != null)
+            {
+                return false;
+            }
+
+            document.AddComment(DeletedComment);
+            return true;
+        }
+    }
+
     public sealed class MoveCommentCommand : IGraphCommand
     {
         private readonly Guid CommentId;
@@ -320,6 +349,38 @@ namespace MGUI.Core.UI.Graph
         public string Name => "Move Comment";
 
         public MoveCommentCommand(Guid commentId, Rectangle oldBounds, Rectangle newBounds)
+        {
+            CommentId = commentId;
+            OldBounds = oldBounds;
+            NewBounds = newBounds;
+        }
+
+        public bool Execute(GraphDocument document) => SetBounds(document, NewBounds);
+
+        public bool Undo(GraphDocument document) => SetBounds(document, OldBounds);
+
+        private bool SetBounds(GraphDocument document, Rectangle bounds)
+        {
+            GraphCommentModel comment = document?.TryGetComment(CommentId);
+            if (comment == null)
+            {
+                return false;
+            }
+
+            comment.Bounds = bounds;
+            document.NotifyGraphChanged();
+            return true;
+        }
+    }
+
+    public sealed class ResizeCommentCommand : IGraphCommand
+    {
+        private readonly Guid CommentId;
+        private readonly Rectangle OldBounds;
+        private readonly Rectangle NewBounds;
+        public string Name => "Resize Comment";
+
+        public ResizeCommentCommand(Guid commentId, Rectangle oldBounds, Rectangle newBounds)
         {
             CommentId = commentId;
             OldBounds = oldBounds;

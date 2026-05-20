@@ -11,6 +11,7 @@ namespace MGUI.Core.UI.Graph
         private readonly MGGraphView GraphView;
         private readonly Dictionary<Guid, MGGraphNode> NodesById = new();
         private readonly Dictionary<Guid, MGGraphPort> PortsById = new();
+        private readonly Dictionary<Guid, MGGraphCommentBox> CommentsById = new();
 
         public GraphDocumentViewSynchronizer(MGGraphView graphView)
         {
@@ -21,6 +22,8 @@ namespace MGUI.Core.UI.Graph
 
         public bool TryGetPort(Guid portId, out MGGraphPort port) => PortsById.TryGetValue(portId, out port);
 
+        public bool TryGetComment(Guid commentId, out MGGraphCommentBox commentBox) => CommentsById.TryGetValue(commentId, out commentBox);
+
         public void Synchronize()
         {
             if (GraphView.NodesCanvas == null || GraphView.Document == null)
@@ -29,7 +32,14 @@ namespace MGUI.Core.UI.Graph
             }
 
             HashSet<Guid> modelNodeIds = new(GraphView.Document.Nodes.Select(node => node.Id));
+            HashSet<Guid> modelCommentIds = new(GraphView.Document.Comments.Select(comment => comment.Id));
             RemoveMissingNodes(modelNodeIds);
+            RemoveMissingComments(modelCommentIds);
+
+            for (int commentIndex = 0; commentIndex < GraphView.Document.Comments.Count; commentIndex++)
+            {
+                SynchronizeComment(GraphView.Document.Comments[commentIndex]);
+            }
 
             for (int nodeIndex = 0; nodeIndex < GraphView.Document.Nodes.Count; nodeIndex++)
             {
@@ -62,6 +72,58 @@ namespace MGUI.Core.UI.Graph
             {
                 PortsById.Remove(portId);
             }
+        }
+
+        private void RemoveMissingComments(HashSet<Guid> modelCommentIds)
+        {
+            List<Guid> missingCommentIds = CommentsById.Keys.Where(commentId => !modelCommentIds.Contains(commentId)).ToList();
+            if (missingCommentIds.Count == 0)
+            {
+                return;
+            }
+
+            using (GraphView.NodesCanvas.AllowChangingContentTemporarily())
+            {
+                for (int missingIndex = 0; missingIndex < missingCommentIds.Count; missingIndex++)
+                {
+                    Guid commentId = missingCommentIds[missingIndex];
+                    if (CommentsById.TryGetValue(commentId, out MGGraphCommentBox commentBox))
+                    {
+                        GraphView.NodesCanvas.TryRemoveChild(commentBox);
+                        CommentsById.Remove(commentId);
+                    }
+                }
+            }
+        }
+
+        private void SynchronizeComment(GraphCommentModel model)
+        {
+            if (model == null || model.Id == Guid.Empty)
+            {
+                return;
+            }
+
+            if (!CommentsById.TryGetValue(model.Id, out MGGraphCommentBox commentBox))
+            {
+                commentBox = new MGGraphCommentBox(GraphView.SelfOrParentWindow, model);
+                CommentsById[model.Id] = commentBox;
+                using (GraphView.NodesCanvas.AllowChangingContentTemporarily())
+                {
+                    GraphView.NodesCanvas.TryAddChild(commentBox);
+                }
+            }
+
+            commentBox.CommentId = model.Id;
+            commentBox.Title = model.Title;
+            commentBox.Text = model.Text;
+            commentBox.IsSelected = GraphView.SelectedCommentIds.Contains(model.Id);
+            commentBox.ApplySelectionVisual();
+            commentBox.PreferredWidth = Math.Max(1, (int)MathF.Round(model.Bounds.Width * GraphView.ViewportTransform.Zoom));
+            commentBox.PreferredHeight = Math.Max(1, (int)MathF.Round(model.Bounds.Height * GraphView.ViewportTransform.Zoom));
+
+            Vector2 layoutPosition = GraphView.ViewportTransform.WorldToLayout(new Vector2(model.Bounds.X, model.Bounds.Y));
+            MGCanvas.SetLeft(commentBox, (int)MathF.Round(layoutPosition.X));
+            MGCanvas.SetTop(commentBox, (int)MathF.Round(layoutPosition.Y));
         }
 
         private void SynchronizeNode(GraphNodeModel model)

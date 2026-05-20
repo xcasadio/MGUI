@@ -1033,7 +1033,7 @@ Resultat:
 - Resultat validation: build OK; 15 tests passes, 0 echec; avertissements restants preexistants.
 - Commit effectue: `ui: complete graph task 19 add context menu node creation`.
 
-### ⚪ Tache 20 - Ajouter comment boxes simples
+### ✅ Tache 20 - Ajouter comment boxes simples
 
 But:
 livrer l'organisation minimale promise par la V1 sans group system complet.
@@ -1066,7 +1066,18 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `GraphCommentModel` est maintenant synchronise vers des `MGGraphCommentBox` visibles via `GraphDocumentViewSynchronizer`.
+- `MGGraphView` expose `SelectedCommentIds`, `SelectComment`, `MoveSelectedCommentsBy`, `ResizeComment`, `CreateCommentAt` et `TryGetCommentControl`.
+- Le menu contextuel de zone vide ajoute une action `graph.createComment` qui cree une comment box undoable a la position monde de la souris.
+- `DeleteSelection` supprime aussi les comments selectionnes via `DeleteCommentCommand`, sans melanger avec les nodes/edges non selectionnes.
+- Ajout de `DeleteCommentCommand` et `ResizeCommentCommand`; `MoveCommentCommand` reste la commande de deplacement bounds.
+- Les comments supportent selection, drag, resize basique par coin inferieur droit et annulation par `Escape`; le drag ne deplace pas les nodes contenus en V1.
+- Les couleurs restent pilotees par `MGTheme.Graph.CommentBackground` et `CommentBorderBrush`; aucun hardcode supplementaire n'a ete ajoute pour le rendu courant.
+- La serialisation existante conserve bounds, titre, texte et couleur; elle est couverte par tests dedies.
+- Ajout de `GraphCommentTests` couvrant create/move/resize/delete undoable, synchro UI, operations `GraphView` et serialisation.
+- Validations executees avec succes: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` et `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphComment|GraphSerialization|GraphCommand"`.
+- Resultat validation: build OK; 13 tests passes, 0 echec; avertissements restants preexistants.
+- Commit effectue: `feat: complete graph task 20 add simple comments`.
 
 ### ⚪ Tache 21 - Ajouter un sample Dialogue Graph
 

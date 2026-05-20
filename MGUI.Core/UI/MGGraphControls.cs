@@ -38,11 +38,17 @@ namespace MGUI.Core.UI
         private Point _PanStartScreenPosition;
         private Vector2 _PanStartValue;
         private bool _IsDraggingNodes;
+        private bool _IsDraggingComments;
+        private bool _IsResizingComment;
         private bool _IsSelectingRectangle;
         private Guid _PressedNodeId;
+        private Guid _PressedCommentId;
+        private bool _PressedCommentResizeHandle;
         private Vector2 _PointerPressViewportPoint;
         private Vector2 _CurrentSelectionViewportPoint;
         private readonly Dictionary<Guid, Vector2> _NodeDragStartPositions = new();
+        private readonly Dictionary<Guid, Rectangle> _CommentDragStartBounds = new();
+        private Rectangle _CommentResizeStartBounds;
         private readonly HashSet<MGGraphPort> _RegisteredConnectionPorts = new();
 
         public MGBorder OuterBorder { get; private set; }
@@ -59,6 +65,7 @@ namespace MGUI.Core.UI
         public GraphNodePalette NodePalette { get; set; } = GraphNodePalette.CreateDefault();
         public HashSet<Guid> SelectedNodeIds { get; } = new();
         public HashSet<Guid> SelectedEdgeIds { get; } = new();
+        public HashSet<Guid> SelectedCommentIds { get; } = new();
         public bool ShowGrid { get; set; } = true;
         public bool AllowZoom { get; set; } = true;
         public bool AllowPan { get; set; } = true;
@@ -209,6 +216,12 @@ namespace MGUI.Core.UI
             return _Synchronizer?.TryGetPort(portId, out port) == true;
         }
 
+        public bool TryGetCommentControl(Guid commentId, out MGGraphCommentBox commentBox)
+        {
+            commentBox = null;
+            return _Synchronizer?.TryGetComment(commentId, out commentBox) == true;
+        }
+
         internal void RegisterGraphPort(MGGraphPort port)
         {
             if (port == null || !_RegisteredConnectionPorts.Add(port))
@@ -265,6 +278,12 @@ namespace MGUI.Core.UI
         public bool ClearSelection()
         {
             bool changed = Selection.Clear();
+            if (SelectedCommentIds.Count > 0)
+            {
+                SelectedCommentIds.Clear();
+                changed = true;
+            }
+
             if (changed)
             {
                 UpdateSelectionVisuals();
@@ -276,6 +295,12 @@ namespace MGUI.Core.UI
         public bool SelectNode(Guid nodeId, bool additive = false, bool toggle = false)
         {
             bool changed = Selection.SelectNode(nodeId, additive, toggle);
+            if (!additive && SelectedCommentIds.Count > 0)
+            {
+                SelectedCommentIds.Clear();
+                changed = true;
+            }
+
             if (changed)
             {
                 UpdateSelectionVisuals();
@@ -287,12 +312,111 @@ namespace MGUI.Core.UI
         public bool SelectNodesInWorldRectangle(RectangleF worldRectangle, bool additive = false)
         {
             bool changed = Selection.SelectNodesInRectangle(Document, worldRectangle, additive);
+            if (!additive && SelectedCommentIds.Count > 0)
+            {
+                SelectedCommentIds.Clear();
+                changed = true;
+            }
+
+            changed |= SelectCommentsInWorldRectangle(worldRectangle, additive: true);
             if (changed)
             {
                 UpdateSelectionVisuals();
             }
 
             return changed;
+        }
+
+        public bool SelectComment(Guid commentId, bool additive = false, bool toggle = false)
+        {
+            if (commentId == Guid.Empty)
+            {
+                return false;
+            }
+
+            bool changed = false;
+            if (!additive)
+            {
+                changed |= Selection.Clear();
+                if (SelectedCommentIds.Count > 0 && !(SelectedCommentIds.Count == 1 && SelectedCommentIds.Contains(commentId)))
+                {
+                    SelectedCommentIds.Clear();
+                    changed = true;
+                }
+            }
+
+            if (toggle && SelectedCommentIds.Contains(commentId))
+            {
+                SelectedCommentIds.Remove(commentId);
+                UpdateSelectionVisuals();
+                return true;
+            }
+
+            changed |= SelectedCommentIds.Add(commentId);
+            if (changed)
+            {
+                UpdateSelectionVisuals();
+            }
+
+            return changed;
+        }
+
+        public bool MoveSelectedCommentsBy(Vector2 worldDelta)
+        {
+            if (Document == null || SelectedCommentIds.Count == 0 || worldDelta == Vector2.Zero)
+            {
+                return false;
+            }
+
+            List<IGraphCommand> commands = new();
+            foreach (Guid commentId in SelectedCommentIds)
+            {
+                GraphCommentModel comment = Document.TryGetComment(commentId);
+                if (comment == null)
+                {
+                    continue;
+                }
+
+                Rectangle next = OffsetRectangle(comment.Bounds, worldDelta);
+                if (SnapToGrid)
+                {
+                    Vector2 snapped = ViewportTransform.SnapPoint(new Vector2(next.X, next.Y));
+                    next = new Rectangle(
+                        (int)MathF.Round(snapped.X),
+                        (int)MathF.Round(snapped.Y),
+                        next.Width,
+                        next.Height);
+                }
+
+                if (next != comment.Bounds)
+                {
+                    commands.Add(new MoveCommentCommand(comment.Id, comment.Bounds, next));
+                }
+            }
+
+            if (commands.Count == 0)
+            {
+                return false;
+            }
+
+            return Commands.Execute(Document, new GraphBatchCommand("Move Comments", commands));
+        }
+
+        public bool ResizeComment(Guid commentId, Rectangle newBounds)
+        {
+            GraphCommentModel comment = Document?.TryGetComment(commentId);
+            if (comment == null)
+            {
+                return false;
+            }
+
+            Rectangle normalized = NormalizeCommentBounds(newBounds);
+            if (comment.Bounds == normalized)
+            {
+                return false;
+            }
+
+            return Commands.Execute(Document, new ResizeCommentCommand(commentId, comment.Bounds, normalized));
         }
 
         public bool MoveSelectedNodesBy(Vector2 worldDelta)
@@ -466,7 +590,7 @@ namespace MGUI.Core.UI
 
         public bool DeleteSelection()
         {
-            if (Document == null || (SelectedNodeIds.Count == 0 && SelectedEdgeIds.Count == 0))
+            if (Document == null || (SelectedNodeIds.Count == 0 && SelectedEdgeIds.Count == 0 && SelectedCommentIds.Count == 0))
             {
                 return false;
             }
@@ -491,6 +615,14 @@ namespace MGUI.Core.UI
                 }
             }
 
+            foreach (Guid commentId in SelectedCommentIds)
+            {
+                if (Document.TryGetComment(commentId) != null)
+                {
+                    commands.Add(new DeleteCommentCommand(commentId));
+                }
+            }
+
             bool deleted = commands.Count > 0 && Commands.Execute(Document, new GraphBatchCommand("Delete Selection", commands));
             if (deleted)
             {
@@ -498,6 +630,25 @@ namespace MGUI.Core.UI
             }
 
             return deleted;
+        }
+
+        public GraphCommentModel CreateCommentAt(Vector2 worldPosition, string title = "Comment", string text = "")
+        {
+            if (Document == null)
+            {
+                return null;
+            }
+
+            Vector2 position = SnapToGrid ? ViewportTransform.SnapPoint(worldPosition) : worldPosition;
+            GraphCommentModel comment = new(Guid.NewGuid(), new Rectangle((int)MathF.Round(position.X), (int)MathF.Round(position.Y), 260, 120), title, text);
+            if (!Commands.Execute(Document, new CreateCommentCommand(comment)))
+            {
+                return null;
+            }
+
+            ClearSelection();
+            SelectComment(comment.Id);
+            return comment;
         }
 
         public GraphNodeModel CreateNodeFromDefinition(GraphNodeDefinition definition, Vector2 worldPosition, Guid? connectFromPortId = null)
@@ -555,6 +706,17 @@ namespace MGUI.Core.UI
                 button.CommandId = $"graph.createNode:{definition.NodeType}";
             }
 
+            if (!connectFromPortId.HasValue)
+            {
+                if (menu.Items.Count > 0)
+                {
+                    menu.AddSeparator();
+                }
+
+                MGContextMenuButton commentButton = menu.AddButton("Comment", _ => CreateCommentAt(worldPosition));
+                commentButton.CommandId = "graph.createComment";
+            }
+
             return menu;
         }
 
@@ -562,9 +724,14 @@ namespace MGUI.Core.UI
         {
             _IsPanningViewport = false;
             _IsDraggingNodes = false;
+            _IsDraggingComments = false;
+            _IsResizingComment = false;
             _IsSelectingRectangle = false;
             _PressedNodeId = Guid.Empty;
+            _PressedCommentId = Guid.Empty;
+            _PressedCommentResizeHandle = false;
             _NodeDragStartPositions.Clear();
+            _CommentDragStartBounds.Clear();
             ConnectionController.Cancel();
         }
 
@@ -630,6 +797,17 @@ namespace MGUI.Core.UI
                     {
                         BeginNodeDrag();
                     }
+                    else if (_PressedCommentId != Guid.Empty)
+                    {
+                        if (_PressedCommentResizeHandle)
+                        {
+                            BeginCommentResize();
+                        }
+                        else
+                        {
+                            BeginCommentDrag();
+                        }
+                    }
                     else
                     {
                         _IsSelectingRectangle = true;
@@ -654,6 +832,16 @@ namespace MGUI.Core.UI
                 else if (_IsDraggingNodes && e.IsLMB)
                 {
                     UpdateNodeDrag(GetViewportPoint(e.Position));
+                }
+
+                else if (_IsDraggingComments && e.IsLMB)
+                {
+                    UpdateCommentDrag(GetViewportPoint(e.Position));
+                }
+
+                else if (_IsResizingComment && e.IsLMB)
+                {
+                    UpdateCommentResize(GetViewportPoint(e.Position));
                 }
 
                 else if (_IsSelectingRectangle && e.IsLMB)
@@ -702,12 +890,24 @@ namespace MGUI.Core.UI
                 if (TryGetNodeAtViewportPoint(_PointerPressViewportPoint, out MGGraphNode node))
                 {
                     _PressedNodeId = node.NodeId;
+                    _PressedCommentId = Guid.Empty;
+                    _PressedCommentResizeHandle = false;
                     SelectNode(node.NodeId, additive: controlDown, toggle: controlDown);
+                    e.SetHandledBy(this, false);
+                }
+                else if (TryGetCommentAtViewportPoint(_PointerPressViewportPoint, out MGGraphCommentBox commentBox))
+                {
+                    _PressedNodeId = Guid.Empty;
+                    _PressedCommentId = commentBox.CommentId;
+                    _PressedCommentResizeHandle = IsCommentResizeHandleHit(commentBox, _PointerPressViewportPoint);
+                    SelectComment(commentBox.CommentId, additive: controlDown, toggle: controlDown);
                     e.SetHandledBy(this, false);
                 }
                 else
                 {
                     _PressedNodeId = Guid.Empty;
+                    _PressedCommentId = Guid.Empty;
+                    _PressedCommentResizeHandle = false;
                     if (!controlDown)
                     {
                         ClearSelection();
@@ -749,6 +949,16 @@ namespace MGUI.Core.UI
                 if (nodeModel != null && TryGetNodeControl(nodeModel.Id, out MGGraphNode node))
                 {
                     node.IsSelected = SelectedNodeIds.Contains(nodeModel.Id);
+                }
+            }
+
+            for (int commentIndex = 0; commentIndex < Document.Comments.Count; commentIndex++)
+            {
+                GraphCommentModel commentModel = Document.Comments[commentIndex];
+                if (commentModel != null && TryGetCommentControl(commentModel.Id, out MGGraphCommentBox commentBox))
+                {
+                    commentBox.IsSelected = SelectedCommentIds.Contains(commentModel.Id);
+                    commentBox.ApplySelectionVisual();
                 }
             }
         }
@@ -808,6 +1018,14 @@ namespace MGUI.Core.UI
             {
                 CommitNodeDrag();
             }
+            else if (_IsDraggingComments)
+            {
+                CommitCommentDrag();
+            }
+            else if (_IsResizingComment)
+            {
+                CommitCommentResize();
+            }
             else if (_IsSelectingRectangle)
             {
                 _CurrentSelectionViewportPoint = GetViewportPoint(screenPosition);
@@ -819,9 +1037,14 @@ namespace MGUI.Core.UI
             }
 
             _PressedNodeId = Guid.Empty;
+            _PressedCommentId = Guid.Empty;
+            _PressedCommentResizeHandle = false;
             _IsDraggingNodes = false;
+            _IsDraggingComments = false;
+            _IsResizingComment = false;
             _IsSelectingRectangle = false;
             _NodeDragStartPositions.Clear();
+            _CommentDragStartBounds.Clear();
         }
 
         private void CommitNodeDrag()
@@ -860,6 +1083,145 @@ namespace MGUI.Core.UI
             return Commands.Execute(Document, new MoveNodesCommand(moves));
         }
 
+        private bool SelectCommentsInWorldRectangle(RectangleF worldRectangle, bool additive = false)
+        {
+            bool changed = false;
+            if (!additive && SelectedCommentIds.Count > 0)
+            {
+                SelectedCommentIds.Clear();
+                changed = true;
+            }
+
+            if (Document == null || worldRectangle.Width <= 0.0f || worldRectangle.Height <= 0.0f)
+            {
+                return changed;
+            }
+
+            for (int commentIndex = 0; commentIndex < Document.Comments.Count; commentIndex++)
+            {
+                GraphCommentModel comment = Document.Comments[commentIndex];
+                if (comment != null && Intersects(worldRectangle, ToRectangleF(comment.Bounds)))
+                {
+                    changed |= SelectedCommentIds.Add(comment.Id);
+                }
+            }
+
+            return changed;
+        }
+
+        private void BeginCommentDrag()
+        {
+            _CommentDragStartBounds.Clear();
+            foreach (Guid selectedCommentId in SelectedCommentIds)
+            {
+                GraphCommentModel comment = Document.TryGetComment(selectedCommentId);
+                if (comment != null)
+                {
+                    _CommentDragStartBounds[selectedCommentId] = comment.Bounds;
+                }
+            }
+
+            _IsDraggingComments = _CommentDragStartBounds.Count > 0;
+        }
+
+        private void UpdateCommentDrag(Vector2 currentViewportPoint)
+        {
+            Vector2 startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
+            Vector2 currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
+            Vector2 worldDelta = currentWorld - startWorld;
+            bool changed = false;
+
+            foreach (KeyValuePair<Guid, Rectangle> item in _CommentDragStartBounds)
+            {
+                GraphCommentModel comment = Document.TryGetComment(item.Key);
+                if (comment == null)
+                {
+                    continue;
+                }
+
+                Rectangle next = OffsetRectangle(item.Value, worldDelta);
+                if (SnapToGrid)
+                {
+                    Vector2 snapped = ViewportTransform.SnapPoint(new Vector2(next.X, next.Y));
+                    next = new Rectangle((int)MathF.Round(snapped.X), (int)MathF.Round(snapped.Y), next.Width, next.Height);
+                }
+
+                if (comment.Bounds != next)
+                {
+                    comment.Bounds = next;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                Document.NotifyGraphChanged();
+            }
+        }
+
+        private void CommitCommentDrag()
+        {
+            List<IGraphCommand> commands = new();
+            foreach (KeyValuePair<Guid, Rectangle> item in _CommentDragStartBounds)
+            {
+                GraphCommentModel comment = Document.TryGetComment(item.Key);
+                if (comment != null && comment.Bounds != item.Value)
+                {
+                    commands.Add(new MoveCommentCommand(comment.Id, item.Value, comment.Bounds));
+                }
+            }
+
+            if (commands.Count > 0)
+            {
+                Commands.Execute(Document, new GraphBatchCommand("Move Comments", commands));
+            }
+        }
+
+        private void BeginCommentResize()
+        {
+            GraphCommentModel comment = Document.TryGetComment(_PressedCommentId);
+            if (comment == null)
+            {
+                return;
+            }
+
+            _CommentResizeStartBounds = comment.Bounds;
+            _IsResizingComment = true;
+        }
+
+        private void UpdateCommentResize(Vector2 currentViewportPoint)
+        {
+            GraphCommentModel comment = Document.TryGetComment(_PressedCommentId);
+            if (comment == null)
+            {
+                return;
+            }
+
+            Vector2 startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
+            Vector2 currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
+            Vector2 worldDelta = currentWorld - startWorld;
+            Rectangle next = NormalizeCommentBounds(new Rectangle(
+                _CommentResizeStartBounds.X,
+                _CommentResizeStartBounds.Y,
+                _CommentResizeStartBounds.Width + (int)MathF.Round(worldDelta.X),
+                _CommentResizeStartBounds.Height + (int)MathF.Round(worldDelta.Y)));
+
+            if (comment.Bounds != next)
+            {
+                comment.Bounds = next;
+                Document.NotifyGraphChanged();
+            }
+        }
+
+        private void CommitCommentResize()
+        {
+            GraphCommentModel comment = Document.TryGetComment(_PressedCommentId);
+            if (comment != null && comment.Bounds != _CommentResizeStartBounds)
+            {
+                Commands.Execute(Document, new ResizeCommentCommand(comment.Id, _CommentResizeStartBounds, comment.Bounds));
+            }
+        }
+
         private bool TryGetNodeAtViewportPoint(Vector2 viewportPoint, out MGGraphNode node)
         {
             node = null;
@@ -876,6 +1238,30 @@ namespace MGUI.Core.UI
                     if (bounds.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y)))
                     {
                         node = graphNode;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryGetCommentAtViewportPoint(Vector2 viewportPoint, out MGGraphCommentBox commentBox)
+        {
+            commentBox = null;
+            if (NodesCanvas == null)
+            {
+                return false;
+            }
+
+            for (int childIndex = NodesCanvas.Children.Count - 1; childIndex >= 0; childIndex--)
+            {
+                if (NodesCanvas.Children[childIndex] is MGGraphCommentBox candidate)
+                {
+                    Rectangle bounds = GetCommentViewportBounds(candidate);
+                    if (bounds.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y)))
+                    {
+                        commentBox = candidate;
                         return true;
                     }
                 }
@@ -940,6 +1326,34 @@ namespace MGUI.Core.UI
             return bounds;
         }
 
+        private Rectangle GetCommentViewportBounds(MGGraphCommentBox commentBox)
+        {
+            Rectangle bounds = commentBox.ActualLayoutBounds.Width > 0 || commentBox.ActualLayoutBounds.Height > 0 ? commentBox.ActualLayoutBounds : commentBox.LayoutBounds;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                GraphCommentModel model = Document.TryGetComment(commentBox.CommentId);
+                if (model == null)
+                {
+                    return Rectangle.Empty;
+                }
+
+                Vector2 topLeft = ViewportTransform.WorldToViewport(new Vector2(model.Bounds.Left, model.Bounds.Top));
+                Vector2 bottomRight = ViewportTransform.WorldToViewport(new Vector2(model.Bounds.Right, model.Bounds.Bottom));
+                RectangleF viewportBounds = CreateRectangle(topLeft, bottomRight);
+                return new Rectangle((int)MathF.Floor(viewportBounds.X), (int)MathF.Floor(viewportBounds.Y), (int)MathF.Ceiling(viewportBounds.Width), (int)MathF.Ceiling(viewportBounds.Height));
+            }
+
+            return bounds;
+        }
+
+        private bool IsCommentResizeHandleHit(MGGraphCommentBox commentBox, Vector2 viewportPoint)
+        {
+            Rectangle bounds = GetCommentViewportBounds(commentBox);
+            const int handleSize = 12;
+            Rectangle resizeHandle = new(bounds.Right - handleSize, bounds.Bottom - handleSize, handleSize, handleSize);
+            return resizeHandle.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y));
+        }
+
         private bool IsPointerInsideViewport(Point screenPosition)
         {
             if (ViewportHost == null)
@@ -978,6 +1392,18 @@ namespace MGUI.Core.UI
             float bottom = Math.Max(first.Y, second.Y);
             return new RectangleF(left, top, right - left, bottom - top);
         }
+
+        private static Rectangle OffsetRectangle(Rectangle rectangle, Vector2 delta)
+            => new(rectangle.X + (int)MathF.Round(delta.X), rectangle.Y + (int)MathF.Round(delta.Y), rectangle.Width, rectangle.Height);
+
+        private static Rectangle NormalizeCommentBounds(Rectangle bounds)
+            => new(bounds.X, bounds.Y, Math.Max(80, bounds.Width), Math.Max(48, bounds.Height));
+
+        private static RectangleF ToRectangleF(Rectangle rectangle)
+            => new(rectangle.X, rectangle.Y, Math.Max(1, rectangle.Width), Math.Max(1, rectangle.Height));
+
+        private static bool Intersects(RectangleF first, RectangleF second)
+            => first.Left < second.Right && first.Right > second.Left && first.Top < second.Bottom && first.Bottom > second.Top;
 
         private Rectangle GetViewportBoundsForFraming()
         {
@@ -1340,11 +1766,25 @@ namespace MGUI.Core.UI
 
         private string _Title = string.Empty;
         private string _Text = string.Empty;
+        private Guid _CommentId;
 
         public MGBorder OuterBorder { get; private set; }
         public MGTextBlock TitleTextBlock { get; private set; }
         public MGTextBlock BodyTextBlock { get; private set; }
         public GraphCommentModel Model { get; }
+
+        public Guid CommentId
+        {
+            get => _CommentId;
+            set
+            {
+                if (_CommentId != value)
+                {
+                    _CommentId = value;
+                    NPC(nameof(CommentId));
+                }
+            }
+        }
 
         public string Title
         {
@@ -1393,6 +1833,7 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 Model = model;
+                _CommentId = model?.Id ?? Guid.Empty;
                 _Title = model?.Title ?? string.Empty;
                 _Text = model?.Text ?? string.Empty;
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphCommentBoxTemplateName;
@@ -1406,10 +1847,19 @@ namespace MGUI.Core.UI
             BodyTextBlock = structure.Parts[BodyTextBlockPartName] as MGTextBlock;
             TitleTextBlock.Text = Title;
             BodyTextBlock.Text = Text;
+            ApplySelectionVisual();
 
             using (AllowChangingContentTemporarily())
             {
                 SetContent(OuterBorder);
+            }
+        }
+
+        internal void ApplySelectionVisual()
+        {
+            if (OuterBorder != null)
+            {
+                OuterBorder.BorderThickness = IsSelected ? new Thickness(2) : new Thickness(1);
             }
         }
     }
