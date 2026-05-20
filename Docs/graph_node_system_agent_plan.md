@@ -666,7 +666,7 @@ Resultat:
 - Resultat validation: 78 tests passes, 0 echec; avertissements restants preexistants ou nullable dans tests existants.
 - Commit effectue: `feat: complete graph task 11 add node and port controls`.
 
-### ⚪ Tache 12 - Ajouter le shell `MGGraphView`
+### ✅ Tache 12 - Ajouter le shell `MGGraphView`
 
 But:
 creer le controle principal lookless, templateable et clippe.
@@ -699,7 +699,15 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- `MGGraphView` est maintenant un shell lookless base sur `MGSingleContentHost`, ce qui garde la composition interne sous controle via template parts et evite que le contenu utilisateur remplace le graphe.
+- Ajout des parts `PART_ViewportHost`, `PART_NodesCanvas` et `PART_OverlayPanel` en plus de `PART_OuterBorder`; `Surface` reste un alias vers `NodesCanvas`.
+- `ViewportHost` clippe ses enfants via `ClipToBounds`, et les hosts internes `ViewportHost`, `NodesCanvas`, `OverlayPanel` sont verrouilles avec `CanChangeContent = false` apres attachement.
+- Ajout de `ViewportTransform`, alias `Viewport`, `SelectedNodeIds`, `SelectedEdgeIds` et `Document` observable.
+- Mise a jour du template par defaut `GraphView.Default` et des defaults de theme associes.
+- Ajout de `GraphViewShellTests` couvrant application du template, clipping, etats de selection/document/viewport et chargement XAML avec template attache.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphView|ControlTemplate|Xaml"`.
+- Resultat validation: 112 tests passes, 0 echec; avertissements restants preexistants ou nullable dans tests existants.
+- Commit effectue: `feat: complete graph task 12 add graph view shell`.
 
 ### ⚪ Tache 13 - Synchroniser `GraphDocument` vers les noeuds visibles
 

@@ -13,22 +13,48 @@ namespace MGUI.Core.UI
     public class MGGraphView : MGSingleContentHost
     {
         public const string OuterBorderPartName = "PART_OuterBorder";
-        public const string SurfacePartName = "PART_Surface";
+        public const string ViewportHostPartName = "PART_ViewportHost";
+        public const string NodesCanvasPartName = "PART_NodesCanvas";
+        public const string OverlayPanelPartName = "PART_OverlayPanel";
+        public const string SurfacePartName = NodesCanvasPartName;
 
         protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
         {
             yield return new(OuterBorderPartName, typeof(MGBorder));
-            yield return new(SurfacePartName, typeof(MGCanvas));
+            yield return new(ViewportHostPartName, typeof(MGOverlayPanel));
+            yield return new(NodesCanvasPartName, typeof(MGCanvas));
+            yield return new(OverlayPanelPartName, typeof(MGOverlayPanel));
         }
 
+        private GraphDocument _Document;
+
         public MGBorder OuterBorder { get; private set; }
-        public MGCanvas Surface { get; private set; }
-        public GraphDocument Document { get; }
-        public GraphViewportTransform Viewport { get; } = new();
+        public MGOverlayPanel ViewportHost { get; private set; }
+        public MGCanvas NodesCanvas { get; private set; }
+        public MGOverlayPanel OverlayPanel { get; private set; }
+        public MGCanvas Surface => NodesCanvas;
+        public GraphViewportTransform ViewportTransform { get; } = new();
+        public GraphViewportTransform Viewport => ViewportTransform;
+        public HashSet<Guid> SelectedNodeIds { get; } = new();
+        public HashSet<Guid> SelectedEdgeIds { get; } = new();
         public bool ShowGrid { get; set; } = true;
         public bool AllowZoom { get; set; } = true;
         public bool AllowPan { get; set; } = true;
         public bool SnapToGrid { get; set; }
+
+        public GraphDocument Document
+        {
+            get => _Document;
+            set
+            {
+                GraphDocument next = value ?? new GraphDocument();
+                if (!ReferenceEquals(_Document, next))
+                {
+                    _Document = next;
+                    NPC(nameof(Document));
+                }
+            }
+        }
 
         public MGGraphView(MGWindow window)
             : this(window, new GraphDocument()) { }
@@ -38,7 +64,7 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                Document = document ?? new GraphDocument();
+                _Document = document ?? new GraphDocument();
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphViewTemplateName;
             }
         }
@@ -46,12 +72,25 @@ namespace MGUI.Core.UI
         protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure structure)
         {
             OuterBorder = structure.Parts[OuterBorderPartName] as MGBorder;
-            Surface = structure.Parts[SurfacePartName] as MGCanvas;
-            Surface.CanChangeContent = false;
+            ViewportHost = structure.Parts[ViewportHostPartName] as MGOverlayPanel;
+            NodesCanvas = structure.Parts[NodesCanvasPartName] as MGCanvas;
+            OverlayPanel = structure.Parts[OverlayPanelPartName] as MGOverlayPanel;
+
+            ViewportHost.ClipToBounds = true;
+
+            using (ViewportHost.AllowChangingContentTemporarily())
+            {
+                ViewportHost.TryAddChild(NodesCanvas, default, 0);
+                ViewportHost.TryAddChild(OverlayPanel, default, 100);
+            }
+
+            ViewportHost.CanChangeContent = false;
+            NodesCanvas.CanChangeContent = false;
+            OverlayPanel.CanChangeContent = false;
 
             using (OuterBorder.AllowChangingContentTemporarily())
             {
-                OuterBorder.SetContent(Surface);
+                OuterBorder.SetContent(ViewportHost);
             }
 
             using (AllowChangingContentTemporarily())

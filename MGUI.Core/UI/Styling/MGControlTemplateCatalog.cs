@@ -496,7 +496,22 @@ namespace MGUI.Core.UI.Styling
                 Margin = new Thickness(0),
                 Padding = new Thickness(0),
             };
-            MGCanvas surface = new(window)
+            MGOverlayPanel viewportHost = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+                ClipToBounds = true,
+            };
+            MGCanvas nodesCanvas = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+            };
+            MGOverlayPanel overlayPanel = new(window)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch,
@@ -506,7 +521,9 @@ namespace MGUI.Core.UI.Styling
 
             MGControlTemplateStructure structure = new(outerBorder);
             structure.AddPart(MGGraphView.OuterBorderPartName, outerBorder);
-            structure.AddPart(MGGraphView.SurfacePartName, surface);
+            structure.AddPart(MGGraphView.ViewportHostPartName, viewportHost);
+            structure.AddPart(MGGraphView.NodesCanvasPartName, nodesCanvas);
+            structure.AddPart(MGGraphView.OverlayPanelPartName, overlayPanel);
             return structure;
         }
 
@@ -1022,12 +1039,14 @@ namespace MGUI.Core.UI.Styling
 
             MGTheme theme = graphView.GetTheme();
             MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphView.OuterBorderPartName);
-            MGCanvas surface = Context.GetRequiredPart<MGCanvas>(MGGraphView.SurfacePartName);
+            MGOverlayPanel viewportHost = Context.GetRequiredPart<MGOverlayPanel>(MGGraphView.ViewportHostPartName);
+            MGCanvas nodesCanvas = Context.GetRequiredPart<MGCanvas>(MGGraphView.NodesCanvasPartName);
 
             Context.ApplyThemeDefault("GraphView.Padding", theme.Graph.Padding, () => graphView.Padding, value => graphView.Padding = value);
             Context.ApplyThemeDefault("GraphView.BorderBrush", theme.Graph.BorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
             Context.ApplyThemeDefault("GraphView.BorderThickness", theme.Graph.BorderThickness, () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
-            Context.ApplyThemeDefault("GraphView.SurfaceBackground", theme.Graph.CanvasBackground, () => surface.BackgroundBrush, value => surface.BackgroundBrush = value);
+            Context.ApplyThemeDefault("GraphView.ViewportClipToBounds", true, () => viewportHost.ClipToBounds, value => viewportHost.ClipToBounds = value);
+            Context.ApplyThemeDefault("GraphView.NodesCanvasBackground", theme.Graph.CanvasBackground, () => nodesCanvas.BackgroundBrush, value => nodesCanvas.BackgroundBrush = value);
         }
 
         private static void ApplyGraphNodeTemplate(MGControlTemplateContext Context)
