@@ -3350,6 +3350,9 @@ namespace MGUI.Core.UI.XAML
             {
                 richTextBox.ShowLineNumbers = ShowLineNumbers.Value;
             }
+
+            richTextBox.TextBlockComponent.Element.HorizontalContentAlignment = richTextBox.HorizontalContentAlignment;
+            richTextBox.TextBlockComponent.Element.VerticalContentAlignment = richTextBox.VerticalContentAlignment;
         }
     }
 

@@ -17,9 +17,11 @@
         </Style>
     </Window.Styles>
 
-    <OverlayPanel Background="rgb(24,28,34)">
+    <OverlayPanel Name="RootPanel" Background="rgb(24,28,34)">
         <Grid Margin="12" RowLengths="Auto,*,Auto" ColumnLengths="*,260" RowSpacing="8" ColumnSpacing="10">
             <StackPanel Row="0" Column="0" ColumnSpan="2" Orientation="Horizontal" Spacing="6">
+                <Button Name="DarkThemeButton" Content="Dark" />
+                <Button Name="BlueThemeButton" Content="Blue" />
                 <Button Name="CompleteButton" Content="Complete" />
                 <Button Name="PreviousCompletionButton" Content="Previous" />
                 <Button Name="NextCompletionButton" Content="Next" />
@@ -29,6 +31,8 @@
 
             <RichTextBox Name="EditorTextBox"
                          Row="1" Column="0"
+                         HorizontalContentAlignment="Left"
+                         VerticalContentAlignment="Top"
                          MinLines="20"
                          MaxLines="20"
                          WrapText="False"

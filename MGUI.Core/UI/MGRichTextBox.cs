@@ -3,6 +3,7 @@ using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.Text;
 using MGUI.Core.UI.TextEditing;
 using MGUI.Shared.Input.Keyboard;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 
@@ -16,6 +17,8 @@ namespace MGUI.Core.UI
         private IRichTextCompletionProvider _completionProvider;
         private MGRichTextSyntaxPalette _syntaxPalette;
         private readonly List<MGStyledTextSpan> _styledSpans = new();
+
+        private readonly record struct StyledTextSegment(int StartIndex, int EndIndex, MGRichTextStyle Style);
 
         public MGTextBuffer TextBuffer { get; } = new();
         public MGRichTextCompletionPopupController CompletionPopup { get; } = new();
@@ -135,6 +138,7 @@ namespace MGUI.Core.UI
                 DefaultControlTemplateName = MGControlTemplateCatalog.TextBoxTemplateName;
                 HorizontalContentAlignment = HorizontalAlignment.Left;
                 VerticalContentAlignment = VerticalAlignment.Top;
+                TextBlockComponent.Element.VerticalContentAlignment = VerticalAlignment.Top;
                 WrapText = false;
                 MinLines = 4;
                 AcceptsReturn = true;
@@ -184,7 +188,7 @@ namespace MGUI.Core.UI
             }
 
             _styledSpans.Clear();
-            TextBlockComponent.Element.ClearTextRuns();
+            RebuildStyledTextRuns();
             NPC(nameof(StyledSpans));
             NPC(nameof(HasStyledSpans));
         }
@@ -285,7 +289,21 @@ namespace MGUI.Core.UI
             }
         }
 
+        protected override void UpdateFormattedText(bool Silent)
+        {
+            if (SyntaxHighlighter == null && !HasStyledSpans)
+            {
+                base.UpdateFormattedText(Silent);
+                return;
+            }
+
+            RebuildStyledTextRuns(Silent);
+        }
+
         internal static IReadOnlyList<MGTextRun> BuildStyledTextRuns(string text, IEnumerable<MGStyledTextSpan> spans)
+            => BuildStyledTextRuns(text, spans, null, null);
+
+        internal static IReadOnlyList<MGTextRun> BuildStyledTextRuns(string text, IEnumerable<MGStyledTextSpan> spans, MGTextRange? selectionRange, Color? selectionBackground)
         {
             string sourceText = text ?? string.Empty;
             List<MGStyledTextSpan> orderedSpans = new();
@@ -304,6 +322,34 @@ namespace MGUI.Core.UI
             SortStyledSpans(orderedSpans);
 
             List<MGTextRun> runs = new();
+            List<StyledTextSegment> segments = BuildStyledTextSegments(sourceText.Length, orderedSpans);
+            MGTextRange actualSelection = selectionRange.GetValueOrDefault().Clamp(sourceText.Length);
+            bool hasSelection = selectionRange.HasValue && selectionBackground.HasValue && !actualSelection.IsEmpty;
+
+            for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++)
+            {
+                StyledTextSegment segment = segments[segmentIndex];
+                if (!hasSelection || segment.EndIndex <= actualSelection.StartIndex || segment.StartIndex >= actualSelection.EndIndex)
+                {
+                    AddTextRun(runs, sourceText, segment.StartIndex, segment.EndIndex, segment.Style);
+                    continue;
+                }
+
+                int selectedStartIndex = Math.Max(segment.StartIndex, actualSelection.StartIndex);
+                int selectedEndIndex = Math.Min(segment.EndIndex, actualSelection.EndIndex);
+                AddTextRun(runs, sourceText, segment.StartIndex, selectedStartIndex, segment.Style);
+
+                MGRichTextStyle selectedStyle = new MGRichTextStyle(Background: selectionBackground.Value).MergeOver(segment.Style);
+                AddTextRun(runs, sourceText, selectedStartIndex, selectedEndIndex, selectedStyle);
+                AddTextRun(runs, sourceText, selectedEndIndex, segment.EndIndex, segment.Style);
+            }
+
+            return runs;
+        }
+
+        private static List<StyledTextSegment> BuildStyledTextSegments(int textLength, IReadOnlyList<MGStyledTextSpan> orderedSpans)
+        {
+            List<StyledTextSegment> segments = new();
             int cursor = 0;
             for (int spanIndex = 0; spanIndex < orderedSpans.Count; spanIndex++)
             {
@@ -311,24 +357,50 @@ namespace MGUI.Core.UI
                 int spanStartIndex = Math.Max(cursor, span.Range.StartIndex);
                 int spanEndIndex = Math.Max(spanStartIndex, span.Range.EndIndex);
 
-                AddTextRun(runs, sourceText, cursor, spanStartIndex, MGRichTextStyle.Default);
-                AddTextRun(runs, sourceText, spanStartIndex, spanEndIndex, span.Style);
+                AddStyledTextSegment(segments, cursor, spanStartIndex, MGRichTextStyle.Default);
+                AddStyledTextSegment(segments, spanStartIndex, spanEndIndex, span.Style);
                 cursor = Math.Max(cursor, spanEndIndex);
             }
 
-            AddTextRun(runs, sourceText, cursor, sourceText.Length, MGRichTextStyle.Default);
-            return runs;
+            AddStyledTextSegment(segments, cursor, textLength, MGRichTextStyle.Default);
+            return segments;
         }
 
-        private void RebuildStyledTextRuns()
+        private static void AddStyledTextSegment(List<StyledTextSegment> segments, int startIndex, int endIndex, MGRichTextStyle style)
         {
-            if (_styledSpans.Count == 0)
+            if (endIndex > startIndex)
             {
-                TextBlockComponent.Element.ClearTextRuns();
+                segments.Add(new StyledTextSegment(startIndex, endIndex, style));
+            }
+        }
+
+        private void RebuildStyledTextRuns(bool silent = false)
+        {
+            MGTextRange? selectionRange = GetSelectionRange();
+            if (_styledSpans.Count == 0 && !selectionRange.HasValue && SyntaxHighlighter == null)
+            {
+                TextBlockComponent.Element.ClearTextRuns(silent);
                 return;
             }
 
-            TextBlockComponent.Element.SetTextRuns(BuildStyledTextRuns(Text, _styledSpans));
+            Color? selectionBackground = selectionRange.HasValue ? GetCurrentSelectionBackground() : null;
+            TextBlockComponent.Element.SetTextRuns(BuildStyledTextRuns(Text, _styledSpans, selectionRange, selectionBackground), silent);
+        }
+
+        private MGTextRange? GetSelectionRange()
+        {
+            if (!CurrentSelection.HasValue || CurrentSelection.Value.ActualLength(Text) <= 0)
+            {
+                return null;
+            }
+
+            return new MGTextRange(CurrentSelection.Value.ActualStartIndex(Text), CurrentSelection.Value.ActualEndIndex(Text));
+        }
+
+        private Color GetCurrentSelectionBackground()
+        {
+            bool hasFocus = GetDesktop().FocusedKeyboardHandler == this;
+            return hasFocus ? FocusedSelectionBackgroundColor : UnfocusedSelectionBackgroundColor;
         }
 
         private static void SortStyledSpans(List<MGStyledTextSpan> spans)
@@ -347,8 +419,40 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            string runText = text.Substring(startIndex, endIndex - startIndex);
-            runs.Add(new MGTextRunText(runText, ToTextRunConfig(style), null, null));
+            MGTextRunConfig runConfig = ToTextRunConfig(style);
+            int textStartIndex = startIndex;
+            for (int index = startIndex; index < endIndex; index++)
+            {
+                char value = text[index];
+                if (value != '\r' && value != '\n')
+                {
+                    continue;
+                }
+
+                AddTextRunSegment(runs, text, textStartIndex, index, runConfig);
+
+                int lineBreakCharacterCount = 1;
+                if (value == '\r' && index + 1 < endIndex && text[index + 1] == '\n')
+                {
+                    lineBreakCharacterCount = 2;
+                    index++;
+                }
+
+                runs.Add(new MGTextRunLineBreak(lineBreakCharacterCount));
+                textStartIndex = index + 1;
+            }
+
+            AddTextRunSegment(runs, text, textStartIndex, endIndex, runConfig);
+        }
+
+        private static void AddTextRunSegment(List<MGTextRun> runs, string text, int startIndex, int endIndex, MGTextRunConfig config)
+        {
+            if (endIndex <= startIndex)
+            {
+                return;
+            }
+
+            runs.Add(new MGTextRunText(text.Substring(startIndex, endIndex - startIndex), config, null, null));
         }
 
         private static MGTextRunConfig ToTextRunConfig(MGRichTextStyle style)

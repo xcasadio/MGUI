@@ -1316,7 +1316,7 @@ namespace MGUI.Core.UI
                 return paddedBounds;
             }
 
-            return ApplyAlignment(paddedBounds, HorizontalAlignment.Stretch, VerticalAlignment.Center, new Size(paddedBounds.Width, height));
+            return ApplyAlignment(paddedBounds, HorizontalAlignment.Stretch, VerticalContentAlignment, new Size(paddedBounds.Width, height));
         }
 
         private Rectangle GetTemplateTextBlockBounds(Rectangle availableBounds, Size componentSize)
