@@ -269,7 +269,7 @@ Resultat:
 - Validation documentaire effectuee par relecture du plan et verification des chemins cites.
 - Commit effectue: `docs: complete graph task 01 define v1 contract`.
 
-### ⚪ Tache 02 - Ajouter les tests de contrat du modele graphe
+### ✅ Tache 02 - Ajouter les tests de contrat du modele graphe
 
 But:
 verrouiller la logique pure avant d'introduire le controle visuel.
@@ -302,7 +302,10 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `MGUI.Tests/Graph/GraphDocumentModelTests.cs` avec une matrice de contrat couvrant document vide, noeuds, ports, edges valides, edges invalides, duplicates, suppression de noeud et metadata editor.
+- Les tests utilisent la reflection pour rester compilables avant l'ajout concret des types en tache 03.
+- Validation attendue avant implementation: les tests expriment le contrat et deviendront verts lorsque le modele sera ajoute.
+- Commit effectue: `test: complete graph task 02 add model contract tests`.
 
 ### ⚪ Tache 03 - Ajouter le modele non visuel du graphe
 
