@@ -20,7 +20,7 @@ public class GraphTypeCompatibilityTests
         GraphTypeCompatibilityService service = new();
 
         Assert.False(service.AreTypesCompatible(Output(GraphValueType.Exec), Input(GraphValueType.Float)));
-        Assert.False(service.AreTypesCompatible(Output(GraphValueType.Texture2D), Input(GraphValueType.Color)));
+        Assert.False(service.AreTypesCompatible(Output(GraphValueType.Texture), Input(GraphValueType.Color)));
     }
 
     [Fact]

@@ -1220,7 +1220,7 @@ Resultat:
 - Validation documentaire effectuee avec `rtk git diff -- Docs/graph-view-v1-guide.md Docs/graph_node_system_agent_plan.md`; RTK n'a pas emis de diff lisible pour le fichier non tracke, puis verification manuelle du guide et des noms de types/TemplateParts contre le code.
 - Commit effectue: `docs: complete graph task 23 document graph view v1`.
 
-### ⚪ Tache 24 - Stabiliser la matrice de scenarios graphe
+### ✅ Tache 24 - Stabiliser la matrice de scenarios graphe
 
 But:
 faire une passe finale de regression avant de considerer la V1 complete.
@@ -1254,7 +1254,18 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `MGUI.Tests/Graph/GraphScenarioTests.cs` avec quatre scenarios de regression V1.
+- Scenario complet couvert: creation de deux nodes via commandes, connexion, deplacement, undo, redo, frame all, serialisation JSON, deserialisation, validation et resynchronisation UI.
+- Suppression d'un noeud connecte couverte via selection `MGGraphView.DeleteSelection()`, avec suppression des edges dependants et restauration par undo.
+- Chargement d'un document contenant une edge invalide couvert: la deserialisation preserve les donnees et `GraphDocumentValidator` remonte `MissingTargetNode`.
+- Theme/template minimal couvert: enregistrement des templates graphe, theme `MGTheme.Graph`, parsing XAML minimal et verification des `PART_*` requis.
+- Renommage de `GraphValueType.Texture2D` en `GraphValueType.Texture` pour rester backend-neutral et satisfaire les garde-fous d'architecture qui interdisent le token MonoGame `Texture2D` dans `MGUI.Core`.
+- Validation effectuee: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` OK.
+- Validation effectuee: `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore` OK.
+- Validation effectuee: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "Graph"` OK, 90 tests passes.
+- Validation large demandee: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "Graph|Architecture|Xaml|Theme"` compile et execute 414 tests; 411 passes, 3 echecs Architecture restent hors graphe (`BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, `BoxGeometryBuilderTests.EquivalentNormalizedShapes_ReuseCachedGeometry`, `ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`). Les deux echecs Architecture causes par le graphe (`GraphEnums.cs` / token `Texture2D`) ont ete corriges.
+- Aucun point V1 obligatoire du plan graphe ne reste sans implementation.
+- Commit effectue: `test: complete graph task 24 stabilize graph scenario matrix`.
 
 ## Backlog V2 apres V1
 

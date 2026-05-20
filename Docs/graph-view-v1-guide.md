@@ -85,7 +85,7 @@ Core document types:
 - `GraphEdgeModel`: stable `Id`, source node/port, target node/port and render metadata.
 - `GraphCommentModel`: stable `Id`, world-space `Bounds`, `Title`, `Text`, optional `Color` and editor metadata.
 
-The built-in value types are defined by `GraphValueType`: `Float`, `Int`, `Bool`, `String`, vector types, `Color`, `Texture2D`, `Material`, `Entity`, `Exec`, `Object`, `Custom` and `Wildcard`.
+The built-in value types are defined by `GraphValueType`: `Float`, `Int`, `Bool`, `String`, vector types, `Color`, `Texture`, `Material`, `Entity`, `Exec`, `Object`, `Custom` and `Wildcard`.
 
 ## Node Palette
 

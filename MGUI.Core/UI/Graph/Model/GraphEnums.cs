@@ -22,7 +22,7 @@ namespace MGUI.Core.UI.Graph
         Vector3,
         Vector4,
         Color,
-        Texture2D,
+        Texture,
         Material,
         Entity,
         Exec,
