@@ -465,7 +465,7 @@ Resultat:
 - Resultat validation: 14 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
 - Commit effectue: `feat: complete graph task 06 add type compatibility validation`.
 
-### ⚪ Tache 07 - Ajouter commandes et undo/redo local
+### ✅ Tache 07 - Ajouter commandes et undo/redo local
 
 But:
 poser l'undo/redo des actions du graphe sans dependre d'un systeme global inexistant.
@@ -495,7 +495,12 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `IGraphCommand`, `GraphCommandStack` et des commandes V1: creation/suppression/deplacement/redimensionnement de noeud, connexion/deconnexion de ports, creation/deplacement de commentaire.
+- Ajout de `GraphDocument.AddEdge(...)` et `GraphDocument.AddComment(GraphCommentModel)` pour restaurer proprement les elements pendant undo/redo.
+- Ajout de `GraphCommandStackTests` couvrant create/undo/redo, move node, connect/disconnect, invalidation redo et restauration des edges lors d'un delete node undo.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphCommand"`.
+- Resultat validation: 5 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
+- Commit effectue: `feat: complete graph task 07 add command stack`.
 
 ### ⚪ Tache 08 - Ajouter serialization JSON versionnee
 

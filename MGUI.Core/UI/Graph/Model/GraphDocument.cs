@@ -191,9 +191,39 @@ namespace MGUI.Core.UI.Graph
             }
 
             GraphEdgeModel newEdge = new(edgeId, sourceNodeId, sourcePortId, targetNodeId, targetPortId);
-            Edges.Add(newEdge);
-            OnGraphChanged();
+            AddEdge(newEdge, validate: false);
             return newEdge;
+        }
+
+        public GraphEdgeModel AddEdge(GraphEdgeModel edge, bool validate = true)
+        {
+            if (edge == null)
+            {
+                throw new ArgumentNullException(nameof(edge));
+            }
+
+            if (edge.Id == Guid.Empty)
+            {
+                throw new ArgumentException("Edge id must not be empty.", nameof(edge));
+            }
+
+            if (TryGetEdge(edge.Id) != null)
+            {
+                throw new InvalidOperationException($"Graph already contains edge '{edge.Id}'.");
+            }
+
+            if (validate)
+            {
+                GraphConnectionValidationResult validation = CompatibilityService.ValidateConnection(this, edge.SourceNodeId, edge.SourcePortId, edge.TargetNodeId, edge.TargetPortId);
+                if (!validation.IsValid)
+                {
+                    throw new InvalidOperationException(validation.Message);
+                }
+            }
+
+            Edges.Add(edge);
+            OnGraphChanged();
+            return edge;
         }
 
         public bool Disconnect(Guid edgeId)
@@ -254,6 +284,27 @@ namespace MGUI.Core.UI.Graph
             }
 
             GraphCommentModel comment = new(id, bounds, title, text);
+            AddComment(comment);
+            return comment;
+        }
+
+        public GraphCommentModel AddComment(GraphCommentModel comment)
+        {
+            if (comment == null)
+            {
+                throw new ArgumentNullException(nameof(comment));
+            }
+
+            if (comment.Id == Guid.Empty)
+            {
+                throw new ArgumentException("Comment id must not be empty.", nameof(comment));
+            }
+
+            if (TryGetComment(comment.Id) != null)
+            {
+                throw new InvalidOperationException($"Graph already contains comment '{comment.Id}'.");
+            }
+
             Comments.Add(comment);
             OnGraphChanged();
             return comment;
