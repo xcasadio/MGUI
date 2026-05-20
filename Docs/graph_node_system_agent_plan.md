@@ -709,7 +709,7 @@ Resultat:
 - Resultat validation: 112 tests passes, 0 echec; avertissements restants preexistants ou nullable dans tests existants.
 - Commit effectue: `feat: complete graph task 12 add graph view shell`.
 
-### ⚪ Tache 13 - Synchroniser `GraphDocument` vers les noeuds visibles
+### ✅ Tache 13 - Synchroniser `GraphDocument` vers les noeuds visibles
 
 But:
 relier le modele aux controles sans casser la separation modele/UI.
@@ -743,7 +743,16 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout du synchroniseur interne `GraphDocumentViewSynchronizer` branche a `MGGraphView`.
+- `MGGraphView` ecoute `GraphDocument.GraphChanged`, synchronise sur changement de document et expose `SynchronizeDocument`, `TryGetNodeControl` et `TryGetPortControl`.
+- Creation, reutilisation et suppression incrementales des `MGGraphNode` selon les nodes du document.
+- Creation, reutilisation et suppression incrementales des `MGGraphPort` selon les ports du modele.
+- Synchronisation des titres, selection, collapse, flags error/warning via metadata, tailles optionnelles, positions via `GraphViewportTransform` et etat `IsConnected` des ports.
+- Le synchroniseur utilise les scopes temporaires `AllowChangingContentTemporarily` pour respecter les hosts internes verrouilles.
+- Ajout de `GraphDocumentSynchronizationTests` couvrant ajout, suppression, mise a jour de position sans recreation et synchronisation des ports connectes sans mutation du modele.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphView|GraphSync"`.
+- Resultat validation: 14 tests passes, 0 echec; avertissements restants preexistants ou nullable dans tests existants.
+- Commit effectue: `feat: complete graph task 13 sync document to visible nodes`.
 
 ### ⚪ Tache 14 - Rendre la grille et les edges
 

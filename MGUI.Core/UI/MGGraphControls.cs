@@ -27,6 +27,7 @@ namespace MGUI.Core.UI
         }
 
         private GraphDocument _Document;
+        private GraphDocumentViewSynchronizer _Synchronizer;
 
         public MGBorder OuterBorder { get; private set; }
         public MGOverlayPanel ViewportHost { get; private set; }
@@ -50,7 +51,14 @@ namespace MGUI.Core.UI
                 GraphDocument next = value ?? new GraphDocument();
                 if (!ReferenceEquals(_Document, next))
                 {
+                    if (_Document != null)
+                    {
+                        _Document.GraphChanged -= OnDocumentGraphChanged;
+                    }
+
                     _Document = next;
+                    _Document.GraphChanged += OnDocumentGraphChanged;
+                    SynchronizeDocument();
                     NPC(nameof(Document));
                 }
             }
@@ -65,6 +73,7 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 _Document = document ?? new GraphDocument();
+                _Document.GraphChanged += OnDocumentGraphChanged;
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphViewTemplateName;
             }
         }
@@ -97,7 +106,28 @@ namespace MGUI.Core.UI
             {
                 SetContent(OuterBorder);
             }
+
+            _Synchronizer = new GraphDocumentViewSynchronizer(this);
+            SynchronizeDocument();
         }
+
+        public void SynchronizeDocument()
+            => _Synchronizer?.Synchronize();
+
+        public bool TryGetNodeControl(Guid nodeId, out MGGraphNode node)
+        {
+            node = null;
+            return _Synchronizer?.TryGetNode(nodeId, out node) == true;
+        }
+
+        public bool TryGetPortControl(Guid portId, out MGGraphPort port)
+        {
+            port = null;
+            return _Synchronizer?.TryGetPort(portId, out port) == true;
+        }
+
+        private void OnDocumentGraphChanged(object sender, EventArgs e)
+            => SynchronizeDocument();
     }
 
     public class MGGraphNode : MGSingleContentHost
