@@ -349,7 +349,7 @@ Resultat:
 - Resultat validation: 6 tests passes, 0 echec; avertissements existants ou nullable dans les tests de contrat.
 - Commit effectue: `feat: complete graph task 03 add graph document model`.
 
-### ⚪ Tache 04 - Ajouter les tests du transform viewport et des coordonnees
+### ✅ Tache 04 - Ajouter les tests du transform viewport et des coordonnees
 
 But:
 verrouiller les conversions monde / viewport / layout avant l'input et le rendu.
@@ -381,7 +381,10 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `MGUI.Tests/Graph/GraphViewportTransformTests.cs` couvrant round-trip monde/viewport, pan, zoom centre souris, clamp min/max, snapping grille, frame bounds et frame origin.
+- Les tests utilisent la reflection pour rester compilables avant l'ajout concret de `GraphViewportTransform` en tache 05.
+- Validation attendue avant implementation: le projet compile, les tests echouent tant que le type n'existe pas.
+- Commit effectue: `test: complete graph task 04 add viewport transform tests`.
 
 ### ⚪ Tache 05 - Ajouter `GraphViewportTransform`
 
