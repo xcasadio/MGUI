@@ -846,7 +846,7 @@ Resultat:
 - Resultat validation: build OK; 291 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
 - Commit effectue: `input: complete graph task 15 add pan zoom and frame commands`.
 
-### ⚪ Tache 16 - Ajouter selection et drag de noeuds
+### ✅ Tache 16 - Ajouter selection et drag de noeuds
 
 But:
 permettre manipulation de base des noeuds dans le graphe.
@@ -882,7 +882,18 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphSelectionManager` pour selection pure des nodes/edges, selection simple, selection additive/toggle et selection par rectangle monde.
+- `MGGraphView` expose `Selection`, `Commands`, `ClearSelection`, `SelectNode`, `SelectNodesInWorldRectangle`, `MoveSelectedNodesBy`, et maintient les visuels `IsSelected` via `UpdateSelectionVisuals`.
+- Selection souris: clic gauche sur node selectionne, Ctrl ajoute/toggle, clic gauche vide nettoie la selection hors Ctrl.
+- Drag de noeuds: clic gauche + mouvement sur node selectionne deplace le node ou groupe selectionne; `SnapToGrid` applique `GraphViewportTransform.SnapPoint`.
+- Drag rectangle: clic gauche + mouvement dans la surface vide produit un rectangle de selection en coordonnees viewport, converti en monde au relachement.
+- Ajout de `GraphNodeMove` et `MoveNodesCommand` pour enregistrer un drag groupe comme une seule entree undo/redo; les drags live peuvent deja avoir applique la position finale avant commit.
+- `MoveSelectedNodesBy` utilise `MoveNodeCommand` pour un node et `MoveNodesCommand` pour les groupes.
+- Auto-pan pres des bords laisse au perimetre V2 pour eviter de complexifier le routage d'input V1.
+- Ajout de `GraphSelectionTests` couvrant selection simple/toggle, rectangle, etat visuel, deplacement groupe undoable et snapping.
+- Validations executees avec succes: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` et `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphSelection|GraphCommand|GraphInput"`.
+- Resultat validation: build OK; 16 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
+- Commit effectue: `input: complete graph task 16 add selection and node dragging`.
 
 ### ⚪ Tache 17 - Ajouter interaction de connexion entre ports
 

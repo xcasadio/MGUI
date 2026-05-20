@@ -107,6 +107,58 @@ namespace MGUI.Core.UI.Graph
         }
     }
 
+    public readonly record struct GraphNodeMove(Guid NodeId, Vector2 OldPosition, Vector2 NewPosition);
+
+    public sealed class MoveNodesCommand : IGraphCommand
+    {
+        private readonly List<GraphNodeMove> Moves;
+        public string Name => "Move Nodes";
+
+        public MoveNodesCommand(IEnumerable<GraphNodeMove> moves)
+        {
+            Moves = moves == null ? new List<GraphNodeMove>() : new List<GraphNodeMove>(moves);
+        }
+
+        public bool Execute(GraphDocument document) => SetPositions(document, useNewPositions: true);
+
+        public bool Undo(GraphDocument document) => SetPositions(document, useNewPositions: false);
+
+        private bool SetPositions(GraphDocument document, bool useNewPositions)
+        {
+            if (document == null || Moves.Count == 0)
+            {
+                return false;
+            }
+
+            bool appliedAny = false;
+            bool changed = false;
+            for (int moveIndex = 0; moveIndex < Moves.Count; moveIndex++)
+            {
+                GraphNodeMove move = Moves[moveIndex];
+                GraphNodeModel node = document.TryGetNode(move.NodeId);
+                if (node == null)
+                {
+                    continue;
+                }
+
+                appliedAny = true;
+                Vector2 next = useNewPositions ? move.NewPosition : move.OldPosition;
+                if (node.Position != next)
+                {
+                    node.Position = next;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                document.NotifyGraphChanged();
+            }
+
+            return appliedAny;
+        }
+    }
+
     public sealed class ResizeNodeCommand : IGraphCommand
     {
         private readonly Guid NodeId;

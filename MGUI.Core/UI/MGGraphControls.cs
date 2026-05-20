@@ -37,6 +37,12 @@ namespace MGUI.Core.UI
         private bool _IsPanningViewport;
         private Point _PanStartScreenPosition;
         private Vector2 _PanStartValue;
+        private bool _IsDraggingNodes;
+        private bool _IsSelectingRectangle;
+        private Guid _PressedNodeId;
+        private Vector2 _PointerPressViewportPoint;
+        private Vector2 _CurrentSelectionViewportPoint;
+        private readonly Dictionary<Guid, Vector2> _NodeDragStartPositions = new();
 
         public MGBorder OuterBorder { get; private set; }
         public MGOverlayPanel ViewportHost { get; private set; }
@@ -46,6 +52,8 @@ namespace MGUI.Core.UI
         public GraphViewportTransform ViewportTransform { get; } = new();
         public GraphViewportTransform Viewport => ViewportTransform;
         public GraphEdgeGeometryCache EdgeGeometryCache { get; } = new();
+        public GraphCommandStack Commands { get; } = new();
+        public GraphSelectionManager Selection { get; }
         public HashSet<Guid> SelectedNodeIds { get; } = new();
         public HashSet<Guid> SelectedEdgeIds { get; } = new();
         public bool ShowGrid { get; set; } = true;
@@ -53,6 +61,8 @@ namespace MGUI.Core.UI
         public bool AllowPan { get; set; } = true;
         public bool SnapToGrid { get; set; }
         public float FramePadding { get; set; } = 32.0f;
+        public bool IsSelectionRectangleActive => _IsSelectingRectangle;
+        public RectangleF SelectionRectangleViewportBounds => CreateRectangle(_PointerPressViewportPoint, _CurrentSelectionViewportPoint);
 
         public IFillBrush GridLineBrush
         {
@@ -139,6 +149,7 @@ namespace MGUI.Core.UI
             {
                 _Document = document ?? new GraphDocument();
                 _Document.GraphChanged += OnDocumentGraphChanged;
+                Selection = new GraphSelectionManager(SelectedNodeIds, SelectedEdgeIds);
                 IsFocusable = true;
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphViewTemplateName;
                 RegisterViewportInputHandlers();
@@ -191,6 +202,70 @@ namespace MGUI.Core.UI
         {
             port = null;
             return _Synchronizer?.TryGetPort(portId, out port) == true;
+        }
+
+        public bool ClearSelection()
+        {
+            bool changed = Selection.Clear();
+            if (changed)
+            {
+                UpdateSelectionVisuals();
+            }
+
+            return changed;
+        }
+
+        public bool SelectNode(Guid nodeId, bool additive = false, bool toggle = false)
+        {
+            bool changed = Selection.SelectNode(nodeId, additive, toggle);
+            if (changed)
+            {
+                UpdateSelectionVisuals();
+            }
+
+            return changed;
+        }
+
+        public bool SelectNodesInWorldRectangle(RectangleF worldRectangle, bool additive = false)
+        {
+            bool changed = Selection.SelectNodesInRectangle(Document, worldRectangle, additive);
+            if (changed)
+            {
+                UpdateSelectionVisuals();
+            }
+
+            return changed;
+        }
+
+        public bool MoveSelectedNodesBy(Vector2 worldDelta)
+        {
+            if (Document == null || SelectedNodeIds.Count == 0 || worldDelta == Vector2.Zero)
+            {
+                return false;
+            }
+
+            List<GraphNodeMove> moves = new();
+            foreach (Guid nodeId in SelectedNodeIds)
+            {
+                GraphNodeModel node = Document.TryGetNode(nodeId);
+                if (node == null)
+                {
+                    continue;
+                }
+
+                Vector2 next = node.Position + worldDelta;
+                if (SnapToGrid)
+                {
+                    next = ViewportTransform.SnapPoint(next);
+                }
+
+                if (node.Position != next)
+                {
+                    moves.Add(new GraphNodeMove(node.Id, node.Position, next));
+                }
+            }
+
+            return ExecuteMoveCommand(moves);
         }
 
         public bool PanViewportBy(Vector2 delta)
@@ -305,7 +380,7 @@ namespace MGUI.Core.UI
 
         private void RegisterViewportInputHandlers()
         {
-            MouseHandler.DragStartCondition = DragStartCondition.MousePressed;
+            MouseHandler.DragStartCondition = DragStartCondition.Both;
 
             MouseHandler.DragStart += (sender, e) =>
             {
@@ -316,6 +391,19 @@ namespace MGUI.Core.UI
                     _PanStartValue = ViewportTransform.Pan;
                     e.SetHandledBy(this, false);
                     Focus(KeyboardFocusSource.Pointer);
+                }
+
+                if (e.IsLMB && e.Condition == DragStartCondition.MouseMovedAfterPress && IsPointerInsideViewport(e.Position))
+                {
+                    if (_PressedNodeId != Guid.Empty)
+                    {
+                        BeginNodeDrag();
+                    }
+                    else
+                    {
+                        _IsSelectingRectangle = true;
+                        _CurrentSelectionViewportPoint = GetViewportPoint(e.Position);
+                    }
                 }
             };
 
@@ -331,6 +419,16 @@ namespace MGUI.Core.UI
                         SynchronizeDocument();
                     }
                 }
+
+                else if (_IsDraggingNodes && e.IsLMB)
+                {
+                    UpdateNodeDrag(GetViewportPoint(e.Position));
+                }
+
+                else if (_IsSelectingRectangle && e.IsLMB)
+                {
+                    _CurrentSelectionViewportPoint = GetViewportPoint(e.Position);
+                }
             };
 
             MouseHandler.DragEnd += (sender, e) =>
@@ -339,6 +437,11 @@ namespace MGUI.Core.UI
                 {
                     _IsPanningViewport = false;
                 }
+
+                if (e.IsLMB)
+                {
+                    CompleteNodeOrRectangleDrag(e.EndPosition);
+                }
             };
 
             MouseHandler.ReleasedOutside += (sender, e) =>
@@ -346,6 +449,38 @@ namespace MGUI.Core.UI
                 if (e.IsMMB)
                 {
                     _IsPanningViewport = false;
+                }
+
+                if (e.IsLMB)
+                {
+                    CompleteNodeOrRectangleDrag(e.Position);
+                }
+            };
+
+            MouseHandler.LMBPressedInside += (sender, e) =>
+            {
+                if (!IsPointerInsideViewport(e.Position))
+                {
+                    return;
+                }
+
+                Focus(KeyboardFocusSource.Pointer);
+                _PointerPressViewportPoint = GetViewportPoint(e.Position);
+                _CurrentSelectionViewportPoint = _PointerPressViewportPoint;
+                bool controlDown = IsControlDown();
+                if (TryGetNodeAtViewportPoint(_PointerPressViewportPoint, out MGGraphNode node))
+                {
+                    _PressedNodeId = node.NodeId;
+                    SelectNode(node.NodeId, additive: controlDown, toggle: controlDown);
+                    e.SetHandledBy(this, false);
+                }
+                else
+                {
+                    _PressedNodeId = Guid.Empty;
+                    if (!controlDown)
+                    {
+                        ClearSelection();
+                    }
                 }
             };
 
@@ -370,6 +505,170 @@ namespace MGUI.Core.UI
             };
         }
 
+        public void UpdateSelectionVisuals()
+        {
+            if (Document == null)
+            {
+                return;
+            }
+
+            for (int nodeIndex = 0; nodeIndex < Document.Nodes.Count; nodeIndex++)
+            {
+                GraphNodeModel nodeModel = Document.Nodes[nodeIndex];
+                if (nodeModel != null && TryGetNodeControl(nodeModel.Id, out MGGraphNode node))
+                {
+                    node.IsSelected = SelectedNodeIds.Contains(nodeModel.Id);
+                }
+            }
+        }
+
+        private void BeginNodeDrag()
+        {
+            _NodeDragStartPositions.Clear();
+            foreach (Guid selectedNodeId in SelectedNodeIds)
+            {
+                GraphNodeModel node = Document.TryGetNode(selectedNodeId);
+                if (node != null)
+                {
+                    _NodeDragStartPositions[selectedNodeId] = node.Position;
+                }
+            }
+
+            _IsDraggingNodes = _NodeDragStartPositions.Count > 0;
+        }
+
+        private void UpdateNodeDrag(Vector2 currentViewportPoint)
+        {
+            Vector2 startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
+            Vector2 currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
+            Vector2 worldDelta = currentWorld - startWorld;
+            bool changed = false;
+
+            foreach (KeyValuePair<Guid, Vector2> item in _NodeDragStartPositions)
+            {
+                GraphNodeModel node = Document.TryGetNode(item.Key);
+                if (node == null)
+                {
+                    continue;
+                }
+
+                Vector2 next = item.Value + worldDelta;
+                if (SnapToGrid)
+                {
+                    next = ViewportTransform.SnapPoint(next);
+                }
+
+                if (node.Position != next)
+                {
+                    node.Position = next;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                Document.NotifyGraphChanged();
+            }
+        }
+
+        private void CompleteNodeOrRectangleDrag(Point screenPosition)
+        {
+            if (_IsDraggingNodes)
+            {
+                CommitNodeDrag();
+            }
+            else if (_IsSelectingRectangle)
+            {
+                _CurrentSelectionViewportPoint = GetViewportPoint(screenPosition);
+                RectangleF viewportRectangle = SelectionRectangleViewportBounds;
+                if (viewportRectangle.Width > 1.0f && viewportRectangle.Height > 1.0f)
+                {
+                    SelectNodesInWorldRectangle(ViewportRectangleToWorldRectangle(viewportRectangle), additive: IsControlDown());
+                }
+            }
+
+            _PressedNodeId = Guid.Empty;
+            _IsDraggingNodes = false;
+            _IsSelectingRectangle = false;
+            _NodeDragStartPositions.Clear();
+        }
+
+        private void CommitNodeDrag()
+        {
+            List<GraphNodeMove> moves = new();
+            foreach (KeyValuePair<Guid, Vector2> item in _NodeDragStartPositions)
+            {
+                GraphNodeModel node = Document.TryGetNode(item.Key);
+                if (node != null && node.Position != item.Value)
+                {
+                    moves.Add(new GraphNodeMove(item.Key, item.Value, node.Position));
+                }
+            }
+
+            if (moves.Count == 0)
+            {
+                return;
+            }
+
+            ExecuteMoveCommand(moves);
+        }
+
+        private bool ExecuteMoveCommand(List<GraphNodeMove> moves)
+        {
+            if (moves == null || moves.Count == 0)
+            {
+                return false;
+            }
+
+            if (moves.Count == 1)
+            {
+                GraphNodeMove move = moves[0];
+                return Commands.Execute(Document, new MoveNodeCommand(move.NodeId, move.OldPosition, move.NewPosition));
+            }
+
+            return Commands.Execute(Document, new MoveNodesCommand(moves));
+        }
+
+        private bool TryGetNodeAtViewportPoint(Vector2 viewportPoint, out MGGraphNode node)
+        {
+            node = null;
+            if (NodesCanvas == null)
+            {
+                return false;
+            }
+
+            for (int childIndex = NodesCanvas.Children.Count - 1; childIndex >= 0; childIndex--)
+            {
+                if (NodesCanvas.Children[childIndex] is MGGraphNode graphNode)
+                {
+                    Rectangle bounds = GetNodeViewportBounds(graphNode);
+                    if (bounds.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y)))
+                    {
+                        node = graphNode;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private Rectangle GetNodeViewportBounds(MGGraphNode node)
+        {
+            Rectangle bounds = node.ActualLayoutBounds.Width > 0 || node.ActualLayoutBounds.Height > 0 ? node.ActualLayoutBounds : node.LayoutBounds;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                GraphNodeModel model = Document.TryGetNode(node.NodeId);
+                RectangleF worldBounds = GraphSelectionManager.GetNodeWorldBounds(model);
+                Vector2 topLeft = ViewportTransform.WorldToViewport(new Vector2(worldBounds.Left, worldBounds.Top));
+                Vector2 bottomRight = ViewportTransform.WorldToViewport(new Vector2(worldBounds.Right, worldBounds.Bottom));
+                RectangleF viewportBounds = CreateRectangle(topLeft, bottomRight);
+                return new Rectangle((int)MathF.Floor(viewportBounds.X), (int)MathF.Floor(viewportBounds.Y), (int)MathF.Ceiling(viewportBounds.Width), (int)MathF.Ceiling(viewportBounds.Height));
+            }
+
+            return bounds;
+        }
+
         private bool IsPointerInsideViewport(Point screenPosition)
         {
             if (ViewportHost == null)
@@ -386,6 +685,28 @@ namespace MGUI.Core.UI
             => NodesCanvas == null
                 ? ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, screenPosition.ToVector2())
                 : NodesCanvas.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, screenPosition.ToVector2());
+
+        private RectangleF ViewportRectangleToWorldRectangle(RectangleF viewportRectangle)
+        {
+            Vector2 worldStart = ViewportTransform.LayoutToWorld(new Vector2(viewportRectangle.Left, viewportRectangle.Top));
+            Vector2 worldEnd = ViewportTransform.LayoutToWorld(new Vector2(viewportRectangle.Right, viewportRectangle.Bottom));
+            return CreateRectangle(worldStart, worldEnd);
+        }
+
+        private bool IsControlDown()
+        {
+            KeyboardState keyboard = InputTracker.Keyboard.CurrentState;
+            return keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl);
+        }
+
+        private static RectangleF CreateRectangle(Vector2 first, Vector2 second)
+        {
+            float left = Math.Min(first.X, second.X);
+            float top = Math.Min(first.Y, second.Y);
+            float right = Math.Max(first.X, second.X);
+            float bottom = Math.Max(first.Y, second.Y);
+            return new RectangleF(left, top, right - left, bottom - top);
+        }
 
         private Rectangle GetViewportBoundsForFraming()
         {
