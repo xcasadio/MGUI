@@ -307,7 +307,7 @@ Resultat:
 - Validation attendue avant implementation: les tests expriment le contrat et deviendront verts lorsque le modele sera ajoute.
 - Commit effectue: `test: complete graph task 02 add model contract tests`.
 
-### ⚪ Tache 03 - Ajouter le modele non visuel du graphe
+### ✅ Tache 03 - Ajouter le modele non visuel du graphe
 
 But:
 fournir le noyau testable utilise par l'UI, la validation, les commandes et la serialization.
@@ -342,7 +342,12 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout du noyau pur dans `MGUI.Core/UI/Graph/Model/`: enums de ports/types, `GraphDocument`, `GraphNodeModel`, `GraphPortModel`, `GraphEdgeModel` et `GraphCommentModel`.
+- `GraphDocument` expose creation/suppression de noeuds, ajout de ports, connexion/deconnexion, recherche node/port/edge/comment et nettoyage des edges dependantes lors d'une suppression de noeud.
+- Les modeles ne dependent pas des controles MGUI et restent testables sans fenetre ni renderer.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphDocumentModelTests"`.
+- Resultat validation: 6 tests passes, 0 echec; avertissements existants ou nullable dans les tests de contrat.
+- Commit effectue: `feat: complete graph task 03 add graph document model`.
 
 ### ⚪ Tache 04 - Ajouter les tests du transform viewport et des coordonnees
 
