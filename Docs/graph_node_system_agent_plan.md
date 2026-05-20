@@ -541,7 +541,7 @@ Resultat:
 - Resultat validation: 3 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
 - Commit effectue: `feat: complete graph task 08 add versioned serialization`.
 
-### ⚪ Tache 09 - Ajouter services de geometrie de rendu et hit-test
+### ✅ Tache 09 - Ajouter services de geometrie de rendu et hit-test
 
 But:
 preparer grid, edges Bezier et hit-test sans coupler au controle.
@@ -572,7 +572,13 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphBezierGeometry`, `GraphEdgeGeometryCache` et `GraphHitTestService`.
+- Les edges Bezier V1 sont echantillonnees en polylignes reutilisables; le cache suit les endpoints, l'epaisseur, le zoom et le nombre de segments.
+- Le hit-test supporte les polylignes d'edges avec tolerance et les noeuds en ordre top-most.
+- Ajout de `GraphGeometryTests` couvrant sampling, cache, hit-test edge et hit-test node.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphGeometry|GraphHitTest"`.
+- Resultat validation: 4 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
+- Commit effectue: `feat: complete graph task 09 add render geometry services`.
 
 ### ⚪ Tache 10 - Enregistrer types UI, theme tokens et XAML minimal
 
