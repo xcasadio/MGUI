@@ -56,6 +56,7 @@ namespace MGUI.Core.UI
         public GraphCommandStack Commands { get; } = new();
         public GraphSelectionManager Selection { get; }
         public GraphConnectionController ConnectionController { get; }
+        public GraphNodePalette NodePalette { get; set; } = GraphNodePalette.CreateDefault();
         public HashSet<Guid> SelectedNodeIds { get; } = new();
         public HashSet<Guid> SelectedEdgeIds { get; } = new();
         public bool ShowGrid { get; set; } = true;
@@ -155,6 +156,7 @@ namespace MGUI.Core.UI
                 ConnectionController = new GraphConnectionController(this);
                 IsFocusable = true;
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphViewTemplateName;
+                ContextMenuRequested += OnGraphContextMenuRequested;
                 RegisterViewportInputHandlers();
             }
         }
@@ -242,7 +244,9 @@ namespace MGUI.Core.UI
                     }
                     else
                     {
+                        Guid startPortId = ConnectionController.StartPortId;
                         ConnectionController.Cancel();
+                        TryOpenNodeCreationMenu(e.EndPosition, startPortId);
                     }
                 }
             };
@@ -496,6 +500,64 @@ namespace MGUI.Core.UI
             return deleted;
         }
 
+        public GraphNodeModel CreateNodeFromDefinition(GraphNodeDefinition definition, Vector2 worldPosition, Guid? connectFromPortId = null)
+        {
+            if (definition == null || Document == null)
+            {
+                return null;
+            }
+
+            GraphNodeModel node = definition.CreateNode(Guid.NewGuid(), SnapToGrid ? ViewportTransform.SnapPoint(worldPosition) : worldPosition);
+            if (!Commands.Execute(Document, new CreateNodeCommand(node)))
+            {
+                return null;
+            }
+
+            ClearSelection();
+            SelectNode(node.Id);
+
+            if (connectFromPortId.HasValue)
+            {
+                GraphPortModel draggedPort = Document.TryGetPort(connectFromPortId.Value);
+                if (draggedPort != null && NodePalette?.TryFindCompatiblePort(node, draggedPort, out GraphPortModel compatiblePort) == true)
+                {
+                    ConnectionController.TryCreateConnection(connectFromPortId.Value, compatiblePort.Id);
+                }
+            }
+
+            return node;
+        }
+
+        public MGContextMenu CreateNodeCreationMenu(Vector2 worldPosition, Guid? connectFromPortId = null)
+        {
+            MGContextMenu menu = new(ParentWindow, string.Empty);
+            GraphPortModel draggedPort = connectFromPortId.HasValue ? Document?.TryGetPort(connectFromPortId.Value) : null;
+            IEnumerable<GraphNodeDefinition> definitions = NodePalette?.GetDefinitions(draggedPort) ?? Array.Empty<GraphNodeDefinition>();
+            string previousCategory = null;
+            foreach (GraphNodeDefinition definition in definitions)
+            {
+                if (definition == null)
+                {
+                    continue;
+                }
+
+                if (previousCategory != null && !string.Equals(previousCategory, definition.Category, StringComparison.Ordinal))
+                {
+                    menu.AddSeparator();
+                }
+
+                previousCategory = definition.Category;
+                GraphNodeDefinition capturedDefinition = definition;
+                string label = string.IsNullOrWhiteSpace(definition.Category)
+                    ? definition.DisplayName
+                    : $"{definition.Category} / {definition.DisplayName}";
+                MGContextMenuButton button = menu.AddButton(label, _ => CreateNodeFromDefinition(capturedDefinition, worldPosition, connectFromPortId));
+                button.CommandId = $"graph.createNode:{definition.NodeType}";
+            }
+
+            return menu;
+        }
+
         public void CancelCurrentInteraction()
         {
             _IsPanningViewport = false;
@@ -508,6 +570,44 @@ namespace MGUI.Core.UI
 
         private void OnDocumentGraphChanged(object sender, EventArgs e)
             => SynchronizeDocument();
+
+        private void OnGraphContextMenuRequested(object sender, ContextMenuRequestedEventArgs e)
+        {
+            if (!IsPointerInsideViewport(e.Position))
+            {
+                e.Menu = null;
+                return;
+            }
+
+            Vector2 viewportPoint = GetViewportPoint(e.Position);
+            if (TryGetNodeAtViewportPoint(viewportPoint, out _) || TryGetPortAtViewportPoint(viewportPoint, out _))
+            {
+                e.Menu = null;
+                return;
+            }
+
+            Vector2 worldPosition = ViewportTransform.LayoutToWorld(viewportPoint);
+            MGContextMenu menu = CreateNodeCreationMenu(worldPosition);
+            if (menu.Items.Count == 0)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            e.Menu = menu;
+        }
+
+        private bool TryOpenNodeCreationMenu(Point screenPosition, Guid? connectFromPortId)
+        {
+            if (!connectFromPortId.HasValue || !IsPointerInsideViewport(screenPosition))
+            {
+                return false;
+            }
+
+            Vector2 worldPosition = ViewportTransform.LayoutToWorld(GetViewportPoint(screenPosition));
+            MGContextMenu menu = CreateNodeCreationMenu(worldPosition, connectFromPortId);
+            return menu.Items.Count > 0 && menu.TryOpenContextMenu(screenPosition);
+        }
 
         private void RegisterViewportInputHandlers()
         {

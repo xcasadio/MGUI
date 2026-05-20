@@ -988,7 +988,7 @@ Resultat:
 - Resultat validation: build OK; 16 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
 - Commit effectue: `input: complete graph task 18 add keyboard editing commands`.
 
-### ⚪ Tache 19 - Ajouter menu contextuel de creation de noeud
+### ✅ Tache 19 - Ajouter menu contextuel de creation de noeud
 
 But:
 permettre d'ajouter rapidement des noeuds sans API metier lourde.
@@ -1021,7 +1021,17 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphPortDefinition`, `GraphNodeDefinition` et `GraphNodePalette` pour decrire une palette generique de noeuds, sans dependance metier CasaEngine.
+- `GraphNodePalette.CreateDefault()` fournit des noeuds V1 simples categories: Dialogue/Start, Dialogue/Line, Values/Float et Math/Add.
+- La palette filtre les definitions compatibles avec un port en drag en se basant sur direction et `GraphTypeCompatibilityService`.
+- `MGGraphView.NodePalette` expose le provider injectable minimal et `CreateNodeFromDefinition` cree le noeud a la position monde demandee via `CreateNodeCommand` undoable.
+- Le clic droit sur une zone vide du graphe cree un `MGContextMenu` avec les noeuds disponibles; les items portent un `CommandId` `graph.createNode:*`.
+- Un drag de connexion vers une zone vide ouvre la meme palette filtree; l'action cree le noeud et connecte automatiquement le premier port compatible si possible.
+- Les categories sont affichees sous forme de labels simples avec separateurs; la recherche reste documentee V2 pour garder le scope V1 minimal.
+- Ajout de `GraphNodePaletteTests` couvrant definitions generiques, filtrage par port, creation undoable, menu filtre et action create/connect.
+- Validations executees avec succes: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` et `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphPalette|GraphCommand|ContextMenu"`.
+- Resultat validation: build OK; 15 tests passes, 0 echec; avertissements restants preexistants.
+- Commit effectue: `ui: complete graph task 19 add context menu node creation`.
 
 ### ⚪ Tache 20 - Ajouter comment boxes simples
 
