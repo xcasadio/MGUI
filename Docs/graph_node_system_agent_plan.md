@@ -801,7 +801,7 @@ Resultat:
 - Resultat validation: build OK; 20 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
 - Commit effectue: `feat: complete graph task 14 render grid and edges`.
 
-### ⚪ Tache 15 - Ajouter pan, zoom et commandes de cadrage
+### ✅ Tache 15 - Ajouter pan, zoom et commandes de cadrage
 
 But:
 livrer la navigation de viewport principale.
@@ -834,7 +834,17 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout des commandes publiques `PanViewportBy`, `ZoomAtViewportPoint`, `FrameOrigin`, `FrameAll`, `FrameSelection` et `HandleGraphShortcut` sur `MGGraphView`.
+- Le zoom molette utilise `GraphViewportTransform.ZoomAt` et conserve le point monde sous le curseur.
+- Le pan viewport respecte `AllowPan`, modifie uniquement `ViewportTransform.Pan` et resynchronise les noeuds visibles sans modifier les positions monde du modele.
+- `MGGraphView` est focusable et branche les raccourcis clavier `A` frame all, `F` frame selection et `Home` frame origin.
+- Le pan souris utilise le bouton milieu et ne s'active que si le pointeur est dans le viewport; le zoom molette suit la meme regle de hover viewport.
+- Les handlers respectent `AllowPan` et `AllowZoom`, consomment les evenements geres et declenchent une synchronisation document/vue apres changement de viewport.
+- Ajout de `FramePadding` pour les commandes de cadrage.
+- Ajout de `GraphInputNavigationTests` couvrant zoom centre curseur, pan sans mutation modele, flags `AllowPan`/`AllowZoom`, frame all, frame selection et raccourcis.
+- Validations executees avec succes: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` et `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphViewport|GraphInput|Focus"`.
+- Resultat validation: build OK; 291 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
+- Commit effectue: `input: complete graph task 15 add pan zoom and frame commands`.
 
 ### ⚪ Tache 16 - Ajouter selection et drag de noeuds
 

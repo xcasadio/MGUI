@@ -5,7 +5,9 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Graph;
 using MGUI.Core.UI.Styling;
+using MGUI.Shared.Input.Mouse;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 
 namespace MGUI.Core.UI
@@ -32,6 +34,9 @@ namespace MGUI.Core.UI
         private IFillBrush _EdgeBrush = new MGSolidFillBrush(new Color(128, 180, 255));
         private float _EdgeThickness = 2.0f;
         private int _MajorGridLineFrequency = 4;
+        private bool _IsPanningViewport;
+        private Point _PanStartScreenPosition;
+        private Vector2 _PanStartValue;
 
         public MGBorder OuterBorder { get; private set; }
         public MGOverlayPanel ViewportHost { get; private set; }
@@ -47,6 +52,7 @@ namespace MGUI.Core.UI
         public bool AllowZoom { get; set; } = true;
         public bool AllowPan { get; set; } = true;
         public bool SnapToGrid { get; set; }
+        public float FramePadding { get; set; } = 32.0f;
 
         public IFillBrush GridLineBrush
         {
@@ -133,7 +139,9 @@ namespace MGUI.Core.UI
             {
                 _Document = document ?? new GraphDocument();
                 _Document.GraphChanged += OnDocumentGraphChanged;
+                IsFocusable = true;
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphViewTemplateName;
+                RegisterViewportInputHandlers();
             }
         }
 
@@ -185,8 +193,212 @@ namespace MGUI.Core.UI
             return _Synchronizer?.TryGetPort(portId, out port) == true;
         }
 
+        public bool PanViewportBy(Vector2 delta)
+        {
+            if (!AllowPan || delta == Vector2.Zero)
+            {
+                return false;
+            }
+
+            ViewportTransform.PanBy(delta);
+            SynchronizeDocument();
+            return true;
+        }
+
+        public bool ZoomAtViewportPoint(Vector2 viewportPoint, int scrollWheelDelta)
+        {
+            if (!AllowZoom || scrollWheelDelta == 0)
+            {
+                return false;
+            }
+
+            float wheelSteps = scrollWheelDelta / 120.0f;
+            float zoomFactor = MathF.Pow(1.1f, wheelSteps);
+            return ZoomAtViewportPoint(viewportPoint, zoomFactor);
+        }
+
+        public bool ZoomAtViewportPoint(Vector2 viewportPoint, float zoomFactor)
+        {
+            if (!AllowZoom || zoomFactor <= 0.0f)
+            {
+                return false;
+            }
+
+            float previousZoom = ViewportTransform.Zoom;
+            Vector2 previousPan = ViewportTransform.Pan;
+            ViewportTransform.ZoomAt(viewportPoint, zoomFactor);
+            if (ViewportTransform.Zoom.Equals(previousZoom) && ViewportTransform.Pan == previousPan)
+            {
+                return false;
+            }
+
+            SynchronizeDocument();
+            return true;
+        }
+
+        public void FrameOrigin(Rectangle? viewportBounds = null)
+        {
+            ViewportTransform.FrameOrigin(viewportBounds ?? GetViewportBoundsForFraming());
+            SynchronizeDocument();
+        }
+
+        public bool FrameAll(Rectangle? viewportBounds = null, float? padding = null)
+        {
+            if (Document == null || Document.Nodes.Count == 0)
+            {
+                FrameOrigin(viewportBounds);
+                return false;
+            }
+
+            ViewportTransform.FrameAll(Document.Nodes, viewportBounds ?? GetViewportBoundsForFraming(), padding ?? FramePadding);
+            SynchronizeDocument();
+            return true;
+        }
+
+        public bool FrameSelection(Rectangle? viewportBounds = null, float? padding = null)
+        {
+            if (Document == null || SelectedNodeIds.Count == 0)
+            {
+                return FrameAll(viewportBounds, padding);
+            }
+
+            List<GraphNodeModel> selectedNodes = new();
+            for (int nodeIndex = 0; nodeIndex < Document.Nodes.Count; nodeIndex++)
+            {
+                GraphNodeModel node = Document.Nodes[nodeIndex];
+                if (node != null && SelectedNodeIds.Contains(node.Id))
+                {
+                    selectedNodes.Add(node);
+                }
+            }
+
+            if (selectedNodes.Count == 0)
+            {
+                return FrameAll(viewportBounds, padding);
+            }
+
+            ViewportTransform.FrameAll(selectedNodes, viewportBounds ?? GetViewportBoundsForFraming(), padding ?? FramePadding);
+            SynchronizeDocument();
+            return true;
+        }
+
+        public bool HandleGraphShortcut(Keys key)
+        {
+            switch (key)
+            {
+                case Keys.A:
+                    FrameAll();
+                    return true;
+                case Keys.F:
+                    FrameSelection();
+                    return true;
+                case Keys.Home:
+                    FrameOrigin();
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private void OnDocumentGraphChanged(object sender, EventArgs e)
             => SynchronizeDocument();
+
+        private void RegisterViewportInputHandlers()
+        {
+            MouseHandler.DragStartCondition = DragStartCondition.MousePressed;
+
+            MouseHandler.DragStart += (sender, e) =>
+            {
+                if (AllowPan && e.IsMMB && IsPointerInsideViewport(e.Position))
+                {
+                    _IsPanningViewport = true;
+                    _PanStartScreenPosition = e.Position;
+                    _PanStartValue = ViewportTransform.Pan;
+                    e.SetHandledBy(this, false);
+                    Focus(KeyboardFocusSource.Pointer);
+                }
+            };
+
+            MouseHandler.Dragged += (sender, e) =>
+            {
+                if (_IsPanningViewport && e.IsMMB)
+                {
+                    Point delta = e.Position - _PanStartScreenPosition;
+                    Vector2 nextPan = _PanStartValue + delta.ToVector2();
+                    if (ViewportTransform.Pan != nextPan)
+                    {
+                        ViewportTransform.Pan = nextPan;
+                        SynchronizeDocument();
+                    }
+                }
+            };
+
+            MouseHandler.DragEnd += (sender, e) =>
+            {
+                if (e.IsMMB)
+                {
+                    _IsPanningViewport = false;
+                }
+            };
+
+            MouseHandler.ReleasedOutside += (sender, e) =>
+            {
+                if (e.IsMMB)
+                {
+                    _IsPanningViewport = false;
+                }
+            };
+
+            MouseHandler.Scrolled += (sender, e) =>
+            {
+                if (AllowZoom && IsPointerInsideViewport(e.Position))
+                {
+                    Vector2 viewportPoint = GetViewportPoint(e.Position);
+                    if (ZoomAtViewportPoint(viewportPoint, e.ScrollWheelDelta))
+                    {
+                        e.SetHandledBy(this, false);
+                    }
+                }
+            };
+
+            KeyboardHandler.Pressed += (sender, e) =>
+            {
+                if (HandleGraphShortcut(e.Key))
+                {
+                    e.SetHandledBy(this, false);
+                }
+            };
+        }
+
+        private bool IsPointerInsideViewport(Point screenPosition)
+        {
+            if (ViewportHost == null)
+            {
+                Vector2 graphUnscaled = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPosition.ToVector2());
+                return ContainsUnscaledInputPoint(graphUnscaled);
+            }
+
+            Vector2 viewportUnscaled = ViewportHost.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPosition.ToVector2());
+            return ViewportHost.ContainsUnscaledInputPoint(viewportUnscaled);
+        }
+
+        private Vector2 GetViewportPoint(Point screenPosition)
+            => NodesCanvas == null
+                ? ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, screenPosition.ToVector2())
+                : NodesCanvas.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, screenPosition.ToVector2());
+
+        private Rectangle GetViewportBoundsForFraming()
+        {
+            Rectangle bounds = NodesCanvas?.LayoutBounds ?? ViewportHost?.LayoutBounds ?? LayoutBounds;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                bounds = NodesCanvas?.ActualLayoutBounds ?? ViewportHost?.ActualLayoutBounds ?? ActualLayoutBounds;
+            }
+
+            int width = Math.Max(1, bounds.Width);
+            int height = Math.Max(1, bounds.Height);
+            return new Rectangle(0, 0, width, height);
+        }
     }
 
     public class MGGraphNode : MGSingleContentHost
