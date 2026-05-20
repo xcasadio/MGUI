@@ -945,7 +945,7 @@ Resultat:
 - Resultat validation: build OK; 14 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
 - Commit effectue: `input: complete graph task 17 add port connection interaction`.
 
-### ⚪ Tache 18 - Ajouter commandes clavier d'edition
+### ✅ Tache 18 - Ajouter commandes clavier d'edition
 
 But:
 fournir une edition ergonomique minimale sans attendre V2.
@@ -977,7 +977,16 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphBatchCommand` pour regrouper plusieurs commandes modele dans une seule entree undo/redo.
+- `MGGraphView.HandleGraphShortcut` supporte maintenant `Delete`, `Ctrl+Z`, `Ctrl+Y` et `Escape`, en plus des raccourcis de cadrage.
+- `DeleteSelection` supprime les nodes selectionnes et les edges selectionnees via commandes undoables; les edges incidentes a un node supprime sont laissees a `DeleteNodeCommand` pour eviter les restaurations dupliquees.
+- `CancelCurrentInteraction` annule pan, drag de noeuds, rectangle de selection et drag de connexion en cours.
+- `Ctrl+D` reste reserve V2 et n'est pas capture en V1, pour eviter une duplication partielle des ports/edges sans contrat clair.
+- Les raccourcis clavier restent scopes au focus clavier de `MGGraphView`, donc un champ texte interne conserve ses propres raccourcis s'il detient le focus.
+- Ajout de `GraphKeyboardEditingTests` couvrant suppression node/edge, undo/redo clavier, annulation Escape et reservation Ctrl+D.
+- Validations executees avec succes: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` et `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphKeyboard|GraphCommand|GraphInput"`.
+- Resultat validation: build OK; 16 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
+- Commit effectue: `input: complete graph task 18 add keyboard editing commands`.
 
 ### ⚪ Tache 19 - Ajouter menu contextuel de creation de noeud
 

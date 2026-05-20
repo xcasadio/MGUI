@@ -412,21 +412,98 @@ namespace MGUI.Core.UI
         }
 
         public bool HandleGraphShortcut(Keys key)
+            => HandleGraphShortcut(key, IsControlDown());
+
+        public bool HandleGraphShortcut(Keys key, bool controlDown)
         {
+            if (controlDown)
+            {
+                switch (key)
+                {
+                    case Keys.Z:
+                        return Commands.Undo(Document);
+                    case Keys.Y:
+                        return Commands.Redo(Document);
+                    case Keys.D:
+                        return false;
+                }
+            }
+
             switch (key)
             {
                 case Keys.A:
+                    if (controlDown)
+                    {
+                        return false;
+                    }
+
                     FrameAll();
                     return true;
                 case Keys.F:
+                    if (controlDown)
+                    {
+                        return false;
+                    }
+
                     FrameSelection();
                     return true;
                 case Keys.Home:
                     FrameOrigin();
                     return true;
+                case Keys.Delete:
+                    return DeleteSelection();
+                case Keys.Escape:
+                    CancelCurrentInteraction();
+                    return true;
                 default:
                     return false;
             }
+        }
+
+        public bool DeleteSelection()
+        {
+            if (Document == null || (SelectedNodeIds.Count == 0 && SelectedEdgeIds.Count == 0))
+            {
+                return false;
+            }
+
+            HashSet<Guid> selectedNodeIds = new(SelectedNodeIds);
+            List<IGraphCommand> commands = new();
+
+            foreach (Guid edgeId in SelectedEdgeIds)
+            {
+                GraphEdgeModel edge = Document.TryGetEdge(edgeId);
+                if (edge != null && !selectedNodeIds.Contains(edge.SourceNodeId) && !selectedNodeIds.Contains(edge.TargetNodeId))
+                {
+                    commands.Add(new DisconnectPortsCommand(edgeId));
+                }
+            }
+
+            foreach (Guid nodeId in selectedNodeIds)
+            {
+                if (Document.TryGetNode(nodeId) != null)
+                {
+                    commands.Add(new DeleteNodeCommand(nodeId));
+                }
+            }
+
+            bool deleted = commands.Count > 0 && Commands.Execute(Document, new GraphBatchCommand("Delete Selection", commands));
+            if (deleted)
+            {
+                ClearSelection();
+            }
+
+            return deleted;
+        }
+
+        public void CancelCurrentInteraction()
+        {
+            _IsPanningViewport = false;
+            _IsDraggingNodes = false;
+            _IsSelectingRectangle = false;
+            _PressedNodeId = Guid.Empty;
+            _NodeDragStartPositions.Clear();
+            ConnectionController.Cancel();
         }
 
         private void OnDocumentGraphChanged(object sender, EventArgs e)
@@ -552,7 +629,7 @@ namespace MGUI.Core.UI
 
             KeyboardHandler.Pressed += (sender, e) =>
             {
-                if (HandleGraphShortcut(e.Key))
+                if (HandleGraphShortcut(e.Key, IsControlDown()))
                 {
                     e.SetHandledBy(this, false);
                 }

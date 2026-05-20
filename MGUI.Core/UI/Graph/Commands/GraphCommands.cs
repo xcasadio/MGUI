@@ -159,6 +159,50 @@ namespace MGUI.Core.UI.Graph
         }
     }
 
+    public sealed class GraphBatchCommand : IGraphCommand
+    {
+        private readonly List<IGraphCommand> Commands;
+        public string Name { get; }
+
+        public GraphBatchCommand(string name, IEnumerable<IGraphCommand> commands)
+        {
+            Name = string.IsNullOrWhiteSpace(name) ? "Graph Batch" : name;
+            Commands = commands == null ? new List<IGraphCommand>() : new List<IGraphCommand>(commands);
+        }
+
+        public bool Execute(GraphDocument document)
+        {
+            if (document == null || Commands.Count == 0)
+            {
+                return false;
+            }
+
+            bool executedAny = false;
+            for (int commandIndex = 0; commandIndex < Commands.Count; commandIndex++)
+            {
+                executedAny |= Commands[commandIndex].Execute(document);
+            }
+
+            return executedAny;
+        }
+
+        public bool Undo(GraphDocument document)
+        {
+            if (document == null || Commands.Count == 0)
+            {
+                return false;
+            }
+
+            bool undoneAny = false;
+            for (int commandIndex = Commands.Count - 1; commandIndex >= 0; commandIndex--)
+            {
+                undoneAny |= Commands[commandIndex].Undo(document);
+            }
+
+            return undoneAny;
+        }
+    }
+
     public sealed class ResizeNodeCommand : IGraphCommand
     {
         private readonly Guid NodeId;
