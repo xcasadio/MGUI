@@ -164,6 +164,25 @@ namespace MGUI.Core.UI
         public int HeadersSpacing { get; set; } = 0;
     }
 
+    public class MGThemeGraphSettings
+    {
+        public Thickness Padding { get; set; } = new(0);
+        public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+        public Thickness BorderThickness { get; set; } = new(1);
+        public VisualStateFillBrush CanvasBackground { get; set; } = new(new MGSolidFillBrush(new Color(18, 22, 26)));
+        public IFillBrush GridLineBrush { get; set; } = new MGSolidFillBrush(Color.White * 0.08f);
+        public IFillBrush EdgeBrush { get; set; } = new MGSolidFillBrush(new Color(128, 180, 255));
+        public IBorderBrush NodeBorderBrush { get; set; } = new MGSolidFillBrush(Color.Black * 0.7f).AsUniformBorderBrush();
+        public Thickness NodeBorderThickness { get; set; } = new(1);
+        public VisualStateFillBrush NodeHeaderBackground { get; set; } = new(new MGSolidFillBrush(new Color(36, 46, 60)));
+        public VisualStateColorBrush NodeHeaderForeground { get; set; } = new(Color.White);
+        public VisualStateFillBrush NodeBodyBackground { get; set; } = new(new MGSolidFillBrush(new Color(26, 31, 38)));
+        public IFillBrush PortBackground { get; set; } = new MGSolidFillBrush(new Color(92, 140, 210));
+        public VisualStateColorBrush PortForeground { get; set; } = new(Color.White);
+        public VisualStateFillBrush CommentBackground { get; set; } = new(new MGSolidFillBrush(new Color(62, 54, 30) * 0.9f));
+        public IBorderBrush CommentBorderBrush { get; set; } = new MGSolidFillBrush(new Color(222, 180, 80)).AsUniformBorderBrush();
+    }
+
     public class ThemeFontSettings
     {
         /// <summary>The default fontsize for content inside an <see cref="MGContextMenu"/>, such as <see cref="MGContextMenuButton"/> and <see cref="MGContextMenuToggle"/></summary>
@@ -440,6 +459,7 @@ namespace MGUI.Core.UI
         public MGThemeComboBoxSettings ComboBox { get; }
         public MGThemeTreeViewTemplateSettings TreeViewTemplate { get; }
         public MGThemeTabControlSettings TabControl { get; }
+        public MGThemeGraphSettings Graph { get; }
         public MGThemeDockingSettings Docking { get; }
 
         public enum BuiltInTheme
@@ -479,6 +499,7 @@ namespace MGUI.Core.UI
             ComboBox = new();
             TreeViewTemplate = new();
             TabControl = new();
+            Graph = new();
             Docking = new();
             ToolTipOffset = new(6, 6);
             ToolTipTextForeground = new(null, null, null, null);
@@ -724,6 +745,22 @@ namespace MGUI.Core.UI
             TabControl.BorderBrush = Source.TabControl.BorderBrush?.Copy();
             TabControl.BorderThickness = Source.TabControl.BorderThickness;
             TabControl.HeadersSpacing = Source.TabControl.HeadersSpacing;
+
+            Graph.Padding = Source.Graph.Padding;
+            Graph.BorderBrush = Source.Graph.BorderBrush?.Copy();
+            Graph.BorderThickness = Source.Graph.BorderThickness;
+            Graph.CanvasBackground = Source.Graph.CanvasBackground?.Copy();
+            Graph.GridLineBrush = Source.Graph.GridLineBrush?.Copy();
+            Graph.EdgeBrush = Source.Graph.EdgeBrush?.Copy();
+            Graph.NodeBorderBrush = Source.Graph.NodeBorderBrush?.Copy();
+            Graph.NodeBorderThickness = Source.Graph.NodeBorderThickness;
+            Graph.NodeHeaderBackground = Source.Graph.NodeHeaderBackground?.Copy();
+            Graph.NodeHeaderForeground = Source.Graph.NodeHeaderForeground?.Copy();
+            Graph.NodeBodyBackground = Source.Graph.NodeBodyBackground?.Copy();
+            Graph.PortBackground = Source.Graph.PortBackground?.Copy();
+            Graph.PortForeground = Source.Graph.PortForeground?.Copy();
+            Graph.CommentBackground = Source.Graph.CommentBackground?.Copy();
+            Graph.CommentBorderBrush = Source.Graph.CommentBorderBrush?.Copy();
 
             Docking.TabNormalBackground = Source.Docking.TabNormalBackground?.Copy();
             Docking.TabHoverBackground = Source.Docking.TabHoverBackground?.Copy();

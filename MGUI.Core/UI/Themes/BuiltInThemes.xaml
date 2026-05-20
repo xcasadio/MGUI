@@ -401,6 +401,36 @@
         </ThemePropertyGridSettingsDefinition.CategoryHeaderForeground>
       </ThemePropertyGridSettingsDefinition>
     </ThemeDefinition.PropertyGrid>
+    <ThemeDefinition.Graph>
+      <ThemeGraphSettingsDefinition Padding="0"
+                                    BorderBrush="rgb(11,28,72)"
+                                    BorderThickness="1"
+                                    GridLineBrush="rgba(255,255,255,26)"
+                                    EdgeBrush="rgb(128,180,255)"
+                                    NodeBorderBrush="rgb(0,28,56)"
+                                    NodeBorderThickness="1"
+                                    PortBackground="rgb(89,159,228)"
+                                    CommentBorderBrush="rgb(222,180,80)">
+        <ThemeGraphSettingsDefinition.CanvasBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(8,20,45)" />
+        </ThemeGraphSettingsDefinition.CanvasBackground>
+        <ThemeGraphSettingsDefinition.NodeHeaderBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(0,52,103)" />
+        </ThemeGraphSettingsDefinition.NodeHeaderBackground>
+        <ThemeGraphSettingsDefinition.NodeHeaderForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="White" />
+        </ThemeGraphSettingsDefinition.NodeHeaderForeground>
+        <ThemeGraphSettingsDefinition.NodeBodyBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(11,28,72)" />
+        </ThemeGraphSettingsDefinition.NodeBodyBackground>
+        <ThemeGraphSettingsDefinition.PortForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="White" />
+        </ThemeGraphSettingsDefinition.PortForeground>
+        <ThemeGraphSettingsDefinition.CommentBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgba(82,66,28,230)" />
+        </ThemeGraphSettingsDefinition.CommentBackground>
+      </ThemeGraphSettingsDefinition>
+    </ThemeDefinition.Graph>
     <ThemeDefinition.Docking>
       <ThemeDockingSettingsDefinition TabNormalBackground="rgb(45,45,48)"
                                       TabHoverBackground="rgb(62,62,66)"
@@ -868,6 +898,36 @@
         </ThemePropertyGridSettingsDefinition.CategoryHeaderForeground>
       </ThemePropertyGridSettingsDefinition>
     </ThemeDefinition.PropertyGrid>
+    <ThemeDefinition.Graph>
+      <ThemeGraphSettingsDefinition Padding="0"
+                                    BorderBrush="rgb(160,170,180)"
+                                    BorderThickness="1"
+                                    GridLineBrush="rgba(80,90,100,42)"
+                                    EdgeBrush="rgb(72,120,184)"
+                                    NodeBorderBrush="rgb(150,160,170)"
+                                    NodeBorderThickness="1"
+                                    PortBackground="rgb(72,120,184)"
+                                    CommentBorderBrush="rgb(174,132,40)">
+        <ThemeGraphSettingsDefinition.CanvasBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(232,236,240)" />
+        </ThemeGraphSettingsDefinition.CanvasBackground>
+        <ThemeGraphSettingsDefinition.NodeHeaderBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(214,222,230)" />
+        </ThemeGraphSettingsDefinition.NodeHeaderBackground>
+        <ThemeGraphSettingsDefinition.NodeHeaderForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="Black" />
+        </ThemeGraphSettingsDefinition.NodeHeaderForeground>
+        <ThemeGraphSettingsDefinition.NodeBodyBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(246,248,250)" />
+        </ThemeGraphSettingsDefinition.NodeBodyBackground>
+        <ThemeGraphSettingsDefinition.PortForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="White" />
+        </ThemeGraphSettingsDefinition.PortForeground>
+        <ThemeGraphSettingsDefinition.CommentBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgba(255,245,196,235)" />
+        </ThemeGraphSettingsDefinition.CommentBackground>
+      </ThemeGraphSettingsDefinition>
+    </ThemeDefinition.Graph>
     <ThemeDefinition.Docking>
       <ThemeDockingSettingsDefinition TabNormalBackground="rgb(236,240,243)"
                                       TabHoverBackground="rgb(242,245,247)"
@@ -1394,6 +1454,37 @@
                                          BorderThickness="1"
                                          HeadersSpacing="1" />
     </ThemeDefinition.TabControl>
+
+    <ThemeDefinition.Graph>
+      <ThemeGraphSettingsDefinition Padding="0"
+                                    BorderBrush="rgb(63,63,63)"
+                                    BorderThickness="1"
+                                    GridLineBrush="rgba(255,255,255,20)"
+                                    EdgeBrush="rgb(110,164,220)"
+                                    NodeBorderBrush="rgb(63,63,63)"
+                                    NodeBorderThickness="1"
+                                    PortBackground="rgb(80,134,190)"
+                                    CommentBorderBrush="rgb(194,150,60)">
+        <ThemeGraphSettingsDefinition.CanvasBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(25,25,25)" />
+        </ThemeGraphSettingsDefinition.CanvasBackground>
+        <ThemeGraphSettingsDefinition.NodeHeaderBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(45,45,48)" />
+        </ThemeGraphSettingsDefinition.NodeHeaderBackground>
+        <ThemeGraphSettingsDefinition.NodeHeaderForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="rgb(220,220,220)" />
+        </ThemeGraphSettingsDefinition.NodeHeaderForeground>
+        <ThemeGraphSettingsDefinition.NodeBodyBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(37,37,38)" />
+        </ThemeGraphSettingsDefinition.NodeBodyBackground>
+        <ThemeGraphSettingsDefinition.PortForeground>
+          <ThemeVisualStateColorBrushDefinition NormalValue="White" />
+        </ThemeGraphSettingsDefinition.PortForeground>
+        <ThemeGraphSettingsDefinition.CommentBackground>
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgba(74,62,34,230)" />
+        </ThemeGraphSettingsDefinition.CommentBackground>
+      </ThemeGraphSettingsDefinition>
+    </ThemeDefinition.Graph>
 
     <ThemeDefinition.Docking>
       <ThemeDockingSettingsDefinition TabNormalBackground="rgb(45,45,48)"

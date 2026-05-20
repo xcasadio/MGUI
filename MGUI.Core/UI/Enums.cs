@@ -74,6 +74,10 @@ namespace MGUI.Core.UI
 
         //  Data Display
         PropertyGrid,
+        GraphView,
+        GraphNode,
+        GraphPort,
+        GraphCommentBox,
         ListView,
         ListBox,
         TreeView,

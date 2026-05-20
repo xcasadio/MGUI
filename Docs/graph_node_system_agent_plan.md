@@ -580,7 +580,7 @@ Resultat:
 - Resultat validation: 4 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
 - Commit effectue: `feat: complete graph task 09 add render geometry services`.
 
-### ⚪ Tache 10 - Enregistrer types UI, theme tokens et XAML minimal
+### ✅ Tache 10 - Enregistrer types UI, theme tokens et XAML minimal
 
 But:
 integrer le graphe dans les mecanismes declaratifs de MGUI avant de construire l'UI.
@@ -612,7 +612,16 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout des types `GraphView`, `GraphNode`, `GraphPort` et `GraphCommentBox` dans `MGElementType`.
+- Ajout des shells publics `MGGraphView`, `MGGraphNode`, `MGGraphPort` et `MGGraphCommentBox` avec `PART_*` lookless et templates par defaut.
+- Ajout des flags declaratifs `ShowGrid`, `AllowZoom`, `AllowPan` et `SnapToGrid` sur `MGGraphView` et son wrapper XAML.
+- Ajout des constantes/templates dans `MGControlTemplateCatalog` et des defaults themables via `MGTheme.Graph`.
+- Ajout des wrappers XAML `GraphView`, `GraphNode`, `GraphPort`, `GraphCommentBox` et des alias XAML sans prefixe.
+- Ajout de `ThemeGraphSettingsDefinition`, branchement dans `ThemeDefinitionBuilder` et valeurs Graph dans les themes built-in `Dark_Blue`, `Light_Gray` et `Dark`.
+- Ajout de `GraphControlRegistrationTests` couvrant vocabulaire, templates, parsing XAML, theme definition et themes built-in.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphControlRegistration"`.
+- Resultat validation: 5 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
+- Commit effectue: `feat: complete graph task 10 register graph controls`.
 
 ### ⚪ Tache 11 - Ajouter `MGGraphNode` et `MGGraphPort`
 

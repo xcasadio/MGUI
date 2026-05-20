@@ -29,6 +29,10 @@ namespace MGUI.Core.UI.Styling
         public const string ListBoxTemplateName = "ListBox.Default";
         public const string ListViewTemplateName = "ListView.Default";
         public const string PropertyGridTemplateName = "PropertyGrid.Default";
+        public const string GraphViewTemplateName = "GraphView.Default";
+        public const string GraphNodeTemplateName = "GraphNode.Default";
+        public const string GraphPortTemplateName = "GraphPort.Default";
+        public const string GraphCommentBoxTemplateName = "GraphCommentBox.Default";
         public const string ComboBoxTemplateName = "ComboBox.Default";
         public const string ComboBoxDropdownItemTemplateName = "ComboBox.DropdownItem.Default";
         public const string TreeViewTemplateName = "TreeView.Default";
@@ -150,6 +154,10 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, CreateBuiltInXamlTemplate(ListBoxTemplateName, ApplyListBoxTemplate));
             Register(Resources, CreateBuiltInXamlTemplate(ListViewTemplateName, ApplyListViewTemplate));
             Register(Resources, CreatePropertyGridTemplate());
+            Register(Resources, CreateGraphViewTemplate());
+            Register(Resources, CreateGraphNodeTemplate());
+            Register(Resources, CreateGraphPortTemplate());
+            Register(Resources, CreateGraphCommentBoxTemplate());
             Register(Resources, CreateComboBoxTemplate());
             Register(Resources, ComboBoxDropdownItemTemplateName, ApplyComboBoxDropdownItemTemplate);
             Register(Resources, CreateTreeViewTemplate());
@@ -213,6 +221,18 @@ namespace MGUI.Core.UI.Styling
 
         private static MGControlTemplate CreatePropertyGridTemplate()
             => new(PropertyGridTemplateName, CreatePropertyGridTemplateStructure, null, ApplyPropertyGridTemplate);
+
+        private static MGControlTemplate CreateGraphViewTemplate()
+            => new(GraphViewTemplateName, CreateGraphViewTemplateStructure, null, ApplyGraphViewTemplate);
+
+        private static MGControlTemplate CreateGraphNodeTemplate()
+            => new(GraphNodeTemplateName, CreateGraphNodeTemplateStructure, null, ApplyGraphNodeTemplate);
+
+        private static MGControlTemplate CreateGraphPortTemplate()
+            => new(GraphPortTemplateName, CreateGraphPortTemplateStructure, null, ApplyGraphPortTemplate);
+
+        private static MGControlTemplate CreateGraphCommentBoxTemplate()
+            => new(GraphCommentBoxTemplateName, CreateGraphCommentBoxTemplateStructure, null, ApplyGraphCommentBoxTemplate);
 
         private static MGControlTemplate CreateTreeViewTemplate()
             => new(TreeViewTemplateName, CreateTreeViewTemplateStructure, null, ApplyTreeViewTemplate);
@@ -458,6 +478,121 @@ namespace MGUI.Core.UI.Styling
             structure.AddPart(MGPropertyGrid.OuterBorderPartName, outerBorder);
             structure.AddPart(MGPropertyGrid.ScrollViewerPartName, scrollViewer);
             structure.AddPart(MGPropertyGrid.CategoriesPanelPartName, categoriesPanel);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateGraphViewTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGGraphView graphView)
+            {
+                return null;
+            }
+
+            MGWindow window = graphView.SelfOrParentWindow;
+            MGBorder outerBorder = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+            };
+            MGCanvas surface = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+            };
+
+            MGControlTemplateStructure structure = new(outerBorder);
+            structure.AddPart(MGGraphView.OuterBorderPartName, outerBorder);
+            structure.AddPart(MGGraphView.SurfacePartName, surface);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateGraphNodeTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGGraphNode graphNode)
+            {
+                return null;
+            }
+
+            MGWindow window = graphNode.SelfOrParentWindow;
+            MGBorder outerBorder = new(window);
+            MGStackPanel stack = new(window, Orientation.Vertical)
+            {
+                Spacing = 0,
+                CanChangeContent = true,
+            };
+            MGTextBlock header = CreateDefaultControlTextBlock(window, graphNode.Title, false, true, true);
+            MGStackPanel portsPanel = new(window, Orientation.Vertical)
+            {
+                Spacing = 2,
+                Padding = new Thickness(6, 4),
+                CanChangeContent = false,
+            };
+            MGContentPresenter bodyPresenter = new(window)
+            {
+                Padding = new Thickness(6, 4),
+            };
+
+            stack.TryAddChild(header);
+            stack.TryAddChild(portsPanel);
+            stack.TryAddChild(bodyPresenter);
+            stack.CanChangeContent = false;
+            outerBorder.SetContent(stack);
+
+            MGControlTemplateStructure structure = new(outerBorder);
+            structure.AddPart(MGGraphNode.OuterBorderPartName, outerBorder);
+            structure.AddPart(MGGraphNode.HeaderTextBlockPartName, header);
+            structure.AddPart(MGGraphNode.PortsPanelPartName, portsPanel);
+            structure.AddPart(MGGraphNode.BodyPresenterPartName, bodyPresenter);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateGraphPortTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGGraphPort graphPort)
+            {
+                return null;
+            }
+
+            MGWindow window = graphPort.SelfOrParentWindow;
+            MGBorder outerBorder = new(window);
+            MGTextBlock label = CreateDefaultControlTextBlock(window, graphPort.PortName, false, true, true);
+            outerBorder.SetContent(label);
+
+            MGControlTemplateStructure structure = new(outerBorder);
+            structure.AddPart(MGGraphPort.OuterBorderPartName, outerBorder);
+            structure.AddPart(MGGraphPort.LabelPartName, label);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateGraphCommentBoxTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGGraphCommentBox commentBox)
+            {
+                return null;
+            }
+
+            MGWindow window = commentBox.SelfOrParentWindow;
+            MGBorder outerBorder = new(window);
+            MGStackPanel stack = new(window, Orientation.Vertical)
+            {
+                Spacing = 3,
+                CanChangeContent = true,
+            };
+            MGTextBlock title = CreateDefaultControlTextBlock(window, commentBox.Title, false, true, true);
+            MGTextBlock body = CreateDefaultControlTextBlock(window, commentBox.Text, true, false, false);
+            stack.TryAddChild(title);
+            stack.TryAddChild(body);
+            stack.CanChangeContent = false;
+            outerBorder.SetContent(stack);
+
+            MGControlTemplateStructure structure = new(outerBorder);
+            structure.AddPart(MGGraphCommentBox.OuterBorderPartName, outerBorder);
+            structure.AddPart(MGGraphCommentBox.TitleTextBlockPartName, title);
+            structure.AddPart(MGGraphCommentBox.BodyTextBlockPartName, body);
             return structure;
         }
 
@@ -876,6 +1011,91 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("PropertyGrid.ScrollViewerPadding", theme.PropertyGrid.ScrollViewerPadding, () => scrollViewer.Padding, value => scrollViewer.Padding = value);
             Context.ApplyThemeDefault("PropertyGrid.CategoriesSpacing", theme.PropertyGrid.CategoriesSpacing, () => categoriesPanel.Spacing, value => categoriesPanel.Spacing = value);
             Context.ApplyTemplateValue("PropertyGrid.CategoriesPanelVerticalAlignment", VerticalAlignment.Top, () => categoriesPanel.VerticalAlignment, value => categoriesPanel.VerticalAlignment = value);
+        }
+
+        private static void ApplyGraphViewTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGGraphView graphView)
+            {
+                return;
+            }
+
+            MGTheme theme = graphView.GetTheme();
+            MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphView.OuterBorderPartName);
+            MGCanvas surface = Context.GetRequiredPart<MGCanvas>(MGGraphView.SurfacePartName);
+
+            Context.ApplyThemeDefault("GraphView.Padding", theme.Graph.Padding, () => graphView.Padding, value => graphView.Padding = value);
+            Context.ApplyThemeDefault("GraphView.BorderBrush", theme.Graph.BorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
+            Context.ApplyThemeDefault("GraphView.BorderThickness", theme.Graph.BorderThickness, () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
+            Context.ApplyThemeDefault("GraphView.SurfaceBackground", theme.Graph.CanvasBackground, () => surface.BackgroundBrush, value => surface.BackgroundBrush = value);
+        }
+
+        private static void ApplyGraphNodeTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGGraphNode graphNode)
+            {
+                return;
+            }
+
+            MGTheme theme = graphNode.GetTheme();
+            MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphNode.OuterBorderPartName);
+            MGTextBlock header = Context.GetRequiredPart<MGTextBlock>(MGGraphNode.HeaderTextBlockPartName);
+            MGContentPresenter bodyPresenter = Context.GetRequiredPart<MGContentPresenter>(MGGraphNode.BodyPresenterPartName);
+
+            Context.ApplyThemeDefault("GraphNode.BorderBrush", theme.Graph.NodeBorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
+            Context.ApplyThemeDefault("GraphNode.BorderThickness", theme.Graph.NodeBorderThickness, () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
+            Context.ApplyThemeDefault("GraphNode.HeaderBackground", theme.Graph.NodeHeaderBackground, () => header.BackgroundBrush, value => header.BackgroundBrush = value);
+            Context.ApplyThemeDefault("GraphNode.HeaderForeground", ToTextForeground(theme.Graph.NodeHeaderForeground), () => header.DefaultTextForeground, value => header.DefaultTextForeground = value);
+            Context.ApplyThemeDefault("GraphNode.HeaderPadding", new Thickness(8, 4), () => header.Padding, value => header.Padding = value);
+            Context.ApplyThemeDefault("GraphNode.BodyBackground", theme.Graph.NodeBodyBackground, () => bodyPresenter.BackgroundBrush, value => bodyPresenter.BackgroundBrush = value);
+        }
+
+        private static void ApplyGraphPortTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGGraphPort graphPort)
+            {
+                return;
+            }
+
+            MGTheme theme = graphPort.GetTheme();
+            MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphPort.OuterBorderPartName);
+            MGTextBlock label = Context.GetRequiredPart<MGTextBlock>(MGGraphPort.LabelPartName);
+
+            Context.ApplyThemeDefault("GraphPort.Background", new VisualStateFillBrush(theme.Graph.PortBackground?.Copy()), () => outerBorder.BackgroundBrush, value => outerBorder.BackgroundBrush = value);
+            Context.ApplyThemeDefault("GraphPort.BorderBrush", theme.Graph.NodeBorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
+            Context.ApplyThemeDefault("GraphPort.BorderThickness", new Thickness(1), () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
+            Context.ApplyThemeDefault("GraphPort.Padding", new Thickness(6, 2), () => outerBorder.Padding, value => outerBorder.Padding = value);
+            Context.ApplyThemeDefault("GraphPort.Foreground", ToTextForeground(theme.Graph.PortForeground), () => label.DefaultTextForeground, value => label.DefaultTextForeground = value);
+        }
+
+        private static void ApplyGraphCommentBoxTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGGraphCommentBox commentBox)
+            {
+                return;
+            }
+
+            MGTheme theme = commentBox.GetTheme();
+            MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphCommentBox.OuterBorderPartName);
+            MGTextBlock title = Context.GetRequiredPart<MGTextBlock>(MGGraphCommentBox.TitleTextBlockPartName);
+            MGTextBlock body = Context.GetRequiredPart<MGTextBlock>(MGGraphCommentBox.BodyTextBlockPartName);
+
+            Context.ApplyThemeDefault("GraphCommentBox.Background", theme.Graph.CommentBackground, () => outerBorder.BackgroundBrush, value => outerBorder.BackgroundBrush = value);
+            Context.ApplyThemeDefault("GraphCommentBox.BorderBrush", theme.Graph.CommentBorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
+            Context.ApplyThemeDefault("GraphCommentBox.BorderThickness", new Thickness(1), () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
+            Context.ApplyThemeDefault("GraphCommentBox.Padding", new Thickness(8, 6), () => outerBorder.Padding, value => outerBorder.Padding = value);
+            Context.ApplyThemeDefault("GraphCommentBox.TitleForeground", ToTextForeground(theme.Graph.NodeHeaderForeground), () => title.DefaultTextForeground, value => title.DefaultTextForeground = value);
+            Context.ApplyThemeDefault("GraphCommentBox.BodyForeground", ToTextForeground(theme.Graph.PortForeground), () => body.DefaultTextForeground, value => body.DefaultTextForeground = value);
+        }
+
+        private static VisualStateSetting<Color?> ToTextForeground(VisualStateColorBrush brush)
+        {
+            if (brush == null)
+            {
+                return new VisualStateSetting<Color?>(null, null, null, null);
+            }
+
+            return new VisualStateSetting<Color?>(brush.NormalValue, brush.SelectedValue, brush.FocusedValue, brush.DisabledValue);
         }
 
         private static void ApplyTextBoxTemplate(MGControlTemplateContext Context)

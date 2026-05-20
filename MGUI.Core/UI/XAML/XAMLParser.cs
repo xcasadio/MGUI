@@ -63,6 +63,10 @@ namespace MGUI.Core.UI.XAML
 
             { "Expander", nameof(Expander) },
             { "GroupBox", nameof(GroupBox) },
+            { "GraphView", nameof(GraphView) },
+            { "GraphNode", nameof(GraphNode) },
+            { "GraphPort", nameof(GraphPort) },
+            { "GraphCommentBox", nameof(GraphCommentBox) },
             { "Image", nameof(Image) },
             { "ListBox", nameof(ListBox) },
             { "ListView", nameof(ListView) },

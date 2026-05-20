@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using MGUI.Core.UI.Data_Binding;
+using MGUI.Core.UI.Graph;
 using MGUI.Core.UI.Styling;
 
 #if UseWPF
@@ -1582,6 +1583,139 @@ namespace MGUI.Core.UI.XAML
         {
             yield return Border;
         }
+    }
+
+    public class GraphView : Element
+    {
+        public override MGElementType ElementType => MGElementType.GraphView;
+
+        [Category("Behavior")]
+        public bool? ShowGrid { get; set; }
+        [Category("Behavior")]
+        public bool? AllowZoom { get; set; }
+        [Category("Behavior")]
+        public bool? AllowPan { get; set; }
+        [Category("Behavior")]
+        public bool? SnapToGrid { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGraphView(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGGraphView graphView = Element as MGGraphView;
+
+            if (ShowGrid.HasValue)
+            {
+                graphView.ShowGrid = ShowGrid.Value;
+            }
+
+            if (AllowZoom.HasValue)
+            {
+                graphView.AllowZoom = AllowZoom.Value;
+            }
+
+            if (AllowPan.HasValue)
+            {
+                graphView.AllowPan = AllowPan.Value;
+            }
+
+            if (SnapToGrid.HasValue)
+            {
+                graphView.SnapToGrid = SnapToGrid.Value;
+            }
+        }
+
+        protected internal override IEnumerable<Element> GetChildren()
+            => Enumerable.Empty<Element>();
+    }
+
+    public class GraphNode : SingleContentHost
+    {
+        public override MGElementType ElementType => MGElementType.GraphNode;
+
+        [Category("Data")]
+        public string Title { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGraphNode(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGGraphNode graphNode = Element as MGGraphNode;
+
+            if (Title != null)
+            {
+                graphNode.Title = Title;
+            }
+
+            base.ApplyDerivedSettings(Parent, Element, IncludeContent);
+        }
+    }
+
+    public class GraphPort : Element
+    {
+        public override MGElementType ElementType => MGElementType.GraphPort;
+
+        [Category("Data")]
+        public string PortName { get; set; }
+        [Category("Data")]
+        public GraphPortDirection? Direction { get; set; }
+        [Category("Data")]
+        public GraphValueType? ValueType { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGraphPort(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGGraphPort graphPort = Element as MGGraphPort;
+
+            if (PortName != null)
+            {
+                graphPort.PortName = PortName;
+            }
+
+            if (Direction.HasValue)
+            {
+                graphPort.Direction = Direction.Value;
+            }
+
+            if (ValueType.HasValue)
+            {
+                graphPort.ValueType = ValueType.Value;
+            }
+        }
+
+        protected internal override IEnumerable<Element> GetChildren()
+            => Enumerable.Empty<Element>();
+    }
+
+    public class GraphCommentBox : Element
+    {
+        public override MGElementType ElementType => MGElementType.GraphCommentBox;
+
+        [Category("Data")]
+        public string Title { get; set; }
+        [Category("Data")]
+        public string Text { get; set; }
+
+        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGraphCommentBox(Window);
+
+        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        {
+            MGGraphCommentBox commentBox = Element as MGGraphCommentBox;
+
+            if (Title != null)
+            {
+                commentBox.Title = Title;
+            }
+
+            if (Text != null)
+            {
+                commentBox.Text = Text;
+            }
+        }
+
+        protected internal override IEnumerable<Element> GetChildren()
+            => Enumerable.Empty<Element>();
     }
 
     public class ProgressBar : Element

@@ -35,6 +35,7 @@ namespace MGUI.Core.UI.XAML
         public ThemeComboBoxSettingsDefinition ComboBox { get; set; } = new();
         public ThemeTreeViewTemplateSettingsDefinition TreeViewTemplate { get; set; } = new();
         public ThemeTabControlSettingsDefinition TabControl { get; set; } = new();
+        public ThemeGraphSettingsDefinition Graph { get; set; } = new();
         public ThemeDockingSettingsDefinition Docking { get; set; } = new();
 
         public List<ThemeBackgroundDefinition> Backgrounds { get; set; } = new();
@@ -256,6 +257,25 @@ namespace MGUI.Core.UI.XAML
         public int? RowsSpacing { get; set; }
         public FillBrush RowSeparatorBrush { get; set; }
         public BorderBrush InvalidEditorBorderBrush { get; set; }
+    }
+
+    public class ThemeGraphSettingsDefinition : XAMLBindableBase
+    {
+        public Thickness? Padding { get; set; }
+        public BorderBrush BorderBrush { get; set; }
+        public Thickness? BorderThickness { get; set; }
+        public ThemeVisualStateFillBrushDefinition CanvasBackground { get; set; }
+        public FillBrush GridLineBrush { get; set; }
+        public FillBrush EdgeBrush { get; set; }
+        public BorderBrush NodeBorderBrush { get; set; }
+        public Thickness? NodeBorderThickness { get; set; }
+        public ThemeVisualStateFillBrushDefinition NodeHeaderBackground { get; set; }
+        public ThemeVisualStateColorBrushDefinition NodeHeaderForeground { get; set; }
+        public ThemeVisualStateFillBrushDefinition NodeBodyBackground { get; set; }
+        public FillBrush PortBackground { get; set; }
+        public ThemeVisualStateColorBrushDefinition PortForeground { get; set; }
+        public ThemeVisualStateFillBrushDefinition CommentBackground { get; set; }
+        public BorderBrush CommentBorderBrush { get; set; }
     }
 
     public class ThemeComboBoxSettingsDefinition : XAMLBindableBase

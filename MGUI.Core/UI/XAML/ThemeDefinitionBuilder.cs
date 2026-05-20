@@ -56,6 +56,7 @@ namespace MGUI.Core.UI.XAML
             ApplyComboBox(Theme.ComboBox, Definition.ComboBox);
             ApplyTreeViewTemplate(Theme.TreeViewTemplate, Definition.TreeViewTemplate);
             ApplyTabControl(Theme.TabControl, Definition.TabControl);
+            ApplyGraph(Theme.Graph, Definition.Graph);
             ApplyDocking(Theme.Docking, Definition.Docking);
             ApplyProperties(Theme, Definition.Properties);
         }
@@ -370,6 +371,30 @@ namespace MGUI.Core.UI.XAML
             if (Definition.BorderBrush != null) Target.BorderBrush = ToBorderBrush(Definition.BorderBrush);
             if (Definition.BorderThickness.HasValue) Target.BorderThickness = Definition.BorderThickness.Value.ToThickness();
             if (Definition.HeadersSpacing.HasValue) Target.HeadersSpacing = Definition.HeadersSpacing.Value;
+        }
+
+        private static void ApplyGraph(MGThemeGraphSettings Target, ThemeGraphSettingsDefinition Definition)
+        {
+            if (Definition == null)
+            {
+                return;
+            }
+
+            if (Definition.Padding.HasValue) Target.Padding = Definition.Padding.Value.ToThickness();
+            if (Definition.BorderBrush != null) Target.BorderBrush = ToBorderBrush(Definition.BorderBrush);
+            if (Definition.BorderThickness.HasValue) Target.BorderThickness = Definition.BorderThickness.Value.ToThickness();
+            if (Definition.CanvasBackground != null) Target.CanvasBackground = ApplyVisualStateFillBrush(Definition.CanvasBackground, Target.CanvasBackground);
+            if (Definition.GridLineBrush != null) Target.GridLineBrush = ToFillBrush(Definition.GridLineBrush);
+            if (Definition.EdgeBrush != null) Target.EdgeBrush = ToFillBrush(Definition.EdgeBrush);
+            if (Definition.NodeBorderBrush != null) Target.NodeBorderBrush = ToBorderBrush(Definition.NodeBorderBrush);
+            if (Definition.NodeBorderThickness.HasValue) Target.NodeBorderThickness = Definition.NodeBorderThickness.Value.ToThickness();
+            if (Definition.NodeHeaderBackground != null) Target.NodeHeaderBackground = ApplyVisualStateFillBrush(Definition.NodeHeaderBackground, Target.NodeHeaderBackground);
+            if (Definition.NodeHeaderForeground != null) Target.NodeHeaderForeground = ApplyVisualStateColorBrush(Definition.NodeHeaderForeground, Target.NodeHeaderForeground);
+            if (Definition.NodeBodyBackground != null) Target.NodeBodyBackground = ApplyVisualStateFillBrush(Definition.NodeBodyBackground, Target.NodeBodyBackground);
+            if (Definition.PortBackground != null) Target.PortBackground = ToFillBrush(Definition.PortBackground);
+            if (Definition.PortForeground != null) Target.PortForeground = ApplyVisualStateColorBrush(Definition.PortForeground, Target.PortForeground);
+            if (Definition.CommentBackground != null) Target.CommentBackground = ApplyVisualStateFillBrush(Definition.CommentBackground, Target.CommentBackground);
+            if (Definition.CommentBorderBrush != null) Target.CommentBorderBrush = ToBorderBrush(Definition.CommentBorderBrush);
         }
 
         private static void ApplyDocking(MGThemeDockingSettings Target, ThemeDockingSettingsDefinition Definition)
