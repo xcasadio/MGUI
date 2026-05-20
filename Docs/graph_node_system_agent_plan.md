@@ -1175,7 +1175,7 @@ Resultat:
 - Resultat validation: core build OK; samples build OK; 27 tests ciblés passes, 0 echec; avertissements restants preexistants.
 - Commit effectue: `perf: complete graph task 22 add culling and cache safeguards`.
 
-### ⚪ Tache 23 - Documenter `MGGraphView` V1
+### ✅ Tache 23 - Documenter `MGGraphView` V1
 
 But:
 fournir une documentation utilisable apres implementation.
@@ -1208,7 +1208,17 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `Docs/graph-view-v1-guide.md` comme guide V1 API/usage de `MGGraphView`.
+- Documentation de la creation minimale en C# et XAML, avec `MGGraphView`, `GraphDocument`, nodes, ports et edges.
+- Documentation du modele V1: `GraphDocument`, `GraphNodeModel`, `GraphPortModel`, `GraphEdgeModel`, `GraphCommentModel` et `GraphValueType`.
+- Documentation de la palette: `GraphNodeDefinition`, `GraphPortDefinition`, `GraphNodePalette`, menu contextuel et creation depuis drag de port.
+- Documentation des commandes undoables, validation, serialisation JSON, commandes clavier/souris, template parts et theming `MGTheme.Graph`.
+- Documentation des garde-fous performance V1: culling, cache d'edges et `CullingDiagnostics`.
+- Documentation explicite des limites V1 et backlog V2: compiler, blackboard, clipboard, duplicate, recherche, minimap, reroutes, groups avances, property grid, drag/drop assets.
+- Lien vers le sample `MGUI.Samples/Features/GraphViewDialogue.xaml` et son code-behind.
+- Verification effectuee: `Docs/graph_node_system_features.md` reste une vision fonctionnelle/roadmap; le nouveau guide devient la reference API V1.
+- Validation documentaire effectuee avec `rtk git diff -- Docs/graph-view-v1-guide.md Docs/graph_node_system_agent_plan.md`; RTK n'a pas emis de diff lisible pour le fichier non tracke, puis verification manuelle du guide et des noms de types/TemplateParts contre le code.
+- Commit effectue: `docs: complete graph task 23 document graph view v1`.
 
 ### ⚪ Tache 24 - Stabiliser la matrice de scenarios graphe
 
