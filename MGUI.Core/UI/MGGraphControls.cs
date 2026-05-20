@@ -43,6 +43,7 @@ namespace MGUI.Core.UI
         private Vector2 _PointerPressViewportPoint;
         private Vector2 _CurrentSelectionViewportPoint;
         private readonly Dictionary<Guid, Vector2> _NodeDragStartPositions = new();
+        private readonly HashSet<MGGraphPort> _RegisteredConnectionPorts = new();
 
         public MGBorder OuterBorder { get; private set; }
         public MGOverlayPanel ViewportHost { get; private set; }
@@ -54,6 +55,7 @@ namespace MGUI.Core.UI
         public GraphEdgeGeometryCache EdgeGeometryCache { get; } = new();
         public GraphCommandStack Commands { get; } = new();
         public GraphSelectionManager Selection { get; }
+        public GraphConnectionController ConnectionController { get; }
         public HashSet<Guid> SelectedNodeIds { get; } = new();
         public HashSet<Guid> SelectedEdgeIds { get; } = new();
         public bool ShowGrid { get; set; } = true;
@@ -150,6 +152,7 @@ namespace MGUI.Core.UI
                 _Document = document ?? new GraphDocument();
                 _Document.GraphChanged += OnDocumentGraphChanged;
                 Selection = new GraphSelectionManager(SelectedNodeIds, SelectedEdgeIds);
+                ConnectionController = new GraphConnectionController(this);
                 IsFocusable = true;
                 DefaultControlTemplateName = MGControlTemplateCatalog.GraphViewTemplateName;
                 RegisterViewportInputHandlers();
@@ -202,6 +205,57 @@ namespace MGUI.Core.UI
         {
             port = null;
             return _Synchronizer?.TryGetPort(portId, out port) == true;
+        }
+
+        internal void RegisterGraphPort(MGGraphPort port)
+        {
+            if (port == null || !_RegisteredConnectionPorts.Add(port))
+            {
+                return;
+            }
+
+            port.MouseHandler.DragStart += (sender, e) =>
+            {
+                if (e.IsLMB && ConnectionController.BeginDrag(port.PortId, port.GetLayoutAnchor()))
+                {
+                    e.SetHandledBy(port, false);
+                }
+            };
+
+            port.MouseHandler.Dragged += (sender, e) =>
+            {
+                if (e.IsLMB && ConnectionController.IsDragging && ConnectionController.StartPortId == port.PortId)
+                {
+                    Vector2 viewportPoint = GetViewportPoint(e.Position);
+                    ConnectionController.UpdateDrag(viewportPoint, TryGetPortAtViewportPoint(viewportPoint, out MGGraphPort targetPort) ? targetPort.PortId : null);
+                }
+            };
+
+            port.MouseHandler.DragEnd += (sender, e) =>
+            {
+                if (e.IsLMB && ConnectionController.IsDragging && ConnectionController.StartPortId == port.PortId)
+                {
+                    Vector2 viewportPoint = GetViewportPoint(e.EndPosition);
+                    if (TryGetPortAtViewportPoint(viewportPoint, out MGGraphPort targetPort))
+                    {
+                        ConnectionController.CompleteDrag(targetPort.PortId);
+                    }
+                    else
+                    {
+                        ConnectionController.Cancel();
+                    }
+                }
+            };
+        }
+
+        internal void SetPortConnectionFeedback(Guid portId, bool isSource, bool isTarget, bool isCompatible)
+        {
+            if (TryGetPortControl(portId, out MGGraphPort port))
+            {
+                port.IsConnectionDragSource = isSource;
+                port.IsConnectionDragTarget = isTarget;
+                port.IsConnectionCompatible = isCompatible;
+            }
         }
 
         public bool ClearSelection()
@@ -653,6 +707,46 @@ namespace MGUI.Core.UI
             return false;
         }
 
+        private bool TryGetPortAtViewportPoint(Vector2 viewportPoint, out MGGraphPort port)
+        {
+            port = null;
+            if (NodesCanvas == null)
+            {
+                return false;
+            }
+
+            for (int nodeIndex = NodesCanvas.Children.Count - 1; nodeIndex >= 0; nodeIndex--)
+            {
+                if (NodesCanvas.Children[nodeIndex] is not MGGraphNode graphNode || graphNode.PortsPanel == null)
+                {
+                    continue;
+                }
+
+                for (int portIndex = graphNode.PortsPanel.Children.Count - 1; portIndex >= 0; portIndex--)
+                {
+                    if (graphNode.PortsPanel.Children[portIndex] is MGGraphPort candidate)
+                    {
+                        Rectangle bounds = candidate.ActualLayoutBounds.Width > 0 || candidate.ActualLayoutBounds.Height > 0
+                            ? candidate.ActualLayoutBounds
+                            : candidate.LayoutBounds;
+                        if (bounds.Width <= 0 || bounds.Height <= 0)
+                        {
+                            Vector2 anchor = candidate.GetLayoutAnchor();
+                            bounds = new Rectangle((int)anchor.X - 8, (int)anchor.Y - 8, 16, 16);
+                        }
+
+                        if (bounds.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y)))
+                        {
+                            port = candidate;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private Rectangle GetNodeViewportBounds(MGGraphNode node)
         {
             Rectangle bounds = node.ActualLayoutBounds.Width > 0 || node.ActualLayoutBounds.Height > 0 ? node.ActualLayoutBounds : node.LayoutBounds;
@@ -904,6 +998,9 @@ namespace MGUI.Core.UI
         private Guid _PortId;
         private bool _IsConnected;
         private bool _IsRequired;
+        private bool _IsConnectionDragSource;
+        private bool _IsConnectionDragTarget;
+        private bool _IsConnectionCompatible;
 
         public MGBorder OuterBorder { get; private set; }
         public MGTextBlock Label { get; private set; }
@@ -946,6 +1043,45 @@ namespace MGUI.Core.UI
                 {
                     _IsRequired = value;
                     NPC(nameof(IsRequired));
+                }
+            }
+        }
+
+        public bool IsConnectionDragSource
+        {
+            get => _IsConnectionDragSource;
+            set
+            {
+                if (_IsConnectionDragSource != value)
+                {
+                    _IsConnectionDragSource = value;
+                    NPC(nameof(IsConnectionDragSource));
+                }
+            }
+        }
+
+        public bool IsConnectionDragTarget
+        {
+            get => _IsConnectionDragTarget;
+            set
+            {
+                if (_IsConnectionDragTarget != value)
+                {
+                    _IsConnectionDragTarget = value;
+                    NPC(nameof(IsConnectionDragTarget));
+                }
+            }
+        }
+
+        public bool IsConnectionCompatible
+        {
+            get => _IsConnectionCompatible;
+            set
+            {
+                if (_IsConnectionCompatible != value)
+                {
+                    _IsConnectionCompatible = value;
+                    NPC(nameof(IsConnectionCompatible));
                 }
             }
         }

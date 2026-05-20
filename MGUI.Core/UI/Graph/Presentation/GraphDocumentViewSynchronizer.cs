@@ -138,6 +138,7 @@ namespace MGUI.Core.UI.Graph
                     port.ValueType = portModel.ValueType;
                     port.IsRequired = portModel.IsRequired;
                     port.IsConnected = IsPortConnected(portModel.Id);
+                    GraphView.RegisterGraphPort(port);
                 }
             }
         }

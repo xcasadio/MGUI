@@ -13,6 +13,7 @@ namespace MGUI.Core.UI
     {
         private const float MinimumGridPixelSpacing = 8.0f;
         private readonly MGGraphView GraphView;
+        private readonly List<Vector2> TemporaryEdgePoints = new();
 
         public MGGraphSurfaceCanvas(MGWindow window, MGGraphView graphView)
             : base(window)
@@ -86,7 +87,7 @@ namespace MGUI.Core.UI
         private void DrawEdges(ElementDrawArgs DA, Rectangle layoutBounds)
         {
             GraphDocument document = GraphView.Document;
-            if (document == null || document.Edges.Count == 0)
+            if (document == null)
             {
                 return;
             }
@@ -114,6 +115,26 @@ namespace MGUI.Core.UI
                 {
                     DA.DT.StrokeLineSegment(origin, points[pointIndex - 1], points[pointIndex], edgeColor, thickness);
                 }
+            }
+
+            DrawTemporaryConnection(DA, origin, edgeColor, thickness);
+        }
+
+        private void DrawTemporaryConnection(ElementDrawArgs DA, Vector2 origin, Color defaultEdgeColor, float thickness)
+        {
+            GraphConnectionController controller = GraphView.ConnectionController;
+            if (controller?.IsDragging != true)
+            {
+                return;
+            }
+
+            Color previewColor = controller.HoverPortId.HasValue && controller.PreviewValidationResult?.IsValid == false
+                ? Color.OrangeRed * DA.Opacity
+                : defaultEdgeColor;
+            GraphBezierGeometry.BuildDefaultEdge(controller.StartViewportPoint, controller.CurrentViewportPoint, TemporaryEdgePoints, 16);
+            for (int pointIndex = 1; pointIndex < TemporaryEdgePoints.Count; pointIndex++)
+            {
+                DA.DT.StrokeLineSegment(origin, TemporaryEdgePoints[pointIndex - 1], TemporaryEdgePoints[pointIndex], previewColor, thickness);
             }
         }
 

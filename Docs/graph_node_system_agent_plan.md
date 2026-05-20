@@ -895,7 +895,7 @@ Resultat:
 - Resultat validation: build OK; 16 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
 - Commit effectue: `input: complete graph task 16 add selection and node dragging`.
 
-### ⚪ Tache 17 - Ajouter interaction de connexion entre ports
+### ✅ Tache 17 - Ajouter interaction de connexion entre ports
 
 But:
 permettre creation et suppression de connexions par drag de port.
@@ -931,7 +931,19 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphConnectionController` sur `MGGraphView` pour piloter drag de port, validation, creation et suppression d'edges selectionnees.
+- Le controleur normalise les drags input -> output et output -> input vers une edge source output / target input.
+- Validation via `GraphTypeCompatibilityService` avant creation, avec `PreviewValidationResult` et `LastDiagnostic` pour feedback non fatal.
+- Creation d'edge via `ConnectPortsCommand` et `GraphCommandStack`, donc undo/redo fonctionne.
+- Suppression d'edges selectionnees via `DisconnectPortsCommand` par `DeleteSelectedEdges`, en preparation directe de la tache clavier suivante.
+- `MGGraphView` enregistre les `MGGraphPort` crees par le synchroniseur et branche les handlers drag start/drag/update/end.
+- Ajout des flags de feedback sur `MGGraphPort`: `IsConnectionDragSource`, `IsConnectionDragTarget`, `IsConnectionCompatible`.
+- `MGGraphSurfaceCanvas` dessine une edge temporaire pendant le drag de connexion, avec couleur d'erreur quand la cible survolee est incompatible.
+- La cardinalite single reste refusee par le service de validation V1, sans remplacement automatique.
+- Ajout de `GraphConnectionControllerTests` couvrant creation compatible, normalisation input/output, incompatibilite, cardinalite single, annulation de drag, feedback port et suppression undoable d'edge selectionnee.
+- Validations executees avec succes: `dotnet build .\MGUI.Core\MGUI.Core.csproj --no-restore` et `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphConnection|GraphCommand|GraphValidation"`.
+- Resultat validation: build OK; 14 tests passes, 0 echec; avertissements restants preexistants ou de documentation/nullable.
+- Commit effectue: `input: complete graph task 17 add port connection interaction`.
 
 ### ⚪ Tache 18 - Ajouter commandes clavier d'edition
 
