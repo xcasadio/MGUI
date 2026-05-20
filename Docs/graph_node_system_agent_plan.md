@@ -502,7 +502,7 @@ Resultat:
 - Resultat validation: 5 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
 - Commit effectue: `feat: complete graph task 07 add command stack`.
 
-### ⚪ Tache 08 - Ajouter serialization JSON versionnee
+### ✅ Tache 08 - Ajouter serialization JSON versionnee
 
 But:
 permettre sauvegarde, chargement et tests de round-trip sans UI.
@@ -534,7 +534,12 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphSerializer`, `GraphSerializationResult` et `GraphMigrationService`.
+- La serialization utilise des DTO JSON versionnes a champs primitifs pour conserver proprement `Vector2`, `Rectangle`, couleur optionnelle, metadata, ports, edges et comments sans serialiser les controles.
+- Ajout de `GraphSerializationTests` couvrant round-trip complet, JSON invalide avec diagnostic et conservation d'un type de noeud inconnu.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphSerialization"`.
+- Resultat validation: 3 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
+- Commit effectue: `feat: complete graph task 08 add versioned serialization`.
 
 ### ⚪ Tache 09 - Ajouter services de geometrie de rendu et hit-test
 
