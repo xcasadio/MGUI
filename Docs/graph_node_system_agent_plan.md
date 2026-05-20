@@ -425,7 +425,7 @@ Resultat:
 - Resultat validation: 7 tests passes, 0 echec; avertissements existants ou nullable dans les tests de contrat.
 - Commit effectue: `feat: complete graph task 05 add viewport transform`.
 
-### ⚪ Tache 06 - Ajouter compatibilite de types et validation simple
+### ✅ Tache 06 - Ajouter compatibilite de types et validation simple
 
 But:
 empecher les connexions invalides au niveau modele, avant tout feedback visuel.
@@ -458,7 +458,12 @@ Commit recommande:
 
 Resultat:
 
-- A remplir par l'agent.
+- Ajout de `GraphTypeCompatibilityService`, `GraphConnectionValidationResult`, `GraphValidationResult`, `GraphValidationIssue`, `GraphValidationSeverity`, `IGraphValidator` et `GraphDocumentValidator`.
+- `GraphDocument.Connect(...)` passe maintenant par le service de compatibilite pour directions, types, duplicates, cardinalite single et cycles optionnels.
+- Ajout des tests `GraphTypeCompatibilityTests` et `GraphValidationTests`.
+- Validation executee avec succes: `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-restore --filter "GraphTypeCompatibility|GraphValidation|GraphDocumentModelTests"`.
+- Resultat validation: 14 tests passes, 0 echec; avertissements existants ou nullable dans les tests.
+- Commit effectue: `feat: complete graph task 06 add type compatibility validation`.
 
 ### ⚪ Tache 07 - Ajouter commandes et undo/redo local
 

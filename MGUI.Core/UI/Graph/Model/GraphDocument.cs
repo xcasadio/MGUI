@@ -7,6 +7,7 @@ namespace MGUI.Core.UI.Graph
     public class GraphDocument
     {
         public const int CurrentVersion = 1;
+        private static readonly GraphTypeCompatibilityService CompatibilityService = new();
 
         public int Version { get; set; } = CurrentVersion;
         public List<GraphNodeModel> Nodes { get; set; } = new();
@@ -183,34 +184,10 @@ namespace MGUI.Core.UI.Graph
                 throw new InvalidOperationException($"Graph already contains edge '{edgeId}'.");
             }
 
-            GraphPortModel sourcePort = TryGetPort(sourceNodeId, sourcePortId)
-                ?? throw new InvalidOperationException($"Missing source port '{sourcePortId}' on node '{sourceNodeId}'.");
-            GraphPortModel targetPort = TryGetPort(targetNodeId, targetPortId)
-                ?? throw new InvalidOperationException($"Missing target port '{targetPortId}' on node '{targetNodeId}'.");
-
-            if (sourcePort.Direction != GraphPortDirection.Output)
+            GraphConnectionValidationResult validation = CompatibilityService.ValidateConnection(this, sourceNodeId, sourcePortId, targetNodeId, targetPortId);
+            if (!validation.IsValid)
             {
-                throw new InvalidOperationException("Source port must be an output port.");
-            }
-
-            if (targetPort.Direction != GraphPortDirection.Input)
-            {
-                throw new InvalidOperationException("Target port must be an input port.");
-            }
-
-            for (int i = 0; i < Edges.Count; i++)
-            {
-                GraphEdgeModel edge = Edges[i];
-                if (edge.SourceNodeId == sourceNodeId && edge.SourcePortId == sourcePortId &&
-                    edge.TargetNodeId == targetNodeId && edge.TargetPortId == targetPortId)
-                {
-                    throw new InvalidOperationException("Graph already contains this connection.");
-                }
-
-                if (targetPort.Cardinality == GraphPortCardinality.Single && edge.TargetNodeId == targetNodeId && edge.TargetPortId == targetPortId)
-                {
-                    throw new InvalidOperationException("Target port cardinality is single and already has a connection.");
-                }
+                throw new InvalidOperationException(validation.Message);
             }
 
             GraphEdgeModel newEdge = new(edgeId, sourceNodeId, sourcePortId, targetNodeId, targetPortId);
