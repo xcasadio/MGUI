@@ -2,6 +2,8 @@
 
 Ce plan est volontairement explicite: il est destine a un agent IA moins autonome. L'agent doit suivre les etapes dans l'ordre, modifier l'icone devant le nom de l'etape, valider, puis committer avant de passer a l'etape suivante.
 
+Statut courant du depot: MVP implemente. Les icones ci-dessous refletent l'etat reel du code au 2026-05-08; l'historique Git de cette implementation a ete plus consolide qu'un strict commit par etape.
+
 ## Source fonctionnelle
 
 Lire d'abord `Docs/propertygrid-fonctionnalites.md`. Le MVP doit fournir:
@@ -55,7 +57,7 @@ Regles de travail:
 
 ## Plan d'execution
 
-### ☐ Etape 01 - Contrats non visuels et descriptors
+### ✅ Etape 01 - Contrats non visuels et descriptors
 
 Objectif: creer la couche non-UI qui analyse les proprietes sans creer de controle.
 
@@ -86,7 +88,9 @@ Validation:
 
 Commit attendu: `PropertyGrid step 01: add descriptor cache`.
 
-### ☐ Etape 02 - Squelette de `MGPropertyGrid`
+Resultat: `MGPropertyGridDescriptor`, `MGPropertyGridEditorKind`, `MGPropertyGridDescriptorCache` et le regroupement par categorie sont en place avec tests dedies sur le cache et les types supportes.
+
+### ✅ Etape 02 - Squelette de `MGPropertyGrid`
 
 Objectif: ajouter le controle persistant sans editeurs avances.
 
@@ -116,7 +120,9 @@ Validation:
 
 Commit attendu: `PropertyGrid step 02: add control skeleton`.
 
-### ☐ Etape 03 - Categories repliables et reutilisation des lignes
+Resultat: `MGPropertyGrid` expose `SelectedObject`, `SelectedObjectType`, `RefreshVisibleValues()` et les parts `PART_OuterBorder`, `PART_ScrollViewer`, `PART_CategoriesPanel` avec template par defaut.
+
+### ✅ Etape 03 - Categories repliables et reutilisation des lignes
 
 Objectif: afficher les categories et lignes, puis permettre ouvrir/fermer les categories sans reconstruire toute la grille a chaque frame.
 
@@ -145,7 +151,9 @@ Validation:
 
 Commit attendu: `PropertyGrid step 03: add collapsible categories`.
 
-### ☐ Etape 04 - Editeurs de valeurs MVP
+Resultat: les categories sont repliables, l'etat ouvert/ferme est conserve par nom, et les lignes sont reutilisees lors des changements d'objet du meme type.
+
+### ✅ Etape 04 - Editeurs de valeurs MVP
 
 Objectif: connecter les editeurs visuels aux descriptors sans melanger reflection et UI.
 
@@ -181,7 +189,9 @@ Validation:
 
 Commit attendu: `PropertyGrid step 04: add MVP value editors`.
 
-### ☐ Etape 05 - Refresh visible performant
+Resultat: editeurs `bool`, `int`, `float`, `double` et `string` branches sur les descriptors, commit sur Enter/perte de focus, validation numerique et etat invalide themeable.
+
+### ✅ Etape 05 - Refresh visible performant
 
 Objectif: rendre `RefreshVisibleValues()` utilisable a chaque frame.
 
@@ -211,7 +221,9 @@ Validation:
 
 Commit attendu: `PropertyGrid step 05: optimize visible refresh`.
 
-### ☐ Etape 06 - Theme et templates decouples
+Resultat: `RefreshVisibleValues()` parcourt uniquement les lignes pertinentes, n'ecrase pas les champs en cours d'edition et ne refait pas la reflection dans la boucle de refresh.
+
+### ✅ Etape 06 - Theme et templates decouples
 
 Objectif: rendre le rendu et le theme du PropertyGrid configurables par les memes mecanismes que les autres controles.
 
@@ -257,7 +269,9 @@ Validation:
 
 Commit attendu: `PropertyGrid step 06: add theme and templates`.
 
-### ☐ Etape 07 - XAML, sample et documentation courte
+Resultat: les settings runtime et declaratifs du PropertyGrid sont ajoutes au systeme de theme, relies au catalog de templates, et couverts pour `Dark_Blue` et `Dark`.
+
+### ✅ Etape 07 - XAML, sample et documentation courte
 
 Objectif: exposer le controle dans les usages normaux de MGUI.
 
@@ -288,7 +302,9 @@ Validation:
 
 Commit attendu: `PropertyGrid step 07: expose sample and xaml`.
 
-### ☐ Etape 08 - Passe finale de robustesse
+Resultat: wrapper XAML ajoute, sample Compendium branche avec categories `Transform`/`Rendering`/`Identity`, refresh live a chaque frame, et choix de theme `Dark_Blue` / `Dark`.
+
+### ✅ Etape 08 - Passe finale de robustesse
 
 Objectif: verifier le MVP complet et corriger uniquement les regressions liees au PropertyGrid.
 
@@ -309,6 +325,8 @@ Validation finale:
 - `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 
 Commit attendu: `PropertyGrid step 08: finalize MVP validation`.
+
+Resultat: tests `PropertyGrid` verts, build `MGUI.Samples` valide, et verification du comportement sur les themes built-in `Dark_Blue` et `Dark`.
 
 ## Definition of done MVP
 
