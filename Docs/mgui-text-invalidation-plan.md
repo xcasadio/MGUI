@@ -120,7 +120,7 @@ git add ai-agent/mgui-text-invalidation-plan.md
 git commit -m "plan: audit mgui text invalidation baseline"
 ```
 
-### ⏳ T02 - Introduire le contrat public d'invalidation du texte
+### ✅ T02 - Introduire le contrat public d'invalidation du texte
 
 But : remplacer le bool implicite par une API lisible et exploitable par le framework.
 

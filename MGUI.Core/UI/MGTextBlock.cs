@@ -442,16 +442,40 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _Text;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _HasStableTextFootprint;
+        /// <summary>
+        /// True when callers have explicitly reserved enough layout space for expected text updates.
+        /// Stable footprint text may use <see cref="MGTextInvalidationMode.ContentOnly"/> or
+        /// <see cref="MGTextInvalidationMode.ReflowLocal"/> without forcing parent layout; ordinary labels should keep the default false value.
+        /// </summary>
+        public bool HasStableTextFootprint
+        {
+            get => _HasStableTextFootprint;
+            set
+            {
+                if (_HasStableTextFootprint != value)
+                {
+                    _HasStableTextFootprint = value;
+                    NPC(nameof(HasStableTextFootprint));
+                }
+            }
+        }
+
         public string Text
         {
             get => _Text;
-            set => SetText(value, false);
+            set => SetText(value, MGTextInvalidationMode.RelayoutParent);
         }
 
         /// <param name="SuppressLayoutChanged">If true, <see cref="Text"/> will be set without calling <see cref="InvokeLayoutChanged"/><para/>
         /// Intended to be used for performance purposes when changing the text value, without actually changing the text layout.<br/>
         /// For example, changing text from: "Hello World" to "Hello [bg=Red]World[/bg]" does not affect the rendered text's layout/size.</param>
         public void SetText(string Value, bool SuppressLayoutChanged = false)
+            => SetText(Value, GetLegacyTextInvalidationMode(SuppressLayoutChanged));
+
+        /// <summary>Sets <see cref="Text"/> and applies the requested text invalidation contract.</summary>
+        public void SetText(string Value, MGTextInvalidationMode InvalidationMode)
         {
             bool HadExplicitRuns = HasExplicitRuns;
             if (_Text != Value || HadExplicitRuns)
@@ -463,14 +487,7 @@ namespace MGUI.Core.UI
                 }
 
                 UpdateRuns();
-                if (!SuppressLayoutChanged)
-                {
-                    InvokeLayoutChanged();
-                }
-                else
-                {
-                    UpdateLines();
-                }
+                ApplyTextInvalidation(InvalidationMode);
 
                 NPC(nameof(Text));
             }
@@ -479,20 +496,20 @@ namespace MGUI.Core.UI
         /// <summary>Replaces parsed <see cref="Text"/> content with explicit runs.
         /// This is intended for compact chat/log/debug annotations without introducing a full document editor.</summary>
         public void SetTextRuns(IEnumerable<MGTextRun> Value, bool SuppressLayoutChanged = false)
+            => SetTextRuns(Value, GetLegacyTextInvalidationMode(SuppressLayoutChanged));
+
+        /// <summary>Replaces parsed <see cref="Text"/> content with explicit runs and applies the requested text invalidation contract.</summary>
+        public void SetTextRuns(IEnumerable<MGTextRun> Value, MGTextInvalidationMode InvalidationMode)
         {
             ExplicitRuns = Value?.ToList().AsReadOnly();
             UpdateRuns();
-            if (!SuppressLayoutChanged)
-            {
-                InvokeLayoutChanged();
-            }
-            else
-            {
-                UpdateLines();
-            }
+            ApplyTextInvalidation(InvalidationMode);
         }
 
         public void ClearTextRuns(bool SuppressLayoutChanged = false)
+            => ClearTextRuns(GetLegacyTextInvalidationMode(SuppressLayoutChanged));
+
+        public void ClearTextRuns(MGTextInvalidationMode InvalidationMode)
         {
             if (!HasExplicitRuns)
             {
@@ -501,13 +518,27 @@ namespace MGUI.Core.UI
 
             ExplicitRuns = null;
             UpdateRuns();
-            if (!SuppressLayoutChanged)
+            ApplyTextInvalidation(InvalidationMode);
+        }
+
+        private static MGTextInvalidationMode GetLegacyTextInvalidationMode(bool SuppressLayoutChanged)
+            => SuppressLayoutChanged ? MGTextInvalidationMode.ReflowLocal : MGTextInvalidationMode.RelayoutParent;
+
+        private void ApplyTextInvalidation(MGTextInvalidationMode InvalidationMode)
+        {
+            switch (InvalidationMode)
             {
-                InvokeLayoutChanged();
-            }
-            else
-            {
-                UpdateLines();
+                case MGTextInvalidationMode.ContentOnly:
+                case MGTextInvalidationMode.ReflowLocal:
+                    UpdateLines();
+                    break;
+
+                case MGTextInvalidationMode.RelayoutParent:
+                    InvokeLayoutChanged();
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(InvalidationMode), InvalidationMode, null);
             }
         }
 
