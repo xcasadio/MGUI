@@ -78,7 +78,7 @@ Pour les taches qui migrent un call site editor visible, rejouer aussi un scenar
 
 ## Taches
 
-### ⏳ T01 - Auditer le baseline et verrouiller les cibles de migration
+### ✅ T01 - Auditer le baseline et verrouiller les cibles de migration
 
 But : partir d'une base reproductible avant de toucher l'invalidation.
 
@@ -104,7 +104,14 @@ Validation :
 
 Notes d'audit :
 
-- A completer par l'agent avant de passer a T02.
+- `rtk git status --short` avant audit : `.github/agents/mgui-engine-developer.agent.md` etait deja modifie et doit rester exclu des commits de cette serie.
+- Chemins verifies dans ce workspace : `MGUI.Core/UI/MGTextBlock.cs`, `MGUI.Core/UI/MGPropertyGrid.cs`, `MGUI.MiniGame/MiniGame.cs`, `MGUI.Samples/Features/PerformanceTest.xaml.cs`, `MGUI.Samples/Dialogs/Debugging/Debug1.xaml.cs`.
+- `CasaEngine.Editor/Controls/ParticlePreviewViewport.cs` et `CasaEngine.Editor.MonoGame.sln` ne sont pas presents dans ce workspace. Les migrations editor et le scenario preview particules sont donc impossibles ici tant que ce dossier n'est pas ajoute au workspace.
+- Chemins `MGTextBlock` verifies : `Text` route vers `SetText(value, false)`, `SetText`, `SetTextRuns` et `ClearTextRuns` choisissent entre `InvokeLayoutChanged()` et `UpdateLines()` via le bool legacy, `UpdateLines()` depend de `LayoutBounds.Width`, `WrapText` et `Runs`, `MeasureSelfOverride(...)` reparses les lignes avec la largeur de mesure, `MinLines`, `MaxLines`, `Padding` et le moteur texte, et `InvokeLayoutChanged()` vide `RecentSelfMeasurements` avant de propager `LayoutChanged(this, true)`.
+- Cibles de migration premiere passe disponibles dans le workspace : `MGUI.Core/UI/MGPropertyGrid.cs` readonly display text, `MGUI.Core/UI/MGProgressBar.cs`, `MGUI.Core/UI/MGStopWatch.cs`, `MGUI.Core/UI/MGTimer.cs`, `MGUI.MiniGame/MiniGame.cs` HUD/status, `MGUI.Samples/Features/PerformanceTest.xaml.cs` FPS/frame/elements/mode, `MGUI.Samples/Dialogs/Debugging/Debug1.xaml.cs` labels de grille mis a jour sur layout.
+- Baseline `rtk dotnet build .\MGUI.Core\MGUI.Core.csproj -c Debug --no-restore` : OK, 0 erreur, 19 warnings XML existants.
+- Baseline `rtk dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore` : 1113 passes, 2 echecs preexistants sans lien avec cette tache (`BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, `ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`).
+- Baseline editor : non lancee, solution/fichiers editor absents du workspace.
 
 Commit attendu :
 
