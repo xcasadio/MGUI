@@ -938,6 +938,7 @@ namespace MGUI.Core.UI
                     Margin = new Thickness(0),
                     MinHeight = DefaultRowControlMinHeight,
                     IsHitTestVisible = false,
+                    HasStableTextFootprint = true,
                 };
 
                 HostBorder = new(owner.SelfOrParentWindow)
@@ -960,7 +961,7 @@ namespace MGUI.Core.UI
                 string formattedValue = FormatValue(EditorKind, value);
                 if (force || DisplayText.Text != formattedValue)
                 {
-                    DisplayText.SetText(formattedValue, true);
+                    DisplayText.SetText(formattedValue, MGTextInvalidationMode.ReflowLocal);
                 }
             }
 

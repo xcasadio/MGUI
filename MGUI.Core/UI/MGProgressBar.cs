@@ -147,7 +147,7 @@ namespace MGUI.Core.UI
                     }
                 }
 
-                ValueElement.SetText(FormattedValue, !ForceLayoutRefresh && (ValueElement.Text?.Length ?? 0) == FormattedValue.Length);
+                ValueElement.SetText(FormattedValue, ForceLayoutRefresh ? MGTextInvalidationMode.RelayoutParent : MGTextInvalidationMode.ReflowLocal);
             }
         }
 
@@ -326,7 +326,10 @@ namespace MGUI.Core.UI
 
                 NumberFormat = "0.0";
 
-                ValueElement = new(Window, "", Color.White, GetTheme().FontSettings.MediumFontSize);
+                ValueElement = new(Window, "", Color.White, GetTheme().FontSettings.MediumFontSize)
+                {
+                    HasStableTextFootprint = true
+                };
                 //this.ValueElement.WrapText = false;
                 ValueComponent = new(ValueElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     true, true, false, false, false, false, false,

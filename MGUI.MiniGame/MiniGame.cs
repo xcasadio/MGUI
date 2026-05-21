@@ -372,25 +372,29 @@ namespace MGUI.MiniGame
 
             _moneyText = new MGTextBlock(_hudWindow, string.Empty, Color.Gold, 16)
             {
-                Margin = new Thickness(0, 4, 0, 0)
+                Margin = new Thickness(0, 4, 0, 0),
+                HasStableTextFootprint = true
             };
             content.TryAddChild(_moneyText);
 
             _interactionText = new MGTextBlock(_hudWindow, string.Empty, Color.LightGreen, 14)
             {
-                Margin = new Thickness(0, 6, 0, 0)
+                Margin = new Thickness(0, 6, 0, 0),
+                HasStableTextFootprint = true
             };
             content.TryAddChild(_interactionText);
 
             _statusText = new MGTextBlock(_hudWindow, "Move around, open the inventory with I/Y, and talk to the merchant with E/X.", Color.White, 13)
             {
-                Margin = new Thickness(0, 4, 0, 0)
+                Margin = new Thickness(0, 4, 0, 0),
+                HasStableTextFootprint = true
             };
             content.TryAddChild(_statusText);
 
             _quickSlotsText = new MGTextBlock(_hudWindow, string.Empty, Color.LightBlue, 13)
             {
-                Margin = new Thickness(0, 6, 0, 0)
+                Margin = new Thickness(0, 6, 0, 0),
+                HasStableTextFootprint = true
             };
             content.TryAddChild(_quickSlotsText);
 
@@ -552,7 +556,10 @@ namespace MGUI.MiniGame
                 PreferredHeight = 280,
                 Spacing = 8
             };
-            _shopModeText = new MGTextBlock(_shopWindow, string.Empty, Color.White, 18);
+            _shopModeText = new MGTextBlock(_shopWindow, string.Empty, Color.White, 18)
+            {
+                HasStableTextFootprint = true
+            };
             _shopContent.TryAddChild(_shopModeText);
 
             MGDockPanel body = new(_shopWindow)
@@ -587,7 +594,10 @@ namespace MGUI.MiniGame
                 Margin = new Thickness(12, 0, 0, 0)
             };
 
-            _shopMoneyText = new MGTextBlock(_shopWindow, string.Empty, Color.Gold, 16);
+            _shopMoneyText = new MGTextBlock(_shopWindow, string.Empty, Color.Gold, 16)
+            {
+                HasStableTextFootprint = true
+            };
             rightPanel.TryAddChild(_shopMoneyText);
 
             _shopModeToggleButton = new MGButton(_shopWindow, _ => ToggleShopMode(1))
@@ -598,7 +608,10 @@ namespace MGUI.MiniGame
             _shopModeToggleButton.SetContent("Switch to Sell Mode");
             rightPanel.TryAddChild(_shopModeToggleButton);
 
-            _shopOwnedQuantityText = new MGTextBlock(_shopWindow, string.Empty, Color.White, 14);
+            _shopOwnedQuantityText = new MGTextBlock(_shopWindow, string.Empty, Color.White, 14)
+            {
+                HasStableTextFootprint = true
+            };
             rightPanel.TryAddChild(_shopOwnedQuantityText);
 
             _shopSelectedItemText = new MGTextBlock(_shopWindow, string.Empty, Color.LightGray, 14);
@@ -784,8 +797,8 @@ namespace MGUI.MiniGame
 
         private void RefreshShopContent()
         {
-            _shopMoneyText?.SetText($"Your gold: {_playerMoney}");
-            _shopModeText?.SetText(_shopMode == TradeMode.Buy ? "Buying from Merchant" : "Selling to Merchant");
+            _shopMoneyText?.SetText($"Your gold: {_playerMoney}", MGTextInvalidationMode.ReflowLocal);
+            _shopModeText?.SetText(_shopMode == TradeMode.Buy ? "Buying from Merchant" : "Selling to Merchant", MGTextInvalidationMode.ReflowLocal);
             _shopModeToggleButton?.SetContent(_shopMode == TradeMode.Buy ? "Switch to Sell Mode" : "Switch to Buy Mode");
             RefreshTradeEntries();
         }
@@ -794,7 +807,7 @@ namespace MGUI.MiniGame
         {
             if (_selectedTradeEntry == null)
             {
-                _shopOwnedQuantityText?.SetText("Owned: 0");
+                _shopOwnedQuantityText?.SetText("Owned: 0", MGTextInvalidationMode.ReflowLocal);
                 _shopSelectedItemText?.SetText("No item selected.");
                 _shopBuyButton?.SetContent(_shopMode == TradeMode.Buy ? "Buy" : "Sell");
                 return;
@@ -802,7 +815,7 @@ namespace MGUI.MiniGame
 
             ItemDefinition definition = _selectedTradeEntry.Item;
             int quantityOwned = GetOwnedQuantity(definition.Name);
-            _shopOwnedQuantityText?.SetText($"Owned: {quantityOwned}");
+            _shopOwnedQuantityText?.SetText($"Owned: {quantityOwned}", MGTextInvalidationMode.ReflowLocal);
             _shopSelectedItemText?.SetText($"Item: {definition.Name}\n{definition.Description}");
             _shopBuyButton?.SetContent(_shopMode == TradeMode.Buy
                 ? $"Buy ({_selectedTradeEntry.Price} gold)"
@@ -817,9 +830,9 @@ namespace MGUI.MiniGame
             _magicBar.Maximum = CurrentMaxMagic;
             _magicBar.Value = Math.Clamp(_playerMagic, 0f, CurrentMaxMagic);
 
-            _moneyText.SetText($"Gold: {_playerMoney}");
-            _interactionText.SetText(GetInteractionPrompt(), true);
-            _quickSlotsText.SetText(GetQuickSlotsSummary(), true);
+            _moneyText.SetText($"Gold: {_playerMoney}", MGTextInvalidationMode.ReflowLocal);
+            _interactionText.SetText(GetInteractionPrompt(), MGTextInvalidationMode.ReflowLocal);
+            _quickSlotsText.SetText(GetQuickSlotsSummary(), MGTextInvalidationMode.ReflowLocal);
             RefreshShopContent();
         }
 
@@ -1301,7 +1314,7 @@ namespace MGUI.MiniGame
             => _isHelpOpen || _isInventoryOpen || _isVendorDialogOpen || _isShopOpen;
 
         private void SetStatusMessage(string text)
-            => _statusText?.SetText(text ?? string.Empty, true);
+            => _statusText?.SetText(text ?? string.Empty, MGTextInvalidationMode.ReflowLocal);
 
         private void OpenHelpWindow()
         {

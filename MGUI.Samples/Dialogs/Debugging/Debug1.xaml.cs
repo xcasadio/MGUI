@@ -143,7 +143,8 @@ namespace MGUI.Samples.Dialogs.Debugging
                             {
                                 if (Element is MGTextBlock TB)
                                 {
-                                    TB.SetText($"[b][color=White][shadow=black 1 2]W={CD.Width}, H={RD.Height}[/b][/shadow][/color]", true);
+                                    TB.HasStableTextFootprint = true;
+                                    TB.SetText($"[b][color=White][shadow=black 1 2]W={CD.Width}, H={RD.Height}[/b][/shadow][/color]", MGTextInvalidationMode.ReflowLocal);
                                 }
                             }
                         }

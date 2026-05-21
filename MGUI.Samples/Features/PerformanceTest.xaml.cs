@@ -36,6 +36,10 @@ namespace MGUI.Samples.Features
             _tbFrameMs  = Window.GetElementByName<MGTextBlock>("TbFrameMs");
             _tbElements = Window.GetElementByName<MGTextBlock>("TbElements");
             _tbMode     = Window.GetElementByName<MGTextBlock>("TbMode");
+            _tbFps.HasStableTextFootprint = true;
+            _tbFrameMs.HasStableTextFootprint = true;
+            _tbElements.HasStableTextFootprint = true;
+            _tbMode.HasStableTextFootprint = true;
 
             // --- Item-count buttons ---
             Window.GetElementByName<MGButton>("BtnLoad5k").MouseHandler.LMBReleasedInside
@@ -100,8 +104,8 @@ namespace MGUI.Samples.Features
             if (elapsedSec >= 0.5)
             {
                 double fps = _frameCount / elapsedSec;
-                _tbFps.Text     = $"FPS: {fps:F1}";
-                _tbFrameMs.Text = $"Frame time: {dtMs:F2} ms";
+                _tbFps.SetText($"FPS: {fps:F1}", MGTextInvalidationMode.ReflowLocal);
+                _tbFrameMs.SetText($"Frame time: {dtMs:F2} ms", MGTextInvalidationMode.ReflowLocal);
                 _frameCount = 0;
                 _fpsWatch.Restart();
             }
@@ -134,8 +138,8 @@ namespace MGUI.Samples.Features
                 realized = _listBox.ListBoxItems?.Count ?? 0;
             }
 
-            _tbElements.Text = $"Elements: total={_currentItemCount:N0}   realized={realized}";
-            _tbMode.Text     = $"Mode: {_listBox.VirtualizationMode}  |  Virtualizing: {virt}";
+            _tbElements.SetText($"Elements: total={_currentItemCount:N0}   realized={realized}", MGTextInvalidationMode.ReflowLocal);
+            _tbMode.SetText($"Mode: {_listBox.VirtualizationMode}  |  Virtualizing: {virt}", MGTextInvalidationMode.ReflowLocal);
         }
     }
 }

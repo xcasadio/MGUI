@@ -55,9 +55,7 @@ namespace MGUI.Core.UI
             string ElapsedDisplayString = ElapsedToString(Elapsed);
             string ValueDisplayString = ValueDisplayFormat.Replace($"{{{{{nameof(Elapsed)}}}}}", ElapsedDisplayString);
 
-            //  Assume the required size of this element hasn't changed if the text length stayed the same
-            //  This assumption may be incorrect for non-monospaced font
-            ValueElement.SetText(ValueDisplayString, !ForceLayoutRefresh && (ValueElement.Text?.Length ?? 0) == ValueDisplayString.Length);
+            ValueElement.SetText(ValueDisplayString, ForceLayoutRefresh ? MGTextInvalidationMode.RelayoutParent : MGTextInvalidationMode.ReflowLocal);
         }
 
         public const string DefaultValueDisplayFormat = $"[b][shadow=Black 1 1]{{{{{nameof(Elapsed)}}}}}[/shadow][/b]";
@@ -212,7 +210,10 @@ namespace MGUI.Core.UI
                 BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
-                ValueElement = new(Window, "", Color.White, GetTheme().FontSettings.MediumFontSize);
+                ValueElement = new(Window, "", Color.White, GetTheme().FontSettings.MediumFontSize)
+                {
+                    HasStableTextFootprint = true
+                };
                 ValueComponent = new(ValueElement, false, false, true, true, false, false, true,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds.GetCompressed(Padding), HorizontalContentAlignment, VerticalContentAlignment, ComponentSize.Size));
                 AddComponent(ValueComponent);

@@ -38,6 +38,10 @@ namespace MGUI.Samples.Controls
             TbFrameMs = Window.GetElementByName<MGTextBlock>("TbFrameMs");
             TbElements = Window.GetElementByName<MGTextBlock>("TbElements");
             TbMode = Window.GetElementByName<MGTextBlock>("TbMode");
+            TbFps.HasStableTextFootprint = true;
+            TbFrameMs.HasStableTextFootprint = true;
+            TbElements.HasStableTextFootprint = true;
+            TbMode.HasStableTextFootprint = true;
 
             ClickTestListBox.SetItemsSource(new List<string>()
             {
@@ -134,8 +138,8 @@ namespace MGUI.Samples.Controls
             if (elapsedSeconds >= 0.5)
             {
                 double fps = FrameCount / elapsedSeconds;
-                TbFps.Text = $"FPS: {fps:F1}";
-                TbFrameMs.Text = $"Frame time: {dtMs:F2} ms";
+                TbFps.SetText($"FPS: {fps:F1}", MGTextInvalidationMode.ReflowLocal);
+                TbFrameMs.SetText($"Frame time: {dtMs:F2} ms", MGTextInvalidationMode.ReflowLocal);
                 FrameCount = 0;
                 FpsWatch.Restart();
             }
@@ -167,8 +171,8 @@ namespace MGUI.Samples.Controls
                 realizedCount = PerfList.ListBoxItems?.Count ?? 0;
             }
 
-            TbElements.Text = $"Elements: total={CurrentItemCount:N0}   realized={realizedCount}";
-            TbMode.Text = $"Mode: {PerfList.VirtualizationMode}  |  Virtualizing: {isVirtualizing}";
+            TbElements.SetText($"Elements: total={CurrentItemCount:N0}   realized={realizedCount}", MGTextInvalidationMode.ReflowLocal);
+            TbMode.SetText($"Mode: {PerfList.VirtualizationMode}  |  Virtualizing: {isVirtualizing}", MGTextInvalidationMode.ReflowLocal);
         }
     }
 }
