@@ -845,7 +845,7 @@ namespace MGUI.Core.UI
                 if (_MinLines != value)
                 {
                     _MinLines = value;
-                    LayoutChanged(this, true);
+                    InvokeLayoutChanged();
                     NPC(nameof(MinLines));
                 }
             }
@@ -865,7 +865,7 @@ namespace MGUI.Core.UI
                 if (_MaxLines != value)
                 {
                     _MaxLines = value;
-                    LayoutChanged(this, true);
+                    InvokeLayoutChanged();
                     NPC(nameof(MaxLines));
                 }
             }
@@ -989,11 +989,14 @@ namespace MGUI.Core.UI
             return false;
         }
 
-        private void InvokeLayoutChanged()
+        protected override void LayoutChanged(MGElement Source, bool NotifyParent)
         {
-            RecentSelfMeasurements.Clear();
-            LayoutChanged(this, true);
+            RecentSelfMeasurements?.Clear();
+            base.LayoutChanged(Source, NotifyParent);
         }
+
+        private void InvokeLayoutChanged()
+            => LayoutChanged(this, true);
 
         /// <summary>If true, lines that consist of only a single whitespace character will be ignored when rendering wrapped text content.</summary>
         private const bool IgnoreEmptySpaceLines = true;

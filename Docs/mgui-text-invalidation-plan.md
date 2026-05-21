@@ -205,7 +205,7 @@ git add MGUI/MGUI.Core/UI/MGTextBlock.cs ai-agent/mgui-text-invalidation-plan.md
 git commit -m "mgui: relayout text only when desired size changes"
 ```
 
-### ⏳ T05 - Durcir les garde-fous de compatibilite
+### ✅ T05 - Durcir les garde-fous de compatibilite
 
 But : ne rien casser pour les labels ordinaires.
 
@@ -220,6 +220,11 @@ Validation :
 
 - `dotnet build .\MGUI\MGUI.Core\MGUI.Core.csproj -c Debug --no-restore`
 - `dotnet test .\MGUI\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore`
+
+Resultat :
+
+- `rtk dotnet build .\MGUI.Core\MGUI.Core.csproj -c Debug --no-restore` : OK, 0 erreur, 19 warnings XML existants.
+- `rtk dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore` : 1113 passes, memes 2 echecs baseline preexistants (`BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, `ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`).
 
 Commit attendu :
 
