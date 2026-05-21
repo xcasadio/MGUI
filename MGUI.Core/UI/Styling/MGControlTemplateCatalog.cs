@@ -1063,8 +1063,10 @@ namespace MGUI.Core.UI.Styling
             MGTextBlock header = Context.GetRequiredPart<MGTextBlock>(MGGraphNode.HeaderTextBlockPartName);
             MGContentPresenter bodyPresenter = Context.GetRequiredPart<MGContentPresenter>(MGGraphNode.BodyPresenterPartName);
 
+            Context.ApplyThemeDefault("GraphNode.Background", theme.Graph.NodeBodyBackground, () => outerBorder.BackgroundBrush, value => outerBorder.BackgroundBrush = value);
             Context.ApplyThemeDefault("GraphNode.BorderBrush", theme.Graph.NodeBorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
             Context.ApplyThemeDefault("GraphNode.BorderThickness", theme.Graph.NodeBorderThickness, () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
+            Context.ApplyTemplateValue("GraphNode.Padding", new Thickness(0), () => outerBorder.Padding, value => outerBorder.Padding = value);
             Context.ApplyThemeDefault("GraphNode.HeaderBackground", theme.Graph.NodeHeaderBackground, () => header.BackgroundBrush, value => header.BackgroundBrush = value);
             Context.ApplyThemeDefault("GraphNode.HeaderForeground", ToTextForeground(theme.Graph.NodeHeaderForeground), () => header.DefaultTextForeground, value => header.DefaultTextForeground = value);
             Context.ApplyThemeDefault("GraphNode.HeaderPadding", new Thickness(8, 4), () => header.Padding, value => header.Padding = value);

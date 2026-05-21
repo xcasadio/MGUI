@@ -26,7 +26,10 @@
                 <Button Name="SaveGraphButton" Content="Save JSON" />
                 <Button Name="LoadGraphButton" Content="Load JSON" />
                 <Button Name="ResetGraphButton" Content="Reset" />
+                <Button Name="UseDarkBlueThemeButton" Content="Dark_Blue" />
+                <Button Name="UseDarkThemeButton" Content="Dark" />
             </StackPanel>
+            <TextBlock Name="GraphThemeStatusText" HorizontalAlignment="Center" Text="Theme: default" />
             <Border>
                 <TextBlock Name="GraphStatusText" Text="Status: ready" WrapText="True" />
             </Border>

@@ -9,6 +9,7 @@ namespace MGUI.Core.UI.Graph
 {
     internal sealed class GraphDocumentViewSynchronizer
     {
+        private static readonly Size AutoMeasureSize = new(4096, 4096);
         private readonly MGGraphView GraphView;
         private readonly Dictionary<Guid, MGGraphNode> NodesById = new();
         private readonly Dictionary<Guid, MGGraphPort> PortsById = new();
@@ -147,6 +148,7 @@ namespace MGUI.Core.UI.Graph
             commentBox.Text = model.Text;
             commentBox.IsSelected = GraphView.SelectedCommentIds.Contains(model.Id);
             commentBox.ApplySelectionVisual();
+            commentBox.ApplyZoomScale(GraphView.ViewportTransform.Zoom);
             commentBox.PreferredWidth = Math.Max(1, (int)MathF.Round(model.Bounds.Width * GraphView.ViewportTransform.Zoom));
             commentBox.PreferredHeight = Math.Max(1, (int)MathF.Round(model.Bounds.Height * GraphView.ViewportTransform.Zoom));
 
@@ -180,17 +182,34 @@ namespace MGUI.Core.UI.Graph
             node.HasError = ReadBooleanMetadata(model.EditorMetadata, "HasError", "Error");
             node.HasWarning = ReadBooleanMetadata(model.EditorMetadata, "HasWarning", "Warning");
 
+            SynchronizePorts(node, model);
+
+            float zoom = Math.Max(0.01f, GraphView.ViewportTransform.Zoom);
+            node.ApplyZoomScale(zoom);
+
             if (model.Size.HasValue)
             {
-                node.PreferredWidth = Math.Max(0, (int)MathF.Round(model.Size.Value.X));
-                node.PreferredHeight = Math.Max(0, (int)MathF.Round(model.Size.Value.Y));
+                GraphSelectionManager.ClearAutoMeasuredWorldSize(model);
+                node.PreferredWidth = Math.Max(1, (int)MathF.Round(model.Size.Value.X * zoom));
+                node.PreferredHeight = Math.Max(1, (int)MathF.Round(model.Size.Value.Y * zoom));
             }
+            else
+            {
+                node.PreferredWidth = null;
+                node.PreferredHeight = null;
+                node.UpdateMeasurement(AutoMeasureSize, out _, out Thickness fullSize, out _, out _);
+                int desiredWidth = Math.Max(1, fullSize.Width);
+                int desiredHeight = Math.Max(1, fullSize.Height);
+                node.PreferredWidth = desiredWidth;
+                node.PreferredHeight = desiredHeight;
+                GraphSelectionManager.SetAutoMeasuredWorldSize(model, new Vector2(desiredWidth / zoom, desiredHeight / zoom));
+            }
+
+            GraphView.RegisterGraphNode(node);
 
             Vector2 layoutPosition = GraphView.ViewportTransform.WorldToLayout(model.Position);
             MGCanvas.SetLeft(node, (int)MathF.Round(layoutPosition.X));
             MGCanvas.SetTop(node, (int)MathF.Round(layoutPosition.Y));
-
-            SynchronizePorts(node, model);
         }
 
         private void SynchronizePorts(MGGraphNode node, GraphNodeModel model)
@@ -230,6 +249,7 @@ namespace MGUI.Core.UI.Graph
                     port.ValueType = portModel.ValueType;
                     port.IsRequired = portModel.IsRequired;
                     port.IsConnected = IsPortConnected(portModel.Id);
+                    port.ApplyZoomScale(GraphView.ViewportTransform.Zoom);
                     GraphView.RegisterGraphPort(port);
                 }
             }

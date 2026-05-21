@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using MGUI.Core.UI;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Graph;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -13,17 +14,23 @@ public class GraphViewDialogueSample : SampleBase
     private readonly GraphSerializer Serializer = new();
     private readonly GraphDocumentValidator Validator = new();
     private readonly string SavePath = Path.Combine(Path.GetTempPath(), "MGUI.GraphViewDialogue.json");
+    private readonly MGTheme DarkBlueTheme;
+    private readonly MGTheme DarkTheme;
 
     private MGGraphView GraphView;
     private MGTextBlock StatusText;
+    private MGTextBlock ThemeStatusText;
     private GraphDocument ObservedDocument;
     private string SavedJson = string.Empty;
 
     public GraphViewDialogueSample(ContentManager content, MGDesktop desktop)
         : base(content, desktop, nameof(Features), "GraphViewDialogue.xaml")
     {
+        DarkBlueTheme = CreateGraphPreviewTheme(MGTheme.BuiltInTheme.Dark_Blue, desktop.DefaultFontFamily);
+        DarkTheme = CreateGraphPreviewTheme(MGTheme.BuiltInTheme.Dark, desktop.DefaultFontFamily);
         GraphView = Window.GetElementByName<MGGraphView>("DialogueGraphView");
         StatusText = Window.GetElementByName<MGTextBlock>("GraphStatusText");
+        ThemeStatusText = Window.GetElementByName<MGTextBlock>("GraphThemeStatusText");
 
         GraphView.NodePalette = CreateDialoguePalette();
         UseDocument(CreateSampleDocument(), frameAll: true);
@@ -36,6 +43,10 @@ public class GraphViewDialogueSample : SampleBase
         Window.GetElementByName<MGButton>("SaveGraphButton").MouseHandler.LMBReleasedInside += (_, _) => SaveGraph();
         Window.GetElementByName<MGButton>("LoadGraphButton").MouseHandler.LMBReleasedInside += (_, _) => LoadGraph();
         Window.GetElementByName<MGButton>("ResetGraphButton").MouseHandler.LMBReleasedInside += (_, _) => UseDocument(CreateSampleDocument(), frameAll: true, statusPrefix: "Sample reset.");
+        Window.GetElementByName<MGButton>("UseDarkBlueThemeButton").MouseHandler.LMBReleasedInside += (_, _) => ApplyTheme(DarkBlueTheme, "Dark_Blue");
+        Window.GetElementByName<MGButton>("UseDarkThemeButton").MouseHandler.LMBReleasedInside += (_, _) => ApplyTheme(DarkTheme, "Dark");
+
+        ApplyTheme(DarkBlueTheme, "Dark_Blue");
     }
 
     private void UseDocument(GraphDocument document, bool frameAll, string statusPrefix = null)
@@ -128,6 +139,34 @@ public class GraphViewDialogueSample : SampleBase
         {
             StatusText.Text = text ?? string.Empty;
         }
+    }
+
+    private void ApplyTheme(MGTheme theme, string themeName)
+    {
+        Window.GetResources().DefaultTheme = theme;
+        GraphView.SynchronizeDocument();
+        if (ThemeStatusText != null)
+        {
+            ThemeStatusText.Text = $"Theme: {themeName}";
+        }
+    }
+
+    private static MGTheme CreateGraphPreviewTheme(MGTheme.BuiltInTheme builtInTheme, string defaultFontFamily)
+    {
+        MGTheme theme = new(builtInTheme, defaultFontFamily);
+
+        if (builtInTheme == MGTheme.BuiltInTheme.Dark)
+        {
+            theme.Graph.CanvasBackground = new(new MGSolidFillBrush(new Color(38, 38, 38)));
+            theme.Graph.GridLineBrush = new MGSolidFillBrush(new Color(122, 122, 122) * 0.26f);
+        }
+        else if (builtInTheme == MGTheme.BuiltInTheme.Dark_Blue)
+        {
+            theme.Graph.CanvasBackground = new(new MGSolidFillBrush(new Color(82, 87, 97)));
+            theme.Graph.GridLineBrush = new MGSolidFillBrush(new Color(196, 206, 220) * 0.22f);
+        }
+
+        return theme;
     }
 
     private static GraphNodePalette CreateDialoguePalette()

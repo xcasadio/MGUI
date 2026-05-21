@@ -45,13 +45,14 @@ namespace MGUI.Core.UI
             float zoom = Math.Max(0.01f, viewport.Zoom);
             int stepMultiplier = Math.Max(1, (int)MathF.Ceiling(MinimumGridPixelSpacing / (baseWorldStep * zoom)));
             float worldStep = baseWorldStep * stepMultiplier;
+            Color backgroundColor = ResolveVisualBrushColor(GraphView.NodesCanvas?.BackgroundBrush, new Color(18, 22, 26)) * DA.Opacity;
             Color minorColor = ResolveBrushColor(GraphView.GridLineBrush, Color.White * 0.08f) * DA.Opacity;
             if (minorColor == Color.Transparent)
             {
                 return;
             }
 
-            Color majorColor = Color.Lerp(minorColor, Color.White * DA.Opacity, 0.22f);
+            Color majorColor = Color.Lerp(minorColor, backgroundColor, 0.55f);
             Vector2 topLeftWorld = viewport.LayoutToWorld(new Vector2(layoutBounds.Left, layoutBounds.Top));
             Vector2 bottomRightWorld = viewport.LayoutToWorld(new Vector2(layoutBounds.Right, layoutBounds.Bottom));
             float worldLeft = Math.Min(topLeftWorld.X, bottomRightWorld.X);
@@ -171,13 +172,16 @@ namespace MGUI.Core.UI
                 return false;
             }
 
-            Vector2 nodeSize = nodeModel.Size ?? new Vector2(160.0f, 100.0f);
+            Vector2 nodeSize = GraphSelectionManager.GetNodeWorldSize(nodeModel);
             int portIndex = Math.Max(0, nodeModel.Ports.FindIndex(candidate => candidate?.Id == portId));
             float portY = Math.Min(Math.Max(20.0f, 36.0f + portIndex * 24.0f), Math.Max(20.0f, nodeSize.Y - 12.0f));
             float portX = portModel.Direction == GraphPortDirection.Input ? 0.0f : nodeSize.X;
             layoutAnchor = GraphView.ViewportTransform.WorldToLayout(nodeModel.Position + new Vector2(portX, portY));
             return true;
         }
+
+        private static Color ResolveVisualBrushColor(VisualStateFillBrush brush, Color fallback)
+            => brush?.NormalValue is MGSolidFillBrush solid ? solid.Color : fallback;
 
         private static bool HasUsableBounds(MGElement element)
             => element != null && (element.ActualLayoutBounds.Width > 0 || element.ActualLayoutBounds.Height > 0 || element.LayoutBounds.Width > 0 || element.LayoutBounds.Height > 0);

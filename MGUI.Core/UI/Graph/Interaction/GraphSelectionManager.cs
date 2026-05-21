@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 
@@ -7,6 +8,9 @@ namespace MGUI.Core.UI.Graph
 {
     public sealed class GraphSelectionManager
     {
+        public const string AutoMeasuredWidthMetadataKey = "__GraphAutoWidth";
+        public const string AutoMeasuredHeightMetadataKey = "__GraphAutoHeight";
+
         public HashSet<Guid> SelectedNodeIds { get; }
         public HashSet<Guid> SelectedEdgeIds { get; }
 
@@ -102,6 +106,46 @@ namespace MGUI.Core.UI.Graph
 
         public bool IsNodeSelected(Guid nodeId) => SelectedNodeIds.Contains(nodeId);
 
+        public static Vector2 GetNodeWorldSize(GraphNodeModel node)
+        {
+            if (node == null)
+            {
+                return new Vector2(1.0f, 1.0f);
+            }
+
+            if (node.Size.HasValue)
+            {
+                return ClampSize(node.Size.Value);
+            }
+
+            return TryGetAutoMeasuredWorldSize(node, out Vector2 measured)
+                ? measured
+                : new Vector2(160.0f, 100.0f);
+        }
+
+        public static void SetAutoMeasuredWorldSize(GraphNodeModel node, Vector2 size)
+        {
+            if (node?.EditorMetadata == null)
+            {
+                return;
+            }
+
+            Vector2 clamped = ClampSize(size);
+            node.EditorMetadata[AutoMeasuredWidthMetadataKey] = clamped.X.ToString(CultureInfo.InvariantCulture);
+            node.EditorMetadata[AutoMeasuredHeightMetadataKey] = clamped.Y.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public static void ClearAutoMeasuredWorldSize(GraphNodeModel node)
+        {
+            if (node?.EditorMetadata == null)
+            {
+                return;
+            }
+
+            node.EditorMetadata.Remove(AutoMeasuredWidthMetadataKey);
+            node.EditorMetadata.Remove(AutoMeasuredHeightMetadataKey);
+        }
+
         public static RectangleF GetNodeWorldBounds(GraphNodeModel node)
         {
             if (node == null)
@@ -109,9 +153,32 @@ namespace MGUI.Core.UI.Graph
                 return new RectangleF();
             }
 
-            Vector2 size = node.Size ?? new Vector2(160.0f, 100.0f);
+            Vector2 size = GetNodeWorldSize(node);
             return new RectangleF(node.Position.X, node.Position.Y, Math.Max(1.0f, size.X), Math.Max(1.0f, size.Y));
         }
+
+        private static bool TryGetAutoMeasuredWorldSize(GraphNodeModel node, out Vector2 size)
+        {
+            size = default;
+            if (node?.EditorMetadata == null)
+            {
+                return false;
+            }
+
+            if (!node.EditorMetadata.TryGetValue(AutoMeasuredWidthMetadataKey, out string widthText)
+                || !node.EditorMetadata.TryGetValue(AutoMeasuredHeightMetadataKey, out string heightText)
+                || !float.TryParse(widthText, NumberStyles.Float, CultureInfo.InvariantCulture, out float width)
+                || !float.TryParse(heightText, NumberStyles.Float, CultureInfo.InvariantCulture, out float height))
+            {
+                return false;
+            }
+
+            size = ClampSize(new Vector2(width, height));
+            return true;
+        }
+
+        private static Vector2 ClampSize(Vector2 size)
+            => new(Math.Max(1.0f, size.X), Math.Max(1.0f, size.Y));
 
         private bool ClearExceptNode(Guid nodeId)
         {

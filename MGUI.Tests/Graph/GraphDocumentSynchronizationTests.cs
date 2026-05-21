@@ -82,6 +82,46 @@ public class GraphDocumentSynchronizationTests
     }
 
     [Fact]
+    public void GraphView_ScalesDefaultNodeBoundsWithViewportZoom()
+    {
+        MGGraphView graphView = CreateGraphView();
+        GraphDocument document = graphView.Document;
+        Guid nodeId = Guid.NewGuid();
+        document.AddNode(nodeId, "Value", "Scaled", new Vector2(20, 30));
+
+        Assert.True(graphView.TryGetNodeControl(nodeId, out MGGraphNode nodeAtOne));
+        int widthAtOne = nodeAtOne.PreferredWidth ?? 0;
+        int heightAtOne = nodeAtOne.PreferredHeight ?? 0;
+
+        graphView.ViewportTransform.Zoom = 2.0f;
+        graphView.SynchronizeDocument();
+
+        Assert.True(graphView.TryGetNodeControl(nodeId, out MGGraphNode node));
+        Assert.True(node.PreferredWidth > widthAtOne);
+        Assert.True(node.PreferredHeight > heightAtOne);
+        Assert.Equal(40, MGCanvas.GetLeft(node));
+        Assert.Equal(60, MGCanvas.GetTop(node));
+    }
+
+    [Fact]
+    public void GraphView_AutoSizesNodesFromContent()
+    {
+        MGGraphView graphView = CreateGraphView();
+        GraphDocument document = graphView.Document;
+        Guid shortNodeId = Guid.NewGuid();
+        Guid longNodeId = Guid.NewGuid();
+        document.AddNode(shortNodeId, "Value", "A", Vector2.Zero);
+        document.AddNode(longNodeId, "Value", "A much longer node title", new Vector2(200, 0));
+        document.AddPort(longNodeId, Guid.NewGuid(), "Output", GraphPortDirection.Output, GraphValueType.Float);
+        graphView.SynchronizeDocument();
+
+        Assert.True(graphView.TryGetNodeControl(shortNodeId, out MGGraphNode shortNode));
+        Assert.True(graphView.TryGetNodeControl(longNodeId, out MGGraphNode longNode));
+        Assert.True(longNode.PreferredWidth > shortNode.PreferredWidth);
+        Assert.True(longNode.PreferredHeight >= shortNode.PreferredHeight);
+    }
+
+    [Fact]
     public void GraphView_SynchronizesPortConnectionStateWithoutMutatingModel()
     {
         MGGraphView graphView = CreateGraphView();

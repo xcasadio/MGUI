@@ -136,7 +136,7 @@ namespace MGUI.Core.UI.Graph
                     continue;
                 }
 
-                Vector2 size = node.Size ?? new Vector2(160, 100);
+                Vector2 size = GraphSelectionManager.GetNodeWorldSize(node);
                 float nodeLeft = node.Position.X;
                 float nodeTop = node.Position.Y;
                 float nodeRight = node.Position.X + Math.Max(1.0f, size.X);

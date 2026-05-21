@@ -4,6 +4,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Graph;
+using MGUI.Core.UI.Responsive;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Input.Mouse;
 using Microsoft.Xna.Framework;
@@ -49,6 +50,7 @@ namespace MGUI.Core.UI
         private readonly Dictionary<Guid, Vector2> _NodeDragStartPositions = new();
         private readonly Dictionary<Guid, Rectangle> _CommentDragStartBounds = new();
         private Rectangle _CommentResizeStartBounds;
+        private readonly HashSet<MGGraphNode> _RegisteredNodeInputs = new();
         private readonly HashSet<MGGraphPort> _RegisteredConnectionPorts = new();
 
         public MGBorder OuterBorder { get; private set; }
@@ -311,6 +313,81 @@ namespace MGUI.Core.UI
                         ConnectionController.Cancel();
                         TryOpenNodeCreationMenu(e.EndPosition, startPortId);
                     }
+                }
+            };
+        }
+
+        internal void RegisterGraphNode(MGGraphNode node)
+        {
+            if (node == null || !_RegisteredNodeInputs.Add(node))
+            {
+                return;
+            }
+
+            node.MouseHandler.DragStartCondition = DragStartCondition.Both;
+
+            node.MouseHandler.LMBPressedInside += (sender, e) =>
+            {
+                Vector2 viewportPoint = GetViewportPoint(e.Position);
+                if (TryGetPortAtViewportPoint(viewportPoint, out _))
+                {
+                    return;
+                }
+
+                Focus(KeyboardFocusSource.Pointer);
+                _PointerPressViewportPoint = viewportPoint;
+                _CurrentSelectionViewportPoint = viewportPoint;
+                _PressedNodeId = node.NodeId;
+                _PressedCommentId = Guid.Empty;
+                _PressedCommentResizeHandle = false;
+
+                bool controlDown = IsControlDown();
+                SelectNode(node.NodeId, additive: controlDown, toggle: controlDown);
+                e.SetHandledBy(node, false);
+            };
+
+            node.MouseHandler.DragStart += (sender, e) =>
+            {
+                if (!e.IsLMB || e.Condition != DragStartCondition.MouseMovedAfterPress)
+                {
+                    return;
+                }
+
+                Vector2 viewportPoint = GetViewportPoint(e.Position);
+                if (TryGetPortAtViewportPoint(viewportPoint, out _))
+                {
+                    return;
+                }
+
+                _PressedNodeId = node.NodeId;
+                _PointerPressViewportPoint = viewportPoint;
+                _CurrentSelectionViewportPoint = viewportPoint;
+                BeginNodeDrag();
+                e.SetHandledBy(node, false);
+            };
+
+            node.MouseHandler.Dragged += (sender, e) =>
+            {
+                if (_IsDraggingNodes && e.IsLMB)
+                {
+                    UpdateNodeDrag(GetViewportPoint(e.Position));
+                }
+            };
+
+            node.MouseHandler.DragEnd += (sender, e) =>
+            {
+                if (e.IsLMB)
+                {
+                    CompleteNodeOrRectangleDrag(e.EndPosition);
+                }
+            };
+
+            node.MouseHandler.ReleasedOutside += (sender, e) =>
+            {
+                if (e.IsLMB)
+                {
+                    CompleteNodeOrRectangleDrag(e.Position);
+                    e.SetHandledBy(node, false);
                 }
             };
         }
@@ -1489,6 +1566,12 @@ namespace MGUI.Core.UI
         private bool _HasError;
         private bool _HasWarning;
         private bool _IsCollapsed;
+        private bool _HasCapturedZoomMetrics;
+        private int _BaseHeaderFontSize;
+        private Thickness _BaseHeaderPadding;
+        private Thickness _BasePortsPadding;
+        private int _BasePortsSpacing;
+        private Thickness _BaseBodyPadding;
 
         public MGBorder OuterBorder { get; private set; }
         public MGTextBlock HeaderTextBlock { get; private set; }
@@ -1622,6 +1705,31 @@ namespace MGUI.Core.UI
             base.SetContentVirtual(value);
         }
 
+        internal void ApplyZoomScale(float zoom)
+        {
+            if (HeaderTextBlock == null || PortsPanel == null || BodyPresenter == null)
+            {
+                return;
+            }
+
+            if (!_HasCapturedZoomMetrics)
+            {
+                _BaseHeaderFontSize = Math.Max(1, HeaderTextBlock.FontSize);
+                _BaseHeaderPadding = HeaderTextBlock.Padding;
+                _BasePortsPadding = PortsPanel.Padding;
+                _BasePortsSpacing = PortsPanel.Spacing;
+                _BaseBodyPadding = BodyPresenter.Padding;
+                _HasCapturedZoomMetrics = true;
+            }
+
+            float clampedZoom = Math.Max(0.1f, zoom);
+            _ = HeaderTextBlock.TrySetFont(HeaderTextBlock.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseHeaderFontSize, clampedZoom)));
+            HeaderTextBlock.Padding = UIResponsiveMath.ScaleThickness(_BaseHeaderPadding, clampedZoom);
+            PortsPanel.Padding = UIResponsiveMath.ScaleThickness(_BasePortsPadding, clampedZoom);
+            PortsPanel.Spacing = Math.Max(0, UIResponsiveMath.ScaleInt(_BasePortsSpacing, clampedZoom));
+            BodyPresenter.Padding = UIResponsiveMath.ScaleThickness(_BaseBodyPadding, clampedZoom);
+        }
+
         private void UpdateCollapsedVisualState()
         {
             if (PortsPanel != null)
@@ -1654,6 +1762,9 @@ namespace MGUI.Core.UI
         private bool _IsConnectionDragSource;
         private bool _IsConnectionDragTarget;
         private bool _IsConnectionCompatible;
+        private bool _HasCapturedZoomMetrics;
+        private int _BaseLabelFontSize;
+        private Thickness _BaseOuterPadding;
 
         public MGBorder OuterBorder { get; private set; }
         public MGTextBlock Label { get; private set; }
@@ -1788,6 +1899,25 @@ namespace MGUI.Core.UI
             }
         }
 
+        internal void ApplyZoomScale(float zoom)
+        {
+            if (OuterBorder == null || Label == null)
+            {
+                return;
+            }
+
+            if (!_HasCapturedZoomMetrics)
+            {
+                _BaseLabelFontSize = Math.Max(1, Label.FontSize);
+                _BaseOuterPadding = OuterBorder.Padding;
+                _HasCapturedZoomMetrics = true;
+            }
+
+            float clampedZoom = Math.Max(0.1f, zoom);
+            _ = Label.TrySetFont(Label.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseLabelFontSize, clampedZoom)));
+            OuterBorder.Padding = UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom);
+        }
+
         public Vector2 GetLayoutAnchor()
         {
             Rectangle bounds = ActualLayoutBounds.Width > 0 || ActualLayoutBounds.Height > 0
@@ -1817,6 +1947,10 @@ namespace MGUI.Core.UI
         private string _Title = string.Empty;
         private string _Text = string.Empty;
         private Guid _CommentId;
+        private bool _HasCapturedZoomMetrics;
+        private int _BaseTitleFontSize;
+        private int _BaseBodyFontSize;
+        private Thickness _BaseOuterPadding;
 
         public MGBorder OuterBorder { get; private set; }
         public MGTextBlock TitleTextBlock { get; private set; }
@@ -1903,6 +2037,27 @@ namespace MGUI.Core.UI
             {
                 SetContent(OuterBorder);
             }
+        }
+
+        internal void ApplyZoomScale(float zoom)
+        {
+            if (OuterBorder == null || TitleTextBlock == null || BodyTextBlock == null)
+            {
+                return;
+            }
+
+            if (!_HasCapturedZoomMetrics)
+            {
+                _BaseTitleFontSize = Math.Max(1, TitleTextBlock.FontSize);
+                _BaseBodyFontSize = Math.Max(1, BodyTextBlock.FontSize);
+                _BaseOuterPadding = OuterBorder.Padding;
+                _HasCapturedZoomMetrics = true;
+            }
+
+            float clampedZoom = Math.Max(0.1f, zoom);
+            _ = TitleTextBlock.TrySetFont(TitleTextBlock.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseTitleFontSize, clampedZoom)));
+            _ = BodyTextBlock.TrySetFont(BodyTextBlock.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseBodyFontSize, clampedZoom)));
+            OuterBorder.Padding = UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom);
         }
 
         internal void ApplySelectionVisual()

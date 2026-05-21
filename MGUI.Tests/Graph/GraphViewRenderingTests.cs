@@ -2,6 +2,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Graph;
 using Microsoft.Xna.Framework;
+using System.Linq;
 
 namespace MGUI.Tests.Graph;
 
@@ -21,7 +22,8 @@ public class GraphViewRenderingTests
         using GraphNoOpDrawTransaction transaction = new(runtime, MGUI.Shared.Rendering.DrawSettings.Default);
         desktop.View.Draw(transaction, 1.0f);
 
-        Assert.Contains(transaction.StrokeLineCalls, call => call.Color == Color.Lerp(Color.LimeGreen * 0.45f, Color.White, 0.22f) || call.Color == Color.LimeGreen * 0.45f);
+        Assert.Contains(transaction.StrokeLineCalls, call => call.Color == Color.LimeGreen * 0.45f);
+        Assert.True(transaction.StrokeLineCalls.Select(call => call.Color.PackedValue).Distinct().Count() >= 2);
         Assert.True(transaction.StrokeLineCalls.Count > 8);
     }
 
