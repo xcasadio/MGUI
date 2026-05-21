@@ -233,7 +233,7 @@ git add MGUI/MGUI.Core/UI/* ai-agent/mgui-text-invalidation-plan.md
 git commit -m "mgui: preserve safe legacy text layout behavior"
 ```
 
-### ⏳ T06 - Ajouter les tests de regression MGUI
+### ✅ T06 - Ajouter les tests de regression MGUI
 
 But : verrouiller le contrat avant la migration des call sites editor.
 
@@ -251,6 +251,12 @@ Validation :
 
 - `dotnet test .\MGUI\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore`
 - `dotnet build .\MGUI\MGUI.Core\MGUI.Core.csproj -c Debug --no-restore`
+
+Resultat :
+
+- `rtk dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore --filter FullyQualifiedName~TextBlockInvalidationTests` : OK, 7 tests passes.
+- `rtk dotnet build .\MGUI.Core\MGUI.Core.csproj -c Debug --no-restore` : OK, 0 erreur.
+- `rtk dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore` : 1120 passes, memes 2 echecs baseline preexistants (`BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, `ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`).
 
 Commit attendu :
 
