@@ -472,10 +472,13 @@ namespace MGUI.Core.UI
         /// Intended to be used for performance purposes when changing the text value, without actually changing the text layout.<br/>
         /// For example, changing text from: "Hello World" to "Hello [bg=Red]World[/bg]" does not affect the rendered text's layout/size.</param>
         public void SetText(string Value, bool SuppressLayoutChanged = false)
-            => SetText(Value, GetLegacyTextInvalidationMode(SuppressLayoutChanged));
+            => SetTextCore(Value, GetLegacyTextInvalidationMode(SuppressLayoutChanged), true);
 
         /// <summary>Sets <see cref="Text"/> and applies the requested text invalidation contract.</summary>
         public void SetText(string Value, MGTextInvalidationMode InvalidationMode)
+            => SetTextCore(Value, InvalidationMode, false);
+
+        private void SetTextCore(string Value, MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
         {
             bool HadExplicitRuns = HasExplicitRuns;
             if (_Text != Value || HadExplicitRuns)
@@ -486,8 +489,7 @@ namespace MGUI.Core.UI
                     ExplicitRuns = null;
                 }
 
-                UpdateRuns();
-                ApplyTextInvalidation(InvalidationMode);
+                ApplyTextMutation(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
 
                 NPC(nameof(Text));
             }
@@ -496,20 +498,25 @@ namespace MGUI.Core.UI
         /// <summary>Replaces parsed <see cref="Text"/> content with explicit runs.
         /// This is intended for compact chat/log/debug annotations without introducing a full document editor.</summary>
         public void SetTextRuns(IEnumerable<MGTextRun> Value, bool SuppressLayoutChanged = false)
-            => SetTextRuns(Value, GetLegacyTextInvalidationMode(SuppressLayoutChanged));
+            => SetTextRunsCore(Value, GetLegacyTextInvalidationMode(SuppressLayoutChanged), true);
 
         /// <summary>Replaces parsed <see cref="Text"/> content with explicit runs and applies the requested text invalidation contract.</summary>
         public void SetTextRuns(IEnumerable<MGTextRun> Value, MGTextInvalidationMode InvalidationMode)
+            => SetTextRunsCore(Value, InvalidationMode, false);
+
+        private void SetTextRunsCore(IEnumerable<MGTextRun> Value, MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
         {
             ExplicitRuns = Value?.ToList().AsReadOnly();
-            UpdateRuns();
-            ApplyTextInvalidation(InvalidationMode);
+            ApplyTextMutation(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
         }
 
         public void ClearTextRuns(bool SuppressLayoutChanged = false)
-            => ClearTextRuns(GetLegacyTextInvalidationMode(SuppressLayoutChanged));
+            => ClearTextRunsCore(GetLegacyTextInvalidationMode(SuppressLayoutChanged), true);
 
         public void ClearTextRuns(MGTextInvalidationMode InvalidationMode)
+            => ClearTextRunsCore(InvalidationMode, false);
+
+        private void ClearTextRunsCore(MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
         {
             if (!HasExplicitRuns)
             {
@@ -517,14 +524,43 @@ namespace MGUI.Core.UI
             }
 
             ExplicitRuns = null;
-            UpdateRuns();
-            ApplyTextInvalidation(InvalidationMode);
+            ApplyTextMutation(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
         }
 
         private static MGTextInvalidationMode GetLegacyTextInvalidationMode(bool SuppressLayoutChanged)
             => SuppressLayoutChanged ? MGTextInvalidationMode.ReflowLocal : MGTextInvalidationMode.RelayoutParent;
 
-        private void ApplyTextInvalidation(MGTextInvalidationMode InvalidationMode)
+        private void ApplyTextMutation(MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
+        {
+            UpdateRuns();
+            MGTextInvalidationMode ResolvedInvalidationMode = ResolveTextInvalidationMode(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
+            ApplyResolvedTextInvalidation(ResolvedInvalidationMode);
+        }
+
+        private MGTextInvalidationMode ResolveTextInvalidationMode(MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
+        {
+            if (RequestedInvalidationMode == MGTextInvalidationMode.RelayoutParent)
+            {
+                return MGTextInvalidationMode.RelayoutParent;
+            }
+
+            if (!AllowLegacyLocalInvalidation && !HasStableTextFootprint)
+            {
+                return MGTextInvalidationMode.RelayoutParent;
+            }
+
+            if (!HasKnownTextLayoutWidth())
+            {
+                return MGTextInvalidationMode.RelayoutParent;
+            }
+
+            return RequestedInvalidationMode;
+        }
+
+        private bool HasKnownTextLayoutWidth()
+            => LayoutBounds.Width > 0;
+
+        private void ApplyResolvedTextInvalidation(MGTextInvalidationMode InvalidationMode)
         {
             switch (InvalidationMode)
             {
