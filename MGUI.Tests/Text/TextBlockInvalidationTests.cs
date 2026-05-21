@@ -28,6 +28,25 @@ public class TextBlockInvalidationTests
     }
 
     [Fact]
+    public void StableTelemetryCounter_CanUpdateRepeatedlyWithoutRelayoutParent()
+    {
+        TextInvalidationHarness harness = CreateLaidOutTextBlock("Counter: 000", textBlock =>
+        {
+            textBlock.HasStableTextFootprint = true;
+            textBlock.MinLines = 1;
+            textBlock.WrapText = false;
+        });
+
+        for (int i = 1; i <= 9; i++)
+        {
+            harness.TextBlock.SetText($"Counter: {i:000}", MGTextInvalidationMode.ReflowLocal);
+        }
+
+        Assert.Equal(0, harness.TextBlock.LayoutChangedCallCount);
+        Assert.Equal("Counter: 009", FlattenText(harness.TextBlock));
+    }
+
+    [Fact]
     public void ReflowLocal_RebuildsLinesWithoutRelayout_WhenDesiredSizeIsStable()
     {
         TextInvalidationHarness harness = CreateLaidOutTextBlock("AAAA\nBBBB", textBlock =>

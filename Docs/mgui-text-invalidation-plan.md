@@ -302,7 +302,7 @@ git add CasaEngine.Editor/Controls/* ai-agent/mgui-text-invalidation-plan.md
 git commit -m "editor: adopt explicit stable text invalidation"
 ```
 
-### ⏳ T08 - Ajouter une demo minimale et documenter l'usage
+### ✅ T08 - Ajouter une demo minimale et documenter l'usage
 
 But : laisser un contrat reutilisable par les prochains ecrans sans reouvrir le probleme.
 
@@ -317,6 +317,15 @@ Validation :
 - `dotnet build .\MGUI\MGUI.Core\MGUI.Core.csproj -c Debug --no-restore`
 - `dotnet test .\MGUI\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore`
 - `dotnet build .\CasaEngine.Editor.MonoGame.sln -c Debug --no-restore` si sample ou editor touches
+
+Resultat :
+
+- Ajout de `Docs/stable-text-invalidation-usage.md`.
+- Ajout du test compteur `StableTelemetryCounter_CanUpdateRepeatedlyWithoutRelayoutParent`.
+- `rtk dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore --filter FullyQualifiedName~TextBlockInvalidationTests` : OK, 8 tests passes.
+- `rtk dotnet build .\MGUI.Core\MGUI.Core.csproj -c Debug --no-restore` : OK, 0 erreur.
+- `rtk dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore` : 1121 passes, memes 2 echecs baseline preexistants (`BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, `ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`).
+- Build editor non lance : solution editor absente du workspace.
 
 Commit attendu :
 
