@@ -334,7 +334,7 @@ git add MGUI/* CasaEngine.Editor/* ai-agent/mgui-text-invalidation-plan.md
 git commit -m "docs(mgui): document stable text invalidation usage"
 ```
 
-### ⏳ T09 - Validation finale end-to-end et nettoyage
+### 🧪 T09 - Validation finale end-to-end et nettoyage
 
 But : verifier que la correction reste intelligente jusqu'au bout.
 
@@ -354,7 +354,13 @@ Validation :
 
 Resultats :
 
-- A completer par l'agent a la fin de l'execution.
+- `rtk dotnet build .\MGUI.Core\MGUI.Core.csproj -c Debug --no-restore` : OK, 0 erreur, 19 warnings XML existants.
+- `rtk dotnet test .\MGUI.Tests\MGUI.Tests.csproj -c Debug --no-restore` : 1121 passes, 2 echecs baseline preexistants inchanges (`BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, `ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`).
+- `rtk dotnet build .\MGUI.Samples\MGUI.Samples.csproj -c Debug --no-restore` : OK, 0 erreur.
+- `rtk dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj -c Debug --no-restore` : OK, 0 erreur.
+- `CasaEngine.Editor.MonoGame.sln`, `CasaEngine.Editor/Controls/ParticlePreviewViewport.cs` et le scenario preview particules sont absents du workspace, donc la capture `ai-agent/particle-preview-perf-after.txt` n'a pas pu etre produite.
+- Derniers usages legacy verifies : le bool `MGTextBlock.SetText(..., true)` reste couvert par un test de compatibilite ; les autres bools restants concernent `MGTextBox`/`MGRichTextBox`/`MGPasswordBox` ou un `TextBox` de property grid, pas les labels temps reel `MGTextBlock` migres. Les setters `Text = $"..."` restants dans les samples sont des labels evenementiels ou generalistes conserves sur le comportement sur par defaut.
+- Aucun workaround de throttling ou baisse de frequence visible n'a ete ajoute.
 
 Commit attendu :
 
