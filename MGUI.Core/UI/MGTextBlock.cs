@@ -532,51 +532,121 @@ namespace MGUI.Core.UI
 
         private void ApplyTextMutation(MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
         {
+            bool HasPreviousDesiredSize = TryGetCurrentLayoutDesiredTextSize(out Thickness PreviousDesiredSize);
+
             UpdateRuns();
             MGTextInvalidationMode ResolvedInvalidationMode = ResolveTextInvalidationMode(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
-            ApplyResolvedTextInvalidation(ResolvedInvalidationMode);
+            if (ResolvedInvalidationMode == MGTextInvalidationMode.RelayoutParent)
+            {
+                InvokeLayoutChanged();
+                return;
+            }
+
+            UpdateLines();
+            if (!HasPreviousDesiredSize || !TryGetCurrentLayoutDesiredTextSize(out Thickness CurrentDesiredSize) ||
+                !AreTextDesiredSizesEqual(PreviousDesiredSize, CurrentDesiredSize) || !CachedTextMeasurementsStillMatch())
+            {
+                InvokeLayoutChanged();
+            }
         }
 
         private MGTextInvalidationMode ResolveTextInvalidationMode(MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
         {
-            if (RequestedInvalidationMode == MGTextInvalidationMode.RelayoutParent)
-            {
-                return MGTextInvalidationMode.RelayoutParent;
-            }
-
-            if (!AllowLegacyLocalInvalidation && !HasStableTextFootprint)
-            {
-                return MGTextInvalidationMode.RelayoutParent;
-            }
-
-            if (!HasKnownTextLayoutWidth())
-            {
-                return MGTextInvalidationMode.RelayoutParent;
-            }
-
-            return RequestedInvalidationMode;
-        }
-
-        private bool HasKnownTextLayoutWidth()
-            => LayoutBounds.Width > 0;
-
-        private void ApplyResolvedTextInvalidation(MGTextInvalidationMode InvalidationMode)
-        {
-            switch (InvalidationMode)
+            switch (RequestedInvalidationMode)
             {
                 case MGTextInvalidationMode.ContentOnly:
                 case MGTextInvalidationMode.ReflowLocal:
-                    UpdateLines();
-                    break;
+                    if (!AllowLegacyLocalInvalidation && !HasStableTextFootprint)
+                    {
+                        return MGTextInvalidationMode.RelayoutParent;
+                    }
+
+                    return HasKnownTextLayoutWidth()
+                        ? RequestedInvalidationMode
+                        : MGTextInvalidationMode.RelayoutParent;
 
                 case MGTextInvalidationMode.RelayoutParent:
-                    InvokeLayoutChanged();
-                    break;
+                    return MGTextInvalidationMode.RelayoutParent;
 
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(InvalidationMode), InvalidationMode, null);
+                    throw new ArgumentOutOfRangeException(nameof(RequestedInvalidationMode), RequestedInvalidationMode, null);
             }
         }
+
+        private bool HasKnownTextLayoutWidth()
+            => LayoutBounds.Width > 0 && Lines != null && LastLineParseWidth == GetTextLineParseWidth();
+
+        private bool TryGetCurrentLayoutDesiredTextSize(out Thickness DesiredSize)
+        {
+            if (!HasKnownTextLayoutWidth())
+            {
+                DesiredSize = default;
+                return false;
+            }
+
+            DesiredSize = MeasureDesiredTextSize(Lines);
+            return true;
+        }
+
+        private bool CachedTextMeasurementsStillMatch()
+        {
+            foreach (ElementMeasurement Measurement in RecentSelfMeasurements)
+            {
+                if (!TryMeasureDesiredTextSize(Measurement.AvailableSize, Runs, out Thickness CurrentDesiredSize) ||
+                    !AreTextDesiredSizesEqual(Measurement.RequestedSize, CurrentDesiredSize))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool TryMeasureDesiredTextSize(Size TextContentSize, IReadOnlyList<MGTextRun> TextRuns, out Thickness DesiredSize)
+        {
+            if (TextRuns == null)
+            {
+                DesiredSize = default;
+                return false;
+            }
+
+            List<MGTextLine> ParsedLines = MGTextLine.ParseLines(this, TextContentSize.Width, WrapText, TextRuns, IgnoreEmptySpaceLines).ToList();
+            DesiredSize = MeasureDesiredTextSize(ParsedLines);
+            return true;
+        }
+
+        private Thickness MeasureDesiredTextSize(IReadOnlyList<MGTextLine> TextLines)
+        {
+            int MeasuredLineCount = TextLines?.Count ?? 0;
+            if (MaxLines.HasValue && MeasuredLineCount > MaxLines.Value)
+            {
+                MeasuredLineCount = Math.Max(0, MaxLines.Value);
+            }
+
+            float Width = 0;
+            float Height = 0;
+            for (int i = 0; i < MeasuredLineCount; i++)
+            {
+                MGTextLine Line = TextLines[i];
+                Width = Math.Max(Width, Line.LineWidth);
+                Height += Line.LineTotalHeight;
+            }
+
+            if (MeasuredLineCount > 1)
+            {
+                Height += EffectiveLinePadding * (MeasuredLineCount - 1);
+            }
+
+            if (MinLines > MeasuredLineCount)
+            {
+                Height += (MinLines - MeasuredLineCount) * (RF_Regular.LineHeight + EffectiveLinePadding);
+            }
+
+            return new Thickness((int)Math.Ceiling(Width), (int)Math.Ceiling(Height), 0, 0);
+        }
+
+        private static bool AreTextDesiredSizesEqual(Thickness First, Thickness Second)
+            => First.Left == Second.Left && First.Top == Second.Top && First.Right == Second.Right && First.Bottom == Second.Bottom;
 
         private bool _IsTrackingMouseClicks;
         private bool IsTrackingMouseClicks
@@ -680,12 +750,18 @@ namespace MGUI.Core.UI
         public ReadOnlyCollection<MGTextRun> Runs { get; private set; }
         public ReadOnlyCollection<MGTextLine> Lines { get; private set; }
         private int NumCharacters { get; set; }
+        private int LastLineParseWidth { get; set; } = -1;
 
         internal void UpdateLines()
         {
-            Lines = MGTextLine.ParseLines(this, Math.Max(0, LayoutBounds.Width - HorizontalPadding), WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
+            int LineParseWidth = GetTextLineParseWidth();
+            Lines = MGTextLine.ParseLines(this, LineParseWidth, WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
+            LastLineParseWidth = LineParseWidth;
             NPC(nameof(Lines));
         }
+
+        private int GetTextLineParseWidth()
+            => Math.Max(0, LayoutBounds.Width - HorizontalPadding);
 
         internal float GetRenderedTextHeight(IReadOnlyList<MGTextLine> lines)
         {
@@ -937,20 +1013,7 @@ namespace MGUI.Core.UI
                 return CachedMeasurement.Value;
             }
 
-            List<MGTextLine> Lines = MGTextLine.ParseLines(this, RemainingSize.Width, WrapText, Runs, IgnoreEmptySpaceLines).ToList();
-            List<MGTextLine> MeasuredLines = Lines;
-            if (MaxLines.HasValue && MeasuredLines.Count > MaxLines.Value)
-            {
-                MeasuredLines = MeasuredLines.Take(MaxLines.Value).ToList();
-            }
-
-            Vector2 Size = new(MeasuredLines.Select(x => x.LineWidth).DefaultIfEmpty(0).Max(), MeasuredLines.Sum(x => x.LineTotalHeight) + EffectiveLinePadding * Math.Max(0, MeasuredLines.Count - 1));
-            if (MinLines > MeasuredLines.Count)
-            {
-                Size = Size.SetY(Size.Y + (MinLines - MeasuredLines.Count) * (RF_Regular.LineHeight + EffectiveLinePadding));
-            }
-
-            Thickness Measurement = new((int)Math.Ceiling(Size.X), (int)Math.Ceiling(Size.Y), 0, 0);
+            Thickness Measurement = TryMeasureDesiredTextSize(RemainingSize, Runs, out Thickness DesiredSize) ? DesiredSize : new(0);
 
             ElementMeasurement SelfMeasurement = new(RemainingSize, Measurement, SharedSize, new(0));
             CacheSelfMeasurement(SelfMeasurement);
