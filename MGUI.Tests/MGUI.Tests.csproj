@@ -1,10 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>$(MGUIWindowsTargetFramework)</TargetFramework>
     <UseWPF>True</UseWPF>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <NoWarn>1701;1702;1573;1591</NoWarn>
   </PropertyGroup>
@@ -23,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-  <PackageReference Include="MonoGame.Framework.DesktopGL" VersionOverride="3.8.4.1" />
+  <PackageReference Include="MonoGame.Framework.DesktopGL" />
   <PackageReference Include="FontStashSharp.MonoGame" />
     <ProjectReference Include="..\MGUI.Rendering.Abstractions\MGUI.Rendering.Abstractions.csproj" />
     <ProjectReference Include="..\MGUI.Core\MGUI.Core.csproj" />

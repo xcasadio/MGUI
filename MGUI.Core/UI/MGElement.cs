@@ -1576,6 +1576,9 @@ namespace MGUI.Core.UI
         private bool _cachedHasModalWindow;
         // ---- End dirty-flag fields ------------------------------------------------
 
+        private bool CanInheritMouseInputFromParent()
+            => this is MGWindow { IsModalWindow: true } || (Parent?._CanReceiveMouseInput ?? true);
+
 		bool IKeyboardHandlerHost.HasKeyboardFocus() => GetDesktop().FocusedKeyboardHandler == this;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -2481,7 +2484,7 @@ namespace MGUI.Core.UI
             // Optimisation (Task 14): skip _CanReceiveMouseInput recomputation when nothing that affects it changed.
             // The inputs are: Visibility, ComputedIsEnabled, ComputedIsHitTestVisible, RecentDrawWasClipped (tracked
             // by _inputStateDirty), and the parent's _CanReceiveMouseInput (checked explicitly each frame).
-            bool parentCanMouse = Parent?._CanReceiveMouseInput ?? true;
+            bool parentCanMouse = CanInheritMouseInputFromParent();
             bool hasModalWindow = SelfOrParentWindow?.HasModalWindow == true;
             if (_inputStateDirty ||
                 ComputedIsEnabled != _cachedComputedEnabled ||

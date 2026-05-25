@@ -1,6 +1,13 @@
 namespace MGUI.Tests.Modal;
 
 using MGUI.Core.UI;
+using MGUI.Core.UI.Containers;
+using MGUI.Tests.Graph;
+using MGUI.Shared.Input.Mouse;
+using MGUI.Shared.Rendering;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
+using MonoGame.Extended;
 using System.Reflection;
 
 /// <summary>
@@ -24,11 +31,13 @@ public class ModalBlockingTests
         bool isEnabled,
         bool isHitTestVisible,
         bool parentCanMouse,
-        bool hasModalWindow)
+        bool hasModalWindow,
+        bool isModalWindow = false)
     {
         // Phase 1 — identical to the cache-block calculation in MGElement.Update().
         bool baseCanReceive = isVisible && isEnabled && isHitTestVisible;
-        bool result         = baseCanReceive && parentCanMouse;
+        bool effectiveParentCanMouse = isModalWindow || parentCanMouse;
+        bool result         = baseCanReceive && effectiveParentCanMouse;
 
         // Phase 2 — modal override, applied every tick outside the cache block.
         result &= !hasModalWindow;
@@ -110,6 +119,90 @@ public class ModalBlockingTests
         Assert.True(can, "elements inside the modal window itself must still receive mouse input");
     }
 
+    [Fact]
+    public void ModalWindowRoot_ParentBlockedByOwnedModal_CanReceiveMouse()
+    {
+        bool ownerCan = ComputeCanReceiveMouse(
+            isVisible: true, isEnabled: true, isHitTestVisible: true,
+            parentCanMouse: true, hasModalWindow: true);
+
+        bool modalCan = ComputeCanReceiveMouse(
+            isVisible: true, isEnabled: true, isHitTestVisible: true,
+            parentCanMouse: ownerCan, hasModalWindow: false, isModalWindow: true);
+
+        Assert.False(ownerCan, "owner window must be blocked while its modal is active");
+        Assert.True(modalCan, "modal window must not inherit the owner window's modal-blocked mouse state");
+    }
+
+    [Fact]
+    public void ModalWindowChild_ReceivesMouseClick_WhenOwnerWindowIsBlocked()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow ownerWindow = new(desktop, 0, 0, 640, 360)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new Thickness(0),
+        };
+        MGCanvas ownerRoot = new(ownerWindow);
+        MGButton ownerButton = new(ownerWindow)
+        {
+            PreferredWidth = 120,
+            PreferredHeight = 40,
+        };
+
+        ownerWindow.SetContent(ownerRoot);
+        desktop.Windows.Add(ownerWindow);
+        using (ownerRoot.AllowChangingContentTemporarily())
+        {
+            ownerRoot.TryAddChild(ownerButton);
+        }
+
+        MGCanvas.SetLeft(ownerButton, 108);
+        MGCanvas.SetTop(ownerButton, 108);
+
+        MGWindow modalWindow = new(ownerWindow, 100, 100, 240, 120)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new Thickness(0),
+        };
+        MGCanvas modalRoot = new(modalWindow);
+        MGButton modalButton = new(modalWindow)
+        {
+            PreferredWidth = 120,
+            PreferredHeight = 40,
+        };
+
+        modalWindow.SetContent(modalRoot);
+        using (modalRoot.AllowChangingContentTemporarily())
+        {
+            modalRoot.TryAddChild(modalButton);
+        }
+
+        MGCanvas.SetLeft(modalButton, 8);
+        MGCanvas.SetTop(modalButton, 8);
+        ownerWindow.PushModalWindow(modalWindow);
+
+        AdvanceFrame(runtime, desktop, 0, new Point(1, 1));
+        AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
+
+        int ownerClickCount = 0;
+        int modalClickCount = 0;
+        ownerButton.MouseHandler.LMBReleasedInside += (_, _) => ownerClickCount++;
+        modalButton.MouseHandler.LMBReleasedInside += (_, _) => modalClickCount++;
+
+        Point modalButtonCenter = modalButton.ActualLayoutBounds.Center;
+        AdvanceFrame(runtime, desktop, 32, modalButtonCenter);
+        AdvanceFrame(runtime, desktop, 48, modalButtonCenter, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 64, modalButtonCenter);
+
+        Assert.False(((IMouseHandlerHost)ownerButton).CanReceiveMouseInput());
+        Assert.True(((IMouseHandlerHost)modalWindow).CanReceiveMouseInput());
+        Assert.True(((IMouseHandlerHost)modalButton).CanReceiveMouseInput());
+        Assert.Equal(0, ownerClickCount);
+        Assert.Equal(1, modalClickCount);
+    }
+
     // ── Propagation through parent ────────────────────────────────────────────────
 
     [Fact]
@@ -185,4 +278,25 @@ public class ModalBlockingTests
         Assert.NotNull(activeModalWindowsProperty);
         Assert.Equal(typeof(IReadOnlyList<MGWindow>), activeModalWindowsProperty!.PropertyType);
     }
+
+    private static void AdvanceFrame(GraphTestRuntime runtime, MGDesktop desktop, int totalElapsedMs, Point position, MouseButton? pressedButton = null)
+    {
+        runtime.ApplyFrame(new UpdateBaseArgs(
+            TimeSpan.FromMilliseconds(totalElapsedMs),
+            TimeSpan.FromMilliseconds(16),
+            CreateMouseState(position, pressedButton),
+            new KeyboardState()));
+        desktop.Update();
+    }
+
+    private static MouseState CreateMouseState(Point position, MouseButton? pressedButton = null, int scrollWheel = 0)
+        => new(
+            position.X,
+            position.Y,
+            scrollWheel,
+            pressedButton == MouseButton.Left ? ButtonState.Pressed : ButtonState.Released,
+            pressedButton == MouseButton.Middle ? ButtonState.Pressed : ButtonState.Released,
+            pressedButton == MouseButton.Right ? ButtonState.Pressed : ButtonState.Released,
+            ButtonState.Released,
+            ButtonState.Released);
 }

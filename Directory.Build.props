@@ -1,0 +1,12 @@
+<Project>
+  <Import Project="..\Directory.Build.props" />
+
+  <PropertyGroup>
+    <MGUIDotNetVersion>$(DotNetVersion)</MGUIDotNetVersion>
+    <MGUIBaseTargetFramework>net$(MGUIDotNetVersion)</MGUIBaseTargetFramework>
+    <MGUIWindowsTargetFramework>net$(MGUIDotNetVersion)-windows</MGUIWindowsTargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**;artifacts\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

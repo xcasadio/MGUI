@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>$(WindowsTargetFramework)</TargetFramework>
     <RollForward>Major</RollForward>
     <PublishReadyToRun>false</PublishReadyToRun>
     <TieredCompilation>false</TieredCompilation>
@@ -235,8 +235,8 @@
   </ItemGroup>
   <ItemGroup>
   <PackageReference Include="Microsoft.VisualStudio.VsixColorCompiler" />
-  <PackageReference Include="MonoGame.Framework.DesktopGL" VersionOverride="3.8.4.1" />
-  <PackageReference Include="MonoGame.Content.Builder.Task" VersionOverride="3.8.4.1" />
+  <PackageReference Include="MonoGame.Framework.DesktopGL" />
+  <PackageReference Include="MonoGame.Content.Builder.Task" />
   <PackageReference Include="SpriteFontPlus" />
   </ItemGroup>
   <ItemGroup>

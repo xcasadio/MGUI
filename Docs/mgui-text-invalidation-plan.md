@@ -61,7 +61,7 @@ dotnet build .\CasaEngine.Editor.MonoGame.sln -c Debug --no-restore
 Pour les taches qui migrent un call site editor visible, rejouer aussi un scenario de preview particules :
 
 ```powershell
-.\CasaEngine.Editor\bin\Debug\net9.0-windows\CasaEngine.Editor.exe --project .\Projects\SampleProject\SampleProject.json --open-asset .\Particles\FireLoop_Minimal.particle --diagnostics-out .\ai-agent\particle-preview-perf-after.txt --capture-delay 5
+.\CasaEngine.Editor\bin\Debug\$(CasaEngineWindowsTargetFramework)\CasaEngine.Editor.exe --project .\Projects\SampleProject\SampleProject.json --open-asset .\Particles\FireLoop_Minimal.particle --diagnostics-out .\ai-agent\particle-preview-perf-after.txt --capture-delay 5
 ```
 
 ## Criteres d'acceptation

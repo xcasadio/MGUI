@@ -248,8 +248,8 @@ namespace MGUI.Samples.Features
                                 "========================================\n" +
                                 "1> Building MyProject.csproj...\n" +
                                 "1> Restore completed (0.2s)\n" +
-                                "1> MGUI.Core net9.0-windows succeeded (1.0s)\n" +
-                                "1> MyProject net9.0-windows succeeded (0.8s)\n" +
+                                "1> MGUI.Core $(CasaEngineWindowsTargetFramework) succeeded (1.0s)\n" +
+                                "1> MyProject $(CasaEngineWindowsTargetFramework) succeeded (0.8s)\n" +
                                 "========================================\n" +
                                 "[c=LightGreen]Build succeeded[/c]\n" +
                                 "    0 Warning(s)\n" +
