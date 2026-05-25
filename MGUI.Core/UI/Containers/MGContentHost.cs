@@ -134,6 +134,66 @@ namespace MGUI.Core.UI.Containers
 
         }
 
+        private int _ContentLayoutSuspensionDepth;
+        private bool _ContentLayoutChangedWhileSuspended;
+
+        public IDisposable SuspendContentLayout()
+        {
+            _ContentLayoutSuspensionDepth++;
+            return new ContentLayoutSuspension(this);
+        }
+
+        protected void OnContentStructureChanged()
+        {
+            if (_ContentLayoutSuspensionDepth > 0)
+            {
+                _ContentLayoutChangedWhileSuspended = true;
+                return;
+            }
+
+            ApplyContentStructureChanged();
+        }
+
+        private void EndContentLayoutSuspension()
+        {
+            _ContentLayoutSuspensionDepth--;
+            if (_ContentLayoutSuspensionDepth > 0 || !_ContentLayoutChangedWhileSuspended)
+            {
+                return;
+            }
+
+            _ContentLayoutChangedWhileSuspended = false;
+            ApplyContentStructureChanged();
+        }
+
+        private void ApplyContentStructureChanged()
+        {
+            LayoutChanged(this, true);
+            InvalidateVtcCache();
+        }
+
+        private sealed class ContentLayoutSuspension : IDisposable
+        {
+            private MGContentHost _Owner;
+
+            public ContentLayoutSuspension(MGContentHost owner)
+            {
+                _Owner = owner;
+            }
+
+            public void Dispose()
+            {
+                MGContentHost owner = _Owner;
+                if (owner == null)
+                {
+                    return;
+                }
+
+                _Owner = null;
+                owner.EndContentLayoutSuspension();
+            }
+        }
+
         protected override void DrawContents(ElementDrawArgs DA)
         {
             foreach (MGElement Child in GetChildren())
@@ -183,8 +243,7 @@ namespace MGUI.Core.UI.Containers
                         }
                     }
 
-                    LayoutChanged(this, true);
-                    InvalidateVtcCache();   // Task 16: invalidate GetVisualTreeChildren cache when children change
+                    OnContentStructureChanged();
                     NPC(nameof(HasContent));
                     NPC(nameof(HasMultipleChildren));
                 };
@@ -222,8 +281,7 @@ namespace MGUI.Core.UI.Containers
                     RegisterTemplatePart(ContentPartName, _Content);
                     InvokeContentAdded(_Content);
                 }
-                LayoutChanged(this, true);
-                InvalidateVtcCache();   // Task 16: content change invalidates GetVisualTreeChildren cache
+                OnContentStructureChanged();
                 NPC(nameof(Content));
                 NPC(nameof(HasContent));
             }
@@ -346,8 +404,7 @@ namespace MGUI.Core.UI.Containers
                         InvokeContentAdded(_Content);
                     }
                 }
-                LayoutChanged(this, true);
-                InvalidateVtcCache();
+                OnContentStructureChanged();
                 NPC(nameof(Content));
                 NPC(nameof(HasContent));
             }

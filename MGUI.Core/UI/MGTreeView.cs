@@ -534,6 +534,7 @@ namespace MGUI.Core.UI
         private void Items_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             using (ItemsPanel.AllowChangingContentTemporarily())
+            using (ItemsPanel.SuspendContentLayout())
             {
                 switch (e.Action)
                 {
@@ -663,9 +664,9 @@ namespace MGUI.Core.UI
         /// </summary>
         public void ClearItems()
         {
-            foreach (var item in _Items.ToList())
+            for (int index = _Items.Count - 1; index >= 0; index--)
             {
-                RemoveItem(item);
+                RemoveItem(_Items[index]);
             }
         }
 
