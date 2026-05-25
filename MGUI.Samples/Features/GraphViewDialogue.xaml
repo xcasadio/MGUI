@@ -8,7 +8,7 @@
             <Setter Property="IsBold" Value="True" />
             <Setter Property="FontSize" Value="14" />
         </Style>
-        <Style TargetType="Border">
+        <Style Name="StatusBorder" TargetType="Border">
             <Setter Property="Background" Value="White * 0.08" />
             <Setter Property="Padding" Value="6" />
             <Setter Property="BorderThickness" Value="0" />
@@ -30,11 +30,11 @@
                 <Button Name="UseDarkThemeButton" Content="Dark" />
             </StackPanel>
             <TextBlock Name="GraphThemeStatusText" HorizontalAlignment="Center" Text="Theme: default" />
-            <Border>
+            <Border StyleNames="StatusBorder">
                 <TextBlock Name="GraphStatusText" Text="Status: ready" WrapText="True" />
             </Border>
         </StackPanel>
 
-        <GraphView Name="DialogueGraphView" ShowGrid="True" AllowZoom="True" AllowPan="True" SnapToGrid="True" Margin="0,8,0,0" />
+        <GraphView Name="DialogueGraphView" ShowGrid="True" AllowZoom="True" AllowPan="True" SnapToGrid="True" MajorGridLineFrequency="8" Margin="0,8,0,0" />
     </DockPanel>
 </Window>

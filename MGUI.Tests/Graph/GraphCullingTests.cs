@@ -51,6 +51,42 @@ public class GraphCullingTests
     }
 
     [Fact]
+    public void GraphCulling_UsesResolvedNodeWorldSizeForPortAnchors()
+    {
+        GraphDocument document = new();
+        GraphCullingService service = new();
+        GraphNodeModel node = document.AddNode(Guid.NewGuid(), "Value", "AutoSized", new Vector2(10, 15));
+        GraphSelectionManager.SetAutoMeasuredWorldSize(node, new Vector2(280, 120));
+        GraphPortModel port = document.AddPort(node.Id, Guid.NewGuid(), "Out", GraphPortDirection.Output, GraphValueType.Float);
+
+        Assert.True(service.TryGetPortWorldAnchor(document, port.Id, out Vector2 anchor));
+        Assert.Equal(new Vector2(290, 51), anchor);
+    }
+
+    [Fact]
+    public void GraphCulling_AlignsInputAndOutputAnchorsByDirectionalIndex()
+    {
+        GraphDocument document = new();
+        GraphCullingService service = new();
+        GraphNodeModel node = document.AddNode(Guid.NewGuid(), "Choice", "Ask", new Vector2(100, 50));
+        GraphSelectionManager.SetAutoMeasuredWorldSize(node, new Vector2(220, 120));
+        GraphPortModel inputA = document.AddPort(node.Id, Guid.NewGuid(), "In", GraphPortDirection.Input, GraphValueType.Exec);
+        GraphPortModel inputB = document.AddPort(node.Id, Guid.NewGuid(), "Condition", GraphPortDirection.Input, GraphValueType.Bool);
+        GraphPortModel outputA = document.AddPort(node.Id, Guid.NewGuid(), "Then", GraphPortDirection.Output, GraphValueType.Exec);
+        GraphPortModel outputB = document.AddPort(node.Id, Guid.NewGuid(), "Result", GraphPortDirection.Output, GraphValueType.String);
+
+        Assert.True(service.TryGetPortWorldAnchor(document, inputA.Id, out Vector2 inputAAnchor));
+        Assert.True(service.TryGetPortWorldAnchor(document, outputA.Id, out Vector2 outputAAnchor));
+        Assert.True(service.TryGetPortWorldAnchor(document, inputB.Id, out Vector2 inputBAnchor));
+        Assert.True(service.TryGetPortWorldAnchor(document, outputB.Id, out Vector2 outputBAnchor));
+
+        Assert.Equal(inputAAnchor.Y, outputAAnchor.Y);
+        Assert.Equal(inputBAnchor.Y, outputBAnchor.Y);
+        Assert.Equal(100, inputAAnchor.X);
+        Assert.Equal(320, outputAAnchor.X);
+    }
+
+    [Fact]
     public void GraphCulling_GraphViewDoesNotCreateOffscreenNodesUntilTheyEnterViewport()
     {
         MGGraphView graphView = CreateGraphView();

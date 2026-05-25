@@ -267,8 +267,11 @@ namespace MGUI.Core.UI.XAML
         public ThemeVisualStateFillBrushDefinition CanvasBackground { get; set; }
         public FillBrush GridLineBrush { get; set; }
         public FillBrush EdgeBrush { get; set; }
+        public FillBrush SelectedEdgeBrush { get; set; }
         public BorderBrush NodeBorderBrush { get; set; }
         public Thickness? NodeBorderThickness { get; set; }
+        public BorderBrush NodeSelectedBorderBrush { get; set; }
+        public Thickness? NodeSelectedBorderThickness { get; set; }
         public ThemeVisualStateFillBrushDefinition NodeHeaderBackground { get; set; }
         public ThemeVisualStateColorBrushDefinition NodeHeaderForeground { get; set; }
         public ThemeVisualStateFillBrushDefinition NodeBodyBackground { get; set; }

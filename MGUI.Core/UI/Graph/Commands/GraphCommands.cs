@@ -404,4 +404,46 @@ namespace MGUI.Core.UI.Graph
             return true;
         }
     }
+
+    public sealed class EditCommentCommand : IGraphCommand
+    {
+        private readonly Guid CommentId;
+        private readonly string OldTitle;
+        private readonly string NewTitle;
+        private readonly string OldText;
+        private readonly string NewText;
+        private readonly Rectangle OldBounds;
+        private readonly Rectangle NewBounds;
+        public string Name => "Edit Comment";
+
+        public EditCommentCommand(Guid commentId, string oldTitle, string newTitle, string oldText, string newText, Rectangle oldBounds, Rectangle newBounds)
+        {
+            CommentId = commentId;
+            OldTitle = oldTitle ?? string.Empty;
+            NewTitle = newTitle ?? string.Empty;
+            OldText = oldText ?? string.Empty;
+            NewText = newText ?? string.Empty;
+            OldBounds = oldBounds;
+            NewBounds = newBounds;
+        }
+
+        public bool Execute(GraphDocument document) => Apply(document, NewTitle, NewText, NewBounds);
+
+        public bool Undo(GraphDocument document) => Apply(document, OldTitle, OldText, OldBounds);
+
+        private bool Apply(GraphDocument document, string title, string text, Rectangle bounds)
+        {
+            GraphCommentModel comment = document?.TryGetComment(CommentId);
+            if (comment == null)
+            {
+                return false;
+            }
+
+            comment.Title = title ?? string.Empty;
+            comment.Text = text ?? string.Empty;
+            comment.Bounds = bounds;
+            document.NotifyGraphChanged();
+            return true;
+        }
+    }
 }

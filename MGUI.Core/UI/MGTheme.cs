@@ -171,9 +171,13 @@ namespace MGUI.Core.UI
         public Thickness BorderThickness { get; set; } = new(1);
         public VisualStateFillBrush CanvasBackground { get; set; } = new(new MGSolidFillBrush(new Color(18, 22, 26)));
         public IFillBrush GridLineBrush { get; set; } = new MGSolidFillBrush(Color.White * 0.08f);
+        public IFillBrush MajorGridLineBrush { get; set; }
         public IFillBrush EdgeBrush { get; set; } = new MGSolidFillBrush(new Color(128, 180, 255));
+        public IFillBrush SelectedEdgeBrush { get; set; }
         public IBorderBrush NodeBorderBrush { get; set; } = new MGSolidFillBrush(Color.Black * 0.7f).AsUniformBorderBrush();
         public Thickness NodeBorderThickness { get; set; } = new(1);
+        public IBorderBrush NodeSelectedBorderBrush { get; set; } = new MGSolidFillBrush(new Color(94, 170, 255)).AsUniformBorderBrush();
+        public Thickness NodeSelectedBorderThickness { get; set; } = new(2);
         public VisualStateFillBrush NodeHeaderBackground { get; set; } = new(new MGSolidFillBrush(new Color(36, 46, 60)));
         public VisualStateColorBrush NodeHeaderForeground { get; set; } = new(Color.White);
         public VisualStateFillBrush NodeBodyBackground { get; set; } = new(new MGSolidFillBrush(new Color(26, 31, 38)));
@@ -751,9 +755,13 @@ namespace MGUI.Core.UI
             Graph.BorderThickness = Source.Graph.BorderThickness;
             Graph.CanvasBackground = Source.Graph.CanvasBackground?.Copy();
             Graph.GridLineBrush = Source.Graph.GridLineBrush?.Copy();
+            Graph.MajorGridLineBrush = Source.Graph.MajorGridLineBrush?.Copy();
             Graph.EdgeBrush = Source.Graph.EdgeBrush?.Copy();
+            Graph.SelectedEdgeBrush = Source.Graph.SelectedEdgeBrush?.Copy();
             Graph.NodeBorderBrush = Source.Graph.NodeBorderBrush?.Copy();
             Graph.NodeBorderThickness = Source.Graph.NodeBorderThickness;
+            Graph.NodeSelectedBorderBrush = Source.Graph.NodeSelectedBorderBrush?.Copy();
+            Graph.NodeSelectedBorderThickness = Source.Graph.NodeSelectedBorderThickness;
             Graph.NodeHeaderBackground = Source.Graph.NodeHeaderBackground?.Copy();
             Graph.NodeHeaderForeground = Source.Graph.NodeHeaderForeground?.Copy();
             Graph.NodeBodyBackground = Source.Graph.NodeBodyBackground?.Copy();

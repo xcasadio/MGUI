@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Containers.Grids;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 
@@ -136,6 +137,7 @@ namespace MGUI.Core.UI.Graph
             {
                 commentBox = new MGGraphCommentBox(GraphView.SelfOrParentWindow, model);
                 CommentsById[model.Id] = commentBox;
+                GraphView.RegisterGraphComment(commentBox);
                 using (GraphView.NodesCanvas.AllowChangingContentTemporarily())
                 {
                     GraphView.NodesCanvas.TryAddChild(commentBox);
@@ -149,10 +151,16 @@ namespace MGUI.Core.UI.Graph
             commentBox.IsSelected = GraphView.SelectedCommentIds.Contains(model.Id);
             commentBox.ApplySelectionVisual();
             commentBox.ApplyZoomScale(GraphView.ViewportTransform.Zoom);
-            commentBox.PreferredWidth = Math.Max(1, (int)MathF.Round(model.Bounds.Width * GraphView.ViewportTransform.Zoom));
-            commentBox.PreferredHeight = Math.Max(1, (int)MathF.Round(model.Bounds.Height * GraphView.ViewportTransform.Zoom));
+            Rectangle normalizedBounds = GraphView.NormalizeCommentBoundsToContent(model, commentBox);
+            if (normalizedBounds != model.Bounds)
+            {
+                model.Bounds = normalizedBounds;
+            }
 
-            Vector2 layoutPosition = GraphView.ViewportTransform.WorldToLayout(new Vector2(model.Bounds.X, model.Bounds.Y));
+            commentBox.PreferredWidth = Math.Max(1, (int)MathF.Round(normalizedBounds.Width * GraphView.ViewportTransform.Zoom));
+            commentBox.PreferredHeight = Math.Max(1, (int)MathF.Round(normalizedBounds.Height * GraphView.ViewportTransform.Zoom));
+
+            Vector2 layoutPosition = GraphView.ViewportTransform.WorldToLayout(new Vector2(normalizedBounds.X, normalizedBounds.Y));
             MGCanvas.SetLeft(commentBox, (int)MathF.Round(layoutPosition.X));
             MGCanvas.SetTop(commentBox, (int)MathF.Round(layoutPosition.Y));
         }
@@ -215,17 +223,25 @@ namespace MGUI.Core.UI.Graph
         private void SynchronizePorts(MGGraphNode node, GraphNodeModel model)
         {
             HashSet<Guid> modelPortIds = new(model.Ports.Select(port => port.Id));
-            List<MGGraphPort> removedPorts = node.PortsPanel.Children
-                .OfType<MGGraphPort>()
-                .Where(port => !modelPortIds.Contains(port.PortId))
+            List<Guid> removedPortIds = PortsById
+                .Where(item => item.Value?.Model?.NodeId == model.Id && !modelPortIds.Contains(item.Key))
+                .Select(item => item.Key)
                 .ToList();
+
+            List<GraphPortModel> inputPorts = new();
+            List<GraphPortModel> outputPorts = new();
 
             using (node.PortsPanel.AllowChangingContentTemporarily())
             {
-                for (int removeIndex = 0; removeIndex < removedPorts.Count; removeIndex++)
+                for (int removeIndex = 0; removeIndex < removedPortIds.Count; removeIndex++)
                 {
-                    node.PortsPanel.TryRemoveChild(removedPorts[removeIndex]);
-                    PortsById.Remove(removedPorts[removeIndex].PortId);
+                    PortsById.Remove(removedPortIds[removeIndex]);
+                }
+
+                node.PortsPanel.TryRemoveAll();
+                while (node.PortsPanel.Rows.Count > 0)
+                {
+                    node.PortsPanel.RemoveRow(node.PortsPanel.Rows[^1]);
                 }
 
                 for (int portIndex = 0; portIndex < model.Ports.Count; portIndex++)
@@ -240,7 +256,6 @@ namespace MGUI.Core.UI.Graph
                     {
                         port = new MGGraphPort(GraphView.SelfOrParentWindow, portModel);
                         PortsById[portModel.Id] = port;
-                        node.PortsPanel.TryAddChild(port);
                     }
 
                     port.PortId = portModel.Id;
@@ -251,6 +266,30 @@ namespace MGUI.Core.UI.Graph
                     port.IsConnected = IsPortConnected(portModel.Id);
                     port.ApplyZoomScale(GraphView.ViewportTransform.Zoom);
                     GraphView.RegisterGraphPort(port);
+
+                    if (portModel.Direction == GraphPortDirection.Input)
+                    {
+                        inputPorts.Add(portModel);
+                    }
+                    else
+                    {
+                        outputPorts.Add(portModel);
+                    }
+                }
+
+                int rowCount = Math.Max(inputPorts.Count, outputPorts.Count);
+                for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
+                {
+                    RowDefinition row = node.PortsPanel.AddRow(GridLength.Auto);
+                    if (rowIndex < inputPorts.Count && PortsById.TryGetValue(inputPorts[rowIndex].Id, out MGGraphPort inputPort))
+                    {
+                        node.PortsPanel.TryAddChild(row, node.PortsPanel.Columns[0], inputPort);
+                    }
+
+                    if (rowIndex < outputPorts.Count && PortsById.TryGetValue(outputPorts[rowIndex].Id, out MGGraphPort outputPort))
+                    {
+                        node.PortsPanel.TryAddChild(row, node.PortsPanel.Columns[1], outputPort);
+                    }
                 }
             }
         }

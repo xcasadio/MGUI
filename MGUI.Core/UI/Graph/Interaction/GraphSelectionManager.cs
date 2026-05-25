@@ -55,6 +55,29 @@ namespace MGUI.Core.UI.Graph
             return changed;
         }
 
+        public bool SelectEdge(Guid edgeId, bool additive = false, bool toggle = false)
+        {
+            if (edgeId == Guid.Empty)
+            {
+                return false;
+            }
+
+            bool changed = false;
+            if (!additive)
+            {
+                changed |= ClearExceptEdge(edgeId);
+            }
+
+            if (toggle && SelectedEdgeIds.Contains(edgeId))
+            {
+                SelectedEdgeIds.Remove(edgeId);
+                return true;
+            }
+
+            changed |= SelectedEdgeIds.Add(edgeId);
+            return changed;
+        }
+
         public bool SelectNodes(IEnumerable<Guid> nodeIds, bool additive = false)
         {
             bool changed = false;
@@ -197,6 +220,29 @@ namespace MGUI.Core.UI.Graph
             if (SelectedNodeIds.Count > 0)
             {
                 SelectedNodeIds.Clear();
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        private bool ClearExceptEdge(Guid edgeId)
+        {
+            bool changed = false;
+            if (SelectedNodeIds.Count > 0)
+            {
+                SelectedNodeIds.Clear();
+                changed = true;
+            }
+
+            if (SelectedEdgeIds.Count == 1 && SelectedEdgeIds.Contains(edgeId))
+            {
+                return changed;
+            }
+
+            if (SelectedEdgeIds.Count > 0)
+            {
+                SelectedEdgeIds.Clear();
                 changed = true;
             }
 

@@ -1,7 +1,13 @@
+using System.Collections.Generic;
+using System.Linq;
 using MGUI.Core.UI;
+using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Graph;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using MGUI.Shared.Input;
+using MGUI.Shared.Input.Mouse;
+using MGUI.Shared.Rendering;
 
 namespace MGUI.Tests.Graph;
 
@@ -95,6 +101,315 @@ public class GraphInputNavigationTests
         Assert.False(graphView.HandleGraphShortcut(Keys.B));
     }
 
+    [Fact]
+    public void GraphInput_NodeReleasedOutsideDoesNotBlockSiblingButtonClicks()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 640, 360)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new MonoGame.Extended.Thickness(0),
+        };
+        MGCanvas root = new(window);
+        MGButton button = new(window)
+        {
+            PreferredWidth = 120,
+            PreferredHeight = 30,
+        };
+        MGGraphView graphView = new(window)
+        {
+            PreferredWidth = 640,
+            PreferredHeight = 304,
+        };
+
+        window.SetContent(root);
+        desktop.Windows.Add(window);
+        using (root.AllowChangingContentTemporarily())
+        {
+            root.TryAddChild(button);
+            root.TryAddChild(graphView);
+        }
+
+        MGCanvas.SetLeft(button, 8);
+        MGCanvas.SetTop(button, 8);
+        MGCanvas.SetLeft(graphView, 0);
+        MGCanvas.SetTop(graphView, 48);
+
+        graphView.Document.AddNode(Guid.NewGuid(), "Value", "Node", new Vector2(40, 40));
+        graphView.SynchronizeDocument();
+
+        AdvanceFrame(runtime, desktop, 0, new Point(1, 1));
+        AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
+
+        int clickCount = 0;
+        button.MouseHandler.LMBReleasedInside += (_, _) => clickCount++;
+
+        Point buttonCenter = button.ActualLayoutBounds.Center;
+        AdvanceFrame(runtime, desktop, 32, buttonCenter);
+        AdvanceFrame(runtime, desktop, 48, buttonCenter, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 64, buttonCenter);
+
+        Assert.Equal(1, clickCount);
+    }
+
+    [Fact]
+    public void GraphInput_ClickingEdgeSelectsItAndDeleteRemovesIt()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 640, 360)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new MonoGame.Extended.Thickness(0),
+        };
+        MGGraphView graphView = new(window)
+        {
+            PreferredWidth = 640,
+            PreferredHeight = 360,
+            ShowGrid = false,
+        };
+
+        window.SetContent(graphView);
+        desktop.Windows.Add(window);
+
+        GraphDocument document = graphView.Document;
+        Guid sourceNodeId = document.AddNode(Guid.NewGuid(), "Value", "Source", new Vector2(40, 60)).Id;
+        Guid targetNodeId = document.AddNode(Guid.NewGuid(), "Value", "Target", new Vector2(260, 120)).Id;
+        Guid sourcePortId = document.AddPort(sourceNodeId, Guid.NewGuid(), "Out", GraphPortDirection.Output, GraphValueType.Float).Id;
+        Guid targetPortId = document.AddPort(targetNodeId, Guid.NewGuid(), "In", GraphPortDirection.Input, GraphValueType.Float).Id;
+        GraphEdgeModel edge = document.AddEdge(new GraphEdgeModel(Guid.NewGuid(), sourceNodeId, sourcePortId, targetNodeId, targetPortId), validate: false);
+
+        graphView.SynchronizeDocument();
+        AdvanceFrame(runtime, desktop, 0, new Point(1, 1));
+        AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
+
+        Assert.True(graphView.TryGetPortControl(sourcePortId, out MGGraphPort sourcePort));
+        Assert.True(graphView.TryGetPortControl(targetPortId, out MGGraphPort targetPort));
+        List<Vector2> edgePoints = new();
+        GraphBezierGeometry.BuildDefaultEdge(sourcePort.GetLayoutAnchor(), targetPort.GetLayoutAnchor(), edgePoints, GraphBezierGeometry.DefaultSegmentCount);
+        Point clickPoint = edgePoints[edgePoints.Count / 2].ToPoint();
+
+        AdvanceFrame(runtime, desktop, 32, clickPoint);
+        AdvanceFrame(runtime, desktop, 48, clickPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 64, clickPoint);
+
+        Assert.Contains(edge.Id, graphView.SelectedEdgeIds);
+        Assert.True(graphView.HandleGraphShortcut(Keys.Delete, controlDown: false));
+        Assert.Empty(document.Edges);
+    }
+
+    [Fact]
+    public void GraphInput_HandleGraphShortcutCopyAndPasteDuplicatesSelectedSubgraphAtPointer()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 640, 360)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new MonoGame.Extended.Thickness(0),
+        };
+        MGGraphView graphView = new(window)
+        {
+            PreferredWidth = 640,
+            PreferredHeight = 360,
+            ShowGrid = false,
+        };
+        string clipboardText = string.Empty;
+        graphView.ClipboardTextReader = () => clipboardText;
+        graphView.ClipboardTextWriter = value => clipboardText = value;
+
+        window.SetContent(graphView);
+        desktop.Windows.Add(window);
+
+        GraphDocument document = graphView.Document;
+        Guid sourceNodeId = document.AddNode(Guid.NewGuid(), "Value", "Source", new Vector2(40, 60)).Id;
+        Guid targetNodeId = document.AddNode(Guid.NewGuid(), "Value", "Target", new Vector2(260, 120)).Id;
+        Guid sourcePortId = document.AddPort(sourceNodeId, Guid.NewGuid(), "Out", GraphPortDirection.Output, GraphValueType.Float).Id;
+        Guid targetPortId = document.AddPort(targetNodeId, Guid.NewGuid(), "In", GraphPortDirection.Input, GraphValueType.Float).Id;
+        GraphEdgeModel originalEdge = document.AddEdge(new GraphEdgeModel(Guid.NewGuid(), sourceNodeId, sourcePortId, targetNodeId, targetPortId), validate: false);
+
+        graphView.SelectedNodeIds.Add(sourceNodeId);
+        graphView.SelectedNodeIds.Add(targetNodeId);
+        graphView.UpdateSelectionVisuals();
+
+        graphView.SynchronizeDocument();
+        AdvanceFrame(runtime, desktop, 0, new Point(1, 1));
+        AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
+
+        Point pasteScreenPoint = new(graphView.NodesCanvas.AlignedContentBounds.Left + 320, graphView.NodesCanvas.AlignedContentBounds.Top + 210);
+        AdvanceFrame(runtime, desktop, 32, pasteScreenPoint);
+        Vector2 expectedAnchor = graphView.GetWorldPointFromScreenPosition(pasteScreenPoint);
+
+        Assert.True(graphView.HandleGraphShortcut(Keys.C, controlDown: true));
+        Assert.StartsWith("MGUI.GraphClipboard.v1", clipboardText);
+        Assert.True(graphView.HandleGraphShortcut(Keys.V, controlDown: true));
+
+        GraphNodeModel pastedSource = Assert.Single(document.Nodes, node => node.Id != sourceNodeId && node.Id != targetNodeId && node.Title == "Source");
+        GraphNodeModel pastedTarget = Assert.Single(document.Nodes, node => node.Id != sourceNodeId && node.Id != targetNodeId && node.Title == "Target");
+        GraphEdgeModel pastedEdge = Assert.Single(document.Edges, edge => edge.Id != originalEdge.Id);
+
+        Assert.Equal(expectedAnchor, pastedSource.Position);
+        Assert.Equal(new Vector2(expectedAnchor.X + 220, expectedAnchor.Y + 60), pastedTarget.Position);
+        Assert.Equal(pastedSource.Id, pastedEdge.SourceNodeId);
+        Assert.Equal(pastedTarget.Id, pastedEdge.TargetNodeId);
+        Assert.Contains(pastedSource.Id, graphView.SelectedNodeIds);
+        Assert.Contains(pastedTarget.Id, graphView.SelectedNodeIds);
+    }
+
+    [Fact]
+    public void GraphInput_SelectedOverlappingNodeStaysTopmostForSubsequentClicks()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 640, 360)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new MonoGame.Extended.Thickness(0),
+        };
+        MGGraphView graphView = new(window)
+        {
+            PreferredWidth = 640,
+            PreferredHeight = 360,
+            ShowGrid = false,
+        };
+
+        window.SetContent(graphView);
+        desktop.Windows.Add(window);
+
+        GraphDocument document = graphView.Document;
+        Guid firstNodeId = document.AddNode(Guid.NewGuid(), "Value", "First", new Vector2(40, 60)).Id;
+        Guid secondNodeId = document.AddNode(Guid.NewGuid(), "Value", "Second", new Vector2(140, 110)).Id;
+        document.TryGetNode(firstNodeId)!.Size = new Vector2(220, 160);
+        document.TryGetNode(secondNodeId)!.Size = new Vector2(220, 160);
+
+        graphView.SynchronizeDocument();
+        AdvanceFrame(runtime, desktop, 0, new Point(1, 1));
+        AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
+
+        Assert.True(graphView.TryGetNodeControl(firstNodeId, out MGGraphNode firstNode));
+        Assert.True(graphView.TryGetNodeControl(secondNodeId, out MGGraphNode secondNode));
+
+        Point firstOnlyPoint = new(firstNode.ActualLayoutBounds.Left + 20, firstNode.ActualLayoutBounds.Top + 20);
+        Rectangle overlap = Rectangle.Intersect(firstNode.ActualLayoutBounds, secondNode.ActualLayoutBounds);
+        Assert.True(overlap.Width > 0 && overlap.Height > 0);
+        Point overlapPoint = overlap.Center;
+
+        AdvanceFrame(runtime, desktop, 32, firstOnlyPoint);
+        AdvanceFrame(runtime, desktop, 48, firstOnlyPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 64, firstOnlyPoint);
+        Assert.Contains(firstNodeId, graphView.SelectedNodeIds);
+
+        AdvanceFrame(runtime, desktop, 80, overlapPoint);
+        AdvanceFrame(runtime, desktop, 96, overlapPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 112, overlapPoint);
+
+        Assert.Contains(firstNodeId, graphView.SelectedNodeIds);
+        Assert.DoesNotContain(secondNodeId, graphView.SelectedNodeIds);
+    }
+
+    [Fact]
+    public void GraphInput_OccludedLowerPortDoesNotCaptureTopNodePress()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 640, 360)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new MonoGame.Extended.Thickness(0),
+        };
+        MGGraphView graphView = new(window)
+        {
+            PreferredWidth = 640,
+            PreferredHeight = 360,
+            ShowGrid = false,
+        };
+
+        window.SetContent(graphView);
+        desktop.Windows.Add(window);
+
+        GraphDocument document = graphView.Document;
+        Guid lowerNodeId = document.AddNode(Guid.NewGuid(), "Value", "Lower", new Vector2(150, 110)).Id;
+        Guid upperNodeId = document.AddNode(Guid.NewGuid(), "Value", "Upper", new Vector2(95, 70)).Id;
+        Guid lowerPortId = document.AddPort(lowerNodeId, Guid.NewGuid(), "In", GraphPortDirection.Input, GraphValueType.Float).Id;
+        document.TryGetNode(lowerNodeId)!.Size = new Vector2(220, 160);
+        document.TryGetNode(upperNodeId)!.Size = new Vector2(260, 190);
+
+        graphView.SynchronizeDocument();
+        AdvanceFrame(runtime, desktop, 0, new Point(1, 1));
+        AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
+
+        Assert.True(graphView.TryGetPortControl(lowerPortId, out MGGraphPort lowerPort));
+        Assert.True(graphView.TryGetNodeControl(upperNodeId, out MGGraphNode upperNode));
+
+        Point coveredPortPoint = lowerPort.GetLayoutAnchor().ToPoint();
+        Assert.True(upperNode.ActualLayoutBounds.Contains(coveredPortPoint));
+
+        AdvanceFrame(runtime, desktop, 32, coveredPortPoint);
+        AdvanceFrame(runtime, desktop, 48, coveredPortPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 64, coveredPortPoint);
+
+        Assert.Contains(upperNodeId, graphView.SelectedNodeIds);
+        Assert.DoesNotContain(lowerNodeId, graphView.SelectedNodeIds);
+        Assert.False(graphView.ConnectionController.IsDragging);
+    }
+
+    [Fact]
+    public void GraphInput_DoubleClickingCommentOpensEditorAndCommitUpdatesDocument()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 640, 360)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new MonoGame.Extended.Thickness(0),
+        };
+        MGGraphView graphView = new(window)
+        {
+            PreferredWidth = 640,
+            PreferredHeight = 360,
+            ShowGrid = false,
+        };
+
+        window.SetContent(graphView);
+        desktop.Windows.Add(window);
+
+        Guid commentId = Guid.NewGuid();
+        graphView.Document.AddComment(commentId, new Rectangle(80, 70, 240, 96), "Comment", "Line 1");
+        graphView.SynchronizeDocument();
+        AdvanceFrame(runtime, desktop, 0, new Point(1, 1));
+        AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
+
+        Assert.True(graphView.TryGetCommentControl(commentId, out MGGraphCommentBox commentBox));
+        Point clickPoint = new(commentBox.ActualLayoutBounds.Left + 24, commentBox.ActualLayoutBounds.Top + 20);
+
+        AdvanceFrame(runtime, desktop, 32, clickPoint);
+        AdvanceFrame(runtime, desktop, 48, clickPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 64, clickPoint);
+        AdvanceFrame(runtime, desktop, 80, clickPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 96, clickPoint);
+        AdvanceFrame(runtime, desktop, 112, clickPoint);
+
+        Assert.True(graphView.IsCommentEditorOpen);
+        Assert.Equal(commentId, graphView.EditingCommentId);
+
+        graphView.CommentEditorTitleTextBox.SetText("Edited Comment");
+        graphView.CommentEditorBodyTextBox.SetText("Line 1\nLine 2\nLine 3");
+
+        Assert.True(graphView.CommitActiveCommentEditor());
+        Assert.False(graphView.IsCommentEditorOpen);
+
+        GraphCommentModel updated = graphView.Document.TryGetComment(commentId)!;
+        Assert.Equal("Edited Comment", updated.Title);
+        Assert.Equal("Line 1\nLine 2\nLine 3", updated.Text);
+        Assert.True(updated.Bounds.Height >= 96);
+
+        Assert.True(graphView.Commands.Undo(graphView.Document));
+        GraphCommentModel reverted = graphView.Document.TryGetComment(commentId)!;
+        Assert.Equal("Comment", reverted.Title);
+        Assert.Equal("Line 1", reverted.Text);
+    }
+
     private static MGGraphView CreateGraphView()
     {
         GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
@@ -105,4 +420,25 @@ public class GraphInputNavigationTests
         };
         return new MGGraphView(window);
     }
+
+    private static void AdvanceFrame(GraphTestRuntime runtime, MGDesktop desktop, int totalElapsedMs, Point position, MouseButton? pressedButton = null)
+    {
+        runtime.ApplyFrame(new UpdateBaseArgs(
+            TimeSpan.FromMilliseconds(totalElapsedMs),
+            TimeSpan.FromMilliseconds(16),
+            CreateMouseState(position, pressedButton),
+            new KeyboardState()));
+        desktop.Update();
+    }
+
+    private static MouseState CreateMouseState(Point position, MouseButton? pressedButton = null, int scrollWheel = 0)
+        => new(
+            position.X,
+            position.Y,
+            scrollWheel,
+            pressedButton == MouseButton.Left ? ButtonState.Pressed : ButtonState.Released,
+            pressedButton == MouseButton.Middle ? ButtonState.Pressed : ButtonState.Released,
+            pressedButton == MouseButton.Right ? ButtonState.Pressed : ButtonState.Released,
+            ButtonState.Released,
+            ButtonState.Released);
 }

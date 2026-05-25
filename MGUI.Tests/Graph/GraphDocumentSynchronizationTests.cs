@@ -1,5 +1,6 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Graph;
 using Microsoft.Xna.Framework;
 
@@ -34,6 +35,9 @@ public class GraphDocumentSynchronizationTests
         Assert.True(graphView.TryGetPortControl(outputPortId, out MGGraphPort outputPort));
         Assert.Contains(inputPort, node.PortsPanel.Children);
         Assert.Contains(outputPort, node.PortsPanel.Children);
+        Assert.True(node.PortsPanel.TryGetCell(inputPort, out GridCell inputCell));
+        Assert.True(node.PortsPanel.TryGetCell(outputPort, out GridCell outputCell));
+        Assert.Equal(inputCell.Row, outputCell.Row);
         Assert.True(inputPort.IsRequired);
     }
 

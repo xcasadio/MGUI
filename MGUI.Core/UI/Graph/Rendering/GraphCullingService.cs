@@ -56,6 +56,22 @@ namespace MGUI.Core.UI.Graph
             return TryGetEdgeWorldBounds(document, edge, out RectangleF bounds) && Intersects(bounds, worldViewport);
         }
 
+        public bool ShouldDrawEdge(GraphEdgeModel edge, Vector2 startWorld, Vector2 endWorld, RectangleF worldViewport, ISet<Guid> selectedEdgeIds)
+        {
+            if (edge == null)
+            {
+                return false;
+            }
+
+            if (selectedEdgeIds != null && selectedEdgeIds.Contains(edge.Id))
+            {
+                return true;
+            }
+
+            RectangleF bounds = CreateBounds(startWorld, endWorld, 48.0f);
+            return Intersects(bounds, worldViewport);
+        }
+
         public bool TryGetEdgeWorldBounds(GraphDocument document, GraphEdgeModel edge, out RectangleF bounds)
         {
             bounds = default;
@@ -71,31 +87,7 @@ namespace MGUI.Core.UI.Graph
         }
 
         public bool TryGetPortWorldAnchor(GraphDocument document, Guid portId, out Vector2 worldAnchor)
-        {
-            worldAnchor = default;
-            GraphPortModel port = document?.TryGetPort(portId);
-            GraphNodeModel node = port == null ? null : document.TryGetNode(port.NodeId);
-            if (port == null || node == null)
-            {
-                return false;
-            }
-
-            Vector2 nodeSize = node.Size ?? new Vector2(160.0f, 100.0f);
-            int portIndex = 0;
-            for (int candidateIndex = 0; candidateIndex < node.Ports.Count; candidateIndex++)
-            {
-                if (node.Ports[candidateIndex]?.Id == portId)
-                {
-                    portIndex = candidateIndex;
-                    break;
-                }
-            }
-
-            float portY = Math.Min(Math.Max(20.0f, 36.0f + portIndex * 24.0f), Math.Max(20.0f, nodeSize.Y - 12.0f));
-            float portX = port.Direction == GraphPortDirection.Input ? 0.0f : nodeSize.X;
-            worldAnchor = node.Position + new Vector2(portX, portY);
-            return true;
-        }
+            => GraphPortAnchorResolver.TryGetPortWorldAnchor(document, portId, out worldAnchor);
 
         private static RectangleF CreateBounds(Vector2 first, Vector2 second, float padding)
         {

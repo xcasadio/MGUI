@@ -66,7 +66,11 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     public DrawSettings CurrentSettings { get; private set; }
     public IUIDesktopRuntime Renderer { get; }
     public Rectangle? CurrentClipBounds => _currentClipBounds;
+    public List<GraphFillRectangleCall> FillRectangleCalls { get; } = new();
+    public List<GraphStrokeAndFillRectangleCall> StrokeAndFillRectangleCalls { get; } = new();
     public List<GraphStrokeLineCall> StrokeLineCalls { get; } = new();
+    public List<GraphFillTriangleCall> FillTriangleCalls { get; } = new();
+    public List<GraphStrokeAndFillCircleCall> StrokeAndFillCircleCalls { get; } = new();
 
     public GraphNoOpDrawTransaction(IUIDesktopRuntime renderer, DrawSettings settings)
     {
@@ -85,19 +89,22 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     public void DrawTextViaEngine(ResolvedFont Font, string Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
         float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None) { }
 
-    public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color) { }
+    public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color)
+        => FillRectangleCalls.Add(new(Origin, Destination, Color));
 
     public void FillPoint(Vector2 Center, Color Color, float Width) { }
 
     public void StrokeRectangle(Vector2 Origin, RectangleF Destination, Color Color, Thickness Thickness) { }
 
-    public void StrokeAndFillRectangle(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, Thickness StrokeThickness) { }
+    public void StrokeAndFillRectangle(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, Thickness StrokeThickness)
+        => StrokeAndFillRectangleCalls.Add(new(Origin, Destination, StrokeColor, FillColor, StrokeThickness));
 
     public void FillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color Color) { }
 
     public void StrokeAndFillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color StrokeColor, Color FillColor, float StrokeThickness = 1.0f) { }
 
-    public void FillTriangle(Vector2 Origin, Vector2 v0, Color c0, Vector2 v1, Color c1, Vector2 v2, Color c2) { }
+    public void FillTriangle(Vector2 Origin, Vector2 v0, Color c0, Vector2 v1, Color c1, Vector2 v2, Color c2)
+        => FillTriangleCalls.Add(new(Origin, v0, c0, v1, c1, v2, c2));
 
     public void FillQuadrilateralLinearClamp(Vector2 Origin, Vector2 topLeft, Color topLeftColor, Vector2 topRight, Color topRightColor,
         Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor) { }
@@ -109,7 +116,8 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
 
     public void StrokeCircle(Vector2 Center, Color Color, float Radius, float Thickness = 1.0f, int NumSides = 32) { }
 
-    public void StrokeAndFillCircle(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness = 1.0f, int NumSides = 32) { }
+    public void StrokeAndFillCircle(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness = 1.0f, int NumSides = 32)
+        => StrokeAndFillCircleCalls.Add(new(Center, StrokeColor, FillColor, Radius, StrokeThickness, NumSides));
 
     public void SetDrawSettings(DrawSettings Settings)
     {
@@ -276,3 +284,7 @@ internal sealed class GraphDisposableAction : IDisposable
 }
 
 internal readonly record struct GraphStrokeLineCall(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness);
+internal readonly record struct GraphFillRectangleCall(Vector2 Origin, RectangleF Destination, Color Color);
+internal readonly record struct GraphStrokeAndFillRectangleCall(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, Thickness StrokeThickness);
+internal readonly record struct GraphFillTriangleCall(Vector2 Origin, Vector2 V0, Color C0, Vector2 V1, Color C1, Vector2 V2, Color C2);
+internal readonly record struct GraphStrokeAndFillCircleCall(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness, int NumSides);

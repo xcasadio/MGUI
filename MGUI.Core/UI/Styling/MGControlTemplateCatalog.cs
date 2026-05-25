@@ -9,6 +9,7 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Docking.Controls;
+using MGUI.Core.UI.Graph;
 using MGUI.Core.UI.XAML;
 using MGUI.Shared.Helpers;
 using Thickness = MonoGame.Extended.Thickness;
@@ -542,15 +543,16 @@ namespace MGUI.Core.UI.Styling
                 CanChangeContent = true,
             };
             MGTextBlock header = CreateDefaultControlTextBlock(window, graphNode.Title, false, true, true);
-            MGStackPanel portsPanel = new(window, Orientation.Vertical)
+            MGGrid portsPanel = new(window)
             {
-                Spacing = 2,
-                Padding = new Thickness(6, 4),
+                Padding = new Thickness(10, 6, 10, 8),
                 CanChangeContent = false,
             };
+            portsPanel.AddColumn(GridLength.Auto);
+            portsPanel.AddColumn(GridLength.CreateWeightedLength(1));
             MGContentPresenter bodyPresenter = new(window)
             {
-                Padding = new Thickness(6, 4),
+                Padding = new Thickness(10, 4, 10, 8),
             };
 
             stack.TryAddChild(header);
@@ -576,11 +578,44 @@ namespace MGUI.Core.UI.Styling
 
             MGWindow window = graphPort.SelfOrParentWindow;
             MGBorder outerBorder = new(window);
+            MGGrid layout = new(window)
+            {
+                ColumnSpacing = 0,
+            };
+            layout.AddRow(GridLength.Auto);
+            layout.AddColumn(GridLength.CreatePixelLength(MGGraphPort.ConnectorSlotWidth));
+            layout.AddColumn(GridLength.Auto);
+            layout.AddColumn(GridLength.CreatePixelLength(MGGraphPort.ConnectorSlotWidth));
+            MGContentPresenter leadingIconPresenter = new(window)
+            {
+                PreferredWidth = MGGraphPort.ConnectorSlotWidth,
+                PreferredHeight = MGGraphPort.ConnectorIconSize,
+                Margin = new Thickness(0),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                IsHitTestVisible = false,
+            };
+            MGContentPresenter trailingIconPresenter = new(window)
+            {
+                PreferredWidth = MGGraphPort.ConnectorSlotWidth,
+                PreferredHeight = MGGraphPort.ConnectorIconSize,
+                Margin = new Thickness(0),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                IsHitTestVisible = false,
+            };
             MGTextBlock label = CreateDefaultControlTextBlock(window, graphPort.PortName, false, true, true);
-            outerBorder.SetContent(label);
+            label.IsHitTestVisible = false;
+            layout.TryAddChild(0, 0, leadingIconPresenter);
+            layout.TryAddChild(0, 1, label);
+            layout.TryAddChild(0, 2, trailingIconPresenter);
+            layout.CanChangeContent = false;
+            outerBorder.SetContent(layout);
 
             MGControlTemplateStructure structure = new(outerBorder);
             structure.AddPart(MGGraphPort.OuterBorderPartName, outerBorder);
+            structure.AddPart(MGGraphPort.LeadingIconPresenterPartName, leadingIconPresenter);
+            structure.AddPart(MGGraphPort.TrailingIconPresenterPartName, trailingIconPresenter);
             structure.AddPart(MGGraphPort.LabelPartName, label);
             return structure;
         }
@@ -1048,6 +1083,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("GraphView.ViewportClipToBounds", true, () => viewportHost.ClipToBounds, value => viewportHost.ClipToBounds = value);
             Context.ApplyThemeDefault("GraphView.NodesCanvasBackground", theme.Graph.CanvasBackground, () => nodesCanvas.BackgroundBrush, value => nodesCanvas.BackgroundBrush = value);
             Context.ApplyThemeDefault("GraphView.GridLineBrush", theme.Graph.GridLineBrush, () => graphView.GridLineBrush, value => graphView.GridLineBrush = value);
+            Context.ApplyThemeDefault("GraphView.MajorGridLineBrush", theme.Graph.MajorGridLineBrush, () => graphView.MajorGridLineBrush, value => graphView.MajorGridLineBrush = value);
             Context.ApplyThemeDefault("GraphView.EdgeBrush", theme.Graph.EdgeBrush, () => graphView.EdgeBrush, value => graphView.EdgeBrush = value);
         }
 
@@ -1066,10 +1102,12 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("GraphNode.Background", theme.Graph.NodeBodyBackground, () => outerBorder.BackgroundBrush, value => outerBorder.BackgroundBrush = value);
             Context.ApplyThemeDefault("GraphNode.BorderBrush", theme.Graph.NodeBorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
             Context.ApplyThemeDefault("GraphNode.BorderThickness", theme.Graph.NodeBorderThickness, () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
+            Context.ApplyTemplateValue("GraphNode.CornerRadius", new MGCornerRadius(8), () => outerBorder.CornerRadius, value => outerBorder.CornerRadius = value);
+            Context.ApplyTemplateValue("GraphNode.ClipToBounds", true, () => outerBorder.ClipToBounds, value => outerBorder.ClipToBounds = value);
             Context.ApplyTemplateValue("GraphNode.Padding", new Thickness(0), () => outerBorder.Padding, value => outerBorder.Padding = value);
             Context.ApplyThemeDefault("GraphNode.HeaderBackground", theme.Graph.NodeHeaderBackground, () => header.BackgroundBrush, value => header.BackgroundBrush = value);
             Context.ApplyThemeDefault("GraphNode.HeaderForeground", ToTextForeground(theme.Graph.NodeHeaderForeground), () => header.DefaultTextForeground, value => header.DefaultTextForeground = value);
-            Context.ApplyThemeDefault("GraphNode.HeaderPadding", new Thickness(8, 4), () => header.Padding, value => header.Padding = value);
+            Context.ApplyThemeDefault("GraphNode.HeaderPadding", new Thickness(10, 6), () => header.Padding, value => header.Padding = value);
             Context.ApplyThemeDefault("GraphNode.BodyBackground", theme.Graph.NodeBodyBackground, () => bodyPresenter.BackgroundBrush, value => bodyPresenter.BackgroundBrush = value);
         }
 
@@ -1084,11 +1122,12 @@ namespace MGUI.Core.UI.Styling
             MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphPort.OuterBorderPartName);
             MGTextBlock label = Context.GetRequiredPart<MGTextBlock>(MGGraphPort.LabelPartName);
 
-            Context.ApplyThemeDefault("GraphPort.Background", new VisualStateFillBrush(theme.Graph.PortBackground?.Copy()), () => outerBorder.BackgroundBrush, value => outerBorder.BackgroundBrush = value);
+            Context.ApplyThemeDefault("GraphPort.Background", new VisualStateFillBrush(Color.Transparent.AsFillBrush()), () => outerBorder.BackgroundBrush, value => outerBorder.BackgroundBrush = value);
             Context.ApplyThemeDefault("GraphPort.BorderBrush", theme.Graph.NodeBorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
-            Context.ApplyThemeDefault("GraphPort.BorderThickness", new Thickness(1), () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
-            Context.ApplyThemeDefault("GraphPort.Padding", new Thickness(6, 2), () => outerBorder.Padding, value => outerBorder.Padding = value);
+            Context.ApplyThemeDefault("GraphPort.BorderThickness", new Thickness(0), () => outerBorder.BorderThickness, value => outerBorder.BorderThickness = value);
+            Context.ApplyThemeDefault("GraphPort.Padding", new Thickness(0, 2), () => outerBorder.Padding, value => outerBorder.Padding = value);
             Context.ApplyThemeDefault("GraphPort.Foreground", ToTextForeground(theme.Graph.PortForeground), () => label.DefaultTextForeground, value => label.DefaultTextForeground = value);
+            Context.ApplyTemplateValue("GraphPort.HorizontalAlignment", HorizontalAlignment.Stretch, () => graphPort.HorizontalAlignment, value => graphPort.HorizontalAlignment = value);
         }
 
         private static void ApplyGraphCommentBoxTemplate(MGControlTemplateContext Context)

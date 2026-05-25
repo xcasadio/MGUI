@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using MGUI.Core.UI;
+using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Graph;
 using Microsoft.Xna.Framework;
@@ -43,8 +44,8 @@ public class GraphViewDialogueSample : SampleBase
         Window.GetElementByName<MGButton>("SaveGraphButton").MouseHandler.LMBReleasedInside += (_, _) => SaveGraph();
         Window.GetElementByName<MGButton>("LoadGraphButton").MouseHandler.LMBReleasedInside += (_, _) => LoadGraph();
         Window.GetElementByName<MGButton>("ResetGraphButton").MouseHandler.LMBReleasedInside += (_, _) => UseDocument(CreateSampleDocument(), frameAll: true, statusPrefix: "Sample reset.");
-        Window.GetElementByName<MGButton>("UseDarkBlueThemeButton").MouseHandler.LMBReleasedInside += (_, _) => ApplyTheme(DarkBlueTheme, "Dark_Blue");
-        Window.GetElementByName<MGButton>("UseDarkThemeButton").MouseHandler.LMBReleasedInside += (_, _) => ApplyTheme(DarkTheme, "Dark");
+        Window.GetElementByName<MGButton>("UseDarkBlueThemeButton").OnLeftClicked += (_, _) => ApplyTheme(DarkBlueTheme, "Dark_Blue");
+        Window.GetElementByName<MGButton>("UseDarkThemeButton").OnLeftClicked += (_, _) => ApplyTheme(DarkTheme, "Dark");
 
         ApplyTheme(DarkBlueTheme, "Dark_Blue");
     }
@@ -143,7 +144,13 @@ public class GraphViewDialogueSample : SampleBase
 
     private void ApplyTheme(MGTheme theme, string themeName)
     {
-        Window.GetResources().DefaultTheme = theme;
+        if (theme == null)
+        {
+            return;
+        }
+
+        Window.Theme = theme;
+    GraphView.RefreshThemeVisuals();
         GraphView.SynchronizeDocument();
         if (ThemeStatusText != null)
         {
@@ -157,13 +164,31 @@ public class GraphViewDialogueSample : SampleBase
 
         if (builtInTheme == MGTheme.BuiltInTheme.Dark)
         {
-            theme.Graph.CanvasBackground = new(new MGSolidFillBrush(new Color(38, 38, 38)));
-            theme.Graph.GridLineBrush = new MGSolidFillBrush(new Color(122, 122, 122) * 0.26f);
+            theme.Graph.CanvasBackground = new(new MGSolidFillBrush(new Color(47, 47, 47)));
+            theme.Graph.GridLineBrush = new MGSolidFillBrush(new Color(112, 112, 112) * 0.34f);
+            theme.Graph.MajorGridLineBrush = new MGSolidFillBrush(new Color(29, 29, 29) * 0.82f);
+            theme.Graph.NodeHeaderBackground = new(new MGSolidFillBrush(new Color(28, 28, 28, 236)));
+            theme.Graph.NodeBodyBackground = new(new MGSolidFillBrush(new Color(36, 36, 36, 214)));
+            theme.Graph.NodeBorderBrush = new MGSolidFillBrush(new Color(12, 12, 12, 204)).AsUniformBorderBrush();
+            theme.Graph.EdgeBrush = new MGSolidFillBrush(Color.White);
+            theme.Graph.SelectedEdgeBrush = new MGSolidFillBrush(Color.Yellow);
+            theme.Graph.NodeSelectedBorderBrush = new MGSolidFillBrush(Color.White).AsUniformBorderBrush();
+            theme.Graph.PortBackground = new MGSolidFillBrush(new Color(105, 134, 186, 220));
+            theme.Graph.CommentBackground = new(new MGSolidFillBrush(new Color(70, 62, 36) * 0.9f));
+            theme.Graph.CommentBorderBrush = new MGSolidFillBrush(new Color(194, 158, 77)).AsUniformBorderBrush();
         }
         else if (builtInTheme == MGTheme.BuiltInTheme.Dark_Blue)
         {
-            theme.Graph.CanvasBackground = new(new MGSolidFillBrush(new Color(82, 87, 97)));
-            theme.Graph.GridLineBrush = new MGSolidFillBrush(new Color(196, 206, 220) * 0.22f);
+            theme.Graph.CanvasBackground = new(new MGSolidFillBrush(new Color(95, 100, 109)));
+            theme.Graph.GridLineBrush = new MGSolidFillBrush(new Color(181, 189, 201) * 0.28f);
+            theme.Graph.MajorGridLineBrush = new MGSolidFillBrush(new Color(74, 79, 88) * 0.84f);
+            theme.Graph.NodeHeaderBackground = new(new MGSolidFillBrush(new Color(56, 66, 82, 236)));
+            theme.Graph.NodeBodyBackground = new(new MGSolidFillBrush(new Color(73, 83, 97, 214)));
+            theme.Graph.NodeBorderBrush = new MGSolidFillBrush(new Color(33, 38, 48, 204)).AsUniformBorderBrush();
+            theme.Graph.EdgeBrush = new MGSolidFillBrush(new Color(150, 206, 255));
+            theme.Graph.PortBackground = new MGSolidFillBrush(new Color(112, 146, 203, 220));
+            theme.Graph.CommentBackground = new(new MGSolidFillBrush(new Color(77, 81, 55) * 0.9f));
+            theme.Graph.CommentBorderBrush = new MGSolidFillBrush(new Color(188, 194, 103)).AsUniformBorderBrush();
         }
 
         return theme;

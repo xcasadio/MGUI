@@ -386,8 +386,11 @@ namespace MGUI.Core.UI.XAML
             if (Definition.CanvasBackground != null) Target.CanvasBackground = ApplyVisualStateFillBrush(Definition.CanvasBackground, Target.CanvasBackground);
             if (Definition.GridLineBrush != null) Target.GridLineBrush = ToFillBrush(Definition.GridLineBrush);
             if (Definition.EdgeBrush != null) Target.EdgeBrush = ToFillBrush(Definition.EdgeBrush);
+            if (Definition.SelectedEdgeBrush != null) Target.SelectedEdgeBrush = ToFillBrush(Definition.SelectedEdgeBrush);
             if (Definition.NodeBorderBrush != null) Target.NodeBorderBrush = ToBorderBrush(Definition.NodeBorderBrush);
             if (Definition.NodeBorderThickness.HasValue) Target.NodeBorderThickness = Definition.NodeBorderThickness.Value.ToThickness();
+            if (Definition.NodeSelectedBorderBrush != null) Target.NodeSelectedBorderBrush = ToBorderBrush(Definition.NodeSelectedBorderBrush);
+            if (Definition.NodeSelectedBorderThickness.HasValue) Target.NodeSelectedBorderThickness = Definition.NodeSelectedBorderThickness.Value.ToThickness();
             if (Definition.NodeHeaderBackground != null) Target.NodeHeaderBackground = ApplyVisualStateFillBrush(Definition.NodeHeaderBackground, Target.NodeHeaderBackground);
             if (Definition.NodeHeaderForeground != null) Target.NodeHeaderForeground = ApplyVisualStateColorBrush(Definition.NodeHeaderForeground, Target.NodeHeaderForeground);
             if (Definition.NodeBodyBackground != null) Target.NodeBodyBackground = ApplyVisualStateFillBrush(Definition.NodeBodyBackground, Target.NodeBodyBackground);

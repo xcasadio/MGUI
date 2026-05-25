@@ -57,7 +57,7 @@ public class GraphViewShellTests
         MGWindow window = CreateWindow(out MGDesktop desktop);
         string xaml = @"<Window xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"" Width=""320"" Height=""180""
                           WindowStyle=""None"">
-  <GraphView Name=""Graph"" ShowGrid=""False"" AllowZoom=""False"" AllowPan=""True"" SnapToGrid=""True"" />
+    <GraphView Name=""Graph"" ShowGrid=""False"" AllowZoom=""False"" AllowPan=""True"" SnapToGrid=""True"" MajorGridLineFrequency=""8"" />
 </Window>";
 
         MGWindow loadedWindow = MGUIXamlParser.LoadRootWindow(desktop, xaml, false, true);
@@ -69,6 +69,7 @@ public class GraphViewShellTests
         Assert.False(graphView.AllowZoom);
         Assert.True(graphView.AllowPan);
         Assert.True(graphView.SnapToGrid);
+        Assert.Equal(8, graphView.MajorGridLineFrequency);
         Assert.True(graphView.ViewportHost.ClipToBounds);
     }
 

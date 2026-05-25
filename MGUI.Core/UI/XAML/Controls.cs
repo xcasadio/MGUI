@@ -1597,6 +1597,8 @@ namespace MGUI.Core.UI.XAML
         public bool? AllowPan { get; set; }
         [Category("Behavior")]
         public bool? SnapToGrid { get; set; }
+        [Category("Behavior")]
+        public int? MajorGridLineFrequency { get; set; }
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGraphView(Window);
 
@@ -1622,6 +1624,11 @@ namespace MGUI.Core.UI.XAML
             if (SnapToGrid.HasValue)
             {
                 graphView.SnapToGrid = SnapToGrid.Value;
+            }
+
+            if (MajorGridLineFrequency.HasValue)
+            {
+                graphView.MajorGridLineFrequency = MajorGridLineFrequency.Value;
             }
         }
 

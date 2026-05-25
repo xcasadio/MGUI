@@ -61,6 +61,41 @@ public class GraphCommentTests
     }
 
     [Fact]
+    public void GraphComment_EditCommandUpdatesTitleTextAndBoundsWithUndo()
+    {
+        GraphDocument document = new();
+        GraphCommandStack commands = new();
+        Guid commentId = Guid.NewGuid();
+        GraphCommentModel comment = document.AddComment(commentId, new Rectangle(10, 20, 220, 90), "Notes", "Start here");
+
+        Assert.True(commands.Execute(document, new EditCommentCommand(commentId, "Notes", "Updated", "Start here", "Expanded body", comment.Bounds, new Rectangle(10, 20, 220, 140))));
+
+        Assert.Equal("Updated", comment.Title);
+        Assert.Equal("Expanded body", comment.Text);
+        Assert.Equal(new Rectangle(10, 20, 220, 140), comment.Bounds);
+
+        Assert.True(commands.Undo(document));
+        Assert.Equal("Notes", comment.Title);
+        Assert.Equal("Start here", comment.Text);
+        Assert.Equal(new Rectangle(10, 20, 220, 90), comment.Bounds);
+    }
+
+    [Fact]
+    public void GraphComment_GraphViewExpandsHeightToFitBodyText()
+    {
+        MGGraphView graphView = CreateGraphView();
+        Guid commentId = Guid.NewGuid();
+        graphView.Document.AddComment(commentId, new Rectangle(12, 24, 220, 48), "Group", "Line 1\nLine 2\nLine 3\nLine 4");
+
+        graphView.SynchronizeDocument();
+
+        GraphCommentModel comment = graphView.Document.TryGetComment(commentId)!;
+        Assert.True(graphView.TryGetCommentControl(commentId, out MGGraphCommentBox commentBox));
+        Assert.True(comment.Bounds.Height > 48);
+        Assert.True(commentBox.PreferredHeight > 48);
+    }
+
+    [Fact]
     public void GraphComment_GraphViewCreatesMovesResizesDeletesAndRestoresComment()
     {
         MGGraphView graphView = CreateGraphView();

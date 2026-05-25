@@ -1460,9 +1460,12 @@
                                     BorderBrush="rgb(63,63,63)"
                                     BorderThickness="1"
                                     GridLineBrush="rgba(255,255,255,20)"
-                                    EdgeBrush="rgb(110,164,220)"
+                                    EdgeBrush="White"
+                                    SelectedEdgeBrush="Yellow"
                                     NodeBorderBrush="rgb(63,63,63)"
                                     NodeBorderThickness="1"
+                                    NodeSelectedBorderBrush="White"
+                                    NodeSelectedBorderThickness="2"
                                     PortBackground="rgb(80,134,190)"
                                     CommentBorderBrush="rgb(194,150,60)">
         <ThemeGraphSettingsDefinition.CanvasBackground>
