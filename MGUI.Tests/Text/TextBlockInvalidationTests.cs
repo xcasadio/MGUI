@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Text;
 using MGUI.Shared.Rendering;
@@ -159,6 +160,24 @@ public class TextBlockInvalidationTests
         Assert.True(harness.TextBlock.LayoutChangedCallCount > 0);
     }
 
+    [Fact]
+    public void StableTextBoxUpdate_DoesNotRelayoutParent()
+    {
+        TextBoxInvalidationHarness harness = CreateLaidOutTextBox("001", textBox =>
+        {
+            textBox.HasStableTextFootprint = true;
+            textBox.AcceptsReturn = false;
+            textBox.AcceptsTab = false;
+            textBox.PreferredWidth = 80;
+        });
+
+        harness.TextBox.SetText("002");
+
+        Assert.Equal(0, harness.TextBox.LayoutChangedCallCount);
+        Assert.Equal("002", harness.TextBox.Text);
+        Assert.True(GetTextBlock(harness.TextBox).HasStableTextFootprint);
+    }
+
     private static TextInvalidationHarness CreateLaidOutTextBlock(string initialText, Action<TrackingTextBlock> configure)
     {
         GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
@@ -182,10 +201,39 @@ public class TextBlockInvalidationTests
         return new(runtime, desktop, window, textBlock);
     }
 
+    private static TextBoxInvalidationHarness CreateLaidOutTextBox(string initialText, Action<TrackingTextBox> configure)
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+        runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16), default, default));
+
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 24, 24, 480, 260)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new Thickness(0)
+        };
+
+        TrackingTextBox textBox = new(window);
+        configure(textBox);
+        textBox.SetText(initialText);
+        window.SetContent(textBox);
+        desktop.Windows.Add(window);
+        desktop.Update();
+        desktop.Update();
+        textBox.ResetLayoutChangedCount();
+
+        return new(runtime, desktop, window, textBox);
+    }
+
     private static string FlattenText(MGTextBlock textBlock)
         => string.Concat(textBlock.Runs.OfType<MGTextRunText>().Select(x => x.Text));
 
+    private static MGTextBlock GetTextBlock(MGTextBox textBox)
+        => (MGTextBlock)typeof(MGTextBox).GetProperty("TextBlockElement", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(textBox)!;
+
     private readonly record struct TextInvalidationHarness(GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window, TrackingTextBlock TextBlock);
+
+    private readonly record struct TextBoxInvalidationHarness(GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window, TrackingTextBox TextBox);
 
     private sealed class TrackingTextBlock : MGTextBlock
     {
@@ -193,6 +241,25 @@ public class TextBlockInvalidationTests
 
         public TrackingTextBlock(MGWindow window, string text)
             : base(window, text, Color.White, 12)
+        {
+        }
+
+        public void ResetLayoutChangedCount()
+            => LayoutChangedCallCount = 0;
+
+        protected override void LayoutChanged(MGElement Source, bool NotifyParent)
+        {
+            LayoutChangedCallCount++;
+            base.LayoutChanged(Source, NotifyParent);
+        }
+    }
+
+    private sealed class TrackingTextBox : MGTextBox
+    {
+        public int LayoutChangedCallCount { get; private set; }
+
+        public TrackingTextBox(MGWindow window)
+            : base(window)
         {
         }
 

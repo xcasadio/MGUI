@@ -139,15 +139,38 @@ namespace MGUI.Shared.Input.Keyboard
 
         private void InvokeQueuedEvents()
         {
-            if (IsValid && HasSubscribedEvents && Owner.CanReceiveKeyboardInput())
+            if (!IsValid || !HasSubscribedEvents)
             {
-                foreach (Keys Key in AllKeys)
-                {
-                    bool hasKeyboardFocus = Owner.HasKeyboardFocus();
+                return;
+            }
 
-                    //  Invoke Key Pressed
-                    BaseKeyPressedEventArgs PressedArgs = Tracker.CurrentKeyPressedEvents[Key];
-                    if (PressedArgs != null && _pressed != null && hasKeyboardFocus && (InvokeEvenIfHandled || !PressedArgs.IsHandled))
+            if (!Owner.CanReceiveKeyboardInput())
+            {
+                if (KeyboardInputProbe.IsEnabled)
+                {
+                    foreach (Keys Key in AllKeys)
+                    {
+                        if (Tracker.CurrentKeyPressedEvents[Key] != null)
+                        {
+                            KeyboardInputProbe.RecordHandlerGate(Owner, "cannot-receive-keyboard-input");
+                            break;
+                        }
+                    }
+                }
+
+                return;
+            }
+
+            foreach (Keys Key in AllKeys)
+            {
+                bool hasKeyboardFocus = Owner.HasKeyboardFocus();
+
+                //  Invoke Key Pressed
+                BaseKeyPressedEventArgs PressedArgs = Tracker.CurrentKeyPressedEvents[Key];
+                if (PressedArgs != null && _pressed != null)
+                {
+                    bool canDeliverPressed = hasKeyboardFocus && (InvokeEvenIfHandled || !PressedArgs.IsHandled);
+                    if (canDeliverPressed)
                     {
                         _pressed.Invoke(this, PressedArgs);
                         if (AlwaysHandlesEvents)
@@ -158,49 +181,51 @@ namespace MGUI.Shared.Input.Keyboard
                         AdoptStreamIfHandled(PressedArgs);
                     }
 
-                    //  Invoke Key Released
-                    BaseKeyReleasedEventArgs ReleasedArgs = Tracker.CurrentKeyReleasedEvents[Key];
-                    bool ownsReleasedStream = OwnsStream(ReleasedArgs?.Stream);
-                    bool hasOwnedReleasedStream = ReleasedArgs?.Stream?.HasOwner == true;
-                    bool canReceiveReleased = ownsReleasedStream || (!hasOwnedReleasedStream && hasKeyboardFocus);
-                    if (ReleasedArgs != null && _released != null && canReceiveReleased
-                        && (InvokeEvenIfHandled || !ReleasedArgs.IsHandled || ReleasedArgs.HandledBy == Owner || ownsReleasedStream))
-                    {
-                        _released.Invoke(this, ReleasedArgs);
-                        if (AlwaysHandlesEvents)
-                        {
-                            ReleasedArgs.SetHandledBy(Owner, false);
-                        }
-                    }
+                    KeyboardInputProbe.RecordPressedDelivery(Owner, PressedArgs, canDeliverPressed, canDeliverPressed ? "delivered" : hasKeyboardFocus ? "handled" : "no-keyboard-focus");
+                }
 
-                    BaseKeyRepeatedEventArgs RepeatedArgs = GetCurrentKeyRepeatEvent(Key);
-                    bool ownsRepeatStream = OwnsStream(RepeatedArgs?.Stream);
-                    bool hasOwnedStream = RepeatedArgs?.Stream?.HasOwner == true;
-                    bool canReceiveRepeat = ownsRepeatStream || (!hasOwnedStream && hasKeyboardFocus);
-                    if (RepeatedArgs != null && _repeated != null && canReceiveRepeat
-                        && (InvokeEvenIfHandled || !RepeatedArgs.IsHandled || RepeatedArgs.HandledBy == Owner || ownsRepeatStream))
+                //  Invoke Key Released
+                BaseKeyReleasedEventArgs ReleasedArgs = Tracker.CurrentKeyReleasedEvents[Key];
+                bool ownsReleasedStream = OwnsStream(ReleasedArgs?.Stream);
+                bool hasOwnedReleasedStream = ReleasedArgs?.Stream?.HasOwner == true;
+                bool canReceiveReleased = ownsReleasedStream || (!hasOwnedReleasedStream && hasKeyboardFocus);
+                if (ReleasedArgs != null && _released != null && canReceiveReleased
+                    && (InvokeEvenIfHandled || !ReleasedArgs.IsHandled || ReleasedArgs.HandledBy == Owner || ownsReleasedStream))
+                {
+                    _released.Invoke(this, ReleasedArgs);
+                    if (AlwaysHandlesEvents)
                     {
-                        _repeated.Invoke(this, RepeatedArgs);
-                        if (AlwaysHandlesEvents)
-                        {
-                            RepeatedArgs.SetHandledBy(Owner, false);
-                        }
+                        ReleasedArgs.SetHandledBy(Owner, false);
                     }
+                }
 
-                    //  Invoke Key Clicked
-                    BaseKeyClickedEventArgs ClickedArgs = Tracker.CurrentKeyClickedEvents[Key];
-                    bool ownsClickedStream = OwnsStream(ClickedArgs?.Stream);
-                    bool hasOwnedClickedStream = ClickedArgs?.Stream?.HasOwner == true;
-                    bool canReceiveClicked = ownsClickedStream || (!hasOwnedClickedStream && hasKeyboardFocus);
-                    if (ClickedArgs != null && _clicked != null && canReceiveClicked
-                        && (InvokeEvenIfHandled || !ClickedArgs.IsHandled || ClickedArgs.HandledBy == Owner || ownsClickedStream)
-                        && (InvokeEvenIfHandled || !ClickedArgs.ReleasedArgs.IsHandled || ClickedArgs.ReleasedArgs.HandledBy == Owner || ownsClickedStream))
+                BaseKeyRepeatedEventArgs RepeatedArgs = GetCurrentKeyRepeatEvent(Key);
+                bool ownsRepeatStream = OwnsStream(RepeatedArgs?.Stream);
+                bool hasOwnedStream = RepeatedArgs?.Stream?.HasOwner == true;
+                bool canReceiveRepeat = ownsRepeatStream || (!hasOwnedStream && hasKeyboardFocus);
+                if (RepeatedArgs != null && _repeated != null && canReceiveRepeat
+                    && (InvokeEvenIfHandled || !RepeatedArgs.IsHandled || RepeatedArgs.HandledBy == Owner || ownsRepeatStream))
+                {
+                    _repeated.Invoke(this, RepeatedArgs);
+                    if (AlwaysHandlesEvents)
                     {
-                        _clicked.Invoke(this, ClickedArgs);
-                        if (AlwaysHandlesEvents)
-                        {
-                            ClickedArgs.SetHandledBy(Owner, false);
-                        }
+                        RepeatedArgs.SetHandledBy(Owner, false);
+                    }
+                }
+
+                //  Invoke Key Clicked
+                BaseKeyClickedEventArgs ClickedArgs = Tracker.CurrentKeyClickedEvents[Key];
+                bool ownsClickedStream = OwnsStream(ClickedArgs?.Stream);
+                bool hasOwnedClickedStream = ClickedArgs?.Stream?.HasOwner == true;
+                bool canReceiveClicked = ownsClickedStream || (!hasOwnedClickedStream && hasKeyboardFocus);
+                if (ClickedArgs != null && _clicked != null && canReceiveClicked
+                    && (InvokeEvenIfHandled || !ClickedArgs.IsHandled || ClickedArgs.HandledBy == Owner || ownsClickedStream)
+                    && (InvokeEvenIfHandled || !ClickedArgs.ReleasedArgs.IsHandled || ClickedArgs.ReleasedArgs.HandledBy == Owner || ownsClickedStream))
+                {
+                    _clicked.Invoke(this, ClickedArgs);
+                    if (AlwaysHandlesEvents)
+                    {
+                        ClickedArgs.SetHandledBy(Owner, false);
                     }
                 }
             }
@@ -247,7 +272,7 @@ namespace MGUI.Shared.Input.Keyboard
                 return null;
             }
 
-            string keyValue = Tracker.KeyToTextInputString(key);
+            string keyValue = initialPressedArgs.PrintableValue;
             BaseKeyRepeatedEventArgs repeatedArgs = new(Tracker, initialPressedArgs, key, keyValue);
             _LastRepeatedAt[key] = Tracker.CurrentTotalElapsed;
             return repeatedArgs;

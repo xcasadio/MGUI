@@ -23,6 +23,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.DragDrop;
 using MGUI.Core.UI.Shapes;
 using MGUI.Core.UI.Responsive;
+using MGUI.Core.Tooling;
 using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI
@@ -1567,12 +1568,13 @@ namespace MGUI.Core.UI
 
         // ---- Dirty flags for targeted input-state recomputation (Task 14) ---------
         // Set to true when IsEnabled, IsHitTestVisible, Visibility, or RecentDrawWasClipped changes
-        // so the next Update() call knows it must recompute _CanReceiveMouseInput.
+        // so the next Update() call knows it must recompute cached input eligibility.
         private bool _inputStateDirty = true;
         // Cached values from the last recomputation so we can detect unchanged frames.
         private bool _cachedComputedEnabled;
         private bool _cachedComputedHTVisible;
         private bool _cachedParentCanReceiveMouse = true;
+        private bool _cachedParentCanReceiveKeyboard = true;
         private bool _cachedHasModalWindow;
         // ---- End dirty-flag fields ------------------------------------------------
 
@@ -2371,6 +2373,7 @@ namespace MGUI.Core.UI
 
         public void Update(ElementUpdateArgs UA)
 		{
+            using var performanceScope = UIPerformanceProbe.BeginElementUpdate(this);
             bool ComputedIsEnabled = UA.IsEnabled && IsEnabled;
             bool ComputedIsSelected = UA.IsSelected || IsSelected;
             bool ComputedIsHitTestVisible = UA.IsHitTestVisible && IsHitTestVisible;
@@ -2481,25 +2484,29 @@ namespace MGUI.Core.UI
                 }
 			}
 
-            // Optimisation (Task 14): skip _CanReceiveMouseInput recomputation when nothing that affects it changed.
-            // The inputs are: Visibility, ComputedIsEnabled, ComputedIsHitTestVisible, RecentDrawWasClipped (tracked
-            // by _inputStateDirty), and the parent's _CanReceiveMouseInput (checked explicitly each frame).
+            // Optimisation (Task 14): skip input eligibility recomputation when nothing that affects it changed.
+            // Mouse hit testing is clipped by the last draw result, but keyboard focus must remain stable for a
+            // focused text editor even when part of its visual subtree was clipped.
             bool parentCanMouse = CanInheritMouseInputFromParent();
+            bool parentCanKeyboard = Parent?._CanReceiveKeyboardInput ?? true;
             bool hasModalWindow = SelfOrParentWindow?.HasModalWindow == true;
             if (_inputStateDirty ||
                 ComputedIsEnabled != _cachedComputedEnabled ||
                 ComputedIsHitTestVisible != _cachedComputedHTVisible ||
                 parentCanMouse != _cachedParentCanReceiveMouse ||
+                parentCanKeyboard != _cachedParentCanReceiveKeyboard ||
                 hasModalWindow != _cachedHasModalWindow)
             {
                 _inputStateDirty = false;
-                bool BaseCanReceiveInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible
+                bool baseCanReceiveKeyboardInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible;
+                bool BaseCanReceiveMouseInput = baseCanReceiveKeyboardInput
                     && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
-                _CanReceiveMouseInput    = BaseCanReceiveInput && parentCanMouse && !hasModalWindow;
-                _CanReceiveKeyboardInput = BaseCanReceiveInput && (Parent?._CanReceiveKeyboardInput ?? true);
+                _CanReceiveMouseInput    = BaseCanReceiveMouseInput && parentCanMouse && !hasModalWindow;
+                _CanReceiveKeyboardInput = baseCanReceiveKeyboardInput && parentCanKeyboard;
                 _cachedComputedEnabled       = ComputedIsEnabled;
                 _cachedComputedHTVisible     = ComputedIsHitTestVisible;
                 _cachedParentCanReceiveMouse = parentCanMouse;
+                _cachedParentCanReceiveKeyboard = parentCanKeyboard;
                 _cachedHasModalWindow        = hasModalWindow;
             }
 
@@ -2672,6 +2679,7 @@ namespace MGUI.Core.UI
 
         public virtual void Draw(ElementDrawArgs DA)
 		{
+            using var performanceScope = UIPerformanceProbe.BeginElementDraw(this);
 			RecentDrawWasClipped = false;
 
             DA = DA.SetOpacity(DA.Opacity * Opacity) with { VisualState = VisualState };
@@ -2922,6 +2930,8 @@ namespace MGUI.Core.UI
                 return;
             }
 
+            UIPerformanceProbe.RecordLayoutInvalidation(Source, this, NotifyParent);
+
             if (IsUpdatingLayout)
             {
                 SelfOrParentWindow.QueueLayoutRefresh = true;
@@ -2955,6 +2965,7 @@ namespace MGUI.Core.UI
 
         internal protected void UpdateLayout(Rectangle Bounds)
         {
+            using var performanceScope = UIPerformanceProbe.BeginElementLayout(this);
             try
             {
                 IsUpdatingLayout = true;
@@ -3203,6 +3214,7 @@ namespace MGUI.Core.UI
 
         internal protected void UpdateMeasurement(Size AvailableSize, out Thickness SelfSize, out Thickness FullSize, out Thickness SharedSize, out Thickness ContentSize)
         {
+            using var performanceScope = UIPerformanceProbe.BeginElementMeasure(this);
 			if (IsVisibilityCollapsed)
 			{
 				SelfSize = new(0);

@@ -116,10 +116,34 @@ namespace MGUI.Core.UI
             set => SetText(value);
         }
 
-        /// <returns>True if <see cref="Text"/> value was changed.</returns>
-        public virtual bool SetText(string Value) => SetText(Value, false, false);
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _HasStableTextFootprint;
+        /// <summary>
+        /// True when this textbox is hosted in a layout that already reserves enough width/height for edited text.
+        /// Stable footprint textboxes can update their text content without invalidating parent layout on every key press.
+        /// </summary>
+        public bool HasStableTextFootprint
+        {
+            get => _HasStableTextFootprint;
+            set
+            {
+                if (_HasStableTextFootprint != value)
+                {
+                    _HasStableTextFootprint = value;
+                    if (TextBlockElement != null)
+                    {
+                        TextBlockElement.HasStableTextFootprint = value;
+                    }
 
-        public bool SetText(string Value, bool SuppressLayoutChanged) => SetText(Value, false, SuppressLayoutChanged);
+                    NPC(nameof(HasStableTextFootprint));
+                }
+            }
+        }
+
+        /// <returns>True if <see cref="Text"/> value was changed.</returns>
+        public virtual bool SetText(string Value) => SetText(Value, false, HasStableTextFootprint);
+
+        public bool SetText(string Value, bool SuppressLayoutChanged) => SetText(Value, false, SuppressLayoutChanged || HasStableTextFootprint);
 
         /// <param name="ExecuteEvenIfSameValue">If true, will attempt to set the value even if <see cref="Text"/> already has the same value as <paramref name="Value"/>.<para/>
         /// This is mainly intended for use by subclasses that alter the <paramref name="Value"/>, such as <see cref="MGPasswordBox"/><br/>
@@ -200,7 +224,7 @@ namespace MGUI.Core.UI
             if (_FormattedText != Value)
             {
                 _FormattedText = Value;
-                TextBlockElement.SetText(FormattedText, Silent);
+                TextBlockElement.SetText(FormattedText, Silent || HasStableTextFootprint);
                 NPC(nameof(FormattedText));
             }
         }
@@ -1299,6 +1323,7 @@ namespace MGUI.Core.UI
                     false, false, true, true, false, false, true,
                     (AvailableBounds, ComponentSize) => GetTemplateTextBlockBounds(AvailableBounds, ComponentSize.Size)));
 
+            TextBlockElement.HasStableTextFootprint = HasStableTextFootprint;
             TextRenderInfo = new(this, TextBlockElement);
             Caret = new(this, TextBlockElement);
             SyncPlaceholderTextPart();

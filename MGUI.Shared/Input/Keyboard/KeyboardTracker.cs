@@ -17,11 +17,30 @@ namespace MGUI.Shared.Input.Keyboard
         public bool HasKeyboardFocus() => true;
     }
 
+    public interface IKeyboardTextInputSink
+    {
+        void QueueTextInput(char character, Keys key);
+    }
+
     /// <summary>Detects changes to the keyboard state between the previous and current Update ticks, but does not invoke the events. Instead, events are subscribed to and fired by <see cref="KeyboardHandler"/>.<br/>
     /// See: <see cref="KeyboardTracker.CreateHandler{T}(T, double?, bool, bool)"/>, <see cref="KeyboardTracker.CreateHandler{T}(T, InputUpdatePriority, bool, bool)"/><para/>
     /// This class is automatically instantiated when creating an instance of <see cref="InputTracker"/>. See: <see cref="InputTracker.Keyboard"/></summary>
-    public class KeyboardTracker
+    public class KeyboardTracker : IKeyboardTextInputSink
     {
+        private struct KeyboardTextInputEvent
+        {
+            public KeyboardTextInputEvent(char character, Keys key)
+            {
+                Character = character;
+                Key = key;
+                Consumed = false;
+            }
+
+            public char Character { get; }
+            public Keys Key { get; }
+            public bool Consumed { get; set; }
+        }
+
         public static readonly ReadOnlyCollection<Keys> AllKeys = Enum.GetValues(typeof(Keys)).Cast<Keys>().ToList().AsReadOnly();
         private static readonly HashSet<Keys> TrackedKeys = AllKeys.ToHashSet();
 
@@ -85,6 +104,8 @@ namespace MGUI.Shared.Input.Keyboard
         public IReadOnlyDictionary<Keys, BaseKeyClickedEventArgs> CurrentKeyClickedEvents => _CurrentKeyClickedEvents;
 
         private readonly Dictionary<Keys, TimeSpan?> _HeldSince = AllKeys.ToDictionary(x => x, _ => (TimeSpan?)null);
+        private readonly List<KeyboardTextInputEvent> PendingTextInputEvents = new();
+        private readonly List<KeyboardTextInputEvent> CurrentTextInputEvents = new();
         #endregion Events
 
         public IReadOnlyDictionary<Keys, BaseKeyPressedEventArgs> CurrentKeyDownEvents => _CurrentKeyPressedEvents;
@@ -106,11 +127,30 @@ namespace MGUI.Shared.Input.Keyboard
 
         internal TimeSpan? GetHeldSince(Keys Key) => _HeldSince[Key];
 
+        public void QueueTextInput(char character, Keys key)
+        {
+            if (!ShouldUseNativeTextInputCharacter(character))
+            {
+                return;
+            }
+
+            KeyboardInputProbe.RecordTextInputQueued(character, key);
+            PendingTextInputEvents.Add(new KeyboardTextInputEvent(character, key));
+        }
+
         internal void Update(UpdateBaseArgs BA)
         {
             PreviousState = CurrentState;
             CurrentState = BA.KeyboardState;
             CurrentTotalElapsed = BA.TotalElapsed;
+
+            CurrentTextInputEvents.Clear();
+            for (int index = 0; index < PendingTextInputEvents.Count; index++)
+            {
+                CurrentTextInputEvents.Add(PendingTextInputEvents[index]);
+            }
+
+            PendingTextInputEvents.Clear();
 
             foreach (Keys Key in AllKeys)
             {
@@ -127,7 +167,10 @@ namespace MGUI.Shared.Input.Keyboard
             {
                 if (!PreviousKeys.Contains(Key))
                 {
-                    string KeyValue = KeyToTextInputString(Key);
+                    string fallbackKeyValue = KeyToTextInputString(Key);
+                    string nativeTextValue = TryConsumeNativeTextInputString(Key, fallbackKeyValue != null);
+                    string KeyValue = nativeTextValue ?? fallbackKeyValue;
+                    KeyboardInputProbe.RecordKeyPressed(Key, KeyValue, fallbackKeyValue, nativeTextValue != null);
                     KeyboardInputStream stream = new(_NextInputStreamId++, Key, BA.TotalElapsed);
                     BaseKeyPressedEventArgs PressedArgs = new(this, Key, KeyValue, BA.TotalElapsed, stream);
                     RecentKeyPressedEvents[Key] = PressedArgs;
@@ -161,6 +204,69 @@ namespace MGUI.Shared.Input.Keyboard
                     _HeldSince[Key] = null;
                 }
             }
+
+            CreateTextInputOnlyPressedEvents(BA);
+        }
+
+        private void CreateTextInputOnlyPressedEvents(UpdateBaseArgs BA)
+        {
+            for (int index = 0; index < CurrentTextInputEvents.Count; index++)
+            {
+                KeyboardTextInputEvent inputEvent = CurrentTextInputEvents[index];
+                if (inputEvent.Consumed || CurrentState.IsKeyDown(inputEvent.Key))
+                {
+                    continue;
+                }
+
+                if (!_CurrentKeyPressedEvents.ContainsKey(inputEvent.Key) || _CurrentKeyPressedEvents[inputEvent.Key] != null)
+                {
+                    continue;
+                }
+
+                inputEvent.Consumed = true;
+                CurrentTextInputEvents[index] = inputEvent;
+
+                string keyValue = inputEvent.Character.ToString();
+                KeyboardInputStream stream = new(_NextInputStreamId++, inputEvent.Key, BA.TotalElapsed);
+                BaseKeyPressedEventArgs pressedArgs = new(this, inputEvent.Key, keyValue, BA.TotalElapsed, stream);
+                _CurrentKeyPressedEvents[inputEvent.Key] = pressedArgs;
+                KeyboardInputProbe.RecordKeyPressed(inputEvent.Key, keyValue, null, true);
+            }
+        }
+
+        private static bool ShouldUseNativeTextInputCharacter(char character)
+            => !char.IsControl(character) || character is '\t' or '\r' or '\n';
+
+        private string TryConsumeNativeTextInputString(Keys key, bool allowUnmatchedTextInput)
+        {
+            for (int index = 0; index < CurrentTextInputEvents.Count; index++)
+            {
+                KeyboardTextInputEvent inputEvent = CurrentTextInputEvents[index];
+                if (!inputEvent.Consumed && inputEvent.Key == key)
+                {
+                    inputEvent.Consumed = true;
+                    CurrentTextInputEvents[index] = inputEvent;
+                    return inputEvent.Character.ToString();
+                }
+            }
+
+            if (!allowUnmatchedTextInput)
+            {
+                return null;
+            }
+
+            for (int index = 0; index < CurrentTextInputEvents.Count; index++)
+            {
+                KeyboardTextInputEvent inputEvent = CurrentTextInputEvents[index];
+                if (!inputEvent.Consumed)
+                {
+                    inputEvent.Consumed = true;
+                    CurrentTextInputEvents[index] = inputEvent;
+                    return inputEvent.Character.ToString();
+                }
+            }
+
+            return null;
         }
 
         public static bool IsRepeatDue(TimeSpan now, TimeSpan heldSince, TimeSpan? lastRepeatAt, TimeSpan initialRepeatDelay, TimeSpan repeatInterval)
