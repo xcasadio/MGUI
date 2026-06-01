@@ -173,6 +173,7 @@ public class BorderShapeAdoptionTests
             typeof(MGWrapPanel),
             typeof(MGNumericUpDown),
             typeof(VirtualizingStackPanel),
+            typeof(VirtualizingWrapPanel),
             typeof(MGGridSplitter),
             typeof(MGMenuBar),
             typeof(MGMenuBarItem)
