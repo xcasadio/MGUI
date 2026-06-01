@@ -1230,10 +1230,12 @@ namespace MGUI.Core.UI.Styling
 
         private static MGTriangleArrowIcon CreateNumericSpinnerGlyph(MGWindow window, UITriangleArrowDirection direction)
         {
+            Color glyphColor = window.GetTheme()?.DropdownArrowColor ?? Color.White;
+
             return new(window)
             {
                 Direction = direction,
-                Color = window.Theme.DropdownArrowColor,
+                Color = glyphColor,
                 PreferredWidth = 8,
                 PreferredHeight = 5,
                 HorizontalAlignment = HorizontalAlignment.Center,
