@@ -66,9 +66,7 @@ namespace MGUI.Core.UI
         private sealed class CommentEditorState
         {
             public Guid CommentId { get; init; }
-            public MGBorder HostBorder { get; init; }
-            public MGTextBox TitleTextBox { get; init; }
-            public MGTextBox BodyTextBox { get; init; }
+            public MGGraphCommentBox CommentBox { get; init; }
             public EventHandler<BaseKeyPressedEventArgs> TitleKeyPressedHandler { get; init; }
             public EventHandler<BaseKeyPressedEventArgs> BodyKeyPressedHandler { get; init; }
             public EventHandler<EventArgs<MGElement>> FocusChangedHandler { get; init; }
@@ -104,8 +102,8 @@ namespace MGUI.Core.UI
         public RectangleF SelectionRectangleViewportBounds => CreateRectangle(_PointerPressViewportPoint, _CurrentSelectionViewportPoint);
         internal bool IsCommentEditorOpen => _ActiveCommentEditor != null;
         internal Guid EditingCommentId => _ActiveCommentEditor?.CommentId ?? Guid.Empty;
-        internal MGTextBox CommentEditorTitleTextBox => _ActiveCommentEditor?.TitleTextBox;
-        internal MGTextBox CommentEditorBodyTextBox => _ActiveCommentEditor?.BodyTextBox;
+        internal MGTextBox CommentEditorTitleTextBox => _ActiveCommentEditor?.CommentBox?.TitleTextBox;
+        internal MGTextBox CommentEditorBodyTextBox => _ActiveCommentEditor?.CommentBox?.BodyTextBox;
 
         public IFillBrush GridLineBrush
         {
@@ -661,16 +659,108 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            commentBox.MouseHandler.LMBDoubleClickedInside += (sender, e) =>
+            commentBox.MouseHandler.DragStartCondition = DragStartCondition.Both;
+
+            commentBox.MouseHandler.LMBPressedInside += (sender, e) =>
             {
-                if (!IsPointerInsideViewport(e.Position)
-                    || !TryGetCommentAtScreenPosition(e.Position, out MGGraphCommentBox targetComment)
-                    || !ReferenceEquals(targetComment, commentBox))
+                if (commentBox.IsEditing)
                 {
                     return;
                 }
 
-                Vector2 viewportPoint = GetViewportPoint(e.Position);
+                if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out Vector2 viewportPoint))
+                {
+                    return;
+                }
+
+                Focus(KeyboardFocusSource.Pointer);
+                _PointerPressViewportPoint = viewportPoint;
+                _CurrentSelectionViewportPoint = viewportPoint;
+                _PressedNodeId = Guid.Empty;
+                _PressedCommentId = commentBox.CommentId;
+                _PressedCommentResizeHandle = IsCommentResizeHandleHit(commentBox, viewportPoint);
+
+                bool controlDown = IsControlDown();
+                SelectComment(commentBox.CommentId, additive: controlDown, toggle: controlDown);
+                e.SetHandledBy(commentBox, false);
+            };
+
+            commentBox.MouseHandler.DragStart += (sender, e) =>
+            {
+                if (commentBox.IsEditing)
+                {
+                    return;
+                }
+
+                if (!e.IsLMB || e.Condition != DragStartCondition.MouseMovedAfterPress)
+                {
+                    return;
+                }
+
+                if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out Vector2 viewportPoint))
+                {
+                    return;
+                }
+
+                _PressedNodeId = Guid.Empty;
+                _PressedCommentId = commentBox.CommentId;
+                _PointerPressViewportPoint = viewportPoint;
+                _CurrentSelectionViewportPoint = viewportPoint;
+                _PressedCommentResizeHandle = IsCommentResizeHandleHit(commentBox, viewportPoint);
+
+                if (_PressedCommentResizeHandle)
+                {
+                    BeginCommentResize();
+                }
+                else
+                {
+                    BeginCommentDrag();
+                }
+
+                e.SetHandledBy(commentBox, false);
+            };
+
+            commentBox.MouseHandler.Dragged += (sender, e) =>
+            {
+                if (_IsDraggingComments && e.IsLMB)
+                {
+                    UpdateCommentDrag(GetViewportPoint(e.Position));
+                }
+                else if (_IsResizingComment && e.IsLMB)
+                {
+                    UpdateCommentResize(GetViewportPoint(e.Position));
+                }
+            };
+
+            commentBox.MouseHandler.DragEnd += (sender, e) =>
+            {
+                if (e.IsLMB && IsCommentPointerInteractionActive(commentBox.CommentId))
+                {
+                    CompleteNodeOrRectangleDrag(e.EndPosition);
+                }
+            };
+
+            commentBox.MouseHandler.ReleasedOutside += (sender, e) =>
+            {
+                if (e.IsLMB && IsCommentPointerInteractionActive(commentBox.CommentId))
+                {
+                    CompleteNodeOrRectangleDrag(e.Position);
+                    e.SetHandledBy(commentBox, false);
+                }
+            };
+
+            commentBox.MouseHandler.LMBDoubleClickedInside += (sender, e) =>
+            {
+                if (commentBox.IsEditing)
+                {
+                    return;
+                }
+
+                if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out Vector2 viewportPoint))
+                {
+                    return;
+                }
+
                 if (IsCommentResizeHandleHit(commentBox, viewportPoint))
                 {
                     return;
@@ -684,9 +774,26 @@ namespace MGUI.Core.UI
             };
         }
 
+        private bool TryResolveCommentPointerInteraction(MGGraphCommentBox commentBox, Point screenPosition, out Vector2 viewportPoint)
+        {
+            viewportPoint = Vector2.Zero;
+            if (commentBox == null || !IsPointerInsideViewport(screenPosition))
+            {
+                return false;
+            }
+
+            if (!TryGetCommentAtScreenPosition(screenPosition, out MGGraphCommentBox targetComment) || !ReferenceEquals(targetComment, commentBox))
+            {
+                return false;
+            }
+
+            viewportPoint = GetViewportPoint(screenPosition);
+            return true;
+        }
+
         internal bool TryBeginCommentEdit(Guid commentId)
         {
-            if (commentId == Guid.Empty || OverlayPanel == null || SelfOrParentWindow == null)
+            if (commentId == Guid.Empty)
             {
                 return false;
             }
@@ -713,63 +820,14 @@ namespace MGUI.Core.UI
             }
 
             CancelCurrentInteraction();
-            Rectangle viewportBounds = GetCommentViewportBounds(commentBox);
-
-            MGTextBox titleTextBox = new(SelfOrParentWindow, 512)
+            commentBox.BeginEdit();
+            MGTextBox titleTextBox = commentBox.TitleTextBox;
+            MGTextBox bodyTextBox = commentBox.BodyTextBox;
+            if (titleTextBox == null || bodyTextBox == null)
             {
-                AcceptsReturn = false,
-                AcceptsTab = false,
-                WrapText = false,
-                MinLines = 1,
-                MaxLines = 1,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            titleTextBox.SetText(comment.Title, SuppressLayoutChanged: true);
-
-            MGTextBox bodyTextBox = new(SelfOrParentWindow, null)
-            {
-                AcceptsReturn = true,
-                AcceptsTab = true,
-                WrapText = true,
-                MinLines = 3,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            bodyTextBox.SetText(comment.Text, SuppressLayoutChanged: true);
-
-            MGStackPanel stack = new(SelfOrParentWindow, Orientation.Vertical)
-            {
-                Spacing = 4,
-                CanChangeContent = true,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
-            };
-            stack.TryAddChild(titleTextBox);
-            stack.TryAddChild(bodyTextBox);
-            stack.CanChangeContent = false;
-
-            MGBorder hostBorder = new(SelfOrParentWindow)
-            {
-                Padding = new Thickness(6),
-                BorderThickness = new Thickness(1),
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
-                ResponsiveAnchor = ResponsiveAnchor.TopLeft,
-            };
-            using (hostBorder.AllowChangingContentTemporarily())
-            {
-                hostBorder.SetContent(stack);
+                commentBox.EndEdit(commitChanges: false);
+                return false;
             }
-
-            MGTheme theme = GetTheme();
-            hostBorder.BackgroundBrush = new VisualStateFillBrush(theme.Graph.CommentBackground?.NormalValue?.Copy() ?? new MGSolidFillBrush(new Color(35, 35, 35, 220)));
-            hostBorder.BorderBrush = theme.Graph.CommentBorderBrush?.Copy() ?? MGUniformBorderBrush.Transparent;
-
-            int editorWidth = Math.Max(180, viewportBounds.Width);
-            hostBorder.PreferredWidth = editorWidth;
-            hostBorder.PreferredHeight = MeasureCommentEditorHeight(hostBorder, editorWidth);
-            hostBorder.PreferredHeight = Math.Max(hostBorder.PreferredHeight ?? 0, viewportBounds.Height);
 
             CommentEditorState state = null;
             EventHandler<BaseKeyPressedEventArgs> titleKeyPressedHandler = (sender, e) =>
@@ -819,9 +877,7 @@ namespace MGUI.Core.UI
             state = new CommentEditorState
             {
                 CommentId = commentId,
-                HostBorder = hostBorder,
-                TitleTextBox = titleTextBox,
-                BodyTextBox = bodyTextBox,
+                CommentBox = commentBox,
                 TitleKeyPressedHandler = titleKeyPressedHandler,
                 BodyKeyPressedHandler = bodyKeyPressedHandler,
                 FocusChangedHandler = focusChangedHandler,
@@ -832,17 +888,13 @@ namespace MGUI.Core.UI
             GetDesktop().FocusedKeyboardHandlerChanged += focusChangedHandler;
 
             _ActiveCommentEditor = state;
-            using (OverlayPanel.AllowChangingContentTemporarily())
-            {
-                OverlayPanel.TryAddChild(hostBorder, new Thickness(viewportBounds.Left, viewportBounds.Top, 0, 0), 1000);
-            }
 
             InvokeLater(() =>
             {
                 if (_ActiveCommentEditor == state)
                 {
-                    state.TitleTextBox.RequestFocus();
-                    state.TitleTextBox.SelectAll();
+                    titleTextBox.RequestFocus();
+                    titleTextBox.SelectAll();
                 }
             }, 1, InvokeLaterPriority.OnEndUpdate);
 
@@ -858,23 +910,35 @@ namespace MGUI.Core.UI
 
             CommentEditorState state = _ActiveCommentEditor;
             GraphCommentModel comment = Document?.TryGetComment(state.CommentId);
-            _ = TryGetCommentControl(state.CommentId, out MGGraphCommentBox commentBox);
-            CloseActiveCommentEditor();
+            MGGraphCommentBox commentBox = state.CommentBox;
+            MGTextBox titleTextBox = commentBox?.TitleTextBox;
+            MGTextBox bodyTextBox = commentBox?.BodyTextBox;
+            if (commentBox == null || titleTextBox == null || bodyTextBox == null)
+            {
+                CloseActiveCommentEditor(commitChanges: false);
+                return false;
+            }
 
-            if (comment == null || commentBox == null)
+            string newTitle = titleTextBox.Text ?? string.Empty;
+            string newText = bodyTextBox.Text ?? string.Empty;
+            bool hasComment = comment != null;
+            Rectangle newBounds = hasComment ? NormalizeCommentBoundsToContent(comment, commentBox, newTitle, newText) : Rectangle.Empty;
+            bool changed = hasComment && (newTitle != comment.Title || newText != comment.Text || newBounds != comment.Bounds);
+            bool committed = changed && Commands.Execute(Document, new EditCommentCommand(state.CommentId, comment.Title, newTitle, comment.Text, newText, comment.Bounds, newBounds));
+
+            CloseActiveCommentEditor(commitChanges: committed);
+
+            if (!hasComment)
             {
                 return false;
             }
 
-            string newTitle = state.TitleTextBox.Text ?? string.Empty;
-            string newText = state.BodyTextBox.Text ?? string.Empty;
-            Rectangle newBounds = NormalizeCommentBoundsToContent(comment, commentBox, newTitle, newText);
-            if (newTitle == comment.Title && newText == comment.Text && newBounds == comment.Bounds)
+            if (!changed)
             {
                 return false;
             }
 
-            return Commands.Execute(Document, new EditCommentCommand(state.CommentId, comment.Title, newTitle, comment.Text, newText, comment.Bounds, newBounds));
+            return committed;
         }
 
         internal bool CancelActiveCommentEditor()
@@ -884,11 +948,11 @@ namespace MGUI.Core.UI
                 return false;
             }
 
-            CloseActiveCommentEditor();
+            CloseActiveCommentEditor(commitChanges: false);
             return true;
         }
 
-        private void CloseActiveCommentEditor()
+        private void CloseActiveCommentEditor(bool commitChanges)
         {
             CommentEditorState state = _ActiveCommentEditor;
             if (state == null)
@@ -897,32 +961,26 @@ namespace MGUI.Core.UI
             }
 
             _ActiveCommentEditor = null;
-            state.TitleTextBox.KeyboardHandler.Pressed -= state.TitleKeyPressedHandler;
-            state.BodyTextBox.KeyboardHandler.Pressed -= state.BodyKeyPressedHandler;
+            if (state.CommentBox?.TitleTextBox != null)
+            {
+                state.CommentBox.TitleTextBox.KeyboardHandler.Pressed -= state.TitleKeyPressedHandler;
+            }
+
+            if (state.CommentBox?.BodyTextBox != null)
+            {
+                state.CommentBox.BodyTextBox.KeyboardHandler.Pressed -= state.BodyKeyPressedHandler;
+            }
+
             GetDesktop().FocusedKeyboardHandlerChanged -= state.FocusChangedHandler;
 
-            if (OverlayPanel != null)
+            if (state.CommentBox != null)
             {
-                using (OverlayPanel.AllowChangingContentTemporarily())
-                {
-                    OverlayPanel.TryRemoveChild(state.HostBorder);
-                }
+                state.CommentBox.EndEdit(commitChanges);
             }
         }
 
         private bool IsCommentEditorElement(MGElement element)
-            => _ActiveCommentEditor?.HostBorder != null && element != null && _ActiveCommentEditor.HostBorder.IsSelfOrAncestorOf(element);
-
-        private static int MeasureCommentEditorHeight(MGBorder hostBorder, int width)
-        {
-            if (hostBorder == null)
-            {
-                return 1;
-            }
-
-            hostBorder.UpdateMeasurement(new Size(Math.Max(1, width), 1000000), out _, out Thickness fullSize, out _, out _);
-            return Math.Max(1, fullSize.Height);
-        }
+            => _ActiveCommentEditor?.CommentBox != null && element != null && _ActiveCommentEditor.CommentBox.IsSelfOrAncestorOf(element);
 
         public bool MoveSelectedNodesBy(Vector2 worldDelta)
         {
@@ -1694,6 +1752,11 @@ namespace MGUI.Core.UI
 
                 if (e.IsLMB && e.Condition == DragStartCondition.MouseMovedAfterPress && IsPointerInsideViewport(e.Position))
                 {
+                    if (IsCommentEditorElement(SelfOrParentWindow?.HoveredElement))
+                    {
+                        return;
+                    }
+
                     if (_PressedNodeId != Guid.Empty)
                     {
                         BeginNodeDrag();
@@ -1780,6 +1843,11 @@ namespace MGUI.Core.UI
             MouseHandler.LMBPressedInside += (sender, e) =>
             {
                 if (!IsPointerInsideViewport(e.Position))
+                {
+                    return;
+                }
+
+                if (IsCommentEditorElement(SelfOrParentWindow?.HoveredElement))
                 {
                     return;
                 }
@@ -1963,6 +2031,9 @@ namespace MGUI.Core.UI
 
         private bool IsNodePointerInteractionActive(Guid nodeId)
             => nodeId != Guid.Empty && (_PressedNodeId == nodeId || (_IsDraggingNodes && SelectedNodeIds.Contains(nodeId)));
+
+        private bool IsCommentPointerInteractionActive(Guid commentId)
+            => commentId != Guid.Empty && (_PressedCommentId == commentId || (_IsDraggingComments && SelectedCommentIds.Contains(commentId)) || (_IsResizingComment && _PressedCommentId == commentId));
 
         private void CommitNodeDrag()
         {
@@ -3264,28 +3335,30 @@ namespace MGUI.Core.UI
     public class MGGraphCommentBox : MGSingleContentHost
     {
         public const string OuterBorderPartName = "PART_OuterBorder";
-        public const string TitleTextBlockPartName = "PART_TitleTextBlock";
-        public const string BodyTextBlockPartName = "PART_BodyTextBlock";
+        public const string TitleTextBoxPartName = "PART_TitleTextBox";
+        public const string BodyTextBoxPartName = "PART_BodyTextBox";
 
         protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
         {
             yield return new(OuterBorderPartName, typeof(MGBorder));
-            yield return new(TitleTextBlockPartName, typeof(MGTextBlock));
-            yield return new(BodyTextBlockPartName, typeof(MGTextBlock));
+            yield return new(TitleTextBoxPartName, typeof(MGTextBox));
+            yield return new(BodyTextBoxPartName, typeof(MGTextBox));
         }
 
         private string _Title = string.Empty;
         private string _Text = string.Empty;
         private Guid _CommentId;
         private bool _HasCapturedZoomMetrics;
+        private bool _IsEditing;
         private int _BaseTitleFontSize;
         private int _BaseBodyFontSize;
         private Thickness _BaseOuterPadding;
 
         public MGBorder OuterBorder { get; private set; }
-        public MGTextBlock TitleTextBlock { get; private set; }
-        public MGTextBlock BodyTextBlock { get; private set; }
+        public MGTextBox TitleTextBox { get; private set; }
+        public MGTextBox BodyTextBox { get; private set; }
         public GraphCommentModel Model { get; }
+        public bool IsEditing => _IsEditing;
 
         public Guid CommentId
         {
@@ -3309,9 +3382,9 @@ namespace MGUI.Core.UI
                 if (_Title != next)
                 {
                     _Title = next;
-                    if (TitleTextBlock != null)
+                    if (!_IsEditing && TitleTextBox != null && TitleTextBox.Text != _Title)
                     {
-                        TitleTextBlock.Text = _Title;
+                        TitleTextBox.SetText(_Title, SuppressLayoutChanged: true);
                     }
 
                     NPC(nameof(Title));
@@ -3328,9 +3401,9 @@ namespace MGUI.Core.UI
                 if (_Text != next)
                 {
                     _Text = next;
-                    if (BodyTextBlock != null)
+                    if (!_IsEditing && BodyTextBox != null && BodyTextBox.Text != _Text)
                     {
-                        BodyTextBlock.Text = _Text;
+                        BodyTextBox.SetText(_Text, SuppressLayoutChanged: true);
                     }
 
                     NPC(nameof(Text));
@@ -3357,10 +3430,13 @@ namespace MGUI.Core.UI
         protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure structure)
         {
             OuterBorder = structure.Parts[OuterBorderPartName] as MGBorder;
-            TitleTextBlock = structure.Parts[TitleTextBlockPartName] as MGTextBlock;
-            BodyTextBlock = structure.Parts[BodyTextBlockPartName] as MGTextBlock;
-            TitleTextBlock.Text = Title;
-            BodyTextBlock.Text = Text;
+            TitleTextBox = structure.Parts[TitleTextBoxPartName] as MGTextBox;
+            BodyTextBox = structure.Parts[BodyTextBoxPartName] as MGTextBox;
+            ConfigureInlineTextBox(TitleTextBox, isTitle: true);
+            ConfigureInlineTextBox(BodyTextBox, isTitle: false);
+            SyncEditorText(TitleTextBox, Title);
+            SyncEditorText(BodyTextBox, Text);
+            ApplyEditingState();
             ApplySelectionVisual();
 
             using (AllowChangingContentTemporarily())
@@ -3369,24 +3445,97 @@ namespace MGUI.Core.UI
             }
         }
 
+        private static void ConfigureInlineTextBox(MGTextBox textBox, bool isTitle)
+        {
+            if (textBox == null)
+            {
+                return;
+            }
+
+            textBox.AcceptsReturn = !isTitle;
+            textBox.AcceptsTab = !isTitle;
+            textBox.WrapText = !isTitle;
+            textBox.MinLines = 1;
+            textBox.MaxLines = isTitle ? 1 : null;
+            textBox.HorizontalAlignment = HorizontalAlignment.Stretch;
+            textBox.VerticalAlignment = isTitle ? VerticalAlignment.Center : VerticalAlignment.Stretch;
+            textBox.BorderThickness = new Thickness(0);
+            textBox.BackgroundBrush = new VisualStateFillBrush(SolidFillBrushes.Transparent);
+            textBox.BorderBrush = MGUniformBorderBrush.Transparent;
+            textBox.Padding = new Thickness(0);
+            textBox.CornerRadius = MGCornerRadius.Zero;
+            textBox.HasStableTextFootprint = true;
+        }
+
+        private static void SyncEditorText(MGTextBox textBox, string value)
+        {
+            if (textBox != null && textBox.Text != (value ?? string.Empty))
+            {
+                textBox.SetText(value ?? string.Empty, SuppressLayoutChanged: true);
+            }
+        }
+
+        private void ApplyEditingState()
+        {
+            ApplyTextBoxEditingState(TitleTextBox);
+            ApplyTextBoxEditingState(BodyTextBox);
+        }
+
+        private void ApplyTextBoxEditingState(MGTextBox textBox)
+        {
+            if (textBox == null)
+            {
+                return;
+            }
+
+            textBox.IsReadonly = !_IsEditing;
+            textBox.IsHitTestVisible = _IsEditing;
+            textBox.AllowsTextSelection = _IsEditing;
+        }
+
+        internal void BeginEdit()
+        {
+            SyncEditorText(TitleTextBox, Title);
+            SyncEditorText(BodyTextBox, Text);
+            _IsEditing = true;
+            ApplyEditingState();
+        }
+
+        internal void EndEdit(bool commitChanges)
+        {
+            if (commitChanges)
+            {
+                Title = TitleTextBox?.Text ?? Title;
+                Text = BodyTextBox?.Text ?? Text;
+            }
+            else
+            {
+                SyncEditorText(TitleTextBox, Title);
+                SyncEditorText(BodyTextBox, Text);
+            }
+
+            _IsEditing = false;
+            ApplyEditingState();
+        }
+
         internal void ApplyZoomScale(float zoom)
         {
-            if (OuterBorder == null || TitleTextBlock == null || BodyTextBlock == null)
+            if (OuterBorder == null || TitleTextBox == null || BodyTextBox == null)
             {
                 return;
             }
 
             if (!_HasCapturedZoomMetrics)
             {
-                _BaseTitleFontSize = Math.Max(1, TitleTextBlock.FontSize);
-                _BaseBodyFontSize = Math.Max(1, BodyTextBlock.FontSize);
+                _BaseTitleFontSize = Math.Max(1, TitleTextBox.FontSize);
+                _BaseBodyFontSize = Math.Max(1, BodyTextBox.FontSize);
                 _BaseOuterPadding = OuterBorder.Padding;
                 _HasCapturedZoomMetrics = true;
             }
 
             float clampedZoom = Math.Max(0.1f, zoom);
-            _ = TitleTextBlock.TrySetFont(TitleTextBlock.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseTitleFontSize, clampedZoom)));
-            _ = BodyTextBlock.TrySetFont(BodyTextBlock.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseBodyFontSize, clampedZoom)));
+            TitleTextBox.TrySetFontSize(Math.Max(1, UIResponsiveMath.ScaleInt(_BaseTitleFontSize, clampedZoom)));
+            BodyTextBox.TrySetFontSize(Math.Max(1, UIResponsiveMath.ScaleInt(_BaseBodyFontSize, clampedZoom)));
             OuterBorder.Padding = UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom);
         }
 
@@ -3408,19 +3557,19 @@ namespace MGUI.Core.UI
 
             string nextTitle = title ?? string.Empty;
             string nextText = text ?? string.Empty;
-            string previousTitle = Title;
-            string previousText = Text;
-            bool restoreTitle = !string.Equals(previousTitle, nextTitle, StringComparison.Ordinal);
-            bool restoreText = !string.Equals(previousText, nextText, StringComparison.Ordinal);
+            string previousTitle = TitleTextBox?.Text ?? Title;
+            string previousText = BodyTextBox?.Text ?? Text;
+            bool restoreTitle = TitleTextBox != null && !string.Equals(previousTitle, nextTitle, StringComparison.Ordinal);
+            bool restoreText = BodyTextBox != null && !string.Equals(previousText, nextText, StringComparison.Ordinal);
 
             if (restoreTitle)
             {
-                Title = nextTitle;
+                TitleTextBox.SetText(nextTitle, SuppressLayoutChanged: true);
             }
 
             if (restoreText)
             {
-                Text = nextText;
+                BodyTextBox.SetText(nextText, SuppressLayoutChanged: true);
             }
 
             try
@@ -3432,12 +3581,12 @@ namespace MGUI.Core.UI
             {
                 if (restoreText)
                 {
-                    Text = previousText;
+                    BodyTextBox.SetText(previousText, SuppressLayoutChanged: true);
                 }
 
                 if (restoreTitle)
                 {
-                    Title = previousTitle;
+                    TitleTextBox.SetText(previousTitle, SuppressLayoutChanged: true);
                 }
             }
         }

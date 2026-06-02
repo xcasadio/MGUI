@@ -1,10 +1,13 @@
 <Project>
-  <Import Project="..\Directory.Build.props" />
+  <Import Project="..\Directory.Build.props" Condition="Exists('..\Directory.Build.props')" />
 
   <PropertyGroup>
-    <MGUIDotNetVersion>$(DotNetVersion)</MGUIDotNetVersion>
-    <MGUIBaseTargetFramework>net$(MGUIDotNetVersion)</MGUIBaseTargetFramework>
-    <MGUIWindowsTargetFramework>net$(MGUIDotNetVersion)-windows</MGUIWindowsTargetFramework>
+    <DotNetVersion Condition="'$(DotNetVersion)' == ''">9.0</DotNetVersion>
+    <MGUIDotNetVersion Condition="'$(MGUIDotNetVersion)' == ''">$(DotNetVersion)</MGUIDotNetVersion>
+    <MGUIBaseTargetFramework Condition="'$(MGUIBaseTargetFramework)' == ''">net$(MGUIDotNetVersion)</MGUIBaseTargetFramework>
+    <MGUIWindowsTargetFramework Condition="'$(MGUIWindowsTargetFramework)' == ''">net$(MGUIDotNetVersion)-windows</MGUIWindowsTargetFramework>
+    <BaseTargetFramework Condition="'$(BaseTargetFramework)' == ''">$(MGUIBaseTargetFramework)</BaseTargetFramework>
+    <WindowsTargetFramework Condition="'$(WindowsTargetFramework)' == ''">$(MGUIWindowsTargetFramework)</WindowsTargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
 
     <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**;artifacts\**</DefaultItemExcludes>

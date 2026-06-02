@@ -146,12 +146,13 @@ namespace MGUI.Core.UI.Graph
 
             commentBox.CommentId = model.Id;
             commentBox.Visibility = Visibility.Visible;
+            bool isEditingActiveComment = GraphView.EditingCommentId == model.Id && commentBox.IsEditing;
             commentBox.Title = model.Title;
             commentBox.Text = model.Text;
             commentBox.IsSelected = GraphView.SelectedCommentIds.Contains(model.Id);
             commentBox.ApplySelectionVisual();
             commentBox.ApplyZoomScale(GraphView.ViewportTransform.Zoom);
-            Rectangle normalizedBounds = GraphView.NormalizeCommentBoundsToContent(model, commentBox);
+            Rectangle normalizedBounds = isEditingActiveComment ? model.Bounds : GraphView.NormalizeCommentBoundsToContent(model, commentBox);
             if (normalizedBounds != model.Bounds)
             {
                 model.Bounds = normalizedBounds;

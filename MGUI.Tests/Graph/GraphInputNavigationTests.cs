@@ -381,7 +381,7 @@ public class GraphInputNavigationTests
         AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
 
         Assert.True(graphView.TryGetCommentControl(commentId, out MGGraphCommentBox commentBox));
-        Point clickPoint = new(commentBox.ActualLayoutBounds.Left + 24, commentBox.ActualLayoutBounds.Top + 20);
+    Point clickPoint = GetCommentBodyPoint(commentBox);
 
         AdvanceFrame(runtime, desktop, 32, clickPoint);
         AdvanceFrame(runtime, desktop, 48, clickPoint, MouseButton.Left);
@@ -392,12 +392,22 @@ public class GraphInputNavigationTests
 
         Assert.True(graphView.IsCommentEditorOpen);
         Assert.Equal(commentId, graphView.EditingCommentId);
+        Assert.Same(commentBox.TitleTextBox, graphView.CommentEditorTitleTextBox);
+        Assert.Same(commentBox.BodyTextBox, graphView.CommentEditorBodyTextBox);
+        Assert.False(commentBox.TitleTextBox.IsReadonly);
+        Assert.False(commentBox.BodyTextBox.IsReadonly);
+        Assert.True(commentBox.TitleTextBox.IsHitTestVisible);
+        Assert.True(commentBox.BodyTextBox.IsHitTestVisible);
 
         graphView.CommentEditorTitleTextBox.SetText("Edited Comment");
         graphView.CommentEditorBodyTextBox.SetText("Line 1\nLine 2\nLine 3");
 
         Assert.True(graphView.CommitActiveCommentEditor());
         Assert.False(graphView.IsCommentEditorOpen);
+        Assert.True(commentBox.TitleTextBox.IsReadonly);
+        Assert.True(commentBox.BodyTextBox.IsReadonly);
+        Assert.False(commentBox.TitleTextBox.IsHitTestVisible);
+        Assert.False(commentBox.BodyTextBox.IsHitTestVisible);
 
         GraphCommentModel updated = graphView.Document.TryGetComment(commentId)!;
         Assert.Equal("Edited Comment", updated.Title);
@@ -408,6 +418,55 @@ public class GraphInputNavigationTests
         GraphCommentModel reverted = graphView.Document.TryGetComment(commentId)!;
         Assert.Equal("Comment", reverted.Title);
         Assert.Equal("Line 1", reverted.Text);
+    }
+
+    [Fact]
+    public void GraphInput_DraggingCommentBodyMovesCommentAndCanUndo()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 640, 360)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new MonoGame.Extended.Thickness(0),
+        };
+        MGGraphView graphView = new(window)
+        {
+            PreferredWidth = 640,
+            PreferredHeight = 360,
+            ShowGrid = false,
+        };
+
+        window.SetContent(graphView);
+        desktop.Windows.Add(window);
+
+        Guid commentId = Guid.NewGuid();
+        Rectangle initialBounds = new(80, 70, 240, 120);
+        graphView.Document.AddComment(commentId, initialBounds, "Comment", "Line 1\nLine 2\nLine 3");
+        graphView.SynchronizeDocument();
+        AdvanceFrame(runtime, desktop, 0, new Point(1, 1));
+        AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
+
+        Assert.True(graphView.TryGetCommentControl(commentId, out MGGraphCommentBox commentBox));
+        Assert.True(commentBox.TitleTextBox.IsReadonly);
+        Assert.True(commentBox.BodyTextBox.IsReadonly);
+        Point startPoint = GetCommentBodyPoint(commentBox);
+        Point endPoint = startPoint + new Point(80, 44);
+
+        AdvanceFrame(runtime, desktop, 32, startPoint);
+        AdvanceFrame(runtime, desktop, 48, startPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 64, startPoint + new Point(8, 6), MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 80, endPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 96, endPoint);
+        AdvanceFrame(runtime, desktop, 112, endPoint);
+
+        GraphCommentModel moved = graphView.Document.TryGetComment(commentId)!;
+        Assert.Equal(new Rectangle(initialBounds.X + 80, initialBounds.Y + 44, initialBounds.Width, initialBounds.Height), moved.Bounds);
+        Assert.Contains(commentId, graphView.SelectedCommentIds);
+
+        Assert.True(graphView.Commands.Undo(graphView.Document));
+        GraphCommentModel restored = graphView.Document.TryGetComment(commentId)!;
+        Assert.Equal(initialBounds, restored.Bounds);
     }
 
     private static MGGraphView CreateGraphView()
@@ -441,4 +500,15 @@ public class GraphInputNavigationTests
             pressedButton == MouseButton.Right ? ButtonState.Pressed : ButtonState.Released,
             ButtonState.Released,
             ButtonState.Released);
+
+    private static Point GetCommentBodyPoint(MGGraphCommentBox commentBox)
+    {
+        Rectangle bodyBounds = commentBox.BodyTextBox?.ActualLayoutBounds ?? Rectangle.Empty;
+        if (bodyBounds.Width > 0 && bodyBounds.Height > 0)
+        {
+            return bodyBounds.Center;
+        }
+
+        return new Point(commentBox.ActualLayoutBounds.Left + 24, commentBox.ActualLayoutBounds.Center.Y);
+    }
 }

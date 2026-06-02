@@ -634,8 +634,8 @@ namespace MGUI.Core.UI.Styling
                 Spacing = 3,
                 CanChangeContent = true,
             };
-            MGTextBlock title = CreateDefaultControlTextBlock(window, commentBox.Title, false, true, true);
-            MGTextBlock body = CreateDefaultControlTextBlock(window, commentBox.Text, true, false, false);
+            MGTextBox title = new(window, 512);
+            MGTextBox body = new(window, null);
             stack.TryAddChild(title);
             stack.TryAddChild(body);
             stack.CanChangeContent = false;
@@ -643,8 +643,8 @@ namespace MGUI.Core.UI.Styling
 
             MGControlTemplateStructure structure = new(outerBorder);
             structure.AddPart(MGGraphCommentBox.OuterBorderPartName, outerBorder);
-            structure.AddPart(MGGraphCommentBox.TitleTextBlockPartName, title);
-            structure.AddPart(MGGraphCommentBox.BodyTextBlockPartName, body);
+            structure.AddPart(MGGraphCommentBox.TitleTextBoxPartName, title);
+            structure.AddPart(MGGraphCommentBox.BodyTextBoxPartName, body);
             return structure;
         }
 
@@ -1139,8 +1139,8 @@ namespace MGUI.Core.UI.Styling
 
             MGTheme theme = commentBox.GetTheme();
             MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphCommentBox.OuterBorderPartName);
-            MGTextBlock title = Context.GetRequiredPart<MGTextBlock>(MGGraphCommentBox.TitleTextBlockPartName);
-            MGTextBlock body = Context.GetRequiredPart<MGTextBlock>(MGGraphCommentBox.BodyTextBlockPartName);
+            MGTextBox title = Context.GetRequiredPart<MGTextBox>(MGGraphCommentBox.TitleTextBoxPartName);
+            MGTextBox body = Context.GetRequiredPart<MGTextBox>(MGGraphCommentBox.BodyTextBoxPartName);
 
             Context.ApplyThemeDefault("GraphCommentBox.Background", theme.Graph.CommentBackground, () => outerBorder.BackgroundBrush, value => outerBorder.BackgroundBrush = value);
             Context.ApplyThemeDefault("GraphCommentBox.BorderBrush", theme.Graph.CommentBorderBrush, () => outerBorder.BorderBrush, value => outerBorder.BorderBrush = value);
