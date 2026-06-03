@@ -1,14 +1,8 @@
 ﻿using MonoGame.Extended;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Reflection.Metadata;
-using System.Text;
-using System.Threading.Tasks;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
-using System.Collections.Specialized;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 
@@ -16,6 +10,8 @@ namespace MGUI.Core.UI.Containers
 {
     public class MGStackPanel : MGMultiContentHost
     {
+        private readonly List<Thickness> _measuredChildSizes = new();
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -183,6 +179,99 @@ namespace MGUI.Core.UI.Containers
             }
         }
 
+        private void EnsureMeasuredChildSizeCapacity(int count)
+        {
+            while (_measuredChildSizes.Count < count)
+            {
+                _measuredChildSizes.Add(default);
+            }
+        }
+
+        private void UpdateChildLayoutIfNeeded(MGElement child, Rectangle childBounds)
+        {
+            if (!child.IsLayoutValid || child.AllocatedBounds != childBounds)
+            {
+                child.UpdateLayout(childBounds);
+            }
+        }
+
+        private Thickness MeasureVerticalChildren(Size availableSize, out int nonCollapsedChildrenCount)
+        {
+            EnsureMeasuredChildSizeCapacity(Children.Count);
+
+            Size remainingSize = availableSize;
+            int maxWidth = 0;
+            int totalHeight = 0;
+            nonCollapsedChildrenCount = 0;
+
+            for (int i = 0; i < Children.Count; i++)
+            {
+                MGElement child = Children[i];
+                child.UpdateMeasurement(remainingSize, out _, out Thickness fullSize, out _, out _);
+                _measuredChildSizes[i] = fullSize;
+
+                if (fullSize.Width > maxWidth)
+                {
+                    maxWidth = fullSize.Width;
+                }
+
+                totalHeight += fullSize.Height;
+
+                if (!child.IsVisibilityCollapsed)
+                {
+                    nonCollapsedChildrenCount++;
+                }
+
+                int consumedHeight = fullSize.Height + (child.IsVisibilityCollapsed ? 0 : Spacing);
+                remainingSize = remainingSize.Subtract(new Size(0, consumedHeight), 0, 0);
+            }
+
+            if (nonCollapsedChildrenCount > 1)
+            {
+                totalHeight += Spacing * (nonCollapsedChildrenCount - 1);
+            }
+
+            return new Thickness(maxWidth, totalHeight, 0, 0);
+        }
+
+        private Thickness MeasureHorizontalChildren(Size availableSize, out int nonCollapsedChildrenCount)
+        {
+            EnsureMeasuredChildSizeCapacity(Children.Count);
+
+            Size remainingSize = availableSize;
+            int totalWidth = 0;
+            int maxHeight = 0;
+            nonCollapsedChildrenCount = 0;
+
+            for (int i = 0; i < Children.Count; i++)
+            {
+                MGElement child = Children[i];
+                child.UpdateMeasurement(remainingSize, out _, out Thickness fullSize, out _, out _);
+                _measuredChildSizes[i] = fullSize;
+
+                totalWidth += fullSize.Width;
+                if (fullSize.Height > maxHeight)
+                {
+                    maxHeight = fullSize.Height;
+                }
+
+                if (!child.IsVisibilityCollapsed)
+                {
+                    nonCollapsedChildrenCount++;
+                }
+
+                int consumedWidth = fullSize.Width + (child.IsVisibilityCollapsed ? 0 : Spacing);
+                remainingSize = remainingSize.Subtract(new Size(consumedWidth, 0), 0, 0);
+            }
+
+            if (nonCollapsedChildrenCount > 1)
+            {
+                totalWidth += Spacing * (nonCollapsedChildrenCount - 1);
+            }
+
+            return new Thickness(totalWidth, maxHeight, 0, 0);
+        }
+
         protected override void UpdateContentLayout(Rectangle Bounds)
         {
             if (!HasContent)
@@ -191,63 +280,44 @@ namespace MGUI.Core.UI.Containers
             }
 
             Size AvailableSize = new(Bounds.Width, Bounds.Height);
-            Size RemainingSize = AvailableSize;
-
-            int NonCollapsedChildrenCount = Children.Count(x => !x.IsVisibilityCollapsed);
 
             if (Orientation == Orientation.Vertical)
             {
-                //  Measure each child
-                Dictionary<MGElement, Thickness> RequestedSizes = new();
-                foreach (MGElement Child in Children)
-                {
-                    Child.UpdateMeasurement(RemainingSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
-                    RequestedSizes.Add(Child, FullSize);
-                    int ConsumedHeight = FullSize.Height + (Child.IsVisibilityCollapsed ? 0 : Spacing);
-                    RemainingSize = RemainingSize.Subtract(new Size(0, ConsumedHeight), 0, 0);
-                }
-                Thickness TotalContentSize = new(RequestedSizes.Values.Max(x => x.Width), RequestedSizes.Values.Sum(x => x.Height) + Spacing * (NonCollapsedChildrenCount - 1), 0, 0);
+                Thickness totalContentSize = MeasureVerticalChildren(AvailableSize, out _);
 
                 //  Account for content alignment
-                int ConsumedWidth = HorizontalContentAlignment == HorizontalAlignment.Stretch ? AvailableSize.Width : Math.Min(AvailableSize.Width, TotalContentSize.Width);
-                Size ConsumedContentSize = new(ConsumedWidth, TotalContentSize.Height);
+                int ConsumedWidth = HorizontalContentAlignment == HorizontalAlignment.Stretch ? AvailableSize.Width : Math.Min(AvailableSize.Width, totalContentSize.Width);
+                Size ConsumedContentSize = new(ConsumedWidth, totalContentSize.Height);
                 Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
 
                 //  Allocate space for each child
                 int CurrentY = AlignedBounds.Top;
-                foreach (MGElement Child in Children)
+                for (int i = 0; i < Children.Count; i++)
                 {
-                    int Height = RequestedSizes[Child].Height;
+                    MGElement Child = Children[i];
+                    int Height = _measuredChildSizes[i].Height;
                     Rectangle ChildBounds = new(AlignedBounds.Left, CurrentY, AlignedBounds.Width, Height);
-                    Child.UpdateLayout(ChildBounds);
+                    UpdateChildLayoutIfNeeded(Child, ChildBounds);
                     CurrentY += Height + (Child.IsVisibilityCollapsed ? 0 : Spacing);
                 }
             }
             else if (Orientation == Orientation.Horizontal)
             {
-                //  Measure each child
-                Dictionary<MGElement, Thickness> RequestedSizes = new();
-                foreach (MGElement Child in Children)
-                {
-                    Child.UpdateMeasurement(RemainingSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
-                    RequestedSizes.Add(Child, FullSize);
-                    int ConsumedWidth = FullSize.Width + (Child.IsVisibilityCollapsed ? 0 : Spacing);
-                    RemainingSize = RemainingSize.Subtract(new Size(ConsumedWidth, 0), 0, 0);
-                }
+                Thickness totalContentSize = MeasureHorizontalChildren(AvailableSize, out _);
 
                 //  Account for content alignment
-                Thickness TotalContentSize = new(RequestedSizes.Values.Sum(x => x.Width) + Spacing * (NonCollapsedChildrenCount - 1), RequestedSizes.Values.Max(x => x.Height), 0, 0);
-                int ConsumedHeight = VerticalContentAlignment == VerticalAlignment.Stretch ? AvailableSize.Height : Math.Min(AvailableSize.Height, TotalContentSize.Height);
-                Size ConsumedContentSize = new(TotalContentSize.Width, ConsumedHeight);
+                int ConsumedHeight = VerticalContentAlignment == VerticalAlignment.Stretch ? AvailableSize.Height : Math.Min(AvailableSize.Height, totalContentSize.Height);
+                Size ConsumedContentSize = new(totalContentSize.Width, ConsumedHeight);
                 Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
 
                 //  Allocate space for each child
                 int CurrentX = AlignedBounds.Left;
-                foreach (MGElement Child in Children)
+                for (int i = 0; i < Children.Count; i++)
                 {
-                    int Width = RequestedSizes[Child].Width;
+                    MGElement Child = Children[i];
+                    int Width = _measuredChildSizes[i].Width;
                     Rectangle ChildBounds = new(CurrentX, AlignedBounds.Top, Width, AlignedBounds.Height);
-                    Child.UpdateLayout(ChildBounds);
+                    UpdateChildLayoutIfNeeded(Child, ChildBounds);
                     CurrentX += Width + (Child.IsVisibilityCollapsed ? 0 : Spacing);
                 }
             }
@@ -261,37 +331,13 @@ namespace MGUI.Core.UI.Containers
         {
             if (HasContent)
             {
-                Size RemainingSize = AvailableSize;
-
-                int NonCollapsedChildrenCount = Children.Count(x => !x.IsVisibilityCollapsed);
-
                 if (Orientation == Orientation.Vertical)
                 {
-                    Dictionary<MGElement, Thickness> RequestedSizes = new();
-                    foreach (MGElement Child in Children)
-                    {
-                        Child.UpdateMeasurement(RemainingSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
-                        RequestedSizes.Add(Child, FullSize);
-                        int ConsumedHeight = FullSize.Height + (Child.IsVisibilityCollapsed ? 0 : Spacing);
-                        RemainingSize = RemainingSize.Subtract(new Size(0, ConsumedHeight), 0, 0);
-                    }
-
-                    Thickness TotalContentSize = new(RequestedSizes.Values.Max(x => x.Width), RequestedSizes.Values.Sum(x => x.Height) + Spacing * (NonCollapsedChildrenCount - 1), 0, 0);
-                    return TotalContentSize;
+                    return MeasureVerticalChildren(AvailableSize, out _);
                 }
                 else if (Orientation == Orientation.Horizontal)
                 {
-                    Dictionary<MGElement, Thickness> RequestedSizes = new();
-                    foreach (MGElement Child in Children)
-                    {
-                        Child.UpdateMeasurement(RemainingSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
-                        RequestedSizes.Add(Child, FullSize);
-                        int ConsumedWidth = FullSize.Width + (Child.IsVisibilityCollapsed ? 0 : Spacing);
-                        RemainingSize = RemainingSize.Subtract(new Size(ConsumedWidth, 0), 0, 0);
-                    }
-
-                    Thickness TotalContentSize = new(RequestedSizes.Values.Sum(x => x.Width) + Spacing * (NonCollapsedChildrenCount - 1), RequestedSizes.Values.Max(x => x.Height), 0, 0);
-                    return TotalContentSize;
+                    return MeasureHorizontalChildren(AvailableSize, out _);
                 }
                 else
                 {

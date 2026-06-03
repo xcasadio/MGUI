@@ -19,13 +19,6 @@ namespace MGUI.Core.UI.Containers
             public bool IsTopOrBottom => Position == Dock.Top || Position == Dock.Bottom;
         }
 
-        private readonly record struct ActualDockedChild(MGElement Item, Dock? Position)
-        {
-            public bool IsLastChild => Position == null;
-            public bool IsLeftOrRight => Position.HasValue && (Position == Dock.Left || Position == Dock.Right);
-            public bool IsTopOrBottom => Position.HasValue && (Position == Dock.Top || Position == Dock.Bottom);
-        }
-
         private bool _LastChildFill;
         /// <summary>If true, the last child of this <see cref="MGDockPanel"/> will consume all remaining available space, regardless of it's <see cref="Dock"/> position.<para/>
         /// Default value: true</summary>
@@ -44,22 +37,87 @@ namespace MGUI.Core.UI.Containers
         }
 
         private readonly List<DockedChild> DockedChildren = new();
+
+        private readonly List<Size> CachedChildMeasurementAvailableSizes = new();
+        private readonly List<Thickness> CachedChildMeasurementFullSizes = new();
+
         /// <summary>The last child will consume all remaining available space if <see cref="LastChildFill"/> is true, thus ignoring its <see cref="DockedChild.Position"/> value.</summary>
-        private IEnumerable<ActualDockedChild> ActualDockedChildren
+        private Dock? GetActualDockPosition(int index)
         {
-            get
+            if (index < 0 || index >= DockedChildren.Count)
             {
-                foreach (DockedChild Item in DockedChildren)
-                {
-                    if (Item == DockedChildren[^1] && LastChildFill)
-                    {
-                        yield return new ActualDockedChild(Item.Item, null);
-                    }
-                    else
-                    {
-                        yield return new ActualDockedChild(Item.Item, Item.Position);
-                    }
-                }
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            return LastChildFill && index == DockedChildren.Count - 1
+                ? null
+                : DockedChildren[index].Position;
+        }
+
+        private void InvalidateChildMeasurementCache()
+        {
+            CachedChildMeasurementAvailableSizes.Clear();
+            CachedChildMeasurementFullSizes.Clear();
+        }
+
+        private void EnsureChildMeasurementCacheCapacity()
+        {
+            while (CachedChildMeasurementAvailableSizes.Count < DockedChildren.Count)
+            {
+                CachedChildMeasurementAvailableSizes.Add(new Size(-1, -1));
+                CachedChildMeasurementFullSizes.Add(default);
+            }
+
+            while (CachedChildMeasurementAvailableSizes.Count > DockedChildren.Count)
+            {
+                CachedChildMeasurementAvailableSizes.RemoveAt(CachedChildMeasurementAvailableSizes.Count - 1);
+                CachedChildMeasurementFullSizes.RemoveAt(CachedChildMeasurementFullSizes.Count - 1);
+            }
+        }
+
+        private static bool CanReuseCachedMeasurement(MGElement child, Size cachedAvailableSize, Thickness cachedFullSize, Size requestedAvailableSize)
+        {
+            if (!child.IsLayoutValid)
+            {
+                return false;
+            }
+
+            if (cachedAvailableSize == requestedAvailableSize)
+            {
+                return true;
+            }
+
+            return cachedAvailableSize.Width >= requestedAvailableSize.Width
+                && cachedAvailableSize.Height >= requestedAvailableSize.Height
+                && cachedFullSize.Width <= requestedAvailableSize.Width
+                && cachedFullSize.Height <= requestedAvailableSize.Height;
+        }
+
+        private bool TryGetCachedChildMeasurement(int childIndex, MGElement child, Size availableSize, out Thickness fullSize)
+        {
+            if (childIndex >= 0
+                && childIndex < CachedChildMeasurementAvailableSizes.Count
+                && CanReuseCachedMeasurement(child, CachedChildMeasurementAvailableSizes[childIndex], CachedChildMeasurementFullSizes[childIndex], availableSize))
+            {
+                fullSize = CachedChildMeasurementFullSizes[childIndex];
+                return true;
+            }
+
+            fullSize = default;
+            return false;
+        }
+
+        private void CacheChildMeasurement(int childIndex, Size availableSize, Thickness fullSize)
+        {
+            CachedChildMeasurementAvailableSizes[childIndex] = availableSize;
+            CachedChildMeasurementFullSizes[childIndex] = fullSize;
+        }
+
+        private static void UpdateChildLayoutIfNeeded(MGElement child, Rectangle childBounds)
+        {
+            if (!child.IsLayoutValid || child.AllocatedBounds != childBounds)
+            {
+                child.UpdateLayout(childBounds);
             }
         }
 
@@ -72,6 +130,7 @@ namespace MGUI.Core.UI.Containers
 
             DockedChildren.Add(new(Item, Dock));
             _Children.Add(Item);
+            InvalidateChildMeasurementCache();
             return true;
         }
 
@@ -89,6 +148,7 @@ namespace MGUI.Core.UI.Containers
                 {
                     DockedChildren.RemoveAt(i);
                     _Children.Remove(Item);
+                    InvalidateChildMeasurementCache();
                     return true;
                 }
             }
@@ -112,6 +172,7 @@ namespace MGUI.Core.UI.Containers
                 return;
             }
 
+            EnsureChildMeasurementCacheCapacity();
             Size AvailableSize = new(Bounds.Width, Bounds.Height);
 
             //Referenced:
@@ -122,22 +183,28 @@ namespace MGUI.Core.UI.Containers
             int AccumulatedRight = 0;
             int AccumulatedBottom = 0;
 
-            foreach (ActualDockedChild Child in ActualDockedChildren)
+            for (int childIndex = 0; childIndex < DockedChildren.Count; childIndex++)
             {
+                DockedChild Child = DockedChildren[childIndex];
+                Dock? actualDock = GetActualDockPosition(childIndex);
                 int AccumulatedWidth = AccumulatedLeft + AccumulatedRight;
                 int AccumulatedHeight = AccumulatedTop + AccumulatedBottom;
 
                 Size RemainingSize = AvailableSize.Subtract(new Size(AccumulatedWidth, AccumulatedHeight), 0, 0);
-                Child.Item.UpdateMeasurement(RemainingSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
+                if (!TryGetCachedChildMeasurement(childIndex, Child.Item, RemainingSize, out Thickness FullSize))
+                {
+                    Child.Item.UpdateMeasurement(RemainingSize, out _, out FullSize, out _, out _);
+                    CacheChildMeasurement(childIndex, RemainingSize, FullSize);
+                }
 
                 Rectangle ChildBounds;
-                if (!Child.Position.HasValue)
+                if (!actualDock.HasValue)
                 {
                     ChildBounds = new(Bounds.Left + AccumulatedLeft, Bounds.Top + AccumulatedTop, Bounds.Width - AccumulatedWidth, Bounds.Height - AccumulatedHeight);
                 }
                 else
                 {
-                    switch (Child.Position.Value)
+                    switch (actualDock.Value)
                     {
                         case Dock.Left:
                             ChildBounds = new(Bounds.Left + AccumulatedLeft, Bounds.Top + AccumulatedTop, FullSize.Width, RemainingSize.Height);
@@ -159,11 +226,11 @@ namespace MGUI.Core.UI.Containers
                             ChildBounds = new(Bounds.Left + AccumulatedLeft, Bounds.Bottom - AccumulatedBottom, RemainingSize.Width, FullSize.Height);
                             break;
 
-                        default: throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {Child.Position.Value}");
+                        default: throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {actualDock.Value}");
                     }
                 }
 
-                Child.Item.UpdateLayout(ChildBounds);
+                UpdateChildLayoutIfNeeded(Child.Item, ChildBounds);
             }
         }
 
@@ -171,6 +238,7 @@ namespace MGUI.Core.UI.Containers
         {
             if (HasContent)
             {
+                EnsureChildMeasurementCacheCapacity();
                 //Referenced:
                 //https://referencesource.microsoft.com/#PresentationFramework/src/Framework/System/windows/Controls/DockPanel.cs
 
@@ -179,10 +247,15 @@ namespace MGUI.Core.UI.Containers
                 int AccumulatedWidth = 0;
                 int AccumulatedHeight = 0;
 
-                foreach (DockedChild Child in DockedChildren)
+                for (int childIndex = 0; childIndex < DockedChildren.Count; childIndex++)
                 {
+                    DockedChild Child = DockedChildren[childIndex];
                     Size RemainingSize = AvailableSize.Subtract(new Size(AccumulatedWidth, AccumulatedHeight), 0, 0);
-                    Child.Item.UpdateMeasurement(RemainingSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
+                    if (!TryGetCachedChildMeasurement(childIndex, Child.Item, RemainingSize, out Thickness FullSize))
+                    {
+                        Child.Item.UpdateMeasurement(RemainingSize, out _, out FullSize, out _, out _);
+                        CacheChildMeasurement(childIndex, RemainingSize, FullSize);
+                    }
 
                     if (Child.IsLeftOrRight)
                     {

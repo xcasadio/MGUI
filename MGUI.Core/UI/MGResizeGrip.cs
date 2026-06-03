@@ -13,7 +13,7 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 namespace MGUI.Core.UI
 {
     /// <summary>Can be attached to another <see cref="MGElement"/> to allow resizing via dragging the mouse.</summary>
-    public class MGResizeGrip : MGElement
+    public class MGResizeGrip : MGElement, IActiveMouseDragCapture
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private VisualStateColorBrush _Foreground;
@@ -134,6 +134,8 @@ namespace MGUI.Core.UI
         private int InitialWidth;
         private int InitialHeight;
         private bool IsDragging;
+
+        bool IActiveMouseDragCapture.IsActiveMouseDragCapture => IsDragging;
 
         //TODO options to allow resize in either direction or just 1 axis?
         private bool _AllowHorizontalResize = true;

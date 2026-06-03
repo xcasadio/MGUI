@@ -25,6 +25,7 @@ using MGUI.Shared.Text.Engines;
 using MGUI.Core.UI.Navigation;
 using MGUI.Core.UI.Responsive;
 using MGUI.Core.UI.Styling;
+using MGUI.Core.Tooling;
 using MGUI.Shared.Input.Semantic;
 
 namespace MGUI.Core.UI
@@ -1367,91 +1368,116 @@ namespace MGUI.Core.UI
 
         public void Update()
         {
-            RecalculateResponsiveMetrics(true);
+            using (UIPerformanceProbe.BeginDesktopPhase("ResponsiveMetrics"))
+            {
+                RecalculateResponsiveMetrics(true);
+            }
 
             //  Revalidate the size/position of the OverlayWindow
-            if (ValidScreenBounds != new Rectangle(OverlayWindow.Left, OverlayWindow.Top, OverlayWindow.WindowWidth, OverlayWindow.WindowHeight))
+            using (UIPerformanceProbe.BeginDesktopPhase("OverlayWindowBounds"))
             {
-                OverlayWindow.Left = ValidScreenBounds.Left;
-                OverlayWindow.Top = ValidScreenBounds.Top;
-                OverlayWindow.WindowWidth = ValidScreenBounds.Width;
-                OverlayWindow.WindowHeight = ValidScreenBounds.Height;
+                if (ValidScreenBounds != new Rectangle(OverlayWindow.Left, OverlayWindow.Top, OverlayWindow.WindowWidth, OverlayWindow.WindowHeight))
+                {
+                    OverlayWindow.Left = ValidScreenBounds.Left;
+                    OverlayWindow.Top = ValidScreenBounds.Top;
+                    OverlayWindow.WindowWidth = ValidScreenBounds.Width;
+                    OverlayWindow.WindowHeight = ValidScreenBounds.Height;
+                }
             }
 
             UpdateBaseArgs BA = Runtime.UpdateArgs;
 
-            SanitizeKeyboardFocusState();
-
-            MGElement focusCandidate = QueuedFocusedKeyboardHandler ?? FocusedKeyboardHandler;
-            bool isTextEntryFocused = focusCandidate is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
-            bool hasNavigationActivity = HasKeyboardActivity(InputTracker.Keyboard) || InputTracker.GamePad.HasActivity();
-            ActiveInputMode = ResolveInputMode(HasMouseActivity(InputTracker.Mouse), hasNavigationActivity, isTextEntryFocused, ActiveInputMode);
-            QueueAutoFocusIfNeeded(true);
-            ApplyQueuedFocusChange();
-
-            HighPriorityMouseHandler.ManualUpdate();
-            HighPriorityKeyboardHandler.ManualUpdate();
-            ApplyQueuedFocusChange();
-            if (UseRawNavigationInput)
+            using (UIPerformanceProbe.BeginDesktopPhase("InputModeAndFocus"))
             {
-                _ = TryDispatchGamePadNavigationActions();
+                SanitizeKeyboardFocusState();
+
+                MGElement focusCandidate = QueuedFocusedKeyboardHandler ?? FocusedKeyboardHandler;
+                bool isTextEntryFocused = focusCandidate is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
+                bool hasNavigationActivity = HasKeyboardActivity(InputTracker.Keyboard) || InputTracker.GamePad.HasActivity();
+                ActiveInputMode = ResolveInputMode(HasMouseActivity(InputTracker.Mouse), hasNavigationActivity, isTextEntryFocused, ActiveInputMode);
+                QueueAutoFocusIfNeeded(true);
+                ApplyQueuedFocusChange();
             }
-            ApplyQueuedFocusChange();
+
+            using (UIPerformanceProbe.BeginDesktopPhase("HighPriorityInput"))
+            {
+                HighPriorityMouseHandler.ManualUpdate();
+                HighPriorityKeyboardHandler.ManualUpdate();
+                ApplyQueuedFocusChange();
+                if (UseRawNavigationInput)
+                {
+                    _ = TryDispatchGamePadNavigationActions();
+                }
+                ApplyQueuedFocusChange();
+            }
 
             QueuedToolTip = null;
 
             ElementUpdateArgs UA = new(BA, true, false, true, Point.Zero, ValidScreenBounds);
 
-            ActiveContextMenu?.Update(UA);
-            ActiveToolTip?.Update(UA.ChangeHitTestVisible(ActiveToolTip.ParentWindow.IsHitTestVisible));
+            using (UIPerformanceProbe.BeginDesktopPhase("FloatingWindows"))
+            {
+                ActiveContextMenu?.Update(UA);
+                ActiveToolTip?.Update(UA.ChangeHitTestVisible(ActiveToolTip.ParentWindow.IsHitTestVisible));
+            }
 
             bool IsWindowOccludedAtMousePos = false;
 
-            List<MGWindow> OrderedWindows = Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost).ToList();
-            OrderedWindows.Insert(0, OverlayWindow);
-
-            foreach (MGWindow Window in OrderedWindows)
+            List<MGWindow> OrderedWindows;
+            using (UIPerformanceProbe.BeginDesktopPhase("OrderedWindows"))
             {
-                MGToolTip PreviousQueuedToolTip = QueuedToolTip;
+                OrderedWindows = Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost).ToList();
+                OrderedWindows.Insert(0, OverlayWindow);
+            }
 
-                bool IsOverlayWindow = Window == OverlayWindow;
-                bool ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
-
-                Window.Update(ProcessInputs ? UA : UA with { IsHitTestVisible = false });
-
-                //  Disallow occluded windows from overriding the active ToolTip
-                //  TODO probably also need similar logic in MGWindow.OnBeginUpdateContents in case it has nested window(s)
-                QueuedToolTip = IsWindowOccludedAtMousePos ? PreviousQueuedToolTip : QueuedToolTip;
-
-                //  The next window that we update is visually occluded at the current mouse position if the current window is being hovered,
-                //  since that means the mouse is hovering a window that is drawn overtop of the next window
-                if (!IsWindowOccludedAtMousePos && Window.VisualState.IsPressedOrHovered)
+            using (UIPerformanceProbe.BeginDesktopPhase("WindowUpdates"))
+            {
+                foreach (MGWindow Window in OrderedWindows)
                 {
-                    if (IsOverlayWindow) // When an overlay is being shown, disallow showing of tooltips that belong to windows underneath the overlay
+                    MGToolTip PreviousQueuedToolTip = QueuedToolTip;
+
+                    bool IsOverlayWindow = Window == OverlayWindow;
+                    bool ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
+
+                    Window.Update(ProcessInputs ? UA : UA with { IsHitTestVisible = false });
+
+                    //  Disallow occluded windows from overriding the active ToolTip
+                    //  TODO probably also need similar logic in MGWindow.OnBeginUpdateContents in case it has nested window(s)
+                    QueuedToolTip = IsWindowOccludedAtMousePos ? PreviousQueuedToolTip : QueuedToolTip;
+
+                    //  The next window that we update is visually occluded at the current mouse position if the current window is being hovered,
+                    //  since that means the mouse is hovering a window that is drawn overtop of the next window
+                    if (!IsWindowOccludedAtMousePos && Window.VisualState.IsPressedOrHovered)
                     {
-                        IsWindowOccludedAtMousePos = OverlayHost.ActiveOverlay != null;
-                    }
-                    else if (!Window.AllowsClickThrough)
-                    {
-                        IsWindowOccludedAtMousePos = true;
-                    }
-                    else
-                    {
-                        //  Since this window DOES allow click-through, validate that at least one opaque element is being hovered
-                        MGElement OpaqueHoveredElement = FindFirstOpaqueParent(Window.HoveredElement, true);
-                        if (OpaqueHoveredElement != null && OpaqueHoveredElement != Window)
+                        if (IsOverlayWindow) // When an overlay is being shown, disallow showing of tooltips that belong to windows underneath the overlay
+                        {
+                            IsWindowOccludedAtMousePos = OverlayHost.ActiveOverlay != null;
+                        }
+                        else if (!Window.AllowsClickThrough)
                         {
                             IsWindowOccludedAtMousePos = true;
+                        }
+                        else
+                        {
+                            //  Since this window DOES allow click-through, validate that at least one opaque element is being hovered
+                            MGElement OpaqueHoveredElement = FindFirstOpaqueParent(Window.HoveredElement, true);
+                            if (OpaqueHoveredElement != null && OpaqueHoveredElement != Window)
+                            {
+                                IsWindowOccludedAtMousePos = true;
+                            }
                         }
                     }
                 }
             }
 
-            ActiveToolTip = QueuedToolTip;
-            SanitizeKeyboardFocusState();
-            ApplyQueuedFocusChange();
-            SanitizeKeyboardFocusState();
-            EndUpdate?.Invoke(this, EventArgs.Empty);
+            using (UIPerformanceProbe.BeginDesktopPhase("Finalize"))
+            {
+                ActiveToolTip = QueuedToolTip;
+                SanitizeKeyboardFocusState();
+                ApplyQueuedFocusChange();
+                SanitizeKeyboardFocusState();
+                EndUpdate?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>Traverses up the visual tree, starting from the given <paramref name="Element"/>, looking for an <see cref="MGElement"/> that is fully opaque (<see cref="MGElement.Opacity"/> >= 1.0f)</summary>

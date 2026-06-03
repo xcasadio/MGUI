@@ -282,6 +282,7 @@ namespace MGUI.Core.UI.Containers.Grids
         }
 
         private Dictionary<GridCell, Rectangle> _CellBounds = new();
+        private static readonly IReadOnlyList<MGElement> EmptyCellContent = Array.Empty<MGElement>();
         /// <summary>Warning - the <see cref="Rectangle"/>s in this dictionary do not account for <see cref="MGElement.Origin"/>.<para/>
         /// See also: <see cref="MGElement.ConvertCoordinateSpace(CoordinateSpace, CoordinateSpace, Point)"/></summary>
         public IReadOnlyDictionary<GridCell, Rectangle> CellBounds => _CellBounds;
@@ -344,19 +345,27 @@ namespace MGUI.Core.UI.Containers.Grids
         public IReadOnlyList<MGElement> GetCellContent(RowDefinition Row, ColumnDefinition Column) => GetCellContent(new GridCell(Row, Column));
         public IReadOnlyList<MGElement> GetCellContent(GridCell Cell)
         {
-            IReadOnlyDictionary<ColumnDefinition, IReadOnlyList<MGElement>> RowContent = GetRowContent(Cell.Row);
-            if (RowContent.TryGetValue(Cell.Column, out IReadOnlyList<MGElement> CellContent))
+            if (TryGetCellContentList(Cell, out List<MGElement> CellContent))
             {
                 return CellContent;
             }
             else
             {
-                return new List<MGElement>();
+                return EmptyCellContent;
             }
         }
 
-        private IReadOnlyList<MGElement> GetMeasurableCellContent(RowDefinition Row, ColumnDefinition Column) => GetMeasurableCellContent(new GridCell(Row, Column));
-        private IReadOnlyList<MGElement> GetMeasurableCellContent(GridCell Cell) => GetCellContent(Cell).Where(x => ChildSpanLookup[x].AffectsMeasure).ToList();
+        private bool TryGetCellContentList(GridCell cell, out List<MGElement> cellContent)
+        {
+            if (ChildrenByRC.TryGetValue(cell.Row, out Dictionary<ColumnDefinition, List<MGElement>> rowContent)
+                && rowContent.TryGetValue(cell.Column, out cellContent))
+            {
+                return true;
+            }
+
+            cellContent = null;
+            return false;
+        }
 
         public bool TryAddChild(int RowIndex, int ColumnIndex, MGElement Item) => TryAddChild(RowIndex, ColumnIndex, GridSpan.Default, Item);
         public bool TryAddChild(int RowIndex, int ColumnIndex, GridSpan Span, MGElement Item)
@@ -1046,6 +1055,49 @@ namespace MGUI.Core.UI.Containers.Grids
 
         private readonly record struct GridDimensions(Dictionary<ColumnDefinition, int> ColumnWidths, Dictionary<RowDefinition, int> RowHeights, int TotalWidth, int TotalHeight);
 
+        private static void UpdateChildLayoutIfNeeded(MGElement child, Rectangle bounds)
+        {
+            if (!child.IsLayoutValid || child.AllocatedBounds != bounds)
+            {
+                child.UpdateLayout(bounds);
+            }
+        }
+
+        private int GetSpannedColumnWidth(int columnIndex, int columnSpan, Dictionary<ColumnDefinition, int> columnWidths)
+        {
+            int width = 0;
+            for (int spanOffset = 0; spanOffset < columnSpan; spanOffset++)
+            {
+                if (spanOffset > 0)
+                {
+                    width += ColumnSpacing;
+                }
+
+                width += columnWidths[_Columns[columnIndex + spanOffset]];
+            }
+
+            return width;
+        }
+
+        private Rectangle GetSpannedBounds(int columnIndex, int rowIndex, GridSpan span)
+        {
+            Rectangle bounds = Rectangle.Empty;
+            bool hasBounds = false;
+
+            for (int columnOffset = 0; columnOffset < span.ColumnSpan; columnOffset++)
+            {
+                for (int rowOffset = 0; rowOffset < span.RowSpan; rowOffset++)
+                {
+                    GridCell spannedCell = new(_Rows[rowIndex + rowOffset], _Columns[columnIndex + columnOffset]);
+                    Rectangle cellBounds = _CellBounds[spannedCell];
+                    bounds = hasBounds ? Rectangle.Union(bounds, cellBounds) : cellBounds;
+                    hasBounds = true;
+                }
+            }
+
+            return hasBounds ? bounds : Rectangle.Empty;
+        }
+
         /// <param name="IsMeasuring">True if measuring the grid's content (will result in * lengths being treated as Auto, so that this method can compute the minimally-required dimensions to show the content).<br/>
         /// False if the bounds of this element have already been allocated (will allow * lengths to stretch all available space)</param>
         private GridDimensions ComputeDimensions(Size AvailableSize, bool IsMeasuring)
@@ -1058,9 +1110,25 @@ namespace MGUI.Core.UI.Containers.Grids
             bool IsPseudoInfiniteWidth = AvailableSize.Width >= 1000000;
             bool IsPseduoInfiniteHeight = AvailableSize.Height >= 1000000;
 
-            double TotalColumnWeight = Columns.Select(x => x.Length).Where(x => x.IsWeightedLength).Sum(x => x.Weight);
+            double TotalColumnWeight = 0.0;
+            foreach (ColumnDefinition column in Columns)
+            {
+                if (column.Length.IsWeightedLength)
+                {
+                    TotalColumnWeight += column.Length.Weight;
+                }
+            }
+
             double RemainingColumnWeight = TotalColumnWeight;
-            double TotalRowWeight = Rows.Select(x => x.Length).Where(x => x.IsWeightedLength).Sum(x => x.Weight);
+            double TotalRowWeight = 0.0;
+            foreach (RowDefinition row in Rows)
+            {
+                if (row.Length.IsWeightedLength)
+                {
+                    TotalRowWeight += row.Length.Weight;
+                }
+            }
+
             double RemainingRowWeight = TotalRowWeight;
 
             int TotalColumnSpacingWidth = (Columns.Count - 1) * ColumnSpacing;
@@ -1189,8 +1257,19 @@ namespace MGUI.Core.UI.Containers.Grids
                             }
 
                             Size CellAvailableSize = new(CellAvailableWidth, RowHeight);
-                            foreach (MGElement Element in GetMeasurableCellContent(Cell))
+                            if (!TryGetCellContentList(Cell, out List<MGElement> cellContent))
                             {
+                                continue;
+                            }
+
+                            for (int elementIndex = 0; elementIndex < cellContent.Count; elementIndex++)
+                            {
+                                MGElement Element = cellContent[elementIndex];
+                                if (!ChildSpanLookup[Element].AffectsMeasure)
+                                {
+                                    continue;
+                                }
+
                                 Element.UpdateMeasurement(CellAvailableSize, out _, out Thickness ElementSize, out _, out _);
                                 ColumnChildWidths.Add(ElementSize.Size.Width);
                             }
@@ -1261,15 +1340,26 @@ namespace MGUI.Core.UI.Containers.Grids
                             int ColumnWidth = ColumnWidths[Column];
 
                             Size CellAvailableSize = new(ColumnWidth, CellAvailableHeight);
-                            foreach (MGElement Element in GetMeasurableCellContent(Cell))
+                            if (!TryGetCellContentList(Cell, out List<MGElement> cellContent))
                             {
+                                continue;
+                            }
+
+                            for (int elementIndex = 0; elementIndex < cellContent.Count; elementIndex++)
+                            {
+                                MGElement Element = cellContent[elementIndex];
+                                if (!ChildSpanLookup[Element].AffectsMeasure)
+                                {
+                                    continue;
+                                }
+
                                 int AvailableWidth = CellAvailableSize.Width;
 
                                 //  Measure the element using the total width of the spanned columns
                                 int ColumnSpan = ChildSpanLookup[Element].ColumnSpan;
                                 if (ColumnSpan != 1)
                                 {
-                                    AvailableWidth = Enumerable.Range(ColumnIndex, ColumnSpan).Sum(x => ColumnWidths[_Columns[x]]) + (ColumnSpan - 1) * ColumnSpacing;
+                                    AvailableWidth = GetSpannedColumnWidth(ColumnIndex, ColumnSpan, ColumnWidths);
                                 }
 
                                 Element.UpdateMeasurement(new Size(AvailableWidth, CellAvailableSize.Height), out _, out Thickness ElementSize, out _, out _);
@@ -1358,23 +1448,18 @@ namespace MGUI.Core.UI.Containers.Grids
                     RowDefinition Row = Rows[RowIndex];
 
                     GridCell Cell = new(Row, Column);
-                    foreach (MGElement Child in GetCellContent(Cell))
+                    if (!TryGetCellContentList(Cell, out List<MGElement> cellContent))
                     {
+                        continue;
+                    }
+
+                    for (int childIndex = 0; childIndex < cellContent.Count; childIndex++)
+                    {
+                        MGElement Child = cellContent[childIndex];
                         GridSpan Span = ChildSpanLookup[Child];
-
-                        //  Get the bounds of each cell this element spans
-                        List<Rectangle> SpannedCellBounds = new();
-                        for (int ColumnOffset = 0; ColumnOffset < Span.ColumnSpan; ColumnOffset++)
-                        {
-                            for (int RowOffset = 0; RowOffset < Span.RowSpan; RowOffset++)
-                            {
-                                GridCell SpannedCell = new(_Rows[RowIndex + RowOffset], _Columns[ColumnIndex + ColumnOffset]);
-                                SpannedCellBounds.Add(_CellBounds[SpannedCell]);
-                            }
-                        }
-
-                        Rectangle ElementBounds = Rectangle.Intersect(Bounds, RectangleUtils.Union(SpannedCellBounds));
-                        Child.UpdateLayout(ElementBounds);
+                        Rectangle spannedBounds = GetSpannedBounds(ColumnIndex, RowIndex, Span);
+                        Rectangle ElementBounds = Rectangle.Intersect(Bounds, spannedBounds);
+                        UpdateChildLayoutIfNeeded(Child, ElementBounds);
                     }
                 }
             }

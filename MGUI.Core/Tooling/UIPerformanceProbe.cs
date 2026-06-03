@@ -53,6 +53,12 @@ namespace MGUI.Core.Tooling
             state?.FlushFrame(desktop, phase);
         }
 
+        public static DesktopPhaseScope BeginDesktopPhase(string phaseName)
+        {
+            ProbeState state = GetState();
+            return state == null ? default : state.BeginDesktopPhase(phaseName);
+        }
+
         private static ElementScope BeginElementScope(MGElement element, ElementOperation operation)
         {
             ProbeState state = GetState();
@@ -144,6 +150,30 @@ namespace MGUI.Core.Tooling
             }
         }
 
+        public readonly struct DesktopPhaseScope : IDisposable
+        {
+            private readonly ProbeState _state;
+            private readonly string _phaseName;
+            private readonly long _startTimestamp;
+
+            internal DesktopPhaseScope(ProbeState state, string phaseName)
+            {
+                _state = state;
+                _phaseName = phaseName;
+                _startTimestamp = Stopwatch.GetTimestamp();
+            }
+
+            public void Dispose()
+            {
+                if (_state == null || string.IsNullOrWhiteSpace(_phaseName))
+                {
+                    return;
+                }
+
+                _state.RecordDesktopPhase(_phaseName, Stopwatch.GetTimestamp() - _startTimestamp);
+            }
+        }
+
         internal enum ElementOperation
         {
             Update,
@@ -170,6 +200,7 @@ namespace MGUI.Core.Tooling
             private int _measureCount;
             private int _layoutInvalidationCount;
             private int _layoutPropagationCount;
+            private readonly Dictionary<string, DesktopPhaseMetric> _desktopPhases = new(StringComparer.Ordinal);
 
             public ProbeState(string outputPath, int sampleInterval, int topCount)
             {
@@ -184,6 +215,9 @@ namespace MGUI.Core.Tooling
                 _activeScopes.Add(new ActiveScope(element, operation, Stopwatch.GetTimestamp()));
                 return new ElementScope(this, scopeIndex);
             }
+
+            public DesktopPhaseScope BeginDesktopPhase(string phaseName)
+                => new(this, phaseName);
 
             public void EndElementScope(int scopeIndex)
             {
@@ -276,6 +310,23 @@ namespace MGUI.Core.Tooling
                 }
             }
 
+            public void RecordDesktopPhase(string phaseName, long ticks)
+            {
+                if (ticks <= 0 || string.IsNullOrWhiteSpace(phaseName))
+                {
+                    return;
+                }
+
+                if (!_desktopPhases.TryGetValue(phaseName, out DesktopPhaseMetric metric))
+                {
+                    metric = new DesktopPhaseMetric();
+                }
+
+                metric.Ticks += ticks;
+                metric.Count++;
+                _desktopPhases[phaseName] = metric;
+            }
+
             public void FlushFrame(MGDesktop desktop, string phase)
             {
                 _frameIndex++;
@@ -287,6 +338,7 @@ namespace MGUI.Core.Tooling
                 var builder = new StringBuilder();
                 builder.AppendLine($"[MGUI Perf] frame={_frameIndex} phase={phase} time={desktop?.Runtime.UpdateArgs.TotalElapsed:c}");
                 builder.AppendLine($"  totals: updateSelf={FormatMilliseconds(_updateTicks)}ms/{_updateCount} drawSelf={FormatMilliseconds(_drawTicks)}ms/{_drawCount} layoutSelf={FormatMilliseconds(_layoutTicks)}ms/{_layoutCount} measureSelf={FormatMilliseconds(_measureTicks)}ms/{_measureCount} invalidations={_layoutInvalidationCount} propagated={_layoutPropagationCount}");
+                AppendDesktopPhases(builder);
                 AppendTopElements(builder, "update", static metrics => metrics.UpdateSelfTicks, static metrics => metrics.UpdateTicks, static metrics => metrics.UpdateCount);
                 AppendTopElements(builder, "draw", static metrics => metrics.DrawSelfTicks, static metrics => metrics.DrawTicks, static metrics => metrics.DrawCount);
                 AppendTopElements(builder, "layout", static metrics => metrics.LayoutSelfTicks, static metrics => metrics.LayoutTicks, static metrics => metrics.LayoutCount);
@@ -324,6 +376,32 @@ namespace MGUI.Core.Tooling
                 metrics.Sort((left, right) => right.TotalLayoutInvalidations.CompareTo(left.TotalLayoutInvalidations));
                 builder.AppendLine("  top layout invalidations:");
                 AppendMetricList(builder, metrics, static metric => metric.TotalLayoutInvalidations, static metric => metric.TotalLayoutInvalidations, static metric => metric.TotalLayoutInvalidations, includeInvalidations: true);
+            }
+
+            private void AppendDesktopPhases(StringBuilder builder)
+            {
+                builder.AppendLine("  desktop phases:");
+                if (_desktopPhases.Count == 0)
+                {
+                    builder.AppendLine("    <none>");
+                    return;
+                }
+
+                var phases = new List<KeyValuePair<string, DesktopPhaseMetric>>(_desktopPhases);
+                phases.Sort((left, right) => right.Value.Ticks.CompareTo(left.Value.Ticks));
+                for (int index = 0; index < phases.Count; index++)
+                {
+                    KeyValuePair<string, DesktopPhaseMetric> phase = phases[index];
+                    builder.Append("    ");
+                    builder.Append(index + 1);
+                    builder.Append(". ");
+                    builder.Append(phase.Key);
+                    builder.Append(" ms=");
+                    builder.Append(FormatMilliseconds(phase.Value.Ticks));
+                    builder.Append(" count=");
+                    builder.Append(phase.Value.Count.ToString(CultureInfo.InvariantCulture));
+                    builder.AppendLine();
+                }
             }
 
             private void AppendMetricList(StringBuilder builder, List<ElementMetrics> metrics, Func<ElementMetrics, long> getValue, Func<ElementMetrics, long> getTotalValue, Func<ElementMetrics, int> getCount, bool includeInvalidations)
@@ -418,6 +496,7 @@ namespace MGUI.Core.Tooling
                 _measureCount = 0;
                 _layoutInvalidationCount = 0;
                 _layoutPropagationCount = 0;
+                _desktopPhases.Clear();
                 _activeScopes.Clear();
             }
 
@@ -466,6 +545,12 @@ namespace MGUI.Core.Tooling
             public ElementOperation Operation;
             public long StartTimestamp;
             public long ChildTicks;
+        }
+
+        private struct DesktopPhaseMetric
+        {
+            public long Ticks;
+            public int Count;
         }
     }
 }

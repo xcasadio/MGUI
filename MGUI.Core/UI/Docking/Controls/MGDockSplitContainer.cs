@@ -246,7 +246,10 @@ public class MGDockSplitContainer : MGElement
         if (_splitRatio != newRatio)
         {
             _splitRatio = newRatio;
-            LayoutChanged(this, true);
+            // A live splitter drag only changes the arranged bounds inside the docking tree.
+            // Propagate an arrange-only invalidation so parent hosts rerun layout without
+            // throwing away measurement caches for the entire window on every mouse tick.
+            ArrangeChanged(this, true);
             // DO NOT trigger NPC or SplitRatioChanged - no model sync during drag
         }
     }

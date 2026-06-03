@@ -1000,6 +1000,21 @@ namespace MGUI.Core.UI
             return null;
         }
 
+        /// <summary>Attempts to resolve the logical item under the given screen-space position.
+        /// Works in both regular and virtualized modes without requiring callers to inspect realized wrappers.</summary>
+        public bool TryGetItemAtPosition(Microsoft.Xna.Framework.Point screenPos, out TItemType item)
+        {
+            MGListBoxItem<TItemType> listBoxItem = GetItemAtMousePosition(screenPos);
+            if (listBoxItem != null)
+            {
+                item = listBoxItem.Data;
+                return true;
+            }
+
+            item = default;
+            return false;
+        }
+
         public MGScrollViewer ScrollViewer { get; private set; }
         public MGStackPanel ItemsPanel { get; private set; }
 

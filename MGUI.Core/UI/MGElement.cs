@@ -2201,6 +2201,7 @@ namespace MGUI.Core.UI
             }
         }
 
+
         private Rectangle _ActualLayoutBounds;
         /// <summary>The screen space that this element is rendered to.<para/>
         /// Unlike <see cref="LayoutBounds"/>, this value always uses an origin of <see cref="Point.Zero"/>, rather than being relative to <see cref="Origin"/>,<br/>
@@ -2549,7 +2550,20 @@ namespace MGUI.Core.UI
                 //  Some more testing shows that having 3k elements to draw and update seems fine on my computer if there's only about 500 input handlers to update
                 //Maybe can also do something about ListBox/ContextMenu/ComboBox
                 //      to consolidate their input handling into a single MouseHandler instead of separate ones for each list item
-                _MouseHandler?.ManualUpdate();
+                bool shouldUpdateMouseHandler = true;
+                if (_MouseHandler != null && SelfOrParentWindow?.GetActiveMouseDragCaptureOwner() is MGElement activeMouseDragCaptureOwner)
+                {
+                    // While a control owns the active mouse drag capture, unrelated siblings should not
+                    // keep processing hover/move events on every frame.
+                    shouldUpdateMouseHandler = activeMouseDragCaptureOwner.IsSelfOrAncestorOf(this)
+                        || IsSelfOrAncestorOf(activeMouseDragCaptureOwner);
+                }
+
+                if (shouldUpdateMouseHandler && _MouseHandler != null)
+                {
+                    _MouseHandler.ManualUpdate();
+                }
+
                 _KeyboardHandler?.ManualUpdate();
 			}
             UpdateSelf(UA);
@@ -2892,6 +2906,11 @@ namespace MGUI.Core.UI
             RecentMeasurementsFull.Clear();
         }
 
+		internal protected void InvalidateArrange()
+		{
+            IsLayoutValid = false;
+        }
+
         /// <summary>Recursively invalidates the layout of this element and all its visual-tree descendants,
         /// including <see cref="Components"/>.<para/>
         /// Use this instead of <see cref="InvalidateLayout"/> when the entire subtree's cached measurements
@@ -2922,27 +2941,49 @@ namespace MGUI.Core.UI
             }
         }
 
-        /// <summary>Invoked when a property that affects this <see cref="MGElement"/>'s layout has changed, such as <see cref="Padding"/>, <see cref="Margin"/>, or its content.</summary>
-        protected virtual void LayoutChanged(MGElement Source, bool NotifyParent)
+        private void InvalidateLayoutCore(MGElement source, bool notifyParent, bool invalidateMeasurements)
         {
 			if (InitializationManager.IsDeferringEvents)
             {
                 return;
             }
 
-            UIPerformanceProbe.RecordLayoutInvalidation(Source, this, NotifyParent);
+            UIPerformanceProbe.RecordLayoutInvalidation(source, this, notifyParent);
 
             if (IsUpdatingLayout)
             {
                 SelfOrParentWindow.QueueLayoutRefresh = true;
             }
 
-            InvalidateLayout();
-            if (NotifyParent)
+            if (invalidateMeasurements)
             {
-                Parent?.LayoutChanged(Source, NotifyParent);
+                InvalidateLayout();
+            }
+            else
+            {
+                InvalidateArrange();
+            }
+
+            if (notifyParent)
+            {
+                if (invalidateMeasurements)
+                {
+                    Parent?.LayoutChanged(source, notifyParent);
+                }
+                else
+                {
+                    Parent?.ArrangeChanged(source, notifyParent);
+                }
             }
         }
+
+        /// <summary>Invoked when a property that affects this <see cref="MGElement"/>'s measured size or arrangement has changed.</summary>
+        protected virtual void LayoutChanged(MGElement Source, bool NotifyParent)
+            => InvalidateLayoutCore(Source, NotifyParent, invalidateMeasurements: true);
+
+        /// <summary>Invoked when a property changes the arrangement of this element subtree without changing measured sizes.</summary>
+        protected virtual void ArrangeChanged(MGElement Source, bool NotifyParent)
+            => InvalidateLayoutCore(Source, NotifyParent, invalidateMeasurements: false);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsLayoutValid;
@@ -2969,12 +3010,6 @@ namespace MGUI.Core.UI
             try
             {
                 IsUpdatingLayout = true;
-
-                if (!IsLayoutValid)
-                {
-                    RecentMeasurementsSelfOnly.Clear();
-                    RecentMeasurementsFull.Clear();
-                }
 
                 Rectangle PreviousLayoutBounds = LayoutBounds;
 
@@ -3153,7 +3188,9 @@ namespace MGUI.Core.UI
         /// <param name="FullMeasurement">A measurement that accounts for both this <see cref="MGElement"/> self-measurement and the measurement of its content, if any.</param>
         protected bool TryGetCachedMeasurement(Size AvailableSize, out ElementMeasurement SelfMeasurement, out ElementMeasurement FullMeasurement)
 		{
-			if (IsLayoutValid)
+            // Arrange-only invalidation preserves measurement caches even though layout bounds are stale.
+            // Reuse the cached sizes so parent containers can rearrange without remeasuring unchanged subtrees.
+            if (RecentMeasurementsSelfOnly.Count > 0 && RecentMeasurementsFull.Count > 0)
 			{
 				foreach (ElementMeasurement Self in RecentMeasurementsSelfOnly)
 				{
@@ -3225,6 +3262,15 @@ namespace MGUI.Core.UI
 			}
 
 			AvailableSize = AvailableSize.AsZeroOrGreater();
+
+            if (TryGetCachedMeasurement(AvailableSize, out ElementMeasurement CachedSelfMeasurement, out ElementMeasurement CachedFullMeasurement))
+            {
+                SelfSize = CachedSelfMeasurement.RequestedSize;
+                FullSize = CachedFullMeasurement.RequestedSize;
+                SharedSize = CachedSelfMeasurement.SharedSize;
+                ContentSize = CachedFullMeasurement.ContentSize;
+                return;
+            }
 
             //  Truncate the available size based on this element's MaxSize and preferred width/height
             int? actualPreferredWidth = IgnorePreferredWidthDuringMeasure ? null : ActualPreferredWidth;

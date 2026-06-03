@@ -742,6 +742,7 @@ namespace MGUI.Core.UI
             }
 
             IsTrackingMouseClicks = Runs.Any(x => x.HasAction);
+            AreLinesDirty = true;
 
             NPC(nameof(Runs));
             NumCharacters = Runs.Where(x => x is MGTextRunText).Cast<MGTextRunText>().Sum(x => x.Text.Length);
@@ -750,13 +751,20 @@ namespace MGUI.Core.UI
         public ReadOnlyCollection<MGTextRun> Runs { get; private set; }
         public ReadOnlyCollection<MGTextLine> Lines { get; private set; }
         private int NumCharacters { get; set; }
+        private bool AreLinesDirty { get; set; } = true;
         private int LastLineParseWidth { get; set; } = -1;
 
         internal void UpdateLines()
         {
             int LineParseWidth = GetTextLineParseWidth();
+            if (!AreLinesDirty && Lines != null && LineParseWidth == LastLineParseWidth)
+            {
+                return;
+            }
+
             Lines = MGTextLine.ParseLines(this, LineParseWidth, WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
             LastLineParseWidth = LineParseWidth;
+            AreLinesDirty = false;
             NPC(nameof(Lines));
         }
 
@@ -991,6 +999,7 @@ namespace MGUI.Core.UI
 
         protected override void LayoutChanged(MGElement Source, bool NotifyParent)
         {
+            AreLinesDirty = true;
             RecentSelfMeasurements?.Clear();
             base.LayoutChanged(Source, NotifyParent);
         }

@@ -13,7 +13,7 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// Visual splitter bar that can be dragged to resize the split container.
 /// Used internally by MGDockSplitContainer.
 /// </summary>
-public class MGDockSplitterBar : MGElement
+public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
 {
     public const string SurfacePartName = "PART_Surface";
     public const string AccentPartName = "PART_Accent";
@@ -43,6 +43,8 @@ public class MGDockSplitterBar : MGElement
             }
         }
     }
+
+    bool IActiveMouseDragCapture.IsActiveMouseDragCapture => IsDragging;
 
     private IFillBrush _normalBrush;
     /// <summary>

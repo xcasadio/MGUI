@@ -82,6 +82,42 @@ public class TextSurfaceLiteTests
     }
 
     [Fact]
+    public void VirtualizedListBox_WithAutoHorizontalScroll_KeepsFiniteContentWidthAndVisibleText()
+    {
+        TextSurfaceHarness harness = CreateHarness(window =>
+        {
+            MGListBox<string> listBox = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                VirtualizationMode = ListBoxVirtualizationMode.Always,
+                ItemTemplate = item => new MGTextBlock(window, item)
+                {
+                    WrapText = false,
+                },
+            };
+            listBox.ScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
+            listBox.ScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+            listBox.SetItemsSource(new[]
+            {
+                "First log entry",
+                "Second log entry with a much longer line to force a non-trivial measured width",
+                "Third log entry"
+            });
+            return listBox;
+        });
+
+        MGListBox<string> listBox = Assert.IsType<MGListBox<string>>(harness.Content);
+        harness.Desktop.Update();
+        harness.Desktop.Update();
+
+        Assert.NotNull(listBox.ScrollViewer.Content);
+        Assert.True(listBox.ScrollViewer.Content.AllocatedBounds.Width > 0);
+        Assert.True(listBox.ScrollViewer.Content.AllocatedBounds.Width < int.MaxValue / 4);
+        Assert.Contains(listBox.TraverseVisualTree<MGTextBlock>(), textBlock => !textBlock.ActualLayoutBounds.IsEmpty);
+    }
+
+    [Fact]
     public void ChatBox_AllowsMessageInlineFormatting_RebuildsMessageTemplate()
     {
         TextSurfaceHarness harness = CreateHarness(window => new MGChatBox(window));

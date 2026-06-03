@@ -16,6 +16,8 @@ namespace MGUI.Core.UI.Containers
     /// Only supports a vertical (top-to-bottom) orientation with a uniform item height (<see cref="UniformItemHeight"/>).</summary>
     public class VirtualizingStackPanel : MGMultiContentHost
     {
+        private static bool IsUnbounded(int value) => value >= int.MaxValue / 4;
+
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
         public MGComponent<MGBorder> BorderComponent { get; }
@@ -137,8 +139,7 @@ namespace MGUI.Core.UI.Containers
 
         private void RequestVirtualizationLayoutRefresh()
         {
-            InvalidateLayout();
-            SelfOrParentWindow.QueueLayoutRefresh = true;
+            LayoutChanged(this, true);
         }
 
         private void RecycleAllItems()
@@ -223,7 +224,7 @@ namespace MGUI.Core.UI.Containers
                 return new Thickness(0);
             }
 
-            return new Thickness(availableSize.Width, TotalItemCount * UniformItemHeight, 0, 0);
+            return new Thickness(GetFiniteContentWidth(availableSize.Width), TotalItemCount * UniformItemHeight, 0, 0);
         }
 
         protected override void UpdateContentLayout(Rectangle bounds)
@@ -235,6 +236,12 @@ namespace MGUI.Core.UI.Containers
             }
 
             EnsureScrollViewerAttached();
+
+            int finiteWidth = GetFiniteContentWidth(bounds.Width);
+            if (finiteWidth > 0 && bounds.Width != finiteWidth)
+            {
+                bounds = new Rectangle(bounds.X, bounds.Y, finiteWidth, bounds.Height);
+            }
 
             // Determine visible range from scroll viewer
             int scrollOffset = 0;
@@ -296,8 +303,51 @@ namespace MGUI.Core.UI.Containers
             foreach (var (idx, element) in _realizedItems)
             {
                 int y = bounds.Top + idx * UniformItemHeight;
-                element.UpdateLayout(new Rectangle(bounds.Left, y, bounds.Width, UniformItemHeight));
+                Rectangle itemBounds = new(bounds.Left, y, bounds.Width, UniformItemHeight);
+                if (!element.IsLayoutValid || element.AllocatedBounds != itemBounds)
+                {
+                    element.UpdateLayout(itemBounds);
+                }
             }
+        }
+
+        private int GetFiniteContentWidth(int requestedWidth)
+        {
+            if (!IsUnbounded(requestedWidth))
+            {
+                return Math.Max(0, requestedWidth);
+            }
+
+            EnsureScrollViewerAttached();
+
+            if (_parentScrollViewer != null)
+            {
+                int viewportWidth = _parentScrollViewer.ContentViewport.Width;
+                if (viewportWidth > 0 && !IsUnbounded(viewportWidth))
+                {
+                    return viewportWidth;
+                }
+            }
+
+            int layoutWidth = LayoutBounds.Width;
+            if (layoutWidth > 0 && !IsUnbounded(layoutWidth))
+            {
+                return layoutWidth;
+            }
+
+            int actualWidth = ActualLayoutBounds.Width;
+            if (actualWidth > 0 && !IsUnbounded(actualWidth))
+            {
+                return actualWidth;
+            }
+
+            int parentWidth = Parent?.ActualLayoutBounds.Width ?? 0;
+            if (parentWidth > 0 && !IsUnbounded(parentWidth))
+            {
+                return parentWidth;
+            }
+
+            return 0;
         }
 
         /// <summary>CPU-side culling: only draw realized items whose <see cref="MGElement.ActualLayoutBounds"/>

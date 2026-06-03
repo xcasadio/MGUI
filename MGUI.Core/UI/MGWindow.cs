@@ -19,6 +19,7 @@ using MGUI.Shared.Rendering;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Shapes;
 using MGUI.Core.UI.Styling;
+using MGUI.Core.Tooling;
 
 namespace MGUI.Core.UI
 {
@@ -1007,6 +1008,29 @@ namespace MGUI.Core.UI
         /// <summary>If true, this <see cref="MGWindow"/>'s layout will be recomputed at the start of the next update tick.</summary>
         public bool QueueLayoutRefresh { get; set; }
 
+        internal MGElement GetActiveMouseDragCaptureOwner()
+        {
+            if (MouseHandler?.Tracker.CurrentState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed)
+            {
+                return null;
+            }
+
+            MGElement current = PressedElement;
+            while (current != null)
+            {
+                if (current is IActiveMouseDragCapture capture && capture.IsActiveMouseDragCapture)
+                {
+                    return current;
+                }
+
+                current = current.Parent;
+            }
+
+            return null;
+        }
+
+        private bool HasActiveMouseDragCapture() => GetActiveMouseDragCaptureOwner() != null;
+
         #region Data Context
         private object _WindowDataContext;
         /// <summary>The default <see cref="MGElement.DataContext"/> for all elements that do not explicitly define a <see cref="MGElement.DataContextOverride"/>.<para/>
@@ -1159,34 +1183,46 @@ namespace MGUI.Core.UI
                     PressedElementAtBeginUpdate = PressedElement;
                     HoveredElementAtBeginUpdate = HoveredElement;
 
-                    ValidateWindowSizeAndPosition();
+                    bool suppressHoveredElementUpdate = !MouseHandler.Tracker.MouseLeftButtonReleasedRecently && HasActiveMouseDragCapture();
+                    bool shouldUpdateHoveredElement = !suppressHoveredElementUpdate
+                        && (MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements);
 
-                    bool shouldUpdateHoveredElement = MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements;
-                    if (!IsLayoutValid || QueueLayoutRefresh)
+                    using (UIPerformanceProbe.BeginDesktopPhase("Window.ValidateAndLayout"))
                     {
-                        QueueLayoutRefresh = false;
-                        if (RecentSizeToContentSettings.HasValue)
+                        ValidateWindowSizeAndPosition();
+
+                        if (!IsLayoutValid || QueueLayoutRefresh)
                         {
-                            RevalidateSizeToContent(true);
-                        }
-                        else
-                        {
-                            UpdateLayout(new(this.Left, this.Top, WindowWidth, WindowHeight));
+                            QueueLayoutRefresh = false;
+                            if (RecentSizeToContentSettings.HasValue)
+                            {
+                                RevalidateSizeToContent(true);
+                            }
+                            else
+                            {
+                                UpdateLayout(new(this.Left, this.Top, WindowWidth, WindowHeight));
+                            }
                         }
                     }
 
                     if (shouldUpdateHoveredElement)
                     {
-                        HoveredElement = GetTopmostHoveredElement(e.UA);
+                        using (UIPerformanceProbe.BeginDesktopPhase("Window.HoveredElement"))
+                        {
+                            HoveredElement = GetTopmostHoveredElement(e.UA);
+                        }
                     }
 
-                    if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
+                    using (UIPerformanceProbe.BeginDesktopPhase("Window.PressedElement"))
                     {
-                        PressedElement = GetTopmostHoveredElement(e.UA);
-                    }
-                    else if (MouseHandler.Tracker.MouseLeftButtonReleasedRecently)
-                    {
-                        PressedElement = null;
+                        if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
+                        {
+                            PressedElement = GetTopmostHoveredElement(e.UA);
+                        }
+                        else if (MouseHandler.Tracker.MouseLeftButtonReleasedRecently)
+                        {
+                            PressedElement = null;
+                        }
                     }
                 };
 
@@ -1260,37 +1296,43 @@ namespace MGUI.Core.UI
                 {
                     ElementUpdateArgs UpdateArgs = e.UA.ChangeOffset(Origin);
 
-                    //  ModalWindow is intentionally updated BEFORE NestedWindows so that it can mark mouse/keyboard
-                    //  events as handled first. Since event args are shared objects, once ModalWindow sets IsHandled=true,
-                    //  the subsequent NestedWindow updates will see the event as already handled and skip processing it.
-                    //  This ensures the ModalWindow effectively blocks all input to NestedWindows.
-                    //  For nested ModalWindows (e.g., a NestedWindow that itself has a ModalWindow), the recursive
-                    //  call to Nested.Update() will apply the same ordering inside each nested window.
-                    ModalWindow?.Update(UpdateArgs);
-
-                    //  Track ToolTip occlusion for nested windows, mirroring the logic in MGDesktop.Update().
-                    //  When a nested window is being hovered, windows beneath it should not be able to override the active ToolTip.
-                    bool isNestedWindowOccludedAtMousePos = ModalWindow != null && ModalWindow.VisualState.IsPressedOrHovered;
-                    foreach (MGWindow Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
+                    using (UIPerformanceProbe.BeginDesktopPhase("Window.NestedWindows"))
                     {
-                        MGToolTip previousQueuedToolTip = GetDesktop().QueuedToolTip;
-                        Nested.Update(UpdateArgs);
-                        //  If a higher-priority nested window is occluding the mouse, prevent this window from overriding the ToolTip
-                        if (isNestedWindowOccludedAtMousePos)
+                        //  ModalWindow is intentionally updated BEFORE NestedWindows so that it can mark mouse/keyboard
+                        //  events as handled first. Since event args are shared objects, once ModalWindow sets IsHandled=true,
+                        //  the subsequent NestedWindow updates will see the event as already handled and skip processing it.
+                        //  This ensures the ModalWindow effectively blocks all input to NestedWindows.
+                        //  For nested ModalWindows (e.g., a NestedWindow that itself has a ModalWindow), the recursive
+                        //  call to Nested.Update() will apply the same ordering inside each nested window.
+                        ModalWindow?.Update(UpdateArgs);
+
+                        //  Track ToolTip occlusion for nested windows, mirroring the logic in MGDesktop.Update().
+                        //  When a nested window is being hovered, windows beneath it should not be able to override the active ToolTip.
+                        bool isNestedWindowOccludedAtMousePos = ModalWindow != null && ModalWindow.VisualState.IsPressedOrHovered;
+                        foreach (MGWindow Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
                         {
-                            GetDesktop().QueuedToolTip = previousQueuedToolTip;
-                        }
-                        else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough)
-                        {
-                            isNestedWindowOccludedAtMousePos = true;
+                            MGToolTip previousQueuedToolTip = GetDesktop().QueuedToolTip;
+                            Nested.Update(UpdateArgs);
+                            //  If a higher-priority nested window is occluding the mouse, prevent this window from overriding the ToolTip
+                            if (isNestedWindowOccludedAtMousePos)
+                            {
+                                GetDesktop().QueuedToolTip = previousQueuedToolTip;
+                            }
+                            else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough)
+                            {
+                                isNestedWindowOccludedAtMousePos = true;
+                            }
                         }
                     }
                 };
 
                 OnEndUpdateContents += (sender, e) =>
                 {
-                    WindowMouseHandler.ManualUpdate();
-                    WindowKeyboardHandler.ManualUpdate();
+                    using (UIPerformanceProbe.BeginDesktopPhase("Window.WindowHandlers"))
+                    {
+                        WindowMouseHandler.ManualUpdate();
+                        WindowKeyboardHandler.ManualUpdate();
+                    }
                 };
 
                 //  Nested windows inherit their WindowDataContext from the parent if they don't have their own explicit value

@@ -442,6 +442,106 @@ namespace MGUI.Core.UI
 
         protected override bool CanCacheSelfMeasurement => false; // The self measurement depends on the measurement of the children, so it must be re-calculated each time it's requested
 
+        private const int RequestedContentMeasurementCacheSize = 2;
+        private readonly Size[] _cachedRequestedContentAvailableSizes = new Size[RequestedContentMeasurementCacheSize];
+        private readonly Size[] _cachedRequestedContentSizes = new Size[RequestedContentMeasurementCacheSize];
+        private int _cachedRequestedContentCount;
+
+        private void InvalidateRequestedContentSizeCache()
+        {
+            _cachedRequestedContentCount = 0;
+        }
+
+        private static Size ToRequestedContentSize(Thickness requestedContentSize)
+            => new(requestedContentSize.Width, requestedContentSize.Height);
+
+        private Size GetRequestedContentSizeForActualAvailableSize(Size actualAvailableSize)
+        {
+            if (!HasContent)
+            {
+                return Size.Empty;
+            }
+
+            for (int index = 0; index < _cachedRequestedContentCount; index++)
+            {
+                if (_cachedRequestedContentAvailableSizes[index] == actualAvailableSize)
+                {
+                    return _cachedRequestedContentSizes[index];
+                }
+            }
+
+            Content.UpdateMeasurement(actualAvailableSize, out _, out Thickness requestedContentSize, out _, out _);
+            Size measuredRequestedContentSize = ToRequestedContentSize(requestedContentSize);
+
+            int insertionIndex = Math.Min(_cachedRequestedContentCount, RequestedContentMeasurementCacheSize - 1);
+            for (int index = insertionIndex; index > 0; index--)
+            {
+                _cachedRequestedContentAvailableSizes[index] = _cachedRequestedContentAvailableSizes[index - 1];
+                _cachedRequestedContentSizes[index] = _cachedRequestedContentSizes[index - 1];
+            }
+
+            _cachedRequestedContentAvailableSizes[0] = actualAvailableSize;
+            _cachedRequestedContentSizes[0] = measuredRequestedContentSize;
+            _cachedRequestedContentCount = Math.Min(RequestedContentMeasurementCacheSize, _cachedRequestedContentCount + 1);
+
+            return measuredRequestedContentSize;
+        }
+
+        private Size GetActualMeasurementAvailableSize(Size availableSize)
+        {
+            int actualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? availableSize.Width : int.MaxValue;
+            int actualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? availableSize.Height : int.MaxValue;
+            return new(actualAvailableWidth, actualAvailableHeight);
+        }
+
+        private Size MeasureRequestedContentSize(Size availableSize)
+        {
+            Size actualAvailableSize = GetActualMeasurementAvailableSize(availableSize);
+            return GetRequestedContentSizeForActualAvailableSize(actualAvailableSize);
+        }
+
+        private int GetActualVerticalScrollBarWidth(Size requestedContentSize)
+        {
+            return VSBVisibility switch
+            {
+                ScrollBarVisibility.Disabled => 0,
+                ScrollBarVisibility.Auto => requestedContentSize.Height > AlignedContentBounds.Height ? VSBWidth : 0,
+                ScrollBarVisibility.Hidden => VSBWidth,
+                ScrollBarVisibility.Visible => VSBWidth,
+                ScrollBarVisibility.Collapsed => 0,
+                _ => throw new NotImplementedException($"Unrecognized {nameof(ScrollBarVisibility)}: {VSBVisibility}"),
+            };
+        }
+
+        private int GetActualHorizontalScrollBarHeight(Size requestedContentSize)
+        {
+            return HSBVisibility switch
+            {
+                ScrollBarVisibility.Disabled => 0,
+                ScrollBarVisibility.Auto => requestedContentSize.Width > AlignedContentBounds.Width ? HSBHeight : 0,
+                ScrollBarVisibility.Hidden => HSBHeight,
+                ScrollBarVisibility.Visible => HSBHeight,
+                ScrollBarVisibility.Collapsed => 0,
+                _ => throw new NotImplementedException($"Unrecognized {nameof(ScrollBarVisibility)}: {HSBVisibility}"),
+            };
+        }
+
+        private void UpdateScrollMetrics(Size requestedContentSize, Size contentSize)
+        {
+            int actualVSBWidth = GetActualVerticalScrollBarWidth(requestedContentSize);
+            int actualHSBHeight = GetActualHorizontalScrollBarHeight(requestedContentSize);
+
+            Size scrollBarsSize = new(actualVSBWidth, actualHSBHeight);
+            Size viewportSize = LayoutBounds.Size.AsSize().Subtract(scrollBarsSize, 0, 0).Subtract(PaddingSize, 0, 0);
+            ContentViewport = new(LayoutBounds.Left + Padding.Left, LayoutBounds.Top + Padding.Top, viewportSize.Width, viewportSize.Height);
+
+            VSBBounds = actualVSBWidth == 0 ? null : new(LayoutBounds.Right - actualVSBWidth, LayoutBounds.Top, actualVSBWidth, LayoutBounds.Height - actualHSBHeight);
+            HSBBounds = actualHSBHeight == 0 ? null : new(LayoutBounds.Left, LayoutBounds.Bottom - actualHSBHeight, LayoutBounds.Width - actualVSBWidth, actualHSBHeight);
+
+            MaxVerticalOffset = Math.Max(0, contentSize.Height - ContentViewport.Height);
+            MaxHorizontalOffset = Math.Max(0, contentSize.Width - ContentViewport.Width);
+        }
+
         public MGScrollViewer(MGWindow Window, ScrollBarVisibility VerticalScrollBarVisibility = ScrollBarVisibility.Auto, ScrollBarVisibility HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled) 
             : base(Window, MGElementType.ScrollViewer)
         {
@@ -460,61 +560,11 @@ namespace MGUI.Core.UI
 
                 OnLayoutBoundsChanged += (sender, e) =>
                 {
-#if true
-                    Thickness RequestedContentSize = new(0);
-                    if (VSBVisibility == ScrollBarVisibility.Auto || HSBVisibility == ScrollBarVisibility.Auto)
-                    {
-                        if (HasContent)
-                        {
-                            int ActualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? AlignedContentBounds.Width : int.MaxValue;
-                            int ActualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? AlignedContentBounds.Height : int.MaxValue;
-                            Size ActualAvailableSize = new(ActualAvailableWidth, ActualAvailableHeight);
-                            Content.UpdateMeasurement(ActualAvailableSize, out _, out RequestedContentSize, out _, out _);
-                        }
-                    }
-
-                    int ActualVSBWidth = VSBVisibility switch
-                    {
-                        ScrollBarVisibility.Disabled => 0,
-                        ScrollBarVisibility.Auto => RequestedContentSize.Height > AlignedContentBounds.Height ? VSBWidth : 0,
-                        ScrollBarVisibility.Hidden => VSBWidth,
-                        ScrollBarVisibility.Visible => VSBWidth,
-                        ScrollBarVisibility.Collapsed => 0,
-                        _ => throw new NotImplementedException($"Unrecognized {nameof(ScrollBarVisibility)}: {VSBVisibility}"),
-                    };
-
-                    int ActualHSBHeight = HSBVisibility switch
-                    {
-                        ScrollBarVisibility.Disabled => 0,
-                        ScrollBarVisibility.Auto => RequestedContentSize.Width > AlignedContentBounds.Width ? HSBHeight : 0,
-                        ScrollBarVisibility.Hidden => HSBHeight,
-                        ScrollBarVisibility.Visible => HSBHeight,
-                        ScrollBarVisibility.Collapsed => 0,
-                        _ => throw new NotImplementedException($"Unrecognized {nameof(ScrollBarVisibility)}: {HSBVisibility}"),
-                    };
-
-                    Size ScrollBarsSize = new(ActualVSBWidth, ActualHSBHeight);
-                    Size ContentSize = Content?.AllocatedBounds.Size.AsSize() ?? AlignedContentBounds.Size.AsSize();
-                    Size ViewportSize = LayoutBounds.Size.AsSize().Subtract(ScrollBarsSize, 0, 0).Subtract(PaddingSize, 0, 0);
-                    ContentViewport = new(LayoutBounds.Left + Padding.Left, LayoutBounds.Top + Padding.Top, ViewportSize.Width, ViewportSize.Height);
-
-                    VSBBounds = ActualVSBWidth == 0 ? null : new(LayoutBounds.Right - ActualVSBWidth, LayoutBounds.Top, ActualVSBWidth, LayoutBounds.Height - ActualHSBHeight);
-                    HSBBounds = ActualHSBHeight == 0 ? null : new(LayoutBounds.Left, LayoutBounds.Bottom - ActualHSBHeight, LayoutBounds.Width - ActualVSBWidth, ActualHSBHeight);
-
-                    MaxVerticalOffset = Math.Max(0, ContentSize.Height - ContentViewport.Height);
-                    MaxHorizontalOffset = Math.Max(0, ContentSize.Width - ContentViewport.Width);
-#else
-                    Size ScrollBarsSize = new(RecentVSBWidth, RecentHSBHeight);
-                    Size ContentSize = RecentContentSize.Size; //Content?.AllocatedBounds.Size.AsSize() ?? ActualContentBounds.Size.AsSize();
-                    Size ViewportSize = LayoutBounds.Size.AsSize().Subtract(ScrollBarsSize, 0, 0).Subtract(PaddingSize, 0, 0);
-                    ContentViewport = new(LayoutBounds.Left + Padding.Left, LayoutBounds.Top + Padding.Top, ViewportSize.Width, ViewportSize.Height);
-
-                    VSBBounds = RecentVSBWidth == 0 ? null : new(LayoutBounds.Right - RecentVSBWidth, LayoutBounds.Top, RecentVSBWidth, LayoutBounds.Height - RecentHSBHeight);
-                    HSBBounds = RecentHSBHeight == 0 ? null : new(LayoutBounds.Left, LayoutBounds.Bottom - RecentHSBHeight, LayoutBounds.Width - RecentVSBWidth, RecentHSBHeight);
-
-                    MaxVerticalOffset = Math.Max(0, ContentSize.Height - ContentViewport.Height);
-                    MaxHorizontalOffset = Math.Max(0, ContentSize.Width - ContentViewport.Width);
-#endif
+                    Size requestedContentSize = (VSBVisibility == ScrollBarVisibility.Auto || HSBVisibility == ScrollBarVisibility.Auto)
+                        ? MeasureRequestedContentSize(AlignedContentBounds.Size.AsSize())
+                        : Size.Empty;
+                    Size contentSize = Content?.AllocatedBounds.Size.AsSize() ?? AlignedContentBounds.Size.AsSize();
+                    UpdateScrollMetrics(requestedContentSize, contentSize);
                 };
 
                 MouseHandler.MovedInside += (sender, e) =>
@@ -682,6 +732,12 @@ namespace MGUI.Core.UI
             ScrollBarInnerBrush = CurrentTheme.ScrollBarInnerBrush.GetValue(true);
         }
 
+        protected override void LayoutChanged(MGElement Source, bool NotifyParent)
+        {
+            InvalidateRequestedContentSizeCache();
+            base.LayoutChanged(Source, NotifyParent);
+        }
+
         protected override void UpdateContents(ElementUpdateArgs UA)
         {
             Point ScrollOffset = new((int)HorizontalOffset, (int)VerticalOffset);
@@ -740,10 +796,13 @@ namespace MGUI.Core.UI
 
         protected override Thickness UpdateContentMeasurement(Size AvailableSize)
         {
-            int ActualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? AvailableSize.Width : int.MaxValue;
-            int ActualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? AvailableSize.Height : int.MaxValue;
-            Size ActualAvailableSize = new(ActualAvailableWidth, ActualAvailableHeight);
-            return base.UpdateContentMeasurement(ActualAvailableSize);
+            if (!HasContent)
+            {
+                return base.UpdateContentMeasurement(AvailableSize);
+            }
+
+            Size requestedContentSize = MeasureRequestedContentSize(AvailableSize);
+            return new Thickness(requestedContentSize.Width, requestedContentSize.Height, 0, 0);
         }
 
         protected override void UpdateContentLayout(Rectangle Bounds)
@@ -756,18 +815,26 @@ namespace MGUI.Core.UI
 
                 int ActualContentWidth = Bounds.Width;
                 int ActualContentHeight = Bounds.Height;
+                Size requestedContentSize = new(ActualContentWidth, ActualContentHeight);
                 if (HSBVisibility != ScrollBarVisibility.Disabled || VSBVisibility != ScrollBarVisibility.Disabled)
                 {
-                    Content.UpdateMeasurement(ActualAvailableSize, out _, out Thickness ContentSize, out _, out _);
-                    ActualContentWidth = Math.Max(ActualContentWidth, ContentSize.Width);
-                    ActualContentHeight = Math.Max(ActualContentHeight, ContentSize.Height);
+                    requestedContentSize = GetRequestedContentSizeForActualAvailableSize(ActualAvailableSize);
+                    ActualContentWidth = Math.Max(ActualContentWidth, requestedContentSize.Width);
+                    ActualContentHeight = Math.Max(ActualContentHeight, requestedContentSize.Height);
                 }
 
+                Rectangle previousContentViewport = ContentViewport;
+                UpdateScrollMetrics(requestedContentSize, new Size(ActualContentWidth, ActualContentHeight));
                 Rectangle ActualBounds = new(Bounds.Left, Bounds.Top, ActualContentWidth, ActualContentHeight);
-                Content.UpdateLayout(ActualBounds);
+                bool contentViewportChanged = ContentViewport != previousContentViewport;
+                if (!Content.IsLayoutValid || Content.AllocatedBounds != ActualBounds || contentViewportChanged)
+                {
+                    Content.UpdateLayout(ActualBounds);
+                }
             }
             else
             {
+                UpdateScrollMetrics(Size.Empty, Bounds.Size.AsSize());
                 base.UpdateContentLayout(Bounds);
             }
         }
@@ -783,7 +850,8 @@ namespace MGUI.Core.UI
                     int ActualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? AvailableSize.Width - HorizontalPadding : int.MaxValue;
                     int ActualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? AvailableSize.Height - VerticalPadding : int.MaxValue;
                     Size ActualAvailableSize = new(ActualAvailableWidth, ActualAvailableHeight);
-                    Content.UpdateMeasurement(ActualAvailableSize, out _, out RequestedContentSize, out _, out _);
+                    Size requestedContentSize = GetRequestedContentSizeForActualAvailableSize(ActualAvailableSize);
+                    RequestedContentSize = new Thickness(requestedContentSize.Width, requestedContentSize.Height, 0, 0);
                 }
             }
 

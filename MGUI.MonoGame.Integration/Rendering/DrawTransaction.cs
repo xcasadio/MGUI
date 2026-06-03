@@ -996,20 +996,28 @@ namespace MGUI.Shared.Rendering
                 Rectangle previousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
                 bool previousScissorState = CurrentSettings.UsesScissorTest;
                 SetClipTarget(null, false);
+                Rectangle currentBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
+                bool currentScissorState = CurrentSettings.UsesScissorTest;
+                bool clipChanged = currentBounds != previousBounds || currentScissorState != previousScissorState;
 
                 ClipDefinition requested = ClipDefinition.None(false);
                 ClipResolveResult resolution = new(requested, requested, ClipStrategy.None, false);
                 return new ClipScope(resolution, () =>
                 {
+                    if (!clipChanged)
+                    {
+                        return;
+                    }
+
                     EndDraw(CurrentContext);
                     SpriteBatch.GraphicsDevice.ScissorRectangle = previousBounds;
 
-                    bool currentScissorState = CurrentSettings.UsesScissorTest;
-                    if (previousScissorState && !currentScissorState)
+                    bool activeScissorState = CurrentSettings.UsesScissorTest;
+                    if (previousScissorState && !activeScissorState)
                     {
                         SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
                     }
-                    else if (!previousScissorState && currentScissorState)
+                    else if (!previousScissorState && activeScissorState)
                     {
                         SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
                     }
@@ -1028,18 +1036,26 @@ namespace MGUI.Shared.Rendering
             bool PreviousScissorState = CurrentSettings.UsesScissorTest;
 
             SetClipTarget(Bounds, IntersectWithCurrentClipTarget);
+            Rectangle currentBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
+            bool currentScissorState = CurrentSettings.UsesScissorTest;
+            bool clipChanged = currentBounds != PreviousBounds || currentScissorState != PreviousScissorState;
 
             return new ClipScope(Resolution, () =>
             {
+                if (!clipChanged)
+                {
+                    return;
+                }
+
                 EndDraw(CurrentContext);
                 SpriteBatch.GraphicsDevice.ScissorRectangle = PreviousBounds;
 
-                bool CurrentScissorState = CurrentSettings.UsesScissorTest;
-                if (PreviousScissorState && !CurrentScissorState)
+                bool activeScissorState = CurrentSettings.UsesScissorTest;
+                if (PreviousScissorState && !activeScissorState)
                 {
                     SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
                 }
-                else if (!PreviousScissorState && CurrentScissorState)
+                else if (!PreviousScissorState && activeScissorState)
                 {
                     SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
                 }

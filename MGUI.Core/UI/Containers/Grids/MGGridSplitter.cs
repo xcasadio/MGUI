@@ -14,7 +14,7 @@ using System.Diagnostics;
 
 namespace MGUI.Core.UI.Containers.Grids
 {
-    public class MGGridSplitter : MGElement
+    public class MGGridSplitter : MGElement, IActiveMouseDragCapture
     {
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
@@ -117,6 +117,8 @@ namespace MGUI.Core.UI.Containers.Grids
                 }
             }
         }
+
+        bool IActiveMouseDragCapture.IsActiveMouseDragCapture => IsDragging;
 
         /// <summary>Contains information about the target <see cref="MGGrid"/> that the resizing operations will be applied to during <see cref="MouseHandler.Dragged"/> events.</summary>
         private GridDragData? GridData { get; set; }

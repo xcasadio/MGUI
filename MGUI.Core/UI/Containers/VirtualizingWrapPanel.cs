@@ -227,6 +227,8 @@ namespace MGUI.Core.UI.Containers
 
         public int CurrentColumnCount => _cachedColumns;
 
+        public bool HasAttachedScrollViewer => _parentScrollViewer != null;
+
         public bool TryDequeueRecycledElement(out MGElement element)
             => _recyclePool.TryDequeue(out element);
 
@@ -369,7 +371,11 @@ namespace MGUI.Core.UI.Containers
             foreach (var pair in _realizedItems)
             {
                 Rectangle itemBounds = VirtualizingWrapPanelLayout.GetItemBounds(pair.Key, columns, bounds, ItemWidth, ItemHeight, Spacing);
-                pair.Value.UpdateLayout(itemBounds);
+                MGElement element = pair.Value;
+                if (!element.IsLayoutValid || element.AllocatedBounds != itemBounds)
+                {
+                    element.UpdateLayout(itemBounds);
+                }
             }
         }
 
@@ -409,8 +415,7 @@ namespace MGUI.Core.UI.Containers
 
         private void RequestVirtualizationLayoutRefresh()
         {
-            InvalidateLayout();
-            SelfOrParentWindow.QueueLayoutRefresh = true;
+            LayoutChanged(this, true);
         }
 
         private void RealizeItem(int index)
