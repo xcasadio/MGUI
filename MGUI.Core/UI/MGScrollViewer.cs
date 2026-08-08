@@ -314,8 +314,16 @@ namespace MGUI.Core.UI
 
         public event EventHandler<EventArgs<float>> MaxVerticalOffsetChanged;
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsScrollToBottomQueued;
+        /// <summary>True if a <see cref="QueueScrollToBottom"/> request is waiting for the next layout pass.</summary>
+        public bool IsScrollToBottomQueued => _IsScrollToBottomQueued;
+
         /// <summary>Attempts to immediately invoke <see cref="ScrollToBottom"/> if <see cref="MGElement.IsLayoutValid"/> is true.<br/>
-        /// Else queues an action that will invoke <see cref="ScrollToBottom"/> the next time the <see cref="MaxVerticalOffset"/> value changes.</summary>
+        /// Else flags the request, and <see cref="ScrollToBottom"/> is invoked during the next layout pass, right after
+        /// <see cref="MaxVerticalOffset"/> has been recomputed from the new content size.<para/>
+        /// The request is a latch, not a queue: calling this repeatedly before the next layout pass coalesces into a
+        /// single deferred scroll, so appending to scrollable content in a tight loop stays O(1) per call.</summary>
         public void QueueScrollToBottom()
         {
             if (IsLayoutValid)
@@ -324,14 +332,8 @@ namespace MGUI.Core.UI
             }
             else
             {
-                MaxVerticalOffsetChanged += MaxVerticalOffsetChanged_ScrollToBottom;
+                _IsScrollToBottomQueued = true;
             }
-        }
-
-        private void MaxVerticalOffsetChanged_ScrollToBottom(object sender, EventArgs<float> e)
-        {
-            ScrollToBottom();
-            MaxVerticalOffsetChanged -= MaxVerticalOffsetChanged_ScrollToBottom;
         }
 
         public void ScrollToTop() => VerticalOffset = 0;
@@ -540,6 +542,15 @@ namespace MGUI.Core.UI
 
             MaxVerticalOffset = Math.Max(0, contentSize.Height - ContentViewport.Height);
             MaxHorizontalOffset = Math.Max(0, contentSize.Width - ContentViewport.Width);
+
+            //  Honor a deferred QueueScrollToBottom now that MaxVerticalOffset reflects the new content size.
+            //  This is the deterministic completion point: it also fires when the new MaxVerticalOffset happens to
+            //  be unchanged, which an approach based on MaxVerticalOffsetChanged would miss.
+            if (_IsScrollToBottomQueued)
+            {
+                _IsScrollToBottomQueued = false;
+                ScrollToBottom();
+            }
         }
 
         public MGScrollViewer(MGWindow Window, ScrollBarVisibility VerticalScrollBarVisibility = ScrollBarVisibility.Auto, ScrollBarVisibility HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled) 

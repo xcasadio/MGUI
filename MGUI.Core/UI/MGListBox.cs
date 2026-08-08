@@ -475,8 +475,10 @@ namespace MGUI.Core.UI
                         IsVirtualizing = false;
                         InternalItems = null;
                         _logicalItemsList = null;
+                        //  _realizedItems maps logical index -> wrapper, so it is tied to the data and must go.
+                        //  _contentPresToItem maps presenter -> wrapper: it describes the wrappers themselves, which
+                        //  stay valid and stay in the panel's recycle pool. See _contentPresToItem's remarks.
                         _realizedItems.Clear();
-                        _contentPresToItem.Clear();
                         if (wasVirtualizing && ScrollViewer != null)
                         {
                             using (ScrollViewer.AllowChangingContentTemporarily())
@@ -494,8 +496,10 @@ namespace MGUI.Core.UI
                         {
                             // Virtualised mode: store only the raw data list, never allocate per-item wrappers up-front
                             _logicalItemsList = ItemsSource as IList<TItemType> ?? ItemsSource.ToList();
+                            //  Only the index -> wrapper mapping is stale; the wrappers themselves are data-agnostic and
+                            //  are rebound by ItemGenerator via UpdateData. Dropping _contentPresToItem here would make
+                            //  every pooled element unresolvable, silently disabling recycling.
                             _realizedItems.Clear();
-                            _contentPresToItem.Clear();
                             InternalItems = null;   // VSP manages realized elements; InternalItems stays null
                             ConfigureVirtualizingPanel();
                             if (ScrollViewer != null && !wasVirtualizing)
@@ -526,6 +530,13 @@ namespace MGUI.Core.UI
 
         private void ItemsSource_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            if (IsVirtualizing)
+            {
+                //  InternalItems is null while virtualizing, so the wrapper-based bookkeeping below does not apply.
+                HandleVirtualizedItemsSourceChanged(e);
+                return;
+            }
+
             if (e.Action is NotifyCollectionChangedAction.Reset)
             {
                 HandleTemplatedContentRemoved(InternalItems.Select(x => x.Content));
@@ -564,6 +575,158 @@ namespace MGUI.Core.UI
             else if (e.Action is NotifyCollectionChangedAction.Move)
             {
                 throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>Applies an <see cref="ItemsSource"/> collection change while UI virtualization is active.<para/>
+        /// <see cref="InternalItems"/> is null in this mode, so the only state to keep in sync is the logical item list,
+        /// the <see cref="VirtualizingStackPanel.TotalItemCount"/>, and the index-based selection.<para/>
+        /// Appending past the realized window is O(1): no realized element maps to the new indices, so nothing is
+        /// re-created and the item height is not re-measured. A change at or before a realized index shifts the
+        /// index-to-item mapping, so the realized window is discarded and rebuilt on the next layout pass — that cost is
+        /// bounded by the viewport, not by the item count.</summary>
+        private void HandleVirtualizedItemsSourceChanged(NotifyCollectionChangedEventArgs e)
+        {
+            if (_virtualizingPanel == null)
+            {
+                return;
+            }
+
+            //  _logicalItemsList aliases ItemsSource when it implements IList<T> (the usual case, e.g. ObservableCollection<T>),
+            //  in which case it already reflects the change. Otherwise it is a snapshot and has to be rebuilt.
+            if (!ReferenceEquals(_logicalItemsList, ItemsSource))
+            {
+                _logicalItemsList = ItemsSource as IList<TItemType> ?? ItemsSource?.ToList();
+            }
+
+            int previousCount = _virtualizingPanel.TotalItemCount;
+            int newCount = _logicalItemsList?.Count ?? 0;
+
+            int firstAffectedIndex;
+            int indexDelta;
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    firstAffectedIndex = e.NewStartingIndex;
+                    indexDelta = e.NewItems?.Count ?? 0;
+                    break;
+                case NotifyCollectionChangedAction.Remove:
+                    firstAffectedIndex = e.OldStartingIndex;
+                    indexDelta = -(e.OldItems?.Count ?? 0);
+                    break;
+                case NotifyCollectionChangedAction.Replace:
+                    firstAffectedIndex = e.OldStartingIndex;
+                    indexDelta = 0;
+                    break;
+                default:
+                    //  Reset, Move, or a change that did not report its position: nothing can be salvaged incrementally.
+                    firstAffectedIndex = -1;
+                    indexDelta = 0;
+                    break;
+            }
+
+            if (e.Action is NotifyCollectionChangedAction.Reset)
+            {
+                ClearSelection();
+            }
+
+            bool selectionItemsRemoved = firstAffectedIndex >= 0 && indexDelta != 0
+                && ShiftSelectedIndices(firstAffectedIndex, indexDelta, newCount);
+
+            _virtualizingPanel.TotalItemCount = newCount;
+            EnsureUniformItemHeightMeasured(previousCount, newCount);
+
+            //  Realized elements are keyed by logical index. Those at or after the change point now map to different
+            //  data, so they must be regenerated; those before it are still valid.
+            if (firstAffectedIndex < 0 || _virtualizingPanel.LastRealizedIndex >= firstAffectedIndex)
+            {
+                _virtualizingPanel.InvalidateData();
+
+                //  The realized wrappers backing SelectedItems were just recycled. Fall back to the same representation
+                //  the virtualized path already uses for off-screen selection: _selectedIndices is the authority, and
+                //  ItemGenerator re-applies IsSelected from it as items are realized again.
+                if (_SelectedItems?.Count > 0)
+                {
+                    _SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
+                    NPC(nameof(SelectedItems));
+                    NPC(nameof(SelectedValue));
+                }
+            }
+
+            if (selectionItemsRemoved)
+            {
+                SelectionChanged?.Invoke(this, SelectedItems);
+            }
+
+            //  Re-clamp against the new item count.
+            FocusedIndex = _FocusedIndex;
+        }
+
+        /// <summary>Rebases <see cref="SelectedIndices"/> after <paramref name="indexDelta"/> items were inserted (positive)
+        /// or removed (negative) at <paramref name="firstAffectedIndex"/>.</summary>
+        /// <returns>True if at least one selected item was removed from the source, i.e. the selection changed in content
+        /// and not merely in indexing.</returns>
+        private bool ShiftSelectedIndices(int firstAffectedIndex, int indexDelta, int newCount)
+        {
+            if (_selectedIndices.Count == 0)
+            {
+                return false;
+            }
+
+            int[] previousIndices = new int[_selectedIndices.Count];
+            _selectedIndices.CopyTo(previousIndices);
+
+            bool itemsRemoved = false;
+            bool anyChange = false;
+            _selectedIndices.Clear();
+
+            for (int i = 0; i < previousIndices.Length; i++)
+            {
+                int index = previousIndices[i];
+                if (index < firstAffectedIndex)
+                {
+                    _selectedIndices.Add(index);
+                    continue;
+                }
+
+                //  Indices in [firstAffectedIndex, firstAffectedIndex - indexDelta) belong to the removed items.
+                if (indexDelta < 0 && index < firstAffectedIndex - indexDelta)
+                {
+                    itemsRemoved = true;
+                    anyChange = true;
+                    continue;
+                }
+
+                int shifted = index + indexDelta;
+                if (shifted >= 0 && shifted < newCount)
+                {
+                    _selectedIndices.Add(shifted);
+                    anyChange |= shifted != index;
+                }
+                else
+                {
+                    itemsRemoved = true;
+                    anyChange = true;
+                }
+            }
+
+            if (anyChange)
+            {
+                NPC(nameof(SelectedIndices));
+                NPC(nameof(SelectedDataItems));
+            }
+
+            return itemsRemoved;
+        }
+
+        /// <summary>The uniform item height is measured from the first item in <see cref="ConfigureVirtualizingPanel"/>.
+        /// When <see cref="ItemsSource"/> was empty at that point there was nothing to measure and a default was used,
+        /// so measure again once the first real item arrives. Cheap on later calls: the result is cached.</summary>
+        private void EnsureUniformItemHeightMeasured(int previousCount, int newCount)
+        {
+            if (previousCount == 0 && newCount > 0 && _virtualizingPanel != null)
+            {
+                _virtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
             }
         }
 
@@ -1191,7 +1354,13 @@ namespace MGUI.Core.UI
         private readonly Dictionary<int, MGListBoxItem<TItemType>> _realizedItems = new();
 
         /// <summary>Reverse-maps a <see cref="MGBorder"/> ContentPresenter back to its
-        /// owning <see cref="MGListBoxItem{TItemType}"/> so the recycle pool can reuse wrappers.</summary>
+        /// owning <see cref="MGListBoxItem{TItemType}"/> so the recycle pool can reuse wrappers.<para/>
+        /// This map must stay valid for as long as the <see cref="VirtualizingStackPanel"/>'s recycle pool can hand an
+        /// element back: a pooled element whose wrapper is not in here cannot be rebound, so
+        /// <see cref="VirtualizingStackPanel.ItemGenerator"/> would drop it and allocate a replacement.
+        /// It is therefore never cleared on a data change — only wrappers are
+        /// tracked here, and their count stays bounded by the viewport since new ones are created only when the pool
+        /// runs dry.</summary>
         private readonly Dictionary<MGBorder, MGListBoxItem<TItemType>> _contentPresToItem = new();
 
         private bool ShouldVirtualize(int itemCount) =>
@@ -1211,7 +1380,7 @@ namespace MGUI.Core.UI
 
             int totalCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
             _virtualizingPanel.TotalItemCount = totalCount;
-            _virtualizingPanel.UniformItemHeight = MeasureNaturalItemHeight();
+            _virtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
             _virtualizingPanel.ItemGenerator = (idx) =>
             {
                 MGListBoxItem<TItemType> item;
@@ -1290,6 +1459,46 @@ namespace MGUI.Core.UI
                 }
             }
             return 26; // Fallback: ~6 px padding top + 14 px text + 6 px padding bottom
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int _cachedNaturalItemHeight = -1;
+
+        /// <summary>Discards the cached item height so it is measured again on the next virtualization pass.<para/>
+        /// The height is invalidated automatically when <see cref="ItemTemplate"/>, <see cref="ItemContainerStyle"/> or
+        /// the theme changes. Call this explicitly if something outside this list box changes how tall an item renders,
+        /// such as swapping the host's text-measurement engine after items already exist.</summary>
+        public void InvalidateItemHeightCache()
+        {
+            _cachedNaturalItemHeight = -1;
+
+            if (IsVirtualizing && _virtualizingPanel != null)
+            {
+                _virtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
+            }
+        }
+
+        /// <summary>Returns the natural item height, measuring it at most once per template/style/theme generation.<para/>
+        /// <see cref="MeasureNaturalItemHeight"/> instantiates the item template and runs a full layout pass over a probe
+        /// element, so it must not be repeated for every data change: the result depends on the template, the container
+        /// style and the theme, not on which items the source holds.</summary>
+        private int GetOrMeasureNaturalItemHeight()
+        {
+            if (_cachedNaturalItemHeight > 0)
+            {
+                return _cachedNaturalItemHeight;
+            }
+
+            int measured = MeasureNaturalItemHeight();
+
+            //  MeasureNaturalItemHeight falls back to a default when there is no item to measure from.
+            //  Caching that fallback would freeze the row height at a value no real item ever had.
+            if (InternalItems?.Count > 0 || _logicalItemsList?.Count > 0)
+            {
+                _cachedNaturalItemHeight = measured;
+            }
+
+            return measured;
         }
 
         /// <summary>Measures the natural (un-stretched) height of a single item by creating a probe element,
@@ -1393,6 +1602,16 @@ namespace MGUI.Core.UI
                 if (_ItemTemplate != value)
                 {
                     _ItemTemplate = value;
+                    InvalidateItemHeightCache();
+
+                    //  Pushed to the items from here rather than pulled by each item from ItemTemplateChanged:
+                    //  a per-item subscription would root every wrapper this list box ever created in the event's
+                    //  invocation list, and cost an O(n) Delegate.Combine per wrapper created.
+                    foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())
+                    {
+                        item.RefreshContent();
+                    }
+
                     NPC(nameof(ItemTemplate));
                     ItemTemplateChanged?.Invoke(this, EventArgs.Empty);
                 }
@@ -1417,6 +1636,13 @@ namespace MGUI.Core.UI
                 if (_ItemContainerStyle != value)
                 {
                     _ItemContainerStyle = value;
+                    InvalidateItemHeightCache();
+
+                    foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())
+                    {
+                        item.RefreshContainerStyle();
+                    }
+
                     NPC(nameof(ItemContainerStyle));
                     ItemContainerStyleChanged?.Invoke(this, EventArgs.Empty);
                 }
@@ -1478,11 +1704,37 @@ namespace MGUI.Core.UI
             }
 
             AlternatingRowBackgrounds = CreateThemeAlternatingRowBackgrounds(CurrentTheme);
-            if (ItemContainerStyle == ApplyDefaultItemContainerStyle && InternalItems != null)
+            InvalidateItemHeightCache();
+
+            if (ItemContainerStyle == ApplyDefaultItemContainerStyle)
             {
-                foreach (var item in InternalItems)
+                //  EnumerateItemWrappers also covers the virtualized case, where InternalItems is null and the
+                //  wrappers live in the recycle pool.
+                foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())
                 {
                     ApplyDefaultItemContainerStyle(item.ContentPresenter);
+                }
+            }
+        }
+
+        /// <summary>Every item wrapper this list box owns: the realized and pooled wrappers while virtualizing,
+        /// or the contents of <see cref="ListBoxItems"/> otherwise.<para/>
+        /// Owner-level changes (item template, container style, theme) are pushed down through this, which is what lets
+        /// <see cref="MGListBoxItem{TItemType}"/> subscribe to nothing and stay collectable.</summary>
+        private IEnumerable<MGListBoxItem<TItemType>> EnumerateItemWrappers()
+        {
+            if (IsVirtualizing)
+            {
+                foreach (MGListBoxItem<TItemType> item in _contentPresToItem.Values)
+                {
+                    yield return item;
+                }
+            }
+            else if (InternalItems != null)
+            {
+                foreach (MGListBoxItem<TItemType> item in InternalItems)
+                {
+                    yield return item;
                 }
             }
         }
@@ -1852,17 +2104,24 @@ namespace MGUI.Core.UI
             //  This eliminates ~5800 ManualUpdate() calls per frame when the list is large.
             ContentPresenter.IsHitTestVisible = false;
 
-            ListBox.ItemTemplateChanged += (sender, e) =>
-            {
-                Content?.RemoveDataBindings(true);
-                Content = ListBox.ItemTemplate?.Invoke(this.Data);
-            };
+            //  This wrapper deliberately subscribes to nothing on the ListBox. It used to hook ItemTemplateChanged and
+            //  ItemContainerStyleChanged with lambdas that were never removed, which rooted every wrapper ever created
+            //  in those invocation lists. The ListBox pushes both changes instead — see EnumerateItemWrappers.
             Content = ListBox.ItemTemplate?.Invoke(this.Data);
             ContentPresenter.CanChangeContent = false;
 
-            ListBox.ItemContainerStyleChanged += (sender, e) => { ListBox.ItemContainerStyle?.Invoke(ContentPresenter); };
             ListBox.ItemContainerStyle?.Invoke(ContentPresenter);
         }
+
+        /// <summary>Regenerates <see cref="Content"/> from the ListBox's current <see cref="MGListBox{TItemType}.ItemTemplate"/>.</summary>
+        internal void RefreshContent()
+        {
+            Content?.RemoveDataBindings(true);
+            Content = ListBox.ItemTemplate?.Invoke(Data);
+        }
+
+        /// <summary>Re-applies the ListBox's current <see cref="MGListBox{TItemType}.ItemContainerStyle"/> to <see cref="ContentPresenter"/>.</summary>
+        internal void RefreshContainerStyle() => ListBox.ItemContainerStyle?.Invoke(ContentPresenter);
 
         /// <summary>Rebinds this item to a different data entry — used when recycling items in a <see cref="VirtualizingStackPanel"/>.<para/>
         /// Removes old data bindings, updates <see cref="Data"/> and <see cref="LogicalIndex"/>, regenerates <see cref="Content"/>.</summary>
