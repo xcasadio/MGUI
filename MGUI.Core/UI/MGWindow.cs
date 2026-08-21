@@ -909,6 +909,140 @@ namespace MGUI.Core.UI
             }
         }
 
+        #region Collapse
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _CollapseOnTitleBarDoubleClick;
+        /// <summary>True if double-clicking the title bar (outside the close button) toggles <see cref="IsCollapsed"/>.<para/>
+        /// Default value: false</summary>
+        public bool CollapseOnTitleBarDoubleClick
+        {
+            get => _CollapseOnTitleBarDoubleClick;
+            set
+            {
+                if (_CollapseOnTitleBarDoubleClick != value)
+                {
+                    _CollapseOnTitleBarDoubleClick = value;
+                    NPC(nameof(CollapseOnTitleBarDoubleClick));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsCollapsed;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsCollapsePending;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int _ExpandedWindowHeight;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _ExpandedIsUserResizable;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Visibility _ExpandedContentVisibility = Visibility.Visible;
+
+        /// <summary>True while the window is shaded down to its title bar: the content is hidden, resizing is disabled and
+        /// <see cref="WindowHeight"/> is reduced to the title bar height. Setting it back to false restores the previous height,
+        /// content visibility and <see cref="IsUserResizable"/>.<para/>
+        /// Requires <see cref="IsTitleBarVisible"/>. When the title bar has not been laid out yet, the collapse is applied on the next update.<para/>
+        /// See also: <see cref="CollapseOnTitleBarDoubleClick"/></summary>
+        public bool IsCollapsed
+        {
+            get => _IsCollapsed;
+            set
+            {
+                if (_IsCollapsed == value)
+                {
+                    return;
+                }
+
+                if (value)
+                {
+                    if (!IsTitleBarVisible)
+                    {
+                        return;
+                    }
+
+                    _ExpandedWindowHeight = WindowHeight;
+                    _ExpandedIsUserResizable = IsUserResizable;
+                    _ExpandedContentVisibility = Content?.Visibility ?? Visibility.Visible;
+                    _IsCollapsed = true;
+                    if (Content != null)
+                    {
+                        Content.Visibility = Visibility.Collapsed;
+                    }
+                    IsUserResizable = false;
+                    _IsCollapsePending = !TryApplyCollapsedHeight();
+                }
+                else
+                {
+                    _IsCollapsed = false;
+                    _IsCollapsePending = false;
+                    if (Content != null)
+                    {
+                        Content.Visibility = _ExpandedContentVisibility;
+                    }
+                    IsUserResizable = _ExpandedIsUserResizable;
+                    WindowHeight = _ExpandedWindowHeight;
+                }
+
+                NPC(nameof(IsCollapsed));
+            }
+        }
+
+        /// <summary>Shrinks the window to its title bar. Returns false when the title bar has no layout yet (retried on the next update).</summary>
+        private bool TryApplyCollapsedHeight()
+        {
+            if (TitleBarElement == null || TitleBarElement.LayoutBounds.Height <= 0)
+            {
+                return false;
+            }
+
+            int collapsedHeight = TitleBarElement.LayoutBounds.Bottom - LayoutBounds.Top + BorderThickness.Bottom;
+            if (collapsedHeight <= 0)
+            {
+                return false;
+            }
+
+            //Bypass the MinHeight clamp of the WindowHeight setter: a collapsed window is legitimately smaller than its MinHeight.
+            if (_WindowHeight != collapsedHeight)
+            {
+                _WindowHeight = collapsedHeight;
+                LayoutChanged(this, true);
+                UpdateScaleTransforms();
+                RecentSizeToContentSettings = null;
+                NPC(nameof(WindowHeight));
+            }
+
+            return true;
+        }
+
+        public override void UpdateSelf(ElementUpdateArgs UA)
+        {
+            base.UpdateSelf(UA);
+            if (_IsCollapsePending && _IsCollapsed)
+            {
+                _IsCollapsePending = !TryApplyCollapsedHeight();
+            }
+        }
+
+        private void MakeCollapsible()
+        {
+            MouseHandler.LMBDoubleClickedInside += (sender, e) =>
+            {
+                if (!CollapseOnTitleBarDoubleClick || !IsTitleBarVisible || TitleBarElement == null)
+                {
+                    return;
+                }
+
+                Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                if (TitleBarElement.LayoutBounds.ContainsInclusive(LayoutSpacePosition)
+                    && (CloseButtonElement == null || !CloseButtonElement.LayoutBounds.ContainsInclusive(LayoutSpacePosition)))
+                {
+                    IsCollapsed = !IsCollapsed;
+                    e.SetHandledBy(this, false);
+                }
+            };
+        }
+        #endregion Collapse
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGTheme _Theme;
         /// <summary>If null, uses <see cref="MGDesktop.Theme"/> instead.<para/>
@@ -1355,6 +1489,7 @@ namespace MGUI.Core.UI
                 }
 
                 MakeDraggable();
+                MakeCollapsible();
             }
         }
         #endregion Constructors
