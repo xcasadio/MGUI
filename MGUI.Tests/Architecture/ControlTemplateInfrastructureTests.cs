@@ -13,6 +13,8 @@ namespace MGUI.Tests.Architecture;
 
 public class ControlTemplateInfrastructureTests
 {
+    private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+
     [Fact]
     public void Child_Scope_Falls_Back_To_Parent_Control_Template()
     {
@@ -787,7 +789,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void TreeViewItem_Selection_Uses_Flat_Background_For_Expander_Button()
     {
-        string treeViewItemSource = File.ReadAllText(@"d:\development\repo\CasaEngineMonogame\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
+        string treeViewItemSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTreeViewItem.cs"));
 
         Assert.Contains("OwnerTreeView.SelectionBackgroundBrush?.Copy()", treeViewItemSource);
         Assert.Contains("expanderSelectionBackground?.SetAll(expanderSelectionBackground.NormalValue);", treeViewItemSource);
@@ -796,7 +798,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void TreeViewItem_Uses_Dedicated_Expander_Button_To_Reapply_Neutral_Chrome_After_Theme_Refresh()
     {
-        string treeViewItemSource = File.ReadAllText(@"d:\development\repo\CasaEngineMonogame\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
+        string treeViewItemSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTreeViewItem.cs"));
 
         Assert.Contains("private sealed class TreeViewExpanderToggleButton : MGToggleButton", treeViewItemSource);
         Assert.Contains("ApplyNeutralChrome();", treeViewItemSource);
@@ -806,7 +808,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ListBox_Rehydrates_Theme_Dependent_Row_Chrome_On_Theme_Refresh()
     {
-        string listBoxSource = File.ReadAllText(@"d:\development\repo\CasaEngineMonogame\MGUI\MGUI.Core\UI\MGListBox.cs");
+        string listBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGListBox.cs"));
 
         Assert.Contains("protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)", listBoxSource);
         Assert.Contains("AlternatingRowBackgrounds = CreateThemeAlternatingRowBackgrounds(CurrentTheme);", listBoxSource);
@@ -817,7 +819,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ContextMenu_Default_Wrapper_Template_Rebuilds_On_Theme_Refresh()
     {
-        string contextMenuSource = File.ReadAllText(@"d:\development\repo\CasaEngineMonogame\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+        string contextMenuSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGContextMenu.cs"));
 
         Assert.Contains("protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)", contextMenuSource);
         Assert.Contains("ButtonWrapperTemplate == CreateDefaultDropdownButton", contextMenuSource);

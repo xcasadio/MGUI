@@ -1,5 +1,6 @@
 using MGUI.Core.Tooling;
 using MGUI.Core.UI;
+using MGUI.Core.UI.XAML;
 using System.Reflection;
 
 namespace MGUI.Tests.Architecture;
@@ -19,7 +20,10 @@ public class ToolingHooksTests
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.CaptureDesktopSnapshot), BindingFlags.Static | BindingFlags.Public));
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.GetStableDiagnosticId), BindingFlags.Static | BindingFlags.Public, null, new[] { typeof(MGDesktop) }, null));
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.GetStableDiagnosticId), BindingFlags.Static | BindingFlags.Public, null, new[] { typeof(MGElement) }, null));
-        Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.LoadPreview), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.LoadPreview), BindingFlags.Static | BindingFlags.Public, null,
+            new[] { typeof(MGWindow), typeof(XamlDocumentSource), typeof(object), typeof(bool), typeof(bool) }, null));
+        Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.LoadPreview), BindingFlags.Static | BindingFlags.Public, null,
+            new[] { typeof(MGWindow), typeof(XamlDocumentSource), typeof(object), typeof(XamlLoaderMode), typeof(bool), typeof(bool) }, null));
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.RenderDesktopSnapshot), BindingFlags.Static | BindingFlags.Public));
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.ReplayFrames), BindingFlags.Static | BindingFlags.Public));
         Assert.NotNull(typeof(UIDesktopDiagnosticSnapshot).GetProperty(nameof(UIDesktopDiagnosticSnapshot.ActiveOverlayDiagnosticId)));
