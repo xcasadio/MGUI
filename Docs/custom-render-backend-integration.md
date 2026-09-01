@@ -84,6 +84,17 @@ void DrawFrame()
 
 Le helper `AdvanceFrame(...)` est a vous de le definir. L'interface n'impose pas cette methode, mais votre runtime doit bien mettre a jour `UpdateArgs` et `InputTracker` avant `desktop.Update()`.
 
+**Saisie de texte native** : `Input.Keyboard` (le `KeyboardTracker` sous-jacent) expose `IKeyboardTextInputSink.QueueTextInput(char character, Keys key)`, alimente par defaut uniquement par un fallback US-QWERTY code en dur si rien ne le nourrit autrement. Si votre moteur possede sa propre source de saisie de texte native (evenement clavier de l'OS, IME), relayez-la vers ce puits dans votre boucle d'update, avant `desktop.Update()` :
+
+```csharp
+void OnEngineNativeTextInput(char character, Keys key)
+{
+    runtime.Input.Keyboard.QueueTextInput(character, key);
+}
+```
+
+Sans ce relais, tous les utilisateurs non-US-QWERTY (AZERTY, touches mortes, IME CJK) recevront des caracteres errones dans `MGTextBox`/`MGNumericUpDown`. Voir `Docs/monogame-host-integration-guide.md`, section "Saisie de texte native (TextInput/IME)", pour le detail du contrat sur les backends MonoGame.
+
 ## Squelette minimal des types a implementer
 
 ```csharp

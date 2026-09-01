@@ -289,7 +289,7 @@ Resultat:
 - validation : `dotnet build MGUI.Tests.csproj --no-restore` vert (0 erreur) ; `dotnet build MGUI.Samples.csproj --no-restore` vert (0 avertissement, 0 erreur) ; `dotnet build MGUI.MiniGame.csproj --no-restore` vert (0 avertissement, 0 erreur) ; `dotnet test --filter "FullyQualifiedName~KeyboardTrackerTextInputTests"` : 8/8 verts ; `dotnet test --filter "FullyQualifiedName~GameRenderHostTextInputTests"` : 5/5 verts ; `dotnet test --filter "Focus|Input"` : 358/358 verts ; `dotnet test --filter "HostRuntimeContractTests|RawInputSourceTests|BackendProjectSplitTests"` : 19/20 verts (le seul echec est `BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, deja rouge en baseline tache 0, aucun rapport avec cette tache) ; suite complete : 1202 tests, 1199 reussis, 3 echecs (exactement les 3 rouges de la baseline tache 0 : `BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, `ToolingHooksTests.UIToolingService_ExposesSnapshotAndPreviewHooks`, `ControlTemplateInfrastructureTests.ListBox_Rehydrates_Theme_Dependent_Row_Chrome_On_Theme_Refresh`), 0 nouveau rouge, 0 ignores ;
 - aucune API publique retiree ; `IRenderHost`/`IUIDesktopRuntime` intacts.
 
-### ⚪ 5. Demonstration MiniGame et documentation du contrat texte natif
+### ✅ 5. Demonstration MiniGame et documentation du contrat texte natif
 
 But:
 couvrir le chemin `DelegateRenderHost` (cablage manuel) et documenter le contrat pour tous les types d'hotes.
@@ -311,6 +311,16 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `docs: complete task 5 document native text input wiring`
+
+Resultat:
+
+- `MGUI.MiniGame/MiniGame.cs` (`Initialize()`) : ajout du cablage manuel `Window.TextInput += (_, e) => _mguiRenderer.Input.Keyboard.QueueTextInput(e.Character, e.Key);` juste apres `Window.ClientSizeChanged += ...`, avec un commentaire expliquant pourquoi `DelegateRenderHost` (n'implemente pas `ITextInputHost`) exige ce cablage manuel contrairement a `GameRenderHost<T>` — le champ existant est `_mguiRenderer` (pas `_mguiBackend`, l'exemple du plan etait illustratif) ;
+- sous-chaines verbatim assertees par `HostRuntimeContractTests.Repo_ShowsBothHistoricAndDelegateHostBootstrapPaths` (:95-110) verifiees intactes avant edition (`new DelegateRenderHost(`, `MonoGameBackendBootstrap.Create(`, `_desktop = new MGDesktop((IUIDesktopRuntime)_mguiRenderer);`, `_mguiHost.NotifyPreviewUpdate(gameTime.TotalGameTime);`, `_mguiHost.NotifyEndUpdate();`) — aucune de ces lignes touchee ;
+- `Docs/monogame-host-integration-guide.md` : nouvelle section "Saisie de texte native (TextInput/IME)" (avant "## Choisir entre les 2") documentant les 2 sources (fallback US-QWERTY vs puits natif `IKeyboardTextInputSink.QueueTextInput`), le contrat par chemin d'hebergement (auto sur `GameRenderHost<T>` via `ITextInputHost`/bootstrap, manuel obligatoire sur `DelegateRenderHost`, manuel sur runtime custom) et l'outil de diagnostic `CASA_MGUI_INPUT_PROBE` ; complement de l'exemple Option 1 (mention de l'auto-cablage par le bootstrap) et de l'exemple Option 2 (ajout de la ligne de cablage manuel `Window.TextInput += ...` avec commentaire d'avertissement) ;
+- `Docs/custom-render-backend-integration.md` : ajout d'un paragraphe "Saisie de texte native" dans la section "## Boucle d'integration minimale" (:64-86), expliquant que `Input.Keyboard.QueueTextInput(char, Keys)` doit etre alimente par la source native du moteur hote avant `desktop.Update()`, avec renvoi vers le guide MonoGame ;
+- README.md : une ligne ajoutee dans le walkthrough "# Getting Started:" (sous la puce "Instantiate MGUI.Core.UI.MGDesktop") mentionnant le cablage manuel requis pour `DelegateRenderHost`/setups custom ; paragraphe ajoute sous la puce `KeyboardTracker` de la section "# Input Handling" (~:592) decrivant le contrat `IKeyboardTextInputSink`, le cablage auto vs manuel selon le host, et l'outil `CASA_MGUI_INPUT_PROBE` (`KeyboardInputProbe`, verifie present dans `MGUI.Shared/Input/Keyboard/KeyboardInputProbe.cs`, tracant `source=native-text` vs `source=key-map`) ;
+- validation : `dotnet build MGUI.Tests.csproj --no-restore` vert (0 erreur) ; `dotnet build MGUI.Samples.csproj --no-restore` vert (0 avertissement, 0 erreur) ; `dotnet build MGUI.MiniGame.csproj --no-restore` vert (21 avertissements preexistants, 0 erreur) ; `dotnet test --filter "HostRuntimeContractTests|BackendProjectSplitTests|RawInputSourceTests"` : 19/20 verts (seul echec = `BackendProjectSplitTests.IntegrationProject_StripsLegacyRendererFiles`, baseline tache 0) ; `dotnet test --filter "Focus|Input"` : 358/358 verts ; suite complete : 1202 tests, 1199 reussis, 3 echecs (exactement les 3 rouges de la baseline tache 0), 0 nouveau rouge, 0 ignores ;
+- aucun code de production touche hors `MiniGame.cs` (le seul changement fonctionnel de cette tache) ; aucune API publique modifiee.
 
 ### ⚪ 6. Regression anti-fuite de bout en bout et rafraichissement du doc d'audit
 
