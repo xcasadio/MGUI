@@ -77,6 +77,14 @@ namespace MGUI.FontStashSharp
         /// <summary>Fallback FontSystem used when a family+style combination is not registered.</summary>
         private FontSystem? _fallbackFontSystem;
 
+        /// <summary>
+        /// Dictionary of fixed-size <see cref="SpriteFontBase"/> instances per (family, style) —
+        /// e.g. a <c>StaticSpriteFont</c> built from a BMFont via <see cref="AddStaticFont"/>.
+        /// Checked before <see cref="_fontSystems"/> in <see cref="ResolveFont"/>, since these
+        /// fonts are not re-rasterized per requested pixel size.
+        /// </summary>
+        private readonly Dictionary<(string Family, CustomFontStyles Style), SpriteFontBase> _staticFonts = new();
+
         /// <summary>Cache: FontSpec → ResolvedFont (+ embedded FSSFontHandle as NativeFont).</summary>
         private readonly Dictionary<FontSpec, ResolvedFont> _cache = new();
 
@@ -240,6 +248,34 @@ namespace MGUI.FontStashSharp
             {
                 FontSizeScale = ComputeFontSizeScale(ttfData);
             }
+        }
+
+        /// <summary>
+        /// Registers a fixed-size bitmap font (e.g. a <c>FontStashSharp.StaticSpriteFont</c>
+        /// built from a BMFont via <c>StaticSpriteFont.FromBMFont</c>) for a specific font
+        /// family and style variant.
+        /// <para/>
+        /// Unlike <see cref="AddFontSystem(string, CustomFontStyles, FontSystem)"/>, a static
+        /// font is not rasterized at a caller-requested pixel size: it is used as-is regardless
+        /// of the <see cref="FontSpec.Size"/> requested by <see cref="ResolveFont"/>. This method
+        /// carries no knowledge of any particular bitmap font's content — it only wires a
+        /// pre-built <see cref="SpriteFontBase"/> into the family/style lookup used by
+        /// <see cref="ResolveFont"/>, exactly like <see cref="AddFontSystem(string, CustomFontStyles, FontSystem)"/>
+        /// does for TTF-backed fonts.
+        /// </summary>
+        /// <param name="family">Case-sensitive font family name (e.g. "font3").</param>
+        /// <param name="style">The style this font provides (typically <see cref="CustomFontStyles.Normal"/>
+        /// — bitmap fonts commonly have no separate bold/italic variant).</param>
+        /// <param name="font">A pre-built <see cref="SpriteFontBase"/>, such as a <c>StaticSpriteFont</c>.</param>
+        public void AddStaticFont(string family, CustomFontStyles style, SpriteFontBase font)
+        {
+            if (font is null)
+            {
+                throw new ArgumentNullException(nameof(font));
+            }
+
+            _staticFonts[(family, style)] = font;
+            InvalidateCache();
         }
 
         /// <summary>
@@ -473,6 +509,27 @@ namespace MGUI.FontStashSharp
             if (_cache.TryGetValue(spec, out var cached))
             {
                 return cached;
+            }
+
+            // Static (bitmap) fonts take priority over TTF FontSystems for a matching
+            // family/style: they are registered as a fixed-size font, not resolved per pixel size.
+            if (_staticFonts.TryGetValue((spec.Family, spec.Style), out SpriteFontBase? staticFont)
+                || _staticFonts.TryGetValue((spec.Family, CustomFontStyles.Normal), out staticFont))
+            {
+                var staticHandle = new FSSFontHandle(staticFont);
+                var resolvedStatic = new ResolvedFont(
+                    spec,
+                    actualSize:     spec.Size,
+                    exactScale:     1f,
+                    suggestedScale: 1f,
+                    lineHeight:     staticHandle.LineHeight,
+                    spaceWidth:     staticHandle.SpaceWidth,
+                    drawOrigin:     Vector2.Zero,
+                    isFallback:     false,
+                    nativeFont:     staticHandle);
+
+                _cache[spec] = resolvedStatic;
+                return resolvedStatic;
             }
 
             bool isFallback = false;
