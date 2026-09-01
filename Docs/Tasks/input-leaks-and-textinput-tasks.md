@@ -135,7 +135,7 @@ Resultat:
 - aucune de ces 3 failures ne touche au perimetre du present plan (trackers, focus, MGListBox EndUpdate, TextInput) ; elles ne sont pas corrigees ici (pas de trivialite evidente d'une ligne) ;
 - aucun code de production modifie pour cette tache.
 
-### ⚪ 1. Ne plus enregistrer les handlers manuels dans les trackers (D1)
+### ✅ 1. Ne plus enregistrer les handlers manuels dans les trackers (D1)
 
 But:
 supprimer la racine GC tracker -> handler -> element et le cout d'enumeration par tick, sans protocole de teardown.
@@ -162,6 +162,16 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `input: complete task 1 stop registering manual handlers in trackers`
+
+Resultat:
+
+- `MouseTracker.CreateHandler(T, double?, bool, bool, bool)` (MouseTracker.cs) et `KeyboardTracker.CreateHandler(T, double?, bool, bool)` (KeyboardTracker.cs) : le handler n'est ajoute a `_Handlers` que si `UpdatePriority.HasValue` est vrai ; la surcharge prenant l'enum `InputUpdatePriority` delegue vers la surcharge `double?` avec une valeur toujours non-nulle donc continue d'enregistrer normalement (verifie, aucun changement necessaire dessus) ;
+- `Unsubscribe()` (`MouseHandler`/`KeyboardHandler`) inchange : `Tracker.RemoveHandler(this)` reste un `List.Remove` no-op sur un handler jamais ajoute, `IsValid = false` toujours applique ;
+- commentaires XML de `Handlers` et de `CreateHandler` (les deux trackers) mis a jour pour enoncer le nouveau contrat (liste = handlers auto uniquement, motif GC root explicite) ;
+- README.md (section `# Input Handling`, ~:602 et ~:610) mis a jour pour refleter le contrat (liste ne contient que les handlers auto ; `Unsubscribe` reste sur pour un handler manuel jamais enregistre) ;
+- nouveaux tests dans `MGUI.Tests/Input/TrackerHandlerRegistrationTests.cs` (8 tests) : creation manuelle laisse `Handlers` vide + `ManualUpdate` livre bien press/release ; creation auto enregistre + `UpdateHandlers` invoque + `Unsubscribe` vide la liste ; `Unsubscribe` sur un handler manuel jamais enregistre ne leve pas et neutralise bien les evenements suivants ; couverture pour `MouseTracker` et `KeyboardTracker` ;
+- validation : `dotnet build MGUI.Tests.csproj --no-restore` vert, `dotnet build MGUI.Samples.csproj --no-restore` vert ; `dotnet test --filter "FullyQualifiedName~TrackerHandlerRegistrationTests|InputEnhanced"` : 63/63 verts ; `dotnet test --filter "Focus|Input"` : 343/343 verts ; suite complete : 1185 tests, 1182 reussis, 3 echecs (exactement les 3 rouges de la baseline tache 0, aucun nouveau rouge), 0 ignores ;
+- aucune API publique retiree (`Handlers`, `CreateHandler`, `Unsubscribe` preserves).
 
 ### ⚪ 2. Notification de focus par element et migration MGTextBox / MGNumericUpDown (D2)
 

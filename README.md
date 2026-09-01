@@ -55,6 +55,7 @@ Rendering backend overview: see [Docs/rendering-backend-architecture.md](Docs/re
 MonoGame host wiring: see [Docs/monogame-host-integration-guide.md](Docs/monogame-host-integration-guide.md).
 Custom engine backend wiring: see [Docs/custom-render-backend-integration.md](Docs/custom-render-backend-integration.md).
 RichTextBox editor v1: see [Docs/richtextbox-editor-v1-guide.md](Docs/richtextbox-editor-v1-guide.md).
+Event/input handling architecture (audit): see [Docs/event-handling-architecture.md](Docs/event-handling-architecture.md).
 
 Built-in themes:
 
@@ -598,7 +599,7 @@ MGUI uses its own framework to detect and respond to inputs.
   - Contains 2 child objects: `MouseTracker` and `KeyboardTracker`
 - `MouseTracker`
   - Detects changes to the `MouseState` and stores information about those changes in `EventArg` objects, most of which have an `IsHandled` property.
-  - Manages 0 to many `MouseHandlers`
+  - Manages 0 to many `MouseHandlers` in its `Handlers` list - but only the auto-updated ones (created via `CreateHandler` with a non-null `UpdatePriority`). Handlers created with a null `UpdatePriority` (manual handlers) are never added to this list: they're driven entirely by explicit calls to `MouseHandler.ManualUpdate`, so tracking them would just be a dead GC root keeping their owner alive forever.
   - `MouseHandler`
     - Exposes several events that your code can subscribe to, to react to mouse events. Such as:
       - `Scrolled`, `MovedInside`, `MovedOutside`, `Entered`, `Exited`, `PressedInside`, `PressedOutside`, `ReleasedInside`, `ReleasedOutside`, `DragStart`, `Dragged`, `DragEnd`
@@ -606,7 +607,7 @@ MGUI uses its own framework to detect and respond to inputs.
 - `KeyboardTracker`
   - Just like `MouseTracker` except for managing Keyboard-related inputs.
         
-If you'd like to utilize this framework in your own code, get the `MouseTracker` and/or `KeyboardTracker` instance from the `InputTracker`. Call `MouseTracker.CreateHandler(...)`/`KeyboardTracker.CreateHandler(...)`, and subscribe to the events in the returned handler instance.
+If you'd like to utilize this framework in your own code, get the `MouseTracker` and/or `KeyboardTracker` instance from the `InputTracker`. Call `MouseTracker.CreateHandler(...)`/`KeyboardTracker.CreateHandler(...)`, and subscribe to the events in the returned handler instance. Passing a non-null `UpdatePriority` registers the handler in `Handlers` and has it auto-updated every tick; passing `null` creates a manual handler that you must update yourself via `ManualUpdate()`, and it is intentionally never added to `Handlers`. Either way, `Unsubscribe()` on the returned handler remains safe to call and permanently disables it (no-op on manual handlers that were never registered).
 
 EX: Creates a MouseHandler instance in Game1.Initialize and subscribes to an event
 ```c#
