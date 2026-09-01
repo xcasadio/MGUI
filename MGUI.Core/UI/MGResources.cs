@@ -82,6 +82,9 @@ namespace MGUI.Core.UI
             SetParent(Parent);
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private WeakThemeChangedForwarder ParentThemeChangedForwarder;
+
         public void SetParent(MGResources Parent)
         {
             if (!ReferenceEquals(this, Parent))
@@ -90,14 +93,16 @@ namespace MGUI.Core.UI
 
                 if (this.Parent != null)
                 {
-                    this.Parent.OnDefaultThemeChanged -= Parent_OnDefaultThemeChanged;
+                    this.Parent.OnDefaultThemeChanged -= ParentThemeChangedForwarder.OnParentDefaultThemeChanged;
+                    ParentThemeChangedForwarder = null;
                 }
 
                 this.Parent = Parent;
 
                 if (this.Parent != null)
                 {
-                    this.Parent.OnDefaultThemeChanged += Parent_OnDefaultThemeChanged;
+                    ParentThemeChangedForwarder = new(this);
+                    this.Parent.OnDefaultThemeChanged += ParentThemeChangedForwarder.OnParentDefaultThemeChanged;
                 }
 
                 if (_DefaultTheme == null)
@@ -116,6 +121,37 @@ namespace MGUI.Core.UI
             if (_DefaultTheme == null)
             {
                 OnDefaultThemeChanged?.Invoke(this, e);
+            }
+        }
+
+        /// <summary>Forwards the parent scope's <see cref="OnDefaultThemeChanged"/> to a child scope while referencing the child only weakly.<para/>
+        /// Parent scopes (top-most: <see cref="MGDesktop.Resources"/>) typically live for the desktop's entire lifetime, while child scopes belong to
+        /// elements/windows that may be closed and later re-shown as the SAME instance (closing an <see cref="MGWindow"/> is not destroying it).
+        /// A strong subscription would root every closed window's subtree to the desktop forever; unsubscribing when the window closes would
+        /// silently break theme propagation to re-shown windows. The weak link keeps propagation working exactly as long as the child scope is
+        /// otherwise reachable, and lets a dropped window subtree be garbage-collected.<para/>
+        /// This is a deliberately narrow weak-event (this single subscription point only — see the "pas de weak events generalises" philosophy in
+        /// Docs/Tasks/input-leaks-and-textinput-tasks.md). Pinned by MGUI.Tests/Input/InputLifetimeRegressionTests.cs.</summary>
+        private sealed class WeakThemeChangedForwarder
+        {
+            private readonly WeakReference<MGResources> Child;
+
+            public WeakThemeChangedForwarder(MGResources Child)
+            {
+                this.Child = new(Child);
+            }
+
+            public void OnParentDefaultThemeChanged(object sender, (MGTheme PreviousTheme, MGTheme Theme) e)
+            {
+                if (Child.TryGetTarget(out MGResources Target))
+                {
+                    Target.Parent_OnDefaultThemeChanged(sender, e);
+                }
+                else if (sender is MGResources Parent)
+                {
+                    // The child scope was collected: prune this dead forwarder from the parent's invocation list.
+                    Parent.OnDefaultThemeChanged -= OnParentDefaultThemeChanged;
+                }
             }
         }
 

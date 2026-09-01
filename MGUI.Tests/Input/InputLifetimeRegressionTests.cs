@@ -24,22 +24,22 @@ namespace MGUI.Tests.Input;
 /// handler registration, keyboard focus, list box press), closes and detaches the window, and asserts that
 /// nothing left behind by those three mechanisms keeps the closed subtree alive.
 /// <para/>
-/// Task-6 discovery: closing a window does NOT make it (or its subtree) collectible on its own, because
-/// <see cref="MGWindow"/>'s own <c>EnsureResourceScope(UIResourceScope.Window)</c> call (constructor,
-/// unrelated to D1-D4) permanently chains the window's local <c>MGResources</c> to <c>Desktop.Resources</c>
-/// via <c>MGResources.SetParent</c>/<c>OnDefaultThemeChanged</c>, and nothing ever detaches that chain when the
-/// window closes. That single extra root is out of scope for this plan (see class remarks on
-/// <see cref="WindowResourcesParentChain_IsAKnownResidualRoot_NotFixedByThisPlan"/> below) and is neutralized here,
-/// via reflection, purely so this test can isolate and pin the D1/D2/D3 mechanisms it is actually responsible for.
+/// The residual root discovered during task 6 (the window's local <c>MGResources</c> chained to
+/// <c>Desktop.Resources.OnDefaultThemeChanged</c> by <c>EnsureResourceScope(UIResourceScope.Window)</c>) has since been
+/// fixed: <c>MGResources.SetParent</c> now subscribes through a weak forwarder (<c>WeakThemeChangedForwarder</c>) that
+/// references the child scope only weakly, so a closed window is collectable as soon as the application drops it, while
+/// theme propagation keeps working for closed-but-still-referenced windows that will be re-shown (see
+/// <see cref="ClosedWindow_IsNotRootedByDesktopResourcesThemeSubscription"/> and
+/// <see cref="ThemeChange_StillReachesWindow_WhileClosedAndAfterReopen"/> below).
 /// </summary>
 public class InputLifetimeRegressionTests
 {
     [Fact]
-    public void ClosingWindow_AllowsTextBoxNumericUpDownAndListBox_ToBeCollected_OnceKnownResidualRootIsDetached()
+    public void ClosingWindow_AllowsTextBoxNumericUpDownAndListBox_ToBeCollected()
     {
         LifetimeHarness harness = CreateHarness();
 
-        WeakReference[] references = BuildWindowAndCaptureWeakReferences(harness, detachKnownResidualResourcesRoot: true);
+        WeakReference[] references = BuildWindowAndCaptureWeakReferences(harness);
 
         // Drive a couple more update ticks after the window is closed and detached, exercising the same
         // code paths (tracker UpdateHandlers, desktop Update) a real host would run afterwards, to make sure
@@ -57,41 +57,85 @@ public class InputLifetimeRegressionTests
     }
 
     /// <summary>
-    /// Documents and pins the residual root discovered while writing the collectability regression above:
-    /// <see cref="MGWindow"/> permanently subscribes its own local <c>MGResources</c> to
-    /// <c>Desktop.Resources.OnDefaultThemeChanged</c> (via <c>MGResources.SetParent</c>, at construction time,
-    /// through <c>EnsureResourceScope(UIResourceScope.Window)</c>) and nothing unsubscribes it when the window
-    /// closes, so a closed-and-detached window (and its entire subtree) remains reachable from
-    /// <c>Desktop.Resources</c> for the desktop's lifetime.
+    /// Pins the fix for the residual root originally discovered while writing the collectability regression above:
+    /// <see cref="MGWindow"/> subscribes its own local <c>MGResources</c> to <c>Desktop.Resources.OnDefaultThemeChanged</c>
+    /// (via <c>MGResources.SetParent</c>, at construction time, through <c>EnsureResourceScope(UIResourceScope.Window)</c>)
+    /// and nothing unsubscribes it when the window closes — which used to keep every closed window (and its entire
+    /// subtree) reachable from <c>Desktop.Resources</c> for the desktop's lifetime.
     /// <para/>
-    /// This is deliberately NOT fixed by this plan: unlike the D1-D3 leaks, this codebase's windows are commonly
-    /// closed and later re-shown as the SAME instance (see <c>SampleBase.Show/Hide</c>, <c>Desktop.Windows.Add/Remove</c>
-    /// via <c>BringToFront</c>) — the exact "closing is not dying" scenario the plan's D1 "Approche INTERDITE"
-    /// section calls out. Naively detaching the resources parent chain on close (mirroring the forbidden
-    /// Unsubscribe-on-teardown approach for D1) would leave a re-shown window's local resources permanently
-    /// orphaned from <c>Desktop.Resources</c>, silently breaking theme propagation to it after every reopen —
-    /// nothing in the codebase currently re-attaches that link when a window re-enters <c>Desktop.Windows</c>.
-    /// Fixing it correctly would require deciding where/how to re-establish the parent chain on reopen, which is a
-    /// new design decision outside this plan's D1-D4 scope, so it is documented here instead of "fixed" via the
-    /// same teardown pattern the plan explicitly forbids for a structurally identical reason.
+    /// Unsubscribing on close was rejected (the "closing is not dying" constraint from the plan's D1 "Approche INTERDITE"
+    /// section: this codebase re-shows the SAME window instance via <c>SampleBase.Show/Hide</c> and
+    /// <c>Desktop.Windows.Add/Remove</c>, <c>Desktop.Windows</c> is a bare <c>List&lt;MGWindow&gt;</c> with no add hook to
+    /// re-attach from, and a detached scope with no local theme makes <c>MGResources.DefaultTheme</c> throw). Instead,
+    /// <c>MGResources.SetParent</c> subscribes through a weak forwarder that references the child scope only weakly:
+    /// the parent scope no longer roots the child's owner, so once the application drops a closed window, the whole
+    /// subtree is collectable — asserted here without any test-side neutralization of the chain.
     /// </summary>
     [Fact]
-    public void WindowResourcesParentChain_IsAKnownResidualRoot_NotFixedByThisPlan()
+    public void ClosedWindow_IsNotRootedByDesktopResourcesThemeSubscription()
     {
         LifetimeHarness harness = CreateHarness();
 
-        WeakReference[] references = BuildWindowAndCaptureWeakReferences(harness, detachKnownResidualResourcesRoot: false);
+        WeakReference[] references = BuildWindowAndCaptureWeakReferences(harness);
 
         harness.Desktop.Update();
         harness.Desktop.Update();
 
         CollectGarbage();
 
-        Assert.True(references[0].IsAlive, "Expected the closed window to still be reachable via Desktop.Resources' local-resources parent chain (documented residual root).");
+        Assert.False(references[0].IsAlive, "Expected the closed window to be collectable: Desktop.Resources' theme subscription must not root the window's local-resources parent chain anymore.");
+    }
+
+    /// <summary>
+    /// Companion regression to <see cref="ClosedWindow_IsNotRootedByDesktopResourcesThemeSubscription"/>, guarding the
+    /// other half of the contract: the weak forwarder must NOT weaken theme propagation for the "closing is not dying"
+    /// scenario. A window that is closed but still strongly referenced (like <c>SampleBase</c> holding a hidden sample)
+    /// keeps receiving <c>Desktop.Resources</c> theme changes — through garbage collections — both while closed and
+    /// after being re-added to <c>Desktop.Windows</c>.
+    /// </summary>
+    [Fact]
+    public void ThemeChange_StillReachesWindow_WhileClosedAndAfterReopen()
+    {
+        LifetimeHarness harness = CreateHarness();
+
+        MGWindow window = new(harness.Desktop, 24, 24, 400, 260)
+        {
+            WindowStyle = WindowStyle.None,
+            Padding = new Thickness(0)
+        };
+        window.SetContent(new MGTextBlock(window, "content"));
+
+        harness.Desktop.Windows.Add(window);
+        harness.Desktop.Update();
+
+        Assert.True(window.TryCloseWindow(), "Precondition failed: the test window could not be closed.");
+
+        // The weak forwarder must survive garbage collection as long as the window itself is reachable.
+        CollectGarbage();
+
+        int themeChangesSeenByWindowScope = 0;
+        window.LocalResources.OnDefaultThemeChanged += (_, _) => themeChangesSeenByWindowScope++;
+
+        MGTheme themeWhileClosed = new(harness.Desktop.DefaultFontFamily);
+        harness.Desktop.Resources.DefaultTheme = themeWhileClosed;
+
+        Assert.Equal(1, themeChangesSeenByWindowScope);
+        Assert.Same(themeWhileClosed, window.GetTheme());
+
+        // Re-show the SAME instance (SampleBase.Show pattern) and change the theme again after another GC.
+        harness.Desktop.Windows.Add(window);
+        harness.Desktop.Update();
+        CollectGarbage();
+
+        MGTheme themeAfterReopen = new(harness.Desktop.DefaultFontFamily);
+        harness.Desktop.Resources.DefaultTheme = themeAfterReopen;
+
+        Assert.Equal(2, themeChangesSeenByWindowScope);
+        Assert.Same(themeAfterReopen, window.GetTheme());
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static WeakReference[] BuildWindowAndCaptureWeakReferences(LifetimeHarness harness, bool detachKnownResidualResourcesRoot)
+    private static WeakReference[] BuildWindowAndCaptureWeakReferences(LifetimeHarness harness)
     {
         MGWindow window = new(harness.Desktop, 24, 24, 400, 260)
         {
@@ -126,11 +170,6 @@ public class InputLifetimeRegressionTests
         Assert.True(closed, "Precondition failed: the test window could not be closed.");
         Assert.DoesNotContain(window, harness.Desktop.Windows);
 
-        if (detachKnownResidualResourcesRoot)
-        {
-            DetachWindowLocalResourcesFromDesktop(window);
-        }
-
         return new WeakReference[]
         {
             new(window),
@@ -138,22 +177,6 @@ public class InputLifetimeRegressionTests
             new(numericUpDown),
             new(listBox)
         };
-    }
-
-    /// <summary>
-    /// Test-only reflection helper that severs the documented residual root (see
-    /// <see cref="WindowResourcesParentChain_IsAKnownResidualRoot_NotFixedByThisPlan"/>) so the collectability
-    /// regression can isolate the D1/D2/D3 mechanisms it actually targets. Not a production fix: production code
-    /// never calls this.
-    /// </summary>
-    private static void DetachWindowLocalResourcesFromDesktop(MGWindow window)
-    {
-        System.Reflection.FieldInfo localResourcesField = typeof(MGElement).GetField("_LocalResources", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
-        object localResources = localResourcesField.GetValue(window);
-        if (localResources != null)
-        {
-            localResources.GetType().GetMethod("SetParent")!.Invoke(localResources, new object[] { null });
-        }
     }
 
     private static void SetFocusedKeyboardHandler(MGDesktop desktop, MGElement element)
