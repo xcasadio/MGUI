@@ -312,6 +312,13 @@ namespace MGUI.Core.UI
 
             SetFormattedText(FormattedText, Silent);
         }
+
+        /// <summary>Refreshes the formatted text's selection colors when this textbox gains or loses keyboard focus.</summary>
+        protected internal override void OnKeyboardFocusChanged(bool gained)
+        {
+            base.OnKeyboardFocusChanged(gained);
+            UpdateFormattedText(true);
+        }
         #endregion Formmated Text
 
         #region Placeholder Text
@@ -1246,14 +1253,6 @@ namespace MGUI.Core.UI
                         }
 
                         e.SetHandled(this, false);
-                    }
-                };
-
-                GetDesktop().FocusedKeyboardHandlerChanged += (sender, e) =>
-                {
-                    if (e.PreviousValue == this || e.NewValue == this)
-                    {
-                        UpdateFormattedText(true);
                     }
                 };
 

@@ -173,7 +173,7 @@ Resultat:
 - validation : `dotnet build MGUI.Tests.csproj --no-restore` vert, `dotnet build MGUI.Samples.csproj --no-restore` vert ; `dotnet test --filter "FullyQualifiedName~TrackerHandlerRegistrationTests|InputEnhanced"` : 63/63 verts ; `dotnet test --filter "Focus|Input"` : 343/343 verts ; suite complete : 1185 tests, 1182 reussis, 3 echecs (exactement les 3 rouges de la baseline tache 0, aucun nouveau rouge), 0 ignores ;
 - aucune API publique retiree (`Handlers`, `CreateHandler`, `Unsubscribe` preserves).
 
-### ⚪ 2. Notification de focus par element et migration MGTextBox / MGNumericUpDown (D2)
+### ✅ 2. Notification de focus par element et migration MGTextBox / MGNumericUpDown (D2)
 
 But:
 supprimer les abonnements de constructeurs a `FocusedKeyboardHandlerChanged` en les remplacant par un virtuel notifie directement par le setter du desktop.
@@ -200,6 +200,24 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `focus: complete task 2 add element keyboard focus notification`
+
+Resultat:
+
+- `MGElement.OnKeyboardFocusChanged(bool gained)` ajoute (protected internal virtual, no-op par defaut), documente comme notification self-only sans risque de fuite (MGElement.cs, juste apres `OnThemeChanged`) ;
+- `MGDesktop.FocusedKeyboardHandler` (setter prive, MGDesktop.cs) appelle desormais `Previous?.OnKeyboardFocusChanged(false)` puis `FocusedKeyboardHandler?.OnKeyboardFocusChanged(true)` juste apres `NPC(nameof(FocusedKeyboardHandler))` et juste avant `FocusedKeyboardHandlerChanged?.Invoke(...)` — donc strictement apres l'affectation `State.FocusedKeyboardHandler = value` et le swap `ReadonlyChanged`, ordre conforme a la decision D2 ;
+- `MGTextBox` : lambda du constructeur (`GetDesktop().FocusedKeyboardHandlerChanged += ...`) supprimee ; override `protected internal override void OnKeyboardFocusChanged(bool gained)` ajoute juste apres `UpdateFormattedText`, appelle `UpdateFormattedText(true)` inconditionnellement (gained true ET false), reproduisant le comportement de l'ancienne lambda (`e.PreviousValue == this || e.NewValue == this`) ;
+- `MGNumericUpDown` : abonnement du constructeur et methode privee `HandleFocusChanged` supprimes ; override `protected internal override void OnKeyboardFocusChanged(bool gained)` ajoute, appelle `base.OnKeyboardFocusChanged(gained)` PUIS `CommitPendingText(false)` si `!gained` uniquement — l'appel a base est fait dans tous les cas (recoloration de selection heritee de MGTextBox preservee) ;
+- `MGPasswordBox`/`MGRichTextBox` verifies : aucun override necessaire, heritent du bon comportement via le virtuel `UpdateFormattedText` (MGRichTextBox) ou n'ont pas de logique de focus propre (MGPasswordBox) ;
+- `MGGraphControls` (:869) et `MGPropertyGrid` (:1059) laisses inchanges : toujours abonnes a l'event public `FocusedKeyboardHandlerChanged`, confirme par grep post-migration (seules ces deux occurrences de `FocusedKeyboardHandlerChanged +=` restent dans MGUI.Core) ;
+- nouveaux tests dans `MGUI.Tests/Focus/KeyboardFocusNotificationTests.cs` (6 tests, avec runtime de test IUIDesktopRuntime minimal dedie calque sur le patron `AdornerLiteTests.AdornerTestRuntime`) :
+  - gain de focus d'un `MGTextBox` avec selection non vide change le texte formate (couleurs focused) ;
+  - perte de focus d'un `MGTextBox` avec selection non vide change le texte formate (couleurs unfocused) ;
+  - perte de focus d'un `MGNumericUpDown` (DecimalPlaces=2) avec texte en attente ("42") resynchronise le Text au format canonique ("42.00") — note : `Value` est deja mis a jour en live par `HandleTextChanged`/`SetValueCore(_, syncText:false)` a chaque frappe (ce n'est pas ce que `CommitPendingText` ajoute) ; l'effet observable propre a la perte de focus est le reformatage du `Text` via `SyncTextFromValue()` (`SetValueCore(_, syncText:true)`), c'est ce que le test pinne ;
+  - gain de focus d'un `MGNumericUpDown` avec texte en attente NE resynchronise PAS le Text ;
+  - subclasse de test `FocusProbeTextBox` (override public compte gained/lost) : verifie l'ordre gained/lost sur deux elements distincts et la notification de l'ancien focus lors d'une transition vers null (mirroir de `PropertyGridTests.cs:333`) ;
+  - anti-fuite : construction de 25x2 `MGTextBox`/`MGNumericUpDown` puis verification par reflexion (`GetField("FocusedKeyboardHandlerChanged", NonPublic|Instance)`) que la longueur de la liste d'invocation du delegate backing du desktop n'a pas grossi ;
+- validation : `dotnet build MGUI.Tests.csproj --no-restore` vert (0 erreur) ; `dotnet build MGUI.Samples.csproj --no-restore` vert (0 avertissement, 0 erreur) ; `dotnet test --filter "FullyQualifiedName~KeyboardFocusNotificationTests"` : 6/6 verts ; `dotnet test --filter "PropertyGrid|StableDiagnosticId|Focus"` : 309/309 verts (aucune regression sur les tests pilotant le setter prive par reflexion) ; suite complete : 1191 tests, 1188 reussis, 3 echecs (exactement les 3 rouges de la baseline tache 0, aucun nouveau rouge), 0 ignores ;
+- aucune API publique retiree (`FocusedKeyboardHandlerChanged`, `Unsubscribe`, `Handlers`, `CreateHandler` intacts) ; `Unsubscribe`/trackers de la tache 1 non touches.
 
 ### ⚪ 3. Supprimer l'abonnement Runtime.EndUpdate de MGListBox (D3)
 
