@@ -219,7 +219,7 @@ Resultat:
 - validation : `dotnet build MGUI.Tests.csproj --no-restore` vert (0 erreur) ; `dotnet build MGUI.Samples.csproj --no-restore` vert (0 avertissement, 0 erreur) ; `dotnet test --filter "FullyQualifiedName~KeyboardFocusNotificationTests"` : 6/6 verts ; `dotnet test --filter "PropertyGrid|StableDiagnosticId|Focus"` : 309/309 verts (aucune regression sur les tests pilotant le setter prive par reflexion) ; suite complete : 1191 tests, 1188 reussis, 3 echecs (exactement les 3 rouges de la baseline tache 0, aucun nouveau rouge), 0 ignores ;
 - aucune API publique retiree (`FocusedKeyboardHandlerChanged`, `Unsubscribe`, `Handlers`, `CreateHandler` intacts) ; `Unsubscribe`/trackers de la tache 1 non touches.
 
-### ⚪ 3. Supprimer l'abonnement Runtime.EndUpdate de MGListBox (D3)
+### ✅ 3. Supprimer l'abonnement Runtime.EndUpdate de MGListBox (D3)
 
 But:
 eliminer la troisieme fuite de la meme famille (element -> runtime-lifetime).
@@ -240,6 +240,16 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `controls: complete task 3 remove listbox runtime endupdate subscription`
+
+Resultat:
+
+- analyse prealable confirmee : `PressedItem`/`IsPressedItemInvalidationPending` ne sont lus que par `LMBPressedInside`/`LMBReleasedInside`/`ReleasedOutside` (ecriture) et par la lambda de reset elle-meme (lecture pour reset) ; la sequence par frame etant Update -> Draw -> `Runtime.EndUpdate`, l'ancien reset en fin de tick (juste apres Draw) et un reset en debut du tick suivant (avant le prochain Draw) produisent le meme etat observable au moment de chaque Draw : le visuel presse survit au Draw du tick ou il a ete arme, et est efface avant le Draw suivant, dans les deux cas ;
+- lambda du constructeur (`GetDesktop().Runtime.EndUpdate += ...`, MGListBox.cs:1506-1520) supprimee et remplacee par un abonnement a l'evenement `OnBeginUpdate` deja expose par `MGElement` (invoque en tout debut de `MGElement.Update`, avant le calcul du visual state et le Draw du meme tick) ; logique de reset (armement via `IsPressedItemInvalidationPending`, remise a null de `PressedItem`, `SpoofIsPressedWhileDrawingBackground = false`) inchangee, seul le point d'abonnement change ;
+- ce nouvel abonnement est sur l'evenement de l'element lui-meme (`this.OnBeginUpdate`), pas sur le runtime/desktop : sa duree de vie est intrinsequement liee a celle du `MGListBox`, donc ne cree aucune racine externe — contrairement a l'abonnement au `Runtime.EndUpdate` du desktop qui enracinait la listbox pour la duree de vie du runtime ;
+- aucune dependance reelle a l'instant precis de `EndUpdate` (post-Draw) n'a ete trouvee : aucun code ne lit `PressedItem`/`SpoofIsPressedWhileDrawingBackground` entre le Draw et l'ancien `EndUpdate` ;
+- nouveaux tests dans `MGUI.Tests/Controls/MGListBoxPressedItemTests.cs` (2 tests, harness `IUIDesktopRuntime` de test dedie calque sur le patron `KeyboardFocusNotificationTests.FocusNotificationTestRuntime`) : `PressedItem_DoesNotPersist_AcrossUpdateTick_AfterReleaseIsPending` (arme `PressedItem`+`IsPressedItemInvalidationPending` via reflexion pour simuler l'etat laisse par un press+release, puis verifie qu'un `desktop.Update()` les reinitialise, prouvant que le reset ne depend plus de `Runtime.EndUpdate` — le runtime de test a un `EndUpdate` no-op) ; `PressedItem_NotReset_UntilInvalidationIsPending` (sans armer le flag d'invalidation, `PressedItem` survit a un `desktop.Update()`, comme avant) ;
+- validation : `dotnet build MGUI.Tests.csproj --no-restore` vert (0 erreur) ; `dotnet build MGUI.Samples.csproj --no-restore` vert (0 avertissement, 0 erreur) ; `dotnet test --filter "FullyQualifiedName~MGListBoxPressedItemTests"` : 2/2 verts ; `dotnet test --filter "Focus|Input"` : 349/349 verts ; suite complete : 1193 tests, 1190 reussis, 3 echecs (exactement les 3 rouges de la baseline tache 0, aucun nouveau rouge), 0 ignores ;
+- plus aucun `Runtime.EndUpdate +=` dans un constructeur d'element de `MGUI.Core` (grep post-modification confirme).
 
 ### ⚪ 4. Cabler GameWindow.TextInput vers le puits clavier (D4)
 
