@@ -135,6 +135,12 @@ Resultat:
 - aucune de ces 3 failures ne touche au perimetre du present plan (trackers, focus, MGListBox EndUpdate, TextInput) ; elles ne sont pas corrigees ici (pas de trivialite evidente d'une ligne) ;
 - aucun code de production modifie pour cette tache.
 
+Mise a jour 2026-09-01 (correctif hors plan initial) : les 3 rouges baseline sont corriges cote tests, aucun code de production modifie ; la nouvelle reference est 0 rouge :
+
+1. rouge 1 : attente de test obsolete — les sources `Text\` (FontManager, FontSet, SpritefontGenerator, SpriteFontTextEngine) sont volontairement compilees dans `MGUI.MonoGame.Integration` (jamais retirees depuis le split 6be7a71 ; `RendererAssetProvider` expose `FontManager` dans son API publique) ; les 4 entrees `Text\` sont retirees des attentes de `IntegrationProject_StripsLegacyRendererFiles`, avec une assertion inverse documentant l'intention ;
+2. rouge 2 : `AmbiguousMatchException` resolue en ciblant chacune des 2 surcharges de `UIToolingService.LoadPreview` par signature explicite dans `GetMethod` ;
+3. rouge 3 : le test lisait un chemin absolu perime (`d:\development\repo\CasaEngineMonogame\...`, ancienne copie du depot) ; le comportement `OnThemeChanged` de `MGListBox.cs` existe toujours tel quel ; le test (et 3 autres du meme fichier lisant ce meme chemin perime) lit desormais le depot courant via un chemin relatif au binaire de test (`RepoRoot`).
+
 ### ✅ 1. Ne plus enregistrer les handlers manuels dans les trackers (D1)
 
 But:

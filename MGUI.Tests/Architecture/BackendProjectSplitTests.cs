@@ -66,14 +66,13 @@ public class BackendProjectSplitTests
             "Rendering\\MainRenderer.cs",
             "Rendering\\RenderTargetPool.cs",
             "Rendering\\View.cs",
-            "Rendering\\Clipping\\ClipManager.cs",
-            "Text\\FontManager.cs",
-            "Text\\FontSet.cs",
-            "Text\\SpritefontGenerator.cs",
-            "Text\\Engines\\SpriteFontTextEngine.cs"
+            "Rendering\\Clipping\\ClipManager.cs"
         };
 
         Assert.All(removedFiles, removedFile => Assert.Contains($"<Compile Remove=\"{removedFile}\" />", integrationProjectSource));
+        // Les sources Text (FontManager, FontSet, SpritefontGenerator, SpriteFontTextEngine) restent
+        // compilees dans l'integration : RendererAssetProvider expose FontManager dans son API publique.
+        Assert.DoesNotContain("<Compile Remove=\"Text\\", integrationProjectSource, StringComparison.Ordinal);
         Assert.DoesNotContain("PackageReference Include=\"MonoGame.Extended\"", integrationProjectSource, StringComparison.Ordinal);
     }
 
