@@ -289,7 +289,9 @@ Resultat:
 - Aucune decision ambigue rencontree : le type et son emplacement (`MGUI.Core/UI/InputRouting`, `HudInputContext`) et la priorite par defaut `50` sont directement fixes par la decision utilisateur consignee dans ce fichier ; le caractere obligatoire du predicat d'activation est explicitement ecrit dans le texte de la tache ; la forme generale ("calquee sur `GameplayInputContext`") est directement observable dans le code existant. Le seul choix laisse a l'implementeur — la position du parametre `isActive` dans la signature (avant `priority` plutot qu'apres, pour respecter la regle C# des parametres optionnels) — est un detail syntaxique sans consequence semantique.
 - Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet build MGUI.MiniGame/MGUI.MiniGame.csproj --no-restore` OK (tache touchant la couche semantique) ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 393/393 verts (389 baseline tache 6 + 4 nouveaux) ; `--filter "FullyQualifiedName~HudInputContextTests"` -> 4/4 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1237/1237 verts (1233 baseline + 4 nouveaux), aucun test rouge.
 
-### ⚪ 8. Long terme : activation de fenetre et points d'extension reels
+### 🟡 8. Long terme : activation de fenetre et points d'extension reels
+
+Statut : document de conception livre dans `Docs/input-window-activation-design.md` ; le decoupage propose (section 5 du document) attend encore la validation de l'utilisateur avant toute implementation, donc la tache reste en cours et non terminee.
 
 Reportee par decision utilisateur (2026-09-02) : non incluse dans l'execution courante des taches 1 a 7.
 
