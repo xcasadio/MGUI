@@ -100,7 +100,7 @@ Resultat:
 - Test : nouveau fichier `MGUI.Tests/Focus/NavigationFrontToBackFallbackTests.cs` (2 tests), pattern desktop/window/bouton reel calque sur `MGUI.Tests/Architecture/ContentLayoutSuspensionTests.cs` et `MGUI.Tests/Graph/GraphViewRenderingTests.cs` (utilise `MGUI.Tests.Graph.GraphTestRuntime` comme `IUIDesktopRuntime`) : deux fenetres non-topmost (`backWindow` ajoutee en premier, `frontWindow` en second, chacune avec un `MGButton` focusable), aucun focus/hover -> `GetFocusableElements()` doit se limiter a la fenetre du dessus (`frontWindow`, la derniere ajoutee) et `MoveFocusNext(KeyboardFocusSource.Keyboard)` doit donner le focus a `frontButton`, pas `backButton`. Les deux tests ont ete verifies faux (rouges) en retirant temporairement `.Reverse<MGWindow>()` avant de le restaurer, confirmant qu'ils detectent bien la regression corrigee.
 - Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 368/368 verts (366 baseline tache 1 + 2 nouveaux) ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1212/1212 verts, aucun test rouge.
 
-### ⚪ 3. Aligner le chemin semantique sur ShouldPreserveTextEntryKey
+### ✅ 3. Aligner le chemin semantique sur ShouldPreserveTextEntryKey
 
 But:
 
@@ -122,6 +122,19 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `input: honor text entry key preservation on semantic navigation path`
+
+Resultat:
+
+- Garde factorisee dans `MGUI.Core/UI/Navigation/UIFocusNavigationService.cs` : nouvelle methode privee `ShouldPreserveTextEntryKey(Keys? key)` qui reproduit exactement le test deja en place dans le chemin brut (`Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)` puis `is MGTextBox` + `ShouldPreserveTextEntryKey(key)`). Le chemin brut (`TryDispatchNavigationAction(BaseKeyPressedEventArgs e)`, ligne ~215) a ete modifie pour appeler cette methode partagee au lieu de dupliquer l'expression inline — comportement inchange, simple factorisation demandee par la tache ("factoriser la garde avec le chemin brut plutot que la dupliquer").
+- Nouvelle surcharge `TryDispatchNavigationAction(UINavigationAction action, KeyboardFocusSource source, Keys? key, out IKeyboardHandlerHost handledBy)` (+ variante sans `out`) : si `ShouldPreserveTextEntryKey(key)` est vrai, retourne `false` sans dispatcher (sans meme appeler `focusedElement.TryHandleNavigationAction`), sinon delegue a la surcharge existante `TryDispatchNavigationAction(action, source, out handledBy)`. C'est ce nouveau point d'entree que le chemin semantique utilise.
+- `MGDesktop.TryHandleInputAction` (`MGUI.Core/UI/MGDesktop.cs:554`) : le seul changement est l'appel `NavigationService.TryDispatchNavigationAction(navigationAction, GetNavigationFocusSource(actionEvent.Context.Source), actionEvent.Context.Key)` (ajout du parametre `actionEvent.Context.Key`, qui porte deja la touche d'origine comme le decrit la tache) au lieu de l'ancienne surcharge sans `key`. Quand la garde declenche, `TryHandleInputAction` retourne `false` ; verifie dans `MGUIInputContext.TryHandle` (ligne 20-26) que ce `false` ne fait pas fuir l'action vers le gameplay : `TryHandle` retourne toujours `true` des que `actionEvent.Action.IsUIAction()` est vrai (peu importe le `handled` de `TryHandleInputAction`), donc l'action UI reste toujours reservee par l'UI — exactement l'exigence "retourner la valeur qui laisse MGUIInputContext reserver l'action UI, afin qu'elle ne fuie pas non plus vers le gameplay".
+- Test : nouveau fichier `MGUI.Tests/Focus/SemanticNavigationTextEntryPreservationTests.cs` (4 tests), harnais reel `GraphTestRuntime` + `MGDesktop` + `MGWindow` (meme patron que `NavigationFrontToBackFallbackTests.cs` de la tache 2), focus pose via reflexion sur le setter prive de `FocusedKeyboardHandler` (meme pattern que `KeyboardFocusNotificationTests.SetFocusedKeyboardHandler`) :
+  - `NavigateLeft` + textbox focus editable + contexte portant `Keys.Left` -> `TryHandleInputAction` retourne `false`, le focus reste sur le textbox (pas de deplacement) ;
+  - `NavigateNext` + textbox focus avec `AcceptsTab = true` + contexte portant `Keys.Tab` -> `false`, focus inchange (pas de fuite vers un bouton suivant dans le tab order) ;
+  - `NavigateNext` + textbox focus avec `AcceptsTab = false` + contexte portant `Keys.Tab` -> `true`, le focus se deplace bien vers l'element suivant (cas explicitement demande par la tache : "verifier aussi le cas AcceptsTab == false (Tab doit naviguer)") ;
+  - `NavigateNext` sans textbox focus -> navigation normale (`true`, focus se pose sur le premier element focusable).
+- Aucune decision ambigue rencontree : le type de retour a utiliser (`false`, laissant `MGUIInputContext` reserver l'action) est directement determine par le texte de la tache et confirme par la lecture du code de `MGUIInputContext.TryHandle`.
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet build MGUI.MiniGame/MGUI.MiniGame.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 372/372 verts (368 baseline tache 2 + 4 nouveaux) ; `--filter "FullyQualifiedName~SemanticNavigationTextEntryPreservationTests"` -> 4/4 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1216/1216 verts, aucun test rouge.
 
 ### ⚪ 4. Decider et implementer le statut du hover inter-fenetres
 

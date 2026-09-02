@@ -212,7 +212,7 @@ namespace MGUI.Core.UI.Navigation
             MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
                 ? Desktop.FocusedKeyboardHandler
                 : null;
-            bool shouldPreserveTextEntryKey = focusedElement is MGTextBox focusedTextBox && focusedTextBox.ShouldPreserveTextEntryKey(e.Key);
+            bool shouldPreserveTextEntryKey = ShouldPreserveTextEntryKey(e.Key);
             if (!FocusInputPolicy.TryGetNavigationAction(e.Key, e.Tracker.IsShiftDown, focusedElement is MGTextBox, shouldPreserveTextEntryKey, out UINavigationAction action))
             {
                 return false;
@@ -229,6 +229,24 @@ namespace MGUI.Core.UI.Navigation
 
         internal bool TryDispatchNavigationAction(UINavigationAction action, KeyboardFocusSource source)
             => TryDispatchNavigationAction(action, source, out _);
+
+        /// <summary>Semantic-path entry point: applies the same text-entry key preservation guard as the raw
+        /// keyboard path (<see cref="TryDispatchNavigationAction(BaseKeyPressedEventArgs)"/>) before dispatching,
+        /// so a key that a focused <see cref="MGTextBox"/> reserves for editing (e.g. arrow keys, Tab when
+        /// <c>AcceptsTab</c>) is never reinterpreted as navigation on either path.</summary>
+        internal bool TryDispatchNavigationAction(UINavigationAction action, KeyboardFocusSource source, Keys? key)
+            => TryDispatchNavigationAction(action, source, key, out _);
+
+        internal bool TryDispatchNavigationAction(UINavigationAction action, KeyboardFocusSource source, Keys? key, out IKeyboardHandlerHost handledBy)
+        {
+            if (ShouldPreserveTextEntryKey(key))
+            {
+                handledBy = null;
+                return false;
+            }
+
+            return TryDispatchNavigationAction(action, source, out handledBy);
+        }
 
         internal bool TryDispatchNavigationAction(UINavigationAction action, KeyboardFocusSource source, out IKeyboardHandlerHost handledBy)
         {
@@ -419,6 +437,22 @@ namespace MGUI.Core.UI.Navigation
 
         private bool IsNavigationTarget(MGElement element)
             => Desktop.IsNavigationTarget(element);
+
+        /// <summary>True when <paramref name="key"/> is a key that the currently focused <see cref="MGTextBox"/>
+        /// reserves for text editing (per <see cref="MGTextBox.ShouldPreserveTextEntryKey(Keys)"/>) and must
+        /// therefore never be reinterpreted as UI navigation, on either the raw or the semantic input path.</summary>
+        private bool ShouldPreserveTextEntryKey(Keys? key)
+        {
+            if (key is not Keys keyValue)
+            {
+                return false;
+            }
+
+            MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
+                ? Desktop.FocusedKeyboardHandler
+                : null;
+            return focusedElement is MGTextBox focusedTextBox && focusedTextBox.ShouldPreserveTextEntryKey(keyValue);
+        }
 
         private static void EnsureNavigationTargetVisible(MGElement focusedElement)
         {

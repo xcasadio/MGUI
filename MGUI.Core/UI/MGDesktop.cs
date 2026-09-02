@@ -559,7 +559,7 @@ namespace MGUI.Core.UI
             }
 
             ActiveInputMode = ResolveSemanticInputMode(actionEvent.Context.Source, ActiveInputMode);
-            bool handled = NavigationService.TryDispatchNavigationAction(navigationAction, GetNavigationFocusSource(actionEvent.Context.Source));
+            bool handled = NavigationService.TryDispatchNavigationAction(navigationAction, GetNavigationFocusSource(actionEvent.Context.Source), actionEvent.Context.Key);
             ApplyQueuedFocusChange();
             return handled;
         }
