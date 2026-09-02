@@ -1401,6 +1401,12 @@ namespace MGUI.Core.UI
                     bool IsOverlayWindow = Window == OverlayWindow;
                     bool ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
 
+                    //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, Docs/Tasks/input-tasks.md tache 4):
+                    //  tell this window whether a higher window already claimed the mouse position this tick, so it can suppress
+                    //  HoveredElement/PressedElement for the occluded position. Keyboard routing (by focus, not z-order) is untouched:
+                    //  unlike ProcessInputs above, this does not affect ElementUpdateArgs.IsHitTestVisible.
+                    Window.IsOccludedAtMousePos = IsWindowOccludedAtMousePos;
+
                     Window.Update(ProcessInputs ? UA : UA with { IsHitTestVisible = false });
 
                     //  Disallow occluded windows from overriding the active ToolTip

@@ -1005,6 +1005,14 @@ namespace MGUI.Core.UI
 
         internal bool InvalidatePressedAndHoveredElements { get; set; } = false;
 
+        /// <summary>Set by <see cref="MGDesktop.Update"/> (or a nested window's parent) before each <see cref="Update(ElementUpdateArgs)"/> call.<para/>
+        /// True if a higher z-order window is currently visually occluding this window at the current mouse position (mirrors the desktop's
+        /// existing tooltip-occlusion check, generalized to <see cref="HoveredElement"/>/<see cref="PressedElement"/> per the 2026-09-02 cross-window
+        /// hover occlusion decision - option (b) in Docs/Tasks/input-tasks.md). While true, this window must not light up <see cref="HoveredElement"/>/
+        /// <see cref="PressedElement"/> for the occluded position, EXCEPT while this window already owns an active mouse-drag capture, which must
+        /// keep following its owner regardless of occlusion.</summary>
+        internal bool IsOccludedAtMousePos { get; set; }
+
         /// <summary>If true, this <see cref="MGWindow"/>'s layout will be recomputed at the start of the next update tick.</summary>
         public bool QueueLayoutRefresh { get; set; }
 
@@ -1183,7 +1191,8 @@ namespace MGUI.Core.UI
                     PressedElementAtBeginUpdate = PressedElement;
                     HoveredElementAtBeginUpdate = HoveredElement;
 
-                    bool suppressHoveredElementUpdate = !MouseHandler.Tracker.MouseLeftButtonReleasedRecently && HasActiveMouseDragCapture();
+                    bool hasActiveDragCapture = HasActiveMouseDragCapture();
+                    bool suppressHoveredElementUpdate = !MouseHandler.Tracker.MouseLeftButtonReleasedRecently && hasActiveDragCapture;
                     bool shouldUpdateHoveredElement = !suppressHoveredElementUpdate
                         && (MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements);
 
@@ -1213,11 +1222,21 @@ namespace MGUI.Core.UI
                         }
                     }
 
+                    //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, Docs/Tasks/input-tasks.md tache 4):
+                    //  a window that is visually covered by a higher window at the current mouse position must not light up HoveredElement,
+                    //  unless it already owns an active mouse-drag capture, which must keep following its owner regardless of occlusion.
+                    if (IsOccludedAtMousePos && !hasActiveDragCapture)
+                    {
+                        HoveredElement = null;
+                    }
+
                     using (UIPerformanceProbe.BeginDesktopPhase("Window.PressedElement"))
                     {
                         if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
                         {
-                            PressedElement = GetTopmostHoveredElement(e.UA);
+                            //  Same occlusion rule as HoveredElement above: a brand-new press over an occluded window must not light up PressedElement.
+                            //  An already-in-progress drag is untouched here since this branch only runs on the exact press tick.
+                            PressedElement = IsOccludedAtMousePos ? null : GetTopmostHoveredElement(e.UA);
                         }
                         else if (MouseHandler.Tracker.MouseLeftButtonReleasedRecently)
                         {

@@ -136,7 +136,7 @@ Resultat:
 - Aucune decision ambigue rencontree : le type de retour a utiliser (`false`, laissant `MGUIInputContext` reserver l'action) est directement determine par le texte de la tache et confirme par la lecture du code de `MGUIInputContext.TryHandle`.
 - Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet build MGUI.MiniGame/MGUI.MiniGame.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 372/372 verts (368 baseline tache 2 + 4 nouveaux) ; `--filter "FullyQualifiedName~SemanticNavigationTextEntryPreservationTests"` -> 4/4 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1216/1216 verts, aucun test rouge.
 
-### ⚪ 4. Decider et implementer le statut du hover inter-fenetres
+### ✅ 4. Decider et implementer le statut du hover inter-fenetres
 
 But:
 
@@ -158,6 +158,21 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `input: resolve cross-window hover occlusion status` (ou `docs: ...` si option (a))
+
+Resultat:
+
+- Option (b) implementee (decision utilisateur consignee dans ce fichier) : nouvelle propriete interne `MGWindow.IsOccludedAtMousePos` (`MGUI.Core/UI/MGWindow.cs`), affectee par `MGDesktop.Update` (`MGUI.Core/UI/MGDesktop.cs:~1400`) juste avant chaque `Window.Update(...)`, en reutilisant tel quel le `IsWindowOccludedAtMousePos` deja calcule par la boucle existante (jusque-la reservee aux tooltips) — meme mecanisme, meme cout (un bool par fenetre par tick, aucune allocation, nul hors recouvrement).
+- `MGWindow.OnBeginUpdate` (meme fichier, bloc `HoveredElement`/`PressedElement`) consulte ce flag : `HoveredElement` est force a `null` quand la fenetre est occluse, **sauf** si elle possede deja une capture de drag active (`HasActiveMouseDragCapture()`, calculee une seule fois et reutilisee) — son hover reste alors gele comme avant (comportement deja existant pour la duree d'un drag, inchange). `PressedElement` n'est mis a `null` par occlusion que sur le tick d'un **nouveau** press (`MouseLeftButtonPressedRecently`) ; un press deja en cours n'est jamais reevalue entre le press et le release (comportement deja existant), ce qui preserve intrinsequement la semantique de capture de drag demandee par la tache sans code supplementaire dedie au drag.
+- Doc `Docs/input-architecture.md` mise a jour dans les deux sections demandees : resume en tete de fichier, section "Fenetres superposees : la garantie et ses exceptions" (points 1 et 2 reecrits pour distinguer ce qui reste ouvert — evenements de mouvement bruts `Entered/MovedInside/Exited` et drag-drop, toujours sans flag handled — de ce qui est corrige — `HoveredElement`/`PressedElement`/etat visuel), et section "Limites connues" (point 1 reecrit en "partiellement corrigee").
+- Test : nouveau fichier `MGUI.Tests/Input/CrossWindowHoverPressedOcclusionTests.cs` (4 tests), harnais reel `GraphTestRuntime` + `MGDesktop` + deux `MGWindow` qui se chevauchent (`backWindow` ajoutee en premier a (0,0,300,200), `frontWindow` ajoutee en second a (150,0,300,200), chacune avec un `MGButton` unique remplissant toute la fenetre), simulation de frames via `MouseState` reel (meme patron que `GraphInputNavigationTests.AdvanceFrame`) :
+  - hover au point de recouvrement -> `frontWindow.HoveredElement == frontButton`, `backWindow.HoveredElement == null` ;
+  - hover a un point couvert seulement par `backWindow` (hors recouvrement) -> cas de controle, `backWindow.HoveredElement == backButton`, `frontWindow.HoveredElement == null` (verifie que l'occlusion ne supprime pas le hover legitime hors recouvrement) ;
+  - press au point de recouvrement -> `frontWindow.PressedElement == frontButton`, `backWindow.PressedElement == null` ;
+  - press demarre hors recouvrement sur `backWindow` puis curseur deplace (bouton toujours enfonce) dans la zone maintenant recouverte par `frontWindow` -> `backWindow.PressedElement` reste `backButton` tout du long (regression de preservation de capture demandee par la tache).
+  - Les 2 premiers tests (hover et press au recouvrement) ont ete verifies rouges en revertant temporairement le fix (`git stash` sur `MGWindow.cs`/`MGDesktop.cs`, tests relances, puis restauration du fix), confirmant qu'ils detectent bien la regression corrigee ; les 2 autres (controle hors-recouvrement, preservation de capture) restent verts avant et apres le fix par construction, ce qui est le comportement attendu.
+  - Point technique decouvert en ecrivant les tests (non documente prealablement dans le plan) : `MGWindow.VisualState` (lu par le mecanisme d'occlusion de `MGDesktop.Update`, deja utilise pour les tooltips) est recalcule dans `MGElement.Update` **avant** que `OnBeginUpdate` ne rafraichisse `HoveredElement`/`PressedElement` pour le meme tick — un changement de position de la souris met donc un tick supplementaire a se refleter dans `VisualState.IsHovered`, et donc dans l'occlusion detectee pour la fenetre suivante. C'est un decalage deja present avant cette tache (le mecanisme tooltip en herite aussi) ; les tests en tiennent compte (frame de stabilisation supplementaire) mais ce decalage lui-meme n'a pas ete modifie, conformement au perimetre de la tache.
+- Aucune decision ambigue rencontree : le choix technique (reutiliser `IsWindowOccludedAtMousePos` existant plutot que dupliquer le calcul, exempter les captures de drag actives) est directement autorise par le texte de la tache ("generaliser le test d'occlusion desktop... au calcul de HoveredElement et PressedElement" et "attention au drag en cours... semantique de capture a preserver").
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 376/376 verts (372 baseline tache 3 + 4 nouveaux) ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1220/1220 verts, aucun test rouge.
 
 ### ⚪ 5. Ajouter des tests fenetres superposees
 
