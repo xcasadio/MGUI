@@ -15,7 +15,7 @@ using Xunit;
 namespace MGUI.Tests.Input;
 
 /// <summary>
-/// Locks down the central routing guarantee for overlapping desktop windows (Docs/Tasks/input-tasks.md tache 5):
+/// Locks down the central routing guarantee for overlapping desktop windows (documented in Docs/input-architecture.md "Fenetres superposees"):
 /// press/release/scroll/drag-start in the overlap region are consumed by the topmost window and never delivered
 /// to the window below, hover follows the cross-window occlusion decision from tache 4, keyboard is routed by
 /// focus rather than z-order, <see cref="MGWindow.AllowsClickThrough"/> lets unconsumed events fall through, and

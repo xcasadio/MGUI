@@ -33,7 +33,7 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 
 Chaque scenario se rattache a une doc d'architecture et, quand du travail reste ouvert, a un fichier de taches :
 
-- `SCN-FOCUS-001`, `SCN-OVERLAY-001` : [input-architecture.md](input-architecture.md), taches [Tasks/input-tasks.md](Tasks/input-tasks.md) ;
+- `SCN-FOCUS-001`, `SCN-OVERLAY-001` : [input-architecture.md](input-architecture.md), taches [Tasks/input-activation-tasks.md](Tasks/input-activation-tasks.md) ;
 - `SCN-THEME-001`, `SCN-MARKUP-001` : [styling-theme-architecture.md](styling-theme-architecture.md), taches [Tasks/styling-theme-tasks.md](Tasks/styling-theme-tasks.md) ;
 - `SCN-OVERLAY-002`, `SCN-GRID-001`, `SCN-DOCK-001` : [controls-architecture.md](controls-architecture.md) ; vagues docking restantes dans [Tasks/roadmap-tasks.md](Tasks/roadmap-tasks.md) ;
 - `SCN-LAYOUT-001` : [layout-architecture.md](layout-architecture.md) ;

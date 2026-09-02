@@ -12,7 +12,7 @@ namespace MGUI.Tests.Input;
 
 /// <summary>
 /// Regression coverage for the cross-window hover/pressed occlusion fix (decision utilisateur 2026-09-02,
-/// option (b), Docs/Tasks/input-tasks.md tache 4): <see cref="MGWindow.HoveredElement"/> and
+/// option (b), documented in Docs/input-architecture.md "Fenetres superposees"): <see cref="MGWindow.HoveredElement"/> and
 /// <see cref="MGWindow.PressedElement"/> of a window visually occluded by a higher window at the current
 /// mouse position must no longer light up, while an ongoing press/drag started before the occlusion must
 /// keep following its owning window.

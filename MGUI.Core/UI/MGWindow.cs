@@ -1142,7 +1142,7 @@ namespace MGUI.Core.UI
         /// <summary>Set by <see cref="MGDesktop.Update"/> (or a nested window's parent) before each <see cref="Update(ElementUpdateArgs)"/> call.<para/>
         /// True if a higher z-order window is currently visually occluding this window at the current mouse position (mirrors the desktop's
         /// existing tooltip-occlusion check, generalized to <see cref="HoveredElement"/>/<see cref="PressedElement"/> per the 2026-09-02 cross-window
-        /// hover occlusion decision - option (b) in Docs/Tasks/input-tasks.md). While true, this window must not light up <see cref="HoveredElement"/>/
+        /// hover occlusion decision - option (b), documented in Docs/input-architecture.md). While true, this window must not light up <see cref="HoveredElement"/>/
         /// <see cref="PressedElement"/> for the occluded position, EXCEPT while this window already owns an active mouse-drag capture, which must
         /// keep following its owner regardless of occlusion.</summary>
         internal bool IsOccludedAtMousePos { get; set; }
@@ -1446,7 +1446,7 @@ namespace MGUI.Core.UI
                         }
                     }
 
-                    //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, Docs/Tasks/input-tasks.md tache 4):
+                    //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, documented in Docs/input-architecture.md "Fenetres superposees"):
                     //  a window that is visually covered by a higher window at the current mouse position must not light up HoveredElement,
                     //  unless it already owns an active mouse-drag capture, which must keep following its owner regardless of occlusion.
                     if (IsOccludedAtMousePos && !hasActiveDragCapture)
@@ -1568,7 +1568,7 @@ namespace MGUI.Core.UI
                         }
 
                         //  Nested-window occlusion of this window's own content (same rule as the desktop's cross-window occlusion, option b,
-                        //  Docs/Tasks/input-tasks.md tache 4): when the modal window or a non-click-through nested window (e.g. a ComboBox dropdown)
+                        //  documented in Docs/input-architecture.md "Fenetres superposees"): when the modal window or a non-click-through nested window (e.g. a ComboBox dropdown)
                         //  is hovered at the mouse position, the content beneath it must not light up HoveredElement/PressedElement - unless this
                         //  window already owns an active mouse-drag capture, which keeps following its owner. This runs before UpdateContents,
                         //  so the children see the suppressed state on this same tick.

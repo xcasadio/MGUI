@@ -5,8 +5,8 @@ using Microsoft.Xna.Framework;
 namespace MGUI.Tests.Architecture;
 
 /// <summary>
-/// Pure policy tests for the reusable <see cref="HudInputContext"/> (task 7 of
-/// <c>Docs/Tasks/input-tasks.md</c>): an action that actually targets a HUD widget is consumed,
+/// Pure policy tests for the reusable <see cref="HudInputContext"/> (documented in
+/// <c>Docs/input-architecture.md</c>, "Couche semantique : arbitrage UI vs gameplay"): an action that actually targets a HUD widget is consumed,
 /// an action that does not (e.g. movement) is never consumed even while the HUD is active, and an
 /// inactive HUD falls through completely without its handler ever being invoked. No runtime desktop
 /// is instantiated, mirroring the "doubles simples, pas de runtime complet" approach already used by

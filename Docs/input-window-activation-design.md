@@ -2,7 +2,8 @@
 
 ## Statut
 
-Document de conception issu de la tache 8 de `Docs/Tasks/input-tasks.md`. Le
+Document de conception issu de la tache 8 du plan input, desormais close et
+retiree (execution suivie dans `Docs/Tasks/input-activation-tasks.md`). Le
 decoupage (section 5) a ete valide par l'utilisateur : les slices 1 a 4 forment
 le lot valide, la slice 5 est reportee. Aucun code de production n'a ete ecrit
 sous cette tache.

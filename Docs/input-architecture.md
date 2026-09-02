@@ -184,4 +184,7 @@ Ces decisions sont arbitrees et verrouillees par des tests ; ne pas les re-explo
 
 ## Reste a faire
 
-Le travail restant sur ce theme est specifie dans `Docs/Tasks/input-tasks.md`.
+Les 11 taches de l'ancien plan input sont livrees (fichier de taches retire). Le
+travail restant sur ce theme (activation de fenetre, `ITextEntryHost`, point
+d'extension clavier de fenetre) est specifie dans
+`Docs/Tasks/input-activation-tasks.md`.
