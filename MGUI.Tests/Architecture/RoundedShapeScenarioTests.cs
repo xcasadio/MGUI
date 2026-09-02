@@ -1,6 +1,8 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Rendering;
+using MGUI.Tests.Graph;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using System.Collections.Generic;
@@ -54,6 +56,25 @@ public class RoundedShapeScenarioTests
         Assert.NotEmpty(geometry.OuterContour);
         Assert.True(geometry.Shape.NormalizedBorderThickness.Left <= geometry.Shape.OuterBounds.Width);
         Assert.True(geometry.Shape.NormalizedBorderThickness.Top <= geometry.Shape.OuterBounds.Height);
+    }
+
+    /// <summary>Tache 4 item 7: a border thickness reaching the corner radius used to collapse the inner arc to a single point and leave the
+    /// border ring mesh empty (mismatched outer/inner contour counts), so <see cref="DrawTransactionBoxShapeExtensions.DrawBorderRing(IUIDrawContext, Vector2, MGBoxGeometry, Color)"/>
+    /// drew nothing. The inner contour now repeats the collapsed point to match the outer count, so the solid ring draws normally.</summary>
+    [Fact]
+    public void ThicknessReachingCornerRadiusScenario_DrawBorderRingEmitsTriangles()
+    {
+        MGBoxShape shape = new(new Rectangle(0, 0, 80, 40), new Thickness(4), new MGCornerRadius(4));
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, 8);
+        Assert.True(geometry.HasBorderRingMesh);
+
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+        GraphNoOpDrawTransaction transaction = new(runtime, DrawSettings.Default);
+
+        transaction.DrawBorderRing(Vector2.Zero, geometry, Color.White);
+
+        Assert.Equal(geometry.BorderRingIndices.Count / 3, transaction.FillTriangleCalls.Count);
+        Assert.NotEmpty(transaction.FillTriangleCalls);
     }
 
     [Fact]

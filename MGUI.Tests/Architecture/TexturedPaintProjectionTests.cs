@@ -281,17 +281,59 @@ public class TexturedPaintProjectionTests
     public void TexturedBorderBrush_WithoutRingMesh_KeepsDocumentedRectanglePath()
     {
         Recorder recorder = Recorder.Create();
-        //  Thickness reaching the corner radius collapses the inner arc: no ring mesh (documented, Tache 4).
-        MGBoxShape shape = RoundedShape(80, 40, 4, 4);
+        //  Residual case (Tache 4 item 7): the border thickness consumes the whole box, so InnerBounds is empty, there is no inner
+        //  contour, and BuildBorderRingIndices still returns no ring (documented in the code). A single corner whose thickness merely
+        //  reaches its radius no longer triggers this fallback - see ThicknessReachingCornerRadius_NowHasRingMeshAndDrawsTexturedTriangles.
+        MGBoxShape shape = RoundedShape(80, 40, 40, 12);
         MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
         MGTexturedBorderBrush brush = new(recorder.Image(32, 8), recorder.Image(8, 8));
 
         Assert.False(geometry.UsesRectangleFastPath);
+        Assert.True(shape.Normalize().InnerBounds.Width <= 0 || shape.Normalize().InnerBounds.Height <= 0);
         Assert.False(geometry.HasBorderRingMesh);
         brush.Draw(recorder.Args(), null!, shape, geometry);
 
         Assert.Empty(recorder.Transaction.TexturedTriangleListCalls);
         Assert.NotEmpty(recorder.Transaction.DrawTextureToCalls);
+    }
+
+    /// <summary>Tache 4 item 7: a border thickness reaching the corner radius used to collapse that corner's inner arc to a single point,
+    /// leaving <see cref="MGBoxGeometryBuilder.BuildBorderRingIndices"/> with mismatched contour counts and no ring mesh, so this scenario used
+    /// to fall back to the rectangle path (see the previous version of <see cref="TexturedBorderBrush_WithoutRingMesh_KeepsDocumentedRectanglePath"/>).
+    /// The inner contour now repeats the collapsed point to match the outer count, so the ring mesh exists and the textured border brush
+    /// (and the simpler <see cref="DrawTransactionBoxShapeExtensions.DrawTexturedBorderRing"/> extension) project onto it instead.</summary>
+    [Fact]
+    public void TexturedBorderBrush_ThicknessReachingCornerRadius_NowHasRingMeshAndDrawsTexturedTriangles()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = RoundedShape(80, 40, 4, 4);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTexturedBorderBrush brush = new(recorder.Image(32, 8), recorder.Image(8, 8));
+
+        Assert.Equal(geometry.OuterContour.Count, geometry.InnerContour.Count);
+        Assert.True(geometry.HasBorderRingMesh);
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
+        Assert.Empty(recorder.Transaction.DrawTextureToCalls);
+        Assert.NotEmpty(calls);
+        Assert.All(calls, AssertUVsInUnitSquare);
+        Assert.All(calls, call => Assert.All(call.TextureCoordinates, uv => Assert.True(float.IsFinite(uv.X) && float.IsFinite(uv.Y))));
+        Assert.All(calls, call => Assert.All(call.Vertices, v => Assert.True(float.IsFinite(v.X) && float.IsFinite(v.Y))));
+
+        //  The simpler single-texture DrawTexturedBorderRing extension (no production caller yet, but exposed for future paints)
+        //  also emits now that the ring mesh exists, with one UV per vertex and finite coordinates throughout.
+        Recorder ringRecorder = Recorder.Create();
+        GraphTestImageResource ringTexture = ringRecorder.Image(16, 16);
+        Vector2[] textureCoordinates = geometry.Vertices.Select(_ => new Vector2(0.5f, 0.5f)).ToArray();
+
+        ringRecorder.Transaction.DrawTexturedBorderRing(Vector2.Zero, geometry, ringTexture, textureCoordinates, Color.White);
+
+        GraphTexturedTriangleListCall ringCall = Assert.Single(ringRecorder.Transaction.TexturedTriangleListCalls);
+        Assert.Equal(geometry.Vertices.Count, ringCall.Vertices.Length);
+        Assert.Equal(geometry.BorderRingIndices, ringCall.Indices);
+        Assert.All(ringCall.TextureCoordinates, uv => Assert.True(float.IsFinite(uv.X) && float.IsFinite(uv.Y)));
     }
 
     [Fact]
