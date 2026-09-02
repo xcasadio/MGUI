@@ -313,3 +313,64 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `docs: propose window activation and input extension points design`
+
+## Taches de suivi (avis du verificateur, 2026-09-02)
+
+Points P4 releves par la verification independante des taches 1-7 ; sans impact fonctionnel, a traiter comme durcissement de couverture.
+
+### ⚪ 9. Rendre discriminant le test de preservation des fleches sur le chemin semantique
+
+But:
+
+le test `NavigateLeft_WithFocusedEditableTextBox_PreservesArrowKey_DoesNotDispatchNavigation` (`MGUI.Tests/Focus/SemanticNavigationTextEntryPreservationTests.cs`) passe avec ou sans la garde `ShouldPreserveTextEntryKey`, car le textbox est le seul element focalisable de sa fenetre : `NavigateLeft` n'a nulle part ou deplacer le focus.
+
+Travail attendu:
+
+- ajouter dans le harness un second element focalisable atteignable par `NavigateLeft` (a gauche du textbox) ;
+- verifier par mutation que le test rougit quand l'argument `actionEvent.Context.Key` est retire de l'appel dans `MGDesktop.TryHandleInputAction`, et reverdit une fois restaure.
+
+Criteres d'acceptation:
+
+- le test echoue sans la garde et passe avec ; aucun test nouvellement rouge.
+
+Commit recommande:
+
+- `test: make semantic arrow key preservation test discriminating`
+
+### ⚪ 10. Exercer le vrai MGUIInputContext dans les regressions de routage
+
+But:
+
+les 6 tests ajoutes dans `MGUI.Tests/Architecture/InputRoutingIntegrationTests.cs` exercent un double (`FakeMGUIContext`) copie ligne a ligne de `MGUI.Core/UI/InputRouting/MGUIInputContext.cs` ; une derive future du vrai contexte (logique ou chaines de raison) passerait inapercue.
+
+Travail attendu:
+
+- ajouter au moins un test instanciant le vrai `MGUIInputContext` sur un `MGDesktop` minimal (patron `GraphTestRuntime` deja utilise par `SemanticNavigationTextEntryPreservationTests`), couvrant un cas UI reserve, un cas gameplay bloque (`ShouldCaptureGameplayInput` vrai) et un cas gameplay laisse passer ;
+- asserter `ContextName` et `Reason` contre les chaines reelles du contexte, pas contre le double.
+
+Criteres d'acceptation:
+
+- une modification des chaines de raison ou de la logique de `MGUIInputContext.TryHandle` fait rougir au moins un test ; aucun test nouvellement rouge.
+
+Commit recommande:
+
+- `test: exercise real MGUIInputContext in routing regressions`
+
+### ⚪ 11. Epingler la dimension IsTopmost de l'ordre de navigation
+
+But:
+
+`MGUI.Tests/Focus/NavigationFrontToBackFallbackTests.cs` n'utilise que des fenetres non-topmost ; la correction pour les fenetres `IsTopmost` repose sur l'identite d'expression avec la boucle d'update (`Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost)`), sans test executable.
+
+Travail attendu:
+
+- ajouter un test avec une troisieme fenetre `IsTopmost = true` ajoutee en premier dans `Desktop.Windows` (donc visuellement au-dessus malgre sa position en tete de liste) : le repli de navigation (`GetFocusableElements()` / `MoveFocusNext`) doit la resoudre en priorite ;
+- verifier par mutation que retirer `.OrderByDescending(x => x.IsTopmost)` fait rougir ce test.
+
+Criteres d'acceptation:
+
+- la dimension `IsTopmost` est couverte par un test qui echoue sans le tri ; aucun test nouvellement rouge.
+
+Commit recommande:
+
+- `test: pin IsTopmost ordering in navigation fallbacks`
