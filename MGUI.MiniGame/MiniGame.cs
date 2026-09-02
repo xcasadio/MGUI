@@ -974,7 +974,7 @@ namespace MGUI.MiniGame
             _desktop.UseRawNavigationInput = false;
             _inputRouter = new InputRouter();
             _inputRouter.RegisterContext(new MGUIInputContext(_desktop, 100));
-            _inputRouter.RegisterContext(new MiniGameHudInputContext(TryHandleHudAction, 50, IsHudContextActive));
+            _inputRouter.RegisterContext(new HudInputContext("MiniGame.HUD", TryHandleHudAction, IsHudContextActive, 50));
             _inputRouter.RegisterContext(new GameplayInputContext("MiniGame.Gameplay", TryHandleGameplayAction, 0));
         }
 
