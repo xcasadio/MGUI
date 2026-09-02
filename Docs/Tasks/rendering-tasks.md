@@ -43,7 +43,7 @@ Terminer la migration des derniers call sites legacy du shim `SetClipTargetTempo
 
 **Commit recommande** : `refactor: migrate MGDesktop root screen clip to PushRectangleClip`
 
-### Tache 2 — ⚪ Migrer les clips de remplissage fractionnaire de MGRatingControl
+### Tache 2 — ✅ Migrer les clips de remplissage fractionnaire de MGRatingControl
 
 **But** : `MGUI.Core/UI/MGRatingControl.cs` utilise encore 4 fois le shim `SetClipTargetTemporary(ClipTarget, true)` (lignes ~670, 690, 707, 734) pour clipper le remplissage partiel des etoiles/formes. C'est un usage rectangle-only : la migration mecanique vers `PushRectangleClip` suffit.
 

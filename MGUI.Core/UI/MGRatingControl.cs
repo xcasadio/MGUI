@@ -667,7 +667,7 @@ namespace MGUI.Core.UI
                             ? new(Destination.Left, Destination.Top, Destination.Width, (int)(Vertices.Min(v => v.Y) + (Vertices.Max(v => v.Y) - Vertices.Min(v => v.Y)) * FilledPercent))
                             : new(Destination.Left, Destination.Top, (int)(Vertices.Min(v => v.X) + (Vertices.Max(v => v.X) - Vertices.Min(v => v.X)) * FilledPercent), Destination.Height);
                         Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
-                        using (DA.DT.SetClipTargetTemporary(ClipTarget, true))
+                        using (DA.DT.PushRectangleClip(ClipTarget, true))
                         {
                             DA.DT.StrokeAndFillPolygon(Origin, Vertices, StrokeColor, FillColor, StrokeThickness);
                         }
@@ -687,7 +687,7 @@ namespace MGUI.Core.UI
                     {
                         Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
                         Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
-                        using (DA.DT.SetClipTargetTemporary(ClipTarget, true))
+                        using (DA.DT.PushRectangleClip(ClipTarget, true))
                         {
                             DA.DT.FillCircle(Center, FillColor, Radius - StrokeThickness);
                             DA.DT.StrokeCircle(Center, StrokeColor, Radius, StrokeThickness);
@@ -704,7 +704,7 @@ namespace MGUI.Core.UI
                     {
                         Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
                         Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
-                        using (DA.DT.SetClipTargetTemporary(ClipTarget, true))
+                        using (DA.DT.PushRectangleClip(ClipTarget, true))
                         {
                             DA.DT.StrokeAndFillRectangle(Offset, Destination, StrokeColor, FillColor, StrokeThickness);
                         }
@@ -731,7 +731,7 @@ namespace MGUI.Core.UI
                             ? new(Destination.Left, Destination.Top, Destination.Width, (int)(TriangleVertices.Min(v => v.Y) + (TriangleVertices.Max(v => v.Y) - TriangleVertices.Min(v => v.Y)) * FilledPercent))
                             : new(Destination.Left, Destination.Top, (int)(TriangleVertices.Min(v => v.X) + (TriangleVertices.Max(v => v.X) - TriangleVertices.Min(v => v.X)) * FilledPercent), Destination.Height);
                         Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
-                        using (DA.DT.SetClipTargetTemporary(ClipTarget, true))
+                        using (DA.DT.PushRectangleClip(ClipTarget, true))
                         {
                             DA.DT.FillTriangle(Origin, TriangleVertices[0], FillColor, TriangleVertices[1], FillColor, TriangleVertices[2], FillColor);
                             if (StrokeThickness > 0)
