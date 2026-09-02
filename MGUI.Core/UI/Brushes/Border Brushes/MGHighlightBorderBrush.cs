@@ -869,7 +869,7 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 				if (Geometry.UsesRectangleFastPath || !Geometry.HasBorderRingMesh)
 				{
 					//  Rectangle fast path, or the residual case where the border thickness consumes the whole box so there is no ring mesh
-					//  to parameterize (Docs/drawing-architecture.md, Limites connues; Docs/Tasks/drawing-tasks.md, Tache 4;
+					//  to parameterize (Docs/drawing-architecture.md, Limites connues;
 					//  MGBoxGeometryBuilder.BuildInnerContour).
 					Draw(DA, Element, Shape.OuterBounds, Shape.NormalizedBorderThickness);
 					return;

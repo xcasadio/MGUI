@@ -240,7 +240,7 @@ public class FillBrushLifecycleTests
 
     /// <summary>Reaches the same <see cref="RecordingBorderBrush"/> through <see cref="MGCompositedBorderBrush"/>,
     /// <see cref="MGBandedBorderBrush"/> and as an <see cref="MGHighlightBorderBrush.Underlay"/> on one element, while a second
-    /// element references it directly as its own <see cref="MGBorder.BorderBrush"/>: covers the Tache 4 item 1 scenario.</summary>
+    /// element references it directly as its own <see cref="MGBorder.BorderBrush"/>: covers the shared paint dedup scenario (Docs/drawing-architecture.md).</summary>
     [Fact]
     public void Desktop_Update_TicksBorderBrushReachedThroughCompositesUnderlayAndDirectReferenceOnce()
     {

@@ -58,7 +58,7 @@ public class RoundedShapeScenarioTests
         Assert.True(geometry.Shape.NormalizedBorderThickness.Top <= geometry.Shape.OuterBounds.Height);
     }
 
-    /// <summary>Tache 4 item 7: a border thickness reaching the corner radius used to collapse the inner arc to a single point and leave the
+    /// <summary>Docs/drawing-architecture.md, Limites connues: a border thickness reaching the corner radius used to collapse the inner arc to a single point and leave the
     /// border ring mesh empty (mismatched outer/inner contour counts), so <see cref="DrawTransactionBoxShapeExtensions.DrawBorderRing(IUIDrawContext, Vector2, MGBoxGeometry, Color)"/>
     /// drew nothing. The inner contour now repeats the collapsed point to match the outer count, so the solid ring draws normally.</summary>
     [Fact]

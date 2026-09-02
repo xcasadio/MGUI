@@ -289,4 +289,4 @@ La frontiere est epinglee par des suites de tests dans `MGUI.Tests/Architecture/
 
 ## Reste a faire
 
-Voir `Docs/Tasks/rendering-tasks.md`.
+Les taches de migration du pipeline de clipping (ancien fichier `Docs/Tasks/rendering-tasks.md`) sont toutes livrees et le fichier a ete retire ; l'etat courant est celui decrit dans ce document.

@@ -90,7 +90,7 @@ public class BoxGeometryBuilderTests
         Assert.NotSame(first.Vertices, differentTessellation.Vertices);
     }
 
-    /// <summary>Tache 4 item 7: a border thickness reaching the corner radius used to collapse the inner arc for that corner to a single point,
+    /// <summary>Docs/drawing-architecture.md, Limites connues: a border thickness reaching the corner radius used to collapse the inner arc for that corner to a single point,
     /// leaving <see cref="MGBoxGeometryBuilder"/> with an outer contour longer than the inner one; <see cref="MGBoxGeometry.HasBorderRingMesh"/>
     /// requires matching counts, so the ring mesh was empty and border rendering fell back to the rectangle path. The inner contour now repeats
     /// the collapsed corner's point instead of shortening the contour, so the counts always match once a border and a non-empty InnerBounds exist.</summary>

@@ -9,7 +9,7 @@ using MGUI.Tests.Graph;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 
-/// <summary>Covers Docs/Tasks/rendering-tasks.md - Tache 3: when <see cref="MGContextMenu"/> draws its currently
+/// <summary>Covers the MGContextMenu submenu clip ownership (Docs/rendering-architecture.md): when <see cref="MGContextMenu"/> draws its currently
 /// active submenu overtop of the host content (see MGContextMenu.cs, the two <c>OnEndDraw</c> wirings around
 /// line 860), it must actually escape the ambient clip that is active while the host window/desktop draws -
 /// via <c>PushRectangleClip(null, false)</c> - rather than leaving it in place.<para/>

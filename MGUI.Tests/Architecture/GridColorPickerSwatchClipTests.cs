@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using Xunit;
 
-/// <summary>Covers Docs/Tasks/rendering-tasks.md - Tache 4, MGGridColorPicker slice: when the host border is rounded
+/// <summary>Covers the MGGridColorPicker swatch clip (Docs/rendering-architecture.md): when the host border is rounded
 /// (<see cref="MGGridColorPicker.CornerRadius"/> != 0 with a border), <see cref="MGGridColorPicker.DrawSelf"/> must
 /// clip the swatch loop (fills, selection/hover overlays, per-swatch borders) to the rounded host silhouette via
 /// <see cref="MGElement.CreateBorderBackedContentsClipDefinition"/> - otherwise the rectangular swatches repaint over

@@ -198,7 +198,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                     return;
                 }
 
-                //  Atlas sub-rectangle (Docs/Tasks/drawing-tasks.md, Tache 4): a wrap sampler would repeat the whole atlas, so tile by
+                //  Atlas sub-rectangle (see Docs/drawing-architecture.md): a wrap sampler would repeat the whole atlas, so tile by
                 //  textured quads clipped to the silhouette instead - same tile grid and partial-edge source clamping as the rectangle path.
                 DrawTiledAtlasSubRectangle(DA, Geometry, image, bounds, fullSource, tileW, tileH, origin, drawColor);
                 return;

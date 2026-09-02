@@ -83,7 +83,7 @@ public class TexturedPaintProjectionTests
         Assert.Single(rounded.Transaction.DrawTextureToCalls);
     }
 
-    /// <summary>Atlas sub-rectangle tiled on a rounded shape (Tache 4 item 6): a wrap sampler would repeat the whole atlas, so each tile of the
+    /// <summary>Atlas sub-rectangle tiled on a rounded shape (see Docs/drawing-architecture.md): a wrap sampler would repeat the whole atlas, so each tile of the
     /// rectangle path's own grid is clipped to the silhouette and drawn as its own textured quad (clamp sampler) instead of falling back to the
     /// rectangle draw calls.</summary>
     [Fact]
@@ -356,7 +356,7 @@ public class TexturedPaintProjectionTests
     public void TexturedBorderBrush_WithoutRingMesh_KeepsDocumentedRectanglePath()
     {
         Recorder recorder = Recorder.Create();
-        //  Residual case (Tache 4 item 7): the border thickness consumes the whole box, so InnerBounds is empty, there is no inner
+        //  Residual case (see Docs/drawing-architecture.md, Limites connues): the border thickness consumes the whole box, so InnerBounds is empty, there is no inner
         //  contour, and BuildBorderRingIndices still returns no ring (documented in the code). A single corner whose thickness merely
         //  reaches its radius no longer triggers this fallback - see ThicknessReachingCornerRadius_NowHasRingMeshAndDrawsTexturedTriangles.
         MGBoxShape shape = RoundedShape(80, 40, 40, 12);
@@ -372,7 +372,7 @@ public class TexturedPaintProjectionTests
         Assert.NotEmpty(recorder.Transaction.DrawTextureToCalls);
     }
 
-    /// <summary>Tache 4 item 7: a border thickness reaching the corner radius used to collapse that corner's inner arc to a single point,
+    /// <summary>Docs/drawing-architecture.md, Limites connues: a border thickness reaching the corner radius used to collapse that corner's inner arc to a single point,
     /// leaving <see cref="MGBoxGeometryBuilder.BuildBorderRingIndices"/> with mismatched contour counts and no ring mesh, so this scenario used
     /// to fall back to the rectangle path (see the previous version of <see cref="TexturedBorderBrush_WithoutRingMesh_KeepsDocumentedRectanglePath"/>).
     /// The inner contour now repeats the collapsed point to match the outer count, so the ring mesh exists and the textured border brush

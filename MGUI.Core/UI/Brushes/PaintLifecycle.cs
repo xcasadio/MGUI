@@ -22,7 +22,7 @@ namespace MGUI.Core.UI.Brushes
     /// <summary>Routes every <see cref="IFillBrush.Update(UpdateBaseArgs)"/> / <see cref="IBorderBrush.Update(UpdateBaseArgs)"/>
     /// call through <see cref="UpdateBaseArgs.PaintRegistry"/> so a paint instance shared by reference across several slots
     /// or elements is ticked exactly once per frame instead of once per slot. See "Limites connues" in
-    /// Docs/drawing-architecture.md and Docs/Tasks/drawing-tasks.md Tache 4.</summary>
+    /// Docs/drawing-architecture.md.</summary>
     internal static class PaintLifecycle
     {
         public static void Update(IFillBrush brush, UpdateBaseArgs UA)

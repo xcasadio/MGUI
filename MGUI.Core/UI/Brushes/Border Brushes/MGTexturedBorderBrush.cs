@@ -284,14 +284,14 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         /// around each rectangle's centre exactly like the rectangle path fits the rotated sprite. The part of the ring deeper than the thickness inside
         /// a corner square (when the radius exceeds the thickness) belongs to no layout rectangle: it is clipped separately and painted with the corner
         /// texture using clamped coordinates, so the pieces partition the ring exactly, without hole or overlap.<para/>
-        /// Falls back to the rectangle path, on purpose and documented (Docs/Tasks/drawing-tasks.md, Tache 4), when the geometry uses the rectangle fast
+        /// Falls back to the rectangle path, on purpose and documented (Docs/drawing-architecture.md, Limites connues), when the geometry uses the rectangle fast
         /// path or when it has no ring mesh (a border thickness consuming the whole box leaves no inner contour, see MGBoxGeometryBuilder.BuildBorderRingIndices).</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
         {
             Thickness thickness = Shape.NormalizedBorderThickness;
             if (Geometry.UsesRectangleFastPath || !Geometry.HasBorderRingMesh || thickness.IsEmpty())
             {
-                //  Rectangle fast path (identical legacy rendering), or documented fallback when the ring mesh is empty (Tache 4).
+                //  Rectangle fast path (identical legacy rendering), or documented fallback when the ring mesh is empty (see Docs/drawing-architecture.md).
                 Draw(DA, Element, Shape.OuterBounds, thickness);
                 return;
             }

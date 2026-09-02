@@ -11,8 +11,8 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Architecture;
 
-/// <summary>Tache 4 item 5 (<see cref="MGHighlightBorderBrush"/> <see cref="HighlightAnimation.Progress"/> / <see cref="HighlightAnimation.Scan"/>
-/// on the rounded ring, see Docs/drawing-architecture.md and Docs/Tasks/drawing-tasks.md): the shape-aware overload now parameterizes both
+/// <summary>Docs/drawing-architecture.md (<see cref="MGHighlightBorderBrush"/> <see cref="HighlightAnimation.Progress"/> / <see cref="HighlightAnimation.Scan"/>
+/// on the rounded ring, see Docs/drawing-architecture.md): the shape-aware overload now parameterizes both
 /// animations along <see cref="MGBoxGeometry.OuterContour"/> / <see cref="MGBoxGeometry.InnerContour"/> instead of falling back to the
 /// rectangular perimeter, except for the rectangle fast path and the residual case where the border has no ring mesh at all.</summary>
 public class HighlightBorderBrushRingAnimationTests
@@ -141,7 +141,7 @@ public class HighlightBorderBrushRingAnimationTests
         Assert.Empty(legacyRecorder.Transaction.FillTriangleCalls);
     }
 
-    /// <summary>Tache 4 item 7's residual case (border thickness consumes the whole box, so there is no ring mesh): the shape-aware overload
+    /// <summary>Docs/drawing-architecture.md, Limites connues residual case (border thickness consumes the whole box, so there is no ring mesh): the shape-aware overload
     /// keeps routing to the legacy rectangle overload, byte-for-byte the same call as invoking it directly.</summary>
     [Fact]
     public void Progress_ResidualNoRingMeshCase_MatchesLegacyRectangleOverload()
@@ -225,7 +225,7 @@ public class HighlightBorderBrushRingAnimationTests
         Assert.NotEmpty(shapeRecorder.Transaction.FillRectangleCalls);
     }
 
-    /// <summary>Tache 4 item 7's residual case (no ring mesh): the shape-aware overload keeps routing to the legacy rectangle overload.</summary>
+    /// <summary>Docs/drawing-architecture.md, Limites connues residual case (no ring mesh): the shape-aware overload keeps routing to the legacy rectangle overload.</summary>
     [Fact]
     public void Scan_ResidualNoRingMeshCase_MatchesLegacyRectangleOverload()
     {
@@ -255,7 +255,7 @@ public class HighlightBorderBrushRingAnimationTests
         => new(new Rectangle(0, 0, width, height), new Thickness(thickness), new MGCornerRadius(radius));
 
     /// <summary>Independently reimplements the "top-most then left-most" anchor rule described in
-    /// Docs/Tasks/drawing-tasks.md (Progress on the rounded ring) directly over the public <see cref="MGBoxGeometry.OuterContour"/>, so this test
+    /// Docs/drawing-architecture.md (Progress on the rounded ring) directly over the public <see cref="MGBoxGeometry.OuterContour"/>, so this test
     /// verifies the documented contract rather than the production code's own helper.</summary>
     private static Vector2 FindAnchor(IReadOnlyList<Vector2> outerContour)
     {

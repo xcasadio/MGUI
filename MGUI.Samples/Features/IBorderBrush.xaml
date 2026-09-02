@@ -452,7 +452,7 @@
                                 </StackPanel>
                             </ScrollViewer>
 
-                            <!-- Progress / Scan on a rounded host (Tache 4 item 5): both animations are parameterized along the rounded
+                            <!-- Progress / Scan on a rounded host (see Docs/drawing-architecture.md): both animations are parameterized along the rounded
                                  contour instead of falling back to the rectangular perimeter, so the highlight follows the arcs too. -->
                             <ScrollViewer HorizontalScrollBarVisibility="Auto">
                                 <StackPanel Orientation="Horizontal" Spacing="10">

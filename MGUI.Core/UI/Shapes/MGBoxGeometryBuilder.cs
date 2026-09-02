@@ -101,7 +101,7 @@ namespace MGUI.Core.UI.Shapes
 
         /// <summary>Builds the inner contour so <see cref="BuildBorderRingIndices"/> always sees matching outer/inner point counts, except for the
         /// residual case where the border thickness consumes the whole box (empty <see cref="MGBoxShape.InnerBounds"/>): that case still yields an
-        /// empty inner contour and no border ring mesh, unchanged (Docs/Tasks/drawing-tasks.md, Tache 4). When a corner's border thickness reaches
+        /// empty inner contour and no border ring mesh, unchanged (Docs/drawing-architecture.md, Limites connues). When a corner's border thickness reaches
         /// (or exceeds) its radius, <see cref="MGBoxShape.InnerCornerRadius"/> collapses that corner to 0 for the inner side; instead of the arc
         /// collapsing to a single point (which used to make the inner contour shorter than the outer one and break the ring), the collapsed corner
         /// repeats its single point <paramref name="outerCornerPointCounts"/> times, matching the outer corner's point count with degenerate
@@ -116,7 +116,7 @@ namespace MGUI.Core.UI.Shapes
             Rectangle innerBounds = normalized.InnerBounds;
             if (innerBounds.Width <= 0 || innerBounds.Height <= 0 || outerCornerPointCounts.Length < 4)
             {
-                //  Residual case: the border thickness consumes the whole box. No inner contour, no border ring mesh (Tache 4).
+                //  Residual case: the border thickness consumes the whole box. No inner contour, no border ring mesh (see Docs/drawing-architecture.md).
                 return Array.Empty<Vector2>();
             }
 

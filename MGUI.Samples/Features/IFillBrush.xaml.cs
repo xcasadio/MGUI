@@ -304,7 +304,7 @@ namespace MGUI.Samples.Features
             //Resources.AddTexture("9SliceTexture3", new MGTextureData(NineSliceTextureAtlas, new Rectangle(136, 532, 128, 128)));
 
             //  A sub-rectangle of the same atlas (not the whole image), reused below to demonstrate MGTextureFillBrush's Tile mode on an
-            //  atlas sub-rectangle over a rounded host (Docs/Tasks/drawing-tasks.md, Tache 4 item 6): each tile is a textured quad clipped
+            //  atlas sub-rectangle over a rounded host (see Docs/drawing-architecture.md): each tile is a textured quad clipped
             //  to the rounded silhouette instead of using a wrap sampler, which would repeat the whole atlas rather than just this icon.
             Resources.AddTexture("Samples_TextureFillBrushAtlasTile", new MGTextureData(nineSliceAtlas, new Rectangle(4, 4, 128, 128)));
         }

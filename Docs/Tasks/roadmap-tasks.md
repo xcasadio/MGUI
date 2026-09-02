@@ -6,7 +6,7 @@ Backlog de portefeuille pour les ameliorations transverses encore ouvertes, c'es
 
 - input et focus : `Docs/Tasks/input-tasks.md`
 - style, theme, templates : `Docs/Tasks/styling-theme-tasks.md`
-- rendu et dessin : `Docs/Tasks/rendering-tasks.md`, `Docs/Tasks/drawing-tasks.md`
+- rendu et dessin : livres (fichiers de taches retires ; voir `Docs/rendering-architecture.md` et `Docs/drawing-architecture.md`)
 - editeur RichTextBox : `Docs/Tasks/richtextbox-autocomplete-tasks.md`
 - graph view : `Docs/Tasks/graph-tasks.md`
 - color picker v3 : `Docs/Tasks/colorpicker-v3-tasks.md`
