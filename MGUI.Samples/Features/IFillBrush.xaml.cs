@@ -302,6 +302,11 @@ namespace MGUI.Samples.Features
             Resources.AddTexture("Samples_9SliceTexture2", new MGTextureData(nineSliceAtlas, new Rectangle(136, 532, 128, 128)));
             Resources.AddTexture("Samples_9SliceTexture3", new MGTextureData(nineSliceAtlas, new Rectangle(4, 400, 128, 128)));
             //Resources.AddTexture("9SliceTexture3", new MGTextureData(NineSliceTextureAtlas, new Rectangle(136, 532, 128, 128)));
+
+            //  A sub-rectangle of the same atlas (not the whole image), reused below to demonstrate MGTextureFillBrush's Tile mode on an
+            //  atlas sub-rectangle over a rounded host (Docs/Tasks/drawing-tasks.md, Tache 4 item 6): each tile is a textured quad clipped
+            //  to the rounded silhouette instead of using a wrap sampler, which would repeat the whole atlas rather than just this icon.
+            Resources.AddTexture("Samples_TextureFillBrushAtlasTile", new MGTextureData(nineSliceAtlas, new Rectangle(4, 4, 128, 128)));
         }
 
         public IFillBrushSamples(ContentManager Content, MGDesktop Desktop)
@@ -320,6 +325,11 @@ namespace MGUI.Samples.Features
             NineSliceSourceSample1 = true;
             MGResizeGrip NineSliceResizeGrip = new(Window, NineSliceResult);
             NineSliceTargetMargin = 26;
+
+            //  The XAML <TextureFillBrush> element does not expose Tile or a SourceRect/atlas region, so this case (Tile mode on an atlas
+            //  sub-rectangle, rounded host) is wired up here in code-behind instead, onto the placeholder <Border> declared in the XAML.
+            MGBorder TextureFillBrushAtlasTileRoundedHost = Window.GetElementByName<MGBorder>("TextureFillBrushAtlasTileRoundedHost");
+            TextureFillBrushAtlasTileRoundedHost.BackgroundBrush.SetAll(new MGTextureFillBrush(Resources.Textures["Samples_TextureFillBrushAtlasTile"], Tile: true));
 
             Window.GetElementByName<MGTextBox>("TB1").Text = @"<Button Background=""Red"" />";
 

@@ -141,7 +141,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         /// - <see cref="Stretch.Uniform"/> and <see cref="Stretch.None"/>: same projection, clipped to the destination rectangle (screen space) so the
         ///   uncovered part of the shape stays empty exactly like the rectangle path;<br/>
         /// - <see cref="Tile"/> with the whole texture: UVs in tile units with a wrap sampler;<br/>
-        /// - <see cref="Tile"/> with a sub-rectangle of an atlas: not representable with a wrap sampler, documented rectangle fallback (Docs/Tasks/drawing-tasks.md, Tache 4).<br/>
+        /// - <see cref="Tile"/> with a sub-rectangle of an atlas: a wrap sampler would repeat the whole atlas, so each tile of the same grid
+        ///   as the rectangle path (including the clamped source rect of a partial edge tile) is emitted as its own textured quad, clipped to
+        ///   <see cref="MGBoxGeometry.OuterContour"/> (<see cref="MGConvexPolygonClipper"/>) and sampled with the clamp sampler, no wrap;<br/>
         /// When <see cref="MGBoxGeometry.UsesRectangleFastPath"/> is true the legacy rectangle rendering is used unchanged.</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
         {
@@ -179,26 +181,26 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
                 }
 
                 bool isWholeTexture = fullSource.X == 0 && fullSource.Y == 0 && fullSource.Width == image.Width && fullSource.Height == image.Height;
-                if (!isWholeTexture)
+                if (isWholeTexture)
                 {
-                    //  Documented limitation (Docs/Tasks/drawing-tasks.md, Tache 4): tiling a sub-rectangle of an atlas cannot use the wrap sampler
-                    //  (it would repeat the whole atlas), so the rounded mesh path is not available and the rectangle path is kept on purpose.
-                    Draw(DA, Element, bounds);
+                    Vector2[] tileUVs = new Vector2[vertices.Count];
+                    for (int i = 0; i < tileUVs.Length; i++)
+                    {
+                        Vector2 vertex = vertices[i];
+                        tileUVs[i] = new Vector2((vertex.X - bounds.Left) / tileW, (vertex.Y - bounds.Top) / tileH);
+                    }
+
+                    using (DA.Context.SetDrawSettingsTemporary(DA.Context.CurrentSettings with { SamplerType = SamplerType.LinearWrap }))
+                    {
+                        DA.Context.FillTexturedRoundedRectangle(origin, Geometry, image, tileUVs, drawColor);
+                    }
+
                     return;
                 }
 
-                Vector2[] tileUVs = new Vector2[vertices.Count];
-                for (int i = 0; i < tileUVs.Length; i++)
-                {
-                    Vector2 vertex = vertices[i];
-                    tileUVs[i] = new Vector2((vertex.X - bounds.Left) / tileW, (vertex.Y - bounds.Top) / tileH);
-                }
-
-                using (DA.Context.SetDrawSettingsTemporary(DA.Context.CurrentSettings with { SamplerType = SamplerType.LinearWrap }))
-                {
-                    DA.Context.FillTexturedRoundedRectangle(origin, Geometry, image, tileUVs, drawColor);
-                }
-
+                //  Atlas sub-rectangle (Docs/Tasks/drawing-tasks.md, Tache 4): a wrap sampler would repeat the whole atlas, so tile by
+                //  textured quads clipped to the silhouette instead - same tile grid and partial-edge source clamping as the rectangle path.
+                DrawTiledAtlasSubRectangle(DA, Geometry, image, bounds, fullSource, tileW, tileH, origin, drawColor);
                 return;
             }
 
@@ -236,6 +238,88 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             {
                 DA.Context.FillTexturedRoundedRectangle(origin, Geometry, image, uvs, drawColor);
             }
+        }
+
+        /// <summary>Tiles <paramref name="image"/>'s <paramref name="fullSource"/> sub-rectangle over <paramref name="bounds"/> using the exact same
+        /// tile grid and partial-edge source clamping as the rectangle path (<see cref="Draw(ElementDrawArgs, MGElement, Rectangle)"/>), but emits
+        /// each tile as a textured quad clipped against <see cref="MGBoxGeometry.OuterContour"/> (<see cref="MGConvexPolygonClipper.ClipToConvexPolygon"/>)
+        /// instead of a plain <c>DrawTextureTo</c> call, so a tile that falls under a rounded corner is cut to the silhouette. Each clipped tile's UVs
+        /// come from its own (possibly clamped) source rectangle mapped over its own (possibly clamped) destination rectangle
+        /// (<see cref="MGConvexPolygonClipper.InterpolateRectUV"/>), so the top-left of an unclamped tile always lands on <paramref name="fullSource"/>'s
+        /// top-left UV and the bottom-right on its bottom-right UV - no wrap sampler is used. All tiles share one image and color mask, so they batch
+        /// into as few <see cref="IUIDrawContext.DrawTexturedTriangleList"/> calls as fit under <see cref="short.MaxValue"/> vertices each.</summary>
+        private void DrawTiledAtlasSubRectangle(ElementDrawArgs DA, MGBoxGeometry Geometry, IUIImageResource image, Rectangle bounds, Rectangle fullSource,
+            int tileW, int tileH, Vector2 origin, Color drawColor)
+        {
+            IReadOnlyList<Vector2> outerContour = Geometry.OuterContour;
+            if (outerContour.Count < 3)
+            {
+                return;
+            }
+
+            float inverseImageWidth = 1f / image.Width;
+            float inverseImageHeight = 1f / image.Height;
+
+            List<Vector2> quadPolygon = new(4);
+            List<Vector2> clipped = new(8);
+            List<Vector2> scratch = new(8);
+            List<Vector2> batchVertices = new();
+            List<Vector2> batchUVs = new();
+            List<int> batchIndices = new();
+
+            void Flush()
+            {
+                if (batchVertices.Count > 0)
+                {
+                    DA.Context.DrawTexturedTriangleList(origin, image, batchVertices, batchUVs, batchIndices, drawColor);
+                    batchVertices.Clear();
+                    batchUVs.Clear();
+                    batchIndices.Clear();
+                }
+            }
+
+            for (int y = bounds.Top; y < bounds.Bottom; y += tileH)
+            {
+                for (int x = bounds.Left; x < bounds.Right; x += tileW)
+                {
+                    int drawW = Math.Min(tileW, bounds.Right - x);
+                    int drawH = Math.Min(tileH, bounds.Bottom - y);
+                    Rectangle dest = new(x, y, drawW, drawH);
+                    Rectangle src = drawW < tileW || drawH < tileH
+                        ? new Rectangle(fullSource.X, fullSource.Y, Math.Min(drawW, fullSource.Width), Math.Min(drawH, fullSource.Height))
+                        : fullSource;
+
+                    quadPolygon.Clear();
+                    quadPolygon.Add(new Vector2(dest.Left, dest.Top));
+                    quadPolygon.Add(new Vector2(dest.Right, dest.Top));
+                    quadPolygon.Add(new Vector2(dest.Right, dest.Bottom));
+                    quadPolygon.Add(new Vector2(dest.Left, dest.Bottom));
+
+                    MGConvexPolygonClipper.ClipToConvexPolygon(quadPolygon, outerContour, clipped, scratch);
+                    if (clipped.Count < 3)
+                    {
+                        continue;
+                    }
+
+                    if (batchVertices.Count + clipped.Count > short.MaxValue)
+                    {
+                        Flush();
+                    }
+
+                    Vector2 uvTopLeft = new(src.Left * inverseImageWidth, src.Top * inverseImageHeight);
+                    Vector2 uvBottomRight = new(src.Right * inverseImageWidth, src.Bottom * inverseImageHeight);
+
+                    int baseIndex = batchVertices.Count;
+                    foreach (Vector2 vertex in clipped)
+                    {
+                        batchVertices.Add(vertex);
+                        batchUVs.Add(MGConvexPolygonClipper.InterpolateRectUV(vertex, dest, uvTopLeft, uvBottomRight));
+                    }
+                    MGConvexPolygonClipper.AppendFanTriangles(baseIndex, clipped.Count, batchIndices);
+                }
+            }
+
+            Flush();
         }
 
         public IFillBrush Copy() => new MGTextureFillBrush(Source, Stretch, Color, Tile);

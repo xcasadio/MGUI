@@ -83,18 +83,93 @@ public class TexturedPaintProjectionTests
         Assert.Single(rounded.Transaction.DrawTextureToCalls);
     }
 
+    /// <summary>Atlas sub-rectangle tiled on a rounded shape (Tache 4 item 6): a wrap sampler would repeat the whole atlas, so each tile of the
+    /// rectangle path's own grid is clipped to the silhouette and drawn as its own textured quad (clamp sampler) instead of falling back to the
+    /// rectangle draw calls.</summary>
     [Fact]
-    public void TextureFillBrush_TileWithAtlasSourceRect_KeepsDocumentedRectanglePath()
+    public void TextureFillBrush_TileWithAtlasSourceRect_ClipsTileQuadsToSilhouette()
     {
         Recorder recorder = Recorder.Create();
         MGBoxShape shape = RoundedShape(160, 80, 0, 12);
         MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
-        MGTextureFillBrush brush = new(new MGTextureData(recorder.Image(64, 64), new Rectangle(0, 0, 32, 32)), Stretch.Fill, null, Tile: true);
+        GraphTestImageResource atlas = recorder.Image(64, 64);
+        Rectangle subRect = new(0, 0, 32, 32);
+        MGTextureFillBrush brush = new(new MGTextureData(atlas, subRect), Stretch.Fill, null, Tile: true);
 
         brush.Draw(recorder.Args(), null!, shape, geometry);
 
-        Assert.Empty(recorder.Transaction.TexturedTriangleListCalls);
-        Assert.NotEmpty(recorder.Transaction.DrawTextureToCalls);
+        List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
+        Assert.NotEmpty(calls);
+        Assert.Empty(recorder.Transaction.DrawTextureToCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureAtCalls);
+        Assert.All(calls, call => Assert.True(ReferenceEquals(call.Texture, atlas)));
+        //  No wrap sampler: the atlas path never leaves the transaction's default (clamp) sampler.
+        Assert.All(calls, call => Assert.NotEqual(SamplerType.LinearWrap, call.SamplerType));
+
+        //  Sub-rect UVs only: the whole atlas is 64x64 but the source is its top-left 32x32 quadrant, so every UV stays inside [0, 0.5].
+        Vector2 uvTopLeft = new(subRect.Left / (float)atlas.Width, subRect.Top / (float)atlas.Height);
+        Vector2 uvBottomRight = new(subRect.Right / (float)atlas.Width, subRect.Bottom / (float)atlas.Height);
+
+        Vector2 center = shape.OuterBounds.Center.ToVector2();
+        foreach (GraphTexturedTriangleListCall call in calls)
+        {
+            Assert.Equal(call.Vertices.Length, call.TextureCoordinates.Length);
+            Assert.True(call.Indices.Length >= 3 && call.Indices.Length % 3 == 0);
+            for (int i = 0; i < call.Vertices.Length; i++)
+            {
+                Vector2 vertex = call.Vertices[i];
+                Vector2 inward = vertex + Vector2.Normalize(center - vertex) * 0.25f;
+                Assert.True(shape.Contains(inward), $"vertex {vertex} lies outside the rounded shape");
+
+                Vector2 uv = call.TextureCoordinates[i];
+                Assert.InRange(uv.X, uvTopLeft.X - 1e-4f, uvBottomRight.X + 1e-4f);
+                Assert.InRange(uv.Y, uvTopLeft.Y - 1e-4f, uvBottomRight.Y + 1e-4f);
+            }
+        }
+    }
+
+    /// <summary>Orientation pinning and partial-edge clamping for the atlas-tile path: the first (unclipped) tile's own top-left and bottom-right
+    /// vertices map exactly to the sub-rect's top-left/bottom-right UVs, and a partial tile at the right edge samples a source rect clamped by
+    /// the same ratio the rectangle path (<see cref="MGTextureFillBrush.Draw(ElementDrawArgs, MGElement, Rectangle)"/>) would clamp to.</summary>
+    [Fact]
+    public void TextureFillBrush_TileWithAtlasSourceRect_PinsOrientationAndClampsPartialEdgeTile()
+    {
+        Recorder recorder = Recorder.Create();
+        //  Only the bottom corners are rounded (radius 8, starting at y=52): the top edge and the right edge above y=52 stay straight, so
+        //  neither the first tile (top-left) nor the partial right-edge tile in the top row (y=0..32) is touched by the rounding at all -
+        //  only the tile grid's own partial-edge source clamping is exercised here.
+        MGBoxShape shape = new(new Rectangle(0, 0, 100, 60), new Thickness(0), new MGCornerRadius(0, 0, 8, 8));
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        Assert.False(geometry.UsesRectangleFastPath);
+        GraphTestImageResource atlas = recorder.Image(64, 64);
+        Rectangle subRect = new(0, 0, 32, 32);
+        MGTextureFillBrush brush = new(new MGTextureData(atlas, subRect), Stretch.Fill, null, Tile: true);
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
+        Vector2 uvTopLeft = new(subRect.Left / (float)atlas.Width, subRect.Top / (float)atlas.Height);
+        Vector2 uvBottomRight = new(subRect.Right / (float)atlas.Width, subRect.Bottom / (float)atlas.Height);
+
+        //  First tile (0,0)-(32,32): its top-left corner is the shape's own sharp corner, its bottom-right corner is fully interior - neither is
+        //  touched by clipping, so both map exactly like an unclamped stretch would.
+        GraphTexturedTriangleListCall firstTileCall = calls.Single(call => call.Vertices.Contains(new Vector2(0, 0)));
+        int topLeftIndex = Array.IndexOf(firstTileCall.Vertices, new Vector2(0, 0));
+        Assert.Equal(uvTopLeft, firstTileCall.TextureCoordinates[topLeftIndex]);
+        int bottomRightIndex = Array.IndexOf(firstTileCall.Vertices, new Vector2(32, 32));
+        Assert.True(bottomRightIndex >= 0, "the first tile must keep its own unclipped bottom-right corner at (32,32)");
+        Assert.Equal(uvBottomRight, firstTileCall.TextureCoordinates[bottomRightIndex]);
+
+        //  Partial right-edge tile in the top row (x=96..100, y=0..32): drawW = 4 < tileW = 32, so its source rect is clamped to the same
+        //  4px slice of the sub-rect the rectangle path would clamp to (Math.Min(drawW, subRect.Width)), not scaled or wrapped. Vertex (100,0)
+        //  is reached by no other tile so it is unambiguous; vertex (96,0) is also the neighboring full tile's top-right corner (emitted
+        //  earlier, in raster order), so LastIndexOf resolves to this tile's own copy of that shared edge vertex.
+        GraphTexturedTriangleListCall partialTileCall = calls.Single(call => call.Vertices.Contains(new Vector2(100, 0)) && call.Vertices.Contains(new Vector2(96, 0)));
+        float expectedPartialU = (subRect.Left + Math.Min(4, subRect.Width)) / (float)atlas.Width;
+        int partialRightIndex = Array.IndexOf(partialTileCall.Vertices, new Vector2(100, 0));
+        Assert.Equal(expectedPartialU, partialTileCall.TextureCoordinates[partialRightIndex].X, 4);
+        int partialLeftIndex = Array.LastIndexOf(partialTileCall.Vertices, new Vector2(96, 0));
+        Assert.Equal(uvTopLeft.X, partialTileCall.TextureCoordinates[partialLeftIndex].X, 4);
     }
 
     [Fact]

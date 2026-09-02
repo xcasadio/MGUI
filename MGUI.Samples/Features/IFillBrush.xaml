@@ -245,6 +245,16 @@
                         </StackPanel>
 
                         <TextBlock>
+                            Set [c=Turquoise]Tile[/c] to [c=LightBlue][s=Blue]true[/s][/c] to draw the texture at its natural size repeatedly instead of stretching it ([c=Turquoise]Stretch[/c] is then ignored).
+                            When the texture is a sub-rectangle of a larger atlas, tiling it on a rounded host clips each tile to the rounded silhouette instead of using a wrap sampler
+                            (which would repeat the whole atlas, not just the sub-rectangle):
+                        </TextBlock>
+                        <Border Width="220" Height="120" CornerRadius="20" BorderThickness="3" BorderBrush="Black" Padding="5"
+                                Name="TextureFillBrushAtlasTileRoundedHost" HorizontalAlignment="Left"
+                                ToolTip="Tile mode on an atlas sub-rectangle, clipped to the rounded host instead of falling back to a sharp rectangle">
+                        </Border>
+
+                        <TextBlock>
                             You may want to combine texture fill brushes with other brushes by using an [c=Turquoise]MGCompositedFillBrush[/c]:
                         </TextBlock>
                         <Button StyleNames="SampleButtonStyle" HorizontalAlignment="Left">
