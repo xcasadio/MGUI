@@ -35,7 +35,7 @@ Ce document est destine a un agent IA implementeur.
 1. `dotnet build .\MGUI.Tests\MGUI.Tests.csproj --no-restore`
 2. `dotnet build .\MGUI.Samples\MGUI.Samples.csproj --no-restore`
 3. `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "Focus|Input" --logger "console;verbosity=minimal"` + filtre cible de la tache
-4. Taches touchant la couche semantique (3, 6, 7) : `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj --no-restore`
+4. Taches touchant la couche semantique (3, 4) : `dotnet build .\MGUI.MiniGame\MGUI.MiniGame.csproj --no-restore`
 5. Critere transversal : aucun test nouvellement rouge par rapport a l'etat de depart.
 
 ## Taches
