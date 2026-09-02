@@ -285,7 +285,7 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         /// a corner square (when the radius exceeds the thickness) belongs to no layout rectangle: it is clipped separately and painted with the corner
         /// texture using clamped coordinates, so the pieces partition the ring exactly, without hole or overlap.<para/>
         /// Falls back to the rectangle path, on purpose and documented (Docs/Tasks/drawing-tasks.md, Tache 4), when the geometry uses the rectangle fast
-        /// path or when it has no ring mesh (a border thickness reaching the corner radius collapses the inner arc, see MGBoxGeometryBuilder.BuildBorderRingIndices).</summary>
+        /// path or when it has no ring mesh (a border thickness consuming the whole box leaves no inner contour, see MGBoxGeometryBuilder.BuildBorderRingIndices).</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
         {
             Thickness thickness = Shape.NormalizedBorderThickness;

@@ -141,6 +141,7 @@ Concretement dans `MGUI.Core/UI/MGBorder.cs` :
 - Hit testing : `MGBoxShape.Contains(Vector2)` fournit un test analytique (rectangle inclusif plus quadrants de coins, base sur `NormalizedCornerRadius`, sans dependance a la tessellation). Seul `MGBorder` l'utilise, et uniquement quand `IsShapeAwareHitTestEnabled` est vrai (false par defaut, miroir XAML `Border.IsShapeAwareHitTestEnabled`) ; le reste du framework, y compris `MGRectangle` et les controles qui embarquent un `MGBorder`, reste teste sur ses bounds rectangulaires.
 - `MGRatingControl` (`MGUI.Core/UI/MGRatingControl.cs`, rendu des items) dessine polygones et cercles directement via `DrawTransaction` (`StrokeAndFillPolygon`, `FillCircle`, `StrokeCircle`) et reste hors du pipeline box-shape — futur consommateur d'un pipeline de formes generalise.
 - Les overloads rectangle legacy `IFillBrush.Draw(DA, Element, Rectangle)` et `IBorderBrush.Draw(DA, Element, Rectangle, Thickness)` subsistent en API publique aux cotes des overloads shape-aware.
+- `MGTexturedBorderBrush` arrondi (Tache 4 item 8, clos par note) : les listes par region (`regionVertices` / `regionUVs` / `regionIndices`) sont allouees a chaque frame dans le chemin de dessin arrondi. Aucun profil ne justifie a ce jour une mise en cache par geometrie et transformations ; critere d'activation conserve : allocation par frame visible au profil.
 
 ## Reste a faire
 
