@@ -196,11 +196,159 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             }
         }
 
+        /// <summary>Rounded path: keeps the same 9 destination rectangles as the rectangle path (split from <see cref="Shape"/>'s <see cref="MGBoxShape.OuterBounds"/>
+        /// by <see cref="TargetMargin"/>), but clips each one against <see cref="MGBoxGeometry.OuterContour"/> before drawing it, so a patch that falls
+        /// under a rounded corner is cut to the silhouette instead of overhanging it. Each patch's UVs come from its own source rectangle
+        /// (<see cref="MGConvexPolygonClipper.InterpolateRectUV"/> against the *destination* rectangle), so a pixel on a straight edge - unclipped -
+        /// samples exactly what the rectangle path would draw there. Patches that share an image and color mask are batched into a single
+        /// <see cref="IUIDrawContext.DrawTexturedTriangleList"/> call, split only when a batch would exceed <see cref="short.MaxValue"/> vertices.</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
         {
-            //  Documented limitation (Docs/drawing-architecture.md, Limites connues; Docs/Tasks/drawing-tasks.md, Tache 4): nine-slice paints still
-            //  target rectangular destinations because the nine patches are not yet decomposed over the rounded geometry, so the rectangle path is kept on purpose.
-            Draw(DA, Element, Shape.OuterBounds);
+            if (Geometry.UsesRectangleFastPath)
+            {
+                Draw(DA, Element, Shape.OuterBounds);
+                return;
+            }
+
+            Rectangle bounds = Shape.OuterBounds;
+
+            int LeftColumnSize = TargetMargin.Left;
+            int RightColumnSize = TargetMargin.Right;
+            int CenterColumnSize = bounds.Width - LeftColumnSize - RightColumnSize;
+
+            int TopRowSize = TargetMargin.Top;
+            int BottomRowSize = TargetMargin.Bottom;
+            int CenterRowSize = bounds.Height - TopRowSize - BottomRowSize;
+
+            Vector2 origin = DA.Offset.ToVector2();
+            IReadOnlyList<Vector2> outerContour = Geometry.OuterContour;
+
+            List<Vector2> quadPolygon = new(4);
+            List<Vector2> clipped = new(8);
+            List<Vector2> scratch = new(8);
+            List<PatchBatch> batches = new();
+
+            //  Clips one patch's destination rectangle against the rounded outer silhouette, fan-triangulates the surviving piece (empty when the
+            //  patch falls entirely outside the silhouette), and appends it to a batch sharing its image and color mask.
+            void EmitPatch(MGTextureData patch, Rectangle destination)
+            {
+                if (destination.Width <= 0 || destination.Height <= 0)
+                {
+                    return;
+                }
+
+                IUIImageResource image = patch.Image;
+                if (image == null || image.IsDisposed)
+                {
+                    return;
+                }
+
+                quadPolygon.Clear();
+                quadPolygon.Add(new Vector2(destination.Left, destination.Top));
+                quadPolygon.Add(new Vector2(destination.Right, destination.Top));
+                quadPolygon.Add(new Vector2(destination.Right, destination.Bottom));
+                quadPolygon.Add(new Vector2(destination.Left, destination.Bottom));
+
+                MGConvexPolygonClipper.ClipToConvexPolygon(quadPolygon, outerContour, clipped, scratch);
+                if (clipped.Count < 3)
+                {
+                    return;
+                }
+
+                Color color = Color.White * patch.Opacity * DA.Opacity;
+
+                PatchBatch batch = batches.Find(b => ReferenceEquals(b.Image, image) && b.Color == color && b.Vertices.Count + clipped.Count <= short.MaxValue);
+                if (batch == null)
+                {
+                    batch = new PatchBatch(image, color);
+                    batches.Add(batch);
+                }
+
+                Rectangle sourceRect = patch.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
+                float inverseImageWidth = 1f / image.Width;
+                float inverseImageHeight = 1f / image.Height;
+                Vector2 uvTopLeft = new(sourceRect.Left * inverseImageWidth, sourceRect.Top * inverseImageHeight);
+                Vector2 uvBottomRight = new(sourceRect.Right * inverseImageWidth, sourceRect.Bottom * inverseImageHeight);
+
+                int baseIndex = batch.Vertices.Count;
+                foreach (Vector2 vertex in clipped)
+                {
+                    batch.Vertices.Add(vertex);
+                    batch.TextureCoordinates.Add(MGConvexPolygonClipper.InterpolateRectUV(vertex, destination, uvTopLeft, uvBottomRight));
+                }
+                MGConvexPolygonClipper.AppendFanTriangles(baseIndex, clipped.Count, batch.Indices);
+            }
+
+            //  Top row
+            if (TopRowSize > 0)
+            {
+                if (LeftColumnSize > 0)
+                {
+                    EmitPatch(TopLeft, new Rectangle(bounds.Left, bounds.Top, LeftColumnSize, TopRowSize));
+                }
+                if (CenterColumnSize > 0)
+                {
+                    EmitPatch(TopCenter, new Rectangle(bounds.Left + LeftColumnSize, bounds.Top, CenterColumnSize, TopRowSize));
+                }
+                if (RightColumnSize > 0)
+                {
+                    EmitPatch(TopRight, new Rectangle(bounds.Left + LeftColumnSize + CenterColumnSize, bounds.Top, RightColumnSize, TopRowSize));
+                }
+            }
+
+            //  Center row
+            if (CenterRowSize > 0)
+            {
+                if (LeftColumnSize > 0)
+                {
+                    EmitPatch(MiddleLeft, new Rectangle(bounds.Left, bounds.Top + TopRowSize, LeftColumnSize, CenterRowSize));
+                }
+                if (CenterColumnSize > 0)
+                {
+                    EmitPatch(MiddleCenter, new Rectangle(bounds.Left + LeftColumnSize, bounds.Top + TopRowSize, CenterColumnSize, CenterRowSize));
+                }
+                if (RightColumnSize > 0)
+                {
+                    EmitPatch(MiddleRight, new Rectangle(bounds.Left + LeftColumnSize + CenterColumnSize, bounds.Top + TopRowSize, RightColumnSize, CenterRowSize));
+                }
+            }
+
+            //  Bottom row
+            if (BottomRowSize > 0)
+            {
+                if (LeftColumnSize > 0)
+                {
+                    EmitPatch(BottomLeft, new Rectangle(bounds.Left, bounds.Top + TopRowSize + CenterRowSize, LeftColumnSize, BottomRowSize));
+                }
+                if (CenterColumnSize > 0)
+                {
+                    EmitPatch(BottomCenter, new Rectangle(bounds.Left + LeftColumnSize, bounds.Top + TopRowSize + CenterRowSize, CenterColumnSize, BottomRowSize));
+                }
+                if (RightColumnSize > 0)
+                {
+                    EmitPatch(BottomRight, new Rectangle(bounds.Left + LeftColumnSize + CenterColumnSize, bounds.Top + TopRowSize + CenterRowSize, RightColumnSize, BottomRowSize));
+                }
+            }
+
+            foreach (PatchBatch batch in batches)
+            {
+                DA.Context.DrawTexturedTriangleList(origin, batch.Image, batch.Vertices, batch.TextureCoordinates, batch.Indices, batch.Color);
+            }
+        }
+
+        private sealed class PatchBatch
+        {
+            public PatchBatch(IUIImageResource Image, Color Color)
+            {
+                this.Image = Image;
+                this.Color = Color;
+            }
+
+            public IUIImageResource Image { get; }
+            public Color Color { get; }
+            public List<Vector2> Vertices { get; } = new();
+            public List<Vector2> TextureCoordinates { get; } = new();
+            public List<int> Indices { get; } = new();
         }
     }
 }

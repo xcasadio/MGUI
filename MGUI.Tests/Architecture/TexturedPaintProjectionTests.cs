@@ -358,6 +358,160 @@ public class TexturedPaintProjectionTests
 
     #endregion
 
+    #region MGNineSliceFillBrush
+
+    [Fact]
+    public void NineSliceFillBrush_RectangleFastPath_KeepsRectangleDrawCalls()
+    {
+        Recorder rounded = Recorder.Create();
+        Recorder legacy = Recorder.Create();
+        MGTextureData source = new(rounded.Image(30, 30));
+        MGBoxShape shape = RoundedShape(100, 60, 0, 0);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGNineSliceFillBrush brush = new(new Thickness(10, 10, 10, 10), source);
+
+        Assert.True(geometry.UsesRectangleFastPath);
+        brush.Draw(rounded.Args(), null!, shape, geometry);
+        brush.Draw(legacy.Args(), null!, shape.OuterBounds);
+
+        Assert.Empty(rounded.Transaction.TexturedTriangleListCalls);
+        Assert.Equal(legacy.Transaction.DrawTextureToCalls, rounded.Transaction.DrawTextureToCalls);
+        Assert.Equal(9, rounded.Transaction.DrawTextureToCalls.Count);
+    }
+
+    /// <summary>Rounded path: only the top-right and bottom-left corners are rounded, so the top-left and bottom-right corners of the shape
+    /// stay sharp - their patches keep the shape's exact outer corner, which pins the UV orientation below. Each of the 9 patches gets its own
+    /// image with a source rectangle that is a strict subset of it, so a UV landing outside that subset would prove a mismapped patch, and 9
+    /// distinct images never share a batch, so one recorded call maps to exactly one patch.</summary>
+    [Fact]
+    public void NineSliceFillBrush_RoundedShape_ProjectsEachPatchOntoTheSilhouetteWithItsOwnSourceRectangle()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = new(new Rectangle(0, 0, 100, 60), new Thickness(0, 0, 0, 0), new MGCornerRadius(0, 8, 0, 8));
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        Assert.False(geometry.UsesRectangleFastPath);
+
+        Rectangle patchSource = new(5, 5, 20, 20);
+        GraphTestImageResource topLeftImage = recorder.Image(40, 40);
+        GraphTestImageResource topCenterImage = recorder.Image(40, 40);
+        GraphTestImageResource topRightImage = recorder.Image(40, 40);
+        GraphTestImageResource middleLeftImage = recorder.Image(40, 40);
+        GraphTestImageResource middleCenterImage = recorder.Image(40, 40);
+        GraphTestImageResource middleRightImage = recorder.Image(40, 40);
+        GraphTestImageResource bottomLeftImage = recorder.Image(40, 40);
+        GraphTestImageResource bottomCenterImage = recorder.Image(40, 40);
+        GraphTestImageResource bottomRightImage = recorder.Image(40, 40);
+
+        MGNineSliceFillBrush brush = new(new Thickness(10, 10, 10, 10),
+            new MGTextureData(topLeftImage, patchSource), new MGTextureData(topCenterImage, patchSource), new MGTextureData(topRightImage, patchSource),
+            new MGTextureData(middleLeftImage, patchSource), new MGTextureData(middleCenterImage, patchSource), new MGTextureData(middleRightImage, patchSource),
+            new MGTextureData(bottomLeftImage, patchSource), new MGTextureData(bottomCenterImage, patchSource), new MGTextureData(bottomRightImage, patchSource));
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
+        Assert.Empty(recorder.Transaction.DrawTextureToCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureAtCalls);
+        Assert.Equal(9, calls.Count);
+
+        GraphTexturedTriangleListCall FindCall(IUIImageResource image) => calls.Single(c => ReferenceEquals(c.Texture, image));
+
+        Vector2 uvTopLeft = new(5f / 40f, 5f / 40f);
+        Vector2 uvBottomRight = new(25f / 40f, 25f / 40f);
+
+        //  No overflow beyond the rounded silhouette, and every UV stays inside the patch's own source rectangle (not the whole [0,1] texture).
+        Vector2 center = shape.OuterBounds.Center.ToVector2();
+        foreach (GraphTexturedTriangleListCall call in calls)
+        {
+            Assert.Equal(call.Vertices.Length, call.TextureCoordinates.Length);
+            Assert.True(call.Indices.Length >= 3 && call.Indices.Length % 3 == 0);
+            for (int i = 0; i < call.Vertices.Length; i++)
+            {
+                Vector2 vertex = call.Vertices[i];
+                Vector2 inward = vertex + Vector2.Normalize(center - vertex) * 0.25f;
+                Assert.True(shape.Contains(inward), $"vertex {vertex} lies outside the rounded shape");
+
+                Vector2 uv = call.TextureCoordinates[i];
+                Assert.InRange(uv.X, uvTopLeft.X - 1e-4f, uvBottomRight.X + 1e-4f);
+                Assert.InRange(uv.Y, uvTopLeft.Y - 1e-4f, uvBottomRight.Y + 1e-4f);
+            }
+        }
+
+        //  Orientation pinning: the unrounded top-left corner survives clipping exactly, and maps to the top-left patch's own source top-left UV.
+        GraphTexturedTriangleListCall topLeftCall = FindCall(topLeftImage);
+        int topLeftVertexIndex = Array.IndexOf(topLeftCall.Vertices, new Vector2(shape.OuterBounds.Left, shape.OuterBounds.Top));
+        Assert.True(topLeftVertexIndex >= 0, "the top-left patch must keep the shape's sharp top-left corner");
+        Assert.Equal(uvTopLeft, topLeftCall.TextureCoordinates[topLeftVertexIndex]);
+
+        //  ...and the unrounded bottom-right corner maps to the bottom-right patch's own source bottom-right UV.
+        GraphTexturedTriangleListCall bottomRightCall = FindCall(bottomRightImage);
+        int bottomRightVertexIndex = Array.IndexOf(bottomRightCall.Vertices, new Vector2(shape.OuterBounds.Right, shape.OuterBounds.Bottom));
+        Assert.True(bottomRightVertexIndex >= 0, "the bottom-right patch must keep the shape's sharp bottom-right corner");
+        Assert.Equal(uvBottomRight, bottomRightCall.TextureCoordinates[bottomRightVertexIndex]);
+
+        //  A vertex on a straight edge shared with the rectangle path (TopCenter sits clear of both rounded corners, so it is entirely
+        //  unclipped): its own destination top-left corner maps to its source top-left UV, exactly like a full, unclamped stretch would.
+        GraphTexturedTriangleListCall topCenterCall = FindCall(topCenterImage);
+        int topCenterVertexIndex = Array.IndexOf(topCenterCall.Vertices, new Vector2(10, 0));
+        Assert.True(topCenterVertexIndex >= 0);
+        Assert.Equal(uvTopLeft, topCenterCall.TextureCoordinates[topCenterVertexIndex]);
+    }
+
+    [Fact]
+    public void NineSliceFillBrush_RoundedShape_BatchesPatchesSharingOneImage()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = new(new Rectangle(0, 0, 100, 60), new Thickness(0, 0, 0, 0), new MGCornerRadius(0, 8, 0, 8));
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        //  Divisible by 3: automatic 10x10 source regions, the same image and opacity on all 9 patches.
+        MGTextureData source = new(recorder.Image(30, 30));
+        MGNineSliceFillBrush brush = new(new Thickness(10, 10, 10, 10), source);
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        //  All 9 patches share one image and the same color mask, so they batch into a single draw call.
+        GraphTexturedTriangleListCall call = Assert.Single(recorder.Transaction.TexturedTriangleListCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureToCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureAtCalls);
+        Assert.NotEmpty(call.Vertices);
+
+        //  Stretch reaches its full extent: the rightmost vertex (right column, source x = 20..30 of a 30px-wide image) hits u = 1,
+        //  and the leftmost (left column, source x = 0..10) hits u = 0.
+        Assert.Equal(1f, call.TextureCoordinates[IndexOfMax(call.Vertices, v => v.X)].X, 3);
+        Assert.Equal(0f, call.TextureCoordinates[IndexOfMin(call.Vertices, v => v.X)].X, 3);
+    }
+
+    /// <summary>A margin of 0 on one side collapses that column/row to zero width/height: like the rectangle path, the shape-aware path must
+    /// skip that patch entirely rather than emit a degenerate (zero-area) triangle list for it.</summary>
+    [Fact]
+    public void NineSliceFillBrush_RoundedShape_SkipsPatchesInACollapsedColumn()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = new(new Rectangle(0, 0, 100, 60), new Thickness(0, 0, 0, 0), new MGCornerRadius(0, 8, 0, 8));
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+
+        GraphTestImageResource topRightImage = recorder.Image(10, 10);
+        GraphTestImageResource middleRightImage = recorder.Image(10, 10);
+        GraphTestImageResource bottomRightImage = recorder.Image(10, 10);
+        MGTextureData other = new(recorder.Image(10, 10));
+
+        //  Right margin 0: RightColumnSize collapses to 0, so the right column's 3 patches must be skipped.
+        MGNineSliceFillBrush brush = new(new Thickness(10, 10, 0, 10),
+            other, other, new MGTextureData(topRightImage),
+            other, other, new MGTextureData(middleRightImage),
+            other, other, new MGTextureData(bottomRightImage));
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
+        Assert.NotEmpty(calls);
+        Assert.DoesNotContain(calls, c => ReferenceEquals(c.Texture, topRightImage) || ReferenceEquals(c.Texture, middleRightImage) || ReferenceEquals(c.Texture, bottomRightImage));
+        //  The remaining 6 patches share one image and opacity, so they still batch into a single call.
+        Assert.Single(calls);
+    }
+
+    #endregion
+
     #region Helpers
 
     private static MGBoxShape RoundedShape(int width, int height, int thickness, int radius)

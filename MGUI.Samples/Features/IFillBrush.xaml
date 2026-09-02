@@ -542,6 +542,21 @@
                             </Border>
                         </StackPanel>
 
+                        <Separator Margin="0,5" />
+                        <StackPanel Orientation="Vertical" HorizontalAlignment="Left" Spacing="5">
+                            <TextBlock Text="Rounded host:" />
+                            <TextBlock>
+                                On a host with [c=Turquoise]CornerRadius[/c] and a border, each of the 9 patches is clipped to the rounded
+                                silhouette instead of overflowing the corners.
+                            </TextBlock>
+                            <Border Width="220" Height="140" CornerRadius="24" BorderThickness="3" BorderBrush="Black" Padding="5"
+                                    HorizontalAlignment="Left" ToolTip="Rounded corners: the 9 patches are clipped to the rounded silhouette instead of overflowing the corners">
+                                <Border.Background>
+                                    <NineSliceFillBrush SourceName="Samples_9SliceTexture1" SourceMargin="52" TargetMargin="26" />
+                                </Border.Background>
+                            </Border>
+                        </StackPanel>
+
                         <Spacer Height="50" />
                     </StackPanel>
                 </StackPanel>
