@@ -275,26 +275,15 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             }
         }
 
-        private enum BorderRegion
-        {
-            TopLeft,
-            TopRight,
-            BottomRight,
-            BottomLeft,
-            Top,
-            Right,
-            Bottom,
-            Left,
-        }
-
-        private const float RegionTolerance = 0.01f;
-
-        /// <summary>Rounded path: maps the edge texture on the straight segments of the border ring and the corner texture on its arcs, using
-        /// <see cref="MGBoxGeometry.OuterContour"/>, <see cref="MGBoxGeometry.InnerContour"/> and <see cref="MGBoxGeometry.BorderRingIndices"/>.<para/>
-        /// Rules (the geometry is never rebuilt here): ring quad i lies between outer contour vertices i and i+1; a quad whose two outer vertices belong
-        /// to the same corner square (r x r, inclusive) is a corner quad, any other quad belongs to the side nearest to its outer midpoint. Each region has
-        /// a rectangle (corner square, or the straight edge between the arcs, as thick as the border) onto which the texture is stretched; rotations and
-        /// reflections of <see cref="Transforms"/> are applied around that rectangle's centre exactly like the rectangle path fits the rotated sprite.<para/>
+        /// <summary>Rounded path: keeps the texture layout of the rectangle path (corner texture on the thickness-sized corner blocks, edge textures on
+        /// the edges between them) and lets the rounded ring cut that layout, using <see cref="MGBoxGeometry.OuterContour"/>,
+        /// <see cref="MGBoxGeometry.InnerContour"/> and <see cref="MGBoxGeometry.BorderRingIndices"/>.<para/>
+        /// Rules (the geometry is never rebuilt here): ring quad i lies between outer contour vertices i and i+1; every quad is clipped against each
+        /// layout rectangle of the rectangle path (a quad may contribute a piece to several regions), the pieces are fan-triangulated and emitted per
+        /// region, so the seams follow the layout lines rather than the ring quads. Rotations and reflections of <see cref="Transforms"/> are applied
+        /// around each rectangle's centre exactly like the rectangle path fits the rotated sprite. The part of the ring deeper than the thickness inside
+        /// a corner square (when the radius exceeds the thickness) belongs to no layout rectangle: it is clipped separately and painted with the corner
+        /// texture using clamped coordinates, so the pieces partition the ring exactly, without hole or overlap.<para/>
         /// Falls back to the rectangle path, on purpose and documented (Docs/Tasks/drawing-tasks.md, Tache 4), when the geometry uses the rectangle fast
         /// path or when it has no ring mesh (a border thickness reaching the corner radius collapses the inner arc, see MGBoxGeometryBuilder.BuildBorderRingIndices).</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
@@ -318,7 +307,6 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
             float opacity = DA.Opacity * this.Opacity;
             Rectangle bounds = Shape.OuterBounds;
-            MGCornerRadius radius = Shape.NormalizedCornerRadius;
             IReadOnlyList<Vector2> vertices = Geometry.Vertices;
             IReadOnlyList<int> ringIndices = Geometry.BorderRingIndices;
             int outerCount = Geometry.OuterContourVertexCount;
@@ -328,20 +316,11 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 return;
             }
 
-            BorderRegion[] regionOfQuad = new BorderRegion[quadCount];
-            for (int quad = 0; quad < quadCount; quad++)
-            {
-                Vector2 start = vertices[quad];
-                Vector2 end = vertices[(quad + 1) % outerCount];
-                BorderRegion? startCorner = GetCorner(start, bounds, radius);
-                BorderRegion? endCorner = GetCorner(end, bounds, radius);
-                regionOfQuad[quad] = startCorner.HasValue && startCorner == endCorner
-                    ? startCorner.Value
-                    : GetNearestEdge((start + end) / 2f, bounds);
-            }
-
+            MGCornerRadius radius = Shape.NormalizedCornerRadius;
             Vector2 origin = DA.Offset.ToVector2();
-            int[] remap = new int[vertices.Count];
+            List<Vector2> quadPolygon = new(4);
+            List<Vector2> clipped = new(8);
+            List<Vector2> scratch = new(8);
             List<Vector2> regionVertices = new();
             List<Vector2> regionUVs = new();
             List<int> regionIndices = new();
@@ -350,49 +329,67 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             {
                 Color cornerColor = this.CornerColor * opacity * CornerTexture.Opacity;
                 CornerTransforms corners = Transforms.CornerTransforms;
-                EmitRegion(DA, BorderRegion.TopLeft, new RectangleF(bounds.Left, bounds.Top, radius.TopLeft, radius.TopLeft), corners.TopLeftRotation, corners.TopLeftReflections, CornerTexture, cornerImage, cornerColor);
-                EmitRegion(DA, BorderRegion.TopRight, new RectangleF(bounds.Right - radius.TopRight, bounds.Top, radius.TopRight, radius.TopRight), corners.TopRightRotation, corners.TopRightReflections, CornerTexture, cornerImage, cornerColor);
-                EmitRegion(DA, BorderRegion.BottomRight, new RectangleF(bounds.Right - radius.BottomRight, bounds.Bottom - radius.BottomRight, radius.BottomRight, radius.BottomRight), corners.BottomRightRotation, corners.BottomRightReflections, CornerTexture, cornerImage, cornerColor);
-                EmitRegion(DA, BorderRegion.BottomLeft, new RectangleF(bounds.Left, bounds.Bottom - radius.BottomLeft, radius.BottomLeft, radius.BottomLeft), corners.BottomLeftRotation, corners.BottomLeftReflections, CornerTexture, cornerImage, cornerColor);
+                //  Same corner blocks as the rectangle path (see Draw(..., Rectangle, Thickness)); the ring is clipped against them.
+                //  The part of the ring that lies deeper than the thickness inside a corner square belongs to no layout rectangle:
+                //  it is painted with the corner texture too (clamped coordinates), so the ring never shows a hole.
+                EmitRegion(DA, new RectangleF(bounds.Left, bounds.Top, thickness.Left, thickness.Top),
+                    new RectangleF(bounds.Left + thickness.Left, bounds.Top + thickness.Top, radius.TopLeft - thickness.Left, radius.TopLeft - thickness.Top),
+                    corners.TopLeftRotation, corners.TopLeftReflections, CornerTexture, cornerImage, cornerColor);
+                EmitRegion(DA, new RectangleF(bounds.Right - thickness.Right, bounds.Top, thickness.Right, thickness.Top),
+                    new RectangleF(bounds.Right - radius.TopRight, bounds.Top + thickness.Top, radius.TopRight - thickness.Right, radius.TopRight - thickness.Top),
+                    corners.TopRightRotation, corners.TopRightReflections, CornerTexture, cornerImage, cornerColor);
+                EmitRegion(DA, new RectangleF(bounds.Right - thickness.Right, bounds.Bottom - thickness.Bottom, thickness.Right, thickness.Bottom),
+                    new RectangleF(bounds.Right - radius.BottomRight, bounds.Bottom - radius.BottomRight, radius.BottomRight - thickness.Right, radius.BottomRight - thickness.Bottom),
+                    corners.BottomRightRotation, corners.BottomRightReflections, CornerTexture, cornerImage, cornerColor);
+                EmitRegion(DA, new RectangleF(bounds.Left, bounds.Bottom - thickness.Bottom, thickness.Left, thickness.Bottom),
+                    new RectangleF(bounds.Left + thickness.Left, bounds.Bottom - radius.BottomLeft, radius.BottomLeft - thickness.Left, radius.BottomLeft - thickness.Bottom),
+                    corners.BottomLeftRotation, corners.BottomLeftReflections, CornerTexture, cornerImage, cornerColor);
             }
 
             if (drawEdges)
             {
                 Color edgeColor = this.EdgeColor * opacity * EdgeTexture.Opacity;
                 EdgeTransforms edges = Transforms.EdgeTransforms;
-                EmitRegion(DA, BorderRegion.Top, new RectangleF(bounds.Left + radius.TopLeft, bounds.Top, bounds.Width - radius.TopLeft - radius.TopRight, thickness.Top), edges.TopRotation, edges.TopReflections, EdgeTexture, edgeImage, edgeColor);
-                EmitRegion(DA, BorderRegion.Right, new RectangleF(bounds.Right - thickness.Right, bounds.Top + radius.TopRight, thickness.Right, bounds.Height - radius.TopRight - radius.BottomRight), edges.RightRotation, edges.RightReflections, EdgeTexture, edgeImage, edgeColor);
-                EmitRegion(DA, BorderRegion.Bottom, new RectangleF(bounds.Left + radius.BottomLeft, bounds.Bottom - thickness.Bottom, bounds.Width - radius.BottomLeft - radius.BottomRight, thickness.Bottom), edges.BottomRotation, edges.BottomReflections, EdgeTexture, edgeImage, edgeColor);
-                EmitRegion(DA, BorderRegion.Left, new RectangleF(bounds.Left, bounds.Top + radius.TopLeft, thickness.Left, bounds.Height - radius.TopLeft - radius.BottomLeft), edges.LeftRotation, edges.LeftReflections, EdgeTexture, edgeImage, edgeColor);
+                //  Same edge rectangles as the rectangle path: they run between the corner blocks, and the arcs cut through them.
+                EmitRegion(DA, new RectangleF(bounds.Left + thickness.Left, bounds.Top, bounds.Width - thickness.Width, thickness.Top), RectangleF.Empty,
+                    edges.TopRotation, edges.TopReflections, EdgeTexture, edgeImage, edgeColor);
+                EmitRegion(DA, new RectangleF(bounds.Right - thickness.Right, bounds.Top + thickness.Top, thickness.Right, bounds.Height - thickness.Height), RectangleF.Empty,
+                    edges.RightRotation, edges.RightReflections, EdgeTexture, edgeImage, edgeColor);
+                EmitRegion(DA, new RectangleF(bounds.Left + thickness.Left, bounds.Bottom - thickness.Bottom, bounds.Width - thickness.Width, thickness.Bottom), RectangleF.Empty,
+                    edges.BottomRotation, edges.BottomReflections, EdgeTexture, edgeImage, edgeColor);
+                EmitRegion(DA, new RectangleF(bounds.Left, bounds.Top + thickness.Top, thickness.Left, bounds.Height - thickness.Height), RectangleF.Empty,
+                    edges.LeftRotation, edges.LeftReflections, EdgeTexture, edgeImage, edgeColor);
             }
 
-            void EmitRegion(ElementDrawArgs args, BorderRegion region, RectangleF regionRect, float rotation, SpriteEffects reflections,
+            //  Clips every ring quad against the layout rectangle (and the deeper corner zone, when any), fans the pieces into triangles and
+            //  emits them in one call. Texture coordinates always come from the layout rectangle, so a piece in the deeper zone is clamped.
+            void EmitRegion(ElementDrawArgs args, RectangleF layoutRect, RectangleF deeperRect, float rotation, SpriteEffects reflections,
                 MGTextureData textureData, IUIImageResource image, Color color)
             {
-                Array.Fill(remap, -1);
+                if (layoutRect.Width <= 0 || layoutRect.Height <= 0)
+                {
+                    return;
+                }
+
                 regionVertices.Clear();
                 regionUVs.Clear();
                 regionIndices.Clear();
+                bool hasDeeperZone = deeperRect.Width > 0 && deeperRect.Height > 0;
 
                 for (int quad = 0; quad < quadCount; quad++)
                 {
-                    if (regionOfQuad[quad] != region)
-                    {
-                        continue;
-                    }
+                    //  Ring quad i = outer i, outer i+1, inner i+1, inner i (BuildBorderRingIndices emits (o, o2, i2) then (i2, i, o)).
+                    int first = quad * 6;
+                    quadPolygon.Clear();
+                    quadPolygon.Add(vertices[ringIndices[first]]);
+                    quadPolygon.Add(vertices[ringIndices[first + 1]]);
+                    quadPolygon.Add(vertices[ringIndices[first + 2]]);
+                    quadPolygon.Add(vertices[ringIndices[first + 4]]);
 
-                    for (int k = 0; k < 6; k++)
+                    AppendClippedPolygon(layoutRect);
+                    if (hasDeeperZone)
                     {
-                        int vertexIndex = ringIndices[quad * 6 + k];
-                        if (remap[vertexIndex] < 0)
-                        {
-                            remap[vertexIndex] = regionVertices.Count;
-                            Vector2 vertex = vertices[vertexIndex];
-                            regionVertices.Add(vertex);
-                            regionUVs.Add(GetTextureCoordinate(vertex, regionRect, rotation, reflections, textureData, image));
-                        }
-
-                        regionIndices.Add(remap[vertexIndex]);
+                        AppendClippedPolygon(deeperRect);
                     }
                 }
 
@@ -400,49 +397,97 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                 {
                     args.Context.DrawTexturedTriangleList(origin, image, regionVertices.ToArray(), regionUVs.ToArray(), regionIndices.ToArray(), color);
                 }
+
+                void AppendClippedPolygon(RectangleF clipRect)
+                {
+                    ClipConvexPolygonToRectangle(quadPolygon, clipRect, clipped, scratch);
+                    if (clipped.Count < 3 || Math.Abs(SignedArea(clipped)) < 1e-4f)
+                    {
+                        return;
+                    }
+
+                    int baseIndex = regionVertices.Count;
+                    foreach (Vector2 vertex in clipped)
+                    {
+                        regionVertices.Add(vertex);
+                        regionUVs.Add(GetTextureCoordinate(vertex, layoutRect, rotation, reflections, textureData, image));
+                    }
+
+                    for (int k = 1; k + 1 < clipped.Count; k++)
+                    {
+                        regionIndices.Add(baseIndex);
+                        regionIndices.Add(baseIndex + k);
+                        regionIndices.Add(baseIndex + k + 1);
+                    }
+                }
             }
         }
 
-        /// <summary>Inclusive membership of an outer contour vertex to a corner square (r x r), with a small tolerance for the float arc points.</summary>
-        private static BorderRegion? GetCorner(Vector2 vertex, Rectangle bounds, MGCornerRadius radius)
+        /// <summary>Sutherland-Hodgman clipping of a convex polygon against an axis-aligned rectangle. The result is written to <paramref name="result"/>.</summary>
+        private static void ClipConvexPolygonToRectangle(List<Vector2> polygon, RectangleF rect, List<Vector2> result, List<Vector2> scratch)
         {
-            if (radius.TopLeft > 0 && vertex.X <= bounds.Left + radius.TopLeft + RegionTolerance && vertex.Y <= bounds.Top + radius.TopLeft + RegionTolerance)
-            {
-                return BorderRegion.TopLeft;
-            }
-
-            if (radius.TopRight > 0 && vertex.X >= bounds.Right - radius.TopRight - RegionTolerance && vertex.Y <= bounds.Top + radius.TopRight + RegionTolerance)
-            {
-                return BorderRegion.TopRight;
-            }
-
-            if (radius.BottomRight > 0 && vertex.X >= bounds.Right - radius.BottomRight - RegionTolerance && vertex.Y >= bounds.Bottom - radius.BottomRight - RegionTolerance)
-            {
-                return BorderRegion.BottomRight;
-            }
-
-            if (radius.BottomLeft > 0 && vertex.X <= bounds.Left + radius.BottomLeft + RegionTolerance && vertex.Y >= bounds.Bottom - radius.BottomLeft - RegionTolerance)
-            {
-                return BorderRegion.BottomLeft;
-            }
-
-            return null;
+            result.Clear();
+            result.AddRange(polygon);
+            ClipAgainstBound(result, scratch, axisX: true, bound: rect.Left, keepGreater: true);
+            ClipAgainstBound(result, scratch, axisX: true, bound: rect.Right, keepGreater: false);
+            ClipAgainstBound(result, scratch, axisX: false, bound: rect.Top, keepGreater: true);
+            ClipAgainstBound(result, scratch, axisX: false, bound: rect.Bottom, keepGreater: false);
         }
 
-        /// <summary>Side whose line is nearest to <paramref name="point"/> (the midpoint of a quad's outer vertices).</summary>
-        private static BorderRegion GetNearestEdge(Vector2 point, Rectangle bounds)
+        private static void ClipAgainstBound(List<Vector2> polygon, List<Vector2> scratch, bool axisX, float bound, bool keepGreater)
         {
-            float top = Math.Abs(point.Y - bounds.Top);
-            float right = Math.Abs(point.X - bounds.Right);
-            float bottom = Math.Abs(point.Y - bounds.Bottom);
-            float left = Math.Abs(point.X - bounds.Left);
+            if (polygon.Count == 0)
+            {
+                return;
+            }
 
-            BorderRegion nearest = BorderRegion.Top;
-            float distance = top;
-            if (right < distance) { nearest = BorderRegion.Right; distance = right; }
-            if (bottom < distance) { nearest = BorderRegion.Bottom; distance = bottom; }
-            if (left < distance) { nearest = BorderRegion.Left; }
-            return nearest;
+            scratch.Clear();
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                Vector2 current = polygon[i];
+                Vector2 previous = polygon[(i + polygon.Count - 1) % polygon.Count];
+                float currentValue = axisX ? current.X : current.Y;
+                float previousValue = axisX ? previous.X : previous.Y;
+                bool currentInside = keepGreater ? currentValue >= bound : currentValue <= bound;
+                bool previousInside = keepGreater ? previousValue >= bound : previousValue <= bound;
+
+                if (currentInside)
+                {
+                    if (!previousInside)
+                    {
+                        scratch.Add(IntersectBound(previous, current, previousValue, currentValue, bound));
+                    }
+
+                    scratch.Add(current);
+                }
+                else if (previousInside)
+                {
+                    scratch.Add(IntersectBound(previous, current, previousValue, currentValue, bound));
+                }
+            }
+
+            polygon.Clear();
+            polygon.AddRange(scratch);
+        }
+
+        private static Vector2 IntersectBound(Vector2 from, Vector2 to, float fromValue, float toValue, float bound)
+        {
+            //  Endpoints lie on different sides of the bound, so the denominator is never zero.
+            float t = (bound - fromValue) / (toValue - fromValue);
+            return from + (to - from) * t;
+        }
+
+        private static float SignedArea(List<Vector2> polygon)
+        {
+            float area = 0f;
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                Vector2 a = polygon[i];
+                Vector2 b = polygon[(i + 1) % polygon.Count];
+                area += a.X * b.Y - b.X * a.Y;
+            }
+
+            return area / 2f;
         }
 
         /// <summary>Normalized texture coordinate of <paramref name="vertex"/> for a region stretched over <paramref name="regionRect"/>:

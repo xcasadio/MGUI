@@ -155,7 +155,8 @@ public class TexturedPaintProjectionTests
         Recorder recorder = Recorder.Create();
         GraphTestImageResource edgeImage = recorder.Image(32, 8);
         GraphTestImageResource cornerImage = recorder.Image(8, 8);
-        MGBoxShape shape = RoundedShape(80, 40, 4, 12);
+        //  Thickness 8, radius 12: the 8x8 corner blocks overlap the arcs substantially and the inner radius (4) keeps a ring mesh.
+        MGBoxShape shape = RoundedShape(80, 40, 8, 12);
         MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
         MGTexturedBorderBrush brush = new(edgeImage, cornerImage);
 
@@ -165,19 +166,67 @@ public class TexturedPaintProjectionTests
         List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
         Assert.Empty(recorder.Transaction.DrawTextureToCalls);
         Assert.Empty(recorder.Transaction.DrawTextureAtCalls);
-        Assert.InRange(calls.Count, 5, 8);
-        Assert.Equal(geometry.BorderRingIndices.Count / 3, calls.Sum(call => call.Indices.Length / 3));
+        Assert.Equal(8, calls.Count);
         Assert.All(calls, call => Assert.True(ReferenceEquals(call.Texture, edgeImage) || ReferenceEquals(call.Texture, cornerImage)));
         Assert.Equal(4, calls.Count(call => ReferenceEquals(call.Texture, edgeImage)));
-        Assert.InRange(calls.Count(call => ReferenceEquals(call.Texture, cornerImage)), 1, 4);
+        Assert.Equal(4, calls.Count(call => ReferenceEquals(call.Texture, cornerImage)));
         Assert.All(calls, AssertUVsInUnitSquare);
         Assert.All(calls, call => Assert.Equal(Color.White, call.ColorMask));
 
-        //  Top edge, rotation 0: the texture runs left to right along the straight segment.
+        //  The layout rectangles partition the ring: the clipped pieces cover exactly the ring area, no hole and no overlap (float rounding aside).
+        float ringArea = MeshArea(geometry.Vertices.ToArray(), geometry.BorderRingIndices.ToArray());
+        Assert.InRange(calls.Sum(call => MeshArea(call.Vertices, call.Indices)), ringArea - 0.05f, ringArea + 0.05f);
+
+        //  Top edge, rotation 0: the texture runs from u = 0 at the left corner block to u = 1 at the right one, and never leaves its rectangle.
         GraphTexturedTriangleListCall topEdge = calls.Where(call => ReferenceEquals(call.Texture, edgeImage)).MinBy(call => call.Vertices.Average(v => v.Y));
         Assert.Equal(0f, topEdge.TextureCoordinates[IndexOfMin(topEdge.Vertices, v => v.X)].X, 2);
         Assert.Equal(1f, topEdge.TextureCoordinates[IndexOfMax(topEdge.Vertices, v => v.X)].X, 2);
-        Assert.All(topEdge.Vertices, v => Assert.True(v.Y <= shape.OuterBounds.Top + 4 + 0.01f));
+        Assert.All(topEdge.Vertices, v => Assert.InRange(v.Y, shape.OuterBounds.Top - 0.01f, shape.OuterBounds.Top + 8 + 0.01f));
+        Assert.All(topEdge.Vertices, v => Assert.InRange(v.X, shape.OuterBounds.Left + 8 - 0.01f, shape.OuterBounds.Right - 8 + 0.01f));
+    }
+
+    [Fact]
+    public void TexturedBorderBrush_RoundedShape_KeepsRectangleLayoutCutByTheArcs()
+    {
+        //  Radius (12) larger than the thickness (8): the layout is the rectangle one (8x8 corner blocks, edges between them) and the arcs cut it.
+        Recorder recorder = Recorder.Create();
+        GraphTestImageResource edgeImage = recorder.Image(32, 8);
+        GraphTestImageResource cornerImage = recorder.Image(8, 8);
+        MGBoxShape shape = RoundedShape(80, 40, 8, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        Rectangle bounds = shape.OuterBounds;
+
+        new MGTexturedBorderBrush(edgeImage, cornerImage).Draw(recorder.Args(), null!, shape, geometry);
+
+        List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
+        GraphTexturedTriangleListCall topEdge = calls.Where(call => ReferenceEquals(call.Texture, edgeImage)).MinBy(call => call.Vertices.Average(v => v.Y));
+        GraphTexturedTriangleListCall leftEdge = calls.Where(call => ReferenceEquals(call.Texture, edgeImage)).MinBy(call => call.Vertices.Average(v => v.X));
+
+        //  Edge textures reach into the arcs beyond their straight segment (x < 12 for the top edge, y < 12 for the left edge)...
+        Assert.Contains(topEdge.Vertices, v => v.X < 12f - 0.01f);
+        Assert.Contains(leftEdge.Vertices, v => v.Y < 12f - 0.01f);
+        //  ...but never into the corner blocks: the cut follows the layout lines, not the ring quads.
+        Assert.All(topEdge.Vertices, v => Assert.True(v.X >= 8f - 0.01f, $"top edge vertex {v} inside the corner block"));
+        Assert.All(leftEdge.Vertices, v => Assert.True(v.Y >= 8f - 0.01f, $"left edge vertex {v} inside the corner block"));
+
+        foreach (GraphTexturedTriangleListCall corner in calls.Where(call => ReferenceEquals(call.Texture, cornerImage)))
+        {
+            Vector2 centroid = new(corner.Vertices.Average(v => v.X), corner.Vertices.Average(v => v.Y));
+            float cornerX = centroid.X < bounds.Center.X ? bounds.Left : bounds.Right;
+            float cornerY = centroid.Y < bounds.Center.Y ? bounds.Top : bounds.Bottom;
+            //  Every corner piece stays inside its 12x12 corner square...
+            Assert.All(corner.Vertices, v => Assert.True(Math.Abs(v.X - cornerX) <= 12f + 0.01f && Math.Abs(v.Y - cornerY) <= 12f + 0.01f));
+            //  ...covers the 8x8 block where the ring passes through it...
+            Assert.Contains(corner.Vertices, v => Math.Abs(v.X - cornerX) <= 8f + 0.01f && Math.Abs(v.Y - cornerY) <= 8f + 0.01f);
+            //  ...and also the sliver of ring deeper than the thickness near the diagonal, so the ring has no hole (clamped coordinates there).
+            Assert.Contains(corner.Vertices, v => Math.Abs(v.X - cornerX) > 8f + 0.01f && Math.Abs(v.Y - cornerY) > 8f + 0.01f);
+            AssertUVsInUnitSquare(corner);
+        }
+
+        //  The rectangle layout is also what the rectangle path draws: same edge/corner rectangles, so a texture designed for the square
+        //  border keeps its placement and is merely cut by the rounded silhouette.
+        float ringArea = MeshArea(geometry.Vertices.ToArray(), geometry.BorderRingIndices.ToArray());
+        Assert.InRange(calls.Sum(call => MeshArea(call.Vertices, call.Indices)), ringArea - 0.05f, ringArea + 0.05f);
     }
 
     [Fact]
@@ -280,6 +329,20 @@ public class TexturedPaintProjectionTests
             Assert.InRange(uv.X, -UvTolerance, 1f + UvTolerance);
             Assert.InRange(uv.Y, -UvTolerance, 1f + UvTolerance);
         }
+    }
+
+    private static float MeshArea(Vector2[] vertices, int[] indices)
+    {
+        float area = 0f;
+        for (int i = 0; i + 2 < indices.Length; i += 3)
+        {
+            Vector2 a = vertices[indices[i]];
+            Vector2 b = vertices[indices[i + 1]];
+            Vector2 c = vertices[indices[i + 2]];
+            area += Math.Abs((b.X - a.X) * (c.Y - a.Y) - (c.X - a.X) * (b.Y - a.Y)) / 2f;
+        }
+
+        return area;
     }
 
     private static int IndexOfMin(Vector2[] vertices, Func<Vector2, float> selector)
