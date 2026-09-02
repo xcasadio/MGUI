@@ -1450,6 +1450,35 @@ namespace MGUI.Core.UI
 
         /// <summary>Traverses up the visual tree, starting from the given <paramref name="Element"/>, looking for an <see cref="MGElement"/> that is fully opaque (<see cref="MGElement.Opacity"/> >= 1.0f)</summary>
         /// <param name="IncludeSelf">If true, this method may return the input <paramref name="Element"/>. If false, starts checking for valid matches from the input's <see cref="MGElement.Parent"/></param>
+        /// <summary>Z-order-aware occlusion for <see cref="MGWindow.IsUnscaledPositionOccluded"/>: true if the active context menu, or a visible
+        /// non-click-through desktop window drawn above <paramref name="Window"/> (topmost over non-topmost, then later <see cref="Windows"/>
+        /// entries - the same order <see cref="Draw"/> uses), contains the position. Windows absent from <see cref="Windows"/> (e.g. the
+        /// overlay window) are only occluded by the context menu. Cost is O(window count) per call; window counts are small.</summary>
+        internal bool IsUnscaledPositionOccludedAbove(MGWindow Window, Vector2 UnscaledScreenPosition)
+        {
+            if (ActiveContextMenu != null && ActiveContextMenu != Window && ActiveContextMenu.OccludesUnscaledPosition(UnscaledScreenPosition))
+            {
+                return true;
+            }
+
+            int WindowIndex = Windows.IndexOf(Window);
+            if (WindowIndex < 0)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < Windows.Count; i++)
+            {
+                MGWindow Other = Windows[i];
+                if (Other != Window && MGWindow.IsDrawnAbove(Other, i, Window, WindowIndex) && Other.OccludesUnscaledPosition(UnscaledScreenPosition))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static MGElement FindFirstOpaqueParent(MGElement Element, bool IncludeSelf)
         {
             MGElement Current = IncludeSelf ? Element : Element?.Parent;

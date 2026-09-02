@@ -1437,7 +1437,9 @@ namespace MGUI.Core.UI
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public bool IsMMBPressed => InputTracker.Mouse.IsPressedInside(MouseButton.Middle, this);
 
-        /// <summary>Warning - this property can be true even if this <see cref="MGElement"/> is entirely occluded by another <see cref="MGElement"/> overtop it.<para/>
+        /// <summary>Z-order-aware with respect to windows: false when the mouse position is covered by a window drawn above this element's window
+        /// (nested/modal windows, higher desktop windows, the active context menu). Warning - it stays geometric within the window: it can be true
+        /// even if this <see cref="MGElement"/> is covered by a sibling <see cref="MGElement"/> drawn overtop of it in the same window.<para/>
         /// You may want to consider checking for <see cref="VisualState"/>'s <see cref="SecondaryVisualState.Hovered"/> instead.<para/>
         /// See also: <see cref="MGWindow.HoveredElement"/> (You might also want to call <see cref="IsSelfOrAncestorOf(MGElement)"/> on the <see cref="MGWindow.HoveredElement"/>)</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1448,9 +1450,18 @@ namespace MGUI.Core.UI
 
         protected IMouseViewport AsIViewport() => this;
         protected IMouseHandlerHost AsIMouseHandlerHost() => this;
-        bool IMouseViewport.IsInside(Vector2 Position) => 
-            ContainsUnscaledInputPoint(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, Position)) &&
-            GetDesktop().ValidScreenBounds.ContainsInclusive(Position);
+        bool IMouseViewport.IsInside(Vector2 Position)
+        {
+            Vector2 UnscaledPosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, Position);
+            //  Z-order-aware hit-test: a position covered by a window drawn over this element's window (its own nested/modal windows,
+            //  sibling nested windows above it, higher desktop windows, the active context menu) is not "inside" this element, so the
+            //  Inside/Outside classification of every mouse event - movement, Entered/Exited, hover, press - follows the visible surface
+            //  rather than raw geometry. The test is position-dependent so Entered/Exited fire at the occluder's edge.
+            //  Drag continuation is unaffected: MouseHandler delivers Dragged/DragEnd to the drag owner regardless of IsInside.
+            return ContainsUnscaledInputPoint(UnscaledPosition)
+                && GetDesktop().ValidScreenBounds.ContainsInclusive(Position)
+                && !(SelfOrParentWindow?.IsUnscaledPositionOccluded(UnscaledPosition) ?? false);
+        }
 
         Vector2 IMouseViewport.GetOffset() => Vector2.Zero;
 

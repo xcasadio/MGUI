@@ -9,24 +9,26 @@ using Xunit;
 namespace MGUI.Tests.Input;
 
 /// <summary>
-/// Nested-window occlusion of the parent window's own content (reported in the FocusInputReview sample: hovering the open
-/// <see cref="MGComboBox{TItemType}"/> dropdown also highlighted the <see cref="MGListBox{TItemType}"/> items drawn beneath it).
-/// The dropdown is a nested <see cref="MGWindow"/> of the parent window, so the desktop-level cross-window occlusion never applied;
-/// <c>MGWindow.OnBeginUpdateContents</c> now reuses its nested-window occlusion predicate to suppress the parent's
-/// <see cref="MGWindow.HoveredElement"/>/<see cref="MGWindow.PressedElement"/> while a non-click-through nested window is hovered.
+/// Z-order-aware mouse hit-test (MGElement.IsInside): a position covered by a window drawn above an element's window (nested/modal
+/// windows, sibling nested windows above, higher desktop windows, active context menu) is not "inside" that element, so movement
+/// events (MovedInside/Entered/Exited), IsHovered and press classification follow the visible surface. Reported in the FocusInputReview
+/// sample: hovering the open <see cref="MGComboBox{TItemType}"/> dropdown (a nested window) still highlighted the
+/// <see cref="MGListBox{TItemType}"/> items beneath it, because the listbox tracks its hovered item through its own MovedInside/Exited events.
 /// </summary>
 public class NestedWindowHoverOcclusionTests
 {
+    private static readonly List<string> ManyItems = Enumerable.Range(1, 12).Select(i => $"Item {i}").ToList();
+
     [Fact]
-    public void OpenComboBoxDropdown_HoveringItemOverListBox_DoesNotHoverListBoxBeneath()
+    public void OpenComboBoxDropdown_HoveringItemOverListBox_ListBoxGetsExitedAndNoMovedInside()
     {
         GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
         MGDesktop desktop = new(runtime);
-        MGWindow window = new(desktop, 0, 0, 300, 300) { WindowStyle = WindowStyle.None };
+        MGWindow window = new(desktop, 0, 0, 300, 500) { WindowStyle = WindowStyle.None };
         MGComboBox<string> comboBox = new(window) { PreferredHeight = 30 };
         comboBox.SetItemsSource(new List<string> { "All items", "Focusable controls", "Popup-backed controls", "Overlay blockers" });
         MGListBox<string> listBox = new(window);
-        listBox.SetItemsSource(new List<string> { "SearchTextBox", "FilterComboBox", "ResultsListBox", "ContextMenuTextBox", "PopupTextBox" });
+        listBox.SetItemsSource(ManyItems);
         MGStackPanel panel = new(window, Orientation.Vertical);
         panel.TryAddChild(comboBox);
         panel.TryAddChild(listBox);
@@ -35,28 +37,48 @@ public class NestedWindowHoverOcclusionTests
         Frame(runtime, desktop, 1, new Point(1, 1));
         Frame(runtime, desktop, 2, new Point(1, 1));
 
+        int movedInside = 0;
+        int exited = 0;
+        listBox.MouseHandler.MovedInside += (_, _) => movedInside++;
+        listBox.MouseHandler.Exited += (_, _) => exited++;
+
         comboBox.IsDropdownOpen = true;
         Frame(runtime, desktop, 3, new Point(1, 1));
         Frame(runtime, desktop, 4, new Point(1, 1));
         MGWindow dropdown = Assert.Single(window.NestedWindows);
         Rectangle overlap = Rectangle.Intersect(dropdown.LayoutBounds, listBox.LayoutBounds);
         Assert.False(overlap.IsEmpty); // the dropdown really covers part of the listbox, as in the sample
-        Point hoverPoint = overlap.Center;
 
-        Frame(runtime, desktop, 5, hoverPoint);
-        Frame(runtime, desktop, 6, hoverPoint);
+        // Point A: on the listbox, below the dropdown (not covered). Point B: on the listbox, under the dropdown.
+        Point a = new(listBox.LayoutBounds.Center.X, dropdown.LayoutBounds.Bottom + 10);
+        Point b = overlap.Center;
+        Assert.True(listBox.LayoutBounds.Contains(a));
+        Assert.False(dropdown.LayoutBounds.Contains(a));
 
+        Frame(runtime, desktop, 5, a);
+        Frame(runtime, desktop, 6, a);
+        Assert.True(listBox.IsHovered);
+        Assert.True(movedInside > 0);
+        int movedInsideBefore = movedInside;
+        int exitedBefore = exited;
+
+        Frame(runtime, desktop, 7, b);
+        Frame(runtime, desktop, 8, b);
+
+        Assert.False(listBox.IsHovered);                     // occluded by the dropdown at B
+        Assert.Equal(exitedBefore + 1, exited);              // the listbox saw the mouse leave -> clears its hovered item
+        Assert.Equal(movedInsideBefore, movedInside);        // no MovedInside while over the dropdown
         Assert.NotNull(dropdown.HoveredElement);
         Assert.Null(window.HoveredElement);
 
-        // Control: once the dropdown is closed, the same point hovers the listbox normally.
+        // Control: dropdown closed, the next movement hovers the listbox again at the same place.
         comboBox.IsDropdownOpen = false;
-        Frame(runtime, desktop, 7, hoverPoint);
-        Frame(runtime, desktop, 8, hoverPoint);
-
+        Frame(runtime, desktop, 9, b);
+        Frame(runtime, desktop, 10, new Point(b.X + 1, b.Y));
         Assert.Empty(window.NestedWindows);
+        Assert.True(listBox.IsHovered);
+        Assert.True(movedInside > movedInsideBefore);
         Assert.NotNull(window.HoveredElement);
-        Assert.True(IsSelfOrDescendantOf(window.HoveredElement, listBox));
     }
 
     [Fact]
@@ -80,23 +102,65 @@ public class NestedWindowHoverOcclusionTests
         Assert.True(parent.LayoutBounds.Contains(outside));
         Assert.False(nested.LayoutBounds.Contains(outside));
 
-        // Hover over the nested window: only the nested window lights up.
         Frame(runtime, desktop, 3, inside);
         Frame(runtime, desktop, 4, inside);
         Assert.NotNull(nested.HoveredElement);
         Assert.Null(parent.HoveredElement);
+        Assert.False(parentButton.IsHovered);
+        Assert.True(nestedButton.IsHovered);
 
-        // Press over the nested window: the parent content beneath must not enter the pressed state.
         Frame(runtime, desktop, 5, inside, leftPressed: true);
         Assert.NotNull(nested.PressedElement);
         Assert.Null(parent.PressedElement);
         Frame(runtime, desktop, 6, inside);
 
-        // Outside the nested window, the parent hovers its own content normally.
         Frame(runtime, desktop, 7, outside);
         Frame(runtime, desktop, 8, outside);
         Assert.NotNull(parent.HoveredElement);
         Assert.True(IsSelfOrDescendantOf(parent.HoveredElement, parentButton));
+        Assert.True(parentButton.IsHovered);
+    }
+
+    [Fact]
+    public void HigherDesktopWindow_OverListBox_ListBoxGetsExitedAndNoMovedInside()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow backWindow = new(desktop, 0, 0, 300, 400) { WindowStyle = WindowStyle.None };
+        MGListBox<string> listBox = new(backWindow);
+        listBox.SetItemsSource(ManyItems);
+        backWindow.SetContent(listBox);
+        desktop.Windows.Add(backWindow);
+        // Added after backWindow -> drawn above it, covering the right half of the listbox.
+        MGWindow frontWindow = new(desktop, 150, 0, 300, 400) { WindowStyle = WindowStyle.None };
+        frontWindow.SetContent(new MGButton(frontWindow));
+        desktop.Windows.Add(frontWindow);
+        Frame(runtime, desktop, 1, new Point(1, 1));
+        Frame(runtime, desktop, 2, new Point(1, 1));
+
+        int movedInside = 0;
+        int exited = 0;
+        listBox.MouseHandler.MovedInside += (_, _) => movedInside++;
+        listBox.MouseHandler.Exited += (_, _) => exited++;
+
+        Point uncovered = new(50, listBox.LayoutBounds.Center.Y);
+        Point covered = new(200, listBox.LayoutBounds.Center.Y);
+        Assert.True(listBox.LayoutBounds.Contains(covered));
+        Assert.True(frontWindow.LayoutBounds.Contains(covered));
+        Assert.False(frontWindow.LayoutBounds.Contains(uncovered));
+
+        Frame(runtime, desktop, 3, uncovered);
+        Frame(runtime, desktop, 4, uncovered);
+        Assert.True(listBox.IsHovered);
+        int movedInsideBefore = movedInside;
+        int exitedBefore = exited;
+
+        Frame(runtime, desktop, 5, covered);
+        Frame(runtime, desktop, 6, covered);
+
+        Assert.False(listBox.IsHovered);
+        Assert.Equal(exitedBefore + 1, exited);
+        Assert.Equal(movedInsideBefore, movedInside);
     }
 
     private static bool IsSelfOrDescendantOf(MGElement element, MGElement ancestor)

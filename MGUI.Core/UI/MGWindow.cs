@@ -1020,6 +1020,80 @@ namespace MGUI.Core.UI
         private bool _WasOccludedByNestedWindowAtMousePos;
         private bool _RefreshHoveredElementAfterNestedOcclusion;
 
+        /// <summary>Z-order-aware occlusion test used by <see cref="MGElement"/>'s mouse hit-test (<c>IMouseViewport.IsInside</c>): true if the given
+        /// unscaled screen position is covered by a window drawn over this window's content - its own <see cref="ModalWindow"/> or
+        /// <see cref="NestedWindows"/>, sibling nested windows drawn above it, higher desktop windows, or the active context menu.
+        /// Click-through and hidden windows never occlude. The test is position-dependent (not merely "the mouse is over an occluder")
+        /// so that Entered/Exited transitions are detected at the occluder's edge.</summary>
+        internal bool IsUnscaledPositionOccluded(Vector2 UnscaledScreenPosition)
+        {
+            if (ModalWindow != null && ModalWindow.OccludesUnscaledPosition(UnscaledScreenPosition))
+            {
+                return true;
+            }
+
+            for (int i = 0; i < _NestedWindows.Count; i++)
+            {
+                if (_NestedWindows[i].OccludesUnscaledPosition(UnscaledScreenPosition))
+                {
+                    return true;
+                }
+            }
+
+            return IsUnscaledPositionOccludedFromAbove(UnscaledScreenPosition);
+        }
+
+        /// <summary>True if this window itself covers the position: visible, not click-through, and its bounds contain the position.</summary>
+        internal bool OccludesUnscaledPosition(Vector2 UnscaledScreenPosition)
+            => Visibility == Visibility.Visible && !AllowsClickThrough && ActualLayoutBounds.ContainsInclusive(UnscaledScreenPosition);
+
+        /// <summary>Occlusion by windows outside this window's own popup stack: for a nested window, the parent's modal window and the sibling
+        /// nested windows drawn above it, then recursively the parent's own occluders; for a root window, the desktop windows drawn above it.
+        /// Auxiliary windows that are not part of their parent's <see cref="NestedWindows"/> (modal window, tooltip, context menu) are drawn
+        /// above that stack, so only the parent's external occluders apply to them.</summary>
+        private bool IsUnscaledPositionOccludedFromAbove(Vector2 UnscaledScreenPosition)
+        {
+            if (ParentWindow == null)
+            {
+                return Desktop.IsUnscaledPositionOccludedAbove(this, UnscaledScreenPosition);
+            }
+
+            IReadOnlyList<MGWindow> Siblings = ParentWindow.NestedWindows;
+            int MyIndex = -1;
+            for (int i = 0; i < Siblings.Count; i++)
+            {
+                if (Siblings[i] == this)
+                {
+                    MyIndex = i;
+                    break;
+                }
+            }
+
+            if (MyIndex >= 0)
+            {
+                if (ParentWindow.ModalWindow != null && ParentWindow.ModalWindow.OccludesUnscaledPosition(UnscaledScreenPosition))
+                {
+                    return true;
+                }
+
+                for (int i = 0; i < Siblings.Count; i++)
+                {
+                    MGWindow Sibling = Siblings[i];
+                    if (Sibling != this && IsDrawnAbove(Sibling, i, this, MyIndex) && Sibling.OccludesUnscaledPosition(UnscaledScreenPosition))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return ParentWindow.IsUnscaledPositionOccludedFromAbove(UnscaledScreenPosition);
+        }
+
+        /// <summary>Draw order within one window list (desktop windows or one parent's nested windows): topmost windows are drawn over
+        /// non-topmost ones; within the same group, later list entries are drawn later, i.e. above.</summary>
+        internal static bool IsDrawnAbove(MGWindow Candidate, int CandidateIndex, MGWindow Reference, int ReferenceIndex)
+            => Candidate.IsTopmost != Reference.IsTopmost ? Candidate.IsTopmost : CandidateIndex > ReferenceIndex;
+
         /// <summary>If true, this <see cref="MGWindow"/>'s layout will be recomputed at the start of the next update tick.</summary>
         public bool QueueLayoutRefresh { get; set; }
 
