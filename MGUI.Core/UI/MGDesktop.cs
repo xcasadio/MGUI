@@ -1007,6 +1007,8 @@ namespace MGUI.Core.UI
                     }
 
                     NPC(nameof(FocusedKeyboardHandler));
+                    Previous?.OnKeyboardFocusChanged(false);
+                    FocusedKeyboardHandler?.OnKeyboardFocusChanged(true);
                     FocusedKeyboardHandlerChanged?.Invoke(this, new(Previous, FocusedKeyboardHandler));
                 }
             }

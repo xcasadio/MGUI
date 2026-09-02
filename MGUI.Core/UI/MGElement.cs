@@ -566,6 +566,15 @@ namespace MGUI.Core.UI
 
             protected internal virtual void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme) { }
 
+            /// <summary>
+            /// Invoked directly by <see cref="MGDesktop.FocusedKeyboardHandler"/>'s setter whenever this element gains or loses keyboard focus,
+            /// immediately before <see cref="MGDesktop.FocusedKeyboardHandlerChanged"/> is raised.<para/>
+            /// This is a self-only notification (no subscription needed, no leak risk): it fires only for the element whose focus state changed,
+            /// not for arbitrary focus transitions between other elements. Overriding this instead of subscribing to
+            /// <see cref="MGDesktop.FocusedKeyboardHandlerChanged"/> avoids rooting this element to the desktop for its whole lifetime.</summary>
+            /// <param name="gained">True if this element just became the <see cref="MGDesktop.FocusedKeyboardHandler"/>, false if it just stopped being it.</param>
+            protected internal virtual void OnKeyboardFocusChanged(bool gained) { }
+
         /// <summary>
         /// Optional per-element <see cref="ITextMeasurementEngine"/> override.
         /// When set, this element (and any children that call <see cref="GetTextEngine"/>) will use this engine

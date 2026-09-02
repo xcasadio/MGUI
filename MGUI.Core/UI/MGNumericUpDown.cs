@@ -190,7 +190,6 @@ namespace MGUI.Core.UI
                 TextChanged += (sender, e) => HandleTextChanged();
                 ReadonlyChanged += (sender, e) => UpdateSpinnerState();
                 KeyboardHandler.Pressed += (sender, e) => HandleKeyboardPressed(e);
-                GetDesktop().FocusedKeyboardHandlerChanged += (sender, e) => HandleFocusChanged(e.PreviousValue, e.NewValue);
             }
         }
 
@@ -374,14 +373,14 @@ namespace MGUI.Core.UI
             }
         }
 
-        private void HandleFocusChanged(MGElement previous, MGElement current)
+        /// <summary>Commits any pending, uncommitted text edit when this control loses keyboard focus. Gaining focus does not commit.</summary>
+        protected internal override void OnKeyboardFocusChanged(bool gained)
         {
-            if (!ReferenceEquals(previous, this) || ReferenceEquals(current, this))
+            base.OnKeyboardFocusChanged(gained);
+            if (!gained)
             {
-                return;
+                CommitPendingText(false);
             }
-
-            CommitPendingText(false);
         }
 
         private void HandleKeyboardPressed(BaseKeyPressedEventArgs e)

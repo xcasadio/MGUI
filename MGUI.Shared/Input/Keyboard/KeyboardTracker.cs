@@ -51,7 +51,10 @@ namespace MGUI.Shared.Input.Keyboard
         public InputTracker InputTracker { get; }
 
         private List<KeyboardHandler> _Handlers { get; }
-        /// <summary>To create a <see cref="KeyboardHandler"/>, use <see cref="CreateHandler{T}(T, double?, bool, bool)"/> or <see cref="CreateHandler{T}(T, InputUpdatePriority, bool, bool)"/></summary>
+        /// <summary>To create a <see cref="KeyboardHandler"/>, use <see cref="CreateHandler{T}(T, double?, bool, bool)"/> or <see cref="CreateHandler{T}(T, InputUpdatePriority, bool, bool)"/><para/>
+        /// Only contains auto-updated handlers (<see cref="KeyboardHandler.IsManualUpdate"/> == false, i.e. created with a non-null <c>UpdatePriority</c>).<br/>
+        /// Manual handlers are never added here: they are not read by <see cref="UpdateHandlers"/>, and their events are delivered entirely via <see cref="KeyboardHandler.ManualUpdate"/>,
+        /// so registering them would only be a dead GC root keeping their <see cref="KeyboardHandler.Owner"/> alive.</summary>
         public IReadOnlyList<KeyboardHandler> Handlers => _Handlers;
 
         internal void RemoveHandler(KeyboardHandler Handler) => _Handlers.Remove(Handler);
@@ -73,8 +76,9 @@ namespace MGUI.Shared.Input.Keyboard
             where T : IKeyboardHandlerHost => CreateHandler(Owner, (int)UpdatePriority, AlwaysHandlesEvents, InvokeEvenIfHandled);
 
         /// <param name="UpdatePriority">The priority with which the handler receives keyboard events. A higher priority means this handler will have the first chance to receive and handle events.<para/>
-        /// If null, the caller is expected to manually call <see cref="KeyboardHandler.ManualUpdate"/> themselves.<br/>
-        /// If not null, <see cref="KeyboardHandler.AutoUpdate"/> will automatically be invoked when updating this <see cref="KeyboardTracker"/><para/>
+        /// If null, the caller is expected to manually call <see cref="KeyboardHandler.ManualUpdate"/> themselves, and the handler is NOT added to <see cref="Handlers"/>
+        /// (it isn't read by <see cref="UpdateHandlers"/>, so registering it would only be a dead GC root keeping <paramref name="Owner"/> alive).<br/>
+        /// If not null, <see cref="KeyboardHandler.AutoUpdate"/> will automatically be invoked when updating this <see cref="KeyboardTracker"/>, and the handler is added to <see cref="Handlers"/><para/>
         /// Minimum Value = 0. Maximum Value = 100. Recommended to use preset values from <see cref="InputUpdatePriority"/>.</param>
         /// <param name="AlwaysHandlesEvents">If true, the handler will always set <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> to <paramref name="Owner"/> when receiving the keyboard event.</param>
         /// <param name="InvokeEvenIfHandled">If true, the handler will still receive the keyboard event even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true.</param>
@@ -82,7 +86,10 @@ namespace MGUI.Shared.Input.Keyboard
             where T : IKeyboardHandlerHost
         {
             KeyboardHandler Handler = new(this, Owner, UpdatePriority, AlwaysHandlesEvents, InvokeEvenIfHandled);
-            _Handlers.Add(Handler);
+            if (UpdatePriority.HasValue)
+            {
+                _Handlers.Add(Handler);
+            }
             return Handler;
         }
 

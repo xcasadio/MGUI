@@ -262,6 +262,10 @@ namespace MGUI.MiniGame
             OpenHelpWindow();
 
             Window.ClientSizeChanged += (_, _) => HandleClientSizeChanged();
+            // DelegateRenderHost does not implement ITextInputHost (that seam only exists on GameRenderHost),
+            // so native text input (AZERTY/dead keys/IME) must be wired manually here. Without this, MGTextBox
+            // falls back to the hard-coded US-QWERTY key map. See Docs/monogame-host-integration-guide.md.
+            Window.TextInput += (_, e) => _mguiRenderer.Input.Keyboard.QueueTextInput(e.Character, e.Key);
 
             base.Initialize();
         }

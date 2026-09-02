@@ -65,6 +65,8 @@ protected override void Initialize()
 }
 ```
 
+`MonoGameBackendBootstrap.Create` cable automatiquement `Game.Window.TextInput` sur le puits clavier de `_renderer.Input.Keyboard` quand le host passe implemente `ITextInputHost` (c'est le cas de `GameRenderHost<TObservableGame>`) : aucun code supplementaire n'est necessaire pour obtenir AZERTY, touches mortes et IME dans vos `MGTextBox`. Voir la section "Saisie de texte native (TextInput/IME)" plus bas pour le detail du contrat.
+
 Reference dans le repo:
 
 - `MGUI.Samples/Game1.cs`
@@ -99,6 +101,13 @@ protected override void Initialize()
     _renderer = backend.Renderer;
     _desktop = new MGDesktop((IUIDesktopRuntime)_renderer);
 
+    // Cablage manuel OBLIGATOIRE : DelegateRenderHost n'implemente pas ITextInputHost
+    // (il n'y a pas de GameWindow cote MGUI dans ce chemin), donc le bootstrap ne peut
+    // rien auto-cabler ici. Sans cette ligne, la saisie retombe sur le fallback US-QWERTY
+    // code en dur (pas d'AZERTY/touches mortes/IME). Voir la section
+    // "Saisie de texte native (TextInput/IME)" plus bas.
+    Window.TextInput += (_, e) => _renderer.Input.Keyboard.QueueTextInput(e.Character, e.Key);
+
     base.Initialize();
 }
 
@@ -117,6 +126,27 @@ protected override void Update(GameTime gameTime)
 Reference dans le repo:
 
 - `MGUI.MiniGame/MiniGame.cs`
+
+## Saisie de texte native (TextInput/IME)
+
+MGUI a deux sources possibles pour la saisie clavier textuelle :
+
+- un fallback table US-QWERTY code en dur, applique par defaut a partir des touches physiques ;
+- le puits natif `IKeyboardTextInputSink.QueueTextInput(char character, Keys key)` (implemente par `KeyboardTracker`), alimente par l'evenement `GameWindow.TextInput` de MonoGame, qui porte le caractere reellement produit par la disposition clavier de l'OS (AZERTY, touches mortes, IME CJK...).
+
+Sans cablage vers ce puits, tous vos utilisateurs non-US-QWERTY tapent des caracteres errones dans `MGTextBox`/`MGNumericUpDown`. Le contrat de cablage differe selon le chemin d'hebergement :
+
+- **`GameRenderHost<TObservableGame>` (Option 1)** : automatique. `GameRenderHost<T>` implemente l'interface opt-in `ITextInputHost` (namespace `MGUI.Shared.Rendering`, assembly `MGUI.MonoGame.Integration`) ; `MonoGameBackendBootstrap.Create` detecte cette interface et appelle `AttachTextInputSink(renderer.Input.Keyboard)` pour vous, immediatement apres la construction du renderer. Aucune action requise cote application. `GameRenderHost<T>.Dispose()` desabonne automatiquement (`DetachTextInputSink`).
+- **`DelegateRenderHost` (Option 2)** : manuel, obligatoire. `DelegateRenderHost` n'a pas de `GameWindow` propre cote MGUI et n'implemente pas `ITextInputHost` : le bootstrap ne peut rien cabler automatiquement. Abonnez `Game.Window.TextInput` vous-meme, typiquement pres du wiring `Window.ClientSizeChanged` :
+
+  ```csharp
+  Window.TextInput += (_, e) => _renderer.Input.Keyboard.QueueTextInput(e.Character, e.Key);
+  ```
+
+  Reference dans le repo : `MGUI.MiniGame/MiniGame.cs` (`Initialize()`, a cote de `Window.ClientSizeChanged`).
+- **Runtime custom non-MonoGame** : voir `Docs/custom-render-backend-integration.md`, section boucle — le runtime doit relayer sa propre source de saisie native vers `IKeyboardTextInputSink.QueueTextInput`.
+
+Diagnostic : la variable d'environnement `CASA_MGUI_INPUT_PROBE` active `KeyboardInputProbe`, qui trace pour chaque caractere consomme s'il provient de `source=native-text` (puits natif) ou du fallback `key-map` (table US-QWERTY) — utile pour verifier en un coup d'oeil qu'un host est bien cable.
 
 ## Choisir entre les 2
 

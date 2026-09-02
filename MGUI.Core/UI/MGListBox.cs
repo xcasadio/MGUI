@@ -1755,10 +1755,16 @@ namespace MGUI.Core.UI
                 DefaultControlTemplateName = MGControlTemplateCatalog.ListBoxTemplateName;
                 SetIsTitleVisible(false, true);
 
-                GetDesktop().Runtime.EndUpdate += (sender, e) =>
+                //  Reset PressedItem to null at the start of this control's next update tick, rather than immediately
+                //  when the mouse button is released, because other input handlers with lower priority still need a
+                //  chance to read the data before it is modified. This used to subscribe to GetDesktop().Runtime.EndUpdate,
+                //  which rooted this MGListBox for the lifetime of the runtime (frame sequence is Update -> Draw -> Runtime.EndUpdate).
+                //  Resetting at the start of this element's own next Update is equivalent for Draw purposes: the pressed
+                //  visual still survives the Draw call of the tick it was set on, and is cleared before the next Draw,
+                //  same as the old EndUpdate-based reset. Subscribing to this element's own OnBeginUpdate event does not
+                //  leak, since the subscription's lifetime is tied to the element itself rather than to the runtime/desktop.
+                OnBeginUpdate += (sender, e) =>
                 {
-                    //  Reset PressedItem to null at the end of an update tick, rather than immediately when the mouse button is released,
-                    //  because other input handlers with lower priority still need a chance to read the data before it is modified.
                     if (IsPressedItemInvalidationPending)
                     {
                         IsPressedItemInvalidationPending = false;

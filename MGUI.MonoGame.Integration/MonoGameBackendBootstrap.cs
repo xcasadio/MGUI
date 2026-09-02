@@ -25,6 +25,12 @@ namespace MGUI.Backend.MonoGame
             ArgumentNullException.ThrowIfNull(host);
 
             MainRenderer renderer = new(host, rawInputSource ?? new MonoGameRawInputSource());
+
+            if (host is ITextInputHost textInputHost)
+            {
+                textInputHost.AttachTextInputSink(renderer.Input.Keyboard);
+            }
+
             return new(host, renderer);
         }
     }

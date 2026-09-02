@@ -55,6 +55,7 @@ Rendering backend overview: see [Docs/rendering-backend-architecture.md](Docs/re
 MonoGame host wiring: see [Docs/monogame-host-integration-guide.md](Docs/monogame-host-integration-guide.md).
 Custom engine backend wiring: see [Docs/custom-render-backend-integration.md](Docs/custom-render-backend-integration.md).
 RichTextBox editor v1: see [Docs/richtextbox-editor-v1-guide.md](Docs/richtextbox-editor-v1-guide.md).
+Event/input handling architecture (audit): see [Docs/event-handling-architecture.md](Docs/event-handling-architecture.md).
 
 Built-in themes:
 
@@ -500,6 +501,7 @@ MGUI can also parse and render your XAML markup at runtime using the MGXAMLDesig
              - Instantiate a MonoGame host such as `GameRenderHost<TObservableGame>` or `DelegateRenderHost`
              - Create the concrete renderer via `MGUI.Backend.MonoGame.MonoGameBackendBootstrap`
              - Instantiate `MGUI.Core.UI.MGDesktop` from `IUIDesktopRuntime`
+             - If you used `DelegateRenderHost` (or a custom `Game`-less setup), manually wire `Window.TextInput` to `MGUIRenderer.Input.Keyboard.QueueTextInput(...)` so that native (AZERTY/dead-key/IME) text input works instead of falling back to a hard-coded US-QWERTY key map; `GameRenderHost<TObservableGame>` does this for you automatically. See "Input Handling" below.
      - Anywhere in your code, instantiate 1 or more `MGWindow` and add them to your `MGDesktop` instance via `MGDesktop.Windows`
      - In the Update method: Call `MGDesktop.Update()`
      - In the Draw method: Call `MGDesktop.Draw()`
@@ -598,15 +600,16 @@ MGUI uses its own framework to detect and respond to inputs.
   - Contains 2 child objects: `MouseTracker` and `KeyboardTracker`
 - `MouseTracker`
   - Detects changes to the `MouseState` and stores information about those changes in `EventArg` objects, most of which have an `IsHandled` property.
-  - Manages 0 to many `MouseHandlers`
+  - Manages 0 to many `MouseHandlers` in its `Handlers` list - but only the auto-updated ones (created via `CreateHandler` with a non-null `UpdatePriority`). Handlers created with a null `UpdatePriority` (manual handlers) are never added to this list: they're driven entirely by explicit calls to `MouseHandler.ManualUpdate`, so tracking them would just be a dead GC root keeping their owner alive forever.
   - `MouseHandler`
     - Exposes several events that your code can subscribe to, to react to mouse events. Such as:
       - `Scrolled`, `MovedInside`, `MovedOutside`, `Entered`, `Exited`, `PressedInside`, `PressedOutside`, `ReleasedInside`, `ReleasedOutside`, `DragStart`, `Dragged`, `DragEnd`
     - Prevents the same event from being invoked to several subscribers after one of the subscribers handles it (by setting `IsHandled` to `true`)
 - `KeyboardTracker`
   - Just like `MouseTracker` except for managing Keyboard-related inputs.
+  - Also implements `IKeyboardTextInputSink.QueueTextInput(char character, Keys key)`: the native text input seam that `MGTextBox`/`MGNumericUpDown` prefer over the built-in hard-coded US-QWERTY key map whenever it's fed. Without wiring, printable characters fall back to that US-QWERTY table, which breaks AZERTY, dead keys, and IME composition. `GameRenderHost<TObservableGame>` wires `Game.Window.TextInput` into this sink for you automatically (via `MonoGameBackendBootstrap.Create`, opt-in through `ITextInputHost`). `DelegateRenderHost` and custom (non-MonoGame) runtimes must wire their own native text input source manually - see `Docs/monogame-host-integration-guide.md` (section "Saisie de texte native (TextInput/IME)") and `Docs/custom-render-backend-integration.md`, and `MGUI.MiniGame/MiniGame.cs` for a working example. Set the `CASA_MGUI_INPUT_PROBE` environment variable to a file path to have `KeyboardInputProbe` trace whether each consumed character came from `source=native-text` or the `key-map` fallback.
         
-If you'd like to utilize this framework in your own code, get the `MouseTracker` and/or `KeyboardTracker` instance from the `InputTracker`. Call `MouseTracker.CreateHandler(...)`/`KeyboardTracker.CreateHandler(...)`, and subscribe to the events in the returned handler instance.
+If you'd like to utilize this framework in your own code, get the `MouseTracker` and/or `KeyboardTracker` instance from the `InputTracker`. Call `MouseTracker.CreateHandler(...)`/`KeyboardTracker.CreateHandler(...)`, and subscribe to the events in the returned handler instance. Passing a non-null `UpdatePriority` registers the handler in `Handlers` and has it auto-updated every tick; passing `null` creates a manual handler that you must update yourself via `ManualUpdate()`, and it is intentionally never added to `Handlers`. Either way, `Unsubscribe()` on the returned handler remains safe to call and permanently disables it (no-op on manual handlers that were never registered).
 
 EX: Creates a MouseHandler instance in Game1.Initialize and subscribes to an event
 ```c#
