@@ -863,7 +863,9 @@ namespace MGUI.Core.UI
                     //  so that the submenu is overtop of the rest of the parent window's content
                     ParentWindow.OnEndDraw += (sender, e) =>
                     {
-                        using (e.DA.DT.SetClipTargetTemporary(null, false))
+                        //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
+                        //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
+                        using (e.DA.DT.PushRectangleClip(null, false))
                         {
                             ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
                         }
@@ -874,7 +876,9 @@ namespace MGUI.Core.UI
                     //  If the ContextMenu is its own root-level window, draw the submenu immediately after we're done drawing this ContextMenu
                     OnEndDraw += (sender, e) =>
                     {
-                        using (e.DA.DT.SetClipTargetTemporary(null, false))
+                        //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
+                        //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
+                        using (e.DA.DT.PushRectangleClip(null, false))
                         {
                             ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
                         }

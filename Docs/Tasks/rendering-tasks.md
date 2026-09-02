@@ -60,7 +60,7 @@ Terminer la migration des derniers call sites legacy du shim `SetClipTargetTempo
 
 **Commit recommande** : `refactor: migrate MGRatingControl fractional fill clips to PushRectangleClip`
 
-### Tache 3 — ⚪ Donner une possession de clip explicite au dessin des sous-menus de MGContextMenu
+### Tache 3 — ✅ Donner une possession de clip explicite au dessin des sous-menus de MGContextMenu
 
 **But** : `MGUI.Core/UI/MGContextMenu.cs` (lignes ~866 et ~877) efface imperativement l'etat de clip via `SetClipTargetTemporary(null, false)` pour dessiner le sous-menu actif par-dessus la fenetre parente dans les handlers `OnEndDraw`. Le pipeline composable offre une expression declarative de cette intention ; l'effacement imperatif est exactement le pattern que la migration veut eliminer.
 
