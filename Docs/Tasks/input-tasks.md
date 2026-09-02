@@ -17,6 +17,13 @@ Ce document est destine a un agent IA implementeur.
 - Ne pas faire de refactor hors perimetre ; ne pas re-arbitrer les invariants de cycle de vie de `Docs/input-architecture.md` (handlers manuels non enregistres, "fermer n'est pas mourir", forwarder faible unique).
 - Ajouter ou adapter des tests a chaque tache.
 - Surfaces epinglees : les ensembles de membres de `IRenderHost`/`IUIDesktopRuntime` et des sous-chaines verbatim de `Game1.cs`/`MiniGame.cs` sont assertes par `RawInputSourceTests` et `HostRuntimeContractTests` — les lire avant d'editer ces fichiers.
+- Ne rien supposer ni inventer : toute decision non couverte par le texte de la tache ou par les decisions utilisateur consignees dans ce fichier doit etre remontee — marquer la tache `⛔` avec la question precise, ne pas committer de code pour cette tache, et s'arreter.
+
+## Decisions utilisateur (2026-09-02)
+
+- Tache 4 : option (b) retenue — implementer l'occlusion inter-fenetres pour `HoveredElement` et `PressedElement` (pas seulement documenter).
+- Tache 7 : type `HudInputContext` dans `MGUI.Core/UI/InputRouting`, priorite par defaut `50`.
+- Tache 8 : reportee, non incluse dans l'execution courante (reste `⚪`).
 
 ## Legende de statut
 
@@ -35,7 +42,7 @@ Ce document est destine a un agent IA implementeur.
 
 ## Taches
 
-### ⚪ 1. Corriger le fast-path drag de MouseTracker
+### ✅ 1. Corriger le fast-path drag de MouseTracker
 
 But:
 
@@ -56,6 +63,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `input: fix dead drag fast-path flags in mouse tracker`
+
+Resultat:
+
+- `MGUI.Shared/Input/Mouse/MouseTracker.cs:470-472` : remplacement de `.Any(x => x.Value != null)` par `.Any(x => x.Value.Values.Any(v => v != null))` pour `HasCurrentDragStartEvents`/`HasCurrentDraggedEvents`/`HasCurrentDragEndEvents` (meme pattern que les flags bouton).
+- Nouveau fichier de tests `MGUI.Tests/Input/MouseTrackerDragFastPathTests.cs` (5 tests) : flags a faux hors activite drag et sur simple mouvement sans bouton presse, `HasCurrentDragStartEvents` vrai au tick de press (condition `MousePressed`), `HasCurrentDraggedEvents` vrai pendant un drag en cours, `HasCurrentDragEndEvents` vrai au relachement puis retour a faux au tick suivant.
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 366/366 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1210/1210 verts (baseline 1205 + 5 nouveaux tests), aucun test rouge.
 
 ### ⚪ 2. Corriger l'inversion GetWindowsFrontToBack et supprimer la copie morte
 
@@ -112,8 +125,8 @@ trancher si le hover (et l'etat presse) d'une fenetre occluse est un comportemen
 Travail attendu:
 
 - etat actuel : les evenements de mouvement n'ont aucun flag handled, le hit-test est par-fenetre, la fenetre du dessous calcule son `HoveredElement` et allume `Hovered` ; `MGWindow.OnBeginUpdate` fixe `PressedElement` sans consulter le flag handled ; seuls les tooltips sont proteges via la boucle `IsWindowOccludedAtMousePos` de `MGDesktop.Update` ;
-- decider : (a) assumer et documenter comme limite definitive, ou (b) generaliser le test d'occlusion desktop (mecanisme `IsWindowOccludedAtMousePos` existant) au calcul de `HoveredElement` et a `PressedElement` ;
-- si (b) : attention au drag en cours (un drag demarre sur la fenetre du dessous doit continuer a suivre son proprietaire — semantique de capture a preserver) et au cout par tick (le test d'occlusion doit rester borne au cas multi-fenetres qui se chevauchent) ;
+- decision prise (utilisateur, 2026-09-02) : option (b) — generaliser le test d'occlusion desktop (mecanisme `IsWindowOccludedAtMousePos` existant) au calcul de `HoveredElement` et a `PressedElement` ; l'option (a) n'est plus a considerer ;
+- attention au drag en cours (un drag demarre sur la fenetre du dessous doit continuer a suivre son proprietaire — semantique de capture a preserver) et au cout par tick (le test d'occlusion doit rester borne au cas multi-fenetres qui se chevauchent) ;
 - consigner la decision dans `Docs/input-architecture.md` (sections "Fenetres superposees" et "Limites connues").
 
 Criteres d'acceptation:
@@ -189,7 +202,7 @@ offrir dans le framework le contexte HUD selectif non modal qui n'existe aujourd
 Travail attendu:
 
 - reference existante : `MGUI.MiniGame/MiniGameHudInputContext.cs`, enregistre dans `MGUI.MiniGame/MiniGame.cs` (`_inputRouter.RegisterContext(new MiniGameHudInputContext(TryHandleHudAction, 50, IsHudContextActive))`) entre le contexte UI (100) et le gameplay (0) — activation selective conforme au principe "un HUD consomme uniquement les actions visant le widget HUD vise, jamais le mouvement" ;
-- ajouter un contexte generique dans `MGUI.Core/UI/InputRouting` (ex. `HudInputContext`) : delegate `tryHandle`, priorite intermediaire par defaut, predicat d'activation selectif obligatoire ; forme calquee sur `GameplayInputContext` ;
+- ajouter un contexte generique dans `MGUI.Core/UI/InputRouting` nomme `HudInputContext` (decision utilisateur) : delegate `tryHandle`, priorite par defaut `50` (decision utilisateur), predicat d'activation selectif obligatoire ; forme calquee sur `GameplayInputContext` ;
 - migrer MiniGame vers ce type (en respectant les sous-chaines verbatim de `MiniGame.cs` assertees par `HostRuntimeContractTests` — les lire avant d'editer) ;
 - tests purs de la politique selective : action visant le HUD consommee ; action de mouvement jamais consommee meme HUD actif ; HUD inactif => fall-through complet.
 
@@ -204,6 +217,8 @@ Commit recommande:
 - `feat: add reusable selective hud input context`
 
 ### ⚪ 8. Long terme : activation de fenetre et points d'extension reels
+
+Reportee par decision utilisateur (2026-09-02) : non incluse dans l'execution courante des taches 1 a 7.
 
 But:
 

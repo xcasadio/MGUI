@@ -467,9 +467,9 @@ namespace MGUI.Shared.Input.Mouse
             HasCurrentButtonClickedEvents = _CurrentButtonClickedEvents.Any(x => x.Value != null);
             HasCurrentButtonDoubleClickedEvents = _CurrentButtonDoubleClickedEvents.Any(x => x.Value != null);
             HasCurrentButtonEvents = HasCurrentButtonPressedEvents || HasCurrentButtonReleasedEvents || HasCurrentButtonClickedEvents || HasCurrentButtonDoubleClickedEvents;
-            HasCurrentDragStartEvents = _CurrentDragStartEvents.Any(x => x.Value != null);
-            HasCurrentDraggedEvents = _CurrentDraggedEvents.Any(x => x.Value != null);
-            HasCurrentDragEndEvents = _CurrentDragEndEvents.Any(x => x.Value != null);
+            HasCurrentDragStartEvents = _CurrentDragStartEvents.Any(x => x.Value.Values.Any(v => v != null));
+            HasCurrentDraggedEvents = _CurrentDraggedEvents.Any(x => x.Value.Values.Any(v => v != null));
+            HasCurrentDragEndEvents = _CurrentDragEndEvents.Any(x => x.Value.Values.Any(v => v != null));
             HasCurrentDragEvents = HasCurrentDragStartEvents || HasCurrentDraggedEvents || HasCurrentDragEndEvents;
         }
 
