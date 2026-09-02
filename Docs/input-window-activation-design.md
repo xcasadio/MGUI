@@ -15,11 +15,15 @@ connues" / "Fenetres superposees").
 
 `MGDesktop.BringToFront(MGWindow)` (`MGDesktop.cs:862`) et
 `MGWindow.BringToFront(MGWindow)` pour les fenetres imbriquees (`MGWindow.cs:563`)
-existent, mais le seul appelant cote clic dans tout le depot est
-`MGFloatingDockWindow.cs:100` (`MouseHandler.LMBPressedInside += (_, _) =>
+existent, mais le seul cablage automatique clic -> premier plan du framework
+(`MGUI.Core`) est `MGFloatingDockWindow.cs:100` (`MouseHandler.LMBPressedInside += (_, _) =>
 BringToFront();`, forwarding vers `MGWindow.BringToFront` a `:148-150`). Une
 recherche `ActiveWindow` sur `MGUI.Core` ne retourne rien : le concept n'existe
-pas. Symptome : hors module docking, cliquer une fenetre en arriere-plan ne la
+pas. Les applications recablent le geste a la main quand elles en ont
+besoin (`MGUI.MiniGame/MiniGame.cs:1331,1475,1494,1526`,
+`MGUI.Samples/Features/FocusInputReview.xaml.cs:166,180`,
+`MGUI.Samples/Features/IBorderBrush.xaml.cs:89`), ce qui confirme le besoin
+plutot que de l infirmer. Symptome : hors module docking, cliquer une fenetre en arriere-plan ne la
 ramene pas au premier plan ; focus clavier et z-order peuvent diverger
 silencieusement.
 
