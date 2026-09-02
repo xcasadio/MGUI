@@ -262,7 +262,7 @@ Chaque transaction de draw expose des compteurs (`MGUI.Shared/Rendering/Clipping
 ### Invariants de design
 
 - `VisualShape != ContentClipShape` par design : un chrome arrondi n'implique jamais automatiquement un clip de contenu arrondi. Restent volontairement rectangulaires (ou sans clip) : viewports de scroll, previews et drop indicators de docking, grips/handles de resize, adorners externes (ombre, glow), separateurs de tabs et de docking, overlays couvrant un rectangle logique. Ce sont des exceptions documentees, pas de la dette de migration.
-- Le hit testing est decouple du modele de clip : il reste rectangle-based via `ActualLayoutBounds` meme pour les controles au chrome arrondi (aucun type `HitTestShape` n'existe). C'est un non-but deliberate, pas un oubli.
+- Le hit testing est decouple du modele de clip : par defaut il reste rectangle-based via `ActualLayoutBounds` (`MGElement.ContainsUnscaledInputPoint`, virtuel) ; `MGBoxShape.Contains(Vector2)` fournit un test analytique conscient de la forme, utilise uniquement par `MGBorder` quand `IsShapeAwareHitTestEnabled` est vrai (opt-in, false par defaut) ; tous les autres controles conservent leurs bounds rectangulaires. C'est un opt-in deliberate, pas de la dette de migration.
 - Le clip de viewport rectangulaire de `MGScrollViewer` est architecturalement correct : un clip de contenu arrondi sur un host arrondi est un besoin distinct (optionnel, futur) du clipping de viewport.
 - Architecture de paint des shapes et architecture de clip restent separees : le code shape decide comment dessiner le visuel, le code clip decide comment contraindre les draws suivants ; la geometrie arrondie partagee (`MGBoxGeometry`) peut etre reutilisee par les deux.
 

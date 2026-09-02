@@ -98,7 +98,9 @@ Terminer la migration des derniers call sites legacy du shim `SetClipTargetTempo
 
 **Commit recommande** : `refactor: triage rectangle-first decorative paint paths` (ou 1 commit par controle migre)
 
-### Tache 5 — ⚪ (Backlog, explicitement differe) Hit testing shape-aware
+### Tache 5 — ✅ (Backlog, explicitement differe) Hit testing shape-aware
+
+**Statut** : livree par le commit 8860b80 (MGBoxShape.Contains, opt-in MGBorder.IsShapeAwareHitTestEnabled false par defaut, tests BoxShapeHitTestTests / BorderShapeAwareHitTestTests) ; voir Docs/drawing-architecture.md et Docs/Tasks/drawing-tasks.md Tache 2.
 
 **But** : le hit testing reste rectangle-based via `ActualLayoutBounds` meme pour les controles au chrome arrondi (aucun type `HitTestShape` dans le code). C'est un choix deliberate documente dans `Docs/rendering-architecture.md` — pas de la dette. Cette tache n'est a executer que si un besoin produit reel apparait (ex. clics dans les coins d'un bouton tres arrondi percus comme faux positifs).
 
