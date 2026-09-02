@@ -942,6 +942,22 @@ namespace MGUI.Core.UI
 
         internal Thickness ResolveExternalSpacing(Thickness value)
             => IsResponsiveLayoutEnabled && ScaleSpacingWithResponsive ? UIResponsiveMath.ScaleThickness(value, ResponsiveSpacingScaleFactor) : value;
+
+        /// <summary>Resolves a spacing value owned by this element (such as <c>MGStackPanel.Spacing</c>) through <see cref="ResponsiveSpacingScaleFactor"/>,
+        /// using <see cref="UIResponsiveMath.ScaleSpacing(int, float)"/>.<br/>
+        /// At scale factor 1.0 (outside a responsive subtree, or when <see cref="ScaleSpacingWithResponsive"/> is false), this is the identity
+        /// function since <see cref="UIResponsiveMath.ScaleInt(int, float)"/> is a no-op at scale 1.0.</summary>
+        internal int ResolveOwnedSpacing(int designSpacing)
+            => UIResponsiveMath.ScaleSpacing(designSpacing, ResponsiveSpacingScaleFactor);
+
+        /// <summary>Resolves a gridline margin owned by this element (such as <c>MGGrid.GridLineMargin</c>) through <see cref="ResponsiveSpacingScaleFactor"/>,
+        /// using <see cref="UIResponsiveMath.ScaleGridLineMargin(int, int, int, float)"/>. <paramref name="resolvedSpacing"/> must already be the
+        /// resolved (post-scaling) spacing for the same axis, since the returned margin is capped relative to it.<br/>
+        /// At scale factor 1.0, this is the identity function: <c>ScaleInt(margin, 1) == margin</c>, and whenever the design-space gutter is
+        /// positive, <c>min(margin, (spacing - 1) / 2) == margin</c> because <paramref name="resolvedSpacing"/> equals <paramref name="designSpacing"/>
+        /// and the invariant <c>designSpacing - 2 * margin > 0</c> already guarantees <c>margin &lt;= (designSpacing - 1) / 2</c>.</summary>
+        internal int ResolveOwnedGridLineMargin(int margin, int designSpacing, int resolvedSpacing)
+            => UIResponsiveMath.ScaleGridLineMargin(margin, designSpacing, resolvedSpacing, ResponsiveSpacingScaleFactor);
         #endregion Responsive
 
         #region Margin / Padding

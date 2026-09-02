@@ -180,10 +180,16 @@ namespace MGUI.Core.UI.Containers.Grids
         {
             Dictionary<GridCellIndex, Rectangle> CellBounds = new();
 
+            //  Snapshot the resolved spacing/margins once for this pass.
+            int resolvedRowSpacing = ResolvedRowSpacing;
+            int resolvedColumnSpacing = ResolvedColumnSpacing;
+            int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+            int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+
             int CurrentX = LayoutBounds.Left + Padding.Left;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
             {
-                CurrentX += Math.Max(0, ColumnSpacing - GridLineMargin);
+                CurrentX += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
             }
 
             for (int ColumnIndex = 0; ColumnIndex < Columns; ColumnIndex++)
@@ -193,7 +199,7 @@ namespace MGUI.Core.UI.Containers.Grids
                 int CurrentY = LayoutBounds.Top + Padding.Top;
                 if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
                 {
-                    CurrentY += Math.Max(0, RowSpacing - GridLineMargin);
+                    CurrentY += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
                 }
 
                 for (int RowIndex = 0; RowIndex < Rows; RowIndex++)
@@ -202,13 +208,15 @@ namespace MGUI.Core.UI.Containers.Grids
 
                     GridCellIndex Cell = new(RowIndex, ColumnIndex);
                     Rectangle PaddedBounds = new(CurrentX, CurrentY, ColumnWidth, RowHeight);
-                    Rectangle ActualBounds = IncludeGridLineMargin ? PaddedBounds : PaddedBounds.GetExpanded(Math.Max(0, GridLineMargin));
+                    Rectangle ActualBounds = IncludeGridLineMargin
+                        ? PaddedBounds
+                        : PaddedBounds.GetExpanded(new Thickness(Math.Max(0, resolvedColumnGridLineMargin), Math.Max(0, resolvedRowGridLineMargin), Math.Max(0, resolvedColumnGridLineMargin), Math.Max(0, resolvedRowGridLineMargin)));
                     CellBounds.Add(Cell, ActualBounds);
 
-                    CurrentY += RowHeight + RowSpacing;
+                    CurrentY += RowHeight + resolvedRowSpacing;
                 }
 
-                CurrentX += ColumnWidth + ColumnSpacing;
+                CurrentX += ColumnWidth + resolvedColumnSpacing;
             }
 
             return CellBounds;
@@ -634,12 +642,14 @@ namespace MGUI.Core.UI.Containers.Grids
 
         private void CheckIfOuterPaddingChanged()
         {
-            if (RowSpacing > 0 && GridLineMargin < RowSpacing &&
+            int resolvedRowSpacing = ResolvedRowSpacing;
+            int resolvedColumnSpacing = ResolvedColumnSpacing;
+            if (resolvedRowSpacing > 0 && ResolvedRowGridLineMargin < resolvedRowSpacing &&
                 (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge) || GridLinesVisibility.HasFlag(GridLinesVisibility.BottomEdge)))
             {
                 LayoutChanged(this, true);
             }
-            else if (ColumnSpacing > 0 && GridLineMargin < ColumnSpacing &&
+            else if (resolvedColumnSpacing > 0 && ResolvedColumnGridLineMargin < resolvedColumnSpacing &&
                 (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge) || GridLinesVisibility.HasFlag(GridLinesVisibility.RightEdge)))
             {
                 LayoutChanged(this, true);
@@ -683,6 +693,19 @@ namespace MGUI.Core.UI.Containers.Grids
                 }
             }
         }
+
+        /// <summary>The effective <see cref="RowSpacing"/> used during measure/arrange, after applying <see cref="MGElement.ResponsiveSpacingScaleFactor"/>.<br/>
+        /// Equals <see cref="RowSpacing"/> when responsive spacing scaling doesn't apply (e.g. outside a responsive subtree, or at scale factor 1.0).</summary>
+        internal int ResolvedRowSpacing => ResolveOwnedSpacing(_RowSpacing);
+        /// <summary>The effective <see cref="ColumnSpacing"/> used during measure/arrange, after applying <see cref="MGElement.ResponsiveSpacingScaleFactor"/>.<br/>
+        /// Equals <see cref="ColumnSpacing"/> when responsive spacing scaling doesn't apply (e.g. outside a responsive subtree, or at scale factor 1.0).</summary>
+        internal int ResolvedColumnSpacing => ResolveOwnedSpacing(_ColumnSpacing);
+        /// <summary>The effective <see cref="GridLineMargin"/> used for horizontal gridlines (between rows), capped so that at least 1 pixel of
+        /// gutter survives at <see cref="ResolvedRowSpacing"/> whenever a gridline is visible in design space. See <see cref="MGUI.Core.UI.Responsive.UIResponsiveMath.ScaleGridLineMargin(int, int, int, float)"/>.</summary>
+        internal int ResolvedRowGridLineMargin => ResolveOwnedGridLineMargin(_GridLineMargin, _RowSpacing, ResolvedRowSpacing);
+        /// <summary>The effective <see cref="GridLineMargin"/> used for vertical gridlines (between columns), capped so that at least 1 pixel of
+        /// gutter survives at <see cref="ResolvedColumnSpacing"/> whenever a gridline is visible in design space. See <see cref="MGUI.Core.UI.Responsive.UIResponsiveMath.ScaleGridLineMargin(int, int, int, float)"/>.</summary>
+        internal int ResolvedColumnGridLineMargin => ResolveOwnedGridLineMargin(_GridLineMargin, _ColumnSpacing, ResolvedColumnSpacing);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private VisualStateFillBrush _CellBackground;
@@ -846,15 +869,21 @@ namespace MGUI.Core.UI.Containers.Grids
                 return new(0);
             }
 
-            int TotalColumnSpacingWidth = (Columns - 1) * ColumnSpacing;
+            //  Snapshot the resolved spacing/margins once for this measure pass.
+            int resolvedRowSpacing = ResolvedRowSpacing;
+            int resolvedColumnSpacing = ResolvedColumnSpacing;
+            int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+            int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+
+            int TotalColumnSpacingWidth = (Columns - 1) * resolvedColumnSpacing;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
             {
-                TotalColumnSpacingWidth += Math.Max(0, ColumnSpacing - GridLineMargin);
+                TotalColumnSpacingWidth += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
             }
 
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.RightEdge))
             {
-                TotalColumnSpacingWidth += Math.Max(0, ColumnSpacing - GridLineMargin);
+                TotalColumnSpacingWidth += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
             }
 
             int TotalWidth = TotalColumnSpacingWidth + CellSize.Width * Columns;
@@ -863,15 +892,15 @@ namespace MGUI.Core.UI.Containers.Grids
                 TotalWidth += HeaderColumnWidth.Value - CellSize.Width;
             }
 
-            int TotalRowSpacingHeight = (Rows - 1) * RowSpacing;
+            int TotalRowSpacingHeight = (Rows - 1) * resolvedRowSpacing;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
             {
-                TotalRowSpacingHeight += Math.Max(0, RowSpacing - GridLineMargin);
+                TotalRowSpacingHeight += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
             }
 
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.BottomEdge))
             {
-                TotalRowSpacingHeight += Math.Max(0, RowSpacing - GridLineMargin);
+                TotalRowSpacingHeight += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
             }
 
             int TotalHeight = TotalRowSpacingHeight + CellSize.Height * Rows;
@@ -980,12 +1009,18 @@ namespace MGUI.Core.UI.Containers.Grids
                 return;
             }
 
-            int Left = _CellBounds[new(0, 0)].Left - Math.Max(0, ColumnSpacing - GridLineMargin);
-            int Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, ColumnSpacing - GridLineMargin);
-            int Top = _CellBounds[new(0, 0)].Top - Math.Max(0, RowSpacing - GridLineMargin);
-            int Bottom = _CellBounds[new(Rows - 1, 0)].Bottom + Math.Max(0, RowSpacing - GridLineMargin);
+            //  Snapshot the resolved spacing/margins once for this drawing pass.
+            int resolvedRowSpacing = ResolvedRowSpacing;
+            int resolvedColumnSpacing = ResolvedColumnSpacing;
+            int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+            int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-            int FilledHeight = RowSpacing - GridLineMargin * 2;
+            int Left = _CellBounds[new(0, 0)].Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+            int Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+            int Top = _CellBounds[new(0, 0)].Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+            int Bottom = _CellBounds[new(Rows - 1, 0)].Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+
+            int FilledHeight = Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin * 2);
 
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
             {
@@ -1008,7 +1043,7 @@ namespace MGUI.Core.UI.Containers.Grids
                         GridCellIndex Cell = new(i, 0);
                         Rectangle CellBounds = _CellBounds[Cell];
 
-                        Rectangle GridLineBounds = new(Left, CellBounds.Bottom + GridLineMargin, Right - Left, FilledHeight);
+                        Rectangle GridLineBounds = new(Left, CellBounds.Bottom + resolvedRowGridLineMargin, Right - Left, FilledHeight);
                         HorizontalGridLineBrush.Draw(DA, this, GridLineBounds);
                     }
                 }
@@ -1022,12 +1057,18 @@ namespace MGUI.Core.UI.Containers.Grids
                 return;
             }
 
-            int Left = _CellBounds[new(0, 0)].Left - Math.Max(0, ColumnSpacing - GridLineMargin);
-            int Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, ColumnSpacing - GridLineMargin);
-            int Top = _CellBounds[new(0, 0)].Top - Math.Max(0, RowSpacing - GridLineMargin);
-            int Bottom = _CellBounds[new(Rows - 1, 0)].Bottom + Math.Max(0, RowSpacing - GridLineMargin);
+            //  Snapshot the resolved spacing/margins once for this drawing pass.
+            int resolvedRowSpacing = ResolvedRowSpacing;
+            int resolvedColumnSpacing = ResolvedColumnSpacing;
+            int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+            int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-            int FilledWidth = ColumnSpacing - GridLineMargin * 2;
+            int Left = _CellBounds[new(0, 0)].Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+            int Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+            int Top = _CellBounds[new(0, 0)].Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+            int Bottom = _CellBounds[new(Rows - 1, 0)].Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+
+            int FilledWidth = Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin * 2);
 
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
             {
@@ -1050,7 +1091,7 @@ namespace MGUI.Core.UI.Containers.Grids
                         GridCellIndex Cell = new(0, i);
                         Rectangle CellBounds = _CellBounds[Cell];
 
-                        Rectangle GridLineBounds = new(CellBounds.Right + GridLineMargin, Top, FilledWidth, Bottom - Top);
+                        Rectangle GridLineBounds = new(CellBounds.Right + resolvedColumnGridLineMargin, Top, FilledWidth, Bottom - Top);
                         VerticalGridLineBrush.Draw(DA, this, GridLineBounds);
                     }
                 }

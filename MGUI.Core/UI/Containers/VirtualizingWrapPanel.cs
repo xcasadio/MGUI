@@ -205,6 +205,10 @@ namespace MGUI.Core.UI.Containers
             }
         }
 
+        /// <summary>The effective spacing used during measure/arrange/virtualization math, after applying <see cref="MGElement.ResponsiveSpacingScaleFactor"/> to <see cref="Spacing"/>.<br/>
+        /// Equals <see cref="Spacing"/> when responsive spacing scaling doesn't apply (e.g. outside a responsive subtree, or at scale factor 1.0).</summary>
+        internal int ResolvedSpacing => ResolveOwnedSpacing(_spacing);
+
         public int BufferRows { get; set; } = 1;
 
         public Func<int, MGElement> ItemGenerator { get; set; }
@@ -271,9 +275,10 @@ namespace MGUI.Core.UI.Containers
                 return;
             }
 
-            int columns = GetColumnsForWidth(Math.Max(1, LayoutBounds.Width));
+            int resolvedSpacing = ResolvedSpacing;
+            int columns = GetColumnsForWidth(Math.Max(1, LayoutBounds.Width), resolvedSpacing);
             int row = index / columns;
-            int rowPitch = ItemHeight + Spacing;
+            int rowPitch = ItemHeight + resolvedSpacing;
             int elementStart = LayoutBounds.Top + row * rowPitch;
             int elementEnd = elementStart + ItemHeight;
             float viewportStart = LayoutBounds.Top + _parentScrollViewer.VerticalOffset;
@@ -293,7 +298,8 @@ namespace MGUI.Core.UI.Containers
 
         protected override Thickness UpdateContentMeasurement(Size availableSize)
         {
-            Size desiredSize = VirtualizingWrapPanelLayout.Measure(TotalItemCount, availableSize, ItemWidth, ItemHeight, Spacing);
+            int resolvedSpacing = ResolvedSpacing;
+            Size desiredSize = VirtualizingWrapPanelLayout.Measure(TotalItemCount, availableSize, ItemWidth, ItemHeight, resolvedSpacing);
             return new Thickness(desiredSize.Width, desiredSize.Height, 0, 0);
         }
 
@@ -307,7 +313,8 @@ namespace MGUI.Core.UI.Containers
 
             EnsureScrollViewerAttached();
 
-            int columns = GetColumnsForWidth(bounds.Width);
+            int resolvedSpacing = ResolvedSpacing;
+            int columns = GetColumnsForWidth(bounds.Width, resolvedSpacing);
             int verticalOffset = 0;
             int viewportHeight = bounds.Height;
             if (_parentScrollViewer != null)
@@ -324,7 +331,7 @@ namespace MGUI.Core.UI.Containers
                 TotalItemCount,
                 columns,
                 ItemHeight,
-                Spacing,
+                resolvedSpacing,
                 verticalOffset,
                 viewportHeight,
                 BufferRows);
@@ -370,7 +377,7 @@ namespace MGUI.Core.UI.Containers
 
             foreach (var pair in _realizedItems)
             {
-                Rectangle itemBounds = VirtualizingWrapPanelLayout.GetItemBounds(pair.Key, columns, bounds, ItemWidth, ItemHeight, Spacing);
+                Rectangle itemBounds = VirtualizingWrapPanelLayout.GetItemBounds(pair.Key, columns, bounds, ItemWidth, ItemHeight, resolvedSpacing);
                 MGElement element = pair.Value;
                 if (!element.IsLayoutValid || element.AllocatedBounds != itemBounds)
                 {
@@ -395,8 +402,8 @@ namespace MGUI.Core.UI.Containers
             }
         }
 
-        private int GetColumnsForWidth(int width)
-            => Math.Min(Math.Max(1, TotalItemCount), VirtualizingWrapPanelLayout.GetColumnCount(width, ItemWidth, Spacing));
+        private int GetColumnsForWidth(int width, int resolvedSpacing)
+            => Math.Min(Math.Max(1, TotalItemCount), VirtualizingWrapPanelLayout.GetColumnCount(width, ItemWidth, resolvedSpacing));
 
         private void EnsureScrollViewerAttached()
         {

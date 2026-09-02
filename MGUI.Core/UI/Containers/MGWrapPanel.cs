@@ -66,6 +66,10 @@ namespace MGUI.Core.UI.Containers
             }
         }
 
+        /// <summary>The effective spacing used during measure/arrange, after applying <see cref="MGElement.ResponsiveSpacingScaleFactor"/> to <see cref="Spacing"/>.<br/>
+        /// Equals <see cref="Spacing"/> when responsive spacing scaling doesn't apply (e.g. outside a responsive subtree, or at scale factor 1.0).</summary>
+        internal int ResolvedSpacing => ResolveOwnedSpacing(_Spacing);
+
         public bool TryAddChild(MGElement item)
         {
             if (!CanChangeContent)
@@ -155,8 +159,9 @@ namespace MGUI.Core.UI.Containers
                 return;
             }
 
+            int resolvedSpacing = ResolvedSpacing;
             List<WrapPanelChildMeasurement> childMeasurements = MeasureChildren(bounds.Size);
-            MGWrapPanelLayoutEngine.ArrangeInto(childMeasurements, bounds, Orientation, Spacing, _ArrangedChildBounds);
+            MGWrapPanelLayoutEngine.ArrangeInto(childMeasurements, bounds, Orientation, resolvedSpacing, _ArrangedChildBounds);
             for (int i = 0; i < Children.Count; i++)
             {
                 Children[i].UpdateLayout(_ArrangedChildBounds[i]);
@@ -170,8 +175,9 @@ namespace MGUI.Core.UI.Containers
                 return UpdateContentMeasurementBaseImplementation(availableSize);
             }
 
+            int resolvedSpacing = ResolvedSpacing;
             List<WrapPanelChildMeasurement> childMeasurements = MeasureChildren(availableSize);
-            Size desiredSize = MGWrapPanelLayoutEngine.Measure(childMeasurements, availableSize, Orientation, Spacing);
+            Size desiredSize = MGWrapPanelLayoutEngine.Measure(childMeasurements, availableSize, Orientation, resolvedSpacing);
             return new Thickness(desiredSize.Width, desiredSize.Height, 0, 0);
         }
 

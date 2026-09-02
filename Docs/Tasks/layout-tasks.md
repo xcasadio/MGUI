@@ -28,7 +28,9 @@ Completer le systeme de layout responsive (voir `Docs/layout-architecture.md`) s
 
 ## Taches
 
-### 1. ⚪ Scaler les espacements possedes par les containers en sous-arbre responsive
+### 1. ✅ Scaler les espacements possedes par les containers en sous-arbre responsive
+
+**Statut** : livre. `MGStackPanel.Spacing`, `MGGrid`/`MGUniformGrid` `RowSpacing`/`ColumnSpacing`/`GridLineMargin`, `MGWrapPanel.Spacing` et `VirtualizingWrapPanel.Spacing` sont resolus via `MGElement.ResolveOwnedSpacing`/`ResolveOwnedGridLineMargin` (nouveaux helpers `UIResponsiveMath.ScaleSpacing`/`ScaleGridLineMargin`) et consommes dans mesure/arrangement/dessin des gridlines. Tests : `MGUI.Tests/Architecture/ResponsiveContainerSpacingTests.cs`.
 
 But: aujourd'hui le scaling responsive est centralise dans `MGElement` (margins, padding, tailles preferees/min/max via `ResolvedMargin`, `ResolvedPadding`, `Resolved*Width/Height`), mais les espacements possedes par les containers restent en pixels bruts. Dans un sous-arbre responsive, `MGStackPanel.Spacing = 8` ne suit donc pas le `UIScaleFactor` alors que les margins voisines le suivent, ce qui desequilibre les ecrans quand le viewport diverge de la design resolution.
 
@@ -74,3 +76,26 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: add responsive layout regression coverage`
+
+### 3. ⚪ (Suivi) Scaler les dimensions possedees par les containers
+
+But: la tache 1 a scale les espacements possedes par les containers (`Spacing`/`RowSpacing`/`ColumnSpacing`/`GridLineMargin`) mais a explicitement laisse les dimensions possedees par les containers en pixels bruts (decision produit prise pour la tache 1). Dans un sous-arbre responsive, ces dimensions ne suivent donc pas le `UIScaleFactor`, contrairement aux margins/paddings/tailles preferees deja geres par `MGElement`.
+
+Perimetre identifie (facts releves pendant la tache 1) :
+
+- `MGUniformGrid.CellSize` (`MGUI.Core/UI/Containers/Grids/MGUniformGrid.cs:126`) ;
+- `MGUniformGrid.HeaderRowHeight`/`HeaderColumnWidth` ;
+- `VirtualizingWrapPanel.ItemWidth`/`ItemHeight` (`MGUI.Core/UI/Containers/VirtualizingWrapPanel.cs:157`, `:175`) ;
+- les `GridLength` en pixels de `MGGrid` (`MGUI.Core/UI/Containers/Grids/MGGrid.cs`, ex. `ColumnDefinition`/`RowDefinition` avec `GridUnitType.Pixel`) et les `Min`/`MaxWidth`/`Height` des `RowDefinition`/`ColumnDefinition` (`MGUI.Core/UI/Containers/Grids/GridDimension.cs`).
+
+Decision: hors perimetre de la tache 1, a executer sur besoin produit. Documente comme limite connue dans `Docs/layout-architecture.md` (section Limites connues).
+
+Travail attendu (si active):
+
+- Introduire des membres `Resolved*` (ou equivalent) pour ces dimensions, gates par `ScaleDimensionsWithResponsive`/`ResponsiveLayoutScaleFactor`, sur le meme pattern que la tache 1 (avec `UIResponsiveMath.ScaleInt`/`ScaleSize`).
+- Conserver la valeur stockee en espace design ; seule la consommation dans mesure/arrangement change.
+- Ajouter des tests de regression couvrant chaque dimension listee, sous scale responsive et hors sous-arbre responsive.
+
+Commit recommande:
+
+- `feat: scale container-owned dimensions under responsive layout`

@@ -85,6 +85,10 @@ namespace MGUI.Core.UI.Containers
             }
         }
 
+        /// <summary>The effective spacing used during measure/arrange, after applying <see cref="MGElement.ResponsiveSpacingScaleFactor"/> to <see cref="Spacing"/>.<br/>
+        /// Equals <see cref="Spacing"/> when responsive spacing scaling doesn't apply (e.g. outside a responsive subtree, or at scale factor 1.0).</summary>
+        internal int ResolvedSpacing => ResolveOwnedSpacing(_Spacing);
+
         /// <returns>True if the given <paramref name="Item"/> was successfully added.<br/>
         /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
         public bool TryAddChild(MGElement Item)
@@ -199,6 +203,7 @@ namespace MGUI.Core.UI.Containers
         {
             EnsureMeasuredChildSizeCapacity(Children.Count);
 
+            int resolvedSpacing = ResolvedSpacing;
             Size remainingSize = availableSize;
             int maxWidth = 0;
             int totalHeight = 0;
@@ -222,13 +227,13 @@ namespace MGUI.Core.UI.Containers
                     nonCollapsedChildrenCount++;
                 }
 
-                int consumedHeight = fullSize.Height + (child.IsVisibilityCollapsed ? 0 : Spacing);
+                int consumedHeight = fullSize.Height + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
                 remainingSize = remainingSize.Subtract(new Size(0, consumedHeight), 0, 0);
             }
 
             if (nonCollapsedChildrenCount > 1)
             {
-                totalHeight += Spacing * (nonCollapsedChildrenCount - 1);
+                totalHeight += resolvedSpacing * (nonCollapsedChildrenCount - 1);
             }
 
             return new Thickness(maxWidth, totalHeight, 0, 0);
@@ -238,6 +243,7 @@ namespace MGUI.Core.UI.Containers
         {
             EnsureMeasuredChildSizeCapacity(Children.Count);
 
+            int resolvedSpacing = ResolvedSpacing;
             Size remainingSize = availableSize;
             int totalWidth = 0;
             int maxHeight = 0;
@@ -260,13 +266,13 @@ namespace MGUI.Core.UI.Containers
                     nonCollapsedChildrenCount++;
                 }
 
-                int consumedWidth = fullSize.Width + (child.IsVisibilityCollapsed ? 0 : Spacing);
+                int consumedWidth = fullSize.Width + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
                 remainingSize = remainingSize.Subtract(new Size(consumedWidth, 0), 0, 0);
             }
 
             if (nonCollapsedChildrenCount > 1)
             {
-                totalWidth += Spacing * (nonCollapsedChildrenCount - 1);
+                totalWidth += resolvedSpacing * (nonCollapsedChildrenCount - 1);
             }
 
             return new Thickness(totalWidth, maxHeight, 0, 0);
@@ -291,6 +297,7 @@ namespace MGUI.Core.UI.Containers
                 Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
 
                 //  Allocate space for each child
+                int resolvedSpacing = ResolvedSpacing;
                 int CurrentY = AlignedBounds.Top;
                 for (int i = 0; i < Children.Count; i++)
                 {
@@ -298,7 +305,7 @@ namespace MGUI.Core.UI.Containers
                     int Height = _measuredChildSizes[i].Height;
                     Rectangle ChildBounds = new(AlignedBounds.Left, CurrentY, AlignedBounds.Width, Height);
                     UpdateChildLayoutIfNeeded(Child, ChildBounds);
-                    CurrentY += Height + (Child.IsVisibilityCollapsed ? 0 : Spacing);
+                    CurrentY += Height + (Child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
                 }
             }
             else if (Orientation == Orientation.Horizontal)
@@ -311,6 +318,7 @@ namespace MGUI.Core.UI.Containers
                 Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
 
                 //  Allocate space for each child
+                int resolvedSpacing = ResolvedSpacing;
                 int CurrentX = AlignedBounds.Left;
                 for (int i = 0; i < Children.Count; i++)
                 {
@@ -318,7 +326,7 @@ namespace MGUI.Core.UI.Containers
                     int Width = _measuredChildSizes[i].Width;
                     Rectangle ChildBounds = new(CurrentX, AlignedBounds.Top, Width, AlignedBounds.Height);
                     UpdateChildLayoutIfNeeded(Child, ChildBounds);
-                    CurrentX += Width + (Child.IsVisibilityCollapsed ? 0 : Spacing);
+                    CurrentX += Width + (Child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
                 }
             }
             else

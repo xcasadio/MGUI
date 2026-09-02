@@ -109,7 +109,7 @@ Adoption d'un ecran :
 Un nouveau container participe automatiquement au responsive pour tout ce qui transite par le pipeline central : margins, padding, tailles preferees et min/max de ses enfants sont deja resolus par les proprietes `Resolved*` de `MGElement`. Regles a respecter :
 
 - ne jamais lire `MGWindow.Scale` ni les metriques de rendu pour adapter le layout ;
-- pour un espacement possede par le panel lui-meme (equivalent de `MGStackPanel.Spacing`), le scaling n'est pas automatique : utiliser `ResponsiveSpacingScaleFactor` avec `UIResponsiveMath.ScaleInt`/`ScaleThickness` si la semantique design-space est voulue (voir Limites connues) ;
+- pour un espacement possede par le panel lui-meme (equivalent de `MGStackPanel.Spacing`), le scaling est desormais automatique sous le meme gate que `ResolvedMargin`/`ResolvedPadding` (`ScaleSpacingWithResponsive`, defaut `true`) : les cinq containers `MGStackPanel.Spacing`, `MGGrid.RowSpacing`/`ColumnSpacing`/`GridLineMargin`, `MGUniformGrid.RowSpacing`/`ColumnSpacing`/`GridLineMargin`, `MGWrapPanel.Spacing` et `VirtualizingWrapPanel.Spacing` exposent des membres internes `Resolved*` (pattern des `Resolved*` de `MGElement`) calcules via `MGElement.ResolveOwnedSpacing`/`ResolveOwnedGridLineMargin`, qui appliquent `ResponsiveSpacingScaleFactor` avec `UIResponsiveMath.ScaleSpacing`/`ScaleGridLineMargin` ; un espacement non-nul garde au moins 1 pixel apres scaling (floor), et le `GridLineMargin` de chaque axe est plafonne pour garantir au moins 1 pixel de gouttiere visible quand une gridline est visible en espace design (les fills derives restent clampes a >= 0). Un nouveau panel qui introduit un espacement propre doit suivre le meme pattern plutot que de consommer la valeur brute ;
 - pour des offsets externes appliques aux enfants, passer par `MGElement.ResolveExternalSpacing` comme le fait `MGOverlayPanel` ;
 - eviter toute arithmetique en pixels bruts hors du pipeline de mesure/arrangement : elle ne sera pas resolue par les metriques.
 
@@ -118,7 +118,7 @@ Tests du resolveur et des anchors : `MGUI.Tests/Architecture/ResponsiveMetricsRe
 ## Limites connues
 
 - Les metriques sont resolues depuis le viewport du desktop (`ValidScreenBounds`), pas par fenetre.
-- Les espacements possedes par les containers (`MGStackPanel.Spacing`, `MGGrid.RowSpacing`/`ColumnSpacing`, `MGUniformGrid.RowSpacing`/`ColumnSpacing`, `MGWrapPanel.Spacing`) ne sont pas scales par les metriques responsive ; seul le scaling central de `MGElement` s'applique.
+- Les dimensions possedees par les containers restent en pixels bruts (non scalees) : `MGUniformGrid.CellSize`, `HeaderRowHeight`/`HeaderColumnWidth`, `VirtualizingWrapPanel.ItemWidth`/`ItemHeight`, les `GridLength` en pixels de `MGGrid` ainsi que les `Min`/`MaxWidth`/`Height` des `RowDefinition`/`ColumnDefinition`. Voir `Docs/Tasks/layout-tasks.md` pour le suivi de cette limite.
 - Les controles qui font de l'arithmetique en pixels bruts hors du pipeline central necessitent une adoption incrementale.
 - Le DPI est opt-in et desactive par defaut.
 - Une seule strategie de scale existe (`UniformFit`).
