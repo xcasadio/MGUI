@@ -487,6 +487,21 @@
                         </StackPanel>
 
                     </StackPanel>
+
+                    <TextBlock>
+                        On a host with a [c=Turquoise]CornerRadius[/c], the focused/unfocused regions are clipped to the rounded silhouette instead of the sharp rectangle:
+                    </TextBlock>
+                    <Border Padding="15" BorderBrush="Black" BorderThickness="3" CornerRadius="20" HorizontalAlignment="Left">
+                        <Border.Overlay>
+                            <HighlightFillBrush FillUnfocusedRegion="True" UnfocusedColor="Black * 0.5" />
+                        </Border.Overlay>
+
+                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Spacing="8">
+                            <TextBlock FontSize="16" Text="[b][u]Rounded Host[/u][/b]" />
+                            <Spacer Height="10" />
+                            <Button Name="HighlightBrushRoundedHostButton" Content="Hello World" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Expander>
             <Separator/>

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Rendering;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -243,6 +244,7 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 			}
 
 			Vector2 Offset = DA.Offset.ToVector2();
+			List<Rectangle> FocusedRects = GetFocusedRects();
 
 			if (CanFillFocusedRegion)
 			{
@@ -251,60 +253,15 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 				//(since drawing a transparent color overtop of the same spot twice in a row results in a different color)
 				//We could union the rectangles that intersect one another, then decompose the polygon into a set of non-overlapping rectangles, but I'm too lazy to come up with that algorithm
 
-				if (FocusedBounds != null)
+				foreach (Rectangle r in FocusedRects)
 				{
-					foreach (Rectangle r in FocusedBounds)
-					{
-						DA.DT.FillRectangle(Offset, r, FocusedColor.Value);
-					}
-				}
-
-				if (FocusedElements != null)
-				{
-					foreach (Rectangle r in FocusedElements.Select(x => x.LayoutBounds.GetExpanded(FocusedElementPadding)))
-					{
-						DA.DT.FillRectangle(Offset, r, FocusedColor.Value);
-					}
+					DA.DT.FillRectangle(Offset, r, FocusedColor.Value);
 				}
 			}
 
 			if (CanFillUnfocusedRegion)
 			{
-				//  Check cache for previously-computed unfocused geometry
-				List<Rectangle> UnfocusedRegion = null;
-				foreach(var Item in CachedUnfocusedRegions)
-				{
-					if (Item.Item1 == Bounds)
-					{
-						UnfocusedRegion = Item.Item2;
-						break;
-					}
-				}
-
-				//  Calculate the unfocused geometry by subtracting rectangle(s) from the bounds
-				if (UnfocusedRegion == null)
-				{
-					List<Rectangle> Subtractions = new();
-					if (FocusedBounds?.Any() == true)
-					{
-						Subtractions.AddRange(FocusedBounds);
-					}
-
-					if (FocusedElements?.Any() == true)
-					{
-						Subtractions.AddRange(FocusedElements.Select(x => x.LayoutBounds.GetExpanded(FocusedElementPadding)));
-					}
-
-					UnfocusedRegion = Subtract(Bounds, Subtractions);
-
-					//  Cache the result
-                    CachedUnfocusedRegions.Add((Bounds, UnfocusedRegion));
-					if (CachedUnfocusedRegions.Count > MaxCachedUnfocusedRegions)
-					{
-						CachedUnfocusedRegions.RemoveAt(0);
-					}
-				}
-
+				List<Rectangle> UnfocusedRegion = GetOrComputeUnfocusedRegion(Bounds, FocusedRects);
 				if (UnfocusedRegion.Any())
 				{
 					foreach (Rectangle r in UnfocusedRegion)
@@ -317,9 +274,110 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
 		public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
 		{
-			//  Documented limitation (Docs/drawing-architecture.md, Limites connues; Docs/Tasks/drawing-tasks.md, Tache 4): the highlight masks are
-			//  built by rectangle subtraction, so the exclusion regions stay rectangular and the rectangle path is kept on purpose.
-			Draw(DA, Element, Shape.OuterBounds);
+			if (!IsEnabled || (!CanFillFocusedRegion && !CanFillUnfocusedRegion))
+			{
+				return;
+			}
+
+			if (Geometry.UsesRectangleFastPath)
+			{
+				Draw(DA, Element, Shape.OuterBounds);
+				return;
+			}
+
+			Vector2 Offset = DA.Offset.ToVector2();
+			IReadOnlyList<Vector2> OuterContour = Geometry.OuterContour;
+			List<Rectangle> FocusedRects = GetFocusedRects();
+
+			List<Vector2> QuadPolygon = new(4);
+			List<Vector2> Clipped = new(8);
+			List<Vector2> Scratch = new(8);
+
+			if (CanFillFocusedRegion)
+			{
+				foreach (Rectangle r in FocusedRects)
+				{
+					FillClippedRectangle(DA.DT, Offset, r, OuterContour, FocusedColor.Value, QuadPolygon, Clipped, Scratch);
+				}
+			}
+
+			if (CanFillUnfocusedRegion)
+			{
+				List<Rectangle> UnfocusedRegion = GetOrComputeUnfocusedRegion(Shape.OuterBounds, FocusedRects);
+				foreach (Rectangle r in UnfocusedRegion)
+				{
+					FillClippedRectangle(DA.DT, Offset, r, OuterContour, UnfocusedColor.Value, QuadPolygon, Clipped, Scratch);
+				}
+			}
+		}
+
+		/// <summary>Unions <see cref="FocusedBounds"/> and the padded bounds of <see cref="FocusedElements"/> into a single list, exactly the set of
+		/// rectangles that are filled with <see cref="FocusedColor"/> and subtracted out of the unfocused region on both the rectangle and the
+		/// shape-aware draw path.</summary>
+		private List<Rectangle> GetFocusedRects()
+		{
+			List<Rectangle> Result = new();
+
+			if (FocusedBounds != null)
+			{
+				Result.AddRange(FocusedBounds);
+			}
+
+			if (FocusedElements != null)
+			{
+				Result.AddRange(FocusedElements.Select(x => x.LayoutBounds.GetExpanded(FocusedElementPadding)));
+			}
+
+			return Result;
+		}
+
+		/// <summary>Looks up <see cref="CachedUnfocusedRegions"/> for a previously-computed unfocused region for <paramref name="Bounds"/>, or computes
+		/// and caches one by subtracting <paramref name="FocusedRects"/> from it. Shared by the rectangle and the shape-aware draw path so a rounded
+		/// element doesn't invalidate the rectangle path's cache (and vice versa) - both key off <paramref name="Bounds"/>.</summary>
+		private List<Rectangle> GetOrComputeUnfocusedRegion(Rectangle Bounds, IList<Rectangle> FocusedRects)
+		{
+			foreach (var Item in CachedUnfocusedRegions)
+			{
+				if (Item.Item1 == Bounds)
+				{
+					return Item.Item2;
+				}
+			}
+
+			List<Rectangle> UnfocusedRegion = Subtract(Bounds, FocusedRects);
+
+			CachedUnfocusedRegions.Add((Bounds, UnfocusedRegion));
+			if (CachedUnfocusedRegions.Count > MaxCachedUnfocusedRegions)
+			{
+				CachedUnfocusedRegions.RemoveAt(0);
+			}
+
+			return UnfocusedRegion;
+		}
+
+		/// <summary>Clips the axis-aligned <paramref name="rect"/> against the convex <paramref name="outerContour"/> (Sutherland-Hodgman) and fan-fills
+		/// the surviving piece, so a region rectangle never paints outside a rounded silhouette. No-op when the piece is fully clipped away. A rectangle
+		/// entirely inside <paramref name="outerContour"/> survives unclipped, in the same TopLeft/TopRight/BottomRight/BottomLeft vertex order it was
+		/// built in.</summary>
+		private static void FillClippedRectangle(IUIDrawContext DT, Vector2 origin, Rectangle rect, IReadOnlyList<Vector2> outerContour, Color color,
+			List<Vector2> quadPolygon, List<Vector2> clipped, List<Vector2> scratch)
+		{
+			quadPolygon.Clear();
+			quadPolygon.Add(new Vector2(rect.Left, rect.Top));
+			quadPolygon.Add(new Vector2(rect.Right, rect.Top));
+			quadPolygon.Add(new Vector2(rect.Right, rect.Bottom));
+			quadPolygon.Add(new Vector2(rect.Left, rect.Bottom));
+
+			MGConvexPolygonClipper.ClipToConvexPolygon(quadPolygon, outerContour, clipped, scratch);
+			if (clipped.Count < 3)
+			{
+				return;
+			}
+
+			for (int i = 1; i + 1 < clipped.Count; i++)
+			{
+				DT.FillTriangle(origin, clipped[0], color, clipped[i], color, clipped[i + 1], color);
+			}
 		}
 
         public IFillBrush Copy()
