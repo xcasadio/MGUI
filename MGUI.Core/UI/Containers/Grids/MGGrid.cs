@@ -978,7 +978,10 @@ namespace MGUI.Core.UI.Containers.Grids
 
                 GridLineIntersectionHandling = GridLineIntersection.HorizontalThenVertical;
 
-                SelectionMouseHandler = InputTracker.Mouse.CreateHandler(this, null, false, true);
+                //  Descendant: clicking an interactive element inside a cell (such as a button or checkbox that consumes
+                //  the click) must still update this grid's selection. Deliberately not HandledInputPolicy.Any, which
+                //  would also make the grid react to clicks aimed at a context menu or window drawn overtop of it.
+                SelectionMouseHandler = InputTracker.Mouse.CreateHandler(this, null, HandledInputPolicy.Self | HandledInputPolicy.Descendant);
                 SelectionMouseHandler.LMBPressedInside += (sender, e) =>
                 {
                     SelectionAtStartOfMousePress = CurrentSelection;

@@ -812,8 +812,16 @@ public class ControlTemplateInfrastructureTests
 
         Assert.Contains("protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)", listBoxSource);
         Assert.Contains("AlternatingRowBackgrounds = CreateThemeAlternatingRowBackgrounds(CurrentTheme);", listBoxSource);
-        Assert.Contains("ItemContainerStyle == ApplyDefaultItemContainerStyle && InternalItems != null", listBoxSource);
+        Assert.Contains("ItemContainerStyle == ApplyDefaultItemContainerStyle", listBoxSource);
         Assert.Contains("ApplyDefaultItemContainerStyle(item.ContentPresenter);", listBoxSource);
+
+        //  The rehydration walks EnumerateItemWrappers rather than InternalItems, so it also reaches the wrappers of a
+        //  virtualized list box, where InternalItems is null and the wrappers live in the recycle pool.
+        Assert.Contains("foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())", listBoxSource);
+        Assert.Contains("private IEnumerable<MGListBoxItem<TItemType>> EnumerateItemWrappers()", listBoxSource);
+
+        //  The measured item height depends on the theme, so it must be dropped when the theme changes.
+        Assert.Contains("InvalidateItemHeightCache();", listBoxSource);
     }
 
     [Fact]

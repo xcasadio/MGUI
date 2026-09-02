@@ -92,10 +92,7 @@ namespace MGUI.Shared.Input.Mouse
         public InputTracker InputTracker { get; }
 
         private List<MouseHandler> _Handlers { get; }
-        /// <summary>To create a <see cref="MouseHandler"/>, use <see cref="CreateHandler{T}(T, double?, bool, bool, bool)"/> or <see cref="CreateHandler{T}(T, InputUpdatePriority, bool, bool)"/><para/>
-        /// Only contains auto-updated handlers (<see cref="MouseHandler.IsManualUpdate"/> == false, i.e. created with a non-null <c>UpdatePriority</c>).<br/>
-        /// Manual handlers are never added here: they are not read by <see cref="UpdateHandlers"/>, and their events are delivered entirely via <see cref="MouseHandler.ManualUpdate"/>,
-        /// so registering them would only be a dead GC root keeping their <see cref="MouseHandler.Owner"/> alive.</summary>
+        /// <summary>To create a <see cref="MouseHandler"/>, use <see cref="CreateHandler{T}(T, double?, bool, bool, bool)"/> or <see cref="CreateHandler{T}(T, InputUpdatePriority, bool, bool)"/></summary>
         public IReadOnlyList<MouseHandler> Handlers => _Handlers;
 
         internal void RemoveHandler(MouseHandler Handler) => _Handlers.Remove(Handler);
@@ -124,9 +121,17 @@ namespace MGUI.Shared.Input.Mouse
 
         /// <param name="UpdatePriority">The priority with which the handler receives mouse events. A higher priority means this handler will have the first chance to receive and handle events.</param>
         /// <param name="AlwaysHandlesEvents">If true, the handler will always set <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> to <paramref name="Owner"/> when receiving the mouse event.</param>
-        /// <param name="InvokeEvenIfHandled">If true, the handler will still receive the mouse event even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true.</param>
+        /// <param name="InvokeEvenIfHandled">If true, the handler will still receive the mouse event even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true.<para/>
+        /// <b>Warning:</b> this is equivalent to <see cref="HandledInputPolicy.Any"/> and therefore defeats occlusion.
+        /// Prefer the <see cref="CreateHandler{T}(T, InputUpdatePriority, HandledInputPolicy, bool)"/> overload.</param>
         public MouseHandler CreateHandler<T>(T Owner, InputUpdatePriority UpdatePriority, bool AlwaysHandlesEvents = false, bool InvokeEvenIfHandled = false)
             where T : IMouseHandlerHost => CreateHandler(Owner, (int)UpdatePriority, AlwaysHandlesEvents, InvokeEvenIfHandled);
+
+        /// <param name="UpdatePriority">The priority with which the handler receives mouse events. A higher priority means this handler will have the first chance to receive and handle events.</param>
+        /// <param name="HandledInputPolicy">Determines which already-handled events this handler still receives.</param>
+        /// <param name="AlwaysHandlesEvents">If true, the handler will always set <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> to <paramref name="Owner"/> when receiving the mouse event.</param>
+        public MouseHandler CreateHandler<T>(T Owner, InputUpdatePriority UpdatePriority, HandledInputPolicy HandledInputPolicy, bool AlwaysHandlesEvents = false)
+            where T : IMouseHandlerHost => CreateHandler(Owner, (int)UpdatePriority, HandledInputPolicy, AlwaysHandlesEvents);
 
         /// <param name="UpdatePriority">The priority with which the handler receives mouse events. A higher priority means this handler will have the first chance to receive and handle events.<para/>
         /// If null, the caller is expected to manually call <see cref="MouseHandler.ManualUpdate"/> themselves, and the handler is NOT added to <see cref="Handlers"/>
@@ -134,13 +139,34 @@ namespace MGUI.Shared.Input.Mouse
         /// If not null, <see cref="MouseHandler.AutoUpdate"/> will automatically be invoked when updating this <see cref="MouseTracker"/>, and the handler is added to <see cref="Handlers"/><para/>
         /// Minimum Value = 0. Maximum Value = 100. Recommended to use preset values from <see cref="InputUpdatePriority"/>.</param>
         /// <param name="AlwaysHandlesEvents">If true, the handler will always set <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> to <paramref name="Owner"/> when receiving the mouse event.</param>
-        /// <param name="InvokeEvenIfHandled">If true, the handler will still receive the mouse event even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true.</param>
+        /// <param name="InvokeEvenIfHandled">If true, the handler will still receive the mouse event even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true.<para/>
+        /// <b>Warning:</b> this is equivalent to <see cref="HandledInputPolicy.Any"/>. Occlusion is expressed by having the
+        /// topmost element mark the event as handled, so this also makes the handler react to clicks aimed at whatever is
+        /// drawn overtop of <paramref name="Owner"/>. Prefer <see cref="CreateHandler{T}(T, double?, HandledInputPolicy, bool)"/>
+        /// with <see cref="HandledInputPolicy.Descendant"/> when the intent is only to see clicks consumed by a child.</param>
         /// <param name="InvokeIfHandledBySelf">If true, the handler will still receive the mouse event even if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is true,
         /// as long as the handler is the same as <see cref="MouseHandler.Owner"/></param>
         public MouseHandler CreateHandler<T>(T Owner, double? UpdatePriority, bool AlwaysHandlesEvents = false, bool InvokeEvenIfHandled = false, bool InvokeIfHandledBySelf = true)
             where T : IMouseHandlerHost
         {
-            MouseHandler Handler = new(this, Owner, UpdatePriority, AlwaysHandlesEvents, InvokeEvenIfHandled, InvokeIfHandledBySelf);
+            HandledInputPolicy Policy = InvokeEvenIfHandled ? HandledInputPolicy.Any
+                : InvokeIfHandledBySelf ? HandledInputPolicy.Self
+                : HandledInputPolicy.None;
+            return CreateHandler(Owner, UpdatePriority, Policy, AlwaysHandlesEvents);
+        }
+
+        /// <param name="UpdatePriority">The priority with which the handler receives mouse events. A higher priority means this handler will have the first chance to receive and handle events.<para/>
+        /// If null, the caller is expected to manually call <see cref="MouseHandler.ManualUpdate"/> themselves, and the handler is NOT added to <see cref="Handlers"/>
+        /// (it isn't read by <see cref="UpdateHandlers"/>, so registering it would only be a dead GC root keeping <paramref name="Owner"/> alive).<br/>
+        /// If not null, <see cref="MouseHandler.AutoUpdate"/> will automatically be invoked when updating this <see cref="MouseTracker"/>, and the handler is added to <see cref="Handlers"/><para/>
+        /// Minimum Value = 0. Maximum Value = 100. Recommended to use preset values from <see cref="InputUpdatePriority"/>.</param>
+        /// <param name="HandledInputPolicy">Determines which already-handled events this handler still receives.
+        /// See <see cref="Mouse.HandledInputPolicy"/> for why this should be as narrow as possible.</param>
+        /// <param name="AlwaysHandlesEvents">If true, the handler will always set <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> to <paramref name="Owner"/> when receiving the mouse event.</param>
+        public MouseHandler CreateHandler<T>(T Owner, double? UpdatePriority, HandledInputPolicy HandledInputPolicy, bool AlwaysHandlesEvents = false)
+            where T : IMouseHandlerHost
+        {
+            MouseHandler Handler = new(this, Owner, UpdatePriority, AlwaysHandlesEvents, HandledInputPolicy);
             if (UpdatePriority.HasValue)
             {
                 _Handlers.Add(Handler);
