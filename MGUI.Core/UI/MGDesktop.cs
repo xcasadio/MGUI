@@ -418,46 +418,6 @@ namespace MGUI.Core.UI
         internal void PopFocusScope(MGElement scopeRoot)
             => NavigationService.PopFocusScope(scopeRoot);
 
-        private MGElement GetNearestNavigationTarget(MGElement element)
-        {
-            for (MGElement current = element; current != null; current = current.Parent)
-            {
-                if (IsNavigationTarget(current))
-                {
-                    return current;
-                }
-            }
-
-            return null;
-        }
-
-        private IEnumerable<MGWindow> GetWindowsFrontToBack()
-            => Windows.OrderByDescending(x => x.IsTopmost);
-
-        private MGElement GetHoveredNavigationTarget()
-        {
-            foreach (MGWindow window in GetWindowsFrontToBack())
-            {
-                MGElement hoveredTarget = GetNearestNavigationTarget(window.HoveredElement);
-                if (hoveredTarget != null)
-                {
-                    return hoveredTarget;
-                }
-            }
-
-            return null;
-        }
-
-        private MGElement GetNavigationRoot()
-        {
-            MGElement activeScopeRoot = GetActiveFocusScopeRoot(FocusScopes.Select(x => x.ScopeRoot).ToList());
-            MGElement focusedWindowRoot = FocusedKeyboardHandler?.SelfOrParentWindow;
-            MGElement hoveredWindowRoot = GetHoveredNavigationTarget()?.SelfOrParentWindow;
-            MGElement topWindowRoot = GetWindowsFrontToBack().FirstOrDefault();
-
-            return ResolveNavigationRoot(activeScopeRoot, focusedWindowRoot, hoveredWindowRoot, topWindowRoot);
-        }
-
         private IReadOnlyList<MGElement> GetFocusableElements(MGElement root)
         {
             if (root == null)

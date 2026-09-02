@@ -366,7 +366,7 @@ namespace MGUI.Core.UI.Navigation
 
         private MGElement GetHoveredNavigationTarget()
         {
-            foreach (MGWindow window in Desktop.Windows.OrderByDescending(x => x.IsTopmost))
+            foreach (MGWindow window in Desktop.Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
             {
                 MGElement hoveredTarget = GetNearestNavigationTarget(window.HoveredElement);
                 if (hoveredTarget != null)
@@ -383,7 +383,7 @@ namespace MGUI.Core.UI.Navigation
             MGElement activeScopeRoot = GetActiveFocusScopeRoot(FocusScopes.Select(x => x.ScopeRoot).ToList());
             MGElement focusedWindowRoot = Desktop.FocusedKeyboardHandler?.SelfOrParentWindow;
             MGElement hoveredWindowRoot = GetHoveredNavigationTarget()?.SelfOrParentWindow;
-            MGElement topWindowRoot = Desktop.Windows.OrderByDescending(x => x.IsTopmost).FirstOrDefault();
+            MGElement topWindowRoot = Desktop.Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost).FirstOrDefault();
 
             return ResolveNavigationRoot(activeScopeRoot, focusedWindowRoot, hoveredWindowRoot, topWindowRoot);
         }

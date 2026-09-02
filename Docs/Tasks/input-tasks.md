@@ -70,7 +70,7 @@ Resultat:
 - Nouveau fichier de tests `MGUI.Tests/Input/MouseTrackerDragFastPathTests.cs` (5 tests) : flags a faux hors activite drag et sur simple mouvement sans bouton presse, `HasCurrentDragStartEvents` vrai au tick de press (condition `MousePressed`), `HasCurrentDraggedEvents` vrai pendant un drag en cours, `HasCurrentDragEndEvents` vrai au relachement puis retour a faux au tick suivant.
 - Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 366/366 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1210/1210 verts (baseline 1205 + 5 nouveaux tests), aucun test rouge.
 
-### ⚪ 2. Corriger l'inversion GetWindowsFrontToBack et supprimer la copie morte
+### ✅ 2. Corriger l'inversion GetWindowsFrontToBack et supprimer la copie morte
 
 But:
 
@@ -92,6 +92,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `focus: fix front-to-back window ordering in navigation fallbacks`
+
+Resultat:
+
+- `MGUI.Core/UI/Navigation/UIFocusNavigationService.cs:369` (`GetHoveredNavigationTarget`) et `:386` (`GetNavigationRoot`, `topWindowRoot`) : ajout de `.Reverse<MGWindow>()` avant `.OrderByDescending(x => x.IsTopmost)`, pour aligner sur le pattern deja correct de la boucle d'update (`MGDesktop.cs:1431`) — verifie par lecture du code avant edition (les deux occurrences pointaient bien vers les lignes du texte de la tache).
+- Copie morte supprimee dans `MGUI.Core/UI/MGDesktop.cs` (ex-lignes 421-459) : `GetNearestNavigationTarget`, `GetWindowsFrontToBack`, `GetHoveredNavigationTarget`, `GetNavigationRoot` — verifie sans appelant externe (`GetNavigationRoot()` de `MGDesktop` n'a aucune reference, contrairement a celui de `UIFocusNavigationService.cs` utilise par `GetFocusableElements`/`MoveFocusNext`/`MoveFocusPrevious`/`NavigateTo`/`ResolveAutoFocusTarget`). `GetFocusableElements(MGElement)` (juste apres, toujours prive) est conservee : appelee ailleurs dans `MGDesktop.cs` (lignes ~1067/1072, `ResolveAutoFocusTarget`). `GetActiveFocusScopeRoot`/`IsNavigationTarget`/`ResolveNavigationRoot` restent inchanges (utilises par ailleurs, notamment par `UIFocusNavigationService`) ; hors perimetre de la tache, non touches.
+- Test : nouveau fichier `MGUI.Tests/Focus/NavigationFrontToBackFallbackTests.cs` (2 tests), pattern desktop/window/bouton reel calque sur `MGUI.Tests/Architecture/ContentLayoutSuspensionTests.cs` et `MGUI.Tests/Graph/GraphViewRenderingTests.cs` (utilise `MGUI.Tests.Graph.GraphTestRuntime` comme `IUIDesktopRuntime`) : deux fenetres non-topmost (`backWindow` ajoutee en premier, `frontWindow` en second, chacune avec un `MGButton` focusable), aucun focus/hover -> `GetFocusableElements()` doit se limiter a la fenetre du dessus (`frontWindow`, la derniere ajoutee) et `MoveFocusNext(KeyboardFocusSource.Keyboard)` doit donner le focus a `frontButton`, pas `backButton`. Les deux tests ont ete verifies faux (rouges) en retirant temporairement `.Reverse<MGWindow>()` avant de le restaurer, confirmant qu'ils detectent bien la regression corrigee.
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 368/368 verts (366 baseline tache 1 + 2 nouveaux) ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1212/1212 verts, aucun test rouge.
 
 ### ⚪ 3. Aligner le chemin semantique sur ShouldPreserveTextEntryKey
 
