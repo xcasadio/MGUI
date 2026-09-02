@@ -479,7 +479,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
         void IBorderBrush.Update(UpdateBaseArgs UA)
 		{
-			Underlay?.Update(UA);
+			//  Forwards the per-frame lifecycle call to Underlay via PaintLifecycle, deduplicated by reference against
+			//  every other slot/element that references it for the frame (see Docs/drawing-architecture.md, Limites connues).
+			PaintLifecycle.Update(Underlay, UA);
 
 			if (Target != null && 
 				((StopOnMouseOver && Target.VisualState.Secondary == SecondaryVisualState.Hovered) ||

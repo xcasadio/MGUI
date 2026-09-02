@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
+using MGUI.Core.UI.Brushes;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Rendering;
@@ -347,9 +348,11 @@ namespace MGUI.Core.UI
 
         /// <summary>Forwards the per-frame lifecycle call to each distinct <see cref="IFillBrush"/> held by this wrapper
         /// (<see cref="VisualStateSetting{TDataType}.NormalValue"/>, <see cref="VisualStateSetting{TDataType}.SelectedValue"/>,
-        /// <see cref="VisualStateSetting{TDataType}.FocusedValue"/>, <see cref="VisualStateSetting{TDataType}.DisabledValue"/>).<para/>
-        /// The constructors that take a single brush store the same instance in several states, so instances are deduplicated by reference:
-        /// a stateful paint is ticked exactly once per frame regardless of how many states share it.<para/>
+        /// <see cref="VisualStateSetting{TDataType}.FocusedValue"/>, <see cref="VisualStateSetting{TDataType}.DisabledValue"/>),
+        /// via <see cref="PaintLifecycle"/>.<para/>
+        /// The constructors that take a single brush store the same instance in several states, so instances are deduplicated by reference
+        /// within this wrapper (kept regardless of <see cref="UpdateBaseArgs.PaintRegistry"/>); a stateful paint is additionally deduplicated
+        /// against every other slot/element that references it for the frame via <see cref="PaintLifecycle"/>.<para/>
         /// The solid hover/pressed overlays are stateless and are not ticked.</summary>
         public void Update(UpdateBaseArgs UA)
         {
@@ -358,21 +361,21 @@ namespace MGUI.Core.UI
             IFillBrush focused = FocusedValue;
             IFillBrush disabled = DisabledValue;
 
-            normal?.Update(UA);
+            PaintLifecycle.Update(normal, UA);
 
             if (selected != null && !ReferenceEquals(selected, normal))
             {
-                selected.Update(UA);
+                PaintLifecycle.Update(selected, UA);
             }
 
             if (focused != null && !ReferenceEquals(focused, normal) && !ReferenceEquals(focused, selected))
             {
-                focused.Update(UA);
+                PaintLifecycle.Update(focused, UA);
             }
 
             if (disabled != null && !ReferenceEquals(disabled, normal) && !ReferenceEquals(disabled, selected) && !ReferenceEquals(disabled, focused))
             {
-                disabled.Update(UA);
+                PaintLifecycle.Update(disabled, UA);
             }
         }
 

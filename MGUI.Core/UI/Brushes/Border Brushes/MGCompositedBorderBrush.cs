@@ -22,11 +22,13 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             this.Brushes = Brushes.Where(x => x != null).ToList();
         }
 
+        /// <summary>Forwards the per-frame lifecycle call to every nested brush in <see cref="Brushes"/> via <see cref="PaintLifecycle"/>,
+        /// deduplicated by reference against every other slot/element that references them for the frame.</summary>
         void IBorderBrush.Update(UpdateBaseArgs UA)
         {
             foreach (IBorderBrush Brush in Brushes)
             {
-                Brush.Update(UA);
+                PaintLifecycle.Update(Brush, UA);
             }
         }
 

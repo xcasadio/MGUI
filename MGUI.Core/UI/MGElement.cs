@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework.Input;
 using System.Diagnostics;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.ObjectModel;
+using MGUI.Core.UI.Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Rendering;
 using MGUI.Shared.Input.Mouse;
@@ -2498,11 +2499,12 @@ namespace MGUI.Core.UI
             // Fix (Task 14): iterate directly instead of .ToList().ForEach() which allocates a temporary List<>
             foreach (IBorderBrush brush in GetBorderBrushes())
             {
-                brush?.Update(UA.BA);
+                PaintLifecycle.Update(brush, UA.BA);
             }
 
             //  Fill brush lifecycle: tick the background wrappers and the raw fill slots this element draws itself (see GetFillBrushes/GetVisualStateFillBrushes).
-            //  A stateful paint is ticked once per frame and per slot that references it; sharing one instance across several slots or elements ticks it once per slot.
+            //  A stateful paint is ticked once per frame regardless of how many slots or elements reference it: PaintLifecycle
+            //  dedups by reference against UA.BA.PaintRegistry (see Docs/drawing-architecture.md, Limites connues).
             foreach (VisualStateFillBrush brush in GetVisualStateFillBrushes())
             {
                 brush?.Update(UA.BA);
@@ -2510,7 +2512,7 @@ namespace MGUI.Core.UI
 
             foreach (IFillBrush brush in GetFillBrushes())
             {
-                brush?.Update(UA.BA);
+                PaintLifecycle.Update(brush, UA.BA);
             }
 
             if (ComputedIsHitTestVisible && Visibility == Visibility.Visible &&

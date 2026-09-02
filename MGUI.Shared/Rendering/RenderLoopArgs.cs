@@ -31,11 +31,17 @@ namespace MGUI.Shared.Rendering
     [DebuggerStepThrough]
     public readonly record struct UpdateBaseArgs(TimeSpan TotalElapsed, TimeSpan FrameElapsed, MouseState MouseState, KeyboardState KeyboardState)
     {
+        /// <summary>Per-frame dedup registry for stateful paints (fill brushes / border brushes). Not part of the positional
+        /// constructor so every existing positional call site keeps compiling unchanged; defaults to <see langword="null"/>,
+        /// in which case paints are ticked unconditionally (no dedup). Set by <see cref="MGUI.Core.UI.MGDesktop.Update"/>
+        /// via a <see langword="with"/> expression once per frame.</summary>
+        public IPaintUpdateRegistry PaintRegistry { get; init; }
+
         public UpdateBaseArgs GetTranslated(int MouseXOffset, int MouseYOffset)
         {
             MouseState MS = MouseState;
             MouseState Translated = new(MS.X + MouseXOffset, MS.Y + MouseYOffset, MS.ScrollWheelValue, MS.LeftButton, MS.MiddleButton, MS.RightButton, MS.XButton1, MS.XButton2);
-            return new(TotalElapsed, FrameElapsed, Translated, KeyboardState);
+            return this with { MouseState = Translated };
         }
     }
 

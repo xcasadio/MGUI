@@ -32,12 +32,13 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             this.PadFillBoundsByBorderThickness = PadFillBoundsByBorderThickness;
         }
 
-        /// <summary>Forwards the per-frame lifecycle call to <see cref="FillBrush"/> and <see cref="BorderBrush"/>,
-        /// so that stateful paints such as <see cref="MGHighlightBorderBrush"/> keep animating when nested in this brush.</summary>
+        /// <summary>Forwards the per-frame lifecycle call to <see cref="FillBrush"/> and <see cref="BorderBrush"/> via <see cref="PaintLifecycle"/>,
+        /// so that stateful paints such as <see cref="MGHighlightBorderBrush"/> keep animating when nested in this brush,
+        /// deduplicated by reference against every other slot/element that references them for the frame.</summary>
         public void Update(UpdateBaseArgs UA)
         {
-            FillBrush?.Update(UA);
-            BorderBrush?.Update(UA);
+            PaintLifecycle.Update(FillBrush, UA);
+            PaintLifecycle.Update(BorderBrush, UA);
         }
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)

@@ -5,6 +5,7 @@ using System.Reflection;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
@@ -179,6 +180,114 @@ public class FillBrushLifecycleTests
         ((IBorderBrush)sharing).Update(OneFrame);
 
         Assert.Equal(1, shared.UpdateCount);
+    }
+
+    #endregion
+
+    #region Per-frame paint dedup (PaintLifecycle / MGDesktop.Update)
+
+    [Fact]
+    public void Desktop_Update_TicksFillBrushSharedByReferenceAcrossTwoElementsOncePerFrame()
+    {
+        Harness harness = Harness.Create();
+        RecordingFillBrush shared = new();
+        MGBorder first = new(harness.Window) { BackgroundBrush = new VisualStateFillBrush(shared) };
+        MGBorder second = new(harness.Window) { BackgroundBrush = new VisualStateFillBrush(shared) };
+        harness.ShowAll(first, second);
+
+        shared.Reset();
+        harness.Desktop.Update();
+        Assert.Equal(1, shared.UpdateCount);
+
+        harness.Desktop.Update();
+        Assert.Equal(2, shared.UpdateCount);
+    }
+
+    [Fact]
+    public void Desktop_Update_TicksFillBrushReferencedDirectlyAndThroughCompositeOnce()
+    {
+        Harness harness = Harness.Create();
+        RecordingFillBrush shared = new();
+        RecordingFillBrush other = new();
+        MGBorder direct = new(harness.Window) { OverlayBrush = shared };
+        MGBorder composited = new(harness.Window) { OverlayBrush = new MGCompositedFillBrush(shared, other) };
+        harness.ShowAll(direct, composited);
+
+        shared.Reset();
+        other.Reset();
+        harness.Desktop.Update();
+
+        Assert.Equal(1, shared.UpdateCount);
+        Assert.Equal(1, other.UpdateCount);
+    }
+
+    [Fact]
+    public void Desktop_Update_TicksBorderBrushSharedAcrossTwoBordersOncePerFrame()
+    {
+        Harness harness = Harness.Create();
+        RecordingBorderBrush shared = new();
+        MGBorder first = new(harness.Window, new Thickness(1), shared);
+        MGBorder second = new(harness.Window, new Thickness(1), shared);
+        harness.ShowAll(first, second);
+
+        shared.Reset();
+        harness.Desktop.Update();
+        Assert.Equal(1, shared.UpdateCount);
+
+        harness.Desktop.Update();
+        Assert.Equal(2, shared.UpdateCount);
+    }
+
+    /// <summary>Reaches the same <see cref="RecordingBorderBrush"/> through <see cref="MGCompositedBorderBrush"/>,
+    /// <see cref="MGBandedBorderBrush"/> and as an <see cref="MGHighlightBorderBrush.Underlay"/> on one element, while a second
+    /// element references it directly as its own <see cref="MGBorder.BorderBrush"/>: covers the Tache 4 item 1 scenario.</summary>
+    [Fact]
+    public void Desktop_Update_TicksBorderBrushReachedThroughCompositesUnderlayAndDirectReferenceOnce()
+    {
+        Harness harness = Harness.Create();
+        RecordingBorderBrush shared = new();
+        MGHighlightBorderBrush highlight = new(shared, Color.Yellow, HighlightAnimation.Pulse);
+        MGBandedBorderBrush banded = new(new MGBorderBand(highlight, 1.0));
+        MGCompositedBorderBrush composited = new(banded);
+
+        MGBorder nested = new(harness.Window, new Thickness(1), composited);
+        MGBorder direct = new(harness.Window, new Thickness(1), shared);
+        harness.ShowAll(nested, direct);
+
+        shared.Reset();
+        harness.Desktop.Update();
+        Assert.Equal(1, shared.UpdateCount);
+
+        harness.Desktop.Update();
+        Assert.Equal(2, shared.UpdateCount);
+    }
+
+    [Fact]
+    public void Update_WithNullPaintRegistry_TicksOnEveryCall()
+    {
+        RecordingFillBrush brush = new();
+        UpdateBaseArgs nullRegistryArgs = new(TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16), default, default);
+        Assert.Null(nullRegistryArgs.PaintRegistry);
+
+        brush.Update(nullRegistryArgs);
+        brush.Update(nullRegistryArgs);
+
+        Assert.Equal(2, brush.UpdateCount);
+    }
+
+    [Fact]
+    public void GetTranslated_RoundTripsPaintRegistry()
+    {
+        FakeRegistry registry = new();
+        UpdateBaseArgs original = new UpdateBaseArgs(TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16), default, default)
+            with
+        { PaintRegistry = registry };
+
+        UpdateBaseArgs translated = original.GetTranslated(5, 7);
+
+        Assert.Same(registry, translated.PaintRegistry);
+        Assert.Equal(original.TotalElapsed, translated.TotalElapsed);
+        Assert.Equal(original.FrameElapsed, translated.FrameElapsed);
     }
 
     #endregion
@@ -467,10 +576,13 @@ public class FillBrushLifecycleTests
         ["MGTabControl.HeaderAreaBackground"] = "proxy of HeadersPanelElement.BackgroundBrush (MGTabControl.cs)",
         ["MGExpander.ExpanderButtonBackgroundBrush"] = "proxy of ExpanderToggleButton.BackgroundBrush (MGExpander.cs)",
         ["MGToggleButton.CheckedBackgroundBrush"] = "proxy of BackgroundBrush.SelectedValue (MGToggleButton.cs)",
-        //  TEMPLATE shared by reference: assigned into the BackgroundBrush of several consumer elements, hence ticked once per consumer element per frame.
-        ["MGTreeView.SelectionBackgroundBrush"] = "template assigned to HeaderPanel and HeaderContainer of the selected item: ticked twice for that item (MGTreeViewItem.cs RefreshSelectionVisual)",
-        ["MGListBox.AlternatingRowBackgrounds"] = "template assigned to each row's ContentPresenter background: ticked once per row (MGListBox.cs)",
-        ["MGDockAutoHideStrip.ButtonBackgroundBrush"] = "template assigned to every strip button: ticked once per button (MGDockAutoHideStrip.cs ApplyThemeVisuals)",
+        //  TEMPLATE shared by reference: assigned into the BackgroundBrush of several consumer elements, so the slot itself is excluded here
+        //  (it is ticked through each consumer's own GetVisualStateFillBrushes()/BackgroundBrush, not through this property). Since PaintLifecycle
+        //  dedups by reference against MGDesktop's per-frame registry (Docs/drawing-architecture.md, Limites connues), the underlying paint still
+        //  advances exactly once per frame in total, no matter how many consumers reference it.
+        ["MGTreeView.SelectionBackgroundBrush"] = "template assigned to HeaderPanel and HeaderContainer of the selected item, deduped to 1 tick/frame by MGDesktop's paint registry (MGTreeViewItem.cs RefreshSelectionVisual)",
+        ["MGListBox.AlternatingRowBackgrounds"] = "template assigned to each row's ContentPresenter background, deduped to 1 tick/frame per distinct brush by MGDesktop's paint registry (MGListBox.cs)",
+        ["MGDockAutoHideStrip.ButtonBackgroundBrush"] = "template assigned to every strip button, deduped to 1 tick/frame by MGDesktop's paint registry (MGDockAutoHideStrip.cs ApplyThemeVisuals)",
         //  TEMPLATE current value only: only the brush of the current state is copied into SurfaceElement.BackgroundBrush.NormalValue, so non-current brushes are not ticked.
         ["MGDockSplitterBar.NormalBrush"] = "ticked only while it is the current state (MGDockSplitterBar.cs)",
         ["MGDockSplitterBar.HoverBrush"] = "ticked only while it is the current state (MGDockSplitterBar.cs)",
@@ -503,6 +615,13 @@ public class FillBrushLifecycleTests
         public void Update(UpdateBaseArgs UA) => UpdateCount++;
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds) { }
         public IFillBrush Copy() => this;
+    }
+
+    /// <summary>Minimal <see cref="IPaintUpdateRegistry"/> double used to assert that <see cref="UpdateBaseArgs.GetTranslated"/>
+    /// carries the registry instance through unchanged.</summary>
+    private sealed class FakeRegistry : IPaintUpdateRegistry
+    {
+        public bool TryBeginUpdate(object paint) => true;
     }
 
     private sealed class RecordingBorderBrush : IBorderBrush
@@ -543,6 +662,18 @@ public class FillBrushLifecycleTests
             Desktop.Windows.Add(Window);
             Desktop.Update();
             Desktop.Update();
+        }
+
+        /// <summary>Adds every element to a stack panel set as the window's content, shows the window and runs two warm-up frames.
+        /// Used by tests that need several distinct elements updated within the same <see cref="MGDesktop.Update"/> call.</summary>
+        public void ShowAll(params MGElement[] elements)
+        {
+            MGStackPanel panel = new(Window, Orientation.Vertical);
+            foreach (MGElement element in elements)
+            {
+                panel.TryAddChild(element);
+            }
+            Show(panel);
         }
     }
 

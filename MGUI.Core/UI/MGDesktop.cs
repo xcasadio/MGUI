@@ -14,6 +14,7 @@ using MGUI.Shared.Input.GamePad;
 using MGUI.Shared.Text;
 using MGUI.Shared.Rendering;
 using MGUI.Shared.Assets;
+using MGUI.Core.UI.Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.DragDrop;
 using Microsoft.Xna.Framework.Graphics;
@@ -45,6 +46,11 @@ namespace MGUI.Core.UI
         private List<ModalStackEntry> ModalStackEntries { get; } = new();
         public IReadOnlyList<MGWindow> ActiveModalWindows => ModalStackEntries.Select(x => x.Modal).ToList();
         internal event EventHandler EndUpdate;
+
+        /// <summary>Per-frame dedup registry for stateful paints (see <see cref="PaintLifecycle"/>). Cleared and re-attached to
+        /// <see cref="UpdateBaseArgs.PaintRegistry"/> once at the start of every <see cref="Update"/> call, so one <see cref="Update"/>
+        /// call == one frame == one reset.</summary>
+        private readonly PaintUpdateRegistry PaintUpdateRegistry = new();
 
         internal void SyncModalStack(MGWindow owner, IReadOnlyList<MGWindow> modalWindows)
         {
@@ -1347,7 +1353,10 @@ namespace MGUI.Core.UI
                 }
             }
 
-            UpdateBaseArgs BA = Runtime.UpdateArgs;
+            //  One Update() call == one frame == one reset of the paint dedup registry, so a stateful paint shared by
+            //  reference across several slots/elements is ticked exactly once this frame regardless of how many places reference it.
+            PaintUpdateRegistry.Clear();
+            UpdateBaseArgs BA = Runtime.UpdateArgs with { PaintRegistry = PaintUpdateRegistry };
 
             using (UIPerformanceProbe.BeginDesktopPhase("InputModeAndFocus"))
             {

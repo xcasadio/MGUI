@@ -55,11 +55,13 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             Bands = new List<MGBorderBand>().AsReadOnly();
         }
 
+        /// <summary>Forwards the per-frame lifecycle call to every band's <see cref="MGBorderBand.Brush"/> via <see cref="PaintLifecycle"/>,
+        /// deduplicated by reference against every other slot/element that references them for the frame.</summary>
         void IBorderBrush.Update(UpdateBaseArgs UA)
         {
             foreach (MGBorderBand Band in Bands)
             {
-                Band.Brush?.Update(UA);
+                PaintLifecycle.Update(Band.Brush, UA);
             }
         }
 

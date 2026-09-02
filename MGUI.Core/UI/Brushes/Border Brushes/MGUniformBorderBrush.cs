@@ -38,9 +38,10 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             _Brush = Brush ?? throw new ArgumentNullException(nameof(Brush));
         }
 
-        /// <summary>Forwards the per-frame lifecycle call to the nested <see cref="Brush"/>.
+        /// <summary>Forwards the per-frame lifecycle call to the nested <see cref="Brush"/> via <see cref="PaintLifecycle"/>, deduplicated by
+        /// reference against every other slot/element that references it for the frame.
         /// Required because <see cref="MGBorder"/> and <see cref="IFillBrush.AsUniformBorderBrush"/> wrap any fill brush (possibly a stateful composite) in this brush.</summary>
-        public void Update(UpdateBaseArgs UA) => _Brush?.Update(UA);
+        public void Update(UpdateBaseArgs UA) => PaintLifecycle.Update(_Brush, UA);
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
         {

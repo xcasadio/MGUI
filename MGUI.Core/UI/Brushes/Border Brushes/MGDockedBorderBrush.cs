@@ -46,8 +46,10 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
         private static IEnumerable<T> AsEnum<T>(params T[] values) => values;
 
-        /// <summary>Forwards the per-frame lifecycle call to <see cref="Left"/>, <see cref="Top"/>, <see cref="Right"/> and <see cref="Bottom"/>.
-        /// The same instance may be passed for several sides, so instances are deduplicated by reference and ticked once per frame.</summary>
+        /// <summary>Forwards the per-frame lifecycle call to <see cref="Left"/>, <see cref="Top"/>, <see cref="Right"/> and <see cref="Bottom"/> via <see cref="PaintLifecycle"/>.
+        /// The same instance may be passed for several sides, so instances are deduplicated by reference within this brush (kept regardless of
+        /// <see cref="UpdateBaseArgs.PaintRegistry"/>); <see cref="PaintLifecycle"/> additionally dedups against every other slot/element that
+        /// references the same instance for the frame.</summary>
         public void Update(UpdateBaseArgs UA)
         {
             IFillBrush left = Left;
@@ -55,21 +57,21 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             IFillBrush right = Right;
             IFillBrush bottom = Bottom;
 
-            left?.Update(UA);
+            PaintLifecycle.Update(left, UA);
 
             if (top != null && !ReferenceEquals(top, left))
             {
-                top.Update(UA);
+                PaintLifecycle.Update(top, UA);
             }
 
             if (right != null && !ReferenceEquals(right, left) && !ReferenceEquals(right, top))
             {
-                right.Update(UA);
+                PaintLifecycle.Update(right, UA);
             }
 
             if (bottom != null && !ReferenceEquals(bottom, left) && !ReferenceEquals(bottom, top) && !ReferenceEquals(bottom, right))
             {
-                bottom.Update(UA);
+                PaintLifecycle.Update(bottom, UA);
             }
         }
 
