@@ -512,6 +512,12 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 			return r < 0 ? r + m : r;
 		}
 
+		private static double PositiveModulo(double x, double m)
+		{
+			double r = x % m;
+			return r < 0 ? r + m : r;
+		}
+
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
 		{
 			Underlay?.Draw(DA, Element, Bounds, BT);
@@ -856,15 +862,30 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 				return;
 			}
 
+			double progress = ActualAnimationProgress;
+
 			if (AnimationType is HighlightAnimation.Progress or HighlightAnimation.Scan)
 			{
-				//  Documented limitation (Docs/drawing-architecture.md, Limites connues; Docs/Tasks/drawing-tasks.md, Tache 4): Progress and Scan
-				//  walk the rectangular perimeter, they are not yet parameterized along the rounded contour, so the rectangle path is kept on purpose.
-				Draw(DA, Element, Shape.OuterBounds, Shape.NormalizedBorderThickness);
+				if (Geometry.UsesRectangleFastPath || !Geometry.HasBorderRingMesh)
+				{
+					//  Rectangle fast path, or the residual case where the border thickness consumes the whole box so there is no ring mesh
+					//  to parameterize (Docs/drawing-architecture.md, Limites connues; Docs/Tasks/drawing-tasks.md, Tache 4;
+					//  MGBoxGeometryBuilder.BuildInnerContour).
+					Draw(DA, Element, Shape.OuterBounds, Shape.NormalizedBorderThickness);
+					return;
+				}
+
+				if (AnimationType == HighlightAnimation.Progress)
+				{
+					DrawProgressOnRing(DA, Geometry, progress);
+				}
+				else
+				{
+					DrawScanOnRing(DA, Geometry, progress);
+				}
 				return;
 			}
 
-			double progress = ActualAnimationProgress;
 			switch (AnimationType)
 			{
 				case HighlightAnimation.Pulse:
@@ -882,6 +903,224 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 						HighlightBorderBrush.Draw(DA, Element, Shape, Geometry);
 					}
 					break;
+			}
+		}
+
+		/// <summary>Progress on the rounded ring: parameterizes the highlighted span by cumulative arc length along <see cref="MGBoxGeometry.OuterContour"/>
+		/// instead of the rectangular perimeter. Percentage 0 is anchored at the contour vertex that is top-most then left-most (the end of the
+		/// top-left arc / start of the top edge - the rounded-corner equivalent of the rectangle path's top-left corner, since a zero radius collapses
+		/// that arc to a single point at the same location), and the sweep runs along the top edge to the right first (clockwise on screen) for
+		/// <see cref="HighlightFlowDirection.Clockwise"/>, honouring <see cref="ProgressFlowDirection"/> exactly as the rectangle path does with
+		/// <c>IsReversed</c>. Ring quad indices <c>i, i+1</c> (outer) / <c>i, i+1</c> (inner) are walked in sweep order starting at the anchor; a quad
+		/// fully inside the span is emitted whole, a quad straddling a span boundary is split by lerping both contours at the boundary's fractional
+		/// position within that quad, and a span that wraps past the end of the contour is emitted as two sub-spans.</summary>
+		private void DrawProgressOnRing(ElementDrawArgs DA, MGBoxGeometry Geometry, double progress)
+		{
+			IReadOnlyList<Vector2> outer = Geometry.OuterContour;
+			IReadOnlyList<Vector2> inner = Geometry.InnerContour;
+			int n = outer.Count;
+			if (n < 2 || inner.Count != n)
+			{
+				return;
+			}
+
+			int anchorIndex = FindTopLeftAnchorIndex(outer);
+			bool isReversed = ProgressFlowDirection == HighlightFlowDirection.CounterClockwise;
+
+			//  order[k] = contour index of the k-th vertex visited in sweep order, starting at the anchor.
+			//  arcPos[k] = cumulative arc length (along the outer contour) from the anchor to order[k]; arcPos[n] closes the loop.
+			int[] order = new int[n];
+			double[] arcPos = new double[n + 1];
+			for (int k = 0; k < n; k++)
+			{
+				order[k] = isReversed ? PositiveModulo(anchorIndex - k, n) : PositiveModulo(anchorIndex + k, n);
+			}
+			for (int k = 1; k <= n; k++)
+			{
+				arcPos[k] = arcPos[k - 1] + Vector2.Distance(outer[order[k - 1]], outer[order[k % n]]);
+			}
+			double total = arcPos[n];
+			if (total <= 0.0)
+			{
+				return;
+			}
+
+			double startPercent = progress - ProgressSize / 2.0;
+			double startArc = PositiveModulo(startPercent * total, total);
+			double endArc = startArc + ProgressSize * total;
+
+			if (endArc <= total)
+			{
+				EmitProgressSpan(startArc, endArc);
+			}
+			else
+			{
+				EmitProgressSpan(startArc, total);
+				EmitProgressSpan(0.0, endArc - total);
+			}
+
+			void EmitProgressSpan(double rangeStart, double rangeEnd)
+			{
+				if (rangeEnd - rangeStart <= 1e-9)
+				{
+					return;
+				}
+
+				Vector2 origin = DA.Offset.ToVector2();
+				for (int k = 0; k < n; k++)
+				{
+					double quadStart = arcPos[k];
+					double quadEnd = arcPos[k + 1];
+					double overlapStart = Math.Max(quadStart, rangeStart);
+					double overlapEnd = Math.Min(quadEnd, rangeEnd);
+					if (overlapEnd - overlapStart <= 1e-6)
+					{
+						continue;
+					}
+
+					double quadLength = quadEnd - quadStart;
+					double tStart = quadLength > 1e-9 ? (overlapStart - quadStart) / quadLength : 0.0;
+					double tEnd = quadLength > 1e-9 ? (overlapEnd - quadStart) / quadLength : 1.0;
+
+					int i0 = order[k];
+					int i1 = order[(k + 1) % n];
+					Vector2 outerA = outer[i0];
+					Vector2 outerB = outer[i1];
+					Vector2 innerA = inner[i0];
+					Vector2 innerB = inner[i1];
+
+					//  Ring quad = outer at tStart, outer at tEnd, inner at tEnd, inner at tStart (BuildBorderRingIndices emits (o, o2, i2) then (i2, i, o)).
+					Vector2 oStart = Vector2.Lerp(outerA, outerB, (float)tStart);
+					Vector2 oEnd = Vector2.Lerp(outerA, outerB, (float)tEnd);
+					Vector2 iStart = Vector2.Lerp(innerA, innerB, (float)tStart);
+					Vector2 iEnd = Vector2.Lerp(innerA, innerB, (float)tEnd);
+
+					DA.DT.FillTriangle(origin, oStart, HighlightColor, oEnd, HighlightColor, iEnd, HighlightColor);
+					DA.DT.FillTriangle(origin, iEnd, HighlightColor, iStart, HighlightColor, oStart, HighlightColor);
+				}
+			}
+		}
+
+		/// <summary>The contour vertex that is top-most then left-most (ties broken by smallest X): the end of the top-left corner arc / start of
+		/// the top edge, which collapses to the rectangle path's top-left corner when the radius is 0. This is the anchor for
+		/// <see cref="DrawProgressOnRing"/>'s percent-0 position.</summary>
+		private static int FindTopLeftAnchorIndex(IReadOnlyList<Vector2> outer)
+		{
+			int anchor = 0;
+			for (int i = 1; i < outer.Count; i++)
+			{
+				Vector2 candidate = outer[i];
+				Vector2 current = outer[anchor];
+				if (candidate.Y < current.Y || (candidate.Y == current.Y && candidate.X < current.X))
+				{
+					anchor = i;
+				}
+			}
+			return anchor;
+		}
+
+		/// <summary>Scan on the rounded ring: computes the band rectangle exactly as the rectangle path does, then clips every ring quad
+		/// (<see cref="MGBoxGeometry.OuterContour"/> / <see cref="MGBoxGeometry.InnerContour"/>, matched by index) against that band with
+		/// <see cref="MGConvexPolygonClipper.ClipToRectangle"/> and fills what remains, so the highlight never paints outside the ring.</summary>
+		private void DrawScanOnRing(ElementDrawArgs DA, MGBoxGeometry Geometry, double progress)
+		{
+			IReadOnlyList<Vector2> outer = Geometry.OuterContour;
+			IReadOnlyList<Vector2> inner = Geometry.InnerContour;
+			int n = outer.Count;
+			if (n < 2 || inner.Count != n)
+			{
+				return;
+			}
+
+			Rectangle bounds = Geometry.Shape.OuterBounds;
+			List<Rectangle> scanlines = new();
+
+			switch (ScanOrientation)
+			{
+				case Orientation.Horizontal:
+					{
+						int width = bounds.Width;
+						int height = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * bounds.Height));
+						int center = !ScanIsReversed ? bounds.Top + (int)(progress * bounds.Height) : bounds.Bottom - (int)(progress * bounds.Height);
+						int top = center - height / 2;
+						int bottom = top + height;
+
+						if (top < bounds.Top)
+						{
+							int overflow = bounds.Top - top;
+							scanlines.Add(new Rectangle(bounds.Left, bounds.Top, width, height - overflow));
+							scanlines.Add(new Rectangle(bounds.Left, bounds.Bottom - overflow, width, overflow));
+						}
+						else if (bottom > bounds.Bottom)
+						{
+							int overflow = bottom - bounds.Bottom;
+							scanlines.Add(new Rectangle(bounds.Left, bounds.Bottom - height + overflow, width, height - overflow));
+							scanlines.Add(new Rectangle(bounds.Left, bounds.Top, width, overflow));
+						}
+						else
+						{
+							scanlines.Add(new Rectangle(bounds.Left, top, width, height));
+						}
+					}
+					break;
+				case Orientation.Vertical:
+					{
+						int height = bounds.Height;
+						int width = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * bounds.Width));
+						int center = !ScanIsReversed ? bounds.Left + (int)(progress * bounds.Width) : bounds.Right - (int)(progress * bounds.Width);
+						int left = center - width / 2;
+						int right = left + width;
+
+						if (left < bounds.Left)
+						{
+							int overflow = bounds.Left - left;
+							scanlines.Add(new Rectangle(bounds.Left, bounds.Top, width - overflow, height));
+							scanlines.Add(new Rectangle(bounds.Right - overflow, bounds.Top, overflow, height));
+						}
+						else if (right > bounds.Right)
+						{
+							int overflow = right - bounds.Right;
+							scanlines.Add(new Rectangle(bounds.Right - width + overflow, bounds.Top, width - overflow, height));
+							scanlines.Add(new Rectangle(bounds.Left, bounds.Top, overflow, height));
+						}
+						else
+						{
+							scanlines.Add(new Rectangle(left, bounds.Top, width, height));
+						}
+					}
+					break;
+				default: throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {ScanOrientation}");
+			}
+
+			Vector2 origin = DA.Offset.ToVector2();
+			List<Vector2> quadPolygon = new(4);
+			List<Vector2> clipped = new(8);
+			List<Vector2> scratch = new(8);
+
+			foreach (Rectangle scanline in scanlines)
+			{
+				for (int i = 0; i < n; i++)
+				{
+					int next = (i + 1) % n;
+
+					//  Ring quad i = outer i, outer i+1, inner i+1, inner i (BuildBorderRingIndices emits (o, o2, i2) then (i2, i, o)).
+					quadPolygon.Clear();
+					quadPolygon.Add(outer[i]);
+					quadPolygon.Add(outer[next]);
+					quadPolygon.Add(inner[next]);
+					quadPolygon.Add(inner[i]);
+
+					MGConvexPolygonClipper.ClipToRectangle(quadPolygon, scanline, clipped, scratch);
+					if (clipped.Count < 3)
+					{
+						continue;
+					}
+
+					for (int t = 1; t + 1 < clipped.Count; t++)
+					{
+						DA.DT.FillTriangle(origin, clipped[0], HighlightColor, clipped[t], HighlightColor, clipped[t + 1], HighlightColor);
+					}
+				}
 			}
 		}
 

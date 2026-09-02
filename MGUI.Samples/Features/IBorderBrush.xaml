@@ -452,6 +452,25 @@
                                 </StackPanel>
                             </ScrollViewer>
 
+                            <!-- Progress / Scan on a rounded host (Tache 4 item 5): both animations are parameterized along the rounded
+                                 contour instead of falling back to the rectangular perimeter, so the highlight follows the arcs too. -->
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button StyleNames="SampleButtonStyle" BorderThickness="8" CornerRadius="20">
+                                        <Button.BorderBrush>
+                                            <HighlightBorderBrush Underlay="Black" HighlightColor="LightBlue" AnimationType="Progress" ProgressSize="0.25" ProgressDuration="00:00:03" />
+                                        </Button.BorderBrush>
+                                        <TextBlock StyleNames="SampleTextBlockStyle2" Text="Progress on\nrounded corners" />
+                                    </Button>
+                                    <Button StyleNames="SampleButtonStyle" BorderThickness="8" CornerRadius="20">
+                                        <Button.BorderBrush>
+                                            <HighlightBorderBrush Underlay="Black" HighlightColor="LightBlue" AnimationType="Scan" ScanOrientation="Horizontal" />
+                                        </Button.BorderBrush>
+                                        <TextBlock StyleNames="SampleTextBlockStyle2" Text="Scan on\nrounded corners" />
+                                    </Button>
+                                </StackPanel>
+                            </ScrollViewer>
+
                         </StackPanel>
 
                         <TextBlock>
