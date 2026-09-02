@@ -78,9 +78,9 @@ Terminer la migration des derniers call sites legacy du shim `SetClipTargetTempo
 
 **Commit recommande** : `refactor: declarative clip ownership for MGContextMenu submenu drawing`
 
-### Tache 4 — 🟡 (Optionnel) Trier et migrer les chemins de paint decoratifs rectangle-first
+### Tache 4 — ✅ (Optionnel) Trier et migrer les chemins de paint decoratifs rectangle-first
 
-**Statut** : MGSlider, MGUniformGrid, MGScrollViewer tries comme exceptions intentionnelles (commentaires dans le code) ; MGGridColorPicker : migration vers un clip arrondi en cours (commit dedie).
+**Statut** : MGSlider, MGUniformGrid, MGScrollViewer tries comme exceptions intentionnelles (commentaires dans le code) ; MGGridColorPicker migre : clip arrondi conditionne a CornerRadius autour des swatches (commit dedie), hit testing inchange (rectangulaire).
 
 **But** : plusieurs chemins de paint subordonnes restent rectangle-only alors que leur controle hote peut etre arrondi : ticks et overlays de focus de `MGSlider` (`MGUI.Core/UI/MGSlider.cs`), fonds/overlays de cellules de `MGUniformGrid` (`MGUI.Core/UI/Containers/Grids/MGUniformGrid.cs`), swatches et overlays de selection de `MGGridColorPicker` (`MGUI.Core/UI/MGGridColorPicker.cs`), overlays de scrollbar de `MGScrollViewer`. Aucun de ces fichiers n'utilise aujourd'hui `MGBoxShape`/`MGBoxGeometry`/`ClipDefinition`.
 

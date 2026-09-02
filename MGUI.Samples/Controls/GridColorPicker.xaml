@@ -195,17 +195,19 @@
             </DockPanel>
             <Separator/>
 
-            <!--<DockPanel>
+            <!-- CornerRadius -->
+            <DockPanel>
                 <TextBlock Dock="Top">
-
+                    Set [c=Turquoise]CornerRadius[/c] to round the border of the grid. The swatches clip to the rounded silhouette so they don't overpaint the corners.
                 </TextBlock>
                 <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="2">
                     <TextBlock>
-
+                        This [c=Turquoise]GridColorPicker[/c] uses [c=Turquoise]CornerRadius[/c]=[c=LightBlue]18[/c] with a thick border, so the swatch clipping is clearly visible.
                     </TextBlock>
+                    <GridColorPicker ColorPalette="_4Bit_RGBI" ColorSize="24" BorderThickness="6" BorderBrush="Black" CornerRadius="18" Background="White" />
                 </StackPanel>
             </DockPanel>
-            <Separator/>-->
+            <Separator/>
 
         </StackPanel>
     </ScrollViewer>

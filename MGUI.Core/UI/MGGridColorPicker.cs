@@ -15,6 +15,7 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers.Grids;
 using ColorStringConverter = MGUI.Core.UI.XAML.ColorStringConverter;
 using MGUI.Core.UI.Containers;
+using MGUI.Shared.Rendering.Clipping;
 
 namespace MGUI.Core.UI
 {
@@ -882,6 +883,19 @@ namespace MGUI.Core.UI
             base.DrawSelf(DA, LayoutBounds);
 
             Rectangle PaddedBounds = LayoutBounds.GetCompressed(BorderThickness).GetCompressed(Padding);
+
+            // Explicit local decision for this control (not a generic clip-pipeline hook): the swatch grid is
+            // painted directly in DrawSelf rather than through a Component/DrawContents pass, so there is no
+            // GetContentsClipDefinition(...) override to lean on here. When the host border is rounded, the
+            // rectangular swatch fills/overlays below would otherwise repaint over the rounded corners because
+            // MGComponent draws the border ring BeforeSelf (see MGComponent.cs ComponentDrawPriority.BeforeSelf).
+            // Clip own paint to the rounded host silhouette so the corners stay intact; hit testing is untouched
+            // and stays rectangular (VisualShape != ContentClipShape invariant, Docs/rendering-architecture.md).
+            ClipDefinition swatchClip = (HasBorder && !CornerRadius.IsZero)
+                ? CreateBorderBackedContentsClipDefinition(DA, LayoutBounds, $"{ElementType}.Swatches")
+                : null;
+
+            using ClipScope _ = swatchClip == null ? null : DA.Context.PushClipTemporary(swatchClip);
 
             int StartX = PaddedBounds.Left;
             int StartY = PaddedBounds.Top;
