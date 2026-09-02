@@ -990,6 +990,8 @@ namespace MGUI.Core.UI
                 ActualNumberLineFillBrush.Draw(DA, this, NumberLineBounds);
                 NumberLineBorderBrush?.Draw(DA, this, NumberLineBounds, NumberLineBorderThickness);
 
+                //  Intentional rectangle-first exception: MGSlider exposes no CornerRadius / MGBoxShape chrome,
+                //  so tick marks are painted as plain rectangles (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
                 if (DrawTicks && NumberLineBounds.Width > 0)
                 {
                     Size TickSize = new(ActualTickWidth, ActualTickHeight);
@@ -1033,6 +1035,9 @@ namespace MGUI.Core.UI
                 ActualThumbFillBrush.Draw(DA, this, ThumbBounds);
                 ThumbBorderBrush?.Draw(DA, this, ThumbBounds, ThumbBorderThickness);
 
+                //  Intentional rectangle-first exception: the focus/hover overlay covers logical rectangular
+                //  segments of the number line and thumb; MGSlider has no rounded chrome to preserve
+                //  (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
                 if (!ParentWindow.HasModalWindow && (IsLMBPressed || IsHovered || IsDraggingThumb || IsHoveringThumb))
                 {
                     //  Divide the number line into 2 pieces, the piece left of the thumb, and the piece right of the thumb
@@ -1068,6 +1073,8 @@ namespace MGUI.Core.UI
                 ActualNumberLineFillBrush.Draw(DA, this, NumberLineBounds);
                 NumberLineBorderBrush?.Draw(DA, this, NumberLineBounds, NumberLineBorderThickness);
 
+                //  Intentional rectangle-first exception: MGSlider exposes no CornerRadius / MGBoxShape chrome,
+                //  so tick marks are painted as plain rectangles (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
                 if (DrawTicks && NumberLineBounds.Height > 0)
                 {
                     Size TickSize = new(ActualTickWidth, ActualTickHeight);
@@ -1111,6 +1118,9 @@ namespace MGUI.Core.UI
                 ActualThumbFillBrush.Draw(DA, this, ThumbBounds);
                 ThumbBorderBrush?.Draw(DA, this, ThumbBounds, ThumbBorderThickness);
 
+                //  Intentional rectangle-first exception: the focus/hover overlay covers logical rectangular
+                //  segments of the number line and thumb; MGSlider has no rounded chrome to preserve
+                //  (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
                 if (!ParentWindow.HasModalWindow && (IsLMBPressed || IsHovered || IsDraggingThumb || IsHoveringThumb))
                 {
                     //  Divide the number line into 2 pieces, the piece above the thumb, and the piece below the thumb

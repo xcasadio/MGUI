@@ -771,6 +771,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
                 OnEndingDraw += (sender, e) =>
                 {
+                    //  Intentional rectangle-first exception: the selection overlay covers logical rectangular
+                    //  cell bounds; MGUniformGrid exposes no CornerRadius / MGBoxShape chrome
+                    //  (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
                     //  Draw the selection overlay
                     if (HasSelection && SelectionOverlay != null)
                     {
@@ -898,6 +901,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
         {
+            //  Intentional rectangle-first exception: the selection background covers logical rectangular
+            //  cell bounds; MGUniformGrid exposes no CornerRadius / MGBoxShape chrome
+            //  (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
             //  Draw the selection background
             if (HasSelection && SelectionBackground != null)
             {
@@ -952,6 +958,9 @@ namespace MGUI.Core.UI.Containers.Grids
 
                     if (DrawEmptyCells || GetCellContent(Index).Count > 0)
                     {
+                        //  Intentional rectangle-first exception: cell background underlay/overlay is painted
+                        //  over the logical rectangular cell bounds; MGUniformGrid exposes no CornerRadius /
+                        //  MGBoxShape chrome (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
                         CellBackground.GetUnderlay(VisualState.Primary)?.Draw(DA, this, Bounds);
                         CellBackground.GetFillOverlay(VisualState.Secondary)?.Draw(DA, this, Bounds);
                     }

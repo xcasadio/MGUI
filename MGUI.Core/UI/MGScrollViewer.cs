@@ -955,6 +955,9 @@ namespace MGUI.Core.UI
                     PrimaryVisualState PrimaryState = IsVSBFocused ? PrimaryVisualState.Selected : VisualState.Primary;
                     SecondaryVisualState SecondaryState = IsDraggingVSB ? SecondaryVisualState.Pressed : IsHoveringVSB ? SecondaryVisualState.Hovered : SecondaryVisualState.None;
 
+                    //  Intentional rectangle-first exception: scrollbar underlays/overlays are painted over the
+                    //  logical rectangular track/thumb bounds; MGScrollViewer exposes no CornerRadius / MGBoxShape
+                    //  chrome for the scrollbar (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
                     //  Draw the outer rectangle of the scrollbar
                     ScrollBarOuterBrush.GetUnderlay(PrimaryState)?.Draw(DA, this, VSBBounds.Value);
                     ScrollBarOuterBrush.GetFillOverlay(SecondaryState)?.Draw(DA, this, VSBBounds.Value);
@@ -1008,6 +1011,9 @@ namespace MGUI.Core.UI
                     PrimaryVisualState PrimaryState = IsHSBFocused ? PrimaryVisualState.Selected : VisualState.Primary;
                     SecondaryVisualState SecondaryState = IsDraggingHSB ? SecondaryVisualState.Pressed : IsHoveringHSB ? SecondaryVisualState.Hovered : SecondaryVisualState.None;
 
+                    //  Intentional rectangle-first exception: scrollbar underlays/overlays are painted over the
+                    //  logical rectangular track/thumb bounds; MGScrollViewer exposes no CornerRadius / MGBoxShape
+                    //  chrome for the scrollbar (VisualShape != ContentClipShape, see Docs/rendering-architecture.md)
                     //  Draw the outer rectangle of the scrollbar
                     ScrollBarOuterBrush.GetUnderlay(PrimaryState)?.Draw(DA, this, HSBBounds.Value);
                     ScrollBarOuterBrush.GetFillOverlay(SecondaryState)?.Draw(DA, this, HSBBounds.Value);
