@@ -2089,6 +2089,29 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <summary>Retrieves the raw <see cref="IFillBrush"/> slots that this <see cref="MGElement"/> draws itself, excluding <see cref="BackgroundBrush"/>
+        /// (see <see cref="GetVisualStateFillBrushes"/>). By default only <see cref="OverlayBrush"/>.<para/>
+        /// Each brush returned here receives <see cref="IFillBrush.Update(UpdateBaseArgs)"/> once per frame from <see cref="Update(ElementUpdateArgs)"/>,
+        /// so that stateful paints keep animating. Controls that own additional <see cref="IFillBrush"/> slots override this method (and call the base implementation).<para/>
+        /// Do not return a brush that belongs to a child element's <see cref="BackgroundBrush"/>/<see cref="OverlayBrush"/>, nor a "template" brush that is assigned
+        /// into other elements: those are already ticked by their consumer, and a brush ticked twice per frame animates twice as fast.<br/>
+        /// This method does not recursively return brushes nested within brushes.<para/>
+        /// May contain <see langword="null"/> entries.</summary>
+        protected virtual IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            yield return OverlayBrush;
+        }
+
+        /// <summary>Retrieves the <see cref="VisualStateFillBrush"/> slots that this <see cref="MGElement"/> draws itself. By default only <see cref="BackgroundBrush"/>.<para/>
+        /// Each wrapper returned here receives <see cref="VisualStateFillBrush.Update(UpdateBaseArgs)"/> once per frame from <see cref="Update(ElementUpdateArgs)"/>.
+        /// Controls that own additional <see cref="VisualStateFillBrush"/> slots override this method (and call the base implementation).
+        /// The same rules as <see cref="GetFillBrushes"/> apply: never return a slot that proxies a child element's background, nor a template brush consumed by other elements.<para/>
+        /// May contain <see langword="null"/> entries.</summary>
+        protected virtual IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+        {
+            yield return BackgroundBrush;
+        }
+
         /// <summary>Removes all <see cref="DataBinding"/>s that are associated with this <see cref="MGElement"/>.<para/>
         /// Recommended to invoke this method if you are about to remove this <see cref="MGElement"/> from the visual tree,<br/>
         /// so that all data bindings can unsubscribe from events such as <see cref="System.ComponentModel.INotifyPropertyChanged.PropertyChanged"/>.</summary>
@@ -2474,6 +2497,18 @@ namespace MGUI.Core.UI
 
             // Fix (Task 14): iterate directly instead of .ToList().ForEach() which allocates a temporary List<>
             foreach (IBorderBrush brush in GetBorderBrushes())
+            {
+                brush?.Update(UA.BA);
+            }
+
+            //  Fill brush lifecycle: tick the background wrappers and the raw fill slots this element draws itself (see GetFillBrushes/GetVisualStateFillBrushes).
+            //  A stateful paint is ticked once per frame and per slot that references it; sharing one instance across several slots or elements ticks it once per slot.
+            foreach (VisualStateFillBrush brush in GetVisualStateFillBrushes())
+            {
+                brush?.Update(UA.BA);
+            }
+
+            foreach (IFillBrush brush in GetFillBrushes())
             {
                 brush?.Update(UA.BA);
             }

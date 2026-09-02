@@ -828,6 +828,32 @@ namespace MGUI.Core.UI
             yield return ThumbBorderBrush;
         }
 
+        /// <inheritdoc/>
+        protected override IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            foreach (IFillBrush Brush in base.GetFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return NumberLineFillBrush;
+            yield return TickFillBrush;
+            yield return ThumbFillBrush;
+            //  Foreground is the fallback of the Actual* brushes; yield it once here, never through the Actual* wrappers, so it is ticked once per frame.
+            yield return Foreground;
+        }
+
+        /// <inheritdoc/>
+        protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+        {
+            foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return FocusBrush;
+        }
+
         public override void UpdateSelf(ElementUpdateArgs UA)
         {
             base.UpdateSelf(UA);

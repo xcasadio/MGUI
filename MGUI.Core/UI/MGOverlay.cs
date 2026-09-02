@@ -289,6 +289,17 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <inheritdoc/>
+        protected override IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            foreach (IFillBrush Brush in base.GetFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return OverlayBackground;
+        }
+
         //Maybe an IsMutuallyExclusive property, which determines if multiple overlays can be active concurrently?
 
         protected override void SetContentVirtual(MGElement Value)

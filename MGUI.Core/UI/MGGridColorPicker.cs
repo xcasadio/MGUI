@@ -506,6 +506,18 @@ namespace MGUI.Core.UI
         }
         #endregion Borders
 
+        /// <inheritdoc/>
+        protected override IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            foreach (IFillBrush Brush in base.GetFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return HoveredColorOverlay;
+            yield return SelectedColorOverlay;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private int? _HoveredColorIndex;
         public int? HoveredColorIndex

@@ -27,7 +27,7 @@ Terminer le travail restant du pipeline de formes et de paints decrit dans `Docs
 
 ## Taches
 
-### Tache 1 — ⚪ Composer les paints de bordure stateful dans MGBorderedFillBrush
+### Tache 1 — ✅ Composer les paints de bordure stateful dans MGBorderedFillBrush
 
 **But** : permettre a `MGBorderedFillBrush` d'accepter `MGHighlightBorderBrush` sans casser le contrat de cycle de vie (« les paints composites transferent les appels d'update de facon previsible »).
 
@@ -81,3 +81,10 @@ Terminer le travail restant du pipeline de formes et de paints decrit dans `Docs
 - Tests dans `MGUI.Tests/Architecture/` verifiant la projection UV sur le mesh arrondi et la mise a jour des commentaires/documentation des limitations.
 
 **Commit recommande** : `feat(drawing): map textured paints over rounded box geometry`
+
+### Tache 4 — ⚪ Suivi drawing
+
+Items de suivi ouverts par les taches 1 a 3 (voir `Docs/drawing-architecture.md`, Limites connues). Aucun de ces items n'est un fallback silencieux : chacun est commente dans le code a l'endroit concerne.
+
+- Paints partages par reference entre plusieurs elements (`MGDockAutoHideStrip.ButtonBackgroundBrush`, `MGTreeView.SelectionBackgroundBrush`, `MGListBox.AlternatingRowBackgrounds`, et tout border brush partage) : tickes une fois par element consommateur, donc un paint stateful y avance N fois plus vite. Corriger a la racine (copie cote consommateur ou dedup par frame au niveau desktop).
+- `MGGraphView` (`GridLineBrush`, `MajorGridLineBrush`, `EdgeBrush`) : seule la couleur est extraite par `MGGraphSurfaceCanvas.ResolveBrushColor`. Si ces brushes sont un jour dessines, surcharger `GetFillBrushes()`. Tout nouvel emplacement `IFillBrush` / `VisualStateFillBrush` de controle doit etre classe (dessine directement / proxy / modele) et le test `FillBrushSlots_AreTickedOrDocumentedExclusions` mis a jour.

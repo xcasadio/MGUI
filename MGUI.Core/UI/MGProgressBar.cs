@@ -363,6 +363,18 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <inheritdoc/>
+        protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+        {
+            foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return CompletedBrush;
+            yield return IncompleteBrush;
+        }
+
         public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
         {
             Thickness Self = Orientation switch

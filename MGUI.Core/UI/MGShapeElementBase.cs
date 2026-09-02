@@ -91,6 +91,17 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <inheritdoc/>
+        protected override IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            foreach (IFillBrush Brush in base.GetFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return FillBrush;
+        }
+
         protected bool TryGetSolidFillColor(float opacity, out Color fillColor)
         {
             if (FillBrush is MGSolidFillBrush solidFill)

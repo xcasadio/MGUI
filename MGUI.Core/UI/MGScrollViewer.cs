@@ -719,6 +719,18 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <inheritdoc/>
+        protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+        {
+            foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return ScrollBarOuterBrush;
+            yield return ScrollBarInnerBrush;
+        }
+
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
             base.OnThemeChanged(PreviousTheme, CurrentTheme);

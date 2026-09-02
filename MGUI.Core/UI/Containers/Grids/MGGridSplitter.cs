@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
@@ -299,6 +300,17 @@ namespace MGUI.Core.UI.Containers.Grids
                     }
                 };
             }
+        }
+
+        /// <inheritdoc/>
+        protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+        {
+            foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return Foreground;
         }
 
         /// <summary>Represents the order of precedence that resizing operations will be applied to rows/columns in.<para/>

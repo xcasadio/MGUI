@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Shared.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -343,6 +344,37 @@ namespace MGUI.Core.UI
         private VisualStateFillBrush(VisualStateFillBrush InheritFrom)
             : base(InheritFrom.NormalValue?.Copy(), InheritFrom.SelectedValue?.Copy(), InheritFrom.FocusedValue?.Copy(), InheritFrom.DisabledValue?.Copy(),
                   InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier) { }
+
+        /// <summary>Forwards the per-frame lifecycle call to each distinct <see cref="IFillBrush"/> held by this wrapper
+        /// (<see cref="VisualStateSetting{TDataType}.NormalValue"/>, <see cref="VisualStateSetting{TDataType}.SelectedValue"/>,
+        /// <see cref="VisualStateSetting{TDataType}.FocusedValue"/>, <see cref="VisualStateSetting{TDataType}.DisabledValue"/>).<para/>
+        /// The constructors that take a single brush store the same instance in several states, so instances are deduplicated by reference:
+        /// a stateful paint is ticked exactly once per frame regardless of how many states share it.<para/>
+        /// The solid hover/pressed overlays are stateless and are not ticked.</summary>
+        public void Update(UpdateBaseArgs UA)
+        {
+            IFillBrush normal = NormalValue;
+            IFillBrush selected = SelectedValue;
+            IFillBrush focused = FocusedValue;
+            IFillBrush disabled = DisabledValue;
+
+            normal?.Update(UA);
+
+            if (selected != null && !ReferenceEquals(selected, normal))
+            {
+                selected.Update(UA);
+            }
+
+            if (focused != null && !ReferenceEquals(focused, normal) && !ReferenceEquals(focused, selected))
+            {
+                focused.Update(UA);
+            }
+
+            if (disabled != null && !ReferenceEquals(disabled, normal) && !ReferenceEquals(disabled, selected) && !ReferenceEquals(disabled, focused))
+            {
+                disabled.Update(UA);
+            }
+        }
 
         public VisualStateFillBrush Copy() => new(this);
         public override object Clone() => Copy();

@@ -138,6 +138,17 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <inheritdoc/>
+        protected override IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            foreach (IFillBrush Brush in base.GetFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return Fill;
+        }
+
         public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
         {
             SharedSize = new(0);

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Rendering;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
 {
@@ -36,6 +37,10 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
         {
             _Brush = Brush ?? throw new ArgumentNullException(nameof(Brush));
         }
+
+        /// <summary>Forwards the per-frame lifecycle call to the nested <see cref="Brush"/>.
+        /// Required because <see cref="MGBorder"/> and <see cref="IFillBrush.AsUniformBorderBrush"/> wrap any fill brush (possibly a stateful composite) in this brush.</summary>
+        public void Update(UpdateBaseArgs UA) => _Brush?.Update(UA);
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
         {

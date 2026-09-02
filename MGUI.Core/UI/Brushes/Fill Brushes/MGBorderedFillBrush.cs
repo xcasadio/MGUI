@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Rendering;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -29,12 +30,14 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
             this.BorderBrush = BorderBrush;
             this.FillBrush = FillBrush;
             this.PadFillBoundsByBorderThickness = PadFillBoundsByBorderThickness;
+        }
 
-            //  MGHighlightBorderBrush updates its animation in IBorderBrush.Update, which currently isn't being called because IFillBrush doesn't have an Update method and I'm too lazy to implement it.
-            if (BorderBrush is MGHighlightBorderBrush)
-            {
-                throw new NotImplementedException($"{nameof(MGBorderedFillBrush)} does not support {nameof(MGHighlightBorderBrush)} border brushes.");
-            }
+        /// <summary>Forwards the per-frame lifecycle call to <see cref="FillBrush"/> and <see cref="BorderBrush"/>,
+        /// so that stateful paints such as <see cref="MGHighlightBorderBrush"/> keep animating when nested in this brush.</summary>
+        public void Update(UpdateBaseArgs UA)
+        {
+            FillBrush?.Update(UA);
+            BorderBrush?.Update(UA);
         }
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)

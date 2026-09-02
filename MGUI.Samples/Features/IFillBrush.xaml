@@ -386,6 +386,20 @@
                                 </Button.Background>
                                 <TextBlock StyleNames="SampleTextBlockStyle" MinWidth="150" />
                             </Button>
+                            <TextBlock>
+                                The [c=Turquoise]BorderBrush[/c] of a [c=Turquoise]BorderedFillBrush[/c] can be a stateful paint such as a [c=Turquoise]HighlightBorderBrush[/c]:
+                                the background's border pulses because fill brushes now receive the per-frame [c=Turquoise]Update[/c] call.
+                            </TextBlock>
+                            <Button StyleNames="SampleButtonStyle" BorderThickness="0" BorderBrush="Transparent" HorizontalAlignment="Left">
+                                <Button.Background>
+                                    <BorderedFillBrush BorderThickness="3" FillBrush="Red|Black">
+                                        <BorderedFillBrush.BorderBrush>
+                                            <HighlightBorderBrush Underlay="White" HighlightColor="Yellow" AnimationType="Pulse" PulseFadeDuration="00:00:01" PulseDelay="00:00:00.2" />
+                                        </BorderedFillBrush.BorderBrush>
+                                    </BorderedFillBrush>
+                                </Button.Background>
+                                <TextBlock StyleNames="SampleTextBlockStyle" MinWidth="150" />
+                            </Button>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>

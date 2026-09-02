@@ -1,3 +1,4 @@
+using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Input.Mouse;
@@ -793,6 +794,31 @@ namespace MGUI.Core.UI.Containers.Grids
                 CellBackground = new(null);
                 DrawEmptyCells = true;
             }
+        }
+
+        /// <inheritdoc/>
+        protected override IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            foreach (IFillBrush Brush in base.GetFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return SelectionBackground;
+            yield return SelectionOverlay;
+            yield return HorizontalGridLineBrush;
+            yield return VerticalGridLineBrush;
+        }
+
+        /// <inheritdoc/>
+        protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+        {
+            foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return CellBackground;
         }
 
         public override void UpdateSelf(ElementUpdateArgs UA)

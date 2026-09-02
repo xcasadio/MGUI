@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Rendering;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -17,6 +18,15 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
         public MGCompositedFillBrush(params IFillBrush[] Brushes)
         {
             this.Brushes = Brushes.Where(x => x != null).ToList();
+        }
+
+        /// <summary>Forwards the per-frame lifecycle call to every nested brush in <see cref="Brushes"/>.</summary>
+        public void Update(UpdateBaseArgs UA)
+        {
+            foreach (IFillBrush Brush in Brushes)
+            {
+                Brush?.Update(UA);
+            }
         }
 
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)

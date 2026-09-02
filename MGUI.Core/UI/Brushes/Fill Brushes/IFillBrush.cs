@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using DrawingColor = System.Drawing.Color;
 using ColorTranslator = System.Drawing.ColorTranslator;
 using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Rendering;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -29,6 +30,15 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
     [TypeConverter(typeof(IFillBrushStringConverter))]
     public interface IFillBrush : ICloneable
     {
+        /// <summary>Per-frame lifecycle hook, symmetric with <see cref="IBorderBrush.Update(UpdateBaseArgs)"/>. Default implementation does nothing.<para/>
+        /// Invoked once per frame by <see cref="MGElement.Update(ElementUpdateArgs)"/> for the brushes reached through <see cref="MGElement.BackgroundBrush"/>,
+        /// <see cref="MGElement.GetFillBrushes"/>, <see cref="MGElement.GetVisualStateFillBrushes"/> and <see cref="MGElement.GetBorderBrushes"/>,
+        /// and forwarded by composite paints (<see cref="MGBorderedFillBrush"/>, <see cref="MGCompositedFillBrush"/>, <see cref="MGPaddedFillBrush"/>,
+        /// <see cref="MGUniformBorderBrush"/>, <see cref="MGDockedBorderBrush"/>, ...) to their nested paints.<para/>
+        /// Stateful paints (animations) advance their state here. Slots that are not reached by those hooks are never ticked:
+        /// see "Limites connues" in Docs/drawing-architecture.md.</summary>
+        public void Update(UpdateBaseArgs UA) { }
+
         /// <summary>Draws this brush using the abstract render context carried by <see cref="ElementDrawArgs"/>.</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds);
         public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)

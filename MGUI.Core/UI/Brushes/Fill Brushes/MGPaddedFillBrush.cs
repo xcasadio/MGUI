@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Rendering;
 
 namespace MGUI.Core.UI.Brushes.Fill_Brushes
 {
@@ -25,6 +26,9 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
         public HorizontalAlignment? HorizontalAlignment { get; set; }
         public VerticalAlignment? VerticalAlignment { get; set; }
+
+        /// <summary>Forwards the per-frame lifecycle call to the nested <see cref="Brush"/>.</summary>
+        public void Update(UpdateBaseArgs UA) => Brush?.Update(UA);
 
         public MGPaddedFillBrush(IFillBrush Brush, Thickness Padding, float? Scale = null, int? MinWidth = null, int? MinHeight = null, int? MaxWidth = null, int? MaxHeight = null,
             HorizontalAlignment? HorizontalAlignment = null, VerticalAlignment? VerticalAlignment = null)

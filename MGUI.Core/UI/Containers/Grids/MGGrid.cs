@@ -1035,6 +1035,20 @@ namespace MGUI.Core.UI.Containers.Grids
             }
         }
 
+        /// <inheritdoc/>
+        protected override IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            foreach (IFillBrush Brush in base.GetFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return SelectionBackground;
+            yield return SelectionOverlay;
+            yield return HorizontalGridLineBrush;
+            yield return VerticalGridLineBrush;
+        }
+
         private void RowColumn_DimensionsChanged(object sender, EventArgs e)
         {
             if (!SuppressDimensionChanged)

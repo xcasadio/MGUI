@@ -90,6 +90,18 @@ namespace MGUI.Core.UI
         }
         #endregion Border
 
+        /// <inheritdoc/>
+        protected override IEnumerable<IFillBrush> GetFillBrushes()
+        {
+            foreach (IFillBrush Brush in base.GetFillBrushes())
+            {
+                yield return Brush;
+            }
+
+            yield return ProgressBarBackground;
+            yield return ProgressBarForeground;
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ProgressButtonActionType _ActionWhenPaused;
         /// <summary>Determines what action should be taken when the button is clicked when <see cref="IsPaused"/> is <see langword="true"/>.<para/>
