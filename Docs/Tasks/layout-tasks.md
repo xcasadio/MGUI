@@ -55,7 +55,9 @@ Commit recommande:
 
 - `feat: scale container-owned spacing under responsive layout`
 
-### 2. ⚪ Completer la couverture de tests de regression layout sous scale responsive
+### 2. ✅ Completer la couverture de tests de regression layout sous scale responsive
+
+**Statut** : livre. Matrice de containers (`MGStackPanel`/`MGGrid`, `ResolvedMargin`/`ResolvedPadding`/`ResolvedPreferredWidth`/`ResolvedPreferredHeight`) et non-regression opt-in dans `MGUI.Tests/Architecture/ResponsiveLayoutRegressionTests.cs` ; scale du texte (`MGTextBlock.EffectiveFontSize`, rendu `internal` pour cette tache) et ratios de viewport extremes dans `MGUI.Tests/Architecture/ResponsiveTextAndViewportRegressionTests.cs`. Mutation check effectue (facteur de spacing puis facteur de texte forces a 1.0f) : les tests concernes echouent bien sous la mutation, puis repassent au vert apres reversion.
 
 But: la seule suite responsive existante est `MGUI.Tests/Architecture/ResponsiveMetricsResolverTests.cs` (formules du resolveur, clamps UI/texte independants, toggle DPI, bounds des anchors via `MGOverlayPanel.CreateAnchoredBounds`). Rien ne couvre le comportement des containers sous scale global, la mesure du texte sous `TextScaleFactor`, ni les layouts complets en ratios extremes — les regressions de bounds passeraient inapercues.
 

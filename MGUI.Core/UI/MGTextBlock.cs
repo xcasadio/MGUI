@@ -79,7 +79,7 @@ namespace MGUI.Core.UI
         private bool IsResponsiveTextScaleEnabled => UseResponsiveTextScale ?? IsResponsiveLayoutEnabled;
         private float ResponsiveTextScaleFactor => IsResponsiveTextScaleEnabled ? GetDesktop().ResponsiveMetrics.TextScaleFactor : 1.0f;
         private float EffectiveLinePadding => IsResponsiveTextScaleEnabled ? LinePadding * ResponsiveTextScaleFactor : LinePadding;
-        private int EffectiveFontSize => Math.Max(1, UIResponsiveMath.ScaleInt(_FontSize, ResponsiveTextScaleFactor));
+        internal int EffectiveFontSize => Math.Max(1, UIResponsiveMath.ScaleInt(_FontSize, ResponsiveTextScaleFactor));
 
         internal ResolvedFont RF_Regular    { get; private set; }
         internal ResolvedFont RF_Bold       { get; private set; }

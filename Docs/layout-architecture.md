@@ -113,7 +113,7 @@ Un nouveau container participe automatiquement au responsive pour tout ce qui tr
 - pour des offsets externes appliques aux enfants, passer par `MGElement.ResolveExternalSpacing` comme le fait `MGOverlayPanel` ;
 - eviter toute arithmetique en pixels bruts hors du pipeline de mesure/arrangement : elle ne sera pas resolue par les metriques.
 
-Tests du resolveur et des anchors : `MGUI.Tests/Architecture/ResponsiveMetricsResolverTests.cs`.
+Tests du resolveur et des anchors : `MGUI.Tests/Architecture/ResponsiveMetricsResolverTests.cs`. Tests de regression layout sous scale (containers, texte, viewports extremes, non-regression opt-in) : `MGUI.Tests/Architecture/ResponsiveLayoutRegressionTests.cs` et `MGUI.Tests/Architecture/ResponsiveTextAndViewportRegressionTests.cs`.
 
 ## Limites connues
 
