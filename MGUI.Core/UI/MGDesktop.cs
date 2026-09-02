@@ -1523,7 +1523,7 @@ namespace MGUI.Core.UI
             Rectangle ScreenBounds = ValidScreenBounds;
             if (!BA.DT.CurrentSettings.UsesScissorTest || !BA.DT.CurrentClipBounds.HasValue || ScreenBounds.Intersects(BA.DT.CurrentClipBounds.Value))
             {
-                using (BA.DT.SetClipTargetTemporary(ScreenBounds, true))
+                using (BA.DT.PushRectangleClip(ScreenBounds, true))
                 {
                     foreach (MGWindow Window in Windows.OrderBy(x => x.IsTopmost))
                     {

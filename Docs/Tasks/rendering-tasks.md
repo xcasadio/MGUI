@@ -27,7 +27,7 @@ Terminer la migration des derniers call sites legacy du shim `SetClipTargetTempo
 
 ## Taches
 
-### Tache 1 — ⚪ Migrer le clip racine de MGDesktop hors du shim legacy
+### Tache 1 — ✅ Migrer le clip racine de MGDesktop hors du shim legacy
 
 **But** : `MGUI.Core/UI/MGDesktop.cs` (ligne ~1512, methode `Draw`) applique le clip racine ecran via `SetClipTargetTemporary(ScreenBounds, true)`. C'est le dernier call site legacy de niveau racine ; le comportement attendu est identique via l'API preferee.
 
