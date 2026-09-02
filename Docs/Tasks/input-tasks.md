@@ -344,7 +344,7 @@ Resultat:
 - Aucune decision ambigue rencontree : le harnais horizontal Bouton-avant-TextBox et l'assertion de sanite demandes par la tache correspondent exactement au motif deja utilise ailleurs dans ce fichier (test `NavigateNext_...MovesFocusToNextElement`, ligne 64-85, qui deplace deja le focus vers un `MGButton`) ; aucune question n'a du etre remontee.
 - Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~SemanticNavigationTextEntryPreservationTests"` -> 4/4 verts (sans mutation) ; `--filter "Focus|Input"` -> 409/409 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1419/1419 verts (identique a la baseline de depart), aucun test nouvellement rouge.
 
-### ⚪ 10. Exercer le vrai MGUIInputContext dans les regressions de routage
+### ✅ 10. Exercer le vrai MGUIInputContext dans les regressions de routage
 
 But:
 
@@ -362,6 +362,20 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: exercise real MGUIInputContext in routing regressions`
+
+Resultat:
+
+- Nouveau fichier `MGUI.Tests/Architecture/RealMGUIInputContextRoutingTests.cs` (classe contient "Input", donc couverte par le filtre `Focus|Input`), additif : les 6 tests existants bases sur le double `FakeMGUIContext` dans `InputRoutingIntegrationTests.cs` sont conserves inchanges (decision utilisateur). 6 nouveaux tests instancient le vrai `MGUIInputContext` (`MGUI.Core/UI/InputRouting/MGUIInputContext.cs`) sur un `MGDesktop` reel construit via le harnais `GraphTestRuntime` (meme patron que `SemanticNavigationTextEntryPreservationTests.CreateDesktopWithSingleWindow`) :
+  - `RealContext_IsActive_ReflectsNonNullDesktop` : asserte `mguiContext.IsActive` vrai avec un desktop reel, et `Assert.Throws<ArgumentNullException>` pour un desktop nul — couvre le membre `IsActive` sur lequel le double avait deja derive (`=> true` code en dur contre `=> Desktop != null` en production).
+  - `RealContext_UIAction_HandledByDesktop_IsReservedByMGUIContext_ViaRouter` : `NavigateNext` route via un vrai `InputRouter` avec `MGUIInputContext(desktop, 100)` + `GameplayInputContext` (priorite 0) et une fenetre contenant un seul `MGButton` focalisable ; asserte `ContextName == "MGUI.UI"`, `Reason == "Handled by MGDesktop"`, le delegate gameplay jamais appele, et le focus effectivement deplace sur le bouton.
+  - Trois tests separes, un par declencheur de `ShouldCaptureGameplayInput` (`MGUI.Core/UI/MGDesktop.cs:555-558`), chacun asserte `ContextName == "MGUI.UI"`, `Reason == "Gameplay blocked by active UI capture state"`, et le delegate gameplay jamais appele :
+    - `RealContext_ModalOverlayActive_BlocksGameplay_ViaRouter` : `desktop.OverlayHost.AddOverlay(...)` puis `overlay.IsOpen = true` (le contenu de l'overlay est parente a `desktop.OverlayHost.SelfOrParentWindow`, meme patron que `StableDiagnosticIdTests`), `IsModal` reste a sa valeur par defaut (`true`).
+    - `RealContext_ContextMenuOpen_BlocksGameplay_ViaRouter` : `MGContextMenu menu = new(desktop, "Test Menu")` (ctor racine sans fenetre hote) puis `desktop.TryOpenContextMenu(menu, new Point(50, 50))`.
+    - `RealContext_FocusedNonReadonlyTextBox_BlocksGameplay_ViaRouter` : `MGTextBox` (readonly par defaut a `false`) focalise via le helper de reflexion existant sur `MGDesktop.FocusedKeyboardHandler`.
+  - `RealContext_NoUICapture_GameplayPassesThrough_ViaRouterAndDirectCall` : sans overlay, sans menu contextuel, sans focus textbox — route via le vrai `InputRouter` (le contexte gagnant est bien `"Gameplay"`, le delegate gameplay est appele), puis appelle `mguiContext.TryHandle(...)` directement (car `InputRouter.Route` jette les resultats `Ignored` et ne remonte que le contexte gagnant) pour asserter `result.IsHandled == false`, `result.ContextName == "MGUI.UI"`, `result.Reason == "Gameplay allowed to fall through"`.
+- Verification par mutation (site exact) : chaine `"Gameplay blocked by active UI capture state"` a `MGUI.Core/UI/InputRouting/MGUIInputContext.cs:31` temporairement changee en `"MUTATION Gameplay blocked by active UI capture state"`. Resultat : les 3 nouveaux tests des declencheurs de blocage (`RealContext_ModalOverlayActive_BlocksGameplay_ViaRouter`, `RealContext_ContextMenuOpen_BlocksGameplay_ViaRouter`, `RealContext_FocusedNonReadonlyTextBox_BlocksGameplay_ViaRouter`) rougissent (`Assert.Equal` sur `Reason`), tandis que les 8 tests de `InputRoutingIntegrationTests.cs` (dont les 6 bases sur le double `FakeMGUIContext`) restent tous verts — la mutation ne les touche pas puisqu'ils exercent une copie independante de la logique. La mutation a ensuite ete revertee (`git status --short -- MGUI.Core/UI/InputRouting/MGUIInputContext.cs` confirme un arbre propre) et la suite cible re-verifiee verte.
+- Aucune decision ambigue rencontree : les trois patrons de declencheur (overlay modal, menu contextuel, textbox focalise non readonly) etaient tous atteignables headless en suivant les faits verifies fournis (signatures reelles confirmees par lecture du code source avant ecriture), aucun blocage a remonter.
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet build MGUI.MiniGame/MGUI.MiniGame.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~RealMGUIInputContextRoutingTests"` -> 6/6 verts ; `--filter "Focus|Input"` -> 415/415 verts (409 baseline + 6 nouveaux) ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1425/1425 verts (1419 baseline + 6 nouveaux), aucun test nouvellement rouge.
 
 ### ⚪ 11. Epingler la dimension IsTopmost de l'ordre de navigation
 
