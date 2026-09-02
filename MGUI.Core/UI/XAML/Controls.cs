@@ -1768,6 +1768,10 @@ namespace MGUI.Core.UI.XAML
             {
                 commentBox.Text = Text;
             }
+            else if (Title != null)
+            {
+                commentBox.Text = Title;
+            }
         }
 
         protected internal override IEnumerable<Element> GetChildren()

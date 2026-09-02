@@ -392,25 +392,18 @@ public class GraphInputNavigationTests
 
         Assert.True(graphView.IsCommentEditorOpen);
         Assert.Equal(commentId, graphView.EditingCommentId);
-        Assert.Same(commentBox.TitleTextBox, graphView.CommentEditorTitleTextBox);
         Assert.Same(commentBox.BodyTextBox, graphView.CommentEditorBodyTextBox);
-        Assert.False(commentBox.TitleTextBox.IsReadonly);
         Assert.False(commentBox.BodyTextBox.IsReadonly);
-        Assert.True(commentBox.TitleTextBox.IsHitTestVisible);
         Assert.True(commentBox.BodyTextBox.IsHitTestVisible);
 
-        graphView.CommentEditorTitleTextBox.SetText("Edited Comment");
         graphView.CommentEditorBodyTextBox.SetText("Line 1\nLine 2\nLine 3");
 
         Assert.True(graphView.CommitActiveCommentEditor());
         Assert.False(graphView.IsCommentEditorOpen);
-        Assert.True(commentBox.TitleTextBox.IsReadonly);
         Assert.True(commentBox.BodyTextBox.IsReadonly);
-        Assert.False(commentBox.TitleTextBox.IsHitTestVisible);
         Assert.False(commentBox.BodyTextBox.IsHitTestVisible);
 
         GraphCommentModel updated = graphView.Document.TryGetComment(commentId)!;
-        Assert.Equal("Edited Comment", updated.Title);
         Assert.Equal("Line 1\nLine 2\nLine 3", updated.Text);
         Assert.True(updated.Bounds.Height >= 96);
 
@@ -448,7 +441,6 @@ public class GraphInputNavigationTests
         AdvanceFrame(runtime, desktop, 16, new Point(1, 1));
 
         Assert.True(graphView.TryGetCommentControl(commentId, out MGGraphCommentBox commentBox));
-        Assert.True(commentBox.TitleTextBox.IsReadonly);
         Assert.True(commentBox.BodyTextBox.IsReadonly);
         Point startPoint = GetCommentBodyPoint(commentBox);
         Point endPoint = startPoint + new Point(80, 44);

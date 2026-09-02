@@ -148,7 +148,7 @@ namespace MGUI.Core.UI.Graph
             commentBox.Visibility = Visibility.Visible;
             bool isEditingActiveComment = GraphView.EditingCommentId == model.Id && commentBox.IsEditing;
             commentBox.Title = model.Title;
-            commentBox.Text = model.Text;
+            commentBox.Text = !string.IsNullOrWhiteSpace(model.Text) ? model.Text : model.Title ?? string.Empty;
             commentBox.IsSelected = GraphView.SelectedCommentIds.Contains(model.Id);
             commentBox.ApplySelectionVisual();
             commentBox.ApplyZoomScale(GraphView.ViewportTransform.Zoom);

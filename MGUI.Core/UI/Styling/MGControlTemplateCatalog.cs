@@ -631,7 +631,7 @@ namespace MGUI.Core.UI.Styling
             MGBorder outerBorder = new(window);
             MGStackPanel stack = new(window, Orientation.Vertical)
             {
-                Spacing = 3,
+                Spacing = 0,
                 CanChangeContent = true,
             };
             MGTextBox title = new(window, 512);

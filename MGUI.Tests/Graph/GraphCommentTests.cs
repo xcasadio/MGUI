@@ -51,7 +51,6 @@ public class GraphCommentTests
 
         Assert.True(graphView.TryGetCommentControl(commentId, out MGGraphCommentBox commentBox));
         Assert.Contains(commentBox, graphView.NodesCanvas.Children);
-        Assert.Equal("Group", commentBox.Title);
         Assert.Equal("Important branch", commentBox.Text);
         Assert.True(commentBox.IsSelected);
         Assert.Equal(29, MGCanvas.GetLeft(commentBox));
@@ -104,6 +103,7 @@ public class GraphCommentTests
 
         Assert.NotNull(comment);
         Assert.Equal(new Rectangle(30, 40, 260, 120), comment.Bounds);
+        Assert.Equal("Wire later", comment.Text);
         Assert.Contains(comment.Id, graphView.SelectedCommentIds);
 
         Assert.True(graphView.MoveSelectedCommentsBy(new Vector2(10, 15)));
