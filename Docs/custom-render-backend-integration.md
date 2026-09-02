@@ -10,11 +10,13 @@ Ce guide explique comment brancher un moteur hote qui possede lui-meme:
 
 Le point clef est simple: `MGDesktop` n'a plus besoin d'un `MainRenderer` MonoGame pour fonctionner. Il a besoin d'un runtime qui implemente les contrats partages.
 
+Pour la vue d'ensemble du split des assemblies et des contrats, voir `Docs/rendering-architecture.md`.
+
 ## Ce que le moteur doit posseder
 
 ### 1. Runtime desktop-facing
 
-Le point d'entree de `MGDesktop` est `IUIDesktopRuntime`.
+Le point d'entree de `MGDesktop` est `IUIDesktopRuntime` (`MGUI.Shared/Rendering/IUIDesktopRuntime.cs`).
 
 Votre runtime doit fournir:
 
@@ -22,7 +24,8 @@ Votre runtime doit fournir:
 - `DefaultFontFamily` pour les controles texte ;
 - `Surface` pour la surface logique de draw ;
 - `AssetProvider` pour charger des images opaques `IUIImageResource` ;
-- `TextEngine` pour la resolution, la mesure et le draw du texte ;
+- `TextEngine` (un `ITextMeasurementEngine`) pour la resolution et la mesure du texte, avec l'evenement `TextEngineChanged` ;
+- `EndUpdate`, evenement leve a la fin de chaque update de frame — `MGDesktop` s'y abonne pour ses finalisations ;
 - `UpdateArgs` pour l'etat brut de la frame courante ;
 - `CreateDrawTransaction(...)` pour construire un `IUIDrawTransaction` ;
 - `RegisterView(...)` pour enregistrer les `UIView` crees par `MGDesktop`.
@@ -45,7 +48,8 @@ Concretement, cela veut dire prendre en charge:
 
 - `FillRectangle`, `StrokeRectangle`, `FillTriangle`, `FillCircle`, `StrokeLineSegment`, `FillPolygon`, etc. ;
 - `DrawTextureTo(...)` et `DrawTextureAt(...)` sur `IUIImageResource` ;
-- `SetDrawSettingsTemporary(...)`, `SetTransformTemporary(...)`, `PushClipTemporary(...)` et `SetRenderTargetTemporary(...)`.
+- `SetDrawSettingsTemporary(...)`, `SetTransformTemporary(...)` et `SetRenderTargetTemporary(...)` ;
+- le clipping logique: `PushClipTemporary(ClipDefinition)` et `PushRectangleClip(...)` (plus le shim de migration `SetClipTargetTemporary(...)` et `ResolveClip(...)`).
 
 Le coeur UI ne doit pas connaitre vos types GPU natifs. Il parle uniquement via ces contrats.
 
@@ -55,7 +59,7 @@ Le moteur doit fournir un `ITextEngine`.
 
 En pratique:
 
-- `ITextMeasurementEngine` couvre `ResolveFont`, `MeasureText`, `MeasureGlyph`, `GetLineHeight`, `GetSpaceWidth` ;
+- `ITextMeasurementEngine` couvre `ResolveFont`, `MeasureText`, `MeasureGlyph`, `GetLineHeight`, `GetSpaceWidth` et `InvalidateCache` ;
 - `ITextDrawEngine.DrawText(...)` couvre le draw reel ;
 - `ITextEngine` combine les deux surfaces.
 
@@ -73,6 +77,7 @@ void UpdateFrame(TimeSpan totalElapsed, TimeSpan frameElapsed, MouseState mouse,
 {
     runtime.AdvanceFrame(totalElapsed, frameElapsed, mouse, keyboard);
     desktop.Update();
+    runtime.RaiseEndUpdate();
 }
 
 void DrawFrame()
@@ -82,7 +87,7 @@ void DrawFrame()
 }
 ```
 
-Le helper `AdvanceFrame(...)` est a vous de le definir. L'interface n'impose pas cette methode, mais votre runtime doit bien mettre a jour `UpdateArgs` et `InputTracker` avant `desktop.Update()`.
+Les helpers `AdvanceFrame(...)` et `RaiseEndUpdate()` sont a vous de les definir. L'interface n'impose pas ces methodes, mais votre runtime doit mettre a jour `UpdateArgs` et `InputTracker` avant `desktop.Update()`, puis lever l'evenement `EndUpdate` une fois l'update de frame termine.
 
 **Saisie de texte native** : `Input.Keyboard` (le `KeyboardTracker` sous-jacent) expose `IKeyboardTextInputSink.QueueTextInput(char character, Keys key)`, alimente par defaut uniquement par un fallback US-QWERTY code en dur si rien ne le nourrit autrement. Si votre moteur possede sa propre source de saisie de texte native (evenement clavier de l'OS, IME), relayez-la vers ce puits dans votre boucle d'update, avant `desktop.Update()` :
 
@@ -97,6 +102,8 @@ Sans ce relais, tous les utilisateurs non-US-QWERTY (AZERTY, touches mortes, IME
 
 ## Squelette minimal des types a implementer
 
+Le squelette ci-dessous montre les membres structurants ; les membres restants de `IUIRenderContext` / `IUIDrawContext` (`SetDrawSettings`, `ResolveClip`, `PushRectangleClip`, `SetClipTargetTemporary`, les autres primitives de shapes...) sont elides mais restent a implementer.
+
 ```csharp
 public sealed class MyRuntime : IUIDesktopRuntime
 {
@@ -108,6 +115,7 @@ public sealed class MyRuntime : IUIDesktopRuntime
     public UpdateBaseArgs UpdateArgs { get; private set; }
 
     public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
+    public event EventHandler<EventArgs> EndUpdate;
 
     public IUIDrawTransaction CreateDrawTransaction(DrawSettings settings, bool deferBegin)
         => new MyDrawTransaction(this, settings);
@@ -116,6 +124,8 @@ public sealed class MyRuntime : IUIDesktopRuntime
     {
         // optionnel: suivi des vues attachees
     }
+
+    public void RaiseEndUpdate() => EndUpdate?.Invoke(this, EventArgs.Empty);
 }
 
 public sealed class MySurface : IUISurface
@@ -162,7 +172,7 @@ Il fournit:
 - `GameRenderHost<TObservableGame>` et `DelegateRenderHost` ;
 - les wrappers MonoGame pour images, render targets et texte SpriteFont.
 
-Mais ces types ne sont plus le contrat implicite du coeur UI. Ils sont une implementation concrete parmi les backend possibles.
+Mais ces types ne sont plus le contrat implicite du coeur UI. Ils sont une implementation concrete parmi les backends possibles.
 
 ## Migration des consommateurs existants
 

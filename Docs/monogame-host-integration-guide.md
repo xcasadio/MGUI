@@ -24,7 +24,7 @@ MGUI se branche sur MonoGame a travers 4 seams complementaires:
 - `IUISurface` pour la surface logique de rendu UI ;
 - `IUIDesktopRuntime` pour le sous-ensemble de runtime consomme par `MGDesktop`.
 
-Dans le repo, `MainRenderer` implemente `IUIDesktopRuntime`, et `MGUI.Backend.MonoGame.MonoGameBackendBootstrap` est le point d'entree recommande pour le construire.
+Dans le repo, `MainRenderer` implemente `IUIDesktopRuntime` (et son extension MonoGame `IMonoGameDesktopBackend`), et `MGUI.Backend.MonoGame.MonoGameBackendBootstrap` est le point d'entree recommande pour le construire.
 
 Si votre objectif est un backend custom, `IRenderHost` et `DelegateRenderHost` ne sont pas des prerequis generiques: ce sont des adapters MonoGame specifiques.
 
@@ -42,7 +42,16 @@ Utiliser cette option quand:
 
 - votre classe `Game` expose deja `PreviewUpdate` et `EndUpdate` via `IObservableUpdate` ;
 - vous voulez la voie la plus simple et la plus historique ;
-- du code sample ou applicatif a encore besoin d'un acces direct au `Game` concret, par exemple via `Desktop.Renderer.Host as GameRenderHost<TGame>`.
+- du code sample ou applicatif a encore besoin d'un acces direct au `Game` concret. Le chemin sanctionne passe par le runtime du desktop:
+
+  ```csharp
+  if (Desktop.Runtime is IMonoGameDesktopBackend backend && backend.Host is GameRenderHost<MyGame> host)
+  {
+      MyGame game = host.Game;
+  }
+  ```
+
+  Reference dans le repo : `MGUI.Samples/Dialogs/SampleHUD.xaml.cs`, `MGUI.Samples/Features/PerformanceTest.xaml.cs`.
 
 Exemple minimal:
 
@@ -146,7 +155,7 @@ Sans cablage vers ce puits, tous vos utilisateurs non-US-QWERTY tapent des carac
   Reference dans le repo : `MGUI.MiniGame/MiniGame.cs` (`Initialize()`, a cote de `Window.ClientSizeChanged`).
 - **Runtime custom non-MonoGame** : voir `Docs/custom-render-backend-integration.md`, section boucle — le runtime doit relayer sa propre source de saisie native vers `IKeyboardTextInputSink.QueueTextInput`.
 
-Diagnostic : la variable d'environnement `CASA_MGUI_INPUT_PROBE` active `KeyboardInputProbe`, qui trace pour chaque caractere consomme s'il provient de `source=native-text` (puits natif) ou du fallback `key-map` (table US-QWERTY) — utile pour verifier en un coup d'oeil qu'un host est bien cable.
+Diagnostic : la variable d'environnement `CASA_MGUI_INPUT_PROBE` active `KeyboardInputProbe` (`MGUI.Shared/Input/Keyboard/KeyboardInputProbe.cs`), qui trace pour chaque caractere consomme s'il provient de `source=native-text` (puits natif) ou du fallback `key-map` (table US-QWERTY) — utile pour verifier en un coup d'oeil qu'un host est bien cable.
 
 ## Choisir entre les 2
 
@@ -181,7 +190,7 @@ _renderer = backend.Renderer;
 _desktop = new MGDesktop((IUIDesktopRuntime)_renderer);
 ```
 
-L'ancien chemin reste supporte pour compatibilite descendante, mais il n'est plus le point d'entree recommande dans la documentation.
+L'ancien chemin reste supporte pour compatibilite descendante, mais il n'est plus le point d'entree recommande — et il ne cable PAS la saisie de texte native (le bootstrap s'en charge, pas le constructeur de `MainRenderer`).
 
 ## Ce qui reste volontairement concret
 
@@ -198,14 +207,14 @@ En revanche, les contrats backend-neutral consommes par `MGDesktop` sont mainten
 - `IUIDesktopRuntime` ;
 - `IUIDrawTransaction` / `IUIRenderContext` / `IUIDrawContext` ;
 - `IUISurface`, `IUIRenderTarget` et `IUIImageResource` ;
-- `ITextEngine`.
+- `ITextMeasurementEngine` pour la mesure consommee par le coeur UI (`ITextEngine` est le composite mesure + draw implemente par les moteurs texte).
 
-Si vous avez besoin du renderer concret MonoGame, traitez-le comme un backend de reference explicitement choisi par l'application, pas comme le contrat implicite du framework.
+Si vous avez besoin du renderer concret MonoGame, traitez-le comme un backend de reference explicitement choisi par l'application, pas comme le contrat implicite du framework. L'acces au host et au `FontManager` passe par `Desktop.Runtime is IMonoGameDesktopBackend backend`.
 
-Pour la vue d'ensemble complete du split `Core / Contracts / MonoGame backend` et des dettes residuelles assumees, voir aussi `Docs/rendering-backend-architecture.md`.
+Pour la vue d'ensemble complete du split `Core / Contracts / MonoGame backend` et des limites assumees, voir aussi `Docs/rendering-architecture.md`.
 
 ## Hors perimetre
 
 Ce guide reste specifique au backend `MGUI.MonoGame.LegacyRenderer`.
 
-Le chantier a maintenant une preuve runnable qu'un backend non-MonoGame est possible dans `MGUI.Tests/Integration/EngineOwnedRenderingProofTests.cs`, mais l'integration d'un moteur de production autre que MonoGame est documentee separerement dans `Docs/custom-render-backend-integration.md`.
+Le repo contient une preuve runnable qu'un backend non-MonoGame est possible dans `MGUI.Tests/Integration/EngineOwnedRenderingProofTests.cs`, mais l'integration d'un moteur de production autre que MonoGame est documentee separement dans `Docs/custom-render-backend-integration.md`.

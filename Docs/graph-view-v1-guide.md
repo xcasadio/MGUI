@@ -1,6 +1,6 @@
 # MGGraphView V1 Guide
 
-`MGGraphView` is the V1 visual node graph control in `MGUI.Core`. It is a reusable editor surface for graph documents: nodes, ports, edges, comments, viewport navigation, selection, undo/redo, validation and JSON serialization.
+`MGGraphView` is the V1 visual node graph control in `MGUI.Core`. It is a reusable editor surface for graph documents: nodes, ports, edges, comments, viewport navigation, selection, clipboard copy/paste, undo/redo, validation and JSON serialization.
 
 The graph code is split into two layers:
 
@@ -65,7 +65,7 @@ Use `GraphDocument` as the source of truth. The visual controls are synchronized
 </Window>
 ```
 
-Then wire the model in code-behind:
+The `GraphView` XAML element exposes `ShowGrid`, `AllowZoom`, `AllowPan`, `SnapToGrid` and `MajorGridLineFrequency`. Then wire the model in code-behind:
 
 ```csharp
 MGGraphView graphView = Window.GetElementByName<MGGraphView>("GraphView");
@@ -106,9 +106,9 @@ graphView.NodePalette = new GraphNodePalette(new[]
 });
 ```
 
-Right-clicking empty graph space opens an `MGContextMenu` that creates nodes through `CreateNodeCommand`. Dragging a port to empty space opens the same palette filtered to compatible definitions and connects the first compatible new port when possible.
+Right-clicking empty graph space opens an `MGContextMenu` that creates nodes through `CreateNodeCommand` (plus a `Comment` entry, and Copy/Paste entries when applicable). Dragging a port to empty space opens the same palette filtered to compatible definitions and connects the first compatible new port when possible.
 
-`Ctrl+D` duplication is intentionally reserved for V2.
+`Ctrl+D` duplication is intentionally reserved (the `Keys.D` shortcut slot exists but returns false).
 
 ## Commands And Undo
 
@@ -116,10 +116,20 @@ Use `GraphCommandStack` for undoable mutations:
 
 - `CreateNodeCommand`, `DeleteNodeCommand`, `MoveNodeCommand`, `MoveNodesCommand`, `ResizeNodeCommand`.
 - `ConnectPortsCommand`, `DisconnectPortsCommand`.
-- `CreateCommentCommand`, `DeleteCommentCommand`, `MoveCommentCommand`, `ResizeCommentCommand`.
+- `CreateCommentCommand`, `DeleteCommentCommand`, `MoveCommentCommand`, `ResizeCommentCommand`, `EditCommentCommand`.
 - `GraphBatchCommand` groups several commands into one undo/redo entry.
 
 `MGGraphView.Commands` is the local stack used by keyboard shortcuts and UI interactions.
+
+## Clipboard
+
+Copy and paste are built in:
+
+- `Ctrl+C` / the `Copy` context-menu entry serializes the selected nodes, their internal edges and selected comments.
+- `Ctrl+V` / the `Paste` context-menu entry recreates that sub-graph with fresh ids, positioned at the pointer (snapped when `SnapToGrid` is on), and selects the pasted content. Paste is one undoable batch.
+- The clipboard payload is the `GraphSerializer` JSON prefixed with `MGUI.GraphClipboard.v1`, written to the OS clipboard through `StringClipboard`, so copy/paste also works across two `MGGraphView` instances.
+
+The public API is `CopySelectionToClipboard()` and `PasteFromClipboard(Vector2? worldPosition = null)`.
 
 ## Validation
 
@@ -138,7 +148,7 @@ if (!result.IsValid)
 }
 ```
 
-The validator does not own presentation. A host can set node metadata such as `HasError=true` and call `SynchronizeDocument()` to update visuals.
+The validator does not own presentation. A host can set node `EditorMetadata` such as `HasError=true` (or `HasWarning=true`) and call `SynchronizeDocument()` to update visuals.
 
 ## Serialization
 
@@ -167,16 +177,19 @@ Mouse:
 
 - Middle-drag pans the viewport.
 - Mouse wheel zooms around the pointer.
-- Left-click selects a node or comment box.
+- Left-click selects a node, an edge or a comment box; `Ctrl`+click adds to / toggles the selection.
 - Left-drag moves selected nodes or comments.
 - Left-drag empty space starts rectangle selection.
 - Drag from a port creates a connection or opens a compatible-node menu over empty space.
-- Right-click empty graph space opens the node/comment creation menu.
-- The bottom-right corner of a comment box performs simple resize.
+- Right-click empty graph space opens the creation menu (nodes, comment) plus Copy/Paste when available; right-click over an existing element shows Copy/Paste only.
+- Double-click a comment box to edit its text inline.
+- The bottom-right corner of a comment box (12 px handle) performs simple resize.
 
 Keyboard while `MGGraphView` owns focus:
 
 - `Delete`: delete selected nodes, edges and comments through undoable commands.
+- `Ctrl+C`: copy selection to clipboard.
+- `Ctrl+V`: paste at the pointer position.
 - `Ctrl+Z`: undo.
 - `Ctrl+Y`: redo.
 - `Escape`: cancel active pan, node drag, comment drag, resize, rectangle selection or connection drag.
@@ -184,7 +197,13 @@ Keyboard while `MGGraphView` owns focus:
 - `F`: frame selection.
 - `Home`: frame origin.
 
-Embedded text controls keep their own shortcuts when they own keyboard focus.
+While a comment editor is open:
+
+- `Escape` cancels the edit without committing.
+- `Ctrl+Enter` commits the new text (plain `Enter` inserts a newline).
+- Clicking outside the comment (focus loss) commits.
+
+The comment box displays a single description text: `GraphCommentModel.Text` when non-empty, otherwise `Title`. Committing an edit stores the description in `Text` through an undoable `EditCommentCommand` and grows the comment bounds to fit the text. Embedded text controls keep their own shortcuts when they own keyboard focus.
 
 ## Styling And Templates
 
@@ -192,13 +211,13 @@ The built-in templates are registered in `MGControlTemplateCatalog`:
 
 - `MGControlTemplateCatalog.GraphViewTemplateName` requires `PART_OuterBorder`, `PART_ViewportHost`, `PART_NodesCanvas`, `PART_OverlayPanel`.
 - `MGControlTemplateCatalog.GraphNodeTemplateName` requires `PART_OuterBorder`, `PART_HeaderTextBlock`, `PART_PortsPanel`, `PART_BodyPresenter`.
-- `MGControlTemplateCatalog.GraphPortTemplateName` requires `PART_OuterBorder`, `PART_Label`.
-- `MGControlTemplateCatalog.GraphCommentBoxTemplateName` requires `PART_OuterBorder`, `PART_TitleTextBlock`, `PART_BodyTextBlock`.
+- `MGControlTemplateCatalog.GraphPortTemplateName` requires `PART_OuterBorder`, `PART_LeadingIconPresenter`, `PART_TrailingIconPresenter`, `PART_Label`.
+- `MGControlTemplateCatalog.GraphCommentBoxTemplateName` requires `PART_OuterBorder`, `PART_TitleTextBox`, `PART_BodyTextBox` (both are `MGTextBox` parts; they are read-only outside of inline editing).
 
-Theme defaults live under `MGTheme.Graph`:
+Theme defaults live under `MGTheme.Graph` (`MGThemeGraphSettings`):
 
-- Graph surface: `Padding`, `BorderBrush`, `BorderThickness`, `CanvasBackground`, `GridLineBrush`, `EdgeBrush`.
-- Nodes: `NodeBorderBrush`, `NodeBorderThickness`, `NodeHeaderBackground`, `NodeHeaderForeground`, `NodeBodyBackground`.
+- Graph surface: `Padding`, `BorderBrush`, `BorderThickness`, `CanvasBackground`, `GridLineBrush`, `MajorGridLineBrush`, `EdgeBrush`, `SelectedEdgeBrush`.
+- Nodes: `NodeBorderBrush`, `NodeBorderThickness`, `NodeSelectedBorderBrush`, `NodeSelectedBorderThickness`, `NodeHeaderBackground`, `NodeHeaderForeground`, `NodeBodyBackground`.
 - Ports: `PortBackground`, `PortForeground`.
 - Comments: `CommentBackground`, `CommentBorderBrush`.
 
@@ -220,14 +239,14 @@ The V1 graph intentionally does not include:
 
 - Graph compiler or runtime evaluator.
 - Blackboard variables.
-- Clipboard copy/cut/paste.
-- Duplicate, align and distribute commands.
+- Clipboard cut (`Ctrl+X`) and duplicate (`Ctrl+D`); copy/paste is available.
+- Align and distribute commands.
 - Search, minimap or bookmarks.
 - Reroute nodes.
-- Group boxes that move contained nodes.
+- Group boxes that move contained nodes (comment drag does not move covered nodes).
 - Advanced edge routing or edge labels.
 - Automatic replacement of existing single-cardinality connections.
 - PropertyGrid integration for node properties.
 - Drag/drop assets from an external editor.
 
-`Docs/graph_node_system_features.md` remains the functional vision and roadmap. Treat this guide as the V1 API and usage reference.
+`Docs/controls-architecture.md` describes the internal architecture; the remaining planned work is tracked in `Docs/Tasks/graph-tasks.md`. Treat this guide as the V1 API and usage reference.

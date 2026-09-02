@@ -8,44 +8,42 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 
 ## Convention d'identifiants
 
-- format: `SCN-<zone>-<nnn>` ;
+- format : `SCN-<zone>-<nnn>` ;
 - les titres de fenetres des samples prioritaires reprennent ces IDs pour aligner la doc, le compendium et les artefacts de debug ;
-- les validations ciblees restent bornees: build du sample si necessaire, puis filtre de test le plus etroit possible.
+- les validations ciblees restent bornees : build du sample si necessaire, puis filtre de test le plus etroit possible.
 
 ## Matrice
 
 | ID | Sous-systeme | Invariant principal | Point d'entree sample | Validation ciblee |
 | --- | --- | --- | --- | --- |
-| `SCN-FOCUS-001` | focus + input | le focus clavier reste explicable pendant les transitions combo, menu contextuel, popup et overlay | `MGUI.Samples/Features/FocusInputReview.xaml` | `FullyQualifiedName~Focus|FullyQualifiedName~Input|FullyQualifiedName~Overlay` |
-| `SCN-OVERLAY-001` | overlay + popup | un overlay ou une fenetre imbriquee n'isole pas l'input de facon silencieuse et reste observable via les diagnostics desktop | `MGUI.Samples/Features/FocusInputReview.xaml` + `F2` pour dump diagnostics | `FullyQualifiedName~Focus|FullyQualifiedName~Overlay|FullyQualifiedName~Tooling` |
-| `SCN-OVERLAY-002` | adorner-lite + tooling overlays | les selection boxes, resize handles et guides restent ancres sur leur cible, non interactifs, et le preview docking continue de reutiliser la meme abstraction d'ornement visuel | `MGUI.Samples/Features/AdornerLite.xaml` | `FullyQualifiedName~Overlay|FullyQualifiedName~Dock|FullyQualifiedName~Focus` |
-| `SCN-THEME-001` | theme + template + ressources | un theme switch et un changement de template restent reproductibles sans reparse complet et sans perdre la precedence visible | `MGUI.Samples/Features/StyleThemeRefactor.xaml` | `FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template` |
-| `SCN-MARKUP-001` | markup + loader XAML | le loader strict remonte un diagnostic structure pour type inconnu, setter invalide, racine invalide et part manquante, sans casser le chemin legacy | `MGUI.Samples/Dialogs/XAMLDesignerWindow.xaml` | `FullyQualifiedName~XAML|FullyQualifiedName~Markup|FullyQualifiedName~Template` |
+| `SCN-FOCUS-001` | focus + input | le focus clavier reste explicable pendant les transitions combo, menu contextuel, popup et overlay | `MGUI.Samples/Features/FocusInputReview.xaml` | `FullyQualifiedName~Focus\|FullyQualifiedName~Input\|FullyQualifiedName~Overlay` |
+| `SCN-OVERLAY-001` | overlay + popup | un overlay ou une fenetre imbriquee n'isole pas l'input de facon silencieuse et reste observable via les diagnostics desktop | `MGUI.Samples/Features/FocusInputReview.xaml` + `F2` pour dump diagnostics | `FullyQualifiedName~Focus\|FullyQualifiedName~Overlay\|FullyQualifiedName~Tooling` |
+| `SCN-OVERLAY-002` | adorner-lite + tooling overlays | les selection boxes, resize handles et guides restent ancres sur leur cible, non interactifs, et le preview docking continue de reutiliser la meme abstraction d'ornement visuel | `MGUI.Samples/Features/AdornerLite.xaml` | `FullyQualifiedName~Overlay\|FullyQualifiedName~Dock\|FullyQualifiedName~Focus` |
+| `SCN-THEME-001` | theme + template + ressources | un theme switch et un changement de template restent reproductibles sans reparse complet et sans perdre la precedence visible | `MGUI.Samples/Features/StyleThemeRefactor.xaml` | `FullyQualifiedName~Theme\|FullyQualifiedName~Style\|FullyQualifiedName~Template` |
+| `SCN-MARKUP-001` | markup + loader XAML | le loader strict remonte un diagnostic structure pour type inconnu, setter invalide, racine invalide et part manquante, sans casser le chemin legacy | `MGUI.Samples/Dialogs/XAMLDesignerWindow.xaml` | `FullyQualifiedName~XAML\|FullyQualifiedName~Markup\|FullyQualifiedName~Template` |
 | `SCN-LAYOUT-001` | layout | `ActualLayoutBounds` des enfants de contenu restent bornes par le `Padding` et les infos de layout restent verifiables en direct | `MGUI.Samples/Features/ActualLayoutBoundsTest.xaml` | build sample + verification manuelle de l'ecran |
-| `SCN-GRID-001` | datagrid-lite + list view + scroll | la grille outillage v1 reste lisible sur dataset moyen, le tri de colonnes est explicable, la selection de ligne reste stable et `EnsureRowVisible` deplace effectivement le viewport | `MGUI.Samples/Controls/DataGridLite.xaml` | `FullyQualifiedName~Grid|FullyQualifiedName~ListView|FullyQualifiedName~Scroll` |
-| `SCN-SHAPE-001` | shapes + clipping | les primitives arrondies et leurs clips restent coherents visuellement et servent de base aux futures shapes retained | `MGUI.Samples/Features/RoundedShapes.xaml` | `FullyQualifiedName~Shape|FullyQualifiedName~Clip` |
+| `SCN-GRID-001` | datagrid-lite + list view + scroll | la grille outillage v1 reste lisible sur dataset moyen, le tri de colonnes est explicable, la selection de ligne reste stable et `EnsureRowVisible` deplace effectivement le viewport | `MGUI.Samples/Controls/DataGridLite.xaml` | `FullyQualifiedName~Grid\|FullyQualifiedName~ListView\|FullyQualifiedName~Scroll` |
+| `SCN-SHAPE-001` | shapes + clipping | les primitives arrondies et leurs clips restent coherents visuellement et servent de base aux shapes retained | `MGUI.Samples/Features/RoundedShapes.xaml` | `FullyQualifiedName~Shape\|FullyQualifiedName~Clip` |
 | `SCN-DOCK-001` | docking | drag, split, save/load de layout et reprise des panneaux restent demonstrables sur un host de docking cible | `MGUI.Samples/Features/DockingDemo.cs` | build sample + validation docking ciblee |
 | `SCN-TEXT-001` | text | la selection et l'echappement des backslashes dans `TextBox` restent stables et demonstrables | `MGUI.Samples/Features/TextBoxBackslashTest.xaml` | build sample + filtre texte cible |
-| `SCN-TEXT-002` | text surface lite: chat + log + texte annote | les usages chat, log et debug reutilisent un petit chemin texte explicite: runs programmes pour l'annotation, feed append-only pour le log, formatting inline optionnel pour les messages de chat, sans ouvrir un RichTextBox complet | `MGUI.Samples/Features/TextSurfaceLite.xaml` | `FullyQualifiedName~Text|FullyQualifiedName~Chat|FullyQualifiedName~Focus` |
-| `SCN-EDITOR-RTB-001` | rich textbox editor | l'editeur RichTextBox sample reste editable, colore lexicalement et capable d'accepter une completion C# demo | `MGUI.Samples/Features/EditorRichTextBox.xaml` | build sample + `FullyQualifiedName~RichTextBox|FullyQualifiedName~Completion|FullyQualifiedName~Syntax` |
+| `SCN-TEXT-002` | text surface lite : chat + log + texte annote | les usages chat, log et debug reutilisent un petit chemin texte explicite : runs programmes pour l'annotation, feed append-only pour le log, formatting inline optionnel pour les messages de chat, sans ouvrir un RichTextBox complet | `MGUI.Samples/Features/TextSurfaceLite.xaml` | `FullyQualifiedName~Text\|FullyQualifiedName~Chat\|FullyQualifiedName~Focus` |
+| `SCN-EDITOR-RTB-001` | rich textbox editor | l'editeur RichTextBox sample reste editable, colore lexicalement et capable d'accepter une completion C# demo | `MGUI.Samples/Features/EditorRichTextBox.xaml` | build sample + `FullyQualifiedName~RichTextBox\|FullyQualifiedName~Completion\|FullyQualifiedName~Syntax` |
 
-## Priorite immediate
+## Rattachement aux docs par theme
 
-Les scenarios a utiliser en priorite pour les chantiers deja ouverts par la roadmap sont:
+Chaque scenario se rattache a une doc d'architecture et, quand du travail reste ouvert, a un fichier de taches :
 
-- `SCN-FOCUS-001` et `SCN-OVERLAY-001` pour le harness diagnostics et les regressions input/focus ;
-- `SCN-OVERLAY-002` pour la couche `Adorner-lite` et les decorators de tooling/debug ;
-- `SCN-THEME-001` pour la convergence lookless ;
-- `SCN-MARKUP-001` pour le durcissement du loader XAML ;
-- `SCN-GRID-001` pour le chantier `DataGrid-lite` oriente outils/debug ;
-- `SCN-TEXT-002` pour la cloture des ameliorations textuelles ciblees avant tout `RichTextBox` complet ;
-- `SCN-EDITOR-RTB-001` pour la tranche RichTextBox editeur, coloration syntaxique et autocompletion ;
-- `SCN-DOCK-001` comme point d'entree visible des futures validations docking ;
-- `SCN-SHAPE-001` comme point d'entree visible du lot shapes retained.
+- `SCN-FOCUS-001`, `SCN-OVERLAY-001` : [input-architecture.md](input-architecture.md), taches [Tasks/input-tasks.md](Tasks/input-tasks.md) ;
+- `SCN-THEME-001`, `SCN-MARKUP-001` : [styling-theme-architecture.md](styling-theme-architecture.md), taches [Tasks/styling-theme-tasks.md](Tasks/styling-theme-tasks.md) ;
+- `SCN-OVERLAY-002`, `SCN-GRID-001`, `SCN-DOCK-001` : [controls-architecture.md](controls-architecture.md) ; vagues docking restantes dans [Tasks/roadmap-tasks.md](Tasks/roadmap-tasks.md) ;
+- `SCN-LAYOUT-001` : [layout-architecture.md](layout-architecture.md) ;
+- `SCN-SHAPE-001` : [drawing-architecture.md](drawing-architecture.md), taches [Tasks/drawing-tasks.md](Tasks/drawing-tasks.md) ;
+- `SCN-TEXT-001`, `SCN-TEXT-002` : [text-architecture.md](text-architecture.md) ;
+- `SCN-EDITOR-RTB-001` : taches [Tasks/richtextbox-autocomplete-tasks.md](Tasks/richtextbox-autocomplete-tasks.md).
 
 ## Usage pratique
 
 - reproduire le bug dans le sample de la ligne correspondante ;
-- capturer si possible un artefact ou un dump de diagnostic avec le meme identifiant de scenario ;
+- capturer si possible un artefact ou un dump de diagnostic avec le meme identifiant de scenario (`F2` dans les samples ecrit l'artefact diagnostics courant, voir `MGUI.Samples/Game1.cs`) ;
 - executer ensuite la validation ciblee associee au scenario ;
 - reporter l'identifiant de scenario dans la doc de fix, le ticket ou le commit concernes.

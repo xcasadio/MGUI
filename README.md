@@ -49,13 +49,17 @@ All control names are prefixed with 'MG' and many controls have similar names an
   
 [Wiki is under construction.](https://github.com/Videogamers0/MGUI/wiki) More documentation coming soon... maybe...
 
-Style/theme refactor notes: see [Docs/style-theme-migration-guide.md](Docs/style-theme-migration-guide.md).
-Theme-driven control template mappings: see [Docs/lookless-theme-template-guide.md](Docs/lookless-theme-template-guide.md).
-Rendering backend overview: see [Docs/rendering-backend-architecture.md](Docs/rendering-backend-architecture.md).
-MonoGame host wiring: see [Docs/monogame-host-integration-guide.md](Docs/monogame-host-integration-guide.md).
-Custom engine backend wiring: see [Docs/custom-render-backend-integration.md](Docs/custom-render-backend-integration.md).
-RichTextBox editor v1: see [Docs/richtextbox-editor-v1-guide.md](Docs/richtextbox-editor-v1-guide.md).
-Event/input handling architecture (audit): see [Docs/event-handling-architecture.md](Docs/event-handling-architecture.md).
+Architecture docs are organized per theme under `Docs/`, with remaining work tracked under `Docs/Tasks/`:
+
+- Input, focus and event routing: see [Docs/input-architecture.md](Docs/input-architecture.md).
+- Styles, themes and control templates: see [Docs/styling-theme-architecture.md](Docs/styling-theme-architecture.md).
+- Rendering backends and clipping: see [Docs/rendering-architecture.md](Docs/rendering-architecture.md).
+- Shapes and paint pipeline: see [Docs/drawing-architecture.md](Docs/drawing-architecture.md).
+- Responsive layout engine: see [Docs/layout-architecture.md](Docs/layout-architecture.md).
+- Text editing (TextBox/RichTextBox): see [Docs/text-architecture.md](Docs/text-architecture.md).
+- Composite controls (PropertyGrid, Graph, ColorPicker, Docking): see [Docs/controls-architecture.md](Docs/controls-architecture.md).
+
+Practical guides: MonoGame host wiring [Docs/monogame-host-integration-guide.md](Docs/monogame-host-integration-guide.md), custom engine backend [Docs/custom-render-backend-integration.md](Docs/custom-render-backend-integration.md), graph view [Docs/graph-view-v1-guide.md](Docs/graph-view-v1-guide.md), color picker [Docs/mgui_colorpicker_usage_guide.md](Docs/mgui_colorpicker_usage_guide.md).
 
 Built-in themes:
 
