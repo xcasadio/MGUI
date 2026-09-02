@@ -22,9 +22,19 @@ public class SemanticNavigationTextEntryPreservationTests
     public void NavigateLeft_WithFocusedEditableTextBox_PreservesArrowKey_DoesNotDispatchNavigation()
     {
         MGDesktop desktop = CreateDesktopWithSingleWindow(out MGWindow window);
+        MGButton leftButton = new(window);
         MGTextBox textBox = new(window);
-        window.SetContent(textBox);
+        MGStackPanel panel = new(window, Orientation.Horizontal);
+        panel.TryAddChild(leftButton);
+        panel.TryAddChild(textBox);
+        window.SetContent(panel);
         desktop.Update();
+
+        // Sanity check: the button must actually be reachable by NavigateLeft from the textbox
+        // (its layout center strictly to the left of the textbox's), otherwise this test would
+        // pass even without the ShouldPreserveTextEntryKey guard, since NavigateLeft would have
+        // nowhere to move focus regardless.
+        Assert.True(leftButton.ActualLayoutBounds.Center.X < textBox.ActualLayoutBounds.Center.X);
 
         SetFocusedKeyboardHandler(desktop, textBox);
 
@@ -32,9 +42,11 @@ public class SemanticNavigationTextEntryPreservationTests
             new InputActionContext(InputActionSource.Keyboard, InputActionPhase.Pressed, System.TimeSpan.Zero, Key: Keys.Left));
 
         bool handled = desktop.TryHandleInputAction(actionEvent);
+        desktop.Update();
 
         Assert.False(handled);
         Assert.Same(textBox, desktop.FocusedKeyboardHandler);
+        Assert.NotSame(leftButton, desktop.FocusedKeyboardHandler);
     }
 
     [Fact]

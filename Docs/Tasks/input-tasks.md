@@ -318,7 +318,7 @@ Commit recommande:
 
 Points P4 releves par la verification independante des taches 1-7 ; sans impact fonctionnel, a traiter comme durcissement de couverture.
 
-### ⚪ 9. Rendre discriminant le test de preservation des fleches sur le chemin semantique
+### ✅ 9. Rendre discriminant le test de preservation des fleches sur le chemin semantique
 
 But:
 
@@ -336,6 +336,13 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: make semantic arrow key preservation test discriminating`
+
+Resultat:
+
+- Harnais du test `NavigateLeft_WithFocusedEditableTextBox_PreservesArrowKey_DoesNotDispatchNavigation` (`MGUI.Tests/Focus/SemanticNavigationTextEntryPreservationTests.cs:22`) change comme demande : le contenu de la fenetre est desormais un `MGStackPanel` HORIZONTAL avec un `MGButton` ajoute en premier puis le `MGTextBox` en second, au lieu du textbox seul. Une assertion de sanite verifie explicitement `leftButton.ActualLayoutBounds.Center.X < textBox.ActualLayoutBounds.Center.X` apres layout, pour que `NavigateLeft` ait effectivement une cible atteignable (`FindDirectionalNavigationTarget` exige `delta.X < 0` entre les centres des bounds) et que ce harnais ne redevienne pas silencieusement non discriminant si le layout change plus tard. Le test garde la focalisation du textbox via le helper de reflexion existant, `Assert.False(handled)`, `Assert.Same(textBox, desktop.FocusedKeyboardHandler)`, et ajoute `Assert.NotSame(leftButton, desktop.FocusedKeyboardHandler)` apres un `desktop.Update()` supplementaire pour purger tout changement de focus mis en file. Les 3 autres tests du fichier sont inchanges.
+- Verification par mutation (site exact) : suppression temporaire du 3e argument `actionEvent.Context.Key` dans l'appel `NavigationService.TryDispatchNavigationAction(...)` a `MGUI.Core/UI/MGDesktop.cs:568`, ce qui bascule vers la surcharge a 2 arguments deja presente (`UIFocusNavigationService.cs:230`). Avec la mutation, le build passe (les 2 surcharges existent) mais 2 tests rougissent : le nouveau `NavigateLeft_WithFocusedEditableTextBox_PreservesArrowKey_DoesNotDispatchNavigation` (`Assert.False(handled)` echoue, `handled` devient `true`) et l'existant `NavigateNext_WithFocusedEditableTextBox_AcceptsTab_PreservesTabKey_DoesNotMoveFocus` (meme mecanisme, garde Tab). La mutation a ensuite ete revertee (`git status --short -- MGUI.Core/UI/MGDesktop.cs` confirme un arbre propre sur ce fichier) et la suite cible re-verifiee verte.
+- Aucune decision ambigue rencontree : le harnais horizontal Bouton-avant-TextBox et l'assertion de sanite demandes par la tache correspondent exactement au motif deja utilise ailleurs dans ce fichier (test `NavigateNext_...MovesFocusToNextElement`, ligne 64-85, qui deplace deja le focus vers un `MGButton`) ; aucune question n'a du etre remontee.
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~SemanticNavigationTextEntryPreservationTests"` -> 4/4 verts (sans mutation) ; `--filter "Focus|Input"` -> 409/409 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1419/1419 verts (identique a la baseline de depart), aucun test nouvellement rouge.
 
 ### ⚪ 10. Exercer le vrai MGUIInputContext dans les regressions de routage
 
