@@ -1013,6 +1013,13 @@ namespace MGUI.Core.UI
         /// keep following its owner regardless of occlusion.</summary>
         internal bool IsOccludedAtMousePos { get; set; }
 
+        //  Occlusion transitions: HoveredElement is only recomputed on mouse movement / layout changes, so when an occluder (higher desktop
+        //  window or nested window) stops covering the mouse position without the mouse moving (e.g. a dropdown closed by clicking an item),
+        //  the null forced during the occlusion must be refreshed exactly once.
+        private bool _WasOccludedAtMousePos;
+        private bool _WasOccludedByNestedWindowAtMousePos;
+        private bool _RefreshHoveredElementAfterNestedOcclusion;
+
         /// <summary>If true, this <see cref="MGWindow"/>'s layout will be recomputed at the start of the next update tick.</summary>
         public bool QueueLayoutRefresh { get; set; }
 
@@ -1193,8 +1200,11 @@ namespace MGUI.Core.UI
 
                     bool hasActiveDragCapture = HasActiveMouseDragCapture();
                     bool suppressHoveredElementUpdate = !MouseHandler.Tracker.MouseLeftButtonReleasedRecently && hasActiveDragCapture;
+                    bool occlusionEnded = (_WasOccludedAtMousePos && !IsOccludedAtMousePos) || _RefreshHoveredElementAfterNestedOcclusion;
+                    _WasOccludedAtMousePos = IsOccludedAtMousePos;
+                    _RefreshHoveredElementAfterNestedOcclusion = false;
                     bool shouldUpdateHoveredElement = !suppressHoveredElementUpdate
-                        && (MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements);
+                        && (MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements || occlusionEnded);
 
                     using (UIPerformanceProbe.BeginDesktopPhase("Window.ValidateAndLayout"))
                     {
@@ -1342,6 +1352,27 @@ namespace MGUI.Core.UI
                                 isNestedWindowOccludedAtMousePos = true;
                             }
                         }
+
+                        //  Nested-window occlusion of this window's own content (same rule as the desktop's cross-window occlusion, option b,
+                        //  Docs/Tasks/input-tasks.md tache 4): when the modal window or a non-click-through nested window (e.g. a ComboBox dropdown)
+                        //  is hovered at the mouse position, the content beneath it must not light up HoveredElement/PressedElement - unless this
+                        //  window already owns an active mouse-drag capture, which keeps following its owner. This runs before UpdateContents,
+                        //  so the children see the suppressed state on this same tick.
+                        if (isNestedWindowOccludedAtMousePos && !HasActiveMouseDragCapture())
+                        {
+                            HoveredElement = null;
+                            if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
+                            {
+                                PressedElement = null;
+                            }
+                        }
+
+                        //  Once the nested occluder is gone, HoveredElement must be recomputed on the next tick even if the mouse did not move.
+                        if (_WasOccludedByNestedWindowAtMousePos && !isNestedWindowOccludedAtMousePos)
+                        {
+                            _RefreshHoveredElementAfterNestedOcclusion = true;
+                        }
+                        _WasOccludedByNestedWindowAtMousePos = isNestedWindowOccludedAtMousePos;
                     }
                 };
 
