@@ -215,7 +215,7 @@ Resultat:
 - Aucune decision ambigue rencontree : tous les scenarios (garantie de cloture, exception hover/clavier, `AllowsClickThrough`, limite connue du dropdown) sont explicitement enumeres par le texte de la tache ; le choix du patron de harnais (GraphTestRuntime reel plutot que le mock complet cite en reference) est un detail d'implementation deja etabli par les taches precedentes de ce meme plan.
 - Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 383/383 verts (376 baseline tache 4 + 7 nouveaux) ; `--filter "FullyQualifiedName~OverlappingWindowsInputRoutingTests"` -> 7/7 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1227/1227 verts, aucun test rouge.
 
-### ⚪ 6. Ajouter des regressions end-to-end sur le routage semantique
+### ✅ 6. Ajouter des regressions end-to-end sur le routage semantique
 
 But:
 
@@ -240,6 +240,19 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `test: add end-to-end semantic input routing regressions`
+
+Resultat:
+
+- Tache de couverture pure (aucun code de production touche) : `MGUI.Tests/Architecture/InputRoutingIntegrationTests.cs` etendu de 2 a 8 tests (6 nouveaux), en reutilisant `InputRouter` reel + le patron de double deja en place dans ce fichier (`TestContext`) et dans `InputRouterTests.cs` — "harnesses de logique et doubles simples, pas de runtime complet" comme demande par la tache, aucun `MGDesktop`/`MGWindow` reel instancie :
+  - Nouveau double `FakeMGUIContext` (classe privee du fichier de test) : reproduit **exactement** la logique de `MGUI.Core/UI/InputRouting/MGUIInputContext.TryHandle` (lu et copie ligne par ligne) mais parametree par deux delegates (`tryHandleInputAction` a la place de `MGDesktop.TryHandleInputAction`, `shouldCaptureGameplayInput` a la place de `MGDesktop.ShouldCaptureGameplayInput`) au lieu de dependre d'un vrai desktop — choix direct de la tache ("doubles simples... pas de runtime complet").
+  - `ModalOverlayActive_Blocks_Gameplay_Action_Via_ShouldCaptureGameplayInput` : action gameplay + `shouldCaptureGameplayInput` vrai (representant `OverlayHost.IsModal && ActiveOverlay != null`) -> geree par `MGUI.UI` (raison non vide), gameplay jamais appele.
+  - `ContextMenuOpen_Blocks_Gameplay_Action_Via_ShouldCaptureGameplayInput` : meme garantie, `shouldCaptureGameplayInput` representant `ActiveContextMenu != null`, raison verifiee mot pour mot (`"Gameplay blocked by active UI capture state"`, copiee du vrai `MGUIInputContext`).
+  - `NonModalNavigableMenu_Routes_Navigate_Action_To_UI_Never_To_Gameplay` : `shouldCaptureGameplayInput` **faux** (aucun modal, aucun menu contextuel) mais action `NavigateNext` (action UI) -> quand meme geree par `MGUI.UI` et jamais par le gameplay, prouvant que c'est `IsUIAction()` qui intercepte inconditionnellement les actions UI, independamment du flag de capture modal (menu navigable non modal du texte de la tache).
+  - `FocusedTextEntry_PreservesKey_NeitherNavigationNorGameplayReceivesIt` : s'appuie sur la tache 3 -- `tryHandleInputAction` retourne `false` (garde `ShouldPreserveTextEntryKey` declenchee, comme le vrai `MGDesktop.TryHandleInputAction` avec `Keys.Left` et un textbox focus) mais `FakeMGUIContext.TryHandle` retourne quand meme `true` (raison `"Reserved for UI routing"`, copiee du vrai contexte) car l'action reste une action UI -- ni la navigation (deja verifiee non appliquee via la garde), ni le gameplay ne recoivent l'action ; `navigationGuardEvaluated` confirme que le delegate a bien ete invoque avec le contexte cle (`Keys.Left`) portee par l'`InputActionEvent`.
+  - `HudContext_UnderPointer_ConsumesAction_GameplayNeverReceivesIt` et `HudContext_NotTargeted_ActionFallsThroughToGameplay` : nouveau double `FakeHudContext` calque sur `MGUI.MiniGame/MiniGameHudInputContext.cs` (meme forme : delegate `tryHandle`, priorite par defaut du contexte reel 50, activation selective via `Func<bool> isActive`) -- HUD cible (`isActive` vrai) consomme l'action et le gameplay (priorite 0) n'est jamais appele ; HUD non cible (`isActive` faux, contexte inactif donc `InputRouter.Route` ne l'appelle meme pas, cf. `Where(x => x.Context.IsActive)`) -> l'action tombe au gameplay qui la recoit.
+  - Chaque test verifie `decision.Result.ContextName` (bon contexte gagnant) et, pour la majorite, `decision.Result.Reason` (non vide ou egal a la chaine exacte produite par la logique reelle copiee), conformement au critere "chaque `InputRouteDecision` porte le bon contexte gagnant et une raison exploitable".
+- Aucune decision ambigue rencontree : les 5 groupes de scenarios sont explicitement enumeres par le texte de la tache ; le seul choix d'implementation (dupliquer la logique de `MGUIInputContext` dans un double parametrable plutot que d'instancier un vrai `MGDesktop`) est directement autorise par la consigne "doubles simples, pas de runtime complet" de la tache elle-meme.
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet build MGUI.MiniGame/MGUI.MiniGame.csproj --no-restore` OK (tache touchant la couche semantique) ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 389/389 verts (383 baseline tache 5 + 6 nouveaux) ; `--filter "FullyQualifiedName~InputRoutingIntegrationTests"` -> 8/8 verts (2 existants + 6 nouveaux) ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1233/1233 verts, aucun test rouge.
 
 ### ⚪ 7. Promouvoir un contexte HUD selectif reutilisable
 
