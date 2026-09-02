@@ -400,7 +400,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
                 void AppendClippedPolygon(RectangleF clipRect)
                 {
-                    ClipConvexPolygonToRectangle(quadPolygon, clipRect, clipped, scratch);
+                    Rectangle integerClipRect = new((int)MathF.Round(clipRect.X), (int)MathF.Round(clipRect.Y),
+                        (int)MathF.Round(clipRect.Width), (int)MathF.Round(clipRect.Height));
+                    MGConvexPolygonClipper.ClipToRectangle(quadPolygon, integerClipRect, clipped, scratch);
                     if (clipped.Count < 3 || Math.Abs(SignedArea(clipped)) < 1e-4f)
                     {
                         return;
@@ -413,68 +415,9 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
                         regionUVs.Add(GetTextureCoordinate(vertex, layoutRect, rotation, reflections, textureData, image));
                     }
 
-                    for (int k = 1; k + 1 < clipped.Count; k++)
-                    {
-                        regionIndices.Add(baseIndex);
-                        regionIndices.Add(baseIndex + k);
-                        regionIndices.Add(baseIndex + k + 1);
-                    }
+                    MGConvexPolygonClipper.AppendFanTriangles(baseIndex, clipped.Count, regionIndices);
                 }
             }
-        }
-
-        /// <summary>Sutherland-Hodgman clipping of a convex polygon against an axis-aligned rectangle. The result is written to <paramref name="result"/>.</summary>
-        private static void ClipConvexPolygonToRectangle(List<Vector2> polygon, RectangleF rect, List<Vector2> result, List<Vector2> scratch)
-        {
-            result.Clear();
-            result.AddRange(polygon);
-            ClipAgainstBound(result, scratch, axisX: true, bound: rect.Left, keepGreater: true);
-            ClipAgainstBound(result, scratch, axisX: true, bound: rect.Right, keepGreater: false);
-            ClipAgainstBound(result, scratch, axisX: false, bound: rect.Top, keepGreater: true);
-            ClipAgainstBound(result, scratch, axisX: false, bound: rect.Bottom, keepGreater: false);
-        }
-
-        private static void ClipAgainstBound(List<Vector2> polygon, List<Vector2> scratch, bool axisX, float bound, bool keepGreater)
-        {
-            if (polygon.Count == 0)
-            {
-                return;
-            }
-
-            scratch.Clear();
-            for (int i = 0; i < polygon.Count; i++)
-            {
-                Vector2 current = polygon[i];
-                Vector2 previous = polygon[(i + polygon.Count - 1) % polygon.Count];
-                float currentValue = axisX ? current.X : current.Y;
-                float previousValue = axisX ? previous.X : previous.Y;
-                bool currentInside = keepGreater ? currentValue >= bound : currentValue <= bound;
-                bool previousInside = keepGreater ? previousValue >= bound : previousValue <= bound;
-
-                if (currentInside)
-                {
-                    if (!previousInside)
-                    {
-                        scratch.Add(IntersectBound(previous, current, previousValue, currentValue, bound));
-                    }
-
-                    scratch.Add(current);
-                }
-                else if (previousInside)
-                {
-                    scratch.Add(IntersectBound(previous, current, previousValue, currentValue, bound));
-                }
-            }
-
-            polygon.Clear();
-            polygon.AddRange(scratch);
-        }
-
-        private static Vector2 IntersectBound(Vector2 from, Vector2 to, float fromValue, float toValue, float bound)
-        {
-            //  Endpoints lie on different sides of the bound, so the denominator is never zero.
-            float t = (bound - fromValue) / (toValue - fromValue);
-            return from + (to - from) * t;
         }
 
         private static float SignedArea(List<Vector2> polygon)
