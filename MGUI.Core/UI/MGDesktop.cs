@@ -1453,10 +1453,15 @@ namespace MGUI.Core.UI
         /// <summary>Z-order-aware occlusion for <see cref="MGWindow.IsUnscaledPositionOccluded"/>: true if the active context menu, or a visible
         /// non-click-through desktop window drawn above <paramref name="Window"/> (topmost over non-topmost, then later <see cref="Windows"/>
         /// entries - the same order <see cref="Draw"/> uses), contains the position. Windows absent from <see cref="Windows"/> (e.g. the
-        /// overlay window) are only occluded by the context menu. Cost is O(window count) per call; window counts are small.</summary>
-        internal bool IsUnscaledPositionOccludedAbove(MGWindow Window, Vector2 UnscaledScreenPosition)
+        /// overlay window) are only occluded by the context menu. Cost is O(window count) per call; window counts are small.<para/>
+        /// <paramref name="Origin"/> is the window whose content is being hit-tested (<paramref name="Window"/> itself, or an auxiliary popup
+        /// that delegated to its parent chain). The active context menu covers every window below it but never its own content: the elements
+        /// of the menu, of its submenus and of its tooltips - windows whose <see cref="MGWindow.ParentWindow"/> chain reaches the menu - keep
+        /// hit-testing against it, otherwise no item of an open context menu could be hovered or clicked.</summary>
+        internal bool IsUnscaledPositionOccludedAbove(MGWindow Window, MGWindow Origin, Vector2 UnscaledScreenPosition)
         {
-            if (ActiveContextMenu != null && ActiveContextMenu != Window && ActiveContextMenu.OccludesUnscaledPosition(UnscaledScreenPosition))
+            if (ActiveContextMenu != null && ActiveContextMenu != Window && !IsWindowOrAncestorWindow(ActiveContextMenu, Origin)
+                && ActiveContextMenu.OccludesUnscaledPosition(UnscaledScreenPosition))
             {
                 return true;
             }
@@ -1471,6 +1476,20 @@ namespace MGUI.Core.UI
             {
                 MGWindow Other = Windows[i];
                 if (Other != Window && MGWindow.IsDrawnAbove(Other, i, Window, WindowIndex) && Other.OccludesUnscaledPosition(UnscaledScreenPosition))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>True if <paramref name="Candidate"/> is <paramref name="Window"/> itself or one of its <see cref="MGWindow.ParentWindow"/> ancestors.</summary>
+        private static bool IsWindowOrAncestorWindow(MGWindow Candidate, MGWindow Window)
+        {
+            for (MGWindow Current = Window; Current != null; Current = Current.ParentWindow)
+            {
+                if (ReferenceEquals(Current, Candidate))
                 {
                     return true;
                 }

@@ -1186,10 +1186,16 @@ namespace MGUI.Core.UI
         /// Auxiliary windows that are not part of their parent's <see cref="NestedWindows"/> (modal window, tooltip, context menu) are drawn
         /// above that stack, so only the parent's external occluders apply to them.</summary>
         private bool IsUnscaledPositionOccludedFromAbove(Vector2 UnscaledScreenPosition)
+            => IsUnscaledPositionOccludedFromAbove(UnscaledScreenPosition, this);
+
+        /// <param name="Origin">The window whose content is being hit-tested: this window, or an auxiliary descendant (context menu, submenu,
+        /// tooltip) that delegated to its parent chain. Carried up the recursion so that the desktop never treats the active context menu as an
+        /// occluder of its own content.</param>
+        private bool IsUnscaledPositionOccludedFromAbove(Vector2 UnscaledScreenPosition, MGWindow Origin)
         {
             if (ParentWindow == null)
             {
-                return Desktop.IsUnscaledPositionOccludedAbove(this, UnscaledScreenPosition);
+                return Desktop.IsUnscaledPositionOccludedAbove(this, Origin, UnscaledScreenPosition);
             }
 
             IReadOnlyList<MGWindow> Siblings = ParentWindow.NestedWindows;
@@ -1220,7 +1226,7 @@ namespace MGUI.Core.UI
                 }
             }
 
-            return ParentWindow.IsUnscaledPositionOccludedFromAbove(UnscaledScreenPosition);
+            return ParentWindow.IsUnscaledPositionOccludedFromAbove(UnscaledScreenPosition, Origin);
         }
 
         /// <summary>Draw order within one window list (desktop windows or one parent's nested windows): topmost windows are drawn over
