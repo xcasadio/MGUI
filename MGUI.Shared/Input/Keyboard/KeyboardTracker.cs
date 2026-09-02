@@ -175,7 +175,7 @@ namespace MGUI.Shared.Input.Keyboard
                 if (!PreviousKeys.Contains(Key))
                 {
                     string fallbackKeyValue = KeyToTextInputString(Key);
-                    string nativeTextValue = TryConsumeNativeTextInputString(Key, fallbackKeyValue != null);
+                    string nativeTextValue = NormalizeNativeTextInputValue(TryConsumeNativeTextInputString(Key, fallbackKeyValue != null));
                     string KeyValue = nativeTextValue ?? fallbackKeyValue;
                     KeyboardInputProbe.RecordKeyPressed(Key, KeyValue, fallbackKeyValue, nativeTextValue != null);
                     KeyboardInputStream stream = new(_NextInputStreamId++, Key, BA.TotalElapsed);
@@ -233,7 +233,7 @@ namespace MGUI.Shared.Input.Keyboard
                 inputEvent.Consumed = true;
                 CurrentTextInputEvents[index] = inputEvent;
 
-                string keyValue = inputEvent.Character.ToString();
+                string keyValue = NormalizeNativeTextInputValue(inputEvent.Character.ToString());
                 KeyboardInputStream stream = new(_NextInputStreamId++, inputEvent.Key, BA.TotalElapsed);
                 BaseKeyPressedEventArgs pressedArgs = new(this, inputEvent.Key, keyValue, BA.TotalElapsed, stream);
                 _CurrentKeyPressedEvents[inputEvent.Key] = pressedArgs;
@@ -243,6 +243,18 @@ namespace MGUI.Shared.Input.Keyboard
 
         private static bool ShouldUseNativeTextInputCharacter(char character)
             => !char.IsControl(character) || character is '\t' or '\r' or '\n';
+
+        /// <summary>Native text input reports control keys as raw characters ('\t' for Tab, '\r' or '\n' for Enter), but the framework's text model
+        /// expects the canonical values the key map produces (<see cref="DefaultTabValue"/> / <see cref="DefaultEnterValue"/>): MGTextBox inserts
+        /// <see cref="DefaultTabValue"/>.Length characters for a Tab and moves the caret accordingly, so a raw 1-character '\t' would desynchronize
+        /// the caret from the text. Printable characters are returned unchanged (the whole point of native text input: non-US layouts, dead keys, IME).</summary>
+        private static string NormalizeNativeTextInputValue(string nativeValue)
+            => nativeValue switch
+            {
+                "\t" => DefaultTabValue,
+                "\r" or "\n" => DefaultEnterValue,
+                _ => nativeValue,
+            };
 
         private string TryConsumeNativeTextInputString(Keys key, bool allowUnmatchedTextInput)
         {
@@ -421,8 +433,13 @@ namespace MGUI.Shared.Input.Keyboard
             Keys.OemAuto,
         }.ToHashSet();
 
+        /// <summary>Canonical text value produced for the Tab key; native '\t' text input is normalized to this value.</summary>
+        public const string DefaultTabValue = "    ";
+        /// <summary>Canonical text value produced for the Enter key; native '\r' / '\n' text input is normalized to this value.</summary>
+        public const string DefaultEnterValue = "\n";
+
         /// <param name="EnterValue">Note: Windows typically uses "\r\n", Mac '\r', Linux '\n'.</param>
-        public string KeyToTextInputString(Keys Key, string NonPrintableKeyValue = null, string TabValue = "    ", string EnterValue = "\n")
+        public string KeyToTextInputString(Keys Key, string NonPrintableKeyValue = null, string TabValue = DefaultTabValue, string EnterValue = DefaultEnterValue)
         {
             #region All Keys
             /*

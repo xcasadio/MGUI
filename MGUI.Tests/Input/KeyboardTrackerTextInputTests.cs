@@ -116,6 +116,57 @@ public class KeyboardTrackerTextInputTests
         Assert.Equal("2", input.Keyboard.CurrentKeyPressedEvents[Keys.D2].PrintableValue);
     }
 
+    [Fact]
+    public void Update_NormalizesNativeTabCharacterToFrameworkTabValue()
+    {
+        // GameWindow.TextInput reports the Tab key as a raw '\t'. MGTextBox assumes a Tab inserts TabValue.Length characters
+        // (4 spaces) and moves the caret by that amount, so the raw 1-character '\t' must be normalized to the key-map value.
+        InputTracker input = new();
+
+        input.Keyboard.QueueTextInput('\t', Keys.Tab);
+        input.Update(CreateUpdateArgs(Keys.Tab));
+
+        string printableValue = input.Keyboard.CurrentKeyPressedEvents[Keys.Tab].PrintableValue;
+        Assert.Equal(input.Keyboard.KeyToTextInputString(Keys.Tab), printableValue);
+        Assert.Equal("    ", printableValue);
+    }
+
+    [Fact]
+    public void Update_NormalizesNativeCarriageReturnToFrameworkEnterValue()
+    {
+        InputTracker input = new();
+
+        input.Keyboard.QueueTextInput('\r', Keys.Enter);
+        input.Update(CreateUpdateArgs(Keys.Enter));
+
+        string printableValue = input.Keyboard.CurrentKeyPressedEvents[Keys.Enter].PrintableValue;
+        Assert.Equal(input.Keyboard.KeyToTextInputString(Keys.Enter), printableValue);
+        Assert.Equal("\n", printableValue);
+    }
+
+    [Fact]
+    public void Update_NormalizesNativeLineFeedToFrameworkEnterValue()
+    {
+        InputTracker input = new();
+
+        input.Keyboard.QueueTextInput('\n', Keys.Enter);
+        input.Update(CreateUpdateArgs(Keys.Enter));
+
+        Assert.Equal("\n", input.Keyboard.CurrentKeyPressedEvents[Keys.Enter].PrintableValue);
+    }
+
+    [Fact]
+    public void Update_NormalizesTextInputOnlyTabWithoutPhysicalKeyState()
+    {
+        // Same normalization on the synthesized (no physical key down) path.
+        InputTracker input = new();
+
+        input.Keyboard.QueueTextInput('\t', Keys.Tab);
+        input.Update(CreateUpdateArgs());
+
+        Assert.Equal("    ", input.Keyboard.CurrentKeyPressedEvents[Keys.Tab].PrintableValue);
+    }
+
     private static UpdateBaseArgs CreateUpdateArgs(params Keys[] pressedKeys)
         => new(TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(16), new MouseState(), new KeyboardState(pressedKeys));
 }

@@ -1527,15 +1527,17 @@ namespace MGUI.Core.UI
                             bool IsDelete = e.Key == Keys.Delete;
 
                             int Offset = IsDelete ? 1 : 0;
-                            int Index = Caret.Position.Value.IndexInOriginalText;
+                            string CurrentText = GetTextBackingField();
+                            //  The caret index lives in the displayed text and can exceed the backing field if the two ever diverge
+                            //  (e.g. an expanded tab): clamp it like the insertion path does so the slices below can never go out of range.
+                            int Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
 
-                            if ((IsBackspace && Index > 0) || (IsDelete && Index < Text.Length))
+                            if ((IsBackspace && Index > 0) || (IsDelete && Index < CurrentText.Length))
                             {
                                 StringBuilder SB = new();
-                                string CurrentText = GetTextBackingField();
                                 string NewText;
                                 SB.Append(CurrentText.AsSpan(0, Index - 1 + Offset));
-                                if (Index < Text.Length)
+                                if (Index < CurrentText.Length)
                                 {
                                     SB.Append(CurrentText.AsSpan(Index + Offset));
                                 }
