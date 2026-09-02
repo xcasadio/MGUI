@@ -76,6 +76,25 @@ namespace MGUI.Core.UI
 
         public event EventHandler<EventArgs<MGCornerRadius>> OnCornerRadiusChanged;
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsShapeAwareHitTestEnabled;
+        /// <summary>If true and <see cref="CornerRadius"/> is not zero, mouse hit testing follows the rounded silhouette of this border
+        /// (<see cref="MGBoxShape.Contains(Vector2)"/>) instead of its rectangular bounds, so the rounded-off corners no longer react to the mouse.<para/>
+        /// Opt-in: the default value is false, which keeps the framework-wide rectangular hit test. Controls that embed an <see cref="MGBorder"/>
+        /// are not affected unless this flag is set on that border.</summary>
+        public bool IsShapeAwareHitTestEnabled
+        {
+            get => _IsShapeAwareHitTestEnabled;
+            set
+            {
+                if (_IsShapeAwareHitTestEnabled != value)
+                {
+                    _IsShapeAwareHitTestEnabled = value;
+                    NPC(nameof(IsShapeAwareHitTestEnabled));
+                }
+            }
+        }
+
         public bool DrawBackgroundAndOverlay { get; set; } = true;
 
         public MGBorder(MGWindow Window)
@@ -106,6 +125,25 @@ namespace MGUI.Core.UI
         protected override bool CanConsumeSpaceInSingleDimension => true;
 
         private MGBoxShape CreateBoxShape(Rectangle layoutBounds) => new MGBoxShape(layoutBounds, BorderThickness, CornerRadius).Normalize();
+
+        /// <summary>Rectangular test on <see cref="MGElement.ActualLayoutBounds"/> first (unchanged behaviour), then, only when
+        /// <see cref="IsShapeAwareHitTestEnabled"/> is true and <see cref="CornerRadius"/> is not zero, the analytic rounded-box test of
+        /// <see cref="MGBoxShape.Contains(Vector2)"/> on the same shape that <see cref="DrawSelf"/> paints (same pattern as <see cref="MGEllipse"/>).</summary>
+        protected internal override bool ContainsUnscaledInputPoint(Vector2 unscaledScreenPosition)
+        {
+            if (!base.ContainsUnscaledInputPoint(unscaledScreenPosition))
+            {
+                return false;
+            }
+
+            if (!IsShapeAwareHitTestEnabled || CornerRadius.IsZero)
+            {
+                return true;
+            }
+
+            Vector2 layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
+            return CreateBoxShape(LayoutBounds).Contains(layoutPoint);
+        }
 
         public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
         {

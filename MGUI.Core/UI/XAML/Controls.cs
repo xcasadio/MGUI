@@ -150,6 +150,10 @@ namespace MGUI.Core.UI.XAML
         [Browsable(false)]
         public CornerRadius? CR { get => CornerRadius; set => CornerRadius = value; }
 
+        /// <summary>Mirrors <see cref="MGBorder.IsShapeAwareHitTestEnabled"/>: opt-in rounded hit testing, false by default.</summary>
+        [Category("Border")]
+        public bool? IsShapeAwareHitTestEnabled { get; set; }
+
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGBorder(Window);
 
         protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
@@ -171,6 +175,11 @@ namespace MGUI.Core.UI.XAML
             if (CornerRadius.HasValue)
             {
                 Border.CornerRadius = CornerRadius.Value.ToCornerRadius();
+            }
+
+            if (IsShapeAwareHitTestEnabled.HasValue)
+            {
+                Border.IsShapeAwareHitTestEnabled = IsShapeAwareHitTestEnabled.Value;
             }
 
             base.ApplyDerivedSettings(Parent, Element, IncludeContent);

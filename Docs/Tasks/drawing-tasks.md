@@ -44,7 +44,7 @@ Terminer le travail restant du pipeline de formes et de paints decrit dans `Docs
 
 **Commit recommande** : `fix(drawing): propagate paint lifecycle updates through composite fill brushes`
 
-### Tache 2 — ⚪ Hit testing conscient de la forme pour MGBoxShape
+### Tache 2 — ✅ Hit testing conscient de la forme pour MGBoxShape
 
 **But** : eviter les hit tests rectangulaires quand la surface interactive visible est arrondie.
 

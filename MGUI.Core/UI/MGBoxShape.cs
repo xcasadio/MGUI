@@ -18,6 +18,61 @@ namespace MGUI.Core.UI
 
         public MGBoxShape Normalize() => new(OuterBounds, NormalizedBorderThickness, NormalizedCornerRadius);
 
+        /// <summary>Analytic hit test in the pixel space of <see cref="OuterBounds"/>: the point must lie inside the rectangle (edges inclusive,
+        /// like <see cref="RectangleUtils.ContainsInclusive(Rectangle, Vector2)"/>) and, when it falls in the square region of a rounded corner,
+        /// inside that corner's arc. Only <see cref="NormalizedCornerRadius"/> is used, so the result is deterministic and independent of the
+        /// tessellation performed by <see cref="Shapes.MGBoxGeometryBuilder"/>. A zero radius is equivalent to the rectangular test.<para/>
+        /// The framework's mouse hit testing stays rectangular by default; controls opt in explicitly (see <see cref="MGBorder.IsShapeAwareHitTestEnabled"/>).</summary>
+        public bool Contains(Vector2 point)
+        {
+            if (!OuterBounds.ContainsInclusive(point))
+            {
+                return false;
+            }
+
+            MGCornerRadius radius = NormalizedCornerRadius;
+            if (radius.IsZero)
+            {
+                return true;
+            }
+
+            float left = OuterBounds.Left;
+            float top = OuterBounds.Top;
+            float right = OuterBounds.Right;
+            float bottom = OuterBounds.Bottom;
+
+            //  Corner regions are the r x r squares in each corner; NormalizeCornerRadius guarantees they never overlap.
+            //  Arc centres match MGBoxGeometryBuilder.BuildContour, so the hit test follows the painted silhouette.
+            if (radius.TopLeft > 0 && point.X < left + radius.TopLeft && point.Y < top + radius.TopLeft)
+            {
+                return IsWithinArc(point, left + radius.TopLeft, top + radius.TopLeft, radius.TopLeft);
+            }
+
+            if (radius.TopRight > 0 && point.X > right - radius.TopRight && point.Y < top + radius.TopRight)
+            {
+                return IsWithinArc(point, right - radius.TopRight, top + radius.TopRight, radius.TopRight);
+            }
+
+            if (radius.BottomRight > 0 && point.X > right - radius.BottomRight && point.Y > bottom - radius.BottomRight)
+            {
+                return IsWithinArc(point, right - radius.BottomRight, bottom - radius.BottomRight, radius.BottomRight);
+            }
+
+            if (radius.BottomLeft > 0 && point.X < left + radius.BottomLeft && point.Y > bottom - radius.BottomLeft)
+            {
+                return IsWithinArc(point, left + radius.BottomLeft, bottom - radius.BottomLeft, radius.BottomLeft);
+            }
+
+            return true;
+        }
+
+        private static bool IsWithinArc(Vector2 point, float centerX, float centerY, int radius)
+        {
+            float dx = point.X - centerX;
+            float dy = point.Y - centerY;
+            return dx * dx + dy * dy <= (float)radius * radius;
+        }
+
         public Rectangle GetInnerBounds()
         {
             Thickness thickness = NormalizedBorderThickness;
