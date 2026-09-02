@@ -29,6 +29,9 @@ namespace MGUI.Shared.Rendering
         internal GraphicsDevice GraphicsDevice => Host.GraphicsDevice;
         internal SpriteBatch SpriteBatch { get; }
         internal PrimitiveBatch PrimitiveBatch { get; }
+        /// <summary>Shared textured effect used by <see cref="DrawTransaction.DrawTexturedTriangleList"/>: same projection/view conventions as <see cref="PrimitiveBatch"/>,
+        /// texture and vertex colour enabled, no lighting. Owned like <see cref="PrimitiveBatch"/> (one per renderer).</summary>
+        internal BasicEffect TexturedPrimitiveEffect { get; }
         internal RenderTargetPool RenderTargetPool { get; } = new();
 
         internal ContentManager Content { get; }
@@ -151,6 +154,7 @@ namespace MGUI.Shared.Rendering
             this.Surface = Surface ?? new BackBufferSurface(Host);
             SpriteBatch = new(GraphicsDevice);
             PrimitiveBatch = new(GraphicsDevice, 1024);
+            TexturedPrimitiveEffect = new(GraphicsDevice) { TextureEnabled = true, VertexColorEnabled = true, LightingEnabled = false };
             Content = new(Host, "Content");
             FontManager = new(Content, "Arial");
             this.AssetProvider = AssetProvider ?? new RendererAssetProvider(Content, FontManager);

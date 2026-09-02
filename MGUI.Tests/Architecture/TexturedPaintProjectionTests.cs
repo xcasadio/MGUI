@@ -1,0 +1,357 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using MGUI.Core.UI;
+using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Assets;
+using MGUI.Shared.Rendering;
+using MGUI.Tests.Graph;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended;
+
+namespace MGUI.Tests.Architecture;
+
+/// <summary>Textured paints on rounded geometry: <see cref="MGTextureFillBrush"/> and <see cref="MGTexturedBorderBrush"/> project their textures onto
+/// <see cref="MGBoxGeometry"/> through <see cref="IUIDrawContext.DrawTexturedTriangleList"/>, while the rectangle fast path and the documented
+/// fallbacks keep the legacy rectangle draw calls.</summary>
+public class TexturedPaintProjectionTests
+{
+    private const float UvTolerance = 1e-6f;
+
+    [Fact]
+    public void IUIDrawContext_ExposesDrawTexturedTriangleList()
+    {
+        var method = typeof(IUIDrawContext).GetMethod(nameof(IUIDrawContext.DrawTexturedTriangleList),
+            new[] { typeof(Vector2), typeof(IUIImageResource), typeof(IReadOnlyList<Vector2>), typeof(IReadOnlyList<Vector2>), typeof(IReadOnlyList<int>), typeof(Color) });
+
+        Assert.NotNull(method);
+    }
+
+    #region MGTextureFillBrush
+
+    [Fact]
+    public void TextureFillBrush_RoundedShape_ProjectsOntoFillMesh()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = RoundedShape(80, 40, 0, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTextureFillBrush brush = new(new MGTextureData(recorder.Image(64, 64)), Stretch.Fill);
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        GraphTexturedTriangleListCall call = Assert.Single(recorder.Transaction.TexturedTriangleListCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureToCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureAtCalls);
+        Assert.Equal(geometry.Vertices, call.Vertices);
+        Assert.Equal(geometry.FillIndices, call.Indices);
+        AssertUVsInUnitSquare(call);
+
+        //  No overflow beyond the rounded silhouette: every emitted vertex, pulled 0.25px toward the centre (arc vertices sit exactly on the arc in float), is inside the shape.
+        Vector2 center = shape.OuterBounds.Center.ToVector2();
+        foreach (Vector2 vertex in call.Vertices)
+        {
+            Vector2 inward = vertex + Vector2.Normalize(center - vertex) * 0.25f;
+            Assert.True(shape.Contains(inward), $"vertex {vertex} lies outside the rounded shape");
+        }
+
+        //  Stretch over the bounds: leftmost vertex -> u = 0, rightmost -> u = 1, topmost -> v = 0, bottommost -> v = 1.
+        Assert.Equal(0f, call.TextureCoordinates[IndexOfMin(call.Vertices, v => v.X)].X, 3);
+        Assert.Equal(1f, call.TextureCoordinates[IndexOfMax(call.Vertices, v => v.X)].X, 3);
+        Assert.Equal(0f, call.TextureCoordinates[IndexOfMin(call.Vertices, v => v.Y)].Y, 3);
+        Assert.Equal(1f, call.TextureCoordinates[IndexOfMax(call.Vertices, v => v.Y)].Y, 3);
+    }
+
+    [Fact]
+    public void TextureFillBrush_RectangleFastPath_KeepsRectangleDrawCall()
+    {
+        Recorder rounded = Recorder.Create();
+        Recorder legacy = Recorder.Create();
+        MGTextureData texture = new(rounded.Image(64, 64));
+        MGBoxShape shape = RoundedShape(80, 40, 0, 0);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTextureFillBrush brush = new(texture, Stretch.Fill);
+
+        Assert.True(geometry.UsesRectangleFastPath);
+        brush.Draw(rounded.Args(), null!, shape, geometry);
+        brush.Draw(legacy.Args(), null!, shape.OuterBounds);
+
+        Assert.Empty(rounded.Transaction.TexturedTriangleListCalls);
+        Assert.Equal(legacy.Transaction.DrawTextureToCalls, rounded.Transaction.DrawTextureToCalls);
+        Assert.Single(rounded.Transaction.DrawTextureToCalls);
+    }
+
+    [Fact]
+    public void TextureFillBrush_TileWithAtlasSourceRect_KeepsDocumentedRectanglePath()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = RoundedShape(160, 80, 0, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTextureFillBrush brush = new(new MGTextureData(recorder.Image(64, 64), new Rectangle(0, 0, 32, 32)), Stretch.Fill, null, Tile: true);
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        Assert.Empty(recorder.Transaction.TexturedTriangleListCalls);
+        Assert.NotEmpty(recorder.Transaction.DrawTextureToCalls);
+    }
+
+    [Fact]
+    public void TextureFillBrush_TileWithFullTexture_UsesWrapSamplerAndTileUVs()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = RoundedShape(160, 80, 0, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTextureFillBrush brush = new(new MGTextureData(recorder.Image(64, 64)), Stretch.Fill, null, Tile: true);
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        GraphTexturedTriangleListCall call = Assert.Single(recorder.Transaction.TexturedTriangleListCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureToCalls);
+        Assert.Equal(SamplerType.LinearWrap, call.SamplerType);
+        //  The wrap sampler is scoped to the call: the transaction's settings are restored afterwards.
+        Assert.Equal(DrawSettings.Default.SamplerType, recorder.Transaction.CurrentSettings.SamplerType);
+        Assert.NotEqual(SamplerType.LinearWrap, recorder.Transaction.CurrentSettings.SamplerType);
+        Assert.True(call.TextureCoordinates.Max(uv => uv.X) > 1f, "a 64px tile over a 160px wide shape must wrap past u = 1");
+        Assert.Equal(2.5f, call.TextureCoordinates[IndexOfMax(call.Vertices, v => v.X)].X, 3);
+    }
+
+    [Theory]
+    [InlineData(Stretch.Uniform)]
+    [InlineData(Stretch.None)]
+    public void TextureFillBrush_PartialDestination_PushesScreenSpaceClipAroundDestination(Stretch stretch)
+    {
+        //  Layout and Screen spaces must actually differ, otherwise a clip expressed in the wrong space would go unnoticed: scale the window.
+        Harness harness = Harness.Create(scale: 1.5f);
+        MGBorder element = new(harness.Window);
+        harness.Show(element);
+        Recorder recorder = Recorder.Create(harness.Runtime);
+        Rectangle bounds = new(10, 10, 160, 40);
+        MGBoxShape shape = new(bounds, new Thickness(0), new MGCornerRadius(12));
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTextureFillBrush brush = new(new MGTextureData(recorder.Image(64, 64)), stretch);
+        Rectangle destination = stretch == Stretch.Uniform
+            ? new Rectangle(bounds.Center.X - 20, bounds.Top, 40, 40)
+            : new Rectangle(bounds.Center.X - 32, bounds.Center.Y - 32, 64, 64);
+        Rectangle layoutClip = Rectangle.Intersect(destination, bounds);
+        Rectangle expectedScreenClip = element.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, layoutClip);
+
+        brush.Draw(recorder.Args(Point.Zero), element, shape, geometry);
+
+        GraphTexturedTriangleListCall call = Assert.Single(recorder.Transaction.TexturedTriangleListCalls);
+        Assert.NotEqual(layoutClip, expectedScreenClip);
+        Assert.Equal(expectedScreenClip, call.ClipBounds);
+        Assert.Null(recorder.Transaction.CurrentClipBounds);
+    }
+
+    #endregion
+
+    #region MGTexturedBorderBrush
+
+    [Fact]
+    public void TexturedBorderBrush_RoundedShape_MapsEdgesAndCorners()
+    {
+        Recorder recorder = Recorder.Create();
+        GraphTestImageResource edgeImage = recorder.Image(32, 8);
+        GraphTestImageResource cornerImage = recorder.Image(8, 8);
+        MGBoxShape shape = RoundedShape(80, 40, 4, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTexturedBorderBrush brush = new(edgeImage, cornerImage);
+
+        Assert.True(geometry.HasBorderRingMesh);
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
+        Assert.Empty(recorder.Transaction.DrawTextureToCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureAtCalls);
+        Assert.InRange(calls.Count, 5, 8);
+        Assert.Equal(geometry.BorderRingIndices.Count / 3, calls.Sum(call => call.Indices.Length / 3));
+        Assert.All(calls, call => Assert.True(ReferenceEquals(call.Texture, edgeImage) || ReferenceEquals(call.Texture, cornerImage)));
+        Assert.Equal(4, calls.Count(call => ReferenceEquals(call.Texture, edgeImage)));
+        Assert.InRange(calls.Count(call => ReferenceEquals(call.Texture, cornerImage)), 1, 4);
+        Assert.All(calls, AssertUVsInUnitSquare);
+        Assert.All(calls, call => Assert.Equal(Color.White, call.ColorMask));
+
+        //  Top edge, rotation 0: the texture runs left to right along the straight segment.
+        GraphTexturedTriangleListCall topEdge = calls.Where(call => ReferenceEquals(call.Texture, edgeImage)).MinBy(call => call.Vertices.Average(v => v.Y));
+        Assert.Equal(0f, topEdge.TextureCoordinates[IndexOfMin(topEdge.Vertices, v => v.X)].X, 2);
+        Assert.Equal(1f, topEdge.TextureCoordinates[IndexOfMax(topEdge.Vertices, v => v.X)].X, 2);
+        Assert.All(topEdge.Vertices, v => Assert.True(v.Y <= shape.OuterBounds.Top + 4 + 0.01f));
+    }
+
+    [Fact]
+    public void TexturedBorderBrush_Transforms_RotateAndFlipUVs()
+    {
+        Recorder rotated = Recorder.Create();
+        GraphTestImageResource edgeImage = rotated.Image(32, 8);
+        GraphTestImageResource cornerImage = rotated.Image(8, 8);
+        MGBoxShape shape = RoundedShape(80, 40, 4, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+
+        //  Standard preset: the top edge is rotated by a multiple of PI/2, so its u axis now runs across the thickness and v along the edge.
+        new MGTexturedBorderBrush(edgeImage, cornerImage, TextureTransforms.CreateStandardRotated(Edge.Left, Corner.TopLeft)).Draw(rotated.Args(), null!, shape, geometry);
+        List<GraphTexturedTriangleListCall> calls = rotated.Transaction.TexturedTriangleListCalls;
+        Assert.All(calls, AssertUVsInUnitSquare);
+        GraphTexturedTriangleListCall topEdge = calls.Where(call => ReferenceEquals(call.Texture, edgeImage)).MinBy(call => call.Vertices.Average(v => v.Y));
+        float leftV = topEdge.TextureCoordinates[IndexOfMin(topEdge.Vertices, v => v.X)].Y;
+        float rightV = topEdge.TextureCoordinates[IndexOfMax(topEdge.Vertices, v => v.X)].Y;
+        Assert.True(Math.Abs(rightV - leftV) > 0.9f, "a quarter-turn rotation must map the edge length onto the v axis");
+
+        //  Free angle: still defined, no exception, UVs stay in the unit square.
+        Recorder free = Recorder.Create();
+        TextureTransforms freeTransforms = new(new EdgeTransforms(0.4f, 0.4f, 0.4f, 0.4f), new CornerTransforms(0.4f, 0.4f, 0.4f, 0.4f));
+        new MGTexturedBorderBrush(free.Image(32, 8), free.Image(8, 8), freeTransforms).Draw(free.Args(), null!, shape, geometry);
+        Assert.NotEmpty(free.Transaction.TexturedTriangleListCalls);
+        Assert.All(free.Transaction.TexturedTriangleListCalls, AssertUVsInUnitSquare);
+
+        //  Reflection: flipping the top edge horizontally swaps u between the left and right ends.
+        Recorder flipped = Recorder.Create();
+        TextureTransforms flipTransforms = new(new EdgeTransforms(TopReflections: SpriteEffects.FlipHorizontally), new CornerTransforms());
+        new MGTexturedBorderBrush(flipped.Image(32, 8), flipped.Image(8, 8), flipTransforms).Draw(flipped.Args(), null!, shape, geometry);
+        GraphTexturedTriangleListCall flippedTop = flipped.Transaction.TexturedTriangleListCalls.Where(call => call.Texture.Width == 32).MinBy(call => call.Vertices.Average(v => v.Y));
+        Assert.Equal(1f, flippedTop.TextureCoordinates[IndexOfMin(flippedTop.Vertices, v => v.X)].X, 2);
+        Assert.Equal(0f, flippedTop.TextureCoordinates[IndexOfMax(flippedTop.Vertices, v => v.X)].X, 2);
+    }
+
+    [Fact]
+    public void TexturedBorderBrush_NullImages_DrawsNothing()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = RoundedShape(80, 40, 4, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+
+        new MGTexturedBorderBrush().Draw(recorder.Args(), null!, shape, geometry);
+
+        Assert.Empty(recorder.Transaction.TexturedTriangleListCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureToCalls);
+        Assert.Empty(recorder.Transaction.DrawTextureAtCalls);
+    }
+
+    [Fact]
+    public void TexturedBorderBrush_WithoutRingMesh_KeepsDocumentedRectanglePath()
+    {
+        Recorder recorder = Recorder.Create();
+        //  Thickness reaching the corner radius collapses the inner arc: no ring mesh (documented, Tache 4).
+        MGBoxShape shape = RoundedShape(80, 40, 4, 4);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTexturedBorderBrush brush = new(recorder.Image(32, 8), recorder.Image(8, 8));
+
+        Assert.False(geometry.UsesRectangleFastPath);
+        Assert.False(geometry.HasBorderRingMesh);
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        Assert.Empty(recorder.Transaction.TexturedTriangleListCalls);
+        Assert.NotEmpty(recorder.Transaction.DrawTextureToCalls);
+    }
+
+    [Fact]
+    public void TexturedBorderBrush_RectangleFastPath_KeepsRectangleDrawCalls()
+    {
+        Recorder rounded = Recorder.Create();
+        Recorder legacy = Recorder.Create();
+        GraphTestImageResource edgeImage = rounded.Image(32, 8);
+        GraphTestImageResource cornerImage = rounded.Image(8, 8);
+        MGBoxShape shape = RoundedShape(80, 40, 4, 0);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        MGTexturedBorderBrush brush = new(edgeImage, cornerImage);
+
+        brush.Draw(rounded.Args(), null!, shape, geometry);
+        brush.Draw(legacy.Args(), null!, shape.OuterBounds, shape.NormalizedBorderThickness);
+
+        Assert.Empty(rounded.Transaction.TexturedTriangleListCalls);
+        Assert.NotEmpty(rounded.Transaction.DrawTextureToCalls);
+        Assert.Equal(legacy.Transaction.DrawTextureToCalls, rounded.Transaction.DrawTextureToCalls);
+        Assert.Equal(legacy.Transaction.DrawTextureAtCalls, rounded.Transaction.DrawTextureAtCalls);
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private static MGBoxShape RoundedShape(int width, int height, int thickness, int radius)
+        => new(new Rectangle(0, 0, width, height), new Thickness(thickness), new MGCornerRadius(radius));
+
+    private static void AssertUVsInUnitSquare(GraphTexturedTriangleListCall call)
+    {
+        Assert.Equal(call.Vertices.Length, call.TextureCoordinates.Length);
+        foreach (Vector2 uv in call.TextureCoordinates)
+        {
+            Assert.InRange(uv.X, -UvTolerance, 1f + UvTolerance);
+            Assert.InRange(uv.Y, -UvTolerance, 1f + UvTolerance);
+        }
+    }
+
+    private static int IndexOfMin(Vector2[] vertices, Func<Vector2, float> selector)
+    {
+        int index = 0;
+        for (int i = 1; i < vertices.Length; i++)
+        {
+            if (selector(vertices[i]) < selector(vertices[index]))
+            {
+                index = i;
+            }
+        }
+
+        return index;
+    }
+
+    private static int IndexOfMax(Vector2[] vertices, Func<Vector2, float> selector)
+    {
+        int index = 0;
+        for (int i = 1; i < vertices.Length; i++)
+        {
+            if (selector(vertices[i]) > selector(vertices[index]))
+            {
+                index = i;
+            }
+        }
+
+        return index;
+    }
+
+    private readonly record struct Recorder(GraphTestRuntime Runtime, GraphNoOpDrawTransaction Transaction)
+    {
+        private static int _imageCounter;
+
+        public static Recorder Create(GraphTestRuntime? runtime = null)
+        {
+            runtime ??= new GraphTestRuntime(new Rectangle(0, 0, 960, 540));
+            return new(runtime, new GraphNoOpDrawTransaction(runtime, DrawSettings.Default));
+        }
+
+        public GraphTestImageResource Image(int width, int height) => new($"tex-{System.Threading.Interlocked.Increment(ref _imageCounter)}", width, height);
+
+        public ElementDrawArgs Args() => Args(Point.Zero);
+
+        public ElementDrawArgs Args(Point offset)
+            => new(new DrawBaseArgs(TimeSpan.Zero, Transaction, 1f), new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), offset);
+    }
+
+    private readonly record struct Harness(GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window)
+    {
+        public static Harness Create(float scale = 1f)
+        {
+            GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+            runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16), default, default));
+            MGDesktop desktop = new(runtime);
+            MGWindow window = new(desktop, 24, 24, 480, 260)
+            {
+                WindowStyle = WindowStyle.None,
+                Padding = new Thickness(0),
+                Scale = scale,
+            };
+            return new(runtime, desktop, window);
+        }
+
+        public void Show(MGElement element)
+        {
+            Window.SetContent(element);
+            Desktop.Windows.Add(Window);
+            Desktop.Update();
+            Desktop.Update();
+        }
+    }
+
+    #endregion
+}

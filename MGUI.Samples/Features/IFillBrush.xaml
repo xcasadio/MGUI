@@ -205,6 +205,12 @@
                                 </Button.Background>
                                 <TextBlock StyleNames="SampleTextBlockStyle" />
                             </Button>
+                            <Button StyleNames="SampleButtonStyle" CornerRadius="18" ToolTip="Rounded corners: the texture is projected onto the rounded mesh and no longer overflows the corners">
+                                <Button.Background>
+                                    <TextureFillBrush SourceName="Diamond" Color="White" />
+                                </Button.Background>
+                                <TextBlock StyleNames="SampleTextBlockStyle" Text="Rounded" />
+                            </Button>
                         </StackPanel>
 
                         <TextBlock>

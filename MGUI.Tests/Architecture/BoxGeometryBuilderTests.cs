@@ -5,6 +5,15 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Architecture;
 
+/// <summary>These tests clear and count the process-wide <see cref="MGBoxGeometryBuilder"/> cache, so they must not run while other test classes
+/// build geometry in parallel (xunit runs collections concurrently by default): the collection below is executed on its own.</summary>
+[CollectionDefinition(BoxGeometryBuilderCacheCollection.Name, DisableParallelization = true)]
+public sealed class BoxGeometryBuilderCacheCollection
+{
+    public const string Name = "MGBoxGeometryBuilder global cache";
+}
+
+[Collection(BoxGeometryBuilderCacheCollection.Name)]
 public class BoxGeometryBuilderTests
 {
     public BoxGeometryBuilderTests()

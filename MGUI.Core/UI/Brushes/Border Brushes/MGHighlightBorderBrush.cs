@@ -856,6 +856,8 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
 
 			if (AnimationType is HighlightAnimation.Progress or HighlightAnimation.Scan)
 			{
+				//  Documented limitation (Docs/drawing-architecture.md, Limites connues; Docs/Tasks/drawing-tasks.md, Tache 4): Progress and Scan
+				//  walk the rectangular perimeter, they are not yet parameterized along the rounded contour, so the rectangle path is kept on purpose.
 				Draw(DA, Element, Shape.OuterBounds, Shape.NormalizedBorderThickness);
 				return;
 			}

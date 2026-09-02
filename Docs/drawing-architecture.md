@@ -42,7 +42,8 @@ Le builder ne possede jamais : couleurs, textures, gradients, etat d'animation, 
 `DrawTransactionBoxShapeExtensions` est le pont bas niveau qui possede l'emission de triangle-lists :
 
 - `FillRoundedRectangle`, `StrokeRoundedRectangle`, `DrawBorderRing` sur `IUIDrawContext`, en variantes forme ou geometrie ;
-- chaque primitive preserve le fast path : quand `MGBoxGeometry.UsesRectangleFastPath` est vrai, elle route vers `FillRectangle` / `StrokeRectangle` classiques.
+- chaque primitive preserve le fast path : quand `MGBoxGeometry.UsesRectangleFastPath` est vrai, elle route vers `FillRectangle` / `StrokeRectangle` classiques ;
+- chemin texture : `IUIDrawContext.DrawTexturedTriangleList(origin, image, vertices, uv, indices, couleur)` (`MGUI.Shared/Rendering/IUIDrawContext.cs`) dessine une triangle-list texturee avec des UV normalises ; `DrawTransaction` (`MGUI.MonoGame.Integration/Rendering/DrawTransaction.cs`) l'implemente via un `BasicEffect` partage par le renderer, avec les memes matrices et etats GPU que le contexte primitives (donc compatible avec le clip scissor/stencil et le `SamplerType` courant, Wrap pour tuiler). `FillTexturedRoundedRectangle` et `DrawTexturedBorderRing` emettent respectivement le mesh de fill et l'anneau de bordure d'une `MGBoxGeometry` ; les regles de mapping UV appartiennent aux paints, et les paints textures gardent leur propre chemin rectangle quand `UsesRectangleFastPath` est vrai (rendu identique a l'existant).
 
 Nouvelle primitive partagee = ici ou dans la couche de rendu partagee ; ne jamais apprendre aux controles ou aux brushes a emettre de la topologie triangle directement.
 
@@ -88,20 +89,20 @@ Restent acceptables cote paint : mapping UV/destination de texture, regles d'int
 - Fills solides et bordures uniformes solides (rendu direct depuis la geometrie fournie).
 - Paints composites, fills avec padding, fills avec bordure, bordures en bandes, bordures dockees (composition sur le meme contrat de geometrie).
 - Gradients arrondis : `MGGradientFillBrush` colore les vertices du mesh de fill fourni (`Geometry.Vertices` + `Geometry.FillIndices`) au lieu de reconstruire la geometrie.
+- Fills textures : `MGTextureFillBrush` projette ses UV sur `Geometry.Vertices` (chemin `DrawTexturedTriangleList`). Regles conservees dans le paint : `Fill` et `UniformToFill` projettent depuis la destination etiree ; `Uniform` et `None` projettent de la meme facon sous un clip rectangulaire exprime en espace ecran (la partie non couverte de la forme reste vide, comme sur le chemin rectangle) ; `Tile` sur la texture entiere tuile par sampler Wrap avec des UV en unites de tuile. Cas restant : `Tile` sur un sous-rectangle d'atlas (un sampler Wrap repeterait tout l'atlas) garde le chemin rectangle, commente dans le code.
+- Bordures texturees : `MGTexturedBorderBrush` classe chaque quad de `BorderRingIndices` en coin (les deux vertices externes dans le meme carre r x r) ou en bord (cote le plus proche), etire la texture de bord sur le segment droit entre les arcs et la texture de coin sur le carre du coin, et applique rotations et reflexions de `TextureTransforms` autour du centre de chaque region avec la meme taille ajustee que le chemin rectangle (UV toujours dans [0,1], y compris pour un angle libre). Cas restant : quand une epaisseur atteint le rayon du coin, l'arc interne s'effondre et `MGBoxGeometryBuilder.BuildBorderRingIndices` ne produit pas d'anneau (`HasBorderRingMesh` faux) ; le paint garde alors le chemin rectangle, commente dans le code.
 
 ### Encore lies au rectangle (par conception, localise dans le paint)
 
-- `MGTextureFillBrush` : rend dans les bounds rectangulaires tant que le clipping/projection UV arrondi n'existe pas.
 - `MGNineSliceFillBrush` : cible des destinations rectangulaires tant que la decomposition en patchs arrondis n'existe pas.
-- `MGTexturedBorderBrush` : placement rectangulaire des bords/coins ; son overload shape-aware delegue au chemin rectangle.
 - `MGHighlightFillBrush` et les modes `Progress` / `Scan` de `MGHighlightBorderBrush` : logique d'exclusion orientee rectangle. Les modes `Pulse` et `Flash` passent par le chemin shape-aware (`MGHighlightBorderBrush.Draw(..., MGBoxShape, MGBoxGeometry)`).
 
-Ces limitations sont volontairement localisees dans les implementations de paint et ne fuient jamais dans `MGBorder`, `MGRectangle` ni le builder de geometrie.
+Ces limitations sont volontairement localisees dans les implementations de paint, commentees a l'endroit du repli, suivies dans `Docs/Tasks/drawing-tasks.md` (Tache 4), et ne fuient jamais dans `MGBorder`, `MGRectangle` ni le builder de geometrie.
 
 ### Chemins d'extension prepares
 
-- Fills textures : projeter des UVs sur `MGBoxGeometry.Vertices` une fois un chemin triangle texture introduit.
-- Bordures texturees : mapper bords et coins via `OuterContour`, `InnerContour`, `BorderRingIndices`.
+- Nine-slice arrondi : decomposer les neuf patchs sur la geometrie arrondie via `DrawTexturedTriangleList`.
+- Highlight : parametrer `Progress` / `Scan` le long du contour arrondi et construire les masques d'exclusion sur le mesh.
 - Traits multi-bandes : deriver des `MGBoxShape` imbriquees depuis `InnerBounds` et `InnerCornerRadius`.
 - Paints composes : mixer passes fill et border sans reconstruire la geometrie en restant dans les overloads shape-aware.
 
@@ -136,7 +137,7 @@ Concretement dans `MGUI.Core/UI/MGBorder.cs` :
 ## Limites connues
 
 - Cycle de vie des fill brushes : sont tickes une fois par frame les paints atteints par `MGElement.Update`, c'est-a-dire `BackgroundBrush` (tous etats, dedupliques par reference), `OverlayBrush`, les surcharges de `GetFillBrushes()` / `GetVisualStateFillBrushes()` (`MGSlider`, `MGRectangle`, `MGShapeElementBase`, `MGScrollViewer`, `MGProgressButton`, `MGProgressBar`, `MGGridColorPicker`, `MGOverlayHost`, `MGUniformGrid`, `MGGrid`, `MGGridSplitter`) et les border brushes de `GetBorderBrushes()`. Ne sont volontairement pas surcharges : les proprietes qui redirigent vers le `BackgroundBrush` d'un enfant, deja ticke par cet enfant (`MGSpoiler.UnspoiledBackgroundBrush`, `MGTabControl.HeaderAreaBackground`, `MGExpander.ExpanderButtonBackgroundBrush`, `MGToggleButton.CheckedBackgroundBrush`) ; les brushes modeles assignes par reference au `BackgroundBrush` d'autres elements, qui sont tickes une fois par element qui les recoit et par frame (`MGDockAutoHideStrip.ButtonBackgroundBrush` : une fois par bouton ; `MGTreeView.SelectionBackgroundBrush` : deux fois pour l'item selectionne, HeaderPanel et HeaderContainer ; `MGListBox.AlternatingRowBackgrounds` : une fois par ligne) ; les brushes d'etat dont seule la valeur courante est recopiee, donc tickes uniquement tant qu'ils sont l'etat courant (`MGDockSplitterBar` et `MGDockTabItem` Normal/Hover/Pressed-Active) ; et les brushes de `MGGraphView` dont seule la couleur est extraite. Regle generale : un paint stateful est ticke une fois par frame et par emplacement qui le reference, dans le meme element ou dans des elements differents ; un paint partage par reference entre N elements avance donc N fois plus vite, comme c'est deja le cas pour un border brush partage. Suivi : `Docs/Tasks/drawing-tasks.md` Tache 4.
-- Quatre paints restent lies au rectangle (voir la matrice ci-dessus) tant que la projection UV et la decomposition arrondie n'existent pas.
+- Paints encore lies au rectangle (voir la matrice ci-dessus), chacun avec un repli commente dans le code et un item en Tache 4 : `MGNineSliceFillBrush` (pas de decomposition des patchs sur la geometrie arrondie), `MGHighlightFillBrush` (exclusions par soustraction de rectangles), modes `Progress` / `Scan` de `MGHighlightBorderBrush` (parcours du perimetre rectangulaire), `MGTextureFillBrush` en mode `Tile` sur un sous-rectangle d'atlas, et `MGTexturedBorderBrush` quand l'anneau de bordure est vide parce qu'une epaisseur atteint le rayon du coin (`MGBoxGeometryBuilder.BuildBorderRingIndices` exige des contours de meme taille).
 - Hit testing : `MGBoxShape.Contains(Vector2)` fournit un test analytique (rectangle inclusif plus quadrants de coins, base sur `NormalizedCornerRadius`, sans dependance a la tessellation). Seul `MGBorder` l'utilise, et uniquement quand `IsShapeAwareHitTestEnabled` est vrai (false par defaut, miroir XAML `Border.IsShapeAwareHitTestEnabled`) ; le reste du framework, y compris `MGRectangle` et les controles qui embarquent un `MGBorder`, reste teste sur ses bounds rectangulaires.
 - `MGRatingControl` (`MGUI.Core/UI/MGRatingControl.cs`, rendu des items) dessine polygones et cercles directement via `DrawTransaction` (`StrokeAndFillPolygon`, `FillCircle`, `StrokeCircle`) et reste hors du pipeline box-shape — futur consommateur d'un pipeline de formes generalise.
 - Les overloads rectangle legacy `IFillBrush.Draw(DA, Element, Rectangle)` et `IBorderBrush.Draw(DA, Element, Rectangle, Thickness)` subsistent en API publique aux cotes des overloads shape-aware.

@@ -28,6 +28,14 @@ namespace MGUI.Shared.Rendering
         public void FillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color Color);
         public void StrokeAndFillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color StrokeColor, Color FillColor, float StrokeThickness = 1.0f);
         public void FillTriangle(Vector2 Origin, Vector2 v0, Color c0, Vector2 v1, Color c1, Vector2 v2, Color c2);
+        /// <summary>Draws an indexed triangle list textured with <paramref name="Texture"/>.<para/>
+        /// <paramref name="Vertices"/> are in the same space as the other primitives (<paramref name="Origin"/> is added to each vertex);
+        /// <paramref name="TextureCoordinates"/> holds exactly one normalized (0..1 over the whole texture) coordinate per vertex;
+        /// <paramref name="Indices"/> references <paramref name="Vertices"/> three by three.<para/>
+        /// Nothing is drawn when the texture is null or disposed, when there is no vertex, or when fewer than three indices are supplied.
+        /// The current <see cref="DrawSettings.SamplerType"/> applies (use a Wrap sampler to tile).</summary>
+        public void DrawTexturedTriangleList(Vector2 Origin, IUIImageResource Texture, IReadOnlyList<Vector2> Vertices, IReadOnlyList<Vector2> TextureCoordinates,
+            IReadOnlyList<int> Indices, Color ColorMask);
         public void FillQuadrilateralLinearClamp(Vector2 Origin, Vector2 topLeft, Color topLeftColor, Vector2 topRight, Color topRightColor,
             Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor);
         public void StrokeLineSegment(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness = 1.0f);

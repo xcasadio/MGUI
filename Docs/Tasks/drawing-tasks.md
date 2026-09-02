@@ -59,7 +59,7 @@ Terminer le travail restant du pipeline de formes et de paints decrit dans `Docs
 
 **Commit recommande** : `feat(drawing): add shape-aware hit testing to MGBoxShape`
 
-### Tache 3 — ⚪ Etendre les paints textures aux meshes arrondis (projection UV)
+### Tache 3 — ✅ Etendre les paints textures aux meshes arrondis (projection UV)
 
 **But** : supprimer les derniers fallbacks rectangulaires des paints textures en projetant les UVs sur la geometrie arrondie fournie.
 
@@ -88,3 +88,9 @@ Items de suivi ouverts par les taches 1 a 3 (voir `Docs/drawing-architecture.md`
 
 - Paints partages par reference entre plusieurs elements (`MGDockAutoHideStrip.ButtonBackgroundBrush`, `MGTreeView.SelectionBackgroundBrush`, `MGListBox.AlternatingRowBackgrounds`, et tout border brush partage) : tickes une fois par element consommateur, donc un paint stateful y avance N fois plus vite. Corriger a la racine (copie cote consommateur ou dedup par frame au niveau desktop).
 - `MGGraphView` (`GridLineBrush`, `MajorGridLineBrush`, `EdgeBrush`) : seule la couleur est extraite par `MGGraphSurfaceCanvas.ResolveBrushColor`. Si ces brushes sont un jour dessines, surcharger `GetFillBrushes()`. Tout nouvel emplacement `IFillBrush` / `VisualStateFillBrush` de controle doit etre classe (dessine directement / proxy / modele) et le test `FillBrushSlots_AreTickedOrDocumentedExclusions` mis a jour.
+- `MGNineSliceFillBrush` : decomposer les neuf patchs sur la geometrie arrondie via `DrawTexturedTriangleList` (repli rectangle commente dans `MGNineSliceFillBrush.Draw(..., MGBoxShape, MGBoxGeometry)`).
+- `MGHighlightFillBrush` : construire les masques d'exclusion sur le mesh au lieu de la soustraction de rectangles (repli commente dans l'overload shape-aware).
+- `MGHighlightBorderBrush`, modes `Progress` et `Scan` : parametrer l'animation le long du contour arrondi (`OuterContour` / `InnerContour`) au lieu du perimetre rectangulaire (repli commente dans l'overload shape-aware).
+- `MGTextureFillBrush` en mode `Tile` sur un sous-rectangle d'atlas : un sampler Wrap repeterait tout l'atlas ; tuiler par quads textures clippes a la forme ou par un atlas dedie (repli commente).
+- `MGTexturedBorderBrush` quand une epaisseur atteint le rayon du coin : `MGBoxGeometryBuilder.BuildBorderRingIndices` renvoie un anneau vide des que les contours externe et interne n'ont pas le meme nombre de points (arc interne effondre en un point), ce qui touche aussi les bordures solides (`DrawBorderRing` ne dessine rien). Emettre un contour interne de meme taille (points repetes) pour conserver l'anneau ; le paint texture garde d'ici la le chemin rectangle (repli commente).
+- `MGTexturedBorderBrush` arrondi : les tableaux par region sont alloues a chaque frame ; mettre en cache par geometrie et transformations si le profil le justifie.

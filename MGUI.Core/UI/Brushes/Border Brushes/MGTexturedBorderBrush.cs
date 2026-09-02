@@ -7,6 +7,7 @@ using MonoGame.Extended;
 using System;
 using System.Linq;
 using MGUI.Core.UI.Shapes;
+using System.Collections.Generic;
 
 namespace MGUI.Core.UI.Brushes.Border_Brushes
 {
@@ -274,8 +275,220 @@ namespace MGUI.Core.UI.Brushes.Border_Brushes
             }
         }
 
+        private enum BorderRegion
+        {
+            TopLeft,
+            TopRight,
+            BottomRight,
+            BottomLeft,
+            Top,
+            Right,
+            Bottom,
+            Left,
+        }
+
+        private const float RegionTolerance = 0.01f;
+
+        /// <summary>Rounded path: maps the edge texture on the straight segments of the border ring and the corner texture on its arcs, using
+        /// <see cref="MGBoxGeometry.OuterContour"/>, <see cref="MGBoxGeometry.InnerContour"/> and <see cref="MGBoxGeometry.BorderRingIndices"/>.<para/>
+        /// Rules (the geometry is never rebuilt here): ring quad i lies between outer contour vertices i and i+1; a quad whose two outer vertices belong
+        /// to the same corner square (r x r, inclusive) is a corner quad, any other quad belongs to the side nearest to its outer midpoint. Each region has
+        /// a rectangle (corner square, or the straight edge between the arcs, as thick as the border) onto which the texture is stretched; rotations and
+        /// reflections of <see cref="Transforms"/> are applied around that rectangle's centre exactly like the rectangle path fits the rotated sprite.<para/>
+        /// Falls back to the rectangle path, on purpose and documented (Docs/Tasks/drawing-tasks.md, Tache 4), when the geometry uses the rectangle fast
+        /// path or when it has no ring mesh (a border thickness reaching the corner radius collapses the inner arc, see MGBoxGeometryBuilder.BuildBorderRingIndices).</summary>
         public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
-            => Draw(DA, Element, Shape.OuterBounds, Shape.NormalizedBorderThickness);
+        {
+            Thickness thickness = Shape.NormalizedBorderThickness;
+            if (Geometry.UsesRectangleFastPath || !Geometry.HasBorderRingMesh || thickness.IsEmpty())
+            {
+                //  Rectangle fast path (identical legacy rendering), or documented fallback when the ring mesh is empty (Tache 4).
+                Draw(DA, Element, Shape.OuterBounds, thickness);
+                return;
+            }
+
+            IUIImageResource edgeImage = EdgeTexture.Image;
+            IUIImageResource cornerImage = CornerTexture.Image;
+            bool drawEdges = edgeImage?.IsDisposed == false;
+            bool drawCorners = cornerImage?.IsDisposed == false;
+            if (!drawEdges && !drawCorners)
+            {
+                return;
+            }
+
+            float opacity = DA.Opacity * this.Opacity;
+            Rectangle bounds = Shape.OuterBounds;
+            MGCornerRadius radius = Shape.NormalizedCornerRadius;
+            IReadOnlyList<Vector2> vertices = Geometry.Vertices;
+            IReadOnlyList<int> ringIndices = Geometry.BorderRingIndices;
+            int outerCount = Geometry.OuterContourVertexCount;
+            int quadCount = ringIndices.Count / 6;
+            if (outerCount < 2 || quadCount == 0)
+            {
+                return;
+            }
+
+            BorderRegion[] regionOfQuad = new BorderRegion[quadCount];
+            for (int quad = 0; quad < quadCount; quad++)
+            {
+                Vector2 start = vertices[quad];
+                Vector2 end = vertices[(quad + 1) % outerCount];
+                BorderRegion? startCorner = GetCorner(start, bounds, radius);
+                BorderRegion? endCorner = GetCorner(end, bounds, radius);
+                regionOfQuad[quad] = startCorner.HasValue && startCorner == endCorner
+                    ? startCorner.Value
+                    : GetNearestEdge((start + end) / 2f, bounds);
+            }
+
+            Vector2 origin = DA.Offset.ToVector2();
+            int[] remap = new int[vertices.Count];
+            List<Vector2> regionVertices = new();
+            List<Vector2> regionUVs = new();
+            List<int> regionIndices = new();
+
+            if (drawCorners)
+            {
+                Color cornerColor = this.CornerColor * opacity * CornerTexture.Opacity;
+                CornerTransforms corners = Transforms.CornerTransforms;
+                EmitRegion(DA, BorderRegion.TopLeft, new RectangleF(bounds.Left, bounds.Top, radius.TopLeft, radius.TopLeft), corners.TopLeftRotation, corners.TopLeftReflections, CornerTexture, cornerImage, cornerColor);
+                EmitRegion(DA, BorderRegion.TopRight, new RectangleF(bounds.Right - radius.TopRight, bounds.Top, radius.TopRight, radius.TopRight), corners.TopRightRotation, corners.TopRightReflections, CornerTexture, cornerImage, cornerColor);
+                EmitRegion(DA, BorderRegion.BottomRight, new RectangleF(bounds.Right - radius.BottomRight, bounds.Bottom - radius.BottomRight, radius.BottomRight, radius.BottomRight), corners.BottomRightRotation, corners.BottomRightReflections, CornerTexture, cornerImage, cornerColor);
+                EmitRegion(DA, BorderRegion.BottomLeft, new RectangleF(bounds.Left, bounds.Bottom - radius.BottomLeft, radius.BottomLeft, radius.BottomLeft), corners.BottomLeftRotation, corners.BottomLeftReflections, CornerTexture, cornerImage, cornerColor);
+            }
+
+            if (drawEdges)
+            {
+                Color edgeColor = this.EdgeColor * opacity * EdgeTexture.Opacity;
+                EdgeTransforms edges = Transforms.EdgeTransforms;
+                EmitRegion(DA, BorderRegion.Top, new RectangleF(bounds.Left + radius.TopLeft, bounds.Top, bounds.Width - radius.TopLeft - radius.TopRight, thickness.Top), edges.TopRotation, edges.TopReflections, EdgeTexture, edgeImage, edgeColor);
+                EmitRegion(DA, BorderRegion.Right, new RectangleF(bounds.Right - thickness.Right, bounds.Top + radius.TopRight, thickness.Right, bounds.Height - radius.TopRight - radius.BottomRight), edges.RightRotation, edges.RightReflections, EdgeTexture, edgeImage, edgeColor);
+                EmitRegion(DA, BorderRegion.Bottom, new RectangleF(bounds.Left + radius.BottomLeft, bounds.Bottom - thickness.Bottom, bounds.Width - radius.BottomLeft - radius.BottomRight, thickness.Bottom), edges.BottomRotation, edges.BottomReflections, EdgeTexture, edgeImage, edgeColor);
+                EmitRegion(DA, BorderRegion.Left, new RectangleF(bounds.Left, bounds.Top + radius.TopLeft, thickness.Left, bounds.Height - radius.TopLeft - radius.BottomLeft), edges.LeftRotation, edges.LeftReflections, EdgeTexture, edgeImage, edgeColor);
+            }
+
+            void EmitRegion(ElementDrawArgs args, BorderRegion region, RectangleF regionRect, float rotation, SpriteEffects reflections,
+                MGTextureData textureData, IUIImageResource image, Color color)
+            {
+                Array.Fill(remap, -1);
+                regionVertices.Clear();
+                regionUVs.Clear();
+                regionIndices.Clear();
+
+                for (int quad = 0; quad < quadCount; quad++)
+                {
+                    if (regionOfQuad[quad] != region)
+                    {
+                        continue;
+                    }
+
+                    for (int k = 0; k < 6; k++)
+                    {
+                        int vertexIndex = ringIndices[quad * 6 + k];
+                        if (remap[vertexIndex] < 0)
+                        {
+                            remap[vertexIndex] = regionVertices.Count;
+                            Vector2 vertex = vertices[vertexIndex];
+                            regionVertices.Add(vertex);
+                            regionUVs.Add(GetTextureCoordinate(vertex, regionRect, rotation, reflections, textureData, image));
+                        }
+
+                        regionIndices.Add(remap[vertexIndex]);
+                    }
+                }
+
+                if (regionIndices.Count >= 3)
+                {
+                    args.Context.DrawTexturedTriangleList(origin, image, regionVertices.ToArray(), regionUVs.ToArray(), regionIndices.ToArray(), color);
+                }
+            }
+        }
+
+        /// <summary>Inclusive membership of an outer contour vertex to a corner square (r x r), with a small tolerance for the float arc points.</summary>
+        private static BorderRegion? GetCorner(Vector2 vertex, Rectangle bounds, MGCornerRadius radius)
+        {
+            if (radius.TopLeft > 0 && vertex.X <= bounds.Left + radius.TopLeft + RegionTolerance && vertex.Y <= bounds.Top + radius.TopLeft + RegionTolerance)
+            {
+                return BorderRegion.TopLeft;
+            }
+
+            if (radius.TopRight > 0 && vertex.X >= bounds.Right - radius.TopRight - RegionTolerance && vertex.Y <= bounds.Top + radius.TopRight + RegionTolerance)
+            {
+                return BorderRegion.TopRight;
+            }
+
+            if (radius.BottomRight > 0 && vertex.X >= bounds.Right - radius.BottomRight - RegionTolerance && vertex.Y >= bounds.Bottom - radius.BottomRight - RegionTolerance)
+            {
+                return BorderRegion.BottomRight;
+            }
+
+            if (radius.BottomLeft > 0 && vertex.X <= bounds.Left + radius.BottomLeft + RegionTolerance && vertex.Y >= bounds.Bottom - radius.BottomLeft - RegionTolerance)
+            {
+                return BorderRegion.BottomLeft;
+            }
+
+            return null;
+        }
+
+        /// <summary>Side whose line is nearest to <paramref name="point"/> (the midpoint of a quad's outer vertices).</summary>
+        private static BorderRegion GetNearestEdge(Vector2 point, Rectangle bounds)
+        {
+            float top = Math.Abs(point.Y - bounds.Top);
+            float right = Math.Abs(point.X - bounds.Right);
+            float bottom = Math.Abs(point.Y - bounds.Bottom);
+            float left = Math.Abs(point.X - bounds.Left);
+
+            BorderRegion nearest = BorderRegion.Top;
+            float distance = top;
+            if (right < distance) { nearest = BorderRegion.Right; distance = right; }
+            if (bottom < distance) { nearest = BorderRegion.Bottom; distance = bottom; }
+            if (left < distance) { nearest = BorderRegion.Left; }
+            return nearest;
+        }
+
+        /// <summary>Normalized texture coordinate of <paramref name="vertex"/> for a region stretched over <paramref name="regionRect"/>:
+        /// rotation about the rectangle centre with the same fitted size as the rectangle path (bounding box of the rotated rectangle), then the
+        /// <see cref="SpriteEffects"/> reflections, clamped to [0,1], then mapped into the texture's source rectangle.</summary>
+        private static Vector2 GetTextureCoordinate(Vector2 vertex, RectangleF regionRect, float rotation, SpriteEffects reflections, MGTextureData textureData, IUIImageResource image)
+        {
+            Vector2 local;
+            if (rotation.IsAlmostZero())
+            {
+                local = new Vector2(
+                    regionRect.Width > 0 ? (vertex.X - regionRect.X) / regionRect.Width : 0f,
+                    regionRect.Height > 0 ? (vertex.Y - regionRect.Y) / regionRect.Height : 0f);
+            }
+            else
+            {
+                RectangleF rotated = regionRect.CreateTransformedF(Matrix.CreateRotationZ(rotation));
+                float fittedWidth = Math.Abs(rotated.Width) > 0 ? Math.Abs(rotated.Width) : regionRect.Width;
+                float fittedHeight = Math.Abs(rotated.Height) > 0 ? Math.Abs(rotated.Height) : regionRect.Height;
+                Vector2 center = new(regionRect.Center.X, regionRect.Center.Y);
+                Vector2 delta = vertex - center;
+                float cos = (float)Math.Cos(rotation);
+                float sin = (float)Math.Sin(rotation);
+                //  Undo the sprite rotation to find where the vertex falls inside the fitted, unrotated sprite.
+                Vector2 unrotated = new(delta.X * cos + delta.Y * sin, -delta.X * sin + delta.Y * cos);
+                local = new Vector2(
+                    fittedWidth > 0 ? 0.5f + unrotated.X / fittedWidth : 0f,
+                    fittedHeight > 0 ? 0.5f + unrotated.Y / fittedHeight : 0f);
+            }
+
+            if ((reflections & SpriteEffects.FlipHorizontally) != 0)
+            {
+                local.X = 1f - local.X;
+            }
+
+            if ((reflections & SpriteEffects.FlipVertically) != 0)
+            {
+                local.Y = 1f - local.Y;
+            }
+
+            local.X = Math.Clamp(local.X, 0f, 1f);
+            local.Y = Math.Clamp(local.Y, 0f, 1f);
+
+            Rectangle source = textureData.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
+            return new Vector2((source.X + local.X * source.Width) / image.Width, (source.Y + local.Y * source.Height) / image.Height);
+        }
 
         public IBorderBrush Copy() => new MGTexturedBorderBrush(EdgeTexture, EdgeColor, CornerTexture, CornerColor, Transforms, Opacity);
     }

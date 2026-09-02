@@ -1,3 +1,4 @@
+using MGUI.Shared.Assets;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
@@ -63,6 +64,35 @@ namespace MGUI.Core.UI.Shapes
             }
 
             DrawTriangleList(drawContext, origin, geometry.Vertices, geometry.BorderRingIndices, color);
+        }
+
+        /// <summary>Textured counterpart of <see cref="FillRoundedRectangle(IUIDrawContext, Vector2, MGBoxGeometry, Color)"/>: emits the fill mesh of
+        /// <paramref name="geometry"/> through <see cref="IUIDrawContext.DrawTexturedTriangleList"/>. <paramref name="textureCoordinates"/> holds one
+        /// normalized coordinate per entry of <see cref="MGBoxGeometry.Vertices"/> (the paint owns the UV mapping rules).<para/>
+        /// No rectangle fast path is decided here: textured paints keep their own rectangle draw path when <see cref="MGBoxGeometry.UsesRectangleFastPath"/> is true.</summary>
+        public static void FillTexturedRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxGeometry geometry, IUIImageResource texture,
+            System.Collections.Generic.IReadOnlyList<Vector2> textureCoordinates, Color color)
+        {
+            if (!geometry.HasFillMesh)
+            {
+                return;
+            }
+
+            drawContext.DrawTexturedTriangleList(origin, texture, geometry.Vertices, textureCoordinates, geometry.FillIndices, color);
+        }
+
+        /// <summary>Textured counterpart of <see cref="DrawBorderRing(IUIDrawContext, Vector2, MGBoxGeometry, Color)"/>: emits the whole border ring of
+        /// <paramref name="geometry"/> with a single texture. <paramref name="textureCoordinates"/> holds one normalized coordinate per entry of
+        /// <see cref="MGBoxGeometry.Vertices"/>. Paints that need distinct textures per edge/corner emit their own index subsets instead.</summary>
+        public static void DrawTexturedBorderRing(this IUIDrawContext drawContext, Vector2 origin, MGBoxGeometry geometry, IUIImageResource texture,
+            System.Collections.Generic.IReadOnlyList<Vector2> textureCoordinates, Color color)
+        {
+            if (!geometry.Shape.HasBorder || !geometry.HasBorderRingMesh)
+            {
+                return;
+            }
+
+            drawContext.DrawTexturedTriangleList(origin, texture, geometry.Vertices, textureCoordinates, geometry.BorderRingIndices, color);
         }
 
         private static void DrawTriangleList(IUIDrawContext drawContext, Vector2 origin, System.Collections.Generic.IReadOnlyList<Vector2> vertices,

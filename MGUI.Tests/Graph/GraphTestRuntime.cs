@@ -71,6 +71,9 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     public List<GraphStrokeLineCall> StrokeLineCalls { get; } = new();
     public List<GraphFillTriangleCall> FillTriangleCalls { get; } = new();
     public List<GraphStrokeAndFillCircleCall> StrokeAndFillCircleCalls { get; } = new();
+    public List<GraphDrawTextureToCall> DrawTextureToCalls { get; } = new();
+    public List<GraphDrawTextureAtCall> DrawTextureAtCalls { get; } = new();
+    public List<GraphTexturedTriangleListCall> TexturedTriangleListCalls { get; } = new();
 
     public GraphNoOpDrawTransaction(IUIDesktopRuntime renderer, DrawSettings settings)
     {
@@ -78,13 +81,16 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         CurrentSettings = settings;
     }
 
-    public void DrawTextureTo(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask) { }
+    public void DrawTextureTo(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask)
+        => DrawTextureToCalls.Add(new(Texture, Source, Destination, ColorMask));
 
     public void DrawTextureTo(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask,
-        Vector2 Origin, float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None) { }
+        Vector2 Origin, float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
+        => DrawTextureToCalls.Add(new(Texture, Source, Destination, ColorMask));
 
     public void DrawTextureAt(IUIImageResource Texture, Rectangle? Source, Vector2 Destination, Color ColorMask,
-        Vector2 Origin, float Rotation = 0f, float ScaleX = 1f, float ScaleY = 1f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None) { }
+        Vector2 Origin, float Rotation = 0f, float ScaleX = 1f, float ScaleY = 1f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
+        => DrawTextureAtCalls.Add(new(Texture, Source, Destination, ColorMask, Rotation, ScaleX, ScaleY));
 
     public void DrawTextViaEngine(ResolvedFont Font, string Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
         float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None) { }
@@ -105,6 +111,10 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
 
     public void FillTriangle(Vector2 Origin, Vector2 v0, Color c0, Vector2 v1, Color c1, Vector2 v2, Color c2)
         => FillTriangleCalls.Add(new(Origin, v0, c0, v1, c1, v2, c2));
+
+    public void DrawTexturedTriangleList(Vector2 Origin, IUIImageResource Texture, IReadOnlyList<Vector2> Vertices, IReadOnlyList<Vector2> TextureCoordinates,
+        IReadOnlyList<int> Indices, Color ColorMask)
+        => TexturedTriangleListCalls.Add(new(Origin, Texture, Vertices.ToArray(), TextureCoordinates.ToArray(), Indices.ToArray(), ColorMask, CurrentSettings.SamplerType, _currentClipBounds));
 
     public void FillQuadrilateralLinearClamp(Vector2 Origin, Vector2 topLeft, Color topLeftColor, Vector2 topRight, Color topRightColor,
         Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor) { }
@@ -288,3 +298,6 @@ internal readonly record struct GraphFillRectangleCall(Vector2 Origin, Rectangle
 internal readonly record struct GraphStrokeAndFillRectangleCall(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, Thickness StrokeThickness);
 internal readonly record struct GraphFillTriangleCall(Vector2 Origin, Vector2 V0, Color C0, Vector2 V1, Color C1, Vector2 V2, Color C2);
 internal readonly record struct GraphStrokeAndFillCircleCall(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness, int NumSides);
+internal readonly record struct GraphDrawTextureToCall(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask);
+internal readonly record struct GraphDrawTextureAtCall(IUIImageResource Texture, Rectangle? Source, Vector2 Destination, Color ColorMask, float Rotation, float ScaleX, float ScaleY);
+internal readonly record struct GraphTexturedTriangleListCall(Vector2 Origin, IUIImageResource Texture, Vector2[] Vertices, Vector2[] TextureCoordinates, int[] Indices, Color ColorMask, SamplerType SamplerType, Rectangle? ClipBounds);

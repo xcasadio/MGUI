@@ -128,6 +128,7 @@ public class EngineOwnedRenderingProofTests
         StrokeAndFillPolygon,
         FillTriangle,
         FillQuadrilateralLinearClamp,
+        DrawTexturedTriangleList,
         StrokeLineSegment,
         FillCircle,
         StrokeCircle,
@@ -276,6 +277,10 @@ public class EngineOwnedRenderingProofTests
         public void FillQuadrilateralLinearClamp(Vector2 Origin, Vector2 topLeft, Color topLeftColor, Vector2 topRight, Color topRightColor,
             Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor)
             => Record(ProofDrawCallKind.FillQuadrilateralLinearClamp, ProofDrawCallCategory.Shape, vertexCount: 4);
+
+        public void DrawTexturedTriangleList(Vector2 Origin, IUIImageResource Texture, IReadOnlyList<Vector2> Vertices, IReadOnlyList<Vector2> TextureCoordinates,
+            IReadOnlyList<int> Indices, Color ColorMask)
+            => Record(ProofDrawCallKind.DrawTexturedTriangleList, ProofDrawCallCategory.Image, assetId: DescribeImage(Texture), vertexCount: Vertices?.Count ?? 0);
 
         public void StrokeLineSegment(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness = 1.0f)
             => Record(ProofDrawCallKind.StrokeLineSegment, ProofDrawCallCategory.Shape, vertexCount: 2);

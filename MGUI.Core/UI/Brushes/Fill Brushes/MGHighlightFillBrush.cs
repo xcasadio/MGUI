@@ -317,7 +317,8 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
 		public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
 		{
-			// Phase 1 limitation: highlight masks still operate on rectangular exclusion regions.
+			//  Documented limitation (Docs/drawing-architecture.md, Limites connues; Docs/Tasks/drawing-tasks.md, Tache 4): the highlight masks are
+			//  built by rectangle subtraction, so the exclusion regions stay rectangular and the rectangle path is kept on purpose.
 			Draw(DA, Element, Shape.OuterBounds);
 		}
 

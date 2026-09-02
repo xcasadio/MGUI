@@ -198,7 +198,8 @@ namespace MGUI.Core.UI.Brushes.Fill_Brushes
 
         public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
         {
-            // Phase 1 limitation: nine-slice paints still target rectangular destinations until rounded patch decomposition exists.
+            //  Documented limitation (Docs/drawing-architecture.md, Limites connues; Docs/Tasks/drawing-tasks.md, Tache 4): nine-slice paints still
+            //  target rectangular destinations because the nine patches are not yet decomposed over the rounded geometry, so the rectangle path is kept on purpose.
             Draw(DA, Element, Shape.OuterBounds);
         }
     }
