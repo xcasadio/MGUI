@@ -542,7 +542,7 @@ namespace MGUI.Core.UI
 
         private UIInputMode ResolveSemanticInputMode(InputActionSource source, UIInputMode currentMode)
         {
-            bool isTextEntryFocused = FocusedKeyboardHandler is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
+            bool isTextEntryFocused = FocusedKeyboardHandler is ITextEntryHost focusedTextEntryHost && !focusedTextEntryHost.IsReadonly;
             return source switch
             {
                 InputActionSource.Mouse => UIInputMode.Pointer,
@@ -555,7 +555,7 @@ namespace MGUI.Core.UI
         public bool ShouldCaptureGameplayInput()
             => OverlayHost?.IsModal == true && OverlayHost.ActiveOverlay != null
             || ActiveContextMenu != null
-            || FocusedKeyboardHandler is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
+            || FocusedKeyboardHandler is ITextEntryHost focusedTextEntryHost && !focusedTextEntryHost.IsReadonly;
 
         public bool TryHandleInputAction(InputActionEvent actionEvent)
         {
@@ -951,16 +951,16 @@ namespace MGUI.Core.UI
                     LastFocusChangeSource = value != null && QueuedFocusedKeyboardHandler == value && QueuedFocusedKeyboardHandlerSource.HasValue
                         ? QueuedFocusedKeyboardHandlerSource.Value
                         : KeyboardFocusSource.Programmatic;
-                    if (Previous is MGTextBox PreviousTextBox)
+                    if (Previous is ITextEntryHost PreviousTextEntryHost)
                     {
-                        PreviousTextBox.ReadonlyChanged -= TextBox_ReadonlyChanged;
+                        PreviousTextEntryHost.ReadonlyChanged -= TextBox_ReadonlyChanged;
                     }
 
                     State.FocusedKeyboardHandler = value;
 
-                    if (FocusedKeyboardHandler is MGTextBox CurrentTextBox)
+                    if (FocusedKeyboardHandler is ITextEntryHost CurrentTextEntryHost)
                     {
-                        CurrentTextBox.ReadonlyChanged += TextBox_ReadonlyChanged;
+                        CurrentTextEntryHost.ReadonlyChanged += TextBox_ReadonlyChanged;
                     }
 
                     if (FocusedKeyboardHandler?.SelfOrParentWindow != null)
@@ -1000,7 +1000,7 @@ namespace MGUI.Core.UI
 
         private void TextBox_ReadonlyChanged(object sender, bool IsReadonly)
         {
-            if (sender is MGTextBox TextBox && IsReadonly && FocusedKeyboardHandler == TextBox)
+            if (sender is ITextEntryHost TextEntryHost && IsReadonly && FocusedKeyboardHandler == TextEntryHost)
             {
                 FocusedKeyboardHandler = null;
             }
@@ -1381,7 +1381,7 @@ namespace MGUI.Core.UI
                 SanitizeKeyboardFocusState();
 
                 MGElement focusCandidate = QueuedFocusedKeyboardHandler ?? FocusedKeyboardHandler;
-                bool isTextEntryFocused = focusCandidate is MGTextBox focusedTextBox && !focusedTextBox.IsReadonly;
+                bool isTextEntryFocused = focusCandidate is ITextEntryHost focusedTextEntryHost && !focusedTextEntryHost.IsReadonly;
                 bool hasNavigationActivity = HasKeyboardActivity(InputTracker.Keyboard) || InputTracker.GamePad.HasActivity();
                 ActiveInputMode = ResolveInputMode(HasMouseActivity(InputTracker.Mouse), hasNavigationActivity, isTextEntryFocused, ActiveInputMode);
                 QueueAutoFocusIfNeeded(true);

@@ -29,7 +29,7 @@ namespace MGUI.Core.UI
         Overwrite
     }
 
-    public class MGTextBox : MGElement
+    public class MGTextBox : MGElement, ITextEntryHost
     {
         public const string BorderPartName = "PART_Border";
         public const string TextBlockPartName = "PART_TextBlock";
@@ -68,6 +68,8 @@ namespace MGUI.Core.UI
 
         internal bool ShouldPreserveTextEntryKey(Keys key)
             => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
+
+        bool ITextEntryHost.ShouldPreserveTextEntryKey(Keys key) => ShouldPreserveTextEntryKey(key);
 
         #region Border
         /// <summary>Provides direct access to this element's border.</summary>
