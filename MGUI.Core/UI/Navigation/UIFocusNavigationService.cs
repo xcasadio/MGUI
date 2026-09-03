@@ -213,7 +213,7 @@ namespace MGUI.Core.UI.Navigation
                 ? Desktop.FocusedKeyboardHandler
                 : null;
             bool shouldPreserveTextEntryKey = ShouldPreserveTextEntryKey(e.Key);
-            if (!FocusInputPolicy.TryGetNavigationAction(e.Key, e.Tracker.IsShiftDown, focusedElement is MGTextBox, shouldPreserveTextEntryKey, out UINavigationAction action))
+            if (!FocusInputPolicy.TryGetNavigationAction(e.Key, e.Tracker.IsShiftDown, focusedElement is ITextEntryHost, shouldPreserveTextEntryKey, out UINavigationAction action))
             {
                 return false;
             }
@@ -438,8 +438,8 @@ namespace MGUI.Core.UI.Navigation
         private bool IsNavigationTarget(MGElement element)
             => Desktop.IsNavigationTarget(element);
 
-        /// <summary>True when <paramref name="key"/> is a key that the currently focused <see cref="MGTextBox"/>
-        /// reserves for text editing (per <see cref="MGTextBox.ShouldPreserveTextEntryKey(Keys)"/>) and must
+        /// <summary>True when <paramref name="key"/> is a key that the currently focused <see cref="ITextEntryHost"/>
+        /// reserves for text editing (per <see cref="ITextEntryHost.ShouldPreserveTextEntryKey(Keys)"/>) and must
         /// therefore never be reinterpreted as UI navigation, on either the raw or the semantic input path.</summary>
         private bool ShouldPreserveTextEntryKey(Keys? key)
         {
@@ -451,7 +451,7 @@ namespace MGUI.Core.UI.Navigation
             MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
                 ? Desktop.FocusedKeyboardHandler
                 : null;
-            return focusedElement is MGTextBox focusedTextBox && focusedTextBox.ShouldPreserveTextEntryKey(keyValue);
+            return focusedElement is ITextEntryHost focusedTextEntryHost && focusedTextEntryHost.ShouldPreserveTextEntryKey(keyValue);
         }
 
         private static void EnsureNavigationTargetVisible(MGElement focusedElement)
