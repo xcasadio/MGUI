@@ -679,6 +679,9 @@ namespace MGUI.Core.UI
             BorderElement = Structure.Parts[BorderPartName] as MGBorder;
             DropdownArrowElement = Structure.Parts[DropdownArrowPartName] as MGContentPresenter;
             Dropdown = Structure.Parts[DropdownWindowPartName] as MGWindow;
+            //  Excluded from window click-activation (decision utilisateur, Docs/input-window-activation-design.md section 3.a):
+            //  the dropdown is a nested popup window; clicking an item inside it must not reorder nested windows.
+            Dropdown.ActivatesOnClick = false;
             DropdownHeaderPresenter = Structure.Parts[DropdownHeaderPresenterPartName] as MGContentPresenter;
             DropdownFooterPresenter = Structure.Parts[DropdownFooterPresenterPartName] as MGContentPresenter;
             DropdownStackPanel = Structure.Parts[DropdownItemsPanelPartName] as MGStackPanel;

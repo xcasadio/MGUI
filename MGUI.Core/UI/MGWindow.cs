@@ -893,6 +893,32 @@ namespace MGUI.Core.UI
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _ActivatesOnClick = true;
+        /// <summary>If true, pressing the left mouse button inside this <see cref="MGWindow"/> brings it to the front
+        /// (<see cref="MGDesktop.BringToFront(MGWindow)"/> / <see cref="MGWindow.BringToFront(MGWindow)"/>) and moves keyboard
+        /// focus into it, resolved the same way as an existing focus resumption (<see cref="MGDesktop.ResolveAutoFocusTarget(MGElement, bool)"/>
+        /// with <c>preferWindowDefault: false</c>): the last-focused element in this window, then <see cref="DefaultFocusElement"/>,
+        /// then the first focusable element. If the click itself already focused an element (e.g. clicking a focusable control),
+        /// that focus takes precedence. If resolution finds no valid target, the current focus is left unchanged.<para/>
+        /// Has no effect while blocked by an active modal window or modal overlay (<see cref="MGDesktop.IsBlockedByModalOrOverlay(MGElement)"/>).<para/>
+        /// Default value: true<para/>
+        /// Popup-like <see cref="MGWindow"/> subtypes that own nested windows of their own (<see cref="MGContextMenu"/>, <see cref="MGToolTip"/>,
+        /// the <see cref="MGComboBox{TItemType}"/> dropdown, <see cref="MGColorPickerPopup"/>) set this to false so that clicking
+        /// inside them does not reorder their own nested windows.</summary>
+        public bool ActivatesOnClick
+        {
+            get => _ActivatesOnClick;
+            set
+            {
+                if (_ActivatesOnClick != value)
+                {
+                    _ActivatesOnClick = value;
+                    NPC(nameof(ActivatesOnClick));
+                }
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsDraggable = true;
         /// <summary>True if this <see cref="MGWindow"/> can be moved by dragging the title bar.<para/>
         /// Warning: You may need to set <see cref="IsTitleBarVisible"/> to true to utilize this feature.</summary>
@@ -1532,6 +1558,38 @@ namespace MGUI.Core.UI
                     if (IsModalWindow)
                     {
                         e.SetHandledBy(this, false);
+                    }
+                };
+
+                //  Window activation on click (decision utilisateur, Docs/input-window-activation-design.md section 3.a):
+                //  bring this window to front and move keyboard focus into it, guarded by the existing modal guard so it
+                //  stays inert behind an active modal window / modal overlay. Cross-window occlusion is already handled
+                //  upstream: a press over a point occluded by a higher window is consumed by that higher window's own
+                //  catch-all handlers above (e.SetHandledBy) before this window's MouseHandler ever sees it, so this
+                //  handler naturally never fires for an occluded press - no extra IsOccludedAtMousePos check is needed here.
+                MouseHandler.LMBPressedInside += (sender, e) =>
+                {
+                    if (!ActivatesOnClick || Desktop.IsBlockedByModalOrOverlay(this))
+                    {
+                        return;
+                    }
+
+                    if (ParentWindow != null)
+                    {
+                        ParentWindow.BringToFront(this);
+                    }
+                    else
+                    {
+                        Desktop.BringToFront(this);
+                    }
+
+                    //  If the click itself already focused an element (e.g. a focusable control was clicked, queuing its
+                    //  own focus via MGElement.IsFocusable's auto-focus-on-click, which already ran since content children
+                    //  are updated before this window's own MouseHandler), that focus wins over the resolved target below.
+                    if (Desktop.QueuedFocusedKeyboardHandler == null)
+                    {
+                        MGElement autoFocusTarget = Desktop.ResolveAutoFocusTarget(this, false);
+                        autoFocusTarget?.Focus(KeyboardFocusSource.Pointer);
                     }
                 };
 

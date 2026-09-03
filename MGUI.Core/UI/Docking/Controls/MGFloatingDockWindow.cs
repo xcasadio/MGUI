@@ -96,8 +96,9 @@ public class MGFloatingDockWindow : MGWindow
             }
         };
 
-        // Z-order: bring to front when the user clicks anywhere on this window
-        MouseHandler.LMBPressedInside += (_, _) => BringToFront();
+        // Z-order: bring to front when the user clicks anywhere on this window.
+        // Migrated to the generic MGWindow.ActivatesOnClick mechanism (default true) so the modal guard
+        // applies uniformly; see Docs/input-window-activation-design.md section 3.a.
 
         SetContent(_tabGroup);
     }

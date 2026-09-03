@@ -683,6 +683,9 @@ namespace MGUI.Core.UI
                 IsDraggable = false;
                 AllowsClickThrough = false;
                 IsCloseButtonVisible = false;
+                //  Excluded from window click-activation (decision utilisateur, Docs/input-window-activation-design.md section 3.a):
+                //  MGContextMenu owns nested MGContextMenu windows of its own, which would otherwise be reordered on every internal click.
+                ActivatesOnClick = false;
 
                 ItemsPanel = new(this, Orientation.Vertical);
                 RegisterTemplatePart(ItemsPanelPartName, ItemsPanel);

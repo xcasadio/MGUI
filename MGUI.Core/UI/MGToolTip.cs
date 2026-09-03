@@ -86,6 +86,9 @@ namespace MGUI.Core.UI
                 IsUserResizable = false;
                 IsTitleBarVisible = false;
                 IsCloseButtonVisible = false;
+                //  Excluded from window click-activation (decision utilisateur, Docs/input-window-activation-design.md section 3.a):
+                //  a tooltip is a popup, not an interactive window whose click should reorder nested windows.
+                ActivatesOnClick = false;
 
 #if NEVER
                 Host.OnLayoutBoundsChanged += (sender, e) =>

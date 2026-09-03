@@ -1044,7 +1044,7 @@ namespace MGUI.Core.UI
             ClearQueuedFocusedKeyboardHandler();
         }
 
-        private MGElement ResolveAutoFocusTarget(MGElement root, bool preferWindowDefault)
+        internal MGElement ResolveAutoFocusTarget(MGElement root, bool preferWindowDefault)
         {
             if (root is not MGWindow window)
             {

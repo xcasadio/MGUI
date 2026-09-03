@@ -41,6 +41,9 @@ namespace MGUI.Core.UI
                 IsTitleBarVisible = false,
                 IsCloseButtonVisible = false,
             };
+            //  Excluded from window click-activation (decision utilisateur, Docs/input-window-activation-design.md section 3.a):
+            //  the color picker popup is a nested popup window; clicking inside it must not reorder nested windows.
+            PopupWindow.ActivatesOnClick = false;
 
             Picker = new MGColorPicker(PopupWindow, popupOptions)
             {

@@ -20,7 +20,15 @@ namespace MGUI.Tests.Input;
 /// to the window below, hover follows the cross-window occlusion decision from tache 4, keyboard is routed by
 /// focus rather than z-order, <see cref="MGWindow.AllowsClickThrough"/> lets unconsumed events fall through, and
 /// the current (not-fixed-here) behavior of <see cref="MGComboBox{TItemType}"/> dropdown light-dismiss when a
-/// higher window's own closure consumes the outside release is documented as a known limitation.
+/// higher window's own closure consumes the outside release is documented as a known limitation.<para/>
+/// Deliberately reviewed for task 2 of the input-activation slice (<see cref="MGWindow.ActivatesOnClick"/>, default
+/// <see langword="true"/>): none of the tests below needed adjustment, since none assert on <see cref="MGDesktop.Windows"/>
+/// ordering (the thing click-activation changes) - they assert press/release/scroll/drag consumption counts,
+/// <see cref="MGElement.HoveredElement"/>/<see cref="MGWindow.PressedElement"/>, keyboard routing by focus, and
+/// <see cref="MGComboBox{TItemType}.IsDropdownOpen"/>, none of which click-activation touches. The dedicated
+/// bidirectional z-order coverage for the new default lives in <c>WindowActivationOnClickTests</c>
+/// (<see cref="MGUI.Tests.Input.WindowActivationOnClickTests"/>) and the docking migration regression in
+/// <see cref="MGUI.Tests.Input.FloatingDockWindowActivationTests"/>.
 /// </summary>
 public class OverlappingWindowsInputRoutingTests
 {
