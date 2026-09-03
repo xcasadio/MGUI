@@ -2,7 +2,7 @@
 
 ## Objectif
 
-La conception et les six decisions utilisateur sont deja validees et vivent dans
+La conception et les huit decisions utilisateur sont deja validees et vivent dans
 `Docs/input-window-activation-design.md` (section 5 pour le decoupage, section 6
 pour les decisions). Ce fichier ne fait que porter l'execution du lot valide : les
 slices 1 a 4 du decoupage, dans l'ordre. La slice 5 (point d'extension clavier de
@@ -20,7 +20,7 @@ Ce document est destine a un agent IA implementeur.
 - Ne pas faire de refactor hors perimetre.
 - Ajouter ou adapter des tests a chaque tache impliquant un changement de comportement.
 - Surfaces epinglees : les ensembles de membres de `IRenderHost`/`IUIDesktopRuntime` et des sous-chaines verbatim de `Game1.cs`/`MiniGame.cs` sont assertes par `RawInputSourceTests` et `HostRuntimeContractTests` — les lire avant d'editer ces fichiers.
-- Consequence de la tache 2 (defaut `ActivatesOnClick = true`) : toute fenetre existante gagne le cablage clic -> premier plan, y compris dans les tests headless qui pressent des boutons souris sur des fenetres superposees. Deux suites sont concernees et doivent etre revues deliberement (pas accidentellement) par la tache 2 : `MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs` et `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs`.
+- Consequence de la tache 2 (defaut `ActivatesOnClick = true`) : toute fenetre existante gagne le cablage clic -> premier plan, y compris dans les tests headless qui pressent des boutons souris sur des fenetres superposees. Une seule suite est concernee et doit etre revue deliberement (pas accidentellement) par la tache 2 : `MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs`. `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs` ne presse jamais de bouton souris (son helper `Frame`, `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs:67-70`, n'utilise que `ButtonState.Released` pour les cinq boutons a chaque frame) : elle ne peut pas churner et ne doit pas etre modifiee par la tache 2.
 - Fait de faisabilite pour la slice 5 (reportee, information seulement) : `IKeyboardHandlerHost.HasKeyboardFocus()` a une implementation d'interface par defaut qui retourne `true` (`MGUI.Shared/Input/Keyboard/KeyboardTracker.cs:17`), tandis que `MGElement` la surcharge explicitement (`MGUI.Core/UI/MGElement.cs:1621`, `GetDesktop().FocusedKeyboardHandler == this`) — c'est ce qui rend `MGWindow.WindowKeyboardHandler` inerte aujourd'hui et ce qui permet au futur handler preview de la slice 5 de fonctionner sans toucher cet invariant.
 
 ## Legende de statut
@@ -66,23 +66,38 @@ Commit recommande:
 
 But:
 
-cabler l'activation de fenetre au clic hors du module docking, generalisee au niveau `MGWindow`, avec garde par overlay modal actif.
+cabler l'activation de fenetre au clic hors du module docking, generalisee au niveau `MGWindow`, avec deplacement du focus clavier resolu par le mecanisme existant, garde par overlay modal actif, et exclusion explicite des sous-types popup de `MGWindow`.
 
 Travail attendu:
 
-- ajouter `MGWindow.ActivatesOnClick` (defaut `true`, decision utilisateur) cablant un handler equivalent a l'ancien cablage local du docking, qui appelle `Desktop.BringToFront(this)` / `ParentWindow.BringToFront(this)` puis met a jour `ActiveWindow` (slice 1) ;
+- ajouter `MGWindow.ActivatesOnClick` (defaut `true`, decision utilisateur) cablant un handler equivalent a l'ancien cablage local du docking, qui appelle `Desktop.BringToFront(this)` / `ParentWindow.BringToFront(this)` puis deplace le focus clavier dans la fenetre cliquee selon la regle de resolution ci-dessous ; `ActiveWindow` (slice 1) reflete ce nouveau focus automatiquement puisqu'elle en est deja derivee (`FocusedKeyboardHandler?.SelfOrParentWindow`) — il n'y a pas de mise a jour manuelle d'`ActiveWindow` a ecrire, et il n'en existe aucun mecanisme, `ActiveWindow` etant en lecture seule (tache 1) ;
+- regle de resolution du focus au clic (decision utilisateur) : reutiliser tel quel le mecanisme EXISTANT `MGDesktop.ResolveAutoFocusTarget(defaultFocus, lastFocused, firstFocusable, preferWindowDefault)` (`MGUI.Core/UI/MGDesktop.cs:244`), alimente exactement comme le font les appelants existants a `MGUI.Core/UI/MGDesktop.cs:1029-1043` et `MGUI.Core/UI/Navigation/UIFocusNavigationService.cs:368-382`, c'est a dire : `defaultFocus = window.DefaultFocusElement`, `lastFocused = State.WindowFocusHistory[window]` (le dictionnaire est `Dictionary<MGWindow, MGElement>`, `MGUI.Core/UI/UIViewState.cs:12`), `firstFocusable` = le premier element focusable de la fenetre, les deux premiers filtres par `IsNavigationTarget(...) && window.IsSelfOrAncestorOf(...)` ; aucun nouveau mecanisme de resolution n'est introduit ;
+- si le clic lui-meme focus un element (l'element clique est focusable), CE focus l'emporte : l'activation ne doit pas l'ecraser avec la cible resolue ci-dessus ;
+- si la resolution ne produit aucune cible valide, le focus reste INCHANGE : l'activation n'efface jamais un focus existant ;
 - l'activation doit rester sans effet derriere un overlay modal actif, en reutilisant la garde `HasModalWindow`/`OverlayHost.IsModal` existante, sans en ajouter une nouvelle ;
 - `BringToFront` reste soumis au tri par `IsTopmost` — une fenetre non-topmost cliquee ne doit jamais passer devant une fenetre topmost ;
 - migrer `MGFloatingDockWindow` vers ce mecanisme generique : supprimer le cablage local (`MGUI.Core/UI/Docking/Controls/MGFloatingDockWindow.cs:100`, `MouseHandler.LMBPressedInside += (_, _) => BringToFront();`) au profit d'`ActivatesOnClick`, afin que la garde modale soit appliquee de facon uniforme (decision utilisateur) ;
-- perimetre : `MGWindow.cs` et `MGFloatingDockWindow.cs:100` ;
-- revoir deliberement (voir avertissement de churn en "Consignes") `MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs` et `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs` : ajuster les tests dont le z-order attendu change du fait du nouveau cablage clic par defaut ;
+- exclure explicitement du cablage les quatre sous-types popup de `MGWindow` qui gagneraient sinon un reordonnancement de fenetres imbriquees a chaque clic interne (decision utilisateur) : fixer `ActivatesOnClick = false` pour chacun, precisement a l'endroit suivant —
+  - `MGContextMenu` (`MGUI.Core/UI/MGContextMenu.cs:45`, sous-classe directe de `MGWindow`) : dans son constructeur ;
+  - `MGToolTip` (`MGUI.Core/UI/MGToolTip.cs:18`, sous-classe directe de `MGWindow`) : dans son constructeur ;
+  - le dropdown de `MGComboBox` (propriete `Dropdown` declaree `MGUI.Core/UI/MGComboBox.cs:522`, affectee depuis le template `MGUI.Core/UI/MGComboBox.cs:681` dans `AttachControlTemplateStructure`, ajoutee comme fenetre imbriquee `MGUI.Core/UI/MGComboBox.cs:626`) : immediatement apres l'affectation a `:681` — `Dropdown` n'est pas une sous-classe dediee mais une `MGWindow` issue du template, il n'y a donc pas de constructeur de type dropdown a modifier ;
+  - la popup du color picker, `MGColorPickerPopup.PopupWindow` (propriete `MGUI.Core/UI/Color/MGColorPickerPopup.cs:13`, construite `new MGWindow(...)` a `:39-42` dans le constructeur de `MGColorPickerPopup`, ajoutee comme fenetre imbriquee `:87`) : dans ce constructeur de `MGColorPickerPopup`, immediatement apres la construction a `:39-42` — `MGColorPickerPopup` elle-meme n'est pas une `MGWindow`, seule sa `PopupWindow` l'est ;
+- perimetre : `MGWindow.cs`, `MGFloatingDockWindow.cs:100`, `MGContextMenu.cs`, `MGToolTip.cs`, `MGComboBox.cs` et `MGColorPickerPopup.cs` ;
+- revoir deliberement (voir avertissement de churn en "Consignes") `MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs` : ajuster les tests dont le z-order attendu change du fait du nouveau cablage clic par defaut ; `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs` ne presse jamais de bouton souris (`ButtonState.Released` uniquement dans son helper `Frame`, `:67-70`) et ne doit PAS etre modifiee ;
+- ajouter au moins UN nouveau test qui garde le defaut `ActivatesOnClick = true` avec deux fenetres superposees et epingle les DEUX directions : une pression dans la zone de chevauchement occluse ne fait PAS remonter la fenetre du dessous au premier plan, et une pression sur sa zone exposee la fait remonter, les deux exprimees comme assertions sur l'ordre de `desktop.Windows` ;
 - ajouter un test docking dedie qui epingle le comportement pre-existant de la fenetre flottante (clic ramene au premier plan) apres la migration.
 
 Criteres d'acceptation:
 
 - deux fenetres non-topmost, clic sur celle du dessous la ramene au premier plan ;
 - aucun effet sous overlay modal ;
-- les deux suites `OverlappingWindowsInputRoutingTests.cs` et `ContextMenuHoverOcclusionTests.cs` sont revues et ajustees deliberement ;
+- clic sur une fenetre en arriere-plan B la ramene au premier plan ET deplace le focus dans B selon la resolution decrite ci-dessus, avec `ActiveWindow` devenant B et `ActiveWindowChanged` se declenchant ;
+- clic sur une fenetre sans cible de focus valide la ramene au premier plan et laisse le focus inchange ;
+- clic sur un element focusable focus CET element, pas la cible par defaut resolue par `ResolveAutoFocusTarget` ;
+- un clic sur un item a l'interieur d'un dropdown `MGComboBox` ouvert, et un clic sur un item a l'interieur d'un `MGContextMenu` ouvert, ne reordonnent pas les fenetres imbriquees ;
+- le test `ComboBoxDropdown_ReleasedOutsideClick_*` existant dans `MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs` passe toujours sans modification ;
+- `MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs` est revue et ajustee deliberement ; `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs` n'est pas modifiee ;
+- au moins un nouveau test garde le defaut `ActivatesOnClick = true` avec deux fenetres superposees et epingle les deux directions (pression occluse ne remonte pas la fenetre du dessous, pression exposee la remonte), via assertions sur l'ordre de `desktop.Windows` ;
 - un test docking dedie epingle le comportement pre-existant de la fenetre flottante (clic ramene au premier plan) apres la migration ;
 - aucun test nouvellement rouge en dehors du churn attendu et traite ci-dessus.
 
@@ -92,7 +107,7 @@ Commit recommande:
 
 Prerequis : tache 1.
 
-### ⚪ 3. `ITextEntryHost` + migration des 4 sites `MGDesktop.cs`
+### ⚪ 3. `ITextEntryHost` + migration des 6 sites `MGDesktop.cs`
 
 But:
 
@@ -111,14 +126,15 @@ public interface ITextEntryHost
 }
 ```
 
-- `MGTextBox` implemente l'interface : `IsReadonly`/`ReadonlyChanged` sont deja publics (`MGTextBox.cs:935`/`:957`, implementation sans changement) ; `ShouldPreserveTextEntryKey` est exposee en implementation d'interface explicite (`bool ITextEntryHost.ShouldPreserveTextEntryKey(Keys key)`, decision utilisateur) — le membre reste `internal` sur `MGTextBox` (`MGTextBox.cs:69`) et n'est accessible que via l'interface, la surface publique de `MGTextBox` ne s'agrandit pas ;
-- migrer les 4 sites `MGDesktop.cs` vers `ITextEntryHost` : `:545` (`ResolveSemanticInputMode`), `:558` (`ShouldCaptureGameplayInput`), `:1366` (meme test, chemin `Update` brut), `:953`/`:960`/`:985` (setter de `FocusedKeyboardHandler`, abonnement/desabonnement a `ReadonlyChanged`, `TextBox_ReadonlyChanged`) ;
+- `MGTextBox` implemente l'interface : `IsReadonly`/`ReadonlyChanged` sont deja publics (`MGTextBox.cs:935`/`:957`, implementation sans changement) ; le membre `internal bool ShouldPreserveTextEntryKey(Keys key)` existant (`MGTextBox.cs:69`) est CONSERVE tel quel, sans aucune modification, et une NOUVELLE implementation d'interface explicite est AJOUTEE en plus, qui delegue vers lui : `bool ITextEntryHost.ShouldPreserveTextEntryKey(Keys key) => ShouldPreserveTextEntryKey(key);`. C'est cette coexistence (membre `internal` conserve + implementation explicite ajoutee qui delegue vers lui) qui permet a la tache 3 de compiler seule, sans toucher `UIFocusNavigationService.cs:454` (qui continue d'appeler le membre `internal` directement et releve de la tache 4) ; la surface publique de `MGTextBox` ne s'agrandit pas, l'implementation explicite n'etant visible qu'a travers une reference `ITextEntryHost` ;
+- migrer les 6 sites `MGDesktop.cs` vers `ITextEntryHost` (liste faisant autorite) : `:545` (`ResolveSemanticInputMode`), `:558` (`ShouldCaptureGameplayInput`), `:1366` (meme test, chemin `Update` brut), `:953`, `:960` (setter de `FocusedKeyboardHandler`, abonnement/desabonnement a `ReadonlyChanged`), `:985` (`TextBox_ReadonlyChanged`) ;
 - tests : suite `Focus|Input` inchangee ; un double `ITextEntryHost` non-`MGTextBox` prouve le fonctionnement pour un type tiers (gameplay bloque pendant sa saisie, `ReadonlyChanged` nettoie bien le focus).
 
 Criteres d'acceptation:
 
 - suite `Focus|Input` inchangee ;
 - un double `ITextEntryHost` non-`MGTextBox` prouve le fonctionnement pour un type tiers ;
+- apres la tache 3 seule, la compilation reussit sans aucune modification hors de `MGTextBox.cs`, `MGDesktop.cs` et du nouveau fichier interface, et `rg "is MGTextBox" MGUI.Core/UI/MGDesktop.cs` ne retourne rien ;
 - aucun test nouvellement rouge.
 
 Commit recommande:

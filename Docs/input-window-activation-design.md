@@ -106,11 +106,14 @@ defaut `true`.
 (`List<MGWindow>`), liste qui pilote l'ordre de draw, l'ordre d'update et donc
 le routage souris et le hover. Avec le defaut a `true`, toute fenetre
 existante gagne le cablage clic -> premier plan, y compris dans les tests
-headless qui pressent des boutons souris sur des fenetres superposees : deux
-suites sont concernees, `MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs`
-et `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs`. La slice 2 doit donc
-prevoir et budgeter ce risque de churn de tests, et son acceptation doit
-inclure la revue deliberee (pas accidentelle) de ces deux suites.
+headless qui pressent des boutons souris sur des fenetres superposees : une
+seule suite est concernee, `MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs`.
+`MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs` ne presse jamais de
+bouton souris (son helper `Frame`, `ContextMenuHoverOcclusionTests.cs:67-70`,
+n'utilise que `ButtonState.Released` pour les cinq boutons a chaque frame) :
+elle ne peut pas churner et n'a besoin d'aucune modification. La slice 2 doit
+donc prevoir et budgeter ce risque de churn de tests, et son acceptation doit
+inclure la revue deliberee (pas accidentelle) de la suite concernee.
 
 **Interactions** : avec `IsTopmost` — `BringToFront` reste soumis au tri par
 `IsTopmost`, une fenetre non-topmost cliquee ne passe jamais devant une
@@ -123,12 +126,48 @@ derriere un overlay modal actif, en reutilisant la garde
 `HasModalWindow`/`OverlayHost.IsModal` existante, sans en ajouter une
 nouvelle.
 
+**Deplacement du focus au clic (decision utilisateur)** : l'activation au
+clic deplace aussi le focus clavier dans la fenetre activee, resolu par le
+mecanisme EXISTANT `MGDesktop.ResolveAutoFocusTarget(defaultFocus,
+lastFocused, firstFocusable, preferWindowDefault)` (`MGDesktop.cs:244`),
+alimente exactement comme le font les appelants existants
+(`MGDesktop.cs:1029-1043`, `UIFocusNavigationService.cs:368-382`) :
+`defaultFocus = window.DefaultFocusElement`, `lastFocused =
+State.WindowFocusHistory[window]` (`Dictionary<MGWindow, MGElement>`,
+`UIViewState.cs:12`), `firstFocusable` = premier focusable de la fenetre, les
+deux premiers filtres par `IsNavigationTarget(...) &&
+window.IsSelfOrAncestorOf(...)` ; aucun nouveau mecanisme de resolution n'est
+introduit. Si le clic lui-meme focus un element focusable, ce focus l'emporte
+sur la cible resolue. Si la resolution ne produit aucune cible valide, le
+focus existant est laisse inchange — l'activation ne l'efface jamais.
+`ActiveWindow` (3.a option B) reflete ce nouveau focus automatiquement,
+puisqu'elle en est deja derivee ; il n'existe aucune mise a jour manuelle
+d'`ActiveWindow` a ecrire (elle est en lecture seule).
+
+**Exclusion des sous-types popup (decision utilisateur)** : `MGWindow` est
+aussi la base de types popup qui gagneraient sinon un reordonnancement de
+leurs fenetres imbriquees a chaque clic interne : `MGContextMenu`
+(`MGContextMenu.cs:45`), `MGToolTip` (`MGToolTip.cs:18`), le dropdown de
+`MGComboBox` (propriete `Dropdown` a `MGComboBox.cs:522`, affectee depuis le
+template a `:681`, ajoutee comme fenetre imbriquee a `:626`) et la popup du
+color picker, `MGColorPickerPopup.PopupWindow` (propriete a
+`MGColorPickerPopup.cs:13`, construite a `:39-42` dans le constructeur de
+`MGColorPickerPopup`, ajoutee comme fenetre imbriquee a `:87`). Ces quatre en
+sont explicitement exclues via `ActivatesOnClick = false`, fixe au plus pres
+de la construction de chaque instance (le constructeur pour les deux
+sous-classes directes de `MGWindow` ; juste apres l'affectation/construction
+pour le dropdown et la popup color picker, qui ne sont pas des sous-classes
+dediees).
+
 **Impact API** : nouveaux `MGDesktop.ActiveWindow`/`ActiveWindowChanged`,
 `MGWindow.ActivatesOnClick`. Source-compatible (aucune signature existante ne
 change). Comportement observable : `ActivatesOnClick` par defaut `true`
 (decision utilisateur) — toute fenetre existante gagne un comportement
 qu'elle n'avait pas, cf. la consequence A ci-dessus (churn attendu sur
-`OverlappingWindowsInputRoutingTests.cs` et `ContextMenuHoverOcclusionTests.cs`).
+`OverlappingWindowsInputRoutingTests.cs` uniquement ; `ContextMenuHoverOcclusionTests.cs`
+inchangee) ; deplacement du focus au clic selon la resolution decrite
+ci-dessus ; `MGContextMenu`/`MGToolTip`/le dropdown `MGComboBox`/la popup
+color picker gardent `ActivatesOnClick = false`.
 
 ### 3.b `ITextEntryHost` remplacant `is MGTextBox`
 
@@ -237,18 +276,26 @@ revertible.
    d'une fenetre B fait passer `ActiveWindow` de A a B sans `BringToFront`.
    Taille : petite.
 2. **`MGWindow.ActivatesOnClick`, defaut `true`.** Outcome : cablage clic ->
-   `BringToFront`, garde par overlay modal actif. Perimetre : `MGWindow.cs`
-   **et** `MGUI.Core/UI/Docking/Controls/MGFloatingDockWindow.cs:100` (le
-   cablage local y est supprime au profit d'`ActivatesOnClick`, decision Q2,
-   pour que la garde modale soit appliquee de facon uniforme). Acceptation :
-   deux fenetres non-topmost, clic sur celle du dessous la ramene au premier
-   plan ; aucun effet sous overlay modal ; les deux suites concernees par la
-   consequence A (`MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs` et
-   `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs`) sont revues et
-   ajustees deliberement ; un test docking dedie epingle le comportement
-   pre-existant de la fenetre flottante (clic ramene au premier plan) apres la
-   migration. Prerequis : slice 1. Taille : petite a moyenne.
-3. **`ITextEntryHost` + migration des 4 sites `MGDesktop.cs`.** Outcome :
+   `BringToFront` avec deplacement du focus resolu par le mecanisme existant
+   `MGDesktop.ResolveAutoFocusTarget` (decision Q7), garde par overlay modal
+   actif, et exclusion de `MGContextMenu`/`MGToolTip`/du dropdown
+   `MGComboBox`/de la popup color picker via `ActivatesOnClick = false`
+   (decision Q8). Perimetre : `MGWindow.cs`, `MGUI.Core/UI/Docking/Controls/MGFloatingDockWindow.cs:100`
+   (le cablage local y est supprime au profit d'`ActivatesOnClick`, decision
+   Q2, pour que la garde modale soit appliquee de facon uniforme),
+   `MGContextMenu.cs`, `MGToolTip.cs`, `MGComboBox.cs`, `MGColorPickerPopup.cs`.
+   Acceptation : deux fenetres non-topmost, clic sur celle du dessous la
+   ramene au premier plan et y deplace le focus (sauf si le clic a lui-meme
+   focus un element, ou si aucune cible valide n'existe) ; aucun effet sous
+   overlay modal ; la suite concernee par la consequence A
+   (`MGUI.Tests/Input/OverlappingWindowsInputRoutingTests.cs`) est revue et
+   ajustee deliberement, `MGUI.Tests/Input/ContextMenuHoverOcclusionTests.cs`
+   n'est pas modifiee ; un clic dans un dropdown `MGComboBox` ouvert ou un
+   `MGContextMenu` ouvert ne reordonne pas les fenetres imbriquees ; un test
+   docking dedie epingle le comportement pre-existant de la fenetre flottante
+   (clic ramene au premier plan) apres la migration. Prerequis : slice 1.
+   Taille : petite a moyenne.
+3. **`ITextEntryHost` + migration des 6 sites `MGDesktop.cs`.** Outcome :
    interface definie dans `MGUI.Core/UI` (a cote de `MGTextBox`, decision Q3),
    `MGTextBox` l'implemente, `ShouldPreserveTextEntryKey` exposee en
    implementation d'interface explicite (decision Q4 — le membre reste
@@ -293,9 +340,20 @@ revertible.
 6. La slice 5 (extension clavier) est reportee : sa forme est decidee par la
    decision 5 ci-dessus, mais elle ne fait pas partie du lot a implementer
    maintenant. Les slices 1 a 4 forment le lot valide.
+7. L'activation au clic (slice 2) deplace aussi le focus clavier dans la
+   fenetre activee, resolu par le mecanisme EXISTANT
+   `MGDesktop.ResolveAutoFocusTarget` (pas un nouveau mecanisme) : si le clic
+   focus lui-meme un element focusable, ce focus l'emporte sur la resolution ;
+   si la resolution ne trouve aucune cible valide, le focus existant est
+   laisse inchange.
+8. `MGContextMenu`, `MGToolTip`, le dropdown de `MGComboBox` et la popup du
+   color picker (`MGColorPickerPopup.PopupWindow`) sont exclus du cablage clic
+   -> premier plan par defaut (`ActivatesOnClick = false`), pour qu'un clic a
+   l'interieur de ces fenetres imbriquees ne reordonne pas les fenetres
+   superposees.
 
 ### Points encore ouverts
 
 Aucun point ouvert ne subsiste sur le perimetre couvert par ce document : les
-six decisions ci-dessus, combinees aux slices 1 a 4 (section 5), suffisent a
+huit decisions ci-dessus, combinees aux slices 1 a 4 (section 5), suffisent a
 lancer l'implementation du lot valide.
