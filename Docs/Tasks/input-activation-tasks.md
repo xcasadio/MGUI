@@ -40,7 +40,7 @@ Ce document est destine a un agent IA implementeur.
 
 ## Taches
 
-### ⚪ 1. `ActiveWindow` observable (sans clic)
+### ✅ 1. `ActiveWindow` observable (sans clic)
 
 But:
 
@@ -61,6 +61,12 @@ Criteres d'acceptation:
 Commit recommande:
 
 - `feat: add observable ActiveWindow derived from keyboard focus`
+
+Resultat:
+
+- `MGUI.Core/UI/MGDesktop.cs` : ajout de la propriete en lecture seule `ActiveWindow` (`=> FocusedKeyboardHandler?.SelfOrParentWindow`) et de l'evenement `ActiveWindowChanged` (`EventHandler<EventArgs<MGWindow>>`), tous deux juste apres le setter de `FocusedKeyboardHandler`. Le setter capture `PreviousActiveWindow` (`Previous?.SelfOrParentWindow`) avant d'appliquer le nouveau focus, puis compare a `ActiveWindow` (qui reutilise le meme calcul deja fait pour `State.WindowFocusHistory` a la ligne d'origine) : si la fenetre active a change, `NPC(nameof(ActiveWindow))` puis `ActiveWindowChanged` sont declenches avec `PreviousValue`/`NewValue`. Aucun appel a `BringToFront` n'est ajoute ; `Windows` n'est jamais reordonne par ce changement.
+- Nouveau fichier de tests `MGUI.Tests/Focus/ActiveWindowObservableTests.cs` (3 tests, pattern `GraphTestRuntime` + reflexion sur le setter prive de `FocusedKeyboardHandler` calque sur `KeyboardFocusNotificationTests.cs`) : focus d'un bouton de la fenetre B alors que `ActiveWindow` valait A -> `ActiveWindow` devient B, `ActiveWindowChanged` se declenche exactement une fois avec `PreviousValue=A`/`NewValue=B`, et l'ordre de `desktop.Windows` est inchange (assertion directe, pas de mock de `BringToFront`) ; `ActiveWindow` vaut `null` sans `FocusedKeyboardHandler` ; deplacer le focus entre deux elements de la meme fenetre ne redeclenche pas `ActiveWindowChanged`.
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj --no-restore` OK ; `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore` OK ; `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "Focus|Input"` -> 420/420 verts ; suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build` -> 1430/1430 verts (baseline 1427 + 3 nouveaux), aucun test rouge.
 
 ### ⚪ 2. `MGWindow.ActivatesOnClick`, defaut `true`
 

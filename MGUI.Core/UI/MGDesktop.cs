@@ -947,6 +947,7 @@ namespace MGUI.Core.UI
                     }
 
                     MGElement Previous = FocusedKeyboardHandler;
+                    MGWindow PreviousActiveWindow = Previous?.SelfOrParentWindow;
                     LastFocusChangeSource = value != null && QueuedFocusedKeyboardHandler == value && QueuedFocusedKeyboardHandlerSource.HasValue
                         ? QueuedFocusedKeyboardHandlerSource.Value
                         : KeyboardFocusSource.Programmatic;
@@ -976,9 +977,26 @@ namespace MGUI.Core.UI
                     Previous?.OnKeyboardFocusChanged(false);
                     FocusedKeyboardHandler?.OnKeyboardFocusChanged(true);
                     FocusedKeyboardHandlerChanged?.Invoke(this, new(Previous, FocusedKeyboardHandler));
+
+                    MGWindow NewActiveWindow = ActiveWindow;
+                    if (PreviousActiveWindow != NewActiveWindow)
+                    {
+                        NPC(nameof(ActiveWindow));
+                        ActiveWindowChanged?.Invoke(this, new(PreviousActiveWindow, NewActiveWindow));
+                    }
                 }
             }
         }
+
+        /// <summary>The <see cref="MGWindow"/> that currently contains the <see cref="FocusedKeyboardHandler"/>, if any.<para/>
+        /// This is a read-only value derived from <see cref="FocusedKeyboardHandler"/>'s <see cref="MGElement.SelfOrParentWindow"/>.
+        /// It is purely observational: nothing in this class automatically changes <see cref="FocusedKeyboardHandler"/> in response to
+        /// mouse clicks or window re-ordering, so setting keyboard focus is the only way to change this value.</summary>
+        public MGWindow ActiveWindow => FocusedKeyboardHandler?.SelfOrParentWindow;
+
+        /// <summary>Invoked when <see cref="ActiveWindow"/> changes, which occurs whenever <see cref="FocusedKeyboardHandler"/>'s
+        /// <see cref="MGElement.SelfOrParentWindow"/> changes.</summary>
+        public event EventHandler<EventArgs<MGWindow>> ActiveWindowChanged;
 
         private void TextBox_ReadonlyChanged(object sender, bool IsReadonly)
         {
