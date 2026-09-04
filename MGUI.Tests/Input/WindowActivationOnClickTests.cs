@@ -235,6 +235,69 @@ public class WindowActivationOnClickTests
         Assert.Same(buttonA, desktop.FocusedKeyboardHandler);
     }
 
+    /// <summary>
+    /// Pins the guarantee that, while a modal overlay (<see cref="MGOverlayHost.IsModal"/>) is open on the desktop, a
+    /// left press on a background top-level window has no click-activation effect: it neither calls
+    /// <see cref="MGDesktop.BringToFront(MGWindow)"/> nor moves <see cref="MGDesktop.FocusedKeyboardHandler"/>.<para/>
+    /// This test pins the user-visible guarantee itself, not a mechanism: the guarantee is enforced by THREE
+    /// independent, mutually redundant guards, each of which alone suffices to block the click. (G1)
+    /// <see cref="FocusInputPolicy.ShouldProcessWindowInputs"/> (MGUI.Core/UI/FocusInputPolicy.cs:24-25), consumed
+    /// at MGDesktop.cs:1429 and applied at MGDesktop.cs:1437 as <c>UA with { IsHitTestVisible = false }</c> - while a
+    /// modal overlay is active, every non-overlay top-level window has its whole subtree made non-hit-testable for
+    /// the tick, so the press never reaches its MouseHandler. (G2) <c>Desktop.IsBlockedByModalOrOverlay(this)</c>
+    /// inside the <see cref="MGWindow.ActivatesOnClick"/> wiring at MGWindow.cs:1572, whose overlay branch lives at
+    /// MGDesktop.cs:257-261. (G3) The full-screen <c>OverlayWindow</c> is inserted first into <c>OrderedWindows</c>
+    /// every tick (MGDesktop.cs:1419) and, once hovered or pressed, sets
+    /// <c>IsWindowOccludedAtMousePos = OverlayHost.ActiveOverlay != null</c> (MGDesktop.cs:1447-1449), which occludes
+    /// every window updated afterwards for the rest of the tick.<para/>
+    /// Because the three guards are redundant, no partial mutation (disabling any one guard, or any two of the
+    /// three together) reddens this test - that is a property of the code's defence-in-depth, not a weakness of the
+    /// test. None of the three may be removed on the grounds that "no test covers it": a future refactor that drops
+    /// one guard still leaves this test green, precisely because the other guards remain.
+    /// </summary>
+    [Fact]
+    public void ClickActivation_HasNoEffect_WhileModalOverlayIsOpen()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+
+        MGWindow windowA = new(desktop, 0, 0, 200, 200) { WindowStyle = WindowStyle.None };
+        MGButton buttonA = new(windowA);
+        windowA.SetContent(buttonA);
+
+        MGWindow windowB = new(desktop, 250, 0, 200, 200) { WindowStyle = WindowStyle.None };
+        MGButton buttonB = new(windowB);
+        windowB.SetContent(buttonB);
+
+        desktop.Windows.Add(windowB); // windowB behind
+        desktop.Windows.Add(windowA); // windowA in front
+        desktop.Update();
+        desktop.Update();
+
+        MGButton overlayContent = new(desktop.OverlayHost.SelfOrParentWindow);
+        MGOverlay overlay = desktop.OverlayHost.AddOverlay(overlayContent);
+        overlay.IsOpen = true;
+        Assert.True(desktop.OverlayHost.IsModal);
+        desktop.Update();
+        Assert.Same(overlay, desktop.OverlayHost.ActiveOverlay);
+
+        // Focus must be set on an element inside the active overlay: MGOverlayHost's own OnBeginUpdate handler
+        // clears any FocusedKeyboardHandler that sits behind the modal overlay (unrelated to click-activation),
+        // so focusing buttonA here would be wiped out by that mechanism before the click even happens.
+        SetFocusedKeyboardHandler(desktop, overlayContent);
+        Assert.Same(overlayContent, desktop.FocusedKeyboardHandler);
+
+        List<MGWindow> windowOrderBeforeClick = new(desktop.Windows);
+        Point windowBBodyPoint = new(windowB.Left + 100, windowB.Top + 100);
+
+        AdvanceFrame(runtime, desktop, 32, windowBBodyPoint);
+        AdvanceFrame(runtime, desktop, 48, windowBBodyPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 64, windowBBodyPoint);
+
+        Assert.Equal(windowOrderBeforeClick, desktop.Windows);
+        Assert.Same(overlayContent, desktop.FocusedKeyboardHandler);
+    }
+
     [Fact]
     public void OverlappingWindows_OccludedPress_DoesNotRaiseBackWindow_ExposedPress_DoesRaiseIt()
     {
