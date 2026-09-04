@@ -9,7 +9,7 @@ using Xunit;
 namespace MGUI.Tests.Focus;
 
 /// <summary>
-/// Task 3 (input-activation-tasks.md): <see cref="MGDesktop"/>'s text-entry protections (gameplay input
+/// Task 3 (Docs/input-window-activation-design.md, slice 3): <see cref="MGDesktop"/>'s text-entry protections (gameplay input
 /// not captured while editing, focus cleaned up when the control becomes readonly) are now driven by the
 /// public <see cref="ITextEntryHost"/> interface rather than an <c>is MGTextBox</c> type test. These tests
 /// prove that migration by exercising a third-party double that is NOT an <see cref="MGTextBox"/> and

@@ -3,10 +3,22 @@
 ## Statut
 
 Document de conception issu de la tache 8 du plan input, desormais close et
-retiree (execution suivie dans `Docs/Tasks/input-activation-tasks.md`). Le
-decoupage (section 5) a ete valide par l'utilisateur : les slices 1 a 4 forment
-le lot valide, la slice 5 est reportee. Aucun code de production n'a ete ecrit
-sous cette tache.
+retiree. Les cinq slices du decoupage (section 5) sont toutes livrees, y
+compris la slice 5 dont ce document indiquait initialement le report
+(decision 6, section 6) : slice 1 `ActiveWindow` observable (`feat: add
+observable ActiveWindow derived from keyboard focus`) ; slice 2
+`MGWindow.ActivatesOnClick` (`feat: activate window on click via
+MGWindow.ActivatesOnClick`, complete par `test: pin the modal overlay
+suppression of window click activation`) ; slice 3 `ITextEntryHost` +
+migration des 6 sites `MGDesktop.cs` (`feat: introduce ITextEntryHost and
+migrate MGDesktop text-entry sites`) ; slice 4 migration des 2 sites
+`UIFocusNavigationService.cs` (`refactor: migrate UIFocusNavigationService to
+ITextEntryHost`) ; slice 5 point d'extension clavier de fenetre + depreciation
+(`feat: add a window-scoped preview keyboard handler and deprecate
+WindowKeyboardHandler`). Le fichier de taches qui portait l'execution de ce
+lot est retire a son tour, comme il l'avait ete pour la tache 8 elle-meme :
+ce document n'est plus suivi de travail en attente et reste comme dossier de
+conception (analyse, decisions, decoupage) pour ce theme.
 
 ## 1. Objectif et perimetre
 

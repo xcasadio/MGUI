@@ -4,7 +4,7 @@
 
 Backlog de portefeuille pour les ameliorations transverses encore ouvertes, c'est-a-dire le travail qui traverse plusieurs sous-systemes et qui n'appartient a aucun backlog specialise. Quand un chantier possede un backlog dedie dans `Docs/Tasks/`, ce backlog reste la source de verite d'implementation ; ce fichier ne duplique pas leurs taches :
 
-- input et focus : les 11 taches de l'ancien plan input sont livrees (fichier de taches retire) ; suite (activation de fenetre, `ITextEntryHost`) dans `Docs/Tasks/input-activation-tasks.md`
+- input et focus : livres (fichiers de taches retires ; voir `Docs/input-architecture.md` et `Docs/input-window-activation-design.md`)
 - style, theme, templates : `Docs/Tasks/styling-theme-tasks.md`
 - rendu et dessin : livres (fichiers de taches retires ; voir `Docs/rendering-architecture.md` et `Docs/drawing-architecture.md`)
 - editeur RichTextBox : `Docs/Tasks/richtextbox-autocomplete-tasks.md`

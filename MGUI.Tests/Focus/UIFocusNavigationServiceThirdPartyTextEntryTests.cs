@@ -12,7 +12,7 @@ using Xunit;
 namespace MGUI.Tests.Focus;
 
 /// <summary>
-/// Task 4 (input-activation-tasks.md): the last two <c>is MGTextBox</c> sites in
+/// Task 4 (Docs/input-window-activation-design.md, slice 4): the last two <c>is MGTextBox</c> sites in
 /// <see cref="MGUI.Core.UI.Navigation.UIFocusNavigationService"/> (the raw keyboard path's <c>isTextEntryFocused</c>
 /// flag at the top of <c>TryDispatchNavigationAction(BaseKeyPressedEventArgs)</c>, and the semantic/raw-shared
 /// <c>ShouldPreserveTextEntryKey(Keys?)</c> guard that used to call the <c>internal</c>
