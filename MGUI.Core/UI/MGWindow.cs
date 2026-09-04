@@ -869,9 +869,25 @@ namespace MGUI.Core.UI
         /// <summary>A <see cref="MouseHandler"/> that is updated just before <see cref="MGElement.MouseHandler"/> is updated.<para/>
         /// This allows subscribing to mouse events that can get handled just before the <see cref="MGWindow"/>'s input handling can occur.</summary>
         public MouseHandler WindowMouseHandler { get; }
-        /// <summary>A <see cref="KeyboardHandler"/> that is updated just before <see cref="MGElement.KeyboardHandler"/> is updated.<para/>
-        /// This allows subscribing to keyboard events that can get handled just before the <see cref="MGWindow"/>'s input handling can occur.</summary>
+        /// <summary>A <see cref="KeyboardHandler"/> owned by this <see cref="MGWindow"/> instance. Since <see cref="MGElement"/> only
+        /// reports <see cref="IKeyboardHandlerHost.HasKeyboardFocus"/> as true when the desktop's
+        /// <see cref="MGDesktop.FocusedKeyboardHandler"/> is this exact element, and a window itself never becomes the focused
+        /// keyboard handler, this handler never receives <see cref="KeyboardHandler.Pressed"/>/<see cref="KeyboardHandler.Released"/>/
+        /// <see cref="KeyboardHandler.KeyRepeat"/> - it is effectively inert.</summary>
+        [Obsolete("WindowKeyboardHandler never receives events because an MGWindow never holds keyboard focus itself " +
+            "(see MGElement's explicit IKeyboardHandlerHost.HasKeyboardFocus implementation). Use PreviewKeyboardHandler instead: it is " +
+            "pumped every tick before this window's content children are updated, seeing the tick's keys whether keyboard focus is on the " +
+            "window or on any descendant. Kept for source compatibility since external code may already subscribe to it.")]
         public KeyboardHandler WindowKeyboardHandler { get; }
+        /// <summary>A window-scoped "preview" <see cref="KeyboardHandler"/>, pumped every Update tick
+        /// BEFORE this window's content children are updated - the window-scoped equivalent of <see cref="MGDesktop.HighPriorityKeyboardHandler"/>.<para/>
+        /// Because it is pumped before the children, a subscriber sees the tick's keys regardless of whether keyboard focus is on this
+        /// window or on any descendant of it (e.g. a focused <see cref="MGTextBox"/>). This is a preview, not a fallback for keys left
+        /// unconsumed by descendants - it never bubbles keys back up after the children have had a chance to handle them.<para/>
+        /// A subscriber that must not steal text-entry keys should check <see cref="MGDesktop.FocusedKeyboardHandler"/> against
+        /// <see cref="ITextEntryHost"/> (e.g. return early while it is an <see cref="ITextEntryHost"/>) before acting on a key.<para/>
+        /// Replaces <see cref="WindowKeyboardHandler"/>, which never receives events.</summary>
+        public KeyboardHandler PreviewKeyboardHandler { get; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _AllowsClickThrough = false;
@@ -1375,7 +1391,12 @@ namespace MGUI.Core.UI
                 MGTheme ActualTheme = GetTheme();
 
                 WindowMouseHandler = InputTracker.Mouse.CreateHandler(this, null);
+#pragma warning disable CS0618 // WindowKeyboardHandler is [Obsolete]; MGWindow itself must still create/pump it unchanged for source compatibility with existing subscribers.
                 WindowKeyboardHandler = InputTracker.Keyboard.CreateHandler(this, null);
+#pragma warning restore CS0618
+                //  Owned by a dedicated host (not `this`) that keeps IKeyboardHandlerHost.HasKeyboardFocus's default (always true) -
+                //  see WindowPreviewKeyboardHandlerHost - so this handler sees every key of the tick regardless of desktop focus.
+                PreviewKeyboardHandler = InputTracker.Keyboard.CreateHandler(new WindowPreviewKeyboardHandlerHost(), null);
                 MouseHandler.DragStartCondition = DragStartCondition.Both;
 
                 RadioButtonGroups = new();
@@ -1597,6 +1618,14 @@ namespace MGUI.Core.UI
                 {
                     ElementUpdateArgs UpdateArgs = e.UA.ChangeOffset(Origin);
 
+                    //  Pumped here, before this window's content children are updated below (OnBeginUpdateContents fires
+                    //  before UpdateContents, see MGElement.Update), so a subscriber genuinely previews the tick's keys
+                    //  regardless of whether keyboard focus is on this window or on any descendant (e.g. a focused MGTextBox).
+                    using (UIPerformanceProbe.BeginDesktopPhase("Window.PreviewKeyboardHandler"))
+                    {
+                        PreviewKeyboardHandler.ManualUpdate();
+                    }
+
                     using (UIPerformanceProbe.BeginDesktopPhase("Window.NestedWindows"))
                     {
                         //  ModalWindow is intentionally updated BEFORE NestedWindows so that it can mark mouse/keyboard
@@ -1653,7 +1682,9 @@ namespace MGUI.Core.UI
                     using (UIPerformanceProbe.BeginDesktopPhase("Window.WindowHandlers"))
                     {
                         WindowMouseHandler.ManualUpdate();
+#pragma warning disable CS0618 // WindowKeyboardHandler is [Obsolete]; MGWindow itself must still pump it unchanged (it delivers nothing) for source compatibility with existing subscribers.
                         WindowKeyboardHandler.ManualUpdate();
+#pragma warning restore CS0618
                     }
                 };
 
