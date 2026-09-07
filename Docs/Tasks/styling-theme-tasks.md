@@ -77,7 +77,9 @@ Limite connue a documenter: la creation tardive d'un scope local sur un ancetre 
 
 Commit recommande: `style-theme: add deregistrable dynamic resource subscriptions`
 
-### ⚪ 2. Capturer le scope de ressources effectif dans le snapshot d'outillage
+### ✅ 2. Capturer le scope de ressources effectif dans le snapshot d'outillage
+
+**Statut** : livre le 7 septembre 2026. `UIVisualTreeSnapshot` expose `ResourceScope` (categorie du scope retourne par `GetResources()`), `ResourceScopeOwnerDiagnosticId` (id diagnostic stable de l'element proprietaire du scope, de la desktop pour le scope racine, null si aucun proprietaire dans la chaine `Parent` puis `ParentWindow`) et `HasLocalResourceScope` ; membres inseres apres `LastControlTemplateError`, surface existante intacte ; le rendu texte du snapshot reprend les trois valeurs. Tests : quatre ajouts dans `MGUI.Tests/Tooling/StableDiagnosticIdTests.cs` (fenetre proprietaire et enfant heritant, scope `Subtree` materialise distingue de ses enfants, popup avec son propre scope, artefact texte) et les trois proprietes ajoutees a `ToolingHooksTests`. Mutation check : proprietaire force a null fait echouer trois tests, vert apres reversion. Constats : `UIResourceScope.Template` n'est construit nulle part dans le code ; le scope desktop n'est jamais le scope effectif d'un element capturable, toute `MGWindow` materialisant son scope `Window` a la construction (branche implementee, non exercee par un arbre vivant).
 
 But:
 completer l'outillage editeur pour deboguer les themes re-appliques a chaud.
@@ -101,7 +103,9 @@ Criteres d'acceptation:
 
 Commit recommande: `style-theme: capture resource scope in tooling snapshot`
 
-### ⚪ 3. Converger le vocabulaire des parts docking
+### ✅ 3. Converger le vocabulaire des parts docking
+
+**Statut** : livre le 7 septembre 2026 (decisions de l'auteur, ADR-0002 `Docs/decisions/0002-docking-part-vocabulary.md`). Regle retenue : un role partage par le framework prime sur tout alias par controle ; les noms de l'ancienne cible (`PART_HeaderText`, `PART_Grip` comme poignee de redimensionnement, `PART_TabHeader`/`PART_TabTitle`/`PART_TabCloseButton`, `PART_Overlay`) n'existaient nulle part et sont abandonnes. Appliquee : `MGDockAutoHideDrawer` `PART_Header` -> `PART_TitleBar` et `PART_TitleLabel` -> `PART_TitleBarText` (roles de `MGWindow`), anciens identifiants `HeaderPartName`/`TitleLabelPartName` conserves en alias obsoletes portant les nouvelles valeurs, seule reference catalogue mise a jour ; `MGDockTabItem` enregistre en plus `PART_TitleText`, `PART_CloseButton`, `PART_PinButton` ; `MGDockDropIndicators` enregistre ses neuf zones (`PART_LeftDropZone` ... `PART_CenterDropZone`, `PART_HostLeftDropZone` ... `PART_HostBottomDropZone`), sans `PART_Overlay` ; `MGDockTabGroup` enregistre en plus `PART_HeadersPanel` (role de `MGTabControl`). Splitter, preview overlay, strip et host inchanges. Aucun comportement modifie. Tests : `MGUI.Tests/Docking/DockPartVocabularyTests.cs` (valeurs figees de chaque controle, enregistrements sur controles vivants, alias obsoletes). Mutation check : `PART_TitleBar` remis a `PART_Header` fait echouer le pin et le test d'enregistrement du drawer, vert apres reversion. La section docking de `Docs/styling-theme-architecture.md` decrit le vocabulaire fige.
 
 But:
 figer un vocabulaire de parts unique avant la migration structurelle docking.

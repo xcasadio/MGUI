@@ -15,4 +15,5 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR | Title | Status | Date |
 |---|---|---|---|
 | ADR-0001 | Tie DynamicResource subscriptions to tree membership with a single weak scope link | Accepted | 2026-09-07 |
+| ADR-0002 | Align the docking part vocabulary on the framework's shared roles | Accepted | 2026-09-07 |
 | ADR-0003 | Clear the MGTabControl selection when the removed selected tab has no successor | Accepted | 2026-09-07 |

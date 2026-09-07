@@ -269,7 +269,7 @@ La couche XAML `ControlTemplatesDocument` / `ControlTemplateDefinition` / `Templ
 
 ### Outillage
 
-`UIToolingService.CaptureVisualTree(...)` produit des `UIVisualTreeSnapshot` exposant `AppliedControlTemplate`, `TemplateParts` (nom -> type runtime) et `LastControlTemplateError`. Le snapshot ne capture ni le scope de ressources effectif ni l'origine des valeurs.
+`UIToolingService.CaptureVisualTree(...)` produit des `UIVisualTreeSnapshot` exposant `AppliedControlTemplate`, `TemplateParts` (nom -> type runtime), `LastControlTemplateError` et, depuis le 7 septembre 2026, le scope de ressources effectif de chaque element: `ResourceScope` (categorie `UIResourceScope` du scope retourne par `GetResources()`), `ResourceScopeOwnerDiagnosticId` (id diagnostic stable de l'element qui possede ce scope, ou de la desktop pour le scope racine, null si le scope n'est possede par aucun element de la chaine) et `HasLocalResourceScope` (l'element a materialise son propre scope via `EnsureResourceScope`, par opposition a un scope herite). Le rendu texte du snapshot reprend ces trois valeurs. Le snapshot ne capture pas encore l'origine des valeurs (tache 5 du backlog).
 
 ## Statut lookless
 
@@ -309,7 +309,7 @@ Controles encore faiblement decouples: `MGRadioButton`, `MGSlider`, `MGProgressB
 1. Ecrire un `ControlTemplate` XAML avec racine et/ou `DetachedRoots`, declarer les `TemplatePart` nommees.
 2. Charger via `MGResources.LoadControlTemplatesFromXaml(...)`.
 3. Assigner `ControlTemplateName` sur le controle cible (ou le mapper dans un theme).
-4. Verifier avec `UIToolingService.CaptureVisualTree(...)`: template applique, parts exposees, derniere erreur de template.
+4. Verifier avec `UIToolingService.CaptureVisualTree(...)`: template applique, parts exposees, derniere erreur de template, scope de ressources effectif et son proprietaire.
 
 ### Migration d'un controle composite
 
@@ -332,18 +332,20 @@ Controles encore faiblement decouples: `MGRadioButton`, `MGSlider`, `MGProgressB
 
 Le docking est un flux de migration dedie avec son propre vocabulaire. Regles: parts en `PART_*`; reutiliser les roles partages plutot qu'inventer des alias par controle; comportement et orchestration de layout restent sur le controle proprietaire; seuls les aspects paint-only migrent vers des parts/elements symboles; les etats semantiques docking (active, preview-visible, drop-target-active, drop-target-disabled, auto-hide-open/collapsed, resizing) restent portes par des proprietes tant qu'une projection partagee n'existe pas.
 
-Parts effectivement enregistrees aujourd'hui (constantes dans MGUI.Core/UI/Docking/Controls/*.cs):
+Vocabulaire fige le 7 septembre 2026 (ADR-0002, `Docs/decisions/0002-docking-part-vocabulary.md`): un role partage par le framework prime sur tout alias par controle. Les roles partages de reference sont ceux de `MGWindow` (`PART_Border`, `PART_TitleBar`, `PART_TitleBarText`, `PART_CloseButton`, `PART_ResizeGrip`), de `MGTabControl` (`PART_HeadersPanel`) et, entre controles docking, `PART_Surface`/`PART_Accent`. Les noms de l'ancienne cible (`PART_HeaderText`, `PART_Grip` comme poignee de redimensionnement, `PART_TabHeader`/`PART_TabTitle`/`PART_TabCloseButton`, `PART_Overlay`) sont abandonnes: aucun n'existait ailleurs, et `PART_Grip` designe la poignee de drag du splitter, un autre role.
 
-- `MGDockTabItem`: `PART_Surface`, `PART_Accent`, `PART_CloseIcon`, `PART_PinIcon`
-- `MGDockTabGroup`: `PART_Accent`, `PART_DropdownIcon`, `PART_WindowStateIcon`
+Parts enregistrees par controle (constantes `*PartName` dans MGUI.Core/UI/Docking/Controls/*.cs, pinnees par les tests d'infrastructure):
+
+- `MGDockTabItem`: `PART_Surface`, `PART_Accent`, `PART_TitleText`, `PART_CloseButton`, `PART_PinButton`, `PART_CloseIcon`, `PART_PinIcon`
+- `MGDockTabGroup`: `PART_Accent`, `PART_DropdownIcon`, `PART_WindowStateIcon`, `PART_HeadersPanel`
 - `MGDockSplitterBar`: `PART_Surface`, `PART_Accent`, `PART_Grip`
 - `MGDockAutoHideStrip`: `PART_Separator`
-- `MGDockAutoHideDrawer`: `PART_Border`, `PART_Header`, `PART_TitleLabel`, `PART_PinButton`, `PART_CloseButton`, `PART_PinIcon`, `PART_CloseIcon`, `PART_ResizeGrip`
+- `MGDockAutoHideDrawer`: `PART_Border`, `PART_TitleBar`, `PART_TitleBarText`, `PART_PinButton`, `PART_CloseButton`, `PART_PinIcon`, `PART_CloseIcon`, `PART_ResizeGrip` (les anciens identifiants `HeaderPartName` et `TitleLabelPartName` restent en alias obsoletes portant les nouvelles valeurs)
 - `MGDockPreviewOverlay`: `PART_Surface`, `PART_Border`
 - `MGDockHost`: `PART_PreviewOverlay`, `PART_DropIndicators`, `PART_LeftAutoHideStrip`, `PART_RightAutoHideStrip`, `PART_TopAutoHideStrip`, `PART_BottomAutoHideStrip`, `PART_AutoHideDrawer`
-- `MGDockDropIndicators`: aucune part `PART_*` enregistree (les zones de drop sont des elements enfants internes)
+- `MGDockDropIndicators`: `PART_LeftDropZone`, `PART_RightDropZone`, `PART_TopDropZone`, `PART_BottomDropZone`, `PART_CenterDropZone`, `PART_HostLeftDropZone`, `PART_HostRightDropZone`, `PART_HostTopDropZone`, `PART_HostBottomDropZone` (pas de `PART_Overlay`: le controle est lui-meme l'overlay, sans element surface distinct)
 
-Ce vocabulaire diverge en partie de la cible initiale (roles `PART_HeaderText`/`PART_Grip` sur le drawer, schema `PART_TabHeader`/`PART_TabTitle`/`PART_TabCloseButton` pour les tabs, parts `PART_*DropZone`). La convergence — blesser les noms livres ou renommer vers la cible — est une decision attachee a la migration structurelle docking (voir Docs/Tasks/styling-theme-tasks.md).
+La migration structurelle (taches 8 et 9 de Docs/Tasks/styling-theme-tasks.md) part de ce jeu fige: parts requises et createurs de structure utilisent ces noms.
 
 Les templates `Dock.*.Default` du catalogue sont des applicateurs de defaults sans phase structurelle: aucun controle docking ne surcharge `GetRequiredControlTemplateParts()` ni `AttachControlTemplateStructure(...)`. Des variantes `Dark.Dock*` existent deja en asset XAML via `BasedOn`.
 

@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using MGUI.Core.UI;
+using MGUI.Core.UI.Styling;
 using System.Collections.Generic;
 
 namespace MGUI.Core.Tooling
@@ -27,6 +28,9 @@ namespace MGUI.Core.Tooling
         string AppliedControlTemplate,
         IReadOnlyDictionary<string, string> TemplateParts,
         string LastControlTemplateError,
+        UIResourceScope ResourceScope,
+        string ResourceScopeOwnerDiagnosticId,
+        bool HasLocalResourceScope,
         int Depth,
         IReadOnlyList<UIVisualTreeSnapshot> Children);
 }

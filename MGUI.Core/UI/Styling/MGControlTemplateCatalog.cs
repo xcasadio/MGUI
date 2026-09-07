@@ -1428,7 +1428,7 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            MGBorder Header = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.HeaderPartName);
+            MGBorder Header = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.TitleBarPartName);
             MGBorder PinButton = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.PinButtonPartName);
             MGBorder CloseButton = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.CloseButtonPartName);
 

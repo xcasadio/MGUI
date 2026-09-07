@@ -35,6 +35,9 @@ public class ToolingHooksTests
         Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.CanReceiveMouseInput)));
         Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.AppliedControlTemplate)));
         Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.TemplateParts)));
+        Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.ResourceScope)));
+        Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.ResourceScopeOwnerDiagnosticId)));
+        Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.HasLocalResourceScope)));
         Assert.NotNull(typeof(UIInputReplayFrame).GetProperty(nameof(UIInputReplayFrame.ExpectedFocusedElementDiagnosticId)));
         Assert.NotNull(typeof(UIDiagnosticAssertions).GetMethod(nameof(UIDiagnosticAssertions.ExpectFocusedElement), BindingFlags.Static | BindingFlags.Public));
     }

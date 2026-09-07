@@ -1,4 +1,5 @@
 using MGUI.Core.UI;
+using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
 using MGUI.Shared.Input;
 using MGUI.Shared.Input.GamePad;
@@ -209,6 +210,8 @@ namespace MGUI.Core.Tooling
                 templateParts[templatePart.Key] = templatePart.Value?.GetType().Name ?? nameof(MGElement);
             }
 
+            MGResources effectiveResourceScope = element.GetResources();
+
             return new(
                 GetStableDiagnosticId(element),
                 GetStableDiagnosticId(window),
@@ -231,8 +234,36 @@ namespace MGUI.Core.Tooling
                 element.AppliedControlTemplateName,
                 templateParts,
                 element.LastControlTemplateError,
+                effectiveResourceScope.Scope,
+                FindResourceScopeOwnerDiagnosticId(element, effectiveResourceScope),
+                element.LocalResources != null,
                 depth,
                 children);
+        }
+
+        /// <summary>Finds the stable diagnostic id of the element (or desktop) that owns the <see cref="MGResources"/> instance an
+        /// element's <see cref="MGElement.GetResources"/> effectively resolves against. Walks the same chain as
+        /// <c>MGElement.GetInheritedResources()</c> (<see cref="MGElement.Parent"/>, else <see cref="MGElement.ParentWindow"/>, which for a
+        /// nested window is its owner window), looking for the element whose <see cref="MGElement.LocalResources"/> is the same instance as
+        /// <paramref name="effectiveScope"/>; falls back to the desktop scope. Returns null when no owner can be found in that chain (for
+        /// example a scope injected by hand, or a <see cref="UIResourceScope.Template"/> scope owned by nothing walkable from this element).</summary>
+        private static string FindResourceScopeOwnerDiagnosticId(MGElement element, MGResources effectiveScope)
+        {
+            for (MGElement current = element; current != null; current = current.Parent ?? current.ParentWindow)
+            {
+                if (ReferenceEquals(current.LocalResources, effectiveScope))
+                {
+                    return GetStableDiagnosticId(current);
+                }
+            }
+
+            MGDesktop desktop = element.GetDesktop();
+            if (desktop != null && ReferenceEquals(desktop.Resources, effectiveScope))
+            {
+                return GetStableDiagnosticId(desktop);
+            }
+
+            return null;
         }
 
         public static MGElement LoadPreview(MGWindow window, XamlDocumentSource source, object dataContext = null,
@@ -374,7 +405,7 @@ namespace MGUI.Core.Tooling
         private static void AppendVisualTreeSnapshot(StringBuilder artifact, UIVisualTreeSnapshot snapshot, int indent)
         {
             AppendIndent(artifact, indent);
-            artifact.AppendLine($"{snapshot.DiagnosticId} [{snapshot.ElementType}] visible={snapshot.IsEffectivelyVisible} visibility={snapshot.Visibility} hitTest={snapshot.IsHitTestVisible} mouse={snapshot.CanReceiveMouseInput} keyboard={snapshot.CanReceiveKeyboardInput} focus={snapshot.HasKeyboardFocus} hover={snapshot.IsHovered} clipped={snapshot.RecentDrawWasClipped} primary={snapshot.PrimaryVisualState} secondary={snapshot.SecondaryVisualState}");
+            artifact.AppendLine($"{snapshot.DiagnosticId} [{snapshot.ElementType}] visible={snapshot.IsEffectivelyVisible} visibility={snapshot.Visibility} hitTest={snapshot.IsHitTestVisible} mouse={snapshot.CanReceiveMouseInput} keyboard={snapshot.CanReceiveKeyboardInput} focus={snapshot.HasKeyboardFocus} hover={snapshot.IsHovered} clipped={snapshot.RecentDrawWasClipped} primary={snapshot.PrimaryVisualState} secondary={snapshot.SecondaryVisualState} scope={snapshot.ResourceScope} scopeOwner={snapshot.ResourceScopeOwnerDiagnosticId ?? "<none>"} localScope={snapshot.HasLocalResourceScope}");
 
             for (int i = 0; i < snapshot.Children.Count; i++)
             {
