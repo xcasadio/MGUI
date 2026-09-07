@@ -54,7 +54,7 @@ Etat actuel (verifie le 7 septembre 2026):
 - precedent a respecter: `MGResources.WeakThemeChangedForwarder` (`MGUI.Core/UI/MGResources.cs:127-156`). Fermer une `MGWindow` n'est pas la detruire: un abonnement fort sur le scope desktop enracine toute fenetre fermee, et desinscrire a la fermeture casse la propagation vers les fenetres re-montrees. Le lien faible y est volontairement limite a ce seul point scope -> scope ("pas de weak events generalises");
 - toute fenetre possede un scope `Window` dont le parent est `MGDesktop.Resources` (`MGWindow.cs:1101`, `:1388`); les evenements de ressources statiques ne sont pas forwardes du parent vers l'enfant, seul `TryGetStaticResource` remonte la chaine.
 
-Decision (7 septembre 2026): les abonnements suivent l'appartenance a l'arbre, et aucun element ne s'abonne directement a un scope ancetre.
+Decision (7 septembre 2026): les abonnements suivent l'appartenance a l'arbre, et aucun element ne s'abonne directement a un scope ancetre. Decisions: see ADR-0001 (`Docs/decisions/0001-dynamic-resource-subscription-lifecycle.md`).
 
 Travail attendu:
 
