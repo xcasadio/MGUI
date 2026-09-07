@@ -68,7 +68,9 @@ Decisions de conception derivees (ADR-0005, `Docs/decisions/0005-resolved-value-
 
 ## Tranches
 
-### ⚪ S1. Store de valeurs resolues, sans cablage
+### ✅ S1. Store de valeurs resolues, sans cablage
+
+**Statut** : livre le 7 septembre 2026. `UIPilotProperty` (7), `UIValueSlot` (6), `UIResolvedPropertyStore` (tableau plat 7x6 alloue au premier `Set`, entree par (propriete, slot) typee par son premier `Set<T>`, listes paralleles contributions/kinds triees par precedence, `Set`/`Unset`/`TryGetWinner`/`TryGetContribution`/`Contributions`/`EntryCount`, retombee `Unset` avec `EmptiedInvalidation`, `InvalidOperationException` sur changement de type), `UIResolvedValue<T>.HasAnyInvalidation` ajoute sans toucher `HasInvalidation`. Tests : `MGUI.Tests/Architecture/ResolvedPropertyStoreTests.cs` (15 tests dont la matrice des onze sources). Mutation : tri inverse => 5 tests rouges, vert apres reversion. Aucun cablage : le store n'est reference par aucun autre fichier de production.
 
 But : la brique centrale, testee seule.
 
