@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Text;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -117,12 +118,12 @@ namespace MGUI.Core.UI
                 OuterBorderThickness = new(0);
                 TitleBorderThickness = new(0);
                 InnerBorderThickness = new(0);
-                ItemsPanel.BorderThickness = new(0);
-                MinHeight = 0;
+                ItemsPanel.SetBorderThicknessTagged(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                SetMinHeight(0, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 ItemContainerStyle = presenter =>
                 {
                     ApplyDefaultItemContainerStyle(presenter);
-                    presenter.BorderThickness = new(0);
+                    presenter.SetBorderThickness(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 };
 
                 _TimestampFormat = @"'\\['HH:mm:ss']'";

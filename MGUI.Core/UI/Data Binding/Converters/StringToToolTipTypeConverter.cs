@@ -15,6 +15,7 @@ using System.Windows.Data;
 #else
 using Portable.Xaml.Markup;
 #endif
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Data_Binding.Converters
 {
@@ -66,7 +67,7 @@ namespace MGUI.Core.UI.Data_Binding.Converters
             else
             {
                 MGToolTip ToolTip = new(Host.SelfOrParentWindow, Host, 0, 0);
-                ToolTip.Padding = new(6, 3);
+                ToolTip.SetPadding(new(6, 3), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 ToolTip.BackgroundBrush.NormalValue = new Color(56, 56, 56, 218).AsFillBrush();
                 ToolTip.DefaultTextForeground.NormalValue = new(240, 240, 240);
                 MGTextBlock Content = new(Host.SelfOrParentWindow, Value);

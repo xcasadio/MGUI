@@ -1013,58 +1013,171 @@ namespace MGUI.Core.UI
             => UIResponsiveMath.ScaleGridLineMargin(margin, designSpacing, resolvedSpacing, ResponsiveSpacingScaleFactor);
         #endregion Responsive
 
+        #region Resolved pilot properties (ADR-0005)
+        /// <summary>Per-element store of resolved contributions for the pilot properties (Margin, Padding, MinHeight,
+        /// and, on <see cref="MGBorder"/>, BorderBrush/BorderThickness). Lazily allocated on the first tagged write;
+        /// null-safe on every read path so elements built without running field initializers (see
+        /// <see cref="System.Runtime.Serialization.FormatterServices.GetUninitializedObject(Type)"/>) never throw.</summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private UIResolvedPropertyStore _ResolvedValues;
+
+        private protected UIResolvedPropertyStore ResolvedValues => _ResolvedValues ??= new();
+
+        /// <summary>Number of (property, slot) entries allocated in this element's resolved value store, including
+        /// entries that have since been emptied. Zero when the element never received a tagged pilot write.</summary>
+        internal int ResolvedEntryCount => _ResolvedValues?.EntryCount ?? 0;
+
+        /// <summary>Reads the specific contribution of <paramref name="kind"/> for (<paramref name="property"/>, <paramref name="slot"/>)
+        /// on this element's resolved value store, regardless of whether it is the current winner.</summary>
+        internal bool TryGetResolvedContribution<T>(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind kind, out UIResolvedValue<T> contribution)
+        {
+            if (_ResolvedValues == null)
+            {
+                contribution = UIResolvedValue<T>.Unset();
+                return false;
+            }
+            return _ResolvedValues.TryGetContribution(property, slot, kind, out contribution);
+        }
+
+        /// <summary>Reads the current winning resolved value for (<paramref name="property"/>, <paramref name="slot"/>).
+        /// For <see cref="UIPilotProperty.BorderBrush"/> and <see cref="UIPilotProperty.BorderThickness"/> on an element
+        /// that is not itself an <see cref="MGBorder"/>, this delegates to <see cref="GetBorder"/> (false when there is none).</summary>
+        internal bool TryGetResolvedPilotValue<T>(UIPilotProperty property, UIValueSlot slot, out UIResolvedValue<T> value)
+        {
+            if ((property == UIPilotProperty.BorderBrush || property == UIPilotProperty.BorderThickness) && !(this is MGBorder))
+            {
+                MGBorder border = GetBorder();
+                if (border == null)
+                {
+                    value = UIResolvedValue<T>.Unset();
+                    return false;
+                }
+                return border.TryGetResolvedPilotValue(property, slot, out value);
+            }
+
+            if (_ResolvedValues == null)
+            {
+                value = UIResolvedValue<T>.Unset();
+                return false;
+            }
+            return _ResolvedValues.TryGetWinner(property, slot, out value);
+        }
+
+        /// <summary>Removes the contribution of <paramref name="kind"/> for (<paramref name="property"/>, <paramref name="slot"/>).
+        /// When a lower-precedence contribution remains, it becomes the new effective value (with the pilot's usual
+        /// notifications). When the entry becomes empty, the current CLR value is kept and no notification is raised,
+        /// matching the fall-back documented in ADR-0005.</summary>
+        internal virtual void ClearPilotSource(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind kind)
+        {
+            switch (property)
+            {
+                case UIPilotProperty.Margin:
+                    if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<Thickness>.Default, out bool marginChanged, out UIResolvedValue<Thickness> margin) && marginChanged)
+                        ApplyMarginEffective(margin.Value);
+                    break;
+                case UIPilotProperty.Padding:
+                    if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<Thickness>.Default, out bool paddingChanged, out UIResolvedValue<Thickness> padding) && paddingChanged)
+                        ApplyPaddingEffective(padding.Value);
+                    break;
+                case UIPilotProperty.MinHeight:
+                    if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<int?>.Default, out bool minHeightChanged, out UIResolvedValue<int?> minHeight) && minHeightChanged)
+                        ApplyMinHeightEffective(minHeight.Value);
+                    break;
+                case UIPilotProperty.BorderBrush:
+                case UIPilotProperty.BorderThickness:
+                    if (GetBorder() is MGBorder border && !ReferenceEquals(border, this))
+                        border.ClearPilotSource(property, slot, kind);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>Delegates a tagged <see cref="UIPilotProperty.BorderBrush"/> write to <see cref="GetBorder"/>, a no-op
+        /// when this element has no border. Framework code configuring a composite's inner border should call this
+        /// instead of the public <see cref="MGBorder.BorderBrush"/> facade, which stays the application's <c>LocalValue</c>
+        /// entry point.</summary>
+        internal void SetBorderBrushTagged(IBorderBrush value, UIValueResolutionSource source) => GetBorder()?.SetBorderBrush(value, source);
+
+        /// <summary>Delegates a tagged <see cref="UIPilotProperty.BorderThickness"/> write to <see cref="GetBorder"/>, a
+        /// no-op when this element has no border. See <see cref="SetBorderBrushTagged"/>.</summary>
+        internal void SetBorderThicknessTagged(Thickness value, UIValueResolutionSource source) => GetBorder()?.SetBorderThickness(value, source);
+        #endregion Resolved pilot properties (ADR-0005)
+
         #region Margin / Padding
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Thickness _Margin;
-		public Thickness Margin
-		{
-			get => _Margin;
-			set
-			{
-				if (!_Margin.Equals(value))
-				{
-                    Thickness Previous = Margin;
-					_Margin = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(Margin));
-                    NPC(nameof(HorizontalMargin));
-                    NPC(nameof(VerticalMargin));
-                    NPC(nameof(MarginSize));
-                    NPC(nameof(HorizontalMarginAndPadding));
-                    NPC(nameof(VerticalMarginAndPadding));
-                    NPC(nameof(MarginAndPaddingSize));
-                    NPC(nameof(MinSizeIncludingMargin));
-                    NPC(nameof(MaxSizeIncludingMargin));
-                    NPC(nameof(ActualPreferredWidth));
-                    NPC(nameof(ActualPreferredHeight));
-                    OnMarginChanged?.Invoke(this, new(Previous, Margin));
-                }
-			}
-		}
+        public Thickness Margin
+        {
+            get => _Margin;
+            set => SetMargin(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        }
+
+        /// <summary>Tagged write of <see cref="Margin"/> (ADR-0005): records <paramref name="source"/>'s contribution in
+        /// the resolved value store and applies the winning value (with the usual notifications) only if it changed.</summary>
+        internal void SetMargin(Thickness value, UIValueResolutionSource source)
+        {
+            ResolvedValues.Set(UIPilotProperty.Margin, UIValueSlot.Whole, value, source, EqualityComparer<Thickness>.Default, out bool effectiveChanged, out UIResolvedValue<Thickness> effective);
+            if (effectiveChanged)
+                ApplyMarginEffective(effective.Value);
+        }
+
+        private void ApplyMarginEffective(Thickness value)
+        {
+            if (!_Margin.Equals(value))
+            {
+                Thickness Previous = Margin;
+                _Margin = value;
+                LayoutChanged(this, true);
+                NPC(nameof(Margin));
+                NPC(nameof(HorizontalMargin));
+                NPC(nameof(VerticalMargin));
+                NPC(nameof(MarginSize));
+                NPC(nameof(HorizontalMarginAndPadding));
+                NPC(nameof(VerticalMarginAndPadding));
+                NPC(nameof(MarginAndPaddingSize));
+                NPC(nameof(MinSizeIncludingMargin));
+                NPC(nameof(MaxSizeIncludingMargin));
+                NPC(nameof(ActualPreferredWidth));
+                NPC(nameof(ActualPreferredHeight));
+                OnMarginChanged?.Invoke(this, new(Previous, Margin));
+            }
+        }
 
         public event EventHandler<EventArgs<Thickness>> OnMarginChanged;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Thickness _Padding;
-		public Thickness Padding
-		{
-			get => _Padding;
-			set
-			{
-				if (!_Padding.Equals(value))
-				{
-					_Padding = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(Padding));
-                    NPC(nameof(HorizontalPadding));
-                    NPC(nameof(VerticalPadding));
-                    NPC(nameof(PaddingSize));
-                    NPC(nameof(HorizontalMarginAndPadding));
-                    NPC(nameof(VerticalMarginAndPadding));
-                    NPC(nameof(MarginAndPaddingSize));
-                }
-			}
-		}
+        public Thickness Padding
+        {
+            get => _Padding;
+            set => SetPadding(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        }
+
+        /// <summary>Tagged write of <see cref="Padding"/> (ADR-0005): records <paramref name="source"/>'s contribution in
+        /// the resolved value store and applies the winning value (with the usual notifications) only if it changed.</summary>
+        internal void SetPadding(Thickness value, UIValueResolutionSource source)
+        {
+            ResolvedValues.Set(UIPilotProperty.Padding, UIValueSlot.Whole, value, source, EqualityComparer<Thickness>.Default, out bool effectiveChanged, out UIResolvedValue<Thickness> effective);
+            if (effectiveChanged)
+                ApplyPaddingEffective(effective.Value);
+        }
+
+        private void ApplyPaddingEffective(Thickness value)
+        {
+            if (!_Padding.Equals(value))
+            {
+                _Padding = value;
+                LayoutChanged(this, true);
+                NPC(nameof(Padding));
+                NPC(nameof(HorizontalPadding));
+                NPC(nameof(VerticalPadding));
+                NPC(nameof(PaddingSize));
+                NPC(nameof(HorizontalMarginAndPadding));
+                NPC(nameof(VerticalMarginAndPadding));
+                NPC(nameof(MarginAndPaddingSize));
+            }
+        }
 
         /// <summary>Total width of <see cref="Margin"/> (<see cref="Thickness.Left"/> + <see cref="Thickness.Right"/>)</summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1227,16 +1340,27 @@ namespace MGUI.Core.UI
         public int? MinHeight
         {
             get => _MinHeight;
-            set
+            set => SetMinHeight(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        }
+
+        /// <summary>Tagged write of <see cref="MinHeight"/> (ADR-0005): records <paramref name="source"/>'s contribution in
+        /// the resolved value store and applies the winning value (with the usual notifications) only if it changed.</summary>
+        internal void SetMinHeight(int? value, UIValueResolutionSource source)
+        {
+            ResolvedValues.Set(UIPilotProperty.MinHeight, UIValueSlot.Whole, value, source, EqualityComparer<int?>.Default, out bool effectiveChanged, out UIResolvedValue<int?> effective);
+            if (effectiveChanged)
+                ApplyMinHeightEffective(effective.Value);
+        }
+
+        private void ApplyMinHeightEffective(int? value)
+        {
+            if (_MinHeight != value)
             {
-                if (_MinHeight != value)
-                {
-                    _MinHeight = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(MinHeight));
-                    NPC(nameof(MinSize));
-                    NPC(nameof(MinSizeIncludingMargin));
-                }
+                _MinHeight = value;
+                LayoutChanged(this, true);
+                NPC(nameof(MinHeight));
+                NPC(nameof(MinSize));
+                NPC(nameof(MinSizeIncludingMargin));
             }
         }
 
@@ -2114,8 +2238,8 @@ namespace MGUI.Core.UI
 
                 MGTheme ActualTheme = Theme ?? ParentWindow?.Theme ?? Desktop.Theme;
 
-                Margin = new(0);
-				Padding = new(0);
+                SetMargin(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                SetPadding(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
 				HorizontalAlignment = HorizontalAlignment.Stretch;
 				VerticalAlignment = VerticalAlignment.Stretch;

@@ -12,6 +12,7 @@ using System.Windows.Data;
 #else
 using Portable.Xaml.Markup;
 #endif
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Data_Binding.Converters
 {
@@ -91,7 +92,7 @@ namespace MGUI.Core.UI.Data_Binding.Converters
 
                 if (Padding.HasValue)
                 {
-                    ToolTip.Padding = Padding.Value.ToThickness();
+                    ToolTip.SetPadding(Padding.Value.ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 }
 
                 if (Background != null)
@@ -121,7 +122,7 @@ namespace MGUI.Core.UI.Data_Binding.Converters
 
                 if (MinHeight.HasValue)
                 {
-                    ToolTip.MinHeight = MinHeight.Value;
+                    ToolTip.SetMinHeight(MinHeight.Value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 }
 
                 if (MaxHeight.HasValue)

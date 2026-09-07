@@ -12,6 +12,7 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Rendering.Clipping;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -22,15 +23,27 @@ namespace MGUI.Core.UI
         public IBorderBrush BorderBrush
         {
             get => _BorderBrush;
-            set
+            set => SetBorderBrush(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+        }
+
+        /// <summary>Tagged write of <see cref="BorderBrush"/> (ADR-0005): records <paramref name="source"/>'s contribution
+        /// in the resolved value store (reference equality, matching <see cref="IBorderBrush"/>'s lack of an
+        /// <see cref="object.Equals(object)"/> override) and applies the winning value only if it changed.</summary>
+        internal void SetBorderBrush(IBorderBrush value, UIValueResolutionSource source)
+        {
+            ResolvedValues.Set(UIPilotProperty.BorderBrush, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool effectiveChanged, out UIResolvedValue<IBorderBrush> effective);
+            if (effectiveChanged)
+                ApplyBorderBrushEffective(effective.Value);
+        }
+
+        private void ApplyBorderBrushEffective(IBorderBrush value)
+        {
+            if (_BorderBrush != value)
             {
-                if (_BorderBrush != value)
-                {
-                    IBorderBrush Previous = BorderBrush;
-                    _BorderBrush = value;
-                    NPC(nameof(BorderBrush));
-                    OnBorderBrushChanged?.Invoke(this, new(Previous, BorderBrush));
-                }
+                IBorderBrush Previous = BorderBrush;
+                _BorderBrush = value;
+                NPC(nameof(BorderBrush));
+                OnBorderBrushChanged?.Invoke(this, new(Previous, BorderBrush));
             }
         }
 
@@ -41,20 +54,52 @@ namespace MGUI.Core.UI
         public Thickness BorderThickness
         {
             get => _BorderThickness;
-            set
+            set => SetBorderThickness(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        }
+
+        /// <summary>Tagged write of <see cref="BorderThickness"/> (ADR-0005): records <paramref name="source"/>'s
+        /// contribution in the resolved value store and applies the winning value only if it changed.</summary>
+        internal void SetBorderThickness(Thickness value, UIValueResolutionSource source)
+        {
+            ResolvedValues.Set(UIPilotProperty.BorderThickness, UIValueSlot.Whole, value, source, EqualityComparer<Thickness>.Default, out bool effectiveChanged, out UIResolvedValue<Thickness> effective);
+            if (effectiveChanged)
+                ApplyBorderThicknessEffective(effective.Value);
+        }
+
+        private void ApplyBorderThicknessEffective(Thickness value)
+        {
+            if (!_BorderThickness.Equals(value))
             {
-                if (!_BorderThickness.Equals(value))
-                {
-                    Thickness Previous = BorderThickness;
-                    _BorderThickness = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(BorderThickness));
-                    OnBorderThicknessChanged?.Invoke(this, new(Previous, BorderThickness));
-                }
+                Thickness Previous = BorderThickness;
+                _BorderThickness = value;
+                LayoutChanged(this, true);
+                NPC(nameof(BorderThickness));
+                OnBorderThicknessChanged?.Invoke(this, new(Previous, BorderThickness));
             }
         }
 
         public event EventHandler<EventArgs<Thickness>> OnBorderThicknessChanged;
+
+        /// <summary>Removes the contribution of <paramref name="kind"/> for <see cref="UIPilotProperty.BorderBrush"/> or
+        /// <see cref="UIPilotProperty.BorderThickness"/> and, for any other pilot, falls back to the base (Margin,
+        /// Padding, MinHeight) behaviour. See <see cref="MGElement.ClearPilotSource"/>.</summary>
+        internal override void ClearPilotSource(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind kind)
+        {
+            switch (property)
+            {
+                case UIPilotProperty.BorderBrush:
+                    if (ResolvedValues.Unset(property, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool brushChanged, out UIResolvedValue<IBorderBrush> brush) && brushChanged)
+                        ApplyBorderBrushEffective(brush.Value);
+                    break;
+                case UIPilotProperty.BorderThickness:
+                    if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<Thickness>.Default, out bool thicknessChanged, out UIResolvedValue<Thickness> thickness) && thicknessChanged)
+                        ApplyBorderThicknessEffective(thickness.Value);
+                    break;
+                default:
+                    base.ClearPilotSource(property, slot, kind);
+                    break;
+            }
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGCornerRadius _CornerRadius;
@@ -108,8 +153,8 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                this.BorderBrush = BorderBrush;
-                this.BorderThickness = BorderThickness;
+                SetBorderBrush(BorderBrush, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
+                SetBorderThickness(BorderThickness, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 this.CornerRadius = MGCornerRadius.Zero;
             }
         }

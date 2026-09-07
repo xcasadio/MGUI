@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -220,7 +221,7 @@ namespace MGUI.Core.UI
 
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
-                Padding = new(4, 2, 4, 2);
+                SetPadding(new(4, 2, 4, 2), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 ElapsedToString = (TimeSpan Elapsed) => Elapsed.ToString(@"m\:ss\.%f");
                 ValueDisplayFormat = DefaultValueDisplayFormat;

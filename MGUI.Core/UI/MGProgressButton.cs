@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -636,7 +637,7 @@ namespace MGUI.Core.UI
             {
                 IsFocusable = true;
                 MinWidth = 16;
-                MinHeight = 16;
+                SetMinHeight(16, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 BorderElement = new(Window, BorderThickness, BorderBrush);
                 BorderComponent = MGComponentBase.Create(BorderElement);
@@ -647,7 +648,7 @@ namespace MGUI.Core.UI
 
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
-                Padding = new(4, 2, 4, 2);
+                SetPadding(new(4, 2, 4, 2), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 SetRange(Minimum, Maximum);
                 this.Value = Value;

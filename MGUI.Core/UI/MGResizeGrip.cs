@@ -9,6 +9,7 @@ using MGUI.Shared.Helpers;
 using System.Diagnostics;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -185,7 +186,7 @@ namespace MGUI.Core.UI
             {
                 Foreground = GetTheme().ResizeGripForeground.GetValue(true);
 
-                Margin = new(2);
+                SetMargin(new(2), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 MaxDots = 4;
                 Spacing = 3;

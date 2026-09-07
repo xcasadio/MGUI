@@ -243,15 +243,15 @@ namespace MGUI.Core.UI
         {
             MGButton Button = new(Window ?? this, new(0), MGUniformBorderBrush.Transparent);
 
-            Button.Padding = new(5, 3, 20, 3);
-            Button.Margin = new(0);
+            Button.SetPadding(new(5, 3, 20, 3), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            Button.SetMargin(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
             Button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
             Button.VerticalContentAlignment = VerticalAlignment.Center;
             Button.HorizontalAlignment = HorizontalAlignment.Stretch;
             Button.VerticalAlignment = VerticalAlignment.Stretch;
 
-            Button.BorderThickness = new(0);
+            Button.SetBorderThicknessTagged(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
             Button.BackgroundBrush = background;
             Button.GetBorder().BackgroundBrush = background?.Copy();
@@ -694,7 +694,7 @@ namespace MGUI.Core.UI
                 MGScrollViewer SV = new(this, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled);
                 ScrollViewerElement = SV;
                 RegisterTemplatePart(ScrollViewerPartName, ScrollViewerElement);
-                SV.Padding = new(0);
+                SV.SetPadding(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 SV.SetContent(ItemsPanel);
                 SV.ManagedParent = this;
                 SetContent(SV);
@@ -710,15 +710,15 @@ namespace MGUI.Core.UI
                     TitleBarTextBlockElement.TextAlignment = HorizontalAlignment.Center;
                 }
 
-                Padding = new(0);
-                BorderBrush = MGUniformBorderBrush.Transparent;
-                BorderThickness = new(1);
+                SetPadding(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
+                SetBorderThicknessTagged(new(1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 IsUserResizable = false;
 
                 MinWidth = 150;
                 MaxWidth = 600;
-                MinHeight = 0;
+                SetMinHeight(0, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 MaxHeight = 600;
                 DefaultControlTemplateName = MGControlTemplateCatalog.ContextMenuTemplateName;
 

@@ -8,6 +8,7 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Core.UI.XAML;
 using MGUI.Shared.Input.Mouse;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -2132,8 +2133,8 @@ public class MGDockHost : MGSingleContentHost
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-            Padding = new Thickness(20).ToThickness()
         };
+        textBlock.SetPadding(new Thickness(20).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
         return textBlock;
     }
@@ -2147,8 +2148,8 @@ public class MGDockHost : MGSingleContentHost
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-            Padding = new Thickness(20).ToThickness()
         };
+        textBlock.SetPadding(new Thickness(20).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
         return textBlock;
     }

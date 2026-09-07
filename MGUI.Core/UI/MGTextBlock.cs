@@ -920,7 +920,7 @@ namespace MGUI.Core.UI
                 this.Foreground = new VisualStateSetting<Color?>(Foreground, Foreground, Foreground);
                 LinePadding = 2;
                 TextAlignment = HorizontalAlignment.Left;
-                Padding = new(1,1,1,1);
+                SetPadding(new(1,1,1,1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 VerticalContentAlignment = VerticalAlignment.Center;
                 TextProgress = null;
                 TextCharactersPerSecond = null;

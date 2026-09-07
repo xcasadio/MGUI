@@ -142,7 +142,7 @@ namespace MGUI.Core.UI
             {
                 if (DropdownArrowElement.Margin.Left != value)
                 {
-                    DropdownArrowElement.Margin = DropdownArrowElement.Margin.ChangeLeft(value);
+                    DropdownArrowElement.SetMargin(DropdownArrowElement.Margin.ChangeLeft(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     NPC(nameof(DropdownArrowLeftMargin));
                 }
             }
@@ -157,7 +157,7 @@ namespace MGUI.Core.UI
             {
                 if (DropdownArrowElement.Margin.Right != value)
                 {
-                    DropdownArrowElement.Margin = DropdownArrowElement.Margin.ChangeRight(value);
+                    DropdownArrowElement.SetMargin(DropdownArrowElement.Margin.ChangeRight(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     NPC(nameof(DropdownArrowRightMargin));
                 }
             }

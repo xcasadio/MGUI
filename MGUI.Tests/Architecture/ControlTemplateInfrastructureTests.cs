@@ -842,8 +842,8 @@ public class ControlTemplateInfrastructureTests
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
 
         Assert.Contains("private void SyncVirtualizedItemsPanelChrome()", listBoxSource);
-        Assert.Contains("_virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness;", listBoxSource);
-        Assert.Contains("_virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush();", listBoxSource);
+        Assert.Contains("_virtualizingPanel.SetBorderThicknessTagged(ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", listBoxSource);
+        Assert.Contains("_virtualizingPanel.SetBorderBrushTagged(ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));", listBoxSource);
         Assert.Contains("public int MinHeight { get; set; } = 30;", themeSource);
         Assert.Contains("public static void ApplyListBoxItemContainerDefaults", catalogSource);
         Assert.Contains("public static MGElement CreateDefaultListBoxItemContent", catalogSource);
@@ -909,12 +909,12 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("public Thickness HostPadding { get; set; } = new(4);", themeSource);
         Assert.Contains("public Thickness ChromelessPadding { get; set; } = new(0);", themeSource);
         Assert.Contains("public Thickness ChromelessBorderThickness { get; set; } = new(0);", themeSource);
-        Assert.Contains("Padding = GetTheme().Overlay.HostPadding;", overlaySource);
+        Assert.Contains("SetPadding(GetTheme().Overlay.HostPadding, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", overlaySource);
         Assert.Contains("Definition.HostPadding", themeBuilderSource);
-        Assert.Contains("Padding = GetTheme().Window.Padding;", windowSource);
-        Assert.Contains("BorderThickness = GetTheme().Window.BorderThickness;", windowSource);
-        Assert.Contains("Padding = GetTheme().Window.ChromelessPadding;", windowSource);
-        Assert.Contains("BorderThickness = GetTheme().Window.ChromelessBorderThickness;", windowSource);
+        Assert.Contains("SetPadding(GetTheme().Window.Padding, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", windowSource);
+        Assert.Contains("SetBorderThicknessTagged(GetTheme().Window.BorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", windowSource);
+        Assert.Contains("SetPadding(GetTheme().Window.ChromelessPadding, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", windowSource);
+        Assert.Contains("SetBorderThicknessTagged(GetTheme().Window.ChromelessBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", windowSource);
         Assert.Contains("Definition.ChromelessPadding", themeBuilderSource);
         Assert.Contains("Definition.ChromelessBorderThickness", themeBuilderSource);
         Assert.Contains("public Thickness? ChromelessPadding { get; set; }", xamlThemeSource);

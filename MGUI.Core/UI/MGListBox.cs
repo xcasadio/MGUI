@@ -1436,8 +1436,9 @@ namespace MGUI.Core.UI
                 return;
             }
 
-            _virtualizingPanel.BorderThickness = ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness;
-            _virtualizingPanel.BorderBrush = ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush();
+            // ADR-0005/S2 decision: owner mirroring chrome onto its internal virtualization proxy = LocalValue.
+            _virtualizingPanel.SetBorderThicknessTagged(ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            _virtualizingPanel.SetBorderBrushTagged(ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
         }
 
         /// <summary>Estimates the pixel height of individual items for the <see cref="VirtualizingStackPanel"/>.<br/>

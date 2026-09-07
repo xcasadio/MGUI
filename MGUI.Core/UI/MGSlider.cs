@@ -12,6 +12,7 @@ using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -707,7 +708,7 @@ namespace MGUI.Core.UI
                 }
                 else if (Orientation == Orientation.Vertical)
                 {
-                    MinHeight = DefaultThumbPrimarySize * 4;
+                    SetMinHeight(DefaultThumbPrimarySize * 4, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     HorizontalAlignment = HorizontalAlignment.Left;
                 }
                 else
@@ -721,7 +722,7 @@ namespace MGUI.Core.UI
                 ValueLabelComponent = new(ValueLabelElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     true, true, false, false, false, false, false,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Center, VerticalAlignment.Center, ComponentSize.Size));
-                ValueLabelElement.Padding = new(2, 1);
+                ValueLabelElement.SetPadding(new(2, 1), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 AddComponent(ValueLabelComponent);
 
                 ValueLabelFormat = "F0";

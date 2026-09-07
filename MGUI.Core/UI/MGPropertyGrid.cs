@@ -536,20 +536,22 @@ namespace MGUI.Core.UI
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     HorizontalContentAlignment = HorizontalAlignment.Left,
                     VerticalContentAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0),
-                    Padding = new Thickness(0),
-                    BorderThickness = new Thickness(0),
                 };
+                HeaderButton.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                // ADR-0005 / plan S2: DefaultValue (not LocalValue) so that ApplyTheme's Theme write of the same Padding still wins;
+                // revisit in S3 once the template catalogue writes Template.
+                HeaderButton.SetPadding(new Thickness(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                HeaderButton.SetBorderThicknessTagged(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 MGStackPanel headerPanel = new(window, Orientation.Horizontal)
                 {
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0),
-                    Padding = new Thickness(0),
                     Spacing = 8,
                     CanChangeContent = false,
                 };
+                headerPanel.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                headerPanel.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 ArrowIcon = new(window)
                 {
@@ -563,8 +565,8 @@ namespace MGUI.Core.UI
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0),
                 };
+                HeaderText.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 using (headerPanel.AllowChangingContentTemporarily())
                 {
@@ -581,10 +583,10 @@ namespace MGUI.Core.UI
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0),
-                    Padding = new Thickness(0),
                     CanChangeContent = false,
                 };
+                RowsPanel.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                RowsPanel.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 IReadOnlyList<MGPropertyGridDescriptor> descriptors = model?.Descriptors ?? Array.Empty<MGPropertyGridDescriptor>();
                 using (RowsPanel.AllowChangingContentTemporarily())
@@ -601,10 +603,10 @@ namespace MGUI.Core.UI
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0),
-                    Padding = new Thickness(0),
                     CanChangeContent = false,
                 };
+                Root.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                Root.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 using (Root.AllowChangingContentTemporarily())
                 {
@@ -620,8 +622,8 @@ namespace MGUI.Core.UI
                 VisualStateSetting<Color?> headerForeground = ToTextColorSetting(settings.CategoryHeaderForeground?.Copy());
                 HeaderButton.BackgroundBrush = settings.CategoryHeaderBackground?.Copy();
                 HeaderButton.DefaultTextForeground = headerForeground;
-                HeaderButton.Padding = settings.CategoryHeaderPadding;
-                HeaderButton.MinHeight = settings.CategoryHeaderMinHeight;
+                HeaderButton.SetPadding(settings.CategoryHeaderPadding, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                HeaderButton.SetMinHeight(settings.CategoryHeaderMinHeight, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 ArrowIcon.Color = settings.CategoryArrowColor;
                 HeaderText.Foreground = new VisualStateSetting<Color?>((Color?)null, null, null, null);
                 HeaderText.DefaultTextForeground = headerForeground.GetCopy();
@@ -722,27 +724,29 @@ namespace MGUI.Core.UI
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0),
-                    Padding = new Thickness(0),
                 };
+                Root.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                // ADR-0005 / plan S2: DefaultValue (not LocalValue) so that ApplyTheme's Theme write of the row Padding still wins;
+                // revisit in S3 once the template catalogue writes Template.
+                Root.SetPadding(new Thickness(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 LayoutPanel = new(window)
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0),
-                    Padding = new Thickness(0),
                     CanChangeContent = false,
                 };
+                LayoutPanel.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                LayoutPanel.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 Label = new(window, descriptor.DisplayName ?? descriptor.Name)
                 {
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 8, 0),
-                    MinHeight = DefaultRowControlMinHeight,
                     PreferredWidth = owner.LabelColumnWidth,
                 };
+                Label.SetMargin(new Thickness(0, 0, 8, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                Label.SetMinHeight(DefaultRowControlMinHeight, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 Editor = CreateEditor(owner, descriptor);
                 Editor.SetReadOnly(descriptor.IsReadOnly);
@@ -771,9 +775,9 @@ namespace MGUI.Core.UI
                 VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
                 VisualStateSetting<Color?> textForeground = ToTextColorSetting(themeText?.Copy());
 
-                Root.Padding = settings.RowPadding;
-                Root.BorderThickness = settings.RowSeparatorBrush != null ? new Thickness(0, 0, 0, 1) : new Thickness(0);
-                Root.BorderBrush = settings.RowSeparatorBrush?.AsUniformBorderBrush();
+                Root.SetPadding(settings.RowPadding, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                Root.SetBorderThickness(settings.RowSeparatorBrush != null ? new Thickness(0, 0, 0, 1) : new Thickness(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                Root.SetBorderBrush(settings.RowSeparatorBrush?.AsUniformBorderBrush(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 Root.DefaultTextForeground = textForeground.GetCopy();
                 Label.DefaultTextForeground = textForeground.GetCopy();
                 Editor.ApplyTheme(settings);
@@ -876,10 +880,10 @@ namespace MGUI.Core.UI
                 {
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
-                    MinHeight = DefaultRowControlMinHeight,
                     SpacingWidth = 0,
                     IsThreeState = false,
                 };
+                CheckBox.SetMinHeight(DefaultRowControlMinHeight, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 CheckBox.OnCheckStateChanged += CheckBox_OnCheckStateChanged;
             }
 
@@ -935,21 +939,21 @@ namespace MGUI.Core.UI
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0),
-                    MinHeight = DefaultRowControlMinHeight,
                     IsHitTestVisible = false,
                     HasStableTextFootprint = true,
                 };
+                DisplayText.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                DisplayText.SetMinHeight(DefaultRowControlMinHeight, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 HostBorder = new(owner.SelfOrParentWindow)
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Center,
-                    MinHeight = DefaultRowControlMinHeight,
-                    Padding = new Thickness(0),
-                    BorderThickness = new Thickness(0),
                     IsHitTestVisible = false,
                 };
+                HostBorder.SetMinHeight(DefaultRowControlMinHeight, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                HostBorder.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                HostBorder.SetBorderThickness(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 using (HostBorder.AllowChangingContentTemporarily())
                 {
                     HostBorder.SetContent(DisplayText);
@@ -1026,10 +1030,10 @@ namespace MGUI.Core.UI
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Center,
-                    MinHeight = DefaultRowControlMinHeight,
-                    Padding = new Thickness(0),
-                    BorderThickness = new Thickness(0),
                 };
+                HostBorder.SetMinHeight(DefaultRowControlMinHeight, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                HostBorder.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                HostBorder.SetBorderThickness(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 using (HostBorder.AllowChangingContentTemporarily())
                 {
                     HostBorder.SetContent(TextBox);
@@ -1116,9 +1120,9 @@ namespace MGUI.Core.UI
                         && !TryParseValue(EditorKind, LastPresentedValue, TextBox.Text, out _);
                 }
 
-                HostBorder.BorderThickness = new Thickness(0);
-                HostBorder.BorderBrush = null;
-                TextBox.BorderBrush = HasValidationError ? InvalidBorderBrush ?? MGUniformBorderBrush.Transparent : DefaultTextBoxBorderBrush;
+                HostBorder.SetBorderThickness(new Thickness(0), UIValueResolutionSource.VisualState(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                HostBorder.SetBorderBrush(null, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
+                TextBox.SetBorderBrushTagged(HasValidationError ? InvalidBorderBrush ?? MGUniformBorderBrush.Transparent : DefaultTextBoxBorderBrush, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
             }
 
             public override void Dispose()

@@ -11,6 +11,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Input;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -182,7 +183,7 @@ namespace MGUI.Core.UI
                 AutoWidthFromContent = GetTheme().DefaultButtonAutoWidthFromContent;
                 IsFocusable = true;
                 MinWidth = 16;
-                MinHeight = 16;
+                SetMinHeight(16, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 BorderElement = new(Window, BorderThickness, BorderBrush);
                 BorderComponent = MGComponentBase.Create(BorderElement);
@@ -193,7 +194,7 @@ namespace MGUI.Core.UI
 
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
-                Padding = new(4,1,4,1);
+                SetPadding(new(4,1,4,1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 MouseHandler.PressedInside += (sender, e) =>
                 { 

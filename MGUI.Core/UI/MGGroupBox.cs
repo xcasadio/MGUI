@@ -13,6 +13,7 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -42,6 +43,11 @@ namespace MGUI.Core.UI
             set => BorderElement.BorderBrush = value;
         }
 
+        // Note (ADR-0005/S2): this facade adds its own equality guard and LayoutChanged on top of the ones
+        // BorderElement.BorderThickness already raises. A future tagged write routed through GetBorder()
+        // (GetBorder().SetBorderThickness(value, source)) still lands on BorderElement's public setter here,
+        // so it must keep raising this LayoutChanged too — do not drop this guard when BorderElement's own
+        // setter becomes precedence-aware.
         public Thickness BorderThickness
         {
             get => BorderElement.BorderThickness;
@@ -156,7 +162,7 @@ namespace MGUI.Core.UI
                 BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
                 Expander = new(Window);
-                Expander.Margin = new(0, 0, 5, 0);
+                Expander.SetMargin(new(0, 0, 5, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 Expander.VerticalAlignment = VerticalAlignment.Center;
                 HeaderPresenter = new(Window);
                 HeaderPresenter.VerticalAlignment = VerticalAlignment.Center;
@@ -167,7 +173,7 @@ namespace MGUI.Core.UI
                 OuterHeaderPresenter.ManagedParent = this;
                 OuterHeaderPresenter.SetParent(this);
 
-                Padding = new(8,4,8,8);
+                SetPadding(new(8,4,8,8), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 this.Header = Header;
 

@@ -13,6 +13,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Mouse;
 using System.Diagnostics;
 using MGUI.Shared.Rendering.Clipping;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -564,7 +565,7 @@ namespace MGUI.Core.UI
                 HSBVisibility = HorizontalScrollBarVisibility;
 
                 //Padding = new(0, 0, 5, 5);
-                Padding = new(0);
+                SetPadding(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 ScrollBarOuterBrush = Theme.ScrollBarOuterBrush.GetValue(true);
                 ScrollBarInnerBrush = Theme.ScrollBarInnerBrush.GetValue(true);

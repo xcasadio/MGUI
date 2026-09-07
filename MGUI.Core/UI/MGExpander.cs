@@ -12,6 +12,7 @@ using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -331,7 +332,7 @@ namespace MGUI.Core.UI
             {
                 if (HeadersPanelElement.Margin.Bottom != value)
                 {
-                    HeadersPanelElement.Margin = HeadersPanelElement.Margin.ChangeBottom(value);
+                    HeadersPanelElement.SetMargin(HeadersPanelElement.Margin.ChangeBottom(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     NPC(nameof(HeaderBottomMargin));
                 }
             }

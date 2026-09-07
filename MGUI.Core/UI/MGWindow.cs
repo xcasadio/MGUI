@@ -1415,7 +1415,7 @@ namespace MGUI.Core.UI
                 PreviousHeight = Height;
 
                 MinWidth = 50;
-                MinHeight = 50;
+                SetMinHeight(50, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 MaxWidth = 4000;
                 MaxHeight = 2000;
 
@@ -1974,16 +1974,16 @@ namespace MGUI.Core.UI
                             IsTitleBarVisible = true;
                             IsCloseButtonVisible = true;
                             IsUserResizable = true;
-                            Padding = GetTheme().Window.Padding;
-                            BorderThickness = GetTheme().Window.BorderThickness;
+                            SetPadding(GetTheme().Window.Padding, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                            SetBorderThicknessTagged(GetTheme().Window.BorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                             BackgroundBrush = PreviousBackgroundBrush ?? BackgroundBrush;
                             break;
                         case WindowStyle.None:
                             IsTitleBarVisible = false;
                             IsCloseButtonVisible = false;
                             IsUserResizable = false;
-                            Padding = GetTheme().Window.ChromelessPadding;
-                            BorderThickness = GetTheme().Window.ChromelessBorderThickness;
+                            SetPadding(GetTheme().Window.ChromelessPadding, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                            SetBorderThicknessTagged(GetTheme().Window.ChromelessBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                             PreviousBackgroundBrush = BackgroundBrush.Copy();
                             BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
                             //  WindowStyle.None sets AllowsClickThrough=false by default so that

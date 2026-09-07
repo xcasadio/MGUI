@@ -279,9 +279,9 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 WrapText = false,
-                Padding = new XAML.Thickness(8, 4, 4, 4).ToThickness(),
                 IsHitTestVisible = false,
             };
+            _titleText.SetPadding(new XAML.Thickness(8, 4, 4, 4).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             RegisterTemplatePart(TitleTextPartName, _titleText);
             _titleText.SetParent(this);
 

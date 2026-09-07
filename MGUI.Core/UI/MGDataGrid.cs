@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Linq;
 using MonoGame.Extended;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -51,8 +52,8 @@ namespace MGUI.Core.UI
                     {
                         HorizontalAlignment = HorizontalAlignment.Stretch,
                         TextAlignment = textAlignment,
-                        Margin = new Thickness(4, 0)
                     };
+                    textBlock.SetMargin(new Thickness(4, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     return textBlock;
                 },
                 sortKeySelector,
@@ -183,13 +184,14 @@ namespace MGUI.Core.UI
 
         private MGTextBlock CreateHeaderTextBlock(string headerText, HorizontalAlignment headerTextAlignment)
         {
-            return new MGTextBlock(SelfOrParentWindow, headerText ?? string.Empty)
+            MGTextBlock headerTextBlock = new MGTextBlock(SelfOrParentWindow, headerText ?? string.Empty)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 TextAlignment = headerTextAlignment,
                 IsBold = true,
-                Margin = new Thickness(4, 0)
             };
+            headerTextBlock.SetMargin(new Thickness(4, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            return headerTextBlock;
         }
     }
 

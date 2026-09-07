@@ -21,6 +21,7 @@ using System.Threading;
 #if WINDOWS
 using Microsoft.Win32;
 #endif
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -76,8 +77,8 @@ namespace MGUI.Core.UI
                 //  Create the refresh button
                 RefreshButton = new(ParentWindow);
                 RefreshButton.HorizontalAlignment = HorizontalAlignment.Center;
-                RefreshButton.Padding = new(10, 5);
-                RefreshButton.Margin = new(0, 0, 15, 0);
+                RefreshButton.SetPadding(new(10, 5), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                RefreshButton.SetMargin(new(0, 0, 15, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 RefreshButton.SetContent("[b]Refresh[/b]");
                 RefreshButton.CanChangeContent = false;
                 RefreshButton.AddCommandHandler((btn, e) => { RefreshParsedContent(); });
@@ -127,7 +128,9 @@ namespace MGUI.Core.UI
 
                 //  Populate the 'From File' tab content
                 MGDockPanel FilePathDockPanel = new(ParentWindow);
-                FilePathDockPanel.TryAddChild(new MGTextBlock(ParentWindow, "File Path:") { IsBold = true, VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 5, 0) }, Dock.Left);
+                MGTextBlock filePathLabel = new MGTextBlock(ParentWindow, "File Path:") { IsBold = true, VerticalAlignment = VerticalAlignment.Center };
+                filePathLabel.SetMargin(new(0, 0, 5, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                FilePathDockPanel.TryAddChild(filePathLabel, Dock.Left);
                 FilePathDockPanel.TryAddChild(FilePathBrowseButton, Dock.Right);
                 FilePathDockPanel.TryAddChild(FromFileTextBoxComponent, Dock.Right);
                 FilePathDockPanel.CanChangeContent = false;
@@ -138,7 +141,7 @@ namespace MGUI.Core.UI
 
                 //  Create the tab control
                 TabControlComponent = new(ParentWindow);
-                TabControlComponent.Padding = new(8);
+                TabControlComponent.SetPadding(new(8), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 TabControlComponent.AddTab("From String", MarkupScrollViewer);
                 TabControlComponent.AddTab("From File", FilePathStackPanel);
                 TabControlComponent.SelectedTabChanged += (sender, e) => { RefreshParsedContent(); };
@@ -154,7 +157,9 @@ namespace MGUI.Core.UI
                 MainGrid.AddColumn(GridLength.CreateWeightedLength(1.0));
                 MainGrid.TryAddChild(0, 0, MarkupPresenter);
                 MainGrid.TryAddChild(2, 0, Tmp);
-                MainGrid.TryAddChild(1, 0, new MGGridSplitter(ParentWindow) { Margin = new(0, 2) });
+                MGGridSplitter gridSplitter = new MGGridSplitter(ParentWindow);
+                gridSplitter.SetMargin(new(0, 2), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                MainGrid.TryAddChild(1, 0, gridSplitter);
                 MainGrid.CanChangeContent = false;
 
                 MGDockPanel DockPanel = new(ParentWindow);
@@ -283,7 +288,7 @@ namespace MGUI.Core.UI
             catch (Exception ex)
             {
                 MGScrollViewer SV = new(SelfOrParentWindow);
-                SV.Padding = new(5);
+                SV.SetPadding(new(5), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 string Message;
                 if (ex is XamlLoaderException xamlException)
                 {

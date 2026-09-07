@@ -14,6 +14,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
 using MGUI.Core.UI.Shapes;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -342,7 +343,7 @@ namespace MGUI.Core.UI
                             _ => throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}")
                         };
                     });
-                ValueElement.Padding = new(4);
+                ValueElement.SetPadding(new(4), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 AddComponent(ValueComponent);
 
                 CompletedBrush = GetTheme().ProgressBarCompletedBrush.GetValue(true);
@@ -357,7 +358,7 @@ namespace MGUI.Core.UI
                 this.Maximum = Maximum;
                 this.Value = Value;
 
-                Padding = new(0);
+                SetPadding(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 this.Orientation = Orientation;
                 IsReversed = false;
             }

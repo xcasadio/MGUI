@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -26,7 +27,11 @@ namespace MGUI.Core.UI
                 if (_Orientation != value)
                 {
                     _Orientation = value;
-                    Margin = AutoMargin;
+                    // ADR-0005/S2: this reacts to the public Orientation property, so it is classified LocalValue
+                    // (it must beat this element's own DefaultValue constructor write below). Consequence: a
+                    // MGSeparator's Margin is pinned at LocalValue from construction onward and will not follow a
+                    // later Theme/Template default for Margin, since none is ever set above LocalValue here.
+                    SetMargin(AutoMargin, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     LayoutChanged(this, true);
                     NPC(nameof(Orientation));
                 }
@@ -64,7 +69,7 @@ namespace MGUI.Core.UI
             using (BeginInitializing())
             {
                 this.Orientation = Orientation;
-                Margin = AutoMargin;
+                SetMargin(AutoMargin, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 this.Size = Size;
             }
         }

@@ -191,9 +191,9 @@ public class MGDockAutoHideDrawer : MGElement
                 WrapText            = false,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment   = VerticalAlignment.Center,
-                Padding             = new XAML.Thickness(6, 2, 4, 2).ToThickness(),
                 IsHitTestVisible    = false,
             };
+            _titleLabel.SetPadding(new XAML.Thickness(6, 2, 4, 2).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             RegisterTemplatePart(TitleBarTextPartName, _titleLabel);
             _titleLabel.DefaultTextForeground.NormalValue = Color.White;
 
@@ -261,8 +261,8 @@ public class MGDockAutoHideDrawer : MGElement
     {
         _pinIcon.Color = IconColor;
         _closeIcon.Color = IconColor;
-        _border.BorderBrush = BorderColor.AsFillBrush().AsUniformBorderBrush();
-        _border.BorderThickness = new MonoGame.Extended.Thickness(1);
+        _border.SetBorderBrush(BorderColor.AsFillBrush().AsUniformBorderBrush(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+        _border.SetBorderThickness(new MonoGame.Extended.Thickness(1), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         _resizeGrip.BackgroundBrush.NormalValue = ResizeGripColor.AsFillBrush();
     }
 

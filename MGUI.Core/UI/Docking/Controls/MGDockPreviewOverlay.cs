@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using MGUI.Core.UI.Adorners;
 using MGUI.Shared.Rendering.Clipping;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Docking.Controls;
 

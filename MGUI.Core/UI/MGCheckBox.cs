@@ -11,6 +11,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Rendering;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -54,7 +55,7 @@ namespace MGUI.Core.UI
 
                     Size ButtonSize = new(CheckBoxComponentSize, CheckBoxComponentSize);
                     ButtonElement.MinWidth = ButtonSize.Width;
-                    ButtonElement.MinHeight = ButtonSize.Height;
+                    ButtonElement.SetMinHeight(ButtonSize.Height, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     ButtonElement.PreferredWidth = ButtonSize.Width;
                     ButtonElement.PreferredHeight = ButtonSize.Height;
 
@@ -73,7 +74,7 @@ namespace MGUI.Core.UI
             {
                 if (ButtonElement.Margin.Right != value)
                 {
-                    ButtonElement.Margin = ButtonElement.Margin.ChangeRight(value);
+                    ButtonElement.SetMargin(ButtonElement.Margin.ChangeRight(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     NPC(nameof(SpacingWidth));
                 }
             }
@@ -315,8 +316,8 @@ namespace MGUI.Core.UI
                 });
                 ButtonElement.IsFocusable = false;
                 ButtonElement.MinWidth = 12;
-                ButtonElement.MinHeight = 12;
-                ButtonElement.Padding = new(0);
+                ButtonElement.SetMinHeight(12, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                ButtonElement.SetPadding(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 CheckStateIcon = new(Window) { ManagedParent = this };
 

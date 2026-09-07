@@ -10,6 +10,7 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Shared.Helpers;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -413,9 +414,9 @@ public class MGDockTabGroup : MGElement
             FontSize             = 14,
             HorizontalAlignment  = HorizontalAlignment.Center,
             VerticalAlignment    = VerticalAlignment.Center,
-            Padding              = new XAML.Thickness(4, 2, 4, 2).ToThickness(),
             IsHitTestVisible     = false,
         };
+        label.SetPadding(new XAML.Thickness(4, 2, 4, 2).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
         body.MouseHandler.LMBReleasedInside += (_, e) =>
         {
@@ -608,12 +609,13 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     private MGElement CreateEmptyContent()
     {
-        return new MGTextBlock(ParentWindow, "Empty Tab Group\n\nNo panels to display.")
+        MGTextBlock emptyContent = new MGTextBlock(ParentWindow, "Empty Tab Group\n\nNo panels to display.")
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-            Padding = new XAML.Thickness(20).ToThickness()
         };
+        emptyContent.SetPadding(new XAML.Thickness(20).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        return emptyContent;
     }
 
     /// <summary>
@@ -621,12 +623,13 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     private MGElement CreatePlaceholderContent(string title)
     {
-        return new MGTextBlock(ParentWindow, $"Panel: {title}\n\n(No content factory defined)")
+        MGTextBlock placeholderContent = new MGTextBlock(ParentWindow, $"Panel: {title}\n\n(No content factory defined)")
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-            Padding = new XAML.Thickness(20).ToThickness()
         };
+        placeholderContent.SetPadding(new XAML.Thickness(20).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        return placeholderContent;
     }
 
     private void OnPanelsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)

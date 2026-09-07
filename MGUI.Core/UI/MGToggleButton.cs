@@ -11,6 +11,7 @@ using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -115,7 +116,7 @@ namespace MGUI.Core.UI
             {
                 IsFocusable = true;
                 MinWidth = 16;
-                MinHeight = 16;
+                SetMinHeight(16, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 BorderElement = new(Window, BorderThickness, BorderBrush);
                 BorderComponent = MGComponentBase.Create(BorderElement);
@@ -126,7 +127,7 @@ namespace MGUI.Core.UI
 
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
-                Padding = new(4, 2, 4, 2);
+                SetPadding(new(4, 2, 4, 2), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 CheckedTextForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;
 
                 MouseHandler.LMBPressedInside += (sender, e) =>

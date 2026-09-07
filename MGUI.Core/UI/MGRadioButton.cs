@@ -12,6 +12,7 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Input.Mouse;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -264,7 +265,7 @@ namespace MGUI.Core.UI
             {
                 if (SpacingWidth != value)
                 {
-                    ButtonElement.Margin = ButtonElement.Margin.ChangeRight(value);
+                    ButtonElement.SetMargin(ButtonElement.Margin.ChangeRight(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     NPC(nameof(SpacingWidth));
                 }
             }
@@ -343,7 +344,7 @@ namespace MGUI.Core.UI
                 ButtonElement = new(Window, x => IsChecked = !IsChecked);
                 ButtonElement.IsFocusable = false;
                 ButtonElement.IsHitTestVisible = false;
-                ButtonElement.MinHeight = 8;
+                ButtonElement.SetMinHeight(8, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 ButtonElement.MinWidth = 8;
                 ButtonElement.Opacity = 0.0f;
 

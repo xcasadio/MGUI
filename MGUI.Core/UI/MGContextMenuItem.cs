@@ -380,7 +380,7 @@ namespace MGUI.Core.UI
             HeaderPresenter.CanChangeContent = false;
             HeaderPresenter.PreferredWidth = Menu.HeaderSize.Width;
             HeaderPresenter.PreferredHeight = Menu.HeaderSize.Height;
-            HeaderPresenter.Margin = new(0, 0, 5, 0);
+            HeaderPresenter.SetMargin(new(0, 0, 5, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             HeaderPresenter.BackgroundBrush = new(null);
             HeaderPresenter.ManagedParent = this;
             InvokeContentAdded(HeaderPresenter);
@@ -399,7 +399,7 @@ namespace MGUI.Core.UI
             // Shortcut text label — starts collapsed; visible once ShortcutText is assigned
             _ShortcutTextBlock = new MGTextBlock(Menu, "", Color.LightGray, Menu.GetTheme().FontSettings.ContextMenuFontSize);
             RegisterTemplatePart(ShortcutTextPartName, _ShortcutTextBlock);
-            _ShortcutTextBlock.Margin = new Thickness(18, 0, 0, 0);
+            _ShortcutTextBlock.SetMargin(new Thickness(18, 0, 0, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             _ShortcutTextBlock.VerticalAlignment = VerticalAlignment.Center;
             _ShortcutTextBlock.HorizontalAlignment = HorizontalAlignment.Right;
             _ShortcutTextBlock.Visibility = Visibility.Collapsed;
@@ -414,7 +414,7 @@ namespace MGUI.Core.UI
 
             SubmenuArrowElement = new(Menu, SubmenuArrowWidth, SubmenuArrowHeight, Color.Transparent, 0, Color.Transparent);
             RegisterTemplatePart(SubmenuArrowPartName, SubmenuArrowElement);
-            SubmenuArrowElement.Margin = new(0, 5, DefaultSubmenuArrowRightMargin, 5);
+            SubmenuArrowElement.SetMargin(new(0, 5, DefaultSubmenuArrowRightMargin, 5), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             SubmenuArrowElement.Visibility = Visibility.Collapsed;
             SubmenuArrowComponent = new(SubmenuArrowElement, true, true, false, false, false, false, false,
                 (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Center, ComponentSize.Size));
@@ -635,7 +635,7 @@ namespace MGUI.Core.UI
             : base(Menu, ContextMenuItemType.Separator)
         {
             SeparatorElement = new(Menu, Orientation.Horizontal, Height);
-            SeparatorElement.Margin = new(0);
+            SeparatorElement.SetMargin(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
             SeparatorComponent = new(SeparatorElement, false, false, true, true, false, false, true,
                 (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalContentAlignment, VerticalContentAlignment, ComponentSize.Size));

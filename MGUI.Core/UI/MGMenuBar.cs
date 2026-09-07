@@ -377,8 +377,8 @@ namespace MGUI.Core.UI
         public MGButton CreateDefaultBarButton(MGWindow Window)
         {
             MGButton Button = new(Window ?? this.SelfOrParentWindow, new Thickness(0), MGUniformBorderBrush.Black);
-            Button.Padding = new Thickness(8, 3, 8, 3);
-            Button.Margin = new Thickness(0);
+            Button.SetPadding(new Thickness(8, 3, 8, 3), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            Button.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             Button.HorizontalContentAlignment = HorizontalAlignment.Center;
             Button.VerticalContentAlignment = VerticalAlignment.Center;
             VisualStateFillBrush background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);
@@ -515,8 +515,8 @@ namespace MGUI.Core.UI
 
                 HorizontalAlignment = HorizontalAlignment.Stretch;
                 VerticalAlignment = VerticalAlignment.Top;
-                MinHeight = 22;
-                Padding = new Thickness(2, 1, 2, 1);
+                SetMinHeight(22, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                SetPadding(new Thickness(2, 1, 2, 1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 _Items = new();
                 _Items.CollectionChanged += (sender, e) =>

@@ -27,14 +27,16 @@ public class MGTreeViewItem : MGSingleContentHost
 
         public void ApplyNeutralChrome()
         {
-            BorderThickness = new(0);
-            BorderBrush = MGUniformBorderBrush.Transparent;
+            // ADR-0005/S2: called both from the constructor and from OnThemeChanged below — classified Theme for
+            // both call sites (no ToggleButton template exists today; a future one would win over this chrome).
+            SetBorderThicknessTagged(new(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
             CheckedBackgroundBrush = SolidFillBrushes.Transparent;
-            Padding = new(0);
-            Margin = new(0, 0, 4, 0);
+            SetPadding(new(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            SetMargin(new(0, 0, 4, 0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             MinWidth = 10;
-            MinHeight = 10;
+            SetMinHeight(10, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             HorizontalContentAlignment = HorizontalAlignment.Center;
             VerticalContentAlignment = VerticalAlignment.Center;
         }
@@ -226,13 +228,15 @@ public class MGTreeViewItem : MGSingleContentHost
 
             var mainPanel = new MGStackPanel(Window, Orientation.Vertical);
             HeaderPanel = new MGDockPanel(Window);
-            IndentationBorder = new MGBorder(Window) { BorderThickness = new(0) };
+            IndentationBorder = new MGBorder(Window);
+            IndentationBorder.SetBorderThickness(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             HeaderPanel.TryAddChild(IndentationBorder, Dock.Left);
             ExpanderButton = new TreeViewExpanderToggleButton(Window, false);
             ApplyExpanderButtonVisuals();
             ExpanderButton.OnCheckStateChanged += OnExpanderButtonCheckStateChanged;
             HeaderPanel.TryAddChild(ExpanderButton, Dock.Left);
-            HeaderContainer = new MGBorder(Window) { BorderThickness = new(0) };
+            HeaderContainer = new MGBorder(Window);
+            HeaderContainer.SetBorderThickness(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             HeaderPanel.TryAddChild(HeaderContainer, Dock.Left);
             ChildrenPanel = new MGStackPanel(Window, Orientation.Vertical);
             ExpanderButton.Visibility = Visibility.Collapsed;

@@ -14,6 +14,7 @@ using System.Collections.Specialized;
 using Microsoft.Xna.Framework.Input;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -157,7 +158,7 @@ namespace MGUI.Core.UI
 
                 CurrentUserTextBlock = new(ParentWindow, $"{Environment.UserName}:");
                 CurrentUserTextBlock.IsShadowed = true;
-                CurrentUserTextBlock.Margin = new(0, 0, 2, 0);
+                CurrentUserTextBlock.SetMargin(new(0, 0, 2, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 CurrentUserTextBlock.VerticalAlignment = VerticalAlignment.Center;
                 CurrentUserTextBlock.ManagedParent = this;
 
@@ -180,11 +181,11 @@ namespace MGUI.Core.UI
 
                 Separator = new(ParentWindow, Orientation.Horizontal, 1);
                 Separator.BackgroundBrush.SetAll(SolidFillBrushes.Black);
-                Separator.Margin = new(0);
+                Separator.SetMargin(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 Separator.ManagedParent = this;
 
                 MGDockPanel Footer = new(ParentWindow);
-                Footer.Margin = new(4, 2, 2, 2);
+                Footer.SetMargin(new(4, 2, 2, 2), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 Footer.TryAddChild(CurrentUserTextBlock, Dock.Left);
                 Footer.TryAddChild(SendButton, Dock.Right);
                 Footer.TryAddChild(InputTextBox, Dock.Left);
@@ -206,12 +207,12 @@ namespace MGUI.Core.UI
                 MessagesContainer.OuterBorderThickness = new(0);
                 MessagesContainer.TitleBorderThickness = new(0);
                 MessagesContainer.InnerBorderThickness = new(0);
-                MessagesContainer.ItemsPanel.BorderThickness = new(0);
-                MessagesContainer.MinHeight = 0;
+                MessagesContainer.ItemsPanel.SetBorderThicknessTagged(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                MessagesContainer.SetMinHeight(0, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 MessagesContainer.ItemContainerStyle = (contentPresenter) =>
                 {
                     MessagesContainer.ApplyDefaultItemContainerStyle(contentPresenter);
-                    contentPresenter.BorderThickness = new(0);
+                    contentPresenter.SetBorderThickness(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 };
                 MessagesContainer.ManagedParent = this;
                 MessagesContainer.ItemTemplate = item => new MGChatBoxMessage(ParentWindow, this, item);
@@ -308,10 +309,10 @@ namespace MGUI.Core.UI
 
                 TimestampTextBlock = new(ParentWindow, Timestamp.ToString(ChatBox.TimestampFormat));
                 TimestampTextBlock.Opacity = 0.75f;
-                TimestampTextBlock.Margin = new(0, 0, Spacing, 0);
+                TimestampTextBlock.SetMargin(new(0, 0, Spacing, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 TimestampTextBlock.ManagedParent = this;
                 UsernameTextBlock = new(ParentWindow, $"{Username}:");
-                UsernameTextBlock.Margin = new(0, 0, Spacing, 0);
+                UsernameTextBlock.SetMargin(new(0, 0, Spacing, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 UsernameTextBlock.ManagedParent = this;
                 MessageTextBlock = new(ParentWindow, Message, AllowsInlineFormatting: ChatBox.AllowsMessageInlineFormatting);
                 MessageTextBlock.ManagedParent = this;

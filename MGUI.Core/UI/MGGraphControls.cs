@@ -2788,9 +2788,9 @@ namespace MGUI.Core.UI
 
             float clampedZoom = Math.Max(0.1f, zoom);
             _ = HeaderTextBlock.TrySetFont(HeaderTextBlock.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseHeaderFontSize, clampedZoom)));
-            HeaderTextBlock.Padding = UIResponsiveMath.ScaleThickness(_BaseHeaderPadding, clampedZoom);
-            PortsPanel.Padding = UIResponsiveMath.ScaleThickness(_BasePortsPadding, clampedZoom);
-            BodyPresenter.Padding = UIResponsiveMath.ScaleThickness(_BaseBodyPadding, clampedZoom);
+            HeaderTextBlock.SetPadding(UIResponsiveMath.ScaleThickness(_BaseHeaderPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            PortsPanel.SetPadding(UIResponsiveMath.ScaleThickness(_BasePortsPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            BodyPresenter.SetPadding(UIResponsiveMath.ScaleThickness(_BaseBodyPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         }
 
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
@@ -2808,8 +2808,15 @@ namespace MGUI.Core.UI
             }
 
             MGTheme theme = GetTheme();
-            OuterBorder.BorderBrush = (IsSelected ? theme.Graph.NodeSelectedBorderBrush : theme.Graph.NodeBorderBrush)?.Copy();
-            OuterBorder.BorderThickness = IsSelected ? theme.Graph.NodeSelectedBorderThickness : theme.Graph.NodeBorderThickness;
+            // ADR-0005/S2 deviation from the plan's literal "VisualState" classification for this site: the
+            // template catalogue still writes OuterBorder.BorderBrush/BorderThickness through the untagged public
+            // setter (provisionally LocalValue(90) until S3 migrates it to Template(60)). VisualState(70) would
+            // never outrank that provisional 90, silently breaking node selection highlighting for the whole of
+            // S2. LocalValue ties with the catalogue's provisional precedence, so this call (which always runs
+            // strictly after construction) wins as the last writer -- exactly reproducing the pre-S2 behaviour,
+            // same as the WindowStyle worked example. Revisit to VisualState once S3 retags the catalogue.
+            OuterBorder.SetBorderBrush((IsSelected ? theme.Graph.NodeSelectedBorderBrush : theme.Graph.NodeBorderBrush)?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+            OuterBorder.SetBorderThickness(IsSelected ? theme.Graph.NodeSelectedBorderThickness : theme.Graph.NodeBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         }
 
         private void UpdateCollapsedVisualState()
@@ -3042,7 +3049,7 @@ namespace MGUI.Core.UI
 
             float clampedZoom = Math.Max(0.1f, zoom);
             _ = Label.TrySetFont(Label.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseLabelFontSize, clampedZoom)));
-            OuterBorder.Padding = UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom);
+            OuterBorder.SetPadding(UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             _CurrentConnectorIconSize = Math.Max(1, UIResponsiveMath.ScaleInt(ConnectorIconSize, clampedZoom));
             _CurrentConnectorSlotWidth = Math.Max(_CurrentConnectorIconSize, UIResponsiveMath.ScaleInt(ConnectorSlotWidth, clampedZoom));
             UpdateConnectorLayoutMetrics();
@@ -3461,10 +3468,10 @@ namespace MGUI.Core.UI
             textBox.MaxLines = null;
             textBox.HorizontalAlignment = HorizontalAlignment.Stretch;
             textBox.VerticalAlignment = VerticalAlignment.Stretch;
-            textBox.BorderThickness = new Thickness(0);
+            textBox.SetBorderThicknessTagged(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             textBox.BackgroundBrush = new VisualStateFillBrush(SolidFillBrushes.Transparent);
-            textBox.BorderBrush = MGUniformBorderBrush.Transparent;
-            textBox.Padding = new Thickness(0);
+            textBox.SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+            textBox.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             textBox.CornerRadius = MGCornerRadius.Zero;
             textBox.HasStableTextFootprint = true;
         }
@@ -3480,11 +3487,11 @@ namespace MGUI.Core.UI
             textBox.IsReadonly = true;
             textBox.IsHitTestVisible = false;
             textBox.AllowsTextSelection = false;
-            textBox.BorderThickness = new Thickness(0);
+            textBox.SetBorderThicknessTagged(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             textBox.BackgroundBrush = new VisualStateFillBrush(SolidFillBrushes.Transparent);
-            textBox.BorderBrush = MGUniformBorderBrush.Transparent;
-            textBox.Padding = new Thickness(0);
-            textBox.Margin = new Thickness(0);
+            textBox.SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+            textBox.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            textBox.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             textBox.MinLines = 1;
             textBox.MaxLines = 1;
             textBox.HasStableTextFootprint = true;
@@ -3551,7 +3558,7 @@ namespace MGUI.Core.UI
 
             float clampedZoom = Math.Max(0.1f, zoom);
             BodyTextBox.TrySetFontSize(Math.Max(1, UIResponsiveMath.ScaleInt(_BaseBodyFontSize, clampedZoom)));
-            OuterBorder.Padding = UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom);
+            OuterBorder.SetPadding(UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         }
 
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
@@ -3597,7 +3604,10 @@ namespace MGUI.Core.UI
         {
             if (OuterBorder != null)
             {
-                OuterBorder.BorderThickness = IsSelected ? new Thickness(2) : new Thickness(1);
+                // ADR-0005/S2 deviation: see the sibling ApplySelectionVisual override above for why this is
+                // LocalValue rather than the plan's literal VisualState -- the still-untagged (S3) catalogue
+                // write on this same slot is provisionally LocalValue(90), which VisualState(70) can never beat.
+                OuterBorder.SetBorderThickness(IsSelected ? new Thickness(2) : new Thickness(1), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             }
         }
     }

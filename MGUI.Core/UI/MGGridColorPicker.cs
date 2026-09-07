@@ -16,6 +16,7 @@ using MGUI.Core.UI.Containers.Grids;
 using ColorStringConverter = MGUI.Core.UI.XAML.ColorStringConverter;
 using MGUI.Core.UI.Containers;
 using MGUI.Shared.Rendering.Clipping;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
@@ -703,13 +704,13 @@ namespace MGUI.Core.UI
                 SelectedColorLabel = new(Window, "Selected Color:")
                 {
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new(5,2,0,2)
                 };
+                SelectedColorLabel.SetMargin(new(5,2,0,2), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 SelectedColorValue = new(Window, 16, 16, Color.Black, 1, Color.Transparent)
                 {
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new(0,2,5,2)
                 };
+                SelectedColorValue.SetMargin(new(0,2,5,2), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 SelectedColorPresenter = new(Window, SelectedColorLabel, SelectedColorValue)
                 {
                     HeaderPosition = Dock.Left,
@@ -723,12 +724,12 @@ namespace MGUI.Core.UI
                 AddComponent(SelectedColorComponent);
 
                 //  Sync the SelectedColor label's top margin to the entire color picker's bottom padding so the spacing above and below the label is equal to each other
-                SelectedColorPresenter.Margin = SelectedColorPresenter.Margin.ChangeTop(Padding.Bottom);
+                SelectedColorPresenter.SetMargin(SelectedColorPresenter.Margin.ChangeTop(Padding.Bottom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 PropertyChanged += (sender, e) =>
                 {
                     if (e.PropertyName == nameof(Padding))
                     {
-                        SelectedColorPresenter.Margin = SelectedColorPresenter.Margin.ChangeTop(Padding.Bottom);
+                        SelectedColorPresenter.SetMargin(SelectedColorPresenter.Margin.ChangeTop(Padding.Bottom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     }
                 };
 

@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Containers
 {
@@ -546,7 +547,7 @@ namespace MGUI.Core.UI.Containers
 
         private void UpdateHeaderMargin()
         {
-            HeaderPresenter.Margin = HeaderPosition switch
+            Thickness headerMargin = HeaderPosition switch
             {
                 Dock.Left => new(0, 0, Spacing, 0),
                 Dock.Top => new(0, 0, 0, Spacing),
@@ -554,6 +555,7 @@ namespace MGUI.Core.UI.Containers
                 Dock.Bottom => new(0, Spacing, 0, 0),
                 _ => throw new NotImplementedException($"Unrecognized {nameof(Dock)}: {HeaderPosition}")
             };
+            HeaderPresenter.SetMargin(headerMargin, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         }
 
         public MGComponent<MGContentPresenter> HeaderPresenterComponent { get; }
