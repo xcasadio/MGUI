@@ -48,7 +48,9 @@ Corriger les trois bugs releves par l'auteur dans la demo docking (`MGUI.Samples
 
 ## Taches
 
-### ⚪ 1. Construire le contenu de la fenetre flottante avec la fenetre flottante
+### ✅ 1. Construire le contenu de la fenetre flottante avec la fenetre flottante
+
+**Statut** : livre le 7 septembre 2026. `MGFloatingDockWindow.cs:73` construit le tab group avec `this` (ordre `OwnerDockHost`/`OwnerFloatingWindow` avant `GroupNode` preserve ; le constructeur de base garde `ownerHost.ParentWindow` comme fenetre proprietaire). Aucun autre site ne construisait du contenu flottant avec la fenetre du host. Tests : `MGUI.Tests/Docking/FloatingWindowContentInputTests.cs` (layout a deux panneaux, flottement par `DetachToFloating`, trames souris reelles) : `SelfOrParentWindow` de l'onglet flottant = fenetre flottante ; survol `IsHovered` ; clic droit ouvre `Desktop.ActiveContextMenu` ; appui + deplacement atteint `MGDockHost.CurrentDrag` avec `SourceFloatingWindow`. Mutation check : retour a `ownerHost.ParentWindow` => les quatre tests rouges, vert apres reversion. Le contenu applicatif des panneaux flottants reste sans interaction jusqu'a la tache 2.
 
 But :
 rendre la fenetre flottante conforme a la convention du framework (le contenu d'une fenetre lui appartient : `MGContextMenu` construit ses items avec `this`, le dropdown de `MGComboBox` appartient a la fenetre dropdown), pour que ses onglets retrouvent survol, clic, menu contextuel et drag.

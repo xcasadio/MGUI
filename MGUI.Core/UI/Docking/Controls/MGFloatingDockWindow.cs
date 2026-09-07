@@ -70,7 +70,7 @@ public class MGFloatingDockWindow : MGWindow
         // IMPORTANT: OwnerDockHost / OwnerFloatingWindow must be set BEFORE GroupNode so that
         // RebuildTabHeaders (triggered by GroupNode assignment) creates tab items that
         // already know their owner host and can start a drag operation.
-        _tabGroup = new MGDockTabGroup(ownerHost.ParentWindow)
+        _tabGroup = new MGDockTabGroup(this)
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment   = VerticalAlignment.Stretch,
