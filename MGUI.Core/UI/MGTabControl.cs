@@ -470,6 +470,7 @@ namespace MGUI.Core.UI
                 int TabIndex = _Tabs.IndexOf(Tab);
 
                 _Tabs.Remove(Tab);
+                Tab.SetParent(null);
                 InvokeContentRemoved(Tab);
 
                 ManagedRemoveHeadersPanelChild(TabHeader);
