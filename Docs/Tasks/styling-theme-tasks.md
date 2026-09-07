@@ -135,7 +135,9 @@ Criteres d'acceptation:
 
 Commit recommande: `style-theme: converge docking part vocabulary`
 
-### ⚪ 4. Construire un mini moteur de valeurs resolues pour des proprietes pilotes
+### 🟡 4. Construire un mini moteur de valeurs resolues pour des proprietes pilotes
+
+**Statut** : en cours depuis le 7 septembre 2026, sous forme de programme detaille dans `Docs/Tasks/resolved-value-engine-tasks.md` (neuf tranches, decisions de l'auteur : sept pilotes avec suivi des sous-champs, setters tagues et migration de chaque site d'ecriture, provenance de style portee, precedence appliquee ; ADR-0005). Ce fichier passe a ✅ quand la tranche S9 est livree. Correction : `UIValueResolutionSource` compte onze sources, pas dix.
 
 But:
 reduire l'ecart entre le modele `UIValuePrecedence` et la realite runtime, sans dependency property system complet.

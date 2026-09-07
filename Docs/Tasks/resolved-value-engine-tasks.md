@@ -1,0 +1,213 @@
+# Taches moteur de valeurs resolues (tache 4 du backlog styling)
+
+## Objectif
+
+Realiser la tache 4 de `Docs/Tasks/styling-theme-tasks.md` selon les decisions de l'auteur du 7 septembre 2026 : un store de valeurs resolues par element pour SEPT proprietes pilotes (Margin, Padding, MinHeight, BorderBrush, BorderThickness, Background, Foreground), ou chaque ecriture porte sa `UIValueResolutionSource` et son `UIInvalidationKind`, ou la valeur effective est toujours le gagnant selon `UIValuePrecedence`, avec des setters tagues explicites migres sur chaque chemin d'ecriture (constructeurs, catalogue de templates, callbacks de theme, XAML avec provenance de style, bindings, ressources dynamiques), et un suivi par sous-champ pour les deux conteneurs (fond, texte). Toutes les autres proprietes restent des proprietes C# simples, sans cout.
+
+Contraintes non negociables (backlog styling) : pas de dependency property system a la WPF ; `UIResolvedValue<T>`, `UIValueResolutionSource`, `UIValuePrecedence`, `UIInvalidationKind` restent les briques ; notifications `NPC`/`OnXChanged` existantes conservees ; pas de cout mesurable sur les proprietes non pilotes.
+
+## Contexte : faits verifies le 7 septembre 2026 (decouverte en lecture seule, contre-verifiee)
+
+- Precedence (`MGUI.Core/UI/Styling/UIValuePrecedence.cs`) : DefaultValue 0 < Inherited 10 < Theme 20 < DynamicResource 30 < ImplicitStyle 40 < ExplicitStyle 50 < Template 60 < VisualState 70 < LocalBinding 80 < LocalValue 90 < Animation 100 ; onze sources (`UIValueSourceKind`), une fabrique statique par source dans `UIValueResolutionSource`. En production seules `Template` et `Default` sont construites.
+- `UIResolvedValue<T>` : record struct (Value, Source, IsSet) ; `Unset(invalidation)` = IsSet false, source Default ; `HasInvalidation` teste "tous les flags" alors que les deux consommateurs testent "au moins un" (`MGControlTemplate.cs:115`, `MGElement.cs` `InvalidateTemplateValue`).
+- Store existant : `MGElement._AppliedTemplateDefaults` (`Dictionary<string, object>`, un seul slot par cle arbitraire, alloue sur chaque instance, jamais purge, enregistre sur le `Context.Owner` meme quand la propriete ecrite vit sur une part) ; `TryGetAppliedTemplateDefault`/`SetAppliedTemplateDefault` (deux surcharges chacune) ; `MGUI.Tests/Architecture/ThemeRefreshRegressionTests.cs` reflechit sur ce champ prive par nom et pin la garde has-previous/equals de `ApplyTemplateValue` (`MGControlTemplate.cs:97-120`).
+- Catalogue : 205 appels `ApplyThemeDefault` (171) / `ApplyTemplateValue` (34) dans `MGUI.Core/UI/Styling/MGControlTemplateCatalog.cs`, environ 125 ciblent une propriete pilote ; `ApplyThemeDefault` code `UIInvalidationKind.Draw` en dur (donc Padding/MinHeight/BorderThickness themes sont mal estampilles), une seule invalidation layout explicite (`:1345`). Les lambdas ecrivent via les setters publics, souvent sur une part (`TitleBar.Padding`) et non sur l'owner ; `ApplyListBoxItemContainerDefaults` (`:128-141`) ecrit cinq pilotes sans aucun tag.
+- Refresh de theme : `MGElement.NotifyThemeChanged` (`MGElement.cs:536-564`) appelle `OnThemeChanged` PUIS `ApplyControlTemplate(true)` ; douze fichiers surchargent `OnThemeChanged` (seize methodes) et, via des helpers, ecrivent six des sept pilotes sans garde : `MGButton.OnThemeChanged` (BackgroundBrush, `MGButton.cs:256-264`), `MGToggleButton` (`:159-168`), `MGMenuBarItem` (`MGMenuBar.cs:221-236`), `TreeViewExpanderToggleButton.ApplyNeutralChrome` (six pilotes, `MGTreeViewItem.cs:28-39`), `GraphNode.ApplySelectionVisual` (`MGGraphControls.cs:2811-2812`), `MGListBox.OnThemeChanged` via `ApplyListBoxItemContainerDefaults`. `MGTreeViewItem.RefreshSelectionVisual` (`:543-585`) implemente a la main une precedence VisualState (sauvegarde/restauration de BackgroundBrush et DefaultTextForeground).
+- Scalaires : Margin (`MGElement.cs:1019-1044`, LayoutChanged + 11 NPC + OnMarginChanged), Padding (`:1049-1066`, LayoutChanged + 7 NPC), MinHeight (`:1227-1241`, int?, LayoutChanged + 3 NPC, aucun defaut constructeur) ; BorderBrush/BorderThickness n'ont qu'UNE implementation reelle, sur `MGBorder` (`MGBorder.cs:22-60`), les vingt-et-une autres declarations sont des facades `get => BorderElement.X; set => BorderElement.X = value;` (exception : `MGGroupBox.BorderBrush` typee `MGUniformBorderBrush`), et `MGElement.GetBorder()` (`MGElement.cs:2150`, virtual, null par defaut) est l'ancre polymorphe deja utilisee par le rendu. Les constructeurs ecrivent Margin, Padding, BackgroundBrush, DefaultTextForeground via les setters publics (`MGElement.cs:2116-2127`), MGBorder ecrit BorderBrush/BorderThickness de meme (`MGBorder.cs:111-112`). `MGGroupBox.BorderThickness` porte une garde d'egalite et un `LayoutChanged` supplementaires (`MGGroupBox.cs:39-56`). `Thickness` est `IEquatable`, `int?` compare par `EqualityComparer<int?>.Default`, aucune implementation de `IBorderBrush` ne surcharge `Equals` (egalite de reference).
+- Ecritures framework des cinq pilotes scalaires HORS des constructeurs de `MGElement`/`MGBorder` (relevees le 7 septembre 2026 ; a classer par source en S2, sinon elles seraient taguees LocalValue et tueraient definitivement les defauts template/theme des memes instances des S3/S4) : `MGContextMenu.cs:713-715` (Padding, BorderBrush = Transparent, BorderThickness = 1, ecrits AVANT `DefaultControlTemplateName` `:723`, en conflit avec les cles catalogue `ContextMenu.Padding/BorderBrush/BorderThickness` `MGControlTemplateCatalog.cs:851-853`) ; `MGWindow.cs:1977-1978` et `:1985-1986` (setter `WindowStyle`, Padding/BorderThickness lus du theme, cles `Window.Padding`/`Window.BorderThickness` `:756-757`) ; `MGButton.cs:185`, `:196` ; `MGToggleButton.cs:118`, `:129` ; `MGTreeViewItem.cs:30-37` (`ApplyNeutralChrome`) ; `MGGroupBox.cs:170` ; `MGMenuBar.cs:518-519` ; `MGProgressButton.cs:639`, `:650` ; `MGStopWatch.cs:223` ; `MGTimer.cs:319` ; `MGTextBlock.cs:923` ; `MGOverlay.cs:215` ; `MGScrollViewer.cs:567` ; `MGProgressBar.cs:360`. `MGComboBox` a deja deplace ses defauts de constructeur vers le template (pin `ControlTemplateInfrastructureTests.cs:738-739`) : c'est la direction du framework.
+- Conteneurs : `BackgroundBrush` est un `VisualStateFillBrush` (herite de `VisualStateSetting<T>`, `MGUI.Core/UI/VisualState.cs:64` et `:331`), classe mutable avec `NormalValue`, `SelectedValue`, `DisabledValue`, `FocusedValue`, `FocusedColor`, `SetAll` ; `DefaultTextForeground` est un `VisualStateSetting<Color?>` heritable (`MGElement.cs:1887-1908`, `DerivedDefaultTextForeground` remonte la chaine Parent) ; `MGTextBlock.Foreground` est un autre `VisualStateSetting<Color?>` (`MGTextBlock.cs:347-359`) et `ActualForeground` (`:361`) resout a la main own -> inherited -> theme. Trois formes d'ecriture coexistent : remplacement de l'objet (callbacks de theme, 8 des 10 sites catalogue de DefaultTextForeground), sous-champ (`ApplyBackground`/`ApplyExplicitBackground` XAML `Element.cs:696-730`, cinq slots), `SetAll`. `BindingPathMappings` (`Element.cs:581-594`) redirige Background -> `BackgroundBrush.NormalValue`, TextBlock.Foreground -> `Foreground.NormalValue`, TextForeground -> `DefaultTextForeground.NormalValue`, Selected/Disabled variants. Les instances peuvent etre partagees entre elements (`MGTreeViewItem.cs:556-557`) et n'ont pas de pointeur retour vers un proprietaire. Les getters de theme rendent un CLONE a chaque appel (`MGTheme.cs:27`, `:284-294`), et `VisualStateSetting<T>` ne surcharge pas Equals.
+- Chemins d'ecriture, un point d'entree unique chacun : XAML styles `Element.ProcessStyles` (appele une fois, `XAMLParser.cs:331`, qui connait le bloc implicite/explicite par propriete via `ModifiedPropertyNames` puis le jette) ; transfert DTO -> element `ApplyBaseSettings` (`Element.cs:271-460`, dans `BeginInitializing`), ou style et attribut explicite sont indistinguables aujourd'hui ; `ApplyResourceReferences` (`:398`) s'execute APRES les transferts de Margin/Padding/MinHeight/Background, donc une ressource dynamique ecrase la valeur XAML (inverse de la precedence declaree) ; bindings `DataBinding.TrySetValue` (`MGUI.Core/UI/Data Binding/DataBinding.cs:433`, `TargetProperty.SetValue`) ; ressources dynamiques `UIResourceReferenceApplicator.Apply` (`:40`, `Property.SetValue` sur un chemin pointe resolu par `TryResolveTarget`) ; DTO `Border` imbrique des controles (`XAML/Controls.cs:207`, facades `:211`/`:218`, transfert `:167`/`:172`) avec `InheritsParentStyles = false`.
+- Tests contraignants : quatre sites construisent des `MGElement` par `FormatterServices.GetUninitializedObject` (aucun initialiseur de champ ne tourne : tout nouveau champ de store doit etre alloue paresseusement et lu null-safe) ; `ControlTemplateInfrastructureTests.cs` fait 92 lectures de texte source (chemins absolus) pinnant les libelles `UIValueResolutionSource.Template`, `Owner.InvalidateTemplateValue(Invalidation)`, des cles comme `"Window.Padding"`, et l'ABSENCE de litteraux tels que `MinHeight = 30;` ; `StyleValueResolutionModelTests.cs` pin l'enum et `Unset` ; `MGElement.Metadata` (`:1972`) est le slot d'extension paresseux existant (ADR-0001).
+- Docs a mettre a jour : `Docs/styling-theme-architecture.md` sections "Precedence des valeurs" (`:51-67`), "Ou vit la precedence reelle" (`:69-78`), "Valeurs template et refresh" (`:229-239`), "Limites connues (verifiees)" (a partir de `:350`) ; `Docs/Tasks/styling-theme-tasks.md` taches 4, 5 (diagnostic), 7 (classification), 10 (refresh de styles) ; la tache 4 y ecrit "dix sources", il y en a onze.
+
+## Decisions de l'auteur (7 septembre 2026)
+
+1. Sept proprietes pilotes, avec suivi par sous-champ pour BackgroundBrush et le texte.
+2. Marquage de source par surcharges de setters taguees et migration explicite de chaque site d'ecriture (pas de source ambiante).
+3. Provenance de style portee des maintenant (ImplicitStyle / ExplicitStyle depuis le DTO XAML).
+4. Precedence appliquee a l'ecriture : la valeur effective est le gagnant ; changements de comportement acceptes : un changement de theme n'ecrase plus une valeur locale ; une mise a jour de ressource dynamique n'ecrase plus une ecriture locale posterieure.
+
+Decisions de conception derivees (ADR-0005, `Docs/decisions/0005-resolved-value-store.md`) :
+
+- Identite d'une valeur pilote = (element proprietaire de la propriete CLR, `UIPilotProperty`, `UIValueSlot`). Les slots : `Whole` pour les scalaires et le remplacement d'objet des conteneurs ; `Normal`, `Selected`, `Disabled`, `Focused`, `FocusedColor` pour les sous-champs des conteneurs. La bordure d'un composite est resolue sur son `MGBorder` (`GetBorder()`), jamais sur la facade.
+- Store `UIResolvedPropertyStore` alloue paresseusement par element (champ prive, null-safe), une entree par (propriete, slot) contenant une petite liste triee par precedence de `UIResolvedValue<T>` (une par source posee) ; lecture = source posee la plus haute ; `Unset(source)` retire la contribution et fait retomber sur la suivante ; egalite de precedence = dernier ecrivain. Proprietes non pilotes : aucun champ, aucun code.
+- API taguee interne, un jeu par pilote : `SetMargin(Thickness, UIValueResolutionSource)`, `SetPadding`, `SetMinHeight`, `MGBorder.SetBorderBrush`, `SetBorderThickness`, et pour les conteneurs `SetBackground(VisualStateFillBrush, source)` (Whole), `SetBackgroundSlot(UIValueSlot, valeur, source)`, `SetDefaultTextForeground(...)`, `SetDefaultTextForegroundSlot(...)`, `MGTextBlock.SetForeground(...)`, `SetForegroundSlot(...)` ; `ClearPilotSource(propriete, slot, UIValueSourceKind)`. Le setter public existant delegue a la surcharge taguee avec `LocalValue` ; les constructeurs utilisent `DefaultValue`. Chaque appel : enregistre dans le store, calcule le gagnant, n'ecrit le champ CLR (ou le sous-champ du conteneur) et n'emet les notifications existantes que si la valeur effective change.
+- `UIInvalidationKind` par propriete : Margin, Padding, MinHeight, BorderThickness = Measure | Arrange ; BorderBrush, Background, Foreground = Draw. Le store enregistre le kind de la source ; l'invalidation reelle reste celle du setter existant (LayoutChanged pour les layout-affecting), jamais dupliquee.
+- Conteneurs : l'element detient le conteneur ; les ecritures taguees de sous-champ ecrivent le slot du conteneur ET le store. Une ecriture NON taguee de sous-champ (`x.BackgroundBrush.NormalValue = v` par du code applicatif) reste possible et est traitee LocalValue par abonnement de l'element au `PropertyChanged` du conteneur (attribution a l'element qui detient l'instance ; si une instance est partagee, chaque element detenteur enregistre la meme ecriture, limite documentee). Foreground du texte : pilote porte par `MGTextBlock.Foreground` ; `DefaultTextForeground` de l'ancetre est la source `Inherited` (10) calculee a la lecture ; `ActualForeground` lit le gagnant du store puis Inherited puis le theme.
+- `_AppliedTemplateDefaults` reste tel quel (compatibilite des tests par reflexion) ; le store est la source de verite pour les pilotes, `TryGetAppliedTemplateDefault` continue de nourrir la garde has-previous de `ApplyTemplateValue`.
+- Classement des ecritures framework hors constructeurs de base (regle appliquee des S2, achevee en S3/S4) : une ecriture faite par le constructeur d'un controle sur SES PROPRES pilotes, avant ou pendant l'application de son propre template = `DefaultValue` (son template doit gagner ; exemple `MGContextMenu.cs:713-715`, ecrits apres le template `Window` de base et reecrits par `ContextMenu.Default`, catalogue `:851-853`) ; une ecriture d'un PROPRIETAIRE qui configure un enfant ou une part DEJA templatee (exemple `MGGraphControls.cs:3464-3467` et `:3483-3487`, qui mettent Padding, BorderThickness et BorderBrush de son `MGTextBox` d'edition a 0/Transparent apres que `TextBox.Default` a ecrit `TextBox.Padding`, catalogue `:1172`) = `LocalValue` (chrome delibere du proprietaire, qui doit battre le template de l'enfant et ne pas suivre le theme) ; une ecriture qui recalcule le chrome EN REACTION A UN CHANGEMENT DE THEME (helpers appeles depuis `OnThemeChanged`) = `Theme` ; une ecriture d'etat visuel interne (selection, appui, survol) = `VisualState` ; une ecriture faite en reaction a une propriete publique posee par l'application ou par le XAML (par exemple `MGWindow.WindowStyle`, qui pose Padding et BorderThickness selon le style demande, `MGWindow.cs:1962-1996`), ou par une API publique posant une valeur demandee par l'appelant = `LocalValue` (elle doit battre le template, qui a deja ecrit ces pilotes dans le constructeur de la fenetre, `MGWindow.cs:1425`). `ApplyNeutralChrome` (`MGTreeViewItem.cs:28-39`) est appele du constructeur (`:25`) et de `OnThemeChanged` (`:45`) : source `Theme` retenue pour les deux appels (aucun template `ToggleButton` n'existe aujourd'hui ; si un template apparait, il primera sur ce chrome neutre : note a conserver dans le code).
+- Pilotes de bordure des composites : les ecritures FRAMEWORK de BorderBrush/BorderThickness passent par la bordure interne taguee, `GetBorder().SetBorderBrush(value, source)` / `SetBorderThickness(value, source)`, ou par les helpers internes `MGElement.SetBorderBrushTagged(...)`/`SetBorderThicknessTagged(...)` qui deleguent a `GetBorder()` (null-safe) ; la facade publique (`Button.BorderBrush = ...`) reste reservee a l'application et vaut `LocalValue`.
+- Completude : la regle "aucune ecriture framework d'un pilote scalaire ne reste sur le setter public non tague" est verifiee par un test d'architecture de balayage source de `MGUI.Core` (assignations qualifiees et non qualifiees, initialiseurs d'objet) avec une liste blanche justifiee (setters eux-memes, facades, sites migres par une tranche ulterieure nommee).
+- Retombee quand la derniere contribution d'une (propriete, slot) est retiree (`Unset`/`ClearPilotSource`) : l'entree devient vide, le store renvoie `UIResolvedValue<T>.Unset` (IsSet faux) et `effectiveChanged` faux ; la valeur CLR courante est CONSERVEE et aucune notification n'est emise (comportement identique a une ressource dynamique qui ne se resout plus aujourd'hui). Une ecriture ulterieure repart de cette valeur CLR comme reference d'egalite.
+- Budget de cout accepte : un `MGElement` fraichement construit alloue un store et au plus deux entrees (Margin, Padding), une contribution `DefaultValue` chacune ; une `MGBorder` quatre entrees (+ BorderBrush, BorderThickness) ; apres S5/S6, deux entrees de plus par element (Background et DefaultTextForeground, slot Whole). Une ecriture de propriete non pilote n'alloue rien et ne lit pas le store. Le store expose un compteur interne d'entrees (`EntryCount`) pour le verifier par test en S2, S5 et S6.
+- Types : chaque (propriete, slot) est typee une fois pour toutes (Margin/Padding/BorderThickness : `Thickness` ; MinHeight : `int?` ; BorderBrush : `IBorderBrush` ; Background slots : `IFillBrush` ou `Color` selon le slot ; Foreground slots : `Color?`) ; un `Set<T>` avec un `T` different sur la meme entree leve `InvalidOperationException`.
+
+## Consignes de travail pour l'agent IA
+
+- Executer les tranches dans l'ordre ; une tranche = un commit ; mettre a jour le statut dans ce fichier dans le meme commit. Rollback d'une tranche = revert de son commit.
+- Blocage : marquer ⛔, decrire, s'arreter.
+- Aucune propriete non pilote ne change ; aucun renommage d'API publique ; les libelles pinnes par `ControlTemplateInfrastructureTests.cs` (cles de template, `UIValueResolutionSource.Template`, `Owner.InvalidateTemplateValue(Invalidation)`, litteraux interdits) restent intacts ou les tests sont mis a jour dans la meme tranche avec justification.
+- Tests sur le comportement observable (valeur effective, `NPC`, evenements, `VisualState`, rendu du texte), mutation nommee par garde ; harnais headless `GraphTestRuntime` + `MGDesktop`.
+- Chaque tranche modifiant `MGElement`, `MGBorder`, `VisualState.cs`, `MGTextBlock`, le catalogue, `Element.cs`, `DataBinding.cs` ou l'applicateur est a risque : revue de plan (deja faite pour l'enveloppe) et verification independante obligatoires.
+- Ne jamais lancer `MGUI.Samples` depuis un agent ; le construire a chaque tranche.
+
+## Legende de statut
+
+- ⚪ a faire
+- 🟡 en cours
+- ✅ termine
+- ⛔ bloque
+
+## Validation minimale
+
+1. `dotnet build .\MGUI.Core\MGUI.Core.csproj` ; `dotnet build .\MGUI.Tests\MGUI.Tests.csproj` ; `dotnet build .\MGUI.Samples\MGUI.Samples.csproj`
+2. `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template|FullyQualifiedName~Resolved"`
+3. `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~Architecture"`
+4. Suite complete une fois par tranche a partir de S2.
+5. Scenarios : `SCN-THEME-001` (theme switch et template sans perte de precedence visible), `SCN-MARKUP-001` si present, `SCN-DOCK-001` pour les tranches touchant le chrome docking.
+
+## Tranches
+
+### ⚪ S1. Store de valeurs resolues, sans cablage
+
+But : la brique centrale, testee seule.
+
+Travail attendu :
+
+- `MGUI.Core/UI/Styling/UIPilotProperty.cs` (enum : Margin, Padding, MinHeight, BorderBrush, BorderThickness, Background, Foreground) et `UIValueSlot.cs` (Whole, Normal, Selected, Disabled, Focused, FocusedColor) ;
+- `MGUI.Core/UI/Styling/UIResolvedPropertyStore.cs` : `Set<T>(UIPilotProperty, UIValueSlot, T value, UIValueResolutionSource source, IEqualityComparer<T> comparer, out bool effectiveChanged, out UIResolvedValue<T> effective)` ; `Unset<T>(propriete, slot, UIValueSourceKind, IEqualityComparer<T>, out bool effectiveChanged, out UIResolvedValue<T> effective)` : retire la contribution, `effective` = nouveau gagnant, ou `UIResolvedValue<T>.Unset(kind de la propriete)` (IsSet faux, source DefaultValue) avec `effectiveChanged` faux si l'entree est vide ; `TryGetWinner<T>(propriete, slot, out UIResolvedValue<T>)` renvoie faux (et `Unset`) pour une entree inexistante ou videe ; `TryGetContribution<T>(propriete, slot, UIValueSourceKind, out UIResolvedValue<T>)` ; `IReadOnlyList<UIValueSourceKind> Contributions(propriete, slot)` (vide si jamais ecrite ou videe) ; `int EntryCount` compte les entrees allouees, y compris videes (une entree n'est jamais desallouee) ; entrees allouees a la premiere ecriture de chaque (propriete, slot) ; liste compacte triee par precedence, egalite de precedence = dernier ecrivain ; une entree est typee par son premier `Set<T>`, un `T` different leve `InvalidOperationException` ; aucune dependance a MGElement ;
+- `UIResolvedValue<T>` : ajouter `HasAnyInvalidation(UIInvalidationKind)` ("au moins un flag") sans changer `HasInvalidation` ("tous les flags"), documenter les deux ;
+- tests `MGUI.Tests/Architecture/ResolvedPropertyStoreTests.cs` : matrice des onze sources (chaque paire ordonnee : la plus haute gagne), egalite de precedence = dernier ecrivain, `Unset` du gagnant retombe sur la suivante, `Unset` d'une source non gagnante ne change pas l'effectif, `Unset` de la seule contribution renvoie `Unset` (IsSet faux) et `effectiveChanged` faux, `effectiveChanged` vrai seulement quand la valeur effective change (y compris ecriture de la meme valeur par une source plus basse, ou de la valeur courante par une source plus haute), `EntryCount` et `Contributions` a zero pour une (propriete, slot) jamais ecrite, `InvalidOperationException` sur changement de type ; mutation nommee : inverser le tri par precedence (la plus basse gagne) => la matrice rouge, vert apres reversion.
+
+Criteres : tests verts ; aucun autre fichier touche.
+
+Commit recommande : `feat(styling): add the resolved property store`
+
+### ⚪ S2. Cabler les cinq pilotes scalaires avec precedence appliquee
+
+But : Margin, Padding, MinHeight (MGElement) et BorderBrush, BorderThickness (MGBorder) passent par le store.
+
+Travail attendu :
+
+- `MGElement` : champ prive `_ResolvedValues` (null-safe, alloue au premier appel), `internal void SetMargin(Thickness, UIValueResolutionSource)`, `SetPadding`, `SetMinHeight(int?, ...)` ; comparateurs explicites : `EqualityComparer<Thickness>.Default` (IEquatable), `EqualityComparer<int?>.Default`, egalite de reference pour `IBorderBrush` ; les setters publics deleguent avec `UIValueResolutionSource.LocalValue(kind de la propriete)` ; le constructeur (`:2116-2117`) utilise `DefaultValue` ; la valeur effective est le gagnant ; les notifications existantes (LayoutChanged, NPC dans le meme ordre, OnMarginChanged) ne sont emises que si la valeur effective change ; `internal void ClearPilotSource(UIPilotProperty, UIValueSlot, UIValueSourceKind)` avec la retombee definie dans la Conception (entree vide => valeur CLR conservee, aucune notification) ; `internal bool TryGetResolvedPilotValue<T>(UIPilotProperty, UIValueSlot, out UIResolvedValue<T>)` ;
+- `MGBorder` : idem pour BorderBrush et BorderThickness (constructeur `:111-112` en `DefaultValue`) ; les facades des composites restent des facades (elles atteignent le setter public de la bordure = LocalValue) ; `MGGroupBox.BorderBrush` (type etroit) et `MGGroupBox.BorderThickness` (garde et LayoutChanged supplementaires) verifies et laisses en facade ;
+- `MGElement.TryGetResolvedPilotValue` pour BorderBrush/BorderThickness delegue a `GetBorder()` quand l'element n'est pas une `MGBorder` ;
+- enumeration reproductible de TOUTES les ecritures framework des cinq pilotes scalaires dans `MGUI.Core` (hors `MGElement`/`MGBorder` setters) : recherche `rg -n "\b(Padding|Margin|MinHeight|BorderBrush|BorderThickness)\s*=[^=]" MGUI.Core --type cs`, qui attrape les assignations qualifiees `x.Padding =` (332 occurrences dans 50 fichiers au 7 septembre 2026, dont 97 dans le catalogue, `MGGraphControls.cs:2791-2793`, `:3045`, `:3464-3467`, `:3483-3487`, `:3554`, `:3600`, `MGChatBox.cs:160`, `:183`, `:187`, `:209-214`, `:311`, `:314`, `MGCheckBox.cs:318-319`, `MGContextMenuItem.cs:383`, `:402`, `:417`, `:638`, `MGComboBox.cs:145`, `:160`, `MGExpander.cs:334`, `MGListBox.cs:1439-1440`), les non qualifiees `Padding =` (165 occurrences dans 39 fichiers) et les initialiseurs d'objet `{ Padding = ... }` ; l'ensemble des occurrences est PARTITIONNE entre le tableau site -> source de la migration et la liste blanche nommee, sans occurrence non classee ; la liste blanche comprend, outre les setters eux-memes et les facades publiques : les donnees de theme (`MGTheme.cs`), les proprietes des DTO XAML (`XAML/Controls.cs`, `Containers.cs`, `Lists.cs`, `Element.cs` : champs de DTO, pas des `MGElement`), `ThemeDefinitionBuilder.cs`, les proprietes internes des brushes (`MGPaddedFillBrush`, `MGBorderedFillBrush`, `MGNineSliceFillBrush`), `Containers/Grids/GridDimension.cs`, `UI/Text/*`, les sites reserves a S3 (initialiseurs du catalogue) et a S5/S6 (fond, texte) ; sites deja connus : ceux du Contexte plus `MGContextMenu.cs:721` (MinHeight), `MGWindow.cs:1418` (MinHeight), `MGTextLogView.cs:121`, `MGSlider.cs:710`, `MGSeparator.cs:29`/`:67`, `MGResizeGrip.cs:188`, `MGDataGrid.cs:54`/`:191`, `MGGridColorPicker.cs:706`/`:711`, `MGPropertyGrid.cs` (:539-541, :548, :566, :584-585, :604-605, :725-726, :733-734, :742-743, :879, :938-939, :948-950, :1029-1031), docking (`MGDockPreviewOverlay.cs:77`, `MGDockTabItem.cs:282`, `MGDockTabGroup.cs:416`/`:615`/`:628`, `MGDockAutoHideStrip.cs:230`, `MGDockAutoHideDrawer.cs:194`, `MGDockHost.cs:2135`/`:2150`) ; les initialiseurs d'objet du catalogue (`MGControlTemplateCatalog.cs:72`, `:276-277`, `:294-295`, `:421-435`) sont hors des lambdas `ApplyTemplateValue` et sont migres en S3 (liste blanche temporaire de S2, nommee) ;
+- migration de chaque site enumere vers le setter tague selon la regle de la Conception : `DefaultValue` pour une ecriture de construction (`MGContextMenu.cs:713-715`, `:721`, `MGWindow.cs:1418`, ...), `Theme` pour un recalcul de chrome depuis `OnThemeChanged` (`ApplyNeutralChrome`, `MGTreeViewItem.cs:30-37`), `VisualState` pour un etat interne, `LocalValue` pour une reaction a une propriete publique (`MGWindow.WindowStyle`, `MGWindow.cs:1977-1986`) ; les ecritures de bordure des composites (`MGContextMenu`, `MGWindow`, `MGTreeViewItem`, `MGGroupBox`...) passent par `GetBorder()` tague ; test d'architecture `MGUI.Tests/Architecture/ResolvedPilotWriteSitesTests.cs` : balayage source identique a la recherche ci-dessus, tout site hors liste blanche fait echouer le test (la liste blanche contient les setters eux-memes, les facades publiques, les sites reserves a S3 et ceux de fond/texte reserves a S5/S6) ;
+- aucune modification des lambdas du catalogue : elles ecrivent encore `LocalValue` (90) via les setters publics, etat transitoire jusqu'a S3. Consequences en S2, a enoncer telles quelles : les `DefaultValue` de construction cedent aux ecritures catalogue (comme aujourd'hui, ou le catalogue ecrit apres le constructeur) ; les `LocalValue` de configuration de parts et de `WindowStyle` sont a egalite avec le catalogue, donc dernier ecrivain, comme aujourd'hui ; l'ordre reel `Template` (60) < `LocalValue` (90) n'apparait qu'en S3, ou la configuration de parts et `WindowStyle` gagnent definitivement sur le template ;
+- `MGElement` expose des accesseurs internes de test `TryGetResolvedContribution<T>(UIPilotProperty, UIValueSlot, UIValueSourceKind, out UIResolvedValue<T>)` et `ResolvedEntryCount` (delegation au store, 0 sans store) ; `MGGroupBox.BorderThickness` (garde et `LayoutChanged` propres, `MGGroupBox.cs:45-56`) : note dans le code pour qu'une future ecriture routee par `GetBorder()` n'oublie pas cette invalidation ;
+- tests `MGUI.Tests/Architecture/ResolvedScalarPilotsTests.cs` (headless ; sujet des tests de base : une sous-classe de test `PilotProbeElement : MGElement` sans aucune ecriture pilote dans son constructeur) : constructeur = DefaultValue ; `SetPadding(v, Theme)` puis setter public local : la locale gagne et un nouveau `SetPadding(w, Theme)` ne change pas la valeur effective ni n'emet de NPC ; `ClearPilotSource(LocalValue)` fait retomber sur la valeur theme avec notification ; `ClearPilotSource(MinHeight, Whole, LocalValue)` sur `PilotProbeElement` (aucun defaut constructeur de MinHeight) apres une seule ecriture locale : valeur CLR conservee, aucune NPC, `TryGetResolvedPilotValue` renvoie faux ; compte de NPC de Margin inchange par rapport a un setter direct (11 + OnMarginChanged), Padding 7, MinHeight 3 ; LayoutChanged emis pour Padding/Margin/MinHeight/BorderThickness et pas pour BorderBrush ; composite (`MGButton`) : `TryGetResolvedPilotValue(BorderBrush)` resout sur la bordure interne ; controle reel a defaut de construction et defaut de catalogue differents (`MGContextMenu`, construit normalement, son template s'appliquant dans le constructeur) : `TryGetContribution(BorderBrush, Whole, DefaultValue)` rapporte la contribution Transparent du constructeur, retenue dans le store, et le gagnant est la valeur du catalogue (comparee par contenu, les brushes de theme etant des clones) avec une source strictement superieure a `DefaultValue` (`LocalValue` en S2, `Template` apres S3) ; `MGWindow` templatee : `WindowStyle = None` puis `= Default` change la valeur EFFECTIVE de Padding et BorderThickness (`Theme.Window.ChromelessPadding`/`ChromelessBorderThickness` puis retour) et la contribution rapportee est `LocalValue` ; enfant deja templatee configuree par son proprietaire (le `MGTextBox` d'edition d'un noeud de graphe, `MGGraphControls.cs:3464-3467`) : Padding, BorderThickness et BorderBrush effectifs restent 0/0/Transparent apres construction ET apres un refresh de theme, contribution `LocalValue` ; element cree par `FormatterServices.GetUninitializedObject` : lecture sans exception ; budget : `EntryCount` == 2 pour un `PilotProbeElement` fraichement construit, == 4 pour une `MGBorder`, inchange apres une ecriture non pilote (`Opacity`, `Visibility`) ; balayage `ResolvedPilotWriteSitesTests` vert ; mutations nommees : desactiver la consultation du gagnant dans le setter => "la locale gagne" rouge ; retirer le tag `DefaultValue` du constructeur de `MGContextMenu` (retour au setter public) => l'assertion `TryGetContribution(..., DefaultValue)` rouge des S2 ; classer `WindowStyle` en `Theme` => le test de valeur effective de `WindowStyle` rouge ; classer la configuration de l'editeur de graphe en `DefaultValue` => son test rouge (des S2, puisque le catalogue non tague vaut `LocalValue` 90 et gagnerait) ; remettre un site qualifie (`MGGraphControls.cs:3467`) sur le setter public => `ResolvedPilotWriteSitesTests` rouge.
+
+Criteres : suites Theme|Style|Template|Resolved, Architecture et complete vertes ; `ThemeRefreshRegressionTests` et les pins de texte source intacts ; budget de cout respecte par test.
+
+Commit recommande : `feat(styling): route the scalar pilot properties through the resolved store`
+
+### ⚪ S3. Catalogue de templates : ecritures taguees Template
+
+But : les ~125 sites du catalogue qui ecrivent un pilote portent la source Template et le bon `UIInvalidationKind`.
+
+Travail attendu :
+
+- `MGControlTemplateContext` : surcharge `ApplyTemplateValue<T>(Name, Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue, UIInvalidationKind, IEqualityComparer<T>)` (et `ApplyThemeDefault` equivalente) qui passe a la lambda la source Template construite ; la garde has-previous/equals et `_AppliedTemplateDefaults` inchanges ; le libelle `UIValueResolutionSource.Template` et `Owner.InvalidateTemplateValue(Invalidation)` conserves ;
+- migration mecanique des lambdas pilotes du catalogue vers les setters tagues (`(value, source) => textBox.SetPadding(value, source)`), y compris sur les parts (`TitleBar.SetPadding(...)`) ; les cles de template et les litteraux pinnes ne changent pas ; `ApplyListBoxItemContainerDefaults` (`:128-141`) migre vers `ApplyThemeDefault` tague ou vers des setters `Theme` explicites ;
+- corriger l'estampille : les appels `ApplyThemeDefault` sur Padding, Margin, MinHeight, BorderThickness passent `Measure | Arrange` (nouvelle surcharge avec kind, ou `ApplyTemplateValue` direct) ;
+- tests : `ControlTemplateInfrastructureTests` ajustes uniquement si un pin de texte l'exige (justifie) ; test comportemental : template applique puis ecriture locale puis refresh de theme : la locale gagne (aujourd'hui garantie par la garde, demain par la precedence : les deux doivent concorder) ; `TryGetResolvedPilotValue` renvoie Template pour une fenetre fraichement templatee ; Padding template porte `Measure | Arrange`.
+
+Criteres : suites vertes ; aucun changement visuel dans `MGUI.Samples` (build) ; `SCN-THEME-001`.
+
+Commit recommande : `refactor(styling): tag template writes of pilot properties`
+
+### ⚪ S4. Callbacks de theme et precedence VisualState
+
+But : les ecritures de pilotes faites dans `OnThemeChanged` et ses helpers portent la source Theme ; la selection de `MGTreeViewItem` utilise le slot VisualState.
+
+Travail attendu :
+
+- migrer vers les setters tagues `Theme` : `MGButton.OnThemeChanged` (BackgroundBrush : slot Whole, en attendant S5 ce site est laisse tel quel si S5 n'est pas livre ; ordonner S4 apres S5 si necessaire, voir Points ouverts), `MGToggleButton`, `MGMenuBarItem`, `TreeViewExpanderToggleButton.ApplyNeutralChrome` (Padding, Margin, MinHeight, BorderBrush, BorderThickness ; le fond en S5), `GraphNode.ApplySelectionVisual` (BorderBrush/BorderThickness : source VisualState, pas Theme), `MGListBox` via S3 ;
+- `MGTreeViewItem.RefreshSelectionVisual` : remplacer la sauvegarde/restauration manuelle par des ecritures `VisualState` (70) sur les pilotes concernes et `ClearPilotSource(VisualState)` a la deselection (fond et texte : apres S5/S6 ; bordure : maintenant) ;
+- inventaire dans le rapport de tout autre site `OnThemeChanged` ecrivant un pilote ;
+- tests : changement de theme apres ecriture locale de Padding sur un expandeur de TreeView : la locale gagne (comportement change accepte) ; selection/deselection d'un `MGTreeViewItem` : restauration exacte de la valeur precedente via le store ; mutation : remettre un setter public dans `ApplyNeutralChrome` => rouge.
+
+Criteres : suites vertes ; `SCN-THEME-001` ; docking (`SCN-DOCK-001`) build.
+
+Commit recommande : `refactor(styling): tag theme callback writes and visual-state overrides`
+
+### ⚪ S5. Conteneur BackgroundBrush : slots suivis
+
+But : le fond suit la precedence par sous-champ.
+
+Travail attendu :
+
+- `VisualStateSetting<T>`/`VisualStateFillBrush` : aucune API publique retiree ; ajout d'un mecanisme interne d'ecriture de slot avec source : `MGElement.SetBackground(VisualStateFillBrush, source)` (Whole) et `SetBackgroundSlot(UIValueSlot, T, source)` (ecrit le sous-champ du conteneur courant ET le store) ; l'element s'abonne au `PropertyChanged` du conteneur detenu pour enregistrer LocalValue les ecritures non taguees de sous-champ (reabonnement au remplacement de l'objet, desabonnement de l'ancien) ; lecture du gagnant par slot ; `SetAll` = ecriture des quatre slots ;
+- constructeur `MGElement` (`:2126`) : `SetBackground(theme clone, DefaultValue)` ; `ApplyBackground`/`ApplyExplicitBackground` XAML (`Element.cs:696-730`) et la migration des sites catalogue/callbacks restants (`MGButton`, `MGToggleButton`, `MGMenuBarItem`, `ApplyNeutralChrome`, `RefreshSelectionVisual`) vers les slots tagues ;
+- semantique du gagnant par slot : le slot du conteneur courant recoit la valeur gagnante ; le remplacement d'objet (Whole) par une source plus basse qu'un slot pose ne doit pas effacer ce slot : apres remplacement, les slots gagnants sont re-appliques sur le nouveau conteneur ;
+- limite documentee : instance partagee entre elements => chaque detenteur enregistre l'ecriture ;
+- tests : XAML `Background=` (LocalValue Normal) puis changement de theme (Theme Whole) : le Normal local reste ; ressource dynamique sur `BackgroundBrush.NormalValue` (apres S8, test complete alors) ; `SetAll` tague ; ecriture non taguee `element.BackgroundBrush.NormalValue = c` enregistree LocalValue ; remplacement d'objet re-applique les slots gagnants ; mutation : ne pas re-appliquer les slots au remplacement => rouge.
+
+Criteres : suites vertes ; `SCN-THEME-001` ; rendu des samples inchange (build + validation manuelle de l'auteur).
+
+Commit recommande : `feat(styling): track background slots in the resolved store`
+
+### ⚪ S6. Foreground du texte : slots, Inherited et theme
+
+But : `MGTextBlock.Foreground` devient le pilote Foreground, `DefaultTextForeground` sa source Inherited.
+
+Travail attendu :
+
+- `MGTextBlock.SetForeground(...)`/`SetForegroundSlot(...)` tagues, abonnement PropertyChanged comme en S5 ; `MGElement.SetDefaultTextForeground(...)`/`SetDefaultTextForegroundSlot(...)` tagues (constructeur en DefaultValue, catalogue et callbacks migres) ;
+- `ActualForeground` : gagnant du store pour le slot de l'etat visuel courant (puis Normal), sinon `Inherited` (DerivedDefaultTextForeground), sinon theme ; `TryGetResolvedPilotValue(Foreground)` expose Inherited quand c'est la source effective ;
+- tests : local > inherited > theme ; changement du DefaultTextForeground d'un ancetre propage ; theme change n'ecrase pas un Foreground local ; mutation : ignorer Inherited => rouge.
+
+Criteres : suites vertes ; rendu du texte inchange dans les samples (validation manuelle).
+
+Commit recommande : `feat(styling): resolve text foreground through the store with inherited fallback`
+
+### ⚪ S7. XAML : transferts tagues et provenance de style
+
+But : les valeurs XAML portent ImplicitStyle, ExplicitStyle ou LocalValue.
+
+Travail attendu :
+
+- `Element.ProcessStyles` : au lieu de jeter `ModifiedPropertyNames`, remplir sur le DTO un `Dictionary<string, UIValueSourceKind>` (nom de propriete -> ImplicitStyle/ExplicitStyle) ; `ApplyBaseSettings` : transferts de Margin (`:285-288`), Padding (`:290-293`), MinHeight (`:319-322`), fond (`ApplyBackground`), TextForeground (`:400-413`) via les setters tagues avec la source du DTO (LocalValue par defaut) ; DTO `Border` (`Controls.cs:167`, `:172`) et les DTO derives idem ; `InheritsParentStyles = false` inchange ;
+- `ApplyResourceReferences` (`:398`) : ordre desormais sans effet grace a la precedence (S8) ; ne pas le deplacer ;
+- tests : `<Style TargetType="TextBlock"><Setter Padding=...>` => source ImplicitStyle ; style explicite => ExplicitStyle ; attribut => LocalValue ; attribut + style : l'attribut gagne (deja vrai via IsXAMLPropertyUnset, desormais aussi par precedence) ; mutation : ne plus remplir le dictionnaire => rouge.
+
+Criteres : suites vertes ; `XamlDocumentSourceTests` et tests de parsing intacts.
+
+Commit recommande : `feat(styling): carry style provenance from XAML into the resolved store`
+
+### ⚪ S8. Bindings et ressources dynamiques tagues, avec Unset
+
+But : LocalBinding (80) et DynamicResource (30) participent a la precedence ; une ressource retiree fait retomber sur la source suivante.
+
+Travail attendu :
+
+- `MGUI.Core/UI/Styling/UIPilotPropertyResolver.cs` : `TryResolve(object target, string dottedPath, out MGElement owner, out UIPilotProperty, out UIValueSlot)` couvrant `Padding`/`Margin`/`MinHeight`, `BorderBrush`/`BorderThickness` (facade -> `GetBorder()`), `BackgroundBrush.NormalValue` et variantes, `Foreground.NormalValue`, `DefaultTextForeground.NormalValue` ;
+- `UIResourceReferenceApplicator.Apply` (`:40`) : si la cible est pilote, ecrire via le setter tague `DynamicResource`, sinon reflexion comme aujourd'hui ; quand la ressource n'est plus resolue (TryResolveResourceValue faux) apres avoir ete appliquee : `ClearPilotSource(DynamicResource)` (conteneur `UIDynamicResourceSubscriptions`, ADR-0001, sait quelles entrees sont appliquees) ;
+- `DataBinding.TrySetValue` (`:433`) : idem avec `LocalBinding` ;
+- tests : ressource dynamique puis ecriture locale : la locale gagne et une mise a jour de la ressource ne l'ecrase plus (comportement change accepte) ; retrait de la ressource : retombee sur la source suivante ; binding vs locale (LocalValue 90 > LocalBinding 80 : une ecriture locale apres binding gagne, documente) ; `ResourceReferenceApplicatorTests` existants verts ; mutation : ne pas `ClearPilotSource` au retrait => rouge.
+
+Criteres : suites vertes ; `SCN-THEME-001`.
+
+Commit recommande : `feat(styling): tag binding and dynamic resource writes with unset fallback`
+
+### ⚪ S9. Diagnostic, docs et cloture
+
+But : point de lecture pour la tache 5, documentation, ADR finalisee.
+
+Travail attendu :
+
+- `MGElement.TryGetResolvedValueSource(UIPilotProperty, UIValueSlot, out UIValueResolutionSource)` interne (base de la tache 5 du backlog) et `EnumerateResolvedContributions` pour l'outillage ;
+- `Docs/styling-theme-architecture.md` : sections precedence et refresh reecrites pour l'etat courant (store, sources posees par chemin, limites : instances partagees, Animation non alimentee, proprietes non pilotes) ; `Docs/Tasks/styling-theme-tasks.md` : tache 4 ✅ avec renvoi ici, taches 5, 7, 10 mises a jour ("dix sources" corrige en onze) ; ADR-0005 passee `Accepted` ;
+- tests : un test d'architecture pinnant la liste des sept pilotes et la carte propriete -> `UIInvalidationKind`.
+
+Criteres : docs coherentes avec le code ; suites vertes.
+
+Commit recommande : `docs(styling): document the resolved value store and expose its diagnostic read`
+
+## Points ouverts
+
+- Ordre S4/S5 : `MGButton`/`MGToggleButton`/`MGMenuBarItem` ecrivent un fond (conteneur) dans `OnThemeChanged` ; S4 migre leurs pilotes scalaires et laisse les fonds a S5, qui les termine. Alternative : executer S5 avant S4. Hypothese retenue : S4 puis S5, S5 finissant la migration des fonds.
+- `HasInvalidation` "tous les flags" : ajouter `HasAnyInvalidation` (recommande) plutot que changer la semantique existante.
+- `_AppliedTemplateDefaults` : conserve pour la garde et les tests ; a retirer dans une tache ulterieure quand le store couvrira toutes les cles de template (hors perimetre).
+- Animation (100) et VisualState hors TreeView/GraphNode : niveaux presents dans le store, non alimentes par le framework dans ce programme.
