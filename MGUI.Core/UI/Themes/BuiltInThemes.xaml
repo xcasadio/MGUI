@@ -432,25 +432,25 @@
       </ThemeGraphSettingsDefinition>
     </ThemeDefinition.Graph>
     <ThemeDefinition.Docking>
-      <ThemeDockingSettingsDefinition TabNormalBackground="rgb(45,45,48)"
-                                      TabHoverBackground="rgb(62,62,66)"
-                                      TabActiveBackground="rgb(37,37,38)"
+      <ThemeDockingSettingsDefinition TabNormalBackground="rgb(18,36,76)"
+                                      TabHoverBackground="rgb(28,52,102)"
+                                      TabActiveBackground="rgb(12,26,60)"
                                       TabActiveAccentColor="rgb(51,137,222)"
                                       TabHoverAccentColor="rgb(89,159,228) * 0.70"
                                       TabActiveTextColor="White"
                                       TabInactiveTextColor="rgb(200,200,200)"
                                       TabActiveIconColor="White"
                                       TabInactiveIconColor="rgb(180,180,180)"
-                                      AutoHideDrawerBackground="rgb(37,37,38)"
-                                      AutoHideDrawerHeaderBackground="rgb(45,45,48)"
+                                      AutoHideDrawerBackground="rgb(12,26,60)"
+                                      AutoHideDrawerHeaderBackground="rgb(18,36,76)"
                                       AutoHideHeaderTextColor="White"
                                       AutoHideIconColor="rgb(200,200,200)"
-                                      AutoHideBorderColor="rgb(80,80,85)"
-                                      AutoHideGripColor="rgb(100,100,110)"
-                                      AutoHideStripBackground="rgb(30,30,32)"
+                                      AutoHideBorderColor="rgb(46,74,128)"
+                                      AutoHideGripColor="rgb(70,100,160)"
+                                      AutoHideStripBackground="rgb(6,18,44)"
                                       AutoHideStripTextColor="rgb(200,200,200)"
-                                      AutoHideStripSeparatorColor="rgb(60,60,65)"
-                                      SplitterNormalBrush="rgb(64,64,64)"
+                                      AutoHideStripSeparatorColor="rgb(36,60,110)"
+                                      SplitterNormalBrush="rgb(30,52,96)"
                                       SplitterHoverBrush="rgb(56,140,223)"
                                       SplitterPressedBrush="rgb(20,120,217)"
                                       SplitterHoverOverlayColor="rgb(115,174,232) * 0.47"
@@ -465,13 +465,13 @@
                                       DropIndicatorSymbolColor="White"
                                       DropIndicatorDisabledSymbolColor="rgba(100,100,100,150)">
         <ThemeDockingSettingsDefinition.AutoHideButtonBackground>
-          <ThemeVisualStateFillBrushDefinition FocusedColor="rgb(62,62,66)"
+          <ThemeVisualStateFillBrushDefinition FocusedColor="rgb(28,52,102)"
                                                PressedModifierType="Darken"
                                                PressedModifier="0.10" />
         </ThemeDockingSettingsDefinition.AutoHideButtonBackground>
         <ThemeDockingSettingsDefinition.AutoHideStripButtonBackground>
-          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(37,37,38)"
-                                               FocusedColor="rgb(62,62,66)"
+          <ThemeVisualStateFillBrushDefinition NormalValue="rgb(12,26,60)"
+                                               FocusedColor="rgb(28,52,102)"
                                                PressedModifierType="Darken"
                                                PressedModifier="0.10" />
         </ThemeDockingSettingsDefinition.AutoHideStripButtonBackground>

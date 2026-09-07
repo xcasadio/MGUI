@@ -251,6 +251,7 @@ Travail attendu:
 Criteres d'acceptation:
 
 - les quatre controles feuilles consomment une structure de template au runtime;
+- `MGDockPreviewOverlay` ne code plus sa couleur en dur (rgb 0,122,204, `MGDockPreviewOverlay.cs:75-76`) : elle passe par le theme (ajout dans `MGThemeDockingSettings` et les trois blocs Docking de `BuiltInThemes.xaml`), suite du bug 3 du 7 septembre 2026 (`Docs/Tasks/docking-bugs-tasks.md`, tache 5);
 - les comportements docking critiques restent stables: `SCN-DOCK-001` + tests `MGUI.Tests/Docking` verts;
 - tests d'infrastructure etendus (`--filter FullyQualifiedName~ControlTemplateInfrastructureTests`) et build des samples vert.
 
@@ -280,7 +281,7 @@ Travail attendu:
 
 Criteres d'acceptation:
 
-- `MGDockTabGroup` declare son template structurel et ses defaults visuels ne vivent plus dans le constructeur;
+- `MGDockTabGroup` declare son template structurel et ses defaults visuels ne vivent plus dans le constructeur; en particulier le survol de ses boutons compacts (`new Color(70,70,74)`, `MGDockTabGroup.cs:367`) et la couleur de ses icones (`new Color(200,200,200)`, `:259`, `:264`, `:320`, `:342`) passent par le theme (`MGThemeDockingSettings` et les trois blocs Docking de `BuiltInThemes.xaml`), suite du bug 3 du 7 septembre 2026 (`Docs/Tasks/docking-bugs-tasks.md`, tache 5);
 - une decision par controle restant (migre ou hors chrome) est actee dans la doc d'architecture;
 - les controles docking migres declarent leurs parts et consomment un template structurel;
 - drag/drop d'onglets, split, auto-hide, pin/close, floating restent stables: `SCN-DOCK-001` + tests `MGUI.Tests/Docking` verts, tests d'infrastructure verifiant l'enregistrement des nouveaux templates (`MGUI.Tests/Architecture/ControlTemplateInfrastructureTests.cs`);

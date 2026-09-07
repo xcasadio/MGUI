@@ -145,7 +145,9 @@ Criteres d'acceptation :
 
 Commit recommande : `feat(docking): add a Dock entry to the floating tab context menu`
 
-### ⚪ 5. Theme Dark_Blue : palette docking dans la famille bleu marine
+### ✅ 5. Theme Dark_Blue : palette docking dans la famille bleu marine
+
+**Statut** : livre le 7 septembre 2026. Bloc Docking de `Dark_Blue` (`BuiltInThemes.xaml:435-476`) re-teinte : TabNormal rgb(18,36,76), TabHover rgb(28,52,102), TabActive rgb(12,26,60), fond du drawer rgb(12,26,60) et de son en-tete rgb(18,36,76), bordure rgb(46,74,128), poignee rgb(70,100,160), strip rgb(6,18,44), separateur rgb(36,60,110), splitter rgb(30,52,96), fonds de boutons auto-hide rgb(12,26,60) / survol rgb(28,52,102) ; textes, accents, survol/appui du splitter et indicateurs de drop inchanges ; `Dark` (BasedOn Dark_Blue mais bloc complet, fusion champ par champ de `ThemeDefinitionBuilder.ApplyDocking`) et `Light_Gray` intacts. Tests : `MGUI.Tests/Architecture/DockingThemePaletteTests.cs` (11 tests : le template gagne sur le constructeur, meme instance de theme pour un controle docking et un menu contextuel via `GetTheme()`, palettes `Dark` et `Light_Gray` pinnees, famille bleue et ordre de luminance, valeurs exactes). Mutation : TabNormal remis a rgb(45,45,48) => 2 tests rouges, vert apres reversion. Couleurs encore codees en dur (`MGDockTabGroup`, `MGDockPreviewOverlay`) ajoutees a l'acceptation des taches 8 et 9 de `Docs/Tasks/styling-theme-tasks.md`.
 
 But :
 faire suivre au chrome docking la famille de couleurs de son theme, comme le menu contextuel et la liste deroulante.
@@ -164,7 +166,12 @@ Criteres d'acceptation :
 
 Commit recommande : `fix(theme): tint the Dark_Blue docking palette to the theme family`
 
+## Resultat
+
+Les cinq taches sont livrees le 7 septembre 2026 (commits `39cc6c4`, `ce1d488`, `9c6c908`, `6360012` et le commit de la tache 5), chacune verifiee par un agent independant en contexte frais. Validation manuelle de l'auteur dans la demo docking attendue (voir le rapport de fin de chantier).
+
 ## Points ouverts
 
-- Tache 3 : l'espace des boutons reveles reste-t-il reserve (pas de reflow au survol) ? Hypothese retenue : oui.
-- Tache 4 : le groupe source memorise au flottement n'est pas persiste ; apres un save/load de layout avec une fenetre flottante ouverte, "Dock" retombe au centre du premier groupe visible. Acceptable pour l'auteur ? Hypothese retenue : oui.
+- Tache 3 : l'espace des boutons reveles reste-t-il reserve (pas de reflow au survol) ? Hypothese retenue : oui (implementee ainsi).
+- Tache 4 : le groupe source memorise au flottement n'est pas persiste ; apres un save/load de layout avec une fenetre flottante ouverte, "Dock" retombe au centre du premier groupe visible. Hypothese retenue : oui (implementee ainsi).
+- Reste hors perimetre : couleurs codees en dur de `MGDockTabGroup` et `MGDockPreviewOverlay` (taches 8 et 9 du backlog styling) ; `CreateFloatingWindow`, public mais sans appelant, ne memorise pas de groupe source (repli sur le premier groupe visible).
