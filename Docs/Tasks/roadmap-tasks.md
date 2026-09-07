@@ -13,6 +13,11 @@ Backlog de portefeuille pour les ameliorations transverses encore ouvertes, c'es
 
 Les validations s'appuient sur les scenarios stables de `Docs/scenario-validation-index.md` (convention `SCN-<zone>-<nnn>`).
 
+## Historique du fichier
+
+- 2 septembre 2026 : creation par consolidation (commit `6c6d9ae`).
+- 7 septembre 2026 : les deux taches que ce fichier portait (seconde vague docking, surfaces auxiliaires) dupliquaient les taches du backlog styling/theme et decrivaient a tort les cinq controles docking feuilles comme une premiere vague structurelle deja livree (ils ne consomment que des applicateurs de defaults). Elles sont fusionnees dans `Docs/Tasks/styling-theme-tasks.md` (taches 9 et 12) ; ce fichier ne garde que les renvois ci-dessous.
+
 ## Consignes de travail pour l'agent IA
 
 - Executer les taches dans l'ordre.
@@ -46,46 +51,12 @@ Les validations s'appuient sur les scenarios stables de `Docs/scenario-validatio
 
 ## Taches
 
+Aucune tache transverse propre a ce fichier n'est ouverte. Les chantiers suivis ailleurs, par priorite :
+
 ### Priorite haute
 
-### ⚪ 1. Migrer la deuxieme vague docking vers des templates structurels
-
-But :
-finir de sortir le chrome imperatif des controles de docking. La premiere vague est deja en place : `MGDockTabItem`, `MGDockSplitterBar`, `MGDockAutoHideStrip`, `MGDockAutoHideDrawer` et `MGDockDropIndicators` declarent un `DefaultControlTemplateName` et consomment les templates `Dock.*.Default` de `MGUI.Core/UI/Styling/MGControlTemplateCatalog.cs`, avec variantes sombres dans `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml`. Restent hybrides : `MGDockTabGroup` (enregistre ses parts `Accent`, `DropdownIcon`, `WindowStateIcon` mais construit son chrome sans template), `MGDockHost` (enregistre ses parts preview overlay, drop indicators, strips et drawer auto-hide, sans template par defaut) et `MGDockSplitContainer` (aucune part declaree).
-
-Travail attendu :
-
-- migrer d'abord `MGDockTabGroup` (`MGUI.Core/UI/Docking/Controls/MGDockTabGroup.cs`) : ajouter un template `Dock.TabGroup.Default` au catalogue, y deplacer les defaults visuels, poser `DefaultControlTemplateName`, conserver la logique de drag, selection et fermeture dans le controle ;
-- statuer sur `MGDockHost` et `MGDockSplitContainer` : identifier la part de chrome reellement templatable et soit la migrer sur le meme modele, soit documenter dans `Docs/styling-theme-architecture.md` pourquoi le controle reste structure pure (container de layout sans chrome) ;
-- ajouter les variantes `Dark.*` correspondantes dans `BuiltInControlTemplates.xaml` pour tout nouveau template ;
-- ajouter des tests d'infrastructure verifiant l'enregistrement des nouveaux templates par defaut (voir `MGUI.Tests/Architecture/ControlTemplateInfrastructureTests.cs`).
-
-Criteres d'acceptation :
-
-- `MGDockTabGroup` declare son template structurel et ses defaults visuels ne vivent plus dans le constructeur ;
-- une decision par controle restant (migre ou hors chrome) est actee dans la doc d'architecture ;
-- drag, split, auto-hide, pin/close restent stables : `SCN-DOCK-001` (sample `MGUI.Samples/Features/DockingDemo.cs`) + tests `MGUI.Tests/Docking` verts.
-
-Commit recommande : `dock: migrate second docking template wave`
+- Migration structurelle des controles docking (vocabulaire des parts, feuilles, puis `MGDockTabGroup`, `MGDockHost`, `MGDockSplitContainer`) : `Docs/Tasks/styling-theme-tasks.md`, taches 3, 8 et 9. Validation `SCN-DOCK-001` (sample `MGUI.Samples/Features/DockingDemo.cs`) et tests `MGUI.Tests/Docking`.
 
 ### Priorite moyenne
 
-### ⚪ 2. Cloturer la modelisation des composites a surfaces auxiliaires
-
-But :
-fermer la derniere zone ouverte de la convergence lookless. Le contrat de template couvre deja les parts hors sous-arborescence unique (`MGControlTemplateStructure.DetachedRoots` dans `MGUI.Core/UI/Styling/MGControlTemplate.cs`) et les controles a surfaces auxiliaires de reference consomment des templates structurels (`MGContextMenu`, `MGToolTip`, `MGComboBox`, `MGOverlay` posent tous `DefaultControlTemplateName`). Ce qui manque : un inventaire explicite des composites restants qui pilotent popups, overlays ou fenetres imbriquees hors du contrat, et la documentation des contraintes de cycle de vie de ces surfaces.
-
-Travail attendu :
-
-- inventorier les controles qui ouvrent encore des fenetres imbriquees, popups ou overlays sans passer par le contrat de template, et classer chaque cas : deja supportable par `DetachedRoots`, ou demandant une extension minimale du runtime ;
-- documenter dans `Docs/styling-theme-architecture.md` les contraintes de parentage, d'ouverture et de fermeture des surfaces auxiliaires templatees, y compris le cas des controles derives d'un type deja template (`MGContextMenu` herite de `MGWindow` et doit tolerer la phase de template de base pendant sa construction) ;
-- etendre la validation de template aux contraintes comportementales inter-parts la ou c'est peu couteux, sinon acter la limite dans la doc ;
-- si une extension du runtime s'avere necessaire, produire la tache bornee correspondante dans `Docs/Tasks/styling-theme-tasks.md` plutot que de l'implementer ici.
-
-Criteres d'acceptation :
-
-- l'inventaire distingue clairement cas supportes et cas demandant une extension ;
-- les contraintes de cycle de vie des surfaces auxiliaires sont documentees ;
-- validation ciblee verte : `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~Theme|FullyQualifiedName~Style|FullyQualifiedName~Template"` (`SCN-THEME-001`).
-
-Commit recommande : `templates: close auxiliary surface modeling`
+- Cloture de la modelisation des composites a surfaces auxiliaires (`MGFloatingDockWindow`, `MGColorPickerPopup`, contrat "part requise de type `MGWindow`", cycle de vie des surfaces) : `Docs/Tasks/styling-theme-tasks.md`, tache 12. Validation `SCN-THEME-001`.

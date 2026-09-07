@@ -35,7 +35,7 @@ Chaque scenario se rattache a une doc d'architecture et, quand du travail reste 
 
 - `SCN-FOCUS-001`, `SCN-OVERLAY-001` : [input-architecture.md](input-architecture.md), [input-window-activation-design.md](input-window-activation-design.md) ;
 - `SCN-THEME-001`, `SCN-MARKUP-001` : [styling-theme-architecture.md](styling-theme-architecture.md), taches [Tasks/styling-theme-tasks.md](Tasks/styling-theme-tasks.md) ;
-- `SCN-OVERLAY-002`, `SCN-GRID-001`, `SCN-DOCK-001` : [controls-architecture.md](controls-architecture.md) ; vagues docking restantes dans [Tasks/roadmap-tasks.md](Tasks/roadmap-tasks.md) ;
+- `SCN-OVERLAY-002`, `SCN-GRID-001`, `SCN-DOCK-001` : [controls-architecture.md](controls-architecture.md) ; vagues docking restantes dans [Tasks/styling-theme-tasks.md](Tasks/styling-theme-tasks.md) (taches 3, 8 et 9) ;
 - `SCN-LAYOUT-001` : [layout-architecture.md](layout-architecture.md) ;
 - `SCN-SHAPE-001` : [drawing-architecture.md](drawing-architecture.md) ;
 - `SCN-TEXT-001`, `SCN-TEXT-002` : [text-architecture.md](text-architecture.md) ;
