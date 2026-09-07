@@ -63,6 +63,14 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private readonly Dictionary<string, DockPanelNode> _panelRegistry = new Dictionary<string, DockPanelNode>();
 
+    /// <summary>
+    /// In-memory (never serialized) map of panel ID to the ID of the <see cref="DockTabGroupNode"/>
+    /// it was floated from, so the tab context menu's "Dock" command (see <see cref="RedockPanel"/>)
+    /// can send the panel back to where it came from. Recorded by <see cref="DetachToFloating"/>
+    /// (the only path that floats a panel) and consumed/cleared by <see cref="RedockPanel"/>.
+    /// </summary>
+    private readonly Dictionary<string, string> _floatedFromGroupId = new Dictionary<string, string>();
+
     private DockableRegistry _dockableRegistry;
     /// <summary>
     /// Optional registry of <see cref="DockableDefinition"/>s.
@@ -919,27 +927,7 @@ public class MGDockHost : MGSingleContentHost
         // ── If panel comes from a floating window, detach it first ──────────────
         if (drag.SourceFloatingWindow != null)
         {
-            var floatingSource = drag.SourceFloatingWindow;
-
-            // Remove the panel from the floating window's model group.
-            // This must happen BEFORE any DockOperation call so that DockOperation's
-            // "remove from current parent" logic does not try to clean up a group that
-            // is outside the host's LayoutModel.
-            floatingSource.GroupNode.RemovePanelById(panel.Id);
-
-            // Close the floating window if it is now empty
-            if (floatingSource.GroupNode.IsEmpty)
-            {
-                CloseFloatingWindow(floatingSource);
-            }
-
-            // Register the panel back in the host (it was never in _panelRegistry
-            // while floating, so there is no duplicate-key issue).
-            if (!_panelRegistry.ContainsKey(panel.Id))
-            {
-                _panelRegistry[panel.Id] = panel;
-                PanelAdded?.Invoke(this, panel);
-            }
+            DetachFromFloatingWindow(drag.SourceFloatingWindow, panel);
         }
 
         switch (target.Zone)
@@ -1285,6 +1273,18 @@ public class MGDockHost : MGSingleContentHost
             throw new ArgumentNullException(nameof(panel));
         }
 
+        // Remember which tab group this panel is floating out of (in memory only — never part of
+        // the saved layout) so a later "Dock" from the context menu can send it back. Must read
+        // panel.Parent BEFORE RemovePanel below, which clears it.
+        if (panel.Parent is DockTabGroupNode sourceGroup)
+        {
+            _floatedFromGroupId[panel.Id] = sourceGroup.Id;
+        }
+        else
+        {
+            _floatedFromGroupId.Remove(panel.Id);
+        }
+
         // Remove from the host panel registry first (before model cleanup)
         _panelRegistry.Remove(panel.Id);
 
@@ -1354,9 +1354,80 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
+        _floatedFromGroupId.Remove(panel.Id);
         PanelRemoved?.Invoke(this, panel);
         _dockableRegistry?.NotifyClosed(panel.Id);
         SyncRegistryVisibility();
+    }
+
+    /// <summary>
+    /// Detaches <paramref name="panel"/> from a floating window's tab group and re-registers it in
+    /// this host's panel registry, closing the floating window if it becomes empty as a result.
+    /// Shared by <see cref="ExecuteDrop"/> (dragging a floated tab back into the host) and
+    /// <see cref="RedockPanel"/> (the tab context menu's "Dock" command).
+    /// </summary>
+    private void DetachFromFloatingWindow(MGFloatingDockWindow floatingSource, DockPanelNode panel)
+    {
+        // Remove the panel from the floating window's model group.
+        // This must happen BEFORE any DockOperation call so that DockOperation's
+        // "remove from current parent" logic does not try to clean up a group that
+        // is outside the host's LayoutModel.
+        floatingSource.GroupNode.RemovePanelById(panel.Id);
+
+        // Close the floating window if it is now empty
+        if (floatingSource.GroupNode.IsEmpty)
+        {
+            CloseFloatingWindow(floatingSource);
+        }
+
+        // Register the panel back in the host (it was never in _panelRegistry
+        // while floating, so there is no duplicate-key issue).
+        if (!_panelRegistry.ContainsKey(panel.Id))
+        {
+            _panelRegistry[panel.Id] = panel;
+            PanelAdded?.Invoke(this, panel);
+        }
+    }
+
+    /// <summary>
+    /// Re-docks <paramref name="panel"/> from the floating window <paramref name="source"/> back into
+    /// the docked layout, in response to the tab context menu's "Dock" command (see
+    /// <see cref="MGDockTabItem.DockRequested"/>). The panel returns to the tab group it was floated
+    /// from (see <see cref="DetachToFloating"/>) if that group still exists in <see cref="LayoutModel"/>,
+    /// otherwise it is docked into the first visible tab group. Leaves the panel floating (no-op) if
+    /// the host has no visible tab group at all to dock into.
+    /// </summary>
+    /// <param name="panel">The panel to re-dock.</param>
+    /// <param name="source">The floating window currently hosting the panel.</param>
+    public void RedockPanel(DockPanelNode panel, MGFloatingDockWindow source)
+    {
+        if (panel == null || source == null || LayoutModel == null)
+        {
+            return;
+        }
+
+        // Resolve the target group BEFORE touching the floating window: if there is nowhere to
+        // dock the panel, leave it floating untouched rather than detaching it into limbo.
+        DockTabGroupNode targetGroup = null;
+        if (_floatedFromGroupId.TryGetValue(panel.Id, out string sourceGroupId) && sourceGroupId != null)
+        {
+            targetGroup = LayoutModel.FindNodeById(sourceGroupId) as DockTabGroupNode;
+        }
+
+        targetGroup ??= GetAllVisibleTabGroups().FirstOrDefault()?.GroupNode;
+
+        if (targetGroup == null)
+        {
+            return;
+        }
+
+        _floatedFromGroupId.Remove(panel.Id);
+
+        DetachFromFloatingWindow(source, panel);
+
+        DockOperation.DockAsTab(LayoutModel, panel, targetGroup, -1);
+
+        RebuildVisualTree();
     }
 
     #endregion Floating Windows — management

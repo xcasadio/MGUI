@@ -196,6 +196,13 @@ public class MGDockTabItem : MGElement
     public event EventHandler<DockPanelNode> FloatRequested;
 
     /// <summary>
+    /// Event raised when the user selects "Dock" from the context menu of a tab that lives inside
+    /// a <see cref="MGFloatingDockWindow"/> (see <see cref="OwnerFloatingWindow"/>). The host should
+    /// re-dock the panel back into the docked layout.
+    /// </summary>
+    public event EventHandler<DockPanelNode> DockRequested;
+
+    /// <summary>
     /// Event raised when the user selects "Close Others" from the context menu.
     /// </summary>
     public event EventHandler<DockPanelNode> CloseOthersRequested;
@@ -478,8 +485,14 @@ public class MGDockTabItem : MGElement
                 menu.AddSeparator();
             }
 
-            // Float — only if the panel allows it
-            if (panel?.CanFloat == true)
+            // Dock — only for a tab that lives inside a floating window (it cannot float again).
+            // Float — only for a docked tab whose panel allows floating.
+            if (OwnerFloatingWindow != null)
+            {
+                menu.AddButton("Dock", _ => DockRequested?.Invoke(this, panel));
+                menu.AddSeparator();
+            }
+            else if (panel?.CanFloat == true)
             {
                 menu.AddButton("Float", _ => FloatRequested?.Invoke(this, panel));
                 menu.AddSeparator();

@@ -80,6 +80,7 @@ public class MGFloatingDockWindow : MGWindow
         _tabGroup.GroupNode = GroupNode;   // triggers RebuildTabHeaders with owner refs already set
 
         _tabGroup.PanelCloseRequested += OnPanelCloseRequested;
+        _tabGroup.PanelDockRequested  += OnPanelDockRequested;
 
         // Maximize / restore the floating window to fill the desktop viewport
         _tabGroup.MaximizeRequested += (_, _) => MaximizeWindow();
@@ -220,6 +221,20 @@ public class MGFloatingDockWindow : MGWindow
         {
             UpdateTitle();
         }
+    }
+
+    /// <summary>
+    /// Handles "Dock" from a tab's context menu: asks the owning host to re-dock the panel back
+    /// into the docked layout (see <see cref="MGDockHost.RedockPanel"/>).
+    /// </summary>
+    private void OnPanelDockRequested(object sender, DockPanelNode panel)
+    {
+        if (panel == null)
+        {
+            return;
+        }
+
+        OwnerHost.RedockPanel(panel, this);
     }
 
     private void UpdateTitle()

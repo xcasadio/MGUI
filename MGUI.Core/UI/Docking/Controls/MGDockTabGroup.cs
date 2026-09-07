@@ -204,6 +204,13 @@ public class MGDockTabGroup : MGElement
     public event EventHandler<DockPanelNode> PanelFloatRequested;
 
     /// <summary>
+    /// Event raised when the user requests to dock a floated panel back into the docked layout via
+    /// the context menu. Only raised for tab items whose <see cref="MGDockTabItem.OwnerFloatingWindow"/>
+    /// is set, i.e. this tab group lives inside a <see cref="MGFloatingDockWindow"/>.
+    /// </summary>
+    public event EventHandler<DockPanelNode> PanelDockRequested;
+
+    /// <summary>
     /// Event raised when the user clicks the pin button or selects Auto-Hide/Pin from a tab's context menu.
     /// </summary>
     public event EventHandler<DockPanelNode> PanelPinToggleRequested;
@@ -466,6 +473,12 @@ public class MGDockTabGroup : MGElement
             tabItem.FloatRequested += (sender, panelToFloat) =>
             {
                 PanelFloatRequested?.Invoke(this, panelToFloat);
+            };
+
+            // Subscribe to dock request (floated tab asking to return to the docked layout)
+            tabItem.DockRequested += (sender, panelToDock) =>
+            {
+                PanelDockRequested?.Invoke(this, panelToDock);
             };
 
             // Subscribe to pin/unpin toggle

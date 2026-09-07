@@ -125,7 +125,9 @@ Criteres d'acceptation :
 
 Commit recommande : `fix(docking): reveal tab buttons on hover and fix icon bounds`
 
-### ⚪ 4. Entree "Dock" dans le menu contextuel d'un onglet flottant
+### ✅ 4. Entree "Dock" dans le menu contextuel d'un onglet flottant
+
+**Statut** : livre le 7 septembre 2026. `MGDockTabItem.DockRequested` ; le menu contextuel montre "Dock" a la place de "Float" quand `OwnerFloatingWindow != null` ("Float" reste reserve aux onglets dockes dont le panneau `CanFloat`) ; `MGDockTabGroup.PanelDockRequested` ; `MGFloatingDockWindow` appelle `OwnerHost.RedockPanel(panel, this)`. `MGDockHost` : dictionnaire en memoire `_floatedFromGroupId` (id de panneau -> id du `DockTabGroupNode` source, lu sur `panel.Parent` avant `DockOperation.RemovePanel` dans `DetachToFloating`, seul chemin de flottement ; jamais serialise ; entree effacee a la fermeture du panneau flottant), helper `DetachFromFloatingWindow` partage avec la branche flottante de `ExecuteDrop`, `RedockPanel` public : groupe memorise s'il existe encore (`LayoutModel.FindNodeById`), sinon premier groupe visible, sinon le panneau reste flottant ; fenetre flottante fermee quand vide, arbre visuel reconstruit. Tests : `MGUI.Tests/Docking/FloatingWindowDockMenuTests.cs` (6 tests : menus docke/flottant, retour au groupe memorise et fermeture de la fenetre, repli quand le groupe source a disparu, deux panneaux flottes separement, serialisation du layout inchangee). Mutation : groupe memorise ignore => 2 tests rouges, vert apres reversion. Dock|Input|Modal 489/489, Architecture 508/508.
 
 But :
 offrir un retour au dock sans drag, prevu par `TODO-DockingManager.md` (item 10.4) et jamais implemente.
