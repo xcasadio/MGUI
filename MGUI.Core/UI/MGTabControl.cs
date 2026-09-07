@@ -461,6 +461,10 @@ namespace MGUI.Core.UI
         private ObservableCollection<MGTabItem> _Tabs { get; }
         public IReadOnlyList<MGTabItem> Tabs => _Tabs;
 
+        /// <summary>Removes the given <paramref name="Tab"/> from this <see cref="MGTabControl"/>. Does nothing if the tab does not belong to <see cref="Tabs"/>.<para/>
+        /// The removed tab is detached (its <see cref="MGElement.Parent"/> becomes null). If it was the <see cref="SelectedTab"/>, the tab to its left is selected;
+        /// if no other tab can take over the selection (last tab removed, or the switch cancelled by <see cref="SelectedTabChanging"/>), <see cref="SelectedTab"/> and
+        /// <see cref="MGSingleContentHost.Content"/> become null and <see cref="SelectedTabChanged"/> is raised with a null new value.</summary>
         public void RemoveTab(MGTabItem Tab)
         {
             if (_Tabs.Contains(Tab))
@@ -479,9 +483,35 @@ namespace MGUI.Core.UI
                 if (SelectedTab == Tab)
                 {
                     int NewSelectedTabIndex = Math.Max(0, TabIndex - 1); // Focus to left of the closed tab
-                    _ = TrySelectTabAtIndex(NewSelectedTabIndex);
+                    if (!TrySelectTabAtIndex(NewSelectedTabIndex))
+                    {
+                        //  No other tab took over the selection (the removed tab was the last one, or SelectedTabChanging cancelled the switch).
+                        //  A removed tab can never stay selected, so clear the selection and the displayed content instead.
+                        ClearSelection();
+                    }
                 }
             }
+        }
+
+        /// <summary>Clears <see cref="SelectedTab"/> and the displayed content. Only used once the selected tab has been removed:
+        /// there is nothing left to cancel, so <see cref="SelectedTabChanging"/> is not raised, but <see cref="SelectedTabChanged"/> is raised with a null new value.</summary>
+        private void ClearSelection()
+        {
+            MGTabItem Previous = SelectedTab;
+            if (Previous == null)
+            {
+                return;
+            }
+
+            _SelectedTab = null;
+            HeadersPanelElement?.InvalidateLayoutTree();
+            LayoutChanged(this, true);
+
+            SetContent(null as MGElement);
+            NPC(nameof(SelectedTab));
+            NPC(nameof(SelectedTabIndex));
+            Previous.NPC(nameof(MGTabItem.IsTabSelected));
+            SelectedTabChanged?.Invoke(this, new(Previous, null));
         }
 
         public MGTabItem AddTab(string TabHeader, MGElement TabContent)
@@ -514,9 +544,12 @@ namespace MGUI.Core.UI
         public MGTabItem SelectedTab { get => _SelectedTab; }
         public int SelectedTabIndex => _SelectedTab == null ? -1 : _Tabs.IndexOf(_SelectedTab);
 
-        /// <summary>Invoked just before <see cref="SelectedTab"/> changes. Argument value is the new tab being selected. This event allows cancellation.</summary>
+        /// <summary>Invoked just before <see cref="SelectedTab"/> changes to another tab. Argument value is the new tab being selected. This event allows cancellation.<para/>
+        /// Not raised when the selected tab is removed and no other tab takes over the selection (see <see cref="RemoveTab(MGTabItem)"/>):
+        /// that forced deselection cannot be cancelled and is only reported through <see cref="SelectedTabChanged"/>.</summary>
         public event EventHandler<CancelEventArgs<MGTabItem>> SelectedTabChanging;
-        /// <summary>Invoked when <see cref="SelectedTab"/> changes to a different <see cref="MGTabItem"/></summary>
+        /// <summary>Invoked when <see cref="SelectedTab"/> changes. The new value is null when the selected tab was removed and no other tab took over the selection
+        /// (see <see cref="RemoveTab(MGTabItem)"/>).</summary>
         public event EventHandler<EventArgs<MGTabItem>> SelectedTabChanged;
 
         /// <summary>Attempts to set the given <paramref name="Tab"/> as the <see cref="SelectedTab"/>.<para/>
