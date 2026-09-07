@@ -115,6 +115,16 @@ internal sealed class MGDockDropZoneIndicator : MGElement
 /// </summary>
 public class MGDockDropIndicators : MGElement
 {
+    public const string LeftDropZonePartName = "PART_LeftDropZone";
+    public const string RightDropZonePartName = "PART_RightDropZone";
+    public const string TopDropZonePartName = "PART_TopDropZone";
+    public const string BottomDropZonePartName = "PART_BottomDropZone";
+    public const string CenterDropZonePartName = "PART_CenterDropZone";
+    public const string HostLeftDropZonePartName = "PART_HostLeftDropZone";
+    public const string HostRightDropZonePartName = "PART_HostRightDropZone";
+    public const string HostTopDropZonePartName = "PART_HostTopDropZone";
+    public const string HostBottomDropZonePartName = "PART_HostBottomDropZone";
+
     private const int ZoneSize = 40;      // Size of each zone square
     private const int ZoneSpacing = 4;    // Spacing between zones
     private const int BorderWidth = 2;
@@ -238,14 +248,23 @@ public class MGDockDropIndicators : MGElement
             DefaultControlTemplateName = MGControlTemplateCatalog.DockDropIndicatorsTemplateName;
 
             LeftZoneElement = CreateZoneElement(DockZone.Left, false);
+            RegisterTemplatePart(LeftDropZonePartName, LeftZoneElement);
             RightZoneElement = CreateZoneElement(DockZone.Right, false);
+            RegisterTemplatePart(RightDropZonePartName, RightZoneElement);
             TopZoneElement = CreateZoneElement(DockZone.Top, false);
+            RegisterTemplatePart(TopDropZonePartName, TopZoneElement);
             BottomZoneElement = CreateZoneElement(DockZone.Bottom, false);
+            RegisterTemplatePart(BottomDropZonePartName, BottomZoneElement);
             CenterZoneElement = CreateZoneElement(DockZone.Center, false);
+            RegisterTemplatePart(CenterDropZonePartName, CenterZoneElement);
             HostLeftZoneElement = CreateZoneElement(DockZone.Left, true);
+            RegisterTemplatePart(HostLeftDropZonePartName, HostLeftZoneElement);
             HostRightZoneElement = CreateZoneElement(DockZone.Right, true);
+            RegisterTemplatePart(HostRightDropZonePartName, HostRightZoneElement);
             HostTopZoneElement = CreateZoneElement(DockZone.Top, true);
+            RegisterTemplatePart(HostTopDropZonePartName, HostTopZoneElement);
             HostBottomZoneElement = CreateZoneElement(DockZone.Bottom, true);
+            RegisterTemplatePart(HostBottomDropZonePartName, HostBottomZoneElement);
 
             SyncZoneVisuals();
         }

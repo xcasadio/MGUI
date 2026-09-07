@@ -20,6 +20,9 @@ public class MGDockTabItem : MGElement
     public const string AccentPartName = "PART_Accent";
     public const string CloseIconPartName = "PART_CloseIcon";
     public const string PinIconPartName = "PART_PinIcon";
+    public const string TitleTextPartName = "PART_TitleText";
+    public const string CloseButtonPartName = "PART_CloseButton";
+    public const string PinButtonPartName = "PART_PinButton";
 
     private DockPanelNode _panel;
     /// <summary>
@@ -272,6 +275,7 @@ public class MGDockTabItem : MGElement
                 Padding = new XAML.Thickness(8, 4, 4, 4).ToThickness(),
                 IsHitTestVisible = false,
             };
+            RegisterTemplatePart(TitleTextPartName, _titleText);
             _titleText.SetParent(this);
 
             // Create simple close button element — Stretch fills the full reserved area so
@@ -282,6 +286,7 @@ public class MGDockTabItem : MGElement
                 VerticalAlignment   = VerticalAlignment.Stretch
             };
             _closeButton.BackgroundBrush = new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f);
+            RegisterTemplatePart(CloseButtonPartName, _closeButton);
 
             _closeIconElement = new(window) { ManagedParent = this };
             RegisterTemplatePart(CloseIconPartName, _closeIconElement);
@@ -330,6 +335,7 @@ public class MGDockTabItem : MGElement
             _pinButton.BackgroundBrush = new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f);
             // Pin button is purely visual — mouse events pass through to the tab item.
             _pinButton.IsHitTestVisible = false;
+            RegisterTemplatePart(PinButtonPartName, _pinButton);
             _pinButton.SetParent(this);
 
             _pinIconElement = new(window) { ManagedParent = this };

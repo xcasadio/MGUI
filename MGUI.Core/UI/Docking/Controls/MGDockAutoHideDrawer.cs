@@ -16,8 +16,17 @@ namespace MGUI.Core.UI.Docking.Controls;
 public class MGDockAutoHideDrawer : MGElement
 {
     public const string BorderPartName = "PART_Border";
-    public const string HeaderPartName = "PART_Header";
-    public const string TitleLabelPartName = "PART_TitleLabel";
+    public const string TitleBarPartName = "PART_TitleBar";
+    public const string TitleBarTextPartName = "PART_TitleBarText";
+
+    /// <summary>Obsolete alias for <see cref="TitleBarPartName"/>.</summary>
+    [Obsolete("Use TitleBarPartName")]
+    public const string HeaderPartName = TitleBarPartName;
+
+    /// <summary>Obsolete alias for <see cref="TitleBarTextPartName"/>.</summary>
+    [Obsolete("Use TitleBarTextPartName")]
+    public const string TitleLabelPartName = TitleBarTextPartName;
+
     public const string PinButtonPartName = "PART_PinButton";
     public const string CloseButtonPartName = "PART_CloseButton";
     public const string PinIconPartName = "PART_PinIcon";
@@ -173,7 +182,7 @@ public class MGDockAutoHideDrawer : MGElement
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment   = VerticalAlignment.Top
             };
-            RegisterTemplatePart(HeaderPartName, _header);
+            RegisterTemplatePart(TitleBarPartName, _header);
             _header.BackgroundBrush.NormalValue = new MGSolidFillBrush(new Color(45, 45, 48));
 
             _titleLabel = new MGTextBlock(window, "")
@@ -185,7 +194,7 @@ public class MGDockAutoHideDrawer : MGElement
                 Padding             = new XAML.Thickness(6, 2, 4, 2).ToThickness(),
                 IsHitTestVisible    = false,
             };
-            RegisterTemplatePart(TitleLabelPartName, _titleLabel);
+            RegisterTemplatePart(TitleBarTextPartName, _titleLabel);
             _titleLabel.DefaultTextForeground.NormalValue = Color.White;
 
             _pinBtn = CreateHeaderButton(window, () =>

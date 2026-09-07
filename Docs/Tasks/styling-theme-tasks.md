@@ -103,7 +103,9 @@ Criteres d'acceptation:
 
 Commit recommande: `style-theme: capture resource scope in tooling snapshot`
 
-### ⚪ 3. Converger le vocabulaire des parts docking
+### ✅ 3. Converger le vocabulaire des parts docking
+
+**Statut** : livre le 7 septembre 2026 (decisions de l'auteur, ADR-0002 `Docs/decisions/0002-docking-part-vocabulary.md`). Regle retenue : un role partage par le framework prime sur tout alias par controle ; les noms de l'ancienne cible (`PART_HeaderText`, `PART_Grip` comme poignee de redimensionnement, `PART_TabHeader`/`PART_TabTitle`/`PART_TabCloseButton`, `PART_Overlay`) n'existaient nulle part et sont abandonnes. Appliquee : `MGDockAutoHideDrawer` `PART_Header` -> `PART_TitleBar` et `PART_TitleLabel` -> `PART_TitleBarText` (roles de `MGWindow`), anciens identifiants `HeaderPartName`/`TitleLabelPartName` conserves en alias obsoletes portant les nouvelles valeurs, seule reference catalogue mise a jour ; `MGDockTabItem` enregistre en plus `PART_TitleText`, `PART_CloseButton`, `PART_PinButton` ; `MGDockDropIndicators` enregistre ses neuf zones (`PART_LeftDropZone` ... `PART_CenterDropZone`, `PART_HostLeftDropZone` ... `PART_HostBottomDropZone`), sans `PART_Overlay` ; `MGDockTabGroup` enregistre en plus `PART_HeadersPanel` (role de `MGTabControl`). Splitter, preview overlay, strip et host inchanges. Aucun comportement modifie. Tests : `MGUI.Tests/Docking/DockPartVocabularyTests.cs` (valeurs figees de chaque controle, enregistrements sur controles vivants, alias obsoletes). Mutation check : `PART_TitleBar` remis a `PART_Header` fait echouer le pin et le test d'enregistrement du drawer, vert apres reversion. La section docking de `Docs/styling-theme-architecture.md` decrit le vocabulaire fige.
 
 But:
 figer un vocabulaire de parts unique avant la migration structurelle docking.

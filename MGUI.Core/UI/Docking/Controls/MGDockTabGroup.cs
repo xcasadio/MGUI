@@ -22,6 +22,7 @@ public class MGDockTabGroup : MGElement
     public const string AccentPartName = "PART_Accent";
     public const string DropdownIconPartName = "PART_DropdownIcon";
     public const string WindowStateIconPartName = "PART_WindowStateIcon";
+    public const string HeadersPanelPartName = "PART_HeadersPanel";
 
     private DockTabGroupNode _groupNode;
     /// <summary>
@@ -281,6 +282,7 @@ public class MGDockTabGroup : MGElement
                 VerticalAlignment = VerticalAlignment.Top,
                 Spacing = 0
             };
+            RegisterTemplatePart(HeadersPanelPartName, _tabHeadersPanel);
             _tabHeadersPanel.SetParent(this);
 
             // Create empty content container
