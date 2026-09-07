@@ -26,6 +26,7 @@ using MGUI.Core.UI.Shapes;
 using MGUI.Core.UI.Responsive;
 using MGUI.Core.Tooling;
 using MGUI.Shared.Rendering.Clipping;
+using System.Threading;
 
 namespace MGUI.Core.UI
 {
@@ -609,6 +610,57 @@ namespace MGUI.Core.UI
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public MGWindow SelfOrParentWindow => IsWindow ? this as MGWindow : ParentWindow;
 
+        /// <summary>Process-wide counter incremented every time any <see cref="MGElement"/>'s visual <see cref="Parent"/> actually changes (see <see cref="SetParent(MGElement)"/>).<para/>
+        /// Used to invalidate the <see cref="DisplayingWindow"/> cache of every element without having to walk the tree on re-parent: a re-parented subtree root
+        /// invalidates its whole subtree implicitly, at the cost of one chain walk per element on its next hit-test after any topology change anywhere.<para/>
+        /// See: <c>Docs/decisions/0004-hit-test-occlusion-from-displaying-window.md</c></summary>
+        private static int _TreeTopologyGeneration;
+
+        private MGWindow _DisplayingWindow;
+        private int _DisplayingWindowGeneration = -1;
+
+        /// <summary>The <see cref="MGWindow"/> that actually displays this <see cref="MGElement"/> right now: itself when it is a window,
+        /// else the first <see cref="MGWindow"/> found by walking the visual <see cref="Parent"/> chain upward, falling back to <see cref="ParentWindow"/>
+        /// if the chain ends without a window (e.g. a detached element).<para/>
+        /// Unlike <see cref="SelfOrParentWindow"/> (the window this element was <i>constructed</i> with), this reflects re-parenting:
+        /// an element built by one window's application code but re-parented into another window (for example, panel content re-parented
+        /// into a floating dock window) resolves occlusion, <see cref="MGWindow.HasModalWindow"/>, <see cref="MGWindow.HoveredElement"/> and
+        /// <see cref="MGWindow.PressedElement"/> from the window that displays it, not the window that built it.<para/>
+        /// The result is cached and only recomputed when <see cref="_TreeTopologyGeneration"/> has changed since the last computation, so a
+        /// lookup outside topology changes costs one integer comparison plus a field read.<para/>
+        /// See: <c>Docs/decisions/0004-hit-test-occlusion-from-displaying-window.md</c></summary>
+        internal MGWindow DisplayingWindow
+        {
+            get
+            {
+                int currentGeneration = Volatile.Read(ref _TreeTopologyGeneration);
+                if (_DisplayingWindowGeneration != currentGeneration)
+                {
+                    _DisplayingWindowGeneration = currentGeneration;
+                    if (IsWindow)
+                    {
+                        _DisplayingWindow = this as MGWindow;
+                    }
+                    else
+                    {
+                        MGElement current = Parent;
+                        MGWindow found = null;
+                        while (current != null)
+                        {
+                            if (current.IsWindow)
+                            {
+                                found = current as MGWindow;
+                                break;
+                            }
+                            current = current.Parent;
+                        }
+                        _DisplayingWindow = found ?? ParentWindow;
+                    }
+                }
+                return _DisplayingWindow;
+            }
+        }
+
         private object _DataContextOverride;
         /// <summary>If null, this element's <see cref="DataContext"/> is defaulted to the window's <see cref="MGWindow.WindowDataContext"/>.<para/>
         /// Note: <see cref="MGWindow"/> instances cannot have an override and will always use their <see cref="MGWindow.WindowDataContext"/> instead.<br/>
@@ -647,6 +699,7 @@ namespace MGUI.Core.UI
             {
                 MGElement Previous = Parent;
                 _Parent = Value;
+                Interlocked.Increment(ref _TreeTopologyGeneration);
                 _LocalResources?.SetParent(GetInheritedResources());
                 InvalidateLayoutTree();
                 NPC(nameof(Parent));
@@ -1470,14 +1523,17 @@ namespace MGUI.Core.UI
         bool IMouseViewport.IsInside(Vector2 Position)
         {
             Vector2 UnscaledPosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, Position);
-            //  Z-order-aware hit-test: a position covered by a window drawn over this element's window (its own nested/modal windows,
-            //  sibling nested windows above it, higher desktop windows, the active context menu) is not "inside" this element, so the
-            //  Inside/Outside classification of every mouse event - movement, Entered/Exited, hover, press - follows the visible surface
-            //  rather than raw geometry. The test is position-dependent so Entered/Exited fire at the occluder's edge.
-            //  Drag continuation is unaffected: MouseHandler delivers Dragged/DragEnd to the drag owner regardless of IsInside.
+            //  Z-order-aware hit-test: a position covered by a window drawn over the window that displays this element (its own
+            //  nested/modal windows, sibling nested windows above it, higher desktop windows, the active context menu) is not "inside"
+            //  this element, so the Inside/Outside classification of every mouse event - movement, Entered/Exited, hover, press -
+            //  follows the visible surface rather than raw geometry. The test is position-dependent so Entered/Exited fire at the
+            //  occluder's edge. Drag continuation is unaffected: MouseHandler delivers Dragged/DragEnd to the drag owner regardless of IsInside.
+            //  Occlusion is resolved from DisplayingWindow (the window that actually shows this element), not SelfOrParentWindow (the window
+            //  it was constructed with), so an element re-parented into another window is not occluded by its own construction window
+            //  anymore - see Docs/decisions/0004-hit-test-occlusion-from-displaying-window.md.
             return ContainsUnscaledInputPoint(UnscaledPosition)
                 && GetDesktop().ValidScreenBounds.ContainsInclusive(Position)
-                && !(SelfOrParentWindow?.IsUnscaledPositionOccluded(UnscaledPosition) ?? false);
+                && !(DisplayingWindow?.IsUnscaledPositionOccluded(UnscaledPosition) ?? false);
         }
 
         Vector2 IMouseViewport.GetOffset() => Vector2.Zero;
@@ -2406,7 +2462,7 @@ namespace MGUI.Core.UI
             // (visual tree children are always clipped to the parent's content area)
             bool mouseInBounds = ContainsUnscaledInputPoint(unscaledMousePos);
 
-            if (mouseInBounds && CanReceiveMouseInput && ComputedIsHitTestVisible && !SelfOrParentWindow.HasModalWindow && IsHovered)
+            if (mouseInBounds && CanReceiveMouseInput && ComputedIsHitTestVisible && !DisplayingWindow.HasModalWindow && IsHovered)
             {
                 Result = this;
             }
@@ -2497,13 +2553,16 @@ namespace MGUI.Core.UI
             bool hasKeyboardFocus = desktop?.FocusedKeyboardHandler == this;
             bool shouldDisplayFocusedState = desktop?.ShouldDisplayFocusedState == true;
             PrimaryVisualState newPVS = ResolvePrimaryVisualState(ComputedIsEnabled, ComputedIsSelected, hasKeyboardFocus, shouldDisplayFocusedState);
+            //  Resolved from DisplayingWindow (the window that actually displays this element and therefore assigns its HoveredElement/PressedElement),
+            //  not SelfOrParentWindow (the window it was constructed with) - see Docs/decisions/0004-hit-test-occlusion-from-displaying-window.md.
+            MGWindow displayingWindow = DisplayingWindow;
             SecondaryVisualState newSVS = ResolveSecondaryVisualState(
                 ComputedIsHitTestVisible,
-                SelfOrParentWindow.HasModalWindow,
+                displayingWindow.HasModalWindow,
                 IsLMBPressed,
-                IsSelfOrAncestorOf(SelfOrParentWindow.PressedElement),
+                IsSelfOrAncestorOf(displayingWindow.PressedElement),
                 IsHovered,
-                IsSelfOrAncestorOf(SelfOrParentWindow.HoveredElement),
+                IsSelfOrAncestorOf(displayingWindow.HoveredElement),
                 hasKeyboardFocus,
                 shouldDisplayFocusedState);
             VisualState = new(newPVS, newSVS);

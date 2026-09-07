@@ -68,7 +68,9 @@ Criteres d'acceptation :
 
 Commit recommande : `fix(docking): build floating window content with the floating window`
 
-### ⚪ 2. Calculer l'occlusion du hit-test depuis la fenetre qui affiche l'element
+### ✅ 2. Calculer l'occlusion du hit-test depuis la fenetre qui affiche l'element
+
+**Statut** : livre le 7 septembre 2026 (ADR-0004). `MGElement.DisplayingWindow` (interne) : l'element s'il est une fenetre, sinon la premiere `MGWindow` de la chaine `Parent`, repli `ParentWindow` ; cache par element valide par un compteur de generation statique incremente par `SetParent` (`Interlocked.Increment`, lecture `Volatile.Read`). `IsInside`, `ComputeTopmostHoveredElement` et le calcul de `VisualState` lisent la fenetre d'affichage ; `MGWindow`, `MGDesktop`, `MGUI.Shared` et les controles docking inchanges ; non-objectifs conserves sur `SelfOrParentWindow`. Tests : `MGUI.Tests/Input/DisplayingWindowHitTestTests.cs` (contenu profond amorce puis re-parente dans une fenetre imbriquee : survol, appui, `PressedElement` de la fenetre imbriquee, `VisualState` Hovered puis Pressed ; non-regression `a331639` ; element detache) et `MGUI.Tests/Docking/FloatingWindowRedockTests.cs` (contenu applicatif d'un panneau flottant survole et clique avec retour visuel ; drag de l'onglet flottant vers le host : cible `Center`, redock, fenetre flottante fermee, `DisplayingWindow` du contenu revenu a la fenetre principale). Mutations nommees : invalidation de la seule instance re-parentee => assertion du bouton profond rouge, racine verte ; retour a `SelfOrParentWindow` dans `VisualState` => rouge. Suite complete 1489/1489. Docs : `Docs/input-architecture.md` (exceptions, point 1) et ADR-0004.
 
 But :
 qu'un element affiche dans une fenetre imbriquee ne soit plus occlus par cette fenetre elle-meme, quelle que soit sa fenetre de construction ; le contenu applicatif re-parente dans une fenetre flottante redevient interactif.
