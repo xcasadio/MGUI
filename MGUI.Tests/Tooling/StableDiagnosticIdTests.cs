@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using MGUI.Core.Tooling;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Assets;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Input;
@@ -69,6 +70,69 @@ public class StableDiagnosticIdTests
         Assert.Equal(popupContentId, popupContentSnapshot.DiagnosticId);
         Assert.Equal(UIToolingService.GetStableDiagnosticId(tree.Popup), popupContentSnapshot.WindowDiagnosticId);
         Assert.Equal(tree.PopupContent.UniqueId, popupContentSnapshot.RuntimeUniqueId);
+    }
+
+    [Fact]
+    public void CaptureVisualTree_ReportsEffectiveResourceScopeForWindowAndInheritingChild()
+    {
+        ToolingTree tree = CreateTree();
+        string windowId = UIToolingService.GetStableDiagnosticId(tree.Window);
+
+        UIVisualTreeSnapshot windowSnapshot = UIToolingService.CaptureVisualTree(tree.Window);
+
+        Assert.Equal(UIResourceScope.Window, windowSnapshot.ResourceScope);
+        Assert.Equal(windowId, windowSnapshot.ResourceScopeOwnerDiagnosticId);
+        Assert.True(windowSnapshot.HasLocalResourceScope);
+
+        UIVisualTreeSnapshot previewPaneSnapshot = FindSnapshotByName(windowSnapshot, "Preview Pane");
+        Assert.Equal(UIResourceScope.Window, previewPaneSnapshot.ResourceScope);
+        Assert.Equal(windowId, previewPaneSnapshot.ResourceScopeOwnerDiagnosticId);
+        Assert.False(previewPaneSnapshot.HasLocalResourceScope);
+    }
+
+    [Fact]
+    public void CaptureVisualTree_DistinguishesLocalSubtreeScopeFromInheritedChild()
+    {
+        ToolingTree tree = CreateTree();
+        tree.Scope.EnsureResourceScope(UIResourceScope.Subtree);
+        string scopeId = UIToolingService.GetStableDiagnosticId(tree.Scope);
+
+        UIVisualTreeSnapshot windowSnapshot = UIToolingService.CaptureVisualTree(tree.Window);
+        UIVisualTreeSnapshot scopeSnapshot = FindSnapshot(windowSnapshot, scopeId);
+        UIVisualTreeSnapshot previewPaneSnapshot = FindSnapshotByName(windowSnapshot, "Preview Pane");
+
+        Assert.Equal(UIResourceScope.Subtree, scopeSnapshot.ResourceScope);
+        Assert.Equal(scopeId, scopeSnapshot.ResourceScopeOwnerDiagnosticId);
+        Assert.True(scopeSnapshot.HasLocalResourceScope);
+
+        Assert.Equal(UIResourceScope.Subtree, previewPaneSnapshot.ResourceScope);
+        Assert.Equal(scopeId, previewPaneSnapshot.ResourceScopeOwnerDiagnosticId);
+        Assert.False(previewPaneSnapshot.HasLocalResourceScope);
+    }
+
+    [Fact]
+    public void CaptureVisualTree_ReportsPopupWindowOwnResourceScope()
+    {
+        ToolingTree tree = CreateTree();
+        string popupId = UIToolingService.GetStableDiagnosticId(tree.Popup);
+
+        UIVisualTreeSnapshot popupSnapshot = UIToolingService.CaptureVisualTree(tree.Popup);
+
+        Assert.Equal(UIResourceScope.Window, popupSnapshot.ResourceScope);
+        Assert.Equal(popupId, popupSnapshot.ResourceScopeOwnerDiagnosticId);
+        Assert.True(popupSnapshot.HasLocalResourceScope);
+    }
+
+    [Fact]
+    public void RenderDesktopSnapshot_IncludesResourceScopeInArtifact()
+    {
+        ToolingTree tree = CreateTree();
+
+        string artifact = UIToolingService.RenderDesktopSnapshot(UIToolingService.CaptureDesktopSnapshot(tree.Desktop));
+
+        Assert.Contains($"scope={UIResourceScope.Window}", artifact);
+        Assert.Contains("scopeOwner=", artifact);
+        Assert.Contains("localScope=", artifact);
     }
 
     [Fact]
@@ -183,6 +247,44 @@ public class StableDiagnosticIdTests
         }
 
         throw new InvalidOperationException($"Unable to find snapshot '{diagnosticId}'.");
+    }
+
+    private static UIVisualTreeSnapshot FindSnapshotByName(UIVisualTreeSnapshot root, string name)
+    {
+        if (root.Name == name)
+        {
+            return root;
+        }
+
+        for (int i = 0; i < root.Children.Count; i++)
+        {
+            UIVisualTreeSnapshot? match = FindSnapshotByNameOrDefault(root.Children[i], name);
+            if (match != null)
+            {
+                return match;
+            }
+        }
+
+        throw new InvalidOperationException($"Unable to find snapshot named '{name}'.");
+    }
+
+    private static UIVisualTreeSnapshot? FindSnapshotByNameOrDefault(UIVisualTreeSnapshot root, string name)
+    {
+        if (root.Name == name)
+        {
+            return root;
+        }
+
+        for (int i = 0; i < root.Children.Count; i++)
+        {
+            UIVisualTreeSnapshot? match = FindSnapshotByNameOrDefault(root.Children[i], name);
+            if (match != null)
+            {
+                return match;
+            }
+        }
+
+        return null;
     }
 
     private static UIVisualTreeSnapshot? FindSnapshotOrDefault(UIVisualTreeSnapshot root, string diagnosticId)

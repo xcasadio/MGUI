@@ -269,7 +269,7 @@ La couche XAML `ControlTemplatesDocument` / `ControlTemplateDefinition` / `Templ
 
 ### Outillage
 
-`UIToolingService.CaptureVisualTree(...)` produit des `UIVisualTreeSnapshot` exposant `AppliedControlTemplate`, `TemplateParts` (nom -> type runtime) et `LastControlTemplateError`. Le snapshot ne capture ni le scope de ressources effectif ni l'origine des valeurs.
+`UIToolingService.CaptureVisualTree(...)` produit des `UIVisualTreeSnapshot` exposant `AppliedControlTemplate`, `TemplateParts` (nom -> type runtime), `LastControlTemplateError` et, depuis le 7 septembre 2026, le scope de ressources effectif de chaque element: `ResourceScope` (categorie `UIResourceScope` du scope retourne par `GetResources()`), `ResourceScopeOwnerDiagnosticId` (id diagnostic stable de l'element qui possede ce scope, ou de la desktop pour le scope racine, null si le scope n'est possede par aucun element de la chaine) et `HasLocalResourceScope` (l'element a materialise son propre scope via `EnsureResourceScope`, par opposition a un scope herite). Le rendu texte du snapshot reprend ces trois valeurs. Le snapshot ne capture pas encore l'origine des valeurs (tache 5 du backlog).
 
 ## Statut lookless
 
@@ -309,7 +309,7 @@ Controles encore faiblement decouples: `MGRadioButton`, `MGSlider`, `MGProgressB
 1. Ecrire un `ControlTemplate` XAML avec racine et/ou `DetachedRoots`, declarer les `TemplatePart` nommees.
 2. Charger via `MGResources.LoadControlTemplatesFromXaml(...)`.
 3. Assigner `ControlTemplateName` sur le controle cible (ou le mapper dans un theme).
-4. Verifier avec `UIToolingService.CaptureVisualTree(...)`: template applique, parts exposees, derniere erreur de template.
+4. Verifier avec `UIToolingService.CaptureVisualTree(...)`: template applique, parts exposees, derniere erreur de template, scope de ressources effectif et son proprietaire.
 
 ### Migration d'un controle composite
 

@@ -77,7 +77,9 @@ Limite connue a documenter: la creation tardive d'un scope local sur un ancetre 
 
 Commit recommande: `style-theme: add deregistrable dynamic resource subscriptions`
 
-### ⚪ 2. Capturer le scope de ressources effectif dans le snapshot d'outillage
+### ✅ 2. Capturer le scope de ressources effectif dans le snapshot d'outillage
+
+**Statut** : livre le 7 septembre 2026. `UIVisualTreeSnapshot` expose `ResourceScope` (categorie du scope retourne par `GetResources()`), `ResourceScopeOwnerDiagnosticId` (id diagnostic stable de l'element proprietaire du scope, de la desktop pour le scope racine, null si aucun proprietaire dans la chaine `Parent` puis `ParentWindow`) et `HasLocalResourceScope` ; membres inseres apres `LastControlTemplateError`, surface existante intacte ; le rendu texte du snapshot reprend les trois valeurs. Tests : quatre ajouts dans `MGUI.Tests/Tooling/StableDiagnosticIdTests.cs` (fenetre proprietaire et enfant heritant, scope `Subtree` materialise distingue de ses enfants, popup avec son propre scope, artefact texte) et les trois proprietes ajoutees a `ToolingHooksTests`. Mutation check : proprietaire force a null fait echouer trois tests, vert apres reversion. Constats : `UIResourceScope.Template` n'est construit nulle part dans le code ; le scope desktop n'est jamais le scope effectif d'un element capturable, toute `MGWindow` materialisant son scope `Window` a la construction (branche implementee, non exercee par un arbre vivant).
 
 But:
 completer l'outillage editeur pour deboguer les themes re-appliques a chaud.
