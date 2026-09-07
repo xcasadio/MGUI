@@ -83,7 +83,7 @@ namespace MGUI.Core.UI
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private WeakThemeChangedForwarder ParentThemeChangedForwarder;
+        private WeakParentScopeForwarder ParentScopeForwarder;
 
         public void SetParent(MGResources Parent)
         {
@@ -93,16 +93,18 @@ namespace MGUI.Core.UI
 
                 if (this.Parent != null)
                 {
-                    this.Parent.OnDefaultThemeChanged -= ParentThemeChangedForwarder.OnParentDefaultThemeChanged;
-                    ParentThemeChangedForwarder = null;
+                    this.Parent.OnDefaultThemeChanged -= ParentScopeForwarder.OnParentDefaultThemeChanged;
+                    this.Parent.OnStaticResourceLookupChanged -= ParentScopeForwarder.OnParentStaticResourceLookupChanged;
+                    ParentScopeForwarder = null;
                 }
 
                 this.Parent = Parent;
 
                 if (this.Parent != null)
                 {
-                    ParentThemeChangedForwarder = new(this);
-                    this.Parent.OnDefaultThemeChanged += ParentThemeChangedForwarder.OnParentDefaultThemeChanged;
+                    ParentScopeForwarder = new(this);
+                    this.Parent.OnDefaultThemeChanged += ParentScopeForwarder.OnParentDefaultThemeChanged;
+                    this.Parent.OnStaticResourceLookupChanged += ParentScopeForwarder.OnParentStaticResourceLookupChanged;
                 }
 
                 if (_DefaultTheme == null)
@@ -124,19 +126,23 @@ namespace MGUI.Core.UI
             }
         }
 
-        /// <summary>Forwards the parent scope's <see cref="OnDefaultThemeChanged"/> to a child scope while referencing the child only weakly.<para/>
+        private void Parent_OnStaticResourceLookupChanged(string ResourceName) => OnStaticResourceLookupChanged?.Invoke(this, ResourceName);
+
+        /// <summary>Forwards a parent scope's <see cref="OnDefaultThemeChanged"/> and <see cref="OnStaticResourceLookupChanged"/> to a child scope
+        /// while referencing the child only weakly.<para/>
         /// Parent scopes (top-most: <see cref="MGDesktop.Resources"/>) typically live for the desktop's entire lifetime, while child scopes belong to
         /// elements/windows that may be closed and later re-shown as the SAME instance (closing an <see cref="MGWindow"/> is not destroying it).
         /// A strong subscription would root every closed window's subtree to the desktop forever; unsubscribing when the window closes would
-        /// silently break theme propagation to re-shown windows. The weak link keeps propagation working exactly as long as the child scope is
+        /// silently break propagation to re-shown windows. The weak link keeps propagation working exactly as long as the child scope is
         /// otherwise reachable, and lets a dropped window subtree be garbage-collected.<para/>
-        /// This is a deliberately narrow weak-event (this single subscription point only — see the "pas de weak events generalises" philosophy in
-        /// Docs/Tasks/input-leaks-and-textinput-tasks.md). Pinned by MGUI.Tests/Input/InputLifetimeRegressionTests.cs.</summary>
-        private sealed class WeakThemeChangedForwarder
+        /// This is a deliberately narrow weak-event (these two subscription points only — see the "pas de weak events generalises" philosophy in
+        /// Docs/input-architecture.md, section "Un seul weak event sanctionne", and Docs/decisions/0001-dynamic-resource-subscription-lifecycle.md).
+        /// Pinned by MGUI.Tests/Input/InputLifetimeRegressionTests.cs and MGUI.Tests/Input/ResourceReferenceLifetimeRegressionTests.cs.</summary>
+        private sealed class WeakParentScopeForwarder
         {
             private readonly WeakReference<MGResources> Child;
 
-            public WeakThemeChangedForwarder(MGResources Child)
+            public WeakParentScopeForwarder(MGResources Child)
             {
                 this.Child = new(Child);
             }
@@ -151,6 +157,19 @@ namespace MGUI.Core.UI
                 {
                     // The child scope was collected: prune this dead forwarder from the parent's invocation list.
                     Parent.OnDefaultThemeChanged -= OnParentDefaultThemeChanged;
+                }
+            }
+
+            public void OnParentStaticResourceLookupChanged(object sender, string ResourceName)
+            {
+                if (Child.TryGetTarget(out MGResources Target))
+                {
+                    Target.Parent_OnStaticResourceLookupChanged(ResourceName);
+                }
+                else if (sender is MGResources Parent)
+                {
+                    // The child scope was collected: prune this dead forwarder from the parent's invocation list.
+                    Parent.OnStaticResourceLookupChanged -= OnParentStaticResourceLookupChanged;
                 }
             }
         }
@@ -611,6 +630,7 @@ namespace MGUI.Core.UI
         {
             _StaticResources.Add(Name, Value);
             OnStaticResourceAdded?.Invoke(this, (Name, Value));
+            OnStaticResourceLookupChanged?.Invoke(this, Name);
         }
 
         public void SetStaticResource(string Name, object Value)
@@ -626,6 +646,8 @@ namespace MGUI.Core.UI
                 OnStaticResourceAdded?.Invoke(this, (Name, Value));
                 OnStaticResourceChanged?.Invoke(this, (Name, null, Value));
             }
+
+            OnStaticResourceLookupChanged?.Invoke(this, Name);
         }
 
         public bool RemoveStaticResource(string Name)
@@ -634,6 +656,7 @@ namespace MGUI.Core.UI
             {
                 _StaticResources.Remove(Name);
                 OnStaticResourceRemoved?.Invoke(this, (Name, Value));
+                OnStaticResourceLookupChanged?.Invoke(this, Name);
                 return true;
             }
             else
@@ -662,6 +685,18 @@ namespace MGUI.Core.UI
         public event EventHandler<(string Name, object Value)> OnStaticResourceAdded;
         public event EventHandler<(string Name, object PreviousValue, object Value)> OnStaticResourceChanged;
         public event EventHandler<(string Name, object Value)> OnStaticResourceRemoved;
+
+        /// <summary>Raised once per mutation (add/set/remove) on THIS scope's <see cref="StaticResources"/>, meaning the result of
+        /// <see cref="TryGetStaticResource(string, out object)"/> for the given resource name may have changed on this scope.<para/>
+        /// Unlike <see cref="OnStaticResourceAdded"/>/<see cref="OnStaticResourceChanged"/>/<see cref="OnStaticResourceRemoved"/> (which are self-only),
+        /// this event is forwarded down from <see cref="Parent"/> through the same single weak link used for <see cref="OnDefaultThemeChanged"/>
+        /// (see <see cref="WeakParentScopeForwarder"/>) so a subscriber only needs to observe its own nearest scope to learn about changes
+        /// anywhere up the ancestor chain, without rooting any ancestor scope with a strong handler.<para/>
+        /// Used by <see cref="Styling.UIResourceReferenceApplicator"/> to refresh dynamic resource references.</summary>
+        internal event EventHandler<string> OnStaticResourceLookupChanged;
+
+        /// <summary>Number of handlers currently subscribed to <see cref="OnStaticResourceLookupChanged"/> on this scope. Test-only introspection hook.</summary>
+        internal int StaticResourceLookupSubscriberCount => OnStaticResourceLookupChanged?.GetInvocationList().Length ?? 0;
         #endregion StaticResources
 
         #region Control Templates

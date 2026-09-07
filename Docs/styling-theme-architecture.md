@@ -349,7 +349,7 @@ Les templates `Dock.*.Default` du catalogue sont des applicateurs de defaults sa
 
 ## Limites connues (verifiees)
 
-- Abonnements dynamic resource sans desinscription: `UIResourceReferenceApplicator` abonne des lambdas a `OnStaticResourceAdded/Changed/Removed` sur TOUS les scopes ancetres (MGUI.Core/UI/Styling/UIResourceReferenceApplicator.cs, lignes 86-88) sans mecanisme de teardown lie au cycle de vie de l'element. Risque de retention et de fan-out croissant sur longue session.
+- Abonnements dynamic resource lies a l'arbre (livre le 7 septembre 2026, ADR-0001): `UIResourceReferenceApplicator` tient un conteneur `UIDynamicResourceSubscriptions` par element hote (Metadata `DynamicResourceSubscriptions`), avec un seul handler sur le scope le plus proche, detache et rattache sur `OnParentChanged`, re-resolution contre le scope courant. Les changements des scopes ancetres arrivent par `MGResources.OnStaticResourceLookupChanged`, forwarde parent -> enfant par le meme lien faible unique que le theme. Limite restante: un scope local cree tardivement sur un ancetre (`EnsureResourceScope` apres construction) n'est suivi qu'au prochain changement de parent.
 - Styles appliques uniquement au parse XAML: `Element.ProcessStyles(...)` tourne pendant le parsing puis s'arrete. Aucune API de restyle d'un sous-arbre deja charge n'existe.
 - Pas de moteur unifie de resolution: seule la voie template stampe des `UIResolvedValue<T>`; les autres sources restent des setters ou callbacks ordinaires. Pas d'API de diagnostic de source de valeur.
 - Invalidation de theme opt-in: defaut `Draw` seul; seule `MGTextBlock` surcharge `GetThemeInvalidation(...)`. Chaque nouvelle propriete themee layout-affecting doit y penser manuellement.

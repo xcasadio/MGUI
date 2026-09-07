@@ -48,6 +48,15 @@ namespace MGUI.Core.UI.Styling
             }
         }
 
+        /// <summary>Registers a dynamic resource reference so that it keeps resolving as its underlying resource(s) change.<para/>
+        /// When <paramref name="HostElement"/> is non-null (the production XAML path), the reference is tracked by a single
+        /// <see cref="UIDynamicResourceSubscriptions"/> container per host, stored under <see cref="DynamicResourceSubscriptionsMetadataKey"/>
+        /// in <see cref="MGElement.Metadata"/>. That container subscribes to exactly the host's nearest scope
+        /// (<see cref="MGResources.OnStaticResourceLookupChanged"/>) and follows the host's <see cref="MGElement.OnParentChanged"/> to
+        /// re-attach and re-resolve as the host moves through the tree, so the subscription's lifetime is tied to tree membership rather
+        /// than growing forever on every ancestor scope.<para/>
+        /// When <paramref name="HostElement"/> is null (unit tests constructing a target directly), a single fire-and-forget handler is
+        /// subscribed on <paramref name="Resources"/> itself; ancestor-scope changes still reach it via that event's own weak forwarding.</summary>
         private static void RegisterDynamicSubscription(MGElement HostElement, object TargetObject, UIResourceReferenceConfig Config, MGResources Resources)
         {
             if (!Config.IsDynamic || Resources == null)
@@ -55,46 +64,34 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            string SubscriptionKey = string.Join("|", RuntimeHelpers.GetHashCode(TargetObject), Config.TargetPath, Config.ResourceName);
-            HashSet<string> SubscriptionKeys = null;
             if (HostElement != null)
             {
-                if (!HostElement.Metadata.TryGetValue(DynamicResourceSubscriptionsMetadataKey, out object Existing))
+                UIDynamicResourceSubscriptions Subscriptions = GetOrCreateSubscriptions(HostElement);
+                Subscriptions.TryRegister(TargetObject, Config, Resources);
+            }
+            else
+            {
+                void Refresh(object Sender, string ResourceName)
                 {
-                    Existing = new HashSet<string>(StringComparer.Ordinal);
-                    HostElement.Metadata.Add(DynamicResourceSubscriptionsMetadataKey, Existing);
+                    if (string.Equals(ResourceName, Config.ResourceName, StringComparison.Ordinal))
+                    {
+                        _ = Apply(null, TargetObject, Config, Resources);
+                    }
                 }
 
-                SubscriptionKeys = Existing as HashSet<string>;
-            }
-
-            if (SubscriptionKeys != null && !SubscriptionKeys.Add(SubscriptionKey))
-            {
-                return;
-            }
-
-            void Refresh(MGResources Sender, string ResourceName)
-            {
-                if (string.Equals(ResourceName, Config.ResourceName, StringComparison.Ordinal))
-                {
-                    _ = Apply(HostElement, TargetObject, Config, Resources);
-                }
-            }
-
-            foreach (MGResources Scope in EnumerateSelfAndAncestors(Resources))
-            {
-                Scope.OnStaticResourceAdded += (_, e) => Refresh(Scope, e.Name);
-                Scope.OnStaticResourceChanged += (_, e) => Refresh(Scope, e.Name);
-                Scope.OnStaticResourceRemoved += (_, e) => Refresh(Scope, e.Name);
+                Resources.OnStaticResourceLookupChanged += Refresh;
             }
         }
 
-        private static IEnumerable<MGResources> EnumerateSelfAndAncestors(MGResources Resources)
+        private static UIDynamicResourceSubscriptions GetOrCreateSubscriptions(MGElement HostElement)
         {
-            for (MGResources Current = Resources; Current != null; Current = Current.Parent)
+            if (!HostElement.Metadata.TryGetValue(DynamicResourceSubscriptionsMetadataKey, out object Existing))
             {
-                yield return Current;
+                Existing = new UIDynamicResourceSubscriptions(HostElement);
+                HostElement.Metadata.Add(DynamicResourceSubscriptionsMetadataKey, Existing);
             }
+
+            return (UIDynamicResourceSubscriptions)Existing;
         }
 
         private static bool TryResolveTarget(object RootObject, string TargetPath, out object PropertyOwner, out PropertyInfo Property)
