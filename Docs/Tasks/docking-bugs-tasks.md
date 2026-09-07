@@ -103,7 +103,9 @@ Risque : eleve (hit-test framework-wide) ; revue de plan et verification indepen
 
 Commit recommande : `fix(input): resolve hit-test occlusion from the displaying window`
 
-### ⚪ 3. Onglets docking : positions d'icones, survol au dessin, boutons reveles au survol ou si actif
+### ✅ 3. Onglets docking : positions d'icones, survol au dessin, boutons reveles au survol ou si actif
+
+**Statut** : livre le 7 septembre 2026. `MGDockTabItem` : bounds des boutons et icones calcules depuis ses propres `LayoutBounds` par des helpers partages avec `UpdateContentLayout` (`GetCloseButtonBounds`/`GetPinButtonBounds`, `CenterIcon`) ; hook `UpdateSelf` (celui du polling de `MGDockHost`) rafraichissant les visuels seulement quand `IsHovered` change, sans invalidation de layout ; revelation `IsCloseAccessoryRevealed`/`IsPinAccessoryRevealed` = `CanClose`/`CanAutoHide` et (`IsActive` ou `IsHovered`), appliquee a la visibilite des boutons et icones et aux gardes de clic (fermeture, bascule epingle). Deviation justifiee : masquage par `Visibility.Hidden` et non `Collapsed` (le setter `Collapsed` appelle `LayoutChanged`, donc invaliderait le layout au survol) ; l'accent passe aussi en `Hidden` pour la meme raison ; l'espace reste reserve. `MGDockTabGroup` : bounds du bouton maximiser et du bouton deroulant calcules depuis ses propres bounds (`GetMaximizeButtonBounds`/`GetDropdownButtonBounds`). Tests : `MGUI.Tests/Docking/DockTabItemVisualsTests.cs` (10 tests : positions au premier passage pour les deux controles, masque/visible/revele au survol dans un groupe jamais clique, pas de reflow, gardes de clic, fond de survol sans invalidation). Mutations : retour aux bounds freres => 2 rouges ; revelation forcee => 3 rouges ; vert apres reversion. Dock|Input|Modal 483/483, Architecture 508/508.
 
 But :
 corriger le decalage d'un passage des icones, faire suivre le survol au dessin, et adopter le comportement type IDE decide par l'auteur.

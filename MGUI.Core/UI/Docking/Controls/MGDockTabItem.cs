@@ -295,16 +295,17 @@ public class MGDockTabItem : MGElement
                 (availableBounds, componentSize) => GetCloseIconBounds());
             AddComponent(_closeIconComponent);
                 
-            // Handle close button click
+            // Handle close button click — gated on reveal so a hidden (not hovered/active) close
+            // button never closes the panel, even if a release event somehow still reaches it.
             _closeButton.MouseHandler.LMBReleasedInside += (sender, e) =>
             {
-                if (!e.IsHandled)
+                if (!e.IsHandled && IsCloseAccessoryRevealed)
                 {
                     CloseRequested?.Invoke(this, Panel);
                     e.SetHandledBy(_closeButton, false);
                 }
             };
-                
+
             _closeButton.SetParent(this);
 
             // Subscribe to mouse click
@@ -314,7 +315,8 @@ public class MGDockTabItem : MGElement
                 if (!e.IsHandled)
                 {
                     // Check if the release was within the pin button bounds (transparent to hit-test).
-                    if (Panel?.CanAutoHide == true && _pinButton != null
+                    // Gated on reveal: a hidden pin (not hovered/active) must behave like a plain tab click.
+                    if (IsPinAccessoryRevealed && _pinButton != null
                         && _pinButton.LayoutBounds.Width > 0
                         && _pinButton.LayoutBounds.Contains(e.Position))
                     {
@@ -357,21 +359,73 @@ public class MGDockTabItem : MGElement
         }
     }
 
+    /// <summary>
+    /// Whether the close accessory (button + icon) should currently be shown: the panel allows
+    /// closing, and this tab is active or hovered. IDE-style reveal-on-hover/active — the reserved
+    /// layout space is unaffected (see <see cref="GetCloseWidth"/>), only visibility/interactivity change.
+    /// </summary>
+    private bool IsCloseAccessoryRevealed => Panel?.CanClose == true && (IsActive || IsHovered);
+
+    /// <summary>
+    /// Whether the pin accessory (button + icon) should currently be shown: the panel allows
+    /// auto-hide, and this tab is active or hovered. See <see cref="IsCloseAccessoryRevealed"/>.
+    /// </summary>
+    private bool IsPinAccessoryRevealed => Panel?.CanAutoHide == true && (IsActive || IsHovered);
+
     private Rectangle GetAccentBounds()
     {
         int accentHeight = IsActive ? 3 : 2;
         return new Rectangle(LayoutBounds.X, LayoutBounds.Bottom - accentHeight, LayoutBounds.Width, accentHeight);
     }
 
-    private Rectangle GetCloseIconBounds()
+    /// <summary>Reserved width for the close button, or 0 when it is not shown for this panel.</summary>
+    private int GetCloseWidth() => (Panel?.CanClose == true && _closeButton != null) ? CloseButtonSize : 0;
+
+    /// <summary>Reserved width for the pin button, or 0 when it is not shown for this panel.</summary>
+    private int GetPinWidth() => (Panel?.CanAutoHide == true && _pinButton != null) ? PinButtonSize : 0;
+
+    /// <summary>
+    /// Computes the close button's rectangle from this tab item's OWN <see cref="MGElement.LayoutBounds"/>,
+    /// using the same flush-right arithmetic as <see cref="UpdateContentLayout"/>. Must not read
+    /// <c>_closeButton.LayoutBounds</c>: components are arranged before <see cref="UpdateContentLayout"/>
+    /// positions the buttons, so that would read the previous pass's bounds.
+    /// </summary>
+    private Rectangle GetCloseButtonBounds()
     {
-        if (_closeButton == null)
+        int closeWidth = GetCloseWidth();
+        if (closeWidth <= 0)
         {
             return Rectangle.Empty;
         }
 
-        Rectangle bounds = _closeButton.LayoutBounds;
-        const int iconSize = 12;
+        return new Rectangle(LayoutBounds.Right - closeWidth, LayoutBounds.Y, CloseButtonSize, LayoutBounds.Height);
+    }
+
+    /// <summary>
+    /// Computes the pin button's rectangle from this tab item's OWN <see cref="MGElement.LayoutBounds"/>,
+    /// using the same flush-right arithmetic as <see cref="UpdateContentLayout"/>. See remarks on
+    /// <see cref="GetCloseButtonBounds"/> for why sibling <c>LayoutBounds</c> must not be used.
+    /// </summary>
+    private Rectangle GetPinButtonBounds()
+    {
+        int pinWidth = GetPinWidth();
+        if (pinWidth <= 0)
+        {
+            return Rectangle.Empty;
+        }
+
+        int buttonsWidth = pinWidth + GetCloseWidth();
+        return new Rectangle(LayoutBounds.Right - buttonsWidth, LayoutBounds.Y, PinButtonSize, LayoutBounds.Height);
+    }
+
+    /// <summary>Centres a square icon of <paramref name="iconSize"/> pixels within <paramref name="bounds"/>.</summary>
+    private static Rectangle CenterIcon(Rectangle bounds, int iconSize)
+    {
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            return Rectangle.Empty;
+        }
+
         return new Rectangle(
             bounds.X + (bounds.Width - iconSize) / 2,
             bounds.Y + (bounds.Height - iconSize) / 2,
@@ -379,21 +433,9 @@ public class MGDockTabItem : MGElement
             iconSize);
     }
 
-    private Rectangle GetPinIconBounds()
-    {
-        if (_pinButton == null)
-        {
-            return Rectangle.Empty;
-        }
+    private Rectangle GetCloseIconBounds() => CenterIcon(GetCloseButtonBounds(), 12);
 
-        Rectangle bounds = _pinButton.LayoutBounds;
-        const int iconSize = 12;
-        return new Rectangle(
-            bounds.X + (bounds.Width - iconSize) / 2,
-            bounds.Y + (bounds.Height - iconSize) / 2,
-            iconSize,
-            iconSize);
-    }
+    private Rectangle GetPinIconBounds() => CenterIcon(GetPinButtonBounds(), 12);
 
     private static void SyncAccessoryButtonBackground(MGBorder button, IFillBrush background)
     {
@@ -493,27 +535,68 @@ public class MGDockTabItem : MGElement
         {
             Color accentColor = IsActive ? ActiveAccentColor : HoverAccentColor;
             bool showAccent = (IsActive || IsHovered) && accentColor.A > 0;
-            _accentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
+            // Hidden, not Collapsed: this is IsHovered-dependent and is now refreshed once per tick
+            // (see UpdateSelf) — toggling to/from Collapsed calls LayoutChanged on every hover change,
+            // which would invalidate layout merely from hovering. See remarks below on the close/pin
+            // accessories for the same reasoning.
+            _accentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Hidden;
             _accentElement.Width = LayoutBounds.Width;
             _accentElement.Height = IsActive ? 3 : 2;
             _accentElement.Fill = accentColor.AsFillBrush();
         }
 
+        // Reveal on hover/active: the close/pin accessories (button + icon) are shown only while
+        // the tab is active or hovered (and only when the panel allows the action). Hidden state
+        // uses Visibility.Hidden rather than Collapsed: Hidden keeps the reserved layout space and
+        // does not invalidate layout, whereas toggling to/from Collapsed would (see MGElement.Visibility).
+        bool closeRevealed = IsCloseAccessoryRevealed;
+        if (_closeButton != null)
+        {
+            _closeButton.Visibility = closeRevealed ? Visibility.Visible : Visibility.Hidden;
+        }
+
         if (_closeIconElement != null)
         {
-            _closeIconElement.Visibility = Panel?.CanClose == true ? Visibility.Visible : Visibility.Collapsed;
+            _closeIconElement.Visibility = closeRevealed ? Visibility.Visible : Visibility.Hidden;
             _closeIconElement.Color = IsActive ? ActiveIconColor : InactiveIconColor;
+        }
+
+        bool pinRevealed = IsPinAccessoryRevealed;
+        if (_pinButton != null)
+        {
+            _pinButton.Visibility = pinRevealed ? Visibility.Visible : Visibility.Hidden;
         }
 
         if (_pinIconElement != null)
         {
-            _pinIconElement.Visibility = Panel?.CanAutoHide == true ? Visibility.Visible : Visibility.Collapsed;
+            _pinIconElement.Visibility = pinRevealed ? Visibility.Visible : Visibility.Hidden;
             _pinIconElement.Color = InactiveIconColor;
             _pinIconElement.IsPinned = Panel?.IsPinned == true;
         }
     }
 
     public void RefreshThemeVisuals() => UpdateVisuals();
+
+    private bool _lastIsHovered;
+
+    /// <summary>
+    /// Per-tick refresh hook (see <see cref="MGElement.UpdateSelf"/>, the same hook
+    /// <see cref="MGDockHost"/> uses for its own per-tick polling). Layout only runs on
+    /// invalidation, so <see cref="MGElement.IsHovered"/>-dependent visuals (surface background, accent,
+    /// and the close/pin reveal) would otherwise go stale between clicks. Refreshes only when
+    /// <see cref="MGElement.IsHovered"/> actually changed, and never invalidates layout.
+    /// </summary>
+    public override void UpdateSelf(ElementUpdateArgs UA)
+    {
+        base.UpdateSelf(UA);
+
+        bool hovered = IsHovered;
+        if (hovered != _lastIsHovered)
+        {
+            _lastIsHovered = hovered;
+            UpdateVisuals();
+        }
+    }
 
     /// <summary>
     /// Handles the start of a drag operation on this tab item.
@@ -621,8 +704,8 @@ public class MGDockTabItem : MGElement
         }
 
         // Layout title text — occupies everything left of pin + close buttons
-        int closeWidth = (Panel?.CanClose == true  && _closeButton != null) ? CloseButtonSize : 0;
-        int pinWidth   = (Panel?.CanAutoHide == true && _pinButton  != null) ? PinButtonSize   : 0;
+        int closeWidth = GetCloseWidth();
+        int pinWidth   = GetPinWidth();
         int buttonsWidth = pinWidth + closeWidth;
 
         Rectangle titleBounds = new Rectangle(
@@ -634,23 +717,15 @@ public class MGDockTabItem : MGElement
         _titleText.UpdateLayout(titleBounds);
 
         // Pin button — left of close button
-        if (Panel?.CanAutoHide == true && _pinButton != null)
+        if (pinWidth > 0)
         {
-            _pinButton.UpdateLayout(new Rectangle(
-                Bounds.Right - buttonsWidth,
-                Bounds.Y,
-                PinButtonSize,
-                Bounds.Height));
+            _pinButton.UpdateLayout(GetPinButtonBounds());
         }
 
         // Close button — flush right
-        if (Panel?.CanClose == true && _closeButton != null)
+        if (closeWidth > 0)
         {
-            _closeButton.UpdateLayout(new Rectangle(
-                Bounds.Right - closeWidth,
-                Bounds.Y,
-                CloseButtonSize,
-                Bounds.Height));
+            _closeButton.UpdateLayout(GetCloseButtonBounds());
         }
 
         UpdateVisuals();

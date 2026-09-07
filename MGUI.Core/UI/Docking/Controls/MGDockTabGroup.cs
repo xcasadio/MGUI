@@ -225,6 +225,45 @@ public class MGDockTabGroup : MGElement
         SyncHeaderVisuals();
     }
 
+    /// <summary>
+    /// Computes the maximize/restore button's rectangle from this group's OWN
+    /// <see cref="MGElement.LayoutBounds"/>, using the same right-flush arithmetic as
+    /// <see cref="UpdateContentLayout"/>. Must not read <c>_maximizeBtn.LayoutBounds</c>: components
+    /// are arranged before <see cref="UpdateContentLayout"/> positions the button, so that would
+    /// read the previous pass's bounds.
+    /// </summary>
+    private Rectangle GetMaximizeButtonBounds()
+        => new Rectangle(LayoutBounds.Right - MaximizeBtnWidth, LayoutBounds.Y, MaximizeBtnWidth, TabHeaderHeight);
+
+    /// <summary>
+    /// Computes the overflow dropdown button's rectangle from this group's OWN
+    /// <see cref="MGElement.LayoutBounds"/>. The dropdown always sits immediately left of the
+    /// maximize button — this holds regardless of the tab strip's overflow state (the tab strip's
+    /// width is squeezed to make room, so the dropdown's own position never depends on it); see
+    /// remarks on <see cref="GetMaximizeButtonBounds"/> for why sibling <c>LayoutBounds</c> must
+    /// not be used. Actual visibility is driven separately by <see cref="SyncHeaderVisuals"/>.
+    /// </summary>
+    private Rectangle GetDropdownButtonBounds()
+    {
+        Rectangle maximizeBounds = GetMaximizeButtonBounds();
+        return new Rectangle(maximizeBounds.X - DropdownBtnWidth, LayoutBounds.Y, DropdownBtnWidth, TabHeaderHeight);
+    }
+
+    /// <summary>Centres a square icon of <paramref name="iconSize"/> pixels within <paramref name="bounds"/>.</summary>
+    private static Rectangle CenterIcon(Rectangle bounds, int iconSize)
+    {
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            return Rectangle.Empty;
+        }
+
+        return new Rectangle(
+            bounds.X + (bounds.Width - iconSize) / 2,
+            bounds.Y + (bounds.Height - iconSize) / 2,
+            iconSize,
+            iconSize);
+    }
+
     private Rectangle GetWindowStateIconBounds()
     {
         if (_maximizeBtn == null)
@@ -232,13 +271,7 @@ public class MGDockTabGroup : MGElement
             return Rectangle.Empty;
         }
 
-        Rectangle bounds = _maximizeBtn.LayoutBounds;
-        const int iconSize = 14;
-        return new Rectangle(
-            bounds.X + (bounds.Width - iconSize) / 2,
-            bounds.Y + (bounds.Height - iconSize) / 2,
-            iconSize,
-            iconSize);
+        return CenterIcon(GetMaximizeButtonBounds(), 14);
     }
 
     private void SyncHeaderVisuals()
@@ -321,7 +354,7 @@ public class MGDockTabGroup : MGElement
             RegisterTemplatePart(DropdownIconPartName, _dropdownIconElement);
             _dropdownIconComponent = new(_dropdownIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
                 false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => _dropdownBtn?.LayoutBounds ?? Rectangle.Empty);
+                (availableBounds, componentSize) => _dropdownBtn == null ? Rectangle.Empty : GetDropdownButtonBounds());
             AddComponent(_dropdownIconComponent);
 
             // Maximize / restore toggle — icon is drawn directly in DrawContents
@@ -779,7 +812,7 @@ public class MGDockTabGroup : MGElement
             _dropdownBtn.Visibility = newOverflowing ? Visibility.Visible : Visibility.Collapsed;
             if (newOverflowing)
             {
-                _dropdownBtn.UpdateLayout(new Rectangle(x, Bounds.Y, DropdownBtnWidth, TabHeaderHeight));
+                _dropdownBtn.UpdateLayout(GetDropdownButtonBounds());
                 x += DropdownBtnWidth;
             }
         }
@@ -787,9 +820,7 @@ public class MGDockTabGroup : MGElement
         // Maximize button — always visible, rightmost
         if (_maximizeBtn != null)
         {
-            _maximizeBtn.UpdateLayout(new Rectangle(
-                Bounds.Right - MaximizeBtnWidth, Bounds.Y,
-                MaximizeBtnWidth, TabHeaderHeight));
+            _maximizeBtn.UpdateLayout(GetMaximizeButtonBounds());
         }
 
         SyncHeaderVisuals();
