@@ -18,3 +18,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0002 | Align the docking part vocabulary on the framework's shared roles | Accepted | 2026-09-07 |
 | ADR-0003 | Clear the MGTabControl selection when the removed selected tab has no successor | Accepted | 2026-09-07 |
 | ADR-0004 | Resolve hit-test occlusion from the window that displays an element | Accepted | 2026-09-07 |
+| ADR-0005 | Per-element resolved value store for seven pilot properties | Accepted | 2026-09-07 |

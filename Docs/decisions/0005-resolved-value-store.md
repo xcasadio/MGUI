@@ -1,0 +1,45 @@
+# ADR-0005: Per-element resolved value store for seven pilot properties
+
+- **Status**: Accepted (2026-09-07, plan `Docs/Tasks/resolved-value-engine-tasks.md` approved by the author after four independent plan reviews)
+- **Date**: 2026-09-07
+- **Source**: this chantier: grouped questions of 2026-09-07 before executing task 4 of `Docs/Tasks/styling-theme-tasks.md`; program plan `Docs/Tasks/resolved-value-engine-tasks.md`
+
+## Context
+
+Facts verified at HEAD `c7ea9f5`:
+
+- The framework already defines the value model (`MGUI.Core/UI/Styling/UIResolvedValue.cs`, `UIValueResolutionSource.cs`, `UIValuePrecedence.cs`, `UIInvalidationKind.cs`): eleven source kinds ordered DefaultValue 0 < Inherited 10 < Theme 20 < DynamicResource 30 < ImplicitStyle 40 < ExplicitStyle 50 < Template 60 < VisualState 70 < LocalBinding 80 < LocalValue 90 < Animation 100. In production only the `Template` and `Default` sources are ever constructed: the template path stamps `UIResolvedValue<T>` into `MGElement._AppliedTemplateDefaults`, a single-slot, string-keyed cache used solely by the theme-refresh guard of `MGControlTemplateContext.ApplyTemplateValue` (`MGControlTemplate.cs:97-120`).
+- Every other write path is untagged and writes through plain setters: constructors (`MGElement.cs:2116-2127`), the ~125 pilot lambdas of `MGControlTemplateCatalog.cs`, twelve `OnThemeChanged` overrides and their helpers (unguarded, run BEFORE the template re-application in `MGElement.NotifyThemeChanged`), the XAML transfer `ApplyBaseSettings` (where a style setter and an explicit attribute are indistinguishable), `DataBinding.TrySetValue` and `UIResourceReferenceApplicator.Apply` (reflection `SetValue`, applied after the XAML literals so a dynamic resource wins over an attribute, the inverse of the declared precedence).
+- Margin, Padding, MinHeight (`MGElement`) and BorderBrush, BorderThickness (single real implementation on `MGBorder`, every other declaration a facade, reachable through `MGElement.GetBorder()`) have one physical setter each. `BackgroundBrush` (`VisualStateFillBrush`) and the text foreground (`MGElement.DefaultTextForeground`, `MGTextBlock.Foreground`, both `VisualStateSetting<T>`) are mutable containers written three ways: object replacement, sub-field (`NormalValue`, `SelectedValue`, `DisabledValue`, `FocusedValue`, `FocusedColor`), `SetAll`; instances can be shared between elements and carry no owner reference. `MGTextBlock.ActualForeground` already resolves own value, inherited default and theme by hand.
+- Tests build elements with `FormatterServices.GetUninitializedObject` (no field initialisers), reflect into `_AppliedTemplateDefaults` by name, and pin source text of the catalogue and of `MGControlTemplate.cs`.
+
+## Decision
+
+Taken by the author on 2026-09-07:
+
+- Seven pilot properties: Margin, Padding, MinHeight, BorderBrush, BorderThickness, Background, Foreground, with sub-field (slot) tracking for the two containers.
+- Explicit tagged setter overloads on the owning types, and explicit migration of every framework write site (constructors, template catalogue, theme callbacks, XAML transfer, bindings, dynamic resources); no ambient "current source" state.
+- Style provenance (ImplicitStyle / ExplicitStyle) carried from the XAML parse model into the store now.
+- Precedence enforced at write time: the effective CLR value is always the highest set source; accepted behaviour changes: a theme change no longer overwrites a locally set pilot value, and a dynamic resource update no longer overwrites a later local write.
+
+Derived design (main session):
+
+- Identity of a resolved value: (element owning the CLR property, `UIPilotProperty`, `UIValueSlot`). `Whole` for scalars and container replacement; `Normal`, `Selected`, `Disabled`, `Focused`, `FocusedColor` for container sub-fields. A composite's border resolves on its `MGBorder`.
+- `UIResolvedPropertyStore`: allocated lazily per element, one entry per written (property, slot), each entry a compact precedence-sorted list of `UIResolvedValue<T>` (one per set source); read = highest set source; `Unset(source)` removes a contribution and falls back; equal precedence = last writer. Non-pilot properties: no field, no code, no cost.
+- Tagged internal API per pilot (`SetPadding(value, source)`, `MGBorder.SetBorderBrush(...)`, `SetBackgroundSlot(slot, value, source)`, ...); the public setter delegates with `LocalValue`, constructors use `DefaultValue`; each call records, resolves the winner, and writes the CLR value and raises the existing notifications only when the effective value changes. Per-property invalidation kind: Measure | Arrange for Margin, Padding, MinHeight, BorderThickness; Draw for BorderBrush, Background, Foreground; the actual invalidation stays the existing setter's.
+- Containers: tagged slot writes update both the container slot and the store; untagged sub-field writes are attributed as `LocalValue` to the element holding the container through its `PropertyChanged`; replacing the container re-applies the winning slots; a shared instance is recorded by every holder (documented limit). Text foreground: pilot on `MGTextBlock.Foreground`, ancestor `DefaultTextForeground` as the `Inherited` source resolved at read time, theme as fallback.
+- `_AppliedTemplateDefaults` and the `ApplyTemplateValue` guard stay unchanged; the store is the source of truth for pilot properties.
+- Framework writes made outside the base constructors are classified by intent, never left on the untagged public setter: a constructor writing its OWN pilots before or while its own template applies is `DefaultValue` (its template must win); an owner configuring an already-templated child or part (the graph node's editing text box, for instance) is `LocalValue` (deliberate owner chrome that must beat the child's template and not follow the theme); a write recomputing chrome in reaction to a theme change (helpers called from `OnThemeChanged`) is `Theme`; an internal visual state (selection, pressed, hover) is `VisualState`; a write reacting to a public property set by the application or the XAML (`MGWindow.WindowStyle`, which must outrank the template that already wrote the same pilots in the window constructor) or made on behalf of the application is `LocalValue`, justified per site. Otherwise construction-time chrome would permanently outrank template and theme defaults, or an application-driven chrome change would silently lose to the template.
+- Border pilots on composites: framework writes go through the inner border's tagged setters (`GetBorder().SetBorderBrush(value, source)`), never through the public facade, which stays the application's `LocalValue` entry point.
+- Completeness is enforced by an architecture test scanning `MGUI.Core` for assignments to the pilot properties with a justified allow-list, so no framework write silently stays untagged.
+- When the last contribution of a (property, slot) is removed, the entry is empty, the store reports `UIResolvedValue<T>.Unset`, the CLR value is kept and no notification fires (the behaviour of a dynamic resource that no longer resolves today).
+- Accepted cost budget: a freshly constructed `MGElement` allocates one store and two entries (Margin, Padding), an `MGBorder` four, two more per element once Background and DefaultTextForeground are wired; a non-pilot write allocates nothing and never touches the store; pinned by tests through an internal entry counter.
+- Rejected alternatives: a thread-ambient source scope pushed by the four entry points (fewer edits, but implicit and mis-tagging risk when theme and template writes nest); tracking the containers at object granularity only (misleading provenance, since XAML, bindings and dynamic resources write sub-fields); deferring styles to the style-refresh task.
+
+## Consequences
+
+- Precedence becomes observable and testable per property; a diagnostic (`TryGetResolvedValueSource`, task 5) can answer where a value comes from for the pilots.
+- The framework write sites become explicit about their source; new code writing a pilot property from a theme, template or binding path must use the tagged overload or be recorded as `LocalValue`.
+- Behaviour changes accepted by the author: theme callbacks and dynamic resource updates no longer clobber local values on pilot properties. Corollary: once an application assigns `MGWindow.WindowStyle`, that window's Padding and BorderThickness are pinned at `LocalValue` and no longer follow theme changes.
+- Cost: one lazily allocated store per element that receives a pilot write (constructors write Margin, Padding, Background and DefaultTextForeground, so most elements allocate a small store), a compact list per written slot; nothing for non-pilot properties.
+- Known limits: shared container instances, `Animation` and most `VisualState` levels unpopulated by the framework, `_AppliedTemplateDefaults` kept in parallel until a later task retires it.
