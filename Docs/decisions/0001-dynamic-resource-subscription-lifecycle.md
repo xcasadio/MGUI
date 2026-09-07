@@ -1,6 +1,6 @@
 # ADR-0001: Tie DynamicResource subscriptions to tree membership with a single weak scope link
 
-- **Status**: Proposed (the tree-membership choice was validated by the author on 2026-09-07; the nearest-scope plus weak-forwarding refinement awaits the author's review of the task 1 implementation)
+- **Status**: Accepted (2026-09-07, after the author's review of the task 1 implementation, commit `00cec29`)
 - **Date**: 2026-09-07
 - **Source**: this chantier: discussion of 2026-09-07 (grouped questions before executing `Docs/Tasks/styling-theme-tasks.md`), recorded in `Docs/Tasks/styling-theme-tasks.md`, task 1, paragraph "Decision (7 septembre 2026)"
 
