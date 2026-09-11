@@ -322,6 +322,129 @@ namespace MGUI.Core.Tooling
                 && owner.TryGetResolvedValueSource(pilot, slot, out source);
         }
 
+        /// <summary>Captures the per-element debug view of <paramref name="element"/>: its visual state, effective resource scope, applied control
+        /// template and registered parts, and the origin of its main visual values (background, text foreground, border brush, border thickness and
+        /// padding), each with its winning source, effective value and recorded contributions. A single call therefore answers "why does this
+        /// border have a thickness of 1" for the properties covered by <see cref="ResolvedValueSourcePropertyPaths"/>.</summary>
+        /// <exception cref="ArgumentNullException"><paramref name="element"/> is null.</exception>
+        /// <exception cref="InvalidOperationException"><paramref name="element"/> is not attached to a window.</exception>
+        public static UIElementDebugView CaptureElementDebugView(MGElement element)
+        {
+            if (element == null)
+            {
+                throw new ArgumentNullException(nameof(element));
+            }
+
+            string diagnosticId = GetStableDiagnosticId(element);
+
+            Dictionary<string, string> templateParts = new(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, MGElement> templatePart in element.TemplateParts)
+            {
+                templateParts[templatePart.Key] = templatePart.Value?.GetType().Name ?? nameof(MGElement);
+            }
+
+            VisualState visualState = element.VisualState;
+            MGResources effectiveResourceScope = element.GetResources();
+            UIValueOriginView[] valueOrigins =
+            {
+                CaptureValueOrigin(element, "Background"),
+                CaptureValueOrigin(element, element is MGTextBlock ? "Foreground" : "TextForeground"),
+                CaptureValueOrigin(element, "BorderBrush"),
+                CaptureValueOrigin(element, "BorderThickness"),
+                CaptureValueOrigin(element, "Padding"),
+            };
+
+            return new(
+                diagnosticId,
+                element.Name,
+                element.ElementType,
+                visualState.Primary,
+                visualState.Secondary,
+                effectiveResourceScope.Scope,
+                FindResourceScopeOwnerDiagnosticId(element, effectiveResourceScope),
+                element.LocalResources != null,
+                element.AppliedControlTemplateName,
+                templateParts,
+                element.LastControlTemplateError,
+                valueOrigins);
+        }
+
+        /// <summary>Renders <paramref name="view"/> as a readable text artifact: one line per section, then one line per value origin
+        /// (<c>path = effective value &lt;- winning source</c>) followed by one line per recorded contribution.</summary>
+        /// <exception cref="ArgumentNullException"><paramref name="view"/> is null.</exception>
+        public static string RenderElementDebugView(UIElementDebugView view)
+        {
+            if (view == null)
+            {
+                throw new ArgumentNullException(nameof(view));
+            }
+
+            StringBuilder artifact = new();
+            artifact.AppendLine($"element: {view.DiagnosticId} [{view.ElementType}] name={view.Name ?? "<none>"}");
+            artifact.AppendLine($"visual-state: primary={view.PrimaryVisualState} secondary={view.SecondaryVisualState}");
+            artifact.AppendLine($"resource-scope: scope={view.ResourceScope} scopeOwner={view.ResourceScopeOwnerDiagnosticId ?? "<none>"} localScope={view.HasLocalResourceScope}");
+            artifact.AppendLine($"template: {view.AppliedControlTemplate ?? "<none>"} error={view.LastControlTemplateError ?? "<none>"}");
+
+            List<string> templateParts = new();
+            foreach (KeyValuePair<string, string> templatePart in view.TemplateParts)
+            {
+                templateParts.Add($"{templatePart.Key}={templatePart.Value}");
+            }
+            templateParts.Sort(StringComparer.Ordinal);
+            artifact.Append("template-parts: ");
+            AppendDelimited(artifact, templateParts);
+            artifact.AppendLine();
+
+            artifact.AppendLine("values:");
+            foreach (UIValueOriginView origin in view.ValueOrigins)
+            {
+                AppendIndent(artifact, 1);
+                artifact.AppendLine($"{origin.PropertyPath} = {origin.EffectiveValue ?? "<none>"} <- {(origin.IsResolved ? FormatValueSource(origin.Source) : "<not resolved>")}");
+                foreach (UIResolvedContribution contribution in origin.Contributions)
+                {
+                    AppendIndent(artifact, 2);
+                    artifact.AppendLine($"{FormatValueSource(contribution.Source)} = {contribution.Value?.ToString() ?? "<null>"}");
+                }
+            }
+
+            return artifact.ToString();
+        }
+
+        private static UIValueOriginView CaptureValueOrigin(MGElement element, string propertyPath)
+        {
+            bool isResolved = TryGetResolvedValueSource(element, propertyPath, out UIValueResolutionSource source);
+
+            IReadOnlyList<UIResolvedContribution> contributions = Array.Empty<UIResolvedContribution>();
+            string clrPath = MGUI.Core.UI.XAML.Element.MapBindingTargetPath(propertyPath);
+            if (UIPilotPropertyResolver.TryResolve(element, clrPath, out MGElement owner, out UIPilotProperty pilot, out UIValueSlot slot))
+            {
+                contributions = owner.EnumerateResolvedContributions(pilot, slot);
+            }
+
+            return new(propertyPath, isResolved, source, DescribeEffectiveValue(element, propertyPath), contributions);
+        }
+
+        private static string DescribeEffectiveValue(MGElement element, string propertyPath)
+        {
+            MGBorder border = element as MGBorder ?? element.GetBorder();
+            object value = propertyPath switch
+            {
+                "Background" => element.BackgroundBrush?.NormalValue,
+                "Foreground" when element is MGTextBlock textBlock => textBlock.ActualForeground,
+                "TextForeground" => element.DerivedDefaultTextForeground,
+                "BorderBrush" => border?.BorderBrush,
+                "BorderThickness" => border?.BorderThickness,
+                "Padding" => element.Padding,
+                _ => null,
+            };
+            return value?.ToString();
+        }
+
+        private static string FormatValueSource(UIValueResolutionSource source)
+            => string.IsNullOrEmpty(source.Name)
+                ? $"{source.Kind}({(int)source.Precedence}) invalidation={source.Invalidation}"
+                : $"{source.Kind}({(int)source.Precedence}) '{source.Name}' invalidation={source.Invalidation}";
+
         public static MGElement LoadPreview(MGWindow window, XamlDocumentSource source, object dataContext = null,
             bool sanitizeXamlString = false, bool replaceLinebreakLiterals = true)
         {

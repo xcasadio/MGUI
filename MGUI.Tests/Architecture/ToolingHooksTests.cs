@@ -26,6 +26,11 @@ public class ToolingHooksTests
             new[] { typeof(MGWindow), typeof(XamlDocumentSource), typeof(object), typeof(XamlLoaderMode), typeof(bool), typeof(bool) }, null));
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.RenderDesktopSnapshot), BindingFlags.Static | BindingFlags.Public));
         Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.ReplayFrames), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.TryGetResolvedValueSource), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIToolingService).GetProperty(nameof(UIToolingService.ResolvedValueSourcePropertyPaths), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.CaptureElementDebugView), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIToolingService).GetMethod(nameof(UIToolingService.RenderElementDebugView), BindingFlags.Static | BindingFlags.Public));
+        Assert.NotNull(typeof(UIElementDebugView).GetProperty(nameof(UIElementDebugView.ValueOrigins)));
         Assert.NotNull(typeof(UIDesktopDiagnosticSnapshot).GetProperty(nameof(UIDesktopDiagnosticSnapshot.ActiveOverlayDiagnosticId)));
         Assert.NotNull(typeof(UIDesktopDiagnosticSnapshot).GetProperty(nameof(UIDesktopDiagnosticSnapshot.FocusedElementDiagnosticId)));
         Assert.NotNull(typeof(UIVisualTreeSnapshot).GetProperty(nameof(UIVisualTreeSnapshot.DiagnosticId)));
