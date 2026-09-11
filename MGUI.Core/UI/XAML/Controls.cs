@@ -1217,12 +1217,12 @@ namespace MGUI.Core.UI.XAML
 
             if (BorderBrush != null)
             {
-                GroupBox.BorderBrush = (MGUniformBorderBrush)BorderBrush.ToBorderBrush(Desktop, Element);
+                GroupBox.SetBorderBrushTagged(BorderBrush.ToBorderBrush(Desktop, Element), ResolveXamlSource(nameof(BorderBrush), UIInvalidationKind.Draw));
             }
 
             if (BorderThickness.HasValue)
             {
-                GroupBox.BorderThickness = BorderThickness.Value.ToThickness();
+                GroupBox.SetBorderThicknessTagged(BorderThickness.Value.ToThickness(), ResolveXamlSource(nameof(BorderThickness), UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             }
 
             if (IsExpandable.HasValue)
@@ -4214,7 +4214,16 @@ namespace MGUI.Core.UI.XAML
 
             if (Padding != null)
             {
-                Window.Padding = Padding.Value.ToThickness();
+                // WindowStyle's own Padding writes (MGWindow.cs ~1977/1985) are tagged LocalValue(90), which
+                // always outranks a styled re-application here (ImplicitStyle(40)/ExplicitStyle(50)) regardless of
+                // write order -- the store picks the highest-precedence contribution, not the most recent one. So
+                // this re-application must first clear that WindowStyle-introduced LocalValue contribution: when
+                // the XAML provenance below is itself LocalValue (a direct attribute), Set() would have replaced it
+                // in place anyway (same Kind, last writer wins), so the clear is a no-op there; when the provenance
+                // is a style, the clear is what lets the styled value become the winner instead of staying shadowed
+                // by WindowStyle's chrome default.
+                Window.ClearPilotSource(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.LocalValue);
+                Window.SetPadding(Padding.Value.ToThickness(), ResolveXamlSource(nameof(Padding), UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             }
 
             if (IsTitleBarVisible.HasValue)

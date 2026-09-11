@@ -30,6 +30,7 @@ namespace MGUI.Core.UI.Styling
         private const int SlotCount = 6; // Number of UIValueSlot members.
 
         private static readonly IReadOnlyList<UIValueSourceKind> EmptyKinds = Array.Empty<UIValueSourceKind>();
+        private static readonly IReadOnlyList<UIResolvedContribution> EmptyContributions = Array.Empty<UIResolvedContribution>();
 
         /// <summary>
         /// Type-erased base so <see cref="_entries"/> can hold entries typed for different <c>T</c>s side by
@@ -40,6 +41,11 @@ namespace MGUI.Core.UI.Styling
             public abstract Type ValueType { get; }
 
             public abstract IReadOnlyList<UIValueSourceKind> KindsView { get; }
+
+            /// <summary>Appends this entry's contributions to <paramref name="target"/>, highest precedence
+            /// first, boxing each typed value as <c>object</c>. Used only by the type-erased diagnostic
+            /// <see cref="UIResolvedPropertyStore.EnumerateContributions"/>.</summary>
+            public abstract void CopyContributionsTo(List<UIResolvedContribution> target);
         }
 
         /// <summary>
@@ -57,6 +63,12 @@ namespace MGUI.Core.UI.Styling
             public override Type ValueType => typeof(T);
 
             public override IReadOnlyList<UIValueSourceKind> KindsView => Kinds;
+
+            public override void CopyContributionsTo(List<UIResolvedContribution> target)
+            {
+                for (int i = 0; i < Contributions.Count; i++)
+                    target.Add(new UIResolvedContribution(Kinds[i], Contributions[i].Source, Contributions[i].Value));
+            }
         }
 
         private Entry[] _entries;
@@ -271,6 +283,27 @@ namespace MGUI.Core.UI.Styling
 
             Entry entry = _entries[IndexOf(property, slot)];
             return entry?.KindsView ?? EmptyKinds;
+        }
+
+        /// <summary>
+        /// Type-erased diagnostic view of every contribution currently recorded for (<paramref name="property"/>,
+        /// <paramref name="slot"/>), highest precedence first, each value boxed as <c>object</c>. Unlike
+        /// <see cref="TryGetWinner{T}"/>, this is the raw store content: it never performs any read-time
+        /// fall-back (no <c>Inherited</c>/<c>Theme</c> synthesis, no dormancy substitution). Returns a shared
+        /// empty list (no allocation) for an entry that was never written or that has since been emptied.
+        /// </summary>
+        public IReadOnlyList<UIResolvedContribution> EnumerateContributions(UIPilotProperty property, UIValueSlot slot)
+        {
+            if (_entries == null)
+                return EmptyContributions;
+
+            Entry entry = _entries[IndexOf(property, slot)];
+            if (entry == null || entry.KindsView.Count == 0)
+                return EmptyContributions;
+
+            List<UIResolvedContribution> result = new();
+            entry.CopyContributionsTo(result);
+            return result;
         }
     }
 }

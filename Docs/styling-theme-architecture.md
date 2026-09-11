@@ -68,27 +68,24 @@ Le pipeline repose sur cinq couches:
 
 ### Ou vit la precedence reelle
 
-Point structurant: `UIValuePrecedence` est un modele formalise et un contrat de tests (`MGUI.Tests/Architecture/StyleValueResolutionModelTests.cs`), PAS un moteur runtime unifie. La precedence effective reste dispersee entre quatre chemins:
+Depuis la tache 4 (programme `Docs/Tasks/resolved-value-engine-tasks.md`, ADR-0005, septembre 2026), sept proprietes pilotes ont un vrai moteur runtime : Margin, Padding, MinHeight, BorderBrush et BorderThickness (la bordure reelle d'un composite, atteinte par `GetBorder()`), Background (conteneur `VisualStateFillBrush`) et le texte (deux conteneurs `VisualStateSetting<Color?>`, `MGTextBlock.Foreground` et `MGElement.DefaultTextForeground`, donc huit cles `UIPilotProperty`). Chaque element alloue paresseusement un `UIResolvedPropertyStore` (`MGUI.Core/UI/Styling/UIResolvedPropertyStore.cs`) ; chaque ecriture passe par un setter tague (`SetPadding(value, source)`, `MGBorder.SetBorderBrush(...)`, `SetBackgroundSlot(slot, value, source)`, `SetDefaultTextForegroundSlot(...)`, ...) qui enregistre sa `UIValueResolutionSource` et n'ecrit la valeur CLR, avec les notifications existantes, que si le gagnant selon `UIValuePrecedence` change. Le setter public vaut `LocalValue` ; les constructeurs `DefaultValue` ; le catalogue de templates `Theme` quand il ecrit le controle lui-meme et `Template` quand il ecrit une part ; les callbacks `OnThemeChanged` et les helpers de theme `Theme` ; les etats visuels internes (selection, actif, drag) `VisualState` ; le transfert XAML `ImplicitStyle`, `ExplicitStyle` ou `LocalValue` selon la provenance enregistree par `Element.ProcessStyles` ; les bindings `LocalBinding` ; les ressources dynamiques `DynamicResource` (le retrait de la ressource retire la contribution et fait retomber sur la source suivante). Le balayage d'architecture `MGUI.Tests/Architecture/ResolvedPilotWriteSitesTests.cs` garantit qu'aucune ecriture framework de ces pilotes ne reste sur un setter public non tague. Point de lecture interne pour l'outillage et la tache 5 : `MGElement.TryGetResolvedValueSource(UIPilotProperty, UIValueSlot, out UIValueResolutionSource)` (source du gagnant, memes replis a la lecture que `TryGetResolvedPilotValue<T>`) et `EnumerateResolvedContributions` (contenu brut du store, precedence decroissante, valeurs boxees dans `UIResolvedContribution`) ; la liste des huit cles et la carte cle -> `UIInvalidationKind` sont epinglees par `ResolvedValueSourceDiagnosticsTests`.
 
-- les styles XAML, appliques uniquement au parsing via `Element.ProcessStyles(...)`;
-- les callbacks `OnThemeChanged(...)` des controles;
-- les setters C# ordinaires (valeurs locales et defaults constructeur);
-- le chemin template `MGControlTemplateContext.ApplyTemplateValue(...)` / `ApplyThemeDefault(...)`, seul chemin qui stampe reellement un `UIResolvedValue<T>` avec source et invalidation.
-
-Toute evolution doit projeter ses valeurs dans cette pile officielle, jamais via un ordre ad hoc par controle.
+Toutes les autres proprietes restent des proprietes C# ordinaires, sans store ni cout, et leur precedence effective reste dispersee entre les quatre chemins historiques (styles XAML au parsing, callbacks `OnThemeChanged`, setters ordinaires, chemin template). Toute nouvelle propriete themee ou stylee doit projeter ses valeurs dans la pile officielle, jamais via un ordre ad hoc par controle ; l'ajout d'un pilote suit le patron des tranches S2 a S8 du programme.
 
 ### Arbitrages
 
-- Un template ne doit jamais ecraser une valeur locale du controle hote; il peut poser des defaults sur ses propres parts, qui recoivent leur propre pile de precedence.
-- Une propriete alimentee par binding se comporte comme locale; un style ne doit pas l'ecraser.
-- Une animation gagne pendant sa duree puis la valeur revient a la meilleure source non animee.
-- Une dynamic resource resolue plus pres de l'instance gagne sur le theme.
+- Un template ne doit jamais ecraser une valeur locale du controle hote ; il pose des defauts sur ses propres parts (`Template`, 60) et des defauts de theme sur le controle lui-meme (`Theme`, 20), ce qui laisse les styles XAML (40/50) et les attributs (90) l'emporter sur le chrome par defaut du controle.
+- Un attribut XAML l'emporte sur un style ; un style l'emporte sur les defauts de theme du controle et sur une ressource dynamique (30) ; une ecriture locale posterieure l'emporte sur un binding (80) et sur une ressource dynamique.
+- Une propriete alimentee par binding (`LocalBinding`) se comporte presque comme une locale : un style ne l'ecrase pas, seule une ecriture locale explicite la bat.
+- Une animation gagne pendant sa duree puis la valeur revient a la meilleure source non animee (niveau present dans le store, non alimente par le framework).
+- Une ressource dynamique gagne sur le theme et sur les defauts du controle ; son retrait retire sa contribution (`Unset`) et fait retomber sur la source suivante.
+- Conteneurs (fond, texte) : une ecriture de l'objet entier (`Whole`) de precedence P retire les sous-champs poses exactement a P (dernier ecrivain), garde dormants les plus bas et re-applique les plus hauts sur le nouveau conteneur ; une ecriture non taguee d'un sous-champ par l'application est attribuee `LocalValue` a l'element detenteur.
 
 ### Heritage
 
-- Heritables par defaut: foreground texte par defaut, famille de police par defaut (taille de police si valide pour le layout texte).
-- Non heritables: contraintes de layout, fonds/bordures/chrome, templates, commandes et comportement, etats interactifs, geometries de skin.
-- L'heritage se resout depuis la valeur RESOLUE de l'ancetre, et seulement quand aucune source plus forte n'existe sur l'element courant.
+- Heritables par defaut : foreground texte par defaut, famille de police par defaut (taille de police si valide pour le layout texte).
+- Non heritables : contraintes de layout, fonds/bordures/chrome, templates, commandes et comportement, etats interactifs, geometries de skin.
+- L'heritage se resout depuis la valeur RESOLUE de l'ancetre, et seulement quand aucune source plus forte n'existe sur l'element courant : `MGTextBlock.ActualForeground` lit son conteneur `Foreground`, puis la chaine `DefaultTextForeground` des ancetres, puis le repli du theme ; le diagnostic rapporte alors `Inherited` ou `Theme` a la lecture.
 
 ### Invalidation
 
@@ -228,15 +225,15 @@ Un mapping de theme ne fait que selectionner un template nomme deja present dans
 
 ### Valeurs template et refresh
 
-`MGControlTemplateContext.ApplyTemplateValue(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer)` centralise l'application des valeurs templatees:
+`MGControlTemplateContext.ApplyTemplateValue(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer)` centralise l'application des valeurs templatees :
 
-- la valeur est stockee comme `UIResolvedValue<T>` de source `Template` avec son `UIInvalidationKind`;
-- pendant un refresh de theme (`IsThemeRefresh`), la valeur n'est re-appliquee que si la valeur courante correspond encore au dernier default applique — un override utilisateur est donc respecte;
+- la valeur est stockee comme `UIResolvedValue<T>` avec sa source et son `UIInvalidationKind` dans `_AppliedTemplateDefaults` ;
+- pendant un refresh de theme (`IsThemeRefresh`), la valeur n'est re-appliquee que si la valeur courante correspond encore au dernier default applique (garde has-previous/equals) ; pour les proprietes pilotes, la precedence du store protege en plus une valeur locale, un style ou un binding quelle que soit la garde ;
 - une invalidation layout est declenchee pour les kinds `Measure`/`Arrange`/`Structure`.
 
-`ApplyThemeDefault(...)` delegue a `ApplyTemplateValue(...)` avec `UIInvalidationKind.Draw`.
+Surcharges taguees (ADR-0005, tranches S3 et S7a) : `ApplyThemeDefault`/`ApplyTemplateValue` avec un `Action<T, UIValueResolutionSource>` passent a la lambda la source `Template` (60) et servent aux defauts des PARTS ; `ApplyOwnerThemeDefault` passe la source `Theme` (20) et sert aux defauts que le catalogue pose sur le CONTROLE LUI-MEME (sa propre propriete, la bordure exposee par `GetBorder()` ou par sa facade publique, ou l'element que son DTO XAML ecrit pour la meme propriete), pour que les styles XAML et les attributs continuent de l'emporter sur le chrome par defaut du controle. `ApplyThemeDefault(...)` non tague delegue a `ApplyTemplateValue(...)` avec `UIInvalidationKind.Draw` ; les cles pilotes layout-affecting (Padding, Margin, MinHeight, BorderThickness) passent explicitement `Measure | Arrange`.
 
-Comportement runtime: un changement de theme declenche `ApplyControlTemplate(true)`; la structure n'est reconstruite que si le nom de template resolu change, sinon seul le chrome est re-applique.
+Comportement runtime : un changement de theme declenche `OnThemeChanged` puis `ApplyControlTemplate(true)` ; la structure n'est censee etre reconstruite que si le nom de template resolu change, sinon seul le chrome est re-applique. Limite verifiee le 11 septembre 2026 (hors perimetre de la tache 4) : `MGWindow` reconstruit ses parts de chrome a chaque changement de theme (il surcharge `ApplyControlTemplate`) et `MGTreeView` recree son `ItemsPanel` en laissant les items existants parentes a l'ancien panneau ; la garde has-previous/equals compare alors la valeur de construction de la nouvelle part a celle appliquee sur l'ancienne, et n'applique jamais une valeur de type reference sur une part recreee.
 
 ### Contrat de parts
 
@@ -352,8 +349,8 @@ Les templates `Dock.*.Default` du catalogue sont des applicateurs de defaults sa
 ## Limites connues (verifiees)
 
 - Abonnements dynamic resource lies a l'arbre (livre le 7 septembre 2026, ADR-0001): `UIResourceReferenceApplicator` tient un conteneur `UIDynamicResourceSubscriptions` par element hote (Metadata `DynamicResourceSubscriptions`), avec un seul handler sur le scope le plus proche, detache et rattache sur `OnParentChanged`, re-resolution contre le scope courant. Les changements des scopes ancetres arrivent par `MGResources.OnStaticResourceLookupChanged`, forwarde parent -> enfant par le meme lien faible unique que le theme. Limite restante: un scope local cree tardivement sur un ancetre (`EnsureResourceScope` apres construction) n'est suivi qu'au prochain changement de parent.
-- Styles appliques uniquement au parse XAML: `Element.ProcessStyles(...)` tourne pendant le parsing puis s'arrete. Aucune API de restyle d'un sous-arbre deja charge n'existe.
-- Pas de moteur unifie de resolution: seule la voie template stampe des `UIResolvedValue<T>`; les autres sources restent des setters ou callbacks ordinaires. Pas d'API de diagnostic de source de valeur.
+- Styles appliques uniquement au parse XAML: `Element.ProcessStyles(...)` tourne pendant le parsing puis s'arrete. Aucune API de restyle d'un sous-arbre deja charge n'existe ; depuis la tache 4, le DTO XAML conserve toutefois la provenance de style par propriete (`Element.StyleProvenance`) et le store des pilotes connait la source de chaque valeur, ce qui est le suivi runtime que la tache 10 attendait.
+- Moteur de valeurs resolues limite aux sept pilotes (tache 4, ADR-0005) : Margin, Padding, MinHeight, BorderBrush, BorderThickness, Background, texte (huit cles, deux conteneurs pour le texte). Limites verifiees le 11 septembre 2026 : un conteneur (`VisualStateFillBrush`, `VisualStateSetting<Color?>`) partage entre plusieurs elements est enregistre par chaque detenteur et, l'element s'abonnant a son `PropertyChanged`, un conteneur partage a longue duree de vie enracine ses detenteurs ; le framework copie donc toujours les instances brutes du theme et les modeles de controle (`MGDockAutoHideStrip.ButtonBackgroundBrush`, `MGTreeView.SelectionBackgroundBrush`) avant de les remettre a un element, et une instance partagee par l'application reste sous sa responsabilite. Les niveaux `Animation` et, hors selection d'arbre, noeud de graphe et onglets docking, `VisualState` ne sont pas alimentes par le framework. `_AppliedTemplateDefaults` et sa garde restent en parallele du store. Le diagnostic `TryGetResolvedPilotValue` d'un sous-slot de texte replie sur `Inherited`/`Theme` selon l'etat visuel courant, pas selon le slot demande. Les facades de bordure nommees autrement que `BorderBrush`/`BorderThickness` (`ListBox` Outer/Inner/Title/ItemsPanel, `Spoiler` Unspoiled*) rapportent `LocalValue` au lieu de la provenance de style. Un `Padding` declare en XAML sur une `Window` (attribut ou style) supplante l'ecriture `LocalValue` que le setter `WindowStyle` laisse au parse (le DTO la retire avant de re-appliquer le padding sous sa provenance) ; une affectation ulterieure de `WindowStyle` par l'application re-epingle Padding et BorderThickness en `LocalValue`. Dans la pile officielle, `DynamicResource` (30) est sous les styles : un setter de style sur la meme propriete l'emporte sur un attribut `{DynamicResource}` (aucun sample n'est dans ce cas).
 - Invalidation de theme opt-in: defaut `Draw` seul; seule `MGTextBlock` surcharge `GetThemeInvalidation(...)`. Chaque nouvelle propriete themee layout-affecting doit y penser manuellement.
 - `MGElement.NotifyThemeChanged(...)` parcourt tout le sous-arbre et les composants sans granularite par propriete: cout notable sur des UIs denses type editeur.
 - `MGScrollViewer.CanCacheSelfMeasurement => false` (MGUI.Core/UI/MGScrollViewer.cs, ligne 443): hotspot layout connu pour les contenus scrollables denses.

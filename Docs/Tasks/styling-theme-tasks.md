@@ -135,9 +135,9 @@ Criteres d'acceptation:
 
 Commit recommande: `style-theme: converge docking part vocabulary`
 
-### 🟡 4. Construire un mini moteur de valeurs resolues pour des proprietes pilotes
+### ✅ 4. Construire un mini moteur de valeurs resolues pour des proprietes pilotes
 
-**Statut** : en cours depuis le 7 septembre 2026, sous forme de programme detaille dans `Docs/Tasks/resolved-value-engine-tasks.md` (neuf tranches, decisions de l'auteur : sept pilotes avec suivi des sous-champs, setters tagues et migration de chaque site d'ecriture, provenance de style portee, precedence appliquee ; ADR-0005). Ce fichier passe a ✅ quand la tranche S9 est livree. Correction : `UIValueResolutionSource` compte onze sources, pas dix.
+**Statut** : livre le 11 septembre 2026 par le programme `Docs/Tasks/resolved-value-engine-tasks.md` (tranches S1 a S9 et S7a, ADR-0005 acceptee) : store `UIResolvedPropertyStore` par element, sept pilotes (huit cles `UIPilotProperty`, le texte ayant deux conteneurs), setters tagues, migration de tous les sites d'ecriture (constructeurs, catalogue, callbacks de theme, XAML avec provenance de style, bindings, ressources dynamiques avec retombee), precedence appliquee a l'ecriture, balayage d'architecture de completude, diagnostic interne `TryGetResolvedValueSource` (base de la tache 5). Decision de l'auteur du 11 septembre : les defauts du catalogue poses sur le controle lui-meme sont `Theme`, ceux des parts `Template`, pour que les styles XAML continuent de l'emporter sur le chrome par defaut d'un controle templatise. Correction : `UIValueResolutionSource` compte onze sources, pas dix.
 
 But:
 reduire l'ecart entre le modele `UIValuePrecedence` et la realite runtime, sans dependency property system complet.
@@ -145,7 +145,7 @@ reduire l'ecart entre le modele `UIValuePrecedence` et la realite runtime, sans 
 Etat actuel (verifie le 7 septembre 2026):
 
 - seules les valeurs appliquees par template portent un `UIResolvedValue<T>` (store `_AppliedTemplateDefaults` de `MGElement`, via `MGControlTemplateContext.ApplyTemplateValue(...)` et `TryGetAppliedTemplateDefault`); il n'existe aucun store par propriete couvrant les sources local/style/theme;
-- `UIResolvedValue<T>`, `UIValueResolutionSource` (dix sources ordonnees par `UIValuePrecedence`) existent depuis mars 2026 et suffisent comme briques: pas de redesign necessaire;
+- `UIResolvedValue<T>`, `UIValueResolutionSource` (onze sources ordonnees par `UIValuePrecedence`) existent depuis mars 2026 et suffisent comme briques: pas de redesign necessaire;
 - les quatre chemins disperses (styles XAML au parse, callbacks `OnThemeChanged`, setters C# ordinaires, chemin template) sont decrits dans `Docs/styling-theme-architecture.md` (lignes 71-78);
 - `ApplyTemplateValue` possede deja un garde has-previous/equals pour ne pas ecraser un override local au refresh de theme (`MGControlTemplate.cs:97-101`): cette interaction est delicate.
 
@@ -170,7 +170,7 @@ Commit recommande: `style-theme: add pilot resolved value engine`
 But:
 pouvoir repondre a "d'ou vient cette valeur" pour un premier sous-ensemble de proprietes.
 
-Etat actuel (verifie le 7 septembre 2026): aucune API de ce type n'existe (aucun `TryGetResolvedValueSource` dans le depot). Sans la tache 4, seule la source `Template` est identifiable de maniere fiable.
+Etat actuel (verifie le 7 septembre 2026, mis a jour le 11 septembre) : la tache 4 (tranche S9) livre un point de lecture interne `MGElement.TryGetResolvedValueSource(UIPilotProperty, UIValueSlot, out UIValueResolutionSource)` et `EnumerateResolvedContributions` pour les sept pilotes (huit cles), toutes sources confondues (DefaultValue, Theme, DynamicResource, ImplicitStyle, ExplicitStyle, Template, VisualState, LocalBinding, LocalValue ; `Inherited` et le repli theme calcules a la lecture pour le texte). Cette tache doit exposer une API publique par nom de propriete au-dessus de ce point de lecture, et documenter que les proprietes non pilotes ne sont pas couvertes.
 
 Travail attendu:
 
@@ -216,6 +216,7 @@ Etat actuel (verifie le 7 septembre 2026):
 - `MGElement.GetThemeInvalidation(...)` renvoie `Draw` par defaut et seule `MGTextBlock` le surcharge (`MGTextBlock.cs:158`); aucune classification n'existe dans `MGTheme`;
 - douze fichiers surchargent `OnThemeChanged`; plusieurs correctifs ponctuels du meme probleme existent deja (`MGListBox.InvalidateItemHeightCache`, ecriture directe du champ puis `InvokeLayoutChanged` dans `MGTextBlock`, appel `Measure|Arrange` dans le template d'en-tete de `TabControl`): les inventorier comme cas de reference plutot que les redecouvrir;
 - `NotifyThemeChanged` parcourt tout le sous-arbre et les composants a chaque changement de theme: la sur-invalidation a un cout reel sur les ecrans denses.
+- Mis a jour le 11 septembre 2026 (tache 4 livree) : le store porte deja une classification par propriete pilote, epinglee par test d'architecture (`ResolvedValueSourceDiagnosticsTests`) : Margin, Padding, MinHeight et BorderThickness = `Measure | Arrange` ; BorderBrush, Background, Foreground et DefaultTextForeground = `Draw`. Chaque ecriture taguee y attache son `UIInvalidationKind`, mais les callbacks `OnThemeChanged` et `GetThemeInvalidation` ne lisent pas encore cette classification.
 
 Travail attendu:
 
@@ -302,6 +303,7 @@ Etat actuel (verifie le 7 septembre 2026):
 - `ExplicitlySetProperties` n'existe que sur le modele XAML de parse (`Element.cs:29`), rempli par les setters XAML et consomme par `IsXAMLPropertyUnset` (`Element.cs:956-980`) dans `ProcessStyles`; il est perdu une fois l'arbre `MGElement` construit. Un substitut cote runtime (suivi des proprietes explicitement posees) est le prerequis central de cette tache;
 - ne pas confondre avec le refresh de theme (`NotifyThemeChanged` / `ApplyThemeDefault`), qui existe deja et ne concerne pas les `Style` XAML;
 - le store de la tache 4 (source + invalidation par propriete) est la forme naturelle de ce suivi pour les proprietes pilotes.
+- Mis a jour le 11 septembre 2026 (tache 4 livree) : pour les sept pilotes, le substitut runtime existe. Le store de chaque `MGElement` garde toutes les contributions (`LocalValue` = attribut XAML ou setter applicatif, `LocalBinding`, `ExplicitStyle`, `ImplicitStyle`, `DynamicResource`, `Template`, `Theme`, `DefaultValue`) et une ecriture `ImplicitStyle`/`ExplicitStyle` posterieure ne peut pas ecraser un `LocalValue` ni un `LocalBinding` : la precedence est appliquee a l'ecriture. Le DTO XAML expose aussi `Element.StyleProvenance` pendant le parse. Il reste a concevoir l'API de re-application elle-meme et le suivi des proprietes non pilotes.
 
 Travail attendu:
 

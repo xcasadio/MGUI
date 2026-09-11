@@ -1115,6 +1115,120 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <summary>Diagnostic read (ADR-0005/S9, base of backlog task 5): type-agnostic report of the current
+        /// winner's <see cref="UIValueResolutionSource"/> for (<paramref name="property"/>, <paramref name="slot"/>),
+        /// exactly what the typed <see cref="TryGetResolvedPilotValue{T}"/> would report for that pair (so
+        /// <see cref="MGTextBlock"/>'s Inherited/Theme read-time fall-backs, the <see cref="GetBorder"/> delegation
+        /// for BorderBrush/BorderThickness and the R6 dormancy rule for Background/DefaultTextForeground sub-slots
+        /// are all honored -- this never duplicates that logic). False (and <paramref name="source"/> left
+        /// <c>default</c>) when nothing is resolved, when (<paramref name="property"/>, <paramref name="slot"/>) is
+        /// never written by the framework (e.g. <see cref="UIValueSlot.FocusedColor"/> for Foreground or
+        /// DefaultTextForeground, or any sub-slot of a scalar pilot), or on an element built without running field
+        /// initializers (<see cref="System.Runtime.Serialization.FormatterServices.GetUninitializedObject(Type)"/>,
+        /// null store). Never throws.</summary>
+        internal bool TryGetResolvedValueSource(UIPilotProperty property, UIValueSlot slot, out UIValueResolutionSource source)
+        {
+            bool found;
+            switch (property)
+            {
+                case UIPilotProperty.Margin:
+                    if (slot != UIValueSlot.Whole) { source = default; return false; }
+                    found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<Thickness> margin);
+                    source = found ? margin.Source : default;
+                    return found;
+                case UIPilotProperty.Padding:
+                    if (slot != UIValueSlot.Whole) { source = default; return false; }
+                    found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<Thickness> padding);
+                    source = found ? padding.Source : default;
+                    return found;
+                case UIPilotProperty.MinHeight:
+                    if (slot != UIValueSlot.Whole) { source = default; return false; }
+                    found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<int?> minHeight);
+                    source = found ? minHeight.Source : default;
+                    return found;
+                case UIPilotProperty.BorderBrush:
+                    if (slot != UIValueSlot.Whole) { source = default; return false; }
+                    found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<IBorderBrush> borderBrush);
+                    source = found ? borderBrush.Source : default;
+                    return found;
+                case UIPilotProperty.BorderThickness:
+                    if (slot != UIValueSlot.Whole) { source = default; return false; }
+                    found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<Thickness> borderThickness);
+                    source = found ? borderThickness.Source : default;
+                    return found;
+                case UIPilotProperty.Background:
+                    if (slot == UIValueSlot.Whole)
+                    {
+                        found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<VisualStateFillBrush> backgroundWhole);
+                        source = found ? backgroundWhole.Source : default;
+                        return found;
+                    }
+                    if (slot == UIValueSlot.FocusedColor)
+                    {
+                        found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<Color?> backgroundFocusedColor);
+                        source = found ? backgroundFocusedColor.Source : default;
+                        return found;
+                    }
+                    found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<IFillBrush> backgroundSlot);
+                    source = found ? backgroundSlot.Source : default;
+                    return found;
+                case UIPilotProperty.Foreground:
+                    if (slot == UIValueSlot.FocusedColor)
+                    {
+                        source = default;
+                        return false;
+                    }
+                    if (slot == UIValueSlot.Whole)
+                    {
+                        found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<VisualStateSetting<Color?>> foregroundWhole);
+                        source = found ? foregroundWhole.Source : default;
+                        return found;
+                    }
+                    found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<Color?> foregroundSlot);
+                    source = found ? foregroundSlot.Source : default;
+                    return found;
+                case UIPilotProperty.DefaultTextForeground:
+                    if (slot == UIValueSlot.FocusedColor)
+                    {
+                        source = default;
+                        return false;
+                    }
+                    if (slot == UIValueSlot.Whole)
+                    {
+                        found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<VisualStateSetting<Color?>> defaultForegroundWhole);
+                        source = found ? defaultForegroundWhole.Source : default;
+                        return found;
+                    }
+                    found = TryGetResolvedPilotValue(property, slot, out UIResolvedValue<Color?> defaultForegroundSlot);
+                    source = found ? defaultForegroundSlot.Source : default;
+                    return found;
+                default:
+                    source = default;
+                    return false;
+            }
+        }
+
+        /// <summary>Diagnostic read (ADR-0005/S9): raw store contents for (<paramref name="property"/>, <paramref name="slot"/>)
+        /// for tooling, highest precedence first, WITHOUT any read-time fall-back (no Inherited/Theme synthesis, no
+        /// R6 dormancy substitution) -- unlike <see cref="TryGetResolvedValueSource"/>, this is exactly what the
+        /// store holds. For BorderBrush/BorderThickness on an element that is not itself an <see cref="MGBorder"/>,
+        /// delegates to <see cref="GetBorder"/> like <see cref="TryGetResolvedPilotValue{T}"/> does (an empty list
+        /// when there is no border). Returns a shared empty list (no allocation) for a null store or a
+        /// never-written/emptied entry. Never throws.</summary>
+        internal IReadOnlyList<UIResolvedContribution> EnumerateResolvedContributions(UIPilotProperty property, UIValueSlot slot)
+        {
+            if ((property == UIPilotProperty.BorderBrush || property == UIPilotProperty.BorderThickness) && !(this is MGBorder))
+            {
+                MGBorder border = GetBorder();
+                return border == null ? Array.Empty<UIResolvedContribution>() : border.EnumerateResolvedContributions(property, slot);
+            }
+
+            if (_ResolvedValues == null)
+                return Array.Empty<UIResolvedContribution>();
+
+            return _ResolvedValues.EnumerateContributions(property, slot);
+        }
+
         /// <summary>Delegates a tagged <see cref="UIPilotProperty.BorderBrush"/> write to <see cref="GetBorder"/>, a no-op
         /// when this element has no border. Framework code configuring a composite's inner border should call this
         /// instead of the public <see cref="MGBorder.BorderBrush"/> facade, which stays the application's <c>LocalValue</c>
