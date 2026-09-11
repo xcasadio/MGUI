@@ -22,31 +22,35 @@ namespace MGUI.Tests.Architecture;
 public class ResolvedTemplatePilotsTests
 {
     [Fact]
-    public void Freshly_Templated_Window_Reports_Template_Source_For_Padding_With_Layout_Invalidation()
+    public void Freshly_Templated_Window_Reports_Theme_Source_For_Padding_With_Layout_Invalidation()
     {
         Harness harness = Harness.Create();
         MGWindow window = new(harness.Desktop, 0, 0, 400, 300);
         harness.Show(window);
 
+        // ADR-0005/S7a: Window.Padding targets the control itself (Window.SetPadding), so the catalogue now tags
+        // it Theme (20) instead of Template (60) -- a style must be able to outrank the window's own chrome default.
         Assert.True(window.TryGetResolvedPilotValue(UIPilotProperty.Padding, UIValueSlot.Whole, out UIResolvedValue<Thickness> padding));
-        Assert.Equal(UIValueSourceKind.Template, padding.Source.Kind);
+        Assert.Equal(UIValueSourceKind.Theme, padding.Source.Kind);
         Assert.True(padding.HasAnyInvalidation(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         Assert.Equal(window.GetTheme().Window.Padding, padding.Value);
 
         // Named mutation (run by hand): remove the "Measure | Arrange" stamp on "Window.Padding" in
-        // MGControlTemplateCatalog.ApplyWindowTemplate (fall back to the ApplyThemeDefault overload's Draw
+        // MGControlTemplateCatalog.ApplyWindowTemplate (fall back to the ApplyOwnerThemeDefault overload's Draw
         // default) -- this assertion goes red because the recorded invalidation no longer carries Measure/Arrange.
         Assert.NotEqual(UIInvalidationKind.Draw, padding.Source.Invalidation);
     }
 
     [Fact]
-    public void Local_Padding_Survives_A_Theme_Refresh_And_The_Template_Contribution_Is_Retained_Not_Effective()
+    public void Local_Padding_Survives_A_Theme_Refresh_And_The_Theme_Contribution_Is_Retained_Not_Effective()
     {
         Harness harness = Harness.Create();
         MGWindow window = new(harness.Desktop, 0, 0, 400, 300);
         harness.Show(window);
 
-        Assert.True(window.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Template, out UIResolvedValue<Thickness> templateBefore));
+        // ADR-0005/S7a: Window.Padding is now recorded as a Theme (20) contribution, not Template (60) -- see the
+        // "Freshly_Templated_Window_Reports_Theme_Source_For_Padding..." test above.
+        Assert.True(window.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Theme, out UIResolvedValue<Thickness> templateBefore));
         Thickness themePadding = window.GetTheme().Window.Padding;
         Assert.Equal(themePadding, templateBefore.Value);
 
@@ -63,9 +67,9 @@ public class ResolvedTemplatePilotsTests
         Assert.Equal(UIValueSourceKind.LocalValue, winnerAfterRefresh.Source.Kind);
         Assert.Equal(localPadding, winnerAfterRefresh.Value);
 
-        // The Template contribution itself is retained (the refresh guard bails before overwriting it, since the
+        // The Theme contribution itself is retained (the refresh guard bails before overwriting it, since the
         // current CLR value no longer equals the previously-applied template default) without ever becoming effective.
-        Assert.True(window.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Template, out UIResolvedValue<Thickness> templateAfterRefresh));
+        Assert.True(window.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Theme, out UIResolvedValue<Thickness> templateAfterRefresh));
         Assert.Equal(templateBefore.Value, templateAfterRefresh.Value);
     }
 
@@ -78,6 +82,10 @@ public class ResolvedTemplatePilotsTests
 
         MGTheme theme = node.GetTheme();
 
+        // ADR-0005/S7a: GraphNode.BorderThickness/BorderBrush are written to OuterBorder, but MGGraphNode does not
+        // override GetBorder() and has no public BorderBrush/BorderThickness facade forwarding to it -- OuterBorder
+        // is a plain template PART from the pilot-vs-part rule's point of view, not "the control itself", so this
+        // key stays Template(60) (unchanged by S7a).
         // ApplyGraphNodeTemplate still writes a Template(60) contribution for the border pilots, but
         // AttachControlTemplateStructure calls ApplySelectionVisual() once unconditionally, so VisualState(70)
         // (the "not selected" variant) is already the effective winner from construction onward.

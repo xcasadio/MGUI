@@ -107,14 +107,16 @@ public class ResolvedThemeChangeTests
     }
 
     [Fact]
-    public void ContextMenu_Local_Padding_Survives_A_Real_Theme_Change_And_The_Template_Contribution_Is_Retained()
+    public void ContextMenu_Local_Padding_Survives_A_Real_Theme_Change_And_The_Theme_Contribution_Is_Retained()
     {
         Harness harness = Harness.Create();
         MGContextMenu menu = new(harness.Window, "");
         menu.AddButton("Item A", _ => { });
         harness.Show(menu);
 
-        Assert.True(menu.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Template, out UIResolvedValue<Thickness> templateBefore));
+        // ADR-0005/S7a: ContextMenu.Padding targets the control itself (Menu.SetPadding), so the catalogue now
+        // tags it Theme (20) instead of Template (60).
+        Assert.True(menu.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Theme, out UIResolvedValue<Thickness> templateBefore));
         Assert.Equal(menu.GetTheme().ContextMenu.Padding, templateBefore.Value);
 
         Thickness localPadding = new(13);
@@ -129,9 +131,9 @@ public class ResolvedThemeChangeTests
         Assert.Equal(UIValueSourceKind.LocalValue, winner.Source.Kind);
         Assert.Equal(localPadding, winner.Value);
 
-        // The Template(60) contribution is retained even though it is no longer effective: the refresh guard bails
+        // The Theme(20) contribution is retained even though it is no longer effective: the refresh guard bails
         // because the current CLR padding (13) no longer equals the last template-applied value.
-        Assert.True(menu.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Template, out UIResolvedValue<Thickness> templateAfter));
+        Assert.True(menu.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Theme, out UIResolvedValue<Thickness> templateAfter));
         Assert.Equal(templateBefore.Value, templateAfter.Value);
     }
 
@@ -155,7 +157,9 @@ public class ResolvedThemeChangeTests
 
         Assert.Equal(distinctivePadding, window.Padding);
         Assert.True(window.TryGetResolvedPilotValue(UIPilotProperty.Padding, UIValueSlot.Whole, out UIResolvedValue<Thickness> winner));
-        Assert.Equal(UIValueSourceKind.Template, winner.Source.Kind);
+        // ADR-0005/S7a: Window.Padding targets the control itself (Window.SetPadding), so the catalogue now tags
+        // it Theme (20) instead of Template (60).
+        Assert.Equal(UIValueSourceKind.Theme, winner.Source.Kind);
         Assert.True(winner.HasAnyInvalidation(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
     }
 

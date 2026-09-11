@@ -95,7 +95,7 @@ namespace MGUI.Core.UI.Styling
 
         public void ApplyTemplateValue<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue,
             UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
-            => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue == null ? null : (v, _) => SetValue(v), Invalidation, Comparer);
+            => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue == null ? null : (v, _) => SetValue(v), Invalidation, Comparer, UIValueSourceKind.Template);
 
         /// <summary>Tagged overload of <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T}, UIInvalidationKind, IEqualityComparer{T})"/>
         /// (ADR-0005): <paramref name="SetValue"/> receives the exact <see cref="UIValueResolutionSource"/> (<c>Template</c>) this
@@ -103,14 +103,31 @@ namespace MGUI.Core.UI.Styling
         /// instead of its public one.</summary>
         public void ApplyTemplateValue<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue,
             UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
-            => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer);
+            => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer, UIValueSourceKind.Template);
+
+        /// <summary>Tagged variant of <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/>
+        /// (ADR-0005/S7a) for defaults that target the CONTROL ITSELF rather than one of its template parts. The control's own chrome
+        /// (its own Padding/Margin/MinHeight, or the border its public <c>BorderBrush</c>/<c>BorderThickness</c> facade writes, e.g. the
+        /// <see cref="MGBorder"/> returned by an owner's <c>GetBorder()</c>) is applied by the template constructor before any XAML
+        /// attribute or style has had a chance to run, so a plain <c>Template</c> (precedence 60) write would outrank a later
+        /// <c>ImplicitStyle</c>/<c>ExplicitStyle</c> (40/50) even though a style is meant to win over the control's own baked-in defaults.
+        /// Recording the value as <see cref="UIValueResolutionSource.Theme"/> (precedence 20) instead keeps it below styles while still
+        /// outranking <c>Inherited</c>/<c>DefaultValue</c>. Defaults that target a PART of the template (anything other than the owner or
+        /// the owner's own border) must keep using <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/>
+        /// so they stay <c>Template</c>.</summary>
+        public void ApplyOwnerThemeDefault<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue,
+            UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
+            => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer, UIValueSourceKind.Theme);
 
         /// <summary>Shared implementation behind every <see cref="ApplyThemeDefault{T}(string, T, Func{T}, Action{T}, IEqualityComparer{T})"/>/
-        /// <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T}, UIInvalidationKind, IEqualityComparer{T})"/> overload:
-        /// the has-previous/equals theme-refresh guard and <c>_AppliedTemplateDefaults</c> bookkeeping are unchanged from before
-        /// the tagged overloads were introduced (ADR-0005/S3).</summary>
+        /// <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T}, UIInvalidationKind, IEqualityComparer{T})"/>/
+        /// <see cref="ApplyOwnerThemeDefault{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/>
+        /// overload: the has-previous/equals theme-refresh guard and <c>_AppliedTemplateDefaults</c> bookkeeping are unchanged from before
+        /// the tagged overloads were introduced (ADR-0005/S3). <paramref name="SourceKind"/> selects which resolution source the write is
+        /// recorded and tagged under: <see cref="UIValueSourceKind.Template"/> for the existing part-targeting overloads, or
+        /// <see cref="UIValueSourceKind.Theme"/> for <see cref="ApplyOwnerThemeDefault{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/> (ADR-0005/S7a).</summary>
         private void ApplyTemplateValueCore<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue,
-            UIInvalidationKind Invalidation, IEqualityComparer<T> Comparer)
+            UIInvalidationKind Invalidation, IEqualityComparer<T> Comparer, UIValueSourceKind SourceKind)
         {
             if (Owner == null)
             {
@@ -132,7 +149,9 @@ namespace MGUI.Core.UI.Styling
             bool HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out UIResolvedValue<T> PreviousValue);
             if (!IsThemeRefresh || !HasPrevious || Comparer.Equals(CurrentValue, PreviousValue.Value))
             {
-                UIValueResolutionSource Source = UIValueResolutionSource.Template(Invalidation, Name);
+                UIValueResolutionSource Source = SourceKind == UIValueSourceKind.Theme
+                    ? UIValueResolutionSource.Theme(Invalidation, Name)
+                    : UIValueResolutionSource.Template(Invalidation, Name);
                 SetValue(Value, Source);
                 Owner.SetAppliedTemplateDefault(Name, new UIResolvedValue<T>(Value, Source));
 

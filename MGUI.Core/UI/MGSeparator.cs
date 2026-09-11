@@ -27,10 +27,12 @@ namespace MGUI.Core.UI
                 if (_Orientation != value)
                 {
                     _Orientation = value;
-                    // ADR-0005/S2: this reacts to the public Orientation property, so it is classified LocalValue
-                    // (it must beat this element's own DefaultValue constructor write below). Consequence: a
-                    // MGSeparator's Margin is pinned at LocalValue from construction onward and will not follow a
-                    // later Theme/Template default for Margin, since none is ever set above LocalValue here.
+                    // ADR-0005/S2/S7a: this reacts to the public Orientation property being changed AFTER
+                    // construction, so it is classified LocalValue -- the caller just set a property, so the
+                    // resulting margin must win like any other LocalValue write. The constructor no longer goes
+                    // through this setter (ADR-0005/S7a): it assigns the backing field directly and sets the
+                    // construction-time margin as DefaultValue instead, so a Theme/Template default or a style can
+                    // still override that initial margin; only a later change to Orientation forces LocalValue here.
                     SetMargin(AutoMargin, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                     LayoutChanged(this, true);
                     NPC(nameof(Orientation));
@@ -68,7 +70,13 @@ namespace MGUI.Core.UI
         {
             using (BeginInitializing())
             {
-                this.Orientation = Orientation;
+                // ADR-0005/S7a: assign the backing field directly rather than going through the public Orientation
+                // setter. That setter writes the auto margin as LocalValue (precedence 90) so a later change to the
+                // property (after construction) still wins outright; going through it here would pin the
+                // construction-time margin at LocalValue too, permanently outranking the DefaultValue write below and
+                // any Theme/Template/style default for Margin ever applied afterwards. Setting the field only leaves
+                // the margin write below as the sole contribution, at DefaultValue, so a style can freely override it.
+                _Orientation = Orientation;
                 SetMargin(AutoMargin, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 this.Size = Size;
             }

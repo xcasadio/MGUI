@@ -252,8 +252,10 @@ public class ResolvedScalarPilotsTests
         Assert.True(menu.TryGetResolvedPilotValue(UIPilotProperty.BorderBrush, UIValueSlot.Whole, out UIResolvedValue<IBorderBrush> winner));
         // Compared by content: theme brushes are clones, so reference equality would be wrong here.
         Assert.Equal(MGUniformBorderBrush.Gray, winner.Value);
-        // S3 tags the catalogue's write as Template (60), which still outranks the constructor's DefaultValue (0).
-        Assert.Equal(UIValueSourceKind.Template, winner.Source.Kind);
+        // ADR-0005/S7a: ContextMenu.BorderBrush targets the control's own border (Menu.SetBorderBrushTagged ->
+        // GetBorder()), so the catalogue now tags it Theme (20) instead of Template (60) -- it still outranks the
+        // constructor's DefaultValue (0).
+        Assert.Equal(UIValueSourceKind.Theme, winner.Source.Kind);
     }
 
     [Fact]

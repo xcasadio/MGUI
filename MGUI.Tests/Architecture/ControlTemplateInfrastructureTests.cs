@@ -847,7 +847,9 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("public int MinHeight { get; set; } = 30;", themeSource);
         Assert.Contains("public static void ApplyListBoxItemContainerDefaults", catalogSource);
         Assert.Contains("public static MGElement CreateDefaultListBoxItemContent", catalogSource);
-        Assert.Contains("Context.ApplyThemeDefault(\"ListBox.MinHeight\"", catalogSource);
+        // ADR-0005/S7a: ListBox.MinHeight targets the control itself (Context.Owner.SetMinHeight), so the catalogue
+        // now uses the owner-targeting overload (tagged Theme) instead of ApplyThemeDefault (Template).
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"ListBox.MinHeight\"", catalogSource);
         // ADR-0005/S3: ApplyListBoxItemContainerDefaults now tags its BorderBrush/BorderThickness/Padding writes as
         // Template (the per-item container's own template default) instead of assigning the untagged public
         // setters, so the pinned literal changed from a plain assignment to the tagged setter call it was migrated to.
@@ -904,8 +906,10 @@ public class ControlTemplateInfrastructureTests
         string themeBuilderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\ThemeDefinitionBuilder.cs");
         string xamlThemeSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\Themes.cs");
 
-        Assert.Contains("Context.ApplyThemeDefault(\"Window.Padding\"", catalogSource);
-        Assert.Contains("Context.ApplyThemeDefault(\"Overlay.Padding\"", catalogSource);
+        // ADR-0005/S7a: Window.Padding/Overlay.Padding target the control itself, so the catalogue now uses the
+        // owner-targeting overload (tagged Theme) instead of ApplyThemeDefault (Template).
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"Window.Padding\"", catalogSource);
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"Overlay.Padding\"", catalogSource);
         Assert.DoesNotContain("Padding = new(5);", overlaySource);
         Assert.DoesNotContain("Padding = new(4);", overlaySource);
         Assert.DoesNotContain("Padding = DefaultWindowPadding;", windowSource);
@@ -934,8 +938,10 @@ public class ControlTemplateInfrastructureTests
         int attachIndex = textBoxSource.IndexOf("protected internal override void AttachControlTemplateStructure", StringComparison.Ordinal);
         string attachSlice = attachIndex >= 0 ? textBoxSource.Substring(attachIndex, Math.Min(2500, textBoxSource.Length - attachIndex)) : textBoxSource;
 
-        Assert.Contains("Context.ApplyTemplateValue(\"TextBox.Padding\"", catalogSource);
-        Assert.Contains("Context.ApplyTemplateValue(\"TextBox.MinHeight\"", catalogSource);
+        // ADR-0005/S7a: TextBox.Padding/TextBox.MinHeight target the control itself (textBox.SetPadding/SetMinHeight),
+        // so the catalogue now uses the owner-targeting overload (tagged Theme) instead of ApplyTemplateValue (Template).
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"TextBox.Padding\"", catalogSource);
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"TextBox.MinHeight\"", catalogSource);
         Assert.Contains("SyncPlaceholderTextPart();", textBoxSource);
         Assert.Contains("SyncCharacterCountVisibility();", textBoxSource);
         Assert.Contains("SyncResizeGripVisibility();", textBoxSource);

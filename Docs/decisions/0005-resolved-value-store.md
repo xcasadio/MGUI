@@ -22,6 +22,11 @@ Taken by the author on 2026-09-07:
 - Style provenance (ImplicitStyle / ExplicitStyle) carried from the XAML parse model into the store now.
 - Precedence enforced at write time: the effective CLR value is always the highest set source; accepted behaviour changes: a theme change no longer overwrites a locally set pilot value, and a dynamic resource update no longer overwrites a later local write.
 
+Taken by the author on 2026-09-11 (before slice S7, XAML style provenance):
+
+- A catalogue write that targets the control itself (its own property, the border its `GetBorder()` or public `BorderBrush`/`BorderThickness` facade expose, or the element its XAML DTO writes for the same property, such as the `OuterBorder` that the `PropertyGrid` and `TreeView` DTOs hand their nested `Border` DTO) is a theme default of that control and carries the `Theme` source (20); only writes that target a template part carry `Template` (60). Rationale: templates apply in the constructor, so today every XAML attribute and style setter is written afterwards and wins; tagging styles `ImplicitStyle`/`ExplicitStyle` (40/50) while the control's own defaults stayed `Template` (60) would have made styles inert on templated controls (`TextBox`, `ComboBox`, `Window`, `TabControl`, ...), which the samples contradict. Parts are never XAML style targets, so part defaults keep outranking styles as in WPF.
+- `MGSeparator`'s construction-time margin is a `DefaultValue` (the public `Orientation` setter stays `LocalValue` for later changes), so a style margin can reach it.
+
 Derived design (main session):
 
 - Identity of a resolved value: (element owning the CLR property, `UIPilotProperty`, `UIValueSlot`). `Whole` for scalars and container replacement; `Normal`, `Selected`, `Disabled`, `Focused`, `FocusedColor` for container sub-fields. A composite's border resolves on its `MGBorder`.
