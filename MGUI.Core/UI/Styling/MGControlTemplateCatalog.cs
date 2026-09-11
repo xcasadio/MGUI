@@ -145,7 +145,7 @@ namespace MGUI.Core.UI.Styling
             Item.SetBorderThickness(DefaultListBoxItemBorderThickness, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "ListBox.Item.BorderThickness"));
             Item.SetPadding(DefaultListBoxItemPadding, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "ListBox.Item.Padding"));
             Item.SetBackground(theme.ListBoxItemBackground.GetValue(true), UIValueResolutionSource.Template(UIInvalidationKind.Draw, "ListBox.Item.Background"));
-            Item.DefaultTextForeground.SetAll(theme.TextBlockFallbackForeground.GetValue(true).NormalValue);
+            Item.SetDefaultTextForegroundAll(theme.TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.Template(UIInvalidationKind.Draw, "ListBox.Item.TextForeground"));
         }
 
         public static void RegisterDefaults(MGResources Resources)
@@ -302,8 +302,10 @@ namespace MGUI.Core.UI.Styling
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Center,
                 TextAlignment = HorizontalAlignment.Left,
-                DefaultTextForeground = new VisualStateSetting<Color?>(Color.White, Color.White, Color.White)
             };
+            // ADR-0005/S6: moved out of the object initializer so this is a tagged Template write instead of the
+            // public setter's LocalValue, matching the other Template-sourced defaults below.
+            titleText.SetDefaultTextForeground(new VisualStateSetting<Color?>(Color.White, Color.White, Color.White), UIValueResolutionSource.Template(UIInvalidationKind.Draw, "Window.TitleBarText.DefaultTextForeground"));
             titleText.SetMargin(new(4, 0), UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "Window.TitleBarText.Margin"));
             titleText.SetPadding(new(0), UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "Window.TitleBarText.Padding"));
             MGResizeGrip resizeGrip = new(Window);
@@ -780,7 +782,9 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("Window.CloseButtonPadding", Theme.Window.CloseButtonPadding, () => CloseButton.Padding, (value, source) => CloseButton.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("Window.TitleTextMargin", Theme.Window.TitleTextMargin, () => TitleText.Margin, (value, source) => TitleText.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("Window.TitleTextPadding", Theme.Window.TitleTextPadding, () => TitleText.Padding, (value, source) => TitleText.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("Window.TitleTextForeground", Theme.Window.TitleTextForeground, () => TitleText.DefaultTextForeground, value => TitleText.DefaultTextForeground = value);
+            // ADR-0005/S5-style copy: Theme.Window.TitleTextForeground is a raw (un-cloned) theme-owned instance --
+            // see the Window.CloseButtonBackground comment above for why every subscriber needs its own copy.
+            Context.ApplyThemeDefault("Window.TitleTextForeground", Theme.Window.TitleTextForeground?.GetCopy(), () => TitleText.DefaultTextForeground, (value, source) => TitleText.SetDefaultTextForeground(value, source));
 
             if (!Context.IsThemeRefresh && CloseButton.Content == null)
             {
@@ -841,7 +845,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("ToolTip.BorderThickness", new Thickness(2), () => Border.BorderThickness, (value, source) => Border.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ToolTip.Padding", new Thickness(6, 3), () => ToolTip.Padding, (value, source) => ToolTip.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ToolTip.DrawOffset", Theme.ToolTipOffset, () => ToolTip.DrawOffset, value => ToolTip.DrawOffset = value);
-            Context.ApplyThemeDefault("ToolTip.TextForeground", Theme.ToolTipTextForeground.GetCopy(), () => ToolTip.DefaultTextForeground, value => ToolTip.DefaultTextForeground = value);
+            Context.ApplyThemeDefault("ToolTip.TextForeground", Theme.ToolTipTextForeground.GetCopy(), () => ToolTip.DefaultTextForeground, (value, source) => ToolTip.SetDefaultTextForeground(value, source));
             Context.ApplyThemeDefault("ToolTip.MinWidth", 10, () => ToolTip.MinWidth ?? 0, value => ToolTip.MinWidth = value);
             Context.ApplyThemeDefault("ToolTip.MinHeight", 10, () => ToolTip.MinHeight ?? 0, (value, source) => ToolTip.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
@@ -882,7 +886,9 @@ namespace MGUI.Core.UI.Styling
             // Window.CloseButtonBackground comment above).
             Context.ApplyThemeDefault("ContextMenuItem.HeaderBackground", Theme.ContextMenuItem.HeaderBackground?.Copy(), () => HeaderPresenter.BackgroundBrush, (value, source) => HeaderPresenter.SetBackground(value, source));
             Context.ApplyThemeDefault("ContextMenuItem.ShortcutMargin", Theme.ContextMenuItem.ShortcutMargin, () => ShortcutText.Margin, (value, source) => ShortcutText.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("ContextMenuItem.ShortcutForeground", Theme.ContextMenuItem.ShortcutForeground, () => ShortcutText.Foreground, value => ShortcutText.Foreground = value);
+            // ADR-0005/S5-style copy: Theme.ContextMenuItem.ShortcutForeground is raw/shared -- see the
+            // Window.CloseButtonBackground comment above.
+            Context.ApplyThemeDefault("ContextMenuItem.ShortcutForeground", Theme.ContextMenuItem.ShortcutForeground?.GetCopy(), () => ShortcutText.Foreground, (value, source) => ShortcutText.SetForeground(value, source));
             Context.ApplyThemeDefault("ContextMenuItem.SubmenuArrowMargin", Theme.ContextMenuItem.SubmenuArrowMargin, () => Arrow.Margin, (value, source) => Arrow.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
@@ -907,7 +913,9 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("ListBox.OuterBackground", Theme.ListBox.OuterBackground?.Copy(), () => OuterBorder.BackgroundBrush, (value, source) => OuterBorder.SetBackground(value, source));
             Context.ApplyThemeDefault("ListBox.TitlePadding", Theme.ListBox.TitlePadding, () => TitleBorder.Padding, (value, source) => TitleBorder.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ListBox.TitleBackground", Theme.TitleBackground.GetValue(true), () => TitleBorder.BackgroundBrush, (value, source) => TitleBorder.SetBackground(value, source));
-            Context.ApplyThemeDefault("ListBox.TitleForeground", Theme.ListBox.TitleForeground, () => TitleBorder.DefaultTextForeground, value => TitleBorder.DefaultTextForeground = value);
+            // ADR-0005/S5-style copy: Theme.ListBox.TitleForeground is raw/shared -- see the
+            // Window.CloseButtonBackground comment above.
+            Context.ApplyThemeDefault("ListBox.TitleForeground", Theme.ListBox.TitleForeground?.GetCopy(), () => TitleBorder.DefaultTextForeground, (value, source) => TitleBorder.SetDefaultTextForeground(value, source));
             Context.ApplyThemeDefault("ListBox.TitleBorderBrush", Theme.ListBox.TitleBorderBrush, () => TitleBorder.BorderBrush, (value, source) => TitleBorder.SetBorderBrush(value, source));
             Context.ApplyThemeDefault("ListBox.TitleBorderThickness", Theme.ListBox.TitleBorderThickness, () => TitleBorder.BorderThickness, (value, source) => TitleBorder.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ListBox.InnerBorderBrush", Theme.ListBox.InnerBorderBrush, () => InnerBorder.BorderBrush, (value, source) => InnerBorder.SetBorderBrush(value, source));
@@ -951,7 +959,9 @@ namespace MGUI.Core.UI.Styling
             });
             Context.ApplyTemplateValue("ListView.DataGridLineMargin", gridLineMargin, () => DataGrid.GridLineMargin, value => DataGrid.GridLineMargin = value);
             Context.ApplyThemeDefault("ListView.HeaderBackground", Theme.TitleBackground.GetValue(true), () => HeaderGrid.BackgroundBrush, (value, source) => HeaderGrid.SetBackground(value, source));
-            Context.ApplyThemeDefault("ListView.HeaderForeground", Theme.ListView.HeaderForeground, () => HeaderGrid.DefaultTextForeground, value => HeaderGrid.DefaultTextForeground = value);
+            // ADR-0005/S5-style copy: Theme.ListView.HeaderForeground is raw/shared -- see the
+            // Window.CloseButtonBackground comment above.
+            Context.ApplyThemeDefault("ListView.HeaderForeground", Theme.ListView.HeaderForeground?.GetCopy(), () => HeaderGrid.DefaultTextForeground, (value, source) => HeaderGrid.SetDefaultTextForeground(value, source));
             Context.ApplyThemeDefault("ListView.HeaderHorizontalGridLineBrush", Theme.ListView.GridLineBrush, () => HeaderGrid.HorizontalGridLineBrush, value => HeaderGrid.HorizontalGridLineBrush = value);
             Context.ApplyThemeDefault("ListView.HeaderVerticalGridLineBrush", Theme.ListView.GridLineBrush, () => HeaderGrid.VerticalGridLineBrush, value => HeaderGrid.VerticalGridLineBrush = value);
             Context.ApplyThemeDefault("ListView.DataHorizontalGridLineBrush", Theme.ListView.GridLineBrush, () => DataGrid.HorizontalGridLineBrush, value => DataGrid.HorizontalGridLineBrush = value);
@@ -1031,7 +1041,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Padding", DefaultComboBoxDropdownItemPadding, () => Button.Padding, (value, source) => Button.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Margin", new Thickness(0), () => Button.Margin, (value, source) => Button.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Background", theme.ComboBoxDropdownItemBackground.GetValue(true), () => Button.BackgroundBrush, (value, source) => Button.SetBackground(value, source));
-            Context.ApplyThemeDefault("ComboBox.DropdownItem.Foreground", theme.TextBlockFallbackForeground.GetValue(true).NormalValue, () => Button.DefaultTextForeground.NormalValue, value => Button.DefaultTextForeground.SetAll(value));
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.Foreground", theme.TextBlockFallbackForeground.GetValue(true).NormalValue, () => Button.DefaultTextForeground.NormalValue, (value, source) => Button.SetDefaultTextForegroundAll(value, source));
             Context.ApplyThemeDefault("ComboBox.DropdownItem.HorizontalAlignment", HorizontalAlignment.Stretch, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.HorizontalContentAlignment", HorizontalAlignment.Left, () => Button.HorizontalContentAlignment, value => Button.HorizontalContentAlignment = value);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.VerticalAlignment", VerticalAlignment.Stretch, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value);
@@ -1129,7 +1139,7 @@ namespace MGUI.Core.UI.Styling
             // ADR-0005/S5: theme.Graph.NodeHeaderBackground is raw/shared -- copy per subscriber (see the
             // Window.CloseButtonBackground comment above).
             Context.ApplyThemeDefault("GraphNode.HeaderBackground", theme.Graph.NodeHeaderBackground?.Copy(), () => header.BackgroundBrush, (value, source) => header.SetBackground(value, source));
-            Context.ApplyThemeDefault("GraphNode.HeaderForeground", ToTextForeground(theme.Graph.NodeHeaderForeground), () => header.DefaultTextForeground, value => header.DefaultTextForeground = value);
+            Context.ApplyThemeDefault("GraphNode.HeaderForeground", ToTextForeground(theme.Graph.NodeHeaderForeground), () => header.DefaultTextForeground, (value, source) => header.SetDefaultTextForeground(value, source));
             Context.ApplyThemeDefault("GraphNode.HeaderPadding", new Thickness(10, 6), () => header.Padding, (value, source) => header.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("GraphNode.BodyBackground", theme.Graph.NodeBodyBackground?.Copy(), () => bodyPresenter.BackgroundBrush, (value, source) => bodyPresenter.SetBackground(value, source));
         }
@@ -1149,7 +1159,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("GraphPort.BorderBrush", theme.Graph.NodeBorderBrush, () => outerBorder.BorderBrush, (value, source) => outerBorder.SetBorderBrush(value, source));
             Context.ApplyThemeDefault("GraphPort.BorderThickness", new Thickness(0), () => outerBorder.BorderThickness, (value, source) => outerBorder.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("GraphPort.Padding", new Thickness(0, 2), () => outerBorder.Padding, (value, source) => outerBorder.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("GraphPort.Foreground", ToTextForeground(theme.Graph.PortForeground), () => label.DefaultTextForeground, value => label.DefaultTextForeground = value);
+            Context.ApplyThemeDefault("GraphPort.Foreground", ToTextForeground(theme.Graph.PortForeground), () => label.DefaultTextForeground, (value, source) => label.SetDefaultTextForeground(value, source));
             Context.ApplyTemplateValue("GraphPort.HorizontalAlignment", HorizontalAlignment.Stretch, () => graphPort.HorizontalAlignment, value => graphPort.HorizontalAlignment = value);
         }
 
@@ -1171,8 +1181,8 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("GraphCommentBox.BorderBrush", theme.Graph.CommentBorderBrush, () => outerBorder.BorderBrush, (value, source) => outerBorder.SetBorderBrush(value, source));
             Context.ApplyThemeDefault("GraphCommentBox.BorderThickness", new Thickness(1), () => outerBorder.BorderThickness, (value, source) => outerBorder.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("GraphCommentBox.Padding", new Thickness(8, 6), () => outerBorder.Padding, (value, source) => outerBorder.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("GraphCommentBox.TitleForeground", ToTextForeground(theme.Graph.NodeHeaderForeground), () => title.DefaultTextForeground, value => title.DefaultTextForeground = value);
-            Context.ApplyThemeDefault("GraphCommentBox.BodyForeground", ToTextForeground(theme.Graph.PortForeground), () => body.DefaultTextForeground, value => body.DefaultTextForeground = value);
+            Context.ApplyThemeDefault("GraphCommentBox.TitleForeground", ToTextForeground(theme.Graph.NodeHeaderForeground), () => title.DefaultTextForeground, (value, source) => title.SetDefaultTextForeground(value, source));
+            Context.ApplyThemeDefault("GraphCommentBox.BodyForeground", ToTextForeground(theme.Graph.PortForeground), () => body.DefaultTextForeground, (value, source) => body.SetDefaultTextForeground(value, source));
         }
 
         private static VisualStateSetting<Color?> ToTextForeground(VisualStateColorBrush brush)
@@ -1380,7 +1390,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Foreground" : "TabHeader.Unselected.Foreground",
                 theme.TextBlockFallbackForeground.GetValue(true).NormalValue,
                 () => Button.DefaultTextForeground.NormalValue,
-                value => Button.DefaultTextForeground.SetAll(value));
+                (value, source) => Button.SetDefaultTextForegroundAll(value, source));
 
             switch (TabControl.TabHeaderPosition)
             {

@@ -220,12 +220,13 @@ public class ResolvedScalarPilotsTests
         Harness harness = Harness.Create();
 
         PilotProbeElement element = new(harness.Window);
-        // ADR-0005/S5: +1 for Background, now also a base-constructor pilot write (Margin, Padding, Background).
-        Assert.Equal(3, element.ResolvedEntryCount);
+        // ADR-0005/S6: +1 for DefaultTextForeground, now also a base-constructor pilot write
+        // (Margin, Padding, Background, DefaultTextForeground).
+        Assert.Equal(4, element.ResolvedEntryCount);
 
         MGBorder border = new(harness.Window);
-        // ADR-0005/S5: inherited Margin, Padding, Background + own BorderBrush, BorderThickness.
-        Assert.Equal(5, border.ResolvedEntryCount);
+        // ADR-0005/S6: inherited Margin, Padding, Background, DefaultTextForeground + own BorderBrush, BorderThickness.
+        Assert.Equal(6, border.ResolvedEntryCount);
 
         int elementEntryCountBefore = element.ResolvedEntryCount;
         element.Opacity = 0.5f;

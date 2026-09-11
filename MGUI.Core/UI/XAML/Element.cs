@@ -397,19 +397,20 @@ namespace MGUI.Core.UI.XAML
 
                 ApplyResourceReferences(Element, this, Element, MapTargetPath);
 
+                // ADR-0005/S7 will replace LocalValue here with the XAML value's actual style provenance.
                 if (TextForeground.HasValue)
                 {
-                    Element.DefaultTextForeground.NormalValue = TextForeground.Value.ToXNAColor();
+                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Normal, TextForeground.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 }
 
                 if (DisabledTextForeground.HasValue)
                 {
-                    Element.DefaultTextForeground.DisabledValue = DisabledTextForeground.Value.ToXNAColor();
+                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Disabled, DisabledTextForeground.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 }
 
                 if (SelectedTextForeground.HasValue)
                 {
-                    Element.DefaultTextForeground.SelectedValue = SelectedTextForeground.Value.ToXNAColor();
+                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Selected, SelectedTextForeground.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 }
 
                 if (Visibility.HasValue)

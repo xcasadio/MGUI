@@ -998,12 +998,14 @@ public class ControlTemplateInfrastructureTests
         // ADR-0005/S5: CreateDefaultBarButton's factory write is now tagged Default (see the comment in
         // MGMenuBar.cs explaining why -- OnThemeChanged below re-writes the same elements at Theme precedence).
         Assert.Contains("Button.SetBackground(background, UIValueResolutionSource.Default(UIInvalidationKind.Draw));", menuBarSource);
-        Assert.Contains("Button.DefaultTextForeground.SetAll(textForeground);", menuBarSource);
+        // ADR-0005/S6: CreateDefaultBarButton's DefaultTextForeground write is now tagged Default the same way.
+        Assert.Contains("Button.SetDefaultTextForegroundAll(textForeground, UIValueResolutionSource.Default(UIInvalidationKind.Draw));", menuBarSource);
         Assert.Contains("VisualStateFillBrush background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
         Assert.Contains("Color? textForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;", menuBarSource);
         // ADR-0005/S5: OnThemeChanged now writes ContentWrapper's Background through the tagged Theme pilot setter.
         Assert.Contains("ContentWrapper.SetBackground(background, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));", menuBarSource);
-        Assert.Contains("ContentWrapper.DefaultTextForeground.SetAll(textForeground);", menuBarSource);
+        // ADR-0005/S6: OnThemeChanged now writes ContentWrapper's DefaultTextForeground through the tagged Theme pilot setter.
+        Assert.Contains("ContentWrapper.SetDefaultTextForegroundAll(textForeground, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));", menuBarSource);
     }
 
     [Fact]

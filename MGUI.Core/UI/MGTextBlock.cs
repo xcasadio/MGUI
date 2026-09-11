@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System.ComponentModel;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Text;
 using System;
@@ -347,18 +348,316 @@ namespace MGUI.Core.UI
         public VisualStateSetting<Color?> Foreground
         {
             get => _Foreground;
-            set
-            {
-                if (_Foreground != value)
-                {
-                    _Foreground = value;
-                    NPC(nameof(Foreground));
-                    NPC(nameof(ActualForeground));
-                }
-            }
+            set => SetForeground(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
         }
 
         public Color ActualForeground => Foreground.GetValue(VisualState.Primary) ?? DerivedDefaultTextForeground ?? GetTheme().TextBlockFallbackForeground.GetValue(false).GetValue(VisualState.Primary);
+
+        #region Foreground container pilot (ADR-0005/S6)
+        /// <summary>True while a tagged <see cref="Foreground"/> sub-slot write (<see cref="SetForegroundSlot"/>) is
+        /// physically writing <see cref="_Foreground"/>'s sub-field, so <see cref="HandleForegroundContainerPropertyChanged"/>
+        /// (subscribed to every container this element holds) ignores that change instead of re-recording it as a
+        /// <c>LocalValue</c> contribution. Mirrors <c>MGElement</c>'s <c>_SuppressBackgroundContainerNotify</c> /
+        /// <c>_SuppressDefaultTextForegroundContainerNotify</c> for this third container pilot.</summary>
+        private bool _SuppressForegroundContainerNotify;
+
+        /// <summary>Tagged write of <see cref="Foreground"/> (ADR-0005/S6): records <paramref name="source"/>'s
+        /// Whole-slot contribution (reference equality, matching the container's lack of value equality) and, if it
+        /// becomes the winner, swaps the physical container via <see cref="ApplyForegroundEffective"/>.<para/>
+        /// R1: a Whole write first drops every sub-slot contribution recorded at the exact same precedence as
+        /// <paramref name="source"/>. See <c>MGElement.SetBackground</c>/<c>SetDefaultTextForeground</c> for the full
+        /// rationale -- this mirrors them exactly for this container.</summary>
+        internal void SetForeground(VisualStateSetting<Color?> value, UIValueResolutionSource source)
+        {
+            UnsetForegroundSubSlotsAtPrecedence(source.Precedence);
+
+            ResolvedValues.Set(UIPilotProperty.Foreground, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool effectiveChanged, out UIResolvedValue<VisualStateSetting<Color?>> effective);
+            if (effectiveChanged)
+                ApplyForegroundEffective(effective.Value);
+        }
+
+        /// <summary>Tagged write of one <see cref="Color"/>? sub-slot (<see cref="UIValueSlot.Normal"/>,
+        /// <see cref="UIValueSlot.Selected"/>, <see cref="UIValueSlot.Disabled"/> or <see cref="UIValueSlot.Focused"/>) (R3).
+        /// This container has no <see cref="UIValueSlot.FocusedColor"/> sub-slot.</summary>
+        internal void SetForegroundSlot(UIValueSlot slot, Color? value, UIValueResolutionSource source)
+        {
+            ValidateForegroundSlot(slot);
+
+            ResolvedValues.Set(UIPilotProperty.Foreground, slot, value, source, EqualityComparer<Color?>.Default, out _, out UIResolvedValue<Color?> effective);
+            if (effective.Source.Kind == source.Kind && IsForegroundSubSlotApplicable(effective.Source.Precedence))
+                ApplyForegroundSlotPhysical(slot, effective.Value);
+        }
+
+        /// <summary>Tagged write of all four sub-slots (<see cref="VisualStateSetting{TDataType}.SetAll"/>'s pilot
+        /// equivalent), one <see cref="SetForegroundSlot"/> call per slot.</summary>
+        internal void SetForegroundAll(Color? value, UIValueResolutionSource source)
+        {
+            SetForegroundSlot(UIValueSlot.Normal, value, source);
+            SetForegroundSlot(UIValueSlot.Selected, value, source);
+            SetForegroundSlot(UIValueSlot.Disabled, value, source);
+            SetForegroundSlot(UIValueSlot.Focused, value, source);
+        }
+
+        private static void ValidateForegroundSlot(UIValueSlot slot)
+        {
+            if (slot != UIValueSlot.Normal && slot != UIValueSlot.Selected && slot != UIValueSlot.Disabled && slot != UIValueSlot.Focused)
+                throw new ArgumentOutOfRangeException(nameof(slot), slot, $"{nameof(SetForegroundSlot)} only accepts {UIValueSlot.Normal}, {UIValueSlot.Selected}, {UIValueSlot.Disabled}, or {UIValueSlot.Focused}.");
+        }
+
+        /// <summary>R1: removes every Foreground sub-slot contribution (all four sub-slots) whose precedence equals
+        /// <paramref name="precedence"/>, immediately before a same-precedence Whole write replaces the container
+        /// that held them.</summary>
+        private void UnsetForegroundSubSlotsAtPrecedence(UIValuePrecedence precedence)
+        {
+            if (ResolvedEntryCount == 0)
+                return;
+
+            UnsetForegroundSlotAtPrecedence(UIValueSlot.Normal, precedence);
+            UnsetForegroundSlotAtPrecedence(UIValueSlot.Selected, precedence);
+            UnsetForegroundSlotAtPrecedence(UIValueSlot.Disabled, precedence);
+            UnsetForegroundSlotAtPrecedence(UIValueSlot.Focused, precedence);
+        }
+
+        private void UnsetForegroundSlotAtPrecedence(UIValueSlot slot, UIValuePrecedence precedence)
+        {
+            foreach (UIValueSourceKind kind in ResolvedValues.Contributions(UIPilotProperty.Foreground, slot).ToArray())
+            {
+                if (ResolvedValues.TryGetContribution<Color?>(UIPilotProperty.Foreground, slot, kind, out UIResolvedValue<Color?> contribution) && contribution.Source.Precedence == precedence)
+                    ResolvedValues.Unset<Color?>(UIPilotProperty.Foreground, slot, kind, EqualityComparer<Color?>.Default, out _, out _);
+            }
+        }
+
+        /// <summary>R4: clears the contribution of <paramref name="kind"/> for one Foreground sub-slot.</summary>
+        private void ClearForegroundPilotSource(UIValueSlot slot, UIValueSourceKind kind)
+        {
+            switch (slot)
+            {
+                case UIValueSlot.Whole:
+                    if (ResolvedValues.Unset(UIPilotProperty.Foreground, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool wholeChanged, out UIResolvedValue<VisualStateSetting<Color?>> whole) && wholeChanged)
+                        ApplyForegroundEffective(whole.Value);
+                    break;
+                case UIValueSlot.Normal:
+                case UIValueSlot.Selected:
+                case UIValueSlot.Disabled:
+                case UIValueSlot.Focused:
+                    if (ResolvedValues.Unset(UIPilotProperty.Foreground, slot, kind, EqualityComparer<Color?>.Default, out bool slotChanged, out UIResolvedValue<Color?> slotValue)
+                        && slotChanged && slotValue.IsSet && IsForegroundSubSlotApplicable(slotValue.Source.Precedence))
+                    {
+                        ApplyForegroundSlotPhysical(slot, slotValue.Value);
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>The body of the pre-ADR-0005 <see cref="Foreground"/> setter (reference-equality guard,
+        /// assignment, two notifications), plus (R2) subscription management and sub-slot re-application.</summary>
+        private void ApplyForegroundEffective(VisualStateSetting<Color?> value)
+        {
+            if (_Foreground != value)
+            {
+                if (_Foreground != null)
+                    _Foreground.PropertyChanged -= HandleForegroundContainerPropertyChanged;
+
+                _Foreground = value;
+
+                if (_Foreground != null)
+                    _Foreground.PropertyChanged += HandleForegroundContainerPropertyChanged;
+
+                NPC(nameof(Foreground));
+                NPC(nameof(ActualForeground));
+
+                ReapplyForegroundSubSlots();
+            }
+        }
+
+        /// <summary>R2's re-application onto the just-swapped container.</summary>
+        private void ReapplyForegroundSubSlots()
+        {
+            if (ResolvedEntryCount == 0 || _Foreground == null)
+                return;
+
+            if (!ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) || !whole.IsSet)
+                return;
+
+            UIValuePrecedence effectivePrecedence = whole.Source.Precedence;
+
+            _SuppressForegroundContainerNotify = true;
+            try
+            {
+                if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Normal, out UIResolvedValue<Color?> normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
+                    _Foreground.NormalValue = normal.Value;
+                if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Selected, out UIResolvedValue<Color?> selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
+                    _Foreground.SelectedValue = selected.Value;
+                if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Disabled, out UIResolvedValue<Color?> disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
+                    _Foreground.DisabledValue = disabled.Value;
+                if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Focused, out UIResolvedValue<Color?> focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
+                    _Foreground.FocusedValue = focused.Value;
+            }
+            finally
+            {
+                _SuppressForegroundContainerNotify = false;
+            }
+        }
+
+        private void ApplyForegroundSlotPhysical(UIValueSlot slot, Color? value)
+        {
+            if (_Foreground == null)
+                return;
+
+            _SuppressForegroundContainerNotify = true;
+            try
+            {
+                switch (slot)
+                {
+                    case UIValueSlot.Normal: _Foreground.NormalValue = value; break;
+                    case UIValueSlot.Selected: _Foreground.SelectedValue = value; break;
+                    case UIValueSlot.Disabled: _Foreground.DisabledValue = value; break;
+                    case UIValueSlot.Focused: _Foreground.FocusedValue = value; break;
+                }
+            }
+            finally
+            {
+                _SuppressForegroundContainerNotify = false;
+            }
+        }
+
+        private bool IsForegroundSubSlotApplicable(UIValuePrecedence precedence)
+            => !TryGetForegroundEffectivePrecedence(out UIValuePrecedence effective) || precedence >= effective;
+
+        private bool TryGetForegroundEffectivePrecedence(out UIValuePrecedence precedence)
+        {
+            if (ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) && whole.IsSet)
+            {
+                precedence = whole.Source.Precedence;
+                return true;
+            }
+
+            precedence = default;
+            return false;
+        }
+
+        /// <summary>R6: reads a Foreground sub-slot for diagnostics, dormancy-aware like
+        /// <c>MGElement.TryGetResolvedBackgroundSubSlotValue</c>.</summary>
+        private bool TryGetResolvedForegroundSubSlotValue<T>(UIValueSlot slot, out UIResolvedValue<T> value)
+        {
+            if (ResolvedValues.TryGetWinner<T>(UIPilotProperty.Foreground, slot, out UIResolvedValue<T> winner)
+                && winner.IsSet && IsForegroundSubSlotApplicable(winner.Source.Precedence))
+            {
+                value = winner;
+                return true;
+            }
+
+            if (_Foreground != null && ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) && whole.IsSet)
+            {
+                object physical = slot switch
+                {
+                    UIValueSlot.Normal => _Foreground.NormalValue,
+                    UIValueSlot.Selected => _Foreground.SelectedValue,
+                    UIValueSlot.Disabled => _Foreground.DisabledValue,
+                    UIValueSlot.Focused => _Foreground.FocusedValue,
+                    _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
+                };
+                value = new UIResolvedValue<T>((T)physical, whole.Source);
+                return true;
+            }
+
+            value = UIResolvedValue<T>.Unset();
+            return false;
+        }
+
+        /// <summary>Handles a non-tagged write to the container this element currently holds (e.g. application code
+        /// doing <c>textBlock.Foreground.NormalValue = x</c>) (R5).</summary>
+        private void HandleForegroundContainerPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (_SuppressForegroundContainerNotify || _Foreground == null)
+                return;
+
+            switch (e.PropertyName)
+            {
+                case nameof(VisualStateSetting<Color?>.NormalValue):
+                    ResolvedValues.Set(UIPilotProperty.Foreground, UIValueSlot.Normal, _Foreground.NormalValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), EqualityComparer<Color?>.Default, out _, out _);
+                    break;
+                case nameof(VisualStateSetting<Color?>.SelectedValue):
+                    ResolvedValues.Set(UIPilotProperty.Foreground, UIValueSlot.Selected, _Foreground.SelectedValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), EqualityComparer<Color?>.Default, out _, out _);
+                    break;
+                case nameof(VisualStateSetting<Color?>.DisabledValue):
+                    ResolvedValues.Set(UIPilotProperty.Foreground, UIValueSlot.Disabled, _Foreground.DisabledValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), EqualityComparer<Color?>.Default, out _, out _);
+                    break;
+                case nameof(VisualStateSetting<Color?>.FocusedValue):
+                    ResolvedValues.Set(UIPilotProperty.Foreground, UIValueSlot.Focused, _Foreground.FocusedValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), EqualityComparer<Color?>.Default, out _, out _);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>Extends <see cref="MGElement.ClearPilotSource"/> with the Foreground container (this type's own
+        /// pilot); every other property falls back to the base implementation.</summary>
+        internal override void ClearPilotSource(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind kind)
+        {
+            if (property == UIPilotProperty.Foreground)
+            {
+                ClearForegroundPilotSource(slot, kind);
+            }
+            else
+            {
+                base.ClearPilotSource(property, slot, kind);
+            }
+        }
+
+        /// <summary>Diagnostic override (ADR-0005/S6) for <see cref="UIPilotProperty.Foreground"/>: mirrors
+        /// <see cref="ActualForeground"/>'s fall-back chain (container winner -> <see cref="MGElement.DerivedDefaultTextForeground"/>
+        /// -> theme fallback) instead of the generic store lookup, so the diagnostic and the physical value never
+        /// disagree. Every other pilot (and every other <c>T</c> on this key, which never occurs in practice since
+        /// <see cref="UIPilotProperty.Foreground"/> is always <see cref="Color"/>?) falls back to the base implementation.</summary>
+        internal override bool TryGetResolvedPilotValue<T>(UIPilotProperty property, UIValueSlot slot, out UIResolvedValue<T> value)
+        {
+            if (property == UIPilotProperty.Foreground && typeof(T) == typeof(Color?))
+            {
+                if (TryGetResolvedForegroundSubSlotOrWholeValue(slot, out UIResolvedValue<Color?> containerValue) && containerValue.Value.HasValue)
+                {
+                    value = (UIResolvedValue<T>)(object)containerValue;
+                    return true;
+                }
+
+                Color? derived = DerivedDefaultTextForeground;
+                if (derived.HasValue)
+                {
+                    UIResolvedValue<Color?> inherited = new(derived, UIValueResolutionSource.Inherited(UIInvalidationKind.Draw));
+                    value = (UIResolvedValue<T>)(object)inherited;
+                    return true;
+                }
+
+                Color themeFallback = GetTheme().TextBlockFallbackForeground.GetValue(false).GetValue(VisualState.Primary);
+                UIResolvedValue<Color?> themeValue = new(themeFallback, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+                value = (UIResolvedValue<T>)(object)themeValue;
+                return true;
+            }
+
+            return base.TryGetResolvedPilotValue(property, slot, out value);
+        }
+
+        /// <summary>Reads the Foreground container's winner for <paramref name="slot"/>: the Whole slot reads the
+        /// container's own winner directly, any other slot goes through <see cref="TryGetResolvedForegroundSubSlotValue{T}"/>'s
+        /// dormancy-aware lookup (R6).</summary>
+        private bool TryGetResolvedForegroundSubSlotOrWholeValue(UIValueSlot slot, out UIResolvedValue<Color?> value)
+        {
+            if (slot == UIValueSlot.Whole)
+            {
+                if (ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) && whole.IsSet)
+                {
+                    Color? physical = whole.Value?.GetValue(VisualState.Primary);
+                    value = new UIResolvedValue<Color?>(physical, whole.Source);
+                    return true;
+                }
+
+                value = UIResolvedValue<Color?>.Unset();
+                return false;
+            }
+
+            return TryGetResolvedForegroundSubSlotValue(slot, out value);
+        }
+        #endregion Foreground container pilot (ADR-0005/S6)
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private double? _TextProgress;
@@ -917,7 +1216,7 @@ namespace MGUI.Core.UI
                 this.Text = Text;
                 MinLines = 0;
                 MaxLines = null;
-                this.Foreground = new VisualStateSetting<Color?>(Foreground, Foreground, Foreground);
+                SetForeground(new VisualStateSetting<Color?>(Foreground, Foreground, Foreground), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
                 LinePadding = 2;
                 TextAlignment = HorizontalAlignment.Left;
                 SetPadding(new(1,1,1,1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));

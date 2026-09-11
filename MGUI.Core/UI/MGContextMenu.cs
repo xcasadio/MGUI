@@ -255,7 +255,7 @@ namespace MGUI.Core.UI
             VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
             Button.SetBackground(background, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
-            Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
+            Button.SetDefaultTextForegroundAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
 
             return Button;
         }

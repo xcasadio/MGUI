@@ -128,7 +128,7 @@ namespace MGUI.Core.UI
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
                 SetPadding(new(4, 2, 4, 2), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                CheckedTextForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;
+                SetDefaultTextForegroundSlot(UIValueSlot.Selected, GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
                 MouseHandler.LMBPressedInside += (sender, e) =>
                 {
@@ -164,7 +164,7 @@ namespace MGUI.Core.UI
             if (CurrentTheme != null)
             {
                 SetBackground(CurrentTheme.GetBackgroundBrush(MGElementType.ToggleButton), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
-                CheckedTextForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;
+                SetDefaultTextForegroundSlot(UIValueSlot.Selected, CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             }
         }
 

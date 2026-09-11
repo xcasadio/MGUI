@@ -622,12 +622,12 @@ namespace MGUI.Core.UI
             {
                 VisualStateSetting<Color?> headerForeground = ToTextColorSetting(settings.CategoryHeaderForeground?.Copy());
                 HeaderButton.SetBackground(settings.CategoryHeaderBackground?.Copy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
-                HeaderButton.DefaultTextForeground = headerForeground;
+                HeaderButton.SetDefaultTextForeground(headerForeground, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 HeaderButton.SetPadding(settings.CategoryHeaderPadding, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 HeaderButton.SetMinHeight(settings.CategoryHeaderMinHeight, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 ArrowIcon.Color = settings.CategoryArrowColor;
-                HeaderText.Foreground = new VisualStateSetting<Color?>((Color?)null, null, null, null);
-                HeaderText.DefaultTextForeground = headerForeground.GetCopy();
+                HeaderText.SetForeground(new VisualStateSetting<Color?>((Color?)null, null, null, null), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+                HeaderText.SetDefaultTextForeground(headerForeground.GetCopy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 RowsPanel.Spacing = settings.RowsSpacing;
             }
 
@@ -779,8 +779,8 @@ namespace MGUI.Core.UI
                 Root.SetPadding(settings.RowPadding, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 Root.SetBorderThickness(settings.RowSeparatorBrush != null ? new Thickness(0, 0, 0, 1) : new Thickness(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 Root.SetBorderBrush(settings.RowSeparatorBrush?.AsUniformBorderBrush(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
-                Root.DefaultTextForeground = textForeground.GetCopy();
-                Label.DefaultTextForeground = textForeground.GetCopy();
+                Root.SetDefaultTextForeground(textForeground.GetCopy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+                Label.SetDefaultTextForeground(textForeground.GetCopy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 Editor.ApplyTheme(settings);
             }
 
@@ -915,7 +915,7 @@ namespace MGUI.Core.UI
             public override void ApplyTheme(MGThemePropertyGridSettings settings)
             {
                 VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
-                CheckBox.DefaultTextForeground = ToTextColorSetting(themeText?.Copy());
+                CheckBox.SetDefaultTextForeground(ToTextColorSetting(themeText?.Copy()), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             }
 
             public override void Dispose()
@@ -978,8 +978,8 @@ namespace MGUI.Core.UI
             {
                 VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
                 VisualStateSetting<Color?> textForeground = ToTextColorSetting(themeText?.Copy());
-                HostBorder.DefaultTextForeground = textForeground.GetCopy();
-                DisplayText.DefaultTextForeground = textForeground.GetCopy();
+                HostBorder.SetDefaultTextForeground(textForeground.GetCopy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+                DisplayText.SetDefaultTextForeground(textForeground.GetCopy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             }
 
             public override void Dispose()
@@ -1083,8 +1083,8 @@ namespace MGUI.Core.UI
             {
                 VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
                 InvalidBorderBrush = settings.InvalidEditorBorderBrush?.Copy();
-                HostBorder.DefaultTextForeground = ToTextColorSetting(themeText?.Copy());
-                TextBox.DefaultTextForeground = ToTextColorSetting(themeText?.Copy());
+                HostBorder.SetDefaultTextForeground(ToTextColorSetting(themeText?.Copy()), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+                TextBox.SetDefaultTextForeground(ToTextColorSetting(themeText?.Copy()), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 UpdateValidationVisual();
             }
 

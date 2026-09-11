@@ -43,11 +43,12 @@ public class ResolvedBackgroundPilotTests
         Assert.True(element.TryGetResolvedContribution(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.DefaultValue, out UIResolvedValue<VisualStateFillBrush> contribution));
         Assert.Same(element.BackgroundBrush, contribution.Value);
 
-        // ADR-0005/S5: +1 over the S2 budget (Margin, Padding) -- Background is now also a base-constructor pilot write.
-        Assert.Equal(3, element.ResolvedEntryCount);
+        // ADR-0005/S6: +1 over the S5 budget (Margin, Padding, Background) -- DefaultTextForeground is now also a
+        // base-constructor pilot write.
+        Assert.Equal(4, element.ResolvedEntryCount);
 
         MGBorder border = new(harness.Window);
-        Assert.Equal(5, border.ResolvedEntryCount); // Margin, Padding, Background, BorderBrush, BorderThickness
+        Assert.Equal(6, border.ResolvedEntryCount); // Margin, Padding, Background, DefaultTextForeground, BorderBrush, BorderThickness
 
         int entryCountBefore = element.ResolvedEntryCount;
         element.Opacity = 0.5f;

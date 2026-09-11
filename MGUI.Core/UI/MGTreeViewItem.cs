@@ -66,7 +66,6 @@ public class MGTreeViewItem : MGSingleContentHost
     private readonly ObservableCollection<MGTreeViewItem> _Items;
     internal MGTreeView _OwnerTreeView;
     private object _HeaderTemplate;
-    private VisualStateSetting<Color?> _PreviousHeaderForeground;
     private long? _LastHeaderBodySequenceId;
     private bool _HasStoredSelectionVisualState;
 
@@ -549,12 +548,10 @@ public class MGTreeViewItem : MGSingleContentHost
         {
             if (!_HasStoredSelectionVisualState)
             {
-                // ADR-0005/S5: the background of the three elements below is no longer saved/restored by hand --
-                // it is written here as a VisualState contribution, and deselection below simply clears that
-                // contribution (ClearPilotSource), which restores the store's next-highest winner (the same
-                // instance as before selection) with no need to track it manually. DefaultTextForeground still is
-                // (S6 migrates the text pilot).
-                _PreviousHeaderForeground = HeaderContainer.DefaultTextForeground?.GetCopy();
+                // ADR-0005/S5+S6: the background AND the text foreground of the elements below are no longer
+                // saved/restored by hand -- each is written here as a VisualState contribution, and deselection
+                // below simply clears that contribution (ClearPilotSource), which restores the store's
+                // next-highest winner (the same instance as before selection) with no need to track it manually.
                 _HasStoredSelectionVisualState = true;
             }
 
@@ -574,7 +571,7 @@ public class MGTreeViewItem : MGSingleContentHost
                 ExpanderButton.SetBackground(expanderSelectionBackground, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
             }
 
-            HeaderContainer.DefaultTextForeground = new VisualStateSetting<Color?>(OwnerTreeView.SelectionForeground);
+            HeaderContainer.SetDefaultTextForeground(new VisualStateSetting<Color?>(OwnerTreeView.SelectionForeground), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
         }
         else if (_HasStoredSelectionVisualState)
         {
@@ -585,9 +582,8 @@ public class MGTreeViewItem : MGSingleContentHost
                 ExpanderButton.ClearPilotSource(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.VisualState);
             }
 
-            HeaderContainer.DefaultTextForeground = _PreviousHeaderForeground;
+            HeaderContainer.ClearPilotSource(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, UIValueSourceKind.VisualState);
 
-            _PreviousHeaderForeground = null;
             _HasStoredSelectionVisualState = false;
         }
     }

@@ -172,7 +172,7 @@ namespace MGUI.Core.UI.Data_Binding.Converters
 
                 if (Foreground.HasValue)
                 {
-                    TextBlock.Foreground.NormalValue = Foreground.Value.ToXNAColor();
+                    TextBlock.SetForegroundSlot(UIValueSlot.Normal, Foreground.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 }
 
                 if (AllowsInlineFormatting.HasValue)

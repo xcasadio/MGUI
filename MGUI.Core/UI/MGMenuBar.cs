@@ -227,7 +227,7 @@ namespace MGUI.Core.UI
                 VisualStateFillBrush background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);
                 Color? textForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;
                 ContentWrapper.SetBackground(background, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
-                ContentWrapper.DefaultTextForeground.SetAll(textForeground);
+                ContentWrapper.SetDefaultTextForegroundAll(textForeground, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 if (ContentWrapper.GetBorder() != null)
                 {
                     ContentWrapper.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
@@ -387,7 +387,7 @@ namespace MGUI.Core.UI
             // precedence; tagging this factory write LocalValue(90) would outrank and freeze it against later theme
             // refreshes, so it uses Default(0) instead, like a constructor writing its own default.
             Button.SetBackground(background, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
-            Button.DefaultTextForeground.SetAll(textForeground);
+            Button.SetDefaultTextForegroundAll(textForeground, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
             Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
             return Button;
         }

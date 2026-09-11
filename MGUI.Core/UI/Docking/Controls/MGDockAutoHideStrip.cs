@@ -172,7 +172,7 @@ public class MGDockAutoHideStrip : MGElement
             btn.SetBackground(ButtonBackgroundBrush?.Copy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             if (btn.Content is MGTextBlock label)
             {
-                label.DefaultTextForeground.NormalValue = TextColor;
+                label.SetDefaultTextForegroundSlot(UIValueSlot.Normal, TextColor, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             }
             else if (btn.Content is MGRotatedTextLabel rotatedLabel)
             {
@@ -235,7 +235,7 @@ public class MGDockAutoHideStrip : MGElement
                 IsHitTestVisible    = false,
             };
             label.SetPadding(new XAML.Thickness(4, 2, 4, 2).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            label.DefaultTextForeground.NormalValue = TextColor;
+            label.SetDefaultTextForegroundSlot(UIValueSlot.Normal, TextColor, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
             body.SetContent(label);
         }
         else

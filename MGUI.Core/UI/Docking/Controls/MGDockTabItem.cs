@@ -524,9 +524,7 @@ public class MGDockTabItem : MGElement
         // Update text color based on active state for better readability
         if (_titleText != null)
         {
-            _titleText.DefaultTextForeground.NormalValue = IsActive
-                ? ActiveTextColor
-                : InactiveTextColor;
+            _titleText.SetDefaultTextForegroundSlot(UIValueSlot.Normal, IsActive ? ActiveTextColor : InactiveTextColor, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
         }
 
         if (_surfaceElement != null)

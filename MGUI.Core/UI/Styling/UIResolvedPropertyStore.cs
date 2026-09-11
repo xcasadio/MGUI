@@ -4,27 +4,29 @@ using System.Collections.Generic;
 namespace MGUI.Core.UI.Styling
 {
     /// <summary>
-    /// Per-owner store of resolved contributions for the seven <see cref="UIPilotProperty"/> pilots (ADR-0005).
-    /// One entry is allocated per written (property, slot) pair; an entry holds a compact, precedence-sorted
-    /// list of at most eleven contributions (one per <see cref="UIValueSourceKind"/>) and reports the
-    /// highest-precedence one as the effective value. Has no dependency on <c>MGElement</c> so it can be
-    /// unit-tested in isolation and reused by any owner type (an element, its border, a text block, ...).
+    /// Per-owner store of resolved contributions for the eight <see cref="UIPilotProperty"/> keys backing the
+    /// seven ADR-0005 pilots (the text foreground pilot is carried by two keys, <see cref="UIPilotProperty.Foreground"/>
+    /// and <see cref="UIPilotProperty.DefaultTextForeground"/> -- see that enum's remarks). One entry is
+    /// allocated per written (property, slot) pair; an entry holds a compact, precedence-sorted list of at most
+    /// eleven contributions (one per <see cref="UIValueSourceKind"/>) and reports the highest-precedence one as
+    /// the effective value. Has no dependency on <c>MGElement</c> so it can be unit-tested in isolation and
+    /// reused by any owner type (an element, its border, a text block, ...).
     /// </summary>
     /// <remarks>
-    /// Storage choice: a lazily allocated flat array of <c>PropertyCount * SlotCount</c> (7 * 6 = 42) entry
+    /// Storage choice: a lazily allocated flat array of <c>PropertyCount * SlotCount</c> (8 * 6 = 48) entry
     /// slots, indexed directly by <c>(int)property * SlotCount + (int)slot</c>, rather than a
     /// <c>Dictionary&lt;(UIPilotProperty, UIValueSlot), Entry&gt;</c>. Steady-state cost: one array reference
-    /// field on the owner (null until the first <see cref="Set{T}"/>), then one 42-reference array (336 bytes
+    /// field on the owner (null until the first <see cref="Set{T}"/>), then one 48-reference array (384 bytes
     /// on a 64-bit runtime) plus one small <see cref="Entry{T}"/> object per distinct (property, slot) actually
-    /// written. A dictionary would pay a per-entry bucket/hash overhead for the same 42-slot address space and
+    /// written. A dictionary would pay a per-entry bucket/hash overhead for the same 48-slot address space and
     /// a boxed tuple key per lookup; the flat array turns every lookup into one array index with no hashing,
     /// no boxing and no allocation once the entry exists, at the fixed, small cost of the unused slots (most
-    /// owners only ever populate two to six of the 42). Non-pilot properties never touch this type at all, so
+    /// owners only ever populate two to six of the 48). Non-pilot properties never touch this type at all, so
     /// they carry no cost, matching the "no cost for non-pilot properties" budget in ADR-0005.
     /// </remarks>
     internal sealed class UIResolvedPropertyStore
     {
-        private const int PropertyCount = 7; // Number of UIPilotProperty members.
+        private const int PropertyCount = 8; // Number of UIPilotProperty members.
         private const int SlotCount = 6; // Number of UIValueSlot members.
 
         private static readonly IReadOnlyList<UIValueSourceKind> EmptyKinds = Array.Empty<UIValueSourceKind>();

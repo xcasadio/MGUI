@@ -86,7 +86,7 @@ public class MGDockAutoHideDrawer : MGElement
             if (_headerTextColor != value)
             {
                 _headerTextColor = value;
-                _titleLabel.DefaultTextForeground.NormalValue = value;
+                _titleLabel.SetDefaultTextForegroundSlot(UIValueSlot.Normal, value, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 NPC(nameof(HeaderTextColor));
             }
         }
@@ -195,7 +195,7 @@ public class MGDockAutoHideDrawer : MGElement
             };
             _titleLabel.SetPadding(new XAML.Thickness(6, 2, 4, 2).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             RegisterTemplatePart(TitleBarTextPartName, _titleLabel);
-            _titleLabel.DefaultTextForeground.NormalValue = Color.White;
+            _titleLabel.SetDefaultTextForegroundSlot(UIValueSlot.Normal, Color.White, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
             _pinBtn = CreateHeaderButton(window, () =>
             {
