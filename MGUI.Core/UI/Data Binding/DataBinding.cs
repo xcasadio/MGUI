@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.XAML;
 using System;
 using System.Collections.Concurrent;
@@ -63,6 +64,23 @@ namespace MGUI.Core.UI.Data_Binding
         //https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.propertychangedeventmanager?redirectedfrom=MSDN&view=windowsdesktop-7.0
 
         public readonly BindingConfig Config;
+
+        /// <summary>ADR-0005/S8: the <c>Object</c> constructor parameter, kept (unlike <see cref="TargetObject"/>, which
+        /// may be a nested property owner reached by walking <see cref="BindingConfig.TargetPaths"/>) so a tagged write
+        /// can be attempted against <see cref="Styling.UIPilotPropertyResolver.TryResolve"/> using the FULL
+        /// <see cref="BindingConfig.TargetPath"/> rooted at this element -- exactly the XAML element the binding was
+        /// declared on (with <c>XAML.Element.BindingPathMappings</c> already applied), not the possibly-nested
+        /// <see cref="TargetObject"/> this class otherwise operates on.</summary>
+        private readonly object TargetRoot;
+
+        /// <summary>ADR-0005/S8: true when <see cref="Config"/>'s <c>TargetPath</c>, resolved against <see cref="TargetRoot"/>,
+        /// names one of the eight <see cref="Styling.UIPilotProperty"/> keys (<see cref="Styling.UIPilotPropertyResolver.TryResolve"/>,
+        /// computed once in the constructor). When true, <see cref="PilotOwner"/>/<see cref="PilotProperty"/>/<see cref="PilotSlot"/>
+        /// identify where a tagged write should land.</summary>
+        private readonly bool HasPilotTarget;
+        private readonly MGElement PilotOwner;
+        private readonly UIPilotProperty PilotProperty;
+        private readonly UIValueSlot PilotSlot;
 
         public readonly object TargetObject;
         public readonly string TargetPropertyName;
@@ -212,18 +230,18 @@ namespace MGUI.Core.UI.Data_Binding
                     if (SourceProperty == null && Config.FallbackValue != null && !IsSettingValue &&
                         Config.BindingMode is DataBindingMode.OneTime or DataBindingMode.OneWay or DataBindingMode.TwoWay)
                     {
-                        TrySetPropertyValue(Config.FallbackValue, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings);
+                        TrySetPropertyValue(Config.FallbackValue, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings, true);
                     }
 
                     //  Update the target object's property value if the binding is directly on the source object (instead of a property on the source object)
                     if (string.IsNullOrEmpty(SourcePropertyName) && Config.BindingMode is DataBindingMode.OneTime or DataBindingMode.OneWay)
                     {
-                        TrySetPropertyValue(SourceObject, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings);
+                        TrySetPropertyValue(SourceObject, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings, true);
                     }
                     //  Apply OneTime bindings
                     else if (Config.BindingMode is DataBindingMode.OneTime)
                     {
-                        TrySetPropertyValue(SourceObject, SourceProperty, SourcePropertyType, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings);
+                        TrySetPropertyValue(SourceObject, SourceProperty, SourcePropertyType, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings, true);
                     }
 
                     //  Listen for changes to the source object's property value
@@ -312,11 +330,18 @@ namespace MGUI.Core.UI.Data_Binding
             ConvertSettings = Config.Converter == null ? null : new(Config.Converter, Config.ConverterParameter, false);
             ConvertBackSettings = Config.Converter == null ? null : new(Config.Converter, Config.ConverterParameter, true);
 
+            TargetRoot = Object;
             TargetObject = ResolvePath(Object, Config.TargetPaths, true);
             TargetPropertyName = Config.TargetPaths[^1];
             TargetProperty = GetPublicProperty(TargetObject, TargetPropertyName);
             TargetPropertyType = GetUnderlyingType(TargetProperty);
             SourcePropertyName = Config.SourcePaths.Count > 0 ? Config.SourcePaths[^1] : null;
+
+            //  ADR-0005/S8: resolve once whether this binding's full TargetPath (rooted at TargetRoot) names one of
+            //  the eight pilot properties, so every source->target write below can attempt a tagged LocalBinding
+            //  contribution instead of writing TargetProperty via reflection. A path that isn't a pilot (the vast
+            //  majority of bindings) leaves HasPilotTarget false and every write below behaves exactly as before.
+            HasPilotTarget = UIPilotPropertyResolver.TryResolve(TargetRoot, Config.TargetPath, out PilotOwner, out PilotProperty, out PilotSlot);
 
             //  The Source object is computed in 3 steps:
             //  1. Use the SourceObjectResolver to determine where to start
@@ -375,7 +400,23 @@ namespace MGUI.Core.UI.Data_Binding
         #region Set Property Value
         private bool IsSettingValue = false;
 
-        private bool TrySetPropertyValue(object Value, object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings)
+        /// <summary>ADR-0005/S8: builds a delegate that attempts a tagged <see cref="UIValueResolutionSource.LocalBinding"/>
+        /// write of the (already-converted) value via <see cref="Styling.UIPilotPropertyResolver.TrySetTagged"/>, or
+        /// <see langword="null"/> when this binding's target isn't a pilot property (<see cref="HasPilotTarget"/> false)
+        /// or the call site is the target-&gt;source direction (<paramref name="AllowPilotTagging"/> false, e.g.
+        /// <see cref="TargetPropertyValueChanged"/>, which writes into the SOURCE and must never be tagged).</summary>
+        private Func<object, bool> BuildTaggedWriter(bool AllowPilotTagging)
+        {
+            if (!AllowPilotTagging || !HasPilotTarget)
+            {
+                return null;
+            }
+
+            return Value => UIPilotPropertyResolver.TrySetTagged(PilotOwner, PilotProperty, PilotSlot, Value,
+                UIValueResolutionSource.LocalBinding(UIPilotPropertyResolver.KindOf(PilotProperty), Config.TargetPath));
+        }
+
+        private bool TrySetPropertyValue(object Value, object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings, bool AllowPilotTagging)
         {
             if (IsSettingValue)
             {
@@ -385,13 +426,13 @@ namespace MGUI.Core.UI.Data_Binding
             try
             {
                 IsSettingValue = true;
-                return TrySetValue(this, Value, TargetObject, TargetProperty, TargetPropertyType, ConverterSettings, Config.StringFormat);
+                return TrySetValue(this, Value, TargetObject, TargetProperty, TargetPropertyType, ConverterSettings, Config.StringFormat, BuildTaggedWriter(AllowPilotTagging));
             }
             finally { IsSettingValue = false; }
         }
 
         private bool TrySetPropertyValue(object SourceObject, PropertyInfo SourceProperty, Type SourcePropertyType,
-            object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings)
+            object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings, bool AllowPilotTagging)
         {
             if (IsSettingValue)
             {
@@ -401,17 +442,21 @@ namespace MGUI.Core.UI.Data_Binding
             try
             {
                 IsSettingValue = true;
-                return TrySetValue(this, SourceObject, SourceProperty, SourcePropertyType, 
-                    TargetObject, TargetProperty, TargetPropertyType, 
-                    ConverterSettings, Config.StringFormat);
+                return TrySetValue(this, SourceObject, SourceProperty, SourcePropertyType,
+                    TargetObject, TargetProperty, TargetPropertyType,
+                    ConverterSettings, Config.StringFormat, BuildTaggedWriter(AllowPilotTagging));
             }
             finally { IsSettingValue = false; }
         }
 
         /// <summary>Attempts to copy the given <paramref name="Value"/> into the <paramref name="TargetObject"/>'s <paramref name="TargetProperty"/>.</summary>
         /// <param name="TargetPropertyType">If null, will be retrieved via <see cref="GetUnderlyingType(PropertyInfo)"/></param>
-        private static bool TrySetValue(ITypeDescriptorContext Context, object Value, object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, 
-            ConverterConfig? ConverterSettings, string StringFormat)
+        /// <param name="TryTaggedWrite">ADR-0005/S8: when non-null, tried FIRST with the converted value; a tagged pilot write records
+        /// provenance in the target's resolved-value store instead of the plain reflection <see cref="PropertyInfo.SetValue(object, object)"/>
+        /// below. Falls back to reflection when this returns <see langword="false"/> (target isn't a pilot, or the value's
+        /// runtime type didn't match what that pilot's tagged setter accepts).</param>
+        private static bool TrySetValue(ITypeDescriptorContext Context, object Value, object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType,
+            ConverterConfig? ConverterSettings, string StringFormat, Func<object, bool> TryTaggedWrite = null)
         {
             if (TargetObject != null && TargetProperty != null)
             {
@@ -430,7 +475,10 @@ namespace MGUI.Core.UI.Data_Binding
                     object ActualValue = ConvertValue(Context, SourceType, TargetPropertyType, Value, null, StringFormat);
                     try
                     {
-                        TargetProperty.SetValue(TargetObject, ActualValue);
+                        if (TryTaggedWrite == null || !TryTaggedWrite(ActualValue))
+                        {
+                            TargetProperty.SetValue(TargetObject, ActualValue);
+                        }
                         if (Context is DataBinding b1) { b1.HasError = false; b1.LastError = null; }
                     }
                     catch (Exception ex)
@@ -449,8 +497,11 @@ namespace MGUI.Core.UI.Data_Binding
 		/// <paramref name="TargetObject"/>'s <paramref name="TargetProperty"/>.</summary>
         /// <param name="SourcePropertyType">If null, will be retrieved via <see cref="GetUnderlyingType(PropertyInfo)"/></param>
         /// <param name="TargetPropertyType">If null, will be retrieved via <see cref="GetUnderlyingType(PropertyInfo)"/></param>
+        /// <param name="TryTaggedWrite">ADR-0005/S8: see the other overload's parameter of the same name. Never pass this for the
+        /// target-&gt;source direction (<see cref="TargetPropertyValueChanged"/>), which reuses this overload with its
+        /// <paramref name="SourceObject"/>/<paramref name="TargetObject"/> roles swapped to write into the real SOURCE.</param>
         private static bool TrySetValue(ITypeDescriptorContext Context, object SourceObject, PropertyInfo SourceProperty, Type SourcePropertyType,
-            object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings, string StringFormat)
+            object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings, string StringFormat, Func<object, bool> TryTaggedWrite = null)
         {
             if (SourceObject != null && SourceProperty != null && TargetObject != null && TargetProperty != null)
             {
@@ -469,7 +520,10 @@ namespace MGUI.Core.UI.Data_Binding
                     object ActualValue = ConvertValue(Context, SourcePropertyType, TargetPropertyType, Value, null, StringFormat);
                     try
                     {
-                        TargetProperty.SetValue(TargetObject, ActualValue);
+                        if (TryTaggedWrite == null || !TryTaggedWrite(ActualValue))
+                        {
+                            TargetProperty.SetValue(TargetObject, ActualValue);
+                        }
                         if (Context is DataBinding b2) { b2.HasError = false; b2.LastError = null; }
                     }
                     catch (Exception ex)
@@ -724,7 +778,7 @@ namespace MGUI.Core.UI.Data_Binding
             //  Propagate the new value to the TargetProperty
             if (!IsSettingValue && Config.BindingMode is DataBindingMode.OneWay or DataBindingMode.TwoWay)
             {
-                TrySetPropertyValue(SourceObject, SourceProperty, SourcePropertyType, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings);
+                TrySetPropertyValue(SourceObject, SourceProperty, SourcePropertyType, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings, true);
             }
         }
 
@@ -733,7 +787,10 @@ namespace MGUI.Core.UI.Data_Binding
             //  Propagate the new value to the SourceProperty
             if (!IsSettingValue && Config.BindingMode is DataBindingMode.OneWayToSource or DataBindingMode.TwoWay)
             {
-                TrySetPropertyValue(TargetObject, TargetProperty, TargetPropertyType, SourceObject, SourceProperty, SourcePropertyType, ConvertBackSettings);
+                //  ADR-0005/S8: this call reuses the (SourceObject, SourceProperty, ..., TargetObject, TargetProperty, ...)
+                //  overload with its roles swapped -- "TargetObject"/"TargetProperty" here are actually this binding's
+                //  SOURCE -- so tagging must stay off; a pilot write must never be recorded for a write into the source.
+                TrySetPropertyValue(TargetObject, TargetProperty, TargetPropertyType, SourceObject, SourceProperty, SourcePropertyType, ConvertBackSettings, false);
             }
         }
 

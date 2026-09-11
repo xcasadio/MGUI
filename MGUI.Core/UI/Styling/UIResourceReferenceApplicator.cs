@@ -30,13 +30,35 @@ namespace MGUI.Core.UI.Styling
                 return false;
             }
 
+            bool HasPilot = UIPilotPropertyResolver.TryResolve(TargetObject, Config.TargetPath, out MGElement PilotOwner, out UIPilotProperty Pilot, out UIValueSlot Slot);
+
             if (!TryResolveResourceValue(HostElement, Resources, Config.ResourceName, Property.PropertyType, out object ResolvedValue))
             {
+                // ADR-0005/S8: the resource no longer resolves (removed, or never added). A dynamic reference that
+                // previously won a pilot's contribution must give that contribution up so the next-highest-precedence
+                // source (e.g. the control's own Theme default) takes over; a static reference that fails to resolve
+                // stays a plain `false` as before (its value, if any, was never taken from the store to begin with).
+                if (HasPilot && Config.IsDynamic)
+                {
+                    UIPilotPropertyResolver.Clear(PilotOwner, Pilot, Slot, UIValueSourceKind.DynamicResource);
+                }
                 return false;
             }
 
             try
             {
+                if (HasPilot)
+                {
+                    UIValueResolutionSource Source = Config.IsDynamic
+                        ? UIValueResolutionSource.DynamicResource(UIPilotPropertyResolver.KindOf(Pilot), Config.ResourceName)
+                        : UIValueResolutionSource.LocalValue(UIPilotPropertyResolver.KindOf(Pilot), Config.ResourceName);
+                    if (UIPilotPropertyResolver.TrySetTagged(PilotOwner, Pilot, Slot, ResolvedValue, Source))
+                    {
+                        RegisterDynamicSubscription(HostElement, TargetObject, Config, Resources);
+                        return true;
+                    }
+                }
+
                 Property.SetValue(PropertyOwner, ResolvedValue);
                 RegisterDynamicSubscription(HostElement, TargetObject, Config, Resources);
                 return true;
