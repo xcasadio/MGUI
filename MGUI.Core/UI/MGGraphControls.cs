@@ -2808,15 +2808,11 @@ namespace MGUI.Core.UI
             }
 
             MGTheme theme = GetTheme();
-            // ADR-0005/S2 deviation from the plan's literal "VisualState" classification for this site: the
-            // template catalogue still writes OuterBorder.BorderBrush/BorderThickness through the untagged public
-            // setter (provisionally LocalValue(90) until S3 migrates it to Template(60)). VisualState(70) would
-            // never outrank that provisional 90, silently breaking node selection highlighting for the whole of
-            // S2. LocalValue ties with the catalogue's provisional precedence, so this call (which always runs
-            // strictly after construction) wins as the last writer -- exactly reproducing the pre-S2 behaviour,
-            // same as the WindowStyle worked example. Revisit to VisualState once S3 retags the catalogue.
-            OuterBorder.SetBorderBrush((IsSelected ? theme.Graph.NodeSelectedBorderBrush : theme.Graph.NodeBorderBrush)?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
-            OuterBorder.SetBorderThickness(IsSelected ? theme.Graph.NodeSelectedBorderThickness : theme.Graph.NodeBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            // ADR-0005: internal selection state, VisualState(70) -- correctly outranks the template catalogue's
+            // GraphNode.BorderBrush/BorderThickness (Template(60), migrated in S3), so the selection highlight
+            // wins over the template default while a plain application LocalValue(90) still wins over selection.
+            OuterBorder.SetBorderBrush((IsSelected ? theme.Graph.NodeSelectedBorderBrush : theme.Graph.NodeBorderBrush)?.Copy(), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
+            OuterBorder.SetBorderThickness(IsSelected ? theme.Graph.NodeSelectedBorderThickness : theme.Graph.NodeBorderThickness, UIValueResolutionSource.VisualState(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         }
 
         private void UpdateCollapsedVisualState()
@@ -3604,10 +3600,9 @@ namespace MGUI.Core.UI
         {
             if (OuterBorder != null)
             {
-                // ADR-0005/S2 deviation: see the sibling ApplySelectionVisual override above for why this is
-                // LocalValue rather than the plan's literal VisualState -- the still-untagged (S3) catalogue
-                // write on this same slot is provisionally LocalValue(90), which VisualState(70) can never beat.
-                OuterBorder.SetBorderThickness(IsSelected ? new Thickness(2) : new Thickness(1), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                // ADR-0005: internal selection state, VisualState(70) -- outranks the template catalogue's
+                // GraphCommentBox.BorderThickness (Template(60), migrated in S3).
+                OuterBorder.SetBorderThickness(IsSelected ? new Thickness(2) : new Thickness(1), UIValueResolutionSource.VisualState(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             }
         }
     }

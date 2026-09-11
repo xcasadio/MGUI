@@ -36,8 +36,6 @@ public class ResolvedPilotWriteSitesTests
     /// <summary>(relative path, reason) — every pilot-shaped hit anywhere in the file is allowed.</summary>
     private static readonly (string File, string Reason)[] AllowedWholeFiles =
     {
-        (@"MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs",
-            "S3: template catalogue lambdas (ApplyThemeDefault/ApplyTemplateValue), reserved for the next slice"),
         (@"MGUI.Core\UI\XAML\Controls.cs", "XAML DTO properties, not MGElement instances"),
         (@"MGUI.Core\UI\XAML\Containers.cs", "XAML DTO properties, not MGElement instances"),
         (@"MGUI.Core\UI\XAML\Lists.cs", "XAML DTO properties, not MGElement instances"),

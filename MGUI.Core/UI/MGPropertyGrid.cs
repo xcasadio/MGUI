@@ -538,8 +538,9 @@ namespace MGUI.Core.UI
                     VerticalContentAlignment = VerticalAlignment.Center,
                 };
                 HeaderButton.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                // ADR-0005 / plan S2: DefaultValue (not LocalValue) so that ApplyTheme's Theme write of the same Padding still wins;
-                // revisit in S3 once the template catalogue writes Template.
+                // ADR-0005: DefaultValue (not LocalValue) so that ApplyTheme's Theme write of the same Padding always wins;
+                // HeaderButton is not a template part (the PropertyGrid template only covers the outer border, scroll
+                // viewer and categories panel), so this construction-time value is a placeholder, never a competing source.
                 HeaderButton.SetPadding(new Thickness(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 HeaderButton.SetBorderThicknessTagged(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
@@ -726,8 +727,8 @@ namespace MGUI.Core.UI
                     VerticalAlignment = VerticalAlignment.Top,
                 };
                 Root.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                // ADR-0005 / plan S2: DefaultValue (not LocalValue) so that ApplyTheme's Theme write of the row Padding still wins;
-                // revisit in S3 once the template catalogue writes Template.
+                // ADR-0005: DefaultValue (not LocalValue) so that ApplyTheme's Theme write of the row Padding always wins;
+                // Root is not a template part, so this construction-time value is a placeholder, never a competing source.
                 Root.SetPadding(new Thickness(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
                 LayoutPanel = new(window)
@@ -1120,6 +1121,10 @@ namespace MGUI.Core.UI
                         && !TryParseValue(EditorKind, LastPresentedValue, TextBox.Text, out _);
                 }
 
+                // ADR-0005: the BorderThickness write below is intentionally redundant with the construction-time
+                // LocalValue(0) contribution (see HostBorder's constructor above) -- kept so the validation visual
+                // is self-contained (it always (re)poses its own VisualState contribution here on every call,
+                // independent of what construction happened to write), even though it never changes the winner.
                 HostBorder.SetBorderThickness(new Thickness(0), UIValueResolutionSource.VisualState(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 HostBorder.SetBorderBrush(null, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
                 TextBox.SetBorderBrushTagged(HasValidationError ? InvalidBorderBrush ?? MGUniformBorderBrush.Transparent : DefaultTextBoxBorderBrush, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));

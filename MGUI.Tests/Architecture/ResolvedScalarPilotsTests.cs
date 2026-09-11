@@ -239,8 +239,8 @@ public class ResolvedScalarPilotsTests
         harness.Show(menu);
 
         // The constructor's own DefaultValue write (ADR-0005 worked example) is still recorded in the store even
-        // though the catalogue (still on the untagged public setter in S2) now outranks it. BorderBrush's store
-        // lives on the composite's inner MGBorder (reached via GetBorder()), not on MGContextMenu itself.
+        // though the catalogue's Template write (S3) now outranks it. BorderBrush's store lives on the
+        // composite's inner MGBorder (reached via GetBorder()), not on MGContextMenu itself.
         MGBorder menuBorder = menu.GetBorder();
         Assert.NotNull(menuBorder);
         Assert.True(menuBorder.TryGetResolvedContribution(UIPilotProperty.BorderBrush, UIValueSlot.Whole, UIValueSourceKind.DefaultValue, out UIResolvedValue<IBorderBrush> ctorContribution));
@@ -249,8 +249,8 @@ public class ResolvedScalarPilotsTests
         Assert.True(menu.TryGetResolvedPilotValue(UIPilotProperty.BorderBrush, UIValueSlot.Whole, out UIResolvedValue<IBorderBrush> winner));
         // Compared by content: theme brushes are clones, so reference equality would be wrong here.
         Assert.Equal(MGUniformBorderBrush.Gray, winner.Value);
-        // In S2 the catalogue still writes through the public setter (LocalValue); S3 tightens this to Template.
-        Assert.True(winner.Source.Kind > UIValueSourceKind.DefaultValue);
+        // S3 tags the catalogue's write as Template (60), which still outranks the constructor's DefaultValue (0).
+        Assert.Equal(UIValueSourceKind.Template, winner.Source.Kind);
     }
 
     [Fact]

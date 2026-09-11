@@ -86,8 +86,31 @@ namespace MGUI.Core.UI.Styling
         public void ApplyThemeDefault<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue, IEqualityComparer<T> Comparer = null)
             => ApplyTemplateValue(Name, Value, GetCurrentValue, SetValue, UIInvalidationKind.Draw, Comparer);
 
+        /// <summary>Tagged overload of <see cref="ApplyThemeDefault{T}(string, T, Func{T}, Action{T}, IEqualityComparer{T})"/> (ADR-0005):
+        /// <paramref name="SetValue"/> receives the exact <see cref="UIValueResolutionSource"/> (<c>Template</c>) this call
+        /// records, so the target can route the write through its tagged setter instead of its public one.</summary>
+        public void ApplyThemeDefault<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue,
+            UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
+            => ApplyTemplateValue(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer);
+
         public void ApplyTemplateValue<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue,
             UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
+            => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue == null ? null : (v, _) => SetValue(v), Invalidation, Comparer);
+
+        /// <summary>Tagged overload of <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T}, UIInvalidationKind, IEqualityComparer{T})"/>
+        /// (ADR-0005): <paramref name="SetValue"/> receives the exact <see cref="UIValueResolutionSource"/> (<c>Template</c>) this
+        /// call records, so the target can route the write through its tagged setter (e.g. <c>SetPadding(value, source)</c>)
+        /// instead of its public one.</summary>
+        public void ApplyTemplateValue<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue,
+            UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
+            => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer);
+
+        /// <summary>Shared implementation behind every <see cref="ApplyThemeDefault{T}(string, T, Func{T}, Action{T}, IEqualityComparer{T})"/>/
+        /// <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T}, UIInvalidationKind, IEqualityComparer{T})"/> overload:
+        /// the has-previous/equals theme-refresh guard and <c>_AppliedTemplateDefaults</c> bookkeeping are unchanged from before
+        /// the tagged overloads were introduced (ADR-0005/S3).</summary>
+        private void ApplyTemplateValueCore<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue,
+            UIInvalidationKind Invalidation, IEqualityComparer<T> Comparer)
         {
             if (Owner == null)
             {
@@ -109,8 +132,9 @@ namespace MGUI.Core.UI.Styling
             bool HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out UIResolvedValue<T> PreviousValue);
             if (!IsThemeRefresh || !HasPrevious || Comparer.Equals(CurrentValue, PreviousValue.Value))
             {
-                SetValue(Value);
-                Owner.SetAppliedTemplateDefault(Name, new UIResolvedValue<T>(Value, UIValueResolutionSource.Template(Invalidation, Name)));
+                UIValueResolutionSource Source = UIValueResolutionSource.Template(Invalidation, Name);
+                SetValue(Value, Source);
+                Owner.SetAppliedTemplateDefault(Name, new UIResolvedValue<T>(Value, Source));
 
                 if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)
                 {

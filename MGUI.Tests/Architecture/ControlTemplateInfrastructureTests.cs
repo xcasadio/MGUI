@@ -848,7 +848,10 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("public static void ApplyListBoxItemContainerDefaults", catalogSource);
         Assert.Contains("public static MGElement CreateDefaultListBoxItemContent", catalogSource);
         Assert.Contains("Context.ApplyThemeDefault(\"ListBox.MinHeight\"", catalogSource);
-        Assert.Contains("Item.Padding = DefaultListBoxItemPadding;", catalogSource);
+        // ADR-0005/S3: ApplyListBoxItemContainerDefaults now tags its BorderBrush/BorderThickness/Padding writes as
+        // Template (the per-item container's own template default) instead of assigning the untagged public
+        // setters, so the pinned literal changed from a plain assignment to the tagged setter call it was migrated to.
+        Assert.Contains("Item.SetPadding(DefaultListBoxItemPadding, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, \"ListBox.Item.Padding\"));", catalogSource);
         Assert.Contains("ItemTemplate = item => MGControlTemplateCatalog.CreateDefaultListBoxItemContent(ParentWindow, item);", listBoxSource);
         Assert.Contains("Context.ApplyTemplateValue(\"ListBox.ItemsPanelVerticalAlignment\"", catalogSource);
         Assert.Contains("Context.ApplyTemplateValue(\"ListBox.TitlePresenterVerticalAlignment\"", catalogSource);
