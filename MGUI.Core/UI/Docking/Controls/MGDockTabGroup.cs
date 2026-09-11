@@ -124,6 +124,48 @@ public class MGDockTabGroup : MGElement
         }
     }
 
+    private Color _iconColor;
+    /// <summary>
+    /// Color of the overflow and window-state icons of the header strip.<para/>
+    /// Default value: <see cref="MGThemeDockingSettings.TabGroupIconColor"/>
+    /// </summary>
+    public Color IconColor
+    {
+        get => _iconColor;
+        set
+        {
+            if (_iconColor != value)
+            {
+                _iconColor = value;
+                SyncHeaderVisuals();
+                NPC(nameof(IconColor));
+            }
+        }
+    }
+
+    private Color _compactButtonHoverColor;
+    /// <summary>
+    /// Hover overlay of the overflow and maximize/restore buttons of the header strip.<para/>
+    /// Default value: <see cref="MGThemeDockingSettings.TabGroupButtonHoverColor"/>
+    /// </summary>
+    public Color CompactButtonHoverColor
+    {
+        get => _compactButtonHoverColor;
+        set
+        {
+            if (_compactButtonHoverColor != value)
+            {
+                _compactButtonHoverColor = value;
+                ApplyCompactButtonHoverColor(_dropdownBtn);
+                ApplyCompactButtonHoverColor(_maximizeBtn);
+                NPC(nameof(CompactButtonHoverColor));
+            }
+        }
+    }
+
+    private void ApplyCompactButtonHoverColor(MGBorder button)
+        => button?.SetBackgroundFocusedColor(CompactButtonHoverColor, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+
     private int _tabHeaderHeight = 30;
     /// <summary>
     /// Height of the tab header area in pixels.
@@ -297,12 +339,12 @@ public class MGDockTabGroup : MGElement
         if (_dropdownIconElement != null)
         {
             _dropdownIconElement.Visibility = _dropdownBtn?.Visibility ?? Visibility.Collapsed;
-            _dropdownIconElement.Color = new Color(200, 200, 200);
+            _dropdownIconElement.Color = IconColor;
         }
 
         if (_windowStateIconElement != null)
         {
-            _windowStateIconElement.Color = new Color(200, 200, 200);
+            _windowStateIconElement.Color = IconColor;
             _windowStateIconElement.IsRestoredState = _isMaximized;
         }
     }
@@ -316,32 +358,12 @@ public class MGDockTabGroup : MGElement
     {
         using (BeginInitializing())
         {
-            // Create tab headers panel
-            _tabHeadersPanel = new MGStackPanel(window, Orientation.Horizontal)
-            {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Top,
-                Spacing = 0
-            };
-            RegisterTemplatePart(HeadersPanelPartName, _tabHeadersPanel);
-            _tabHeadersPanel.SetParent(this);
+            // The headers panel, the accent and the two icons come from the control template, see AttachControlTemplateStructure.
+            DefaultControlTemplateName = MGControlTemplateCatalog.DockTabGroupTemplateName;
 
             // Create empty content container
             _activeContentContainer = CreateEmptyContent();
             _activeContentContainer.SetParent(this);
-
-            _accentElement = new(window, 0, 0, Color.Transparent, 0, Color.Transparent)
-            {
-                ManagedParent = this,
-                IsHitTestVisible = false,
-                Visibility = Visibility.Collapsed,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-            };
-            RegisterTemplatePart(AccentPartName, _accentElement);
-            _accentComponent = new(_accentElement, false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => new Rectangle(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width, 2));
-            AddComponent(_accentComponent);
 
             // Set group node (will trigger rebuild)
             if (groupNode != null)
@@ -353,20 +375,12 @@ public class MGDockTabGroup : MGElement
             VerticalAlignment = VerticalAlignment.Stretch;
 
             // ── Overflow dropdown (visible only when some tabs are hidden) ─────
-            _dropdownBtn = CreateCompactButton(window, "", () => ShowDropdown());
+            _dropdownBtn = CreateCompactButton(window, "", CompactButtonHoverColor, () => ShowDropdown());
             _dropdownBtn.Visibility = Visibility.Collapsed;
             _dropdownBtn.SetParent(this);
 
-            _dropdownIconElement = new(window) { ManagedParent = this };
-            _dropdownIconElement.Color = new Color(200, 200, 200);
-            RegisterTemplatePart(DropdownIconPartName, _dropdownIconElement);
-            _dropdownIconComponent = new(_dropdownIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
-                false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => _dropdownBtn == null ? Rectangle.Empty : GetDropdownButtonBounds());
-            AddComponent(_dropdownIconComponent);
-
-            // Maximize / restore toggle — icon is drawn directly in DrawContents
-            _maximizeBtn = CreateCompactButton(window, "", () =>
+            // Maximize / restore toggle — its icon is the PART_WindowStateIcon component
+            _maximizeBtn = CreateCompactButton(window, "", CompactButtonHoverColor, () =>
             {
                 if (_isMaximized)
                 {
@@ -379,22 +393,73 @@ public class MGDockTabGroup : MGElement
             });
             _maximizeBtn.SetParent(this);
 
-            _windowStateIconElement = new(window) { ManagedParent = this };
-            _windowStateIconElement.Color = new Color(200, 200, 200);
-            RegisterTemplatePart(WindowStateIconPartName, _windowStateIconElement);
-            _windowStateIconComponent = new(_windowStateIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
-                false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => GetWindowStateIconBounds());
-            AddComponent(_windowStateIconComponent);
-
             SyncHeaderVisuals();
         }
+    }
+
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    {
+        yield return new(HeadersPanelPartName, typeof(MGStackPanel));
+        yield return new(AccentPartName, typeof(MGRectangle));
+        yield return new(DropdownIconPartName, typeof(MGEllipsisIcon));
+        yield return new(WindowStateIconPartName, typeof(MGWindowStateIcon));
+    }
+
+    /// <summary>Binds the four parts created by the control template (<c>Dock.TabGroup.Default</c>): the headers panel becomes the child holding the
+    /// tab items, the accent and the two icons become components. The overflow and maximize/restore buttons are not template parts, since the frozen
+    /// vocabulary of ADR-0002 has no role for them: this group creates them, handles their clicks and gives them <see cref="CompactButtonHoverColor"/>.
+    /// A structure replaced by another template releases the parts it replaces, and the tab items are rebuilt in the new headers panel.</summary>
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        MGStackPanel headersPanel = (MGStackPanel)Structure.Parts[HeadersPanelPartName];
+        bool headersPanelChanged = !ReferenceEquals(_tabHeadersPanel, headersPanel);
+        if (headersPanelChanged && _tabHeadersPanel != null)
+        {
+            _tabHeadersPanel.TryRemoveAll();
+            _tabHeadersPanel.SetParent(null);
+        }
+
+        _tabHeadersPanel = headersPanel;
+        _accentElement = (MGRectangle)Structure.Parts[AccentPartName];
+        _dropdownIconElement = (MGEllipsisIcon)Structure.Parts[DropdownIconPartName];
+        _windowStateIconElement = (MGWindowStateIcon)Structure.Parts[WindowStateIconPartName];
+
+        _accentElement.ManagedParent = this;
+        _accentElement.IsHitTestVisible = false;
+        _dropdownIconElement.ManagedParent = this;
+        _windowStateIconElement.ManagedParent = this;
+
+        EnsureComponentBinding(() => _accentComponent, value => _accentComponent = value, _accentElement,
+            element => new(element, false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => new Rectangle(LayoutBounds.X, LayoutBounds.Y, LayoutBounds.Width, 2)));
+        EnsureComponentBinding(() => _dropdownIconComponent, value => _dropdownIconComponent = value, _dropdownIconElement,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => _dropdownBtn == null ? Rectangle.Empty : GetDropdownButtonBounds()));
+        EnsureComponentBinding(() => _windowStateIconComponent, value => _windowStateIconComponent = value, _windowStateIconElement,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                false, false, false, false, false, false, false,
+                (availableBounds, componentSize) => GetWindowStateIconBounds()));
+
+        if (headersPanelChanged)
+        {
+            _tabHeadersPanel.SetParent(this);
+            if (GroupNode != null)
+            {
+                RebuildTabHeaders();
+            }
+
+            InvalidateVtcCache();
+            LayoutChanged(this, true);
+        }
+
+        SyncHeaderVisuals();
     }
 
     /// <summary>
     /// Creates a small borderless button with a text glyph for the tab header strip.
     /// </summary>
-    private static MGBorder CreateCompactButton(MGWindow window, string glyph, Action onClick)
+    private static MGBorder CreateCompactButton(MGWindow window, string glyph, Color hoverColor, Action onClick)
     {
         var body = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
         {
@@ -405,7 +470,7 @@ public class MGDockTabGroup : MGElement
         // Use the visual-state brush system for hover / press highlighting
         body.SetBackground(new VisualStateFillBrush(
             (IFillBrush)null,
-            new Color(70, 70, 74),
+            hoverColor,
             PressedModifierType.Darken,
             0.10f), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
@@ -437,8 +502,14 @@ public class MGDockTabGroup : MGElement
     private void RebuildTabHeaders()
     {
         // Clear existing tabs
-        _tabHeadersPanel.TryRemoveAll();
         _tabItems.Clear();
+        if (_tabHeadersPanel == null)
+        {
+            // No control template supplied the headers panel.
+            return;
+        }
+
+        _tabHeadersPanel.TryRemoveAll();
 
         if (GroupNode == null || GroupNode.IsEmpty)
         {

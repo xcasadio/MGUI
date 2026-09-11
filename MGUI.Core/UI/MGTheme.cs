@@ -279,6 +279,13 @@ namespace MGUI.Core.UI
         public Color PreviewOverlayFillColor { get; set; } = new(0, 122, 204, 100);
         /// <summary>Border of the <c>MGDockPreviewOverlay</c> that shows where a dragged panel will dock.</summary>
         public Color PreviewOverlayBorderColor { get; set; } = new(0, 122, 204, 200);
+
+        //  The two tab group settings default to the colors MGDockTabGroup used to hard-code, so a theme definition written before these
+        //  settings existed keeps the same header strip.
+        /// <summary>Hover overlay of the overflow and maximize/restore buttons in the header strip of an <c>MGDockTabGroup</c>.</summary>
+        public Color TabGroupButtonHoverColor { get; set; } = new(70, 70, 74);
+        /// <summary>Color of the overflow and window-state icons in the header strip of an <c>MGDockTabGroup</c>.</summary>
+        public Color TabGroupIconColor { get; set; } = new(200, 200, 200);
     }
 
     public class MGTheme
@@ -813,6 +820,8 @@ namespace MGUI.Core.UI
             Docking.DropIndicatorDisabledSymbolColor = Source.Docking.DropIndicatorDisabledSymbolColor;
             Docking.PreviewOverlayFillColor = Source.Docking.PreviewOverlayFillColor;
             Docking.PreviewOverlayBorderColor = Source.Docking.PreviewOverlayBorderColor;
+            Docking.TabGroupButtonHoverColor = Source.Docking.TabGroupButtonHoverColor;
+            Docking.TabGroupIconColor = Source.Docking.TabGroupIconColor;
         }
     }
 }

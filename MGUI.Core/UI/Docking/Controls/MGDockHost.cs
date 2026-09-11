@@ -311,68 +311,113 @@ public class MGDockHost : MGSingleContentHost
             _layoutModel = new DockLayoutModel();
             _layoutModel.LayoutChanged += OnLayoutModelChanged;
 
-            // Initialize preview overlay
-            _previewOverlay = new MGDockPreviewOverlay(window);
-            RegisterTemplatePart(PreviewOverlayPartName, _previewOverlay);
-            _previewOverlayComponent = new MGComponent<MGDockPreviewOverlay>(
-                _previewOverlay,
-                ComponentUpdatePriority.AfterContents,
-                ComponentDrawPriority.AfterContents,
-                true, true, false, false, false, false, false,
-                (AvailableBounds, ComponentSize) => AvailableBounds);
-            AddComponent(_previewOverlayComponent);
-
-            // Initialize drop indicators overlay
-            _dropIndicators = new MGDockDropIndicators(window);
-            RegisterTemplatePart(DropIndicatorsPartName, _dropIndicators);
-            _dropIndicatorsComponent = new MGComponent<MGDockDropIndicators>(
-                _dropIndicators,
-                ComponentUpdatePriority.AfterContents,
-                ComponentDrawPriority.AfterContents,
-                true, true, false, false, false, false, false,
-                (AvailableBounds, ComponentSize) => AvailableBounds);
-            AddComponent(_dropIndicatorsComponent);
+            // The preview overlay, the drop indicators, the four auto-hide strips and the drawer come from the control template,
+            // see AttachControlTemplateStructure.
+            DefaultControlTemplateName = MGControlTemplateCatalog.DockHostTemplateName;
 
             // Set default styling
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
 
             // ── Auto-hide strips (one per edge) ────────────────────────────────
-            foreach (AutoHideSide side in System.Enum.GetValues(typeof(AutoHideSide)))
-            {
-                var strip = new MGDockAutoHideStrip(window, side);
-                strip.Visibility = Visibility.Collapsed;
-                strip.PanelActivated += (_, panel) => ShowAutoHideDrawer(panel);
-                _autoHideStrips[side] = strip;
-                RegisterTemplatePart(GetAutoHideStripPartName(side), strip);
-
-                AutoHideSide capturedSide = side;
-                var comp = new MGComponent<MGDockAutoHideStrip>(
-                    strip,
-                    ComponentUpdatePriority.AfterContents,
-                    ComponentDrawPriority.AfterContents,
-                    true, true, false, false, false, false, false,
-                    (avail, _) => GetStripBounds(capturedSide, avail));
-                AddComponent(comp);
-            }
+            // Attached from the control template, see AttachControlTemplateStructure.
 
             // ── Auto-hide drawer overlay ───────────────────────────────────
-            _autoHideDrawer = new MGDockAutoHideDrawer(window);
-            RegisterTemplatePart(AutoHideDrawerPartName, _autoHideDrawer);
-            _autoHideDrawer.Visibility  = Visibility.Collapsed;
-            _autoHideDrawer.PinRequested         += (_, panel) => RepinPanel(panel);
-            _autoHideDrawer.PanelCloseRequested   += (_, panel) => CloseAutoHidePanel(panel);
-            _autoHideDrawer.CloseRequested         += (_, _)     => HideAutoHideDrawer();
-            _autoHideDrawer.DrawerSizeChanged      += (_, _)     => InvalidateLayout();
-            var drawerComp = new MGComponent<MGDockAutoHideDrawer>(
-                _autoHideDrawer,
-                ComponentUpdatePriority.AfterContents,
-                ComponentDrawPriority.AfterContents,
-                true, true, false, false, false, false, false,
-                (avail, _) => GetDrawerBounds(avail));
-            AddComponent(drawerComp);
+            // Attached from the control template, see AttachControlTemplateStructure.
         }
     }
+
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    {
+        yield return new(PreviewOverlayPartName, typeof(MGDockPreviewOverlay));
+        yield return new(DropIndicatorsPartName, typeof(MGDockDropIndicators));
+        yield return new(LeftAutoHideStripPartName, typeof(MGDockAutoHideStrip));
+        yield return new(RightAutoHideStripPartName, typeof(MGDockAutoHideStrip));
+        yield return new(TopAutoHideStripPartName, typeof(MGDockAutoHideStrip));
+        yield return new(BottomAutoHideStripPartName, typeof(MGDockAutoHideStrip));
+        yield return new(AutoHideDrawerPartName, typeof(MGDockAutoHideDrawer));
+    }
+
+    /// <summary>Binds the seven surfaces created by the control template (<c>Dock.Host.Default</c>) as components drawn over the docked layout: the
+    /// preview overlay and the drop indicators cover the host, each strip runs along the edge of its part name and the drawer opens from the strip of
+    /// its panel. Their events, their positions and the whole docking orchestration stay on this host. A surface replaced by another template is
+    /// released; the strips and the drawer of a new structure start from the current auto-hide store, drawer closed.</summary>
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        _previewOverlay = (MGDockPreviewOverlay)Structure.Parts[PreviewOverlayPartName];
+        _dropIndicators = (MGDockDropIndicators)Structure.Parts[DropIndicatorsPartName];
+        EnsureComponentBinding(() => _previewOverlayComponent, value => _previewOverlayComponent = value, _previewOverlay,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                true, true, false, false, false, false, false, (AvailableBounds, ComponentSize) => AvailableBounds));
+        EnsureComponentBinding(() => _dropIndicatorsComponent, value => _dropIndicatorsComponent = value, _dropIndicators,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                true, true, false, false, false, false, false, (AvailableBounds, ComponentSize) => AvailableBounds));
+
+        bool stripsChanged = false;
+        foreach (AutoHideSide side in System.Enum.GetValues(typeof(AutoHideSide)))
+        {
+            MGDockAutoHideStrip strip = (MGDockAutoHideStrip)Structure.Parts[GetAutoHideStripPartName(side)];
+            _autoHideStrips.TryGetValue(side, out MGDockAutoHideStrip previousStrip);
+            if (!ReferenceEquals(previousStrip, strip))
+            {
+                if (previousStrip != null)
+                {
+                    previousStrip.PanelActivated -= OnAutoHideStripPanelActivated;
+                }
+
+                strip.Side = side;
+                strip.Visibility = Visibility.Collapsed;
+                strip.PanelActivated += OnAutoHideStripPanelActivated;
+                _autoHideStrips[side] = strip;
+                stripsChanged = true;
+            }
+
+            _autoHideStripComponents.TryGetValue(side, out MGComponent<MGDockAutoHideStrip> stripComponent);
+            AutoHideSide capturedSide = side;
+            EnsureComponentBinding(() => stripComponent, value => stripComponent = value, strip,
+                element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                    true, true, false, false, false, false, false, (avail, _) => GetStripBounds(capturedSide, avail)));
+            _autoHideStripComponents[side] = stripComponent;
+        }
+
+        MGDockAutoHideDrawer drawer = (MGDockAutoHideDrawer)Structure.Parts[AutoHideDrawerPartName];
+        if (!ReferenceEquals(_autoHideDrawer, drawer))
+        {
+            if (_autoHideDrawer != null)
+            {
+                _autoHideDrawer.PinRequested -= OnAutoHideDrawerPinRequested;
+                _autoHideDrawer.PanelCloseRequested -= OnAutoHideDrawerPanelCloseRequested;
+                _autoHideDrawer.CloseRequested -= OnAutoHideDrawerCloseRequested;
+                _autoHideDrawer.DrawerSizeChanged -= OnAutoHideDrawerSizeChanged;
+            }
+
+            drawer.Visibility = Visibility.Collapsed;
+            drawer.PinRequested += OnAutoHideDrawerPinRequested;
+            drawer.PanelCloseRequested += OnAutoHideDrawerPanelCloseRequested;
+            drawer.CloseRequested += OnAutoHideDrawerCloseRequested;
+            drawer.DrawerSizeChanged += OnAutoHideDrawerSizeChanged;
+            _autoHideDrawer = drawer;
+        }
+
+        EnsureComponentBinding(() => _autoHideDrawerComponent, value => _autoHideDrawerComponent = value, _autoHideDrawer,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                true, true, false, false, false, false, false, (avail, _) => GetDrawerBounds(avail)));
+
+        if (stripsChanged)
+        {
+            RefreshAutoHideStrips();
+        }
+    }
+
+    private void OnAutoHideStripPanelActivated(object sender, DockPanelNode panel) => ShowAutoHideDrawer(panel);
+
+    private void OnAutoHideDrawerPinRequested(object sender, DockPanelNode panel) => RepinPanel(panel);
+
+    private void OnAutoHideDrawerPanelCloseRequested(object sender, DockPanelNode panel) => CloseAutoHidePanel(panel);
+
+    private void OnAutoHideDrawerCloseRequested(object sender, EventArgs e) => HideAutoHideDrawer();
+
+    private void OnAutoHideDrawerSizeChanged(object sender, int size) => InvalidateLayout();
 
     private static string GetAutoHideStripPartName(AutoHideSide side)
     {
@@ -2258,15 +2303,18 @@ public class MGDockHost : MGSingleContentHost
 
     private DockDropTarget _currentDropTarget;
     private MGDockPreviewOverlay _previewOverlay;
-    private MGComponentBase _previewOverlayComponent;
+    private MGComponent<MGDockPreviewOverlay> _previewOverlayComponent;
     private MGDockDropIndicators _dropIndicators;
-    private MGComponentBase _dropIndicatorsComponent;
+    private MGComponent<MGDockDropIndicators> _dropIndicatorsComponent;
     private MGDockTabGroup _lastHoveredGroup; // Track which group we're hovering for indicators
 
-    // Auto-hide strips (one per edge) and drawer overlay
+    // Auto-hide strips (one per edge) and drawer overlay, attached from the control template (see AttachControlTemplateStructure)
     private readonly Dictionary<AutoHideSide, MGDockAutoHideStrip> _autoHideStrips
         = new Dictionary<AutoHideSide, MGDockAutoHideStrip>();
+    private readonly Dictionary<AutoHideSide, MGComponent<MGDockAutoHideStrip>> _autoHideStripComponents
+        = new Dictionary<AutoHideSide, MGComponent<MGDockAutoHideStrip>>();
     private MGDockAutoHideDrawer _autoHideDrawer;
+    private MGComponent<MGDockAutoHideDrawer> _autoHideDrawerComponent;
 
     /// <summary>
     /// The current drop target based on the last mouse position.

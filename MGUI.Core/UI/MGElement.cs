@@ -459,6 +459,15 @@ namespace MGUI.Core.UI
             try
             {
                 bool TemplateChanged = !ReferenceEquals(_AppliedStructuredTemplate, Template);
+                if (TemplateChanged && _AppliedTemplateStructure != null && Template?.SupportsStructure == true
+                    && ReferenceEquals(_AppliedStructuredTemplate.StructureTemplate, Template.StructureTemplate))
+                {
+                    // A variant that reuses the structure of the applied template, such as a bare BasedOn variant selected by a theme mapping, keeps
+                    // the instantiated parts and the values set on them: only its defaults are applied below.
+                    _AppliedStructuredTemplate = Template;
+                    TemplateChanged = false;
+                }
+
                 if (TemplateChanged)
                 {
                     ClearInstantiatedTemplateStructure();

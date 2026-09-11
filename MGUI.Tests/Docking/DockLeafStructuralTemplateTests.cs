@@ -158,7 +158,8 @@ public class DockLeafStructuralTemplateTests
             Assert.Null(control.LastControlTemplateError);
             Assert.Equal(variant, control.AppliedControlTemplateName);
             Assert.True(control.TryGetTemplatePart(partName, out MGElement variantPart), $"{variant} did not provide {partName}");
-            Assert.NotSame(defaultPart, variantPart);
+            // The variant reuses the structure of its base template: switching to it keeps the instantiated parts.
+            Assert.Same(defaultPart, variantPart);
         }
     }
 

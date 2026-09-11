@@ -48,6 +48,8 @@ namespace MGUI.Core.UI.Styling
         public const string DockSplitterTemplateName = "Dock.Splitter.Default";
         public const string DockDropIndicatorsTemplateName = "Dock.DropIndicators.Default";
         public const string DockPreviewOverlayTemplateName = "Dock.PreviewOverlay.Default";
+        public const string DockTabGroupTemplateName = "Dock.TabGroup.Default";
+        public const string DockHostTemplateName = "Dock.Host.Default";
 
         public static readonly Thickness DefaultListBoxItemBorderThickness = new(0, 1);
         public static readonly Thickness DefaultListBoxItemPadding = new(6, 4);
@@ -176,8 +178,10 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, CreateTabControlTemplate());
             Register(Resources, SelectedTabHeaderTemplateName, ApplySelectedTabHeaderTemplate);
             Register(Resources, UnselectedTabHeaderTemplateName, ApplyUnselectedTabHeaderTemplate);
-            Register(Resources, DockTabItemTemplateName, ApplyDockTabItemTemplate);
-            Register(Resources, DockAutoHideDrawerTemplateName, ApplyDockAutoHideDrawerTemplate);
+            Register(Resources, CreateDockTabItemTemplate());
+            Register(Resources, CreateDockTabGroupTemplate());
+            Register(Resources, CreateDockHostTemplate());
+            Register(Resources, CreateDockAutoHideDrawerTemplate());
             Register(Resources, CreateDockAutoHideStripTemplate());
             Register(Resources, CreateDockSplitterTemplate());
             Register(Resources, CreateDockDropIndicatorsTemplate());
@@ -268,6 +272,18 @@ namespace MGUI.Core.UI.Styling
 
         private static MGControlTemplate CreateDockPreviewOverlayTemplate()
             => new(DockPreviewOverlayTemplateName, CreateDockPreviewOverlayTemplateStructure, null, ApplyDockPreviewOverlayTemplate);
+
+        private static MGControlTemplate CreateDockTabItemTemplate()
+            => new(DockTabItemTemplateName, CreateDockTabItemTemplateStructure, null, ApplyDockTabItemTemplate);
+
+        private static MGControlTemplate CreateDockTabGroupTemplate()
+            => new(DockTabGroupTemplateName, CreateDockTabGroupTemplateStructure, null, ApplyDockTabGroupTemplate);
+
+        private static MGControlTemplate CreateDockAutoHideDrawerTemplate()
+            => new(DockAutoHideDrawerTemplateName, CreateDockAutoHideDrawerTemplateStructure, null, ApplyDockAutoHideDrawerTemplate);
+
+        private static MGControlTemplate CreateDockHostTemplate()
+            => new(DockHostTemplateName, CreateDockHostTemplateStructure, null, ApplyDockHostTemplate);
 
         private static void Register(MGResources Resources, string Name, Action<MGControlTemplateContext> Apply)
         {
@@ -1444,12 +1460,131 @@ namespace MGUI.Core.UI.Styling
         private static void ApplyUnselectedTabHeaderTemplate(MGControlTemplateContext Context)
             => ApplyTabHeaderTemplate(Context, false);
 
+        /// <summary>The seven surfaces of a dock host, each a control with its own template. <see cref="MGDockHost"/> positions them, wires their
+        /// events and drives them from the docking state.</summary>
+        private static MGControlTemplateStructure CreateDockHostTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockHost Host)
+            {
+                return null;
+            }
+
+            MGWindow window = Host.SelfOrParentWindow;
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGDockHost.PreviewOverlayPartName, new MGDockPreviewOverlay(window));
+            structure.AddPart(MGDockHost.DropIndicatorsPartName, new MGDockDropIndicators(window));
+            structure.AddPart(MGDockHost.LeftAutoHideStripPartName, new MGDockAutoHideStrip(window, Docking.DockLayout.AutoHideSide.Left));
+            structure.AddPart(MGDockHost.RightAutoHideStripPartName, new MGDockAutoHideStrip(window, Docking.DockLayout.AutoHideSide.Right));
+            structure.AddPart(MGDockHost.TopAutoHideStripPartName, new MGDockAutoHideStrip(window, Docking.DockLayout.AutoHideSide.Top));
+            structure.AddPart(MGDockHost.BottomAutoHideStripPartName, new MGDockAutoHideStrip(window, Docking.DockLayout.AutoHideSide.Bottom));
+            structure.AddPart(MGDockHost.AutoHideDrawerPartName, new MGDockAutoHideDrawer(window));
+            return structure;
+        }
+
+        /// <summary>The host surfaces carry their own templates: the host template applies no default of its own.</summary>
+        private static void ApplyDockHostTemplate(MGControlTemplateContext Context)
+        {
+        }
+
+        /// <summary>The four parts of a tab group. The overflow and maximize/restore buttons are not template parts (ADR-0002 gives them no role):
+        /// <see cref="MGDockTabGroup"/> creates them.</summary>
+        private static MGControlTemplateStructure CreateDockTabGroupTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockTabGroup TabGroup)
+            {
+                return null;
+            }
+
+            MGWindow window = TabGroup.SelfOrParentWindow;
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGDockTabGroup.HeadersPanelPartName, new MGStackPanel(window, Orientation.Horizontal)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Top,
+                Spacing = 0,
+            });
+            structure.AddPart(MGDockTabGroup.AccentPartName, new MGRectangle(window, 0, 0, Color.Transparent, 0, Color.Transparent)
+            {
+                Visibility = Visibility.Collapsed,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            });
+            structure.AddPart(MGDockTabGroup.DropdownIconPartName, new MGEllipsisIcon(window));
+            structure.AddPart(MGDockTabGroup.WindowStateIconPartName, new MGWindowStateIcon(window));
+            return structure;
+        }
+
+        private static void ApplyDockTabGroupTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockTabGroup TabGroup)
+            {
+                return;
+            }
+
+            MGThemeDockingSettings Docking = TabGroup.GetTheme()?.Docking;
+            if (Docking == null)
+            {
+                return;
+            }
+
+            Context.ApplyThemeDefault("DockTabGroup.IconColor", Docking.TabGroupIconColor, () => TabGroup.IconColor, value => TabGroup.IconColor = value);
+            Context.ApplyThemeDefault("DockTabGroup.CompactButtonHoverColor", Docking.TabGroupButtonHoverColor, () => TabGroup.CompactButtonHoverColor, value => TabGroup.CompactButtonHoverColor = value);
+        }
+
+        /// <summary>The seven tab parts. <see cref="MGDockTabItem"/> wires the close click and positions, sizes and reveals the parts itself.</summary>
+        private static MGControlTemplateStructure CreateDockTabItemTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockTabItem TabItem)
+            {
+                return null;
+            }
+
+            MGWindow window = TabItem.SelfOrParentWindow;
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGDockTabItem.SurfacePartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
+            structure.AddPart(MGDockTabItem.AccentPartName, new MGRectangle(window, 0, 0, Color.Transparent, 0, Color.Transparent)
+            {
+                Visibility = Visibility.Collapsed,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            });
+            // Single-line title: the tab width adapts to its content.
+            structure.AddPart(MGDockTabItem.TitleTextPartName, new MGTextBlock(window, TabItem.Panel?.Title ?? "Tab")
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                WrapText = false,
+            });
+            // The accessory buttons stretch over their reserved area, so that the icon is centred and the hit-test rectangle is right.
+            structure.AddPart(MGDockTabItem.CloseButtonPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            });
+            structure.AddPart(MGDockTabItem.CloseIconPartName, new MGCloseIcon(window));
+            structure.AddPart(MGDockTabItem.PinButtonPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            });
+            structure.AddPart(MGDockTabItem.PinIconPartName, new MGDockPinIcon(window));
+            return structure;
+        }
+
         private static void ApplyDockTabItemTemplate(MGControlTemplateContext Context)
         {
             if (Context.Owner is not MGDockTabItem TabItem)
             {
                 return;
             }
+
+            MGTextBlock TitleText = Context.GetRequiredPart<MGTextBlock>(MGDockTabItem.TitleTextPartName);
+            MGBorder CloseButton = Context.GetRequiredPart<MGBorder>(MGDockTabItem.CloseButtonPartName);
+            MGBorder PinButton = Context.GetRequiredPart<MGBorder>(MGDockTabItem.PinButtonPartName);
+            Context.ApplyTemplateValue("DockTabItem.TitleText.Padding", new Thickness(8, 4, 4, 4), () => TitleText.Padding, (value, source) => TitleText.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            // The accessory buttons take the surface brush of the tab (MGDockTabItem.UpdateVisuals); this container removes their hover overlay.
+            Context.ApplyTemplateValue("DockTabItem.CloseButton.Background", new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f), () => CloseButton.BackgroundBrush, (value, source) => CloseButton.SetBackground(value, source));
+            Context.ApplyTemplateValue("DockTabItem.PinButton.Background", new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f), () => PinButton.BackgroundBrush, (value, source) => PinButton.SetBackground(value, source));
 
             MGThemeDockingSettings Docking = TabItem.GetTheme()?.Docking;
             if (Docking == null)
@@ -1469,12 +1604,63 @@ namespace MGUI.Core.UI.Styling
             TabItem.RefreshThemeVisuals();
         }
 
+        /// <summary>The eight drawer parts. <see cref="MGDockAutoHideDrawer"/> wires the pin and close clicks and lays the parts out itself.</summary>
+        private static MGControlTemplateStructure CreateDockAutoHideDrawerTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockAutoHideDrawer Drawer)
+            {
+                return null;
+            }
+
+            MGWindow window = Drawer.SelfOrParentWindow;
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGDockAutoHideDrawer.BorderPartName, new MGBorder(window, new Thickness(1), (IBorderBrush)null)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            });
+            structure.AddPart(MGDockAutoHideDrawer.TitleBarPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Top,
+            });
+            structure.AddPart(MGDockAutoHideDrawer.TitleBarTextPartName, new MGTextBlock(window, "")
+            {
+                FontSize = 12,
+                WrapText = false,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            // Square icon-only buttons: their icons are the PART_PinIcon and PART_CloseIcon parts.
+            structure.AddPart(MGDockAutoHideDrawer.PinButtonPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            });
+            structure.AddPart(MGDockAutoHideDrawer.CloseButtonPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            });
+            structure.AddPart(MGDockAutoHideDrawer.PinIconPartName, new MGDockPinIcon(window));
+            structure.AddPart(MGDockAutoHideDrawer.CloseIconPartName, new MGCloseIcon(window));
+            structure.AddPart(MGDockAutoHideDrawer.ResizeGripPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            });
+            return structure;
+        }
+
         private static void ApplyDockAutoHideDrawerTemplate(MGControlTemplateContext Context)
         {
             if (Context.Owner is not MGDockAutoHideDrawer Drawer)
             {
                 return;
             }
+
+            MGTextBlock TitleText = Context.GetRequiredPart<MGTextBlock>(MGDockAutoHideDrawer.TitleBarTextPartName);
+            Context.ApplyTemplateValue("DockDrawer.TitleText.Padding", new Thickness(6, 2, 4, 2), () => TitleText.Padding, (value, source) => TitleText.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
             MGThemeDockingSettings Docking = Drawer.GetTheme()?.Docking;
             if (Docking == null)

@@ -353,5 +353,8 @@ namespace MGUI.Core.UI.XAML
 
         public XAMLColor? PreviewOverlayFillColor { get; set; }
         public XAMLColor? PreviewOverlayBorderColor { get; set; }
+
+        public XAMLColor? TabGroupButtonHoverColor { get; set; }
+        public XAMLColor? TabGroupIconColor { get; set; }
     }
 }

@@ -166,13 +166,15 @@ public class ControlTemplateInfrastructureTests
     public void Dock_Tab_Item_Uses_Explicit_Accent_And_Icon_Parts()
     {
         string tabItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockTabItem.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
         string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
         string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
 
-        Assert.Contains("RegisterTemplatePart(SurfacePartName, _surfaceElement)", tabItemSource);
-        Assert.Contains("RegisterTemplatePart(AccentPartName, _accentElement)", tabItemSource);
-        Assert.Contains("RegisterTemplatePart(CloseIconPartName, _closeIconElement)", tabItemSource);
-        Assert.Contains("RegisterTemplatePart(PinIconPartName, _pinIconElement)", tabItemSource);
+        // Backlog task 9: the seven parts come from the Dock.TabItem.Default template, the tab attaches them and wires the close click.
+        Assert.Contains("protected internal override void AttachControlTemplateStructure", tabItemSource);
+        Assert.Contains("closeButton.MouseHandler.LMBReleasedInside += OnCloseButtonReleased;", tabItemSource);
+        Assert.DoesNotContain("RegisterTemplatePart(", tabItemSource);
+        Assert.Contains("structure.AddPart(MGDockTabItem.PinIconPartName, new MGDockPinIcon(window));", catalogSource);
         Assert.Contains("public class MGCloseIcon", symbolElementsSource);
         Assert.Contains("public class MGDockPinIcon", symbolElementsSource);
         Assert.Contains("DrawCloseIcon", symbolDrawingSource);
@@ -186,12 +188,17 @@ public class ControlTemplateInfrastructureTests
     public void Dock_Tab_Group_Uses_Explicit_Accent_And_Header_Icon_Parts()
     {
         string tabGroupSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockTabGroup.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
         string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
         string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
 
-        Assert.Contains("RegisterTemplatePart(AccentPartName, _accentElement)", tabGroupSource);
-        Assert.Contains("RegisterTemplatePart(DropdownIconPartName, _dropdownIconElement)", tabGroupSource);
-        Assert.Contains("RegisterTemplatePart(WindowStateIconPartName, _windowStateIconElement)", tabGroupSource);
+        // Backlog task 9: the four parts come from the Dock.TabGroup.Default template; the compact button hover and the icon colors come from the theme.
+        Assert.Contains("DefaultControlTemplateName = MGControlTemplateCatalog.DockTabGroupTemplateName;", tabGroupSource);
+        Assert.Contains("protected internal override void AttachControlTemplateStructure", tabGroupSource);
+        Assert.DoesNotContain("RegisterTemplatePart(", tabGroupSource);
+        Assert.DoesNotContain("new Color(70, 70, 74)", tabGroupSource);
+        Assert.DoesNotContain("new Color(200, 200, 200)", tabGroupSource);
+        Assert.Contains("structure.AddPart(MGDockTabGroup.WindowStateIconPartName, new MGWindowStateIcon(window));", catalogSource);
         Assert.Contains("public class MGEllipsisIcon", symbolElementsSource);
         Assert.Contains("public class MGWindowStateIcon", symbolElementsSource);
         Assert.Contains("DrawEllipsisIcon", symbolDrawingSource);
@@ -246,10 +253,10 @@ public class ControlTemplateInfrastructureTests
         string drawerSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockAutoHideDrawer.cs");
         string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
 
-        Assert.Contains("RegisterTemplatePart(BorderPartName, _border)", drawerSource);
-        Assert.Contains("RegisterTemplatePart(PinIconPartName, _pinIcon)", drawerSource);
-        Assert.Contains("RegisterTemplatePart(CloseIconPartName, _closeIcon)", drawerSource);
-        Assert.Contains("RegisterTemplatePart(ResizeGripPartName, _resizeGrip)", drawerSource);
+        // Backlog task 9: the eight parts come from the Dock.AutoHideDrawer.Default template, the drawer attaches them and wires the pin and close clicks.
+        Assert.Contains("protected internal override void AttachControlTemplateStructure", drawerSource);
+        Assert.Contains("pinButton.MouseHandler.LMBReleasedInside += OnPinButtonReleased;", drawerSource);
+        Assert.DoesNotContain("RegisterTemplatePart(", drawerSource);
         Assert.Contains("public class MGDockPinIcon", symbolElementsSource);
         Assert.Contains("public class MGCloseIcon", symbolElementsSource);
         Assert.Contains("protected override void DrawContents", drawerSource);
@@ -278,10 +285,11 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("public const string LeftAutoHideStripPartName = \"PART_LeftAutoHideStrip\";", hostSource);
         Assert.Contains("public const string BottomAutoHideStripPartName = \"PART_BottomAutoHideStrip\";", hostSource);
         Assert.Contains("public const string AutoHideDrawerPartName = \"PART_AutoHideDrawer\";", hostSource);
-        Assert.Contains("RegisterTemplatePart(PreviewOverlayPartName, _previewOverlay)", hostSource);
-        Assert.Contains("RegisterTemplatePart(DropIndicatorsPartName, _dropIndicators)", hostSource);
-        Assert.Contains("RegisterTemplatePart(GetAutoHideStripPartName(side), strip)", hostSource);
-        Assert.Contains("RegisterTemplatePart(AutoHideDrawerPartName, _autoHideDrawer)", hostSource);
+        // Backlog task 9: the seven surfaces come from the Dock.Host.Default template; the host attaches them and keeps the docking orchestration.
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        Assert.Contains("protected internal override void AttachControlTemplateStructure", hostSource);
+        Assert.DoesNotContain("RegisterTemplatePart(", hostSource);
+        Assert.Contains("structure.AddPart(MGDockHost.AutoHideDrawerPartName, new MGDockAutoHideDrawer(window));", catalogSource);
     }
 
     [Fact]
@@ -330,6 +338,8 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockSplitterTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockDropIndicatorsTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockPreviewOverlayTemplateName, out _));
+        Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockTabGroupTemplateName, out _));
+        Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockHostTemplateName, out _));
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.WindowTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.OverlayTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.ListBoxTemplateName].SupportsStructure);
@@ -342,6 +352,10 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockDropIndicatorsTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockPreviewOverlayTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockAutoHideStripTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockTabItemTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockTabGroupTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockAutoHideDrawerTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockHostTemplateName].SupportsStructure);
     }
 
     [Fact]

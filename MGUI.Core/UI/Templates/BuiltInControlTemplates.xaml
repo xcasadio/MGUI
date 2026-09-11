@@ -211,4 +211,6 @@
   <ControlTemplate Name="Dark.DockSplitter" TargetType="DockSplitter" BasedOn="Dock.Splitter.Default" />
   <ControlTemplate Name="Dark.DockDropIndicators" TargetType="DockDropIndicators" BasedOn="Dock.DropIndicators.Default" />
   <ControlTemplate Name="Dark.DockPreviewOverlay" TargetType="DockPreviewOverlay" BasedOn="Dock.PreviewOverlay.Default" />
+  <ControlTemplate Name="Dark.DockTabGroup" TargetType="DockTabGroup" BasedOn="Dock.TabGroup.Default" />
+  <ControlTemplate Name="Dark.DockHost" TargetType="DockHost" BasedOn="Dock.Host.Default" />
 </ControlTemplates>

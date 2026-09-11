@@ -113,8 +113,9 @@ namespace MGUI.Core.UI.XAML
                     {
                         // A variant that declares no root and no detached roots keeps the structure of its base: instantiating its own, empty,
                         // structure would miss every part the control requires.
-                        Action<Styling.MGControlTemplateContext, Styling.MGControlTemplateStructure> attachStructure = baseTemplate.SupportsAttachment ? baseTemplate.AttachStructure : null;
-                        template = new Styling.MGControlTemplate(definition.Name, baseTemplate.CreateStructure, attachStructure, applyDefaults);
+                        // Sharing the structure template also lets an element switch between the base and the variant, as a theme mapping does,
+                        // without rebuilding its parts.
+                        template = Styling.MGControlTemplate.CreateStructureVariant(definition.Name, baseTemplate, applyDefaults);
                     }
                     else
                     {

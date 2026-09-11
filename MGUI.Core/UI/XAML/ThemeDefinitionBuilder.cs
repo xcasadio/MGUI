@@ -448,6 +448,9 @@ namespace MGUI.Core.UI.XAML
 
             if (Definition.PreviewOverlayFillColor.HasValue) Target.PreviewOverlayFillColor = Definition.PreviewOverlayFillColor.Value.ToXNAColor();
             if (Definition.PreviewOverlayBorderColor.HasValue) Target.PreviewOverlayBorderColor = Definition.PreviewOverlayBorderColor.Value.ToXNAColor();
+
+            if (Definition.TabGroupButtonHoverColor.HasValue) Target.TabGroupButtonHoverColor = Definition.TabGroupButtonHoverColor.Value.ToXNAColor();
+            if (Definition.TabGroupIconColor.HasValue) Target.TabGroupIconColor = Definition.TabGroupIconColor.Value.ToXNAColor();
         }
 
         private static void ApplyProperties(MGTheme Theme, IEnumerable<ThemePropertyDefinition> Definitions)

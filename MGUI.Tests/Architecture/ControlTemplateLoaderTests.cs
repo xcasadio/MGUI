@@ -76,4 +76,38 @@ public class ControlTemplateLoaderTests
     Assert.Equal(1, applyCount);
     Assert.Same(templates["Window.Chrome"], resolved);
   }
+
+    [Fact]
+    public void Xaml_Control_Template_BasedOn_Without_Root_Shares_The_Base_Structure_Template()
+    {
+        MGResources resources = new(new MGTheme("Arial"));
+        MGControlTemplate baseTemplate = new("Overlay.Base", _ => new MGControlTemplateStructure(null), null, _ => { });
+        resources.AddControlTemplate(baseTemplate);
+
+        resources.LoadControlTemplatesFromXaml(XamlDocumentSource.FromString(@"
+<ControlTemplate xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core""
+                 Name=""Overlay.Bare""
+                 TargetType=""Overlay""
+                 BasedOn=""Overlay.Base"" />"));
+        resources.LoadControlTemplatesFromXaml(XamlDocumentSource.FromString(@"
+<ControlTemplate xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core""
+                 Name=""Overlay.BareOfBare""
+                 TargetType=""Overlay""
+                 BasedOn=""Overlay.Bare"" />"));
+        resources.LoadControlTemplatesFromXaml(XamlDocumentSource.FromString(@"
+<ControlTemplate xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core""
+                 Name=""Overlay.Rooted""
+                 TargetType=""Overlay""
+                 BasedOn=""Overlay.Base""><Border Name=""RootedRoot"" /></ControlTemplate>"));
+
+        // An element switches between templates that share a structure template without rebuilding its parts (MGElement.ApplyControlTemplate).
+        Assert.Same(baseTemplate, baseTemplate.StructureTemplate);
+        Assert.True(resources.TryGetControlTemplate("Overlay.Bare", out MGControlTemplate bare));
+        Assert.True(bare.SupportsStructure);
+        Assert.Same(baseTemplate, bare.StructureTemplate);
+        Assert.True(resources.TryGetControlTemplate("Overlay.BareOfBare", out MGControlTemplate bareOfBare));
+        Assert.Same(baseTemplate, bareOfBare.StructureTemplate);
+        Assert.True(resources.TryGetControlTemplate("Overlay.Rooted", out MGControlTemplate rooted));
+        Assert.Same(rooted, rooted.StructureTemplate);
+    }
 }

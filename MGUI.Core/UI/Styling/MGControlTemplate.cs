@@ -187,6 +187,11 @@ namespace MGUI.Core.UI.Styling
         /// Attachment is intentionally separate from structure creation so templates can be parsed or cached without mutating the live visual tree.</summary>
         public bool SupportsAttachment => AttachStructureAction != null;
 
+        /// <summary>The template that defines the structure this template creates and attaches: the template itself, or the base of a variant
+        /// created by <see cref="CreateStructureVariant"/>. An element switching between two templates with the same structure template keeps its
+        /// instantiated structure (<c>MGElement.ApplyControlTemplate</c>).</summary>
+        internal MGControlTemplate StructureTemplate { get; }
+
         public MGControlTemplate(string Name, Action<MGControlTemplateContext> ApplyAction)
             : this(Name, null, null, ApplyAction)
         {
@@ -201,7 +206,19 @@ namespace MGUI.Core.UI.Styling
             CreateStructureAction = CreateStructure;
             AttachStructureAction = AttachStructure;
             ApplyDefaultsAction = ApplyDefaults ?? throw new ArgumentNullException(nameof(ApplyDefaults));
+            StructureTemplate = this;
         }
+
+        private MGControlTemplate(string Name, MGControlTemplate BaseTemplate, Action<MGControlTemplateContext> ApplyDefaults)
+            : this(Name, BaseTemplate.CreateStructureAction, BaseTemplate.AttachStructureAction, ApplyDefaults)
+        {
+            StructureTemplate = BaseTemplate.StructureTemplate;
+        }
+
+        /// <summary>Creates a template named <paramref name="Name"/> that creates and attaches the structure of <paramref name="BaseTemplate"/>
+        /// and applies <paramref name="ApplyDefaults"/>, such as a XAML <c>BasedOn</c> variant that declares no root.</summary>
+        internal static MGControlTemplate CreateStructureVariant(string Name, MGControlTemplate BaseTemplate, Action<MGControlTemplateContext> ApplyDefaults)
+            => new(Name, BaseTemplate ?? throw new ArgumentNullException(nameof(BaseTemplate)), ApplyDefaults);
 
         public void Apply(MGElement Owner, bool IsThemeRefresh = false)
         {
@@ -236,7 +253,7 @@ namespace MGUI.Core.UI.Styling
         }
 
         /// <summary>Attaches a previously created structure to the owner.
-        /// Theme refreshes should not call this unless the template identity actually changed.</summary>
+        /// Theme refreshes should not call this unless the structure template (<see cref="StructureTemplate"/>) actually changed.</summary>
         public void AttachStructure(MGControlTemplateContext Context, MGControlTemplateStructure Structure)
         {
             if (Context == null)

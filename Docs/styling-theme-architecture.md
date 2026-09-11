@@ -250,15 +250,15 @@ Comportement runtime : un changement de theme declenche `OnThemeChanged` puis `A
 
 ### Catalogue et assets
 
-`MGControlTemplateCatalog` (MGUI.Core/UI/Styling/MGControlTemplateCatalog.cs) enregistre les templates par defaut. Constantes de noms: `Window.Default`, `ToolTip.Default`, `Overlay.Default`, `ContextMenu.Default`, `ContextMenuItem.Default`, `ListBox.Default`, `ListView.Default`, `PropertyGrid.Default`, `GraphView.Default`, `GraphNode.Default`, `GraphPort.Default`, `GraphCommentBox.Default`, `ComboBox.Default`, `ComboBox.DropdownItem.Default`, `TreeView.Default`, `TextBox.Default`, `NumericUpDown.Default`, `TabControl.Default`, `TabControl.Header.Selected`, `TabControl.Header.Unselected`, `Dock.TabItem.Default`, `Dock.AutoHideDrawer.Default`, `Dock.AutoHideStrip.Default`, `Dock.Splitter.Default`, `Dock.DropIndicators.Default`, `Dock.PreviewOverlay.Default`.
+`MGControlTemplateCatalog` (MGUI.Core/UI/Styling/MGControlTemplateCatalog.cs) enregistre les templates par defaut. Constantes de noms: `Window.Default`, `ToolTip.Default`, `Overlay.Default`, `ContextMenu.Default`, `ContextMenuItem.Default`, `ListBox.Default`, `ListView.Default`, `PropertyGrid.Default`, `GraphView.Default`, `GraphNode.Default`, `GraphPort.Default`, `GraphCommentBox.Default`, `ComboBox.Default`, `ComboBox.DropdownItem.Default`, `TreeView.Default`, `TextBox.Default`, `NumericUpDown.Default`, `TabControl.Default`, `TabControl.Header.Selected`, `TabControl.Header.Unselected`, `Dock.TabItem.Default`, `Dock.AutoHideDrawer.Default`, `Dock.AutoHideStrip.Default`, `Dock.Splitter.Default`, `Dock.DropIndicators.Default`, `Dock.PreviewOverlay.Default`, `Dock.TabGroup.Default`, `Dock.Host.Default`.
 
 Repartition actuelle:
 
-- Templates structurels code-backed (createur de structure + applicateur de defaults): `Window`, `Overlay`, `ComboBox`, `TabControl`, `TreeView`, `TextBox`, `NumericUpDown`, les templates PropertyGrid et Graph, et depuis la tache 8 les quatre templates docking feuilles `Dock.Splitter`, `Dock.DropIndicators`, `Dock.PreviewOverlay` et `Dock.AutoHideStrip`.
+- Templates structurels code-backed (createur de structure + applicateur de defaults): `Window`, `Overlay`, `ComboBox`, `TabControl`, `TreeView`, `TextBox`, `NumericUpDown`, les templates PropertyGrid et Graph, et les templates docking : depuis la tache 8 `Dock.Splitter`, `Dock.DropIndicators`, `Dock.PreviewOverlay` et `Dock.AutoHideStrip`, depuis la tache 9 `Dock.TabItem`, `Dock.TabGroup`, `Dock.AutoHideDrawer` et `Dock.Host`.
 - Templates structurels en asset XAML embarque (`MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml`): `ListBox.Default` (trois `DetachedRoots`: `OuterBorder`, `TitleBorder`, `InnerBorder`, sans racine unique) et `ListView.Default`.
-- Applicateurs de defaults seuls (sans phase structurelle): `ContextMenu.Default`, `ContextMenuItem.Default`, `ComboBox.DropdownItem.Default`, les deux headers de `TabControl`, `Dock.TabItem.Default` et `Dock.AutoHideDrawer.Default`.
+- Applicateurs de defaults seuls (sans phase structurelle): `ContextMenu.Default`, `ContextMenuItem.Default`, `ComboBox.DropdownItem.Default`, les deux headers de `TabControl`.
 
-`BuiltInControlTemplates.xaml` contient aussi des variantes `Dark.*` (`Dark.Window`, `Dark.ListBox`, `Dark.DockTabItem`, etc.) exprimees par heritage de template via l'attribut `BasedOn` sur `ControlTemplate`. Une variante `BasedOn` reprend l'applicateur de defaults de sa base. Si elle ne declare ni racine ni `DetachedRoots`, elle reprend aussi son createur de structure (tache 8, `ControlTemplateLoader.BuildTemplates`) : les variantes `Dark.Dock*` nues fournissent ainsi les parts requises au lieu d'une structure vide.
+`BuiltInControlTemplates.xaml` contient aussi des variantes `Dark.*` (`Dark.Window`, `Dark.ListBox`, `Dark.DockTabItem`, etc.) exprimees par heritage de template via l'attribut `BasedOn` sur `ControlTemplate`. Une variante `BasedOn` reprend l'applicateur de defaults de sa base. Si elle ne declare ni racine ni `DetachedRoots`, elle reprend aussi son createur de structure (tache 8, `ControlTemplateLoader.BuildTemplates`) : les variantes `Dark.Dock*` nues fournissent ainsi les parts requises au lieu d'une structure vide. Une telle variante partage le template de structure de sa base (`MGControlTemplate.StructureTemplate`, fabrique `CreateStructureVariant`) : un element qui passe de la base a la variante, par le mapping du theme `Dark` ou par `ControlTemplateName`, garde sa structure instanciee et les valeurs posees sur ses parts, `MGElement.ApplyControlTemplate` ne reconstruisant la structure que si le template de structure change (tache 9).
 
 ### Templates XAML
 
@@ -287,7 +287,7 @@ Depuis la tache 5 (11 septembre 2026), l'origine d'une valeur se lit par `UITool
 
 ### Controles migres
 
-Templates structurels ou chrome entierement template-driven: `MGWindow`, `MGOverlay`, `MGContextMenu`, `MGContextMenuItem`, `MGListBox`, `MGListView`, `MGComboBox`, `MGTreeView`, `MGTabControl`, `MGTextBox` (et `MGPasswordBox`), `MGToolTip`, plus les controles docking feuilles : `MGDockSplitterBar`, `MGDockDropIndicators`, `MGDockPreviewOverlay` et `MGDockAutoHideStrip` en templates structurels (tache 8), `MGDockTabItem` et `MGDockAutoHideDrawer` en mode applicateur de defaults.
+Templates structurels ou chrome entierement template-driven: `MGWindow`, `MGOverlay`, `MGContextMenu`, `MGContextMenuItem`, `MGListBox`, `MGListView`, `MGComboBox`, `MGTreeView`, `MGTabControl`, `MGTextBox` (et `MGPasswordBox`), `MGToolTip`, plus les controles docking en templates structurels : `MGDockSplitterBar`, `MGDockDropIndicators`, `MGDockPreviewOverlay` et `MGDockAutoHideStrip` (tache 8), puis `MGDockTabItem`, `MGDockTabGroup`, `MGDockAutoHideDrawer` et `MGDockHost` (tache 9).
 
 Hooks specifiques:
 
@@ -305,7 +305,7 @@ Hooks specifiques:
 
 Pour evaluer le degre de decouplage d'un controle: presence de `DefaultControlTemplateName`; presence de `AttachControlTemplateStructure(...)`; `OnThemeChanged(...)` copiant des valeurs de theme dans des proprietes locales (signal negatif); dessin d'icones/etats dans `OnEndingDraw`/`DrawSelf`/`DrawContents` (signal negatif); construction imperative de sous-parts dans le controle (signal negatif).
 
-Controles encore faiblement decouples: `MGRadioButton`, `MGSlider`, `MGProgressBar`, `MGProgressButton`, `MGRatingControl`, `MGGridColorPicker`, `MGGroupBox`, `MGExpander`, `MGMenuBar`, `MGSpoiler`, `MGChatBox`, `MGResizeGrip`, la plupart des controles docking, et `MGDockHost` (le plus couple).
+Controles encore faiblement decouples: `MGRadioButton`, `MGSlider`, `MGProgressBar`, `MGProgressButton`, `MGRatingControl`, `MGGridColorPicker`, `MGGroupBox`, `MGExpander`, `MGMenuBar`, `MGSpoiler`, `MGChatBox`, `MGResizeGrip`, `MGDockSplitContainer` et `MGFloatingDockWindow`. `MGDockHost` a un template structurel pour ses surfaces, mais son orchestration du docking reste le code le plus couple.
 
 ## Regles d'ecriture d'un template
 
@@ -352,7 +352,23 @@ Parts enregistrees par controle (constantes `*PartName` dans MGUI.Core/UI/Dockin
 
 La migration structurelle (taches 8 et 9 de Docs/Tasks/styling-theme-tasks.md) part de ce jeu fige: parts requises et createurs de structure utilisent ces noms.
 
-Depuis la tache 8 (12 septembre 2026), les quatre controles feuilles `MGDockSplitterBar`, `MGDockDropIndicators`, `MGDockPreviewOverlay` et `MGDockAutoHideStrip` declarent leurs parts (`GetRequiredControlTemplateParts()`), les recoivent des createurs `CreateDock*TemplateStructure` du catalogue et les attachent dans `AttachControlTemplateStructure(...)`. Le splitter et le strip lient leurs parts en composants par `EnsureComponentBinding`. Les neuf zones et les deux parts de l'apercu deviennent des enfants poses par `SetParent` et mis en page par le controle, et une structure de remplacement detache les parts qu'elle remplace. Le controle garde l'etat et le repousse sur les parts attachees : brosses et couleurs, zone, etats actif et desactive, bornes de l'apercu, et boutons du strip construits depuis le store auto-hide. `Dock.PreviewOverlay.Default` est nouveau ; les couleurs de l'apercu viennent du theme (`MGThemeDockingSettings.PreviewOverlayFillColor` et `PreviewOverlayBorderColor`, blocs Docking des trois themes built-in) au lieu du rgb(0,122,204) code en dur, et les valeurs par defaut de ces reglages reprennent l'ancienne couleur pour les themes XAML qui ne les declarent pas. `Dock.TabItem.Default` et `Dock.AutoHideDrawer.Default` restent des applicateurs de defaults sans phase structurelle (tache 9). Les variantes `Dark.Dock*`, dont `Dark.DockPreviewOverlay`, sont des `BasedOn` nus qui reprennent la structure de leur base.
+Depuis la tache 8 (12 septembre 2026), les quatre controles feuilles `MGDockSplitterBar`, `MGDockDropIndicators`, `MGDockPreviewOverlay` et `MGDockAutoHideStrip` declarent leurs parts (`GetRequiredControlTemplateParts()`), les recoivent des createurs `CreateDock*TemplateStructure` du catalogue et les attachent dans `AttachControlTemplateStructure(...)`. Le splitter et le strip lient leurs parts en composants par `EnsureComponentBinding`. Les neuf zones et les deux parts de l'apercu deviennent des enfants poses par `SetParent` et mis en page par le controle, et une structure de remplacement detache les parts qu'elle remplace. Le controle garde l'etat et le repousse sur les parts attachees : brosses et couleurs, zone, etats actif et desactive, bornes de l'apercu, et boutons du strip construits depuis le store auto-hide. `Dock.PreviewOverlay.Default` est nouveau ; les couleurs de l'apercu viennent du theme (`MGThemeDockingSettings.PreviewOverlayFillColor` et `PreviewOverlayBorderColor`, blocs Docking des trois themes built-in) au lieu du rgb(0,122,204) code en dur, et les valeurs par defaut de ces reglages reprennent l'ancienne couleur pour les themes XAML qui ne les declarent pas. Les variantes `Dark.Dock*`, dont `Dark.DockPreviewOverlay`, sont des `BasedOn` nus qui reprennent la structure de leur base.
+
+La tache 9 (12 septembre 2026) applique le meme contrat aux controles composites :
+
+- `MGDockTabItem` a sept parts, et le clic de fermeture est rebranche sur la part attachee.
+- `MGDockTabGroup` recoit un nouveau template `Dock.TabGroup.Default` : panneau d'en-tetes, accent et deux icones. Un panneau de remplacement recoit les onglets reconstruits.
+- `MGDockAutoHideDrawer` a huit parts, et les clics epingler et fermer sont rebranches.
+- `MGDockHost` recoit un nouveau template `Dock.Host.Default`. L'apercu, les indicateurs de drop, les quatre strips et le tiroir deviennent des parts attachees en composants, chaque strip recevant le cote de son nom de part. Evenements et orchestration du docking restent dans l'hote.
+
+Les boutons compacts du groupe d'onglets (debordement, agrandir/restaurer) ne sont pas des parts : le vocabulaire fige d'ADR-0002 ne leur donne aucun role, et la tache 9 interdit de l'etendre. Le groupe les cree et gere leurs clics. Leur survol et la couleur des icones viennent du theme (`MGThemeDockingSettings.TabGroupButtonHoverColor` et `TabGroupIconColor`, dont les valeurs par defaut sont les anciennes couleurs codees en dur), par les proprietes `CompactButtonHoverColor` et `IconColor` du groupe.
+
+Un changement de theme qui mappe un controle docking sur sa variante `Dark.Dock*` (tab item, tiroir, strip, splitter et indicateurs pour le theme `Dark`) garde les parts instanciees et les valeurs locales posees dessus, la variante partageant le template de structure de sa base. Sans ce partage, la migration structurelle des taches 8 et 9 reconstruisait ces parts a chaque bascule vers ou depuis ce theme. L'epaisseur de la bordure du tiroir reste une ecriture `Theme` de `ApplyThemeVisuals`, comme avant la migration.
+
+Decisions pour les controles restants :
+
+- `MGDockSplitContainer` reste un conteneur de layout pur, sans template : il ne peint rien lui-meme, et sa seule part visuelle, le splitter, porte son propre template structurel depuis la tache 8.
+- `MGFloatingDockWindow` releve de la tache 12.
 
 ## Limites connues (verifiees)
 
@@ -365,7 +381,7 @@ Depuis la tache 8 (12 septembre 2026), les quatre controles feuilles `MGDockSpli
 - `MGTheme` reste la source centrale monolithique des tokens par defaut; aucune extraction de tokens semantiques n'existe.
 - Le changement de template structurel en cours de vie reste plus couteux qu'un refresh de theme; le detachement generique est limite a `MGSingleContentHost`.
 - Le loader XAML de templates ne couvre pas un DSL complet d'attachement custom; la validation de parts ne couvre pas les contraintes inter-parts.
-- Docking : `MGDockTabItem` et `MGDockAutoHideDrawer` restent des applicateurs de defaults ; `MGDockTabGroup`, `MGDockHost`, `MGDockSplitContainer` et `MGFloatingDockWindow` n'ont pas de template structurel (taches 9 et 12, voir section docking).
+- Docking : `MGDockSplitContainer` (conteneur de layout sans chrome, decision de la tache 9) et `MGFloatingDockWindow` (tache 12) n'ont pas de template structurel ; les boutons compacts de `MGDockTabGroup` restent crees par le controle, faute de role dans ADR-0002 (voir section docking).
 
 ## Reste a faire
 

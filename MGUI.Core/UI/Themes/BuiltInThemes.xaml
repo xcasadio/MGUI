@@ -465,7 +465,9 @@
                                       DropIndicatorSymbolColor="White"
                                       DropIndicatorDisabledSymbolColor="rgba(100,100,100,150)"
                                       PreviewOverlayFillColor="rgba(0,122,204,100)"
-                                      PreviewOverlayBorderColor="rgba(0,122,204,200)">
+                                      PreviewOverlayBorderColor="rgba(0,122,204,200)"
+                                      TabGroupButtonHoverColor="rgb(28,52,102)"
+                                      TabGroupIconColor="rgb(200,200,200)">
         <ThemeDockingSettingsDefinition.AutoHideButtonBackground>
           <ThemeVisualStateFillBrushDefinition FocusedColor="rgb(28,52,102)"
                                                PressedModifierType="Darken"
@@ -964,7 +966,9 @@
                                       DropIndicatorSymbolColor="White"
                                       DropIndicatorDisabledSymbolColor="rgba(90,90,90,150)"
                                       PreviewOverlayFillColor="rgba(152,171,191,100)"
-                                      PreviewOverlayBorderColor="rgba(152,171,191,200)">
+                                      PreviewOverlayBorderColor="rgba(152,171,191,200)"
+                                      TabGroupButtonHoverColor="rgba(188,202,218,190)"
+                                      TabGroupIconColor="rgb(64,64,64)">
         <ThemeDockingSettingsDefinition.AutoHideButtonBackground>
           <ThemeVisualStateFillBrushDefinition FocusedColor="rgba(188,202,218,190)"
                                                PressedModifierType="Darken"
@@ -1531,7 +1535,9 @@
                                       DropIndicatorSymbolColor="rgb(230,230,230)"
                                       DropIndicatorDisabledSymbolColor="rgba(110,110,110,150)"
                                       PreviewOverlayFillColor="rgba(58,121,187,100)"
-                                      PreviewOverlayBorderColor="rgba(58,121,187,200)">
+                                      PreviewOverlayBorderColor="rgba(58,121,187,200)"
+                                      TabGroupButtonHoverColor="rgb(62,62,66)"
+                                      TabGroupIconColor="rgb(170,170,170)">
         <ThemeDockingSettingsDefinition.AutoHideButtonBackground>
           <ThemeVisualStateFillBrushDefinition FocusedColor="rgb(62,62,66)"
                                                PressedModifierType="Darken"

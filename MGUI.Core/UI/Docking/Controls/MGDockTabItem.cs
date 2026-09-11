@@ -250,70 +250,10 @@ public class MGDockTabItem : MGElement
             ActiveBrush = new MGSolidFillBrush(new Color(37, 37, 38));      // Slightly darker but will have bright accent line
             DefaultControlTemplateName = MGControlTemplateCatalog.DockTabItemTemplateName;
 
-            _surfaceElement = new(window, new XAML.Thickness(0).ToThickness(), (IBorderBrush)null)
-            {
-                ManagedParent = this,
-                IsHitTestVisible = false,
-            };
-            RegisterTemplatePart(SurfacePartName, _surfaceElement);
-            _surfaceComponent = new(_surfaceElement, false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => LayoutBounds);
-            AddComponent(_surfaceComponent);
 
-            _accentElement = new(window, 0, 0, Color.Transparent, 0, Color.Transparent)
-            {
-                ManagedParent = this,
-                IsHitTestVisible = false,
-                Visibility = Visibility.Collapsed,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-            };
-            RegisterTemplatePart(AccentPartName, _accentElement);
-            _accentComponent = new(_accentElement, false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => GetAccentBounds());
-            AddComponent(_accentComponent);
 
-            // Create title text — single-line only; the tab width adapts to its content
-            _titleText = new MGTextBlock(window, panel?.Title ?? "Tab")
-            {
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                WrapText = false,
-                IsHitTestVisible = false,
-            };
-            _titleText.SetPadding(new XAML.Thickness(8, 4, 4, 4).ToThickness(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            RegisterTemplatePart(TitleTextPartName, _titleText);
-            _titleText.SetParent(this);
-
-            // Create simple close button element — Stretch fills the full reserved area so
-            // that the drawn X cross is centred correctly and the hit-test rect is correct.
-            _closeButton = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
-            {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment   = VerticalAlignment.Stretch
-            };
-            _closeButton.SetBackground(new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
-            RegisterTemplatePart(CloseButtonPartName, _closeButton);
-
-            _closeIconElement = new(window) { ManagedParent = this };
-            RegisterTemplatePart(CloseIconPartName, _closeIconElement);
-            _closeIconComponent = new(_closeIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
-                false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => GetCloseIconBounds());
-            AddComponent(_closeIconComponent);
+            // The seven parts come from the control template, see AttachControlTemplateStructure.
                 
-            // Handle close button click — gated on reveal so a hidden (not hovered/active) close
-            // button never closes the panel, even if a release event somehow still reaches it.
-            _closeButton.MouseHandler.LMBReleasedInside += (sender, e) =>
-            {
-                if (!e.IsHandled && IsCloseAccessoryRevealed)
-                {
-                    CloseRequested?.Invoke(this, Panel);
-                    e.SetHandledBy(_closeButton, false);
-                }
-            };
-
-            _closeButton.SetParent(this);
 
             // Subscribe to mouse click
             // NOTE: pin button is not hit-testable, so its area routes here too.
@@ -335,24 +275,6 @@ public class MGDockTabItem : MGElement
                 }
             };
 
-            // ── Pin button ─────────────────────────────────────────────────
-            _pinButton = new MGBorder(window, new XAML.Thickness(0).ToThickness(), (IFillBrush)null)
-            {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment   = VerticalAlignment.Stretch
-            };
-            _pinButton.SetBackground(new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
-            // Pin button is purely visual — mouse events pass through to the tab item.
-            _pinButton.IsHitTestVisible = false;
-            RegisterTemplatePart(PinButtonPartName, _pinButton);
-            _pinButton.SetParent(this);
-
-            _pinIconElement = new(window) { ManagedParent = this };
-            RegisterTemplatePart(PinIconPartName, _pinIconElement);
-            _pinIconComponent = new(_pinIconElement, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
-                false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => GetPinIconBounds());
-            AddComponent(_pinIconComponent);
 
             // Subscribe to drag start
             MouseHandler.DragStart += OnDragStart;
@@ -363,6 +285,95 @@ public class MGDockTabItem : MGElement
             HorizontalAlignment = HorizontalAlignment.Left;
             VerticalAlignment = VerticalAlignment.Top;
             UpdateVisuals();
+        }
+    }
+
+    protected internal override System.Collections.Generic.IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    {
+        yield return new(SurfacePartName, typeof(MGBorder));
+        yield return new(AccentPartName, typeof(MGRectangle));
+        yield return new(TitleTextPartName, typeof(MGTextBlock));
+        yield return new(CloseButtonPartName, typeof(MGBorder));
+        yield return new(CloseIconPartName, typeof(MGCloseIcon));
+        yield return new(PinButtonPartName, typeof(MGBorder));
+        yield return new(PinIconPartName, typeof(MGDockPinIcon));
+    }
+
+    /// <summary>Binds the seven parts created by the control template (<c>Dock.TabItem.Default</c>). The surface, the accent and the two icons
+    /// become components; the title and the two accessory buttons become children laid out by <see cref="UpdateContentLayout"/>. The close click,
+    /// the hit-test transparency of the title and of the pin button, and every state-driven visual (<see cref="UpdateVisuals"/>) stay on this tab.
+    /// A structure replaced by another template releases the components, children and close handler of the parts it replaces.</summary>
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        MGTextBlock titleText = (MGTextBlock)Structure.Parts[TitleTextPartName];
+        MGBorder closeButton = (MGBorder)Structure.Parts[CloseButtonPartName];
+        MGBorder pinButton = (MGBorder)Structure.Parts[PinButtonPartName];
+
+        if (_titleText != null && !ReferenceEquals(_titleText, titleText))
+        {
+            _titleText.SetParent(null);
+        }
+
+        if (_pinButton != null && !ReferenceEquals(_pinButton, pinButton))
+        {
+            _pinButton.SetParent(null);
+        }
+
+        if (!ReferenceEquals(_closeButton, closeButton))
+        {
+            if (_closeButton != null)
+            {
+                _closeButton.MouseHandler.LMBReleasedInside -= OnCloseButtonReleased;
+                _closeButton.SetParent(null);
+            }
+
+            closeButton.MouseHandler.LMBReleasedInside += OnCloseButtonReleased;
+        }
+
+        _surfaceElement = (MGBorder)Structure.Parts[SurfacePartName];
+        _accentElement = (MGRectangle)Structure.Parts[AccentPartName];
+        _closeIconElement = (MGCloseIcon)Structure.Parts[CloseIconPartName];
+        _pinIconElement = (MGDockPinIcon)Structure.Parts[PinIconPartName];
+        _titleText = titleText;
+        _closeButton = closeButton;
+        _pinButton = pinButton;
+
+        _surfaceElement.ManagedParent = this;
+        _surfaceElement.IsHitTestVisible = false;
+        _accentElement.ManagedParent = this;
+        _accentElement.IsHitTestVisible = false;
+        _closeIconElement.ManagedParent = this;
+        _pinIconElement.ManagedParent = this;
+
+        EnsureComponentBinding(() => _surfaceComponent, value => _surfaceComponent = value, _surfaceElement,
+            element => new(element, false, false, false, false, false, false, false, (availableBounds, componentSize) => LayoutBounds));
+        EnsureComponentBinding(() => _accentComponent, value => _accentComponent = value, _accentElement,
+            element => new(element, false, false, false, false, false, false, false, (availableBounds, componentSize) => GetAccentBounds()));
+        EnsureComponentBinding(() => _closeIconComponent, value => _closeIconComponent = value, _closeIconElement,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                false, false, false, false, false, false, false, (availableBounds, componentSize) => GetCloseIconBounds()));
+        EnsureComponentBinding(() => _pinIconComponent, value => _pinIconComponent = value, _pinIconElement,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
+                false, false, false, false, false, false, false, (availableBounds, componentSize) => GetPinIconBounds()));
+
+        _titleText.IsHitTestVisible = false;
+        _titleText.SetParent(this);
+        // The pin button is purely visual: its mouse events pass through to this tab item (see the constructor).
+        _pinButton.IsHitTestVisible = false;
+        _pinButton.SetParent(this);
+        _closeButton.SetParent(this);
+
+        UpdateVisuals();
+    }
+
+    /// <summary>Gated on reveal, so that a hidden (not hovered, not active) close button never closes the panel, even if a release event
+    /// somehow still reaches it.</summary>
+    private void OnCloseButtonReleased(object sender, BaseMouseReleasedEventArgs e)
+    {
+        if (!e.IsHandled && IsCloseAccessoryRevealed)
+        {
+            CloseRequested?.Invoke(this, Panel);
+            e.SetHandledBy(_closeButton, false);
         }
     }
 
