@@ -77,7 +77,7 @@ public class MGDockAutoHideStrip : MGElement
             _side = side;
 
             // Background — slightly darker than normal panel background
-            BackgroundBrush.NormalValue = new MGSolidFillBrush(new Color(30, 30, 32));
+            SetBackgroundSlot(UIValueSlot.Normal, new MGSolidFillBrush(new Color(30, 30, 32)), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment   = VerticalAlignment.Stretch;
@@ -166,7 +166,10 @@ public class MGDockAutoHideStrip : MGElement
     {
         foreach (var btn in _buttons)
         {
-            btn.BackgroundBrush = ButtonBackgroundBrush;
+            // ADR-0005/S5: ButtonBackgroundBrush is one shared instance for the whole strip -- every button in
+            // _buttons would otherwise subscribe to the SAME container, accumulating subscribers indefinitely
+            // (see the Window.CloseButtonBackground comment in MGControlTemplateCatalog.cs). Copy per button.
+            btn.SetBackground(ButtonBackgroundBrush?.Copy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             if (btn.Content is MGTextBlock label)
             {
                 label.DefaultTextForeground.NormalValue = TextColor;
@@ -217,7 +220,9 @@ public class MGDockAutoHideStrip : MGElement
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment   = VerticalAlignment.Stretch
         };
-        body.BackgroundBrush = ButtonBackgroundBrush;
+        // ADR-0005/S5: see the ApplyThemeVisuals comment above -- ButtonBackgroundBrush is shared across every
+        // button this strip creates, so each new button needs its own copy.
+        body.SetBackground(ButtonBackgroundBrush?.Copy(), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
         if (IsHorizontal)
         {

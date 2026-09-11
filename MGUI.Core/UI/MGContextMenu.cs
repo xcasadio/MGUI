@@ -253,8 +253,8 @@ namespace MGUI.Core.UI
 
             Button.SetBorderThicknessTagged(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
-            Button.BackgroundBrush = background;
-            Button.GetBorder().BackgroundBrush = background?.Copy();
+            Button.SetBackground(background, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+            Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             Button.DefaultTextForeground.SetAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue);
 
             return Button;

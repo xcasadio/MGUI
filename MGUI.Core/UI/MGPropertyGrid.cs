@@ -621,7 +621,7 @@ namespace MGUI.Core.UI
             public void ApplyTheme(MGThemePropertyGridSettings settings)
             {
                 VisualStateSetting<Color?> headerForeground = ToTextColorSetting(settings.CategoryHeaderForeground?.Copy());
-                HeaderButton.BackgroundBrush = settings.CategoryHeaderBackground?.Copy();
+                HeaderButton.SetBackground(settings.CategoryHeaderBackground?.Copy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 HeaderButton.DefaultTextForeground = headerForeground;
                 HeaderButton.SetPadding(settings.CategoryHeaderPadding, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 HeaderButton.SetMinHeight(settings.CategoryHeaderMinHeight, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));

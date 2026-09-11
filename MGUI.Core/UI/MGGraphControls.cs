@@ -3465,7 +3465,7 @@ namespace MGUI.Core.UI
             textBox.HorizontalAlignment = HorizontalAlignment.Stretch;
             textBox.VerticalAlignment = VerticalAlignment.Stretch;
             textBox.SetBorderThicknessTagged(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            textBox.BackgroundBrush = new VisualStateFillBrush(SolidFillBrushes.Transparent);
+            textBox.SetBackground(new VisualStateFillBrush(SolidFillBrushes.Transparent), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             textBox.SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             textBox.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             textBox.CornerRadius = MGCornerRadius.Zero;
@@ -3484,7 +3484,7 @@ namespace MGUI.Core.UI
             textBox.IsHitTestVisible = false;
             textBox.AllowsTextSelection = false;
             textBox.SetBorderThicknessTagged(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            textBox.BackgroundBrush = new VisualStateFillBrush(SolidFillBrushes.Transparent);
+            textBox.SetBackground(new VisualStateFillBrush(SolidFillBrushes.Transparent), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             textBox.SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             textBox.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             textBox.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));

@@ -97,7 +97,7 @@ namespace MGUI.Core.UI.Data_Binding.Converters
 
                 if (Background != null)
                 {
-                    ToolTip.BackgroundBrush.NormalValue = Background.ToFillBrush(ToolTip.GetDesktop(), ToolTip);
+                    ToolTip.SetBackgroundSlot(UIValueSlot.Normal, Background.ToFillBrush(ToolTip.GetDesktop(), ToolTip), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 }
 
                 if (Width.HasValue)

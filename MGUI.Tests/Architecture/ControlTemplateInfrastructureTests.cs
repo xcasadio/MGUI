@@ -995,11 +995,14 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("protected internal override void OnThemeChanged", menuBarSource);
         Assert.Contains("VisualStateFillBrush background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
         Assert.Contains("Color? textForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;", menuBarSource);
-        Assert.Contains("Button.BackgroundBrush = background;", menuBarSource);
+        // ADR-0005/S5: CreateDefaultBarButton's factory write is now tagged Default (see the comment in
+        // MGMenuBar.cs explaining why -- OnThemeChanged below re-writes the same elements at Theme precedence).
+        Assert.Contains("Button.SetBackground(background, UIValueResolutionSource.Default(UIInvalidationKind.Draw));", menuBarSource);
         Assert.Contains("Button.DefaultTextForeground.SetAll(textForeground);", menuBarSource);
         Assert.Contains("VisualStateFillBrush background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
         Assert.Contains("Color? textForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;", menuBarSource);
-        Assert.Contains("ContentWrapper.BackgroundBrush = background;", menuBarSource);
+        // ADR-0005/S5: OnThemeChanged now writes ContentWrapper's Background through the tagged Theme pilot setter.
+        Assert.Contains("ContentWrapper.SetBackground(background, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));", menuBarSource);
         Assert.Contains("ContentWrapper.DefaultTextForeground.SetAll(textForeground);", menuBarSource);
     }
 
@@ -1038,7 +1041,9 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("ContentWrapperVisualStateProjection = new(ContentWrapper, (_, __) => ApplyProjectedHighlightState());", contextMenuItemSource);
         Assert.Contains("bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered", contextMenuItemSource);
         Assert.Contains("|| ownerState.IsSelected || Submenu?.IsContextMenuOpen == true;", contextMenuItemSource);
-        Assert.Contains("Button.GetBorder().BackgroundBrush = background?.Copy();", contextMenuSource);
+        // ADR-0005/S5: CreateDefaultDropdownButton now writes the wrapper border's Background through the
+        // tagged LocalValue pilot setter.
+        Assert.Contains("Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));", contextMenuSource);
         Assert.Contains("ThemeContextMenuItemSettingsDefinition.HeaderBackground", builtInThemesSource);
         Assert.Contains("<ThemeDefinition Name=\"Dark_Blue\" IsBuiltIn=\"True\">", builtInThemesSource);
         Assert.Contains("SelectedValue=\"rgba(89,159,228,120)\"", builtInThemesSource);

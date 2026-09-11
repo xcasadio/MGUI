@@ -292,7 +292,7 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment   = VerticalAlignment.Stretch
             };
-            _closeButton.BackgroundBrush = new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f);
+            _closeButton.SetBackground(new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
             RegisterTemplatePart(CloseButtonPartName, _closeButton);
 
             _closeIconElement = new(window) { ManagedParent = this };
@@ -341,7 +341,7 @@ public class MGDockTabItem : MGElement
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment   = VerticalAlignment.Stretch
             };
-            _pinButton.BackgroundBrush = new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f);
+            _pinButton.SetBackground(new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
             // Pin button is purely visual — mouse events pass through to the tab item.
             _pinButton.IsHitTestVisible = false;
             RegisterTemplatePart(PinButtonPartName, _pinButton);
@@ -451,10 +451,7 @@ public class MGDockTabItem : MGElement
             return;
         }
 
-        button.BackgroundBrush.NormalValue = background;
-        button.BackgroundBrush.SelectedValue = background;
-        button.BackgroundBrush.FocusedValue = background;
-        button.BackgroundBrush.DisabledValue = background;
+        button.SetBackgroundAll(background, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
     }
 
     /// <summary>
@@ -539,7 +536,7 @@ public class MGDockTabItem : MGElement
                 : IsHovered
                     ? HoverBrush
                     : NormalBrush;
-            _surfaceElement.BackgroundBrush.NormalValue = effectiveBackground;
+            _surfaceElement.SetBackgroundSlot(UIValueSlot.Normal, effectiveBackground, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
             SyncAccessoryButtonBackground(_closeButton, effectiveBackground);
             SyncAccessoryButtonBackground(_pinButton, effectiveBackground);
         }

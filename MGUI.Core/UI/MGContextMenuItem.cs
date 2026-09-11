@@ -384,7 +384,7 @@ namespace MGUI.Core.UI
             // ContextMenuItem.HeaderMargin always wins; HeaderPresenter is a template part (PART_HeaderPresenter),
             // so this construction-time value is only a placeholder until DefaultControlTemplateName applies below.
             HeaderPresenter.SetMargin(new(0, 0, 5, 0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            HeaderPresenter.BackgroundBrush = new(null);
+            HeaderPresenter.SetBackground(new(null), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
             HeaderPresenter.ManagedParent = this;
             InvokeContentAdded(HeaderPresenter);
 

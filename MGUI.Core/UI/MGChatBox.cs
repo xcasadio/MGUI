@@ -180,7 +180,7 @@ namespace MGUI.Core.UI
                 SendButton.ManagedParent = this;
 
                 Separator = new(ParentWindow, Orientation.Horizontal, 1);
-                Separator.BackgroundBrush.SetAll(SolidFillBrushes.Black);
+                Separator.SetBackgroundAll(SolidFillBrushes.Black, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 Separator.SetMargin(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 Separator.ManagedParent = this;
 

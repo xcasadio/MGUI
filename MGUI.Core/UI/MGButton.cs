@@ -260,7 +260,7 @@ namespace MGUI.Core.UI
 
             if (CurrentTheme != null)
             {
-                BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.Button);
+                SetBackground(CurrentTheme.GetBackgroundBrush(MGElementType.Button), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             }
         }
 

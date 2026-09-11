@@ -693,15 +693,16 @@ namespace MGUI.Core.UI.XAML
             }
         }
 
-        internal static void ApplyExplicitBackground(VisualStateFillBrush backgroundBrush, IFillBrush explicitBackground)
+        internal static void ApplyExplicitBackground(MGElement element, IFillBrush explicitBackground)
         {
-            if (backgroundBrush == null || explicitBackground == null)
+            if (element == null || explicitBackground == null)
             {
                 return;
             }
 
-            backgroundBrush.NormalValue = explicitBackground;
-            backgroundBrush.FocusedValue = explicitBackground.Copy();
+            // ADR-0005/S7 will replace LocalValue here with the XAML value's actual style provenance.
+            element.SetBackgroundSlot(UIValueSlot.Normal, explicitBackground, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+            element.SetBackgroundSlot(UIValueSlot.Focused, explicitBackground.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
         }
 
         protected void ApplyBackground(MGElement Element)
@@ -710,22 +711,22 @@ namespace MGUI.Core.UI.XAML
 
             if (Background != null)
             {
-                ApplyExplicitBackground(Element.BackgroundBrush, Background.ToFillBrush(Desktop, Element));
+                ApplyExplicitBackground(Element, Background.ToFillBrush(Desktop, Element));
             }
 
             if (DisabledBackground != null)
             {
-                Element.BackgroundBrush.DisabledValue = DisabledBackground.ToFillBrush(Desktop, Element);
+                Element.SetBackgroundSlot(UIValueSlot.Disabled, DisabledBackground.ToFillBrush(Desktop, Element), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             }
 
             if (SelectedBackground != null)
             {
-                Element.BackgroundBrush.SelectedValue = SelectedBackground.ToFillBrush(Desktop, Element);
+                Element.SetBackgroundSlot(UIValueSlot.Selected, SelectedBackground.ToFillBrush(Desktop, Element), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             }
 
             if (BackgroundFocusedColor != null)
             {
-                Element.BackgroundBrush.FocusedColor = BackgroundFocusedColor.Value.ToXNAColor();
+                Element.SetBackgroundFocusedColor(BackgroundFocusedColor.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             }
         }
 

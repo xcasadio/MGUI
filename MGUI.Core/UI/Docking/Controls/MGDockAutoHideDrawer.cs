@@ -164,7 +164,7 @@ public class MGDockAutoHideDrawer : MGElement
             VerticalAlignment   = VerticalAlignment.Stretch;
 
             // Background
-            BackgroundBrush.NormalValue = new MGSolidFillBrush(new Color(37, 37, 38));
+            SetBackgroundSlot(UIValueSlot.Normal, new MGSolidFillBrush(new Color(37, 37, 38)), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
             _border = new MGBorder(window, new XAML.Thickness(1).ToThickness(), (IFillBrush)null)
             {
@@ -183,7 +183,7 @@ public class MGDockAutoHideDrawer : MGElement
                 VerticalAlignment   = VerticalAlignment.Top
             };
             RegisterTemplatePart(TitleBarPartName, _header);
-            _header.BackgroundBrush.NormalValue = new MGSolidFillBrush(new Color(45, 45, 48));
+            _header.SetBackgroundSlot(UIValueSlot.Normal, new MGSolidFillBrush(new Color(45, 45, 48)), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
             _titleLabel = new MGTextBlock(window, "")
             {
@@ -263,7 +263,7 @@ public class MGDockAutoHideDrawer : MGElement
         _closeIcon.Color = IconColor;
         _border.SetBorderBrush(BorderColor.AsFillBrush().AsUniformBorderBrush(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
         _border.SetBorderThickness(new MonoGame.Extended.Thickness(1), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-        _resizeGrip.BackgroundBrush.NormalValue = ResizeGripColor.AsFillBrush();
+        _resizeGrip.SetBackgroundSlot(UIValueSlot.Normal, ResizeGripColor.AsFillBrush(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
     }
 
     // ── Header-button factory ─────────────────────────────────────────
@@ -275,10 +275,10 @@ public class MGDockAutoHideDrawer : MGElement
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment   = VerticalAlignment.Stretch
         };
-        body.BackgroundBrush = new VisualStateFillBrush(
+        body.SetBackground(new VisualStateFillBrush(
             (IFillBrush)null,
             new Color(62, 62, 66),
-            PressedModifierType.Darken, 0.10f);
+            PressedModifierType.Darken, 0.10f), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
         // No text child — icon is drawn directly in DrawContents
         body.MouseHandler.LMBReleasedInside += (_, e) =>
         {

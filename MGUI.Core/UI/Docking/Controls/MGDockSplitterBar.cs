@@ -195,15 +195,15 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
             return;
         }
 
-        SurfaceElement.BackgroundBrush.NormalValue = IsDragging
+        SurfaceElement.SetBackgroundSlot(UIValueSlot.Normal, IsDragging
             ? PressedBrush
             : IsHovered
                 ? HoverBrush
-                : NormalBrush;
+                : NormalBrush, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
 
         bool showAccent = IsHovered || IsDragging;
         AccentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
-        AccentElement.BackgroundBrush.NormalValue = new MGSolidFillBrush(IsDragging ? PressedOverlayColor : HoverOverlayColor);
+        AccentElement.SetBackgroundSlot(UIValueSlot.Normal, new MGSolidFillBrush(IsDragging ? PressedOverlayColor : HoverOverlayColor), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
 
         GripElement.IsVertical = ParentSplitContainer?.Orientation == Orientation.Horizontal;
         GripElement.DotColor = (IsHovered || IsDragging)

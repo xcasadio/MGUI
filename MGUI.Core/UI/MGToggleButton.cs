@@ -163,7 +163,7 @@ namespace MGUI.Core.UI
 
             if (CurrentTheme != null)
             {
-                BackgroundBrush = CurrentTheme.GetBackgroundBrush(MGElementType.ToggleButton);
+                SetBackground(CurrentTheme.GetBackgroundBrush(MGElementType.ToggleButton), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 CheckedTextForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;
             }
         }

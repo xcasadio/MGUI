@@ -576,13 +576,15 @@ public class FillBrushLifecycleTests
         ["MGTabControl.HeaderAreaBackground"] = "proxy of HeadersPanelElement.BackgroundBrush (MGTabControl.cs)",
         ["MGExpander.ExpanderButtonBackgroundBrush"] = "proxy of ExpanderToggleButton.BackgroundBrush (MGExpander.cs)",
         ["MGToggleButton.CheckedBackgroundBrush"] = "proxy of BackgroundBrush.SelectedValue (MGToggleButton.cs)",
-        //  TEMPLATE shared by reference: assigned into the BackgroundBrush of several consumer elements, so the slot itself is excluded here
-        //  (it is ticked through each consumer's own GetVisualStateFillBrushes()/BackgroundBrush, not through this property). Since PaintLifecycle
-        //  dedups by reference against MGDesktop's per-frame registry (Docs/drawing-architecture.md, Limites connues), the underlying paint still
-        //  advances exactly once per frame in total, no matter how many consumers reference it.
-        ["MGTreeView.SelectionBackgroundBrush"] = "template assigned to HeaderPanel and HeaderContainer of the selected item, deduped to 1 tick/frame by MGDesktop's paint registry (MGTreeViewItem.cs RefreshSelectionVisual)",
+        //  TEMPLATE consumed by other elements: assigned into the BackgroundBrush of several consumer elements, so the slot itself is excluded here
+        //  (it is ticked through each consumer's own GetVisualStateFillBrushes()/BackgroundBrush, not through this property). Since ADR-0005/S5
+        //  (SetBackground subscribes the holder to its container's PropertyChanged, so a long-lived shared container would root every holder), the two
+        //  VisualStateFillBrush templates below are handed to each consumer as a Copy(): each consumer ticks its own copy, the template instance itself
+        //  is never ticked. The AlternatingRowBackgrounds brushes are still shared by reference into each row's NormalValue slot, where PaintLifecycle
+        //  dedups them by reference against MGDesktop's per-frame registry (Docs/drawing-architecture.md, Limites connues).
+        ["MGTreeView.SelectionBackgroundBrush"] = "template copied into HeaderPanel, HeaderContainer and the expander of the selected item (one Copy() per consumer since ADR-0005/S5), each copy ticked by its holder (MGTreeViewItem.cs RefreshSelectionVisual)",
         ["MGListBox.AlternatingRowBackgrounds"] = "template assigned to each row's ContentPresenter background, deduped to 1 tick/frame per distinct brush by MGDesktop's paint registry (MGListBox.cs)",
-        ["MGDockAutoHideStrip.ButtonBackgroundBrush"] = "template assigned to every strip button, deduped to 1 tick/frame by MGDesktop's paint registry (MGDockAutoHideStrip.cs ApplyThemeVisuals)",
+        ["MGDockAutoHideStrip.ButtonBackgroundBrush"] = "template copied into every strip button (one Copy() per button since ADR-0005/S5), each copy ticked by its holder (MGDockAutoHideStrip.cs ApplyThemeVisuals)",
         //  TEMPLATE current value only: only the brush of the current state is copied into SurfaceElement.BackgroundBrush.NormalValue, so non-current brushes are not ticked.
         ["MGDockSplitterBar.NormalBrush"] = "ticked only while it is the current state (MGDockSplitterBar.cs)",
         ["MGDockSplitterBar.HoverBrush"] = "ticked only while it is the current state (MGDockSplitterBar.cs)",

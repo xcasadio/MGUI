@@ -226,11 +226,11 @@ namespace MGUI.Core.UI
             {
                 VisualStateFillBrush background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);
                 Color? textForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;
-                ContentWrapper.BackgroundBrush = background;
+                ContentWrapper.SetBackground(background, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 ContentWrapper.DefaultTextForeground.SetAll(textForeground);
                 if (ContentWrapper.GetBorder() != null)
                 {
-                    ContentWrapper.GetBorder().BackgroundBrush = background?.Copy();
+                    ContentWrapper.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
                 }
             }
         }
@@ -383,9 +383,12 @@ namespace MGUI.Core.UI
             Button.VerticalContentAlignment = VerticalAlignment.Center;
             VisualStateFillBrush background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);
             Color? textForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;
-            Button.BackgroundBrush = background;
+            // ADR-0005: MGMenuBarItem.OnThemeChanged re-writes these same elements' Background IN PLACE at Theme(20)
+            // precedence; tagging this factory write LocalValue(90) would outrank and freeze it against later theme
+            // refreshes, so it uses Default(0) instead, like a constructor writing its own default.
+            Button.SetBackground(background, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
             Button.DefaultTextForeground.SetAll(textForeground);
-            Button.GetBorder().BackgroundBrush = background?.Copy();
+            Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
             return Button;
         }
         #endregion ButtonWrapperTemplate

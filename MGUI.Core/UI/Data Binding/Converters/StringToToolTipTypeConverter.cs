@@ -68,7 +68,7 @@ namespace MGUI.Core.UI.Data_Binding.Converters
             {
                 MGToolTip ToolTip = new(Host.SelfOrParentWindow, Host, 0, 0);
                 ToolTip.SetPadding(new(6, 3), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                ToolTip.BackgroundBrush.NormalValue = new Color(56, 56, 56, 218).AsFillBrush();
+                ToolTip.SetBackgroundSlot(UIValueSlot.Normal, new Color(56, 56, 56, 218).AsFillBrush(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 ToolTip.DefaultTextForeground.NormalValue = new(240, 240, 240);
                 MGTextBlock Content = new(Host.SelfOrParentWindow, Value);
                 ToolTip.SetContent(Content);

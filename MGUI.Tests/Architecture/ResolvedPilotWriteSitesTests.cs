@@ -7,15 +7,17 @@ using System.Text.RegularExpressions;
 namespace MGUI.Tests.Architecture;
 
 /// <summary>
-/// Completeness guard for ADR-0005's scalar pilot migration: scans <c>MGUI.Core</c> for every source line that
-/// assigns one of the five scalar pilot properties (<c>Padding</c>, <c>Margin</c>, <c>MinHeight</c>,
-/// <c>BorderBrush</c>, <c>BorderThickness</c>) — the same pattern the plan's discovery used
-/// (<c>rg -n "\b(Padding|Margin|MinHeight|BorderBrush|BorderThickness)\s*=[^=]" MGUI.Core --type cs</c>) — and
+/// Completeness guard for ADR-0005's pilot migration: scans <c>MGUI.Core</c> for every source line that assigns
+/// one of the six pilot properties — five scalars (<c>Padding</c>, <c>Margin</c>, <c>MinHeight</c>,
+/// <c>BorderBrush</c>, <c>BorderThickness</c>) plus the Background container (<c>BackgroundBrush</c>, whole-object
+/// replacement or one of its <c>VisualStateFillBrush</c> sub-fields) — the same pattern the plan's discovery used
+/// (<c>rg -n "\b(Padding|Margin|MinHeight|BorderBrush|BorderThickness|BackgroundBrush)\s*=[^=]" MGUI.Core --type cs</c>) — and
 /// fails when a hit is neither on an allow-list (a whole file, or a line matching a named pattern, each carrying
 /// a reason) nor in the explicit pending-migration list below. The pending list is this slice's (S2) inventory
 /// of every remaining framework write of a scalar pilot outside the pilot setters and their facades; S3 migrates
-/// the template catalogue (reserved below) and a later pass migrates the pending sites, shrinking that list to
-/// empty. Nothing may go unclassified in between: a new, unlisted write fails this test immediately.
+/// the template catalogue (reserved below), S5 migrates the Background container's write sites, and a later pass
+/// migrates the pending sites, shrinking that list to empty. Nothing may go unclassified in between: a new,
+/// unlisted write fails this test immediately.
 /// </summary>
 public class ResolvedPilotWriteSitesTests
 {
@@ -23,15 +25,25 @@ public class ResolvedPilotWriteSitesTests
     private static readonly string CoreRoot = Path.Combine(RepoRoot, "MGUI.Core");
 
     private static readonly Regex PilotAssignmentPattern =
-        new(@"\b(Padding|Margin|MinHeight|BorderBrush|BorderThickness)\s*=[^=]", RegexOptions.Compiled);
+        new(@"\b(Padding|Margin|MinHeight|BorderBrush|BorderThickness|BackgroundBrush)\s*=[^=]", RegexOptions.Compiled);
+
+    /// <summary>Matches a write to one <c>VisualStateFillBrush</c> sub-field of a Background container
+    /// (<c>BackgroundBrush.NormalValue</c>/<c>SelectedValue</c>/<c>DisabledValue</c>/<c>FocusedValue</c>/<c>FocusedColor</c>)
+    /// or a whole-container <c>BackgroundBrush.SetAll(...)</c> call — a Background write shape that
+    /// <see cref="PilotAssignmentPattern"/> alone does not match (no bare <c>BackgroundBrush =</c>). A line is
+    /// classified as a Background pilot write if either pattern matches.</summary>
+    private static readonly Regex BackgroundSubFieldPattern =
+        new(@"BackgroundBrush\.(NormalValue|SelectedValue|DisabledValue|FocusedValue|FocusedColor)\s*=[^=]|BackgroundBrush\.SetAll\(", RegexOptions.Compiled);
 
     /// <summary>A facade forwards its own setter's incoming <c>value</c> parameter, unmodified, straight to a
-    /// child's public <c>BorderBrush</c>/<c>BorderThickness</c> setter (which is itself LocalValue, ADR-0005) —
-    /// this is the application's entry point, not a framework-classified write, on every one of the ~50 sites
-    /// that follow this shape across both the composite controls (<c>MGButton.BorderBrush</c>, ...) and the XAML
-    /// DTOs (already whole-file allow-listed below, but the pattern also matches there, harmlessly).</summary>
+    /// child's public <c>BorderBrush</c>/<c>BorderThickness</c>/<c>BackgroundBrush</c> setter (which is itself
+    /// LocalValue, ADR-0005) — this is the application's entry point, not a framework-classified write, on every
+    /// one of the ~50 sites that follow this shape across both the composite controls (<c>MGButton.BorderBrush</c>,
+    /// <c>MGExpander.ExpanderButtonBackgroundBrush</c>, ...) and the XAML DTOs (already whole-file allow-listed
+    /// below, but the pattern also matches there, harmlessly). Also covers <c>MGToggleButton.CheckedBackgroundBrush</c>'s
+    /// proxy, which forwards to <c>BackgroundBrush.SelectedValue</c> specifically rather than the whole container.</summary>
     private static readonly Regex FacadeForwardingPattern =
-        new(@"\.(BorderBrush|BorderThickness)\s*=\s*value\s*;", RegexOptions.Compiled);
+        new(@"\.(BorderBrush|BorderThickness|BackgroundBrush)\s*=\s*value\s*;|BackgroundBrush\.SelectedValue\s*=\s*value\s*;", RegexOptions.Compiled);
 
     /// <summary>(relative path, reason) — every pilot-shaped hit anywhere in the file is allowed.</summary>
     private static readonly (string File, string Reason)[] AllowedWholeFiles =
@@ -64,6 +76,7 @@ public class ResolvedPilotWriteSitesTests
         (@"MGUI.Core\UI\MGChatBox.cs", 145, "commented-out code"),
         (@"MGUI.Core\UI\MGScrollViewer.cs", 567, "commented-out code"),
         (@"MGUI.Core\UI\MGXAMLDesigner.cs", 70, "inside a verbatim string literal (sample XAML shown in the designer UI), not code"),
+        (@"MGUI.Core\UI\MGTextBlock.cs", 1159, "local variable `IFillBrush BackgroundBrush`, not the MGElement.BackgroundBrush pilot"),
     };
 
     /// <summary>
@@ -112,7 +125,7 @@ public class ResolvedPilotWriteSitesTests
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i];
-                if (!PilotAssignmentPattern.IsMatch(line))
+                if (!PilotAssignmentPattern.IsMatch(line) && !BackgroundSubFieldPattern.IsMatch(line))
                     continue;
 
                 int lineNumber = i + 1;
@@ -131,7 +144,8 @@ public class ResolvedPilotWriteSitesTests
         }
 
         Assert.True(unclassified.Count == 0,
-            "Unclassified scalar pilot write(s) found — add each to AllowedWholeFiles/AllowedLines (with a reason) " +
+            "Unclassified pilot write(s) found (one of the six ADR-0005 pilots: Padding, Margin, MinHeight, " +
+            "BorderBrush, BorderThickness, BackgroundBrush) — add each to AllowedWholeFiles/AllowedLines (with a reason) " +
             "or to PendingMigration (with an intended source) in ResolvedPilotWriteSitesTests:\n" + string.Join("\n", unclassified));
     }
 
@@ -151,7 +165,7 @@ public class ResolvedPilotWriteSitesTests
             }
 
             string[] lines = File.ReadAllLines(fullPath);
-            if (line < 1 || line > lines.Length || !PilotAssignmentPattern.IsMatch(lines[line - 1]))
+            if (line < 1 || line > lines.Length || (!PilotAssignmentPattern.IsMatch(lines[line - 1]) && !BackgroundSubFieldPattern.IsMatch(lines[line - 1])))
                 stale.Add($"{file}:{line} (no pilot assignment at that line any more)");
         }
 

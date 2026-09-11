@@ -31,8 +31,10 @@ public class MGTreeViewItem : MGSingleContentHost
             // both call sites (no ToggleButton template exists today; a future one would win over this chrome).
             SetBorderThicknessTagged(new(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
-            BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
-            CheckedBackgroundBrush = SolidFillBrushes.Transparent;
+            SetBackgroundAll(SolidFillBrushes.Transparent, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+            // ADR-0005/S5: tagged directly (not through the CheckedBackgroundBrush proxy, which the R5 facade
+            // sweep would attribute LocalValue) so this stays Theme, consistent with the rest of this chrome.
+            SetBackgroundSlot(UIValueSlot.Selected, SolidFillBrushes.Transparent, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             SetPadding(new(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             SetMargin(new(0, 0, 4, 0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             MinWidth = 10;
@@ -64,9 +66,6 @@ public class MGTreeViewItem : MGSingleContentHost
     private readonly ObservableCollection<MGTreeViewItem> _Items;
     internal MGTreeView _OwnerTreeView;
     private object _HeaderTemplate;
-    private VisualStateFillBrush _PreviousHeaderBackgroundBrush;
-    private VisualStateFillBrush _PreviousHeaderContainerBackgroundBrush;
-    private VisualStateFillBrush _PreviousExpanderBackgroundBrush;
     private VisualStateSetting<Color?> _PreviousHeaderForeground;
     private long? _LastHeaderBodySequenceId;
     private bool _HasStoredSelectionVisualState;
@@ -550,38 +549,44 @@ public class MGTreeViewItem : MGSingleContentHost
         {
             if (!_HasStoredSelectionVisualState)
             {
-                _PreviousHeaderBackgroundBrush = HeaderPanel.BackgroundBrush;
-                _PreviousHeaderContainerBackgroundBrush = HeaderContainer.BackgroundBrush;
-                _PreviousExpanderBackgroundBrush = ExpanderButton?.BackgroundBrush;
+                // ADR-0005/S5: the background of the three elements below is no longer saved/restored by hand --
+                // it is written here as a VisualState contribution, and deselection below simply clears that
+                // contribution (ClearPilotSource), which restores the store's next-highest winner (the same
+                // instance as before selection) with no need to track it manually. DefaultTextForeground still is
+                // (S6 migrates the text pilot).
                 _PreviousHeaderForeground = HeaderContainer.DefaultTextForeground?.GetCopy();
                 _HasStoredSelectionVisualState = true;
             }
 
-            HeaderPanel.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
-            HeaderContainer.BackgroundBrush = OwnerTreeView.SelectionBackgroundBrush;
+            // ADR-0005/S5 deviation from the literal brief text (reported): the brief specified passing
+            // OwnerTreeView.SelectionBackgroundBrush directly here (uncopied) to both HeaderPanel and HeaderContainer.
+            // SetBackground now subscribes to its container's PropertyChanged, so two elements sharing the SAME
+            // TreeView-owned instance -- itself long-lived across every item ever selected -- would accumulate one
+            // subscriber per (item, slot) forever, rooting every item that was ever selected (the same GC-rooting
+            // hazard proven by ClosedWindow_IsNotRootedByDesktopResourcesThemeSubscription for Theme.Window.CloseButtonBackground).
+            // Copying here, like the expander branch below already does, avoids it without changing the visible behavior.
+            HeaderPanel.SetBackground(OwnerTreeView.SelectionBackgroundBrush?.Copy(), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
+            HeaderContainer.SetBackground(OwnerTreeView.SelectionBackgroundBrush?.Copy(), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
             if (ExpanderButton != null)
             {
                 VisualStateFillBrush expanderSelectionBackground = OwnerTreeView.SelectionBackgroundBrush?.Copy();
                 expanderSelectionBackground?.SetAll(expanderSelectionBackground.NormalValue);
-                ExpanderButton.BackgroundBrush = expanderSelectionBackground;
+                ExpanderButton.SetBackground(expanderSelectionBackground, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
             }
 
             HeaderContainer.DefaultTextForeground = new VisualStateSetting<Color?>(OwnerTreeView.SelectionForeground);
         }
         else if (_HasStoredSelectionVisualState)
         {
-            HeaderPanel.BackgroundBrush = _PreviousHeaderBackgroundBrush;
-            HeaderContainer.BackgroundBrush = _PreviousHeaderContainerBackgroundBrush;
+            HeaderPanel.ClearPilotSource(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.VisualState);
+            HeaderContainer.ClearPilotSource(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.VisualState);
             if (ExpanderButton != null)
             {
-                ExpanderButton.BackgroundBrush = _PreviousExpanderBackgroundBrush;
+                ExpanderButton.ClearPilotSource(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.VisualState);
             }
 
             HeaderContainer.DefaultTextForeground = _PreviousHeaderForeground;
 
-            _PreviousHeaderBackgroundBrush = null;
-            _PreviousHeaderContainerBackgroundBrush = null;
-            _PreviousExpanderBackgroundBrush = null;
             _PreviousHeaderForeground = null;
             _HasStoredSelectionVisualState = false;
         }

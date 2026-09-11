@@ -107,7 +107,7 @@ namespace MGUI.Core.UI
                 });
                 if (FilePathBrowseButton.BackgroundBrush.NormalValue != null && FilePathBrowseButton.BackgroundBrush.NormalValue.TryDarken(0.25f, out IFillBrush Darkened))
                 {
-                    FilePathBrowseButton.BackgroundBrush.NormalValue = Darkened;
+                    FilePathBrowseButton.SetBackgroundSlot(UIValueSlot.Normal, Darkened, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 }
 
                 FilePathBrowseButton.SetContent("Browse");
@@ -147,7 +147,7 @@ namespace MGUI.Core.UI
                 TabControlComponent.SelectedTabChanged += (sender, e) => { RefreshParsedContent(); };
 
                 MarkupPresenter = new(ParentWindow);
-                MarkupPresenter.BackgroundBrush.NormalValue = new MGBorderedFillBrush(new(2), MGUniformBorderBrush.Black, Color.Black.AsFillBrush() * 0.75f, true);
+                MarkupPresenter.SetBackgroundSlot(UIValueSlot.Normal, new MGBorderedFillBrush(new(2), MGUniformBorderBrush.Black, Color.Black.AsFillBrush() * 0.75f, true), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
 
                 MGHeaderedContentPresenter Tmp = new(ParentWindow, RefreshButton, TabControlComponent) { HeaderPosition = Dock.Bottom, Spacing = 2 };
                 Tmp.CanChangeContent = false;

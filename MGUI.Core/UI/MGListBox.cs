@@ -379,7 +379,12 @@ namespace MGUI.Core.UI
 
                             if (AlternatingRowBackgrounds?.Any() == true)
                             {
-                                New[i].ContentPresenter.BackgroundBrush.NormalValue = Old[i].ContentPresenter.BackgroundBrush.NormalValue;
+                                // ADR-0005/S5: reacting to the non-pilot public AlternatingRowBackgrounds property,
+                                // which the application, XAML, and the theme callback below can all set -- tagging
+                                // this Theme would let a stale LocalValue slot from an earlier application refresh
+                                // outrank a later theme refresh, contradicting the property. LocalValue matches the
+                                // pre-ADR-0005 behavior: last writer wins.
+                                New[i].ContentPresenter.SetBackgroundSlot(UIValueSlot.Normal, Old[i].ContentPresenter.BackgroundBrush.NormalValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                             }
                         }
 
@@ -1676,7 +1681,9 @@ namespace MGUI.Core.UI
                 for (int i = 0; i < InternalItems.Count; i++)
                 {
                     IFillBrush Brush = AlternatingRowBackgrounds?.Any() == true ? AlternatingRowBackgrounds[i % AlternatingRowBackgrounds.Count] : null;
-                    InternalItems[i].ContentPresenter.BackgroundBrush.NormalValue = Brush;
+                    // ADR-0005/S5: see the matching comment above on the Replace branch -- LocalValue, not Theme, so
+                    // this application-facing refresh (also invoked by the theme callback) always wins as last writer.
+                    InternalItems[i].ContentPresenter.SetBackgroundSlot(UIValueSlot.Normal, Brush, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 }
             }
         }

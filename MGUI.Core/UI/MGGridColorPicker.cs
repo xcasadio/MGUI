@@ -718,7 +718,7 @@ namespace MGUI.Core.UI
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalContentAlignment = VerticalAlignment.Stretch,
                 };
-                SelectedColorPresenter.BackgroundBrush.SetAll(SolidFillBrushes.Black * 0.75f);
+                SelectedColorPresenter.SetBackgroundAll(SolidFillBrushes.Black * 0.75f, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                 SelectedColorComponent = new MGComponent<MGHeaderedContentPresenter>(SelectedColorPresenter, true, false, false, false, false, true, true,
                     (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds.GetCompressed(Padding), HorizontalAlignment.Stretch, VerticalAlignment.Bottom, ComponentSize.Size));
                 AddComponent(SelectedColorComponent);

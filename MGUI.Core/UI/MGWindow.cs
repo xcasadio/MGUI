@@ -1976,7 +1976,7 @@ namespace MGUI.Core.UI
                             IsUserResizable = true;
                             SetPadding(GetTheme().Window.Padding, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                             SetBorderThicknessTagged(GetTheme().Window.BorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                            BackgroundBrush = PreviousBackgroundBrush ?? BackgroundBrush;
+                            SetBackground(PreviousBackgroundBrush ?? BackgroundBrush, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                             break;
                         case WindowStyle.None:
                             IsTitleBarVisible = false;
@@ -1985,7 +1985,7 @@ namespace MGUI.Core.UI
                             SetPadding(GetTheme().Window.ChromelessPadding, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                             SetBorderThicknessTagged(GetTheme().Window.ChromelessBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                             PreviousBackgroundBrush = BackgroundBrush.Copy();
-                            BackgroundBrush.SetAll(SolidFillBrushes.Transparent);
+                            SetBackgroundAll(SolidFillBrushes.Transparent, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
                             //  WindowStyle.None sets AllowsClickThrough=false by default so that
                             //  chrome-less windows still block mouse events.
                             //  XAML can legitimately override this afterwards via the AllowsClickThrough property

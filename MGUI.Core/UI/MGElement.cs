@@ -1055,6 +1055,15 @@ namespace MGUI.Core.UI
                 return border.TryGetResolvedPilotValue(property, slot, out value);
             }
 
+            // ADR-0005/S5: a Background sub-slot (Normal/Selected/Disabled/Focused/FocusedColor) can be dormant --
+            // its contribution exists in the store but is not the physical value carried by the current container
+            // (see ApplyBackgroundEffective's R2 re-application). In that case the container itself is the source
+            // of truth, attributed to whichever source won the Whole slot.
+            if (property == UIPilotProperty.Background && slot != UIValueSlot.Whole)
+            {
+                return TryGetResolvedBackgroundSubSlotValue(slot, out value);
+            }
+
             if (_ResolvedValues == null)
             {
                 value = UIResolvedValue<T>.Unset();
@@ -1088,6 +1097,9 @@ namespace MGUI.Core.UI
                     if (GetBorder() is MGBorder border && !ReferenceEquals(border, this))
                         border.ClearPilotSource(property, slot, kind);
                     break;
+                case UIPilotProperty.Background:
+                    ClearBackgroundPilotSource(slot, kind);
+                    break;
                 default:
                     break;
             }
@@ -1102,6 +1114,316 @@ namespace MGUI.Core.UI
         /// <summary>Delegates a tagged <see cref="UIPilotProperty.BorderThickness"/> write to <see cref="GetBorder"/>, a
         /// no-op when this element has no border. See <see cref="SetBorderBrushTagged"/>.</summary>
         internal void SetBorderThicknessTagged(Thickness value, UIValueResolutionSource source) => GetBorder()?.SetBorderThickness(value, source);
+
+        #region Background container pilot (ADR-0005/S5)
+        /// <summary>True while a tagged Background sub-slot write (<see cref="SetBackgroundSlot"/>/<see cref="SetBackgroundFocusedColor"/>)
+        /// is physically writing <see cref="_BackgroundBrush"/>'s sub-field, so <see cref="HandleBackgroundBrushContainerPropertyChanged"/>
+        /// (subscribed to every container this element holds) ignores that change instead of re-recording it as a
+        /// <c>LocalValue</c> contribution.</summary>
+        private bool _SuppressBackgroundContainerNotify;
+
+        /// <summary>Tagged write of <see cref="BackgroundBrush"/> (ADR-0005): records <paramref name="source"/>'s Whole-slot
+        /// contribution (reference equality, matching the container's lack of value equality) and, if it becomes the
+        /// winner, swaps the physical container via <see cref="ApplyBackgroundEffective"/>.<para/>
+        /// R1: a Whole write first drops every sub-slot contribution recorded at the exact same precedence as
+        /// <paramref name="source"/> -- the incoming container replaces whatever sub-field edits were layered at that
+        /// same level, matching the pre-ADR-0005 behavior where assigning a new <see cref="VisualStateFillBrush"/>
+        /// wiped out previously assigned sub-fields. Contributions at other precedences are preserved (dormant or
+        /// still effective, per <see cref="ApplyBackgroundEffective"/>'s R2 re-application).</summary>
+        internal void SetBackground(VisualStateFillBrush value, UIValueResolutionSource source)
+        {
+            UnsetBackgroundSubSlotsAtPrecedence(source.Precedence);
+
+            ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool effectiveChanged, out UIResolvedValue<VisualStateFillBrush> effective);
+            if (effectiveChanged)
+                ApplyBackgroundEffective(effective.Value);
+        }
+
+        /// <summary>Tagged write of one <see cref="VisualStateFillBrush"/> brush sub-slot (<see cref="UIValueSlot.Normal"/>,
+        /// <see cref="UIValueSlot.Selected"/>, <see cref="UIValueSlot.Disabled"/> or <see cref="UIValueSlot.Focused"/>) (R3):
+        /// records the contribution, then -- only if it is the slot's winner AND its precedence is at least the current
+        /// Whole winner's precedence -- writes the sub-field on the container this element currently holds, under
+        /// <see cref="_SuppressBackgroundContainerNotify"/>. A contribution below the container's own precedence is
+        /// recorded but stays dormant (see <see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>).</summary>
+        internal void SetBackgroundSlot(UIValueSlot slot, IFillBrush value, UIValueResolutionSource source)
+        {
+            ValidateBackgroundBrushSlot(slot);
+
+            ResolvedValues.Set(UIPilotProperty.Background, slot, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out UIResolvedValue<IFillBrush> effective);
+            if (effective.Source.Kind == source.Kind && IsBackgroundSubSlotApplicable(effective.Source.Precedence))
+                ApplyBackgroundBrushSlotPhysical(slot, effective.Value);
+        }
+
+        /// <summary>Tagged write of the container's <see cref="UIValueSlot.FocusedColor"/> sub-slot. See <see cref="SetBackgroundSlot"/>.</summary>
+        internal void SetBackgroundFocusedColor(Color? value, UIValueResolutionSource source)
+        {
+            ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.FocusedColor, value, source, EqualityComparer<Color?>.Default, out _, out UIResolvedValue<Color?> effective);
+            if (effective.Source.Kind == source.Kind && IsBackgroundSubSlotApplicable(effective.Source.Precedence))
+                ApplyBackgroundFocusedColorPhysical(effective.Value);
+        }
+
+        /// <summary>Tagged write of all four brush sub-slots (<see cref="VisualStateSetting{TDataType}.SetAll"/>'s pilot
+        /// equivalent), one <see cref="SetBackgroundSlot"/> call per slot.</summary>
+        internal void SetBackgroundAll(IFillBrush value, UIValueResolutionSource source)
+        {
+            SetBackgroundSlot(UIValueSlot.Normal, value, source);
+            SetBackgroundSlot(UIValueSlot.Selected, value, source);
+            SetBackgroundSlot(UIValueSlot.Disabled, value, source);
+            SetBackgroundSlot(UIValueSlot.Focused, value, source);
+        }
+
+        private static void ValidateBackgroundBrushSlot(UIValueSlot slot)
+        {
+            if (slot != UIValueSlot.Normal && slot != UIValueSlot.Selected && slot != UIValueSlot.Disabled && slot != UIValueSlot.Focused)
+                throw new ArgumentOutOfRangeException(nameof(slot), slot, $"{nameof(SetBackgroundSlot)} only accepts {UIValueSlot.Normal}, {UIValueSlot.Selected}, {UIValueSlot.Disabled}, or {UIValueSlot.Focused}.");
+        }
+
+        /// <summary>R1: removes every Background sub-slot contribution (all five sub-slots) whose precedence equals
+        /// <paramref name="precedence"/>, immediately before a same-precedence Whole write replaces the container that
+        /// held them. No physical write happens here: the physical sub-fields belong to the container being replaced,
+        /// which <see cref="ApplyBackgroundEffective"/> is about to discard (or, if the Whole write was not the winner,
+        /// to a container that keeps its own unrelated physical values).</summary>
+        private void UnsetBackgroundSubSlotsAtPrecedence(UIValuePrecedence precedence)
+        {
+            if (_ResolvedValues == null)
+                return;
+
+            UnsetBackgroundBrushSlotAtPrecedence(UIValueSlot.Normal, precedence);
+            UnsetBackgroundBrushSlotAtPrecedence(UIValueSlot.Selected, precedence);
+            UnsetBackgroundBrushSlotAtPrecedence(UIValueSlot.Disabled, precedence);
+            UnsetBackgroundBrushSlotAtPrecedence(UIValueSlot.Focused, precedence);
+
+            foreach (UIValueSourceKind kind in _ResolvedValues.Contributions(UIPilotProperty.Background, UIValueSlot.FocusedColor).ToArray())
+            {
+                if (_ResolvedValues.TryGetContribution<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, kind, out UIResolvedValue<Color?> contribution) && contribution.Source.Precedence == precedence)
+                    _ResolvedValues.Unset<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, kind, EqualityComparer<Color?>.Default, out _, out _);
+            }
+        }
+
+        private void UnsetBackgroundBrushSlotAtPrecedence(UIValueSlot slot, UIValuePrecedence precedence)
+        {
+            foreach (UIValueSourceKind kind in _ResolvedValues.Contributions(UIPilotProperty.Background, slot).ToArray())
+            {
+                if (_ResolvedValues.TryGetContribution<IFillBrush>(UIPilotProperty.Background, slot, kind, out UIResolvedValue<IFillBrush> contribution) && contribution.Source.Precedence == precedence)
+                    _ResolvedValues.Unset<IFillBrush>(UIPilotProperty.Background, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out _);
+            }
+        }
+
+        /// <summary>R4: clears the contribution of <paramref name="kind"/> for one Background sub-slot. When the
+        /// remaining winner changes and is applicable (its precedence is at least the current Whole winner's), it is
+        /// written to the container's physical sub-field; when the entry becomes empty, the physical value is kept
+        /// and no notification is raised (the store's own fall-back, see <see cref="UIResolvedPropertyStore.Unset{T}"/>).</summary>
+        private void ClearBackgroundPilotSource(UIValueSlot slot, UIValueSourceKind kind)
+        {
+            switch (slot)
+            {
+                case UIValueSlot.Whole:
+                    if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool backgroundChanged, out UIResolvedValue<VisualStateFillBrush> background) && backgroundChanged)
+                        ApplyBackgroundEffective(background.Value);
+                    break;
+                case UIValueSlot.Normal:
+                case UIValueSlot.Selected:
+                case UIValueSlot.Disabled:
+                case UIValueSlot.Focused:
+                    if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool slotChanged, out UIResolvedValue<IFillBrush> slotValue)
+                        && slotChanged && slotValue.IsSet && IsBackgroundSubSlotApplicable(slotValue.Source.Precedence))
+                    {
+                        ApplyBackgroundBrushSlotPhysical(slot, slotValue.Value);
+                    }
+                    break;
+                case UIValueSlot.FocusedColor:
+                    if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, EqualityComparer<Color?>.Default, out bool colorChanged, out UIResolvedValue<Color?> colorValue)
+                        && colorChanged && colorValue.IsSet && IsBackgroundSubSlotApplicable(colorValue.Source.Precedence))
+                    {
+                        ApplyBackgroundFocusedColorPhysical(colorValue.Value);
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>The body of the pre-ADR-0005 <see cref="BackgroundBrush"/> setter (reference-equality guard,
+        /// assignment, three notifications), plus (R2) subscription management -- unsubscribes from the previous
+        /// container's <see cref="INotifyPropertyChanged.PropertyChanged"/>, swaps <see cref="_BackgroundBrush"/>,
+        /// subscribes to the new container -- and, once the notifications are raised, re-applies every sub-slot whose
+        /// winner is applicable (precedence at least the new Whole winner's) onto the new container, under
+        /// <see cref="_SuppressBackgroundContainerNotify"/>. Only called when the Whole winner actually changes (from
+        /// <see cref="SetBackground"/> or <see cref="ClearBackgroundPilotSource"/>), so every call here is a genuine
+        /// container swap.</summary>
+        private void ApplyBackgroundEffective(VisualStateFillBrush value)
+        {
+            if (_BackgroundBrush != value)
+            {
+                if (_BackgroundBrush != null)
+                    _BackgroundBrush.PropertyChanged -= HandleBackgroundBrushContainerPropertyChanged;
+
+                _BackgroundBrush = value;
+
+                if (_BackgroundBrush != null)
+                    _BackgroundBrush.PropertyChanged += HandleBackgroundBrushContainerPropertyChanged;
+
+                NPC(nameof(BackgroundBrush));
+                NPC(nameof(BackgroundUnderlay));
+                NPC(nameof(BackgroundOverlay));
+
+                ReapplyBackgroundSubSlots();
+            }
+        }
+
+        /// <summary>R2's re-application: for each Background sub-slot, if its winner is applicable (precedence at
+        /// least the current Whole winner's), writes it onto <see cref="_BackgroundBrush"/>'s matching sub-field,
+        /// under <see cref="_SuppressBackgroundContainerNotify"/> so the write is not mistaken for an application
+        /// edit by <see cref="HandleBackgroundBrushContainerPropertyChanged"/>. A sub-slot whose winner is not
+        /// applicable (lower precedence than the container itself) is left untouched: it stays dormant, carrying
+        /// whatever physical value the new container was constructed with.</summary>
+        private void ReapplyBackgroundSubSlots()
+        {
+            if (_ResolvedValues == null || _BackgroundBrush == null)
+                return;
+
+            if (!_ResolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out UIResolvedValue<VisualStateFillBrush> whole) || !whole.IsSet)
+                return;
+
+            UIValuePrecedence effectivePrecedence = whole.Source.Precedence;
+
+            _SuppressBackgroundContainerNotify = true;
+            try
+            {
+                if (_ResolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, out UIResolvedValue<IFillBrush> normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
+                    _BackgroundBrush.NormalValue = normal.Value;
+                if (_ResolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Selected, out UIResolvedValue<IFillBrush> selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
+                    _BackgroundBrush.SelectedValue = selected.Value;
+                if (_ResolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Disabled, out UIResolvedValue<IFillBrush> disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
+                    _BackgroundBrush.DisabledValue = disabled.Value;
+                if (_ResolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Focused, out UIResolvedValue<IFillBrush> focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
+                    _BackgroundBrush.FocusedValue = focused.Value;
+                if (_ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, out UIResolvedValue<Color?> focusedColor) && focusedColor.IsSet && focusedColor.Source.Precedence >= effectivePrecedence)
+                    _BackgroundBrush.FocusedColor = focusedColor.Value;
+            }
+            finally
+            {
+                _SuppressBackgroundContainerNotify = false;
+            }
+        }
+
+        private void ApplyBackgroundBrushSlotPhysical(UIValueSlot slot, IFillBrush value)
+        {
+            if (_BackgroundBrush == null)
+                return;
+
+            _SuppressBackgroundContainerNotify = true;
+            try
+            {
+                switch (slot)
+                {
+                    case UIValueSlot.Normal: _BackgroundBrush.NormalValue = value; break;
+                    case UIValueSlot.Selected: _BackgroundBrush.SelectedValue = value; break;
+                    case UIValueSlot.Disabled: _BackgroundBrush.DisabledValue = value; break;
+                    case UIValueSlot.Focused: _BackgroundBrush.FocusedValue = value; break;
+                }
+            }
+            finally
+            {
+                _SuppressBackgroundContainerNotify = false;
+            }
+        }
+
+        private void ApplyBackgroundFocusedColorPhysical(Color? value)
+        {
+            if (_BackgroundBrush == null)
+                return;
+
+            _SuppressBackgroundContainerNotify = true;
+            try { _BackgroundBrush.FocusedColor = value; }
+            finally { _SuppressBackgroundContainerNotify = false; }
+        }
+
+        /// <summary>True when a Background sub-slot contribution at <paramref name="precedence"/> would be the
+        /// physical value of the container this element currently holds -- i.e. there is no Whole winner yet
+        /// (nothing to be dormant under), or the sub-slot's precedence is at least the Whole winner's.</summary>
+        private bool IsBackgroundSubSlotApplicable(UIValuePrecedence precedence)
+            => !TryGetBackgroundEffectivePrecedence(out UIValuePrecedence effective) || precedence >= effective;
+
+        private bool TryGetBackgroundEffectivePrecedence(out UIValuePrecedence precedence)
+        {
+            if (_ResolvedValues != null && _ResolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out UIResolvedValue<VisualStateFillBrush> whole) && whole.IsSet)
+            {
+                precedence = whole.Source.Precedence;
+                return true;
+            }
+
+            precedence = default;
+            return false;
+        }
+
+        /// <summary>R6: reads a Background sub-slot for diagnostics. If the sub-slot's own winner is applicable
+        /// (precedence at least the current Whole winner's), returns it directly -- it is also the physical value.
+        /// Otherwise, when this element holds a container and the store has a Whole winner, returns the container's
+        /// current physical sub-field value, attributed to the Whole winner's source (the container itself carries
+        /// the value in that case). Returns false when neither is available.</summary>
+        private bool TryGetResolvedBackgroundSubSlotValue<T>(UIValueSlot slot, out UIResolvedValue<T> value)
+        {
+            if (_ResolvedValues != null && _ResolvedValues.TryGetWinner<T>(UIPilotProperty.Background, slot, out UIResolvedValue<T> winner)
+                && winner.IsSet && IsBackgroundSubSlotApplicable(winner.Source.Precedence))
+            {
+                value = winner;
+                return true;
+            }
+
+            if (_BackgroundBrush != null && _ResolvedValues != null
+                && _ResolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out UIResolvedValue<VisualStateFillBrush> whole) && whole.IsSet)
+            {
+                object physical = slot switch
+                {
+                    UIValueSlot.Normal => _BackgroundBrush.NormalValue,
+                    UIValueSlot.Selected => _BackgroundBrush.SelectedValue,
+                    UIValueSlot.Disabled => _BackgroundBrush.DisabledValue,
+                    UIValueSlot.Focused => _BackgroundBrush.FocusedValue,
+                    UIValueSlot.FocusedColor => _BackgroundBrush.FocusedColor,
+                    _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
+                };
+                value = new UIResolvedValue<T>((T)physical, whole.Source);
+                return true;
+            }
+
+            value = UIResolvedValue<T>.Unset();
+            return false;
+        }
+
+        /// <summary>Handles a non-tagged write to the container this element currently holds (e.g. application code
+        /// doing <c>element.BackgroundBrush.NormalValue = x</c>) (R5): while <see cref="_SuppressBackgroundContainerNotify"/>
+        /// is set, ignores the notification (it originated from a tagged write that already recorded its own
+        /// contribution). Otherwise, for the four brush sub-slots and <see cref="VisualStateFillBrush.FocusedColor"/>,
+        /// records a <see cref="UIValueResolutionSource.LocalValue"/> contribution equal to the sub-field's current
+        /// value, without writing anything back (the value is already physically in place). Other property names are
+        /// ignored. Documented limitation: a container instance shared between several elements is recorded
+        /// independently by each holder that subscribes to it.</summary>
+        private void HandleBackgroundBrushContainerPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (_SuppressBackgroundContainerNotify || _BackgroundBrush == null)
+                return;
+
+            switch (e.PropertyName)
+            {
+                case nameof(VisualStateFillBrush.NormalValue):
+                    ResolvedValues.Set<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, _BackgroundBrush.NormalValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out _);
+                    break;
+                case nameof(VisualStateFillBrush.SelectedValue):
+                    ResolvedValues.Set<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Selected, _BackgroundBrush.SelectedValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out _);
+                    break;
+                case nameof(VisualStateFillBrush.DisabledValue):
+                    ResolvedValues.Set<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Disabled, _BackgroundBrush.DisabledValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out _);
+                    break;
+                case nameof(VisualStateFillBrush.FocusedValue):
+                    ResolvedValues.Set<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Focused, _BackgroundBrush.FocusedValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out _);
+                    break;
+                case nameof(VisualStateFillBrush.FocusedColor):
+                    ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.FocusedColor, _BackgroundBrush.FocusedColor, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw), EqualityComparer<Color?>.Default, out _, out _);
+                    break;
+                default:
+                    break;
+            }
+        }
+        #endregion Background container pilot (ADR-0005/S5)
         #endregion Resolved pilot properties (ADR-0005)
 
         #region Margin / Padding
@@ -1989,16 +2311,7 @@ namespace MGUI.Core.UI
         public VisualStateFillBrush BackgroundBrush
         {
             get => _BackgroundBrush;
-            set
-            {
-                if (_BackgroundBrush != value)
-                {
-                    _BackgroundBrush = value;
-                    NPC(nameof(BackgroundBrush));
-                    NPC(nameof(BackgroundUnderlay));
-                    NPC(nameof(BackgroundOverlay));
-                }
-            }
+            set => SetBackground(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
         }
         /// <summary>The first <see cref="IFillBrush"/> used to draw this <see cref="MGElement"/>'s background. Drawn before <see cref="BackgroundOverlay"/></summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -2247,7 +2560,7 @@ namespace MGUI.Core.UI
 				VerticalContentAlignment = VerticalAlignment.Stretch;
 
                 BackgroundRenderPadding = new(0);
-                BackgroundBrush = ActualTheme.GetBackgroundBrush(ElementType);
+                SetBackground(ActualTheme.GetBackgroundBrush(ElementType), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
                 DefaultTextForeground = new VisualStateSetting<Color?>(null, null, null);
 
                 Visibility = Visibility.Visible;

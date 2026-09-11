@@ -403,11 +403,11 @@ public class MGDockTabGroup : MGElement
         };
 
         // Use the visual-state brush system for hover / press highlighting
-        body.BackgroundBrush = new VisualStateFillBrush(
+        body.SetBackground(new VisualStateFillBrush(
             (IFillBrush)null,
             new Color(70, 70, 74),
             PressedModifierType.Darken,
-            0.10f);
+            0.10f), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
         var label = new MGTextBlock(window, glyph)
         {

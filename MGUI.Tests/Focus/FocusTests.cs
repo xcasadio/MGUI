@@ -873,7 +873,16 @@ public class FocusTests
             MGUI.Core.UI.PressedModifierType.Darken,
             0.06f);
 
-        MGUI.Core.UI.XAML.Element.ApplyExplicitBackground(brush, explicitBrush);
+        // ADR-0005/S5: ApplyExplicitBackground now writes through the element's tagged Background pilot (so the
+        // sub-slot contributions are recorded, not just the physical brush), so it needs a real MGElement holding
+        // `brush` as its container rather than a bare VisualStateFillBrush.
+        MGUI.Tests.Graph.GraphTestRuntime runtime = new(new Microsoft.Xna.Framework.Rectangle(0, 0, 960, 540));
+        MGUI.Core.UI.MGDesktop desktop = new(runtime);
+        MGUI.Core.UI.MGWindow window = new(desktop, 0, 0, 100, 100);
+        MGUI.Core.UI.MGButton element = new(window);
+        element.BackgroundBrush = brush;
+
+        MGUI.Core.UI.XAML.Element.ApplyExplicitBackground(element, explicitBrush);
 
         Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.NormalValue);
         Assert.Equal(Microsoft.Xna.Framework.Color.Transparent, ((MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush)brush.NormalValue).Color);
