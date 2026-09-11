@@ -156,15 +156,28 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <summary>Requests a layout pass only when <see cref="OnThemeChanged"/> is about to change the font: this text block still uses the previous
+        /// theme's default font family (or size) and the incoming theme's default differs (backlog task 7). Evaluated before <see cref="OnThemeChanged"/>,
+        /// so <see cref="FontFamily"/> and <see cref="FontSize"/> are still the values from before the refresh; a theme change that keeps the default font stays Draw.</summary>
         protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
             string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
+            string CurrentDefaultFontFamily = CurrentTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
             int PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
-            bool UsesThemeFontFamily = string.Equals(FontFamily, PreviousDefaultFontFamily, StringComparison.Ordinal);
-            bool UsesThemeFontSize = FontSize == PreviousDefaultFontSize;
-            return UsesThemeFontFamily || UsesThemeFontSize
-                ? UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Draw
-                : UIInvalidationKind.Draw;
+            int CurrentDefaultFontSize = CurrentTheme?.FontSettings.DefaultFontSize ?? FontSize;
+
+            UIInvalidationKind Invalidation = UIInvalidationKind.Draw;
+            if (string.Equals(FontFamily, PreviousDefaultFontFamily, StringComparison.Ordinal))
+            {
+                Invalidation |= UIThemeValueInvalidation.ForChange("FontSettings.DefaultFontFamily", PreviousDefaultFontFamily, CurrentDefaultFontFamily, StringComparer.Ordinal);
+            }
+
+            if (FontSize == PreviousDefaultFontSize)
+            {
+                Invalidation |= UIThemeValueInvalidation.ForChange("FontSettings.DefaultFontSize", PreviousDefaultFontSize, CurrentDefaultFontSize);
+            }
+
+            return Invalidation;
         }
 
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)

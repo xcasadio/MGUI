@@ -535,13 +535,15 @@ namespace MGUI.Core.UI
 
             internal void NotifyThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
             {
+                // Evaluated before the callbacks, so that an override compares this element's current values with the incoming theme (backlog task 7).
+                UIInvalidationKind Invalidation = GetThemeInvalidation(PreviousTheme, CurrentTheme);
+
                 OnThemeChanged(PreviousTheme, CurrentTheme);
                 ApplyControlTemplate(true);
 
-                UIInvalidationKind Invalidation = GetThemeInvalidation(PreviousTheme, CurrentTheme);
                 if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)
                 {
-                    InvalidateLayout();
+                    LayoutChanged(this, true);
                 }
 
                 IReadOnlyList<MGElement> Children = GetVisualTreeChildren(true, true);

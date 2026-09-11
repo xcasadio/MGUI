@@ -93,6 +93,13 @@ namespace MGUI.Core.UI.Styling
             UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
             => ApplyTemplateValue(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer);
 
+        /// <summary>Overload of <see cref="ApplyThemeDefault{T}(string, T, Func{T}, Action{T}, IEqualityComparer{T})"/> for a value that is not a pilot
+        /// property but still changes layout (a min width, a panel spacing, an indent, an alignment): <paramref name="Invalidation"/> is recorded with the
+        /// value and requested from the owner when an application changes it. See <see cref="UIThemeValueInvalidation"/> (backlog task 7).</summary>
+        public void ApplyThemeDefault<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue,
+            UIInvalidationKind Invalidation, IEqualityComparer<T> Comparer = null)
+            => ApplyTemplateValue(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer);
+
         public void ApplyTemplateValue<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue,
             UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
             => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue == null ? null : (v, _) => SetValue(v), Invalidation, Comparer, UIValueSourceKind.Template);
@@ -155,7 +162,10 @@ namespace MGUI.Core.UI.Styling
                 SetValue(Value, Source);
                 Owner.SetAppliedTemplateDefault(Name, new UIResolvedValue<T>(Value, Source));
 
-                if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0)
+                // A theme refresh that re-applies an unchanged value, as a render-only theme change does for every layout value, must not
+                // invalidate layout (backlog task 7).
+                if ((Invalidation & (UIInvalidationKind.Measure | UIInvalidationKind.Arrange | UIInvalidationKind.Structure)) != 0
+                    && (!IsThemeRefresh || !Comparer.Equals(CurrentValue, Value)))
                 {
                     Owner.InvalidateTemplateValue(Invalidation);
                 }

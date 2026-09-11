@@ -2793,6 +2793,26 @@ namespace MGUI.Core.UI
             BodyPresenter.SetPadding(UIResponsiveMath.ScaleThickness(_BaseBodyPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         }
 
+        /// <summary><see cref="OnThemeChanged"/> re-applies the selection visual, whose border thickness is the layout-affecting
+        /// <see cref="MGThemeGraphSettings.NodeBorderThickness"/>, or <see cref="MGThemeGraphSettings.NodeSelectedBorderThickness"/> while selected:
+        /// request a layout pass only when that thickness changes (backlog task 7).</summary>
+        protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            if (OuterBorder == null)
+            {
+                return UIInvalidationKind.Draw;
+            }
+
+            if (PreviousTheme == null || CurrentTheme == null)
+            {
+                return UIInvalidationKind.Draw | UIThemeValueInvalidation.LayoutAffecting;
+            }
+
+            return IsSelected
+                ? UIThemeValueInvalidation.ForChange("Graph.NodeSelectedBorderThickness", PreviousTheme.Graph.NodeSelectedBorderThickness, CurrentTheme.Graph.NodeSelectedBorderThickness)
+                : UIThemeValueInvalidation.ForChange("Graph.NodeBorderThickness", PreviousTheme.Graph.NodeBorderThickness, CurrentTheme.Graph.NodeBorderThickness);
+        }
+
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
             base.OnThemeChanged(PreviousTheme, CurrentTheme);

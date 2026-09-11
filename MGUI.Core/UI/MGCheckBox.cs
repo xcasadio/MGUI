@@ -354,6 +354,12 @@ namespace MGUI.Core.UI
             return true;
         }
 
+        /// <summary><see cref="MGTheme.CheckBoxComponentSize"/> is layout-affecting and <see cref="OnThemeChanged"/> copies it into <see cref="CheckBoxComponentSize"/>:
+        /// request a layout pass only when that copy changes the size (backlog task 7). <see cref="MGTheme.CheckMarkColor"/> and
+        /// <see cref="MGTheme.CheckBoxCheckedIndicatorStyle"/> are render-only.</summary>
+        protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
+            => UIThemeValueInvalidation.ForChange(nameof(MGTheme.CheckBoxComponentSize), CheckBoxComponentSize, (CurrentTheme ?? GetTheme()).CheckBoxComponentSize);
+
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
             base.OnThemeChanged(PreviousTheme, CurrentTheme);

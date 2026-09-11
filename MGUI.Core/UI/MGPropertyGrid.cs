@@ -138,6 +138,32 @@ namespace MGUI.Core.UI
             RebuildView();
         }
 
+        /// <summary><see cref="OnThemeChanged"/> re-themes the generated category and row views with layout-affecting settings
+        /// (<see cref="MGThemePropertyGridSettings.CategoryHeaderPadding"/>, <see cref="MGThemePropertyGridSettings.CategoryHeaderMinHeight"/>,
+        /// <see cref="MGThemePropertyGridSettings.RowsSpacing"/>, <see cref="MGThemePropertyGridSettings.RowPadding"/>, and the presence of
+        /// <see cref="MGThemePropertyGridSettings.RowSeparatorBrush"/>, which adds or removes each row's separator border): request a layout pass
+        /// only when one of them changes (backlog task 7).</summary>
+        protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme previousTheme, MGTheme currentTheme)
+        {
+            if (_CategoryViews.Count == 0)
+            {
+                return UIInvalidationKind.Draw;
+            }
+
+            MGThemePropertyGridSettings previous = previousTheme?.PropertyGrid;
+            MGThemePropertyGridSettings current = (currentTheme ?? GetTheme()).PropertyGrid;
+            if (previous == null)
+            {
+                return UIInvalidationKind.Draw | UIThemeValueInvalidation.LayoutAffecting;
+            }
+
+            return UIThemeValueInvalidation.ForChange("PropertyGrid.CategoryHeaderPadding", previous.CategoryHeaderPadding, current.CategoryHeaderPadding)
+                | UIThemeValueInvalidation.ForChange("PropertyGrid.CategoryHeaderMinHeight", previous.CategoryHeaderMinHeight, current.CategoryHeaderMinHeight)
+                | UIThemeValueInvalidation.ForChange("PropertyGrid.RowsSpacing", previous.RowsSpacing, current.RowsSpacing)
+                | UIThemeValueInvalidation.ForChange("PropertyGrid.RowPadding", previous.RowPadding, current.RowPadding)
+                | UIThemeValueInvalidation.ForChange("PropertyGrid.RowSeparatorBrush", previous.RowSeparatorBrush != null, current.RowSeparatorBrush != null);
+        }
+
         protected internal override void OnThemeChanged(MGTheme previousTheme, MGTheme currentTheme)
         {
             base.OnThemeChanged(previousTheme, currentTheme);
