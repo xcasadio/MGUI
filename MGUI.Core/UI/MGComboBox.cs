@@ -186,6 +186,7 @@ namespace MGUI.Core.UI
                     }
 
                     DropdownContentChanged();
+                    _NavigationTarget = null;
                     HoveredItem = null;
                 }
             }
@@ -210,6 +211,18 @@ namespace MGUI.Core.UI
             {
                 HandleTemplatedContentRemoved(e.OldItems.Cast<TemplatedElement<TItemType, MGButton>>().Select(x => x.Element));
             }
+
+            //  Rows can leave the list while the dropdown is open: never keep a keyboard target or a hovered row that is no longer listed.
+            if (_NavigationTarget != null && !TemplatedItems.Contains(_NavigationTarget))
+            {
+                _NavigationTarget = null;
+                RefreshDropdownItemSelectionVisuals();
+            }
+
+            if (HoveredItem != null && !TemplatedItems.Contains(HoveredItem))
+            {
+                HoveredItem = null;
+            }
         }
 
         #region Selected Item
@@ -233,6 +246,21 @@ namespace MGUI.Core.UI
                     if (SelectedTemplatedItem != null)
                     {
                         SelectedTemplatedItem.Element.IsSelected = true;
+                    }
+
+                    //  A committed selection ends keyboard navigation inside the dropdown (see SetNavigationTarget). When keyboard navigation also set
+                    //  HoveredItem, it is cleared as well, so that Submit or the next arrow key cannot act on the old target; a real mouse hover is kept.
+                    if (_NavigationTarget != null)
+                    {
+                        if (ReferenceEquals(HoveredItem, _NavigationTarget))
+                        {
+                            SetNavigationTarget(null);
+                        }
+                        else
+                        {
+                            _NavigationTarget = null;
+                            RefreshDropdownItemSelectionVisuals();
+                        }
                     }
 
                     NPC(nameof(SelectedTemplatedItem));
@@ -625,16 +653,15 @@ namespace MGUI.Core.UI
                         UpdateDropdownContent();
                         ParentWindow.AddNestedWindow(Dropdown);
 
-                        SetNavigationHoveredItem(SelectedTemplatedItem ?? TemplatedItems?.FirstOrDefault());
+                        //  Opening shows the committed selection as is: no navigation target, and no spoofed hover on the selected row.
+                        SetNavigationTarget(null);
                         ((INavigationTargetVisibilityHandler)this).EnsureNavigationTargetVisible();
                     }
                     else
                     {
                         ParentWindow.RemoveNestedWindow(Dropdown);
-                        SetNavigationHoveredItem(null);
+                        SetNavigationTarget(null);
                     }
-
-                    HoveredItem = null;
 
                     NPC(nameof(IsDropdownOpen));
                     DropdownOpened?.Invoke(this, EventArgs.Empty);
@@ -748,6 +775,24 @@ namespace MGUI.Core.UI
             }
         }
 
+        protected internal override void ApplyControlTemplate(bool IsThemeRefresh)
+        {
+            base.ApplyControlTemplate(IsThemeRefresh);
+
+            //  Items are only added to DropdownStackPanel when the dropdown opens (UpdateDropdownContent). Until then (dropdown never opened, or items
+            //  regenerated while it was closed) they are outside every visual tree and no theme refresh reaches them, so refresh their template here.
+            //  Items already added stay in the panel after closing and are also refreshed through the dropdown window's own scope, where the second
+            //  pass changes nothing. MGComboBox deliberately has no OnThemeChanged override: its theme-driven values flow through templates, see
+            //  ControlTemplateInfrastructureTests.
+            if (IsThemeRefresh && TemplatedItems != null)
+            {
+                foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
+                {
+                    item?.Element?.ApplyControlTemplate(true);
+                }
+            }
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGElement _DropdownHeader;
         /// <summary>Optional content that is displayed at the top of the <see cref="Dropdown"/> window.<para/>
@@ -830,26 +875,41 @@ namespace MGUI.Core.UI
             }
         }
 
-        private void SetNavigationHoveredItem(TemplatedElement<TItemType, MGButton> item)
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private TemplatedElement<TItemType, MGButton> _NavigationTarget;
+
+        /// <summary>Keyboard navigation inside the open dropdown highlights its target with the item's Selected visual state (the same fill as the
+        /// committed selection) rather than a spoofed hover. The committed selection is only displayed as selected while no other item is targeted.</summary>
+        private void SetNavigationTarget(TemplatedElement<TItemType, MGButton> item)
         {
-            if (HoveredItem?.Element != null)
+            _NavigationTarget = item;
+            HoveredItem = item;
+            RefreshDropdownItemSelectionVisuals();
+        }
+
+        private void RefreshDropdownItemSelectionVisuals()
+        {
+            if (TemplatedItems == null)
             {
-                HoveredItem.Element.SpoofIsHoveredWhileDrawingBackground = false;
+                return;
             }
 
-            HoveredItem = item;
-
-            if (HoveredItem?.Element != null)
+            MGButton highlighted = (_NavigationTarget ?? SelectedTemplatedItem)?.Element;
+            foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
             {
-                HoveredItem.Element.SpoofIsHoveredWhileDrawingBackground = true;
+                if (item?.Element != null)
+                {
+                    item.Element.IsSelected = ReferenceEquals(item.Element, highlighted);
+                }
             }
         }
 
         void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible()
         {
-            if (IsDropdownOpen && HoveredItem?.Element != null)
+            MGButton target = (_NavigationTarget ?? HoveredItem ?? SelectedTemplatedItem)?.Element;
+            if (IsDropdownOpen && target != null)
             {
-                DropdownScrollViewer?.EnsureElementVisible(HoveredItem.Element);
+                DropdownScrollViewer?.EnsureElementVisible(target);
             }
         }
 
@@ -860,9 +920,10 @@ namespace MGUI.Core.UI
                 return false;
             }
 
-            int currentIndex = Math.Clamp(SelectedIndex < 0 ? 0 : SelectedIndex, 0, TemplatedItems.Count - 1);
+            //  -1 when nothing is selected, so that MoveDown / MoveNext select the first row instead of skipping it.
+            int currentIndex = SelectedIndex;
             int nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
-            if (nextIndex < 0 || nextIndex == currentIndex && SelectedIndex == nextIndex)
+            if (nextIndex < 0 || nextIndex == currentIndex)
             {
                 return false;
             }
@@ -878,14 +939,17 @@ namespace MGUI.Core.UI
                 return false;
             }
 
-            int currentIndex = HoveredItem == null ? Math.Clamp(SelectedIndex < 0 ? 0 : SelectedIndex, 0, TemplatedItems.Count - 1) : TemplatedItems.IndexOf(HoveredItem);
+            //  Start from the keyboard target, else the hovered row, else the committed selection: -1 when there is none, so that the first
+            //  MoveDown / MoveNext targets the first row instead of skipping it.
+            TemplatedElement<TItemType, MGButton> anchor = _NavigationTarget ?? HoveredItem;
+            int currentIndex = anchor != null ? TemplatedItems.IndexOf(anchor) : SelectedIndex;
             int nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
             if (nextIndex < 0)
             {
                 return false;
             }
 
-            SetNavigationHoveredItem(TemplatedItems[nextIndex]);
+            SetNavigationTarget(TemplatedItems[nextIndex]);
             return true;
         }
 
@@ -895,7 +959,7 @@ namespace MGUI.Core.UI
             {
                 return action switch
                 {
-                    UINavigationAction.Submit when HoveredItem != null => (SelectedTemplatedItem = HoveredItem) != null && !(IsDropdownOpen = false),
+                    UINavigationAction.Submit when (_NavigationTarget ?? HoveredItem) != null => (SelectedTemplatedItem = _NavigationTarget ?? HoveredItem) != null && !(IsDropdownOpen = false),
                     UINavigationAction.Cancel => !(IsDropdownOpen = false),
                     UINavigationAction.MoveUp or UINavigationAction.MoveDown or UINavigationAction.MoveNext or UINavigationAction.MovePrevious or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.PageUp or UINavigationAction.PageDown => TryAdjustOpenSelection(action),
                     _ => false

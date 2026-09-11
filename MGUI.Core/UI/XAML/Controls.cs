@@ -4103,7 +4103,9 @@ namespace MGUI.Core.UI.XAML
 
         protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
         {
-            MGTheme Theme = Window.GetResources().GetThemeOrDefault(ThemeName, Window.Theme);
+            //  Without a ThemeName, a nested window (such as the PART_DropdownWindow of a XAML ComboBox template) keeps no theme of its own:
+            //  its Window scope inherits the parent window's scope and follows that scope's theme changes.
+            MGTheme Theme = string.IsNullOrEmpty(ThemeName) ? null : Window.GetResources().GetThemeOrDefault(ThemeName, Window.Theme);
             int WindowWidth = Math.Clamp(Width ?? 0, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
             int WindowHeight = Math.Clamp(Height ?? 0, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
             MGWindow Instance = new(Window, Left ?? 0, Top ?? 0, WindowWidth, WindowHeight, Theme);

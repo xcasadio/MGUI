@@ -601,7 +601,7 @@ namespace MGUI.Core.UI
         /// <summary>Consider subscribing to <see cref="ItemSelected"/> and <see cref="ItemToggled"/> to handle user actions.</summary>
         public static MGContextMenu CreateSimpleMenu(MGWindow Window, string Title, Color? TextForeground, params MGSimpleContextMenuItem[] Items)
         {
-            MGContextMenu Menu = new(Window, Title, Window.Theme);
+            MGContextMenu Menu = new(Window, Title);
             AddItemsToMenu(Menu, TextForeground, Items?.ToList());
             return Menu;
         }
@@ -653,21 +653,27 @@ namespace MGUI.Core.UI
             }
         }
 
-        /// <summary>Creates a nested <see cref="MGContextMenu"/></summary>
+        /// <summary>Creates a nested <see cref="MGContextMenu"/>. It inherits the theme of <paramref name="ParentContextMenu"/>'s resource scope.</summary>
         public MGContextMenu(MGContextMenu ParentContextMenu)
-            : this(ParentContextMenu, ParentContextMenu.TitleText, ParentContextMenu.Theme)
+            : this(ParentContextMenu, ParentContextMenu.TitleText)
         {
             Host = ParentContextMenu;
             HeaderSize = ParentContextMenu.HeaderSize;
-            ButtonWrapperTemplate = ParentContextMenu.ButtonWrapperTemplate;
+            //  Keep this submenu's own default wrapper factory when the parent uses the parent's default: OnThemeChanged only rebuilds the rows
+            //  when ButtonWrapperTemplate is this instance's CreateDefaultDropdownButton (delegate equality compares targets).
+            if (ParentContextMenu.ButtonWrapperTemplate != ParentContextMenu.CreateDefaultDropdownButton)
+            {
+                ButtonWrapperTemplate = ParentContextMenu.ButtonWrapperTemplate;
+            }
             StaysOpenOnItemSelected = ParentContextMenu.StaysOpenOnItemSelected;
             StaysOpenOnItemToggled = ParentContextMenu.StaysOpenOnItemToggled;
             AutoCloseThreshold = null;
         }
 
-        /// <summary>Creates a root-level <see cref="MGContextMenu"/></summary>
+        /// <summary>Creates a root-level <see cref="MGContextMenu"/>. Without an explicit <paramref name="Theme"/>, it inherits the theme of
+        /// <paramref name="Window"/>'s resource scope and follows its changes.</summary>
         public MGContextMenu(MGWindow Window, string TitleText = "[b]Choose Option[/b]", MGTheme Theme = null)
-            : this(Window.Desktop, Theme ?? Window.Theme, Window, TitleText) { }
+            : this(Window.Desktop, Theme, Window, TitleText) { }
 
         /// <summary>Creates a root-level <see cref="MGContextMenu"/> that does not belong to any <see cref="MGWindow"/>s</summary>
         public MGContextMenu(MGDesktop Desktop, string TitleText = "[b]Choose Option[/b]", MGTheme Theme = null)

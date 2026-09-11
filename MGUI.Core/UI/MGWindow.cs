@@ -1087,7 +1087,8 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGTheme _Theme;
-        /// <summary>If null, uses <see cref="MGDesktop.Theme"/> instead.<para/>
+        /// <summary>Explicit theme of this window's resource scope. If null, the window inherits the theme of its parent scope (its owner window for
+        /// nested windows and popups, otherwise the desktop) and follows that scope's theme changes.<para/>
         /// Default value: null<para/>
         /// See also:<br/><see cref="MGElement.GetTheme()"/><br/><see cref="MGDesktop.Theme"/></summary>
         public MGTheme Theme

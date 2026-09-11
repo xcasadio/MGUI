@@ -74,8 +74,9 @@ namespace MGUI.Core.UI
 
         public TimeSpan ActualShowDelay => ShowDelayOverride ?? GetDesktop().ToolTipShowDelay;
 
+        /// <summary>Without an explicit <paramref name="Theme"/>, the tooltip inherits the theme of <paramref name="Window"/>'s resource scope and follows its changes.</summary>
         public MGToolTip(MGWindow Window, MGElement Host, int Width, int Height, MGTheme Theme = null)
-            : base(Window.Desktop, Theme ?? Window.Theme, Window, MGElementType.ToolTip, 0, 0, Width, Height)
+            : base(Window.Desktop, Theme, Window, MGElementType.ToolTip, 0, 0, Width, Height)
         {
             using (BeginInitializing())
             {

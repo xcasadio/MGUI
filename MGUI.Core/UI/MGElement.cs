@@ -2907,7 +2907,9 @@ namespace MGUI.Core.UI
                     }
                 };
 
-                MGTheme ActualTheme = Theme ?? ParentWindow?.Theme ?? Desktop.Theme;
+                //  The parent window's effective (scope) theme, not only its explicit Theme field: popups such as context menus and combo box
+                //  dropdowns keep no explicit theme and inherit their owner's scope, so the elements built inside them must follow that theme too.
+                MGTheme ActualTheme = Theme ?? ParentWindow?.LocalResources?.DefaultTheme ?? ParentWindow?.Theme ?? Desktop.Theme;
 
                 SetMargin(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 SetPadding(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));

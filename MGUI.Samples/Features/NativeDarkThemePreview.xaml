@@ -69,15 +69,18 @@
                         </TabItem>
                     </TabControl>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Name="OpenContextMenuButton" Content="Open Context Menu" ToolTip="Preview the editor context menu chrome." />
+                        <Button Name="OpenContextMenuButton" Content="Open Context Menu" ToolTip="Preview the editor context menu chrome.">
+                            <Button.ContextMenu>
+                                <ContextMenu Name="SampleContextMenu" TitleText="Asset Actions">
+                                    <ContextMenuButton Content="Open" />
+                                    <ContextMenuButton Content="Duplicate" />
+                                    <ContextMenuButton Content="Reveal in Browser" />
+                                    <ContextMenuButton Content="Delete" />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
                         <Button Name="ToggleOverlayButton" Content="Hide Overlay" ToolTip="Toggle the overlay preview surface." />
                     </StackPanel>
-                    <ContextMenu Name="SampleContextMenu" TitleText="Asset Actions">
-                        <ContextMenuButton Content="Open" />
-                        <ContextMenuButton Content="Duplicate" />
-                        <ContextMenuButton Content="Reveal in Browser" />
-                        <ContextMenuButton Content="Delete" />
-                    </ContextMenu>
                     <OverlayHost MinHeight="160" OverlayBackground="Black * 0.35" Content="Viewport content behind overlay">
                         <OverlayHost.Overlays>
                             <Overlay Name="SampleOverlay" IsOpen="True" ShowCloseButton="True" Padding="10,20,10,10" Content="Overlay preview for modal editor actions" />

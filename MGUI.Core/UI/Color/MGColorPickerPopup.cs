@@ -36,7 +36,8 @@ namespace MGUI.Core.UI
             PopupWidth = 280;
             PopupHeight = 220;
 
-            PopupWindow = new MGWindow(ownerWindow, 0, 0, PopupWidth, PopupHeight, ownerWindow.Theme)
+            //  No theme argument: the popup's Window scope inherits the owner window's scope, so it follows that scope's theme changes.
+            PopupWindow = new MGWindow(ownerWindow, 0, 0, PopupWidth, PopupHeight)
             {
                 IsTitleBarVisible = false,
                 IsCloseButtonVisible = false,

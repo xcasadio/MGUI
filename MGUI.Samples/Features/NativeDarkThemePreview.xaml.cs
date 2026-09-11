@@ -61,10 +61,15 @@ public sealed class NativeDarkThemePreviewSample : SampleBase
         ApplyPreviewChrome(themeStatusText, assetPathsText, sampleListBox, sampleListView, openContextMenuButton,
             sampleContextMenu, toggleOverlayButton);
 
+        //  SampleContextMenu is the button's ContextMenu (NativeDarkThemePreview.xaml), never a panel child: a menu that is also laid out in a
+        //  panel is moved back into its panel slot by the next layout pass. The anchor is in screen space, just below the button.
         openContextMenuButton.MouseHandler.LMBReleasedInside += (_, e) =>
         {
-            sampleContextMenu.TryOpenContextMenu(openContextMenuButton.LayoutBounds);
-            e.SetHandledBy(openContextMenuButton, false);
+            Rectangle buttonScreenBounds = openContextMenuButton.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, openContextMenuButton.LayoutBounds);
+            if (sampleContextMenu.TryOpenContextMenu(new Point(buttonScreenBounds.Left, buttonScreenBounds.Bottom)))
+            {
+                e.SetHandledBy(sampleContextMenu, false);
+            }
         };
 
         toggleOverlayButton.Command = _ =>

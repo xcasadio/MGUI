@@ -100,12 +100,15 @@
                                 <TextBlock Text="Hover, pressed and selected visuals are projected through template parts instead of ad hoc control code." />
                             </TabItem>
                         </TabControl>
-                        <ContextMenu Name="SampleContextMenu" TitleText="Actions" ControlTemplate="ContextMenu.Default">
-                            <ContextMenuButton Content="Open" />
-                            <ContextMenuButton Content="Duplicate" />
-                            <ContextMenuButton Content="Delete" />
-                        </ContextMenu>
-                        <Button Name="OpenContextMenuButton" Content="Open Sample Context Menu" HorizontalAlignment="Left" />
+                        <Button Name="OpenContextMenuButton" Content="Open Sample Context Menu" HorizontalAlignment="Left">
+                            <Button.ContextMenu>
+                                <ContextMenu Name="SampleContextMenu" TitleText="Actions" ControlTemplate="ContextMenu.Default">
+                                    <ContextMenuButton Content="Open" />
+                                    <ContextMenuButton Content="Duplicate" />
+                                    <ContextMenuButton Content="Delete" />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
                     </StackPanel>
                 </Border>
 

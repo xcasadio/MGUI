@@ -160,11 +160,11 @@ d'`ActiveWindow` a ecrire (elle est en lecture seule).
 aussi la base de types popup qui gagneraient sinon un reordonnancement de
 leurs fenetres imbriquees a chaque clic interne : `MGContextMenu`
 (`MGContextMenu.cs:45`), `MGToolTip` (`MGToolTip.cs:18`), le dropdown de
-`MGComboBox` (propriete `Dropdown` a `MGComboBox.cs:522`, affectee depuis le
-template a `:681`, ajoutee comme fenetre imbriquee a `:626`) et la popup du
+`MGComboBox` (propriete `Dropdown` a `MGComboBox.cs:550`, affectee depuis le
+template a `:708`, ajoutee comme fenetre imbriquee a `:654`) et la popup du
 color picker, `MGColorPickerPopup.PopupWindow` (propriete a
-`MGColorPickerPopup.cs:13`, construite a `:39-42` dans le constructeur de
-`MGColorPickerPopup`, ajoutee comme fenetre imbriquee a `:87`). Ces quatre en
+`MGColorPickerPopup.cs:13`, construite a `:40-43` dans le constructeur de
+`MGColorPickerPopup`, ajoutee comme fenetre imbriquee a `:91`). Ces quatre en
 sont explicitement exclues via `ActivatesOnClick = false`, fixe au plus pres
 de la construction de chaque instance (le constructeur pour les deux
 sous-classes directes de `MGWindow` ; juste apres l'affectation/construction

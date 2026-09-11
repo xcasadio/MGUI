@@ -354,7 +354,8 @@ namespace MGUI.Core.UI.Styling
             MGWindow window = owner.SelfOrParentWindow;
             MGBorder border = new(window, new Thickness(1), MGUniformBorderBrush.Black);
             MGContentPresenter dropdownArrow = new(window) { PreferredWidth = MGComboBox<object>.DropdownArrowPaddedWidth, PreferredHeight = MGComboBox<object>.DropdownArrowPaddedHeight };
-            MGWindow dropdown = new(window, 0, 0, 100, 300, window.Theme)
+            // No theme argument: the dropdown's Window scope inherits the owner window's scope, so it follows that scope's theme changes.
+            MGWindow dropdown = new(window, 0, 0, 100, 300)
             {
                 ManagedParent = owner,
                 IsUserResizable = false,
@@ -882,9 +883,9 @@ namespace MGUI.Core.UI.Styling
             MGElement Arrow = Context.GetRequiredPart<MGElement>(MGWrappedContextMenuItem.SubmenuArrowPartName);
             MGTheme Theme = Context.Owner.GetTheme();
             Context.ApplyThemeDefault("ContextMenuItem.HeaderMargin", Theme.ContextMenuItem.HeaderMargin, () => HeaderPresenter.Margin, (value, source) => HeaderPresenter.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            // ADR-0005/S5: Theme.ContextMenuItem.HeaderBackground is raw/shared -- copy per subscriber (see the
-            // Window.CloseButtonBackground comment above).
-            Context.ApplyThemeDefault("ContextMenuItem.HeaderBackground", Theme.ContextMenuItem.HeaderBackground?.Copy(), () => HeaderPresenter.BackgroundBrush, (value, source) => HeaderPresenter.SetBackground(value, source));
+            // PART_HeaderPresenter (icon / check-mark column) deliberately keeps its empty construction background: the row wrapper
+            // (MGContextMenu.CreateDefaultDropdownButton) already paints ContextMenuItem.HeaderBackground behind it, so applying the same
+            // brush here would stack a second highlight layer on the column.
             Context.ApplyThemeDefault("ContextMenuItem.ShortcutMargin", Theme.ContextMenuItem.ShortcutMargin, () => ShortcutText.Margin, (value, source) => ShortcutText.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             // ADR-0005/S5-style copy: Theme.ContextMenuItem.ShortcutForeground is raw/shared -- see the
             // Window.CloseButtonBackground comment above.

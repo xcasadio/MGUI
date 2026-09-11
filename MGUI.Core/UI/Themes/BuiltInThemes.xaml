@@ -1192,9 +1192,11 @@
       <ThemePropertyDefinition Target="ComboBoxDropdownItemBackground">
         <ThemePropertyDefinition.VisualStateFillBrush>
           <ThemeVisualStateFillBrushDefinition NormalValue="Transparent"
-                                               FocusedValue="rgba(58,121,187,85)"
-                                               SelectedValue="rgba(58,121,187,85)"
-                                               DisabledValue="Transparent" />
+                                               FocusedValue="rgb(68,68,68)"
+                                               SelectedValue="rgb(68,68,68)"
+                                               DisabledValue="Transparent"
+                                               FocusedColor="Transparent"
+                                               PressedModifier="0" />
         </ThemePropertyDefinition.VisualStateFillBrush>
       </ThemePropertyDefinition>
       <ThemePropertyDefinition Target="ListBoxItemAlternatingRowBackgrounds">
@@ -1355,9 +1357,11 @@
                                               SubmenuArrowMargin="8,0,0,0">
         <ThemeContextMenuItemSettingsDefinition.HeaderBackground>
           <ThemeVisualStateFillBrushDefinition NormalValue="Transparent"
-                                               FocusedValue="rgb(58,58,58)"
-                                               SelectedValue="rgb(58,58,58)"
-                                               DisabledValue="Transparent" />
+                                               FocusedValue="rgb(68,68,68)"
+                                               SelectedValue="rgb(68,68,68)"
+                                               DisabledValue="Transparent"
+                                               FocusedColor="Transparent"
+                                               PressedModifier="0" />
         </ThemeContextMenuItemSettingsDefinition.HeaderBackground>
         <ThemeContextMenuItemSettingsDefinition.ShortcutForeground>
           <ThemeVisualStateColorSettingDefinition NormalValue="rgb(160,160,160)"

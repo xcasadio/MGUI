@@ -52,7 +52,7 @@ namespace MGUI.Core.UI.XAML
             }
             else
             {
-                return new MGContextMenu(Window, Theme: Window?.Theme);
+                return new MGContextMenu(Window);
             }
         }
 

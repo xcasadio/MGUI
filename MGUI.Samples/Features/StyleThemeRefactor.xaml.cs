@@ -177,10 +177,16 @@ desktop.Resources.AddTheme(""DarkSkin"", darkTheme);
                                     blueprintSkinButton, darkSkinButton);
                 return true;
             };
+            //  SampleContextMenu is the button's ContextMenu (StyleThemeRefactor.xaml), never a panel child: a menu that is also laid out in a
+            //  panel is moved back into its panel slot by the next layout pass, so the popup would only show for one frame. The anchor is in
+            //  screen space, just below the button, so the menu opens next to the pointer and stays within its auto-close distance.
             openContextMenuButton.MouseHandler.LMBReleasedInside += (_, e) =>
             {
-                sampleContextMenu.TryOpenContextMenu(openContextMenuButton.LayoutBounds);
-                e.SetHandledBy(openContextMenuButton, false);
+                Microsoft.Xna.Framework.Rectangle buttonScreenBounds = openContextMenuButton.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, openContextMenuButton.LayoutBounds);
+                if (sampleContextMenu.TryOpenContextMenu(new Point(buttonScreenBounds.Left, buttonScreenBounds.Bottom)))
+                {
+                    e.SetHandledBy(sampleContextMenu, false);
+                }
             };
 
             xamlCoverageMatrixText.SetText(SampleCoverageMatrixText);
