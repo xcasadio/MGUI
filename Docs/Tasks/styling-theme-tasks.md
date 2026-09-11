@@ -165,7 +165,9 @@ Criteres d'acceptation:
 
 Commit recommande: `style-theme: add pilot resolved value engine`
 
-### ⚪ 5. Ajouter une API de diagnostic TryGetResolvedValueSource
+### ✅ 5. Ajouter une API de diagnostic TryGetResolvedValueSource
+
+**Statut** : livre le 11 septembre 2026. API publique `UIToolingService.TryGetResolvedValueSource(MGElement element, string propertyPath, out UIValueResolutionSource source)` au-dessus du point de lecture interne de la tache 4 (S9) : le chemin est traduit par la table XAML des bindings (`XAML.Element.MapBindingTargetPath`, nouvelle aide interne sur `BindingPathMappings`), resolu par `UIPilotPropertyResolver` (cle pilote, slot, bordure `GetBorder()` pour `BorderBrush`/`BorderThickness`), et la source gagnante vient de `MGElement.TryGetResolvedValueSource` (replis Inherited/Theme du texte et regle de dormance R6 compris). Perimetre explicite : liste publique `UIToolingService.ResolvedValueSourcePropertyPaths` (27 chemins : chemins CLR des huit cles pilotes et de leurs sous-champs, puis noms XAML `Background`, `SelectedBackground`, `DisabledBackground`, `TextForeground`, `SelectedTextForeground`, `DisabledTextForeground`, `Foreground`) ; toute autre propriete renvoie faux, comme un element sans bordure, un `Foreground` hors `MGTextBlock`, une valeur jamais ecrite, un element nul ou non initialise ; aucune exception, aucun cout hors appel. Tests `MGUI.Tests/Tooling/ResolvedValueSourceToolingTests.cs` (6) : sources `Template` (padding de la part barre de titre, invalidation Measure | Arrange), `Theme` (padding de fenetre) et `LocalValue` (setter, attributs XAML), noms XAML egaux aux chemins CLR, egalite avec la lecture du store par chemin, liste du perimetre epinglee et verifiee contre le resolveur, proprietes non couvertes. Mutations : traduction XAML retiree => 2 rouges ; slot ignore (lecture Whole) => 2 rouges ; vert apres reversion. Suites : 6 (nouvelle classe), 19 (Tooling), 627 (Architecture), 1631 (complete). Docs : `styling-theme-architecture.md` (Outillage, point de lecture), ADR-0005 (consequences).
 
 But:
 pouvoir repondre a "d'ou vient cette valeur" pour un premier sous-ensemble de proprietes.

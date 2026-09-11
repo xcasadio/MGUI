@@ -266,6 +266,62 @@ namespace MGUI.Core.Tooling
             return null;
         }
 
+        /// <summary>The property paths covered by <see cref="TryGetResolvedValueSource"/>: the pilot properties of the resolved value store
+        /// (ADR-0005), as CLR paths rooted at the element, followed by the XAML property names that target them. <c>BorderBrush</c> and
+        /// <c>BorderThickness</c> resolve on the element's border (<see cref="MGElement.GetBorder"/>), and the <c>Foreground</c> paths only on
+        /// an <see cref="MGTextBlock"/>. Every other property (for example <c>Opacity</c>, <c>PreferredWidth</c> or <c>Visibility</c>) is an
+        /// ordinary C# property whose origin is not tracked, so it is not covered.</summary>
+        public static IReadOnlyList<string> ResolvedValueSourcePropertyPaths { get; } = new[]
+        {
+            "Margin",
+            "Padding",
+            "MinHeight",
+            "BorderBrush",
+            "BorderThickness",
+            "BackgroundBrush",
+            "BackgroundBrush.NormalValue",
+            "BackgroundBrush.SelectedValue",
+            "BackgroundBrush.DisabledValue",
+            "BackgroundBrush.FocusedValue",
+            "BackgroundBrush.FocusedColor",
+            "DefaultTextForeground",
+            "DefaultTextForeground.NormalValue",
+            "DefaultTextForeground.SelectedValue",
+            "DefaultTextForeground.DisabledValue",
+            "DefaultTextForeground.FocusedValue",
+            "Foreground.NormalValue",
+            "Foreground.SelectedValue",
+            "Foreground.DisabledValue",
+            "Foreground.FocusedValue",
+            "Background",
+            "SelectedBackground",
+            "DisabledBackground",
+            "TextForeground",
+            "SelectedTextForeground",
+            "DisabledTextForeground",
+            "Foreground",
+        };
+
+        /// <summary>Answers "where does this value come from" for <paramref name="propertyPath"/> on <paramref name="element"/>: the
+        /// <see cref="UIValueResolutionSource"/> (kind, precedence, invalidation and name) of the value currently in effect, as resolved by the
+        /// element's resolved value store (ADR-0005), read-time fall-backs included (for example an <see cref="MGTextBlock"/> foreground
+        /// inherited from an ancestor). <paramref name="propertyPath"/> is one of <see cref="ResolvedValueSourcePropertyPaths"/>.<para/>
+        /// Returns false, with <paramref name="source"/> left <c>default</c>, for a null element, a path outside that subset (non-pilot properties
+        /// are not covered), a path the element cannot resolve (no border, <c>Foreground</c> on an element that is not a text block) or a value
+        /// that no source has written. A pure diagnostic read: it never throws and costs nothing outside the call.</summary>
+        public static bool TryGetResolvedValueSource(MGElement element, string propertyPath, out UIValueResolutionSource source)
+        {
+            source = default;
+            if (element == null || string.IsNullOrWhiteSpace(propertyPath))
+            {
+                return false;
+            }
+
+            string clrPath = MGUI.Core.UI.XAML.Element.MapBindingTargetPath(propertyPath.Trim());
+            return UIPilotPropertyResolver.TryResolve(element, clrPath, out MGElement owner, out UIPilotProperty pilot, out UIValueSlot slot)
+                && owner.TryGetResolvedValueSource(pilot, slot, out source);
+        }
+
         public static MGElement LoadPreview(MGWindow window, XamlDocumentSource source, object dataContext = null,
             bool sanitizeXamlString = false, bool replaceLinebreakLiterals = true)
         {

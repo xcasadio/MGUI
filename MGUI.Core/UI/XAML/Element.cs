@@ -632,6 +632,11 @@ namespace MGUI.Core.UI.XAML
         private string MapTargetPath(string TargetPath)
             => BindingPathMappings.TryGetValue(TargetPath, out string ActualPath) ? ActualPath : TargetPath;
 
+        /// <summary>Maps a XAML property name used as a binding or resource target (e.g. <c>Background</c>) onto the CLR path it targets on
+        /// the element (<c>BackgroundBrush.NormalValue</c>). Any other path, including null, is returned unchanged.</summary>
+        internal static string MapBindingTargetPath(string TargetPath)
+            => TargetPath != null && BindingPathMappings.TryGetValue(TargetPath, out string ActualPath) ? ActualPath : TargetPath;
+
         //  DataBindings are defined in XAML (so they are applied to the properties of the XAML types)
         //  but are bound to the properties of the actual type (such as MGUI.Core.UI.MGButton instead of MGUI.Core.UI.XAML.Button).
         //  This dictionary is intended to handle cases where a property on the XAML type isn't the same name/path as the actual property of the binding
