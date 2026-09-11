@@ -53,8 +53,8 @@ public class MGDockAutoHideStrip : MGElement
     private readonly List<MGBorder> _buttons = new List<MGBorder>();
     // Mapping from button → panel so we know which one was clicked
     private readonly Dictionary<MGBorder, DockPanelNode> _buttonMap = new Dictionary<MGBorder, DockPanelNode>();
-    private MGRectangle SeparatorElement { get; }
-    private MGComponent<MGRectangle> SeparatorComponent { get; }
+    private MGRectangle SeparatorElement { get; set; }
+    private MGComponent<MGRectangle> SeparatorComponent { get; set; }
 
     public VisualStateFillBrush ButtonBackgroundBrush { get; set; } =
         new VisualStateFillBrush(
@@ -81,21 +81,28 @@ public class MGDockAutoHideStrip : MGElement
 
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment   = VerticalAlignment.Stretch;
+            // The separator part comes from the control template, see AttachControlTemplateStructure.
             DefaultControlTemplateName = MGControlTemplateCatalog.DockAutoHideStripTemplateName;
-
-            SeparatorElement = new(window, 0, 0, Color.Transparent, 0, Color.Transparent)
-            {
-                ManagedParent = this,
-                IsHitTestVisible = false,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-            };
-            RegisterTemplatePart(SeparatorPartName, SeparatorElement);
-            SeparatorComponent = new(SeparatorElement, false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => GetSeparatorBounds());
-            AddComponent(SeparatorComponent);
             SyncSeparatorVisuals();
         }
+    }
+
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    {
+        yield return new(SeparatorPartName, typeof(MGRectangle));
+    }
+
+    /// <summary>Binds the separator created by the control template (<c>Dock.AutoHideStrip.Default</c>) as a component laid along the inner edge of this
+    /// strip, then pushes <see cref="SeparatorColor"/> to it. The panel buttons are not template parts: <see cref="Refresh"/> builds them from the
+    /// auto-hide store.</summary>
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        SeparatorElement = (MGRectangle)Structure.Parts[SeparatorPartName];
+        SeparatorElement.ManagedParent = this;
+        SeparatorElement.IsHitTestVisible = false;
+        EnsureComponentBinding(() => SeparatorComponent, value => SeparatorComponent = value, SeparatorElement,
+            element => new(element, false, false, false, false, false, false, false, (availableBounds, componentSize) => GetSeparatorBounds()));
+        SyncSeparatorVisuals();
     }
 
     private Rectangle GetSeparatorBounds()

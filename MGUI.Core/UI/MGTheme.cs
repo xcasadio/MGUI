@@ -272,6 +272,13 @@ namespace MGUI.Core.UI
         public Color DropIndicatorDisabledBorderColor { get; set; }
         public Color DropIndicatorSymbolColor { get; set; }
         public Color DropIndicatorDisabledSymbolColor { get; set; }
+
+        //  The two preview overlay colors default to the values MGDockPreviewOverlay used to hard-code, so a theme definition written before
+        //  these settings existed keeps the same drop preview.
+        /// <summary>Fill of the <c>MGDockPreviewOverlay</c> that shows where a dragged panel will dock.</summary>
+        public Color PreviewOverlayFillColor { get; set; } = new(0, 122, 204, 100);
+        /// <summary>Border of the <c>MGDockPreviewOverlay</c> that shows where a dragged panel will dock.</summary>
+        public Color PreviewOverlayBorderColor { get; set; } = new(0, 122, 204, 200);
     }
 
     public class MGTheme
@@ -804,6 +811,8 @@ namespace MGUI.Core.UI
             Docking.DropIndicatorDisabledBorderColor = Source.Docking.DropIndicatorDisabledBorderColor;
             Docking.DropIndicatorSymbolColor = Source.Docking.DropIndicatorSymbolColor;
             Docking.DropIndicatorDisabledSymbolColor = Source.Docking.DropIndicatorDisabledSymbolColor;
+            Docking.PreviewOverlayFillColor = Source.Docking.PreviewOverlayFillColor;
+            Docking.PreviewOverlayBorderColor = Source.Docking.PreviewOverlayBorderColor;
         }
     }
 }

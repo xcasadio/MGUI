@@ -96,9 +96,10 @@ namespace MGUI.Core.UI.XAML
                 try
                 {
                     Action<Styling.MGControlTemplateContext> applyDefaults = null;
+                    Styling.MGControlTemplate baseTemplate = null;
                     if (!string.IsNullOrWhiteSpace(definition.BasedOn))
                     {
-                        Styling.MGControlTemplate baseTemplate = Resolve(definition.BasedOn);
+                        baseTemplate = Resolve(definition.BasedOn);
                         if (baseTemplate == null)
                         {
                             throw new InvalidOperationException($"Control template '{definition.Name}' declares BasedOn='{definition.BasedOn}' but no matching base template was found.");
@@ -107,7 +108,18 @@ namespace MGUI.Core.UI.XAML
                         applyDefaults = baseTemplate.ApplyDefaults;
                     }
 
-                    Styling.MGControlTemplate template = CreateTemplate(definition, applyDefaults);
+                    Styling.MGControlTemplate template;
+                    if (baseTemplate?.SupportsStructure == true && !DeclaresStructure(definition))
+                    {
+                        // A variant that declares no root and no detached roots keeps the structure of its base: instantiating its own, empty,
+                        // structure would miss every part the control requires.
+                        Action<Styling.MGControlTemplateContext, Styling.MGControlTemplateStructure> attachStructure = baseTemplate.SupportsAttachment ? baseTemplate.AttachStructure : null;
+                        template = new Styling.MGControlTemplate(definition.Name, baseTemplate.CreateStructure, attachStructure, applyDefaults);
+                    }
+                    else
+                    {
+                        template = CreateTemplate(definition, applyDefaults);
+                    }
                     cache[name] = template;
                     return template;
                 }
@@ -168,6 +180,9 @@ namespace MGUI.Core.UI.XAML
         {
             return CreateTemplate(Definition, null);
         }
+
+        private static bool DeclaresStructure(ControlTemplateDefinition Definition)
+            => Definition.Root != null || (Definition.DetachedRoots != null && Definition.DetachedRoots.Any());
 
         private static Styling.MGControlTemplateStructure BuildStructure(ControlTemplateDefinition Definition, Styling.MGControlTemplateContext Context)
         {

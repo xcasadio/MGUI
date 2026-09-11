@@ -141,15 +141,15 @@ public class MGDockDropIndicators : MGElement
 
     /// <summary>Zones that are currently forbidden by docking rules and should be drawn grayed out.</summary>
     private readonly HashSet<DockZone> _disabledZones = new HashSet<DockZone>();
-    private MGDockDropZoneIndicator LeftZoneElement { get; }
-    private MGDockDropZoneIndicator RightZoneElement { get; }
-    private MGDockDropZoneIndicator TopZoneElement { get; }
-    private MGDockDropZoneIndicator BottomZoneElement { get; }
-    private MGDockDropZoneIndicator CenterZoneElement { get; }
-    private MGDockDropZoneIndicator HostLeftZoneElement { get; }
-    private MGDockDropZoneIndicator HostRightZoneElement { get; }
-    private MGDockDropZoneIndicator HostTopZoneElement { get; }
-    private MGDockDropZoneIndicator HostBottomZoneElement { get; }
+    private MGDockDropZoneIndicator LeftZoneElement { get; set; }
+    private MGDockDropZoneIndicator RightZoneElement { get; set; }
+    private MGDockDropZoneIndicator TopZoneElement { get; set; }
+    private MGDockDropZoneIndicator BottomZoneElement { get; set; }
+    private MGDockDropZoneIndicator CenterZoneElement { get; set; }
+    private MGDockDropZoneIndicator HostLeftZoneElement { get; set; }
+    private MGDockDropZoneIndicator HostRightZoneElement { get; set; }
+    private MGDockDropZoneIndicator HostTopZoneElement { get; set; }
+    private MGDockDropZoneIndicator HostBottomZoneElement { get; set; }
 
     // ── Per-panel joystick state ─────────────────────────────────────────────
     private Rectangle _leftZoneRect;
@@ -245,40 +245,55 @@ public class MGDockDropIndicators : MGElement
             // Full stretch to cover entire parent area
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
+            // The nine zone parts come from the control template, see AttachControlTemplateStructure.
             DefaultControlTemplateName = MGControlTemplateCatalog.DockDropIndicatorsTemplateName;
-
-            LeftZoneElement = CreateZoneElement(DockZone.Left, false);
-            RegisterTemplatePart(LeftDropZonePartName, LeftZoneElement);
-            RightZoneElement = CreateZoneElement(DockZone.Right, false);
-            RegisterTemplatePart(RightDropZonePartName, RightZoneElement);
-            TopZoneElement = CreateZoneElement(DockZone.Top, false);
-            RegisterTemplatePart(TopDropZonePartName, TopZoneElement);
-            BottomZoneElement = CreateZoneElement(DockZone.Bottom, false);
-            RegisterTemplatePart(BottomDropZonePartName, BottomZoneElement);
-            CenterZoneElement = CreateZoneElement(DockZone.Center, false);
-            RegisterTemplatePart(CenterDropZonePartName, CenterZoneElement);
-            HostLeftZoneElement = CreateZoneElement(DockZone.Left, true);
-            RegisterTemplatePart(HostLeftDropZonePartName, HostLeftZoneElement);
-            HostRightZoneElement = CreateZoneElement(DockZone.Right, true);
-            RegisterTemplatePart(HostRightDropZonePartName, HostRightZoneElement);
-            HostTopZoneElement = CreateZoneElement(DockZone.Top, true);
-            RegisterTemplatePart(HostTopDropZonePartName, HostTopZoneElement);
-            HostBottomZoneElement = CreateZoneElement(DockZone.Bottom, true);
-            RegisterTemplatePart(HostBottomDropZonePartName, HostBottomZoneElement);
-
             SyncZoneVisuals();
         }
     }
 
-    private MGDockDropZoneIndicator CreateZoneElement(DockZone zone, bool isHostEdge)
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
     {
-        MGDockDropZoneIndicator element = new(ParentWindow)
+        yield return new(LeftDropZonePartName, typeof(MGDockDropZoneIndicator));
+        yield return new(RightDropZonePartName, typeof(MGDockDropZoneIndicator));
+        yield return new(TopDropZonePartName, typeof(MGDockDropZoneIndicator));
+        yield return new(BottomDropZonePartName, typeof(MGDockDropZoneIndicator));
+        yield return new(CenterDropZonePartName, typeof(MGDockDropZoneIndicator));
+        yield return new(HostLeftDropZonePartName, typeof(MGDockDropZoneIndicator));
+        yield return new(HostRightDropZonePartName, typeof(MGDockDropZoneIndicator));
+        yield return new(HostTopDropZonePartName, typeof(MGDockDropZoneIndicator));
+        yield return new(HostBottomDropZonePartName, typeof(MGDockDropZoneIndicator));
+    }
+
+    /// <summary>Binds the nine zone parts created by the control template (<c>Dock.DropIndicators.Default</c>) as children of this overlay. The zone of
+    /// each part follows from its part name; positions, colors, active and disabled states stay computed here (<see cref="SyncZoneVisuals"/>).</summary>
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        LeftZoneElement = BindZoneElement(LeftZoneElement, Structure, LeftDropZonePartName, DockZone.Left, false);
+        RightZoneElement = BindZoneElement(RightZoneElement, Structure, RightDropZonePartName, DockZone.Right, false);
+        TopZoneElement = BindZoneElement(TopZoneElement, Structure, TopDropZonePartName, DockZone.Top, false);
+        BottomZoneElement = BindZoneElement(BottomZoneElement, Structure, BottomDropZonePartName, DockZone.Bottom, false);
+        CenterZoneElement = BindZoneElement(CenterZoneElement, Structure, CenterDropZonePartName, DockZone.Center, false);
+        HostLeftZoneElement = BindZoneElement(HostLeftZoneElement, Structure, HostLeftDropZonePartName, DockZone.Left, true);
+        HostRightZoneElement = BindZoneElement(HostRightZoneElement, Structure, HostRightDropZonePartName, DockZone.Right, true);
+        HostTopZoneElement = BindZoneElement(HostTopZoneElement, Structure, HostTopDropZonePartName, DockZone.Top, true);
+        HostBottomZoneElement = BindZoneElement(HostBottomZoneElement, Structure, HostBottomDropZonePartName, DockZone.Bottom, true);
+        SyncZoneVisuals();
+    }
+
+    /// <summary>Takes ownership of one zone part; the zone it replaces, if a new structure brings another element, is detached from this overlay.</summary>
+    private MGDockDropZoneIndicator BindZoneElement(MGDockDropZoneIndicator previous, MGControlTemplateStructure structure, string partName, DockZone zone, bool isHostEdge)
+    {
+        MGDockDropZoneIndicator element = (MGDockDropZoneIndicator)structure.Parts[partName];
+        if (previous != null && !ReferenceEquals(previous, element))
         {
-            ManagedParent = this,
-            Zone = zone,
-            IsHostEdge = isHostEdge,
-            Visibility = Visibility.Collapsed,
-        };
+            previous.SetParent(null);
+        }
+
+        element.ManagedParent = this;
+        element.Zone = zone;
+        element.IsHostEdge = isHostEdge;
+        element.IsHitTestVisible = false;
+        element.Visibility = Visibility.Collapsed;
         element.SetParent(this);
         return element;
     }
@@ -562,6 +577,12 @@ public class MGDockDropIndicators : MGElement
 
     public override IEnumerable<MGElement> GetChildren()
     {
+        // The zones are attached together; none exists until a control template supplies them.
+        if (LeftZoneElement == null)
+        {
+            yield break;
+        }
+
         yield return LeftZoneElement;
         yield return RightZoneElement;
         yield return TopZoneElement;
@@ -589,6 +610,11 @@ public class MGDockDropIndicators : MGElement
 
     private void SyncZoneElement(MGDockDropZoneIndicator element, Rectangle bounds, bool isVisible, bool isActive, bool isDisabled)
     {
+        if (element == null)
+        {
+            return;
+        }
+
         element.Visibility = isVisible && bounds.Width > 0 && bounds.Height > 0 ? Visibility.Visible : Visibility.Collapsed;
         element.InactiveColor = InactiveColor;
         element.ActiveColor = ActiveColor;

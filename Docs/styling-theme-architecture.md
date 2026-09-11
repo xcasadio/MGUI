@@ -250,15 +250,15 @@ Comportement runtime : un changement de theme declenche `OnThemeChanged` puis `A
 
 ### Catalogue et assets
 
-`MGControlTemplateCatalog` (MGUI.Core/UI/Styling/MGControlTemplateCatalog.cs) enregistre les templates par defaut. Constantes de noms: `Window.Default`, `ToolTip.Default`, `Overlay.Default`, `ContextMenu.Default`, `ContextMenuItem.Default`, `ListBox.Default`, `ListView.Default`, `PropertyGrid.Default`, `GraphView.Default`, `GraphNode.Default`, `GraphPort.Default`, `GraphCommentBox.Default`, `ComboBox.Default`, `ComboBox.DropdownItem.Default`, `TreeView.Default`, `TextBox.Default`, `NumericUpDown.Default`, `TabControl.Default`, `TabControl.Header.Selected`, `TabControl.Header.Unselected`, `Dock.TabItem.Default`, `Dock.AutoHideDrawer.Default`, `Dock.AutoHideStrip.Default`, `Dock.Splitter.Default`, `Dock.DropIndicators.Default`.
+`MGControlTemplateCatalog` (MGUI.Core/UI/Styling/MGControlTemplateCatalog.cs) enregistre les templates par defaut. Constantes de noms: `Window.Default`, `ToolTip.Default`, `Overlay.Default`, `ContextMenu.Default`, `ContextMenuItem.Default`, `ListBox.Default`, `ListView.Default`, `PropertyGrid.Default`, `GraphView.Default`, `GraphNode.Default`, `GraphPort.Default`, `GraphCommentBox.Default`, `ComboBox.Default`, `ComboBox.DropdownItem.Default`, `TreeView.Default`, `TextBox.Default`, `NumericUpDown.Default`, `TabControl.Default`, `TabControl.Header.Selected`, `TabControl.Header.Unselected`, `Dock.TabItem.Default`, `Dock.AutoHideDrawer.Default`, `Dock.AutoHideStrip.Default`, `Dock.Splitter.Default`, `Dock.DropIndicators.Default`, `Dock.PreviewOverlay.Default`.
 
 Repartition actuelle:
 
-- Templates structurels code-backed (createur de structure + applicateur de defaults): `Window`, `Overlay`, `ComboBox`, `TabControl`, `TreeView`, `TextBox`, `NumericUpDown`, plus les templates PropertyGrid et Graph.
+- Templates structurels code-backed (createur de structure + applicateur de defaults): `Window`, `Overlay`, `ComboBox`, `TabControl`, `TreeView`, `TextBox`, `NumericUpDown`, les templates PropertyGrid et Graph, et depuis la tache 8 les quatre templates docking feuilles `Dock.Splitter`, `Dock.DropIndicators`, `Dock.PreviewOverlay` et `Dock.AutoHideStrip`.
 - Templates structurels en asset XAML embarque (`MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml`): `ListBox.Default` (trois `DetachedRoots`: `OuterBorder`, `TitleBorder`, `InnerBorder`, sans racine unique) et `ListView.Default`.
-- Applicateurs de defaults seuls (sans phase structurelle): `ContextMenu.Default`, `ContextMenuItem.Default`, `ComboBox.DropdownItem.Default`, les deux headers de `TabControl`, et tous les templates `Dock.*`.
+- Applicateurs de defaults seuls (sans phase structurelle): `ContextMenu.Default`, `ContextMenuItem.Default`, `ComboBox.DropdownItem.Default`, les deux headers de `TabControl`, `Dock.TabItem.Default` et `Dock.AutoHideDrawer.Default`.
 
-`BuiltInControlTemplates.xaml` contient aussi des variantes `Dark.*` (`Dark.Window`, `Dark.ListBox`, `Dark.DockTabItem`, etc.) exprimees par heritage de template via l'attribut `BasedOn` sur `ControlTemplate`.
+`BuiltInControlTemplates.xaml` contient aussi des variantes `Dark.*` (`Dark.Window`, `Dark.ListBox`, `Dark.DockTabItem`, etc.) exprimees par heritage de template via l'attribut `BasedOn` sur `ControlTemplate`. Une variante `BasedOn` reprend l'applicateur de defaults de sa base. Si elle ne declare ni racine ni `DetachedRoots`, elle reprend aussi son createur de structure (tache 8, `ControlTemplateLoader.BuildTemplates`) : les variantes `Dark.Dock*` nues fournissent ainsi les parts requises au lieu d'une structure vide.
 
 ### Templates XAML
 
@@ -287,7 +287,7 @@ Depuis la tache 5 (11 septembre 2026), l'origine d'une valeur se lit par `UITool
 
 ### Controles migres
 
-Templates structurels ou chrome entierement template-driven: `MGWindow`, `MGOverlay`, `MGContextMenu`, `MGContextMenuItem`, `MGListBox`, `MGListView`, `MGComboBox`, `MGTreeView`, `MGTabControl`, `MGTextBox` (et `MGPasswordBox`), `MGToolTip`, plus les cinq controles docking feuilles en mode applicateur de defaults (`MGDockTabItem`, `MGDockAutoHideDrawer`, `MGDockAutoHideStrip`, `MGDockSplitterBar`, `MGDockDropIndicators`).
+Templates structurels ou chrome entierement template-driven: `MGWindow`, `MGOverlay`, `MGContextMenu`, `MGContextMenuItem`, `MGListBox`, `MGListView`, `MGComboBox`, `MGTreeView`, `MGTabControl`, `MGTextBox` (et `MGPasswordBox`), `MGToolTip`, plus les controles docking feuilles : `MGDockSplitterBar`, `MGDockDropIndicators`, `MGDockPreviewOverlay` et `MGDockAutoHideStrip` en templates structurels (tache 8), `MGDockTabItem` et `MGDockAutoHideDrawer` en mode applicateur de defaults.
 
 Hooks specifiques:
 
@@ -352,7 +352,7 @@ Parts enregistrees par controle (constantes `*PartName` dans MGUI.Core/UI/Dockin
 
 La migration structurelle (taches 8 et 9 de Docs/Tasks/styling-theme-tasks.md) part de ce jeu fige: parts requises et createurs de structure utilisent ces noms.
 
-Les templates `Dock.*.Default` du catalogue sont des applicateurs de defaults sans phase structurelle: aucun controle docking ne surcharge `GetRequiredControlTemplateParts()` ni `AttachControlTemplateStructure(...)`. Des variantes `Dark.Dock*` existent deja en asset XAML via `BasedOn`.
+Depuis la tache 8 (12 septembre 2026), les quatre controles feuilles `MGDockSplitterBar`, `MGDockDropIndicators`, `MGDockPreviewOverlay` et `MGDockAutoHideStrip` declarent leurs parts (`GetRequiredControlTemplateParts()`), les recoivent des createurs `CreateDock*TemplateStructure` du catalogue et les attachent dans `AttachControlTemplateStructure(...)`. Le splitter et le strip lient leurs parts en composants par `EnsureComponentBinding`. Les neuf zones et les deux parts de l'apercu deviennent des enfants poses par `SetParent` et mis en page par le controle, et une structure de remplacement detache les parts qu'elle remplace. Le controle garde l'etat et le repousse sur les parts attachees : brosses et couleurs, zone, etats actif et desactive, bornes de l'apercu, et boutons du strip construits depuis le store auto-hide. `Dock.PreviewOverlay.Default` est nouveau ; les couleurs de l'apercu viennent du theme (`MGThemeDockingSettings.PreviewOverlayFillColor` et `PreviewOverlayBorderColor`, blocs Docking des trois themes built-in) au lieu du rgb(0,122,204) code en dur, et les valeurs par defaut de ces reglages reprennent l'ancienne couleur pour les themes XAML qui ne les declarent pas. `Dock.TabItem.Default` et `Dock.AutoHideDrawer.Default` restent des applicateurs de defaults sans phase structurelle (tache 9). Les variantes `Dark.Dock*`, dont `Dark.DockPreviewOverlay`, sont des `BasedOn` nus qui reprennent la structure de leur base.
 
 ## Limites connues (verifiees)
 
@@ -365,7 +365,7 @@ Les templates `Dock.*.Default` du catalogue sont des applicateurs de defaults sa
 - `MGTheme` reste la source centrale monolithique des tokens par defaut; aucune extraction de tokens semantiques n'existe.
 - Le changement de template structurel en cours de vie reste plus couteux qu'un refresh de theme; le detachement generique est limite a `MGSingleContentHost`.
 - Le loader XAML de templates ne couvre pas un DSL complet d'attachement custom; la validation de parts ne couvre pas les contraintes inter-parts.
-- Les templates docking n'ont pas de phase structurelle (voir section docking).
+- Docking : `MGDockTabItem` et `MGDockAutoHideDrawer` restent des applicateurs de defaults ; `MGDockTabGroup`, `MGDockHost`, `MGDockSplitContainer` et `MGFloatingDockWindow` n'ont pas de template structurel (taches 9 et 12, voir section docking).
 
 ## Reste a faire
 

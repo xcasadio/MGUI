@@ -210,4 +210,5 @@
   <ControlTemplate Name="Dark.DockAutoHideStrip" TargetType="DockAutoHideStrip" BasedOn="Dock.AutoHideStrip.Default" />
   <ControlTemplate Name="Dark.DockSplitter" TargetType="DockSplitter" BasedOn="Dock.Splitter.Default" />
   <ControlTemplate Name="Dark.DockDropIndicators" TargetType="DockDropIndicators" BasedOn="Dock.DropIndicators.Default" />
+  <ControlTemplate Name="Dark.DockPreviewOverlay" TargetType="DockPreviewOverlay" BasedOn="Dock.PreviewOverlay.Default" />
 </ControlTemplates>

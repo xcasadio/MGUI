@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
@@ -19,12 +20,12 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
     public const string AccentPartName = "PART_Accent";
     public const string GripPartName = "PART_Grip";
 
-    private MGBorder SurfaceElement { get; }
-    private MGComponent<MGBorder> SurfaceComponent { get; }
-    private MGBorder AccentElement { get; }
-    private MGComponent<MGBorder> AccentComponent { get; }
-    private MGGripDotsIcon GripElement { get; }
-    private MGComponent<MGGripDotsIcon> GripComponent { get; }
+    private MGBorder SurfaceElement { get; set; }
+    private MGComponent<MGBorder> SurfaceComponent { get; set; }
+    private MGBorder AccentElement { get; set; }
+    private MGComponent<MGBorder> AccentComponent { get; set; }
+    private MGGripDotsIcon GripElement { get; set; }
+    private MGComponent<MGGripDotsIcon> GripComponent { get; set; }
 
     private bool _isDragging;
     /// <summary>
@@ -136,39 +137,45 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
             NormalBrush = new MGSolidFillBrush(new Color(64, 64, 64));        // Dark gray
             HoverBrush = new MGSolidFillBrush(new Color(100, 150, 200));      // Blue highlight
             PressedBrush = new MGSolidFillBrush(new Color(70, 130, 180));     // Darker blue when dragging
+            // The surface, accent and grip parts come from the control template, see AttachControlTemplateStructure.
             DefaultControlTemplateName = MGControlTemplateCatalog.DockSplitterTemplateName;
-
-            SurfaceElement = new(window, new Thickness(0), (IBorderBrush)null)
-            {
-                ManagedParent = this,
-                IsHitTestVisible = false,
-            };
-            RegisterTemplatePart(SurfacePartName, SurfaceElement);
-            SurfaceComponent = new(SurfaceElement, false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => LayoutBounds);
-            AddComponent(SurfaceComponent);
-
-            AccentElement = new(window, new Thickness(0), (IBorderBrush)null)
-            {
-                ManagedParent = this,
-                IsHitTestVisible = false,
-            };
-            RegisterTemplatePart(AccentPartName, AccentElement);
-            AccentComponent = new(AccentElement, false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => GetAccentBounds());
-            AddComponent(AccentComponent);
-
-            GripElement = new(window) { ManagedParent = this };
-            RegisterTemplatePart(GripPartName, GripElement);
-            GripComponent = new(GripElement, false, false, false, false, false, false, false,
-                (availableBounds, componentSize) => LayoutBounds);
-            AddComponent(GripComponent);
-
             SyncVisualParts();
 
             // Subscribe to mouse press event to start dragging
             MouseHandler.LMBPressedInside += OnLMBPressed;
         }
+    }
+
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    {
+        yield return new(SurfacePartName, typeof(MGBorder));
+        yield return new(AccentPartName, typeof(MGBorder));
+        yield return new(GripPartName, typeof(MGGripDotsIcon));
+    }
+
+    /// <summary>Binds the parts created by the control template (<c>Dock.Splitter.Default</c>) as components laid out on this bar. The brushes and
+    /// overlay colors stay this bar's own properties and are pushed to the parts by <see cref="SyncVisualParts"/>; a structure replaced by another
+    /// template releases the components of its parts.</summary>
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        SurfaceElement = (MGBorder)Structure.Parts[SurfacePartName];
+        AccentElement = (MGBorder)Structure.Parts[AccentPartName];
+        GripElement = (MGGripDotsIcon)Structure.Parts[GripPartName];
+
+        SurfaceElement.ManagedParent = this;
+        SurfaceElement.IsHitTestVisible = false;
+        AccentElement.ManagedParent = this;
+        AccentElement.IsHitTestVisible = false;
+        GripElement.ManagedParent = this;
+
+        EnsureComponentBinding(() => SurfaceComponent, value => SurfaceComponent = value, SurfaceElement,
+            element => new(element, false, false, false, false, false, false, false, (availableBounds, componentSize) => LayoutBounds));
+        EnsureComponentBinding(() => AccentComponent, value => AccentComponent = value, AccentElement,
+            element => new(element, false, false, false, false, false, false, false, (availableBounds, componentSize) => GetAccentBounds()));
+        EnsureComponentBinding(() => GripComponent, value => GripComponent = value, GripElement,
+            element => new(element, false, false, false, false, false, false, false, (availableBounds, componentSize) => LayoutBounds));
+
+        SyncVisualParts();
     }
 
     private Rectangle GetAccentBounds()

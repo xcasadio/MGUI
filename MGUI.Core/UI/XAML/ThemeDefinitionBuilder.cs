@@ -445,6 +445,9 @@ namespace MGUI.Core.UI.XAML
             if (Definition.DropIndicatorDisabledBorderColor.HasValue) Target.DropIndicatorDisabledBorderColor = Definition.DropIndicatorDisabledBorderColor.Value.ToXNAColor();
             if (Definition.DropIndicatorSymbolColor.HasValue) Target.DropIndicatorSymbolColor = Definition.DropIndicatorSymbolColor.Value.ToXNAColor();
             if (Definition.DropIndicatorDisabledSymbolColor.HasValue) Target.DropIndicatorDisabledSymbolColor = Definition.DropIndicatorDisabledSymbolColor.Value.ToXNAColor();
+
+            if (Definition.PreviewOverlayFillColor.HasValue) Target.PreviewOverlayFillColor = Definition.PreviewOverlayFillColor.Value.ToXNAColor();
+            if (Definition.PreviewOverlayBorderColor.HasValue) Target.PreviewOverlayBorderColor = Definition.PreviewOverlayBorderColor.Value.ToXNAColor();
         }
 
         private static void ApplyProperties(MGTheme Theme, IEnumerable<ThemePropertyDefinition> Definitions)

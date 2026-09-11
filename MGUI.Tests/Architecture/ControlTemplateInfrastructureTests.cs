@@ -135,21 +135,27 @@ public class ControlTemplateInfrastructureTests
 
         Assert.Contains("public class MGDockPreviewOverlay : MGBoundsAdorner", source);
         Assert.Contains("TargetBoundsOverride", source);
+        // Backlog task 8: the parts come from the Dock.PreviewOverlay.Default template and the colors from the theme.
+        Assert.Contains("DefaultControlTemplateName = MGControlTemplateCatalog.DockPreviewOverlayTemplateName;", source);
+        Assert.Contains("protected internal override void AttachControlTemplateStructure", source);
         Assert.DoesNotContain("RegisterTemplatePart(SurfacePartName", source);
         Assert.DoesNotContain("RegisterTemplatePart(BorderPartName", source);
+        Assert.DoesNotContain("new Color(0, 122, 204", source);
     }
 
     [Fact]
     public void Dock_Splitter_Uses_Explicit_Surface_Accent_And_Grip_Parts()
     {
         string splitterSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockSplitterBar.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
         string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
         string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
 
-        Assert.Contains("RegisterTemplatePart(SurfacePartName, SurfaceElement)", splitterSource);
-        Assert.Contains("RegisterTemplatePart(AccentPartName, AccentElement)", splitterSource);
-        Assert.Contains("RegisterTemplatePart(GripPartName, GripElement)", splitterSource);
-        Assert.Contains("GripElement = new(window) { ManagedParent = this }", splitterSource);
+        // Backlog task 8: the control declares and attaches its parts, only the Dock.Splitter.Default template creates them.
+        Assert.Contains("protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()", splitterSource);
+        Assert.Contains("protected internal override void AttachControlTemplateStructure", splitterSource);
+        Assert.DoesNotContain("RegisterTemplatePart(", splitterSource);
+        Assert.Contains("structure.AddPart(MGDockSplitterBar.GripPartName, new MGGripDotsIcon(window));", catalogSource);
         Assert.Contains("public class MGGripDotsIcon", symbolElementsSource);
         Assert.Contains("DrawGripDots", symbolDrawingSource);
         Assert.DoesNotContain("public override void DrawSelf", splitterSource);
@@ -199,9 +205,13 @@ public class ControlTemplateInfrastructureTests
     public void Dock_Auto_Hide_Strip_Uses_Rotated_Label_And_Separator_Part()
     {
         string stripSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockAutoHideStrip.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
         string rotatedTextSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGRotatedTextLabel.cs");
 
-        Assert.Contains("RegisterTemplatePart(SeparatorPartName, SeparatorElement)", stripSource);
+        // Backlog task 8: the separator comes from the Dock.AutoHideStrip.Default template; the panel buttons stay built by the strip.
+        Assert.Contains("protected internal override void AttachControlTemplateStructure", stripSource);
+        Assert.DoesNotContain("RegisterTemplatePart(", stripSource);
+        Assert.Contains("structure.AddPart(MGDockAutoHideStrip.SeparatorPartName, separator);", catalogSource);
         Assert.Contains("new MGRotatedTextLabel(ParentWindow, title)", stripSource);
         Assert.Contains("public class MGRotatedTextLabel", rotatedTextSource);
         Assert.Contains("protected override void DrawContents", stripSource);
@@ -212,11 +222,16 @@ public class ControlTemplateInfrastructureTests
     public void Dock_Drop_Indicators_Use_Explicit_Zone_Elements()
     {
         string indicatorsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockDropIndicators.cs");
+        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
         string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
 
         Assert.Contains("internal sealed class MGDockDropZoneIndicator : MGElement", indicatorsSource);
-        Assert.Contains("LeftZoneElement = CreateZoneElement(DockZone.Left, false);", indicatorsSource);
-        Assert.Contains("HostBottomZoneElement = CreateZoneElement(DockZone.Bottom, true);", indicatorsSource);
+        // Backlog task 8: the nine zones come from the Dock.DropIndicators.Default template, the control gives each its zone.
+        Assert.Contains("protected internal override void AttachControlTemplateStructure", indicatorsSource);
+        Assert.Contains("LeftZoneElement = BindZoneElement(LeftZoneElement, Structure, LeftDropZonePartName, DockZone.Left, false);", indicatorsSource);
+        Assert.Contains("HostBottomZoneElement = BindZoneElement(HostBottomZoneElement, Structure, HostBottomDropZonePartName, DockZone.Bottom, true);", indicatorsSource);
+        Assert.DoesNotContain("RegisterTemplatePart(", indicatorsSource);
+        Assert.Contains("structure.AddPart(partName, new MGDockDropZoneIndicator(window));", catalogSource);
         Assert.Contains("public override IEnumerable<MGElement> GetChildren()", indicatorsSource);
         Assert.Contains("SyncZoneVisuals();", indicatorsSource);
         Assert.Contains("DrawFilledTriangleArrow", symbolDrawingSource);
@@ -314,6 +329,7 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockAutoHideStripTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockSplitterTemplateName, out _));
         Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockDropIndicatorsTemplateName, out _));
+        Assert.True(resources.TryGetControlTemplate(MGControlTemplateCatalog.DockPreviewOverlayTemplateName, out _));
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.WindowTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.OverlayTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.ListBoxTemplateName].SupportsStructure);
@@ -322,6 +338,10 @@ public class ControlTemplateInfrastructureTests
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.TreeViewTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.TextBoxTemplateName].SupportsStructure);
         Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.TabControlTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockSplitterTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockDropIndicatorsTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockPreviewOverlayTemplateName].SupportsStructure);
+        Assert.True(resources.ControlTemplates[MGControlTemplateCatalog.DockAutoHideStripTemplateName].SupportsStructure);
     }
 
     [Fact]

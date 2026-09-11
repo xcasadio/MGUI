@@ -47,6 +47,7 @@ namespace MGUI.Core.UI.Styling
         public const string DockAutoHideStripTemplateName = "Dock.AutoHideStrip.Default";
         public const string DockSplitterTemplateName = "Dock.Splitter.Default";
         public const string DockDropIndicatorsTemplateName = "Dock.DropIndicators.Default";
+        public const string DockPreviewOverlayTemplateName = "Dock.PreviewOverlay.Default";
 
         public static readonly Thickness DefaultListBoxItemBorderThickness = new(0, 1);
         public static readonly Thickness DefaultListBoxItemPadding = new(6, 4);
@@ -177,9 +178,10 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, UnselectedTabHeaderTemplateName, ApplyUnselectedTabHeaderTemplate);
             Register(Resources, DockTabItemTemplateName, ApplyDockTabItemTemplate);
             Register(Resources, DockAutoHideDrawerTemplateName, ApplyDockAutoHideDrawerTemplate);
-            Register(Resources, DockAutoHideStripTemplateName, ApplyDockAutoHideStripTemplate);
-            Register(Resources, DockSplitterTemplateName, ApplyDockSplitterTemplate);
-            Register(Resources, DockDropIndicatorsTemplateName, ApplyDockDropIndicatorsTemplate);
+            Register(Resources, CreateDockAutoHideStripTemplate());
+            Register(Resources, CreateDockSplitterTemplate());
+            Register(Resources, CreateDockDropIndicatorsTemplate());
+            Register(Resources, CreateDockPreviewOverlayTemplate());
 
             IReadOnlyDictionary<string, MGControlTemplate> builtInXamlTemplates = ControlTemplateLoader.BuildTemplates(
                 BuiltInXamlTemplateDefinitions.Value.Values,
@@ -254,6 +256,18 @@ namespace MGUI.Core.UI.Styling
 
         private static MGControlTemplate CreateTabControlTemplate()
             => new(TabControlTemplateName, CreateTabControlTemplateStructure, null, ApplyTabControlTemplate);
+
+        private static MGControlTemplate CreateDockAutoHideStripTemplate()
+            => new(DockAutoHideStripTemplateName, CreateDockAutoHideStripTemplateStructure, null, ApplyDockAutoHideStripTemplate);
+
+        private static MGControlTemplate CreateDockSplitterTemplate()
+            => new(DockSplitterTemplateName, CreateDockSplitterTemplateStructure, null, ApplyDockSplitterTemplate);
+
+        private static MGControlTemplate CreateDockDropIndicatorsTemplate()
+            => new(DockDropIndicatorsTemplateName, CreateDockDropIndicatorsTemplateStructure, null, ApplyDockDropIndicatorsTemplate);
+
+        private static MGControlTemplate CreateDockPreviewOverlayTemplate()
+            => new(DockPreviewOverlayTemplateName, CreateDockPreviewOverlayTemplateStructure, null, ApplyDockPreviewOverlayTemplate);
 
         private static void Register(MGResources Resources, string Name, Action<MGControlTemplateContext> Apply)
         {
@@ -1482,6 +1496,94 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("DockDrawer.IconColor", Docking.AutoHideIconColor, () => Drawer.IconColor, value => Drawer.IconColor = value);
             Context.ApplyThemeDefault("DockDrawer.BorderColor", Docking.AutoHideBorderColor, () => Drawer.BorderColor, value => Drawer.BorderColor = value);
             Context.ApplyThemeDefault("DockDrawer.ResizeGripColor", Docking.AutoHideGripColor, () => Drawer.ResizeGripColor, value => Drawer.ResizeGripColor = value);
+        }
+
+        private static MGControlTemplateStructure CreateDockAutoHideStripTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockAutoHideStrip Strip)
+            {
+                return null;
+            }
+
+            MGRectangle separator = new(Strip.SelfOrParentWindow, 0, 0, Color.Transparent, 0, Color.Transparent)
+            {
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGDockAutoHideStrip.SeparatorPartName, separator);
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateDockSplitterTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockSplitterBar Splitter)
+            {
+                return null;
+            }
+
+            MGWindow window = Splitter.SelfOrParentWindow;
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGDockSplitterBar.SurfacePartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
+            structure.AddPart(MGDockSplitterBar.AccentPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
+            structure.AddPart(MGDockSplitterBar.GripPartName, new MGGripDotsIcon(window));
+            return structure;
+        }
+
+        /// <summary>Nine interchangeable zone elements: <see cref="MGDockDropIndicators"/> gives each one its zone from the part name when it attaches them.</summary>
+        private static MGControlTemplateStructure CreateDockDropIndicatorsTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockDropIndicators Indicators)
+            {
+                return null;
+            }
+
+            MGWindow window = Indicators.SelfOrParentWindow;
+            MGControlTemplateStructure structure = new(null);
+            foreach (string partName in new[]
+            {
+                MGDockDropIndicators.LeftDropZonePartName, MGDockDropIndicators.RightDropZonePartName, MGDockDropIndicators.TopDropZonePartName,
+                MGDockDropIndicators.BottomDropZonePartName, MGDockDropIndicators.CenterDropZonePartName, MGDockDropIndicators.HostLeftDropZonePartName,
+                MGDockDropIndicators.HostRightDropZonePartName, MGDockDropIndicators.HostTopDropZonePartName, MGDockDropIndicators.HostBottomDropZonePartName,
+            })
+            {
+                structure.AddPart(partName, new MGDockDropZoneIndicator(window));
+            }
+
+            return structure;
+        }
+
+        private static MGControlTemplateStructure CreateDockPreviewOverlayTemplateStructure(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockPreviewOverlay Overlay)
+            {
+                return null;
+            }
+
+            MGWindow window = Overlay.SelfOrParentWindow;
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGDockPreviewOverlay.SurfacePartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
+            structure.AddPart(MGDockPreviewOverlay.BorderPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
+            return structure;
+        }
+
+        private static void ApplyDockPreviewOverlayTemplate(MGControlTemplateContext Context)
+        {
+            if (Context.Owner is not MGDockPreviewOverlay Overlay)
+            {
+                return;
+            }
+
+            MGThemeDockingSettings Docking = Overlay.GetTheme()?.Docking;
+            if (Docking == null)
+            {
+                return;
+            }
+
+            Context.ApplyThemeDefault("DockPreviewOverlay.PreviewColor", Docking.PreviewOverlayFillColor, () => Overlay.PreviewColor, value => Overlay.PreviewColor = value);
+            Context.ApplyThemeDefault("DockPreviewOverlay.PreviewBorderColor", Docking.PreviewOverlayBorderColor, () => Overlay.PreviewBorderColor, value => Overlay.PreviewBorderColor = value);
+            Context.ApplyTemplateValue("DockPreviewOverlay.PreviewBorderThickness", 2, () => Overlay.PreviewBorderThickness, value => Overlay.PreviewBorderThickness = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
         private static void ApplyDockAutoHideStripTemplate(MGControlTemplateContext Context)

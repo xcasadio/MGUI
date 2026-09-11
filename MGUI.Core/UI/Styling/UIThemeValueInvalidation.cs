@@ -244,6 +244,8 @@ namespace MGUI.Core.UI.Styling
                 ["Docking.DropIndicatorDisabledBorderColor"] = RenderOnly,
                 ["Docking.DropIndicatorSymbolColor"] = RenderOnly,
                 ["Docking.DropIndicatorDisabledSymbolColor"] = RenderOnly,
+                ["Docking.PreviewOverlayFillColor"] = RenderOnly,
+                ["Docking.PreviewOverlayBorderColor"] = RenderOnly,
             });
 
         /// <summary>Every classified theme value, keyed by path.</summary>

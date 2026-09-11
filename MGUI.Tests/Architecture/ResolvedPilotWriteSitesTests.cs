@@ -100,11 +100,12 @@ public class ResolvedPilotWriteSitesTests
     /// </summary>
     private static readonly (string File, int Line, string IntendedSource, string Rationale)[] PendingMigration =
     {
-        // BLOCKED: this is not the MGElement/MGBorder pilot at all. MGBoundsAdorner.BorderThickness (int, drawn by
-        // hand in OnDrawContents) is the adorner's own unrelated property; ADR-0005 scopes the resolved-value store
-        // to MGElement/MGBorder, and adorners never go through GetBorder(). The regex text-matches the identifier
-        // but there is no Thickness-typed pilot here to tag, so this line is intentionally left unmigrated.
-        (@"MGUI.Core\UI\Docking\Controls\MGDockPreviewOverlay.cs", 78, "BLOCKED", "BLOCKED: MGBoundsAdorner.BorderThickness is an int drawn by hand, not the MGElement/MGBorder Thickness pilot; out of the S2 store surface"),
+        // BLOCKED: this is not the MGElement/MGBorder pilot at all. MGBoundsAdorner.BorderThickness (int, written here by
+        // the PreviewBorderThickness facade; MGDockPreviewOverlay pushes it to its PART_Border through the tagged
+        // SetBorderThickness since backlog task 8) is the adorner's own unrelated property; ADR-0005 scopes the
+        // resolved-value store to MGElement/MGBorder, and adorners never go through GetBorder(). The regex text-matches
+        // the identifier but there is no Thickness-typed pilot here to tag, so this line is intentionally left unmigrated.
+        (@"MGUI.Core\UI\Docking\Controls\MGDockPreviewOverlay.cs", 111, "BLOCKED", "BLOCKED: MGBoundsAdorner.BorderThickness is an int property of the adorner, not the MGElement/MGBorder Thickness pilot; out of the S2 store surface"),
     };
 
     [Fact]

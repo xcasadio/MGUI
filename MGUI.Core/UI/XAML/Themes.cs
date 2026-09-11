@@ -350,5 +350,8 @@ namespace MGUI.Core.UI.XAML
         public XAMLColor? DropIndicatorDisabledBorderColor { get; set; }
         public XAMLColor? DropIndicatorSymbolColor { get; set; }
         public XAMLColor? DropIndicatorDisabledSymbolColor { get; set; }
+
+        public XAMLColor? PreviewOverlayFillColor { get; set; }
+        public XAMLColor? PreviewOverlayBorderColor { get; set; }
     }
 }
