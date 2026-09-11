@@ -273,20 +273,15 @@ public class ResolvedTextForegroundPilotTests
         Assert.Equal(Color.Blue, borderContribution.Value);
         Assert.Equal(Color.Blue, inheritedProbe.ActualForeground);
 
-        // ADR-0005/S6 deviation from the literal brief text (reported): the brief expected Controls.cs:3248's
-        // non-tagged `TextBlock.Foreground.NormalValue = ...` write to be attributed LocalValue via R5, the same
-        // way the Background pilot's Xaml_Explicit_Background_Is_LocalValue test observes it for MGButton.
-        // Unlike Background (ApplyExplicitBackground is a TAGGED SetBackgroundSlot call, which always records a
-        // contribution regardless of value equality), MGTextBlock's constructor (Controls.cs:3208) already passes
-        // the same XAML `Foreground` color into the tagged Default(Draw) SetForeground call, physically setting
-        // NormalValue to Red. Controls.cs:3248 then re-assigns the SAME value: VisualStateSetting<T>.NormalValue's
-        // setter guards on equality before raising PropertyChanged, so the second (redundant) write never fires
-        // HandleForegroundContainerPropertyChanged and no Normal sub-slot contribution is EVER recorded at all
-        // (neither DefaultValue nor LocalValue) -- only the constructor's Whole-slot DefaultValue contribution
-        // exists, and the diagnostic read falls back to R6's physical-container reading, which still reports the
-        // correct Red value under that Whole winner's DefaultValue source.
+        // ADR-0005/S7 closes the S6 gap this test used to document: Controls.cs's TextBlock.Foreground transfer now
+        // calls the TAGGED SetForegroundSlot (instead of the non-tagged `TextBlock.Foreground.NormalValue = ...`
+        // write), which always records a Normal sub-slot contribution via ResolvedValues.Set regardless of whether
+        // the physical value equals what the constructor's Default(Draw) write already set (the equality guard on
+        // VisualStateSetting<T>.NormalValue's setter no longer matters, because the tagged call never depends on
+        // that setter's PropertyChanged event). So the winning contribution is now LocalValue (the direct XAML
+        // `Foreground="Red"` attribute has no style provenance), not the constructor's Whole-slot DefaultValue.
         Assert.True(localProbe.TryGetResolvedPilotValue(UIPilotProperty.Foreground, UIValueSlot.Normal, out UIResolvedValue<Color?> foregroundContribution));
-        Assert.Equal(UIValueSourceKind.DefaultValue, foregroundContribution.Source.Kind);
+        Assert.Equal(UIValueSourceKind.LocalValue, foregroundContribution.Source.Kind);
         Assert.Equal(Color.Red, foregroundContribution.Value);
 
         window.GetResources().DefaultTheme = new MGTheme(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);

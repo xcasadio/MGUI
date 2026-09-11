@@ -28,6 +28,63 @@ namespace MGUI.Core.UI.XAML
         /// nullable and reference-type properties already use <c>null</c> as a reliable "not-set" sentinel.</summary>
         internal HashSet<string> ExplicitlySetProperties { get; } = new();
 
+        /// <summary>ADR-0005/S7: records, per XAML property name, the last style kind (<see cref="UIValueSourceKind.ImplicitStyle"/>
+        /// or <see cref="UIValueSourceKind.ExplicitStyle"/>) that <see cref="ProcessStyles(MGResources)"/> used to set that
+        /// property on this DTO. Allocated lazily -- stays <see langword="null"/> until the first style setter touches this
+        /// instance. A property absent from this dictionary (or never populated) was set directly from a XAML attribute, so
+        /// <see cref="ResolveXamlSource(string, UIInvalidationKind)"/> falls back to <see cref="UIValueSourceKind.LocalValue"/>
+        /// for it. When a named style is applied after an implicit one touched the same property, the named style's entry
+        /// overwrites the implicit one (matches the actual physical value, which was also overwritten).</summary>
+        internal Dictionary<string, UIValueSourceKind> StyleProvenance { get; private set; }
+
+        /// <summary>ADR-0005/S7: returns the <see cref="UIValueResolutionSource"/> that a tagged transfer of
+        /// <paramref name="propertyName"/> from this XAML DTO to its underlying <see cref="MGElement"/> should be recorded
+        /// under, based on whether <see cref="ProcessStyles(MGResources)"/> populated it via an implicit style, a named
+        /// (explicit) style, or neither (a direct XAML attribute / C# default, i.e. <see cref="UIValueSourceKind.LocalValue"/>).</summary>
+        internal UIValueResolutionSource ResolveXamlSource(string propertyName, UIInvalidationKind kind)
+        {
+            if (StyleProvenance != null && StyleProvenance.TryGetValue(propertyName, out UIValueSourceKind sourceKind))
+            {
+                if (sourceKind == UIValueSourceKind.ExplicitStyle)
+                {
+                    return UIValueResolutionSource.ExplicitStyle(kind, propertyName);
+                }
+                else if (sourceKind == UIValueSourceKind.ImplicitStyle)
+                {
+                    return UIValueResolutionSource.ImplicitStyle(kind, propertyName);
+                }
+            }
+
+            return UIValueResolutionSource.LocalValue(kind, propertyName);
+        }
+
+        /// <summary>ADR-0005/S7: records that <paramref name="propertyName"/> was just set on this DTO by a style of the
+        /// given <paramref name="kind"/> (<see cref="UIValueSourceKind.ImplicitStyle"/> or <see cref="UIValueSourceKind.ExplicitStyle"/>),
+        /// and, when <paramref name="propertyName"/> is <c>BorderBrush</c> or <c>BorderThickness</c> and this DTO exposes a
+        /// public "<c>Border Border { get; set; }</c>" facade (the shape used by <see cref="Button"/> and most
+        /// composite controls to delegate their border to a nested <see cref="Border"/> DTO), propagates the same provenance
+        /// onto that nested <see cref="Border"/> DTO's own <see cref="StyleProvenance"/> -- because it is the nested DTO's
+        /// <see cref="ApplyDerivedSettings"/>, not this one's, that eventually calls <see cref="ResolveXamlSource(string, UIInvalidationKind)"/>
+        /// for those two properties. Composite controls whose border facades use a different name (e.g. <c>ListBox.OuterBorderBrush</c>)
+        /// or delegate to a differently-typed/-named nested object (e.g. <c>Spoiler.UnspoiledBorderBrush</c>
+        /// delegating to a nested <c>Button</c>) are not covered by this propagation and keep resolving as <see cref="UIValueSourceKind.LocalValue"/>.</summary>
+        private void RecordStyleProvenance(string propertyName, UIValueSourceKind kind)
+        {
+            StyleProvenance ??= new Dictionary<string, UIValueSourceKind>();
+            StyleProvenance[propertyName] = kind;
+
+            if (propertyName is "BorderBrush" or "BorderThickness")
+            {
+                PropertyInfo BorderProperty = GetType().GetProperty("Border", BindingFlags.Public | BindingFlags.Instance);
+                if (BorderProperty != null && BorderProperty.PropertyType == typeof(Border) &&
+                    BorderProperty.GetValue(this) is Border NestedBorder)
+                {
+                    NestedBorder.StyleProvenance ??= new Dictionary<string, UIValueSourceKind>();
+                    NestedBorder.StyleProvenance[propertyName] = kind;
+                }
+            }
+        }
+
         /// <summary>If false, implicit and named styles inherited from ancestor XAML elements are not propagated to this node.
         /// Local styles declared directly on this node still apply when this node is processed.</summary>
         [Browsable(false)]
@@ -284,12 +341,12 @@ namespace MGUI.Core.UI.XAML
 
                 if (Margin.HasValue)
                 {
-                    Element.Margin = Margin.Value.ToThickness();
+                    Element.SetMargin(Margin.Value.ToThickness(), ResolveXamlSource(nameof(Margin), UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 }
 
                 if (Padding.HasValue)
                 {
-                    Element.Padding = Padding.Value.ToThickness();
+                    Element.SetPadding(Padding.Value.ToThickness(), ResolveXamlSource(nameof(Padding), UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 }
 
                 if (HorizontalAlignment.HasValue)
@@ -319,7 +376,7 @@ namespace MGUI.Core.UI.XAML
 
                 if (MinHeight.HasValue)
                 {
-                    Element.MinHeight = MinHeight.Value;
+                    Element.SetMinHeight(MinHeight.Value, ResolveXamlSource(nameof(MinHeight), UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 }
 
                 if (MaxWidth.HasValue)
@@ -397,20 +454,19 @@ namespace MGUI.Core.UI.XAML
 
                 ApplyResourceReferences(Element, this, Element, MapTargetPath);
 
-                // ADR-0005/S7 will replace LocalValue here with the XAML value's actual style provenance.
                 if (TextForeground.HasValue)
                 {
-                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Normal, TextForeground.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Normal, TextForeground.Value.ToXNAColor(), ResolveXamlSource(nameof(TextForeground), UIInvalidationKind.Draw));
                 }
 
                 if (DisabledTextForeground.HasValue)
                 {
-                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Disabled, DisabledTextForeground.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Disabled, DisabledTextForeground.Value.ToXNAColor(), ResolveXamlSource(nameof(DisabledTextForeground), UIInvalidationKind.Draw));
                 }
 
                 if (SelectedTextForeground.HasValue)
                 {
-                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Selected, SelectedTextForeground.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+                    Element.SetDefaultTextForegroundSlot(UIValueSlot.Selected, SelectedTextForeground.Value.ToXNAColor(), ResolveXamlSource(nameof(SelectedTextForeground), UIInvalidationKind.Draw));
                 }
 
                 if (Visibility.HasValue)
@@ -694,16 +750,21 @@ namespace MGUI.Core.UI.XAML
             }
         }
 
+        /// <summary>Two-parameter overload retained for callers outside the XAML transfer pipeline (e.g.
+        /// MGUI.Tests.Focus.FocusTests) that don't have a XAML DTO's style provenance available --
+        /// always tags the write <see cref="UIValueSourceKind.LocalValue"/>.</summary>
         internal static void ApplyExplicitBackground(MGElement element, IFillBrush explicitBackground)
+            => ApplyExplicitBackground(element, explicitBackground, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+
+        internal static void ApplyExplicitBackground(MGElement element, IFillBrush explicitBackground, UIValueResolutionSource source)
         {
             if (element == null || explicitBackground == null)
             {
                 return;
             }
 
-            // ADR-0005/S7 will replace LocalValue here with the XAML value's actual style provenance.
-            element.SetBackgroundSlot(UIValueSlot.Normal, explicitBackground, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
-            element.SetBackgroundSlot(UIValueSlot.Focused, explicitBackground.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+            element.SetBackgroundSlot(UIValueSlot.Normal, explicitBackground, source);
+            element.SetBackgroundSlot(UIValueSlot.Focused, explicitBackground.Copy(), source);
         }
 
         protected void ApplyBackground(MGElement Element)
@@ -712,22 +773,22 @@ namespace MGUI.Core.UI.XAML
 
             if (Background != null)
             {
-                ApplyExplicitBackground(Element, Background.ToFillBrush(Desktop, Element));
+                ApplyExplicitBackground(Element, Background.ToFillBrush(Desktop, Element), ResolveXamlSource(nameof(Background), UIInvalidationKind.Draw));
             }
 
             if (DisabledBackground != null)
             {
-                Element.SetBackgroundSlot(UIValueSlot.Disabled, DisabledBackground.ToFillBrush(Desktop, Element), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+                Element.SetBackgroundSlot(UIValueSlot.Disabled, DisabledBackground.ToFillBrush(Desktop, Element), ResolveXamlSource(nameof(DisabledBackground), UIInvalidationKind.Draw));
             }
 
             if (SelectedBackground != null)
             {
-                Element.SetBackgroundSlot(UIValueSlot.Selected, SelectedBackground.ToFillBrush(Desktop, Element), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+                Element.SetBackgroundSlot(UIValueSlot.Selected, SelectedBackground.ToFillBrush(Desktop, Element), ResolveXamlSource(nameof(SelectedBackground), UIInvalidationKind.Draw));
             }
 
             if (BackgroundFocusedColor != null)
             {
-                Element.SetBackgroundFocusedColor(BackgroundFocusedColor.Value.ToXNAColor(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+                Element.SetBackgroundFocusedColor(BackgroundFocusedColor.Value.ToXNAColor(), ResolveXamlSource(nameof(BackgroundFocusedColor), UIInvalidationKind.Draw));
             }
         }
 
@@ -854,6 +915,7 @@ namespace MGUI.Core.UI.XAML
                                     }
                                 }
 
+                                RecordStyleProvenance(PropertyName, UIValueSourceKind.ImplicitStyle);
                                 ModifiedPropertyNames.Add(PropertyName);
                             }
                         }
@@ -899,6 +961,7 @@ namespace MGUI.Core.UI.XAML
                                     PropertyInfo.SetValue(this, Setter.Value);
                                 }
 
+                                RecordStyleProvenance(PropertyName, UIValueSourceKind.ExplicitStyle);
                                 ModifiedPropertyNames.Add(PropertyName);
                             }
                         }

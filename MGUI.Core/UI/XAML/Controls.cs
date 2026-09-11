@@ -164,12 +164,12 @@ namespace MGUI.Core.UI.XAML
 
             if (BorderBrush != null)
             {
-                Border.BorderBrush = BorderBrush.ToBorderBrush(Desktop, Element);
+                Border.SetBorderBrush(BorderBrush.ToBorderBrush(Desktop, Element), ResolveXamlSource(nameof(BorderBrush), UIInvalidationKind.Draw));
             }
 
             if (BorderThickness.HasValue)
             {
-                Border.BorderThickness = BorderThickness.Value.ToThickness();
+                Border.SetBorderThickness(BorderThickness.Value.ToThickness(), ResolveXamlSource(nameof(BorderThickness), UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             }
 
             if (CornerRadius.HasValue)
@@ -615,12 +615,14 @@ namespace MGUI.Core.UI.XAML
 
             if (ExpanderButtonExpandedBackgroundBrush != null)
             {
-                Expander.ExpanderButtonBackgroundBrush.SelectedValue = ExpanderButtonExpandedBackgroundBrush.ToFillBrush(Desktop, Element);
+                Expander.ExpanderToggleButton.SetBackgroundSlot(UIValueSlot.Selected, ExpanderButtonExpandedBackgroundBrush.ToFillBrush(Desktop, Element),
+                    ResolveXamlSource(nameof(ExpanderButtonExpandedBackgroundBrush), UIInvalidationKind.Draw));
             }
 
             if (ExpanderButtonCollapsedBackgroundBrush != null)
             {
-                Expander.ExpanderButtonBackgroundBrush.NormalValue = ExpanderButtonCollapsedBackgroundBrush.ToFillBrush(Desktop, Element);
+                Expander.ExpanderToggleButton.SetBackgroundSlot(UIValueSlot.Normal, ExpanderButtonCollapsedBackgroundBrush.ToFillBrush(Desktop, Element),
+                    ResolveXamlSource(nameof(ExpanderButtonCollapsedBackgroundBrush), UIInvalidationKind.Draw));
             }
 
             if (ExpanderDropdownArrowColor.HasValue)
@@ -3040,13 +3042,15 @@ namespace MGUI.Core.UI.XAML
                     //  meant to specify a SelectedBackground since the regular Background would do nothing
                     if (SelectedTabHeaderTemplate.Background != null && SelectedTabHeaderTemplate.SelectedBackground == null)
                     {
-                        Button.BackgroundBrush.SelectedValue = Button.BackgroundBrush.NormalValue;
+                        Button.SetBackgroundSlot(UIValueSlot.Selected, Button.BackgroundBrush.NormalValue,
+                            SelectedTabHeaderTemplate.ResolveXamlSource(nameof(Background), UIInvalidationKind.Draw));
                     }
 
                     //  Same as above but for TextForeground
                     if (SelectedTabHeaderTemplate.TextForeground != null && SelectedTabHeaderTemplate.SelectedTextForeground == null)
                     {
-                        Button.DefaultTextForeground.SelectedValue = Button.DefaultTextForeground.NormalValue;
+                        Button.SetDefaultTextForegroundSlot(UIValueSlot.Selected, Button.DefaultTextForeground.NormalValue,
+                            SelectedTabHeaderTemplate.ResolveXamlSource(nameof(TextForeground), UIInvalidationKind.Draw));
                     }
 
                     return Button;
@@ -3245,7 +3249,7 @@ namespace MGUI.Core.UI.XAML
 
             if (Foreground.HasValue)
             {
-                TextBlock.Foreground.NormalValue = Foreground.Value.ToXNAColor();
+                TextBlock.SetForegroundSlot(UIValueSlot.Normal, Foreground.Value.ToXNAColor(), ResolveXamlSource(nameof(Foreground), UIInvalidationKind.Draw));
             }
 
             if (Text != null)
