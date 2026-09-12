@@ -49,18 +49,7 @@ namespace MGUI.Core.UI.Animation.Targets
         /// under the source of the whole container, so the value does not stay frozen on the last animated colour (the resolved value store keeps
         /// the CLR value when the last contribution of a slot is removed, ADR-0005).</summary>
         internal static void RestoreSlot(MGElement owner, UIPilotProperty pilot, UIValueSlot slot, Action<UIValueResolutionSource> writeBase)
-        {
-            owner.ClearPilotSource(pilot, slot, UIValueSourceKind.Animation);
-            if (owner.EnumerateResolvedContributions(pilot, slot).Count > 0)
-            {
-                return;
-            }
-
-            UIValueResolutionSource source = owner.TryGetResolvedValueSource(pilot, UIValueSlot.Whole, out UIValueResolutionSource whole)
-                ? new UIValueResolutionSource(whole.Kind, whole.Precedence, UIPilotPropertyResolver.KindOf(pilot), whole.Name)
-                : UIValueResolutionSource.Default(UIPilotPropertyResolver.KindOf(pilot));
-            writeBase(source);
-        }
+            => UIStoreBackedTargets.RestoreAnimation(owner, pilot, slot, writeBase);
 
         private static Color RequireSolid(IFillBrush brush, string path, MGElement element)
         {
@@ -73,7 +62,7 @@ namespace MGUI.Core.UI.Animation.Targets
                 $"'{path}' of {element.GetType().Name} is {(brush == null ? "empty" : "a " + brush.GetType().Name)}: only solid colours ({nameof(MGSolidFillBrush)}) can be animated.");
         }
 
-        private sealed class BackgroundSlotTarget : IUIObservableAnimationTarget<Color>
+        private sealed class BackgroundSlotTarget : IUIObservableAnimationTarget<Color>, IUIStoreBackedAnimationTarget<Color>
         {
             private readonly UIValueSlot _slot;
             private readonly string _slotPropertyName;
@@ -104,8 +93,16 @@ namespace MGUI.Core.UI.Animation.Targets
 
             public Color GetUnderlyingValue(MGElement element) => GetValue(element);
 
+            public UIPilotProperty Pilot => UIPilotProperty.Background;
+
             public void SetValue(MGElement element, Color value, string animationName)
-                => element.SetBackgroundSlot(_slot, new MGSolidFillBrush(value), AnimationSource(UIPilotProperty.Background, animationName));
+                => SetValue(element, value, AnimationSource(UIPilotProperty.Background, animationName));
+
+            public void SetValue(MGElement element, Color value, UIValueResolutionSource source)
+                => element.SetBackgroundSlot(_slot, new MGSolidFillBrush(value), source);
+
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, Color baseValue)
+                => UIStoreBackedTargets.Restore(element, UIPilotProperty.Background, _slot, source, s => element.SetBackgroundSlot(_slot, new MGSolidFillBrush(baseValue), s));
 
             public void RestoreBaseValue(MGElement element, Color baseValue)
                 => RestoreSlot(element, UIPilotProperty.Background, _slot, source => element.SetBackgroundSlot(_slot, new MGSolidFillBrush(baseValue), source));
@@ -114,7 +111,7 @@ namespace MGUI.Core.UI.Animation.Targets
                 => new UIContainerSlotSubscription(element, nameof(MGElement.BackgroundBrush), e => e.BackgroundBrush, _slotPropertyName, () => changed(element));
         }
 
-        private sealed class ForegroundTarget : IUIObservableAnimationTarget<Color>
+        private sealed class ForegroundTarget : IUIObservableAnimationTarget<Color>, IUIStoreBackedAnimationTarget<Color>
         {
             public string Path => Paths.Foreground;
 
@@ -124,8 +121,16 @@ namespace MGUI.Core.UI.Animation.Targets
 
             public Color GetUnderlyingValue(MGElement element) => GetValue(element);
 
+            public UIPilotProperty Pilot => UIPilotProperty.Foreground;
+
             public void SetValue(MGElement element, Color value, string animationName)
-                => Require(element).SetForegroundSlot(UIValueSlot.Normal, value, AnimationSource(UIPilotProperty.Foreground, animationName));
+                => SetValue(element, value, AnimationSource(UIPilotProperty.Foreground, animationName));
+
+            public void SetValue(MGElement element, Color value, UIValueResolutionSource source)
+                => Require(element).SetForegroundSlot(UIValueSlot.Normal, value, source);
+
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, Color baseValue)
+                => UIStoreBackedTargets.Restore(element, UIPilotProperty.Foreground, UIValueSlot.Normal, source, s => Require(element).SetForegroundSlot(UIValueSlot.Normal, baseValue, s));
 
             public void RestoreBaseValue(MGElement element, Color baseValue)
                 => RestoreSlot(element, UIPilotProperty.Foreground, UIValueSlot.Normal, source => Require(element).SetForegroundSlot(UIValueSlot.Normal, baseValue, source));
@@ -138,7 +143,7 @@ namespace MGUI.Core.UI.Animation.Targets
                     $"'{Paths.Foreground}' animates the text of an {nameof(MGTextBlock)}; {element.GetType().Name} has none. Use '{Paths.TextForeground}' for the inherited text colour of any element.");
         }
 
-        private sealed class TextForegroundTarget : IUIObservableAnimationTarget<Color>
+        private sealed class TextForegroundTarget : IUIObservableAnimationTarget<Color>, IUIStoreBackedAnimationTarget<Color>
         {
             public string Path => Paths.TextForeground;
 
@@ -151,8 +156,16 @@ namespace MGUI.Core.UI.Animation.Targets
 
             public Color GetUnderlyingValue(MGElement element) => GetValue(element);
 
+            public UIPilotProperty Pilot => UIPilotProperty.DefaultTextForeground;
+
             public void SetValue(MGElement element, Color value, string animationName)
-                => element.SetDefaultTextForegroundSlot(UIValueSlot.Normal, value, AnimationSource(UIPilotProperty.DefaultTextForeground, animationName));
+                => SetValue(element, value, AnimationSource(UIPilotProperty.DefaultTextForeground, animationName));
+
+            public void SetValue(MGElement element, Color value, UIValueResolutionSource source)
+                => element.SetDefaultTextForegroundSlot(UIValueSlot.Normal, value, source);
+
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, Color baseValue)
+                => UIStoreBackedTargets.Restore(element, UIPilotProperty.DefaultTextForeground, UIValueSlot.Normal, source, s => element.SetDefaultTextForegroundSlot(UIValueSlot.Normal, baseValue, s));
 
             public void RestoreBaseValue(MGElement element, Color baseValue)
                 => RestoreSlot(element, UIPilotProperty.DefaultTextForeground, UIValueSlot.Normal, source => element.SetDefaultTextForegroundSlot(UIValueSlot.Normal, baseValue, source));
@@ -161,7 +174,7 @@ namespace MGUI.Core.UI.Animation.Targets
                 => new UIContainerSlotSubscription(element, nameof(MGElement.DefaultTextForeground), e => e.DefaultTextForeground, nameof(VisualStateSetting<Color?>.NormalValue), () => changed(element));
         }
 
-        private sealed class BorderBrushTarget : IUIObservableAnimationTarget<Color>
+        private sealed class BorderBrushTarget : IUIObservableAnimationTarget<Color>, IUIStoreBackedAnimationTarget<Color>
         {
             public string Path => Paths.BorderBrush;
 
@@ -181,8 +194,16 @@ namespace MGUI.Core.UI.Animation.Targets
 
             public Color GetUnderlyingValue(MGElement element) => GetValue(element);
 
+            public UIPilotProperty Pilot => UIPilotProperty.BorderBrush;
+
             public void SetValue(MGElement element, Color value, string animationName)
-                => element.SetBorderBrushTagged(new MGUniformBorderBrush(value), AnimationSource(UIPilotProperty.BorderBrush, animationName));
+                => SetValue(element, value, AnimationSource(UIPilotProperty.BorderBrush, animationName));
+
+            public void SetValue(MGElement element, Color value, UIValueResolutionSource source)
+                => element.SetBorderBrushTagged(new MGUniformBorderBrush(value), source);
+
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, Color baseValue)
+                => UIStoreBackedTargets.Restore(RequireBorder(element), UIPilotProperty.BorderBrush, UIValueSlot.Whole, source, s => element.SetBorderBrushTagged(new MGUniformBorderBrush(baseValue), s));
 
             public void RestoreBaseValue(MGElement element, Color baseValue)
                 => RestoreSlot(RequireBorder(element), UIPilotProperty.BorderBrush, UIValueSlot.Whole, source => element.SetBorderBrushTagged(new MGUniformBorderBrush(baseValue), source));

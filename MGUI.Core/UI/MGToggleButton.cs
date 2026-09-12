@@ -15,7 +15,7 @@ using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
-    public class MGToggleButton : MGSingleContentHost
+    public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
     {
         internal static bool GetNextCheckedState(bool isChecked) => !isChecked;
 
@@ -76,6 +76,8 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsChecked;
+        bool? Animation.States.IUICheckable.IsChecked => IsChecked;
+
         public bool IsChecked
         {
             get => _IsChecked;

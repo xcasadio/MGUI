@@ -3696,6 +3696,7 @@ namespace MGUI.Core.UI
                 hasKeyboardFocus,
                 shouldDisplayFocusedState);
             VisualState = new(newPVS, newSVS);
+            _AnimationSlot?.VisualStatesOrNull?.Refresh();
 
             ElementUpdateEventArgs UpdateEventArgs = new(this, UA);
 
@@ -3898,6 +3899,14 @@ namespace MGUI.Core.UI
         /// <summary>The transitions attached to this element (ADR-0006, S6): a <see cref="Animation.UITransition{T}"/> added here interpolates every
         /// later change of its property (a local write, or the visual state for <c>RenderScale</c>) instead of snapping. Allocated on first access.</summary>
         public Animation.UITransitionCollection Transitions => (_AnimationSlot ??= new Animation.UIElementAnimationSlot(this)).Transitions;
+
+        /// <summary>The named visual states of this element (ADR-0007, S4 of the V2 program): states with typed setters keyed by animation target path,
+        /// resolved every frame after <see cref="VisualState"/> (Disabled, Checked, Selected, Pressed, Hover, Focused, Normal, the first defined one whose
+        /// condition holds) and applied through the animation targets, so a transition on a setter's path interpolates the change. Allocated on first access.</summary>
+        public Animation.States.UIVisualStateCollection VisualStates => (_AnimationSlot ??= new Animation.UIElementAnimationSlot(this)).VisualStates;
+
+        /// <summary>The name of the named visual state currently applied, null when the element defines none or none matches.</summary>
+        public string CurrentVisualStateName => _AnimationSlot?.VisualStatesOrNull?.Current;
 
         /// <summary>The per-element animation state, or null while the element has never animated.</summary>
         internal Animation.UIElementAnimationSlot AnimationSlotOrNull => _AnimationSlot;

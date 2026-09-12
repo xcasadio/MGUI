@@ -98,10 +98,15 @@ namespace MGUI.Core.UI.Animation.Targets
                 => new UIPropertyChangedSubscription(element, nameof(MGElement.PreferredHeight), () => changed(element));
         }
 
-        private sealed class BackgroundGradientTarget : IUIObservableAnimationTarget<UIGradientColors>
+        private sealed class BackgroundGradientTarget : IUIObservableAnimationTarget<UIGradientColors>, IUIStoreBackedAnimationTarget<UIGradientColors>
         {
             public string Path => Paths.BackgroundGradient;
             public bool IsStoreBacked => true;
+            public UIPilotProperty Pilot => UIPilotProperty.Background;
+            public void SetValue(MGElement element, UIGradientColors value, UIValueResolutionSource source)
+                => element.SetBackgroundSlot(UIValueSlot.Normal, new MGGradientFillBrush(value.TopLeft, value.TopRight, value.BottomRight, value.BottomLeft), source);
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, UIGradientColors baseValue)
+                => UIStoreBackedTargets.Restore(element, UIPilotProperty.Background, UIValueSlot.Normal, source, s => SetValue(element, baseValue, s));
 
             public UIGradientColors GetValue(MGElement element)
             {
@@ -128,10 +133,15 @@ namespace MGUI.Core.UI.Animation.Targets
                 => new UIContainerSlotSubscription(element, nameof(MGElement.BackgroundBrush), e => e.BackgroundBrush, nameof(VisualStateFillBrush.NormalValue), () => changed(element));
         }
 
-        private sealed class BackgroundDiagonalGradientTarget : IUIObservableAnimationTarget<UIDiagonalGradientColors>
+        private sealed class BackgroundDiagonalGradientTarget : IUIObservableAnimationTarget<UIDiagonalGradientColors>, IUIStoreBackedAnimationTarget<UIDiagonalGradientColors>
         {
             public string Path => Paths.BackgroundDiagonalGradient;
             public bool IsStoreBacked => true;
+            public UIPilotProperty Pilot => UIPilotProperty.Background;
+            public void SetValue(MGElement element, UIDiagonalGradientColors value, UIValueResolutionSource source)
+                => element.SetBackgroundSlot(UIValueSlot.Normal, new MGDiagonalGradientFillBrush(value.Color1, value.Color2, value.Color1Position), source);
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, UIDiagonalGradientColors baseValue)
+                => UIStoreBackedTargets.Restore(element, UIPilotProperty.Background, UIValueSlot.Normal, source, s => SetValue(element, baseValue, s));
 
             public UIDiagonalGradientColors GetValue(MGElement element)
             {

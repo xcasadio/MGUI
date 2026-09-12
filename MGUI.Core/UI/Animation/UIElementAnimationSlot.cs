@@ -24,6 +24,14 @@ namespace MGUI.Core.UI.Animation
 
         public UITransitionCollection Transitions { get; }
 
+        private States.UIVisualStateCollection _VisualStates;
+
+        /// <summary>The named visual states (T4), allocated on first access.</summary>
+        public States.UIVisualStateCollection VisualStates => _VisualStates ??= new States.UIVisualStateCollection(Owner);
+
+        /// <summary>The named visual states, or null while none was ever accessed.</summary>
+        public States.UIVisualStateCollection VisualStatesOrNull => _VisualStates;
+
         /// <summary>The animated value of the state-driven scale (<see cref="MGElement.RenderScale"/>), set by the <c>RenderScale</c> target (S4); null when not animated.</summary>
         public float? StateScaleOverride { get; set; }
 

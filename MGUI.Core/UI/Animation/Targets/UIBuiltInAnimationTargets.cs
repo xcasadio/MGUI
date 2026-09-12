@@ -160,10 +160,14 @@ namespace MGUI.Core.UI.Animation.Targets
             }
         }
 
-        private sealed class MarginTarget : IUIObservableAnimationTarget<Thickness>
+        private sealed class MarginTarget : IUIObservableAnimationTarget<Thickness>, IUIStoreBackedAnimationTarget<Thickness>
         {
             public string Path => Paths.Margin;
             public bool IsStoreBacked => true;
+            public UIPilotProperty Pilot => UIPilotProperty.Margin;
+            public void SetValue(MGElement element, Thickness value, UIValueResolutionSource source) => element.SetMargin(value, source);
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, Thickness baseValue)
+                => UIStoreBackedTargets.Restore(element, UIPilotProperty.Margin, UIValueSlot.Whole, source, s => element.SetMargin(baseValue, s));
             public Thickness GetValue(MGElement element) => element.Margin;
             public Thickness GetUnderlyingValue(MGElement element) => element.Margin;
             public void SetValue(MGElement element, Thickness value, string animationName) => element.SetMargin(value, AnimationSource(UIPilotProperty.Margin, animationName));
@@ -172,10 +176,14 @@ namespace MGUI.Core.UI.Animation.Targets
                 => new UIPropertyChangedSubscription(element, nameof(MGElement.Margin), () => changed(element));
         }
 
-        private sealed class PaddingTarget : IUIObservableAnimationTarget<Thickness>
+        private sealed class PaddingTarget : IUIObservableAnimationTarget<Thickness>, IUIStoreBackedAnimationTarget<Thickness>
         {
             public string Path => Paths.Padding;
             public bool IsStoreBacked => true;
+            public UIPilotProperty Pilot => UIPilotProperty.Padding;
+            public void SetValue(MGElement element, Thickness value, UIValueResolutionSource source) => element.SetPadding(value, source);
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, Thickness baseValue)
+                => UIStoreBackedTargets.Restore(element, UIPilotProperty.Padding, UIValueSlot.Whole, source, s => element.SetPadding(baseValue, s));
             public Thickness GetValue(MGElement element) => element.Padding;
             public Thickness GetUnderlyingValue(MGElement element) => element.Padding;
             public void SetValue(MGElement element, Thickness value, string animationName) => element.SetPadding(value, AnimationSource(UIPilotProperty.Padding, animationName));
@@ -184,10 +192,14 @@ namespace MGUI.Core.UI.Animation.Targets
                 => new UIPropertyChangedSubscription(element, nameof(MGElement.Padding), () => changed(element));
         }
 
-        private sealed class MinHeightTarget : IUIObservableAnimationTarget<int?>
+        private sealed class MinHeightTarget : IUIObservableAnimationTarget<int?>, IUIStoreBackedAnimationTarget<int?>
         {
             public string Path => Paths.MinHeight;
             public bool IsStoreBacked => true;
+            public UIPilotProperty Pilot => UIPilotProperty.MinHeight;
+            public void SetValue(MGElement element, int? value, UIValueResolutionSource source) => element.SetMinHeight(value, source);
+            public bool ClearContribution(MGElement element, UIValueResolutionSource source, int? baseValue)
+                => UIStoreBackedTargets.Restore(element, UIPilotProperty.MinHeight, UIValueSlot.Whole, source, s => element.SetMinHeight(baseValue, s));
             public int? GetValue(MGElement element) => element.MinHeight;
             public int? GetUnderlyingValue(MGElement element) => element.MinHeight;
             public void SetValue(MGElement element, int? value, string animationName) => element.SetMinHeight(value, AnimationSource(UIPilotProperty.MinHeight, animationName));

@@ -15,7 +15,7 @@ using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI
 {
-    public class MGCheckBox : MGSingleContentHost
+    public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
     {
         internal static bool? GetNextCheckedState(bool? isChecked, bool isThreeState)
         {

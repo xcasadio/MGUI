@@ -129,7 +129,7 @@ namespace MGUI.Core.UI
         }
     }
 
-    public class MGRadioButton : MGSingleContentHost
+    public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
     {
         /// <summary>Provides direct access to the button component that appears to the left of this radiobutton's content.</summary>
         public MGComponent<MGButton> ButtonComponent { get; }
@@ -270,6 +270,8 @@ namespace MGUI.Core.UI
                 }
             }
         }
+
+        bool? Animation.States.IUICheckable.IsChecked => IsChecked;
 
         public bool IsChecked
         {
