@@ -93,7 +93,9 @@ Criteres d'acceptation : tests V1 verts ; un composite vide complete immediateme
 
 Commit recommande : `animation: add storyboards, sequences and delays`
 
-### ⚪ T2. Keyframes et serialisation
+### ✅ T2. Keyframes et serialisation
+
+**Statut** : livre le 12 septembre 2026. `MGUI.Core/UI/Animation/KeyFrames/` : `UIKeyFrame<T>` (record struct `Offset`, `Value`, `Easing` nom ; `ResolveEasing`), `UIKeyFrameTrack<T>` (cles triees, `Add` remplace un offset existant, `StartsAtZero`, `Validate`, `FindSegment` par recherche binaire, enumerable), `UIKeyFrameAnimation<T> : UIPropertyAnimation<T>` (`Track`, validation au demarrage, `From` / `To` pris de la piste, easing par segment, `ApplyProgress` sans allocation), `UIKeyFrameSerializer` (`System.Text.Json`, DTO `UIKeyFrameTrackDto` / `UIKeyFrameDto`, `CurrentVersion` 1, `ValueType` nom simple, chaines invariantes pour float, double, int, Vector2/3/4, Color `#RRGGBBAA`, Thickness `l,t,r,b`, `ReadValueType`). Une modification V1 : `UIAnimation<T>.CurrentValue` passe en `protected set` pour les derives qui calculent leur propre valeur. Tests : `MGUI.Tests/Animation/KeyFrameTests.cs` (12 : tri et remplacement, validation, `FindSegment` (theorie), opacite 0 -> 1 -> 0 aux quarts, pop d'echelle avec easing par cle (0.875 a 30 %), piste sans cle a 0 depuis la valeur courante, piste invalide refusee au demarrage, restauration et repetition par le moteur, round-trip JSON pour cinq types, JSON versionne et lisible, version / type / type non supporte refuses, zero allocation par tick). Docs : section « Keyframes » de `Docs/animation-architecture.md`.
 
 But : `UIKeyFrame<T>`, `UIKeyFrameTrack<T>`, `UIKeyFrameAnimation<T>`, `UIKeyFrameSerializer`.
 

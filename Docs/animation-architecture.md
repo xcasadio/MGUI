@@ -76,6 +76,18 @@ Easing (`Easing/`) : `IUIEasingFunction`, `UIEasing` (dix-neuf fonctions : Linea
 
 Regle de frame : une animation demarree pendant un tick du manager (enfant d'un groupe, run de transition) avance a partir de la frame suivante, si bien qu'un enfant planifie a un offset reste aligne sur la ligne de temps du groupe (la sequence lit la position exacte en ticks, `UIAnimation.IterationElapsed`). Un enfant demarre au `Begin` du groupe (storyboard) est enregistre avant le groupe et avance avant lui : a une frontiere d'iteration il complete d'abord, puis le `Repeated` du groupe le relance ; chaque iteration se termine donc par le `Completed` de l'enfant. Un groupe garde `FillBehavior = HoldEnd` (refus sinon) ; `Animations.Clear()` sur la racine annule les enfants places sur d'autres elements selon leur propre `CancelBehavior`, sans restauration forcee.
 
+## Keyframes
+
+`UIKeyFrame<T>(Offset, Value, Easing)` et `UIKeyFrameTrack<T>` (`MGUI.Core/UI/Animation/KeyFrames/`, ADR-0007 decision 2) forment un modele de donnees pur, sans reference a un element : cles triees par offset dans [0,1], derniere cle a 1 (`Validate`), l'easing d'une cle s'applique au segment qui se termine sur elle, une piste sans cle a 0 part de la valeur courante au demarrage. `UIKeyFrameAnimation<T>` (derive de `UIPropertyAnimation<T>`) : `Track`, segment trouve par recherche binaire (`FindSegment`), `From` / `To` pris de la piste, `Easing` global ignore ; delai, repetition, aller-retour, comportements de fin et d'annulation, appartenance et conflits sont ceux du moteur.
+
+Format JSON (`UIKeyFrameSerializer`, `Serialize` / `Deserialize<T>` / `ReadValueType`, version 1) pour l'editeur du moteur de jeu :
+
+```json
+{ "version": 1, "valueType": "Single", "frames": [ { "offset": 0, "value": "0" }, { "offset": 1, "value": "1", "easing": "CubicOut" } ] }
+```
+
+Valeurs en chaines invariantes : `Single` / `Double` / `Int32` en nombre, `Vector2` / `Vector3` / `Vector4` en `x,y[,z[,w]]`, `Color` en `#RRGGBBAA`, `Thickness` en `l,t,r,b` ; type ou version inconnus refuses explicitement, le type du JSON doit correspondre au `T` demande.
+
 ## Cibles
 
 `IUIAnimationTarget<T>` (`Path`, `IsStoreBacked`, `GetValue`, `SetValue(element, value, nom)`, `RestoreBaseValue(element, base)`) et le registre ferme `UIAnimationTargets` (`Register`, `TryGet`, `Resolve`, `GetValueType`, `Paths`), chemins insensibles a la casse. `UIDelegateAnimationTarget<T>` pour une propriete applicative.

@@ -50,7 +50,7 @@ namespace MGUI.Core.UI.Animation
         public IUIInterpolator<T> Interpolator { get; set; }
 
         /// <summary>The value written by the last tick.</summary>
-        public T CurrentValue { get; private set; }
+        public T CurrentValue { get; protected set; }
 
         /// <summary>The start value of the current run (<see cref="From"/>, or the value read at start).</summary>
         public T StartValue => _StartValue;
