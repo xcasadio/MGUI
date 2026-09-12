@@ -1,0 +1,77 @@
+<ThemeDefinitionsDocument xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core">
+  <!--
+    Backlog task 13 (Docs/Tasks/styling-theme-tasks.md): the "Editor Compact" preset. It only uses declarative theme settings (BasedOn, font settings,
+    settings groups, properties): it applies to a scope by a theme change, with no control code and no new API. The values it cannot reach are listed in
+    the status of task 13 and pinned by MGUI.Tests/Architecture/EditorCompactPresetTests.cs.
+  -->
+  <ThemeDefinition Name="EditorCompact" BasedOn="Dark">
+    <ThemeDefinition.FontSettings>
+      <ThemeFontSettingsDefinition DefaultFontSize="10"
+                                   SmallFontSize="9"
+                                   MediumFontSize="10"
+                                   LargeFontSize="12"
+                                   ContextMenuFontSize="10" />
+    </ThemeDefinition.FontSettings>
+
+    <ThemeDefinition.Window>
+      <ThemeWindowSettingsDefinition Padding="0"
+                                     TitleBarPadding="6,2,6,2"
+                                     TitleBarMinHeight="20"
+                                     CloseButtonMinWidth="16"
+                                     CloseButtonMinHeight="16"
+                                     TitleTextPadding="0,0,4,0" />
+    </ThemeDefinition.Window>
+
+    <ThemeDefinition.Overlay>
+      <ThemeOverlaySettingsDefinition Padding="4"
+                                      CloseButtonPadding="2,1"
+                                      CloseButtonMinWidth="14"
+                                      CloseButtonMinHeight="14" />
+    </ThemeDefinition.Overlay>
+
+    <ThemeDefinition.ContextMenu>
+      <ThemeContextMenuSettingsDefinition Padding="1" />
+    </ThemeDefinition.ContextMenu>
+
+    <ThemeDefinition.ContextMenuItem>
+      <ThemeContextMenuItemSettingsDefinition HeaderMargin="1,0"
+                                              ShortcutMargin="8,0,0,0"
+                                              SubmenuArrowMargin="4,0,0,0" />
+    </ThemeDefinition.ContextMenuItem>
+
+    <ThemeDefinition.ListBox>
+      <ThemeListBoxSettingsDefinition MinHeight="18"
+                                      TitlePadding="4,1" />
+    </ThemeDefinition.ListBox>
+
+    <ThemeDefinition.ComboBox>
+      <ThemeComboBoxSettingsDefinition Padding="4,1"
+                                       MinHeight="18"
+                                       DropdownArrowMargin="0,0,4,0"
+                                       DropdownMinWidth="160"
+                                       DropdownPadding="1"
+                                       DropdownItemsSpacing="0" />
+    </ThemeDefinition.ComboBox>
+
+    <ThemeDefinition.TreeViewTemplate>
+      <ThemeTreeViewTemplateSettingsDefinition ItemsPanelPadding="1"
+                                               ItemsPanelSpacing="0" />
+    </ThemeDefinition.TreeViewTemplate>
+
+    <ThemeDefinition.TabControl>
+      <ThemeTabControlSettingsDefinition HeadersSpacing="0" />
+    </ThemeDefinition.TabControl>
+
+    <ThemeDefinition.PropertyGrid>
+      <ThemePropertyGridSettingsDefinition CategoriesSpacing="2"
+                                           CategoryHeaderPadding="4,2"
+                                           CategoryHeaderMinHeight="18"
+                                           RowPadding="4,1" />
+    </ThemeDefinition.PropertyGrid>
+
+    <ThemeDefinition.Properties>
+      <ThemePropertyDefinition Target="CheckBoxComponentSize" Integer="12" />
+      <ThemePropertyDefinition Target="TreeViewIndentSize" Integer="12" />
+    </ThemeDefinition.Properties>
+  </ThemeDefinition>
+</ThemeDefinitionsDocument>

@@ -395,7 +395,9 @@ Criteres d'acceptation:
 
 Commit recommande: `style-theme: model auxiliary surface composites`
 
-### ⚪ 13. Definir un preset "Editor Compact"
+### ✅ 13. Definir un preset "Editor Compact"
+
+**Statut** : livre le 12 septembre 2026. Preset `EditorCompact` (`MGUI.Samples/Features/EditorCompact.Themes.xaml`, `ThemeDefinition BasedOn="Dark"`), uniquement declaratif : polices (10, 9, 10, 12, menu contextuel 10), fenetre (padding 0, barre de titre 6,2 et 20, bouton fermer 16), overlay (padding 4, bouton 2,1 et 14), menu contextuel (padding 1) et ses items (marges 1,0, 8 et 4), list box (hauteur minimale 18, titre 4,1), combo box (padding 4,1, hauteur 18, marge de fleche, liste 160, padding 1, espacement 0), tree view (padding 1, espacement 0), onglets (espacement 0), property grid (espacements et padding de ligne), `CheckBoxComponentSize` et `TreeViewIndentSize` a 12. Aucun changement de code de controle ni nouvelle API. Echantillon `EditorCompactPresetSample` (`EditorCompactPreset.xaml(.cs)`, bouton "Editor Compact" du compendium, `SCN-THEME-001`) : il charge le document dans le scope de sa fenetre et bascule entre Dark et le preset par le `DefaultTheme` de ce scope ; il montre listes, arbre, onglets, menu contextuel, tooltip, zone de texte, un hote de docking et la liste des limites. Livrable principal, valeurs non pilotables declarativement : tooltip (padding 6,3, bordure 2, tailles minimales 10, aucun groupe de theme) ; zones de texte (padding 6,1,6,1, hauteur 24) et `NumericUpDown` (padding 6,2,6,2, hauteur 28, spinner 24 et 22) ; paddings d'items de list box (6,4 et 1,0) et de liste deroulante (8,5,8,5) ; paddings et bordures des en-tetes d'onglets (valeurs de template) ; docking (en-tete d'onglets 30, boutons 22, padding de titre 8,4,4,4, en-tete de tiroir 28, bande auto-hide 24, zones de drop 40), qui releve des taches 3, 8 et 9 et n'est pas corrige ici ; aucun override de valeur de template par un theme, les definitions `ControlTemplate` XAML n'en portant pas ; styles implicites hors changement de theme (parse et `RefreshStyles` seulement, controles docking en `MGElementType.Custom`). Ecart constate pendant la tache : sous `Dark`, une list box resout `Dark.ListBox` sans erreur mais ne recoit aucune contribution `ListBox.MinHeight`, si bien que la hauteur minimale de list box du theme ne l'atteint pas ; non corrige ici (pas de code de controle), il est verse avec les limites dans la nouvelle tache 14. Tests `MGUI.Tests/Architecture/EditorCompactPresetTests.cs` (3) : le preset est un theme declaratif base sur Dark ; il s'applique a des controles vivants par changement de theme du scope, aller et retour (padding et hauteur de combo box, taille de police) ; les valeurs hors de portee gardent leurs defauts de code (zone de texte, docking, paddings d'items, litteraux du tooltip et des en-tetes d'onglets, ecart `Dark.ListBox`). Pas de mutation : la tache ne modifie aucun code de production. Suites : 3 (nouvelle classe), 275 (`SCN-THEME-001`), 1690 (complete) ; builds `MGUI.Core` et `MGUI.Samples` verts. Limites : l'echantillon n'a pas ete manipule interactivement ; la cause de l'ecart `Dark.ListBox` reste a etablir (tache 14). Docs : `styling-theme-architecture.md` (limites connues) ; tache 14 creee.
 
 But:
 verifier les limites reelles du systeme theme/ressources/styles sur un cas editeur dense.
@@ -421,3 +423,31 @@ Criteres d'acceptation:
 - `SCN-THEME-001` vert.
 
 Commit recommande: `style-theme: add editor compact preset`
+
+### ⚪ 14. Rendre pilotables par le theme les densites restantes
+
+But:
+lever les limites constatees par le preset "Editor Compact" (tache 13) : les valeurs de densite qu'aucun changement de theme n'atteint.
+
+Etat actuel (verifie le 12 septembre 2026, tache 13) :
+
+- tooltip : `ToolTip.Padding` (6,3), `ToolTip.BorderThickness` (2), `ToolTip.MinWidth` et `ToolTip.MinHeight` (10) sont des litteraux du catalogue, et `ThemeDefinition` n'a pas de groupe ToolTip ;
+- zones de texte : `TextBox.Padding` (6,1,6,1), `TextBox.MinHeight` (24), `NumericUpDown.Padding` (6,2,6,2), `NumericUpDown.MinHeight` (28), `NumericUpDown.SpinnerWidth` (24) et `NumericUpDown.SpinnerMinWidth` (22) sont des litteraux ;
+- items : `MGControlTemplateCatalog.DefaultListBoxItemPadding` (6,4), `DefaultListBoxItemContentPadding` (1,0) et `DefaultComboBoxDropdownItemPadding` (8,5,8,5) sont des champs statiques ;
+- en-tetes d'onglets : paddings (6,5 ; 8,5 ; 8,3) et bordures des cles `TabHeader.*` sont des valeurs de template qui ne lisent pas le theme ;
+- docking : `MGDockTabGroup.TabHeaderHeight` (30), boutons d'onglet et de tiroir (22), `DockTabItem.TitleText.Padding` (8,4,4,4), en-tete de tiroir (28), `MGDockAutoHideStrip.StripThickness` (24) et zones de drop (40) sont des constantes ou des valeurs de template ;
+- sous le theme `Dark`, une list box resout `Dark.ListBox` sans erreur de template mais ne recoit aucune contribution `ListBox.MinHeight` : la hauteur minimale de list box du theme ne l'atteint pas, cause a etablir ;
+- les definitions de `ControlTemplate` XAML ne portent aucune valeur de template : un theme ne peut que remapper un controle vers un autre template.
+
+Travail attendu:
+
+- etablir la cause de l'ecart `Dark.ListBox` et le corriger ;
+- pour chaque famille, choisir entre un reglage de theme (groupe `ThemeDefinition`, `MGTheme`, inventaire de la tache 7) et une valeur de template surchargeable, en gardant les valeurs par defaut actuelles ;
+- etendre le preset "Editor Compact" a chaque valeur rendue pilotable et mettre a jour `MGUI.Tests/Architecture/EditorCompactPresetTests.cs`.
+
+Criteres d'acceptation:
+
+- chaque valeur listee est pilotable par un changement de theme, ou actee hors perimetre dans `Docs/styling-theme-architecture.md` ;
+- `EditorCompactPresetTests` couvre les nouvelles valeurs ; `SCN-THEME-001` vert.
+
+Commit recommande: `style-theme: theme the remaining density values`

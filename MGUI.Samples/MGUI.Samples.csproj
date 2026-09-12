@@ -80,6 +80,8 @@
     <None Remove="Features\RoundedShapes.xaml" />
     <None Remove="Features\ResponsiveLayout.xaml" />
     <None Remove="Features\StyleThemeRefactor.xaml" />
+    <None Remove="Features\EditorCompactPreset.xaml" />
+    <None Remove="Features\EditorCompact.Themes.xaml" />
     <None Remove="Features\TextSurfaceLite.xaml" />
   </ItemGroup>
   <ItemGroup>
@@ -225,6 +227,8 @@
     <EmbeddedResource Include="Features\RoundedShapes.xaml" />
     <EmbeddedResource Include="Features\ResponsiveLayout.xaml" />
     <EmbeddedResource Include="Features\StyleThemeRefactor.xaml" />
+    <EmbeddedResource Include="Features\EditorCompactPreset.xaml" />
+    <EmbeddedResource Include="Features\EditorCompact.Themes.xaml" />
     <EmbeddedResource Include="Features\TextSurfaceLite.xaml" />
   </ItemGroup>
   <ItemGroup>
