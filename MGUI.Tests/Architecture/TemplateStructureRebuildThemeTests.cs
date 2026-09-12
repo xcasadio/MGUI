@@ -5,6 +5,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
@@ -148,6 +149,59 @@ public class TemplateStructureRebuildThemeTests
         MGTreeViewItem third = new(harness.Window) { Header = "Third" };
         treeView.AddItem(third);
         Assert.Same(treeView.ItemsPanel, third.Parent);
+    }
+
+    [Fact]
+    public void ListView_Columns_Rows_And_Cells_Move_To_The_Grids_Of_A_Rebuilt_Structure()
+    {
+        Harness harness = Harness.Create(dark: false);
+        MGListView<string> listView = new(harness.Window);
+        MGTextBlock nameHeader = new(harness.Window, "Name");
+        MGListViewColumn<string> nameColumn = listView.AddColumn(new ListViewColumnWidth(120), nameHeader, item => new MGTextBlock(harness.Window, item));
+        MGListViewColumn<string> lengthColumn = listView.AddColumn(new ListViewColumnWidth(1.0), new MGTextBlock(harness.Window, "Length"), item => new MGTextBlock(harness.Window, item.Length.ToString()));
+        listView.SetItemsSource(new List<string> { "Alpha", "Beta", "Gamma" });
+        listView.SelectionMode = GridSelectionMode.Row;
+        harness.Show(listView);
+        listView.DataGrid.CurrentSelection = new GridSelection(listView.DataGrid, new GridCell(listView.DataGrid.Rows[1], listView.DataGrid.Columns[0]), GridSelectionMode.Row);
+        Assert.Equal(MGControlTemplateCatalog.ListViewTemplateName, listView.AppliedControlTemplateName);
+        MGGrid codeHeaderGrid = listView.HeaderGrid;
+        MGGrid codeDataGrid = listView.DataGrid;
+        MGElement[][] cellsBefore = listView.RowItems.Select(row => new[] { row.GetRowContents()[nameColumn], row.GetRowContents()[lengthColumn] }).ToArray();
+
+        harness.Window.GetResources().DefaultTheme = new MGTheme(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        harness.Frame(3, Point.Zero);
+
+        Assert.Equal("Dark.ListView", listView.AppliedControlTemplateName);
+        Assert.NotSame(codeHeaderGrid, listView.HeaderGrid);
+        Assert.NotSame(codeDataGrid, listView.DataGrid);
+
+        // Columns and rows are definitions of the new grids, and the header and cell elements moved there.
+        Assert.Equal(new[] { nameColumn.HeaderColumn, lengthColumn.HeaderColumn }, listView.HeaderGrid.Columns);
+        Assert.Equal(new[] { nameColumn.DataColumn, lengthColumn.DataColumn }, listView.DataGrid.Columns);
+        Assert.Equal(listView.RowItems.Select(row => row.DataRow), listView.DataGrid.Rows);
+        Assert.Same(listView.HeaderGrid, nameHeader.Parent);
+        for (int i = 0; i < cellsBefore.Length; i++)
+        {
+            Dictionary<MGListViewColumn<string>, MGElement> cells = listView.RowItems[i].GetRowContents();
+            Assert.Same(cellsBefore[i][0], cells[nameColumn]);
+            Assert.Same(cellsBefore[i][1], cells[lengthColumn]);
+            Assert.Same(listView.DataGrid, cellsBefore[i][0].Parent);
+        }
+
+        Assert.Empty(codeHeaderGrid.Children);
+        Assert.Empty(codeDataGrid.Children);
+
+        // The selection mode and the selected row follow.
+        Assert.Equal(GridSelectionMode.Row, listView.SelectionMode);
+        Assert.Same(listView.DataGrid.Rows[1], listView.SelectedData?.Cell.Row);
+
+        // The grids are laid out, and later changes reach them.
+        Assert.True(listView.DataGrid.LayoutBounds.Height > 0);
+        listView.ItemsSource.Add("Delta");
+        Assert.Equal(4, listView.DataGrid.Rows.Count);
+        Assert.Same(listView.DataGrid, listView.RowItems[3].GetRowContents()[nameColumn].Parent);
+        lengthColumn.Width.WidthPixels = 50;
+        Assert.Equal(50, listView.DataGrid.Columns[1].Length.Pixels);
     }
 
     private sealed class ThemeProbeTreeViewItem : MGTreeViewItem

@@ -403,6 +403,8 @@ namespace MGUI.Core.UI
 
         protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
         {
+            MGGrid PreviousHeaderGrid = HeaderGrid;
+            MGGrid PreviousDataGrid = DataGrid;
             DockPanelElement = Structure.Parts[DockPanelPartName] as MGDockPanel;
             HeaderGrid = Structure.Parts[HeaderGridPartName] as MGGrid;
             ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
@@ -448,6 +450,84 @@ namespace MGUI.Core.UI
                     FocusedRowIndex = DataGrid.GetRowIndex(e.Value.Cell.Row);
                 }
             };
+
+            if (PreviousDataGrid != null && PreviousHeaderGrid != null && !ReferenceEquals(PreviousDataGrid, DataGrid))
+            {
+                MoveContentToRebuiltGrids(PreviousHeaderGrid, PreviousDataGrid);
+            }
+        }
+
+        /// <summary>A structure rebuilt by a theme change that maps the list view to another template replaces its two grids, which own their row and
+        /// column definitions: every column and row receives a definition of the new grids, and the headers and cell contents move there with their
+        /// elements (and so their state and bindings). The selection mode and the selected cell of the replaced data grid follow.</summary>
+        private void MoveContentToRebuiltGrids(MGGrid PreviousHeaderGrid, MGGrid PreviousDataGrid)
+        {
+            //  Read from the replaced grids before they release their children.
+            List<(MGListViewItem<TItemType> Row, MGListViewColumn<TItemType> Column, MGElement Content)> Cells = new();
+            if (InternalRowItems != null)
+            {
+                foreach (MGListViewItem<TItemType> Row in InternalRowItems)
+                {
+                    foreach (MGListViewColumn<TItemType> Column in _Columns)
+                    {
+                        foreach (MGElement Content in PreviousDataGrid.GetCellContent(Row.DataRow, Column.DataColumn))
+                        {
+                            Cells.Add((Row, Column, Content));
+                        }
+                    }
+                }
+            }
+
+            GridSelectionMode PreviousSelectionMode = PreviousDataGrid.SelectionMode;
+            GridSelection? PreviousSelection = PreviousDataGrid.CurrentSelection;
+            int SelectedRowIndex = PreviousSelection?.Cell.Row.Index ?? -1;
+            int SelectedColumnIndex = PreviousSelection?.Cell.Column.Index ?? -1;
+
+            using (PreviousHeaderGrid.AllowChangingContentTemporarily())
+            {
+                _ = PreviousHeaderGrid.TryRemoveAll();
+            }
+
+            using (PreviousDataGrid.AllowChangingContentTemporarily())
+            {
+                _ = PreviousDataGrid.TryRemoveAll();
+            }
+
+            using (HeaderGrid.AllowChangingContentTemporarily())
+            using (DataGrid.AllowChangingContentTemporarily())
+            {
+                RowDefinition HeaderRow = HeaderGrid.Rows[0];
+                foreach (MGListViewColumn<TItemType> Column in _Columns)
+                {
+                    Column.HeaderColumn = HeaderGrid.AddColumn(Column.Width.Length);
+                    Column.DataColumn = DataGrid.AddColumn(Column.Width.Length);
+                    if (Column.Header != null)
+                    {
+                        _ = HeaderGrid.TryAddChild(HeaderRow, Column.HeaderColumn, Column.Header);
+                    }
+                }
+
+                if (InternalRowItems != null)
+                {
+                    foreach (MGListViewItem<TItemType> Row in InternalRowItems)
+                    {
+                        Row.DataRow = DataGrid.AddRow(RowLength);
+                    }
+                }
+
+                foreach ((MGListViewItem<TItemType> Row, MGListViewColumn<TItemType> Column, MGElement Content) in Cells)
+                {
+                    _ = DataGrid.TryAddChild(Row.DataRow, Column.DataColumn, Content);
+                }
+            }
+
+            DataGrid.SelectionMode = PreviousSelectionMode;
+            if (PreviousSelection.HasValue && SelectedRowIndex >= 0 && SelectedRowIndex < DataGrid.Rows.Count
+                && SelectedColumnIndex >= 0 && SelectedColumnIndex < DataGrid.Columns.Count)
+            {
+                DataGrid.CurrentSelection = new GridSelection(DataGrid, new GridCell(DataGrid.Rows[SelectedRowIndex], DataGrid.Columns[SelectedColumnIndex]),
+                    PreviousSelection.Value.SelectionMode);
+            }
         }
 
         #region FocusedRowIndex
@@ -731,7 +811,8 @@ namespace MGUI.Core.UI
         public MGListView<TItemType> ListView { get; }
 
         public MGGrid DataGrid => ListView.DataGrid;
-        public RowDefinition DataRow { get; }
+        /// <summary>The row of <see cref="DataGrid"/> that displays this item, replaced when a theme change rebuilds the template structure of the list view.</summary>
+        public RowDefinition DataRow { get; internal set; }
 
         /// <summary>The data object used as a parameter to generate the content of each cell in the <see cref="DataRow"/>.<para/>
         /// See also: <see cref="MGListViewColumn{TItemType}.CellTemplate"/></summary>
@@ -789,9 +870,11 @@ namespace MGUI.Core.UI
         public ListViewColumnWidth Width { get; }
 
         public MGGrid HeaderGrid => ListView.HeaderGrid;
-        public ColumnDefinition HeaderColumn { get; }
+        /// <summary>The column of <see cref="HeaderGrid"/>, replaced when a theme change rebuilds the template structure of the list view.</summary>
+        public ColumnDefinition HeaderColumn { get; internal set; }
         public MGGrid DataGrid => ListView.DataGrid;
-        public ColumnDefinition DataColumn { get; }
+        /// <summary>The column of <see cref="DataGrid"/>, replaced when a theme change rebuilds the template structure of the list view.</summary>
+        public ColumnDefinition DataColumn { get; internal set; }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGElement _Header;
