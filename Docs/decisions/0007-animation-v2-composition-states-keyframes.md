@@ -1,0 +1,48 @@
+# ADR-0007: Animation V2: composition, keyframes, named visual states and style integration
+
+- **Status**: Accepted (2026-09-12, author's answers to the nine questions of the V2 audit)
+- **Date**: 2026-09-12
+- **Source**: this chantier: audit of the V2 scope of `Docs/Tasks/animation-tasks.md` ("Hors programme") against HEAD `96a8074`; program plan `Docs/Tasks/animation-v2-tasks.md`
+
+## Context
+
+Facts verified at HEAD `96a8074` (read-only audit, V1 delivered by ADR-0006):
+
+- `UIAnimation` (`MGUI.Core/UI/Animation/UIAnimation.cs`) exposes the hooks a composite needs: `Begin` / `Advance` / `CancelCore` (internal), the abstract `TargetKey`, `IsStoreBacked`, `OnStarting`, `ApplyProgress`, `OnRestoreBaseValue`, `OnReleaseHold`, the `Completed` / `Cancelled` events, `RegisteredKey` and the manager's conflict rule keyed by (owner element, property path) (`UIAnimationManager.cs:96-175`). The manager cancels by owner (`CancelOwnedBy`) and by displaying window (`CancelOwnedByWindow`), and re-scans after a cancellation pass. `UIAnimation<T>.ApplyProgress` interpolates one segment `StartValue -> To` with one easing (`UIAnimationOfT.cs:73-78`).
+- The visual state is a pair of fixed enums recomputed each frame (`ResolvePrimaryVisualState`, `MGElement.cs:2898`: Disabled > Selected > Focused > Normal); there is no `Checked` state: `MGToggleButton.IsChecked` writes `IsSelected` (`MGToggleButton.cs:79-100`), `MGCheckBox.IsChecked` is a `bool?` with no state projection. The `VisualState` (70) source of the store is only written by the graph node and the docking tab item (`MGGraphControls.cs:2834`, `MGDockTabItem.cs:477-560`). `MGVisualStateProjection` (`MGUI.Core/UI/Styling/MGVisualStateProjection.cs`) is the reusable source-to-action projection.
+- The Hovered / Pressed overlays of `VisualStateFillBrush` are private `MGSolidFillBrush` fields derived from `FocusedColor` and `PressedModifier` (`VisualState.cs:229-272`), selected at draw time by `GetFillOverlay(secondaryState)` (`:290-297`) and painted by `MGElement.DrawBackground` (`MGElement.cs:4297-4312`); nothing blends them.
+- A XAML `Setter` is applied by reflection on the DTO (`Element.cs:1046`, `:1093`); `Transitions` (a list) and `RenderTransform` (an object) cannot be carried by a setter; the hot style refresh only covers pilot properties (`ElementStyleRefresher.cs:243`, `NotRefreshable`). Theme definitions have per-state brush DTOs (`ThemeVisualStateFillBrushDefinition`, `Themes.cs:140`) and no duration; a theme group is a `MGTheme*Settings` class exposed on `MGTheme`, mirrored by a `Theme*SettingsDefinition` DTO, applied by `ThemeDefinitionBuilder`, copied field by field by the `MGTheme(MGTheme)` constructor (`MGTheme.cs:738`) and inventoried by `UIThemeValueInvalidation` (`ThemeValueInvalidationInventoryTests` scans every `*Settings` group).
+- `PreferredWidth` / `PreferredHeight` are plain `int?` properties with `LayoutChanged` and `NPC` (`MGElement.cs:2447-2495`), outside the store.
+- `MGGradientFillBrush` (four corner colours) and `MGDiagonalGradientFillBrush` (two colours and a position) are classes with public colours and `Copy()` (`MGGradientFillBrush.cs:87`, `:150`).
+- Ad hoc time consumers read `FrameElapsed` in `UpdateSelf` or a brush tick: `MGProgressButton.Duration` (`:725`), `MGTextBlock.TextCharactersPerSecond` (`:1401`), `MGTimer` / `MGStopWatch` (own `TimeScale`), `MGHighlightBorderBrush` (`:504`).
+- The graph serializer is the JSON precedent: `System.Text.Json`, versioned DTOs, no control serialized (`MGUI.Core/UI/Graph/Serialization/GraphSerializer.cs`).
+
+## Decision
+
+Taken by the author on 2026-09-12 (the recommendation of each audit question):
+
+1. Composition: a `UIStoryboard` (parallel by default) and a `UISequenceAnimation` are `UIAnimation`s owned by one root element (`element.Animations.Start(storyboard)`); their children may target any element and keep their own conflict key; the composite is cancelled when its root leaves the tree or its window closes, and cancelling the composite cancels its running children. A `UIDelayAnimation` (`Wait`) is a child with no target.
+2. Keyframes: a pure data model, `UIKeyFrame<T>(Offset in [0,1], Value, Easing name)` and `UIKeyFrameTrack<T>`, with no reference to `MGElement`, consumed by `UIKeyFrameAnimation<T>`; a minimal versioned JSON serializer (`UIKeyFrameSerializer`, `System.Text.Json`, DTOs) gives the author's editor a target format.
+3. Named visual states: no new enum member. Each element gets a `VisualStates` collection of `UIVisualState`s (name, typed setters keyed by animation target path) written at the `VisualState` (70) level of the store for pilots and through the animation targets otherwise, and animated by the existing transitions; `Checked` is a named state fed by `IsChecked` on the toggle button, check box and radio button, the enums unchanged. State names: `Normal`, `Hover`, `Pressed`, `Focused`, `Disabled`, `Selected`, `Checked`, resolved from the element's `VisualState` and `IsChecked` in that priority order (Disabled first).
+4. Overlay cross-fade: `VisualStateFillBrush.OverlayOpacity` (0..1, default 1) scales the Hovered / Pressed overlay at draw time; an animation target `Background.Overlay` animates it, and a transition on it fades the overlay in and out.
+5. Styles and themes: `<Style.Transitions>` and `<Style.VisualStates>` are merged into the element when the style is applied (setters stay reflection-based); a theme group `Animation` (`MGThemeAnimationSettings`: default durations and easings for hover, press and focus transitions, plus `Enabled`) applies to templated controls that opt in; the hot style refresh stays out of scope.
+6. Width and height: `PreferredWidth` / `PreferredHeight` become plain animation targets (`int?`), documented as layout-expensive.
+7. Migration of ad hoc animations: none is mandatory; `MGProgressButton.Duration` is re-implemented on the engine as the demonstration case, the others stay as they are.
+8. Gradients: a `Background` colour animation may interpolate two gradient brushes of the same type (four corners or two colours and a position) colour by colour; any other pair is refused explicitly.
+9. Fluent API: `element.Animate(path, from, to, seconds)` returning a builder (`Ease`, `Delay`, `Repeat`, `AutoReverse`, `Fill`, `Play`, `Then`) as sugar over `UIPropertyAnimation<T>` and `UISequenceAnimation`, last slice.
+
+Derived design (main session):
+
+- A composite is a `UIAnimation` whose `TargetKey` is a synthetic path (`Storyboard#<id>`) so it never conflicts with a property animation; its `Duration` is derived from its children; `Advance` drives the children through the manager (each child is a normal registration on its own element, started by the composite at the right moment) so the conflict rule, the diagnostics and the ownership cancellation keep working per child.
+- `UIKeyFrameAnimation<T>` derives from `UIAnimation<T>`: `From` / `To` are replaced by the track; the segment for a progress is found by binary search over the sorted offsets; a missing frame at 0 uses the current value at start (the conflict rule's "start from the current value"); each key frame's easing applies to its own segment.
+- `UIVisualState` setters are `UIVisualStateSetter(path, boxed value)` resolved through `UIAnimationTargets` (typed, no reflection); applying a state writes each setter value as the target's underlying value with a `VisualState` source where the target is store-backed; leaving a state restores the previous state's values. A transition on the same path interpolates the change like any other write.
+- `MGThemeAnimationSettings` fields: `Enabled` (bool), `HoverDuration`, `PressDuration`, `FocusDuration` (TimeSpan), `HoverEasing`, `PressEasing`, `FocusEasing` (names). Classified `RenderOnly` in the invalidation inventory (a duration change never touches the layout).
+- Serialization: `UIKeyFrameTrackDto { Version, ValueType, Frames[] { Offset, Value (JSON), Easing } }`; supported value types are the interpolator registry's built-ins; unknown types or versions fail explicitly.
+
+## Consequences
+
+- The engine gains composition without changing its per-animation contract; a child of a storyboard remains individually observable and cancellable.
+- Named visual states are a per-element data structure, not a framework-wide state machine: the enums, the store precedence and the existing containers are untouched; `Checked` becomes visible to styles and transitions without a new primary state.
+- A theme can now carry interaction timings; controls that do not opt in are unchanged.
+- Accepted costs: a composite allocates its child list once; a keyframe track allocates its sorted array once; `OverlayOpacity` adds one float to `VisualStateFillBrush`.
+- Deferred (V3 or later): hot refresh of style transitions and visual states, a `Checked` primary state, keyframes on composites, Bezier easings (editor side), migration of the remaining ad hoc animations.
