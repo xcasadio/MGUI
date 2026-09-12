@@ -191,6 +191,14 @@ namespace MGUI.Core.UI.XAML
         [Category("Appearance")]
         public float? RenderScale { get; set; }
 
+        /// <summary>The render-only transform of the element (ADR-0006, S7): <c>&lt;Button.RenderTransform&gt;&lt;RenderTransform Scale="1.05" Origin="0.5,0.5" /&gt;&lt;/Button.RenderTransform&gt;</c>.</summary>
+        [Category("Appearance")]
+        public RenderTransform RenderTransform { get; set; }
+
+        /// <summary>The transitions attached to the element (ADR-0006, S7): <c>&lt;Button.Transitions&gt;&lt;Transition Property="Opacity" Duration="0.2" Easing="CubicOut" /&gt;&lt;/Button.Transitions&gt;</c>.</summary>
+        [Category("Appearance")]
+        public List<Transition> Transitions { get; set; } = new();
+
         /// <summary>Used by <see cref="DockPanel"/>'s children</summary>
         [Category("Attached")]
         public Dock Dock
@@ -498,6 +506,17 @@ namespace MGUI.Core.UI.XAML
                 if (RenderScale.HasValue)
                 {
                     Element.RenderScale = new(RenderScale.Value, RenderScale.Value);
+                }
+
+                if (RenderTransform != null)
+                {
+                    RenderTransform.ApplyTo(Element.RenderTransform);
+                }
+
+                //  Transitions are attached last, once the declared values above are in place: a transition reads the current value when it attaches.
+                foreach (Transition Transition in Transitions)
+                {
+                    Element.Transitions.Add(Transition.ToTransition());
                 }
 
                 Element.Tag = Tag;

@@ -306,6 +306,7 @@ namespace MGUI.Core.UI.XAML
 
         private static string GetDiagnosticMessage(Exception exception)
         {
+            string outermost = null;
             foreach (Exception current in EnumerateExceptionChain(exception))
             {
                 string message = current?.Message;
@@ -314,13 +315,23 @@ namespace MGUI.Core.UI.XAML
                     continue;
                 }
 
-                if (!string.Equals(message, "Exception has been thrown by the target of an invocation.", StringComparison.Ordinal))
+                if (string.Equals(message, "Exception has been thrown by the target of an invocation.", StringComparison.Ordinal))
                 {
-                    return message;
+                    continue;
+                }
+
+                outermost ??= message;
+
+                //  A framework setter that validates its value (animation transition property, duration, easing: ADR-0006, S7) throws an
+                //  InvalidOperationException that the XAML writer wraps in its own "set property ... threw" message: the root cause is the
+                //  message worth surfacing, appended to the wrapper's so both the property and the reason are reported.
+                if (current is InvalidOperationException && current.InnerException == null && !ReferenceEquals(message, outermost))
+                {
+                    return outermost + " " + message;
                 }
             }
 
-            return exception?.Message ?? "Unknown XAML loader failure.";
+            return outermost ?? exception?.Message ?? "Unknown XAML loader failure.";
         }
 
         private static IEnumerable<Exception> EnumerateExceptionChain(Exception exception)
