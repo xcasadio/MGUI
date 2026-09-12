@@ -286,7 +286,7 @@ public class ThemeLayoutInvalidationTests
             foreach ((string key, Type valueType, UIValueResolutionSource source) in AppliedTemplateValues(owner))
             {
                 keys.Add(key);
-                UIInvalidationKind? expected = ExpectedTemplateInvalidation(valueType);
+                UIInvalidationKind? expected = ExpectedTemplateInvalidation(key, valueType);
                 if (expected != source.Invalidation)
                     violations.Add($"{key} ({valueType.Name}) on {owner.GetType().Name}: {source.Invalidation}, expected {expected?.ToString() ?? "a classified value type"}");
             }
@@ -299,20 +299,22 @@ public class ThemeLayoutInvalidationTests
             "ListView.DataGridSpacing", "ListView.DataGridLineMargin", "ComboBox.DropdownItemsSpacing", "ComboBox.DropdownItem.HorizontalAlignment",
             "TreeView.ItemsPanelSpacing", "TreeView.IndentSize", "PropertyGrid.CategoriesSpacing", "PropertyGrid.CategoriesPanelVerticalAlignment",
             "NumericUpDown.SpinnerWidth", "NumericUpDown.SpinnerMinWidth", "TabControl.HeadersSpacing", "TabControl.SelectedHeaderTemplate",
+            "TextBox.HorizontalContentAlignment", "TextBox.CharacterCount.Margin", "TextBox.CharacterCount.FontSize", "TextBox.CharacterCount.VerticalAlignment",
+            "TextBox.LimitedCharacterCountFormatString",
         }, keys);
     }
 
     /// <summary>The invalidation a template value must carry, from the CLR type the catalog applies it with.</summary>
-    private static UIInvalidationKind? ExpectedTemplateInvalidation(Type valueType)
+    private static UIInvalidationKind? ExpectedTemplateInvalidation(string key, Type valueType)
     {
         // Paddings, margins, border thicknesses, min sizes, spacings, indents, alignments, and grid lines, whose edges add outer padding.
         if (valueType == typeof(Thickness) || valueType == typeof(int) || valueType == typeof(HorizontalAlignment) || valueType == typeof(VerticalAlignment)
             || valueType == typeof(GridLinesVisibility))
             return UIThemeValueInvalidation.LayoutAffecting;
 
-        // Control template names.
+        // The markup of a text box's character count texts (backlog task 11) changes the measured text; any other string is a control template name.
         if (valueType == typeof(string))
-            return UIThemeValueInvalidation.Structural;
+            return key.EndsWith("CharacterCountFormatString", StringComparison.Ordinal) ? UIThemeValueInvalidation.LayoutAffecting : UIThemeValueInvalidation.Structural;
 
         // Brushes, colors, draw offsets and clipping.
         if (typeof(IFillBrush).IsAssignableFrom(valueType) || typeof(IBorderBrush).IsAssignableFrom(valueType) || valueType == typeof(VisualStateFillBrush)

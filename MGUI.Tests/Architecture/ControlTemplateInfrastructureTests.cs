@@ -981,6 +981,23 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("SyncResizeGripVisibility();", textBoxSource);
         Assert.DoesNotContain("Padding = new(6, 2, 6, 2);", textBoxSource);
         Assert.DoesNotContain("MinHeight = 26;", textBoxSource);
+
+        // Backlog task 11: the remaining visual values are template values, and the control documents its chrome/behaviour boundary.
+        Assert.Contains("Context.ApplyTemplateValue(\"TextBox.CharacterCount.Margin\"", catalogSource);
+        Assert.Contains("Context.ApplyTemplateValue(\"TextBox.CharacterCount.FontSize\"", catalogSource);
+        Assert.Contains("Context.ApplyTemplateValue(\"TextBox.CharacterCount.HorizontalAlignment\"", catalogSource);
+        Assert.Contains("Context.ApplyTemplateValue(\"TextBox.CharacterCount.VerticalAlignment\"", catalogSource);
+        Assert.Contains("Context.ApplyThemeDefault(\"TextBox.HorizontalContentAlignment\"", catalogSource);
+        Assert.Contains("Context.ApplyThemeDefault(\"TextBox.VerticalContentAlignment\"", catalogSource);
+        Assert.Contains("Context.ApplyThemeDefault(\"TextBox.LimitedCharacterCountFormatString\"", catalogSource);
+        Assert.Contains("Context.ApplyThemeDefault(\"TextBox.LimitlessCharacterCountFormatString\"", catalogSource);
+        Assert.DoesNotContain("TrySetFont(window.Desktop.DefaultFontFamily, 9)", catalogSource);
+        Assert.DoesNotContain("HorizontalContentAlignment = HorizontalAlignment.Left;", textBoxSource);
+        Assert.DoesNotContain("VerticalContentAlignment = VerticalAlignment.Center;", textBoxSource);
+        Assert.DoesNotContain("CharacterCountFormatString = \"[b]", textBoxSource);
+        Assert.DoesNotContain("HorizontalAlignment.Right, VerticalAlignment.Bottom", attachSlice);
+        Assert.Contains("ApplyAlignment(AvailableBounds, element.HorizontalAlignment, element.VerticalAlignment, ComponentSize.Size)", attachSlice);
+        Assert.Contains("Chrome/behaviour boundary", textBoxSource);
         Assert.DoesNotContain("PlaceholderTextBlockElement.Visibility = Visibility.Collapsed;", attachSlice);
         Assert.DoesNotContain("CharacterCountElement.Visibility = _ShowCharacterCount ? Visibility.Visible : Visibility.Collapsed;", attachSlice);
         Assert.DoesNotContain("ResizeGripElement.Visibility = IsUserResizable ? Visibility.Visible : Visibility.Collapsed;", attachSlice);

@@ -29,6 +29,13 @@ namespace MGUI.Core.UI
         Overwrite
     }
 
+    /// <summary>A single or multi-line text entry control.<para/>
+    /// Chrome/behaviour boundary (backlog task 11 of <c>Docs/Tasks/styling-theme-tasks.md</c>): the control template (<see cref="MGControlTemplateCatalog.TextBoxTemplateName"/>,
+    /// whose defaults <see cref="MGNumericUpDown"/>'s template also applies) owns the visual structure (<see cref="BorderPartName"/>, <see cref="TextBlockPartName"/>,
+    /// <see cref="PlaceholderTextBlockPartName"/>, <see cref="CharacterCountPartName"/>, <see cref="ResizeGripPartName"/>) and every purely visual value: background,
+    /// padding, minimum height, selection colors, content alignments, the margin, font size and corner of the character count, and the markup of its texts.
+    /// This class owns the behaviour: text and character limit, caret, selection and its formatting, keyboard and mouse input, scrolling and resizing. It keeps
+    /// the state that drives a part in its own fields and pushes it onto the attached parts (placeholder text, counter visibility and text, resize grip visibility).</summary>
     public class MGTextBox : MGElement, ITextEntryHost
     {
         public const string BorderPartName = "PART_Border";
@@ -1118,20 +1125,16 @@ namespace MGUI.Core.UI
             {
                 DrawBackgroundBorderOverlayEnabled = false;
                 IsReadonly = false;
-                HorizontalContentAlignment = HorizontalAlignment.Left;
-                VerticalContentAlignment = VerticalAlignment.Center;
                 this.CharacterLimit = CharacterLimit;
                 AcceptsReturn = true;
                 AcceptsTab = true;
 
+                // Chrome: the parts, the content alignments and the character count format strings come from the template (TextBox.Default).
                 DefaultControlTemplateName = MGControlTemplateCatalog.TextBoxTemplateName;
 
                 this.IsUserResizable = IsUserResizable;
                 PlaceholderText = null;
                 this.ShowCharacterCount = ShowCharacterCount;
-
-                LimitedCharacterCountFormatString = "[b]{{CharacterCount}}[/b] / [b]{{CharacterLimit}}[/b]";
-                LimitlessCharacterCountFormatString = "[b]{{CharacterCount}}[/b] character(s)";
 
                 MouseHandler.LMBPressedInside += (sender, e) =>
                 {
@@ -1317,7 +1320,8 @@ namespace MGUI.Core.UI
             EnsureComponentBinding(() => CharacterCountComponent, value => CharacterCountComponent = value, CharacterCountElement,
                 element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
                     true, false, false, false, false, true, true,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, ComponentSize.Size)));
+                    // The counter's corner is chrome: the template sets it through the part's own alignments.
+                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, element.HorizontalAlignment, element.VerticalAlignment, ComponentSize.Size)));
 
             EnsureComponentBinding(() => TextBlockComponent, value => TextBlockComponent = value, TextBlockElement,
                 element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,

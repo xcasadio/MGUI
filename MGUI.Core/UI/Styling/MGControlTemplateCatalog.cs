@@ -703,9 +703,8 @@ namespace MGUI.Core.UI.Styling
             MGResizeGrip resizeGrip = new(window);
             MGTextBlock placeholder = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
             placeholder.Visibility = Visibility.Collapsed;
+            // The counter's margin, font size and corner are template values, see ApplyTextBoxTemplate.
             MGTextBlock characterCount = new(window, "0");
-            characterCount.SetMargin(new(0, 0, 8, 4), UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "TextBox.CharacterCount.Margin"));
-            _ = characterCount.TrySetFont(window.Desktop.DefaultFontFamily, 9);
             MGTextBlock textBlock = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
             textBlock.ClipToBounds = false;
 
@@ -1245,6 +1244,21 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("TextBox.FocusedSelectionBackground", theme.TextBoxFocusedSelectionBackground, () => textBox.FocusedSelectionBackgroundColor, value => textBox.FocusedSelectionBackgroundColor = value);
             Context.ApplyThemeDefault("TextBox.UnfocusedSelectionForeground", theme.TextBoxUnfocusedSelectionForeground, () => textBox.UnfocusedSelectionForegroundColor, value => textBox.UnfocusedSelectionForegroundColor = value);
             Context.ApplyThemeDefault("TextBox.UnfocusedSelectionBackground", theme.TextBoxUnfocusedSelectionBackground, () => textBox.UnfocusedSelectionBackgroundColor, value => textBox.UnfocusedSelectionBackgroundColor = value);
+
+            // Backlog task 11: the remaining chrome of the text box. The content alignments and the markup of the character count texts are defaults of the
+            // control itself; the counter's margin, font size and corner are values of its part, which MGTextBox lays out with the part's own alignments.
+            Context.ApplyThemeDefault("TextBox.HorizontalContentAlignment", HorizontalAlignment.Left, () => textBox.HorizontalContentAlignment, value => textBox.HorizontalContentAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyThemeDefault("TextBox.VerticalContentAlignment", VerticalAlignment.Center, () => textBox.VerticalContentAlignment, value => textBox.VerticalContentAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyThemeDefault("TextBox.LimitedCharacterCountFormatString", "[b]{{CharacterCount}}[/b] / [b]{{CharacterLimit}}[/b]", () => textBox.LimitedCharacterCountFormatString,
+                value => textBox.LimitedCharacterCountFormatString = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyThemeDefault("TextBox.LimitlessCharacterCountFormatString", "[b]{{CharacterCount}}[/b] character(s)", () => textBox.LimitlessCharacterCountFormatString,
+                value => textBox.LimitlessCharacterCountFormatString = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+
+            MGTextBlock characterCount = Context.GetRequiredPart<MGTextBlock>(MGTextBox.CharacterCountPartName);
+            Context.ApplyTemplateValue("TextBox.CharacterCount.Margin", new Thickness(0, 0, 8, 4), () => characterCount.Margin, (value, source) => characterCount.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyTemplateValue("TextBox.CharacterCount.FontSize", 9, () => characterCount.FontSize, value => characterCount.TrySetFontSize(value), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyTemplateValue("TextBox.CharacterCount.HorizontalAlignment", HorizontalAlignment.Right, () => characterCount.HorizontalAlignment, value => characterCount.HorizontalAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyTemplateValue("TextBox.CharacterCount.VerticalAlignment", VerticalAlignment.Bottom, () => characterCount.VerticalAlignment, value => characterCount.VerticalAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
         private static void ApplyNumericUpDownTemplate(MGControlTemplateContext Context)
