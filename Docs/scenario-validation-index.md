@@ -28,6 +28,7 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 | `SCN-TEXT-001` | text | la selection et l'echappement des backslashes dans `TextBox` restent stables et demonstrables | `MGUI.Samples/Features/TextBoxBackslashTest.xaml` | build sample + filtre texte cible |
 | `SCN-TEXT-002` | text surface lite : chat + log + texte annote | les usages chat, log et debug reutilisent un petit chemin texte explicite : runs programmes pour l'annotation, feed append-only pour le log, formatting inline optionnel pour les messages de chat, sans ouvrir un RichTextBox complet | `MGUI.Samples/Features/TextSurfaceLite.xaml` | `FullyQualifiedName~Text\|FullyQualifiedName~Chat\|FullyQualifiedName~Focus` |
 | `SCN-ANIM-001` | animation | les transitions et animations de rendu (opacite, transform, echelle d'etat, couleurs unies) suivent l'input et ne touchent pas le layout, un pilote de layout anime le re-declenche a chaque tick, l'horloge se met en pause et se ralentit | `MGUI.Samples/Features/AnimationDemo.xaml` | `FullyQualifiedName~Animation` |
+| `SCN-ANIM-002` | animation V2 | un storyboard joue ses enfants en parallele et une sequence fluente les enchaine, une piste de keyframes fait un pop, un toggle declare ses etats nommes en XAML (`Hover`, `Pressed`, `Checked`) interpoles par ses transitions, un style implicite donne sa transition a tous les boutons, le groupe `Animation` du theme s'active a chaud sur tous les boutons, `ProgressButton.Duration` avance sur le moteur (pause, reprise, horloge) | `MGUI.Samples/Features/AnimationDemo.xaml` (colonne V2) | `FullyQualifiedName~Animation\|FullyQualifiedName~Architecture` |
 | `SCN-EDITOR-RTB-001` | rich textbox editor | l'editeur RichTextBox sample reste editable, colore lexicalement et capable d'accepter une completion C# demo | `MGUI.Samples/Features/EditorRichTextBox.xaml` | build sample + `FullyQualifiedName~RichTextBox\|FullyQualifiedName~Completion\|FullyQualifiedName~Syntax` |
 
 ## Rattachement aux docs par theme
@@ -41,7 +42,8 @@ Chaque scenario se rattache a une doc d'architecture et, quand du travail reste 
 - `SCN-SHAPE-001` : [drawing-architecture.md](drawing-architecture.md) ;
 - `SCN-TEXT-001`, `SCN-TEXT-002` : [text-architecture.md](text-architecture.md) ;
 - `SCN-EDITOR-RTB-001` : taches [Tasks/richtextbox-autocomplete-tasks.md](Tasks/richtextbox-autocomplete-tasks.md) ;
-- `SCN-ANIM-001` : [animation-architecture.md](animation-architecture.md), taches [Tasks/animation-tasks.md](Tasks/animation-tasks.md).
+- `SCN-ANIM-001` : [animation-architecture.md](animation-architecture.md), taches [Tasks/animation-tasks.md](Tasks/animation-tasks.md) ;
+- `SCN-ANIM-002` : [animation-architecture.md](animation-architecture.md), [decisions/0007-animation-v2-composition-states-keyframes.md](decisions/0007-animation-v2-composition-states-keyframes.md), taches [Tasks/animation-v2-tasks.md](Tasks/animation-v2-tasks.md).
 
 ## Usage pratique
 

@@ -1,11 +1,19 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        Left="120" Top="80" Width="640" Height="540"
-        TitleText="SCN-ANIM-001 Animation Demo" Padding="12">
+        Left="80" Top="60" Width="1080" Height="600"
+        TitleText="SCN-ANIM-001 / SCN-ANIM-002 Animation Demo" Padding="12">
+    <!-- V2 (SCN-ANIM-002): every Button of this window gets a hover-scale transition from an implicit style -->
+    <Window.Styles>
+        <Style TargetType="Button">
+            <Style.Transitions>
+                <Transition Property="RenderScale" Duration="0.1" Easing="CubicOut" />
+            </Style.Transitions>
+        </Style>
+    </Window.Styles>
     <DockPanel>
         <Border Dock="Top" Padding="10" Margin="0,0,0,10" Background="#2B3440" CornerRadius="6">
             <StackPanel Spacing="6">
-                <TextBlock Text="Animation system V1" FontSize="20" IsBold="True" Foreground="White" />
-                <TextBlock Text="Transitions on hover and background, explicit animations (fade, slide, rotation, pulse), animated margin, popup opening, clock pause and time scale."
+                <TextBlock Text="Animation system V1 + V2" FontSize="20" IsBold="True" Foreground="White" />
+                <TextBlock Text="Left: V1 (transitions, explicit animations, animated margin, popup, clock). Right: V2 (storyboard, fluent sequence, keyframes, named visual states with Checked, style transitions, theme timings, ProgressButton on the engine)."
                            FontSize="12" Foreground="#C9D2DC" WrapText="True" />
             </StackPanel>
         </Border>
@@ -17,60 +25,126 @@
             <TextBlock Name="ActiveCountText" Text="Active animations: 0" VerticalAlignment="Center" Margin="12,0,0,0" />
         </StackPanel>
 
-        <StackPanel Spacing="10">
-            <Grid ColumnLengths="*,*" ColumnSpacing="10">
-                <!-- Hover and press: the state-driven scale and the background transition, declared in XAML -->
-                <Border GridColumn="0" Padding="10" Background="#1F2933" CornerRadius="6">
+        <Grid ColumnLengths="*,*" ColumnSpacing="12">
+            <!-- V1 -->
+            <StackPanel GridColumn="0" Spacing="10">
+                <Grid ColumnLengths="*,*" ColumnSpacing="10">
+                    <!-- Hover and press: the state-driven scale and the background transition, declared in XAML -->
+                    <Border GridColumn="0" Padding="10" Background="#1F2933" CornerRadius="6">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Hover / press transitions (XAML)" IsBold="True" Foreground="White" />
+                            <Button Name="HoverButton" Content="Hover me" MinHeight="36" RenderScale="1.06" Background="#3D6C9E">
+                                <Button.RenderTransform>
+                                    <RenderTransform Origin="0.5,0.5" />
+                                </Button.RenderTransform>
+                                <Button.Transitions>
+                                    <Transition Property="RenderScale" Duration="0.12" Easing="CubicOut" />
+                                    <Transition Property="Background" Duration="0.2" Easing="QuadOut" />
+                                </Button.Transitions>
+                            </Button>
+                            <Button Name="ColorButton" Content="Cycle background" MinHeight="36" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Explicit animations from code -->
+                    <Border GridColumn="1" Padding="10" Background="#1F2933" CornerRadius="6">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Explicit animations (code)" IsBold="True" Foreground="White" />
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Button Name="FadeButton" Content="Fade" />
+                                <Button Name="SlideButton" Content="Slide" />
+                                <Button Name="SpinButton" Content="Spin" />
+                                <Button Name="PulseButton" Content="Pulse" />
+                            </StackPanel>
+                            <Border Name="Target" Width="120" Height="60" Background="#C0392B" CornerRadius="8" HorizontalAlignment="Left">
+                                <TextBlock Text="target" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Layout pilot: an animated margin re-lays out the row every frame -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Hover / press transitions (XAML)" IsBold="True" Foreground="White" />
-                        <Button Name="HoverButton" Content="Hover me" MinHeight="36" RenderScale="1.06" Background="#3D6C9E">
-                            <Button.RenderTransform>
-                                <RenderTransform Origin="0.5,0.5" />
-                            </Button.RenderTransform>
-                            <Button.Transitions>
-                                <Transition Property="RenderScale" Duration="0.12" Easing="CubicOut" />
-                                <Transition Property="Background" Duration="0.2" Easing="QuadOut" />
-                            </Button.Transitions>
-                        </Button>
-                        <Button Name="ColorButton" Content="Cycle background" MinHeight="36" />
+                        <TextBlock Text="Layout pilot (Margin, re-layout every tick)" IsBold="True" Foreground="White" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Name="MarginButton" Content="Animate margin" />
+                            <Border Name="MarginTarget" Width="80" Height="28" Background="#27AE60" CornerRadius="4" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
-                <!-- Explicit animations from code -->
-                <Border GridColumn="1" Padding="10" Background="#1F2933" CornerRadius="6">
+                <!-- Popup opening: opacity + scale from the centre -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Explicit animations (code)" IsBold="True" Foreground="White" />
+                        <TextBlock Text="Popup opening (opacity + scale from the centre)" IsBold="True" Foreground="White" />
+                        <Button Name="PopupButton" Content="Open popup" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- V2 -->
+            <StackPanel GridColumn="1" Spacing="10">
+                <!-- Composition: a storyboard (parallel), a fluent sequence, a keyframe pop -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Composition (storyboard, fluent sequence, keyframes)" IsBold="True" Foreground="White" />
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Button Name="FadeButton" Content="Fade" />
-                            <Button Name="SlideButton" Content="Slide" />
-                            <Button Name="SpinButton" Content="Spin" />
-                            <Button Name="PulseButton" Content="Pulse" />
+                            <Button Name="StoryboardButton" Content="Storyboard" />
+                            <Button Name="SequenceButton" Content="Sequence" />
+                            <Button Name="PopButton" Content="Keyframe pop" />
                         </StackPanel>
-                        <Border Name="Target" Width="120" Height="60" Background="#C0392B" CornerRadius="8" HorizontalAlignment="Left">
-                            <TextBlock Text="target" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
+                        <Border Name="V2Target" Width="120" Height="60" Background="#8E44AD" CornerRadius="8" HorizontalAlignment="Left">
+                            <Border.RenderTransform>
+                                <RenderTransform Origin="0.5,0.5" />
+                            </Border.RenderTransform>
+                            <TextBlock Text="v2 target" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
                         </Border>
                     </StackPanel>
                 </Border>
-            </Grid>
 
-            <!-- Layout pilot: an animated margin re-lays out the row every frame -->
-            <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Layout pilot (Margin, re-layout every tick)" IsBold="True" Foreground="White" />
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Button Name="MarginButton" Content="Animate margin" />
-                        <Border Name="MarginTarget" Width="80" Height="28" Background="#27AE60" CornerRadius="4" />
+                <!-- Named visual states declared in XAML, Checked on a toggle, interpolated by transitions -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Named visual states (Hover, Pressed, Checked) with transitions" IsBold="True" Foreground="White" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <ToggleButton Name="StateToggle" Content="Check me" MinWidth="120" MinHeight="36">
+                                <ToggleButton.RenderTransform>
+                                    <RenderTransform Origin="0.5,0.5" />
+                                </ToggleButton.RenderTransform>
+                                <ToggleButton.VisualStates>
+                                    <VisualStateDefinition Name="Hover">
+                                        <Setter Property="RenderTransform.Scale" Value="1.05" />
+                                    </VisualStateDefinition>
+                                    <VisualStateDefinition Name="Pressed">
+                                        <Setter Property="RenderTransform.Scale" Value="0.96" />
+                                    </VisualStateDefinition>
+                                    <VisualStateDefinition Name="Checked">
+                                        <Setter Property="Background" Value="#27AE60" />
+                                        <Setter Property="RenderTransform.Scale" Value="1.0" />
+                                    </VisualStateDefinition>
+                                </ToggleButton.VisualStates>
+                                <ToggleButton.Transitions>
+                                    <Transition Property="RenderTransform.Scale" Duration="0.1" Easing="CubicOut" />
+                                    <Transition Property="Background" Duration="0.15" Easing="QuadOut" />
+                                </ToggleButton.Transitions>
+                            </ToggleButton>
+                            <TextBlock Name="StateText" Text="state: none" VerticalAlignment="Center" Foreground="#C9D2DC" />
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
-            </Border>
+                </Border>
 
-            <!-- Popup opening: opacity + scale from the centre -->
-            <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Popup opening (opacity + scale from the centre)" IsBold="True" Foreground="White" />
-                    <Button Name="PopupButton" Content="Open popup" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
+                <!-- Theme timings and the ProgressButton on the engine -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Theme timings (RenderScale + overlay fade on every button) and ProgressButton.Duration on the engine" IsBold="True" Foreground="White" WrapText="True" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Name="ThemeAnimationButton" Content="Theme animation: off" MinWidth="180" />
+                            <ProgressButton Name="EngineProgress" Content="Click: 3 s on the engine" MinWidth="200" MinHeight="36" Duration="0:0:3" ProgressBarForeground="#2980B9" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
     </DockPanel>
 </Window>

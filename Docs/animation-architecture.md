@@ -110,6 +110,7 @@ Cibles framework (`Targets/UIBuiltInAnimationTargets.cs`, `Targets/UIColorAnimat
 | `PreferredWidth`, `PreferredHeight` | int? | simple (layout, couteux) | idem |
 | `Background.Gradient` | `UIGradientColors` (4 coins) | pilote (slot Normal, `MGGradientFillBrush` seulement) | retrait, puis base sous la source du conteneur |
 | `Background.DiagonalGradient` | `UIDiagonalGradientColors` (2 couleurs + coin) | pilote (slot Normal, `MGDiagonalGradientFillBrush` seulement) | idem |
+| `ProgressButton.Value` | float | simple, non observable (`MGProgressButton` seulement, refus explicite ailleurs ; ecrit par `ApplyAnimatedValue`) | valeur de base gardee par le moteur ; le run de `Duration` garde la valeur courante |
 
 Base et valeur animee : pour un pilote, la valeur effective est le gagnant du store, `Animation` (100) etant la plus forte ; a la fin ou a l'annulation avec restauration, la contribution est retiree et la meilleure source suivante reprend (`UIToolingService.TryGetResolvedValueSource` rapporte `Animation` pendant l'animation). `HoldEnd` sur un pilote garde la contribution (`IsHeld`) jusqu'a la prochaine animation du meme chemin ou `Animations.Clear()`, et masque une ecriture locale posee entre-temps ; sur une propriete simple, la valeur finale reste simplement la valeur CLR et une ecriture locale ulterieure l'emporte (asymetrie assumee).
 
@@ -187,9 +188,25 @@ Theme : le groupe `MGTheme.Animation` (`MGThemeAnimationSettings` : `Enabled`, `
 
 Cout : `ViewModelBase.NotifyPropertyChanged` partage un `PropertyChangedEventArgs` par nom de propriete, si bien qu'un element abonne (transition, binding) n'alloue rien par notification ; avant T5, chaque `NPC` d'un element ayant un abonne allouait 24 octets.
 
+## MGProgressButton sur le moteur
+
+`MGProgressButton.Duration` (ADR-0007, decision 7, T6) ne cumule plus `FrameElapsed` dans `UpdateSelf` : `SyncDurationAnimation` (appele par les setters de `Duration`, `IsPaused`, `Value`, `Minimum` et `Maximum`) demarre un `UIPropertyAnimation<float>` lineaire sur `ProgressButton.Value`, de la valeur courante a `Maximum`, sur la part restante de `Duration` (`Duration * (Maximum - Value) / (Maximum - Minimum)`), nomme `ProgressButton.Duration` (`MGProgressButton.DurationAnimationName`, visible dans la debug view), `HoldEnd`, annulation `KeepCurrent`. Regles : une pause annule le run en gardant la valeur, une reprise repart de la valeur courante ; `Duration = null`, l'achevement ou une plage vide annulent ; une `Value` ecrite par l'application pendant le run recible depuis cette valeur ; un changement de `Duration` ou de plage recalcule la part restante. Les ecritures du run passent par `ApplyAnimatedValue`, qui ne recible pas ; un changement demande depuis l'ecriture du run (action d'achevement `Pause`, `Reset`, `ResetAndResume`...) est applique dans l'`UpdateSelf` de la meme frame, apres le tick du manager, pour ne pas annuler le run depuis sa propre ecriture. Le run suit l'horloge du manager (pause, `TimeScale`). Rien ne tourne hors de l'arbre : quitter l'arbre (ou fermer la fenetre, ou `Animations.Clear()`) annule le run en gardant la valeur (le run redefinit la restauration forcee comme un maintien, la progression n'est jamais rembobinee) et rejoindre un arbre le relance depuis la valeur courante. Une valeur sous `Minimum` n'est pas bornee par le run, il dure plus longtemps ; une duree nulle termine au premier tick. La cible n'est pas observable : une transition sur `ProgressButton.Value` est refusee (elle concurrencerait le run). `RemainingDuration` rend desormais la part restante (il rendait la part ecoulee). Limite : fermer la fenetre ou detacher le bouton depuis `OnCompleted` (dans l'ecriture finale du run) annule le run avant que le moteur ne l'ait marque termine, il emet alors `Cancelled` puis `Completed` (ordre du moteur, hors programme).
+
+## API fluente
+
+`UIAnimateExtensions.Animate` (ADR-0007, decision 9, T7) est du sucre sur `UIPropertyAnimation<T>` et `UISequenceAnimation`, sans concept nouveau :
+
+```csharp
+element.Animate("Opacity", 0f, 1f, 0.3).Ease(UIEasing.CubicOut).Named("fade").Play();
+element.Animate("RenderTransform.Scale", new Vector2(1.2f), 0.25).Ease("BackOut").AutoReverse().Repeat(3).Fill(UIAnimationFillBehavior.RestoreBaseValue).Play();
+element.Animate("Opacity", 0f, 1f, 0.2).Then("RenderTransform.Rotation", 0f, 90f, 0.3).Wait(0.1).Then(popKeyFrames).Play();
+```
+
+`Animate(chemin, [de,] vers, secondes | TimeSpan)` resout la cible tout de suite (chemin inconnu ou type faux echouent la ou la chaine est ecrite) ; `Ease` (fonction ou nom), `Interpolate`, `Delay`, `Repeat`, `RepeatForever`, `AutoReverse`, `Fill`, `OnCancel`, `Named`, `Configure` posent les proprietes de l'etape courante (`UIAnimationBuilder<T>.Animation`) ; `Then` ajoute une etape (ou une animation deja construite, un keyframe par exemple), `Wait` une pause (`UIDelayAnimation`) ; `Build` rend l'animation (l'etape seule, ou une `UISequenceAnimation` nommee d'apres la premiere etape nommee, construite une fois par chaine), `Play` la demarre sur l'element et la rend.
+
 ## Diagnostics
 
-`UIToolingService.CaptureElementDebugView(element)` liste les animations actives et retenues de l'element et ses transitions (chemin, etat, progression, nom) ; `RenderElementDebugView` les rend sous `animations:` et `transitions:`. `UIPerformanceProbe` expose la phase `Animations` du desktop.
+`UIToolingService.CaptureElementDebugView(element)` liste les animations actives et retenues de l'element et ses transitions (chemin, etat, progression, nom) et donne l'etat visuel nomme courant (`VisualStateName`, T8) ; `RenderElementDebugView` les rend sous `animations:` et `transitions:`, et `named=` sur la ligne `visual-state:`. `UIPerformanceProbe` expose la phase `Animations` du desktop.
 
 ## Cout
 
@@ -213,4 +230,4 @@ Cout : `ViewModelBase.NotifyPropertyChanged` partage un `PropertyChangedEventArg
 
 ## Reste a faire
 
-Le programme V2 est dans `Docs/Tasks/animation-v2-tasks.md` ; livre : composition (T1), keyframes (T2), fondu des overlays et cibles supplementaires (T3), etats visuels nommes (T4), styles et theme (T5). Reste : `MGProgressButton` sur le moteur (T6), API fluente (T7), sample et validation (T8). L'editeur de timeline vit dans le moteur de jeu de l'auteur.
+V1 (`Docs/Tasks/animation-tasks.md`, ADR-0006) et V2 (`Docs/Tasks/animation-v2-tasks.md`, ADR-0007 : composition, keyframes, fondu des overlays, etats visuels nommes, styles et theme, `MGProgressButton` sur le moteur, API fluente, sample `SCN-ANIM-002`) sont livrees. V3 ou plus tard (ADR-0007) : refresh a chaud des transitions et etats des styles, etat primaire `Checked`, keyframes sur les composites, easings de Bezier (cote editeur), migration des autres animations ad hoc (`MGTextBlock.TextCharactersPerSecond`, `MGTimer`, `MGStopWatch`, `MGHighlightBorderBrush`) ; l'editeur de timeline vit dans le moteur de jeu de l'auteur. L'editeur de timeline vit dans le moteur de jeu de l'auteur.

@@ -2,7 +2,9 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.Composition;
 using MGUI.Core.UI.Animation.Easing;
+using MGUI.Core.UI.Animation.KeyFrames;
 using MGUI.Core.UI.Animation.Targets;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
@@ -10,7 +12,8 @@ using MonoGame.Extended;
 
 namespace MGUI.Samples.Features
 {
-    /// <summary>Scenario SCN-ANIM-001 (Docs/scenario-validation-index.md): the animation system V1 (ADR-0006), XAML transitions and explicit animations.</summary>
+    /// <summary>Scenarios SCN-ANIM-001 and SCN-ANIM-002 (Docs/scenario-validation-index.md): the animation system V1 (ADR-0006: XAML transitions and
+    /// explicit animations) and V2 (ADR-0007: composition, keyframes, named visual states, style and theme animation, ProgressButton on the engine).</summary>
     public class AnimationDemoSample : SampleBase
     {
         private static readonly Color[] BackgroundCycle = { new(0x3D, 0x6C, 0x9E), new(0x8E, 0x44, 0xAD), new(0x16, 0xA0, 0x85), new(0xD3, 0x54, 0x00) };
@@ -112,8 +115,61 @@ namespace MGUI.Samples.Features
             Window.GetElementByName<MGButton>("HalfSpeedButton").AddCommandHandler((btn, e) => Desktop.Animations.Clock.TimeScale = 0.5f);
             Window.GetElementByName<MGButton>("NormalSpeedButton").AddCommandHandler((btn, e) => Desktop.Animations.Clock.TimeScale = 1f);
 
-            Window.OnEndUpdate += (sender, e) => activeCount.SetText($"Active animations: {Desktop.Animations.ActiveCount}");
+            WireV2();
+
+            MGTextBlock stateText = Window.GetElementByName<MGTextBlock>("StateText");
+            MGToggleButton stateToggle = Window.GetElementByName<MGToggleButton>("StateToggle");
+            Window.OnEndUpdate += (sender, e) =>
+            {
+                activeCount.SetText($"Active animations: {Desktop.Animations.ActiveCount}");
+                stateText.SetText($"state: {stateToggle.CurrentVisualStateName ?? "none"}");
+            };
         }
+
+        /// <summary>SCN-ANIM-002: composition, the fluent API, keyframes, the theme timings and the engine-driven progress button.</summary>
+        private void WireV2()
+        {
+            MGBorder v2Target = Window.GetElementByName<MGBorder>("V2Target");
+
+            //  A storyboard: three children in parallel, each a normal registration on its own path.
+            Window.GetElementByName<MGButton>("StoryboardButton").AddCommandHandler((btn, e) =>
+                v2Target.Animations.Start(new UIStoryboard
+                {
+                    new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity) { From = 0f, To = 1f, Duration = TimeSpan.FromMilliseconds(300), Easing = UIEasing.QuadOut, Name = "open-fade" },
+                    new UIPropertyAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformScale) { From = new Vector2(0.85f), To = Vector2.One, Duration = TimeSpan.FromMilliseconds(350), Easing = UIEasing.BackOut, Name = "open-scale" },
+                    new UIPropertyAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformTranslation) { From = new Vector2(0f, 24f), To = Vector2.Zero, Duration = TimeSpan.FromMilliseconds(350), Easing = UIEasing.CubicOut, Name = "open-slide" },
+                }.Named("open")));
+
+            //  The fluent API builds a sequence: fade, then a spin, then a pause, then the keyframe pop.
+            Window.GetElementByName<MGButton>("SequenceButton").AddCommandHandler((btn, e) =>
+                v2Target
+                    .Animate(UIBuiltInAnimationTargets.Paths.Opacity, 0f, 1f, 0.2).Ease(UIEasing.QuadOut).Named("sequence")
+                    .Then(UIBuiltInAnimationTargets.Paths.RenderTransformRotation, 0f, 360f, 0.5).Ease("CubicInOut").Fill(UIAnimationFillBehavior.RestoreBaseValue)
+                    .Wait(0.1)
+                    .Then(CreatePop())
+                    .Play());
+
+            Window.GetElementByName<MGButton>("PopButton").AddCommandHandler((btn, e) => v2Target.Animations.Start(CreatePop()));
+
+            //  The theme timings: a copy of the desktop theme with the Animation group toggled; every button of the desktop follows.
+            MGButton themeButton = Window.GetElementByName<MGButton>("ThemeAnimationButton");
+            themeButton.SetContent(Desktop.Theme.Animation.Enabled ? "Theme animation: on" : "Theme animation: off");
+            themeButton.AddCommandHandler((btn, e) =>
+            {
+                MGTheme theme = Desktop.Theme.Copy();
+                theme.Animation.Enabled = !theme.Animation.Enabled;
+                Desktop.Resources.DefaultTheme = theme;
+                themeButton.SetContent(theme.Animation.Enabled ? "Theme animation: on" : "Theme animation: off");
+            });
+        }
+
+        /// <summary>A keyframe pop of the scale: 0.8 -> 1.1 (BackOut) -> 1.0 (QuadOut) over 400 ms.</summary>
+        private static UIKeyFrameAnimation<Vector2> CreatePop() => new(UIBuiltInAnimationTargets.Paths.RenderTransformScale)
+        {
+            Duration = TimeSpan.FromMilliseconds(400),
+            Track = { { 0f, new Vector2(0.8f) }, { 0.6f, new Vector2(1.1f), "BackOut" }, { 1f, Vector2.One, "QuadOut" } },
+            Name = "pop",
+        };
 
         /// <summary>Opens (or re-opens) a nested popup whose content fades and scales in from its centre, the "window opening" example of the specification.</summary>
         private void OpenPopup()
@@ -165,6 +221,16 @@ namespace MGUI.Samples.Features
             {
                 Window.RemoveNestedWindow(_popup);
             }
+        }
+    }
+
+    internal static class AnimationDemoExtensions
+    {
+        /// <summary>Names a storyboard inside a collection-initializer expression.</summary>
+        public static UIStoryboard Named(this UIStoryboard storyboard, string name)
+        {
+            storyboard.Name = name;
+            return storyboard;
         }
     }
 }

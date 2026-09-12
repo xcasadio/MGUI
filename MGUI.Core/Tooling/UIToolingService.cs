@@ -360,6 +360,7 @@ namespace MGUI.Core.Tooling
                 element.ElementType,
                 visualState.Primary,
                 visualState.Secondary,
+                element.CurrentVisualStateName,
                 effectiveResourceScope.Scope,
                 FindResourceScopeOwnerDiagnosticId(element, effectiveResourceScope),
                 element.LocalResources != null,
@@ -382,7 +383,7 @@ namespace MGUI.Core.Tooling
 
             StringBuilder artifact = new();
             artifact.AppendLine($"element: {view.DiagnosticId} [{view.ElementType}] name={view.Name ?? "<none>"}");
-            artifact.AppendLine($"visual-state: primary={view.PrimaryVisualState} secondary={view.SecondaryVisualState}");
+            artifact.AppendLine($"visual-state: primary={view.PrimaryVisualState} secondary={view.SecondaryVisualState} named={view.VisualStateName ?? "<none>"}");
             artifact.AppendLine($"resource-scope: scope={view.ResourceScope} scopeOwner={view.ResourceScopeOwnerDiagnosticId ?? "<none>"} localScope={view.HasLocalResourceScope}");
             artifact.AppendLine($"template: {view.AppliedControlTemplate ?? "<none>"} error={view.LastControlTemplateError ?? "<none>"}");
 

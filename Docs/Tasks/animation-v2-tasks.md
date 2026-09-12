@@ -161,7 +161,9 @@ Travail attendu :
 
 Commit recommande : `animation: declare transitions and visual states in styles, add the theme animation group`
 
-### ⚪ T6. ProgressButton sur le moteur
+### ✅ T6. ProgressButton sur le moteur
+
+**Statut** : livre le 13 septembre 2026. `UIBuiltInAnimationTargets` : cible `ProgressButton.Value` (simple, observable par `NPC(Value)`, `MGProgressButton` seulement, refus explicite ailleurs, ecritures par `MGProgressButton.ApplyAnimatedValue`). `MGProgressButton` : `SyncDurationAnimation` (setters de `Duration`, `IsPaused`, `Value`, `Minimum`, `Maximum`) demarre un `UIPropertyAnimation<float>` lineaire `ProgressButton.Duration` de la valeur courante a `Maximum` sur la part restante de `Duration` (`HoldEnd`, `KeepCurrent`, `InheritsBaseValue` faux), l'annule en gardant la valeur (pause, `Duration = null`, achevement, plage vide) ; une ecriture de `Value` par l'application recible, celle du run ne recible pas ; un changement demande depuis l'ecriture du run (action d'achevement) est differe a l'`UpdateSelf` de la meme frame, apres le tick du manager ; `UpdateSelf` ne cumule plus ; `RemainingDuration` corrige (rendait la part ecoulee). Revue independante (Sonnet) : deux bugs corriges avant commit, (1) quitter l'arbre ou fermer la fenetre annulait le run avec restauration forcee et rembobinait `Value` a la valeur de depart du run, sans reprise au rattachement : `DurationRun` (sous-classe privee) neutralise la restauration et `OnParentChanged` relance le run en rejoignant un arbre, rien ne tourne hors de l'arbre ; (2) le `From` borne a `[Minimum, Maximum]` ecrivait une valeur bornee des le demarrage du run (une `Value` sous `Minimum` ou un `Minimum` releve mutaient `Value`) : le run part de la valeur telle quelle et dure plus longtemps. Deux remarques suivies : `Duration` nulle termine au premier tick (convention du moteur), la cible n'est plus observable (une transition sur ce chemin est refusee au lieu de concurrencer le run) ; une remarque documentee en limite (fermeture de la fenetre depuis `OnCompleted`). Tests : `MGUI.Tests/Animation/ProgressButtonAnimationTests.cs` (12 : progression et achevement avec `OnCompleted` et pause automatique, pause qui garde la valeur puis reprise, changement de duree en cours, valeur posee par l'application puis reset et reprise, `Duration = null` qui annule et garde la valeur, `ResetAndResume` a l'achevement qui repart de `Minimum` a la frame suivante, changement de plage, detachement qui garde la valeur et rattachement qui reprend, valeur sous `Minimum` non bornee, duree nulle, transition refusee, cible enregistree et refusee sur un bouton). Docs : section « MGProgressButton sur le moteur » et table des cibles de `Docs/animation-architecture.md`.
 
 But : re-implementer `MGProgressButton.Duration` avec une animation.
 
@@ -171,7 +173,9 @@ Travail attendu : cible `ProgressButton.Value` (enregistree par `UIBuiltInAnimat
 
 Commit recommande : `animation: drive MGProgressButton.Duration with the engine`
 
-### ⚪ T7. API fluente
+### ✅ T7. API fluente
+
+**Statut** : livre le 13 septembre 2026. `MGUI.Core/UI/Animation/UIAnimateExtensions.cs` : `Animate<T>(element, chemin, [de,] vers, secondes | TimeSpan)` resout la cible a l'ecriture de la chaine ; `UIAnimationBuilder` (partie non typee : `Element`, `Current`, `Steps`, `Then` avec ou sans `From` ou avec une animation deja construite, `Wait`, `Build`, `Play`) et `UIAnimationBuilder<T>` (`Animation`, `Ease` par fonction ou par nom, `Interpolate`, `Delay`, `Repeat`, `RepeatForever`, `AutoReverse`, `Fill`, `OnCancel`, `Named`, `Configure`) ; une chaine partage ses etapes et sa `UISequenceAnimation` (construite une fois, nommee d'apres la premiere etape nommee), une etape seule est rendue telle quelle. Tests : `MGUI.Tests/Animation/FluentApiTests.cs` (6 : fondu joue, sans `From` depuis la valeur courante, chainage `Then` en sequence avec durees et valeurs, `Wait` et `Then(keyframes)` avec `Build` puis `Play` rendant la meme instance, options mappees, chemin inconnu, type faux et easing inconnu refuses a l'ecriture). Docs : section « API fluente » de `Docs/animation-architecture.md`. Sucre pur, pas de revue independante.
 
 But : `UIAnimateExtensions.Animate` et `UIAnimationBuilder<T>`.
 
@@ -179,7 +183,9 @@ Travail attendu : `MGUI.Core/UI/Animation/UIAnimateExtensions.cs` ; sucre pur (a
 
 Commit recommande : `animation: add the fluent Animate API`
 
-### ⚪ T8. Sample, scenario, diagnostics et documentation
+### ✅ T8. Sample, scenario, diagnostics et documentation
+
+**Statut** : livre le 13 septembre 2026. `MGUI.Samples/Features/AnimationDemo.xaml(.cs)` : colonne V2 (storyboard `open` a trois enfants, sequence fluente fondu -> rotation -> pause -> pop, pop en keyframes `0.8 -> 1.1 (BackOut) -> 1.0 (QuadOut)`, `ToggleButton` avec `Hover` / `Pressed` / `Checked` declares en XAML et interpoles par ses transitions, texte de l'etat courant, style implicite `Button` avec transition `RenderScale`, bouton qui bascule `Animation.Enabled` sur une copie du theme du desktop, `ProgressButton` de 3 s sur le moteur) ; `UIElementDebugView.VisualStateName` et `named=` dans le rendu ; `Docs/scenario-validation-index.md` : `SCN-ANIM-002` ; ADR-0007 completee (« Decisions taken during delivery ») ; `Docs/animation-architecture.md` : « Diagnostics », « Reste a faire » = V3. Tests : `AnimationDemoSampleTests` (section V2 : style applique, etats et transitions du toggle, `ProgressButton` a l'arret sur le moteur, noms), `AnimationDiagnosticsTests` (etat nomme dans la vue). Le sample n'est pas lance ici : build des samples vert, validation visuelle a faire par l'auteur.
 
 But : section V2 du sample, `SCN-ANIM-002`, debug view etendu (etat nomme courant), doc.
 

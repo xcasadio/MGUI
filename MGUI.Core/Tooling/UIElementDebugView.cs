@@ -7,13 +7,15 @@ namespace MGUI.Core.Tooling
     /// <summary>Per-element debug view: what an editor needs to explain how one element looks, captured in a single call. It gathers the
     /// element's visual state, effective resource scope, applied control template and registered parts, and where its main visual values come
     /// from (see <see cref="UIValueOriginView"/>). Built by <see cref="UIToolingService.CaptureElementDebugView"/> and rendered as text by
-    /// <see cref="UIToolingService.RenderElementDebugView"/>.</summary>
+    /// <see cref="UIToolingService.RenderElementDebugView"/>. <paramref name="VisualStateName"/> is the named visual state currently applied
+    /// (<see cref="MGElement.CurrentVisualStateName"/>, ADR-0007), null when the element defines none or none matches.</summary>
     public record UIElementDebugView(
         string DiagnosticId,
         string Name,
         MGElementType ElementType,
         PrimaryVisualState PrimaryVisualState,
         SecondaryVisualState SecondaryVisualState,
+        string VisualStateName,
         UIResourceScope ResourceScope,
         string ResourceScopeOwnerDiagnosticId,
         bool HasLocalResourceScope,

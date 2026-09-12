@@ -15,7 +15,24 @@ public class AnimationDiagnosticsTests
         UIElementDebugView view = UIToolingService.CaptureElementDebugView(scene.Top);
 
         Assert.Empty(view.Animations);
-        Assert.DoesNotContain("animations:", UIToolingService.RenderElementDebugView(view));
+        Assert.Null(view.VisualStateName);
+        string rendered = UIToolingService.RenderElementDebugView(view);
+        Assert.DoesNotContain("animations:", rendered);
+        Assert.Contains("named=<none>", rendered);
+    }
+
+    [Fact]
+    public void DebugView_ShowsTheNamedVisualState()
+    {
+        AnimationTestScene scene = AnimationTestScene.Build();
+        scene.Top.VisualStates.Add(new MGUI.Core.UI.Animation.States.UIVisualState(MGUI.Core.UI.Animation.States.UIVisualStateNames.Hover) { { UIBuiltInAnimationTargets.Paths.Opacity, 0.5f } });
+        scene.Mouse = scene.Top.LayoutBounds.Center;
+        scene.Frames(1);
+
+        UIElementDebugView view = UIToolingService.CaptureElementDebugView(scene.Top);
+
+        Assert.Equal("Hover", view.VisualStateName);
+        Assert.Contains("visual-state: primary=Normal secondary=Hovered named=Hover", UIToolingService.RenderElementDebugView(view));
     }
 
     [Fact]
