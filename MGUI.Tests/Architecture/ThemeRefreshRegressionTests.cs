@@ -68,4 +68,46 @@ public class ThemeRefreshRegressionTests
 
         Assert.Equal(99, currentValue);
     }
+
+    [Fact]
+    public void Structure_Rebuild_Refresh_Applies_A_Part_Default_Over_The_Construction_Value_Of_The_New_Part()
+    {
+        ThemeRefreshOwnerStub owner = CreateOwnerStub();
+        int replacedPart = 10;
+
+        MGControlTemplate initialTemplate = new("Test.Template.Initial", context =>
+            context.ApplyThemeDefault("Widget.Part.Padding", 20, () => replacedPart, value => replacedPart = value));
+        initialTemplate.Apply(owner, false);
+        Assert.Equal(20, replacedPart);
+
+        // The new part holds the value of its construction, which the record of the replaced part cannot tell from a value set since.
+        int newPart = 5;
+        MGControlTemplate refreshedTemplate = new("Test.Template.Refreshed", context =>
+            context.ApplyThemeDefault("Widget.Part.Padding", 32, () => newPart, value => newPart = value));
+        refreshedTemplate.Apply(owner, true);
+        Assert.Equal(5, newPart);
+
+        refreshedTemplate.Apply(owner, true, true);
+        Assert.Equal(32, newPart);
+    }
+
+    [Fact]
+    public void Structure_Rebuild_Refresh_Does_Not_Overwrite_An_Owner_Value_That_Diverged_From_Its_Default()
+    {
+        ThemeRefreshOwnerStub owner = CreateOwnerStub();
+        int ownerValue = 10;
+
+        MGControlTemplate initialTemplate = new("Test.Template.Initial", context =>
+            context.ApplyOwnerThemeDefault("Widget.IndentSize", 20, () => ownerValue, value => ownerValue = value));
+        initialTemplate.Apply(owner, false);
+        Assert.Equal(20, ownerValue);
+
+        ownerValue = 99;
+
+        MGControlTemplate refreshedTemplate = new("Test.Template.Refreshed", context =>
+            context.ApplyOwnerThemeDefault("Widget.IndentSize", 32, () => ownerValue, value => ownerValue = value));
+        refreshedTemplate.Apply(owner, true, true);
+
+        Assert.Equal(99, ownerValue);
+    }
 }

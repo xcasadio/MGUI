@@ -987,10 +987,11 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("Context.ApplyTemplateValue(\"TextBox.CharacterCount.FontSize\"", catalogSource);
         Assert.Contains("Context.ApplyTemplateValue(\"TextBox.CharacterCount.HorizontalAlignment\"", catalogSource);
         Assert.Contains("Context.ApplyTemplateValue(\"TextBox.CharacterCount.VerticalAlignment\"", catalogSource);
-        Assert.Contains("Context.ApplyThemeDefault(\"TextBox.HorizontalContentAlignment\"", catalogSource);
-        Assert.Contains("Context.ApplyThemeDefault(\"TextBox.VerticalContentAlignment\"", catalogSource);
-        Assert.Contains("Context.ApplyThemeDefault(\"TextBox.LimitedCharacterCountFormatString\"", catalogSource);
-        Assert.Contains("Context.ApplyThemeDefault(\"TextBox.LimitlessCharacterCountFormatString\"", catalogSource);
+        // Defaults of the text box itself, so a template structure rebuilt by a theme change does not re-apply them over an application value.
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"TextBox.HorizontalContentAlignment\"", catalogSource);
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"TextBox.VerticalContentAlignment\"", catalogSource);
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"TextBox.LimitedCharacterCountFormatString\"", catalogSource);
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"TextBox.LimitlessCharacterCountFormatString\"", catalogSource);
         Assert.DoesNotContain("TrySetFont(window.Desktop.DefaultFontFamily, 9)", catalogSource);
         Assert.DoesNotContain("HorizontalContentAlignment = HorizontalAlignment.Left;", textBoxSource);
         Assert.DoesNotContain("VerticalContentAlignment = VerticalAlignment.Center;", textBoxSource);

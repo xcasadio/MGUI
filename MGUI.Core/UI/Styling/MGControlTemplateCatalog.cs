@@ -816,7 +816,8 @@ namespace MGUI.Core.UI.Styling
             // see the Window.CloseButtonBackground comment above for why every subscriber needs its own copy.
             Context.ApplyThemeDefault("Window.TitleTextForeground", Theme.Window.TitleTextForeground?.GetCopy(), () => TitleText.DefaultTextForeground, (value, source) => TitleText.SetDefaultTextForeground(value, source));
 
-            if (!Context.IsThemeRefresh && CloseButton.Content == null)
+            // Part initialisation: it runs again for the new parts of a structure rebuilt by a theme change.
+            if ((!Context.IsThemeRefresh || Context.IsStructureRebuilt) && CloseButton.Content == null)
             {
                 CloseButton.VerticalAlignment = VerticalAlignment.Center;
                 CloseButton.VerticalContentAlignment = VerticalAlignment.Center;
@@ -853,7 +854,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("Overlay.CloseButtonBorderThickness", Theme.Overlay.CloseButtonBorderThickness, () => CloseButton.BorderThickness, (value, source) => CloseButton.SetBorderThicknessTagged(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("Overlay.CloseButtonPadding", Theme.Overlay.CloseButtonPadding, () => CloseButton.Padding, (value, source) => CloseButton.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
-            if (!Context.IsThemeRefresh && CloseButton.Content == null)
+            if ((!Context.IsThemeRefresh || Context.IsStructureRebuilt) && CloseButton.Content == null)
             {
                 CloseButton.SetContent(CreateDefaultCloseButtonContent(Overlay.Host.ParentWindow));
             }
@@ -874,11 +875,12 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyOwnerThemeDefault("ToolTip.BorderBrush", Color.Black.AsFillBrush().AsUniformBorderBrush(), () => Border.BorderBrush, (value, source) => Border.SetBorderBrush(value, source));
             Context.ApplyOwnerThemeDefault("ToolTip.BorderThickness", new Thickness(2), () => Border.BorderThickness, (value, source) => Border.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyOwnerThemeDefault("ToolTip.Padding", new Thickness(6, 3), () => ToolTip.Padding, (value, source) => ToolTip.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("ToolTip.DrawOffset", Theme.ToolTipOffset, () => ToolTip.DrawOffset, value => ToolTip.DrawOffset = value);
+            Context.ApplyOwnerThemeDefault("ToolTip.DrawOffset", Theme.ToolTipOffset, () => ToolTip.DrawOffset, value => ToolTip.DrawOffset = value);
             Context.ApplyOwnerThemeDefault("ToolTip.TextForeground", Theme.ToolTipTextForeground.GetCopy(), () => ToolTip.DefaultTextForeground, (value, source) => ToolTip.SetDefaultTextForeground(value, source));
-            Context.ApplyThemeDefault("ToolTip.MinWidth", 10, () => ToolTip.MinWidth ?? 0, value => ToolTip.MinWidth = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("ToolTip.MinWidth", 10, () => ToolTip.MinWidth ?? 0, value => ToolTip.MinWidth = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyOwnerThemeDefault("ToolTip.MinHeight", 10, () => ToolTip.MinHeight ?? 0, (value, source) => ToolTip.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
+            // Values of the tool tip itself, not of its parts: MGWindow.AttachControlTemplateStructure hands them to a rebuilt structure.
             if (!Context.IsThemeRefresh)
             {
                 ToolTip.IsUserResizable = false;
@@ -1024,7 +1026,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyOwnerThemeDefault("ComboBox.Background", Theme.GetBackgroundBrush(MGElementType.ComboBox), () => Context.Owner.BackgroundBrush, (value, source) => Context.Owner.SetBackground(value, source));
             Context.ApplyOwnerThemeDefault("ComboBox.Padding", Theme.ComboBox.Padding, () => Context.Owner.Padding, (value, source) => Context.Owner.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyOwnerThemeDefault("ComboBox.MinHeight", Theme.ComboBox.MinHeight, () => Context.Owner.MinHeight ?? 0, (value, source) => Context.Owner.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("ComboBox.DropdownArrowColor", Theme.DropdownArrowColor,
+            Context.ApplyOwnerThemeDefault("ComboBox.DropdownArrowColor", Theme.DropdownArrowColor,
                 () => (Color)Context.Owner.GetType().GetProperty(nameof(MGComboBox<object>.DropdownArrowColor)).GetValue(Context.Owner),
                 value => Context.Owner.GetType().GetProperty(nameof(MGComboBox<object>.DropdownArrowColor)).SetValue(Context.Owner, value));
             Context.ApplyOwnerThemeDefault("ComboBox.BorderBrush", Theme.ComboBox.BorderBrush, () => Border.BorderBrush, (value, source) => Border.SetBorderBrush(value, source));
@@ -1036,7 +1038,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("ComboBox.DropdownScrollPadding", Theme.ComboBox.DropdownScrollViewerPadding, () => DropdownScrollViewer.Padding, (value, source) => DropdownScrollViewer.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ComboBox.DropdownItemsSpacing", Theme.ComboBox.DropdownItemsSpacing, () => DropdownItemsPanel.Spacing, value => DropdownItemsPanel.Spacing = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
-            if (!Context.IsThemeRefresh)
+            if (!Context.IsThemeRefresh || Context.IsStructureRebuilt)
             {
                 Dropdown.PreferredWidth = Math.Max(Dropdown.PreferredWidth ?? 0, Theme.ComboBox.DropdownMinWidth);
             }
@@ -1096,9 +1098,9 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("TreeView.ItemsPanelPadding", Theme.TreeViewTemplate.ItemsPanelPadding, () => ItemsPanel.Padding, (value, source) => ItemsPanel.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("TreeView.ItemsPanelSpacing", Theme.TreeViewTemplate.ItemsPanelSpacing, () => ItemsPanel.Spacing, value => ItemsPanel.Spacing = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             VisualStateFillBrush SelectionBrush = Theme?.TreeViewSelectionBackground?.GetValue(true);
-            Context.ApplyThemeDefault("TreeView.SelectionBackgroundBrush", SelectionBrush ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue)), () => TreeView.SelectionBackgroundBrush, value => TreeView.SelectionBackgroundBrush = value);
-            Context.ApplyThemeDefault("TreeView.SelectionForeground", Theme?.TreeViewSelectionForeground ?? Color.Black, () => TreeView.SelectionForeground, value => TreeView.SelectionForeground = value);
-            Context.ApplyThemeDefault("TreeView.IndentSize", Theme?.TreeViewIndentSize ?? DefaultTreeViewIndentSize, () => TreeView.IndentSize, value => TreeView.IndentSize = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("TreeView.SelectionBackgroundBrush", SelectionBrush ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue)), () => TreeView.SelectionBackgroundBrush, value => TreeView.SelectionBackgroundBrush = value);
+            Context.ApplyOwnerThemeDefault("TreeView.SelectionForeground", Theme?.TreeViewSelectionForeground ?? Color.Black, () => TreeView.SelectionForeground, value => TreeView.SelectionForeground = value);
+            Context.ApplyOwnerThemeDefault("TreeView.IndentSize", Theme?.TreeViewIndentSize ?? DefaultTreeViewIndentSize, () => TreeView.IndentSize, value => TreeView.IndentSize = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
         private static void ApplyPropertyGridTemplate(MGControlTemplateContext Context)
@@ -1145,9 +1147,9 @@ namespace MGUI.Core.UI.Styling
             // ADR-0005/S5: theme.Graph.CanvasBackground is raw/shared -- copy per subscriber (see the
             // Window.CloseButtonBackground comment above).
             Context.ApplyThemeDefault("GraphView.NodesCanvasBackground", theme.Graph.CanvasBackground?.Copy(), () => nodesCanvas.BackgroundBrush, (value, source) => nodesCanvas.SetBackground(value, source));
-            Context.ApplyThemeDefault("GraphView.GridLineBrush", theme.Graph.GridLineBrush, () => graphView.GridLineBrush, value => graphView.GridLineBrush = value);
-            Context.ApplyThemeDefault("GraphView.MajorGridLineBrush", theme.Graph.MajorGridLineBrush, () => graphView.MajorGridLineBrush, value => graphView.MajorGridLineBrush = value);
-            Context.ApplyThemeDefault("GraphView.EdgeBrush", theme.Graph.EdgeBrush, () => graphView.EdgeBrush, value => graphView.EdgeBrush = value);
+            Context.ApplyOwnerThemeDefault("GraphView.GridLineBrush", theme.Graph.GridLineBrush, () => graphView.GridLineBrush, value => graphView.GridLineBrush = value);
+            Context.ApplyOwnerThemeDefault("GraphView.MajorGridLineBrush", theme.Graph.MajorGridLineBrush, () => graphView.MajorGridLineBrush, value => graphView.MajorGridLineBrush = value);
+            Context.ApplyOwnerThemeDefault("GraphView.EdgeBrush", theme.Graph.EdgeBrush, () => graphView.EdgeBrush, value => graphView.EdgeBrush = value);
         }
 
         private static void ApplyGraphNodeTemplate(MGControlTemplateContext Context)
@@ -1194,7 +1196,7 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyThemeDefault("GraphPort.BorderThickness", new Thickness(0), () => outerBorder.BorderThickness, (value, source) => outerBorder.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("GraphPort.Padding", new Thickness(0, 2), () => outerBorder.Padding, (value, source) => outerBorder.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("GraphPort.Foreground", ToTextForeground(theme.Graph.PortForeground), () => label.DefaultTextForeground, (value, source) => label.SetDefaultTextForeground(value, source));
-            Context.ApplyTemplateValue("GraphPort.HorizontalAlignment", HorizontalAlignment.Stretch, () => graphPort.HorizontalAlignment, value => graphPort.HorizontalAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("GraphPort.HorizontalAlignment", HorizontalAlignment.Stretch, () => graphPort.HorizontalAlignment, value => graphPort.HorizontalAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
         private static void ApplyGraphCommentBoxTemplate(MGControlTemplateContext Context)
@@ -1240,18 +1242,18 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyOwnerThemeDefault("TextBox.Background", theme.GetBackgroundBrush(MGElementType.TextBox), () => textBox.BackgroundBrush, (value, source) => textBox.SetBackground(value, source));
             Context.ApplyOwnerThemeDefault("TextBox.Padding", new Thickness(6, 1, 6, 1), () => textBox.Padding, (value, source) => textBox.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyOwnerThemeDefault("TextBox.MinHeight", 24, () => textBox.MinHeight ?? 0, (value, source) => textBox.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("TextBox.FocusedSelectionForeground", theme.TextBoxFocusedSelectionForeground, () => textBox.FocusedSelectionForegroundColor, value => textBox.FocusedSelectionForegroundColor = value);
-            Context.ApplyThemeDefault("TextBox.FocusedSelectionBackground", theme.TextBoxFocusedSelectionBackground, () => textBox.FocusedSelectionBackgroundColor, value => textBox.FocusedSelectionBackgroundColor = value);
-            Context.ApplyThemeDefault("TextBox.UnfocusedSelectionForeground", theme.TextBoxUnfocusedSelectionForeground, () => textBox.UnfocusedSelectionForegroundColor, value => textBox.UnfocusedSelectionForegroundColor = value);
-            Context.ApplyThemeDefault("TextBox.UnfocusedSelectionBackground", theme.TextBoxUnfocusedSelectionBackground, () => textBox.UnfocusedSelectionBackgroundColor, value => textBox.UnfocusedSelectionBackgroundColor = value);
+            Context.ApplyOwnerThemeDefault("TextBox.FocusedSelectionForeground", theme.TextBoxFocusedSelectionForeground, () => textBox.FocusedSelectionForegroundColor, value => textBox.FocusedSelectionForegroundColor = value);
+            Context.ApplyOwnerThemeDefault("TextBox.FocusedSelectionBackground", theme.TextBoxFocusedSelectionBackground, () => textBox.FocusedSelectionBackgroundColor, value => textBox.FocusedSelectionBackgroundColor = value);
+            Context.ApplyOwnerThemeDefault("TextBox.UnfocusedSelectionForeground", theme.TextBoxUnfocusedSelectionForeground, () => textBox.UnfocusedSelectionForegroundColor, value => textBox.UnfocusedSelectionForegroundColor = value);
+            Context.ApplyOwnerThemeDefault("TextBox.UnfocusedSelectionBackground", theme.TextBoxUnfocusedSelectionBackground, () => textBox.UnfocusedSelectionBackgroundColor, value => textBox.UnfocusedSelectionBackgroundColor = value);
 
             // Backlog task 11: the remaining chrome of the text box. The content alignments and the markup of the character count texts are defaults of the
             // control itself; the counter's margin, font size and corner are values of its part, which MGTextBox lays out with the part's own alignments.
-            Context.ApplyThemeDefault("TextBox.HorizontalContentAlignment", HorizontalAlignment.Left, () => textBox.HorizontalContentAlignment, value => textBox.HorizontalContentAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("TextBox.VerticalContentAlignment", VerticalAlignment.Center, () => textBox.VerticalContentAlignment, value => textBox.VerticalContentAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("TextBox.LimitedCharacterCountFormatString", "[b]{{CharacterCount}}[/b] / [b]{{CharacterLimit}}[/b]", () => textBox.LimitedCharacterCountFormatString,
+            Context.ApplyOwnerThemeDefault("TextBox.HorizontalContentAlignment", HorizontalAlignment.Left, () => textBox.HorizontalContentAlignment, value => textBox.HorizontalContentAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("TextBox.VerticalContentAlignment", VerticalAlignment.Center, () => textBox.VerticalContentAlignment, value => textBox.VerticalContentAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("TextBox.LimitedCharacterCountFormatString", "[b]{{CharacterCount}}[/b] / [b]{{CharacterLimit}}[/b]", () => textBox.LimitedCharacterCountFormatString,
                 value => textBox.LimitedCharacterCountFormatString = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("TextBox.LimitlessCharacterCountFormatString", "[b]{{CharacterCount}}[/b] character(s)", () => textBox.LimitlessCharacterCountFormatString,
+            Context.ApplyOwnerThemeDefault("TextBox.LimitlessCharacterCountFormatString", "[b]{{CharacterCount}}[/b] character(s)", () => textBox.LimitlessCharacterCountFormatString,
                 value => textBox.LimitlessCharacterCountFormatString = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
             MGTextBlock characterCount = Context.GetRequiredPart<MGTextBlock>(MGTextBox.CharacterCountPartName);
@@ -1288,7 +1290,7 @@ namespace MGUI.Core.UI.Styling
                 decreaseButton.SetPadding(value, source);
             }, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
-            if (!Context.IsThemeRefresh)
+            if (!Context.IsThemeRefresh || Context.IsStructureRebuilt)
             {
                 if (increaseButton.Content == null)
                 {
@@ -1347,12 +1349,12 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyOwnerThemeDefault("TabControl.BorderThickness", Theme.TabControl.BorderThickness, () => Border.BorderThickness, (value, source) => Border.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("TabControl.HeadersSpacing", Theme.TabControl.HeadersSpacing, () => HeadersPanel.Spacing, value => HeadersPanel.Spacing = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("TabControl.HeadersBackground", Theme.TitleBackground.GetValue(true), () => HeadersPanel.BackgroundBrush, (value, source) => HeadersPanel.SetBackground(value, source));
-            Context.ApplyThemeDefault("TabControl.SelectedHeaderTemplate", SelectedTabHeaderTemplateName,
+            Context.ApplyOwnerThemeDefault("TabControl.SelectedHeaderTemplate", SelectedTabHeaderTemplateName,
                 () => TabControl.SelectedTabHeaderControlTemplateName, value => TabControl.SelectedTabHeaderControlTemplateName = value, UIInvalidationKind.Structure | UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyThemeDefault("TabControl.UnselectedHeaderTemplate", UnselectedTabHeaderTemplateName,
+            Context.ApplyOwnerThemeDefault("TabControl.UnselectedHeaderTemplate", UnselectedTabHeaderTemplateName,
                 () => TabControl.UnselectedTabHeaderControlTemplateName, value => TabControl.UnselectedTabHeaderControlTemplateName = value, UIInvalidationKind.Structure | UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
-            if (!Context.IsThemeRefresh)
+            if (!Context.IsThemeRefresh || Context.IsStructureRebuilt)
             {
                 ApplyTabControlHeadersPanelSettings(TabControl, HeadersPanel);
             }
@@ -1541,8 +1543,8 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Context.ApplyThemeDefault("DockTabGroup.IconColor", Docking.TabGroupIconColor, () => TabGroup.IconColor, value => TabGroup.IconColor = value);
-            Context.ApplyThemeDefault("DockTabGroup.CompactButtonHoverColor", Docking.TabGroupButtonHoverColor, () => TabGroup.CompactButtonHoverColor, value => TabGroup.CompactButtonHoverColor = value);
+            Context.ApplyOwnerThemeDefault("DockTabGroup.IconColor", Docking.TabGroupIconColor, () => TabGroup.IconColor, value => TabGroup.IconColor = value);
+            Context.ApplyOwnerThemeDefault("DockTabGroup.CompactButtonHoverColor", Docking.TabGroupButtonHoverColor, () => TabGroup.CompactButtonHoverColor, value => TabGroup.CompactButtonHoverColor = value);
         }
 
         /// <summary>The seven tab parts. <see cref="MGDockTabItem"/> wires the close click and positions, sizes and reveals the parts itself.</summary>
@@ -1606,15 +1608,15 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Context.ApplyThemeDefault("DockTabItem.NormalBrush", Docking.TabNormalBackground, () => TabItem.NormalBrush, value => TabItem.NormalBrush = value);
-            Context.ApplyThemeDefault("DockTabItem.HoverBrush", Docking.TabHoverBackground, () => TabItem.HoverBrush, value => TabItem.HoverBrush = value);
-            Context.ApplyThemeDefault("DockTabItem.ActiveBrush", Docking.TabActiveBackground, () => TabItem.ActiveBrush, value => TabItem.ActiveBrush = value);
-            Context.ApplyThemeDefault("DockTabItem.ActiveAccentColor", Docking.TabActiveAccentColor, () => TabItem.ActiveAccentColor, value => TabItem.ActiveAccentColor = value);
-            Context.ApplyThemeDefault("DockTabItem.HoverAccentColor", Docking.TabHoverAccentColor, () => TabItem.HoverAccentColor, value => TabItem.HoverAccentColor = value);
-            Context.ApplyThemeDefault("DockTabItem.ActiveTextColor", Docking.TabActiveTextColor, () => TabItem.ActiveTextColor, value => TabItem.ActiveTextColor = value);
-            Context.ApplyThemeDefault("DockTabItem.InactiveTextColor", Docking.TabInactiveTextColor, () => TabItem.InactiveTextColor, value => TabItem.InactiveTextColor = value);
-            Context.ApplyThemeDefault("DockTabItem.ActiveIconColor", Docking.TabActiveIconColor, () => TabItem.ActiveIconColor, value => TabItem.ActiveIconColor = value);
-            Context.ApplyThemeDefault("DockTabItem.InactiveIconColor", Docking.TabInactiveIconColor, () => TabItem.InactiveIconColor, value => TabItem.InactiveIconColor = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.NormalBrush", Docking.TabNormalBackground, () => TabItem.NormalBrush, value => TabItem.NormalBrush = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.HoverBrush", Docking.TabHoverBackground, () => TabItem.HoverBrush, value => TabItem.HoverBrush = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.ActiveBrush", Docking.TabActiveBackground, () => TabItem.ActiveBrush, value => TabItem.ActiveBrush = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.ActiveAccentColor", Docking.TabActiveAccentColor, () => TabItem.ActiveAccentColor, value => TabItem.ActiveAccentColor = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.HoverAccentColor", Docking.TabHoverAccentColor, () => TabItem.HoverAccentColor, value => TabItem.HoverAccentColor = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.ActiveTextColor", Docking.TabActiveTextColor, () => TabItem.ActiveTextColor, value => TabItem.ActiveTextColor = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.InactiveTextColor", Docking.TabInactiveTextColor, () => TabItem.InactiveTextColor, value => TabItem.InactiveTextColor = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.ActiveIconColor", Docking.TabActiveIconColor, () => TabItem.ActiveIconColor, value => TabItem.ActiveIconColor = value);
+            Context.ApplyOwnerThemeDefault("DockTabItem.InactiveIconColor", Docking.TabInactiveIconColor, () => TabItem.InactiveIconColor, value => TabItem.InactiveIconColor = value);
             TabItem.RefreshThemeVisuals();
         }
 
@@ -1692,10 +1694,10 @@ namespace MGUI.Core.UI.Styling
             // (PinButton, CloseButton) -- each needs its own copy (see the Window.CloseButtonBackground comment above).
             Context.ApplyThemeDefault("DockDrawer.PinButtonBackground", Docking.AutoHideButtonBackground?.Copy(), () => PinButton.BackgroundBrush, (value, source) => PinButton.SetBackground(value, source));
             Context.ApplyThemeDefault("DockDrawer.CloseButtonBackground", Docking.AutoHideButtonBackground?.Copy(), () => CloseButton.BackgroundBrush, (value, source) => CloseButton.SetBackground(value, source));
-            Context.ApplyThemeDefault("DockDrawer.HeaderTextColor", Docking.AutoHideHeaderTextColor, () => Drawer.HeaderTextColor, value => Drawer.HeaderTextColor = value);
-            Context.ApplyThemeDefault("DockDrawer.IconColor", Docking.AutoHideIconColor, () => Drawer.IconColor, value => Drawer.IconColor = value);
-            Context.ApplyThemeDefault("DockDrawer.BorderColor", Docking.AutoHideBorderColor, () => Drawer.BorderColor, value => Drawer.BorderColor = value);
-            Context.ApplyThemeDefault("DockDrawer.ResizeGripColor", Docking.AutoHideGripColor, () => Drawer.ResizeGripColor, value => Drawer.ResizeGripColor = value);
+            Context.ApplyOwnerThemeDefault("DockDrawer.HeaderTextColor", Docking.AutoHideHeaderTextColor, () => Drawer.HeaderTextColor, value => Drawer.HeaderTextColor = value);
+            Context.ApplyOwnerThemeDefault("DockDrawer.IconColor", Docking.AutoHideIconColor, () => Drawer.IconColor, value => Drawer.IconColor = value);
+            Context.ApplyOwnerThemeDefault("DockDrawer.BorderColor", Docking.AutoHideBorderColor, () => Drawer.BorderColor, value => Drawer.BorderColor = value);
+            Context.ApplyOwnerThemeDefault("DockDrawer.ResizeGripColor", Docking.AutoHideGripColor, () => Drawer.ResizeGripColor, value => Drawer.ResizeGripColor = value);
         }
 
         private static MGControlTemplateStructure CreateDockAutoHideStripTemplateStructure(MGControlTemplateContext Context)
@@ -1781,9 +1783,9 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Context.ApplyThemeDefault("DockPreviewOverlay.PreviewColor", Docking.PreviewOverlayFillColor, () => Overlay.PreviewColor, value => Overlay.PreviewColor = value);
-            Context.ApplyThemeDefault("DockPreviewOverlay.PreviewBorderColor", Docking.PreviewOverlayBorderColor, () => Overlay.PreviewBorderColor, value => Overlay.PreviewBorderColor = value);
-            Context.ApplyTemplateValue("DockPreviewOverlay.PreviewBorderThickness", 2, () => Overlay.PreviewBorderThickness, value => Overlay.PreviewBorderThickness = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("DockPreviewOverlay.PreviewColor", Docking.PreviewOverlayFillColor, () => Overlay.PreviewColor, value => Overlay.PreviewColor = value);
+            Context.ApplyOwnerThemeDefault("DockPreviewOverlay.PreviewBorderColor", Docking.PreviewOverlayBorderColor, () => Overlay.PreviewBorderColor, value => Overlay.PreviewBorderColor = value);
+            Context.ApplyOwnerThemeDefault("DockPreviewOverlay.PreviewBorderThickness", 2, () => Overlay.PreviewBorderThickness, value => Overlay.PreviewBorderThickness = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
         private static void ApplyDockAutoHideStripTemplate(MGControlTemplateContext Context)
@@ -1800,9 +1802,9 @@ namespace MGUI.Core.UI.Styling
             }
 
             Context.ApplyOwnerThemeDefault("DockStrip.BackgroundBrush", new VisualStateFillBrush(Docking.AutoHideStripBackground), () => Strip.BackgroundBrush, (value, source) => Strip.SetBackground(value, source));
-            Context.ApplyThemeDefault("DockStrip.ButtonBackgroundBrush", Docking.AutoHideStripButtonBackground, () => Strip.ButtonBackgroundBrush, value => Strip.ButtonBackgroundBrush = value);
-            Context.ApplyThemeDefault("DockStrip.TextColor", Docking.AutoHideStripTextColor, () => Strip.TextColor, value => Strip.TextColor = value);
-            Context.ApplyThemeDefault("DockStrip.SeparatorColor", Docking.AutoHideStripSeparatorColor, () => Strip.SeparatorColor, value => Strip.SeparatorColor = value);
+            Context.ApplyOwnerThemeDefault("DockStrip.ButtonBackgroundBrush", Docking.AutoHideStripButtonBackground, () => Strip.ButtonBackgroundBrush, value => Strip.ButtonBackgroundBrush = value);
+            Context.ApplyOwnerThemeDefault("DockStrip.TextColor", Docking.AutoHideStripTextColor, () => Strip.TextColor, value => Strip.TextColor = value);
+            Context.ApplyOwnerThemeDefault("DockStrip.SeparatorColor", Docking.AutoHideStripSeparatorColor, () => Strip.SeparatorColor, value => Strip.SeparatorColor = value);
             Strip.ApplyThemeVisuals();
         }
 
@@ -1819,11 +1821,11 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Context.ApplyThemeDefault("DockSplitter.NormalBrush", Docking.SplitterNormalBrush, () => Splitter.NormalBrush, value => Splitter.NormalBrush = value);
-            Context.ApplyThemeDefault("DockSplitter.HoverBrush", Docking.SplitterHoverBrush, () => Splitter.HoverBrush, value => Splitter.HoverBrush = value);
-            Context.ApplyThemeDefault("DockSplitter.PressedBrush", Docking.SplitterPressedBrush, () => Splitter.PressedBrush, value => Splitter.PressedBrush = value);
-            Context.ApplyThemeDefault("DockSplitter.HoverOverlayColor", Docking.SplitterHoverOverlayColor, () => Splitter.HoverOverlayColor, value => Splitter.HoverOverlayColor = value);
-            Context.ApplyThemeDefault("DockSplitter.PressedOverlayColor", Docking.SplitterPressedOverlayColor, () => Splitter.PressedOverlayColor, value => Splitter.PressedOverlayColor = value);
+            Context.ApplyOwnerThemeDefault("DockSplitter.NormalBrush", Docking.SplitterNormalBrush, () => Splitter.NormalBrush, value => Splitter.NormalBrush = value);
+            Context.ApplyOwnerThemeDefault("DockSplitter.HoverBrush", Docking.SplitterHoverBrush, () => Splitter.HoverBrush, value => Splitter.HoverBrush = value);
+            Context.ApplyOwnerThemeDefault("DockSplitter.PressedBrush", Docking.SplitterPressedBrush, () => Splitter.PressedBrush, value => Splitter.PressedBrush = value);
+            Context.ApplyOwnerThemeDefault("DockSplitter.HoverOverlayColor", Docking.SplitterHoverOverlayColor, () => Splitter.HoverOverlayColor, value => Splitter.HoverOverlayColor = value);
+            Context.ApplyOwnerThemeDefault("DockSplitter.PressedOverlayColor", Docking.SplitterPressedOverlayColor, () => Splitter.PressedOverlayColor, value => Splitter.PressedOverlayColor = value);
         }
 
         private static void ApplyDockDropIndicatorsTemplate(MGControlTemplateContext Context)
@@ -1839,15 +1841,15 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Context.ApplyThemeDefault("DockIndicators.InactiveColor", Docking.DropIndicatorInactiveColor, () => Indicators.InactiveColor, value => Indicators.InactiveColor = value);
-            Context.ApplyThemeDefault("DockIndicators.ActiveColor", Docking.DropIndicatorActiveColor, () => Indicators.ActiveColor, value => Indicators.ActiveColor = value);
-            Context.ApplyThemeDefault("DockIndicators.BorderColor", Docking.DropIndicatorBorderColor, () => Indicators.BorderColor, value => Indicators.BorderColor = value);
-            Context.ApplyThemeDefault("DockIndicators.HostInactiveColor", Docking.DropIndicatorHostInactiveColor, () => Indicators.HostInactiveColor, value => Indicators.HostInactiveColor = value);
-            Context.ApplyThemeDefault("DockIndicators.HostActiveColor", Docking.DropIndicatorHostActiveColor, () => Indicators.HostActiveColor, value => Indicators.HostActiveColor = value);
-            Context.ApplyThemeDefault("DockIndicators.DisabledColor", Docking.DropIndicatorDisabledColor, () => Indicators.DisabledColor, value => Indicators.DisabledColor = value);
-            Context.ApplyThemeDefault("DockIndicators.DisabledBorderColor", Docking.DropIndicatorDisabledBorderColor, () => Indicators.DisabledBorderColor, value => Indicators.DisabledBorderColor = value);
-            Context.ApplyThemeDefault("DockIndicators.SymbolColor", Docking.DropIndicatorSymbolColor, () => Indicators.SymbolColor, value => Indicators.SymbolColor = value);
-            Context.ApplyThemeDefault("DockIndicators.DisabledSymbolColor", Docking.DropIndicatorDisabledSymbolColor, () => Indicators.DisabledSymbolColor, value => Indicators.DisabledSymbolColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.InactiveColor", Docking.DropIndicatorInactiveColor, () => Indicators.InactiveColor, value => Indicators.InactiveColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.ActiveColor", Docking.DropIndicatorActiveColor, () => Indicators.ActiveColor, value => Indicators.ActiveColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.BorderColor", Docking.DropIndicatorBorderColor, () => Indicators.BorderColor, value => Indicators.BorderColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.HostInactiveColor", Docking.DropIndicatorHostInactiveColor, () => Indicators.HostInactiveColor, value => Indicators.HostInactiveColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.HostActiveColor", Docking.DropIndicatorHostActiveColor, () => Indicators.HostActiveColor, value => Indicators.HostActiveColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.DisabledColor", Docking.DropIndicatorDisabledColor, () => Indicators.DisabledColor, value => Indicators.DisabledColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.DisabledBorderColor", Docking.DropIndicatorDisabledBorderColor, () => Indicators.DisabledBorderColor, value => Indicators.DisabledBorderColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.SymbolColor", Docking.DropIndicatorSymbolColor, () => Indicators.SymbolColor, value => Indicators.SymbolColor = value);
+            Context.ApplyOwnerThemeDefault("DockIndicators.DisabledSymbolColor", Docking.DropIndicatorDisabledSymbolColor, () => Indicators.DisabledSymbolColor, value => Indicators.DisabledSymbolColor = value);
         }
     }
 }

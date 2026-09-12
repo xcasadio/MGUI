@@ -1,0 +1,247 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using MGUI.Core.UI;
+using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Styling;
+using MGUI.Shared.Rendering;
+using MGUI.Tests.Graph;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
+using MonoGame.Extended;
+using Xunit;
+
+namespace MGUI.Tests.Architecture;
+
+/// <summary>
+/// A real theme change that swaps a control's template structure (the <c>Dark</c> theme maps <see cref="MGWindow"/> to <c>Dark.Window</c> and
+/// <see cref="MGComboBox{TItemType}"/> to <c>Dark.ComboBox</c>, both declaring their own <c>DetachedRoots</c>) instantiates new parts. Their template
+/// values, the part initialisation done once per structure and the owner-level values held by a replaced part must end up as if the controls had been
+/// built under the new theme, and a later change of theme keeps them.
+/// </summary>
+public class TemplateStructureRebuildThemeTests
+{
+    [Fact]
+    public void Window_And_ComboBox_Chrome_Rebuilt_By_A_Theme_Change_Match_The_Controls_Built_Under_That_Theme()
+    {
+        Harness builtUnderDark = Harness.Create(dark: true);
+        MGComboBox<string> expectedComboBox = CreateComboBox(builtUnderDark);
+        Assert.Equal("Dark.Window", builtUnderDark.Window.AppliedControlTemplateName);
+        Assert.Equal("Dark.ComboBox", expectedComboBox.AppliedControlTemplateName);
+        IReadOnlyDictionary<string, string> expected = DescribeChrome(builtUnderDark.Window, expectedComboBox);
+
+        Harness harness = Harness.Create(dark: false);
+        MGComboBox<string> comboBox = CreateComboBox(harness);
+        Assert.Equal(MGControlTemplateCatalog.WindowTemplateName, harness.Window.AppliedControlTemplateName);
+        Assert.Equal(MGControlTemplateCatalog.ComboBoxTemplateName, comboBox.AppliedControlTemplateName);
+        MGWindow codeDropdown = comboBox.Dropdown;
+        Assert.True(harness.Window.TryGetTemplatePart(MGWindow.TitleBarPartName, out MGElement codeTitleBar));
+
+        harness.Window.GetResources().DefaultTheme = new MGTheme(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        harness.Frame(3, Point.Zero);
+
+        // The structures were rebuilt from the XAML templates.
+        Assert.NotSame(codeDropdown, comboBox.Dropdown);
+        Assert.True(harness.Window.TryGetTemplatePart(MGWindow.TitleBarPartName, out MGElement xamlTitleBar));
+        Assert.NotSame(codeTitleBar, xamlTitleBar);
+        AssertSameChrome(expected, DescribeChrome(harness.Window, comboBox));
+
+        // Another Dark instance keeps the structures: the values stay those of Dark.
+        MGWindow xamlDropdown = comboBox.Dropdown;
+        harness.Window.GetResources().DefaultTheme = new MGTheme(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        harness.Frame(4, Point.Zero);
+        Assert.Same(xamlDropdown, comboBox.Dropdown);
+        AssertSameChrome(expected, DescribeChrome(harness.Window, comboBox));
+    }
+
+    [Fact]
+    public void Values_Of_The_Owner_Survive_A_Theme_Change_That_Rebuilds_Its_Structure()
+    {
+        Harness harness = Harness.Create(dark: false);
+        MGComboBox<string> comboBox = CreateComboBox(harness);
+        Color arrowColor = new(201, 64, 150);
+        MGUniformBorderBrush localBorderBrush = new(arrowColor);
+        comboBox.DropdownArrowColor = arrowColor;
+        comboBox.BorderBrush = localBorderBrush;
+
+        harness.Window.GetResources().DefaultTheme = new MGTheme(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        harness.Frame(3, Point.Zero);
+        Assert.Equal("Dark.ComboBox", comboBox.AppliedControlTemplateName);
+
+        // A value of the combo box itself, which its template applies without a resolved value store.
+        Assert.Equal(arrowColor, comboBox.DropdownArrowColor);
+
+        // The local value written through the facade onto the replaced PART_Border moved to the new part, with the theme default it outranks.
+        Assert.Equal(Describe(localBorderBrush), Describe(comboBox.BorderBrush));
+        Assert.True(comboBox.TryGetResolvedPilotValue(UIPilotProperty.BorderBrush, UIValueSlot.Whole, out UIResolvedValue<IBorderBrush> winner));
+        Assert.Equal(UIValueSourceKind.LocalValue, winner.Source.Kind);
+        Assert.True(comboBox.GetBorder().TryGetResolvedContribution(UIPilotProperty.BorderBrush, UIValueSlot.Whole, UIValueSourceKind.Theme, out UIResolvedValue<IBorderBrush> _));
+    }
+
+    [Fact]
+    public void A_Window_Border_Follows_The_Theme_Through_A_Rebuilt_Structure_Unless_Set_Locally()
+    {
+        Harness builtUnderDark = Harness.Create(dark: true);
+        MGTheme dark = builtUnderDark.Window.GetTheme();
+        MGWindow expected = new(builtUnderDark.Desktop, 0, 0, 300, 200, dark);
+        Assert.Equal("Dark.Window", expected.AppliedControlTemplateName);
+
+        Harness harness = Harness.Create(dark: false);
+        MGTheme darkBlue = harness.Desktop.Resources.DefaultTheme;
+        Assert.NotEqual(Describe(darkBlue.Window.BorderBrush), Describe(dark.Window.BorderBrush));
+        MGWindow themed = new(harness.Desktop, 0, 0, 300, 200, darkBlue);
+        MGWindow local = new(harness.Desktop, 0, 0, 300, 200, darkBlue);
+        Thickness localThickness = new(7);
+        local.BorderThickness = localThickness;
+
+        themed.GetResources().DefaultTheme = new MGTheme(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        local.GetResources().DefaultTheme = new MGTheme(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+
+        // The theme defaults of the window reach the border part of the rebuilt structure.
+        Assert.Equal("Dark.Window", themed.AppliedControlTemplateName);
+        Assert.Equal(Describe(expected.BorderThickness), Describe(themed.BorderThickness));
+        Assert.Equal(Describe(expected.BorderBrush), Describe(themed.BorderBrush));
+
+        // A local border thickness is kept; the border brush, never set locally, still follows the theme.
+        Assert.Equal("Dark.Window", local.AppliedControlTemplateName);
+        Assert.Equal(Describe(localThickness), Describe(local.BorderThickness));
+        Assert.True(local.TryGetResolvedPilotValue(UIPilotProperty.BorderThickness, UIValueSlot.Whole, out UIResolvedValue<Thickness> winner));
+        Assert.Equal(UIValueSourceKind.LocalValue, winner.Source.Kind);
+        Assert.Equal(Describe(expected.BorderBrush), Describe(local.BorderBrush));
+    }
+
+    private static MGComboBox<string> CreateComboBox(Harness harness)
+    {
+        MGComboBox<string> comboBox = new(harness.Window) { PreferredHeight = 30 };
+        comboBox.SetItemsSource(new List<string> { "Low", "Medium", "High" });
+        comboBox.SelectedIndex = 1;
+        harness.Show(comboBox);
+        return comboBox;
+    }
+
+    private static void AssertSameChrome(IReadOnlyDictionary<string, string> expected, IReadOnlyDictionary<string, string> actual)
+    {
+        Assert.Equal(expected.Keys.OrderBy(x => x, StringComparer.Ordinal), actual.Keys.OrderBy(x => x, StringComparer.Ordinal));
+        string[] mismatches = expected
+            .Where(x => !string.Equals(x.Value, actual[x.Key], StringComparison.Ordinal))
+            .Select(x => $"{x.Key}: expected {x.Value}, actual {actual[x.Key]}")
+            .ToArray();
+        Assert.True(mismatches.Length == 0, string.Join(Environment.NewLine, mismatches));
+    }
+
+    private static IReadOnlyDictionary<string, string> DescribeChrome(MGWindow window, MGComboBox<string> comboBox)
+    {
+        Dictionary<string, string> values = new(StringComparer.Ordinal);
+        DescribeWindow(values, "Window", window);
+
+        values["ComboBox.Padding"] = Describe(comboBox.Padding);
+        values["ComboBox.MinHeight"] = comboBox.MinHeight?.ToString() ?? "null";
+        values["ComboBox.Background"] = Describe(comboBox.BackgroundBrush);
+        values["ComboBox.BorderBrush"] = Describe(comboBox.BorderBrush);
+        values["ComboBox.BorderThickness"] = Describe(comboBox.BorderThickness);
+        values["ComboBox.DropdownArrowColor"] = comboBox.DropdownArrowColor.ToString();
+        values["ComboBox.DropdownArrow.Margin"] = Describe(comboBox.DropdownArrowElement.Margin);
+        values["ComboBox.DropdownScrollViewer.Padding"] = Describe(comboBox.DropdownScrollViewer.Padding);
+        values["ComboBox.DropdownItemsPanel.Spacing"] = comboBox.DropdownStackPanel.Spacing.ToString();
+        values["ComboBox.Dropdown.PreferredWidth"] = comboBox.Dropdown.PreferredWidth?.ToString() ?? "null";
+        DescribeWindow(values, "ComboBox.Dropdown", comboBox.Dropdown);
+        return values;
+    }
+
+    private static void DescribeWindow(Dictionary<string, string> values, string prefix, MGWindow window)
+    {
+        values[$"{prefix}.Padding"] = Describe(window.Padding);
+        values[$"{prefix}.Background"] = Describe(window.BackgroundBrush);
+        values[$"{prefix}.BorderBrush"] = Describe(window.BorderBrush);
+        values[$"{prefix}.BorderThickness"] = Describe(window.BorderThickness);
+
+        MGDockPanel titleBar = Part<MGDockPanel>(window, MGWindow.TitleBarPartName);
+        values[$"{prefix}.TitleBar.Background"] = Describe(titleBar.BackgroundBrush);
+        values[$"{prefix}.TitleBar.Padding"] = Describe(titleBar.Padding);
+        values[$"{prefix}.TitleBar.MinHeight"] = titleBar.MinHeight?.ToString() ?? "null";
+
+        MGButton closeButton = Part<MGButton>(window, MGWindow.CloseButtonPartName);
+        values[$"{prefix}.CloseButton.Background"] = Describe(closeButton.BackgroundBrush);
+        values[$"{prefix}.CloseButton.BorderBrush"] = Describe(closeButton.BorderBrush);
+        values[$"{prefix}.CloseButton.BorderThickness"] = Describe(closeButton.BorderThickness);
+        values[$"{prefix}.CloseButton.Margin"] = Describe(closeButton.Margin);
+        values[$"{prefix}.CloseButton.Padding"] = Describe(closeButton.Padding);
+        values[$"{prefix}.CloseButton.MinWidth"] = closeButton.MinWidth?.ToString() ?? "null";
+        values[$"{prefix}.CloseButton.MinHeight"] = closeButton.MinHeight?.ToString() ?? "null";
+        values[$"{prefix}.CloseButton.VerticalAlignment"] = closeButton.VerticalAlignment.ToString();
+        values[$"{prefix}.CloseButton.Content"] = closeButton.Content?.GetType().Name ?? "null";
+
+        MGTextBlock titleText = Part<MGTextBlock>(window, MGWindow.TitleBarTextPartName);
+        values[$"{prefix}.TitleText.Margin"] = Describe(titleText.Margin);
+        values[$"{prefix}.TitleText.Padding"] = Describe(titleText.Padding);
+        values[$"{prefix}.TitleText.DefaultTextForeground"] = Describe(titleText.DefaultTextForeground);
+        values[$"{prefix}.TitleText.VerticalAlignment"] = titleText.VerticalAlignment.ToString();
+    }
+
+    private static T Part<T>(MGElement owner, string name) where T : MGElement
+    {
+        Assert.True(owner.TryGetTemplatePart(name, out MGElement part), $"{owner.GetType().Name} has no part {name}");
+        return Assert.IsAssignableFrom<T>(part);
+    }
+
+    private static string Describe(Thickness value) => $"{value.Left},{value.Top},{value.Right},{value.Bottom}";
+
+    private static string Describe(IFillBrush brush) => brush switch
+    {
+        null => "null",
+        MGSolidFillBrush solid => $"solid({solid.Color.R},{solid.Color.G},{solid.Color.B},{solid.Color.A})",
+        _ => brush.GetType().Name,
+    };
+
+    private static string Describe(VisualStateFillBrush brush)
+        => brush == null ? "null" : $"N={Describe(brush.NormalValue)} S={Describe(brush.SelectedValue)} D={Describe(brush.DisabledValue)} F={Describe(brush.FocusedValue)}";
+
+    private static string Describe(IBorderBrush brush) => brush switch
+    {
+        null => "null",
+        MGUniformBorderBrush uniform => $"uniform {Describe(uniform.Brush)}",
+        _ => brush.GetType().Name,
+    };
+
+    private static string Describe(VisualStateSetting<Color?> setting)
+        => setting == null ? "null" : $"N={setting.NormalValue} S={setting.SelectedValue} D={setting.DisabledValue} F={setting.FocusedValue}";
+
+    private readonly record struct Harness(GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window)
+    {
+        /// <summary>A window with an explicit theme, as every XAML root window has: the desktop's default theme (<c>Dark_Blue</c>), or <c>Dark</c>.</summary>
+        public static Harness Create(bool dark)
+        {
+            GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+            MGDesktop desktop = new(runtime);
+            MGTheme theme = dark ? new MGTheme(MGTheme.BuiltInTheme.Dark, desktop.DefaultFontFamily) : desktop.Resources.DefaultTheme;
+            MGWindow window = new(desktop, 24, 24, 480, 260, theme)
+            {
+                WindowStyle = WindowStyle.None,
+                Padding = new Thickness(0),
+            };
+            Harness harness = new(runtime, desktop, window);
+            harness.Frame(0, Point.Zero);
+            return harness;
+        }
+
+        /// <summary>Adds the element to the window, shows the window and runs two warm-up frames so layout is settled.</summary>
+        public void Show(MGElement element)
+        {
+            Window.SetContent(element);
+            if (!Desktop.Windows.Contains(Window))
+                Desktop.Windows.Add(Window);
+            Frame(1, Point.Zero);
+            Frame(2, Point.Zero);
+        }
+
+        public void Frame(int frameIndex, Point mousePosition)
+        {
+            MouseState mouse = new(mousePosition.X, mousePosition.Y, 0,
+                ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            Runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(16 * (frameIndex + 1)), TimeSpan.FromMilliseconds(16), mouse, new KeyboardState()));
+            Desktop.Update();
+        }
+    }
+}

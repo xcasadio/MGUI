@@ -51,10 +51,16 @@ namespace MGUI.Core.UI.Styling
         public MGWindow Window => Owner?.SelfOrParentWindow;
         public bool IsThemeRefresh { get; }
 
-        public MGControlTemplateContext(MGElement Owner, bool IsThemeRefresh = false)
+        /// <summary>True when the owner instantiated a new template structure just before this application, such as a theme change that maps the
+        /// control to a template with another structure: every part is a new element that holds the values of its construction. A part default
+        /// is then applied even during a theme refresh, and the initialisation a template does once per structure runs again.</summary>
+        public bool IsStructureRebuilt { get; }
+
+        public MGControlTemplateContext(MGElement Owner, bool IsThemeRefresh = false, bool IsStructureRebuilt = false)
         {
             this.Owner = Owner;
             this.IsThemeRefresh = IsThemeRefresh;
+            this.IsStructureRebuilt = IsStructureRebuilt;
         }
 
         public bool TryGetPart(string Name, out MGElement Part)
@@ -121,16 +127,25 @@ namespace MGUI.Core.UI.Styling
         /// Recording the value as <see cref="UIValueResolutionSource.Theme"/> (precedence 20) instead keeps it below styles while still
         /// outranking <c>Inherited</c>/<c>DefaultValue</c>. Defaults that target a PART of the template (anything other than the owner or
         /// the owner's own border) must keep using <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/>
-        /// so they stay <c>Template</c>.</summary>
+        /// so they stay <c>Template</c>.<para/>
+        /// The owner survives a rebuild of its template structure, so this default keeps its theme-refresh guard on a rebuilt structure
+        /// (<see cref="IsStructureRebuilt"/>): a value the application set on the owner is not overwritten.</summary>
         public void ApplyOwnerThemeDefault<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue,
             UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
             => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue, Invalidation, Comparer, UIValueSourceKind.Theme);
 
+        /// <summary>Untagged overload of <see cref="ApplyOwnerThemeDefault{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/>
+        /// for a default of the control itself that is not a pilot property (a selection color, an indent, a content alignment, a template name): no store
+        /// records the value, but the call marks it as the owner's, so a rebuilt structure does not re-apply it over a value the application set.</summary>
+        public void ApplyOwnerThemeDefault<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T> SetValue,
+            UIInvalidationKind Invalidation = UIInvalidationKind.Draw, IEqualityComparer<T> Comparer = null)
+            => ApplyTemplateValueCore(Name, Value, GetCurrentValue, SetValue == null ? null : (v, _) => SetValue(v), Invalidation, Comparer, UIValueSourceKind.Theme);
+
         /// <summary>Shared implementation behind every <see cref="ApplyThemeDefault{T}(string, T, Func{T}, Action{T}, IEqualityComparer{T})"/>/
         /// <see cref="ApplyTemplateValue{T}(string, T, Func{T}, Action{T}, UIInvalidationKind, IEqualityComparer{T})"/>/
         /// <see cref="ApplyOwnerThemeDefault{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/>
-        /// overload: the has-previous/equals theme-refresh guard and <c>_AppliedTemplateDefaults</c> bookkeeping are unchanged from before
-        /// the tagged overloads were introduced (ADR-0005/S3). <paramref name="SourceKind"/> selects which resolution source the write is
+        /// overload: the has-previous/equals theme-refresh guard and <c>_AppliedTemplateDefaults</c> bookkeeping (ADR-0005/S3), which a rebuilt
+        /// structure bypasses for part defaults (<see cref="IsStructureRebuilt"/>). <paramref name="SourceKind"/> selects which resolution source the write is
         /// recorded and tagged under: <see cref="UIValueSourceKind.Template"/> for the existing part-targeting overloads, or
         /// <see cref="UIValueSourceKind.Theme"/> for <see cref="ApplyOwnerThemeDefault{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/> (ADR-0005/S7a).</summary>
         private void ApplyTemplateValueCore<T>(string Name, T Value, Func<T> GetCurrentValue, Action<T, UIValueResolutionSource> SetValue,
@@ -154,7 +169,11 @@ namespace MGUI.Core.UI.Styling
             Comparer ??= EqualityComparer<T>.Default;
             T CurrentValue = GetCurrentValue();
             bool HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out UIResolvedValue<T> PreviousValue);
-            if (!IsThemeRefresh || !HasPrevious || Comparer.Equals(CurrentValue, PreviousValue.Value))
+            // The record describes the value applied to the target of the previous application. A part default (Template) targets a part that a
+            // rebuilt structure replaced, whose current value is the one of its construction: its record cannot tell a value set since. The owner
+            // and its values survive the rebuild (MGElement.ApplyControlTemplate carries the owner's values held by a replaced part).
+            bool TargetWasReplaced = IsStructureRebuilt && SourceKind == UIValueSourceKind.Template;
+            if (!IsThemeRefresh || !HasPrevious || TargetWasReplaced || Comparer.Equals(CurrentValue, PreviousValue.Value))
             {
                 UIValueResolutionSource Source = SourceKind == UIValueSourceKind.Theme
                     ? UIValueResolutionSource.Theme(Invalidation, Name)
@@ -220,14 +239,14 @@ namespace MGUI.Core.UI.Styling
         internal static MGControlTemplate CreateStructureVariant(string Name, MGControlTemplate BaseTemplate, Action<MGControlTemplateContext> ApplyDefaults)
             => new(Name, BaseTemplate ?? throw new ArgumentNullException(nameof(BaseTemplate)), ApplyDefaults);
 
-        public void Apply(MGElement Owner, bool IsThemeRefresh = false)
+        public void Apply(MGElement Owner, bool IsThemeRefresh = false, bool IsStructureRebuilt = false)
         {
             if (Owner == null)
             {
                 throw new ArgumentNullException(nameof(Owner));
             }
 
-            Apply(new MGControlTemplateContext(Owner, IsThemeRefresh));
+            Apply(new MGControlTemplateContext(Owner, IsThemeRefresh, IsStructureRebuilt));
         }
 
         public void Apply(MGControlTemplateContext Context)

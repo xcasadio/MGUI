@@ -1,6 +1,12 @@
 namespace MGUI.Core.UI.Styling
 {
-    public readonly record struct UIResolvedValue<T>(T Value, UIValueResolutionSource Source, bool IsSet = true)
+    /// <summary>Non-generic view of a <see cref="UIResolvedValue{T}"/>, for code that reads the source of a boxed value whose type it does not know.</summary>
+    internal interface IUIResolvedValue
+    {
+        UIValueResolutionSource Source { get; }
+    }
+
+    public readonly record struct UIResolvedValue<T>(T Value, UIValueResolutionSource Source, bool IsSet = true) : IUIResolvedValue
     {
         public bool IsAnimated => Source.Kind == UIValueSourceKind.Animation;
 

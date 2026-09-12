@@ -426,6 +426,96 @@ namespace MGUI.Core.UI
             _AppliedStructuredTemplate = null;
         }
 
+        /// <summary>The parts of the instantiated template structure by name, null when no structure is instantiated.</summary>
+        private IReadOnlyDictionary<string, MGElement> GetInstantiatedTemplateParts()
+        {
+            if (_AppliedTemplateStructure == null || _InstantiatedTemplatePartNames.Count == 0)
+            {
+                return null;
+            }
+
+            Dictionary<string, MGElement> Parts = new(StringComparer.Ordinal);
+            foreach (string PartName in _InstantiatedTemplatePartNames)
+            {
+                if (_TemplateParts.TryGetValue(PartName, out MGElement Part))
+                {
+                    Parts[PartName] = Part;
+                }
+            }
+
+            return Parts;
+        }
+
+        /// <summary>Carries to each part of a rebuilt template structure the values that the part of the same name in the replaced structure held on behalf
+        /// of the owner rather than of its template: the values of the application and of the XAML (<c>LocalValue</c>, <c>ImplicitStyle</c>, <c>ExplicitStyle</c>),
+        /// such as the border thickness that <see cref="MGWindow.WindowStyle"/> or an attribute writes through the <see cref="MGWindow.BorderThickness"/>
+        /// facade, and the owner's theme defaults that its template applies onto a part (<see cref="MGControlTemplateContext.ApplyOwnerThemeDefault{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/>,
+        /// such as the border of a window), so that their theme-refresh guard compares the value the owner still holds. The template applies its own part
+        /// values again (<see cref="MGControlTemplateContext.IsStructureRebuilt"/>). Only the scalar pilot properties are carried: margin, padding,
+        /// minimum height, border brush and border thickness.</summary>
+        private void CarryOwnerValuesToRebuiltParts(IReadOnlyDictionary<string, MGElement> ReplacedParts, MGControlTemplateStructure Structure)
+        {
+            if (ReplacedParts == null)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<string, MGElement> KVP in Structure.Parts)
+            {
+                MGElement Part = KVP.Value;
+                if (Part == null || !ReplacedParts.TryGetValue(KVP.Key, out MGElement ReplacedPart) || ReplacedPart == null || ReferenceEquals(ReplacedPart, Part))
+                {
+                    continue;
+                }
+
+                CarryOwnerContributions<Thickness>(ReplacedPart, UIPilotProperty.Margin, Part.SetMargin);
+                CarryOwnerContributions<Thickness>(ReplacedPart, UIPilotProperty.Padding, Part.SetPadding);
+                CarryOwnerContributions<int?>(ReplacedPart, UIPilotProperty.MinHeight, Part.SetMinHeight);
+                CarryOwnerContributions<IBorderBrush>(ReplacedPart, UIPilotProperty.BorderBrush, Part.SetBorderBrushTagged);
+                CarryOwnerContributions<Thickness>(ReplacedPart, UIPilotProperty.BorderThickness, Part.SetBorderThicknessTagged);
+            }
+        }
+
+        private void CarryOwnerContributions<T>(MGElement ReplacedPart, UIPilotProperty Property, Action<T, UIValueResolutionSource> SetValue)
+        {
+            IReadOnlyList<UIResolvedContribution> Contributions = ReplacedPart.EnumerateResolvedContributions(Property, UIValueSlot.Whole);
+            //  The list starts with the highest precedence: writing the lowest first lets each write outrank the previous one.
+            for (int i = Contributions.Count - 1; i >= 0; i--)
+            {
+                UIResolvedContribution Contribution = Contributions[i];
+                if (!IsOwnerContributionOnPart(Contribution.Source))
+                {
+                    continue;
+                }
+
+                if (Contribution.Value is T Value)
+                {
+                    SetValue(Value, Contribution.Source);
+                }
+                else if (Contribution.Value == null && default(T) == null)
+                {
+                    SetValue(default, Contribution.Source);
+                }
+            }
+        }
+
+        private bool IsOwnerContributionOnPart(UIValueResolutionSource Source)
+        {
+            switch (Source.Kind)
+            {
+                case UIValueSourceKind.LocalValue:
+                case UIValueSourceKind.ImplicitStyle:
+                case UIValueSourceKind.ExplicitStyle:
+                    return true;
+                case UIValueSourceKind.Theme:
+                    //  A theme default of the owner, as opposed to one that a templated part applies to itself: the owner recorded that very source.
+                    return Source.Name != null && _AppliedTemplateDefaults.TryGetValue(Source.Name, out object Applied)
+                        && Applied is IUIResolvedValue Resolved && Resolved.Source == Source;
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>Attaches a structure created by a <see cref="MGControlTemplate"/>.
         /// The default runtime path supports single-content hosts; more specialized controls can override this hook.</summary>
         protected internal virtual void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
@@ -468,11 +558,14 @@ namespace MGUI.Core.UI
                     TemplateChanged = false;
                 }
 
+                IReadOnlyDictionary<string, MGElement> ReplacedParts = null;
                 if (TemplateChanged)
                 {
+                    ReplacedParts = GetInstantiatedTemplateParts();
                     ClearInstantiatedTemplateStructure();
                 }
 
+                bool IsStructureRebuilt = false;
                 if (Template?.SupportsStructure == true && (_AppliedTemplateStructure == null || TemplateChanged))
                 {
                     MGControlTemplateContext Context = new(this, false);
@@ -493,6 +586,8 @@ namespace MGUI.Core.UI
 
                         _AppliedTemplateStructure = Structure;
                         _AppliedStructuredTemplate = Template;
+                        IsStructureRebuilt = true;
+                        CarryOwnerValuesToRebuiltParts(ReplacedParts, Structure);
                     }
                 }
 
@@ -501,7 +596,7 @@ namespace MGUI.Core.UI
                     ValidateControlTemplateParts();
                 }
 
-                Template?.Apply(this, IsThemeRefresh);
+                Template?.Apply(this, IsThemeRefresh, IsStructureRebuilt);
                 LastControlTemplateError = null;
             }
             catch (Exception ex)
