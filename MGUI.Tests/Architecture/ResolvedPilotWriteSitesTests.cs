@@ -79,7 +79,7 @@ public class ResolvedPilotWriteSitesTests
     private static readonly (string File, int Line, string Reason)[] AllowedLines =
     {
         (@"MGUI.Core\UI\MGContextMenu.cs", 528, "local variable `int MinHeight`, not the MGElement.MinHeight pilot"),
-        (@"MGUI.Core\UI\MGDesktop.cs", 821, "local variable `int MinHeight`, not the MGElement.MinHeight pilot"),
+        (@"MGUI.Core\UI\MGDesktop.cs", 825, "local variable `int MinHeight`, not the MGElement.MinHeight pilot"),
         (@"MGUI.Core\UI\MGWindow.cs", 238, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
         (@"MGUI.Core\UI\MGWindow.cs", 256, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
         (@"MGUI.Core\UI\MGChatBox.cs", 145, "commented-out code"),

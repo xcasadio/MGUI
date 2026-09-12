@@ -50,6 +50,10 @@ namespace MGUI.Core.UI
 
         internal void AdjustActiveRenderTransformCount(int Delta) => ActiveRenderTransformCount = Math.Max(0, ActiveRenderTransformCount + Delta);
 
+        /// <summary>The animation engine of this desktop (ADR-0006, decision 7): its clock, the active animations and their conflict rule.
+        /// Ticked first in <see cref="Update"/>, so every animated value is written before the windows are laid out, updated and drawn.</summary>
+        public Animation.UIAnimationManager Animations { get; } = new();
+
         public InputTracker InputTracker => Runtime.Input;
         public string DefaultFontFamily => Runtime.DefaultFontFamily;
         private List<ModalStackEntry> ModalStackEntries { get; } = new();
@@ -1083,6 +1087,9 @@ namespace MGUI.Core.UI
                 return;
             }
 
+            //  A closed window cancels the animations of the elements it displayed and restores their base values (ADR-0006, decision 9).
+            Animations.CancelOwnedByWindow(window);
+
             UnregisterModalWindow(window);
 
             NavigationService.NotifyWindowClosed(window);
@@ -1363,6 +1370,13 @@ namespace MGUI.Core.UI
 
         public void Update()
         {
+            //  Animations first (ADR-0006, decision 7): every active animation writes its value for this frame before the windows are
+            //  laid out, updated and drawn, whatever the visibility of the owner elements (an element outside the viewport is not updated).
+            using (UIPerformanceProbe.BeginDesktopPhase("Animations"))
+            {
+                Animations.Update(Runtime.UpdateArgs.FrameElapsed);
+            }
+
             using (UIPerformanceProbe.BeginDesktopPhase("ResponsiveMetrics"))
             {
                 RecalculateResponsiveMetrics(true);

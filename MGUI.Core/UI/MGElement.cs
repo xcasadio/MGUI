@@ -3800,6 +3800,16 @@ namespace MGUI.Core.UI
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Animation.UIElementAnimationSlot _AnimationSlot;
+        /// <summary>The animations owned by this element (ADR-0006, S3): start one with <see cref="Animation.UIAnimationCollection.Start"/>; it is ticked
+        /// by the <see cref="MGDesktop.Animations"/> manager of this element's desktop whatever the element's visibility, and cancelled when the element
+        /// leaves the tree or its displaying window closes. Allocated on first access: an element that never animates carries one null reference.</summary>
+        public Animation.UIAnimationCollection Animations => (_AnimationSlot ??= new Animation.UIElementAnimationSlot(this)).Animations;
+
+        /// <summary>The per-element animation state, or null while the element has never animated.</summary>
+        internal Animation.UIElementAnimationSlot AnimationSlotOrNull => _AnimationSlot;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Animation.UIRenderTransform _RenderTransform;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _IsRenderTransformActive;
