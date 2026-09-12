@@ -202,7 +202,7 @@ namespace MGUI.Core.UI
                 BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
 
                 SecondaryVisualState roundedSecondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
-                BackgroundBrush.GetFillOverlay(roundedSecondaryState)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+                BackgroundBrush.DrawFillOverlay(DA, roundedSecondaryState, this, backgroundShape, backgroundGeometry);
                 return;
             }
 
@@ -210,7 +210,7 @@ namespace MGUI.Core.UI
             BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundBounds);
 
             SecondaryVisualState secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
-            BackgroundBrush.GetFillOverlay(secondaryState)?.Draw(DA, this, backgroundBounds);
+            BackgroundBrush.DrawFillOverlay(DA, secondaryState, this, backgroundBounds);
         }
 
         public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
@@ -221,7 +221,7 @@ namespace MGUI.Core.UI
 
             if (DrawBackgroundAndOverlay)
             {
-                BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, boxShape, geometry);
+                BackgroundBrush.DrawBorderOverlay(DA, DA.VisualState.Secondary, this, boxShape, geometry);
             }
         }
 

@@ -48,7 +48,7 @@ namespace MGUI.Core.UI.Animation.Targets
         /// container was written whole, by a constructor or a theme, and its field only lived inside the object), writes the base colour back
         /// under the source of the whole container, so the value does not stay frozen on the last animated colour (the resolved value store keeps
         /// the CLR value when the last contribution of a slot is removed, ADR-0005).</summary>
-        private static void RestoreSlot(MGElement owner, UIPilotProperty pilot, UIValueSlot slot, Action<UIValueResolutionSource> writeBase)
+        internal static void RestoreSlot(MGElement owner, UIPilotProperty pilot, UIValueSlot slot, Action<UIValueResolutionSource> writeBase)
         {
             owner.ClearPilotSource(pilot, slot, UIValueSourceKind.Animation);
             if (owner.EnumerateResolvedContributions(pilot, slot).Count > 0)

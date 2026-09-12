@@ -4,6 +4,7 @@ using MGUI.Core.UI.Brushes;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Rendering;
+using MGUI.Core.UI.Shapes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -265,6 +266,24 @@ namespace MGUI.Core.UI
             NPC(nameof(PressedBorderOverlay));
         }
 
+        private float _OverlayOpacity = 1f;
+        /// <summary>Opacity applied to the Hovered / Pressed overlays when they are drawn (<see cref="VisualStateFillBrush.DrawFillOverlay"/>, ADR-0007 decision 4):
+        /// 1 (the default) paints them as before, 0 hides them; the <c>Background.Overlay</c> animation target animates it, and a transition on that
+        /// path fades the overlay in when the element becomes hovered or pressed. Clamped to [0, 1].</summary>
+        public float OverlayOpacity
+        {
+            get => _OverlayOpacity;
+            set
+            {
+                float clamped = float.IsNaN(value) ? 1f : Math.Clamp(value, 0f, 1f);
+                if (_OverlayOpacity != clamped)
+                {
+                    _OverlayOpacity = clamped;
+                    NPC(nameof(OverlayOpacity));
+                }
+            }
+        }
+
         private Color? HoveredColorOverlay => FocusedColor;
         private Color? PressedColorOverlay { get; set; }
 
@@ -344,7 +363,50 @@ namespace MGUI.Core.UI
 
         private VisualStateFillBrush(VisualStateFillBrush InheritFrom)
             : base(InheritFrom.NormalValue?.Copy(), InheritFrom.SelectedValue?.Copy(), InheritFrom.FocusedValue?.Copy(), InheritFrom.DisabledValue?.Copy(),
-                  InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier) { }
+                  InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier)
+        {
+            OverlayOpacity = InheritFrom.OverlayOpacity;
+        }
+
+        /// <summary>Draws the fill overlay of <paramref name="State"/> (Hovered / Pressed) with <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> applied; nothing for <see cref="SecondaryVisualState.None"/> or an opacity of 0.</summary>
+        public void DrawFillOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, Rectangle Bounds)
+        {
+            MGSolidFillBrush? overlay = GetFillOverlay(State);
+            float opacity = OverlayOpacity;
+            if (overlay == null || opacity <= 0f)
+                return;
+            overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Bounds);
+        }
+
+        /// <summary>Rounded variant of <see cref="DrawFillOverlay(ElementDrawArgs, SecondaryVisualState, MGElement, Rectangle)"/>.</summary>
+        public void DrawFillOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            MGSolidFillBrush? overlay = GetFillOverlay(State);
+            float opacity = OverlayOpacity;
+            if (overlay == null || opacity <= 0f)
+                return;
+            overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Shape, Geometry);
+        }
+
+        /// <summary>Draws the border overlay of <paramref name="State"/> with <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> applied.</summary>
+        public void DrawBorderOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, Rectangle Bounds, MonoGame.Extended.Thickness BorderThickness)
+        {
+            MGUniformBorderBrush? overlay = GetBorderOverlay(State);
+            float opacity = OverlayOpacity;
+            if (overlay == null || opacity <= 0f)
+                return;
+            overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Bounds, BorderThickness);
+        }
+
+        /// <summary>Rounded variant of <see cref="DrawBorderOverlay(ElementDrawArgs, SecondaryVisualState, MGElement, Rectangle, MonoGame.Extended.Thickness)"/>.</summary>
+        public void DrawBorderOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        {
+            MGUniformBorderBrush? overlay = GetBorderOverlay(State);
+            float opacity = OverlayOpacity;
+            if (overlay == null || opacity <= 0f)
+                return;
+            overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Shape, Geometry);
+        }
 
         /// <summary>Forwards the per-frame lifecycle call to each distinct <see cref="IFillBrush"/> held by this wrapper
         /// (<see cref="VisualStateSetting{TDataType}.NormalValue"/>, <see cref="VisualStateSetting{TDataType}.SelectedValue"/>,
@@ -400,7 +462,10 @@ namespace MGUI.Core.UI
 
         private VisualStateColorBrush(VisualStateColorBrush InheritFrom)
             : base(InheritFrom.NormalValue, InheritFrom.SelectedValue, InheritFrom.FocusedValue, InheritFrom.DisabledValue,
-                  InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier) { }
+                  InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier)
+        {
+            OverlayOpacity = InheritFrom.OverlayOpacity;
+        }
 
         public VisualStateColorBrush Copy() => new(this);
         public override object Clone() => Copy();

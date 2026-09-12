@@ -55,6 +55,7 @@ namespace MGUI.Core.UI.Animation.Targets
                 UIAnimationTargets.Register(new PaddingTarget());
                 UIAnimationTargets.Register(new MinHeightTarget());
                 UIColorAnimationTargets.RegisterAll();
+                UIExtraAnimationTargets.RegisterAll();
             }
         }
 

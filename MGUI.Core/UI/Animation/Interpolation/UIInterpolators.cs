@@ -29,6 +29,8 @@ namespace MGUI.Core.UI.Animation.Interpolation
             Register(UIColorInterpolator.Instance);
             Register(UIRectangleInterpolator.Instance);
             Register(UIThicknessInterpolator.Instance);
+            Register(UIGradientColorsInterpolator.Instance);
+            Register(UIDiagonalGradientColorsInterpolator.Instance);
         }
 
         /// <summary>Registers (or replaces) the interpolator used by default for <typeparamref name="T"/>.</summary>

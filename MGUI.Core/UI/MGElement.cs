@@ -4301,14 +4301,14 @@ namespace MGUI.Core.UI
                 BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
 
                 SecondaryVisualState secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
-                BackgroundBrush.GetFillOverlay(secondaryState)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+                BackgroundBrush.DrawFillOverlay(DA, secondaryState, this, backgroundShape, backgroundGeometry);
                 return;
             }
 
             Rectangle BackgroundBounds = GetBackgroundBounds(LayoutBounds);
             BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, BackgroundBounds);
             SecondaryVisualState SecondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
-            BackgroundBrush.GetFillOverlay(SecondaryState)?.Draw(DA, this, BackgroundBounds);
+            BackgroundBrush.DrawFillOverlay(DA, SecondaryState, this, BackgroundBounds);
         }
 
         public virtual void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds) 
@@ -4335,14 +4335,14 @@ namespace MGUI.Core.UI
                     MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(boxShape);
                     if (DrawBackgroundBorderOverlayEnabled)
                     {
-                        BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, boxShape, geometry);
+                        BackgroundBrush.DrawBorderOverlay(DA, DA.VisualState.Secondary, this, boxShape, geometry);
                     }
                 }
                 else
                 {
                     if (DrawBackgroundBorderOverlayEnabled)
                     {
-                        BackgroundBrush.GetBorderOverlay(DA.VisualState.Secondary)?.Draw(DA, this, LayoutBounds, GetBorder().BorderThickness);
+                        BackgroundBrush.DrawBorderOverlay(DA, DA.VisualState.Secondary, this, LayoutBounds, GetBorder().BorderThickness);
                     }
                 }
             }

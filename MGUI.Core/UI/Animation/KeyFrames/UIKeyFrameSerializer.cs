@@ -13,7 +13,7 @@ namespace MGUI.Core.UI.Animation.KeyFrames
     /// </code>
     /// Values are invariant-culture strings: <c>float</c> / <c>double</c> / <c>int</c> as numbers, <c>Vector2</c> / <c>Vector3</c> / <c>Vector4</c>
     /// as <c>x,y[,z[,w]]</c>, <c>Color</c> as <c>#RRGGBBAA</c>, <c>Thickness</c> as <c>l,t,r,b</c>. Unknown value types and versions fail explicitly;
-    /// the value type of the JSON must match the requested <typeparamref name="T"/> on read.
+    /// the value type of the JSON must match the requested type argument on read.
     /// </summary>
     public static class UIKeyFrameSerializer
     {

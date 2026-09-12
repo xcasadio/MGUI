@@ -106,6 +106,10 @@ Cibles framework (`Targets/UIBuiltInAnimationTargets.cs`, `Targets/UIColorAnimat
 | `Foreground` (`MGTextBlock`) | Color | pilote | idem |
 | `TextForeground` | Color | pilote (`DefaultTextForeground.Normal`) | idem |
 | `BorderBrush` | Color | pilote (bordure `GetBorder()`, uniforme et unie) | idem |
+| `Background.Overlay` | float | simple (`VisualStateFillBrush.OverlayOpacity`, valeur sous-jacente 1 si survole ou presse, 0 sinon) | valeur de base gardee par le moteur |
+| `PreferredWidth`, `PreferredHeight` | int? | simple (layout, couteux) | idem |
+| `Background.Gradient` | `UIGradientColors` (4 coins) | pilote (slot Normal, `MGGradientFillBrush` seulement) | retrait, puis base sous la source du conteneur |
+| `Background.DiagonalGradient` | `UIDiagonalGradientColors` (2 couleurs + coin) | pilote (slot Normal, `MGDiagonalGradientFillBrush` seulement) | idem |
 
 Base et valeur animee : pour un pilote, la valeur effective est le gagnant du store, `Animation` (100) etant la plus forte ; a la fin ou a l'annulation avec restauration, la contribution est retiree et la meilleure source suivante reprend (`UIToolingService.TryGetResolvedValueSource` rapporte `Animation` pendant l'animation). `HoldEnd` sur un pilote garde la contribution (`IsHeld`) jusqu'a la prochaine animation du meme chemin ou `Animations.Clear()`, et masque une ecriture locale posee entre-temps ; sur une propriete simple, la valeur finale reste simplement la valeur CLR et une ecriture locale ulterieure l'emporte (asymetrie assumee).
 
@@ -151,7 +155,8 @@ DTO `MGUI.Core/UI/XAML/Animation.cs` :
 - `MGWindow.InvalidatePressedAndHoveredElements` n'est jamais remis a false par la fenetre (preexistant) : apres un premier transform, le survol est recalcule a chaque frame de cette fenetre.
 - `ActiveRenderTransformCount` n'est pas decremente quand une fenetre se ferme avec un transform actif (cout de parcours seulement).
 - Une ecriture locale d'un pilote pendant sa transition n'est pas notifiee (masquee par la contribution `Animation`) et n'est animee qu'a la fin du run.
-- Les brushes non unies (gradient, texture, nine-slice) ne sont pas interpolables ; un slot d'etat null refuse le demarrage.
+- `Background` n'interpole que les brushes unies ; `Background.Gradient` et `Background.DiagonalGradient` interpolent deux gradients du meme type (couleur par couleur, le coin du gradient diagonal bascule a mi-parcours) ; textures et nine-slices ne sont pas interpolables ; un slot d'etat null refuse le demarrage.
+- Le fondu des overlays Hover / Pressed (`VisualStateFillBrush.OverlayOpacity`, ADR-0007 decision 4) est un fondu a l'entree seulement : l'overlay peint est celui de l'etat courant, donc a la sortie de l'etat il disparait avec lui pendant que la transition ramene l'opacite a 0. Seuls les sites de `MGElement` et `MGBorder` appliquent `OverlayOpacity` ; `MGProgressBar`, `MGScrollViewer`, `MGWindow` (barre de titre), `MGUniformGrid`, `MGGridSplitter` et `MGSlider` lisent encore l'overlay directement (opacite 1). Un remplacement entier du conteneur de fond (changement de theme, ecriture `Background` d'un style ou du code) repart avec `OverlayOpacity = 1` : un fondu en cours a ce moment saute.
 - `Thickness` est en entiers : une marge animee avance par pixels entiers.
 - Les abonnements d'une transition ne sont liberes qu'a son retrait, pas au detachement de l'element (l'element possede la transition, aucune fuite au-dela de sa vie).
 
