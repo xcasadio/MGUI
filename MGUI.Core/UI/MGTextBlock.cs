@@ -113,8 +113,8 @@ namespace MGUI.Core.UI
         {
             if (this.FontFamily != FontFamily || this.FontSize != FontSize)
             {
-                string PreviousFontFamily = FontFamily;
-                int PreviousFontSize = FontSize;
+                string PreviousFontFamily = this.FontFamily;
+                int PreviousFontSize = this.FontSize;
 
                 // Validate that the requested font exists before committing the change
                 int effectiveFontSize = Math.Max(1, UIResponsiveMath.ScaleInt(FontSize, ResponsiveTextScaleFactor));
