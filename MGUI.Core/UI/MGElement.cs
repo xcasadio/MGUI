@@ -451,8 +451,9 @@ namespace MGUI.Core.UI
         /// such as the border thickness that <see cref="MGWindow.WindowStyle"/> or an attribute writes through the <see cref="MGWindow.BorderThickness"/>
         /// facade, and the owner's theme defaults that its template applies onto a part (<see cref="MGControlTemplateContext.ApplyOwnerThemeDefault{T}(string, T, Func{T}, Action{T, UIValueResolutionSource}, UIInvalidationKind, IEqualityComparer{T})"/>,
         /// such as the border of a window), so that their theme-refresh guard compares the value the owner still holds. The template applies its own part
-        /// values again (<see cref="MGControlTemplateContext.IsStructureRebuilt"/>). Only the scalar pilot properties are carried: margin, padding,
-        /// minimum height, border brush and border thickness.</summary>
+        /// values again (<see cref="MGControlTemplateContext.IsStructureRebuilt"/>). Every pilot property is carried: margin, padding, minimum height,
+        /// border brush and thickness, and the background, default text foreground and text block foreground containers with their sub-fields, such as
+        /// the header background that <see cref="MGTabControl.HeaderAreaBackground"/> writes on its headers panel.</summary>
         private void CarryOwnerValuesToRebuiltParts(IReadOnlyDictionary<string, MGElement> ReplacedParts, MGControlTemplateStructure Structure)
         {
             if (ReplacedParts == null)
@@ -468,22 +469,65 @@ namespace MGUI.Core.UI
                     continue;
                 }
 
-                CarryOwnerContributions<Thickness>(ReplacedPart, UIPilotProperty.Margin, Part.SetMargin);
-                CarryOwnerContributions<Thickness>(ReplacedPart, UIPilotProperty.Padding, Part.SetPadding);
-                CarryOwnerContributions<int?>(ReplacedPart, UIPilotProperty.MinHeight, Part.SetMinHeight);
-                CarryOwnerContributions<IBorderBrush>(ReplacedPart, UIPilotProperty.BorderBrush, Part.SetBorderBrushTagged);
-                CarryOwnerContributions<Thickness>(ReplacedPart, UIPilotProperty.BorderThickness, Part.SetBorderThicknessTagged);
+                MGTextBlock ReplacedTextBlock = ReplacedPart as MGTextBlock;
+                MGTextBlock TextBlock = Part as MGTextBlock;
+
+                //  By increasing precedence. At a given precedence a whole container goes before its sub-fields: writing it drops the sub-field
+                //  contributions of that precedence (ADR-0005/S5), which the replaced part only holds when they were written after the container.
+                foreach (UIValueSourceKind Kind in CarriedOwnerSourceKinds)
+                {
+                    CarryOwnerContribution<Thickness>(ReplacedPart, UIPilotProperty.Margin, UIValueSlot.Whole, Kind, Part.SetMargin);
+                    CarryOwnerContribution<Thickness>(ReplacedPart, UIPilotProperty.Padding, UIValueSlot.Whole, Kind, Part.SetPadding);
+                    CarryOwnerContribution<int?>(ReplacedPart, UIPilotProperty.MinHeight, UIValueSlot.Whole, Kind, Part.SetMinHeight);
+                    CarryOwnerContribution<IBorderBrush>(ReplacedPart, UIPilotProperty.BorderBrush, UIValueSlot.Whole, Kind, Part.SetBorderBrushTagged);
+                    CarryOwnerContribution<Thickness>(ReplacedPart, UIPilotProperty.BorderThickness, UIValueSlot.Whole, Kind, Part.SetBorderThicknessTagged);
+
+                    CarryOwnerContribution<VisualStateFillBrush>(ReplacedPart, UIPilotProperty.Background, UIValueSlot.Whole, Kind, Part.SetBackground);
+                    foreach (UIValueSlot Slot in ContainerSubFieldSlots)
+                    {
+                        CarryOwnerContribution<IFillBrush>(ReplacedPart, UIPilotProperty.Background, Slot, Kind, (Value, Source) => Part.SetBackgroundSlot(Slot, Value, Source));
+                    }
+                    CarryOwnerContribution<Color?>(ReplacedPart, UIPilotProperty.Background, UIValueSlot.FocusedColor, Kind, Part.SetBackgroundFocusedColor);
+
+                    CarryOwnerContribution<VisualStateSetting<Color?>>(ReplacedPart, UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, Kind, Part.SetDefaultTextForeground);
+                    foreach (UIValueSlot Slot in ContainerSubFieldSlots)
+                    {
+                        CarryOwnerContribution<Color?>(ReplacedPart, UIPilotProperty.DefaultTextForeground, Slot, Kind, (Value, Source) => Part.SetDefaultTextForegroundSlot(Slot, Value, Source));
+                    }
+
+                    if (ReplacedTextBlock != null && TextBlock != null)
+                    {
+                        CarryOwnerContribution<VisualStateSetting<Color?>>(ReplacedTextBlock, UIPilotProperty.Foreground, UIValueSlot.Whole, Kind, TextBlock.SetForeground);
+                        foreach (UIValueSlot Slot in ContainerSubFieldSlots)
+                        {
+                            CarryOwnerContribution<Color?>(ReplacedTextBlock, UIPilotProperty.Foreground, Slot, Kind, (Value, Source) => TextBlock.SetForegroundSlot(Slot, Value, Source));
+                        }
+                    }
+                }
+
+                //  A carried container is the same instance, now held by the new part. The replaced part gives its contribution up, so that it swaps
+                //  back to a container of its own and unsubscribes from the carried one, which would otherwise keep the discarded part alive (ADR-0005/S5).
+                ReleaseCarriedOwnerContainer(ReplacedPart, UIPilotProperty.Background);
+                ReleaseCarriedOwnerContainer(ReplacedPart, UIPilotProperty.DefaultTextForeground);
+                if (ReplacedTextBlock != null && TextBlock != null)
+                {
+                    ReleaseCarriedOwnerContainer(ReplacedTextBlock, UIPilotProperty.Foreground);
+                }
             }
         }
 
-        private void CarryOwnerContributions<T>(MGElement ReplacedPart, UIPilotProperty Property, Action<T, UIValueResolutionSource> SetValue)
+        /// <summary>The source kinds of the contributions a replaced part may hold on behalf of its owner (see <see cref="IsOwnerContributionOnPart"/>), by
+        /// increasing precedence.</summary>
+        private static readonly UIValueSourceKind[] CarriedOwnerSourceKinds = { UIValueSourceKind.Theme, UIValueSourceKind.ImplicitStyle, UIValueSourceKind.ExplicitStyle, UIValueSourceKind.LocalValue };
+
+        /// <summary>The brush or color sub-fields of the background and text foreground containers; the background also has <see cref="UIValueSlot.FocusedColor"/>.</summary>
+        private static readonly UIValueSlot[] ContainerSubFieldSlots = { UIValueSlot.Normal, UIValueSlot.Selected, UIValueSlot.Disabled, UIValueSlot.Focused };
+
+        private void CarryOwnerContribution<T>(MGElement ReplacedPart, UIPilotProperty Property, UIValueSlot Slot, UIValueSourceKind Kind, Action<T, UIValueResolutionSource> SetValue)
         {
-            IReadOnlyList<UIResolvedContribution> Contributions = ReplacedPart.EnumerateResolvedContributions(Property, UIValueSlot.Whole);
-            //  The list starts with the highest precedence: writing the lowest first lets each write outrank the previous one.
-            for (int i = Contributions.Count - 1; i >= 0; i--)
+            foreach (UIResolvedContribution Contribution in ReplacedPart.EnumerateResolvedContributions(Property, Slot))
             {
-                UIResolvedContribution Contribution = Contributions[i];
-                if (!IsOwnerContributionOnPart(Contribution.Source))
+                if (Contribution.Kind != Kind || !IsOwnerContributionOnPart(Contribution.Source))
                 {
                     continue;
                 }
@@ -495,6 +539,17 @@ namespace MGUI.Core.UI
                 else if (Contribution.Value == null && default(T) == null)
                 {
                     SetValue(default, Contribution.Source);
+                }
+            }
+        }
+
+        private void ReleaseCarriedOwnerContainer(MGElement ReplacedPart, UIPilotProperty Property)
+        {
+            foreach (UIResolvedContribution Contribution in ReplacedPart.EnumerateResolvedContributions(Property, UIValueSlot.Whole))
+            {
+                if (IsOwnerContributionOnPart(Contribution.Source))
+                {
+                    ReplacedPart.ClearPilotSource(Property, UIValueSlot.Whole, Contribution.Kind);
                 }
             }
         }

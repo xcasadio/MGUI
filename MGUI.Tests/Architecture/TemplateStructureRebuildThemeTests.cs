@@ -152,6 +152,53 @@ public class TemplateStructureRebuildThemeTests
     }
 
     [Fact]
+    public void Backgrounds_And_Text_Colors_Set_On_Replaced_Parts_Move_To_The_New_Parts()
+    {
+        Harness harness = Harness.Create(dark: false);
+        MGTabControl tabControl = new(harness.Window);
+        VisualStateFillBrush headerAreaBackground = new(new MGSolidFillBrush(Color.Red));
+        tabControl.HeaderAreaBackground = headerAreaBackground;
+        harness.Show(tabControl);
+        MGElement codeHeadersPanel = Part<MGElement>(tabControl, MGTabControl.HeadersPanelPartName);
+
+        MGWindow window = new(harness.Desktop, 0, 0, 300, 200, harness.Desktop.Resources.DefaultTheme);
+        MGTextBlock codeTitleText = window.TitleBarTextBlockElement;
+        VisualStateSetting<Color?> titleForeground = new(Color.Orange, Color.Orange, Color.Orange);
+        codeTitleText.Foreground = titleForeground;
+        codeTitleText.DefaultTextForeground.NormalValue = Color.Yellow;
+
+        MGTheme dark = new(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        harness.Window.GetResources().DefaultTheme = dark;
+        window.GetResources().DefaultTheme = new MGTheme(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        harness.Frame(3, Point.Zero);
+
+        // The header background set through the tab control's facade: the same brush, still local, held by the new headers panel.
+        Assert.Equal("Dark.TabControl", tabControl.AppliedControlTemplateName);
+        MGElement headersPanel = Part<MGElement>(tabControl, MGTabControl.HeadersPanelPartName);
+        Assert.NotSame(codeHeadersPanel, headersPanel);
+        Assert.Same(headerAreaBackground, tabControl.HeaderAreaBackground);
+        Assert.Equal(Color.Red, Assert.IsType<MGSolidFillBrush>(headersPanel.BackgroundBrush.NormalValue).Color);
+        Assert.True(headersPanel.TryGetResolvedPilotValue(UIPilotProperty.Background, UIValueSlot.Whole, out UIResolvedValue<VisualStateFillBrush> headerWinner));
+        Assert.Equal(UIValueSourceKind.LocalValue, headerWinner.Source.Kind);
+
+        // The replaced panel let the brush go: a later edit of the brush is recorded by the new panel only.
+        Assert.NotSame(headerAreaBackground, codeHeadersPanel.BackgroundBrush);
+        headerAreaBackground.NormalValue = new MGSolidFillBrush(Color.Blue);
+        Assert.True(headersPanel.TryGetResolvedContribution(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.LocalValue, out UIResolvedValue<IFillBrush> _));
+        Assert.False(codeHeadersPanel.TryGetResolvedContribution(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.LocalValue, out UIResolvedValue<IFillBrush> _));
+
+        // Text colors set on the replaced title text: the whole foreground and one sub-field of the default text foreground.
+        Assert.Equal("Dark.Window", window.AppliedControlTemplateName);
+        MGTextBlock titleText = window.TitleBarTextBlockElement;
+        Assert.NotSame(codeTitleText, titleText);
+        Assert.Same(titleForeground, titleText.Foreground);
+        Assert.Equal(Color.Yellow, titleText.DefaultTextForeground.NormalValue);
+        Assert.True(titleText.TryGetResolvedContribution(UIPilotProperty.DefaultTextForeground, UIValueSlot.Normal, UIValueSourceKind.LocalValue, out UIResolvedValue<Color?> _));
+        // The sub-fields left alone keep the new theme.
+        Assert.Equal(dark.Window.TitleTextForeground.SelectedValue, titleText.DefaultTextForeground.SelectedValue);
+    }
+
+    [Fact]
     public void ListView_Columns_Rows_And_Cells_Move_To_The_Grids_Of_A_Rebuilt_Structure()
     {
         Harness harness = Harness.Create(dark: false);
