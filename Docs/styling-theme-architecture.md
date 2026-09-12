@@ -348,6 +348,41 @@ Controles encore faiblement decouples: `MGRadioButton`, `MGSlider`, `MGProgressB
 - Verrouillage des content hosts: cabler les enfants d'abord, poser `CanChangeContent = false` ensuite — l'ordre inverse echoue au runtime.
 - Detachement: `MGElement.ClearInstantiatedTemplateStructure()` ne nettoie automatiquement `Structure.Root` que pour `MGSingleContentHost`. Les composites a composants doivent avoir une logique de detachement explicite, reutiliser leurs slots de composants a l'attachement, et eviter les swaps de template frequents au runtime.
 
+## Surfaces auxiliaires
+
+Depuis la tache 12 (12 septembre 2026). Une surface auxiliaire est une fenetre qu'un controle ouvre hors de son propre sous-arbre : liste deroulante, menu contextuel, tooltip, fenetre flottante de docking, popup du color picker.
+
+### Inventaire
+
+| Surface | Creee par | Ouverture et fermeture | Contrat |
+|---|---|---|---|
+| Liste deroulante de `MGComboBox` | template `ComboBox.Default` : part requise `PART_DropdownWindow` de type `MGWindow`, remplacable en XAML (`Dark.ComboBox`) | le controle, dans `IsDropdownOpen` (`AddNestedWindow`, `RemoveNestedWindow`) et au relachement exterieur | supporte : part requise de type `MGWindow` |
+| `MGContextMenu` et ses sous-menus | l'application ou l'element hote ; sous-type de `MGWindow`, template `ContextMenu.Default` | le desktop (`TryOpenContextMenu`, `TryCloseActiveContextMenu`) | supporte : controle derive d'un type template |
+| `MGToolTip` | l'application ou l'element hote ; sous-type de `MGWindow`, template `ToolTip.Default` | le desktop (`ActiveToolTip`) | supporte : controle derive d'un type template |
+| `MGFloatingDockWindow` | `MGDockHost` (`DetachToFloating`, `CreateFloatingWindow`) ; sous-type de `MGWindow` | l'hote (`CloseFloatingWindow`), ou la fenetre elle-meme (`TryCloseWindow`, bouton fermer de son template) que l'hote observe | supporte sans nouvelle part : le chrome vient du template `Window.Default` herite, le contenu est le groupe d'onglets, structurel depuis la tache 9 |
+| Popup de `MGColorPickerPopup` | `MGColorPickerPopup`, classe scellee qui n'est pas un `MGElement` et construit un `MGWindow` brut | la popup (`Open`, `CommitAndClose`, `CancelAndClose`, relachement exterieur), qui pousse et retire un scope de focus | extension minimale requise (specification ci-dessous) |
+
+### Cycle de vie
+
+- Creation : la surface est un `MGWindow` construit avec la fenetre proprietaire comme parent (`MGWindow(MGWindow, ...)`) ; son scope de ressources herite de celui du proprietaire et suit ses changements de theme. Une surface creee par un template est une part : elle existe des l'attachement, fermee.
+- Ouverture : le proprietaire l'attache comme fenetre imbriquee (`AddNestedWindow`) ou la confie au desktop (menu contextuel, tooltip). Les popups ont `ActivatesOnClick = false` (`Docs/input-window-activation-design.md`, section 3.a). Une popup qui prend le focus pousse un scope de focus et le retire a sa fermeture.
+- Fermeture : le proprietaire detache la surface (`RemoveNestedWindow`). Une surface qui peut se fermer elle-meme par `TryCloseWindow` (bouton fermer du template de fenetre, code applicatif) quitte la liste de son parent sans prevenir son proprietaire : un proprietaire qui suit ses surfaces observe `WindowClosed`. `MGDockHost` le fait depuis la tache 12 : une fenetre flottante fermee par sa barre de titre quitte `FloatingWindows`, et les panneaux qu'elle contenait sont signales fermes (`PanelRemoved`, registre des dockables).
+- Remplacement de structure : une surface part d'un template est remplacee avec la structure, et le controle rattache ses gestionnaires a la nouvelle part.
+- Controles derives d'un type template : `MGContextMenu` et `MGToolTip` heritent de `MGWindow`, dont le constructeur applique deja `Window.Default` ; ils posent ensuite leur propre `DefaultControlTemplateName` et tolerent cette phase de template de base (voir "Regles de robustesse").
+
+### Frontiere et limites
+
+- `MGControlTemplateStructure.DetachedRoots` reste une donnee de structure sans semantique runtime : le loader XAML aplatit ses elements nommes en parts. Le contrat d'une surface detachee reste la part requise de type `MGWindow`.
+- Le cablage `AddNestedWindow` / `RemoveNestedWindow` de `MGComboBox` reste dans le controle : une part requise ne porte ni ouverture ni fermeture, et l'en sortir demanderait un hook runtime de surface (ouverture, fermeture, parent) que ce contrat n'a pas.
+- La validation des templates ne verifie que les noms et les types des parts. Les contraintes entre parts, comme la liste d'items placee dans la fenetre deroulante, restent imposees par le code d'attachement du controle.
+
+### Specification : extension minimale pour `MGColorPickerPopup`
+
+- `MGColorField` declare une part requise `PART_PopupWindow` de type `MGWindow`, creee par un nouveau template structurel `ColorField.Default` avec la configuration actuelle de la popup : sans barre de titre ni bouton fermer, `ActivatesOnClick = false`.
+- `MGColorPickerPopup` recoit cette fenetre par une methode interne d'attachement au lieu de construire la sienne. `MGColorField.Popup` reste la meme instance ; sa logique d'ouverture, de fermeture, de scope de focus et de relachement exterieur est inchangee, et le constructeur actuel reste pour un usage hors template.
+- `MGColorField.AttachControlTemplateStructure` rattache la popup a la part attachee ; si la structure change pendant que la popup est ouverte, la popup est d'abord annulee et fermee.
+- Tests attendus : fenetre de popup venant du template, template de remplacement, ouverture et fermeture apres un remplacement.
+
 ## Docking: vocabulaire des parts visuelles
 
 Le docking est un flux de migration dedie avec son propre vocabulaire. Regles: parts en `PART_*`; reutiliser les roles partages plutot qu'inventer des alias par controle; comportement et orchestration de layout restent sur le controle proprietaire; seuls les aspects paint-only migrent vers des parts/elements symboles; les etats semantiques docking (active, preview-visible, drop-target-active, drop-target-disabled, auto-hide-open/collapsed, resizing) restent portes par des proprietes tant qu'une projection partagee n'existe pas.

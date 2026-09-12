@@ -1343,13 +1343,44 @@ public class MGDockHost : MGSingleContentHost
         int top  = dropPosition.Y - defaultFloatHeight / 2;
 
         var floatWin = new MGFloatingDockWindow(this, panel, left, top, defaultFloatWidth, defaultFloatHeight);
-        _floatingWindows.Add(floatWin);
-        ParentWindow.AddNestedWindow(floatWin);
+        AttachFloatingWindow(floatWin);
 
         // Re-sync: the floating panel should still appear "visible" to the DockableRegistry
         SyncRegistryVisibility();
 
         return floatWin;
+    }
+
+    /// <summary>
+    /// Tracks <paramref name="floatWin"/> and attaches it as a nested window of the host's parent window. The host owns the lifecycle of the
+    /// floating window whichever way it closes: through <see cref="CloseFloatingWindow"/>, or through <see cref="MGWindow.TryCloseWindow"/> (the
+    /// close button of the window template, or application code), which <see cref="OnFloatingWindowClosed"/> observes.
+    /// </summary>
+    private void AttachFloatingWindow(MGFloatingDockWindow floatWin)
+    {
+        _floatingWindows.Add(floatWin);
+        floatWin.WindowClosed += OnFloatingWindowClosed;
+        ParentWindow.AddNestedWindow(floatWin);
+    }
+
+    /// <summary>
+    /// A floating window closed itself (<see cref="MGWindow.TryCloseWindow"/> already removed it from the parent window's nested windows): the
+    /// host stops tracking it and reports every panel it still held as closed, as closing those panels one by one would.
+    /// </summary>
+    private void OnFloatingWindowClosed(object sender, EventArgs e)
+    {
+        if (sender is not MGFloatingDockWindow floatWin || !_floatingWindows.Remove(floatWin))
+        {
+            return;
+        }
+
+        floatWin.WindowClosed -= OnFloatingWindowClosed;
+        foreach (DockPanelNode panel in floatWin.GroupNode.Panels.ToList())
+        {
+            NotifyFloatingPanelClosed(panel);
+        }
+
+        SyncRegistryVisibility();
     }
 
     /// <summary>
@@ -1367,15 +1398,15 @@ public class MGDockHost : MGSingleContentHost
         }
 
         var floatWin = new MGFloatingDockWindow(this, panel, left, top, width, height);
-        _floatingWindows.Add(floatWin);
-        ParentWindow.AddNestedWindow(floatWin);
+        AttachFloatingWindow(floatWin);
         SyncRegistryVisibility();
         return floatWin;
     }
 
     /// <summary>
     /// Closes a floating window: removes it from the floating list and from the parent
-    /// window's nested windows list.
+    /// window's nested windows list. Its panels are not reported as closed: callers either
+    /// already reported them (a panel closed from the window) or move them back into the layout.
     /// </summary>
     public void CloseFloatingWindow(MGFloatingDockWindow window)
     {
@@ -1384,6 +1415,7 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
+        window.WindowClosed -= OnFloatingWindowClosed;
         _floatingWindows.Remove(window);
         ParentWindow.RemoveNestedWindow(window);
         SyncRegistryVisibility();
