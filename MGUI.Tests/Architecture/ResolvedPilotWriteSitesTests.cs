@@ -57,6 +57,7 @@ public class ResolvedPilotWriteSitesTests
     private static readonly (string File, string Reason)[] AllowedWholeFiles =
     {
         (@"MGUI.Core\UI\Animation\Targets\UIBuiltInAnimationTargets.cs", "animation target path constants (Margin = \"Margin\") and tagged pilot setters with the Animation source (ADR-0006, S4)"),
+        (@"MGUI.Core\UI\Animation\Targets\UIColorAnimationTargets.cs", "animation target path constants (Foreground = \"Foreground\", BorderBrush = \"BorderBrush\") and tagged slot setters with the Animation source (ADR-0006, S5)"),
         (@"MGUI.Core\UI\XAML\Controls.cs", "XAML DTO properties, not MGElement instances"),
         (@"MGUI.Core\UI\XAML\Containers.cs", "XAML DTO properties, not MGElement instances"),
         (@"MGUI.Core\UI\XAML\Lists.cs", "XAML DTO properties, not MGElement instances"),
