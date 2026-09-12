@@ -1,7 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,18 +9,6 @@ namespace MGUI.Shared.Helpers
 {
     public static class VectorUtils
     {
-        /*public static int XInt(this Vector2 @this) { return (int)@this.X; }
-        public static int XIntFloor(this Vector2 @this) { return (int)Math.Floor(@this.X); }
-        public static int XIntCeiling(this Vector2 @this) { return (int)Math.Ceiling(@this.X); }
-        public static int XIntRounded(this Vector2 @this, MidpointRounding mode) { return (int)Math.Round(@this.X, mode); }
-
-        public static int YInt(this Vector2 @this) { return (int)@this.Y; }
-        public static int YIntFloor(this Vector2 @this) { return (int)Math.Floor(@this.Y); }
-        public static int YIntCeiling(this Vector2 @this) { return (int)Math.Ceiling(@this.Y); }
-        public static int YIntRounded(this Vector2 @this, MidpointRounding mode) { return (int)Math.Round(@this.Y, mode); }
-
-        public static bool IsIntVector(this Vector2 @this) => @this.X == @this.XInt() && @this.Y == @this.YInt();*/
-
         //Taken from: https://stackoverflow.com/questions/13458992/angle-between-two-vectors-2d
         /// <summary>AngleBetween - the angle between 2 vectors</summary>
         /// <returns>Returns the the angle in degrees between vector1 and vector2 (from -180 to 180)</returns>
