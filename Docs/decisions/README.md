@@ -19,3 +19,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0003 | Clear the MGTabControl selection when the removed selected tab has no successor | Accepted | 2026-09-07 |
 | ADR-0004 | Resolve hit-test occlusion from the window that displays an element | Accepted | 2026-09-07 |
 | ADR-0005 | Per-element resolved value store for seven pilot properties | Accepted | 2026-09-07 |
+| ADR-0006 | Animation system: render-only transform, desktop-owned engine and value model | Accepted | 2026-09-12 |

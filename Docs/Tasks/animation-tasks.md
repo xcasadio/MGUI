@@ -1,0 +1,264 @@
+# Taches systeme d'animation (V1)
+
+## Objectif
+
+Livrer la V1 du systeme d'animation de MGUI decrite par la specification de l'auteur (`mgui_animation_specifications.md`, hors depot) selon les decisions du 12 septembre 2026 (ADR-0006, `Docs/decisions/0006-animation-system.md`) : un transform de rendu par element (`RenderTransform` : translation, echelle, rotation, origine) qui remplace `RenderScale` et que le hit-test suit ; une horloge et un manager d'animations par `MGDesktop`, tickes en tete de `MGDesktop.Update`, independants de `GameTime` ; des animations generiques `UIAnimation<T>` (From optionnel, To, Duration, Delay, Easing, Repeat, AutoReverse, Pause/Resume/Cancel/Restart, evenements) sur un registre ferme de cibles typees (Opacity, composantes de `RenderTransform`, echelle d'etat, Margin, Padding, MinHeight, couleurs unies du fond, du texte et de la bordure) ; des transitions `UITransition<T>` qui interpolent automatiquement un changement de propriete ou d'etat visuel ; l'appartenance des animations a leur element avec annulation au detachement et a la fermeture de fenetre ; la declaration XAML des transitions et du transform ; un sample et un scenario de validation.
+
+Contraintes non negociables : pas de dependency property system a la WPF ; les proprietes pilotes passent par `UIResolvedPropertyStore` avec la source `Animation` (100) et `Unset` (ADR-0005) ; aucune propriete non pilote ne recoit de store ; aucun cout mesurable pour un element qui n'anime rien ; aucun token interdit par `MGUI.Tests/Architecture/RenderingBoundaryArchitectureTests.cs` (`SpriteBatch`, `Texture2D`, `RenderTarget2D`, `DrawTransaction`, `MainRenderer`, `FontManager`, `ContentManager`, `ITextEngine`) ni `GameTime` dans `MGUI.Core` ; le renderer reste neutre ; les conventions de `Docs/decisions/README.md` (une ADR par decision, prise au moment ou elle est prise).
+
+Hors programme (V2, listees en fin de fichier) : Storyboard, ParallelAnimation, SequenceAnimation, animation de delai, keyframes, etats visuels nommes avec setters et etat `Checked`, fondu des overlays d'etat, API fluente, VisualStates XAML, integration styles et themes, Width et Height. V3 (editeur de timeline, preview, scrubbing, courbes) vit dans le moteur de jeu de l'auteur, pas dans MGUI.
+
+## Historique du fichier
+
+- 12 septembre 2026 : creation apres un audit en lecture seule de l'architecture a HEAD `14e5f65` (boucle d'update, pipeline de draw et transforms, modele de proprietes et store, etats visuels, couche XAML, cycle de vie, tests et garde-fous, animations ad hoc existantes, samples, input) et les reponses de l'auteur aux quatorze questions de l'audit. Aucune tache commencee.
+- 12 septembre 2026 (meme jour, avant le commit du plan) : rotation en degres et origine par defaut (0, 0) sur le modele de NoesisGUI (decision 15, ADR-0006) ; l'echelle d'etat de `RenderScale` garde son origine au centre par une matrice separee.
+
+## Contexte : faits verifies le 12 septembre 2026 (HEAD `14e5f65`, lecture seule)
+
+Temps et boucle d'update :
+
+- `UpdateBaseArgs(TimeSpan TotalElapsed, TimeSpan FrameElapsed, MouseState, KeyboardState)` (`MGUI.Shared/Rendering/RenderLoopArgs.cs:32`), construit par le backend MonoGame depuis `PreviewUpdate` (`MGUI.MonoGame.Integration/Rendering/MainRenderer.cs:168`). Aucun `GameTime` dans `MGUI.Core` ni `MGUI.Shared`.
+- `MGDesktop.Update()` (`MGUI.Core/UI/MGDesktop.cs:1355`) : phases `ResponsiveMetrics`, `OverlayWindowBounds`, reset du registre de dedup des paints (`:1376`), input, `FloatingWindows` (menu contextuel, tooltip), `WindowUpdates`, `Finalize` avec `EndUpdate` (`:1474`). Le desktop expose ses services par proprietes (`NavigationService` `:43`, `OverlayHost` `:849`) ; `Windows` est une `List<MGWindow>` (`:856`) ; `NotifyWindowClosed(MGWindow)` (`:1070`) est appele a la fermeture d'une fenetre modale (`MGWindow.cs:502`) ; les retraits directs `Windows.Remove` (`MGDesktop.cs:872`, `:892`) et `TryCloseWindow` (`MGWindow.cs:773-807`) sont a verifier en S3.
+- `MGElement.Update(ElementUpdateArgs)` (`MGUI.Core/UI/MGElement.cs:3525`) : sort tot pour un element entierement hors viewport (avant tout calcul), calcule `VisualState` a chaque frame, tick les brushes (`PaintLifecycle`), gere le delai de tooltip avec `DateTime.Now` (`:3630`), puis `UpdateSelf` (`:3765`). Un tick d'animation place dans `UpdateSelf` gelerait donc hors viewport : le manager central est requis.
+- Consommateurs de temps existants, tous sur `UA.BA.FrameElapsed` : `MGHighlightBorderBrush` (`MGUI.Core/UI/Brushes/Border Brushes/MGHighlightBorderBrush.cs:504`), `MGProgressButton.UpdateSelf` (`MGProgressButton.cs:725`, `Duration`), `MGStopWatch` (`:237`, `TimeScale` propre), `MGTimer` (`:332`, `TimeScale` propre), `MGTextBlock` (`:1401`, `TextCharactersPerSecond`). Le delai de tooltip utilise `DateTime.Now`.
+- Tests : les runtimes headless implementent `IUIDesktopRuntime` et alimentent l'horloge frame par frame (`ApplyFrame(new UpdateBaseArgs(total, frame, souris, clavier))`, `MGUI.Tests/Tooling/StableDiagnosticIdTests.cs:362-402`, `MGUI.Tests/Integration/TextSurfaceLiteTests.cs:160-204`). Projet xunit, `MGUI.Tests/MGUI.Tests.csproj`.
+
+Draw, opacite et transforms :
+
+- `MGElement.Opacity` (`float`, `MGElement.cs:2990`, `NPC`) est multipliee le long de l'arbre (`Draw`, `:3865`, `DA.SetOpacity(DA.Opacity * Opacity)`) et consommee par les brushes (`Color * DA.Opacity`). XAML : `Element.Opacity` (`MGUI.Core/UI/XAML/Element.cs:189`).
+- `RenderScale` (`ConditionalScaleTransform? `, `MGElement.cs:70` et `:3774`) : echelle depuis le centre choisie par l'etat Pressed/Hovered, appliquee dans `Draw` (`:3880-3890`) par `DA.DT.SetTransformTemporary(DA.DT.CurrentSettings.Transform * Transform)` avec `TargetBounds` recalcule comme boite englobante transformee ; XAML `RenderScale="1.05"` (`Element.cs:192`, transfert `:500`). Documente comme "n'affecte pas le layout".
+- `IUIRenderContext.SetTransformTemporary(Matrix)` (`MGUI.Shared/Rendering/IUIRenderContext.cs:16`) ; cote backend un changement de `DrawSettings` termine le batch courant (`MGUI.MonoGame.Integration/Rendering/DrawTransaction.cs:1036-1043`, `EndDraw`) : chaque transform non identite coute une coupure de batch a l'entree et une a la sortie. Les clips rectangulaires sont evalues apres transform en espace render-target ; les clips geometriques suivent la transform active (`Docs/rendering-architecture.md`, "Conventions de coordonnees").
+- `MGWindow.Scale` (`MGUI.Core/UI/MGWindow.cs:310`) est le seul transform inverse pour l'input : `Draw` (`:2082`) pousse `UnscaledScreenSpaceToScaledScreenSpace`, et `IMouseViewport.IsInside` convertit la position `Screen -> UnscaledScreen` (`MGElement.cs`, `ConvertCoordinateSpace` / `GetTransform(CoordinateSpace, CoordinateSpace)`) avant `ContainsUnscaledInputPoint` (`:2567`, `ActualLayoutBounds.ContainsInclusive`). Le survol descend l'arbre par `ComputeTopmostHoveredElement` (`:3462`) avec une position non scalee unique. Aucun transform d'element n'est pris en compte : limite documentee (`Docs/input-architecture.md:185`, "`RenderScale` : la zone cliquable diverge des pixels dessines").
+- Le draw a lieu a chaque frame (`MGDesktop.Draw`, `:1545`) ; une invalidation `Draw` seule est un no-op (`InvalidateTemplateValue`, `MGElement.cs:4102`) ; le layout d'une fenetre n'est recalcule que si `!IsLayoutValid || QueueLayoutRefresh` (`MGWindow.cs:1475`), et un setter de layout (Margin, Padding, MinHeight) invalide l'arbre (`InvalidateLayout`, `MGElement.cs:4068`).
+
+Modele de proprietes et store :
+
+- `MGElement : XAMLBindableBase : ViewModelBase : INotifyPropertyChanged` (`MGElement.cs:185`, `MGUI.Core/UI/Data Binding/XamlBindableBase.cs:23`, `MGUI.Shared/Helpers/ViewModelBase.cs:11-16`) : tout `NPC(nom)` leve `PropertyChanged` (nom seul, sans ancienne valeur). `Opacity`, `RenderScale`, `Margin`, `VisualState` levent `NPC`.
+- Store (ADR-0005) : huit cles `UIPilotProperty` (Margin, Padding, MinHeight, BorderBrush, BorderThickness, Background, Foreground, DefaultTextForeground ; `MGUI.Core/UI/Styling/UIPilotProperty.cs:15-41`), slots `UIValueSlot` (Whole, Normal, Selected, Disabled, Focused, FocusedColor) ; `UIValueResolutionSource.Animation(invalidation, name)` (`UIValueResolutionSource.cs:47`, precedence 100, `IsRuntimeOverride`) ; `UIResolvedPropertyStore.Set/Unset/TryGetWinner` (`UIResolvedPropertyStore.cs:141`, `:181`, `:232`) ; `UIPilotPropertyResolver.KindOf(pilot)` (`UIPilotPropertyResolver.cs:24`) donne l'invalidation d'un pilote. Setters tagues internes : `SetBackgroundSlot(slot, IFillBrush, source)` (`MGElement.cs:1509`), `SetBorderBrushTagged(IBorderBrush, source)` (`:1455`), `SetDefaultTextForegroundSlot(slot, Color?, source)` (`:1815`), `MGTextBlock.SetForegroundSlot` (`MGTextBlock.cs:395`), `MGBorder.SetBorderBrush/SetBorderThickness` (`MGBorder.cs:32`, `:62`), `SetMargin` (`:2043`), `SetPadding` (`:2084`), `SetMinHeight` (`:2273`). Le niveau `Animation` n'est alimente par rien (`Docs/styling-theme-architecture.md`, "Limites connues"). Le balayage `MGUI.Tests/Architecture/ResolvedPilotWriteSitesTests.cs` exige que toute ecriture framework d'un pilote soit taguee ou listee.
+- `Opacity` et `RenderScale` ne sont pas des pilotes : pas de store, pas de valeur de base.
+- Couleurs : `Background` est un `VisualStateFillBrush` (un `IFillBrush` par etat primaire, `MGUI.Core/UI/VisualState.cs:331`, `GetUnderlay(PrimaryVisualState)` `:277`) ; `MGSolidFillBrush` est un `readonly struct` portant une `Color` (`MGUI.Core/UI/Brushes/Fill Brushes/MGSolidFillBrush.cs:21-25`) ; `MGTextBlock.Foreground` est un `VisualStateSetting<Color?>` (`MGTextBlock.cs:361`) ; `MGUniformBorderBrush(Color)` / `(IFillBrush)` (`MGUniformBorderBrush.cs:31`, `:36`). Aucune API n'ecrit une `Color` dans un fond : "`button.Background = Color.Blue`" (spec, section 9) n'existe pas.
+- `Thickness` est en entiers (`MGUI.Core/UI/XAML/Thickness.cs:15-16`). `Color`, `Vector2`, `Rectangle`, `Matrix` sont des types MonoGame toleres dans `MGUI.Core` (`Docs/rendering-architecture.md`, "Limites connues").
+
+Etats visuels :
+
+- `VisualState` = (`PrimaryVisualState` Disabled/Selected/Focused/Normal, `SecondaryVisualState` Pressed/Hovered/None) (`VisualState.cs:16-36`), recalcule dans `Update` ; setter prive qui leve `NPC` et `VisualStateChanged` (`MGElement.cs:2788`). Pas d'etat `Checked` (`MGToggleButton`/`MGCheckBox` le projettent eux-memes), pas de setters par etat : la projection passe par `VisualStateFillBrush`/`VisualStateSetting<T>`. Le store recoit `VisualState` (70) seulement pour la selection d'arbre, le noeud de graphe et les onglets docking.
+
+XAML :
+
+- Portable.Xaml (`XamlServices.Parse`, `MGUI.Core/UI/XAML/XAMLParser.cs:21`, `:327`), namespace `clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core` (`:32`), DTO `Element` (`Element.cs:21`), listes avec `[ContentProperty]` pour la syntaxe property-element (`Style.cs:14-18`, `Element.Styles` `:289`), `TypeConverter` pour les chaines (`Brushes.cs:23-105`), `TimeSpan?` parse nativement (`Brushes.cs:541-553`). `Setter` = (`string Property`, `object Value`) applique par reflexion sur le type du DTO (`Element.cs:924-943`, `:981`) : pas de chemin pointe, pas de triggers. Aucun convertisseur de chaine vers `Vector2`.
+
+Cycle de vie :
+
+- Pas de `Dispose` ni de hook de dechargement sur `MGElement` ; `SetParent` (`MGElement.cs:915`) leve `OnParentChanged` (`:929`) ; `RemoveDataBindings` (`:3227`) est manuel. Une fenetre fermee est retiree de `Desktop.Windows` ou des listes de sa fenetre parente et reste vivante (re-affichable). `GetDesktop()` (`:190`) resout par `SelfOrParentWindow.Desktop`, disponible des la construction. Precedent ADR-0001 : `UIDynamicResourceSubscriptions` (`MGUI.Core/UI/Styling/`) alloue paresseusement par element hote dans `Metadata` (`:3004`), attache et detache sur `OnParentChanged`, sans weak events generalises.
+
+Garde-fous, samples, tooling :
+
+- Tokens interdits dans `MGUI.Core` (`RenderingBoundaryArchitectureTests.cs:15-52`) ; `MGUI.Shared` ne doit pas mentionner `MonoGame` dans ses sources hors types valeur (`:65-73`). Quatre sites de test construisent des elements par `FormatterServices.GetUninitializedObject` : tout nouveau champ doit etre alloue paresseusement et lu null-safe (ADR-0005).
+- Samples : une classe derivant de `SampleBase(ContentManager, MGDesktop, string ProjectFolderName, string XAMLFilename, Action Initialize)` (`MGUI.Samples/Compendium.xaml.cs:25`, `:82`), instanciee dans `Compendium.xaml.cs` (`:205-212`, `:282-290`) et exposee par un `ToggleButton` lie a `IsVisible` dans `MGUI.Samples/Compendium.xaml` (`:99-101`). Les scenarios sont indexes dans `Docs/scenario-validation-index.md` (`SCN-<zone>-<nnn>`).
+- Tooling : `UIToolingService.CaptureElementDebugView(element)` (`MGUI.Core/Tooling/UIToolingService.cs:331`, `UIElementDebugView.cs`) ; `UIPerformanceProbe.BeginDesktopPhase(string)` (`UIPerformanceProbe.cs:56`).
+- `TimelineControl` : introuvable dans le depot (`rg -i timeline`).
+
+## Decisions de l'auteur (12 septembre 2026, ADR-0006)
+
+1. `RenderTransform` remplace `RenderScale` ; `RenderScale` et son attribut XAML restent un sucre compose dans la meme matrice.
+2. Le hit-test suit le transform (inversion de la matrice de l'element et de ses ancetres, en espace non scale, apres la conversion de `MGWindow.Scale`) des la tranche RenderTransform. Un `RenderTransform` sur une `MGWindow` n'est pas pris en compte par l'occlusion (hors perimetre).
+3. La valeur de base d'une propriete non pilote est gardee par le moteur ; pas de nouveau pilote. Les pilotes passent par la source `Animation` (100) et `Unset`.
+4. V1 : transitions declenchees par `VisualStateChanged` sur les conteneurs existants (echelle d'etat) ; etats nommes avec setters, `Checked` et fondu des overlays en V2.
+5. Ciblage par registre ferme d'accesseurs types (chemin de propriete -> cible), extensible par l'application ; pas de reflexion.
+6. `MGUI.Core/UI/Animation/`, namespace `MGUI.Core.UI.Animation`, nommage `UI*`.
+7. Une horloge et un manager par `MGDesktop`, tickes en tete de `MGDesktop.Update`. `TimeScale` et pause n'affectent ni le delai des tooltips ni `MGTimer`/`MGStopWatch`.
+8. Margin, Padding, MinHeight animables (pilotes), documentees "couteuses" ; pas de Width/Height en V1.
+9. Annulation au `OnParentChanged(null)` de l'element et a la fermeture de la fenetre qui l'affiche ; une fenetre re-affichee repart sans animation.
+10. Defauts : annulation = `RestoreBaseValue` ; fin = `HoldEnd`.
+11. Conflits : une animation explicite remplace la transition en cours sur le meme chemin et part de la valeur animee courante ; un changement de propriete pendant une animation explicite est ignore jusqu'a sa fin ; pendant une transition, il la recible.
+12. `MGHighlightBorderBrush`, `MGProgressButton.Duration`, `MGTextBlock.TextCharactersPerSecond`, `MGTimer`, `MGStopWatch` : hors perimetre, candidats a une migration ulterieure.
+13. L'editeur de timeline vit dans le moteur de jeu ; MGUI ne reserve qu'un modele de keyframes en donnees pures (V2).
+14. Un seul fichier de programme (celui-ci) plus ADR-0006.
+15. (apres le premier jet du plan) NoesisGUI, qui reprend l'API WPF, est l'exemple de reference pour la semantique du transform : origine relative dans [0,1]² avec defaut (0, 0) (coin haut-gauche, comme `RenderTransformOrigin`), angle de rotation en degres (comme `RotateTransform.Angle`). La forme de l'API reste celle de la spec (`Origin` porte par le transform, pas par l'element).
+
+Decisions de conception derivees (session principale, contestables avant S1) :
+
+- `UIRenderTransform` : classe mutable (`ViewModelBase`, `NPC` par composante), `Translation` (`Vector2`, pixels de layout non scales), `Scale` (`Vector2`, defaut `Vector2.One`), `Rotation` (`float`, degres comme `RotateTransform.Angle` en WPF, decision de l'auteur du 12 septembre 2026 ; conversion `MathHelper.ToRadians` a la construction de la matrice `Matrix.CreateRotationZ`), `Origin` (`Vector2` relative dans [0,1]², defaut (0, 0) = coin haut-gauche comme `RenderTransformOrigin` en NoesisGUI et WPF, decision 15 ; le centre s'obtient par (0.5, 0.5) explicite), `IsIdentity` (tolerance `IsAlmostEqual`), `ToMatrix(Rectangle boundsLayout)`. `MGElement.RenderTransform` : getter qui alloue a la premiere lecture (champ `_RenderTransform` nul sinon), `HasActiveRenderTransform` interne (non nul et non identite).
+- Composition au draw : matrice locale `L` construite en espace layout non scale (`LayoutBounds` translate de `DA.Offset`, origine = coin + `Origin * taille`) : `L = E * T(-o) * S(Scale) * R(Rotation) * T(o) * T(Translation)`, ou `E` est l'echelle d'etat autour du centre de l'element (`T(-centre) * S(echelleEtat) * T(centre)`, comportement actuel de `RenderScale` conserve quelle que soit `Origin`) et `o` l'origine du transform ; poussee par `SetTransformTemporary(L * CurrentSettings.Transform)` (la transform courante contient deja `MGWindow.Scale`) seulement si `L` n'est pas l'identite ; `TargetBounds` = boite englobante de `LayoutBounds` transformee par `L` puis par la transform courante. L'echelle d'etat vient de `RenderScale.TryGetScale(VisualState)` ou de sa valeur animee (voir S6).
+- Hit-test : `ComputeTopmostHoveredElement` transforme la position non scalee par `Invert(L)` pour l'element et son sous-arbre quand `HasActiveRenderTransform` ; `IMouseViewport.IsInside` applique la chaine inverse (element puis ancetres) via `MGElement.ToLocalUnscaledPoint(Vector2)`. Les deux chemins sont gates par un compteur `MGDesktop.ActiveRenderTransformCount` (incremente quand un transform quitte l'identite, decremente quand il y revient, ou au detachement) : sans transform actif, aucun cout par evenement souris.
+- Cout accepte : `MGElement` gagne deux champs de reference (`_RenderTransform`, `_AnimationSlot`), nuls apres construction et jamais alloues par `Update`/`Draw` ; `_AnimationSlot` (classe interne `UIElementAnimationSlot`) porte `Animations`, `Transitions`, l'echelle d'etat animee et les hooks (`OnParentChanged`, `VisualStateChanged`, `PropertyChanged`). Aucune allocation par frame pour un element sans animation ; une animation en cours n'alloue rien par frame (structs pour les etats, listes reutilisees).
+- Horloge `UIAnimationClock` : `Time` (temps cumule mis a l'echelle), `DeltaTime` (delta de la frame mis a l'echelle, zero si `IsPaused`), `TimeScale` (defaut 1, borne >= 0), `IsPaused` ; `Advance(TimeSpan frameElapsed)` appele par le manager. Pas de bornage des grands deltas (une longue pause termine les animations a la frame suivante, de facon deterministe).
+- Manager `UIAnimationManager` (`MGDesktop.Animations`) : liste des animations actives, index par (element cible, chemin) pour la regle de conflit, index par fenetre d'affichage (`DisplayingWindow`, repli `SelfOrParentWindow`) pour l'annulation a la fermeture ; `Update()` = phase `Animations` de `UIPerformanceProbe`, appelee en tete de `MGDesktop.Update` (avant `ResponsiveMetrics`) ; retire les animations terminees ou annulees ; `PauseAll`/`ResumeAll` ; `ActiveCount`.
+- `UIAnimation` (base) : `Duration`, `Delay`, `RepeatCount` (0 = une fois), `RepeatForever`, `AutoReverse`, `FillBehavior` (`RestoreBaseValue` | `HoldEnd`, defaut `HoldEnd`), `CancelBehavior` (`RestoreBaseValue` | `KeepCurrent`, defaut `RestoreBaseValue`), `State` (`Stopped`, `Delayed`, `Running`, `Paused`, `Completed`, `Cancelled`), `Progress` [0,1] de l'iteration courante, evenements `Started`, `Updated`, `Repeated`, `Reversed`, `Completed`, `Cancelled` ; `Play()`, `Pause()`, `Resume()`, `Cancel()`, `Restart()` ; `Owner` (`MGElement`) fixe par `element.Animations.Start(animation)` (`Play()` sans owner leve `InvalidOperationException`). `UIAnimation<T>` : `From` optionnel (`bool HasFrom`, `T From`), `To`, `Easing` (`IUIEasingFunction`, defaut lineaire), `Interpolator` (`IUIInterpolator<T>`, defaut = registre). `UIPropertyAnimation<T>` : `Property` (chemin, chaine) resolu dans `UIAnimationTargets` au `Start`.
+- Cibles `IUIAnimationTarget<T>` : `Get(element)`, `Set(element, value, sourceName)`, `Restore(element)` ; deux familles : non pilote (base capturee au premier `Set` d'une animation, restauree par `Restore`) et pilote (ecriture par le setter tague avec `UIValueResolutionSource.Animation(UIPilotPropertyResolver.KindOf(pilote), nom)`, `Restore` = `ClearPilotSource(pilote, slot, Animation)`). `HoldEnd` sur un pilote garde la contribution `Animation` jusqu'a la prochaine animation sur le meme chemin ou `Animations.Clear()` : une ecriture locale ulterieure est masquee et rapportee `Animation` par le diagnostic (asymetrie acceptee avec les non pilotes, ADR-0006).
+- Registre `UIAnimationTargets` : `Register<T>(string path, IUIAnimationTarget<T>)`, `TryGet<T>(string path, out ...)` ; chemins V1 : `Opacity` (float), `RenderTransform.Translation` (Vector2), `RenderTransform.Scale` (Vector2), `RenderTransform.Rotation` (float), `RenderTransform.Origin` (Vector2), `RenderScale` (float, echelle d'etat effective), `Margin`, `Padding` (Thickness), `MinHeight` (int?), `Background`, `Background.Selected`, `Background.Disabled`, `Background.Focused` (Color, slots du fond, brushes unies seulement), `Foreground` (Color, `MGTextBlock`), `TextForeground` (Color, `DefaultTextForeground.Normal`), `BorderBrush` (Color, bordure uniforme unie). Un chemin inconnu leve `ArgumentException` au `Start` avec la liste des chemins connus.
+- Transitions `UITransition<T>` (`Property`, `Duration`, `Delay`, `Easing`) dans `element.Transitions` : a l'ajout, la transition lit et memorise la valeur courante ; declencheur = `PropertyChanged` de l'element pour le premier segment du chemin (`Opacity`, `Margin`, `BackgroundBrush`, ...), `VisualStateChanged` pour `RenderScale` ; sur declenchement, `To` = valeur lue, `From` = derniere valeur animee ou memorisee, puis animation interne enregistree au manager sous le meme chemin (donc soumise a la regle de conflit) ; garde de reentrance pendant ses propres ecritures ; retrait de la transition = annulation `KeepCurrent`.
+- Interpolateurs V1 : float, double, Vector2, Vector3, Vector4, Color (`Color.Lerp`), Rectangle, Thickness (arrondi away-from-zero), `int?` (null = pas d'interpolation, bascule a mi-parcours) ; registre `UIInterpolators.TryGet<T>()` + `Register<T>`.
+- Easings V1 : `UIEasing.Linear`, `QuadIn/Out/InOut`, `CubicIn/Out/InOut`, `SineIn/Out/InOut`, `BackIn/Out/InOut`, `BounceIn/Out/InOut`, `ElasticIn/Out/InOut` ; `UIEasing.TryGet(string name, out IUIEasingFunction)` pour le XAML ; fonctions pures, `Ease(0) == 0`, `Ease(1) == 1`.
+
+## Consignes de travail pour l'agent IA
+
+- Executer les tranches dans l'ordre ; une tranche = un commit ; mettre a jour le statut dans ce fichier dans le meme commit.
+- Blocage : marquer ⛔, decrire le blocage sous la tranche, s'arreter.
+- Pas de refactor hors perimetre ; aucun renommage d'API publique ; `RenderScale` et l'attribut XAML `RenderScale` restent fonctionnels.
+- Tests sur le comportement observable (valeur effective, `NPC`, evenements, `VisualState`, matrice poussee, survol) avec le harnais headless (`IUIDesktopRuntime` de test + `MGDesktop`, frames explicites) ; mutation nommee par garde ; test d'allocation nulle pour les elements sans animation.
+- Chaque tranche modifiant `MGElement`, `MGDesktop`, `VisualState.cs`, `Element.cs` ou les setters tagues est a risque : verification independante obligatoire.
+- Toute decision prise en cours de tranche est ajoutee a ADR-0006 (ou a une nouvelle ADR si elle contredit ADR-0006) au moment ou elle est prise.
+- Ne jamais lancer `MGUI.Samples` depuis un agent ; le construire a chaque tranche.
+- Docs en francais sans accents, comme les autres fichiers de `Docs/`.
+
+## Legende de statut
+
+- ⚪ a faire
+- 🟡 en cours
+- ✅ termine
+- ⛔ bloque
+
+## Validation minimale
+
+- `dotnet build MGUI.Core/MGUI.Core.csproj`
+- `dotnet test MGUI.Tests/MGUI.Tests.csproj --filter "FullyQualifiedName~Animation|FullyQualifiedName~Architecture|FullyQualifiedName~Input" --no-restore`
+- `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-restore`
+- A partir de S8, scenario `SCN-ANIM-001` (sample `MGUI.Samples/Features/AnimationDemo.xaml`).
+
+## Tranches
+
+### ⚪ S1. Interpolateurs et easings
+
+But : livrer les briques pures (`IUIInterpolator<T>`, `UIInterpolators`, `IUIEasingFunction`, `UIEasing`) sans dependance au reste du moteur.
+
+Etat actuel : `Color.Lerp` est deja utilise dans `MGGradientFillBrush` (`MGUI.Core/UI/Brushes/Fill Brushes/MGGradientFillBrush.cs:82-84`) ; aucune abstraction d'interpolation ni d'easing n'existe (`rg -i "easing|tween|interpolat" MGUI.Core` : rien hors gradients). `Thickness` est en entiers (`Thickness.cs:15-16`).
+
+Travail attendu :
+
+- `MGUI.Core/UI/Animation/Interpolation/` : `IUIInterpolator<T>` (`T Lerp(T from, T to, float amount)`), implementations float, double, Vector2, Vector3, Vector4, Color, Rectangle, Thickness, `int?` ; `UIInterpolators` (registre statique thread-safe, `Register<T>`, `TryGet<T>`, defauts enregistres au chargement).
+- `MGUI.Core/UI/Animation/Easing/` : `IUIEasingFunction` (`float Ease(float amount)`), `UIEasing` (instances statiques, `TryGet(string)`, `Names`).
+- Tests `MGUI.Tests/Animation/InterpolatorTests.cs` et `EasingTests.cs` : bornes 0/1, milieu lineaire, arrondi `Thickness`, `Color` a 0.5, symetrie In/Out (`In(x) == 1 - Out(1 - x)`), depassement de `BackOut` et `ElasticOut`, `TryGet` insensible a la casse, type custom enregistre par l'application.
+
+Criteres d'acceptation : aucun type MonoGame hors valeurs (`Color`, `Vector*`, `Rectangle`) ; `RenderingBoundaryArchitectureTests` vert ; aucune allocation dans `Lerp`/`Ease` (structs et statiques).
+
+Commit recommande : `animation: add interpolators and easing functions`
+
+### ⚪ S2. RenderTransform de rendu et hit-test inverse
+
+But : remplacer le mecanisme `RenderScale` par `UIRenderTransform` sur `MGElement`, sans changer le layout, et faire suivre l'input.
+
+Etat actuel : voir "Draw, opacite et transforms" ci-dessus (`MGElement.cs:70`, `:3774`, `:3880-3890`, `:2567`, `:3462` ; `Element.cs:192`, `:500` ; `Docs/input-architecture.md:185`). `ConditionalScaleTransform` est public et pin dans les samples par l'attribut XAML `RenderScale`.
+
+Travail attendu :
+
+- `MGUI.Core/UI/Animation/UIRenderTransform.cs` selon les decisions derivees ; `MGElement.RenderTransform` (allocation paresseuse), `HasActiveRenderTransform` interne, abonnement au `PropertyChanged` du transform pour maintenir `MGDesktop.ActiveRenderTransformCount` (entree/sortie de l'identite, et decrement au `OnParentChanged(null)` ou a la fermeture de fenetre si actif).
+- `Draw` : remplacer le bloc `RenderScale` par la composition `L * CurrentSettings.Transform` (echelle d'etat de `RenderScale` multipliee dans `Scale`), push uniquement hors identite, `TargetBounds` en boite englobante.
+- Input : `ComputeTopmostHoveredElement` transforme la position pour l'element et son sous-arbre ; `MGElement.ToLocalUnscaledPoint` (chaine inverse jusqu'a la fenetre) utilise par `IMouseViewport.IsInside` ; gate par le compteur du desktop. `RenderTransform` sur une `MGWindow` : ignore par l'occlusion, documente.
+- Docs : `Docs/rendering-architecture.md` (section transform d'element : composition, cout de coupure de batch), `Docs/input-architecture.md` (remplacer la limite `:185` par la regle d'inversion), `Docs/layout-architecture.md` (principe 2 : `RenderTransform` est un transform de rendu comme `MGWindow.Scale`).
+- Tests `MGUI.Tests/Animation/RenderTransformTests.cs` : matrice attendue pour translation, echelle, rotation d'un quart de tour autour du centre (points de coin), origine (0,0) vs (0.5,0.5) ; aucun `SetTransformTemporary` quand identite et un seul push quand actif (transaction de test comptant les changements de transform, sur le modele de `EngineOwnedRenderingProofTests`) ; `RenderScale` seul produit la meme matrice qu'avant (non-regression) ; hit-test : un bouton translate de 40 px est survole a la position translatee et plus a l'ancienne ; un enfant d'un parent tourne est survole au bon endroit ; compteur a zero et aucune allocation apres un cycle update/draw d'une fenetre sans transform.
+
+Criteres d'acceptation : samples construits, comportement visuel de `RenderScale` inchange ; `FullyQualifiedName~Input` vert ; un element sans transform ne pousse aucun `DrawSettings`.
+
+Commit recommande : `animation: add RenderTransform with inverse hit-testing`
+
+### ⚪ S3. Horloge, manager et animation de base
+
+But : le moteur : `UIAnimationClock`, `UIAnimationManager` (`MGDesktop.Animations`), `UIAnimation`, `UIAnimation<T>`, `UIAnimationCollection` (`element.Animations`), appartenance et annulation, regle de conflit, `FillBehavior`/`CancelBehavior`, Delay, Repeat, AutoReverse, Pause/Resume, evenements.
+
+Etat actuel : voir "Temps et boucle d'update" et "Cycle de vie" ci-dessus. `MGDesktop.NotifyWindowClosed` (`:1070`) n'est appele que depuis la fermeture d'une fenetre modale (`MGWindow.cs:502`) ; les chemins `TryCloseWindow` (`MGWindow.cs:793-807`) et `Windows.Remove` directs (`MGDesktop.cs:872`, `:892`) sont a verifier.
+
+Travail attendu :
+
+- `MGUI.Core/UI/Animation/` : `UIAnimationClock`, `UIAnimationManager`, `UIAnimation`, `UIAnimation<T>`, `UIAnimationState`, `UIAnimationFillBehavior`, `UIAnimationCancelBehavior`, `UIAnimationCollection`, `IUIAnimationTarget<T>`, `UIAnimationTargets` (registre vide de cibles element en S3 ; une cible de test generique `UIDelegateAnimationTarget<T>` (getter/setter fournis) sert aux tests et aux applications).
+- `MGDesktop.Animations` (propriete, construit dans le constructeur) et appel de `Animations.Update(Runtime.UpdateArgs.FrameElapsed)` en tete de `Update()` sous une phase `Animations` de `UIPerformanceProbe`.
+- `MGElement` : champ `_AnimationSlot` paresseux, `Animations` (getter qui alloue), hook `OnParentChanged` pose au premier `Start` (annulation de tout au passage a `null`, comme ADR-0001) ; verification de tous les chemins de fermeture de fenetre : ajouter l'appel `NotifyWindowClosed` la ou il manque (fermeture par `TryCloseWindow`, retrait direct de `Windows`) et signaler dans ce fichier tout chemin laisse tel quel ; `NotifyWindowClosed` appelle `Animations.CancelOwnedBy(window)`.
+- Semantique de temps : `Delay` puis `Duration` par iteration, `AutoReverse` double l'iteration, `RepeatCount` iterations supplementaires, `RepeatForever` ; `Progress` easee puis interpolee ; `Updated` par frame active ; ordre `Started` (fin du delai) -> `Updated`* -> (`Repeated` | `Reversed`)* -> `Completed` ; `Cancel` -> `Cancelled` sans `Completed`.
+- Tests `MGUI.Tests/Animation/AnimationClockTests.cs`, `AnimationManagerTests.cs`, `AnimationLifecycleTests.cs` avec le harnais headless (frames de 16 ms) : etats et evenements, delai, repeat, autoreverse, pause/resume, `TimeScale` 0.5 et pause de l'horloge, `RestoreBaseValue` vs `HoldEnd`, `KeepCurrent`, regle de conflit (la seconde animation part de la valeur courante et la premiere est annulee `KeepCurrent`), annulation au detachement (`SetParent(null)`) et a la fermeture de fenetre, fenetre re-affichee sans animation, `ActiveCount` retombe a zero, aucune allocation par frame pendant une animation (`GC.GetAllocatedBytesForCurrentThread` autour de dix frames), `_AnimationSlot` nul pour un element jamais anime.
+
+Criteres d'acceptation : `MGTimer`, `MGStopWatch` et le delai des tooltips ne lisent pas l'horloge ; `EndUpdate` inchange ; un element hors viewport continue d'etre anime (test : element collapse par un parent, valeur qui progresse).
+
+Commit recommande : `animation: add the clock, the manager and the animation base types`
+
+### ⚪ S4. Cibles : Opacity, RenderTransform, echelle d'etat et pilotes de layout
+
+But : enregistrer les cibles element de V1 hors couleurs et rendre `UIPropertyAnimation<T>` utilisable par chemin.
+
+Etat actuel : `Opacity` (`MGElement.cs:2990`), `UIRenderTransform` (S2), setters tagues `SetMargin` (`MGElement.cs:2043`), `SetPadding` (`:2084`), `SetMinHeight` (`:2273`), `UIPilotPropertyResolver.KindOf` (`:24`) ; le balayage `ResolvedPilotWriteSitesTests` exige des ecritures taguees.
+
+Travail attendu :
+
+- `MGUI.Core/UI/Animation/Targets/` : cibles `Opacity`, `RenderTransform.Translation/Scale/Rotation/Origin`, `RenderScale` (echelle d'etat effective : `Get` = `RenderScale?.TryGetScale(VisualState)` ou 1, `Set` ecrit l'override porte par `_AnimationSlot` consomme par la composition de S2, `Restore` efface l'override), `Margin`, `Padding`, `MinHeight` (setters tagues, source `Animation(KindOf(pilote), nom)`, `Restore` = `ClearPilotSource`).
+- `UIPropertyAnimation<T>` : resolution du chemin au `Start`, message d'erreur listant les chemins connus ; `element.Animations.Start(animation)` et `animation.Play()`.
+- Docs : `Docs/styling-theme-architecture.md` ("Ou vit la precedence reelle" et "Limites connues" : le niveau `Animation` est alimente par le moteur pour Margin, Padding, MinHeight et, en S5, les couleurs ; asymetrie `HoldEnd`).
+- Tests `MGUI.Tests/Animation/PropertyTargetsTests.cs` : opacite 0 -> 1 en 300 ms avec `CubicOut` (valeurs a 0, 150, 300 ms), translation et echelle animees visibles dans la matrice poussee, echelle d'etat animee (override consomme au draw), `Margin` : la valeur effective vient de la source `Animation` pendant l'animation (`UIToolingService.TryGetResolvedValueSource`), retombe sur la valeur locale apres `RestoreBaseValue` et reste `Animation` apres `HoldEnd` ; une ecriture locale pendant une animation explicite sur `Opacity` est ignoree jusqu'a la fin ; le layout d'une fenetre est invalide a chaque frame d'une animation de `Margin` et jamais pour `Opacity` ou `RenderTransform` (`IsLayoutValid`).
+
+Criteres d'acceptation : `ResolvedPilotWriteSitesTests` vert (les cibles pilotes ecrivent par les setters tagues) ; chemin inconnu = exception explicite.
+
+Commit recommande : `animation: add the opacity, transform and layout pilot targets`
+
+### ⚪ S5. Cibles couleur : fond, texte et bordure
+
+But : animer les couleurs unies des trois conteneurs par leurs slots du store.
+
+Etat actuel : voir "Couleurs" ci-dessus (`VisualState.cs:331`, `MGSolidFillBrush.cs:21-25`, `MGTextBlock.cs:361`, `MGUniformBorderBrush.cs:31-36`, setters tagues `MGElement.cs:1509`, `:1455`, `:1815`, `MGTextBlock.cs:395`). Les brushes unies sont des structs (fond) ou des classes (bordure).
+
+Travail attendu :
+
+- Cibles `Background` (+ `.Selected`, `.Disabled`, `.Focused`), `Foreground`, `TextForeground`, `BorderBrush` : `Get` lit la couleur du slot si la brush est un `MGSolidFillBrush` (ou une `MGUniformBorderBrush` sur une brush unie), sinon `Start` leve `InvalidOperationException` ("brush non interpolable") ; `Set` ecrit `new MGSolidFillBrush(couleur)` (ou `new MGUniformBorderBrush(couleur)`) par le setter tague avec la source `Animation` ; `Restore` = `ClearPilotSource`. Une `MGUniformBorderBrush` par frame est une allocation acceptee et documentee.
+- Regle de composition du store (ADR-0005, S5) : un sous-slot `Animation` (100) est toujours gagnant et physiquement applique ; verifier par test que le conteneur reste celui du store (pas de remplacement d'objet).
+- Tests `MGUI.Tests/Animation/ColorTargetsTests.cs` : fond gris -> bleu en 150 ms (couleur du slot `Normal` a mi-parcours, source `Animation`), retour a la valeur locale apres annulation, `HoldEnd` visible dans `CaptureElementDebugView`, texte d'un `MGTextBlock`, bordure d'un `MGBorder` et facade `BorderBrush` d'un composite (`GetBorder()`), erreur explicite sur un fond en gradient.
+
+Criteres d'acceptation : `ThemeRefreshRegressionTests` et `ResolvedValueSourceDiagnosticsTests` verts ; un changement de theme pendant une animation ne casse pas l'animation (la contribution `Animation` survit au refresh).
+
+Commit recommande : `animation: add the solid colour targets`
+
+### ⚪ S6. Transitions
+
+But : `UITransition<T>` et `element.Transitions` : interpolation automatique d'un changement de propriete, et de l'echelle d'etat sur `VisualStateChanged`.
+
+Etat actuel : `PropertyChanged` par `NPC` (`ViewModelBase.cs:11-16`) sans ancienne valeur ; `VisualStateChanged` (`MGElement.cs:2788`) avec ancien et nouvel etat ; regle de conflit du manager (S3) ; cibles (S4, S5). Les notifications des slots du fond passent par le conteneur (`HandleBackgroundBrushContainerPropertyChanged`, `MGElement.cs:1761`) : verifier quel nom `NPC` l'element leve pour un slot du fond et du texte, et l'utiliser comme declencheur.
+
+Travail attendu :
+
+- `UITransition<T>`, `UITransitionCollection` (`Add`, `Remove`, `Clear`, indexeur par chemin) ; declencheur `PropertyChanged` (nom du premier segment du chemin, ou nom du conteneur pour les slots) ou `VisualStateChanged` pour `RenderScale` ; recible pendant une transition en cours ; garde de reentrance ; une animation explicite sur le meme chemin remplace la transition (S3) ; retrait = annulation `KeepCurrent`.
+- Tests `MGUI.Tests/Animation/TransitionTests.cs` : `Opacity` 1 -> 0.3 par ecriture locale interpolee en 200 ms ; survol : `RenderScale` (1.0, 1.05) avec transition de 100 ms, entree puis sortie a 60 ms (repart de 1.027 vers 1.0, jamais de 1.05) ; fond gris -> bleu par `BackgroundBrush.NormalValue = ...` interpole ; ecriture locale pendant la transition = recible depuis la valeur courante ; animation explicite lancee pendant la transition = transition annulee et animation partie de la valeur courante ; retrait de la transition en cours.
+
+Criteres d'acceptation : aucune transition n'ecoute `PropertyChanged` tant que la collection est vide (pas d'abonnement) ; un element sans transition n'a pas de `_AnimationSlot`.
+
+Commit recommande : `animation: add property and visual-state transitions`
+
+### ⚪ S7. Declaration XAML
+
+But : `<Element.Transitions>` et `<Element.RenderTransform>` en XAML, avec les convertisseurs.
+
+Etat actuel : voir "XAML" ci-dessus (`XAMLParser.cs:21-32`, `Style.cs:14-18`, `Element.cs:189-192`, `:289`, `:500`, `Brushes.cs:541-553`) ; pas de convertisseur `Vector2` ; les noms d'easing sont des chaines.
+
+Travail attendu :
+
+- DTO `MGUI.Core/UI/XAML/Animation.cs` : `Transition` (`Property`, `Duration`, `Delay`, `Easing`), `RenderTransform` (`Translation`, `Scale`, `Rotation`, `Origin`) ; `Element.Transitions` (`List<Transition>`), `Element.RenderTransform` ; transfert dans `ApplyBaseSettings` apres `RenderScale` ; convertisseurs `UIDurationStringConverter` (secondes decimales "0.15" ou format `TimeSpan` "0:0:0.15"), `Vector2StringConverter` ("x,y" et "s" uniforme), easing par `UIEasing.TryGet` ; type `T` de la transition deduit du chemin par `UIAnimationTargets` ; erreurs de chemin ou d'easing remontees comme diagnostics du loader strict (`SCN-MARKUP-001`).
+- Tests `MGUI.Tests/Animation/XamlAnimationTests.cs` : parse d'un `Button` avec deux transitions et un transform, valeurs transferees, chemin inconnu et easing inconnu en diagnostic, `RenderScale` et `RenderTransform` declares ensemble.
+
+Criteres d'acceptation : `FullyQualifiedName~XAML|FullyQualifiedName~Markup` vert ; aucun changement dans `Style`/`Setter`.
+
+Commit recommande : `animation: declare transitions and render transforms in XAML`
+
+### ⚪ S8. Sample, scenario, diagnostics et documentation
+
+But : rendre la V1 demontrable, observable et documentee.
+
+Etat actuel : `Compendium.xaml.cs:25`, `:82`, `:205-212`, `:282-290`, `Compendium.xaml:99-101` ; `Docs/scenario-validation-index.md` ; `UIToolingService.CaptureElementDebugView` (`:331`).
+
+Travail attendu :
+
+- Sample `MGUI.Samples/Features/AnimationDemo.xaml(.cs)` (`AnimationDemoSample : SampleBase`, bouton `Animation` dans le compendium) : fondu d'ouverture d'une fenetre (opacite + echelle, `Origin` (0.5, 0.5) explicite comme `RenderTransformOrigin="0.5,0.5"` en NoesisGUI), survol et appui de boutons par transitions, tooltip translate, rotation en degres d'une icone, pulsation en `RepeatForever` + `AutoReverse`, transition de couleur de fond, pause/reprise/`TimeScale` de l'horloge par boutons, compteur d'animations actives.
+- `Docs/scenario-validation-index.md` : ligne `SCN-ANIM-001` (invariant : les animations de rendu ne touchent pas le layout et suivent l'input ; validation `FullyQualifiedName~Animation`).
+- Diagnostics : `UIElementDebugView` gagne la liste des animations et transitions actives de l'element (chemin, etat, progression) ; `UIToolingService.RenderElementDebugView` les rend.
+- Docs : nouveau `Docs/animation-architecture.md` (objectif, portee, vue d'ensemble, types, horloge et manager, cibles et store, transitions, RenderTransform et input, cout, limites connues, reste a faire = section V2 de ce fichier) ; renvoi depuis `Docs/rendering-architecture.md`, `Docs/styling-theme-architecture.md` et `Docs/scenario-validation-index.md` ; ADR-0006 completee si des decisions ont ete prises en cours de route.
+
+Criteres d'acceptation : samples construits ; `SCN-ANIM-001` documente ; toutes les limites connues de ce fichier reportees dans la doc d'architecture.
+
+Commit recommande : `animation: add the demo sample, diagnostics and architecture doc`
+
+## Hors programme
+
+V2 (a planifier apres la V1, decisions ADR-0006 points 4, 12 et 13) :
+
+- `UIStoryboard`, `UIParallelAnimation`, `UISequenceAnimation`, animation de delai (`Wait`), API fluente (`Animate(x => x.Opacity, ...)`, sucre sur le moteur).
+- `UIKeyFrame<T>` et `UIKeyFrameAnimation<T>` : modele de donnees pur (aucune reference a `MGElement`), serialisable, pour l'editeur du moteur de jeu.
+- Etats visuels nommes (`Normal`, `Hover`, `Pressed`, `Focused`, `Disabled`, `Selected`, `Checked`) avec setters et transitions animees entre etats ; etat `Checked` de premier rang ; fondu des overlays `Hovered`/`Pressed` de `VisualStateFillBrush`.
+- VisualStates et transitions dans les styles et les themes XAML.
+- Width et Height animables ; migration eventuelle de `MGHighlightBorderBrush`, `MGProgressButton.Duration`, `MGTextBlock.TextCharactersPerSecond`, `MGTimer`, `MGStopWatch` vers le moteur.
+- Interpolation de brushes non unies (gradients).
+
+V3 : dans le moteur de jeu de l'auteur (editeur de timeline, preview, scrubbing, seek, courbes de Bezier, inspecteur).
