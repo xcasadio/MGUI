@@ -1,4 +1,7 @@
-﻿using MGUI.Core.UI.Brushes.Border_Brushes;
+﻿using MGUI.Core.UI.Animation.Targets;
+using MGUI.Core.UI.Animation.Easing;
+using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Shared.Helpers;
@@ -241,6 +244,8 @@ namespace MGUI.Core.UI
                     {
                         LayoutChanged(this, true);
                     }
+
+                    SyncDurationAnimation();
                 }
             }
         }
@@ -263,6 +268,7 @@ namespace MGUI.Core.UI
                     NPC(nameof(Minimum));
                     NPC(nameof(ActualValue));
                     NPC(nameof(ValuePercent));
+                    SyncDurationAnimation();
                 }
             }
         }
@@ -281,6 +287,7 @@ namespace MGUI.Core.UI
                     NPC(nameof(Maximum));
                     NPC(nameof(ActualValue));
                     NPC(nameof(ValuePercent));
+                    SyncDurationAnimation();
                 }
             }
         }
@@ -316,8 +323,93 @@ namespace MGUI.Core.UI
                             OnStarted?.Invoke(this, EventArgs.Empty);
                         }
                     }
+
+                    //  A write by the application retargets the Duration run from the new value; a write by the run itself does not (ApplyAnimatedValue).
+                    SyncDurationAnimation();
                 }
             }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private DurationRun _DurationAnimation;
+
+        /// <summary>The run behind <see cref="Duration"/>: a forced restore (element detached, window closed, <see cref="UIAnimationCollection.Clear"/>)
+        /// keeps the current value like a pause does; real progress is never rewound to the value the run started from.</summary>
+        private sealed class DurationRun : UIPropertyAnimation<float>
+        {
+            public DurationRun()
+                : base(UIBuiltInAnimationTargets.Paths.ProgressButtonValue) { }
+
+            protected internal override void OnRestoreBaseValue() { }
+        }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsApplyingAnimatedValue;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsDurationSyncPending;
+
+        /// <summary>The name of the animation that <see cref="Duration"/> runs on <c>ProgressButton.Value</c> (visible in the element debug view).</summary>
+        public const string DurationAnimationName = "ProgressButton.Duration";
+
+        /// <summary>Writes <see cref="Value"/> on behalf of an animation on <c>ProgressButton.Value</c> (T6): such a write never retargets the
+        /// <see cref="Duration"/> run; a change it triggers (a completion action that resets or pauses) is applied on the next update, once the run is over.</summary>
+        internal void ApplyAnimatedValue(float value)
+        {
+            _IsApplyingAnimatedValue = true;
+            try
+            {
+                Value = value;
+            }
+            finally
+            {
+                _IsApplyingAnimatedValue = false;
+            }
+        }
+
+        /// <summary>Starts, retargets or cancels the run that drives <see cref="Value"/> from its current value to <see cref="Maximum"/> over the remaining
+        /// share of <see cref="Duration"/> (ADR-0007, decision 7: the engine replaces the per-frame increment). Linear from the value as it is (a value below
+        /// <see cref="Minimum"/> is not clamped, the run just takes longer, like the old increment did), the end value stays, a replaced or cancelled run keeps
+        /// the current value; a zero duration completes at the first tick. Nothing runs while the button is outside a tree.</summary>
+        private void SyncDurationAnimation()
+        {
+            if (_IsApplyingAnimatedValue)
+            {
+                _IsDurationSyncPending = true;
+                return;
+            }
+
+            bool shouldRun = Parent != null && Duration is TimeSpan duration && duration >= TimeSpan.Zero && !IsPaused && !IsCompleted && Maximum > Minimum;
+            if (!shouldRun)
+            {
+                if (_DurationAnimation != null && _DurationAnimation.IsActive)
+                {
+                    _DurationAnimation.Cancel();
+                }
+
+                return;
+            }
+
+            if (GetDesktop()?.Animations == null)
+            {
+                // No desktop yet: UpdateSelf starts the run on the first frame.
+                _IsDurationSyncPending = true;
+                return;
+            }
+
+            float from = Value;
+            double share = Math.Max(0.0, (Maximum - from) / (Maximum - Minimum));
+            _IsDurationSyncPending = false;
+            _DurationAnimation = new DurationRun
+            {
+                From = from,
+                To = Maximum,
+                Duration = Duration.Value * share,
+                Easing = UIEasing.Linear,
+                Name = DurationAnimationName,
+                FillBehavior = UIAnimationFillBehavior.HoldEnd,
+                CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
+                InheritsBaseValue = false,
+            };
+            Animations.Start(_DurationAnimation);
         }
         
         /// <summary><see langword="true" /> if <see cref="Value"/> is >= <see cref="Maximum"/></summary>
@@ -367,6 +459,8 @@ namespace MGUI.Core.UI
                 {
                     _Duration = value;
                     NPC(nameof(Duration));
+                    NPC(nameof(RemainingDuration));
+                    SyncDurationAnimation();
                 }
             }
         }
@@ -383,13 +477,14 @@ namespace MGUI.Core.UI
                 {
                     return null;
                 }
-                else if (Value >= Maximum)
+                else if (Value >= Maximum || Maximum <= Minimum)
                 {
                     return TimeSpan.Zero;
                 }
                 else
                 {
-                    return Duration.Value * (Value - Minimum) / (Maximum - Minimum);
+                    //  The share of Duration still to run (it used to return the elapsed share, T6).
+                    return Duration.Value * ((Maximum - Math.Max(Value, Minimum)) / (Maximum - Minimum));
                 }
             }
         }
@@ -663,6 +758,15 @@ namespace MGUI.Core.UI
 
                 Duration = null;
 
+                //  T6: the Duration run only exists while the button is in a tree (a detached element is not updated); joining a tree (re)starts it.
+                OnParentChanged += (sender, e) =>
+                {
+                    if (e.NewValue != null)
+                    {
+                        SyncDurationAnimation();
+                    }
+                };
+
                 this.Orientation = Orientation;
                 IsReversed = false;
                 ProgressBarAlignment = ProgressBarAlignment.Stretch;
@@ -720,10 +824,14 @@ namespace MGUI.Core.UI
 
         public override void UpdateSelf(ElementUpdateArgs UA)
         {
-            if (!IsPaused && Duration.HasValue && !IsCompleted)
+            //  T6: Duration runs on the animation engine (SyncDurationAnimation); a change requested while the run was writing Value is applied here,
+            //  after the manager's tick of this frame, so the run that just completed is not cancelled from inside its own write.
+            if (_IsDurationSyncPending)
             {
-                Value += (float)(UA.BA.FrameElapsed / Duration.Value * (Maximum - Minimum));
+                _IsDurationSyncPending = false;
+                SyncDurationAnimation();
             }
+
             base.UpdateSelf(UA);
         }
 

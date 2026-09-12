@@ -29,6 +29,8 @@ namespace MGUI.Core.UI.Animation.Targets
             public const string Margin = "Margin";
             public const string Padding = "Padding";
             public const string MinHeight = "MinHeight";
+            /// <summary>The value of an <see cref="MGProgressButton"/> (T6): what <see cref="MGProgressButton.Duration"/> drives; any other element is refused.</summary>
+            public const string ProgressButtonValue = "ProgressButton.Value";
         }
 
         private static bool _Registered;
@@ -54,6 +56,7 @@ namespace MGUI.Core.UI.Animation.Targets
                 UIAnimationTargets.Register(new MarginTarget());
                 UIAnimationTargets.Register(new PaddingTarget());
                 UIAnimationTargets.Register(new MinHeightTarget());
+                UIAnimationTargets.Register(new ProgressButtonValueTarget());
                 UIColorAnimationTargets.RegisterAll();
                 UIExtraAnimationTargets.RegisterAll();
             }
@@ -158,6 +161,22 @@ namespace MGUI.Core.UI.Animation.Targets
                     _renderScale.Dispose();
                 }
             }
+        }
+
+        /// <summary><c>ProgressButton.Value</c> (ADR-0007, decision 7): a plain target over <see cref="MGProgressButton.Value"/> (the end value stays);
+        /// the writes go through <see cref="MGProgressButton.ApplyAnimatedValue"/> so the button does not retarget its own <see cref="MGProgressButton.Duration"/>
+        /// run on them. Not observable: a transition on this path would compete with the Duration run, so it is refused. Refused on any other element.</summary>
+        private sealed class ProgressButtonValueTarget : IUIAnimationTarget<float>
+        {
+            public string Path => Paths.ProgressButtonValue;
+            public bool IsStoreBacked => false;
+            public float GetValue(MGElement element) => Require(element).Value;
+            public void SetValue(MGElement element, float value, string animationName) => Require(element).ApplyAnimatedValue(value);
+            public void RestoreBaseValue(MGElement element, float baseValue) => Require(element).ApplyAnimatedValue(baseValue);
+
+            private static MGProgressButton Require(MGElement element)
+                => element as MGProgressButton ?? throw new InvalidOperationException(
+                    $"'{Paths.ProgressButtonValue}' animates the value of an {nameof(MGProgressButton)}; {element.GetType().Name} has none.");
         }
 
         private sealed class MarginTarget : IUIObservableAnimationTarget<Thickness>, IUIStoreBackedAnimationTarget<Thickness>
