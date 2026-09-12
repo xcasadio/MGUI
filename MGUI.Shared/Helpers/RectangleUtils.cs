@@ -43,6 +43,26 @@ namespace MGUI.Shared.Helpers
             return new RectangleF(TopLeft.X, TopLeft.Y, BottomRight.X - TopLeft.X, BottomRight.Y - TopLeft.Y);
         }
 
+        /// <summary>The axis-aligned bounding box of the four transformed corners. Unlike <see cref="CreateTransformedF(Rectangle, Matrix)"/>, which only maps
+        /// the top-left and bottom-right corners and is therefore only valid for translations and positive scales, this stays a valid rectangle under a
+        /// rotation or a negative scale (used by the render transform of <c>MGElement</c>, ADR-0006).</summary>
+        public static RectangleF CreateTransformedBoundsF(this Rectangle @this, Matrix Transform)
+            => new RectangleF(@this.X, @this.Y, @this.Width, @this.Height).CreateTransformedBoundsF(Transform);
+
+        /// <summary>See <see cref="CreateTransformedBoundsF(Rectangle, Matrix)"/>.</summary>
+        public static RectangleF CreateTransformedBoundsF(this RectangleF @this, Matrix Transform)
+        {
+            Vector2 A = new Vector2(@this.Left, @this.Top).TransformBy(Transform);
+            Vector2 B = new Vector2(@this.Right, @this.Top).TransformBy(Transform);
+            Vector2 C = new Vector2(@this.Right, @this.Bottom).TransformBy(Transform);
+            Vector2 D = new Vector2(@this.Left, @this.Bottom).TransformBy(Transform);
+            float MinX = Math.Min(Math.Min(A.X, B.X), Math.Min(C.X, D.X));
+            float MinY = Math.Min(Math.Min(A.Y, B.Y), Math.Min(C.Y, D.Y));
+            float MaxX = Math.Max(Math.Max(A.X, B.X), Math.Max(C.X, D.X));
+            float MaxY = Math.Max(Math.Max(A.Y, B.Y), Math.Max(C.Y, D.Y));
+            return new RectangleF(MinX, MinY, MaxX - MinX, MaxY - MinY);
+        }
+
         [DebuggerStepThrough]
         public static bool ContainsInclusive(this Rectangle @this, Point point)
             => ContainsInclusive(@this, point.ToVector2());

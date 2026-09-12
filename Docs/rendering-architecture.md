@@ -209,10 +209,10 @@ Pour les cas non rectangulaires quand le stencil n'est pas disponible : `ClipMan
 Double convention simultanee :
 
 - les bounds de clip rectangulaires sont exprimes en espace render-target (le scissor recoit des bounds deja transformes) ;
-- les vertex de geometrie de clip restent dans l'espace de draw LOCAL de l'element ; la transform active de la `DrawTransaction` les mappe vers l'espace render-target — les clips stencil suivent donc automatiquement `RenderScale` et les transforms parents ;
+- les vertex de geometrie de clip restent dans l'espace de draw LOCAL de l'element ; la transform active de la `DrawTransaction` les mappe vers l'espace render-target — les clips stencil suivent donc automatiquement `RenderTransform`, `RenderScale` et les transforms parents ;
 - les clips mask allouent leur render target temporaire depuis les bounds transformes, puis reutilisent la transform active pour y dessiner le contenu local.
 
-`MGElement.Draw(...)` applique `RenderScale` AVANT de demander ses definitions de clip a l'element : les elements rectangle-only utilisent le fast path des `TargetBounds` transformes, les geometries arrondies decrivent leurs vertex en espace local, et aucun controle n'a besoin de savoir quel backend resoudra son clip.
+`MGElement.Draw(...)` applique le transform de rendu de l'element AVANT de demander ses definitions de clip : la matrice locale (echelle d'etat de `RenderScale` autour du centre, puis `RenderTransform` autour de son origine, ADR-0006) est construite en espace ecran non scale et composee avant la transform courante (`Local * CurrentSettings.Transform`), qui porte deja `MGWindow.Scale` ; elle n'est poussee que si elle n'est pas l'identite, car tout `SetTransformTemporary` termine le batch courant (une coupure a l'entree, une a la sortie). Les elements rectangle-only utilisent le fast path des `TargetBounds` transformes (boite englobante de la transform), les geometries arrondies decrivent leurs vertex en espace local, et aucun controle n'a besoin de savoir quel backend resoudra son clip. Le hit-test inverse la meme matrice (`Docs/input-architecture.md`).
 
 ### Integration `MGElement` et politique overlay
 

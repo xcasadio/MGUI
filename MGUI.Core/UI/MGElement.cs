@@ -2580,7 +2580,7 @@ namespace MGUI.Core.UI
             //  Occlusion is resolved from DisplayingWindow (the window that actually shows this element), not SelfOrParentWindow (the window
             //  it was constructed with), so an element re-parented into another window is not occluded by its own construction window
             //  anymore - see Docs/decisions/0004-hit-test-occlusion-from-displaying-window.md.
-            return ContainsUnscaledInputPoint(UnscaledPosition)
+            return ContainsUnscaledInputPoint(ToLocalUnscaledPoint(UnscaledPosition))
                 && GetDesktop().ValidScreenBounds.ContainsInclusive(Position)
                 && !(DisplayingWindow?.IsUnscaledPositionOccluded(UnscaledPosition) ?? false);
         }
@@ -3474,6 +3474,11 @@ namespace MGUI.Core.UI
                 return;
             }
 
+            // Render transform (ADR-0006, S2): the mouse position is mapped through the inverse of this element's transform for the
+            // element itself and its whole subtree, since the draw applies the transform to everything below it.
+            TryApplyInverseRenderTransform(ref unscaledMousePos);
+
+
             bool ComputedIsEnabled = IsParentEnabled && IsEnabled;
             bool ComputedIsHitTestVisible = IsParentHitTestVisible && IsHitTestVisible;
 
@@ -3506,7 +3511,9 @@ namespace MGUI.Core.UI
                 Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref Result);
             }
 
-            if (mouseInBounds)
+            // A render transform (ADR-0006, S2) can move a descendant outside this element's bounds, so the bounds early-out is only
+            // taken while no element of the desktop is transformed (the common case, gated by MGDesktop.ActiveRenderTransformCount).
+            if (mouseInBounds || DesktopHasActiveRenderTransforms)
             {
                 // Use indexed for loop to avoid IReadOnlyList enumerator allocation (Task 16)
                 IReadOnlyList<MGElement> vtc = GetVisualTreeChildren(false, true);
@@ -3770,6 +3777,7 @@ namespace MGUI.Core.UI
         private ConditionalScaleTransform? _RenderScale;
         /// <summary>A scale transform to apply to this <see cref="MGElement"/> when the appropriate condition is met. (such as <see cref="IsLMBPressed"/> is true)<para/>
         /// This scale transform only affects how the element is rendered, but not its layout, so it may result in overlapping elements. Uses the center of <see cref="LayoutBounds"/> as the scaling origin.<para/>
+        /// Composed with <see cref="RenderTransform"/> at draw time and inverted by the hit-test (ADR-0006, S2): the state-driven scale keeps the centre as its pivot whatever <see cref="Animation.UIRenderTransform.Origin"/> says.<para/>
         /// Default value: null</summary>
         public ConditionalScaleTransform? RenderScale
         {
@@ -3778,9 +3786,140 @@ namespace MGUI.Core.UI
             {
                 if (_RenderScale != value)
                 {
+                    bool WasSet = _RenderScale.HasValue;
                     _RenderScale = value;
+                    if (WasSet != value.HasValue)
+                    {
+                        SelfOrParentWindow?.Desktop?.AdjustActiveRenderTransformCount(value.HasValue ? 1 : -1);
+                    }
+                    InvalidateHoverForRenderTransformChange();
                     NPC(nameof(RenderScale));
                 }
+
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Animation.UIRenderTransform _RenderTransform;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _IsRenderTransformActive;
+        /// <summary>The render-only transform of this element (translation, scale, rotation, origin; ADR-0006): applied when the element is drawn,
+        /// inverted by the hit-test, never consulted by the layout. Allocated on first access, so an element that never reads this property costs nothing.<para/>
+        /// Semantics of NoesisGUI and WPF: relative origin with (0, 0) = top-left by default, rotation in degrees. Not honoured on an <see cref="MGWindow"/>
+        /// (a window keeps <see cref="MGWindow.Scale"/>); the state-driven <see cref="RenderScale"/> is composed with it around the element's centre.<para/>
+        /// See also: <see cref="Animation.UIRenderTransform"/></summary>
+        public Animation.UIRenderTransform RenderTransform
+        {
+            get
+            {
+                if (_RenderTransform == null)
+                {
+                    _RenderTransform = new();
+                    _RenderTransform.PropertyChanged += HandleRenderTransformPropertyChanged;
+                }
+
+                return _RenderTransform;
+            }
+        }
+
+        /// <summary>True while <see cref="RenderTransform"/> has been accessed and is not the identity (never true for an <see cref="MGWindow"/>).</summary>
+        internal bool HasActiveRenderTransform => _IsRenderTransformActive;
+
+        private void HandleRenderTransformPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            bool IsActive = !IsWindow && !_RenderTransform.IsIdentity;
+            if (IsActive != _IsRenderTransformActive)
+            {
+                _IsRenderTransformActive = IsActive;
+                SelfOrParentWindow?.Desktop?.AdjustActiveRenderTransformCount(IsActive ? 1 : -1);
+            }
+
+            InvalidateHoverForRenderTransformChange();
+
+            NPC(nameof(RenderTransform));
+        }
+
+        /// <summary>The effective state-driven scale (<see cref="RenderScale"/> for the current <see cref="VisualState"/>). False when there is none.</summary>
+        internal virtual bool TryGetEffectiveStateScale(out float Scale)
+        {
+            if (_RenderScale.HasValue && _RenderScale.Value.TryGetScale(VisualState, out Scale))
+            {
+                return true;
+            }
+
+            Scale = 1.0f;
+            return false;
+        }
+
+        /// <summary>Builds the render-only matrix of this element for its bounds in unscaled screen space (the space of <see cref="ElementDrawArgs.Offset"/>
+        /// and of the input hit-test): the state-driven scale around the centre, then <see cref="RenderTransform"/> around its origin.
+        /// Returns false, and the identity, when nothing needs to be pushed.</summary>
+        internal bool TryGetRenderTransformMatrix(Rectangle UnscaledBounds, out Matrix Transform)
+        {
+            bool HasStateScale = TryGetEffectiveStateScale(out float StateScale) && Math.Abs(StateScale - 1.0f) > Animation.UIRenderTransform.IdentityEpsilon;
+            bool HasTransform = _IsRenderTransformActive;
+            if (!HasStateScale && !HasTransform)
+            {
+                Transform = Matrix.Identity;
+                return false;
+            }
+
+            Transform = HasStateScale ? Animation.UIRenderTransform.CreateCenteredScale(UnscaledBounds, StateScale) : Matrix.Identity;
+            if (HasTransform)
+            {
+                Matrix Local = _RenderTransform.ToMatrix(UnscaledBounds);
+                Transform = HasStateScale ? Transform * Local : Local;
+            }
+
+            return true;
+        }
+
+        /// <summary>Maps an unscaled screen position into the local space of this element's own render transform (state scale and
+        /// <see cref="RenderTransform"/>), applying the inverse of the ancestors' transforms first, outermost first, as the draw composes them.
+        /// Returns the input unchanged when no element of this desktop has a transform (gated by <see cref="MGDesktop.ActiveRenderTransformCount"/>).</summary>
+        internal Vector2 ToLocalUnscaledPoint(Vector2 UnscaledScreenPosition)
+        {
+            MGDesktop Desktop = SelfOrParentWindow?.Desktop;
+            if (Desktop == null || Desktop.ActiveRenderTransformCount == 0)
+            {
+                return UnscaledScreenPosition;
+            }
+
+            ApplyInverseRenderTransforms(ref UnscaledScreenPosition);
+            return UnscaledScreenPosition;
+        }
+
+        /// <summary>True while at least one element of this desktop has a render transform in effect (see <see cref="MGDesktop.ActiveRenderTransformCount"/>).</summary>
+        private bool DesktopHasActiveRenderTransforms => (SelfOrParentWindow?.Desktop?.ActiveRenderTransformCount ?? 0) > 0;
+
+        /// <summary>A changed render transform moves pixels under a still mouse: ask the displaying window to recompute its hovered and pressed elements.</summary>
+        private void InvalidateHoverForRenderTransformChange()
+        {
+            MGWindow Window = DisplayingWindow;
+            if (Window != null)
+            {
+                Window.InvalidatePressedAndHoveredElements = true;
+            }
+        }
+
+        private void ApplyInverseRenderTransforms(ref Vector2 UnscaledPosition)
+        {
+            Parent?.ApplyInverseRenderTransforms(ref UnscaledPosition);
+            TryApplyInverseRenderTransform(ref UnscaledPosition);
+        }
+
+        /// <summary>Applies the inverse of this element's own render transform, if any, to a position in unscaled screen space.</summary>
+        private void TryApplyInverseRenderTransform(ref Vector2 UnscaledPosition)
+        {
+            if (!_IsRenderTransformActive && !_RenderScale.HasValue)
+            {
+                return;
+            }
+
+            Rectangle UnscaledBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, LayoutBounds);
+            if (TryGetRenderTransformMatrix(UnscaledBounds, out Matrix Transform))
+            {
+                UnscaledPosition = Vector2.Transform(UnscaledPosition, Matrix.Invert(Transform));
             }
         }
 
@@ -3805,7 +3944,7 @@ namespace MGUI.Core.UI
         }
 
         protected Rectangle TransformClipBounds(ElementDrawArgs DA, Rectangle bounds)
-            => bounds.GetTranslated(DA.Offset).CreateTransformedF(DA.DT.CurrentSettings.Transform).RoundUp();
+            => bounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
 
         protected ClipDefinition CreateRectangleClipDefinition(Rectangle targetBounds, string debugName)
             => ClipDefinition.Rectangle(targetBounds, true, debugName: debugName);
@@ -3873,22 +4012,25 @@ namespace MGUI.Core.UI
 				return;
 			}
 
-            Rectangle TargetBounds = LayoutBounds.GetTranslated(DA.Offset).CreateTransformedF(DA.DT.CurrentSettings.Transform).RoundUp();
+            // Four-corner bounds (ADR-0006, S2): the current transform may carry an ancestor rotation, under which the two-corner helper returns a negative size.
+            Rectangle TargetBounds = LayoutBounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
 
-            //  Apply render scale, if any
+            //  Apply the render-only transform (state scale of RenderScale and/or RenderTransform), if any (ADR-0006, S2).
+            //  The local matrix lives in unscaled screen space (the space of DA.Offset and of the input hit-test) and is composed
+            //  BEFORE the current transform, which already carries MGWindow.Scale. Nothing is pushed for an identity transform,
+            //  so an element without transform never breaks the current batch.
             IDisposable TempTransform = null;
-            if (RenderScale?.TryGetScale(VisualState, out float Scale) == true)
+            Rectangle UnscaledBounds = LayoutBounds.GetTranslated(DA.Offset);
+            if (TryGetRenderTransformMatrix(UnscaledBounds, out Matrix LocalTransform))
             {
-                Matrix Transform =
-                    Matrix.CreateTranslation(new Vector3(-TargetBounds.Center.ToVector2(), 0)) *
-                    Matrix.CreateScale(Scale) *
-                    Matrix.CreateTranslation(new Vector3(TargetBounds.Center.ToVector2(), 0));
-                TempTransform = DA.DT.SetTransformTemporary(DA.DT.CurrentSettings.Transform * Transform);
+                Matrix CurrentTransform = DA.DT.CurrentSettings.Transform;
+                TempTransform = DA.DT.SetTransformTemporary(LocalTransform * CurrentTransform);
 
                 // Rectangle clip bounds are re-evaluated in render-target space after the transform is applied.
                 // Geometry clips keep their local vertices and rely on the active draw transform for stencil/mask backends.
-                TargetBounds = TargetBounds.CreateTransformedF(Transform).RoundUp();
+                TargetBounds = UnscaledBounds.CreateTransformedBoundsF(LocalTransform).CreateTransformedBoundsF(CurrentTransform).RoundUp();
             }
+
 
 			ClipDefinition SelfClipDefinition = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
 			ClipDefinition ContentsClipDefinition = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);

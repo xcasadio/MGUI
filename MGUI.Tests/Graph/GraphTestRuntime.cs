@@ -64,6 +64,8 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     private Rectangle? _currentClipBounds;
 
     public DrawSettings CurrentSettings { get; private set; }
+    /// <summary>Every matrix handed to <see cref="SetTransformTemporary"/>, in order (render transform tests).</summary>
+    public List<Matrix> TransformPushes { get; } = new();
     public IUIDesktopRuntime Renderer { get; }
     public Rectangle? CurrentClipBounds => _currentClipBounds;
     public List<GraphFillRectangleCall> FillRectangleCalls { get; } = new();
@@ -145,7 +147,10 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         => new GraphDisposableAction(() => { });
 
     public IDisposable SetTransformTemporary(Matrix Transform)
-        => SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
+    {
+        TransformPushes.Add(Transform);
+        return SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
+    }
 
     public ClipResolveResult ResolveClip(ClipDefinition Definition)
     {

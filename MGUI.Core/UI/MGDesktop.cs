@@ -41,6 +41,15 @@ namespace MGUI.Core.UI
         public UIView View { get; private set; }
         public UIViewState State { get; }
         public UIFocusNavigationService NavigationService { get; }
+
+        /// <summary>Number of elements of this desktop whose render transform is currently in effect: a non-identity
+        /// <see cref="MGElement.RenderTransform"/> or a set <see cref="MGElement.RenderScale"/> (ADR-0006, S2). While it is zero, the
+        /// hit-test skips the inverse-transform walk entirely (<see cref="MGElement.ToLocalUnscaledPoint"/>), so an application
+        /// that never transforms an element pays nothing per mouse event. Maintained by the elements themselves; never negative.</summary>
+        internal int ActiveRenderTransformCount { get; private set; }
+
+        internal void AdjustActiveRenderTransformCount(int Delta) => ActiveRenderTransformCount = Math.Max(0, ActiveRenderTransformCount + Delta);
+
         public InputTracker InputTracker => Runtime.Input;
         public string DefaultFontFamily => Runtime.DefaultFontFamily;
         private List<ModalStackEntry> ModalStackEntries { get; } = new();

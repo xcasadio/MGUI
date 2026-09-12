@@ -10,7 +10,7 @@ Le responsive layout est une preoccupation de layout, pas un transform de rendu.
 
 Principes en vigueur :
 
-1. `MGWindow.Scale` reste un pur transform de rendu et ne doit jamais devenir le mecanisme responsive. Simuler l'adaptation en redimensionnant les fenetres via `MGWindow.Scale` couplerait layout, input, clipping et texte a un transform de rendu — c'est un non-but explicite.
+1. `MGWindow.Scale` reste un pur transform de rendu et ne doit jamais devenir le mecanisme responsive. `MGElement.RenderTransform` (ADR-0006) appartient a la meme famille : un transform de rendu inverse par le hit-test, jamais consulte par la mesure ni l'arrangement. Simuler l'adaptation en redimensionnant les fenetres via `MGWindow.Scale` couplerait layout, input, clipping et texte a un transform de rendu — c'est un non-but explicite.
 2. Quatre notions restent strictement separees : layout logique, scale global de l'UI (`UIScaleFactor`), scale du texte (`TextScaleFactor`), transforms de rendu existants.
 3. Le responsive est opt-in au niveau d'une racine de sous-arbre, puis herite par les descendants. Les arbres non opt-in sont strictement inchanges (compatibilite descendante).
 4. Les containers de layout existants (`MGStackPanel`, `MGDockPanel`, `MGGrid`, etc.) restent le modele de composition principal ; les anchors ne couvrent que les overlays et elements flottants.
