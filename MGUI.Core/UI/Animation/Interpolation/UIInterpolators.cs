@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Xna.Framework;
-using MGUI.Core.UI.XAML;
+using MonoGame.Extended;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 namespace MGUI.Core.UI.Animation.Interpolation

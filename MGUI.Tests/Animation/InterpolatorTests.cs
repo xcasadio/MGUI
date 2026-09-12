@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 using MGUI.Core.UI.Animation.Interpolation;
-using MGUI.Core.UI.XAML;
+using MonoGame.Extended;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 namespace MGUI.Tests.Animation;
@@ -129,7 +129,10 @@ public class InterpolatorTests
     {
         Thickness result = UIThicknessInterpolator.Instance.Lerp(new Thickness(0, 10, 20, 30), new Thickness(10, 10, 0, 40), 0.5f);
 
-        Assert.Equal(new Thickness(5, 10, 10, 35).ToString(), result.ToString());
+        Assert.Equal(5, result.Left);
+        Assert.Equal(10, result.Top);
+        Assert.Equal(10, result.Right);
+        Assert.Equal(35, result.Bottom);
     }
 
     [Fact]

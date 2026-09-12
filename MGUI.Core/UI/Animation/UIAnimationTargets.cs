@@ -13,6 +13,11 @@ namespace MGUI.Core.UI.Animation
     {
         private static readonly ConcurrentDictionary<string, object> Registry = new(StringComparer.OrdinalIgnoreCase);
 
+        static UIAnimationTargets()
+        {
+            Targets.UIBuiltInAnimationTargets.RegisterAll();
+        }
+
         /// <summary>Registers (or replaces) the target addressed by <c>target.Path</c>.</summary>
         public static void Register<T>(IUIAnimationTarget<T> target)
         {

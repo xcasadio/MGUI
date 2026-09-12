@@ -3852,6 +3852,12 @@ namespace MGUI.Core.UI
         /// <summary>The effective state-driven scale (<see cref="RenderScale"/> for the current <see cref="VisualState"/>). False when there is none.</summary>
         internal virtual bool TryGetEffectiveStateScale(out float Scale)
         {
+            if (_AnimationSlot?.StateScaleOverride is float Override)
+            {
+                Scale = Override;
+                return true;
+            }
+
             if (_RenderScale.HasValue && _RenderScale.Value.TryGetScale(VisualState, out Scale))
             {
                 return true;
@@ -3859,6 +3865,27 @@ namespace MGUI.Core.UI
 
             Scale = 1.0f;
             return false;
+        }
+
+
+        /// <summary>Sets or clears the animated override of the state-driven scale (the <c>RenderScale</c> animation target, S4): while set, it
+        /// shadows <see cref="RenderScale"/> for the current state in the draw composition and the hit-test, and counts as an active render transform.</summary>
+        internal void SetStateScaleOverride(float? Value)
+        {
+            Animation.UIElementAnimationSlot Slot = _AnimationSlot ??= new Animation.UIElementAnimationSlot(this);
+            bool WasSet = Slot.StateScaleOverride.HasValue;
+            if (Slot.StateScaleOverride == Value)
+            {
+                return;
+            }
+
+            Slot.StateScaleOverride = Value;
+            if (WasSet != Value.HasValue)
+            {
+                SelfOrParentWindow?.Desktop?.AdjustActiveRenderTransformCount(Value.HasValue ? 1 : -1);
+            }
+
+            InvalidateHoverForRenderTransformChange();
         }
 
         /// <summary>Builds the render-only matrix of this element for its bounds in unscaled screen space (the space of <see cref="ElementDrawArgs.Offset"/>
@@ -3921,7 +3948,7 @@ namespace MGUI.Core.UI
         /// <summary>Applies the inverse of this element's own render transform, if any, to a position in unscaled screen space.</summary>
         private void TryApplyInverseRenderTransform(ref Vector2 UnscaledPosition)
         {
-            if (!_IsRenderTransformActive && !_RenderScale.HasValue)
+            if (!_IsRenderTransformActive && !_RenderScale.HasValue && _AnimationSlot?.StateScaleOverride == null)
             {
                 return;
             }

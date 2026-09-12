@@ -1,5 +1,5 @@
 using Microsoft.Xna.Framework;
-using MGUI.Core.UI.XAML;
+using MonoGame.Extended;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 namespace MGUI.Core.UI.Animation.Interpolation
@@ -18,7 +18,7 @@ namespace MGUI.Core.UI.Animation.Interpolation
     }
 
     /// <summary>Interpolation of <see cref="Thickness"/>: each side is interpolated as a float and rounded away from zero
-    /// (<see cref="Thickness"/> is integer-based, so an animated margin advances in whole pixels, ADR-0006). Does not clamp <c>amount</c>.</summary>
+    /// (<see cref="Thickness"/> is integer-based, so an animated margin advances in whole pixels, ADR-0006; this is the runtime <c>MonoGame.Extended.Thickness</c> of <c>MGElement.Margin</c>, not the XAML DTO). Does not clamp <c>amount</c>.</summary>
     public sealed class UIThicknessInterpolator : IUIInterpolator<Thickness>
     {
         public static readonly UIThicknessInterpolator Instance = new();
