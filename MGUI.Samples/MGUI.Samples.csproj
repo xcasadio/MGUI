@@ -63,6 +63,7 @@
     <None Remove="Dialogs\Stardew Valley\SDVInventory.xaml" />
     <None Remove="Dialogs\XAMLDesignerWindow.xaml" />
     <None Remove="Features\AdornerLite.xaml" />
+    <None Remove="Features\AnimationDemo.xaml" />
     <None Remove="Features\DataBindings.xaml" />
     <None Remove="Features\IBorderBrush.xaml" />
     <None Remove="Features\IFillBrush.xaml" />
@@ -226,6 +227,7 @@
     <EmbeddedResource Include="Features\EditorRichTextBox.xaml" />
     <EmbeddedResource Include="Features\RoundedShapes.xaml" />
     <EmbeddedResource Include="Features\ResponsiveLayout.xaml" />
+    <EmbeddedResource Include="Features\AnimationDemo.xaml" />
     <EmbeddedResource Include="Features\StyleThemeRefactor.xaml" />
     <EmbeddedResource Include="Features\EditorCompactPreset.xaml" />
     <EmbeddedResource Include="Features\EditorCompact.Themes.xaml" />

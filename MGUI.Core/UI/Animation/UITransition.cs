@@ -43,6 +43,9 @@ namespace MGUI.Core.UI.Animation
         /// <summary>The value type of the animated property.</summary>
         public abstract Type ValueType { get; }
 
+        /// <summary>Raw progress of the running interpolation in [0, 1], null while idle (diagnostics).</summary>
+        public abstract float? RunningProgress { get; }
+
         /// <summary>Creates the typed transition for a registered path (<c>UITransition&lt;T&gt;</c> where <c>T</c> is the target's value type).</summary>
         /// <exception cref="ArgumentException">The path is unknown.</exception>
         public static UITransition Create(string property, TimeSpan duration, TimeSpan delay = default, IUIEasingFunction easing = null)
@@ -135,6 +138,8 @@ namespace MGUI.Core.UI.Animation
         public override bool IsRunning => _Animation != null && _Animation.IsActive;
 
         public override Type ValueType => typeof(T);
+
+        public override float? RunningProgress => IsRunning ? _Animation.Progress : null;
 
         /// <summary>The running interpolation, or the last one; null before the first change.</summary>
         public UIPropertyAnimation<T> Animation => _Animation;

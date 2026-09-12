@@ -10,7 +10,7 @@ Decrire l'etat actuel du sous-systeme de rendu de MGUI : separation des assembli
 - Contrats `IUIDesktopRuntime`, `IUIDrawTransaction`, `IUISurface`, `ITextEngine`, hotes `IRenderHost` et bootstrap backend.
 - Pipeline de clipping : abstractions, resolution de strategie, backends scissor/stencil/mask, conventions de coordonnees, politique overlay.
 
-Hors portee : le paint des shapes et brushes (`Docs/drawing-architecture.md`) et le layout du texte (`Docs/text-architecture.md`). Guides pratiques : `Docs/monogame-host-integration-guide.md` (application MonoGame) et `Docs/custom-render-backend-integration.md` (moteur proprietaire).
+Hors portee : le paint des shapes et brushes (`Docs/drawing-architecture.md`), le layout du texte (`Docs/text-architecture.md`) et le systeme d'animation, transform de rendu compris (`Docs/animation-architecture.md`). Guides pratiques : `Docs/monogame-host-integration-guide.md` (application MonoGame) et `Docs/custom-render-backend-integration.md` (moteur proprietaire).
 
 ## Vue d'ensemble
 

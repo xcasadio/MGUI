@@ -12,6 +12,7 @@ Hors programme (V2, listees en fin de fichier) : Storyboard, ParallelAnimation, 
 
 - 12 septembre 2026 : creation apres un audit en lecture seule de l'architecture a HEAD `14e5f65` (boucle d'update, pipeline de draw et transforms, modele de proprietes et store, etats visuels, couche XAML, cycle de vie, tests et garde-fous, animations ad hoc existantes, samples, input) et les reponses de l'auteur aux quatorze questions de l'audit. Aucune tache commencee.
 - 12 septembre 2026 (meme jour, avant le commit du plan) : rotation en degres et origine par defaut (0, 0) sur le modele de NoesisGUI (decision 15, ADR-0006) ; l'echelle d'etat de `RenderScale` garde son origine au centre par une matrice separee.
+- 12 septembre 2026 : V1 livree, huit tranches commitees une par une (S1 `21ed942`, S2 `d89dc83`, S3 `e4ae7ab`, S4 `667f4ee`, S5 `4f1532c`, S6 `88fe2d0`, S7 `905c7b6`, S8 ci-dessous), chaque tranche a risque relue par un agent independant en lecture seule (constats consignes dans son statut). Etat courant decrit par `Docs/animation-architecture.md`.
 
 ## Contexte : faits verifies le 12 septembre 2026 (HEAD `14e5f65`, lecture seule)
 
@@ -247,7 +248,9 @@ Criteres d'acceptation : `FullyQualifiedName~XAML|FullyQualifiedName~Markup` ver
 
 Commit recommande : `animation: declare transitions and render transforms in XAML`
 
-### ⚪ S8. Sample, scenario, diagnostics et documentation
+### ✅ S8. Sample, scenario, diagnostics et documentation
+
+**Statut** : livre le 12 septembre 2026. Sample `MGUI.Samples/Features/AnimationDemo.xaml(.cs)` (`AnimationDemoSample : SampleBase`, bouton `Animation` du compendium, ressource embarquee) : bouton de survol avec `RenderScale`, transform d'origine (0.5, 0.5) et transitions `RenderScale` + `Background` declarees en XAML, cycle de couleurs de fond par ecriture locale (transition), animations explicites sur une cible (`Fade` opacite `CubicOut`, `Slide` translation aller-retour, `Spin` rotation 360 degres restauree, `Pulse` echelle d'etat en boucle arretee par un second clic), marge animee `BackOut` aller-retour (pilote de layout), popup imbriquee ouverte avec opacite + echelle depuis le centre (`Origin` explicite comme `RenderTransformOrigin="0.5,0.5"`), pause de l'horloge, `TimeScale` 0.5 / 1, compteur d'animations actives rafraichi a chaque update. Diagnostics : `UIElementDebugView.Animations` (`UIAnimationDebugView` : `Kind` animation / held / transition, `Path`, `State`, `Progress`, `Name`), `UIToolingService.CaptureElementDebugView` les collecte depuis le slot (vide sans slot), `RenderElementDebugView` les rend sous `animations:` ; `UITransition.RunningProgress`. `Docs/scenario-validation-index.md` : ligne `SCN-ANIM-001` et rattachement a la doc et aux taches. `Docs/animation-architecture.md` (objectif, portee, principes, vue d'ensemble, transform de rendu, horloge et manager, animations, cibles, transitions, XAML, diagnostics, cout, limites connues, reste a faire) ; renvois depuis `Docs/rendering-architecture.md`, `Docs/styling-theme-architecture.md` et l'index des scenarios. Tests : `MGUI.Tests/Animation/AnimationDiagnosticsTests.cs` (3 : vue vide sans animation, animation active + retenue + transition inactive avec rendu texte, transition en cours avec sa progression) et `AnimationDemoSampleTests.cs` (1 : le XAML du sample charge en mode strict avec ses deux transitions, son transform et tous ses elements nommes). Le code-behind du sample est compile par le build de `MGUI.Samples` ; son execution reste manuelle (consigne : jamais lancer les samples depuis un agent).
 
 But : rendre la V1 demontrable, observable et documentee.
 

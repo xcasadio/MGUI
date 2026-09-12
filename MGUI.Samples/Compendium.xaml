@@ -99,6 +99,7 @@
                         <ToggleButton Content="Theme" IsChecked="{MGBinding Path=StyleThemeRefactorSample.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Native Dark Preview" IsChecked="{MGBinding Path=NativeDarkThemePreviewSample.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Editor Compact" IsChecked="{MGBinding Path=EditorCompactPresetSample.IsVisible, Mode=TwoWay}" />
+                        <ToggleButton Content="Animation" IsChecked="{MGBinding Path=AnimationDemoSample.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="RichTextBox Editor" IsChecked="{MGBinding Path=EditorRichTextBoxSample.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="VisualState" Opacity="0.25" />
                         <ToggleButton Content="BorderBrush" IsChecked="{MGBinding Path=IBorderBrushSamples.IsVisible, Mode=TwoWay}" />

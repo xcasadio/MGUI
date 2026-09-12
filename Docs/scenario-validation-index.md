@@ -27,6 +27,7 @@ Quand un bug est rapporte, il doit autant que possible etre rattache a un identi
 | `SCN-DOCK-001` | docking | drag, split, save/load de layout et reprise des panneaux restent demonstrables sur un host de docking cible | `MGUI.Samples/Features/DockingDemo.cs` | build sample + validation docking ciblee |
 | `SCN-TEXT-001` | text | la selection et l'echappement des backslashes dans `TextBox` restent stables et demonstrables | `MGUI.Samples/Features/TextBoxBackslashTest.xaml` | build sample + filtre texte cible |
 | `SCN-TEXT-002` | text surface lite : chat + log + texte annote | les usages chat, log et debug reutilisent un petit chemin texte explicite : runs programmes pour l'annotation, feed append-only pour le log, formatting inline optionnel pour les messages de chat, sans ouvrir un RichTextBox complet | `MGUI.Samples/Features/TextSurfaceLite.xaml` | `FullyQualifiedName~Text\|FullyQualifiedName~Chat\|FullyQualifiedName~Focus` |
+| `SCN-ANIM-001` | animation | les transitions et animations de rendu (opacite, transform, echelle d'etat, couleurs unies) suivent l'input et ne touchent pas le layout, un pilote de layout anime le re-declenche a chaque tick, l'horloge se met en pause et se ralentit | `MGUI.Samples/Features/AnimationDemo.xaml` | `FullyQualifiedName~Animation` |
 | `SCN-EDITOR-RTB-001` | rich textbox editor | l'editeur RichTextBox sample reste editable, colore lexicalement et capable d'accepter une completion C# demo | `MGUI.Samples/Features/EditorRichTextBox.xaml` | build sample + `FullyQualifiedName~RichTextBox\|FullyQualifiedName~Completion\|FullyQualifiedName~Syntax` |
 
 ## Rattachement aux docs par theme
@@ -39,7 +40,8 @@ Chaque scenario se rattache a une doc d'architecture et, quand du travail reste 
 - `SCN-LAYOUT-001` : [layout-architecture.md](layout-architecture.md) ;
 - `SCN-SHAPE-001` : [drawing-architecture.md](drawing-architecture.md) ;
 - `SCN-TEXT-001`, `SCN-TEXT-002` : [text-architecture.md](text-architecture.md) ;
-- `SCN-EDITOR-RTB-001` : taches [Tasks/richtextbox-autocomplete-tasks.md](Tasks/richtextbox-autocomplete-tasks.md).
+- `SCN-EDITOR-RTB-001` : taches [Tasks/richtextbox-autocomplete-tasks.md](Tasks/richtextbox-autocomplete-tasks.md) ;
+- `SCN-ANIM-001` : [animation-architecture.md](animation-architecture.md), taches [Tasks/animation-tasks.md](Tasks/animation-tasks.md).
 
 ## Usage pratique
 

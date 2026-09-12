@@ -463,4 +463,4 @@ Decisions pour les controles restants :
 
 ## Reste a faire
 
-Les travaux restants du theme styling/theme (hygiene des abonnements, diagnostics de valeurs, convention d'invalidation, refresh de styles, migration structurelle docking, composites a surfaces auxiliaires, preset editeur) sont specifies dans `Docs/Tasks/styling-theme-tasks.md`.
+Les travaux restants du theme styling/theme (hygiene des abonnements, diagnostics de valeurs, convention d'invalidation, refresh de styles, migration structurelle docking, composites a surfaces auxiliaires, preset editeur) sont specifies dans `Docs/Tasks/styling-theme-tasks.md`. Le niveau `Animation` du store et les transitions sont decrits dans `Docs/animation-architecture.md`.

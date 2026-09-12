@@ -20,7 +20,16 @@ namespace MGUI.Core.Tooling
         string AppliedControlTemplate,
         IReadOnlyDictionary<string, string> TemplateParts,
         string LastControlTemplateError,
-        IReadOnlyList<UIValueOriginView> ValueOrigins);
+        IReadOnlyList<UIValueOriginView> ValueOrigins,
+        IReadOnlyList<UIAnimationDebugView> Animations);
+
+    /// <summary>One animation or transition of an element, for the debug view (ADR-0006, S8).</summary>
+    /// <param name="Kind"><c>animation</c>, <c>held</c> (a completed animation still holding its store contribution) or <c>transition</c>.</param>
+    /// <param name="Path">The animated property path.</param>
+    /// <param name="State">The playback state, or <c>idle</c> / <c>running</c> for a transition.</param>
+    /// <param name="Progress">Raw progress of the current pass in [0, 1], null for an idle transition.</param>
+    /// <param name="Name">The animation's name, or null.</param>
+    public record UIAnimationDebugView(string Kind, string Path, string State, float? Progress, string Name);
 
     /// <summary>Where one visual value of an element comes from.</summary>
     /// <param name="PropertyPath">The property path, one of <see cref="UIToolingService.ResolvedValueSourcePropertyPaths"/>.</param>

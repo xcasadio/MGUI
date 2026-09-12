@@ -366,7 +366,8 @@ namespace MGUI.Core.Tooling
                 element.AppliedControlTemplateName,
                 templateParts,
                 element.LastControlTemplateError,
-                valueOrigins);
+                valueOrigins,
+                CaptureAnimations(element));
         }
 
         /// <summary>Renders <paramref name="view"/> as a readable text artifact: one line per section, then one line per value origin
@@ -407,7 +408,48 @@ namespace MGUI.Core.Tooling
                 }
             }
 
+            if (view.Animations.Count > 0)
+            {
+                artifact.AppendLine();
+                artifact.AppendLine("animations:");
+                foreach (UIAnimationDebugView animation in view.Animations)
+                {
+                    AppendIndent(artifact, 1);
+                    string progress = animation.Progress.HasValue ? " " + animation.Progress.Value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "";
+                    string name = string.IsNullOrEmpty(animation.Name) ? "" : " '" + animation.Name + "'";
+                    artifact.AppendLine(animation.Kind + " " + animation.Path + ": " + animation.State + progress + name);
+                }
+            }
+
             return artifact.ToString();
+        }
+
+        /// <summary>The element's active and held animations and its transitions (ADR-0006, S8), empty when the element never animated.</summary>
+        private static IReadOnlyList<UIAnimationDebugView> CaptureAnimations(MGElement element)
+        {
+            UI.Animation.UIElementAnimationSlot slot = element.AnimationSlotOrNull;
+            if (slot == null)
+            {
+                return Array.Empty<UIAnimationDebugView>();
+            }
+
+            List<UIAnimationDebugView> views = new();
+            foreach (UI.Animation.UIAnimation animation in slot.Animations.Active)
+            {
+                views.Add(new UIAnimationDebugView("animation", animation.TargetKey, animation.State.ToString(), animation.Progress, animation.Name));
+            }
+
+            foreach (UI.Animation.UIAnimation animation in slot.Animations.Held)
+            {
+                views.Add(new UIAnimationDebugView("held", animation.TargetKey, animation.State.ToString(), animation.Progress, animation.Name));
+            }
+
+            foreach (UI.Animation.UITransition transition in slot.Transitions)
+            {
+                views.Add(new UIAnimationDebugView("transition", transition.Property, transition.IsRunning ? "running" : "idle", transition.RunningProgress, null));
+            }
+
+            return views;
         }
 
         private static UIValueOriginView CaptureValueOrigin(MGElement element, string propertyPath)
