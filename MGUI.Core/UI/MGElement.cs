@@ -547,6 +547,7 @@ namespace MGUI.Core.UI
                 // Evaluated before the callbacks, so that an override compares this element's current values with the incoming theme (backlog task 7).
                 UIInvalidationKind Invalidation = GetThemeInvalidation(PreviousTheme, CurrentTheme);
 
+                RefreshThemeBackgroundDefault(CurrentTheme);
                 OnThemeChanged(PreviousTheme, CurrentTheme);
                 ApplyControlTemplate(true);
 
@@ -573,6 +574,63 @@ namespace MGUI.Core.UI
                     }
                 }
             }
+
+            /// <summary>Provenance name of the background default that the <see cref="MGElement"/> constructor takes from the theme
+            /// (<see cref="MGTheme.GetBackgroundBrush(MGElementType)"/>), see <see cref="RefreshThemeBackgroundDefault"/>.</summary>
+            internal const string ThemeBackgroundDefaultName = "Element.ThemeBackground";
+
+            private static readonly UIValueSlot[] BackgroundSubSlots = { UIValueSlot.Normal, UIValueSlot.Selected, UIValueSlot.Disabled, UIValueSlot.Focused, UIValueSlot.FocusedColor };
+
+            /// <summary>Re-evaluates, against <paramref name="CurrentTheme"/>, the background default that the constructor took from the theme of its time,
+            /// so that an element built under one theme paints like an element built under the new one (ADR-0005, amendment of 12 September 2026).<para/>
+            /// The value stays a <see cref="UIValueSourceKind.DefaultValue"/> contribution: it is only effective while no stronger source holds the background
+            /// (a theme write of the control, a dynamic resource, a style, a template, a visual state, a binding or a local value), and the refresh is skipped
+            /// once any other DefaultValue background write (a derived constructor, or an owner configuring the element) has replaced that default or set a
+            /// sub-slot. It is also skipped when the incoming brush is empty and so is every sub-field that no source has written, so that an element type no
+            /// theme paints keeps its container, including a value kept after its last contribution was removed; otherwise, like any container swap, it ends
+            /// such a kept value.</summary>
+            private void RefreshThemeBackgroundDefault(MGTheme CurrentTheme)
+            {
+                if (CurrentTheme == null || _ResolvedValues == null)
+                {
+                    return;
+                }
+
+                if (!_ResolvedValues.TryGetContribution(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.DefaultValue, out UIResolvedValue<VisualStateFillBrush> ConstructorDefault)
+                    || ConstructorDefault.Source.Name != ThemeBackgroundDefaultName)
+                {
+                    return;
+                }
+
+                foreach (UIValueSlot Slot in BackgroundSubSlots)
+                {
+                    if (_ResolvedValues.Contributions(UIPilotProperty.Background, Slot).Contains(UIValueSourceKind.DefaultValue))
+                    {
+                        return;
+                    }
+                }
+
+                VisualStateFillBrush ThemeBackground = CurrentTheme.GetBackgroundBrush(ElementType);
+                if (IsEmptyBackground(ThemeBackground) && !HasUnwrittenBackgroundValue(ConstructorDefault.Value))
+                {
+                    return;
+                }
+
+                SetBackground(ThemeBackground, ConstructorDefault.Source);
+            }
+
+            /// <summary>True when <paramref name="Brush"/> holds a value in a sub-field that no source has ever written on this element: a value that still
+            /// comes from the theme brush the container was created from, unlike a written sub-slot or a value kept after its last contribution was removed.</summary>
+            private bool HasUnwrittenBackgroundValue(VisualStateFillBrush Brush)
+                => Brush != null
+                    && ((Brush.NormalValue != null && !_ResolvedValues.IsWritten(UIPilotProperty.Background, UIValueSlot.Normal))
+                        || (Brush.SelectedValue != null && !_ResolvedValues.IsWritten(UIPilotProperty.Background, UIValueSlot.Selected))
+                        || (Brush.DisabledValue != null && !_ResolvedValues.IsWritten(UIPilotProperty.Background, UIValueSlot.Disabled))
+                        || (Brush.FocusedValue != null && !_ResolvedValues.IsWritten(UIPilotProperty.Background, UIValueSlot.Focused))
+                        || (Brush.FocusedColor.HasValue && !_ResolvedValues.IsWritten(UIPilotProperty.Background, UIValueSlot.FocusedColor)));
+
+            private static bool IsEmptyBackground(VisualStateFillBrush Brush)
+                => Brush == null || (Brush.NormalValue == null && Brush.SelectedValue == null && Brush.FocusedValue == null && Brush.DisabledValue == null && !Brush.FocusedColor.HasValue);
 
             protected internal virtual UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
                 => UIInvalidationKind.Draw;
@@ -2949,7 +3007,7 @@ namespace MGUI.Core.UI
 				VerticalContentAlignment = VerticalAlignment.Stretch;
 
                 BackgroundRenderPadding = new(0);
-                SetBackground(ActualTheme.GetBackgroundBrush(ElementType), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
+                SetBackground(ActualTheme.GetBackgroundBrush(ElementType), UIValueResolutionSource.Default(UIInvalidationKind.Draw, ThemeBackgroundDefaultName));
                 SetDefaultTextForeground(new VisualStateSetting<Color?>(null, null, null), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
 
                 Visibility = Visibility.Visible;

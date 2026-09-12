@@ -55,6 +55,209 @@ public class ResolvedBackgroundPilotTests
         Assert.Equal(entryCountBefore, element.ResolvedEntryCount);
     }
 
+    /// <summary>A derived element whose constructor replaces the base theme background with a whole container of its own.</summary>
+    private sealed class OwnWholeBackgroundElement : MGElement
+    {
+        public OwnWholeBackgroundElement(MGWindow window)
+            : base(window, MGElementType.Border)
+        {
+            SetBackground(new VisualStateFillBrush(new MGSolidFillBrush(Color.Orange)), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
+        }
+    }
+
+    /// <summary>A derived element whose constructor writes a DefaultValue sub-slot over the base theme background.</summary>
+    private sealed class OwnNormalSlotBackgroundElement : MGElement
+    {
+        public OwnNormalSlotBackgroundElement(MGWindow window)
+            : base(window, MGElementType.Border)
+        {
+            SetBackgroundSlot(UIValueSlot.Normal, new MGSolidFillBrush(Color.Orange), UIValueResolutionSource.Default(UIInvalidationKind.Draw));
+        }
+    }
+
+    [Fact]
+    public void The_Constructor_Theme_Background_Follows_A_Theme_Change_Without_Overriding_Stronger_Or_Derived_Backgrounds()
+    {
+        Harness harness = Harness.Create();
+        MGBorder themed = new(harness.Window);
+        MGBorder local = new(harness.Window);
+        VisualStateFillBrush localBrush = new(new MGSolidFillBrush(Color.Lime));
+        local.BackgroundBrush = localBrush;
+        OwnWholeBackgroundElement ownWhole = new(harness.Window);
+        OwnNormalSlotBackgroundElement ownSlot = new(harness.Window);
+        BackgroundProbeElement unthemed = new(harness.Window);
+        MGUI.Core.UI.Containers.MGStackPanel panel = new(harness.Window, Orientation.Vertical);
+        panel.TryAddChild(themed);
+        panel.TryAddChild(local);
+        panel.TryAddChild(ownWhole);
+        panel.TryAddChild(ownSlot);
+        panel.TryAddChild(unthemed);
+        harness.Show(panel);
+        VisualStateFillBrush unthemedBefore = unthemed.BackgroundBrush;
+
+        Assert.True(themed.TryGetResolvedContribution(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.DefaultValue, out UIResolvedValue<VisualStateFillBrush> constructorDefault));
+        Assert.Equal(MGElement.ThemeBackgroundDefaultName, constructorDefault.Source.Name);
+
+        MGTheme dark = new(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        Color darkBorder = Assert.IsType<MGSolidFillBrush>(dark.GetBackgroundBrush(MGElementType.Border).NormalValue).Color;
+        harness.Window.GetResources().DefaultTheme = dark;
+
+        // The default the constructor took from the theme now comes from Dark, and is still a DefaultValue contribution.
+        Assert.Equal(darkBorder, Assert.IsType<MGSolidFillBrush>(themed.BackgroundBrush.NormalValue).Color);
+        Assert.True(themed.TryGetResolvedValueSource(UIPilotProperty.Background, UIValueSlot.Whole, out UIValueResolutionSource themedSource));
+        Assert.Equal(UIValueSourceKind.DefaultValue, themedSource.Kind);
+
+        // A local container keeps winning; the refreshed default waits below it.
+        Assert.Same(localBrush, local.BackgroundBrush);
+        Assert.True(local.TryGetResolvedContribution(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.DefaultValue, out UIResolvedValue<VisualStateFillBrush> dormant));
+        Assert.Equal(darkBorder, Assert.IsType<MGSolidFillBrush>(dormant.Value.NormalValue).Color);
+
+        // A derived constructor's own default, whole or sub-slot, is left alone.
+        Assert.Equal(Color.Orange, Assert.IsType<MGSolidFillBrush>(ownWhole.BackgroundBrush.NormalValue).Color);
+        Assert.Equal(Color.Orange, Assert.IsType<MGSolidFillBrush>(ownSlot.BackgroundBrush.NormalValue).Color);
+
+        // Neither theme paints this element type: its empty container is kept rather than swapped for another empty one.
+        Assert.Null(unthemedBefore.NormalValue);
+        Assert.Null(dark.GetBackgroundBrush(MGElementType.Custom).NormalValue);
+        Assert.Same(unthemedBefore, unthemed.BackgroundBrush);
+    }
+
+    [Fact]
+    public void The_Constructor_Theme_Background_Empties_When_The_New_Theme_Does_Not_Paint_The_Element_Type()
+    {
+        Harness harness = Harness.Create();
+        MGTheme dark = new(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        MGTheme darkBlue = new(MGTheme.BuiltInTheme.Dark_Blue, harness.Desktop.DefaultFontFamily);
+        Color darkBorder = Assert.IsType<MGSolidFillBrush>(dark.GetBackgroundBrush(MGElementType.Border).NormalValue).Color;
+        Assert.Null(darkBlue.GetBackgroundBrush(MGElementType.Border).NormalValue);
+        Assert.Null(darkBlue.GetBackgroundBrush(MGElementType.ScrollViewer).NormalValue);
+
+        harness.Window.GetResources().DefaultTheme = dark;
+        MGBorder border = new(harness.Window);
+        MGScrollViewer scrollViewer = new(harness.Window);
+        MGUI.Core.UI.Containers.MGStackPanel panel = new(harness.Window, Orientation.Vertical);
+        panel.TryAddChild(border);
+        panel.TryAddChild(scrollViewer);
+        harness.Show(panel);
+        Assert.Equal(darkBorder, Assert.IsType<MGSolidFillBrush>(border.BackgroundBrush.NormalValue).Color);
+
+        harness.Window.GetResources().DefaultTheme = darkBlue;
+        Assert.Null(border.BackgroundBrush.NormalValue);
+        Assert.Null(scrollViewer.BackgroundBrush.NormalValue);
+        Assert.True(border.TryGetResolvedValueSource(UIPilotProperty.Background, UIValueSlot.Whole, out UIValueResolutionSource source));
+        Assert.Equal(UIValueSourceKind.DefaultValue, source.Kind);
+
+        harness.Window.GetResources().DefaultTheme = dark;
+        Assert.Equal(darkBorder, Assert.IsType<MGSolidFillBrush>(border.BackgroundBrush.NormalValue).Color);
+    }
+
+    [Fact]
+    public void A_Background_Kept_After_Its_Resource_Is_Removed_Survives_A_Theme_Change_Only_On_A_Type_No_Theme_Paints()
+    {
+        Harness harness = Harness.Create();
+        string xaml = @"<Window xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"" Width=""200"" Height=""150"">
+    <StackPanel Orientation=""Vertical"">
+        <StackPanel Name=""P"" Background=""{DynamicResource Accent}"" />
+        <Border Name=""B"" Background=""{DynamicResource Accent}"" />
+    </StackPanel>
+</Window>";
+        harness.Desktop.Resources.AddStaticResource("Accent", new MGSolidFillBrush(Color.Lime));
+        MGWindow window = MGUIXamlParser.LoadRootWindow(harness.Desktop, xaml, false, true);
+        harness.Desktop.Windows.Add(window);
+        harness.Frame(1, Point.Zero);
+        MGUI.Core.UI.Containers.MGStackPanel panel = window.GetElementByName<MGUI.Core.UI.Containers.MGStackPanel>("P");
+        MGBorder border = window.GetElementByName<MGBorder>("B");
+        Assert.Equal(Color.Lime, Assert.IsType<MGSolidFillBrush>(panel.BackgroundBrush.NormalValue).Color);
+
+        // ADR-0005: once the resource no longer resolves, its contribution is removed and the value is kept.
+        Assert.True(harness.Desktop.Resources.RemoveStaticResource("Accent"));
+        harness.Frame(2, Point.Zero);
+        Assert.Empty(panel.EnumerateResolvedContributions(UIPilotProperty.Background, UIValueSlot.Normal));
+        Assert.Equal(Color.Lime, Assert.IsType<MGSolidFillBrush>(panel.BackgroundBrush.NormalValue).Color);
+        Assert.Equal(Color.Lime, Assert.IsType<MGSolidFillBrush>(border.BackgroundBrush.NormalValue).Color);
+        VisualStateFillBrush panelContainer = panel.BackgroundBrush;
+
+        MGTheme dark = new(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        Assert.Null(dark.GetBackgroundBrush(MGElementType.StackPanel).NormalValue);
+        window.GetResources().DefaultTheme = dark;
+        harness.Frame(3, Point.Zero);
+
+        // No theme paints a stack panel: its container, and the kept value, stay.
+        Assert.Same(panelContainer, panel.BackgroundBrush);
+        Assert.Equal(Color.Lime, Assert.IsType<MGSolidFillBrush>(panel.BackgroundBrush.NormalValue).Color);
+        // Dark paints borders: the refresh swaps the container and, like any container swap, ends the kept value.
+        Assert.Equal(Assert.IsType<MGSolidFillBrush>(dark.GetBackgroundBrush(MGElementType.Border).NormalValue).Color, Assert.IsType<MGSolidFillBrush>(border.BackgroundBrush.NormalValue).Color);
+    }
+
+    [Fact]
+    public void A_WindowStyle_Round_Trip_Keeps_The_Theme_Background_Following_Theme_Changes_And_Restores_Local_Backgrounds()
+    {
+        Harness harness = Harness.Create();
+        MGTheme dark = new(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        MGTheme darkBlue = new(MGTheme.BuiltInTheme.Dark_Blue, harness.Desktop.DefaultFontFamily);
+        Color darkWindow = Assert.IsType<MGSolidFillBrush>(dark.GetBackgroundBrush(MGElementType.Window).NormalValue).Color;
+        Color darkBlueWindow = Assert.IsType<MGSolidFillBrush>(darkBlue.GetBackgroundBrush(MGElementType.Window).NormalValue).Color;
+        Assert.NotEqual(darkWindow, darkBlueWindow);
+
+        MGWindow themeChangedWhileChromeless = new(harness.Desktop, 0, 0, 400, 300);
+        MGWindow toggledBeforeThemeChange = new(harness.Desktop, 0, 0, 400, 300);
+        MGWindow localContainer = new(harness.Desktop, 0, 0, 400, 300);
+        MGWindow localSubSlot = new(harness.Desktop, 0, 0, 400, 300);
+        MGWindow writtenWhileChromeless = new(harness.Desktop, 0, 0, 400, 300);
+        MGWindow[] windows = { themeChangedWhileChromeless, toggledBeforeThemeChange, localContainer, localSubSlot, writtenWhileChromeless };
+        foreach (MGWindow window in windows)
+        {
+            harness.Desktop.Windows.Add(window);
+        }
+
+        harness.Frame(1, Point.Zero);
+        localContainer.BackgroundBrush = new VisualStateFillBrush(new MGSolidFillBrush(Color.Lime));
+        localSubSlot.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Orange);
+
+        themeChangedWhileChromeless.WindowStyle = WindowStyle.None;
+        toggledBeforeThemeChange.WindowStyle = WindowStyle.None;
+        toggledBeforeThemeChange.WindowStyle = WindowStyle.Default;
+        localContainer.WindowStyle = WindowStyle.None;
+        localSubSlot.WindowStyle = WindowStyle.None;
+        writtenWhileChromeless.WindowStyle = WindowStyle.None;
+        Assert.Equal(Color.Transparent, Assert.IsType<MGSolidFillBrush>(localSubSlot.BackgroundBrush.NormalValue).Color);
+        writtenWhileChromeless.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Purple);
+
+        foreach (MGWindow window in windows)
+        {
+            window.GetResources().DefaultTheme = dark;
+        }
+
+        themeChangedWhileChromeless.WindowStyle = WindowStyle.Default;
+        localContainer.WindowStyle = WindowStyle.Default;
+        localSubSlot.WindowStyle = WindowStyle.Default;
+        writtenWhileChromeless.WindowStyle = WindowStyle.Default;
+
+        // A background written while the window was chromeless is not one of the transparent sub-slots: it stays.
+        Assert.Equal(Color.Purple, Assert.IsType<MGSolidFillBrush>(writtenWhileChromeless.BackgroundBrush.NormalValue).Color);
+
+        // The constructor theme background comes back from the current theme, still as a DefaultValue that follows theme changes.
+        Assert.Equal(darkWindow, Assert.IsType<MGSolidFillBrush>(themeChangedWhileChromeless.BackgroundBrush.NormalValue).Color);
+        Assert.Equal(darkWindow, Assert.IsType<MGSolidFillBrush>(toggledBeforeThemeChange.BackgroundBrush.NormalValue).Color);
+        Assert.True(themeChangedWhileChromeless.TryGetResolvedValueSource(UIPilotProperty.Background, UIValueSlot.Whole, out UIValueResolutionSource source));
+        Assert.Equal(UIValueSourceKind.DefaultValue, source.Kind);
+
+        // Backgrounds the application set before WindowStyle.None come back, the local sub-slot with its own contribution.
+        Assert.Equal(Color.Lime, Assert.IsType<MGSolidFillBrush>(localContainer.BackgroundBrush.NormalValue).Color);
+        Assert.Equal(Color.Orange, Assert.IsType<MGSolidFillBrush>(localSubSlot.BackgroundBrush.NormalValue).Color);
+        Assert.True(localSubSlot.TryGetResolvedContribution(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.LocalValue, out UIResolvedValue<IFillBrush> restored));
+        Assert.Null(restored.Source.Name);
+
+        foreach (MGWindow window in windows)
+        {
+            window.GetResources().DefaultTheme = darkBlue;
+        }
+
+        Assert.Equal(darkBlueWindow, Assert.IsType<MGSolidFillBrush>(themeChangedWhileChromeless.BackgroundBrush.NormalValue).Color);
+        Assert.Equal(darkBlueWindow, Assert.IsType<MGSolidFillBrush>(toggledBeforeThemeChange.BackgroundBrush.NormalValue).Color);
+        Assert.Equal(Color.Orange, Assert.IsType<MGSolidFillBrush>(localSubSlot.BackgroundBrush.NormalValue).Color);
+    }
+
     [Fact]
     public void Whole_Precedence_LocalValue_Wins_Over_Theme_And_A_Later_Theme_Write_Is_Silent()
     {

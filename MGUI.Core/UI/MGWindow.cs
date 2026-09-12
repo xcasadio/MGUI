@@ -1958,6 +1958,67 @@ namespace MGUI.Core.UI
 
         private VisualStateFillBrush PreviousBackgroundBrush = null;
 
+        /// <summary>Provenance name of the transparent background sub-slots written by <see cref="WindowStyle.None"/>, so that <see cref="WindowStyle.Default"/>
+        /// removes exactly those and keeps a background that the application or the XAML wrote afterwards.</summary>
+        internal const string ChromelessBackgroundName = "Window.ChromelessBackground";
+
+        private static readonly UIValueSlot[] ChromelessBackgroundSlots = { UIValueSlot.Normal, UIValueSlot.Selected, UIValueSlot.Disabled, UIValueSlot.Focused };
+
+        /// <summary>The local background sub-slot contributions that <see cref="WindowStyle.None"/> replaced, indexed like <see cref="ChromelessBackgroundSlots"/>.</summary>
+        private UIResolvedValue<IFillBrush>[] LocalBackgroundSlotsReplacedByChromelessStyle;
+
+        private void MakeBackgroundChromeless()
+        {
+            PreviousBackgroundBrush = BackgroundBrush.Copy();
+            LocalBackgroundSlotsReplacedByChromelessStyle = new UIResolvedValue<IFillBrush>[ChromelessBackgroundSlots.Length];
+            for (int i = 0; i < ChromelessBackgroundSlots.Length; i++)
+            {
+                TryGetResolvedContribution(UIPilotProperty.Background, ChromelessBackgroundSlots[i], UIValueSourceKind.LocalValue, out LocalBackgroundSlotsReplacedByChromelessStyle[i]);
+            }
+
+            SetBackgroundAll(SolidFillBrushes.Transparent, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw, ChromelessBackgroundName));
+        }
+
+        /// <summary>Undoes <see cref="MakeBackgroundChromeless"/>: removes its transparent sub-slots, restoring the local sub-slots they replaced. While the
+        /// background under them is still the theme default of the <see cref="MGElement"/> constructor, a container from the current theme is put back at that
+        /// same source, so the window keeps following theme changes (ADR-0005, 12 September 2026); otherwise the container held before
+        /// <see cref="WindowStyle.None"/> is restored as a local value.</summary>
+        private void RestoreBackgroundAfterChromelessStyle()
+        {
+            for (int i = 0; i < ChromelessBackgroundSlots.Length; i++)
+            {
+                UIValueSlot Slot = ChromelessBackgroundSlots[i];
+                if (!TryGetResolvedContribution(UIPilotProperty.Background, Slot, UIValueSourceKind.LocalValue, out UIResolvedValue<IFillBrush> Current)
+                    || Current.Source.Name != ChromelessBackgroundName)
+                {
+                    continue;
+                }
+
+                if (LocalBackgroundSlotsReplacedByChromelessStyle != null && LocalBackgroundSlotsReplacedByChromelessStyle[i].IsSet)
+                {
+                    UIResolvedValue<IFillBrush> Replaced = LocalBackgroundSlotsReplacedByChromelessStyle[i];
+                    SetBackgroundSlot(Slot, Replaced.Value, Replaced.Source);
+                }
+                else
+                {
+                    ClearPilotSource(UIPilotProperty.Background, Slot, UIValueSourceKind.LocalValue);
+                }
+            }
+
+            LocalBackgroundSlotsReplacedByChromelessStyle = null;
+
+            if (ResolvedValues.TryGetWinner(UIPilotProperty.Background, UIValueSlot.Whole, out UIResolvedValue<VisualStateFillBrush> Whole)
+                && Whole.Source.Kind == UIValueSourceKind.DefaultValue && Whole.Source.Name == ThemeBackgroundDefaultName)
+            {
+                //  The transparent values stay on that container once their contributions are removed: a container from the current theme replaces it.
+                SetBackground(GetTheme().GetBackgroundBrush(ElementType), Whole.Source);
+            }
+            else
+            {
+                SetBackground(PreviousBackgroundBrush ?? BackgroundBrush, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+            }
+        }
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private WindowStyle _WindowStyle = WindowStyle.Default;
         public WindowStyle WindowStyle
@@ -1977,7 +2038,7 @@ namespace MGUI.Core.UI
                             IsUserResizable = true;
                             SetPadding(GetTheme().Window.Padding, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                             SetBorderThicknessTagged(GetTheme().Window.BorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                            SetBackground(PreviousBackgroundBrush ?? BackgroundBrush, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+                            RestoreBackgroundAfterChromelessStyle();
                             break;
                         case WindowStyle.None:
                             IsTitleBarVisible = false;
@@ -1985,8 +2046,7 @@ namespace MGUI.Core.UI
                             IsUserResizable = false;
                             SetPadding(GetTheme().Window.ChromelessPadding, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                             SetBorderThicknessTagged(GetTheme().Window.ChromelessBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                            PreviousBackgroundBrush = BackgroundBrush.Copy();
-                            SetBackgroundAll(SolidFillBrushes.Transparent, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+                            MakeBackgroundChromeless();
                             //  WindowStyle.None sets AllowsClickThrough=false by default so that
                             //  chrome-less windows still block mouse events.
                             //  XAML can legitimately override this afterwards via the AllowsClickThrough property

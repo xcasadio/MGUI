@@ -132,6 +132,50 @@ public class PopupThemeInheritanceTests
     }
 
     [Fact]
+    public void Popups_Built_Under_Another_Theme_Repaint_Their_Own_Background_After_A_Theme_Change()
+    {
+        Harness harness = Harness.Create();
+        MGTheme desktopTheme = harness.Desktop.Resources.DefaultTheme;
+        MGTheme dark = new(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        foreach (MGElementType type in new[] { MGElementType.ContextMenu, MGElementType.Separator, MGElementType.ToolTip, MGElementType.Window })
+        {
+            Assert.NotEqual(BackgroundColor(desktopTheme, type), BackgroundColor(dark, type));
+        }
+
+        string xaml = @"<Window xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"" Width=""300"" Height=""200"">
+    <Button Name=""B"" Content=""Open"">
+        <Button.ContextMenu>
+            <ContextMenu TitleText=""Actions"">
+                <ContextMenuButton Content=""Duplicate"" />
+            </ContextMenu>
+        </Button.ContextMenu>
+    </Button>
+</Window>";
+        MGWindow window = MGUIXamlParser.LoadRootWindow(harness.Desktop, xaml, false, true);
+        harness.Desktop.Windows.Add(window);
+        harness.Frame(1, Point.Zero);
+        MGButton button = window.GetElementByName<MGButton>("B");
+        MGContextMenu menu = Assert.IsType<MGContextMenu>(button.ContextMenu);
+        MGContextMenuSeparator separator = menu.AddSeparator();
+        MGContextMenu submenu = new(menu);
+        MGToolTip toolTip = new(window, button, 120, 40);
+        MGColorPickerPopup colorPopup = new(window);
+        Assert.True(harness.Desktop.TryOpenContextMenu(menu, Point.Zero));
+        Assert.Equal(BackgroundColor(desktopTheme, MGElementType.ContextMenu), SolidColor(menu.BackgroundBrush.NormalValue));
+
+        window.GetResources().DefaultTheme = dark;
+        harness.Frame(2, Point.Zero);
+
+        // The backgrounds taken from the theme at construction now come from Dark, as if the surfaces had been built under it.
+        Assert.Equal(BackgroundColor(dark, MGElementType.ContextMenu), SolidColor(menu.BackgroundBrush.NormalValue));
+        Assert.Equal(BackgroundColor(dark, MGElementType.ContextMenu), SolidColor(submenu.BackgroundBrush.NormalValue));
+        Assert.Equal(BackgroundColor(dark, MGElementType.Separator), SolidColor(separator.SeparatorElement.BackgroundBrush.NormalValue));
+        Assert.Equal(BackgroundColor(dark, MGElementType.ToolTip), SolidColor(toolTip.BackgroundBrush.NormalValue));
+        Assert.Equal(BackgroundColor(dark, MGElementType.Window), SolidColor(window.BackgroundBrush.NormalValue));
+        Assert.Equal(BackgroundColor(dark, MGElementType.Window), SolidColor(colorPopup.PopupWindow.BackgroundBrush.NormalValue));
+    }
+
+    [Fact]
     public void Submenu_Rows_Are_Rebuilt_With_The_New_Theme()
     {
         Harness harness = Harness.Create();

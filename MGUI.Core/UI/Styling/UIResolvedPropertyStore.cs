@@ -272,6 +272,13 @@ namespace MGUI.Core.UI.Styling
         }
 
         /// <summary>
+        /// True once (<paramref name="property"/>, <paramref name="slot"/>) has been written, even if every contribution
+        /// has since been removed by <see cref="Unset{T}"/> (an entry is never deallocated): the CLR value of an emptied
+        /// entry may be a value kept after its last contribution was removed rather than the owner's own default.
+        /// </summary>
+        public bool IsWritten(UIPilotProperty property, UIValueSlot slot) => _entries?[IndexOf(property, slot)] != null;
+
+        /// <summary>
         /// Lists the source kinds currently contributing to (<paramref name="property"/>, <paramref name="slot"/>),
         /// highest precedence first. Returns a shared empty list (no allocation) for an entry that was never
         /// written or that has since been emptied.

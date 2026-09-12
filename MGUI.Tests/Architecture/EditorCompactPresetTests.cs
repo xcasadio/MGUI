@@ -111,6 +111,30 @@ public class EditorCompactPresetTests
         Assert.Contains("Context.ApplyTemplateValue(\"DockTabItem.TitleText.Padding\", new Thickness(8, 4, 4, 4)", catalogSource);
     }
 
+    [Fact]
+    public void The_Sample_Window_And_Its_Context_Menu_Repaint_When_The_Preset_Is_Applied()
+    {
+        const string SamplePath = @"d:\development\repo\MGUI\MGUI.Samples\Features\EditorCompactPreset.xaml";
+        Harness harness = Harness.Create();
+        MGWindow window = MGUI.Core.UI.XAML.XAMLParser.LoadRootWindow(harness.Desktop, File.ReadAllText(SamplePath), false, true);
+        harness.Desktop.Windows.Add(window);
+        MGTheme compact = window.GetResources().LoadThemesFromXaml(XamlDocumentSource.FromFile(PresetPath))["EditorCompact"];
+        MGContextMenu menu = window.GetElementByName<MGContextMenu>("SampleContextMenu");
+        Assert.NotEqual(BackgroundColor(compact, MGElementType.ContextMenu), SolidColor(menu.BackgroundBrush));
+
+        // As the sample does: the preset is applied after the XAML was parsed under the desktop theme.
+        window.GetResources().DefaultTheme = compact;
+        Assert.True(harness.Desktop.TryOpenContextMenu(menu, Point.Zero));
+
+        Assert.Equal(BackgroundColor(compact, MGElementType.ContextMenu), SolidColor(menu.BackgroundBrush));
+        Assert.Equal(BackgroundColor(compact, MGElementType.Window), SolidColor(window.BackgroundBrush));
+    }
+
+    private static Color BackgroundColor(MGTheme theme, MGElementType type) => SolidColor(theme.GetBackgroundBrush(type));
+
+    private static Color SolidColor(MGUI.Core.UI.VisualStateFillBrush brush)
+        => Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.NormalValue).Color;
+
     private static void AssertDensity(MGTheme theme, MGComboBox<string> comboBox, MGListBox<string> listBox, MGTextBlock textBlock)
     {
         Assert.Equal(theme.ComboBox.Padding, comboBox.Padding);
