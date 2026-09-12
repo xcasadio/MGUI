@@ -1,5 +1,5 @@
+using System.ComponentModel;
 using Microsoft.Xna.Framework;
-using MGUI.Shared.Helpers;
 
 namespace MGUI.Core.UI.Animation
 {
@@ -9,13 +9,23 @@ namespace MGUI.Core.UI.Animation
     /// Semantics follow NoesisGUI and WPF: <see cref="Origin"/> is a point relative to the element bounds, in [0, 1]², whose default (0, 0) is the
     /// top-left corner (set (0.5, 0.5) for the centre, as <c>RenderTransformOrigin="0.5,0.5"</c>); <see cref="Rotation"/> is an angle in degrees,
     /// positive clockwise on screen (as <c>RotateTransform.Angle</c>); <see cref="Translation"/> is in unscaled layout pixels.<para/>
-    /// The instance is allocated by <see cref="MGElement.RenderTransform"/> on first access; every setter raises <see cref="ViewModelBase.PropertyChanged"/>.
+    /// The instance is allocated by <see cref="MGElement.RenderTransform"/> on first access; every setter raises <see cref="PropertyChanged"/>.
     /// An identity transform (<see cref="IsIdentity"/>) costs nothing at draw time: no matrix is pushed and the current batch is not broken.
     /// </summary>
-    public sealed class UIRenderTransform : ViewModelBase
+    public sealed class UIRenderTransform : INotifyPropertyChanged
     {
         /// <summary>Tolerance under which a component counts as its identity value.</summary>
         public const float IdentityEpsilon = 1e-6f;
+
+        private static readonly PropertyChangedEventArgs TranslationChangedArgs = new(nameof(Translation));
+        private static readonly PropertyChangedEventArgs ScaleChangedArgs = new(nameof(Scale));
+        private static readonly PropertyChangedEventArgs RotationChangedArgs = new(nameof(Rotation));
+        private static readonly PropertyChangedEventArgs OriginChangedArgs = new(nameof(Origin));
+
+        /// <summary>Raised by every setter that changes a component, with cached event args so an animated transform allocates nothing per tick.</summary>
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void NPC(PropertyChangedEventArgs args) => PropertyChanged?.Invoke(this, args);
 
         private Vector2 _Translation;
         /// <summary>Offset in unscaled layout pixels, applied after the scale and the rotation. Default: <see cref="Vector2.Zero"/>.</summary>
@@ -27,7 +37,7 @@ namespace MGUI.Core.UI.Animation
                 if (_Translation != value)
                 {
                     _Translation = value;
-                    NPC(nameof(Translation));
+                    NPC(TranslationChangedArgs);
                 }
             }
         }
@@ -42,7 +52,7 @@ namespace MGUI.Core.UI.Animation
                 if (_Scale != value)
                 {
                     _Scale = value;
-                    NPC(nameof(Scale));
+                    NPC(ScaleChangedArgs);
                 }
             }
         }
@@ -57,7 +67,7 @@ namespace MGUI.Core.UI.Animation
                 if (_Rotation != value)
                 {
                     _Rotation = value;
-                    NPC(nameof(Rotation));
+                    NPC(RotationChangedArgs);
                 }
             }
         }
@@ -73,7 +83,7 @@ namespace MGUI.Core.UI.Animation
                 if (_Origin != value)
                 {
                     _Origin = value;
-                    NPC(nameof(Origin));
+                    NPC(OriginChangedArgs);
                 }
             }
         }

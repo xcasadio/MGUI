@@ -36,7 +36,10 @@ namespace MGUI.Core.UI.Animation
             _IsTicking = true;
             try
             {
-                for (int i = 0; i < _Active.Count; i++)
+                //  An animation started during this tick (a child of a group, a transition run) is advanced from the next frame: its first
+                //  frame is the one where it was started, so a child scheduled at an offset of a sequence stays aligned with that timeline.
+                int count = _Active.Count;
+                for (int i = 0; i < count; i++)
                 {
                     UIAnimation animation = _Active[i];
                     if (animation.IsActive)
@@ -250,6 +253,12 @@ namespace MGUI.Core.UI.Animation
                 bool cancelledAny = false;
                 for (int i = _Active.Count - 1; i >= 0; i--)
                 {
+                    if (i >= _Active.Count)
+                    {
+                        // Cancelling a group removed its children below this index.
+                        continue;
+                    }
+
                     UIAnimation animation = _Active[i];
                     if (animation.IsActive && predicate(animation))
                     {

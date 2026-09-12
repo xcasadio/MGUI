@@ -77,6 +77,9 @@ namespace MGUI.Core.UI.Animation
         /// <summary>Scaled time elapsed since <see cref="Play"/>, delay included.</summary>
         public TimeSpan Elapsed { get; private set; }
 
+        /// <summary>Exact time elapsed within the current iteration (delay excluded), the tick-precise counterpart of <see cref="Progress"/>.</summary>
+        public TimeSpan IterationElapsed { get; private set; }
+
         /// <summary>The element that started this animation, null until then.</summary>
         public MGElement Owner { get; private set; }
 
@@ -188,6 +191,7 @@ namespace MGUI.Core.UI.Animation
             OwnerWindow = owner.DisplayingWindow ?? owner.SelfOrParentWindow;
             Manager = manager;
             Elapsed = TimeSpan.Zero;
+            IterationElapsed = TimeSpan.Zero;
             Progress = 0f;
             Iteration = 0;
             IsReversing = false;
@@ -245,6 +249,7 @@ namespace MGUI.Core.UI.Animation
             }
 
             long withinIteration = localTicks - iteration * iterationTicks;
+            IterationElapsed = TimeSpan.FromTicks(withinIteration);
             float progress = (float)((double)withinIteration / passTicks);
             bool reversing = false;
             if (AutoReverse && progress > 1f)
