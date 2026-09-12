@@ -109,6 +109,67 @@ public class ThemeLayoutInvalidationTests
     }
 
     [Fact]
+    public void A_Check_Box_Keeps_The_Size_Color_And_Style_Set_Locally_Across_A_Theme_Change()
+    {
+        Harness harness = Harness.Create();
+        MGCheckBox checkBox = new(harness.Window);
+        harness.Show(checkBox);
+        MGTheme theme = harness.Window.GetTheme();
+        int size = theme.CheckBoxComponentSize + 4;
+        CheckIndicatorStyle style = theme.CheckBoxCheckedIndicatorStyle == CheckIndicatorStyle.CheckMark ? CheckIndicatorStyle.FilledSquare : CheckIndicatorStyle.CheckMark;
+        checkBox.CheckBoxComponentSize = size;
+        checkBox.CheckMarkColor = Color.Teal;
+        checkBox.CheckedIndicatorStyle = style;
+        harness.Settle();
+        Assert.True(checkBox.IsLayoutValid);
+
+        // Only two indicator styles exist: the theme keeps its own, which differs from the local one.
+        MGTheme changed = theme.Copy();
+        changed.CheckBoxComponentSize = theme.CheckBoxComponentSize + 8;
+        changed.CheckMarkColor = Tint;
+        Assert.Equal(UIInvalidationKind.Draw, checkBox.GetThemeInvalidation(theme, changed));
+
+        harness.SwitchTheme(changed);
+        Assert.Equal(size, checkBox.CheckBoxComponentSize);
+        Assert.Equal(Color.Teal, checkBox.CheckMarkColor);
+        Assert.Equal(style, checkBox.CheckedIndicatorStyle);
+        Assert.True(checkBox.IsLayoutValid);
+    }
+
+    [Fact]
+    public void A_Check_Box_Follows_The_Theme_For_The_Values_Still_Equal_To_The_Previous_Theme()
+    {
+        Harness harness = Harness.Create();
+        MGCheckBox checkBox = new(harness.Window);
+        harness.Show(checkBox);
+        MGTheme theme = harness.Window.GetTheme();
+        checkBox.CheckMarkColor = Color.Teal;
+
+        MGTheme changed = theme.Copy();
+        changed.CheckBoxComponentSize = theme.CheckBoxComponentSize + 8;
+        changed.CheckMarkColor = Tint;
+        changed.CheckBoxCheckedIndicatorStyle = theme.CheckBoxCheckedIndicatorStyle == CheckIndicatorStyle.CheckMark ? CheckIndicatorStyle.FilledSquare : CheckIndicatorStyle.CheckMark;
+        Assert.Equal(LayoutAndDraw, checkBox.GetThemeInvalidation(theme, changed));
+
+        harness.SwitchTheme(changed);
+        Assert.Equal(changed.CheckBoxComponentSize, checkBox.CheckBoxComponentSize);
+        Assert.Equal(changed.CheckBoxCheckedIndicatorStyle, checkBox.CheckedIndicatorStyle);
+        Assert.Equal(Color.Teal, checkBox.CheckMarkColor);
+        Assert.False(checkBox.IsLayoutValid);
+        harness.Settle();
+
+        // The values the first change applied are now compared with that theme, not with the one the check box was created with.
+        MGTheme restored = theme.Copy();
+        Assert.Equal(LayoutAndDraw, checkBox.GetThemeInvalidation(changed, restored));
+
+        harness.SwitchTheme(restored);
+        Assert.Equal(theme.CheckBoxComponentSize, checkBox.CheckBoxComponentSize);
+        Assert.Equal(theme.CheckBoxCheckedIndicatorStyle, checkBox.CheckedIndicatorStyle);
+        Assert.Equal(Color.Teal, checkBox.CheckMarkColor);
+        Assert.False(checkBox.IsLayoutValid);
+    }
+
+    [Fact]
     public void A_Property_Grid_Requests_Layout_Only_When_The_Theme_Changes_Its_Row_Metrics()
     {
         Harness harness = Harness.Create();

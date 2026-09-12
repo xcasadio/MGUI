@@ -354,19 +354,33 @@ namespace MGUI.Core.UI
             return true;
         }
 
-        /// <summary><see cref="MGTheme.CheckBoxComponentSize"/> is layout-affecting and <see cref="OnThemeChanged"/> copies it into <see cref="CheckBoxComponentSize"/>:
-        /// request a layout pass only when that copy changes the size (backlog task 7). <see cref="MGTheme.CheckMarkColor"/> and
-        /// <see cref="MGTheme.CheckBoxCheckedIndicatorStyle"/> are render-only.</summary>
+        /// <summary><see cref="MGTheme.CheckBoxComponentSize"/> is layout-affecting and <see cref="OnThemeChanged"/> copies it into <see cref="CheckBoxComponentSize"/>
+        /// while the size still equals the previous theme's: request a layout pass only when that copy changes the size (backlog task 7).
+        /// <see cref="MGTheme.CheckMarkColor"/> and <see cref="MGTheme.CheckBoxCheckedIndicatorStyle"/> are render-only.</summary>
         protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
-            => UIThemeValueInvalidation.ForChange(nameof(MGTheme.CheckBoxComponentSize), CheckBoxComponentSize, (CurrentTheme ?? GetTheme()).CheckBoxComponentSize);
+            => PreviousTheme == null || CheckBoxComponentSize == PreviousTheme.CheckBoxComponentSize
+                ? UIThemeValueInvalidation.ForChange(nameof(MGTheme.CheckBoxComponentSize), CheckBoxComponentSize, (CurrentTheme ?? GetTheme()).CheckBoxComponentSize)
+                : UIInvalidationKind.Draw;
 
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
             base.OnThemeChanged(PreviousTheme, CurrentTheme);
 
-            CheckBoxComponentSize = GetTheme().CheckBoxComponentSize;
-            CheckMarkColor = GetTheme().CheckMarkColor;
-            CheckedIndicatorStyle = GetTheme().CheckBoxCheckedIndicatorStyle;
+            // Follow the theme only for the values still equal to the previous theme's, so that a value set in code or in XAML survives the change.
+            if (PreviousTheme == null || CheckBoxComponentSize == PreviousTheme.CheckBoxComponentSize)
+            {
+                CheckBoxComponentSize = GetTheme().CheckBoxComponentSize;
+            }
+
+            if (PreviousTheme == null || CheckMarkColor == PreviousTheme.CheckMarkColor)
+            {
+                CheckMarkColor = GetTheme().CheckMarkColor;
+            }
+
+            if (PreviousTheme == null || CheckedIndicatorStyle == PreviousTheme.CheckBoxCheckedIndicatorStyle)
+            {
+                CheckedIndicatorStyle = GetTheme().CheckBoxCheckedIndicatorStyle;
+            }
         }
 
         public static void DrawCheckMark(MGDesktop desktop, Rectangle bounds, IUIDrawContext drawContext, float opacity, Point offset, Color color)
