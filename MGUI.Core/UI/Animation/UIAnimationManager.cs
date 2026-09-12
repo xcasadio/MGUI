@@ -146,7 +146,7 @@ namespace MGUI.Core.UI.Animation
                 }
                 else if (previous.IsActive)
                 {
-                    inheritedBase = previous.BaseValueBoxed;
+                    inheritedBase = animation.InheritsBaseValue ? previous.BaseValueBoxed : null;
                     previous.CancelCore(UIAnimationCancelBehavior.KeepCurrent);
                 }
                 else if (previous.IsHeld)
@@ -213,7 +213,7 @@ namespace MGUI.Core.UI.Animation
         internal void CancelOwnedByWindow(MGWindow window)
             => CancelWhere(x => IsWindowOrAncestorWindow(window, x.OwnerWindow), true, true);
 
-        /// <summary>True when <paramref name="candidate"/> is <paramref name="window"/> or one of its <see cref="MGWindow.ParentWindow"/> ancestors,
+        /// <summary>True when <paramref name="candidate"/> is <paramref name="window"/> or one of its <see cref="MGElement.ParentWindow"/> ancestors,
         /// so that closing a window also cancels the animations of its nested windows, tooltips and popups (review finding, S3).</summary>
         private static bool IsWindowOrAncestorWindow(MGWindow candidate, MGWindow window)
         {
@@ -243,12 +243,24 @@ namespace MGUI.Core.UI.Animation
 
         private void CancelWhere(Func<UIAnimation, bool> predicate, bool restoreBaseValue, bool releaseHolds)
         {
-            for (int i = _Active.Count - 1; i >= 0; i--)
+            //  A restore can notify a transition that starts a new run on the same owner during this pass (review finding, S6): re-scan until
+            //  no matching animation is left, with a bound against a pathological ping-pong.
+            for (int pass = 0; pass < 4; pass++)
             {
-                UIAnimation animation = _Active[i];
-                if (predicate(animation))
+                bool cancelledAny = false;
+                for (int i = _Active.Count - 1; i >= 0; i--)
                 {
-                    animation.CancelCore(restoreBaseValue ? UIAnimationCancelBehavior.RestoreBaseValue : animation.CancelBehavior);
+                    UIAnimation animation = _Active[i];
+                    if (animation.IsActive && predicate(animation))
+                    {
+                        animation.CancelCore(restoreBaseValue ? UIAnimationCancelBehavior.RestoreBaseValue : animation.CancelBehavior);
+                        cancelledAny = true;
+                    }
+                }
+
+                if (!cancelledAny)
+                {
+                    break;
                 }
             }
 

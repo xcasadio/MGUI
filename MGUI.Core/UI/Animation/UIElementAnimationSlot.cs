@@ -14,12 +14,15 @@ namespace MGUI.Core.UI.Animation
         {
             Owner = owner ?? throw new ArgumentNullException(nameof(owner));
             Animations = new UIAnimationCollection(owner);
+            Transitions = new UITransitionCollection(owner);
             owner.OnParentChanged += HandleOwnerParentChanged;
         }
 
         public MGElement Owner { get; }
 
         public UIAnimationCollection Animations { get; }
+
+        public UITransitionCollection Transitions { get; }
 
         /// <summary>The animated value of the state-driven scale (<see cref="MGElement.RenderScale"/>), set by the <c>RenderScale</c> target (S4); null when not animated.</summary>
         public float? StateScaleOverride { get; set; }

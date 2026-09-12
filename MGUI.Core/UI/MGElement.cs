@@ -907,7 +907,7 @@ namespace MGUI.Core.UI
         public static readonly ReadOnlyCollection<MGElementType> WindowElementTypes = new List<MGElementType>() { MGElementType.Window, MGElementType.ToolTip, MGElementType.ContextMenu }.AsReadOnly();
         public MGElementType ElementType { get; }
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool IsWindow => WindowElementTypes.Contains(ElementType);
+        public bool IsWindow => WindowElementTypes.Contains(ElementType);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MGElement _Parent;
@@ -3806,6 +3806,10 @@ namespace MGUI.Core.UI
         /// leaves the tree or its displaying window closes. Allocated on first access: an element that never animates carries one null reference.</summary>
         public Animation.UIAnimationCollection Animations => (_AnimationSlot ??= new Animation.UIElementAnimationSlot(this)).Animations;
 
+        /// <summary>The transitions attached to this element (ADR-0006, S6): a <see cref="Animation.UITransition{T}"/> added here interpolates every
+        /// later change of its property (a local write, or the visual state for <c>RenderScale</c>) instead of snapping. Allocated on first access.</summary>
+        public Animation.UITransitionCollection Transitions => (_AnimationSlot ??= new Animation.UIElementAnimationSlot(this)).Transitions;
+
         /// <summary>The per-element animation state, or null while the element has never animated.</summary>
         internal Animation.UIElementAnimationSlot AnimationSlotOrNull => _AnimationSlot;
 
@@ -3847,6 +3851,19 @@ namespace MGUI.Core.UI
             InvalidateHoverForRenderTransformChange();
 
             NPC(nameof(RenderTransform));
+        }
+
+        /// <summary>The state-driven scale of <see cref="RenderScale"/> for the current <see cref="VisualState"/>, ignoring the animated override
+        /// (the underlying value a <c>RenderScale</c> transition heads to). False when there is none.</summary>
+        internal bool TryGetStateScaleWithoutOverride(out float Scale)
+        {
+            if (_RenderScale.HasValue && _RenderScale.Value.TryGetScale(VisualState, out Scale))
+            {
+                return true;
+            }
+
+            Scale = 1.0f;
+            return false;
         }
 
         /// <summary>The effective state-driven scale (<see cref="RenderScale"/> for the current <see cref="VisualState"/>). False when there is none.</summary>

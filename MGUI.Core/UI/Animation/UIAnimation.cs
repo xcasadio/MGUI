@@ -58,6 +58,10 @@ namespace MGUI.Core.UI.Animation
         /// <summary>Optional name, recorded as the source name of store-backed writes and shown by the diagnostics.</summary>
         public string Name { get; set; }
 
+        /// <summary>When true (the default), an animation that replaces an active one on the same path inherits its base value, so a chain of
+        /// replacements still restores the true base. A transition run sets it to false: its base is the value it heads to, read at start.</summary>
+        public bool InheritsBaseValue { get; set; } = true;
+
         /// <summary>The current playback state.</summary>
         public UIAnimationState State { get; private set; } = UIAnimationState.Stopped;
 
