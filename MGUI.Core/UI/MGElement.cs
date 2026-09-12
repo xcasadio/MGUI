@@ -1250,6 +1250,24 @@ namespace MGUI.Core.UI
         /// no-op when this element has no border. See <see cref="SetBorderBrushTagged"/>.</summary>
         internal void SetBorderThicknessTagged(Thickness value, UIValueResolutionSource source) => GetBorder()?.SetBorderThickness(value, source);
 
+        /// <summary>Backlog task 10: the styles resolved by the XAML parse for the definition that created this element, null for an element not created
+        /// from a XAML definition processed for styles. See <see cref="RefreshStyles"/>.</summary>
+        internal XAML.ElementStyleScope StyleScope { get; set; }
+
+        /// <summary>Backlog task 10: the properties whose style contribution the last <see cref="RefreshStyles"/> wrote on this element, null before the
+        /// first refresh (the properties styled by the parse, <see cref="XAML.ElementStyleScope.StyledPropertyNames"/>, apply until then).</summary>
+        internal HashSet<string> RefreshedStyleProperties { get; set; }
+
+        /// <summary>Re-applies the implicit and named styles to this element and its visual subtree without reparsing the XAML: a style added to, replaced in
+        /// or removed from a resource scope (<see cref="MGResources.AddImplicitStyle"/>, <see cref="MGResources.AddStyle"/>, <see cref="MGResources.RemoveStyle"/>,
+        /// including a scope created by <see cref="EnsureResourceScope"/>) reaches the elements created from XAML, resolved against their current resource
+        /// scopes with the order and the scoping of the parse (inline styles, <c>InheritsParentStyles</c>, <c>IsStyleable</c>, style names).<para/>
+        /// Only the properties tracked by the resolved value store are refreshed: margin, padding, minimum height, backgrounds, text foregrounds, border brush
+        /// and thickness. A local value, a binding, a XAML attribute or a template value keeps outranking the style, a property that no style sets any more
+        /// gives its style value up, and the layout is invalidated only when an effective layout value changes. Other setters are left untouched and
+        /// reported in <see cref="UIStyleRefreshResult.Skipped"/>. The cost is bounded to this subtree.</summary>
+        public UIStyleRefreshResult RefreshStyles() => XAML.ElementStyleRefresher.Refresh(this);
+
         #region Background container pilot (ADR-0005/S5)
         /// <summary>True while a tagged Background sub-slot write (<see cref="SetBackgroundSlot"/>/<see cref="SetBackgroundFocusedColor"/>)
         /// is physically writing <see cref="_BackgroundBrush"/>'s sub-field, so <see cref="HandleBackgroundBrushContainerPropertyChanged"/>

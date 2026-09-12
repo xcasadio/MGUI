@@ -329,6 +329,12 @@ namespace MGUI.Core.UI.XAML
             {
                 MGDesktop Desktop = Element.GetDesktop();
 
+                //  Backlog task 10: the element keeps the styles resolved for its definition, so that MGElement.RefreshStyles can resolve them again
+                if (StyleScope != null)
+                {
+                    Element.StyleScope = StyleScope;
+                }
+
                 if (Name != null)
                 {
                     Element.Name = Name;
@@ -845,11 +851,25 @@ namespace MGUI.Core.UI.XAML
                 }
             }
 
-            ProcessStyles(StylesByName, StylesByType);
+            ProcessStyles(StylesByName, StylesByType, Array.Empty<Style>(), true);
         }
-        private void ProcessStyles(Dictionary<string, Style> StylesByName, Dictionary<MGElementType, Dictionary<string, List<object>>> StylesByType)
+
+        /// <summary>Backlog task 10: the styles this definition resolved in <see cref="ProcessStyles(MGResources)"/>, recorded on the elements it creates
+        /// (see <see cref="MGElement.RefreshStyles"/>). Null until styles are processed.</summary>
+        internal ElementStyleScope StyleScope { get; private set; }
+
+        /// <param name="InheritedInlineStyles">The inline styles of the ancestors in scope, outermost first.</param>
+        /// <param name="UsesResourceStyles">False below a definition whose <see cref="InheritsParentStyles"/> is false.</param>
+        private void ProcessStyles(Dictionary<string, Style> StylesByName, Dictionary<MGElementType, Dictionary<string, List<object>>> StylesByType,
+            IReadOnlyList<Style> InheritedInlineStyles, bool UsesResourceStyles)
         {
             Dictionary<string, List<object>> ValuesByProperty;
+
+            IReadOnlyList<Style> InlineStyles = InheritedInlineStyles;
+            if (Styles.Any(x => x.Setters.Any()))
+            {
+                InlineStyles = InheritedInlineStyles.Concat(Styles.Where(x => x.Setters.Any())).ToArray();
+            }
 
             //  Append current style setters to indexed data
             foreach (Style Style in Styles.Where(x => x.Setters.Any()))
@@ -882,11 +902,10 @@ namespace MGUI.Core.UI.XAML
             }
 
             //  Apply the appropriate style setters to this instance
+            HashSet<string> ModifiedPropertyNames = new();
             if (IsStyleable)
             {
                 Type ThisType = GetType();
-
-                HashSet<string> ModifiedPropertyNames = new();
 
                 //  Apply implicit styles (styles that aren't referenced by a Name)
                 if (StylesByType.TryGetValue(ElementType, out ValuesByProperty))
@@ -974,16 +993,20 @@ namespace MGUI.Core.UI.XAML
                 }
             }
 
+            //  Backlog task 10: keep what this pass resolved for the elements this definition creates (see MGElement.RefreshStyles)
+            StyleScope = new ElementStyleScope(GetType(), ElementType, StyleNames, IsStyleable, UsesResourceStyles, InlineStyles,
+                ModifiedPropertyNames.Count > 0 ? ModifiedPropertyNames : null);
+
             //  Recursively process all children
             foreach (Element Child in GetChildren())
             {
                 if (Child.InheritsParentStyles)
                 {
-                    Child.ProcessStyles(StylesByName, StylesByType);
+                    Child.ProcessStyles(StylesByName, StylesByType, InlineStyles, UsesResourceStyles);
                 }
                 else
                 {
-                    Child.ProcessStyles(new Dictionary<string, Style>(), new Dictionary<MGElementType, Dictionary<string, List<object>>>());
+                    Child.ProcessStyles(new Dictionary<string, Style>(), new Dictionary<MGElementType, Dictionary<string, List<object>>>(), Array.Empty<Style>(), false);
                 }
             }
 
