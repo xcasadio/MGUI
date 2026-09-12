@@ -14,8 +14,13 @@ namespace MGUI.Core.UI.Styling
         public IReadOnlyDictionary<string, MGElement> Parts => _Parts;
         public IReadOnlyList<MGElement> DetachedRoots => _DetachedRoots;
 
+        /// <summary>The pilot values the XAML definition of the template declared on the elements of this structure (backlog task 15), applied again
+        /// after the template's defaults by <c>MGElement.ApplyControlTemplate</c>. Empty for a structure created by code.</summary>
+        internal IReadOnlyList<UITemplateDeclaredValue> DeclaredValues => _DeclaredValues;
+
         private readonly Dictionary<string, MGElement> _Parts;
         private readonly List<MGElement> _DetachedRoots;
+        private readonly List<UITemplateDeclaredValue> _DeclaredValues = new();
 
         public MGControlTemplateStructure(MGElement Root)
             : this(Root, null, null)
@@ -43,6 +48,14 @@ namespace MGUI.Core.UI.Styling
         }
 
         public bool TryGetPart(string Name, out MGElement Part) => _Parts.TryGetValue(Name, out Part);
+
+        internal void AddDeclaredValue(UITemplateDeclaredValue Value)
+        {
+            if (Value.Target != null)
+            {
+                _DeclaredValues.Add(Value);
+            }
+        }
     }
 
     public sealed class MGControlTemplateContext

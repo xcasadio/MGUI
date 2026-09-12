@@ -170,6 +170,13 @@ namespace MGUI.Core.UI.XAML
                 throw new ArgumentNullException(nameof(Definition));
             }
 
+            // Backlog task 15: the pilot attributes of the structure are values of the template, not of the application.
+            Definition.Root?.MarkAsTemplateStructure(Definition.Name);
+            foreach (Element detachedRoot in Definition.DetachedRoots ?? new List<Element>())
+            {
+                detachedRoot?.MarkAsTemplateStructure(Definition.Name);
+            }
+
             return new Styling.MGControlTemplate(
                 Definition.Name,
                 context => BuildStructure(Definition, context),
@@ -241,6 +248,21 @@ namespace MGUI.Core.UI.XAML
             foreach (MGElement element in namedElements.Values.Distinct())
             {
                 element.Name = null;
+            }
+
+            // Backlog task 15: the values the definition declared on its elements, recorded as Template contributions named "<template>:<element>.<property>"
+            // by Element.ResolveXamlSource, are kept with the structure so that MGElement.ApplyControlTemplate applies them again after the defaults of
+            // the base applicator. The prefix excludes the template values of the elements' own templates (a Window part applies "Window.*" keys).
+            string declaredPrefix = Definition.Name + ":";
+            IEnumerable<MGElement> structureElements = (root == null ? Enumerable.Empty<MGElement>() : root.TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder))
+                .Concat(detachedRoots.SelectMany(x => x.TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder)))
+                .Distinct();
+            foreach (MGElement element in structureElements)
+            {
+                foreach (Styling.UITemplateDeclaredValue declared in MGElement.EnumerateTemplateContributions(element, declaredPrefix))
+                {
+                    structure.AddDeclaredValue(declared);
+                }
             }
 
             return structure;

@@ -469,38 +469,19 @@ namespace MGUI.Core.UI
                     continue;
                 }
 
-                MGTextBlock ReplacedTextBlock = ReplacedPart as MGTextBlock;
-                MGTextBlock TextBlock = Part as MGTextBlock;
-
-                //  By increasing precedence. At a given precedence a whole container goes before its sub-fields: writing it drops the sub-field
-                //  contributions of that precedence (ADR-0005/S5), which the replaced part only holds when they were written after the container.
+                //  By increasing precedence. At a given precedence a whole container goes before its sub-fields (the order of PilotSlots): writing it
+                //  drops the sub-field contributions of that precedence (ADR-0005/S5), which the replaced part only holds when they were written after
+                //  the container.
                 foreach (UIValueSourceKind Kind in CarriedOwnerSourceKinds)
                 {
-                    CarryOwnerContribution<Thickness>(ReplacedPart, UIPilotProperty.Margin, UIValueSlot.Whole, Kind, Part.SetMargin);
-                    CarryOwnerContribution<Thickness>(ReplacedPart, UIPilotProperty.Padding, UIValueSlot.Whole, Kind, Part.SetPadding);
-                    CarryOwnerContribution<int?>(ReplacedPart, UIPilotProperty.MinHeight, UIValueSlot.Whole, Kind, Part.SetMinHeight);
-                    CarryOwnerContribution<IBorderBrush>(ReplacedPart, UIPilotProperty.BorderBrush, UIValueSlot.Whole, Kind, Part.SetBorderBrushTagged);
-                    CarryOwnerContribution<Thickness>(ReplacedPart, UIPilotProperty.BorderThickness, UIValueSlot.Whole, Kind, Part.SetBorderThicknessTagged);
-
-                    CarryOwnerContribution<VisualStateFillBrush>(ReplacedPart, UIPilotProperty.Background, UIValueSlot.Whole, Kind, Part.SetBackground);
-                    foreach (UIValueSlot Slot in ContainerSubFieldSlots)
+                    foreach ((UIPilotProperty Property, UIValueSlot Slot) in PilotSlots)
                     {
-                        CarryOwnerContribution<IFillBrush>(ReplacedPart, UIPilotProperty.Background, Slot, Kind, (Value, Source) => Part.SetBackgroundSlot(Slot, Value, Source));
-                    }
-                    CarryOwnerContribution<Color?>(ReplacedPart, UIPilotProperty.Background, UIValueSlot.FocusedColor, Kind, Part.SetBackgroundFocusedColor);
-
-                    CarryOwnerContribution<VisualStateSetting<Color?>>(ReplacedPart, UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, Kind, Part.SetDefaultTextForeground);
-                    foreach (UIValueSlot Slot in ContainerSubFieldSlots)
-                    {
-                        CarryOwnerContribution<Color?>(ReplacedPart, UIPilotProperty.DefaultTextForeground, Slot, Kind, (Value, Source) => Part.SetDefaultTextForegroundSlot(Slot, Value, Source));
-                    }
-
-                    if (ReplacedTextBlock != null && TextBlock != null)
-                    {
-                        CarryOwnerContribution<VisualStateSetting<Color?>>(ReplacedTextBlock, UIPilotProperty.Foreground, UIValueSlot.Whole, Kind, TextBlock.SetForeground);
-                        foreach (UIValueSlot Slot in ContainerSubFieldSlots)
+                        foreach (UIResolvedContribution Contribution in ReplacedPart.EnumerateResolvedContributions(Property, Slot))
                         {
-                            CarryOwnerContribution<Color?>(ReplacedTextBlock, UIPilotProperty.Foreground, Slot, Kind, (Value, Source) => TextBlock.SetForegroundSlot(Slot, Value, Source));
+                            if (Contribution.Kind == Kind && IsOwnerContributionOnPart(Contribution.Source))
+                            {
+                                TryApplyContribution(Part, Property, Slot, Contribution);
+                            }
                         }
                     }
                 }
@@ -509,9 +490,9 @@ namespace MGUI.Core.UI
                 //  back to a container of its own and unsubscribes from the carried one, which would otherwise keep the discarded part alive (ADR-0005/S5).
                 ReleaseCarriedOwnerContainer(ReplacedPart, UIPilotProperty.Background);
                 ReleaseCarriedOwnerContainer(ReplacedPart, UIPilotProperty.DefaultTextForeground);
-                if (ReplacedTextBlock != null && TextBlock != null)
+                if (ReplacedPart is MGTextBlock && Part is MGTextBlock)
                 {
-                    ReleaseCarriedOwnerContainer(ReplacedTextBlock, UIPilotProperty.Foreground);
+                    ReleaseCarriedOwnerContainer(ReplacedPart, UIPilotProperty.Foreground);
                 }
             }
         }
@@ -520,26 +501,133 @@ namespace MGUI.Core.UI
         /// increasing precedence.</summary>
         private static readonly UIValueSourceKind[] CarriedOwnerSourceKinds = { UIValueSourceKind.Theme, UIValueSourceKind.ImplicitStyle, UIValueSourceKind.ExplicitStyle, UIValueSourceKind.LocalValue };
 
-        /// <summary>The brush or color sub-fields of the background and text foreground containers; the background also has <see cref="UIValueSlot.FocusedColor"/>.</summary>
-        private static readonly UIValueSlot[] ContainerSubFieldSlots = { UIValueSlot.Normal, UIValueSlot.Selected, UIValueSlot.Disabled, UIValueSlot.Focused };
-
-        private void CarryOwnerContribution<T>(MGElement ReplacedPart, UIPilotProperty Property, UIValueSlot Slot, UIValueSourceKind Kind, Action<T, UIValueResolutionSource> SetValue)
+        /// <summary>Every (pilot, slot) pair the store tracks, a whole container before its sub-fields. <see cref="UIPilotProperty.Foreground"/> only exists on
+        /// an <see cref="MGTextBlock"/>: <see cref="TryApplyContribution"/> ignores it on any other target.</summary>
+        private static readonly (UIPilotProperty Property, UIValueSlot Slot)[] PilotSlots =
         {
-            foreach (UIResolvedContribution Contribution in ReplacedPart.EnumerateResolvedContributions(Property, Slot))
+            (UIPilotProperty.Margin, UIValueSlot.Whole),
+            (UIPilotProperty.Padding, UIValueSlot.Whole),
+            (UIPilotProperty.MinHeight, UIValueSlot.Whole),
+            (UIPilotProperty.BorderBrush, UIValueSlot.Whole),
+            (UIPilotProperty.BorderThickness, UIValueSlot.Whole),
+            (UIPilotProperty.Background, UIValueSlot.Whole),
+            (UIPilotProperty.Background, UIValueSlot.Normal),
+            (UIPilotProperty.Background, UIValueSlot.Selected),
+            (UIPilotProperty.Background, UIValueSlot.Disabled),
+            (UIPilotProperty.Background, UIValueSlot.Focused),
+            (UIPilotProperty.Background, UIValueSlot.FocusedColor),
+            (UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole),
+            (UIPilotProperty.DefaultTextForeground, UIValueSlot.Normal),
+            (UIPilotProperty.DefaultTextForeground, UIValueSlot.Selected),
+            (UIPilotProperty.DefaultTextForeground, UIValueSlot.Disabled),
+            (UIPilotProperty.DefaultTextForeground, UIValueSlot.Focused),
+            (UIPilotProperty.Foreground, UIValueSlot.Whole),
+            (UIPilotProperty.Foreground, UIValueSlot.Normal),
+            (UIPilotProperty.Foreground, UIValueSlot.Selected),
+            (UIPilotProperty.Foreground, UIValueSlot.Disabled),
+            (UIPilotProperty.Foreground, UIValueSlot.Focused),
+        };
+
+        /// <summary>The <see cref="UIValueSourceKind.Template"/> contributions of <paramref name="Element"/> whose source name starts with
+        /// <paramref name="NamePrefix"/>: the values a XAML control template named that way declared on the element (backlog task 15), a whole container
+        /// before its sub-fields.</summary>
+        internal static IEnumerable<UITemplateDeclaredValue> EnumerateTemplateContributions(MGElement Element, string NamePrefix)
+        {
+            if (Element == null || string.IsNullOrEmpty(NamePrefix))
             {
-                if (Contribution.Kind != Kind || !IsOwnerContributionOnPart(Contribution.Source))
+                yield break;
+            }
+
+            foreach ((UIPilotProperty Property, UIValueSlot Slot) in PilotSlots)
+            {
+                if (Property == UIPilotProperty.Foreground && Element is not MGTextBlock)
                 {
                     continue;
                 }
 
-                if (Contribution.Value is T Value)
+                foreach (UIResolvedContribution Contribution in Element.EnumerateResolvedContributions(Property, Slot))
                 {
-                    SetValue(Value, Contribution.Source);
+                    if (Contribution.Kind == UIValueSourceKind.Template && Contribution.Source.Name != null
+                        && Contribution.Source.Name.StartsWith(NamePrefix, StringComparison.Ordinal))
+                    {
+                        yield return new UITemplateDeclaredValue(Element, Property, Slot, Contribution);
+                    }
                 }
-                else if (Contribution.Value == null && default(T) == null)
-                {
-                    SetValue(default, Contribution.Source);
-                }
+            }
+        }
+
+        /// <summary>Writes <paramref name="Contribution"/> onto <paramref name="Target"/> through the tagged setter of (<paramref name="Property"/>,
+        /// <paramref name="Slot"/>), keeping its source. False when the pair does not exist on the target (a text foreground on an element that is not an
+        /// <see cref="MGTextBlock"/>) or the value has another type than the slot expects.</summary>
+        internal static bool TryApplyContribution(MGElement Target, UIPilotProperty Property, UIValueSlot Slot, UIResolvedContribution Contribution)
+        {
+            if (Target == null)
+            {
+                return false;
+            }
+
+            object Value = Contribution.Value;
+            UIValueResolutionSource Source = Contribution.Source;
+            switch (Property, Slot)
+            {
+                case (UIPilotProperty.Margin, UIValueSlot.Whole) when Value is Thickness Margin:
+                    Target.SetMargin(Margin, Source);
+                    return true;
+                case (UIPilotProperty.Padding, UIValueSlot.Whole) when Value is Thickness Padding:
+                    Target.SetPadding(Padding, Source);
+                    return true;
+                case (UIPilotProperty.MinHeight, UIValueSlot.Whole) when Value is int or null:
+                    Target.SetMinHeight((int?)Value, Source);
+                    return true;
+                case (UIPilotProperty.BorderBrush, UIValueSlot.Whole) when Value is IBorderBrush or null:
+                    Target.SetBorderBrushTagged((IBorderBrush)Value, Source);
+                    return true;
+                case (UIPilotProperty.BorderThickness, UIValueSlot.Whole) when Value is Thickness BorderThickness:
+                    Target.SetBorderThicknessTagged(BorderThickness, Source);
+                    return true;
+                case (UIPilotProperty.Background, UIValueSlot.Whole) when Value is VisualStateFillBrush or null:
+                    Target.SetBackground((VisualStateFillBrush)Value, Source);
+                    return true;
+                case (UIPilotProperty.Background, UIValueSlot.FocusedColor) when Value is Color or null:
+                    Target.SetBackgroundFocusedColor((Color?)Value, Source);
+                    return true;
+                case (UIPilotProperty.Background, _) when Value is IFillBrush or null:
+                    Target.SetBackgroundSlot(Slot, (IFillBrush)Value, Source);
+                    return true;
+                case (UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole) when Value is VisualStateSetting<Color?> or null:
+                    Target.SetDefaultTextForeground((VisualStateSetting<Color?>)Value, Source);
+                    return true;
+                case (UIPilotProperty.DefaultTextForeground, _) when Slot != UIValueSlot.FocusedColor && Value is Color or null:
+                    Target.SetDefaultTextForegroundSlot(Slot, (Color?)Value, Source);
+                    return true;
+                case (UIPilotProperty.Foreground, UIValueSlot.Whole) when Target is MGTextBlock TextBlock && (Value is VisualStateSetting<Color?> or null):
+                    TextBlock.SetForeground((VisualStateSetting<Color?>)Value, Source);
+                    return true;
+                case (UIPilotProperty.Foreground, _) when Target is MGTextBlock TextBlock && Slot != UIValueSlot.FocusedColor && (Value is Color or null):
+                    TextBlock.SetForegroundSlot(Slot, (Color?)Value, Source);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>Backlog task 15: applies again the pilot values the XAML definition of the template declared on the elements of
+        /// <paramref name="Structure"/>, after every application of the template's defaults. Those defaults are written at the same <c>Template</c>
+        /// precedence, last writer winning: re-applying the declaration makes the template's own XAML win over the defaults of its base applicator. The
+        /// re-application runs on theme refreshes too: a scalar default is then skipped by the has-previous/equals guard of the applicator (the current
+        /// value no longer equals the default it recorded), but a container default (a background) passes it, since the container the applicator
+        /// recorded is still the one held, and its replacement drops the declared sub-fields of the same precedence (ADR-0005/S5). A rebuilt structure
+        /// gets its own declaration applied here.</summary>
+        private static void ReapplyDeclaredTemplateValues(MGControlTemplateStructure Structure)
+        {
+            if (Structure == null)
+            {
+                return;
+            }
+
+            foreach (UITemplateDeclaredValue Declared in Structure.DeclaredValues)
+            {
+                TryApplyContribution(Declared.Target, Declared.Property, Declared.Slot, Declared.Contribution);
             }
         }
 
@@ -652,6 +740,7 @@ namespace MGUI.Core.UI
                 }
 
                 Template?.Apply(this, IsThemeRefresh, IsStructureRebuilt);
+                ReapplyDeclaredTemplateValues(_AppliedTemplateStructure);
                 LastControlTemplateError = null;
             }
             catch (Exception ex)

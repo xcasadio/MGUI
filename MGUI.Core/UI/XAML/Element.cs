@@ -43,6 +43,13 @@ namespace MGUI.Core.UI.XAML
         /// (explicit) style, or neither (a direct XAML attribute / C# default, i.e. <see cref="UIValueSourceKind.LocalValue"/>).</summary>
         internal UIValueResolutionSource ResolveXamlSource(string propertyName, UIInvalidationKind kind)
         {
+            if (TemplateProvenance != null)
+            {
+                //  The colon keeps these names apart from the catalog's own keys ("Window.TitleBar.Padding"), which use letters and dots only:
+                //  ControlTemplateLoader.BuildStructure collects the declared values of a template by the prefix "<template>:".
+                return UIValueResolutionSource.Template(kind, $"{TemplateProvenance}:{Name ?? TemplateElementName ?? ElementType.ToString()}.{propertyName}");
+            }
+
             if (StyleProvenance != null && StyleProvenance.TryGetValue(propertyName, out UIValueSourceKind sourceKind))
             {
                 if (sourceKind == UIValueSourceKind.ExplicitStyle)
@@ -57,6 +64,92 @@ namespace MGUI.Core.UI.XAML
 
             return UIValueResolutionSource.LocalValue(kind, propertyName);
         }
+
+        /// <summary>Backlog task 15: the name of the <see cref="ControlTemplateDefinition"/> whose structure this DTO describes, stamped by
+        /// <see cref="ControlTemplateLoader"/> on the root, the detached roots, their descendants and their nested <see cref="Border"/> facades. While set,
+        /// <see cref="ResolveXamlSource(string, UIInvalidationKind)"/> records the pilot attributes of this DTO as <see cref="UIValueSourceKind.Template"/>
+        /// values named <c>"&lt;template&gt;:&lt;element name&gt;.&lt;property&gt;"</c>, the values of the template, instead of <see cref="UIValueSourceKind.LocalValue"/>,
+        /// the values of the application. Null for every DTO parsed outside a control template.</summary>
+        internal string TemplateProvenance { get; private set; }
+
+        /// <summary>Backlog task 15: the element name a nested <see cref="Border"/> facade reports in the names of its template values, the name of the
+        /// composite DTO that exposes it (a <c>BorderThickness</c> declared on <c>PART_CloseButton</c> is transferred by the button's nested Border DTO).</summary>
+        internal string TemplateElementName { get; private set; }
+
+        /// <summary>Backlog task 15: stamps <paramref name="templateName"/> as the <see cref="TemplateProvenance"/> of this DTO and of every DTO it holds:
+        /// its children (<see cref="GetChildren"/>) and the elements its public properties hold outside of them, directly (the nested <see cref="Border"/>
+        /// facade of the composite DTOs, whose own <see cref="ApplyDerivedSettings"/> transfers <c>BorderBrush</c> and <c>BorderThickness</c>, the header of an
+        /// expander or a tab, the dropdown parts of a combo box, a tooltip or a context menu) or through the helper objects of the XAML namespace held in
+        /// lists (the header of a <see cref="ListViewColumn"/>).</summary>
+        internal void MarkAsTemplateStructure(string templateName)
+        {
+            if (!string.IsNullOrWhiteSpace(templateName))
+            {
+                MarkAsTemplateStructure(templateName, new HashSet<object>(ReferenceEqualityComparer.Instance));
+            }
+        }
+
+        private void MarkAsTemplateStructure(string templateName, HashSet<object> visited)
+        {
+            if (!visited.Add(this))
+            {
+                return;
+            }
+
+            TemplateProvenance = templateName;
+            foreach (Element child in GetChildren())
+            {
+                child?.MarkAsTemplateStructure(templateName, visited);
+            }
+
+            MarkHeldElements(this, templateName, visited, Name ?? ElementType.ToString());
+        }
+
+        /// <summary>Walks the public instance properties of <paramref name="node"/>, a DTO or a helper object of the XAML namespace, for the elements they
+        /// hold outside <see cref="GetChildren"/>. Properties typed <see cref="object"/>, dictionaries and strings are not followed.</summary>
+        private static void MarkHeldElements(object node, string templateName, HashSet<object> visited, string ownerName)
+        {
+            foreach (PropertyInfo property in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!property.CanRead || property.GetIndexParameters().Length > 0)
+                {
+                    continue;
+                }
+
+                Type propertyType = property.PropertyType;
+                if (typeof(Element).IsAssignableFrom(propertyType))
+                {
+                    if (property.GetValue(node) is Element held)
+                    {
+                        if (held.Name == null && propertyType == typeof(Border) && property.Name == nameof(Button.Border) && node is Element)
+                        {
+                            held.TemplateElementName = ownerName;
+                        }
+
+                        held.MarkAsTemplateStructure(templateName, visited);
+                    }
+                }
+                else if (propertyType != typeof(string) && propertyType != typeof(object)
+                    && typeof(System.Collections.IEnumerable).IsAssignableFrom(propertyType) && !typeof(System.Collections.IDictionary).IsAssignableFrom(propertyType)
+                    && property.GetValue(node) is System.Collections.IEnumerable items)
+                {
+                    foreach (object item in items)
+                    {
+                        if (item is Element element)
+                        {
+                            element.MarkAsTemplateStructure(templateName, visited);
+                        }
+                        else if (item != null && IsXamlHelper(item.GetType()) && visited.Add(item))
+                        {
+                            MarkHeldElements(item, templateName, visited, null);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static bool IsXamlHelper(Type type)
+            => type.IsClass && type != typeof(string) && string.Equals(type.Namespace, typeof(Element).Namespace, StringComparison.Ordinal);
 
         /// <summary>ADR-0005/S7: records that <paramref name="propertyName"/> was just set on this DTO by a style of the
         /// given <paramref name="kind"/> (<see cref="UIValueSourceKind.ImplicitStyle"/> or <see cref="UIValueSourceKind.ExplicitStyle"/>),
