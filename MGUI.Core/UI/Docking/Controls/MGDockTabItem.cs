@@ -130,10 +130,22 @@ public class MGDockTabItem : MGElement
     private MGDockPinIcon _pinIconElement;
     private MGComponent<MGDockPinIcon> _pinIconComponent;
 
-    /// <summary>Fixed pixel width reserved for the close button (icon area + padding).</summary>
-    private const int CloseButtonSize = 22;
-    /// <summary>Fixed pixel width reserved for the pin button.</summary>
-    private const int PinButtonSize = 22;
+    private int _buttonSize = 22;
+    /// <summary>Pixel width reserved for each of the close and pin buttons (icon area + padding). Default: the theme's
+    /// <see cref="MGThemeDockingSettings.TabButtonSize"/>, applied by the <c>Dock.TabItem.Default</c> template (backlog task 14).</summary>
+    public int ButtonSize
+    {
+        get => _buttonSize;
+        set
+        {
+            if (_buttonSize != value)
+            {
+                _buttonSize = value;
+                LayoutChanged(this, true);
+                NPC(nameof(ButtonSize));
+            }
+        }
+    }
 
     private int _tabHeight = 30;
     /// <summary>
@@ -397,10 +409,10 @@ public class MGDockTabItem : MGElement
     }
 
     /// <summary>Reserved width for the close button, or 0 when it is not shown for this panel.</summary>
-    private int GetCloseWidth() => (Panel?.CanClose == true && _closeButton != null) ? CloseButtonSize : 0;
+    private int GetCloseWidth() => (Panel?.CanClose == true && _closeButton != null) ? ButtonSize : 0;
 
     /// <summary>Reserved width for the pin button, or 0 when it is not shown for this panel.</summary>
-    private int GetPinWidth() => (Panel?.CanAutoHide == true && _pinButton != null) ? PinButtonSize : 0;
+    private int GetPinWidth() => (Panel?.CanAutoHide == true && _pinButton != null) ? ButtonSize : 0;
 
     /// <summary>
     /// Computes the close button's rectangle from this tab item's OWN <see cref="MGElement.LayoutBounds"/>,
@@ -416,7 +428,7 @@ public class MGDockTabItem : MGElement
             return Rectangle.Empty;
         }
 
-        return new Rectangle(LayoutBounds.Right - closeWidth, LayoutBounds.Y, CloseButtonSize, LayoutBounds.Height);
+        return new Rectangle(LayoutBounds.Right - closeWidth, LayoutBounds.Y, ButtonSize, LayoutBounds.Height);
     }
 
     /// <summary>
@@ -433,7 +445,7 @@ public class MGDockTabItem : MGElement
         }
 
         int buttonsWidth = pinWidth + GetCloseWidth();
-        return new Rectangle(LayoutBounds.Right - buttonsWidth, LayoutBounds.Y, PinButtonSize, LayoutBounds.Height);
+        return new Rectangle(LayoutBounds.Right - buttonsWidth, LayoutBounds.Y, ButtonSize, LayoutBounds.Height);
     }
 
     /// <summary>Centres a square icon of <paramref name="iconSize"/> pixels within <paramref name="bounds"/>.</summary>
@@ -707,8 +719,8 @@ public class MGDockTabItem : MGElement
         }
 
         // Close and pin buttons occupy fixed reserved areas.
-        int closeWidth = (Panel?.CanClose == true) ? CloseButtonSize : 0;
-        int pinWidth   = (Panel?.CanAutoHide == true) ? PinButtonSize : 0;
+        int closeWidth = (Panel?.CanClose == true) ? ButtonSize : 0;
+        int pinWidth   = (Panel?.CanAutoHide == true) ? ButtonSize : 0;
 
         int totalWidth = Math.Max(MinTabWidth, titleWidth + pinWidth + closeWidth);
         _lastMeasuredWidth = totalWidth; // expose desired width for overflow detection in MGDockTabGroup

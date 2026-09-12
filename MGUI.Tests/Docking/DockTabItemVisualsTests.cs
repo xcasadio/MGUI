@@ -132,6 +132,93 @@ public class DockTabItemVisualsTests
     private static Rectangle CenterOf(Rectangle bounds, int iconSize)
         => new(bounds.X + (bounds.Width - iconSize) / 2, bounds.Y + (bounds.Height - iconSize) / 2, iconSize, iconSize);
 
+    // ── Theme densities (styling backlog task 14) ───────────────────────
+
+    [Fact]
+    public void TabItems_Follow_The_Theme_Tab_Header_Height_Button_Size_And_Title_Padding_And_The_Group_Pushes_Its_Height()
+    {
+        Harness harness = CreateHarness();
+        MGTheme initial = harness.MainWindow.GetTheme();
+        Assert.Equal(initial.Docking.TabHeaderHeight, harness.TabGroupControl.TabHeaderHeight);
+        Assert.Equal(initial.Docking.TabHeaderHeight, harness.TabA.TabHeight);
+        Assert.Equal(initial.Docking.TabButtonSize, harness.TabA.ButtonSize);
+
+        MGTheme compact = initial.Copy();
+        compact.Docking.TabHeaderHeight = 24;
+        compact.Docking.TabButtonSize = 18;
+        compact.Docking.TabTitlePadding = new MonoGame.Extended.Thickness(6, 2, 2, 2);
+        harness.MainWindow.GetResources().DefaultTheme = compact;
+        Point farAway = new(1400, 1000);
+        AdvanceFrame(harness.Runtime, harness.Desktop, 32, farAway);
+        AdvanceFrame(harness.Runtime, harness.Desktop, 48, farAway);
+
+        // The strip, the tabs and their title padding follow the theme; the active tab reserves the new button width.
+        Assert.Equal(24, harness.TabGroupControl.TabHeaderHeight);
+        Assert.Equal(24, harness.TabA.TabHeight);
+        Assert.Equal(24, harness.TabA.LayoutBounds.Height);
+        Assert.Equal(18, harness.TabA.ButtonSize);
+        Assert.Equal(18, harness.TabA.TemplateParts[MGDockTabItem.CloseButtonPartName].LayoutBounds.Width);
+        Assert.Equal(new MonoGame.Extended.Thickness(6, 2, 2, 2), harness.TabA.TemplateParts[MGDockTabItem.TitleTextPartName].Padding);
+
+        // A height set on the group by the application reaches the items that follow it, and outranks later theme changes; an item whose height the
+        // application set on its own keeps it.
+        harness.TabB.TabHeight = 50;
+        harness.TabGroupControl.TabHeaderHeight = 40;
+        Assert.Equal(40, harness.TabA.TabHeight);
+        Assert.Equal(50, harness.TabB.TabHeight);
+        harness.MainWindow.GetResources().DefaultTheme = initial;
+        AdvanceFrame(harness.Runtime, harness.Desktop, 64, farAway);
+        Assert.Equal(40, harness.TabGroupControl.TabHeaderHeight);
+        Assert.Equal(40, harness.TabA.TabHeight);
+        Assert.Equal(50, harness.TabB.TabHeight);
+        Assert.Equal(initial.Docking.TabButtonSize, harness.TabA.ButtonSize);
+    }
+
+    [Fact]
+    public void The_Host_Auto_Hide_Strip_Thickness_Follows_The_Theme_And_Reaches_Its_Strips_Unless_A_Strip_Was_Sized_By_The_Application()
+    {
+        Harness harness = CreateHarness();
+        MGTheme initial = harness.MainWindow.GetTheme();
+        MGDockAutoHideStrip left = (MGDockAutoHideStrip)harness.Host.TemplateParts[MGDockHost.LeftAutoHideStripPartName];
+        MGDockAutoHideStrip right = (MGDockAutoHideStrip)harness.Host.TemplateParts[MGDockHost.RightAutoHideStripPartName];
+        Assert.Equal(initial.Docking.AutoHideStripThickness, harness.Host.AutoHideStripThickness);
+        Assert.Equal(initial.Docking.AutoHideStripThickness, left.StripThickness);
+
+        right.StripThickness = 40;
+        MGTheme compact = initial.Copy();
+        compact.Docking.AutoHideStripThickness = 20;
+        harness.MainWindow.GetResources().DefaultTheme = compact;
+        Point farAway = new(1400, 1000);
+        AdvanceFrame(harness.Runtime, harness.Desktop, 32, farAway);
+
+        Assert.Equal(20, harness.Host.AutoHideStripThickness);
+        Assert.Equal(20, left.StripThickness);
+        Assert.Equal(40, right.StripThickness);
+
+        // A value set on the host by the application reaches the strips that follow it.
+        harness.Host.AutoHideStripThickness = 28;
+        Assert.Equal(28, left.StripThickness);
+        Assert.Equal(40, right.StripThickness);
+    }
+
+    [Fact]
+    public void A_Tab_Item_Height_Set_By_The_Application_Survives_A_Theme_Change_Of_The_Group()
+    {
+        Harness harness = CreateHarness();
+        harness.TabA.TabHeight = 50;
+
+        MGTheme compact = harness.MainWindow.GetTheme().Copy();
+        compact.Docking.TabHeaderHeight = 24;
+        harness.MainWindow.GetResources().DefaultTheme = compact;
+        Point farAway = new(1400, 1000);
+        AdvanceFrame(harness.Runtime, harness.Desktop, 32, farAway);
+
+        // The group and the untouched item follow the theme; the group's push skips the item the application sized.
+        Assert.Equal(24, harness.TabGroupControl.TabHeaderHeight);
+        Assert.Equal(24, harness.TabB.TabHeight);
+        Assert.Equal(50, harness.TabA.TabHeight);
+    }
+
     // ── (i) Same-pass bounds ─────────────────────────────────────────────
 
     [Fact]

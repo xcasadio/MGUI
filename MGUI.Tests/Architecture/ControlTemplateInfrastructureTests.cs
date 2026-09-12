@@ -523,12 +523,13 @@ public class ControlTemplateInfrastructureTests
         string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
 
-        Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.Padding.Left\" : \"TabHeader.Unselected.Padding.Left\", new Thickness(6, 5, 6, 5)", catalogSource);
-        Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.Padding.Right\" : \"TabHeader.Unselected.Padding.Right\", new Thickness(6, 5, 6, 5)", catalogSource);
+        // Backlog task 14: the side header padding comes from the theme (TabControl.SideHeaderPadding, default 6,5,6,5).
+        Assert.Contains("ApplyThemeDefault(IsSelected ? \"TabHeader.Selected.Padding.Left\" : \"TabHeader.Unselected.Padding.Left\", tabSettings.SideHeaderPadding", catalogSource);
+        Assert.Contains("ApplyThemeDefault(IsSelected ? \"TabHeader.Selected.Padding.Right\" : \"TabHeader.Unselected.Padding.Right\", tabSettings.SideHeaderPadding", catalogSource);
         Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.HorizontalAlignment.Left\" : \"TabHeader.Unselected.HorizontalAlignment.Left\", HorizontalAlignment.Right", catalogSource);
         Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.HorizontalAlignment.Right\" : \"TabHeader.Unselected.HorizontalAlignment.Right\", HorizontalAlignment.Left", catalogSource);
         Assert.Contains("UIInvalidationKind.Measure | UIInvalidationKind.Arrange", catalogSource);
-        Assert.Contains("ApplyTemplateValue(IsSelected ? \"TabHeader.Selected.Padding.Left\"", catalogSource);
+        Assert.Contains("ApplyThemeDefault(IsSelected ? \"TabHeader.Selected.Padding.Left\"", catalogSource);
         Assert.Contains("MGControlTemplateCatalog.ApplyTabControlHeadersPanelSettings(this, HeadersPanelElement);", tabControlSource);
         Assert.DoesNotContain("HeadersPanelElement.Orientation = Orientation.Vertical;", tabControlSource);
         Assert.DoesNotContain("HeadersPanelElement.HorizontalAlignment = HorizontalAlignment.Right;", tabControlSource);
@@ -887,8 +888,10 @@ public class ControlTemplateInfrastructureTests
         // ADR-0005/S3: ApplyListBoxItemContainerDefaults now tags its BorderBrush/BorderThickness/Padding writes as
         // Template (the per-item container's own template default) instead of assigning the untagged public
         // setters, so the pinned literal changed from a plain assignment to the tagged setter call it was migrated to.
-        Assert.Contains("Item.SetPadding(DefaultListBoxItemPadding, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, \"ListBox.Item.Padding\"));", catalogSource);
-        Assert.Contains("ItemTemplate = item => MGControlTemplateCatalog.CreateDefaultListBoxItemContent(ParentWindow, item);", listBoxSource);
+        // Backlog task 14: the item padding comes from the theme (ListBox.ItemPadding, default DefaultListBoxItemPadding), and the default item
+        // content resolves the list box's own theme.
+        Assert.Contains("Item.SetPadding(theme.ListBox.ItemPadding, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, \"ListBox.Item.Padding\"));", catalogSource);
+        Assert.Contains("ItemTemplate = item => MGControlTemplateCatalog.CreateDefaultListBoxItemContent(this, item);", listBoxSource);
         Assert.Contains("Context.ApplyTemplateValue(\"ListBox.ItemsPanelVerticalAlignment\"", catalogSource);
         Assert.Contains("Context.ApplyTemplateValue(\"ListBox.TitlePresenterVerticalAlignment\"", catalogSource);
         Assert.Contains("=> MGControlTemplateCatalog.ApplyListBoxItemContainerDefaults(this, Item);", listBoxSource);

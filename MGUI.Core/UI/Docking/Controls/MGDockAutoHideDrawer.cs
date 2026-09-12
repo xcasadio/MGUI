@@ -37,9 +37,41 @@ public class MGDockAutoHideDrawer : MGElement
     public const string ResizeGripPartName = "PART_ResizeGrip";
 
     // ── Constants ─────────────────────────────────────────────────────
-    private const int HeaderHeight    = 28;
-    private const int HeaderBtnSize   = 22; // square icon-only buttons
     private const int ResizeGripSize  = 4; // thin drag handle on the inner edge
+
+    private int _headerHeight = 28;
+    /// <summary>Height of the header, in pixels. Default: the theme's <see cref="MGThemeDockingSettings.AutoHideDrawerHeaderHeight"/>, applied by the
+    /// <c>Dock.AutoHideDrawer.Default</c> template (backlog task 14).</summary>
+    public int HeaderHeight
+    {
+        get => _headerHeight;
+        set
+        {
+            if (_headerHeight != value)
+            {
+                _headerHeight = value;
+                LayoutChanged(this, true);
+                NPC(nameof(HeaderHeight));
+            }
+        }
+    }
+
+    private int _headerButtonSize = 22;
+    /// <summary>Size of the square, icon-only pin and close buttons of the header, in pixels. Default: the theme's
+    /// <see cref="MGThemeDockingSettings.AutoHideDrawerButtonSize"/>, applied by the <c>Dock.AutoHideDrawer.Default</c> template (backlog task 14).</summary>
+    public int HeaderButtonSize
+    {
+        get => _headerButtonSize;
+        set
+        {
+            if (_headerButtonSize != value)
+            {
+                _headerButtonSize = value;
+                LayoutChanged(this, true);
+                NPC(nameof(HeaderButtonSize));
+            }
+        }
+    }
 
     // ── State ──────────────────────────────────────────────────────────
     private AutoHideSide _side;
@@ -385,9 +417,9 @@ public class MGDockAutoHideDrawer : MGElement
     {
         // Header
         _header?.UpdateMeasurement(new Size(AvailableSize.Width, HeaderHeight), out _, out _, out _, out _);
-        _titleLabel?.UpdateMeasurement(new Size(Math.Max(0, AvailableSize.Width - HeaderBtnSize * 2), HeaderHeight), out _, out _, out _, out _);
-        _pinBtn?.UpdateMeasurement( new Size(HeaderBtnSize, HeaderBtnSize), out _, out _, out _, out _);
-        _closeBtn?.UpdateMeasurement(new Size(HeaderBtnSize, HeaderBtnSize), out _, out _, out _, out _);
+        _titleLabel?.UpdateMeasurement(new Size(Math.Max(0, AvailableSize.Width - HeaderButtonSize * 2), HeaderHeight), out _, out _, out _, out _);
+        _pinBtn?.UpdateMeasurement( new Size(HeaderButtonSize, HeaderButtonSize), out _, out _, out _, out _);
+        _closeBtn?.UpdateMeasurement(new Size(HeaderButtonSize, HeaderButtonSize), out _, out _, out _, out _);
         // Content
         int contentHeight = Math.Max(0, AvailableSize.Height - HeaderHeight);
         _content?.UpdateMeasurement(new Size(AvailableSize.Width, contentHeight), out _, out _, out _, out _);
@@ -412,11 +444,11 @@ public class MGDockAutoHideDrawer : MGElement
         _header.UpdateLayout(new Rectangle(Bounds.X, Bounds.Y, headerW, HeaderHeight));
 
         // Title takes up remaining space after the two icon buttons
-        int titleW = Math.Max(0, headerW - HeaderBtnSize * 2 - 2);
-        int btnY   = Bounds.Y + (HeaderHeight - HeaderBtnSize) / 2;
+        int titleW = Math.Max(0, headerW - HeaderButtonSize * 2 - 2);
+        int btnY   = Bounds.Y + (HeaderHeight - HeaderButtonSize) / 2;
         _titleLabel.UpdateLayout(new Rectangle(Bounds.X, Bounds.Y, titleW, HeaderHeight));
-        _pinBtn.UpdateLayout(new Rectangle(Bounds.X + titleW, btnY, HeaderBtnSize, HeaderBtnSize));
-        _closeBtn.UpdateLayout(new Rectangle(Bounds.X + titleW + HeaderBtnSize, btnY, HeaderBtnSize, HeaderBtnSize));
+        _pinBtn.UpdateLayout(new Rectangle(Bounds.X + titleW, btnY, HeaderButtonSize, HeaderButtonSize));
+        _closeBtn.UpdateLayout(new Rectangle(Bounds.X + titleW + HeaderButtonSize, btnY, HeaderButtonSize, HeaderButtonSize));
         _pinIcon.UpdateLayout(GetCenteredIconBounds(_pinBtn.LayoutBounds, 14));
         _closeIcon.UpdateLayout(GetCenteredIconBounds(_closeBtn.LayoutBounds, 12));
 

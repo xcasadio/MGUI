@@ -199,6 +199,34 @@ public class TemplateStructureRebuildThemeTests
     }
 
     [Fact]
+    public void Dark_Variants_Of_The_Xaml_Asset_Templates_Apply_The_Catalog_Defaults()
+    {
+        // ListBox.Default and ListView.Default are XAML asset templates the catalog registers with its code applicators; Dark.ListBox and
+        // Dark.ListView are based on them and must inherit those applicators (backlog task 14: a list box under Dark received no ListBox.* default).
+        Harness harness = Harness.Create(dark: true);
+        MGTheme dark = harness.Window.GetTheme();
+        MGListBox<string> listBox = new(harness.Window);
+        listBox.SetItemsSource(new List<string> { "A" });
+        MGListView<string> listView = new(harness.Window);
+        listView.AddColumn(new ListViewColumnWidth(80), new MGTextBlock(harness.Window, "Name"), item => new MGTextBlock(harness.Window, item));
+        MGStackPanel panel = new(harness.Window, Orientation.Vertical);
+        panel.TryAddChild(listBox);
+        panel.TryAddChild(listView);
+        harness.Show(panel);
+
+        Assert.Equal("Dark.ListBox", listBox.AppliedControlTemplateName);
+        Assert.Equal(dark.ListBox.MinHeight, listBox.MinHeight);
+        Assert.True(listBox.TryGetResolvedContribution(UIPilotProperty.MinHeight, UIValueSlot.Whole, UIValueSourceKind.Theme, out UIResolvedValue<int?> minHeight));
+        Assert.Equal("ListBox.MinHeight", minHeight.Source.Name);
+        Assert.Equal(Describe(dark.ListBox.TitleBorderThickness), Describe(listBox.TitleBorderThickness));
+
+        Assert.Equal("Dark.ListView", listView.AppliedControlTemplateName);
+        Assert.Equal(Describe(dark.TitleBackground.GetValue(true)), Describe(listView.HeaderGrid.BackgroundBrush));
+        Assert.True(listView.HeaderGrid.TryGetResolvedContribution(UIPilotProperty.Background, UIValueSlot.Whole, UIValueSourceKind.Template, out UIResolvedValue<VisualStateFillBrush> headerBackground));
+        Assert.Equal("ListView.HeaderBackground", headerBackground.Source.Name);
+    }
+
+    [Fact]
     public void ListView_Columns_Rows_And_Cells_Move_To_The_Grids_Of_A_Rebuilt_Structure()
     {
         Harness harness = Harness.Create(dark: false);

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.Controls;
+using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
@@ -16,13 +18,16 @@ namespace MGUI.Tests.Architecture;
 
 /// <summary>
 /// Backlog task 13 (styling-theme-tasks.md), scenario <c>SCN-THEME-001</c>: the "Editor Compact" preset of <c>MGUI.Samples</c> is a declarative theme
-/// (<c>ThemeDefinition</c> based on <c>Dark</c>) that applies to live controls by a theme change on their scope, without control code. The values the
-/// preset cannot reach declaratively are pinned here, so that the list of limits documented by the task stays true.
+/// (<c>ThemeDefinition</c> based on <c>Dark</c>) that applies to live controls by a theme change on their scope, without control code. Task 14 made
+/// the densities the preset could not reach (tooltip, text boxes, item paddings, tab headers, docking sizes) theme settings; the few values that stay
+/// out of reach are pinned here, so that the list of limits documented by the task stays true.
 /// </summary>
 public class EditorCompactPresetTests
 {
     private const string PresetPath = @"d:\development\repo\MGUI\MGUI.Samples\Features\EditorCompact.Themes.xaml";
     private const string CatalogPath = @"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs";
+    private const string TabGroupPath = @"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockTabGroup.cs";
+    private const string TabGroupNodePath = @"d:\development\repo\MGUI\MGUI.Core\UI\Docking\DockLayout\DockTabGroupNode.cs";
 
     [Fact]
     public void The_Preset_Is_A_Declarative_Theme_Based_On_Dark()
@@ -41,10 +46,41 @@ public class EditorCompactPresetTests
         Assert.Equal(0, compact.TabControl.HeadersSpacing);
         Assert.Equal(12, compact.TreeViewIndentSize);
 
-        // Everything the preset does not declare comes from Dark.
+        // Backlog task 14: the densities that used to be catalog literals, static fields or docking constants.
+        Assert.Equal(new Thickness(4, 2), compact.ToolTip.Padding);
+        Assert.Equal(new Thickness(1), compact.ToolTip.BorderThickness);
+        Assert.Equal(8, compact.ToolTip.MinWidth);
+        Assert.Equal(8, compact.ToolTip.MinHeight);
+        Assert.Equal(new Thickness(4, 0), compact.TextBox.Padding);
+        Assert.Equal(20, compact.TextBox.MinHeight);
+        Assert.Equal(new Thickness(4, 1), compact.NumericUpDown.Padding);
+        Assert.Equal(22, compact.NumericUpDown.MinHeight);
+        Assert.Equal(18, compact.NumericUpDown.SpinnerWidth);
+        Assert.Equal(16, compact.NumericUpDown.SpinnerMinWidth);
+        Assert.Equal(new Thickness(4, 2), compact.ListBox.ItemPadding);
+        Assert.Equal(new Thickness(2, 0), compact.ListBox.ItemContentPadding);
+        Assert.Equal(new Thickness(6, 3), compact.ComboBox.DropdownItemPadding);
+        Assert.Equal(new Thickness(6, 3), compact.TabControl.SelectedHeaderPadding);
+        Assert.Equal(new Thickness(6, 2), compact.TabControl.UnselectedHeaderPadding);
+        Assert.Equal(new Thickness(4, 3), compact.TabControl.SideHeaderPadding);
+        Assert.Equal(24, compact.Docking.TabHeaderHeight);
+        Assert.Equal(18, compact.Docking.TabButtonSize);
+        Assert.Equal(new Thickness(6, 2, 2, 2), compact.Docking.TabTitlePadding);
+        Assert.Equal(22, compact.Docking.AutoHideDrawerHeaderHeight);
+        Assert.Equal(18, compact.Docking.AutoHideDrawerButtonSize);
+        Assert.Equal(20, compact.Docking.AutoHideStripThickness);
+        Assert.Equal(32, compact.Docking.DropIndicatorZoneSize);
+
+        // Everything the preset does not declare comes from Dark, whose new settings hold the former code defaults.
         Assert.Equal(dark.DropdownArrowColor, compact.DropdownArrowColor);
         Assert.Equal(dark.Docking.TabGroupIconColor, compact.Docking.TabGroupIconColor);
         Assert.Equal(dark.ComboBox.DropdownBorderThickness, compact.ComboBox.DropdownBorderThickness);
+        Assert.Equal(new Thickness(6, 3), dark.ToolTip.Padding);
+        Assert.Equal(new Thickness(6, 1, 6, 1), dark.TextBox.Padding);
+        Assert.Equal(MGControlTemplateCatalog.DefaultListBoxItemPadding, dark.ListBox.ItemPadding);
+        Assert.Equal(MGControlTemplateCatalog.DefaultComboBoxDropdownItemPadding, dark.ComboBox.DropdownItemPadding);
+        Assert.Equal(MGDockAutoHideStrip.DefaultStripThickness, dark.Docking.AutoHideStripThickness);
+        Assert.Equal(30, dark.Docking.TabHeaderHeight);
     }
 
     [Fact]
@@ -55,60 +91,48 @@ public class EditorCompactPresetTests
         MGTheme dark = new(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
         harness.Window.GetResources().DefaultTheme = dark;
 
-        MGComboBox<string> comboBox = new(harness.Window);
-        MGListBox<string> listBox = new(harness.Window);
-        MGTextBlock textBlock = new(harness.Window, "Label");
-        MGStackPanel panel = new(harness.Window, Orientation.Vertical);
-        panel.TryAddChild(comboBox);
-        panel.TryAddChild(listBox);
-        panel.TryAddChild(textBlock);
-        harness.Show(panel);
-        AssertDensity(dark, comboBox, listBox, textBlock);
+        Scene scene = Scene.Build(harness);
+        AssertDensity(dark, scene);
 
         harness.Window.GetResources().DefaultTheme = compact;
         harness.Frame(2);
-        AssertDensity(compact, comboBox, listBox, textBlock);
+        AssertDensity(compact, scene);
 
         harness.Window.GetResources().DefaultTheme = dark;
         harness.Frame(3);
-        AssertDensity(dark, comboBox, listBox, textBlock);
+        AssertDensity(dark, scene);
     }
 
     [Fact]
-    public void The_Values_The_Preset_Cannot_Reach_Keep_Their_Code_Defaults()
+    public void The_Values_Out_Of_The_Preset_Reach_Keep_Their_Code_Defaults()
     {
         Harness harness = Harness.Create();
         MGTheme compact = harness.Window.GetResources().LoadThemesFromXaml(XamlDocumentSource.FromFile(PresetPath))["EditorCompact"];
         harness.Window.GetResources().DefaultTheme = compact;
 
-        MGTextBox textBox = new(harness.Window);
-        MGDockTabGroup tabGroup = new(harness.Window);
-        MGListBox<string> listBox = new(harness.Window);
-        MGStackPanel panel = new(harness.Window, Orientation.Vertical);
-        panel.TryAddChild(textBox);
-        panel.TryAddChild(tabGroup);
-        panel.TryAddChild(listBox);
-        harness.Show(panel);
+        MGTabControl tabControl = new(harness.Window);
+        tabControl.AddTab("First", new MGTextBlock(harness.Window, "1"));
+        tabControl.AddTab("Second", new MGTextBlock(harness.Window, "2"));
+        harness.Show(tabControl);
 
-        // No theme setting reaches the text box density, the docking sizes, or the item paddings of lists and dropdowns.
-        Assert.Equal(new Thickness(6, 1, 6, 1), textBox.Padding);
-        Assert.Equal(24, textBox.MinHeight);
-        Assert.Equal(30, tabGroup.TabHeaderHeight);
+        // The tab header border thicknesses encode which edge of the header touches the content, not a density: they stay template values.
+        MGButton[] headers = tabControl.HeadersPanelElement.Children.OfType<MGButton>().ToArray();
+        Assert.Equal(2, headers.Length);
+        Assert.All(headers, header => Assert.Equal(new Thickness(1, 1, 1, 0), header.BorderThickness));
 
-        // The theme declares a list box minimum height, but a list box on the Dark.ListBox variant receives none (gap recorded as task 14).
-        Assert.Equal(18, compact.ListBox.MinHeight);
-        Assert.Equal("Dark.ListBox", listBox.AppliedControlTemplateName);
-        Assert.Null(listBox.MinHeight);
-        Assert.Equal(24, MGDockAutoHideStrip.StripThickness);
+        // The compact buttons of a tab group (overflow, maximize) and the minimum-height heuristic of the layout model stay constants.
+        string tabGroupSource = File.ReadAllText(TabGroupPath);
+        Assert.Contains("private const int DropdownBtnWidth = 24;", tabGroupSource);
+        Assert.Contains("private const int MaximizeBtnWidth = 24;", tabGroupSource);
+        Assert.Contains("const int TabHeaderHeight = 30; // Approximate height of tab headers", File.ReadAllText(TabGroupNodePath));
+
+        // The code defaults are the values the theme settings start from.
+        Assert.Equal(24, MGDockAutoHideStrip.DefaultStripThickness);
         Assert.Equal(new Thickness(6, 4), MGControlTemplateCatalog.DefaultListBoxItemPadding);
         Assert.Equal(new Thickness(8, 5, 8, 5), MGControlTemplateCatalog.DefaultComboBoxDropdownItemPadding);
-
-        // The tooltip chrome and the tab header paddings are catalogue literals, not theme values.
         string catalogSource = File.ReadAllText(CatalogPath);
-        Assert.Contains("Context.ApplyOwnerThemeDefault(\"ToolTip.Padding\", new Thickness(6, 3)", catalogSource);
-        Assert.Contains("Context.ApplyOwnerThemeDefault(\"ToolTip.BorderThickness\", new Thickness(2)", catalogSource);
-        Assert.Contains("IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3)", catalogSource);
-        Assert.Contains("Context.ApplyTemplateValue(\"DockTabItem.TitleText.Padding\", new Thickness(8, 4, 4, 4)", catalogSource);
+        Assert.Contains("Context.ApplyOwnerThemeDefault(\"ToolTip.Padding\", Theme.ToolTip.Padding", catalogSource);
+        Assert.Contains("Context.ApplyThemeDefault(\"DockTabItem.TitleText.Padding\", Docking?.TabTitlePadding ?? new Thickness(8, 4, 4, 4)", catalogSource);
     }
 
     [Fact]
@@ -132,14 +156,107 @@ public class EditorCompactPresetTests
 
     private static Color BackgroundColor(MGTheme theme, MGElementType type) => SolidColor(theme.GetBackgroundBrush(type));
 
-    private static Color SolidColor(MGUI.Core.UI.VisualStateFillBrush brush)
-        => Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.NormalValue).Color;
+    private static Color SolidColor(MGUI.Core.UI.VisualStateFillBrush brush) => SolidColor(brush.NormalValue);
 
-    private static void AssertDensity(MGTheme theme, MGComboBox<string> comboBox, MGListBox<string> listBox, MGTextBlock textBlock)
+    private static Color SolidColor(MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush brush)
+        => Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush).Color;
+
+    /// <summary>Every control whose density the preset drives, shown together under the harness window.</summary>
+    private sealed record Scene(MGComboBox<string> ComboBox, MGListBox<string> ListBox, MGListBox<string> VirtualizedListBox, MGTextBlock TextBlock, MGTextBox TextBox,
+        MGNumericUpDown NumericUpDown, MGTabControl TabControl, MGTabControl SideTabControl, MGToolTip ToolTip, MGDockTabGroup TabGroup, MGDockAutoHideStrip Strip,
+        MGDockAutoHideDrawer Drawer, MGDockDropIndicators Indicators)
     {
-        Assert.Equal(theme.ComboBox.Padding, comboBox.Padding);
-        Assert.Equal(theme.ComboBox.MinHeight, comboBox.MinHeight);
-        Assert.Equal(theme.FontSettings.DefaultFontSize, textBlock.FontSize);
+        public static Scene Build(Harness harness)
+        {
+            MGWindow window = harness.Window;
+            MGComboBox<string> comboBox = new(window);
+            comboBox.SetItemsSource(new List<string> { "Low", "High" });
+            MGListBox<string> listBox = new(window);
+            listBox.SetItemsSource(new List<string> { "A", "B" });
+            MGListBox<string> virtualizedListBox = new(window) { VirtualizationMode = ListBoxVirtualizationMode.Always, PreferredHeight = 120 };
+            virtualizedListBox.SetItemsSource(new List<string> { "V1", "V2", "V3" });
+            MGTextBlock textBlock = new(window, "Label");
+            MGTextBox textBox = new(window);
+            MGNumericUpDown numericUpDown = new(window);
+            MGTabControl tabControl = new(window);
+            tabControl.AddTab("First", new MGTextBlock(window, "1"));
+            tabControl.AddTab("Second", new MGTextBlock(window, "2"));
+            MGTabControl sideTabControl = new(window) { TabHeaderPosition = Dock.Left };
+            sideTabControl.AddTab("First", new MGTextBlock(window, "1"));
+            sideTabControl.AddTab("Second", new MGTextBlock(window, "2"));
+            MGToolTip toolTip = new(window, textBlock, 120, 40);
+            MGDockTabGroup tabGroup = new(window);
+            MGDockAutoHideStrip strip = new(window, AutoHideSide.Left);
+            MGDockAutoHideDrawer drawer = new(window);
+            MGDockDropIndicators indicators = new(window);
+
+            MGStackPanel panel = new(window, Orientation.Vertical);
+            foreach (MGElement element in new MGElement[] { comboBox, listBox, virtualizedListBox, textBlock, textBox, numericUpDown, tabControl, sideTabControl, tabGroup, strip, drawer, indicators })
+            {
+                panel.TryAddChild(element);
+            }
+
+            harness.Show(panel);
+            // The dropdown rows are only added to the dropdown when it opens; they then stay and follow the theme of the dropdown window's scope.
+            comboBox.IsDropdownOpen = true;
+            harness.Frame(1);
+            return new(comboBox, listBox, virtualizedListBox, textBlock, textBox, numericUpDown, tabControl, sideTabControl, toolTip, tabGroup, strip, drawer, indicators);
+        }
+    }
+
+    private static void AssertDensity(MGTheme theme, Scene scene)
+    {
+        Assert.Equal(theme.ComboBox.Padding, scene.ComboBox.Padding);
+        Assert.Equal(theme.ComboBox.MinHeight, scene.ComboBox.MinHeight);
+        Assert.Equal(theme.FontSettings.DefaultFontSize, scene.TextBlock.FontSize);
+
+        // Backlog task 14.
+        MGButton[] dropdownRows = scene.ComboBox.DropdownStackPanel.Children.OfType<MGButton>().ToArray();
+        Assert.Equal(2, dropdownRows.Length);
+        Assert.All(dropdownRows, row => Assert.Equal(theme.ComboBox.DropdownItemPadding, row.Padding));
+
+        // The list box resolves Dark.ListBox and now receives the ListBox.* defaults of the catalog (the task 13 gap).
+        Assert.Equal("Dark.ListBox", scene.ListBox.AppliedControlTemplateName);
+        Assert.Equal(theme.ListBox.MinHeight, scene.ListBox.MinHeight);
+        Assert.Equal(2, scene.ListBox.ListBoxItems.Count);
+        Assert.All(scene.ListBox.ListBoxItems, item => Assert.Equal(theme.ListBox.ItemPadding, item.ContentPresenter.Padding));
+        Assert.All(scene.ListBox.ListBoxItems, item => Assert.Equal(theme.ListBox.ItemContentPadding, item.Content.Padding));
+        // A virtualized list box holds its realized wrappers in its virtualizing panel; the theme callback reaches them through the recycle pool.
+        Assert.True(scene.VirtualizedListBox.IsVirtualizing);
+        MGBorder[] realizedWrappers = scene.VirtualizedListBox.VirtualizingPanel.Children.OfType<MGBorder>().ToArray();
+        Assert.NotEmpty(realizedWrappers);
+        Assert.All(realizedWrappers, wrapper => Assert.Equal(theme.ListBox.ItemPadding, wrapper.Padding));
+        Assert.All(realizedWrappers, wrapper => Assert.Equal(theme.ListBox.ItemContentPadding, wrapper.Content.Padding));
+
+        Assert.Equal(theme.TextBox.Padding, scene.TextBox.Padding);
+        Assert.Equal(theme.TextBox.MinHeight, scene.TextBox.MinHeight);
+        Assert.Equal(theme.NumericUpDown.Padding, scene.NumericUpDown.Padding);
+        Assert.Equal(theme.NumericUpDown.MinHeight, scene.NumericUpDown.MinHeight);
+        Assert.True(scene.NumericUpDown.TryGetTemplatePart(MGNumericUpDown.SpinnerHostPartName, out MGElement spinnerHost));
+        Assert.Equal(theme.NumericUpDown.SpinnerWidth, spinnerHost.PreferredWidth);
+        Assert.True(scene.NumericUpDown.TryGetTemplatePart(MGNumericUpDown.IncreaseButtonPartName, out MGElement increaseButton));
+        Assert.Equal(theme.NumericUpDown.SpinnerMinWidth, increaseButton.MinWidth);
+
+        MGButton[] headers = scene.TabControl.HeadersPanelElement.Children.OfType<MGButton>().ToArray();
+        Assert.Equal(2, headers.Length);
+        Assert.Single(headers, header => header.IsSelected);
+        Assert.All(headers, header => Assert.Equal(header.IsSelected ? theme.TabControl.SelectedHeaderPadding : theme.TabControl.UnselectedHeaderPadding, header.Padding));
+        MGButton[] sideHeaders = scene.SideTabControl.HeadersPanelElement.Children.OfType<MGButton>().ToArray();
+        Assert.Equal(2, sideHeaders.Length);
+        Assert.All(sideHeaders, header => Assert.Equal(theme.TabControl.SideHeaderPadding, header.Padding));
+
+        Assert.Equal(theme.ToolTip.Padding, scene.ToolTip.Padding);
+        Assert.Equal(theme.ToolTip.BorderThickness, scene.ToolTip.BorderThickness);
+        Assert.Equal(SolidColor(Assert.IsType<MGUI.Core.UI.Brushes.Border_Brushes.MGUniformBorderBrush>(theme.ToolTip.BorderBrush).Brush),
+            SolidColor(Assert.IsType<MGUI.Core.UI.Brushes.Border_Brushes.MGUniformBorderBrush>(scene.ToolTip.BorderBrush).Brush));
+        Assert.Equal(theme.ToolTip.MinWidth, scene.ToolTip.MinWidth);
+        Assert.Equal(theme.ToolTip.MinHeight, scene.ToolTip.MinHeight);
+
+        Assert.Equal(theme.Docking.TabHeaderHeight, scene.TabGroup.TabHeaderHeight);
+        Assert.Equal(theme.Docking.AutoHideStripThickness, scene.Strip.StripThickness);
+        Assert.Equal(theme.Docking.AutoHideDrawerHeaderHeight, scene.Drawer.HeaderHeight);
+        Assert.Equal(theme.Docking.AutoHideDrawerButtonSize, scene.Drawer.HeaderButtonSize);
+        Assert.Equal(theme.Docking.DropIndicatorZoneSize, scene.Indicators.ZoneSize);
     }
 
     private sealed record Harness(GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window)

@@ -60,11 +60,39 @@ namespace MGUI.Core.UI.Styling
         public static MGUniformBorderBrush CreateDefaultListBoxItemBorderBrush()
             => new MGSolidFillBrush(Color.Black * 0.35f).AsUniformBorderBrush();
 
+        /// <summary>Provenance name of the padding of the default item content of a list box, re-applied on a theme change by
+        /// <see cref="RefreshDefaultListBoxItemContent"/>.</summary>
+        internal const string ListBoxItemContentPaddingName = "ListBox.ItemContent.Padding";
+
         public static MGElement CreateDefaultListBoxItemContent<TItemType>(MGWindow Window, TItemType Item)
+            => CreateDefaultListBoxItemContent(Window, Window?.GetTheme(), Item);
+
+        /// <summary>The default item content of <paramref name="Owner"/>, a list box: a text block whose padding is the owner's theme
+        /// <see cref="MGThemeListBoxSettings.ItemContentPadding"/> (backlog task 14).</summary>
+        public static MGElement CreateDefaultListBoxItemContent<TItemType>(MGElement Owner, TItemType Item)
+            => CreateDefaultListBoxItemContent(Owner?.SelfOrParentWindow, Owner?.GetTheme(), Item);
+
+        private static MGElement CreateDefaultListBoxItemContent<TItemType>(MGWindow Window, MGTheme Theme, TItemType Item)
         {
             MGTextBlock content = new(Window, Item?.ToString());
-            content.SetPadding(DefaultListBoxItemContentPadding, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "ListBox.ItemContent.Padding"));
+            content.SetPadding(Theme?.ListBox.ItemContentPadding ?? DefaultListBoxItemContentPadding,
+                UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, ListBoxItemContentPaddingName));
             return content;
+        }
+
+        /// <summary>Re-applies the theme padding of an item content created by <see cref="CreateDefaultListBoxItemContent{TItemType}(MGElement, TItemType)"/>
+        /// after a theme change of <paramref name="Owner"/> (backlog task 14). A content created by an application item template, which carries no
+        /// <see cref="ListBoxItemContentPaddingName"/> contribution, is left alone.</summary>
+        internal static void RefreshDefaultListBoxItemContent(MGElement Owner, MGElement Content)
+        {
+            if (Owner == null || Content == null
+                || !Content.TryGetResolvedContribution(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Template, out UIResolvedValue<Thickness> applied)
+                || applied.Source.Name != ListBoxItemContentPaddingName)
+            {
+                return;
+            }
+
+            Content.SetPadding(Owner.GetTheme().ListBox.ItemContentPadding, applied.Source);
         }
 
         internal static MGTextBlock CreateDefaultControlTextBlock(MGWindow window, string text, bool wrapText, bool isCompact, bool reserveOneLine)
@@ -146,7 +174,8 @@ namespace MGUI.Core.UI.Styling
             MGTheme theme = Owner.GetTheme();
             Item.SetBorderBrush(CreateDefaultListBoxItemBorderBrush(), UIValueResolutionSource.Template(UIInvalidationKind.Draw, "ListBox.Item.BorderBrush"));
             Item.SetBorderThickness(DefaultListBoxItemBorderThickness, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "ListBox.Item.BorderThickness"));
-            Item.SetPadding(DefaultListBoxItemPadding, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "ListBox.Item.Padding"));
+            // Backlog task 14: the item padding comes from the theme (MGTheme.ListBox.ItemPadding, default DefaultListBoxItemPadding).
+            Item.SetPadding(theme.ListBox.ItemPadding, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "ListBox.Item.Padding"));
             Item.SetBackground(theme.ListBoxItemBackground.GetValue(true), UIValueResolutionSource.Template(UIInvalidationKind.Draw, "ListBox.Item.Background"));
             Item.SetDefaultTextForegroundAll(theme.TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.Template(UIInvalidationKind.Draw, "ListBox.Item.TextForeground"));
         }
@@ -187,8 +216,12 @@ namespace MGUI.Core.UI.Styling
             Register(Resources, CreateDockDropIndicatorsTemplate());
             Register(Resources, CreateDockPreviewOverlayTemplate());
 
+            // The asset also defines ListBox.Default and ListView.Default, registered above with their code applicators. The loader resolves a BasedOn
+            // among the definitions it is given before asking the resolver, so handing it those two would base Dark.ListBox and Dark.ListView on a
+            // bare structure with no applicator: a list box under Dark received no ListBox.* default (backlog task 14). Only the definitions the
+            // catalog has not registered itself are built here.
             IReadOnlyDictionary<string, MGControlTemplate> builtInXamlTemplates = ControlTemplateLoader.BuildTemplates(
-                BuiltInXamlTemplateDefinitions.Value.Values,
+                BuiltInXamlTemplateDefinitions.Value.Values.Where(x => !Resources.TryGetControlTemplate(x.Name, out _)).ToList(),
                 name => Resources.TryGetControlTemplate(name, out MGControlTemplate template) ? template : null);
 
             foreach (KeyValuePair<string, MGControlTemplate> item in builtInXamlTemplates)
@@ -872,13 +905,14 @@ namespace MGUI.Core.UI.Styling
             MGBorder Border = Context.GetRequiredPart<MGBorder>(MGWindow.BorderPartName);
             MGTheme Theme = ToolTip.GetTheme();
 
-            Context.ApplyOwnerThemeDefault("ToolTip.BorderBrush", Color.Black.AsFillBrush().AsUniformBorderBrush(), () => Border.BorderBrush, (value, source) => Border.SetBorderBrush(value, source));
-            Context.ApplyOwnerThemeDefault("ToolTip.BorderThickness", new Thickness(2), () => Border.BorderThickness, (value, source) => Border.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyOwnerThemeDefault("ToolTip.Padding", new Thickness(6, 3), () => ToolTip.Padding, (value, source) => ToolTip.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            // Backlog task 14: the tooltip density comes from the theme (MGTheme.ToolTip) instead of catalog literals.
+            Context.ApplyOwnerThemeDefault("ToolTip.BorderBrush", Theme.ToolTip.BorderBrush, () => Border.BorderBrush, (value, source) => Border.SetBorderBrush(value, source));
+            Context.ApplyOwnerThemeDefault("ToolTip.BorderThickness", Theme.ToolTip.BorderThickness, () => Border.BorderThickness, (value, source) => Border.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("ToolTip.Padding", Theme.ToolTip.Padding, () => ToolTip.Padding, (value, source) => ToolTip.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyOwnerThemeDefault("ToolTip.DrawOffset", Theme.ToolTipOffset, () => ToolTip.DrawOffset, value => ToolTip.DrawOffset = value);
             Context.ApplyOwnerThemeDefault("ToolTip.TextForeground", Theme.ToolTipTextForeground.GetCopy(), () => ToolTip.DefaultTextForeground, (value, source) => ToolTip.SetDefaultTextForeground(value, source));
-            Context.ApplyOwnerThemeDefault("ToolTip.MinWidth", 10, () => ToolTip.MinWidth ?? 0, value => ToolTip.MinWidth = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyOwnerThemeDefault("ToolTip.MinHeight", 10, () => ToolTip.MinHeight ?? 0, (value, source) => ToolTip.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("ToolTip.MinWidth", Theme.ToolTip.MinWidth, () => ToolTip.MinWidth ?? 0, value => ToolTip.MinWidth = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("ToolTip.MinHeight", Theme.ToolTip.MinHeight, () => ToolTip.MinHeight ?? 0, (value, source) => ToolTip.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
             // Values of the tool tip itself, not of its parts: MGWindow.AttachControlTemplateStructure hands them to a rebuilt structure.
             if (!Context.IsThemeRefresh)
@@ -1070,7 +1104,8 @@ namespace MGUI.Core.UI.Styling
                 return;
             }
 
-            Context.ApplyThemeDefault("ComboBox.DropdownItem.Padding", DefaultComboBoxDropdownItemPadding, () => Button.Padding, (value, source) => Button.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            // Backlog task 14: the row padding comes from the theme (MGTheme.ComboBox.DropdownItemPadding, default DefaultComboBoxDropdownItemPadding).
+            Context.ApplyThemeDefault("ComboBox.DropdownItem.Padding", theme.ComboBox.DropdownItemPadding, () => Button.Padding, (value, source) => Button.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Margin", new Thickness(0), () => Button.Margin, (value, source) => Button.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Background", theme.ComboBoxDropdownItemBackground.GetValue(true), () => Button.BackgroundBrush, (value, source) => Button.SetBackground(value, source));
             Context.ApplyThemeDefault("ComboBox.DropdownItem.Foreground", theme.TextBlockFallbackForeground.GetValue(true).NormalValue, () => Button.DefaultTextForeground.NormalValue, (value, source) => Button.SetDefaultTextForegroundAll(value, source));
@@ -1240,8 +1275,9 @@ namespace MGUI.Core.UI.Styling
 
             MGTheme theme = textBox.GetTheme();
             Context.ApplyOwnerThemeDefault("TextBox.Background", theme.GetBackgroundBrush(MGElementType.TextBox), () => textBox.BackgroundBrush, (value, source) => textBox.SetBackground(value, source));
-            Context.ApplyOwnerThemeDefault("TextBox.Padding", new Thickness(6, 1, 6, 1), () => textBox.Padding, (value, source) => textBox.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyOwnerThemeDefault("TextBox.MinHeight", 24, () => textBox.MinHeight ?? 0, (value, source) => textBox.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            // Backlog task 14: the text box density comes from the theme (MGTheme.TextBox) instead of catalog literals.
+            Context.ApplyOwnerThemeDefault("TextBox.Padding", theme.TextBox.Padding, () => textBox.Padding, (value, source) => textBox.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("TextBox.MinHeight", theme.TextBox.MinHeight, () => textBox.MinHeight ?? 0, (value, source) => textBox.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyOwnerThemeDefault("TextBox.FocusedSelectionForeground", theme.TextBoxFocusedSelectionForeground, () => textBox.FocusedSelectionForegroundColor, value => textBox.FocusedSelectionForegroundColor = value);
             Context.ApplyOwnerThemeDefault("TextBox.FocusedSelectionBackground", theme.TextBoxFocusedSelectionBackground, () => textBox.FocusedSelectionBackgroundColor, value => textBox.FocusedSelectionBackgroundColor = value);
             Context.ApplyOwnerThemeDefault("TextBox.UnfocusedSelectionForeground", theme.TextBoxUnfocusedSelectionForeground, () => textBox.UnfocusedSelectionForegroundColor, value => textBox.UnfocusedSelectionForegroundColor = value);
@@ -1276,10 +1312,12 @@ namespace MGUI.Core.UI.Styling
             MGButton increaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.IncreaseButtonPartName);
             MGButton decreaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.DecreaseButtonPartName);
 
-            Context.ApplyOwnerThemeDefault("NumericUpDown.Padding", new Thickness(6, 2, 6, 2), () => numericUpDown.Padding, (value, source) => numericUpDown.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyOwnerThemeDefault("NumericUpDown.MinHeight", 28, () => numericUpDown.MinHeight ?? 0, (value, source) => numericUpDown.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyTemplateValue("NumericUpDown.SpinnerWidth", 24, () => spinnerHost.PreferredWidth ?? 0, value => spinnerHost.PreferredWidth = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-            Context.ApplyTemplateValue("NumericUpDown.SpinnerMinWidth", 22, () => increaseButton.MinWidth ?? 0, value =>
+            // Backlog task 14: the numeric up/down density comes from the theme (MGTheme.NumericUpDown) instead of catalog literals.
+            MGThemeNumericUpDownSettings numericSettings = numericUpDown.GetTheme().NumericUpDown;
+            Context.ApplyOwnerThemeDefault("NumericUpDown.Padding", numericSettings.Padding, () => numericUpDown.Padding, (value, source) => numericUpDown.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("NumericUpDown.MinHeight", numericSettings.MinHeight, () => numericUpDown.MinHeight ?? 0, (value, source) => numericUpDown.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyThemeDefault("NumericUpDown.SpinnerWidth", numericSettings.SpinnerWidth, () => spinnerHost.PreferredWidth ?? 0, value => spinnerHost.PreferredWidth = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyThemeDefault("NumericUpDown.SpinnerMinWidth", numericSettings.SpinnerMinWidth, () => increaseButton.MinWidth ?? 0, value =>
             {
                 increaseButton.MinWidth = value;
                 decreaseButton.MinWidth = value;
@@ -1429,6 +1467,10 @@ namespace MGUI.Core.UI.Styling
             }
 
             UIInvalidationKind headerLayoutInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
+            // Backlog task 14: the header paddings come from the theme (MGTheme.TabControl); the border thicknesses stay template values, since they
+            // encode which edge of the header touches the content, not a density.
+            MGThemeTabControlSettings tabSettings = theme.TabControl;
+            Thickness topBottomPadding = IsSelected ? tabSettings.SelectedHeaderPadding : tabSettings.UnselectedHeaderPadding;
 
             Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderBrush" : "TabHeader.Unselected.BorderBrush",
                 IsSelected ? MGUniformBorderBrush.Black : MGUniformBorderBrush.Gray,
@@ -1446,22 +1488,22 @@ namespace MGUI.Core.UI.Styling
             switch (TabControl.TabHeaderPosition)
             {
                 case Dock.Left:
-                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.Padding.Left" : "TabHeader.Unselected.Padding.Left", new Thickness(6, 5, 6, 5), () => Button.Padding, (value, source) => Button.SetPadding(value, source), headerLayoutInvalidation);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Left" : "TabHeader.Unselected.Padding.Left", tabSettings.SideHeaderPadding, () => Button.Padding, (value, source) => Button.SetPadding(value, source), headerLayoutInvalidation);
                     Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.BorderThickness.Left" : "TabHeader.Unselected.BorderThickness.Left", new Thickness(1, 1, 0, 1), () => Button.BorderThickness, (value, source) => Button.SetBorderThicknessTagged(value, source), headerLayoutInvalidation);
                     Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.HorizontalAlignment.Left" : "TabHeader.Unselected.HorizontalAlignment.Left", HorizontalAlignment.Right, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value, headerLayoutInvalidation);
                     break;
                 case Dock.Top:
-                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.Padding.Top" : "TabHeader.Unselected.Padding.Top", IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3), () => Button.Padding, (value, source) => Button.SetPadding(value, source), headerLayoutInvalidation);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Top" : "TabHeader.Unselected.Padding.Top", topBottomPadding, () => Button.Padding, (value, source) => Button.SetPadding(value, source), headerLayoutInvalidation);
                     Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.BorderThickness.Top" : "TabHeader.Unselected.BorderThickness.Top", new Thickness(1, 1, 1, 0), () => Button.BorderThickness, (value, source) => Button.SetBorderThicknessTagged(value, source), headerLayoutInvalidation);
                     Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.VerticalAlignment.Top" : "TabHeader.Unselected.VerticalAlignment.Top", VerticalAlignment.Bottom, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value, headerLayoutInvalidation);
                     break;
                 case Dock.Right:
-                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.Padding.Right" : "TabHeader.Unselected.Padding.Right", new Thickness(6, 5, 6, 5), () => Button.Padding, (value, source) => Button.SetPadding(value, source), headerLayoutInvalidation);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Right" : "TabHeader.Unselected.Padding.Right", tabSettings.SideHeaderPadding, () => Button.Padding, (value, source) => Button.SetPadding(value, source), headerLayoutInvalidation);
                     Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.BorderThickness.Right" : "TabHeader.Unselected.BorderThickness.Right", new Thickness(0, 1, 1, 1), () => Button.BorderThickness, (value, source) => Button.SetBorderThicknessTagged(value, source), headerLayoutInvalidation);
                     Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.HorizontalAlignment.Right" : "TabHeader.Unselected.HorizontalAlignment.Right", HorizontalAlignment.Left, () => Button.HorizontalAlignment, value => Button.HorizontalAlignment = value, headerLayoutInvalidation);
                     break;
                 case Dock.Bottom:
-                    Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.Padding.Bottom" : "TabHeader.Unselected.Padding.Bottom", IsSelected ? new Thickness(8, 5, 8, 5) : new Thickness(8, 3, 8, 3), () => Button.Padding, (value, source) => Button.SetPadding(value, source), headerLayoutInvalidation);
+                    Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.Padding.Bottom" : "TabHeader.Unselected.Padding.Bottom", topBottomPadding, () => Button.Padding, (value, source) => Button.SetPadding(value, source), headerLayoutInvalidation);
                     Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.BorderThickness.Bottom" : "TabHeader.Unselected.BorderThickness.Bottom", new Thickness(1, 0, 1, 1), () => Button.BorderThickness, (value, source) => Button.SetBorderThicknessTagged(value, source), headerLayoutInvalidation);
                     Context.ApplyTemplateValue(IsSelected ? "TabHeader.Selected.VerticalAlignment.Bottom" : "TabHeader.Unselected.VerticalAlignment.Bottom", VerticalAlignment.Top, () => Button.VerticalAlignment, value => Button.VerticalAlignment = value, headerLayoutInvalidation);
                     break;
@@ -1500,6 +1542,19 @@ namespace MGUI.Core.UI.Styling
         /// <summary>The host surfaces carry their own templates: the host template applies no default of its own.</summary>
         private static void ApplyDockHostTemplate(MGControlTemplateContext Context)
         {
+            if (Context.Owner is not MGDockHost Host)
+            {
+                return;
+            }
+
+            MGThemeDockingSettings Docking = Host.GetTheme()?.Docking;
+            if (Docking == null)
+            {
+                return;
+            }
+
+            // Backlog task 14: the inset the host reserves for its auto-hide strips follows the theme, and the host pushes it onto the strips.
+            Context.ApplyOwnerThemeDefault("DockHost.AutoHideStripThickness", Docking.AutoHideStripThickness, () => Host.AutoHideStripThickness, value => Host.AutoHideStripThickness = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
         /// <summary>The four parts of a tab group. The overflow and maximize/restore buttons are not template parts (ADR-0002 gives them no role):
@@ -1545,6 +1600,8 @@ namespace MGUI.Core.UI.Styling
 
             Context.ApplyOwnerThemeDefault("DockTabGroup.IconColor", Docking.TabGroupIconColor, () => TabGroup.IconColor, value => TabGroup.IconColor = value);
             Context.ApplyOwnerThemeDefault("DockTabGroup.CompactButtonHoverColor", Docking.TabGroupButtonHoverColor, () => TabGroup.CompactButtonHoverColor, value => TabGroup.CompactButtonHoverColor = value);
+            // Backlog task 14: the strip height follows the theme; the group pushes it onto its tab items.
+            Context.ApplyOwnerThemeDefault("DockTabGroup.TabHeaderHeight", Docking.TabHeaderHeight, () => TabGroup.TabHeaderHeight, value => TabGroup.TabHeaderHeight = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
         /// <summary>The seven tab parts. <see cref="MGDockTabItem"/> wires the close click and positions, sizes and reveals the parts itself.</summary>
@@ -1597,16 +1654,21 @@ namespace MGUI.Core.UI.Styling
             MGTextBlock TitleText = Context.GetRequiredPart<MGTextBlock>(MGDockTabItem.TitleTextPartName);
             MGBorder CloseButton = Context.GetRequiredPart<MGBorder>(MGDockTabItem.CloseButtonPartName);
             MGBorder PinButton = Context.GetRequiredPart<MGBorder>(MGDockTabItem.PinButtonPartName);
-            Context.ApplyTemplateValue("DockTabItem.TitleText.Padding", new Thickness(8, 4, 4, 4), () => TitleText.Padding, (value, source) => TitleText.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            MGThemeDockingSettings Docking = TabItem.GetTheme()?.Docking;
+            // Backlog task 14: the title padding follows the theme (Docking.TabTitlePadding).
+            Context.ApplyThemeDefault("DockTabItem.TitleText.Padding", Docking?.TabTitlePadding ?? new Thickness(8, 4, 4, 4), () => TitleText.Padding, (value, source) => TitleText.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             // The accessory buttons take the surface brush of the tab (MGDockTabItem.UpdateVisuals); this container removes their hover overlay.
             Context.ApplyTemplateValue("DockTabItem.CloseButton.Background", new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f), () => CloseButton.BackgroundBrush, (value, source) => CloseButton.SetBackground(value, source));
             Context.ApplyTemplateValue("DockTabItem.PinButton.Background", new VisualStateFillBrush(Color.Transparent.AsFillBrush(), null, PressedModifierType.Darken, 0f), () => PinButton.BackgroundBrush, (value, source) => PinButton.SetBackground(value, source));
 
-            MGThemeDockingSettings Docking = TabItem.GetTheme()?.Docking;
             if (Docking == null)
             {
                 return;
             }
+
+            // Backlog task 14: the tab height and the reserved width of the close and pin buttons follow the theme.
+            Context.ApplyOwnerThemeDefault("DockTabItem.TabHeight", Docking.TabHeaderHeight, () => TabItem.TabHeight, value => TabItem.TabHeight = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("DockTabItem.ButtonSize", Docking.TabButtonSize, () => TabItem.ButtonSize, value => TabItem.ButtonSize = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
             Context.ApplyOwnerThemeDefault("DockTabItem.NormalBrush", Docking.TabNormalBackground, () => TabItem.NormalBrush, value => TabItem.NormalBrush = value);
             Context.ApplyOwnerThemeDefault("DockTabItem.HoverBrush", Docking.TabHoverBackground, () => TabItem.HoverBrush, value => TabItem.HoverBrush = value);
@@ -1698,6 +1760,9 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyOwnerThemeDefault("DockDrawer.IconColor", Docking.AutoHideIconColor, () => Drawer.IconColor, value => Drawer.IconColor = value);
             Context.ApplyOwnerThemeDefault("DockDrawer.BorderColor", Docking.AutoHideBorderColor, () => Drawer.BorderColor, value => Drawer.BorderColor = value);
             Context.ApplyOwnerThemeDefault("DockDrawer.ResizeGripColor", Docking.AutoHideGripColor, () => Drawer.ResizeGripColor, value => Drawer.ResizeGripColor = value);
+            // Backlog task 14: the header height and the size of its buttons follow the theme.
+            Context.ApplyOwnerThemeDefault("DockDrawer.HeaderHeight", Docking.AutoHideDrawerHeaderHeight, () => Drawer.HeaderHeight, value => Drawer.HeaderHeight = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+            Context.ApplyOwnerThemeDefault("DockDrawer.HeaderButtonSize", Docking.AutoHideDrawerButtonSize, () => Drawer.HeaderButtonSize, value => Drawer.HeaderButtonSize = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
 
         private static MGControlTemplateStructure CreateDockAutoHideStripTemplateStructure(MGControlTemplateContext Context)
@@ -1805,6 +1870,8 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyOwnerThemeDefault("DockStrip.ButtonBackgroundBrush", Docking.AutoHideStripButtonBackground, () => Strip.ButtonBackgroundBrush, value => Strip.ButtonBackgroundBrush = value);
             Context.ApplyOwnerThemeDefault("DockStrip.TextColor", Docking.AutoHideStripTextColor, () => Strip.TextColor, value => Strip.TextColor = value);
             Context.ApplyOwnerThemeDefault("DockStrip.SeparatorColor", Docking.AutoHideStripSeparatorColor, () => Strip.SeparatorColor, value => Strip.SeparatorColor = value);
+            // Backlog task 14: the strip thickness follows the theme (the host reserves the same inset, see ApplyDockHostTemplate).
+            Context.ApplyOwnerThemeDefault("DockStrip.StripThickness", Docking.AutoHideStripThickness, () => Strip.StripThickness, value => Strip.StripThickness = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Strip.ApplyThemeVisuals();
         }
 
@@ -1850,6 +1917,8 @@ namespace MGUI.Core.UI.Styling
             Context.ApplyOwnerThemeDefault("DockIndicators.DisabledBorderColor", Docking.DropIndicatorDisabledBorderColor, () => Indicators.DisabledBorderColor, value => Indicators.DisabledBorderColor = value);
             Context.ApplyOwnerThemeDefault("DockIndicators.SymbolColor", Docking.DropIndicatorSymbolColor, () => Indicators.SymbolColor, value => Indicators.SymbolColor = value);
             Context.ApplyOwnerThemeDefault("DockIndicators.DisabledSymbolColor", Docking.DropIndicatorDisabledSymbolColor, () => Indicators.DisabledSymbolColor, value => Indicators.DisabledSymbolColor = value);
+            // Backlog task 14: the size of the zones follows the theme.
+            Context.ApplyOwnerThemeDefault("DockIndicators.ZoneSize", Docking.DropIndicatorZoneSize, () => Indicators.ZoneSize, value => Indicators.ZoneSize = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         }
     }
 }

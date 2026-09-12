@@ -84,6 +84,19 @@ namespace MGUI.Core.UI.Styling
                 ["ToolTipOffset"] = RenderOnly, // MGToolTip.DrawOffset: where the tooltip is drawn relative to the mouse
                 ["ToolTipTextForeground"] = RenderOnly,
 
+                // MGTheme.ToolTip, MGTheme.TextBox and MGTheme.NumericUpDown (backlog task 14)
+                ["ToolTip.Padding"] = LayoutAffecting,
+                ["ToolTip.BorderThickness"] = LayoutAffecting,
+                ["ToolTip.BorderBrush"] = RenderOnly,
+                ["ToolTip.MinWidth"] = LayoutAffecting,
+                ["ToolTip.MinHeight"] = LayoutAffecting,
+                ["TextBox.Padding"] = LayoutAffecting,
+                ["TextBox.MinHeight"] = LayoutAffecting,
+                ["NumericUpDown.Padding"] = LayoutAffecting,
+                ["NumericUpDown.MinHeight"] = LayoutAffecting,
+                ["NumericUpDown.SpinnerWidth"] = LayoutAffecting,
+                ["NumericUpDown.SpinnerMinWidth"] = LayoutAffecting,
+
                 // MGTheme.FontSettings
                 ["FontSettings.ContextMenuFontSize"] = LayoutAffecting,
                 ["FontSettings.SmallFontSize"] = LayoutAffecting,
@@ -148,6 +161,8 @@ namespace MGUI.Core.UI.Styling
                 ["ListBox.ScrollViewerPadding"] = LayoutAffecting,
                 ["ListBox.ItemsPanelBorderBrush"] = RenderOnly,
                 ["ListBox.ItemsPanelBorderThickness"] = LayoutAffecting,
+                ["ListBox.ItemPadding"] = LayoutAffecting,
+                ["ListBox.ItemContentPadding"] = LayoutAffecting,
                 ["ListView.HeaderForeground"] = RenderOnly,
                 ["ListView.GridLineBrush"] = RenderOnly,
 
@@ -178,6 +193,7 @@ namespace MGUI.Core.UI.Styling
                 ["ComboBox.DropdownPadding"] = LayoutAffecting,
                 ["ComboBox.DropdownScrollViewerPadding"] = LayoutAffecting,
                 ["ComboBox.DropdownItemsSpacing"] = LayoutAffecting,
+                ["ComboBox.DropdownItemPadding"] = LayoutAffecting,
 
                 // MGTheme.TreeViewTemplate and MGTheme.TabControl
                 ["TreeViewTemplate.ScrollViewerPadding"] = LayoutAffecting,
@@ -187,6 +203,9 @@ namespace MGUI.Core.UI.Styling
                 ["TabControl.BorderBrush"] = RenderOnly,
                 ["TabControl.BorderThickness"] = LayoutAffecting,
                 ["TabControl.HeadersSpacing"] = LayoutAffecting,
+                ["TabControl.SelectedHeaderPadding"] = LayoutAffecting,
+                ["TabControl.UnselectedHeaderPadding"] = LayoutAffecting,
+                ["TabControl.SideHeaderPadding"] = LayoutAffecting,
 
                 // MGTheme.Graph
                 ["Graph.Padding"] = LayoutAffecting,
@@ -248,6 +267,13 @@ namespace MGUI.Core.UI.Styling
                 ["Docking.PreviewOverlayBorderColor"] = RenderOnly,
                 ["Docking.TabGroupButtonHoverColor"] = RenderOnly,
                 ["Docking.TabGroupIconColor"] = RenderOnly,
+                ["Docking.TabHeaderHeight"] = LayoutAffecting,
+                ["Docking.TabButtonSize"] = LayoutAffecting,
+                ["Docking.TabTitlePadding"] = LayoutAffecting,
+                ["Docking.AutoHideDrawerHeaderHeight"] = LayoutAffecting,
+                ["Docking.AutoHideDrawerButtonSize"] = LayoutAffecting,
+                ["Docking.AutoHideStripThickness"] = LayoutAffecting,
+                ["Docking.DropIndicatorZoneSize"] = LayoutAffecting,
             });
 
         /// <summary>Every classified theme value, keyed by path.</summary>

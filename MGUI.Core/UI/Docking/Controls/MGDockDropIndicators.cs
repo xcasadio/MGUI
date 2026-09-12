@@ -125,9 +125,28 @@ public class MGDockDropIndicators : MGElement
     public const string HostTopDropZonePartName = "PART_HostTopDropZone";
     public const string HostBottomDropZonePartName = "PART_HostBottomDropZone";
 
-    private const int ZoneSize = 40;      // Size of each zone square
     private const int ZoneSpacing = 4;    // Spacing between zones
     private const int BorderWidth = 2;
+
+    private int _zoneSize = 40;
+    /// <summary>Size of each square zone, in pixels: the hit-test rectangles and the zone elements follow it. Default: the theme's
+    /// <see cref="MGThemeDockingSettings.DropIndicatorZoneSize"/>, applied by the <c>Dock.DropIndicators.Default</c> template (backlog task 14).</summary>
+    public int ZoneSize
+    {
+        get => _zoneSize;
+        set
+        {
+            if (_zoneSize != value)
+            {
+                _zoneSize = value;
+                //  Both geometries derive from the size, not only from the bounds their setters watch.
+                CalculateIndicatorPositions();
+                CalculateHostEdgePositions();
+                LayoutChanged(this, true);
+                NPC(nameof(ZoneSize));
+            }
+        }
+    }
 
     public Color InactiveColor { get; set; } = new Color(100, 100, 100, 180);
     public Color ActiveColor { get; set; } = new Color(0, 122, 204, 230);

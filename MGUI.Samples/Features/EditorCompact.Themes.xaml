@@ -1,8 +1,9 @@
 <ThemeDefinitionsDocument xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core">
   <!--
     Backlog task 13 (Docs/Tasks/styling-theme-tasks.md): the "Editor Compact" preset. It only uses declarative theme settings (BasedOn, font settings,
-    settings groups, properties): it applies to a scope by a theme change, with no control code and no new API. The values it cannot reach are listed in
-    the status of task 13 and pinned by MGUI.Tests/Architecture/EditorCompactPresetTests.cs.
+    settings groups, properties): it applies to a scope by a theme change, with no control code and no new API. Task 14 made the remaining densities
+    reachable (tooltip, text boxes, item paddings, tab headers, docking sizes); what stays out of reach is pinned by
+    MGUI.Tests/Architecture/EditorCompactPresetTests.cs.
   -->
   <ThemeDefinition Name="EditorCompact" BasedOn="Dark">
     <ThemeDefinition.FontSettings>
@@ -41,7 +42,9 @@
 
     <ThemeDefinition.ListBox>
       <ThemeListBoxSettingsDefinition MinHeight="18"
-                                      TitlePadding="4,1" />
+                                      TitlePadding="4,1"
+                                      ItemPadding="4,2"
+                                      ItemContentPadding="2,0" />
     </ThemeDefinition.ListBox>
 
     <ThemeDefinition.ComboBox>
@@ -50,7 +53,8 @@
                                        DropdownArrowMargin="0,0,4,0"
                                        DropdownMinWidth="160"
                                        DropdownPadding="1"
-                                       DropdownItemsSpacing="0" />
+                                       DropdownItemsSpacing="0"
+                                       DropdownItemPadding="6,3" />
     </ThemeDefinition.ComboBox>
 
     <ThemeDefinition.TreeViewTemplate>
@@ -59,7 +63,10 @@
     </ThemeDefinition.TreeViewTemplate>
 
     <ThemeDefinition.TabControl>
-      <ThemeTabControlSettingsDefinition HeadersSpacing="0" />
+      <ThemeTabControlSettingsDefinition HeadersSpacing="0"
+                                         SelectedHeaderPadding="6,3"
+                                         UnselectedHeaderPadding="6,2"
+                                         SideHeaderPadding="4,3" />
     </ThemeDefinition.TabControl>
 
     <ThemeDefinition.PropertyGrid>
@@ -68,6 +75,36 @@
                                            CategoryHeaderMinHeight="18"
                                            RowPadding="4,1" />
     </ThemeDefinition.PropertyGrid>
+
+    <ThemeDefinition.ToolTip>
+      <ThemeToolTipSettingsDefinition Padding="4,2"
+                                      BorderThickness="1"
+                                      BorderBrush="rgb(96,96,96)"
+                                      MinWidth="8"
+                                      MinHeight="8" />
+    </ThemeDefinition.ToolTip>
+
+    <ThemeDefinition.TextBox>
+      <ThemeTextBoxSettingsDefinition Padding="4,0"
+                                      MinHeight="20" />
+    </ThemeDefinition.TextBox>
+
+    <ThemeDefinition.NumericUpDown>
+      <ThemeNumericUpDownSettingsDefinition Padding="4,1"
+                                            MinHeight="22"
+                                            SpinnerWidth="18"
+                                            SpinnerMinWidth="16" />
+    </ThemeDefinition.NumericUpDown>
+
+    <ThemeDefinition.Docking>
+      <ThemeDockingSettingsDefinition TabHeaderHeight="24"
+                                      TabButtonSize="18"
+                                      TabTitlePadding="6,2,2,2"
+                                      AutoHideDrawerHeaderHeight="22"
+                                      AutoHideDrawerButtonSize="18"
+                                      AutoHideStripThickness="20"
+                                      DropIndicatorZoneSize="32" />
+    </ThemeDefinition.Docking>
 
     <ThemeDefinition.Properties>
       <ThemePropertyDefinition Target="CheckBoxComponentSize" Integer="12" />

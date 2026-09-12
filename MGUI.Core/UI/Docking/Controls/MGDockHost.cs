@@ -367,6 +367,8 @@ public class MGDockHost : MGSingleContentHost
 
                 strip.Side = side;
                 strip.Visibility = Visibility.Collapsed;
+                //  A strip of a rebuilt structure takes the inset the host reserves for it (backlog task 14); the host's template sets both from the theme.
+                strip.StripThickness = _autoHideStripThickness;
                 strip.PanelActivated += OnAutoHideStripPanelActivated;
                 _autoHideStrips[side] = strip;
                 stripsChanged = true;
@@ -1512,7 +1514,32 @@ public class MGDockHost : MGSingleContentHost
 
     #region Auto-Hide
 
-    private const int _autoHideStripThickness = MGDockAutoHideStrip.StripThickness;
+    private int _autoHideStripThickness = MGDockAutoHideStrip.DefaultStripThickness;
+    /// <summary>The inset reserved on each edge that has auto-hidden panels, and the thickness pushed onto the four auto-hide strips. Default: the theme's
+    /// <see cref="MGThemeDockingSettings.AutoHideStripThickness"/>, applied by the <c>Dock.Host.Default</c> template (backlog task 14).</summary>
+    public int AutoHideStripThickness
+    {
+        get => _autoHideStripThickness;
+        set
+        {
+            if (_autoHideStripThickness != value)
+            {
+                int previous = _autoHideStripThickness;
+                _autoHideStripThickness = value;
+                //  The strips follow the host's inset; a strip whose thickness the application set on its own no longer follows it.
+                foreach (MGDockAutoHideStrip strip in _autoHideStrips.Values)
+                {
+                    if (strip.StripThickness == previous)
+                    {
+                        strip.StripThickness = value;
+                    }
+                }
+
+                LayoutChanged(this, true);
+                NPC(nameof(AutoHideStripThickness));
+            }
+        }
+    }
 
     // ── Layout helpers ─────────────────────────────────────────────────
 

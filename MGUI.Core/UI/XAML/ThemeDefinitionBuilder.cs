@@ -58,7 +58,48 @@ namespace MGUI.Core.UI.XAML
             ApplyTabControl(Theme.TabControl, Definition.TabControl);
             ApplyGraph(Theme.Graph, Definition.Graph);
             ApplyDocking(Theme.Docking, Definition.Docking);
+            ApplyToolTip(Theme.ToolTip, Definition.ToolTip);
+            ApplyTextBox(Theme.TextBox, Definition.TextBox);
+            ApplyNumericUpDown(Theme.NumericUpDown, Definition.NumericUpDown);
             ApplyProperties(Theme, Definition.Properties);
+        }
+
+        private static void ApplyToolTip(MGThemeToolTipSettings Target, ThemeToolTipSettingsDefinition Definition)
+        {
+            if (Definition == null)
+            {
+                return;
+            }
+
+            if (Definition.Padding.HasValue) Target.Padding = Definition.Padding.Value.ToThickness();
+            if (Definition.BorderThickness.HasValue) Target.BorderThickness = Definition.BorderThickness.Value.ToThickness();
+            if (Definition.BorderBrush != null) Target.BorderBrush = ToBorderBrush(Definition.BorderBrush);
+            if (Definition.MinWidth.HasValue) Target.MinWidth = Definition.MinWidth.Value;
+            if (Definition.MinHeight.HasValue) Target.MinHeight = Definition.MinHeight.Value;
+        }
+
+        private static void ApplyTextBox(MGThemeTextBoxSettings Target, ThemeTextBoxSettingsDefinition Definition)
+        {
+            if (Definition == null)
+            {
+                return;
+            }
+
+            if (Definition.Padding.HasValue) Target.Padding = Definition.Padding.Value.ToThickness();
+            if (Definition.MinHeight.HasValue) Target.MinHeight = Definition.MinHeight.Value;
+        }
+
+        private static void ApplyNumericUpDown(MGThemeNumericUpDownSettings Target, ThemeNumericUpDownSettingsDefinition Definition)
+        {
+            if (Definition == null)
+            {
+                return;
+            }
+
+            if (Definition.Padding.HasValue) Target.Padding = Definition.Padding.Value.ToThickness();
+            if (Definition.MinHeight.HasValue) Target.MinHeight = Definition.MinHeight.Value;
+            if (Definition.SpinnerWidth.HasValue) Target.SpinnerWidth = Definition.SpinnerWidth.Value;
+            if (Definition.SpinnerMinWidth.HasValue) Target.SpinnerMinWidth = Definition.SpinnerMinWidth.Value;
         }
 
         private static void ApplyControlTemplates(MGTheme Theme, IEnumerable<ThemeControlTemplateDefinition> Definitions)
@@ -293,6 +334,8 @@ namespace MGUI.Core.UI.XAML
             if (Definition.ScrollViewerPadding.HasValue) Target.ScrollViewerPadding = Definition.ScrollViewerPadding.Value.ToThickness();
             if (Definition.ItemsPanelBorderBrush != null) Target.ItemsPanelBorderBrush = ToBorderBrush(Definition.ItemsPanelBorderBrush);
             if (Definition.ItemsPanelBorderThickness.HasValue) Target.ItemsPanelBorderThickness = Definition.ItemsPanelBorderThickness.Value.ToThickness();
+            if (Definition.ItemPadding.HasValue) Target.ItemPadding = Definition.ItemPadding.Value.ToThickness();
+            if (Definition.ItemContentPadding.HasValue) Target.ItemContentPadding = Definition.ItemContentPadding.Value.ToThickness();
         }
 
         private static void ApplyListView(MGThemeListViewSettings Target, ThemeListViewSettingsDefinition Definition)
@@ -346,6 +389,7 @@ namespace MGUI.Core.UI.XAML
             if (Definition.DropdownPadding.HasValue) Target.DropdownPadding = Definition.DropdownPadding.Value.ToThickness();
             if (Definition.DropdownScrollViewerPadding.HasValue) Target.DropdownScrollViewerPadding = Definition.DropdownScrollViewerPadding.Value.ToThickness();
             if (Definition.DropdownItemsSpacing.HasValue) Target.DropdownItemsSpacing = Definition.DropdownItemsSpacing.Value;
+            if (Definition.DropdownItemPadding.HasValue) Target.DropdownItemPadding = Definition.DropdownItemPadding.Value.ToThickness();
         }
 
         private static void ApplyTreeViewTemplate(MGThemeTreeViewTemplateSettings Target, ThemeTreeViewTemplateSettingsDefinition Definition)
@@ -371,6 +415,9 @@ namespace MGUI.Core.UI.XAML
             if (Definition.BorderBrush != null) Target.BorderBrush = ToBorderBrush(Definition.BorderBrush);
             if (Definition.BorderThickness.HasValue) Target.BorderThickness = Definition.BorderThickness.Value.ToThickness();
             if (Definition.HeadersSpacing.HasValue) Target.HeadersSpacing = Definition.HeadersSpacing.Value;
+            if (Definition.SelectedHeaderPadding.HasValue) Target.SelectedHeaderPadding = Definition.SelectedHeaderPadding.Value.ToThickness();
+            if (Definition.UnselectedHeaderPadding.HasValue) Target.UnselectedHeaderPadding = Definition.UnselectedHeaderPadding.Value.ToThickness();
+            if (Definition.SideHeaderPadding.HasValue) Target.SideHeaderPadding = Definition.SideHeaderPadding.Value.ToThickness();
         }
 
         private static void ApplyGraph(MGThemeGraphSettings Target, ThemeGraphSettingsDefinition Definition)
@@ -451,6 +498,14 @@ namespace MGUI.Core.UI.XAML
 
             if (Definition.TabGroupButtonHoverColor.HasValue) Target.TabGroupButtonHoverColor = Definition.TabGroupButtonHoverColor.Value.ToXNAColor();
             if (Definition.TabGroupIconColor.HasValue) Target.TabGroupIconColor = Definition.TabGroupIconColor.Value.ToXNAColor();
+
+            if (Definition.TabHeaderHeight.HasValue) Target.TabHeaderHeight = Definition.TabHeaderHeight.Value;
+            if (Definition.TabButtonSize.HasValue) Target.TabButtonSize = Definition.TabButtonSize.Value;
+            if (Definition.TabTitlePadding.HasValue) Target.TabTitlePadding = Definition.TabTitlePadding.Value.ToThickness();
+            if (Definition.AutoHideDrawerHeaderHeight.HasValue) Target.AutoHideDrawerHeaderHeight = Definition.AutoHideDrawerHeaderHeight.Value;
+            if (Definition.AutoHideDrawerButtonSize.HasValue) Target.AutoHideDrawerButtonSize = Definition.AutoHideDrawerButtonSize.Value;
+            if (Definition.AutoHideStripThickness.HasValue) Target.AutoHideStripThickness = Definition.AutoHideStripThickness.Value;
+            if (Definition.DropIndicatorZoneSize.HasValue) Target.DropIndicatorZoneSize = Definition.DropIndicatorZoneSize.Value;
         }
 
         private static void ApplyProperties(MGTheme Theme, IEnumerable<ThemePropertyDefinition> Definitions)

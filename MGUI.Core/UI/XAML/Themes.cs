@@ -37,6 +37,9 @@ namespace MGUI.Core.UI.XAML
         public ThemeTabControlSettingsDefinition TabControl { get; set; } = new();
         public ThemeGraphSettingsDefinition Graph { get; set; } = new();
         public ThemeDockingSettingsDefinition Docking { get; set; } = new();
+        public ThemeToolTipSettingsDefinition ToolTip { get; set; } = new();
+        public ThemeTextBoxSettingsDefinition TextBox { get; set; } = new();
+        public ThemeNumericUpDownSettingsDefinition NumericUpDown { get; set; } = new();
 
         public List<ThemeBackgroundDefinition> Backgrounds { get; set; } = new();
         public List<ThemeControlTemplateDefinition> ControlTemplates { get; set; } = new();
@@ -233,6 +236,8 @@ namespace MGUI.Core.UI.XAML
         public Thickness? ScrollViewerPadding { get; set; }
         public BorderBrush ItemsPanelBorderBrush { get; set; }
         public Thickness? ItemsPanelBorderThickness { get; set; }
+        public Thickness? ItemPadding { get; set; }
+        public Thickness? ItemContentPadding { get; set; }
     }
 
     public class ThemeListViewSettingsDefinition : XAMLBindableBase
@@ -293,6 +298,7 @@ namespace MGUI.Core.UI.XAML
         public Thickness? DropdownPadding { get; set; }
         public Thickness? DropdownScrollViewerPadding { get; set; }
         public int? DropdownItemsSpacing { get; set; }
+        public Thickness? DropdownItemPadding { get; set; }
     }
 
     public class ThemeTreeViewTemplateSettingsDefinition : XAMLBindableBase
@@ -308,6 +314,32 @@ namespace MGUI.Core.UI.XAML
         public BorderBrush BorderBrush { get; set; }
         public Thickness? BorderThickness { get; set; }
         public int? HeadersSpacing { get; set; }
+        public Thickness? SelectedHeaderPadding { get; set; }
+        public Thickness? UnselectedHeaderPadding { get; set; }
+        public Thickness? SideHeaderPadding { get; set; }
+    }
+
+    public class ThemeToolTipSettingsDefinition : XAMLBindableBase
+    {
+        public Thickness? Padding { get; set; }
+        public Thickness? BorderThickness { get; set; }
+        public BorderBrush BorderBrush { get; set; }
+        public int? MinWidth { get; set; }
+        public int? MinHeight { get; set; }
+    }
+
+    public class ThemeTextBoxSettingsDefinition : XAMLBindableBase
+    {
+        public Thickness? Padding { get; set; }
+        public int? MinHeight { get; set; }
+    }
+
+    public class ThemeNumericUpDownSettingsDefinition : XAMLBindableBase
+    {
+        public Thickness? Padding { get; set; }
+        public int? MinHeight { get; set; }
+        public int? SpinnerWidth { get; set; }
+        public int? SpinnerMinWidth { get; set; }
     }
 
     public class ThemeDockingSettingsDefinition : XAMLBindableBase
@@ -356,5 +388,13 @@ namespace MGUI.Core.UI.XAML
 
         public XAMLColor? TabGroupButtonHoverColor { get; set; }
         public XAMLColor? TabGroupIconColor { get; set; }
+
+        public int? TabHeaderHeight { get; set; }
+        public int? TabButtonSize { get; set; }
+        public Thickness? TabTitlePadding { get; set; }
+        public int? AutoHideDrawerHeaderHeight { get; set; }
+        public int? AutoHideDrawerButtonSize { get; set; }
+        public int? AutoHideStripThickness { get; set; }
+        public int? DropIndicatorZoneSize { get; set; }
     }
 }

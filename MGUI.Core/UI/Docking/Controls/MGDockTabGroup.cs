@@ -177,7 +177,19 @@ public class MGDockTabGroup : MGElement
         {
             if (_tabHeaderHeight != value)
             {
+                int previous = _tabHeaderHeight;
                 _tabHeaderHeight = value;
+                //  The tab items follow the strip height (backlog task 14): both default to the theme's Docking.TabHeaderHeight, and a value set on the
+                //  group by the application must reach the items it already built (RebuildTabHeaders gives it to the ones built later). An item whose
+                //  height the application set on its own no longer follows the group.
+                foreach (MGDockTabItem tabItem in _tabItems.Values)
+                {
+                    if (tabItem.TabHeight == previous)
+                    {
+                        tabItem.TabHeight = value;
+                    }
+                }
+
                 LayoutChanged(this, true);
                 NPC(nameof(TabHeaderHeight));
             }
@@ -523,7 +535,8 @@ public class MGDockTabGroup : MGElement
             {
                 IsActive            = (panel.Id == GroupNode.ActivePanelId),
                 OwnerDockHost       = OwnerDockHost,
-                OwnerFloatingWindow = OwnerFloatingWindow
+                OwnerFloatingWindow = OwnerFloatingWindow,
+                TabHeight           = TabHeaderHeight,
             };
 
             // Subscribe to tab click

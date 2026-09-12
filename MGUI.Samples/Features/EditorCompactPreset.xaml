@@ -33,14 +33,14 @@
                             <TreeViewItem Header="Stone.floor.mat" />
                         </TreeViewItem>
                     </TreeView>
-                    <TextBox Text="The text box keeps its template padding and minimum height." />
+                    <TextBox Text="The text box padding and minimum height come from the theme." />
                 </StackPanel>
 
                 <StackPanel Row="0" Column="1" Orientation="Vertical" Spacing="6">
                     <TextBlock Text="[b]Tabs, menus and tooltips[/b]" />
                     <TabControl Height="140">
                         <TabItem Header="Inspector">
-                            <TextBlock Text="The spacing between the headers comes from the theme; the header paddings stay template values." WrapText="True" />
+                            <TextBlock Text="The spacing between the headers and the header paddings come from the theme; the header borders stay template values." WrapText="True" />
                         </TabItem>
                         <TabItem Header="Console">
                             <TextBlock Text="Switch the theme to compare both densities." WrapText="True" />
@@ -56,7 +56,7 @@
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
-                        <Button Content="Hover For Tooltip" ToolTip="The tooltip padding and border stay catalogue literals." />
+                        <Button Content="Hover For Tooltip" ToolTip="The tooltip padding, border and minimum size come from the theme." />
                     </StackPanel>
                     <TextBlock Text="[b]Docking[/b]" />
                     <Border Name="DockHostContainer" Height="200" BorderThickness="1" />

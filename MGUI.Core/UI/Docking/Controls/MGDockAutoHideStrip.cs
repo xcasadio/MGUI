@@ -23,8 +23,25 @@ public class MGDockAutoHideStrip : MGElement
     public const string SeparatorPartName = "PART_Separator";
 
     // ── Constants ─────────────────────────────────────────────────────
-    /// <summary>Thickness of the strip perpendicular to its edge (pixels).</summary>
-    public const int StripThickness = 24;
+    /// <summary>The thickness of a strip perpendicular to its edge when no theme sets <see cref="MGThemeDockingSettings.AutoHideStripThickness"/>.</summary>
+    public const int DefaultStripThickness = 24;
+
+    private int _stripThickness = DefaultStripThickness;
+    /// <summary>Thickness of the strip perpendicular to its edge (pixels). Default: the theme's <see cref="MGThemeDockingSettings.AutoHideStripThickness"/>,
+    /// applied by the <c>Dock.AutoHideStrip.Default</c> template; the <see cref="MGDockHost"/> reserves the same inset (backlog task 14).</summary>
+    public int StripThickness
+    {
+        get => _stripThickness;
+        set
+        {
+            if (_stripThickness != value)
+            {
+                _stripThickness = value;
+                LayoutChanged(this, true);
+                NPC(nameof(StripThickness));
+            }
+        }
+    }
 
     private const int ButtonMinSize = 60; // min width (horizontal) / height (vertical) per button
     private const int ButtonPadding  = 20; // horizontal / leading+trailing padding added to text measurement

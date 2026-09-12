@@ -131,6 +131,7 @@ public class ThemeValueInvalidationInventoryTests
             [nameof(MGCheckBox)] = "CheckBoxComponentSize",
             [nameof(MGPropertyGrid)] = "PropertyGrid.CategoryHeaderPadding, CategoryHeaderMinHeight, RowsSpacing, RowPadding, RowSeparatorBrush",
             [nameof(MGGraphNode)] = "Graph.NodeBorderThickness, Graph.NodeSelectedBorderThickness",
+            ["MGListBox`1"] = "ListBox.ItemPadding, ListBox.ItemContentPadding (backlog task 14); also ListBoxItemAlternatingRowBackgrounds and the default item container brushes",
         };
         Dictionary<string, string> callbacksReadingNoLayoutValue = new(StringComparer.Ordinal)
         {
@@ -139,7 +140,6 @@ public class ThemeValueInvalidationInventoryTests
             [nameof(MGMenuBarItem)] = "Backgrounds, TextBlockFallbackForeground",
             [nameof(MGExpander)] = "DropdownArrowColor",
             [nameof(MGScrollViewer)] = "ScrollBarOuterBrush, ScrollBarInnerBrush",
-            ["MGListBox`1"] = "ListBoxItemAlternatingRowBackgrounds; the default item container style applies constants and brushes",
             [nameof(MGTreeViewItem)] = "neutral expander chrome constants, TreeViewSelectionBackground, TreeViewSelectionForeground",
             ["TreeViewExpanderToggleButton"] = "neutral chrome constants",
             [nameof(MGContextMenu)] = "rebuilds its default item wrappers, whose layout values come from templates",

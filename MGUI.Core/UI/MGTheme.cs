@@ -101,6 +101,11 @@ namespace MGUI.Core.UI
         public int MinHeight { get; set; } = 30;
         public VisualStateFillBrush OuterBackground { get; set; } = new(SolidFillBrushes.Black);
         public Thickness TitlePadding { get; set; } = new(6, 3);
+        /// <summary>Padding of the border that wraps each item (backlog task 14). Default: <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultListBoxItemPadding"/>.</summary>
+        public Thickness ItemPadding { get; set; } = MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultListBoxItemPadding;
+        /// <summary>Padding of the default item content, the text block that <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.CreateDefaultListBoxItemContent{TItemType}(MGWindow, TItemType)"/>
+        /// creates (backlog task 14). Default: <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultListBoxItemContentPadding"/>.</summary>
+        public Thickness ItemContentPadding { get; set; } = MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultListBoxItemContentPadding;
         public VisualStateSetting<Color?> TitleForeground { get; set; } = new(Color.White, Color.White, Color.White);
         public IBorderBrush TitleBorderBrush { get; set; } = SolidFillBrushes.Black.AsUniformBorderBrush();
         public Thickness TitleBorderThickness { get; set; } = new(1, 1, 1, 0);
@@ -147,6 +152,38 @@ namespace MGUI.Core.UI
         public Thickness DropdownPadding { get; set; } = new(0);
         public Thickness DropdownScrollViewerPadding { get; set; } = new(0);
         public int DropdownItemsSpacing { get; set; } = 0;
+        /// <summary>Padding of each row of the dropdown (backlog task 14). Default: <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultComboBoxDropdownItemPadding"/>.</summary>
+        public Thickness DropdownItemPadding { get; set; } = MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultComboBoxDropdownItemPadding;
+    }
+
+    /// <summary>The density of <see cref="MGToolTip"/>s (backlog task 14): the defaults the <c>ToolTip.Default</c> template used to hard-code.
+    /// The draw offset and the text foreground stay on <see cref="MGTheme.ToolTipOffset"/> and <see cref="MGTheme.ToolTipTextForeground"/>.</summary>
+    public class MGThemeToolTipSettings
+    {
+        public Thickness Padding { get; set; } = new(6, 3);
+        public Thickness BorderThickness { get; set; } = new(2);
+        public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+        public int MinWidth { get; set; } = 10;
+        public int MinHeight { get; set; } = 10;
+    }
+
+    /// <summary>The density of <see cref="MGTextBox"/>es (backlog task 14): the defaults the <c>TextBox.Default</c> template used to hard-code.
+    /// The selection colors stay on the <c>MGTheme.TextBox*Selection*</c> properties.</summary>
+    public class MGThemeTextBoxSettings
+    {
+        public Thickness Padding { get; set; } = new(6, 1, 6, 1);
+        public int MinHeight { get; set; } = 24;
+    }
+
+    /// <summary>The density of <see cref="MGNumericUpDown"/>s (backlog task 14): the defaults the <c>NumericUpDown.Default</c> template used to hard-code.</summary>
+    public class MGThemeNumericUpDownSettings
+    {
+        public Thickness Padding { get; set; } = new(6, 2, 6, 2);
+        public int MinHeight { get; set; } = 28;
+        /// <summary>Width of the column that holds the two spinner buttons.</summary>
+        public int SpinnerWidth { get; set; } = 24;
+        /// <summary>Minimum width of each spinner button.</summary>
+        public int SpinnerMinWidth { get; set; } = 22;
     }
 
     public class MGThemeTreeViewTemplateSettings
@@ -162,6 +199,12 @@ namespace MGUI.Core.UI
         public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
         public Thickness BorderThickness { get; set; } = new(1);
         public int HeadersSpacing { get; set; } = 0;
+        /// <summary>Padding of the selected tab header when the headers are on top or bottom (backlog task 14).</summary>
+        public Thickness SelectedHeaderPadding { get; set; } = new(8, 5, 8, 5);
+        /// <summary>Padding of an unselected tab header when the headers are on top or bottom (backlog task 14).</summary>
+        public Thickness UnselectedHeaderPadding { get; set; } = new(8, 3, 8, 3);
+        /// <summary>Padding of every tab header, selected or not, when the headers are on the left or the right (backlog task 14).</summary>
+        public Thickness SideHeaderPadding { get; set; } = new(6, 5, 6, 5);
     }
 
     public class MGThemeGraphSettings
@@ -286,6 +329,23 @@ namespace MGUI.Core.UI
         public Color TabGroupButtonHoverColor { get; set; } = new(70, 70, 74);
         /// <summary>Color of the overflow and window-state icons in the header strip of an <c>MGDockTabGroup</c>.</summary>
         public Color TabGroupIconColor { get; set; } = new(200, 200, 200);
+
+        //  Docking densities (backlog task 14): the sizes the docking controls used to hard-code, so a theme definition written before these
+        //  settings existed keeps the same layout.
+        /// <summary>Height of the tab header strip of an <c>MGDockTabGroup</c> and of each <c>MGDockTabItem</c>.</summary>
+        public int TabHeaderHeight { get; set; } = 30;
+        /// <summary>Width reserved for the close and pin buttons of an <c>MGDockTabItem</c>.</summary>
+        public int TabButtonSize { get; set; } = 22;
+        /// <summary>Padding of the title text of an <c>MGDockTabItem</c>.</summary>
+        public Thickness TabTitlePadding { get; set; } = new(8, 4, 4, 4);
+        /// <summary>Height of the header of an <c>MGDockAutoHideDrawer</c>.</summary>
+        public int AutoHideDrawerHeaderHeight { get; set; } = 28;
+        /// <summary>Size of the square pin and close buttons in the header of an <c>MGDockAutoHideDrawer</c>.</summary>
+        public int AutoHideDrawerButtonSize { get; set; } = 22;
+        /// <summary>Thickness of an <c>MGDockAutoHideStrip</c> perpendicular to its edge, also the inset the <c>MGDockHost</c> reserves for it.</summary>
+        public int AutoHideStripThickness { get; set; } = 24;
+        /// <summary>Size of each square drop zone of the <c>MGDockDropIndicators</c>.</summary>
+        public int DropIndicatorZoneSize { get; set; } = 40;
     }
 
     public class MGTheme
@@ -466,6 +526,13 @@ namespace MGUI.Core.UI
 
         public VisualStateSetting<Color?> ToolTipTextForeground { get; set; }
 
+        /// <summary>Density of the tooltips (backlog task 14).</summary>
+        public MGThemeToolTipSettings ToolTip { get; }
+        /// <summary>Density of the text boxes (backlog task 14).</summary>
+        public MGThemeTextBoxSettings TextBox { get; }
+        /// <summary>Density of the numeric up/down controls (backlog task 14).</summary>
+        public MGThemeNumericUpDownSettings NumericUpDown { get; }
+
         public ThemeFontSettings FontSettings { get; }
         public MGThemeWindowSettings Window { get; }
         public MGThemeOverlaySettings Overlay { get; }
@@ -519,6 +586,9 @@ namespace MGUI.Core.UI
             TabControl = new();
             Graph = new();
             Docking = new();
+            ToolTip = new();
+            TextBox = new();
+            NumericUpDown = new();
             ToolTipOffset = new(6, 6);
             ToolTipTextForeground = new(null, null, null, null);
 
@@ -665,6 +735,20 @@ namespace MGUI.Core.UI
             ToolTipOffset = Source.ToolTipOffset;
             ToolTipTextForeground = Source.ToolTipTextForeground?.GetCopy();
 
+            ToolTip.Padding = Source.ToolTip.Padding;
+            ToolTip.BorderThickness = Source.ToolTip.BorderThickness;
+            ToolTip.BorderBrush = Source.ToolTip.BorderBrush?.Copy();
+            ToolTip.MinWidth = Source.ToolTip.MinWidth;
+            ToolTip.MinHeight = Source.ToolTip.MinHeight;
+
+            TextBox.Padding = Source.TextBox.Padding;
+            TextBox.MinHeight = Source.TextBox.MinHeight;
+
+            NumericUpDown.Padding = Source.NumericUpDown.Padding;
+            NumericUpDown.MinHeight = Source.NumericUpDown.MinHeight;
+            NumericUpDown.SpinnerWidth = Source.NumericUpDown.SpinnerWidth;
+            NumericUpDown.SpinnerMinWidth = Source.NumericUpDown.SpinnerMinWidth;
+
             FontSettings.ContextMenuFontSize = Source.FontSettings.ContextMenuFontSize;
             FontSettings.SmallFontSize = Source.FontSettings.SmallFontSize;
             FontSettings.MediumFontSize = Source.FontSettings.MediumFontSize;
@@ -725,6 +809,8 @@ namespace MGUI.Core.UI
             ListBox.ScrollViewerPadding = Source.ListBox.ScrollViewerPadding;
             ListBox.ItemsPanelBorderBrush = Source.ListBox.ItemsPanelBorderBrush?.Copy();
             ListBox.ItemsPanelBorderThickness = Source.ListBox.ItemsPanelBorderThickness;
+            ListBox.ItemPadding = Source.ListBox.ItemPadding;
+            ListBox.ItemContentPadding = Source.ListBox.ItemContentPadding;
 
             ListView.HeaderForeground = Source.ListView.HeaderForeground?.GetCopy();
             ListView.GridLineBrush = Source.ListView.GridLineBrush?.Copy();
@@ -754,6 +840,7 @@ namespace MGUI.Core.UI
             ComboBox.DropdownPadding = Source.ComboBox.DropdownPadding;
             ComboBox.DropdownScrollViewerPadding = Source.ComboBox.DropdownScrollViewerPadding;
             ComboBox.DropdownItemsSpacing = Source.ComboBox.DropdownItemsSpacing;
+            ComboBox.DropdownItemPadding = Source.ComboBox.DropdownItemPadding;
 
             TreeViewTemplate.ScrollViewerPadding = Source.TreeViewTemplate.ScrollViewerPadding;
             TreeViewTemplate.ItemsPanelPadding = Source.TreeViewTemplate.ItemsPanelPadding;
@@ -763,6 +850,9 @@ namespace MGUI.Core.UI
             TabControl.BorderBrush = Source.TabControl.BorderBrush?.Copy();
             TabControl.BorderThickness = Source.TabControl.BorderThickness;
             TabControl.HeadersSpacing = Source.TabControl.HeadersSpacing;
+            TabControl.SelectedHeaderPadding = Source.TabControl.SelectedHeaderPadding;
+            TabControl.UnselectedHeaderPadding = Source.TabControl.UnselectedHeaderPadding;
+            TabControl.SideHeaderPadding = Source.TabControl.SideHeaderPadding;
 
             Graph.Padding = Source.Graph.Padding;
             Graph.BorderBrush = Source.Graph.BorderBrush?.Copy();
@@ -822,6 +912,13 @@ namespace MGUI.Core.UI
             Docking.PreviewOverlayBorderColor = Source.Docking.PreviewOverlayBorderColor;
             Docking.TabGroupButtonHoverColor = Source.Docking.TabGroupButtonHoverColor;
             Docking.TabGroupIconColor = Source.Docking.TabGroupIconColor;
+            Docking.TabHeaderHeight = Source.Docking.TabHeaderHeight;
+            Docking.TabButtonSize = Source.Docking.TabButtonSize;
+            Docking.TabTitlePadding = Source.Docking.TabTitlePadding;
+            Docking.AutoHideDrawerHeaderHeight = Source.Docking.AutoHideDrawerHeaderHeight;
+            Docking.AutoHideDrawerButtonSize = Source.Docking.AutoHideDrawerButtonSize;
+            Docking.AutoHideStripThickness = Source.Docking.AutoHideStripThickness;
+            Docking.DropIndicatorZoneSize = Source.Docking.DropIndicatorZoneSize;
         }
     }
 }

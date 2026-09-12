@@ -1714,15 +1714,34 @@ namespace MGUI.Core.UI
             AlternatingRowBackgrounds = CreateThemeAlternatingRowBackgrounds(CurrentTheme);
             InvalidateItemHeightCache();
 
-            if (ItemContainerStyle == ApplyDefaultItemContainerStyle)
+            //  EnumerateItemWrappers also covers the virtualized case, where InternalItems is null and the
+            //  wrappers live in the recycle pool.
+            foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())
             {
-                //  EnumerateItemWrappers also covers the virtualized case, where InternalItems is null and the
-                //  wrappers live in the recycle pool.
-                foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())
+                if (ItemContainerStyle == ApplyDefaultItemContainerStyle)
                 {
                     ApplyDefaultItemContainerStyle(item.ContentPresenter);
                 }
+
+                //  Backlog task 14: the default item content takes its padding from the theme; a content of the application is left alone.
+                MGControlTemplateCatalog.RefreshDefaultListBoxItemContent(this, item.Content);
             }
+        }
+
+        /// <summary>The theme callback re-applies the item container padding (<see cref="MGThemeListBoxSettings.ItemPadding"/>) and the default item
+        /// content padding (<see cref="MGThemeListBoxSettings.ItemContentPadding"/>): a layout pass is requested only when one of them changes
+        /// (backlog tasks 7 and 14).</summary>
+        protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            MGThemeListBoxSettings previous = PreviousTheme?.ListBox;
+            MGThemeListBoxSettings current = (CurrentTheme ?? GetTheme()).ListBox;
+            if (previous == null)
+            {
+                return UIInvalidationKind.Draw | UIThemeValueInvalidation.LayoutAffecting;
+            }
+
+            return UIThemeValueInvalidation.ForChange("ListBox.ItemPadding", previous.ItemPadding, current.ItemPadding)
+                | UIThemeValueInvalidation.ForChange("ListBox.ItemContentPadding", previous.ItemContentPadding, current.ItemContentPadding);
         }
 
         /// <summary>Every item wrapper this list box owns: the realized and pooled wrappers while virtualizing,
@@ -1755,7 +1774,7 @@ namespace MGUI.Core.UI
                     AlternatingRowBackgrounds = CreateThemeAlternatingRowBackgrounds(GetTheme());
 
                 ItemContainerStyle = ApplyDefaultItemContainerStyle;
-                ItemTemplate = item => MGControlTemplateCatalog.CreateDefaultListBoxItemContent(ParentWindow, item);
+                ItemTemplate = item => MGControlTemplateCatalog.CreateDefaultListBoxItemContent(this, item);
 
                 SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
                 SelectionMode = ListBoxSelectionMode.Single;

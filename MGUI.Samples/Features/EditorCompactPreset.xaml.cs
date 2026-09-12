@@ -12,6 +12,7 @@ namespace MGUI.Samples.Features;
 /// <summary>
 /// Backlog task 13 (<c>Docs/Tasks/styling-theme-tasks.md</c>), scenario <c>SCN-THEME-001</c>: the "Editor Compact" preset, a declarative theme loaded from
 /// <c>EditorCompact.Themes.xaml</c> into this window's resource scope. Switching between Dark and the preset only changes the default theme of that scope.
+/// Task 14 made the densities the preset could not reach (tooltip, text boxes, item paddings, tab headers, docking sizes) theme settings.
 /// </summary>
 public sealed class EditorCompactPresetSample : SampleBase
 {
@@ -20,15 +21,14 @@ public sealed class EditorCompactPresetSample : SampleBase
 
     private const string LimitsText = @"Reached by the preset (declarative theme settings, followed by a theme change):
 - font sizes (FontSettings), window title bar and close button, overlay and context menu paddings and margins
-- combo box padding, minimum height, dropdown padding and item spacing; list box minimum height and title padding
-- tree view panel padding and spacing, tab control header spacing, property grid spacings and row padding, check box size, tree indent
+- combo box padding, minimum height, dropdown padding, item spacing and item padding; list box minimum height, title padding, item and content paddings
+- tree view panel padding and spacing, tab control header spacing and header paddings, property grid spacings and row padding, check box size, tree indent
+- since task 14: tooltip padding, border and minimum size (ToolTip group); text box and numeric up/down padding, minimum height and spinner widths
+- since task 14: docking tab header height, tab and drawer buttons, tab title padding, drawer header height, auto-hide strip thickness, drop zone size
 
-Not reachable declaratively (catalogue literals or control constants):
-- ToolTip: padding 6,3, border thickness 2, minimum width and height 10 (no ToolTip settings group)
-- TextBox, PasswordBox, RichTextBox: padding 6,1,6,1, minimum height 24; NumericUpDown: padding 6,2,6,2, minimum height 28, spinner widths 24 and 22
-- ListBox items: padding 6,4 and content padding 1,0; ComboBox dropdown items: padding 8,5,8,5
-- TabControl headers: paddings 6,5 / 8,5 / 8,3 and border thicknesses (template values)
-- Docking (tasks 3, 8 and 9): tab header height 30, tab and drawer buttons 22, tab title padding 8,4,4,4, drawer header height 28, auto-hide strip thickness 24, drop zones 40
+Not reachable declaratively (template values or control constants):
+- TabControl header border thicknesses (they encode the docked edge), tab group compact buttons 24, DockTabGroupNode minimum-height heuristic 30
+- Drag detection bands (host edge 40, proximity 30), drop zone glyphs 24, auto-hide strip button sizes 60/20 and font 11
 - XAML control templates carry no template values: a theme can only map a control to another template
 - Implicit styles reach the pilot properties when XAML is parsed or through RefreshStyles, never through a theme change; docking controls are MGElementType.Custom";
 
