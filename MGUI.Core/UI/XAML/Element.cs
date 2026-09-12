@@ -292,6 +292,16 @@ namespace MGUI.Core.UI.XAML
         [Category("Appearance")]
         public List<Transition> Transitions { get; set; } = new();
 
+        /// <summary>The named visual states of the element (ADR-0007, decisions 3 and 5): <c>&lt;Button.VisualStates&gt;&lt;VisualStateDefinition Name="Hover"&gt;&lt;Setter Property="RenderTransform.Scale" Value="1.05" /&gt;&lt;/VisualStateDefinition&gt;&lt;/Button.VisualStates&gt;</c>.</summary>
+        [Category("Appearance")]
+        public List<VisualStateDefinition> VisualStates { get; set; } = new();
+
+        /// <summary>The transitions the applied styles give this element (implicit styles, then named styles, in order), null when none; see <see cref="ProcessStyles(MGResources)"/>.</summary>
+        internal List<Transition> StyleTransitions { get; private set; }
+
+        /// <summary>The visual states the applied styles give this element, null when none; see <see cref="ProcessStyles(MGResources)"/>.</summary>
+        internal List<VisualStateDefinition> StyleVisualStates { get; private set; }
+
         /// <summary>Used by <see cref="DockPanel"/>'s children</summary>
         [Category("Attached")]
         public Dock Dock
@@ -606,7 +616,29 @@ namespace MGUI.Core.UI.XAML
                     RenderTransform.ApplyTo(Element.RenderTransform);
                 }
 
-                //  Transitions are attached last, once the declared values above are in place: a transition reads the current value when it attaches.
+                //  Visual states, then transitions, are attached last, once the declared values above are in place: a transition reads the current value
+                //  when it attaches. The styles' come first, the element's own win per state name or transition path (the collections replace by key).
+                if (StyleVisualStates != null)
+                {
+                    foreach (VisualStateDefinition State in StyleVisualStates)
+                    {
+                        Element.VisualStates.Add(State.ToVisualState());
+                    }
+                }
+
+                foreach (VisualStateDefinition State in VisualStates)
+                {
+                    Element.VisualStates.Add(State.ToVisualState());
+                }
+
+                if (StyleTransitions != null)
+                {
+                    foreach (Transition Transition in StyleTransitions)
+                    {
+                        Element.Transitions.Add(Transition.ToTransition());
+                    }
+                }
+
                 foreach (Transition Transition in Transitions)
                 {
                     Element.Transitions.Add(Transition.ToTransition());
@@ -945,8 +977,14 @@ namespace MGUI.Core.UI.XAML
 
             // Pre-seed StylesByType with desktop-level implicit styles so they apply to all elements of their target type
             var StylesByType = new Dictionary<MGElementType, Dictionary<string, List<object>>>();
+            var AnimationStylesByType = new Dictionary<MGElementType, List<Style>>();
             foreach (var KVP in Resources.GetMergedImplicitStyles())
             {
+                if (KVP.Value.HasAnimation)
+                {
+                    AnimationStylesByType[KVP.Key] = new List<Style> { KVP.Value };
+                }
+
                 if (KVP.Value.Setters.Any())
                 {
                     var ValuesByProperty = new Dictionary<string, List<object>>();
@@ -963,7 +1001,7 @@ namespace MGUI.Core.UI.XAML
                 }
             }
 
-            ProcessStyles(StylesByName, StylesByType, Array.Empty<Style>(), true);
+            ProcessStyles(StylesByName, StylesByType, AnimationStylesByType, Array.Empty<Style>(), true);
         }
 
         /// <summary>Backlog task 10: the styles this definition resolved in <see cref="ProcessStyles(MGResources)"/>, recorded on the elements it creates
@@ -972,19 +1010,22 @@ namespace MGUI.Core.UI.XAML
 
         /// <param name="InheritedInlineStyles">The inline styles of the ancestors in scope, outermost first.</param>
         /// <param name="UsesResourceStyles">False below a definition whose <see cref="InheritsParentStyles"/> is false.</param>
+        /// <param name="AnimationStylesByType">The implicit styles in scope that carry transitions or visual states, per target type, outermost first (ADR-0007, decision 5).</param>
         private void ProcessStyles(Dictionary<string, Style> StylesByName, Dictionary<MGElementType, Dictionary<string, List<object>>> StylesByType,
-            IReadOnlyList<Style> InheritedInlineStyles, bool UsesResourceStyles)
+            Dictionary<MGElementType, List<Style>> AnimationStylesByType, IReadOnlyList<Style> InheritedInlineStyles, bool UsesResourceStyles)
         {
             Dictionary<string, List<object>> ValuesByProperty;
+            StyleTransitions = null;
+            StyleVisualStates = null;
 
             IReadOnlyList<Style> InlineStyles = InheritedInlineStyles;
-            if (Styles.Any(x => x.Setters.Any()))
+            if (Styles.Any(x => x.HasContent))
             {
-                InlineStyles = InheritedInlineStyles.Concat(Styles.Where(x => x.Setters.Any())).ToArray();
+                InlineStyles = InheritedInlineStyles.Concat(Styles.Where(x => x.HasContent)).ToArray();
             }
 
             //  Append current style setters to indexed data
-            foreach (Style Style in Styles.Where(x => x.Setters.Any()))
+            foreach (Style Style in Styles.Where(x => x.HasContent))
             {
                 if (Style.Name != null)
                 {
@@ -993,6 +1034,17 @@ namespace MGUI.Core.UI.XAML
                 else
                 {
                     MGElementType Type = Style.TargetType;
+                    if (Style.HasAnimation)
+                    {
+                        if (!AnimationStylesByType.TryGetValue(Type, out List<Style> AnimatedStyles))
+                        {
+                            AnimatedStyles = new();
+                            AnimationStylesByType.Add(Type, AnimatedStyles);
+                        }
+
+                        AnimatedStyles.Add(Style);
+                    }
+
                     if (!StylesByType.TryGetValue(Type, out ValuesByProperty))
                     {
                         ValuesByProperty = new();
@@ -1058,6 +1110,15 @@ namespace MGUI.Core.UI.XAML
                     }
                 }
 
+                //  Transitions and visual states of the implicit styles (desktop level first, then the inline ones, outermost first)
+                if (AnimationStylesByType.TryGetValue(ElementType, out List<Style> ImplicitAnimatedStyles))
+                {
+                    foreach (Style Style in ImplicitAnimatedStyles)
+                    {
+                        CollectStyleAnimation(Style);
+                    }
+                }
+
                 //  Apply explicit styles (styles that were explicitly referenced by their Name)
                 if (StyleNames != null)
                 {
@@ -1102,6 +1163,12 @@ namespace MGUI.Core.UI.XAML
                             }
                         }
                     }
+
+                    //  Transitions and visual states of the named styles, after the implicit ones: the last style wins per path or name
+                    foreach (Style Style in ExplicitStyles)
+                    {
+                        CollectStyleAnimation(Style);
+                    }
                 }
             }
 
@@ -1114,16 +1181,16 @@ namespace MGUI.Core.UI.XAML
             {
                 if (Child.InheritsParentStyles)
                 {
-                    Child.ProcessStyles(StylesByName, StylesByType, InlineStyles, UsesResourceStyles);
+                    Child.ProcessStyles(StylesByName, StylesByType, AnimationStylesByType, InlineStyles, UsesResourceStyles);
                 }
                 else
                 {
-                    Child.ProcessStyles(new Dictionary<string, Style>(), new Dictionary<MGElementType, Dictionary<string, List<object>>>(), Array.Empty<Style>(), false);
+                    Child.ProcessStyles(new Dictionary<string, Style>(), new Dictionary<MGElementType, Dictionary<string, List<object>>>(), new Dictionary<MGElementType, List<Style>>(), Array.Empty<Style>(), false);
                 }
             }
 
             //  Remove current style setters from indexed data
-            foreach (Style Style in Styles.Where(x => x.Setters.Any()))
+            foreach (Style Style in Styles.Where(x => x.HasContent))
             {
                 if (Style.Name != null)
                 {
@@ -1132,6 +1199,15 @@ namespace MGUI.Core.UI.XAML
                 else
                 {
                     MGElementType Type = Style.TargetType;
+                    if (Style.HasAnimation && AnimationStylesByType.TryGetValue(Type, out List<Style> AnimatedStyles))
+                    {
+                        AnimatedStyles.Remove(Style);
+                        if (AnimatedStyles.Count == 0)
+                        {
+                            AnimationStylesByType.Remove(Type);
+                        }
+                    }
+
                     if (StylesByType.TryGetValue(Type, out ValuesByProperty))
                     {
                         foreach (Setter Setter in Style.Setters)
@@ -1151,6 +1227,20 @@ namespace MGUI.Core.UI.XAML
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>Keeps the transitions and visual states of an applied style for <see cref="ApplyBaseSettings"/> (ADR-0007, decision 5).</summary>
+        private void CollectStyleAnimation(Style Style)
+        {
+            if (Style.Transitions.Count > 0)
+            {
+                (StyleTransitions ??= new()).AddRange(Style.Transitions);
+            }
+
+            if (Style.VisualStates.Count > 0)
+            {
+                (StyleVisualStates ??= new()).AddRange(Style.VisualStates);
             }
         }
 

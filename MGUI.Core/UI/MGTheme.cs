@@ -186,6 +186,23 @@ namespace MGUI.Core.UI
         public int SpinnerMinWidth { get; set; } = 22;
     }
 
+    /// <summary>The interaction timings of a theme (ADR-0007, decision 5): the transitions the controls that opt in (<see cref="MGButton"/>,
+    /// <see cref="MGToggleButton"/>) attach on themselves, <c>RenderScale</c> over the hover timing and <c>Background.Overlay</c> over the press timing.
+    /// Easings are names known to <see cref="Animation.Easing.UIEasing"/>. The focus timing is reserved: no control reads it yet.
+    /// A change is <c>RenderOnly</c> (<see cref="Styling.UIThemeValueInvalidation"/>): a duration never touches the layout.</summary>
+    public class MGThemeAnimationSettings
+    {
+        /// <summary>When false (the default of every built-in theme, so an untouched button keeps costing nothing, ADR-0006), the controls that opt in
+        /// attach no theme transition and remove the ones they attached; a transition the application attached itself is never touched.</summary>
+        public bool Enabled { get; set; } = false;
+        public TimeSpan HoverDuration { get; set; } = TimeSpan.FromMilliseconds(120);
+        public TimeSpan PressDuration { get; set; } = TimeSpan.FromMilliseconds(80);
+        public TimeSpan FocusDuration { get; set; } = TimeSpan.FromMilliseconds(120);
+        public string HoverEasing { get; set; } = "CubicOut";
+        public string PressEasing { get; set; } = "CubicOut";
+        public string FocusEasing { get; set; } = "CubicOut";
+    }
+
     public class MGThemeTreeViewTemplateSettings
     {
         public Thickness ScrollViewerPadding { get; set; } = new(0);
@@ -532,6 +549,8 @@ namespace MGUI.Core.UI
         public MGThemeTextBoxSettings TextBox { get; }
         /// <summary>Density of the numeric up/down controls (backlog task 14).</summary>
         public MGThemeNumericUpDownSettings NumericUpDown { get; }
+        /// <summary>Interaction timings of the controls that opt in (ADR-0007, decision 5).</summary>
+        public MGThemeAnimationSettings Animation { get; }
 
         public ThemeFontSettings FontSettings { get; }
         public MGThemeWindowSettings Window { get; }
@@ -589,6 +608,7 @@ namespace MGUI.Core.UI
             ToolTip = new();
             TextBox = new();
             NumericUpDown = new();
+            Animation = new();
             ToolTipOffset = new(6, 6);
             ToolTipTextForeground = new(null, null, null, null);
 
@@ -748,6 +768,14 @@ namespace MGUI.Core.UI
             NumericUpDown.MinHeight = Source.NumericUpDown.MinHeight;
             NumericUpDown.SpinnerWidth = Source.NumericUpDown.SpinnerWidth;
             NumericUpDown.SpinnerMinWidth = Source.NumericUpDown.SpinnerMinWidth;
+
+            Animation.Enabled = Source.Animation.Enabled;
+            Animation.HoverDuration = Source.Animation.HoverDuration;
+            Animation.PressDuration = Source.Animation.PressDuration;
+            Animation.FocusDuration = Source.Animation.FocusDuration;
+            Animation.HoverEasing = Source.Animation.HoverEasing;
+            Animation.PressEasing = Source.Animation.PressEasing;
+            Animation.FocusEasing = Source.Animation.FocusEasing;
 
             FontSettings.ContextMenuFontSize = Source.FontSettings.ContextMenuFontSize;
             FontSettings.SmallFontSize = Source.FontSettings.SmallFontSize;

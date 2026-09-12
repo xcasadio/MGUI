@@ -11,7 +11,18 @@ namespace MGUI.Shared.Helpers
     public class ViewModelBase : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-        public virtual void NotifyPropertyChanged(string PropertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
+
+        /// <summary>One <see cref="PropertyChangedEventArgs"/> per property name, shared by every instance: a notification with a subscriber allocates nothing.</summary>
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, PropertyChangedEventArgs> CachedArgs = new();
+
+        public virtual void NotifyPropertyChanged(string PropertyName)
+        {
+            PropertyChangedEventHandler Handler = PropertyChanged;
+            if (Handler != null)
+            {
+                Handler(this, PropertyName == null ? new PropertyChangedEventArgs(null) : CachedArgs.GetOrAdd(PropertyName, static Name => new PropertyChangedEventArgs(Name)));
+            }
+        }
         /// <summary>Notify Property Changed for the given <paramref name="PropertyName"/></summary>
         public void NPC(string PropertyName) => NotifyPropertyChanged(PropertyName);
         /// <summary>Parameter <paramref name="PropertyName"/> is optional. If not specified, <see cref="CallerMemberNameAttribute"/> is automatically applied by the compiler. (Do not pass in null)</summary>

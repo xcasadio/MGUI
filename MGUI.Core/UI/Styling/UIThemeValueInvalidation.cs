@@ -97,6 +97,15 @@ namespace MGUI.Core.UI.Styling
                 ["NumericUpDown.SpinnerWidth"] = LayoutAffecting,
                 ["NumericUpDown.SpinnerMinWidth"] = LayoutAffecting,
 
+                // MGTheme.Animation (ADR-0007, decision 5): interaction timings, a change never touches the layout
+                ["Animation.Enabled"] = RenderOnly,
+                ["Animation.HoverDuration"] = RenderOnly,
+                ["Animation.PressDuration"] = RenderOnly,
+                ["Animation.FocusDuration"] = RenderOnly,
+                ["Animation.HoverEasing"] = RenderOnly,
+                ["Animation.PressEasing"] = RenderOnly,
+                ["Animation.FocusEasing"] = RenderOnly,
+
                 // MGTheme.FontSettings
                 ["FontSettings.ContextMenuFontSize"] = LayoutAffecting,
                 ["FontSettings.SmallFontSize"] = LayoutAffecting,

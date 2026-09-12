@@ -195,6 +195,7 @@ namespace MGUI.Core.UI
                 HorizontalContentAlignment = HorizontalAlignment.Center;
                 VerticalContentAlignment = VerticalAlignment.Center;
                 SetPadding(new(4,1,4,1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                ThemeTransitions.Apply(this, GetTheme()?.Animation);
 
                 MouseHandler.PressedInside += (sender, e) =>
                 { 
@@ -254,6 +255,10 @@ namespace MGUI.Core.UI
             }
         }
 
+        /// <summary>The transitions the theme installs on this button (ADR-0007, decision 5): <c>RenderScale</c> and <c>Background.Overlay</c>
+        /// over <see cref="MGThemeAnimationSettings"/>; a transition the application attaches on one of these paths is left alone.</summary>
+        private readonly Animation.UIThemeTransitions ThemeTransitions = new();
+
         protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
         {
             base.OnThemeChanged(PreviousTheme, CurrentTheme);
@@ -262,6 +267,8 @@ namespace MGUI.Core.UI
             {
                 SetBackground(CurrentTheme.GetBackgroundBrush(MGElementType.Button), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             }
+
+            ThemeTransitions.Apply(this, CurrentTheme?.Animation);
         }
 
         internal static BaseMouseReleasedEventArgs CreateNavigationReleasedEventArgs()

@@ -526,7 +526,7 @@ namespace MGUI.Core.UI
                 throw new ArgumentNullException(nameof(Style));
             }
 
-            if (!Style.Setters.Any())
+            if (!Style.HasContent)
             {
                 return;
             }
@@ -553,6 +553,33 @@ namespace MGUI.Core.UI
                     else
                     {
                         Existing.Setters.Add(Setter);
+                    }
+                }
+
+                //  ADR-0007, decision 5: transitions merge per path, visual states per name (the new style wins)
+                foreach (MGUI.Core.UI.XAML.Transition Transition in Style.Transitions)
+                {
+                    int ExistingIndex = Existing.Transitions.FindIndex(t => string.Equals(t.Property, Transition.Property, StringComparison.OrdinalIgnoreCase));
+                    if (ExistingIndex >= 0)
+                    {
+                        Existing.Transitions[ExistingIndex] = Transition;
+                    }
+                    else
+                    {
+                        Existing.Transitions.Add(Transition);
+                    }
+                }
+
+                foreach (MGUI.Core.UI.XAML.VisualStateDefinition State in Style.VisualStates)
+                {
+                    int ExistingIndex = Existing.VisualStates.FindIndex(s => string.Equals(s.Name, State.Name, StringComparison.OrdinalIgnoreCase));
+                    if (ExistingIndex >= 0)
+                    {
+                        Existing.VisualStates[ExistingIndex] = State;
+                    }
+                    else
+                    {
+                        Existing.VisualStates.Add(State);
                     }
                 }
             }

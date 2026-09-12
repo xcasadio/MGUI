@@ -90,6 +90,13 @@ public class ThemeValueInvalidationInventoryTests
             ["FontSettings.UseExactScale"] = UIThemeValueInvalidation.RenderOnly,
             ["FontSettings.DefaultFontFamily"] = UIThemeValueInvalidation.LayoutAffecting,
             ["FontSettings.DefaultFontShadowOffset"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.Enabled"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.HoverDuration"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.PressDuration"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.FocusDuration"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.HoverEasing"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.PressEasing"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.FocusEasing"] = UIThemeValueInvalidation.RenderOnly,
         };
 
         IEnumerable<string> valuesWithoutPilotShape = EnumerateThemeValues()
@@ -135,8 +142,8 @@ public class ThemeValueInvalidationInventoryTests
         };
         Dictionary<string, string> callbacksReadingNoLayoutValue = new(StringComparer.Ordinal)
         {
-            [nameof(MGButton)] = "Backgrounds",
-            [nameof(MGToggleButton)] = "Backgrounds, TextBlockFallbackForeground",
+            [nameof(MGButton)] = "Backgrounds, Animation.* (theme transitions, ADR-0007)",
+            [nameof(MGToggleButton)] = "Backgrounds, TextBlockFallbackForeground, Animation.* (theme transitions, ADR-0007)",
             [nameof(MGMenuBarItem)] = "Backgrounds, TextBlockFallbackForeground",
             [nameof(MGExpander)] = "DropdownArrowColor",
             [nameof(MGScrollViewer)] = "ScrollBarOuterBrush, ScrollBarInnerBrush",

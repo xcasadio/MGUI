@@ -213,6 +213,10 @@ Les applicateurs du catalogue lisent ces reglages par `ApplyOwnerThemeDefault` (
 
 Ecart `Dark.ListBox` (tache 13) corrige : `ControlTemplateLoader.BuildTemplates` resout un `BasedOn` parmi les definitions qu'il recoit avant d'interroger le resolveur externe ; le catalogue lui remettait toutes les definitions de `BuiltInControlTemplates.xaml`, dont `ListBox.Default` et `ListView.Default` qu'il avait deja enregistres avec leurs applicateurs de code, si bien que `Dark.ListBox` et `Dark.ListView` heritaient d'une structure nue sans applicateur (aucune contribution `ListBox.*` ni `ListView.*` sous `Dark`). `RegisterDefaults` ne construit plus que les definitions qu'il n'a pas enregistrees lui-meme.
 
+### Groupe Animation (ADR-0007, decision 5)
+
+Depuis le 12 septembre 2026, `MGTheme.Animation` (`MGThemeAnimationSettings`, DTO `ThemeAnimationSettingsDefinition`) porte les temps d'interaction : `Enabled` (faux dans les themes integres), `HoverDuration` (120 ms), `PressDuration` (80 ms), `FocusDuration` (120 ms), `HoverEasing` / `PressEasing` / `FocusEasing` (`CubicOut`, noms de `UIEasing`). `MGButton` et `MGToggleButton` y adherent : quand `Enabled` est vrai, `OnThemeChanged` (et le constructeur) leur attache une transition `RenderScale` et une transition `Background.Overlay` (`UIThemeTransitions`), mises a jour sur place a chaque changement de theme et retirees si le theme les desactive ; une transition posee par l'application sur ces chemins n'est jamais touchee. Le groupe est `RenderOnly` dans l'inventaire (`UIThemeValueInvalidation`) : aucun controle ne declare de `GetThemeInvalidation` pour lui. Le builder refuse un easing inconnu ou une duree invalide ; une valeur non posee garde celle du theme de base. Details et syntaxe des styles animes (`<Style.Transitions>`, `<Style.VisualStates>`) dans `Docs/animation-architecture.md`, section « Styles et themes » ; le refresh de styles a chaud ne les couvre pas.
+
 ### Hors scope volontaire
 
 - Pas de moteur de theme generique par reflection.

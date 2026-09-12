@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Animation.Easing;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -461,6 +462,8 @@ public class ThemeLayoutInvalidationTests
             type == typeof(VisualStateSetting<Color?>) ? new VisualStateSetting<Color?>(Tint, Tint, Tint) :
             type == typeof(Point) ? new Point(((Point)value!).X + 3, ((Point)value).Y + 2) :
             type == typeof(bool) ? !(bool)value! :
+            type == typeof(TimeSpan) ? (TimeSpan)value! + TimeSpan.FromMilliseconds(7) :
+            type == typeof(string) && value is string easingName && UIEasing.TryGet(easingName, out _) ? (easingName == "Linear" ? "QuadIn" : "Linear") :
             type.IsEnum ? Enum.GetValues(type).Cast<object>().First(candidate => !candidate.Equals(value)) :
             throw new InvalidOperationException($"No render-only change is defined for {property.DeclaringType!.Name}.{property.Name} ({type}).");
         property.SetValue(target, changed);

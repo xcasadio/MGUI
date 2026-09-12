@@ -49,6 +49,19 @@ internal sealed class AnimationTestScene
         return scene;
     }
 
+    /// <summary>Drives a window built elsewhere (a XAML load) frame by frame; <see cref="Panel"/>, <see cref="Top"/> and <see cref="Bottom"/> stay null.</summary>
+    public static AnimationTestScene Attach(GraphTestRuntime runtime, MGDesktop desktop, MGWindow window)
+    {
+        if (!desktop.Windows.Contains(window))
+        {
+            desktop.Windows.Add(window);
+        }
+
+        AnimationTestScene scene = new() { Runtime = runtime, Desktop = desktop, Window = window };
+        scene.Frames(2);
+        return scene;
+    }
+
     /// <summary>Runs <paramref name="count"/> desktop frames of <paramref name="milliseconds"/> each with the current <see cref="Mouse"/> position.</summary>
     public void Frames(int count, int milliseconds = FrameMilliseconds, bool leftPressed = false)
     {

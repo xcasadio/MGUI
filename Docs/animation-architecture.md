@@ -147,6 +147,46 @@ DTO `MGUI.Core/UI/XAML/Animation.cs` :
 
 `Transition.Property` doit etre un chemin enregistre, `Duration` / `Delay` acceptent des secondes (`0.15`), des millisecondes (`150ms`) ou un `TimeSpan` (`0:0:0.15`), `Easing` un nom connu ; chaque setter valide sa valeur, donc une erreur remonte comme diagnostic du loader strict (`InvalidValueConversion`, `SCN-MARKUP-001`). `RenderTransform` accepte `x,y` ou un nombre unique pour les vecteurs, `Rotation` en degres. Les transitions sont attachees apres les attributs de l'element (elles lisent la valeur courante en s'attachant).
 
+Etats visuels nommes (`VisualStateDefinition`, T5) :
+
+```xaml
+<Button Content="Hover me">
+    <Button.VisualStates>
+        <VisualStateDefinition Name="Hover">
+            <Setter Property="RenderTransform.Scale" Value="1.05" />
+            <Setter Property="Background" Value="#3C8CDC" />
+        </VisualStateDefinition>
+        <VisualStateDefinition Name="Pressed"><Setter Property="RenderTransform.Scale" Value="0.96" /></VisualStateDefinition>
+    </Button.VisualStates>
+</Button>
+```
+
+Le `Setter` est celui des styles ; `Property` est un chemin de cible et `Value` est converti par le type de la cible a l'ajout du setter (float, int, vecteur `x,y` ou nombre unique, couleur, epaisseur) : chemin inconnu, valeur invalide ou cible sans forme XAML (les gradients) sont des diagnostics du loader qui nomment le chemin et la valeur.
+
+## Styles et themes
+
+Un style porte des transitions et des etats (`<Style.Transitions>`, `<Style.VisualStates>`, T5 ; ADR-0007 decision 5), avec ou sans setters :
+
+```xaml
+<Window.Styles>
+    <Style TargetType="Button">
+        <Style.Transitions><Transition Property="Opacity" Duration="0.2" Easing="CubicOut" /></Style.Transitions>
+        <Style.VisualStates>
+            <VisualStateDefinition Name="Hover"><Setter Property="RenderTransform.Scale" Value="1.05" /></VisualStateDefinition>
+        </Style.VisualStates>
+    </Style>
+    <Style TargetType="Button" Name="Fast">
+        <Style.Transitions><Transition Property="Opacity" Duration="50ms" /></Style.Transitions>
+    </Style>
+</Window.Styles>
+```
+
+Fusion dans l'element (`Element.ProcessStyles` puis `ApplyBaseSettings`) : styles implicites (ceux du desktop, `MGResources.AddImplicitStyle`, puis les inline du plus englobant au plus proche), puis styles nommes dans l'ordre de `StyleNames`, puis les declarations propres de l'element ; les collections runtime remplacent par chemin (`Transitions`) ou par nom (`VisualStates`), le dernier gagne. Les etats sont transferes avant les transitions (une transition lit la valeur courante en s'attachant). Un style implicite du desktop fusionne ses transitions par chemin et ses etats par nom avec ceux deja enregistres pour le type. Les setters restent appliques par reflexion sur le DTO et `IsStyleable` filtre comme pour eux.
+
+Theme : le groupe `MGTheme.Animation` (`MGThemeAnimationSettings` : `Enabled`, `HoverDuration` 120 ms, `PressDuration` 80 ms, `FocusDuration` 120 ms, `HoverEasing` / `PressEasing` / `FocusEasing` `CubicOut`, noms connus de `UIEasing`) est lu par les controles qui y adherent, `MGButton` et `MGToggleButton` (`UIThemeTransitions`) : quand `Enabled` est vrai ils s'attachent une transition `RenderScale` (survol, duree et easing Hover) et une transition `Background.Overlay` (survol et appui, duree et easing Press), une fois par chemin, mises a jour sur place au changement de theme (un run en cours n'est pas remis a zero) et retirees quand le theme les desactive ; une transition que l'application a posee sur l'un de ces chemins, avant ou apres, n'est jamais touchee. `Enabled` est faux dans les themes integres : un bouton non touche ne porte aucun slot d'animation (principe de cout de l'ADR-0006) ; un theme l'active (`<ThemeDefinition.Animation Enabled="True" HoverDuration="0.15" PressEasing="QuadOut" />` ou `theme.Animation.Enabled = true`). Le DTO `ThemeAnimationSettingsDefinition` accepte les memes formats de duree que `Transition`, un easing inconnu ou une duree invalide sont refuses a la construction du theme, une valeur non posee garde celle du theme de base (`BasedOn`). Le groupe est classe `RenderOnly` dans `UIThemeValueInvalidation`. `FocusDuration` / `FocusEasing` sont reserves : aucun controle ne les lit encore.
+
+Cout : `ViewModelBase.NotifyPropertyChanged` partage un `PropertyChangedEventArgs` par nom de propriete, si bien qu'un element abonne (transition, binding) n'alloue rien par notification ; avant T5, chaque `NPC` d'un element ayant un abonne allouait 24 octets.
+
 ## Diagnostics
 
 `UIToolingService.CaptureElementDebugView(element)` liste les animations actives et retenues de l'element et ses transitions (chemin, etat, progression, nom) ; `RenderElementDebugView` les rend sous `animations:` et `transitions:`. `UIPerformanceProbe` expose la phase `Animations` du desktop.
@@ -169,7 +209,8 @@ DTO `MGUI.Core/UI/XAML/Animation.cs` :
 - Le fondu des overlays Hover / Pressed (`VisualStateFillBrush.OverlayOpacity`, ADR-0007 decision 4) est un fondu a l'entree seulement : l'overlay peint est celui de l'etat courant, donc a la sortie de l'etat il disparait avec lui pendant que la transition ramene l'opacite a 0. Seuls les sites de `MGElement` et `MGBorder` appliquent `OverlayOpacity` ; `MGProgressBar`, `MGScrollViewer`, `MGWindow` (barre de titre), `MGUniformGrid`, `MGGridSplitter` et `MGSlider` lisent encore l'overlay directement (opacite 1). Un remplacement entier du conteneur de fond (changement de theme, ecriture `Background` d'un style ou du code) repart avec `OverlayOpacity = 1` : un fondu en cours a ce moment saute.
 - `Thickness` est en entiers : une marge animee avance par pixels entiers.
 - Les abonnements d'une transition ne sont liberes qu'a son retrait, pas au detachement de l'element (l'element possede la transition, aucune fuite au-dela de sa vie).
+- Le refresh de styles a chaud (`MGElement.RefreshStyles`, `ElementStyleRefresher`) ne re-transfere ni les transitions ni les etats d'un style : ils sont poses a la construction de l'element (ADR-0007, hors programme). Un `Setter` d'etat ne peut declarer en XAML que les cibles float, int, vecteur, couleur et epaisseur.
 
 ## Reste a faire
 
-Le programme V2 est dans `Docs/Tasks/animation-v2-tasks.md` ; livre : composition (T1), keyframes (T2), fondu des overlays et cibles supplementaires (T3), etats visuels nommes (T4). Reste : styles et theme (T5), `MGProgressButton` sur le moteur (T6), API fluente (T7), sample et validation (T8). L'editeur de timeline vit dans le moteur de jeu de l'auteur.
+Le programme V2 est dans `Docs/Tasks/animation-v2-tasks.md` ; livre : composition (T1), keyframes (T2), fondu des overlays et cibles supplementaires (T3), etats visuels nommes (T4), styles et theme (T5). Reste : `MGProgressButton` sur le moteur (T6), API fluente (T7), sample et validation (T8). L'editeur de timeline vit dans le moteur de jeu de l'auteur.

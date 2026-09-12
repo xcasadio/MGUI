@@ -1,3 +1,11 @@
+using MGUI.Core.UI.Brushes.Fill_Brushes;
+#if UseWPF
+using System.Windows.Markup;
+#else
+using Portable.Xaml.Markup;
+#endif
+using MGUI.Core.UI.Animation.States;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Microsoft.Xna.Framework;
 using MGUI.Core.UI.Animation;
@@ -101,6 +109,78 @@ namespace MGUI.Core.UI.XAML
             }
 
             return UITransition.Create(_Property, duration, delay, easing);
+        }
+    }
+
+    /// <summary>
+    /// XAML declaration of a named visual state (ADR-0007, decision 3 and 5), inside <c>&lt;Button.VisualStates&gt;</c> or <c>&lt;Style.VisualStates&gt;</c>:
+    /// <code>&lt;VisualStateDefinition Name="Hover"&gt;&lt;Setter Property="RenderTransform.Scale" Value="1.05" /&gt;&lt;/VisualStateDefinition&gt;</code>
+    /// A setter's <see cref="Setter.Property"/> is a registered animation target path and its <see cref="Setter.Value"/> is converted by the target's value
+    /// type when the setter is added (float, int, <c>x,y</c> vectors, colours, thicknesses), so an unknown path or a bad value is a loader diagnostic.
+    /// </summary>
+    [ContentProperty(nameof(Setters))]
+    public class VisualStateDefinition
+    {
+        private string _Name;
+
+        /// <summary>The state name (<c>Hover</c>, <c>Pressed</c>, <c>Checked</c>...); validated when set, so a nameless state in a style nobody uses is still a loader diagnostic.</summary>
+        public string Name
+        {
+            get => _Name;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    throw new InvalidOperationException("A VisualStateDefinition needs a Name.");
+                }
+
+                _Name = value;
+            }
+        }
+
+        public VisualStateSetterCollection Setters { get; } = new();
+
+        /// <summary>Builds the runtime state (a new instance each call: a style shares one definition between its elements).</summary>
+        public UIVisualState ToVisualState()
+        {
+            if (string.IsNullOrWhiteSpace(Name))
+            {
+                throw new InvalidOperationException("A VisualStateDefinition needs a Name.");
+            }
+
+            UIVisualState state = new(Name);
+            foreach (Setter setter in Setters)
+            {
+                state.Add(setter.Property, setter.Value);
+            }
+
+            return state;
+        }
+    }
+
+    /// <summary>The setters of a <see cref="VisualStateDefinition"/>: each one is validated and its value converted when it is added.</summary>
+    public sealed class VisualStateSetterCollection : Collection<Setter>
+    {
+        protected override void InsertItem(int index, Setter item)
+        {
+            Convert(item);
+            base.InsertItem(index, item);
+        }
+
+        protected override void SetItem(int index, Setter item)
+        {
+            Convert(item);
+            base.SetItem(index, item);
+        }
+
+        private static void Convert(Setter item)
+        {
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            item.Value = AnimationXamlParser.ConvertStateValue(item.Property, item.Value);
         }
     }
 
@@ -210,6 +290,70 @@ namespace MGUI.Core.UI.XAML
         }
 
         /// <summary>Parses <c>x,y</c> (or <c>x y</c>) or a single number applied to both components, invariant culture.</summary>
+        /// <summary>Converts a visual state setter value to the value type of the animation target at <paramref name="path"/>.</summary>
+        /// <exception cref="InvalidOperationException">The path is unknown, the value is missing, cannot be converted, or the target's type has no XAML form.</exception>
+        public static object ConvertStateValue(string path, object value)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                throw new InvalidOperationException("A visual state Setter needs a Property path.");
+            }
+
+            Type type = UIAnimationTargets.GetValueType(path) ?? throw new InvalidOperationException(
+                $"Cannot convert '{path}' to an animation target for a visual state Setter: unknown path. Registered paths: {string.Join(", ", UIAnimationTargets.Paths)}.");
+            if (value == null)
+            {
+                throw new InvalidOperationException($"The visual state Setter for '{path}' needs a Value.");
+            }
+
+            if (value is not string text)
+            {
+                if (type.IsInstanceOfType(value))
+                {
+                    return value;
+                }
+
+                throw new InvalidOperationException($"The visual state Setter for '{path}' needs a {type.Name}, got a {value.GetType().Name}.");
+            }
+
+            text = text.Trim();
+            try
+            {
+                if (type == typeof(float))
+                {
+                    return float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+                }
+
+                if (type == typeof(int) || type == typeof(int?))
+                {
+                    return int.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture);
+                }
+
+                if (type == typeof(Vector2))
+                {
+                    return ParseVector2(text);
+                }
+
+                if (type == typeof(Color))
+                {
+                    return XNAColorStringConverter.ParseColor(text);
+                }
+
+                if (type == typeof(MonoGame.Extended.Thickness))
+                {
+                    return ((Thickness)new ThicknessStringConverter().ConvertFrom(null, CultureInfo.InvariantCulture, text)).ToThickness();
+                }
+            }
+            catch (Exception error) when (error is FormatException or OverflowException or ArgumentException or InvalidOperationException)
+            {
+                // No inner exception: the loader reports the innermost message, which must name the value and the path.
+                throw new InvalidOperationException($"Cannot convert '{text}' to a {type.Name} for the visual state Setter '{path}': {error.Message}");
+            }
+
+            throw new InvalidOperationException(
+                $"The visual state Setter '{path}' targets a {type.Name}, which XAML cannot declare: only float, int, Vector2, Color and Thickness targets can be set by a visual state in XAML.");
+        }
+
         public static Vector2 ParseVector2(string value)
         {
             if (!TryParseVector2(value, out Vector2 vector))

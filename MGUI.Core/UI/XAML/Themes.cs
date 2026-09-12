@@ -40,6 +40,7 @@ namespace MGUI.Core.UI.XAML
         public ThemeToolTipSettingsDefinition ToolTip { get; set; } = new();
         public ThemeTextBoxSettingsDefinition TextBox { get; set; } = new();
         public ThemeNumericUpDownSettingsDefinition NumericUpDown { get; set; } = new();
+        public ThemeAnimationSettingsDefinition Animation { get; set; } = new();
 
         public List<ThemeBackgroundDefinition> Backgrounds { get; set; } = new();
         public List<ThemeControlTemplateDefinition> ControlTemplates { get; set; } = new();
@@ -340,6 +341,19 @@ namespace MGUI.Core.UI.XAML
         public int? MinHeight { get; set; }
         public int? SpinnerWidth { get; set; }
         public int? SpinnerMinWidth { get; set; }
+    }
+
+    /// <summary>The <c>Animation</c> group of a theme definition (ADR-0007, decision 5; <see cref="MGThemeAnimationSettings"/>): durations accept seconds
+    /// (<c>0.15</c>), milliseconds (<c>150ms</c>) or a <see cref="TimeSpan"/>, easings are names known to <c>UIEasing</c>; an unset value keeps the base theme's.</summary>
+    public class ThemeAnimationSettingsDefinition : XAMLBindableBase
+    {
+        public bool? Enabled { get; set; }
+        public string HoverDuration { get; set; }
+        public string PressDuration { get; set; }
+        public string FocusDuration { get; set; }
+        public string HoverEasing { get; set; }
+        public string PressEasing { get; set; }
+        public string FocusEasing { get; set; }
     }
 
     public class ThemeDockingSettingsDefinition : XAMLBindableBase

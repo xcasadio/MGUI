@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using Microsoft.Xna.Framework;
@@ -61,6 +62,7 @@ namespace MGUI.Core.UI.XAML
             ApplyToolTip(Theme.ToolTip, Definition.ToolTip);
             ApplyTextBox(Theme.TextBox, Definition.TextBox);
             ApplyNumericUpDown(Theme.NumericUpDown, Definition.NumericUpDown);
+            ApplyAnimation(Theme.Animation, Definition.Animation);
             ApplyProperties(Theme, Definition.Properties);
         }
 
@@ -87,6 +89,52 @@ namespace MGUI.Core.UI.XAML
 
             if (Definition.Padding.HasValue) Target.Padding = Definition.Padding.Value.ToThickness();
             if (Definition.MinHeight.HasValue) Target.MinHeight = Definition.MinHeight.Value;
+        }
+
+        private static void ApplyAnimation(MGThemeAnimationSettings Target, ThemeAnimationSettingsDefinition Definition)
+        {
+            if (Definition == null)
+            {
+                return;
+            }
+
+            if (Definition.Enabled.HasValue) Target.Enabled = Definition.Enabled.Value;
+            Target.HoverDuration = ParseAnimationDuration(Definition.HoverDuration, Target.HoverDuration, nameof(Definition.HoverDuration));
+            Target.PressDuration = ParseAnimationDuration(Definition.PressDuration, Target.PressDuration, nameof(Definition.PressDuration));
+            Target.FocusDuration = ParseAnimationDuration(Definition.FocusDuration, Target.FocusDuration, nameof(Definition.FocusDuration));
+            Target.HoverEasing = ParseAnimationEasing(Definition.HoverEasing, Target.HoverEasing, nameof(Definition.HoverEasing));
+            Target.PressEasing = ParseAnimationEasing(Definition.PressEasing, Target.PressEasing, nameof(Definition.PressEasing));
+            Target.FocusEasing = ParseAnimationEasing(Definition.FocusEasing, Target.FocusEasing, nameof(Definition.FocusEasing));
+        }
+
+        private static TimeSpan ParseAnimationDuration(string Value, TimeSpan Current, string Name)
+        {
+            if (string.IsNullOrWhiteSpace(Value))
+            {
+                return Current;
+            }
+
+            if (!AnimationXamlParser.TryParseDuration(Value, out TimeSpan Duration))
+            {
+                throw new InvalidOperationException($"Cannot convert '{Value}' to a duration for Animation.{Name}: use seconds ('0.15'), milliseconds ('150ms') or a TimeSpan ('0:0:0.15').");
+            }
+
+            return Duration;
+        }
+
+        private static string ParseAnimationEasing(string Value, string Current, string Name)
+        {
+            if (string.IsNullOrWhiteSpace(Value))
+            {
+                return Current;
+            }
+
+            if (!UIEasing.TryGet(Value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{Value}' to an easing function for Animation.{Name}. Known names: {string.Join(", ", UIEasing.Names)}.");
+            }
+
+            return Value;
         }
 
         private static void ApplyNumericUpDown(MGThemeNumericUpDownSettings Target, ThemeNumericUpDownSettingsDefinition Definition)
