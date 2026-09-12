@@ -112,6 +112,60 @@ public class TemplateStructureRebuildThemeTests
         Assert.Equal(Describe(expected.BorderBrush), Describe(local.BorderBrush));
     }
 
+    [Fact]
+    public void TreeView_Items_Move_To_The_Items_Panel_Of_A_Rebuilt_Structure_And_Follow_The_Theme()
+    {
+        Harness harness = Harness.Create(dark: false);
+        MGTreeView treeView = new(harness.Window);
+        ThemeProbeTreeViewItem first = new(harness.Window) { Header = "First" };
+        first.AddItem(new MGTreeViewItem(harness.Window) { Header = "Child" });
+        ThemeProbeTreeViewItem second = new(harness.Window) { Header = "Second" };
+        treeView.AddItem(first);
+        treeView.AddItem(second);
+        harness.Show(treeView);
+        Assert.Equal(MGControlTemplateCatalog.TreeViewTemplateName, treeView.AppliedControlTemplateName);
+        MGStackPanel codeItemsPanel = treeView.ItemsPanel;
+
+        MGTheme dark = new(MGTheme.BuiltInTheme.Dark, harness.Desktop.DefaultFontFamily);
+        harness.Window.GetResources().DefaultTheme = dark;
+        harness.Frame(3, Point.Zero);
+
+        Assert.Equal("Dark.TreeView", treeView.AppliedControlTemplateName);
+        Assert.NotSame(codeItemsPanel, treeView.ItemsPanel);
+
+        // The root items moved, in order, to the items panel of the new structure; the replaced panel holds none of them.
+        Assert.Equal(new MGElement[] { first, second }, treeView.ItemsPanel.Children);
+        Assert.Same(treeView.ItemsPanel, first.Parent);
+        Assert.Same(treeView.ItemsPanel, second.Parent);
+        Assert.Empty(codeItemsPanel.Children);
+
+        // Back in the visual tree, they received the theme change and are laid out.
+        Assert.Same(dark, first.LastNotifiedTheme);
+        Assert.Same(dark, second.LastNotifiedTheme);
+        Assert.True(first.LayoutBounds.Height > 0);
+
+        // An item added later also goes to the new panel.
+        MGTreeViewItem third = new(harness.Window) { Header = "Third" };
+        treeView.AddItem(third);
+        Assert.Same(treeView.ItemsPanel, third.Parent);
+    }
+
+    private sealed class ThemeProbeTreeViewItem : MGTreeViewItem
+    {
+        public ThemeProbeTreeViewItem(MGWindow window)
+            : base(window)
+        {
+        }
+
+        public MGTheme LastNotifiedTheme { get; private set; }
+
+        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+        {
+            base.OnThemeChanged(PreviousTheme, CurrentTheme);
+            LastNotifiedTheme = CurrentTheme;
+        }
+    }
+
     private static MGComboBox<string> CreateComboBox(Harness harness)
     {
         MGComboBox<string> comboBox = new(harness.Window) { PreferredHeight = 30 };

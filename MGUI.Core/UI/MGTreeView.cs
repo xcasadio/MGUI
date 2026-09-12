@@ -325,6 +325,7 @@ namespace MGUI.Core.UI
 
         protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
         {
+            MGStackPanel PreviousItemsPanel = ItemsPanel;
             OuterBorder = Structure.Parts[OuterBorderPartName] as MGBorder;
             ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
             ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
@@ -346,6 +347,28 @@ namespace MGUI.Core.UI
             using (AllowChangingContentTemporarily())
             {
                 SetContent(OuterBorder);
+            }
+
+            //  A structure rebuilt by a theme change that maps the tree view to another template replaces the items panel: the root items leave the
+            //  replaced panel before joining the new one (removal clears their parent), where the layout and the theme notification reach them again.
+            if (PreviousItemsPanel != null && !ReferenceEquals(PreviousItemsPanel, ItemsPanel))
+            {
+                using (PreviousItemsPanel.AllowChangingContentTemporarily())
+                {
+                    _ = PreviousItemsPanel.TryRemoveAll();
+                }
+            }
+
+            if (_Items != null && _Items.Count > 0)
+            {
+                using (ItemsPanel.AllowChangingContentTemporarily())
+                using (ItemsPanel.SuspendContentLayout())
+                {
+                    foreach (MGTreeViewItem Item in _Items)
+                    {
+                        _ = ItemsPanel.TryAddChild(Item);
+                    }
+                }
             }
         }
 
