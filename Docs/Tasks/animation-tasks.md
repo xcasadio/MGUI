@@ -118,7 +118,9 @@ Decisions de conception derivees (session principale, contestables avant S1) :
 
 ## Tranches
 
-### ⚪ S1. Interpolateurs et easings
+### ✅ S1. Interpolateurs et easings
+
+**Statut** : livre le 12 septembre 2026. `MGUI.Core/UI/Animation/Interpolation/` : `IUIInterpolator<T>`, `UIFloatInterpolator`, `UIDoubleInterpolator`, `UIIntInterpolator` (ajoute, base de `int?`), `UINullableIntInterpolator` (bascule a mi-parcours quand un cote est null), `UIVector2/3/4Interpolator`, `UIColorInterpolator` (`Color.Lerp`, seul a borner `amount` dans [0,1] : un canal octet ne represente pas le depassement), `UIRectangleInterpolator`, `UIThicknessInterpolator` (arrondi away-from-zero par `UIInterpolationMath.RoundAwayFromZero`), registre `UIInterpolators` (`ConcurrentDictionary`, `Register<T>` remplace, `TryGet<T>`, `IsRegistered<T>`, `Get<T>` avec message listant le type et la methode d'enregistrement). `MGUI.Core/UI/Animation/Easing/` : `IUIEasingFunction`, `UIEasing` (dix-neuf fonctions : Linear, Quad/Cubic/Sine/Back/Bounce/Elastic In/Out/InOut, formules easings.net, instances statiques nommees sur des lambdas statiques, registre par nom insensible a la casse, `Register`, `TryGet`, `Names`). Aucune fonction ne borne son entree ni sa sortie hors `Color`. Tests : `MGUI.Tests/Animation/InterpolatorTests.cs` et `EasingTests.cs` (99 tests) : bornes, milieu, non-bornage, arrondis, `int?`, alpha des couleurs, symetrie In/Out par famille, depassements Back et Elastic, Bounce dans [0,1], registres (casse, inconnu, type applicatif, null), zero allocation sur mille appels (`GC.GetAllocatedBytesForCurrentThread`). `Rectangle` est ambigu entre `MGUI.Core.UI.XAML.Rectangle` et MonoGame des que `MGUI.Core.UI.XAML` est importe (pour `Thickness`) : alias `using Rectangle = Microsoft.Xna.Framework.Rectangle;` dans les fichiers concernes. Architecture et samples verts.
 
 But : livrer les briques pures (`IUIInterpolator<T>`, `UIInterpolators`, `IUIEasingFunction`, `UIEasing`) sans dependance au reste du moteur.
 
