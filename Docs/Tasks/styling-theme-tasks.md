@@ -451,3 +451,29 @@ Criteres d'acceptation:
 - `EditorCompactPresetTests` couvre les nouvelles valeurs ; `SCN-THEME-001` vert.
 
 Commit recommande: `style-theme: theme the remaining density values`
+
+### ⚪ 15. Enregistrer en source `Template` les valeurs declarees sur les parts des templates XAML
+
+But:
+qu'une valeur pilote declaree en attribut sur une part d'un `ControlTemplate` XAML soit traitee comme une valeur du template, et non comme une valeur de l'application.
+
+Etat actuel (verifie le 12 septembre 2026) :
+
+- `ControlTemplateLoader.BuildStructure` (`MGUI.Core/UI/XAML/ControlTemplateLoader.cs`) cree les parts par `ToElement` sur les DTO XAML ; leurs attributs pilotes (Margin, Padding, MinHeight, BorderBrush, BorderThickness, fonds, textes) passent par `Element.ResolveXamlSource` (`MGUI.Core/UI/XAML/Element.cs`), qui rend `LocalValue` (90) hors provenance de style ;
+- une telle valeur l'emporte donc sur les valeurs `Template` (60) et `Theme` (20) que le catalogue pose ensuite sur la meme part ;
+- quand un changement de theme reconstruit la structure, `MGElement.ApplyControlTemplate` reporte les contributions `LocalValue` de chaque part remplacee sur la part de meme nom (voir `Docs/styling-theme-architecture.md`, "Valeurs template et refresh") : la part du nouveau template garde alors la valeur declaree par l'ancien ;
+- aucun des 20 `ControlTemplate` du depot (tous dans `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml`) ne declare de valeur pilote sur une part : seul un template XAML ecrit par une application est touche.
+
+Travail attendu:
+
+- enregistrer les valeurs pilotes des parts creees par la construction de structure XAML en `UIValueResolutionSource.Template`, nommees d'apres le template et la part, sans changer la provenance des memes attributs hors template ;
+- decider de la regle entre une valeur declaree par le XAML du template et la valeur que l'applicateur du catalogue pose sur la meme part (meme precedence `Template`, dernier ecrivain gagnant) ;
+- verifier que le report d'une structure reconstruite ne reprend plus ces valeurs ;
+- mettre a jour `Docs/styling-theme-architecture.md` (limites de "Valeurs template et refresh") et les limites connues d'ADR-0005.
+
+Criteres d'acceptation:
+
+- un test construit un template XAML dont une part declare un padding et un fond, verifie leur source `Template`, bascule vers un autre template par changement de theme et verifie que la nouvelle part ne les porte pas ;
+- `SCN-THEME-001` vert.
+
+Commit recommande: `style-theme: record xaml template part values as template values`
