@@ -238,7 +238,7 @@ public class GraphNodePortControlTests
 
     private static void SetLayoutBounds(MGElement element, Rectangle bounds)
     {
-        FieldInfo field = typeof(MGElement).GetField("_LayoutBounds", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        FieldInfo field = typeof(MGElement).GetField("_layoutBounds", BindingFlags.Instance | BindingFlags.NonPublic)!;
         field.SetValue(element, bounds);
     }
 

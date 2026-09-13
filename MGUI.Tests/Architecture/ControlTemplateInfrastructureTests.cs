@@ -425,7 +425,7 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("Template.CreateStructure", source);
         Assert.Contains("AttachControlTemplateStructure(Structure)", source);
         Assert.Contains("ResolveControlTemplateName()", source);
-        Assert.Contains("_AppliedTemplateStructure == null || TemplateChanged", source);
+        Assert.Contains("_appliedTemplateStructure == null || TemplateChanged", source);
     }
 
     [Fact]
@@ -508,7 +508,7 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("ApplyHeaderWrapperTemplate(OldHeaderWrapper, Tab.IsTabSelected);", tabControlSource);
         Assert.Contains("OldHeaderWrapper.InvalidateLayoutTree();", tabControlSource);
         Assert.Contains("if (!UsesCustomHeaderFactories && IsDefaultHeaderWrapper(OldHeaderWrapper))", tabControlSource);
-        Assert.Contains("MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);", tabControlSource);
+        Assert.Contains("var NewHeaderWrapper = CreateHeaderWrapper(Tab);", tabControlSource);
         Assert.Contains("ApplyTabControlHeadersPanelSettings", catalogSource);
         Assert.Contains("public static MGElement CreateDefaultTabHeaderContent", catalogSource);
         Assert.Contains("AddTab(MGControlTemplateCatalog.CreateDefaultTabHeaderContent(ParentWindow, TabHeader), TabContent);", tabControlSource);
@@ -852,7 +852,7 @@ public class ControlTemplateInfrastructureTests
 
         //  The rehydration walks EnumerateItemWrappers rather than InternalItems, so it also reaches the wrappers of a
         //  virtualized list box, where InternalItems is null and the wrappers live in the recycle pool.
-        Assert.Contains("foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())", listBoxSource);
+        Assert.Contains("foreach (var item in EnumerateItemWrappers())", listBoxSource);
         Assert.Contains("private IEnumerable<MGListBoxItem<TItemType>> EnumerateItemWrappers()", listBoxSource);
 
         //  The measured item height depends on the theme, so it must be dropped when the theme changes.
@@ -877,8 +877,8 @@ public class ControlTemplateInfrastructureTests
         string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
 
         Assert.Contains("private void SyncVirtualizedItemsPanelChrome()", listBoxSource);
-        Assert.Contains("_virtualizingPanel.SetBorderThicknessTagged(ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", listBoxSource);
-        Assert.Contains("_virtualizingPanel.SetBorderBrushTagged(ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));", listBoxSource);
+        Assert.Contains("VirtualizingPanel.SetBorderThicknessTagged(ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", listBoxSource);
+        Assert.Contains("VirtualizingPanel.SetBorderBrushTagged(ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));", listBoxSource);
         Assert.Contains("public int MinHeight { get; set; } = 30;", themeSource);
         Assert.Contains("public static void ApplyListBoxItemContainerDefaults", catalogSource);
         Assert.Contains("public static MGElement CreateDefaultListBoxItemContent", catalogSource);
@@ -1054,14 +1054,14 @@ public class ControlTemplateInfrastructureTests
         string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
 
         Assert.Contains("protected internal override void OnThemeChanged", menuBarSource);
-        Assert.Contains("VisualStateFillBrush background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
+        Assert.Contains("var background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
         Assert.Contains("Color? textForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;", menuBarSource);
         // ADR-0005/S5: CreateDefaultBarButton's factory write is now tagged Default (see the comment in
         // MGMenuBar.cs explaining why -- OnThemeChanged below re-writes the same elements at Theme precedence).
         Assert.Contains("Button.SetBackground(background, UIValueResolutionSource.Default(UIInvalidationKind.Draw));", menuBarSource);
         // ADR-0005/S6: CreateDefaultBarButton's DefaultTextForeground write is now tagged Default the same way.
         Assert.Contains("Button.SetDefaultTextForegroundAll(textForeground, UIValueResolutionSource.Default(UIInvalidationKind.Draw));", menuBarSource);
-        Assert.Contains("VisualStateFillBrush background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
+        Assert.Contains("var background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
         Assert.Contains("Color? textForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;", menuBarSource);
         // ADR-0005/S5: OnThemeChanged now writes ContentWrapper's Background through the tagged Theme pilot setter.
         Assert.Contains("ContentWrapper.SetBackground(background, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));", menuBarSource);
@@ -1079,8 +1079,8 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("private MGVisualStateProjection ContentWrapperVisualStateProjection", menuBarSource);
         Assert.Contains("OwnerVisualStateProjection = new(this, (_, __) => ApplyContentWrapperVisualState());", menuBarSource);
         Assert.Contains("ContentWrapperVisualStateProjection = new(ContentWrapper, (_, __) => ApplyContentWrapperVisualState());", menuBarSource);
-        Assert.Contains("bool isPressed = ownerState.IsPressed || wrapperState.IsPressed;", menuBarSource);
-        Assert.Contains("bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered || Submenu?.IsContextMenuOpen == true;", menuBarSource);
+        Assert.Contains("var isPressed = ownerState.IsPressed || wrapperState.IsPressed;", menuBarSource);
+        Assert.Contains("var isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered || Submenu?.IsContextMenuOpen == true;", menuBarSource);
         Assert.Contains("ContentWrapper.IsSelected = isHighlighted;", menuBarSource);
         Assert.Contains("ContentWrapper.SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;", menuBarSource);
         Assert.Contains("ContentWrapper.SpoofIsPressedWhileDrawingBackground = isPressed;", menuBarSource);
@@ -1102,7 +1102,7 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("private MGVisualStateProjection OwnerVisualStateProjection", contextMenuItemSource);
         Assert.Contains("OwnerVisualStateProjection = new(this, (_, __) => ApplyProjectedHighlightState());", contextMenuItemSource);
         Assert.Contains("ContentWrapperVisualStateProjection = new(ContentWrapper, (_, __) => ApplyProjectedHighlightState());", contextMenuItemSource);
-        Assert.Contains("bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered", contextMenuItemSource);
+        Assert.Contains("var isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered", contextMenuItemSource);
         Assert.Contains("|| ownerState.IsSelected || Submenu?.IsContextMenuOpen == true;", contextMenuItemSource);
         // ADR-0005/S5: CreateDefaultDropdownButton now writes the wrapper border's Background through the
         // tagged LocalValue pilot setter.

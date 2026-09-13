@@ -354,7 +354,7 @@ public class RenderTransformTests
     }
 
     private static UIRenderTransform RenderTransformField(MGElement element)
-        => (UIRenderTransform)typeof(MGElement).GetField("_RenderTransform", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(element);
+        => (UIRenderTransform)typeof(MGElement).GetField("_renderTransform", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(element);
 
     /// <summary>A 400x300 window holding a content-sized vertical panel of two equal buttons.</summary>
     private sealed class Scene

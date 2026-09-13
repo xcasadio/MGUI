@@ -287,5 +287,5 @@ public class AnimationManagerTests
     }
 
     private static object SlotField(MGElement element)
-        => typeof(MGElement).GetField("_AnimationSlot", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(element);
+        => typeof(MGElement).GetField("_animationSlot", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(element);
 }

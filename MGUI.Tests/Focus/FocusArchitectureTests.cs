@@ -84,7 +84,7 @@ public class FocusArchitectureTests
         string windowSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs");
 
         int modalUpdateIndex = windowSource.IndexOf("ModalWindow?.Update(UpdateArgs);");
-        int nestedUpdateIndex = windowSource.IndexOf("foreach (MGWindow Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))");
+        int nestedUpdateIndex = windowSource.IndexOf("foreach (var Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))");
 
         Assert.True(modalUpdateIndex >= 0);
         Assert.True(nestedUpdateIndex > modalUpdateIndex);
@@ -115,7 +115,7 @@ public class FocusArchitectureTests
     {
         string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
 
-        Assert.Contains("MGElement Queued = GetDesktop().QueuedFocusedKeyboardHandler;", overlaySource);
+        Assert.Contains("var Queued = GetDesktop().QueuedFocusedKeyboardHandler;", overlaySource);
         Assert.Contains("if (Queued != null && !IsInsideActiveOverlay(Queued))", overlaySource);
         Assert.Contains("GetDesktop().ClearQueuedFocusedKeyboardHandler();", overlaySource);
     }
@@ -166,7 +166,7 @@ public class FocusArchitectureTests
     {
         string elementSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
 
-        Assert.Contains("bool canReceiveMouseInputWhileHidden = Visibility == Visibility.Hidden && CanHandleInputsWhileHidden;", elementSource);
+        Assert.Contains("var canReceiveMouseInputWhileHidden = Visibility == Visibility.Hidden && CanHandleInputsWhileHidden;", elementSource);
         Assert.Contains("if (Visibility != Visibility.Visible && !canReceiveMouseInputWhileHidden)", elementSource);
         Assert.Contains("if (RecentDrawWasClipped && !canReceiveMouseInputWhileHidden)", elementSource);
     }

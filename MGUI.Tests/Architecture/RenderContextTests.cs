@@ -96,9 +96,9 @@ public class RenderContextTests
     [Fact]
     public void FirstCoreBrushes_UseContextCapabilitiesInsteadOfDrawTransactionCasts()
     {
-        string solidFillBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\Fill Brushes\MGSolidFillBrush.cs");
-        string textureFillBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\Fill Brushes\MGTextureFillBrush.cs");
-        string gradientBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\Fill Brushes\MGProgressBarGradientBrush.cs");
+        string solidFillBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\FillBrushes\MGSolidFillBrush.cs");
+        string textureFillBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\FillBrushes\MGTextureFillBrush.cs");
+        string gradientBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\FillBrushes\MGProgressBarGradientBrush.cs");
 
         Assert.DoesNotContain("as MGUI.Shared.Rendering.DrawTransaction", solidFillBrushSource);
         Assert.DoesNotContain("as MGUI.Shared.Rendering.DrawTransaction", textureFillBrushSource);

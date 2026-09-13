@@ -65,9 +65,9 @@ public class ResolvedPilotWriteSitesTests
         (@"MGUI.Core\UI\XAML\Brushes.cs", "XAML DTO properties, not MGElement instances"),
         (@"MGUI.Core\UI\MGTheme.cs", "theme data, not MGElement instances"),
         (@"MGUI.Core\UI\XAML\ThemeDefinitionBuilder.cs", "theme definition DTO builder, not MGElement instances"),
-        (@"MGUI.Core\UI\Brushes\Fill Brushes\MGPaddedFillBrush.cs", "brush-internal property sharing the pilot's name"),
-        (@"MGUI.Core\UI\Brushes\Fill Brushes\MGBorderedFillBrush.cs", "brush-internal property sharing the pilot's name"),
-        (@"MGUI.Core\UI\Brushes\Fill Brushes\MGNineSliceFillBrush.cs", "brush-internal property sharing the pilot's name"),
+        (@"MGUI.Core\UI\Brushes\FillBrushes\MGPaddedFillBrush.cs", "brush-internal property sharing the pilot's name"),
+        (@"MGUI.Core\UI\Brushes\FillBrushes\MGBorderedFillBrush.cs", "brush-internal property sharing the pilot's name"),
+        (@"MGUI.Core\UI\Brushes\FillBrushes\MGNineSliceFillBrush.cs", "brush-internal property sharing the pilot's name"),
         (@"MGUI.Core\UI\Containers\Grids\GridDimension.cs", "grid sizing DTO, not an MGElement pilot"),
         (@"MGUI.Core\UI\Text\FormattedTextTokenizer.cs", "text layout internals sharing the pilot's name"),
         (@"MGUI.Core\UI\Text\TextRenderInfo.cs", "text layout internals sharing the pilot's name"),
@@ -80,17 +80,17 @@ public class ResolvedPilotWriteSitesTests
     /// <summary>(relative path, 1-based line, reason) — a specific line is allowed regardless of file.</summary>
     private static readonly (string File, int Line, string Reason)[] AllowedLines =
     {
-        (@"MGUI.Core\UI\MGContextMenu.cs", 528, "local variable `int MinHeight`, not the MGElement.MinHeight pilot"),
-        (@"MGUI.Core\UI\MGDesktop.cs", 825, "local variable `int MinHeight`, not the MGElement.MinHeight pilot"),
-        (@"MGUI.Core\UI\MGWindow.cs", 238, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
-        (@"MGUI.Core\UI\MGWindow.cs", 256, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
-        (@"MGUI.Core\UI\MGChatBox.cs", 145, "commented-out code"),
-        (@"MGUI.Core\UI\MGScrollViewer.cs", 567, "commented-out code"),
-        (@"MGUI.Core\UI\MGXAMLDesigner.cs", 70, "inside a verbatim string literal (sample XAML shown in the designer UI), not code"),
-        (@"MGUI.Core\UI\MGSlider.cs", 683, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
-        (@"MGUI.Core\UI\MGResizeGrip.cs", 187, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
-        (@"MGUI.Core\UI\Containers\MGContentHost.cs", 322, "method parameter (`Color? Foreground = null`), not a pilot write"),
-        (@"MGUI.Core\UI\Containers\Grids\MGGridSplitter.cs", 269, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
+        (@"MGUI.Core\UI\MGContextMenu.cs", 519, "local variable `var MinHeight`, not the MGElement.MinHeight pilot"),
+        (@"MGUI.Core\UI\MGDesktop.cs", 814, "local variable `var MinHeight`, not the MGElement.MinHeight pilot"),
+        (@"MGUI.Core\UI\MGWindow.cs", 231, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
+        (@"MGUI.Core\UI\MGWindow.cs", 249, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
+        (@"MGUI.Core\UI\MGChatBox.cs", 138, "commented-out code"),
+        (@"MGUI.Core\UI\MGScrollViewer.cs", 557, "commented-out code"),
+        (@"MGUI.Core\UI\MGXAMLDesigner.cs", 62, "inside a verbatim string literal (sample XAML shown in the designer UI), not code"),
+        (@"MGUI.Core\UI\MGSlider.cs", 675, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
+        (@"MGUI.Core\UI\MGResizeGrip.cs", 180, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
+        (@"MGUI.Core\UI\Containers\MGContentHost.cs", 316, "method parameter (`Color? Foreground = null`), not a pilot write"),
+        (@"MGUI.Core\UI\Containers\Grids\MGGridSplitter.cs", 263, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\TextEditing\MGRichTextStyle.cs", 5, "record struct parameter (`Color? Foreground = null`), not a pilot write"),
     };
 
@@ -107,7 +107,7 @@ public class ResolvedPilotWriteSitesTests
         // SetBorderThickness since backlog task 8) is the adorner's own unrelated property; ADR-0005 scopes the
         // resolved-value store to MGElement/MGBorder, and adorners never go through GetBorder(). The regex text-matches
         // the identifier but there is no Thickness-typed pilot here to tag, so this line is intentionally left unmigrated.
-        (@"MGUI.Core\UI\Docking\Controls\MGDockPreviewOverlay.cs", 111, "BLOCKED", "BLOCKED: MGBoundsAdorner.BorderThickness is an int property of the adorner, not the MGElement/MGBorder Thickness pilot; out of the S2 store surface"),
+        (@"MGUI.Core\UI\Docking\Controls\MGDockPreviewOverlay.cs", 109, "BLOCKED", "BLOCKED: MGBoundsAdorner.BorderThickness is an int property of the adorner, not the MGElement/MGBorder Thickness pilot; out of the S2 store surface"),
     };
 
     [Fact]

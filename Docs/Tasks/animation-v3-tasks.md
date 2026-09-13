@@ -11,6 +11,7 @@ Hors programme (moteur de jeu de l'auteur) : widgets de timeline, scrubber, edit
 ## Historique du fichier
 
 - 13 septembre 2026 : creation apres l'audit V3 en lecture seule a HEAD `e52880c` (trois lecteurs independants : styles et `Checked` ; extensions du moteur et limites pilotes ; consommateurs de temps et outillage editeur). Aucune tache commencee ; dix questions ouvertes a l'auteur.
+- 13 septembre 2026 : reponses de l'auteur aux dix questions : toutes les recommandations en gras acceptees telles quelles (dont le palier 95 au-dessus de `LocalBinding`, U9 conservee en derniere tache, ordre U1-U5, U6-U8, U10, U9, U11) ; mode AUTO ; tranche U0 ajoutee avant U1 pour remettre la suite complete au vert (22 tests casses par les commits « clean code » du 13 septembre, HEAD `df22af7`). Les faits du chapitre « Contexte » ont ete re-verifies a `df22af7` par huit lecteurs independants : tout tient, seuls les numeros de ligne ont bouge (reformatage), `UIToolingService` est dans `MGUI.Core/Tooling/`, `MGToggleButton` dans `MGUI.Core/UI/`, `UIValuePrecedence` est un enum, `UIKeyFrameSerializer.Format` / `Parse` sont `private static`.
 
 ## Contexte : faits verifies le 13 septembre 2026 (HEAD `e52880c`, lecture seule)
 
@@ -63,6 +64,12 @@ Hors programme (moteur de jeu de l'auteur) : widgets de timeline, scrubber, edit
 - Docs en francais sans accents.
 
 ## Taches
+
+### ✅ U0. Remise au vert de la suite complete
+
+**Statut** : livre le 13 septembre 2026. Les 22 tests en echec a `df22af7` ont ete realignes sur le source apres les cinq commits « clean code » (44c92b4, 8661fa7, 5b9fc7e, 61fc475, 655f36e), sans toucher a `MGUI.Core` et sans affaiblir, supprimer ni desactiver une assertion : famille A (7 tests, extraits `Type x = ...` devenus `var x = ...` ou champ prive renomme, `FocusArchitectureTests`, `ControlTemplateInfrastructureTests`) ; famille B (2 tests, dossier `Fill Brushes` renomme `FillBrushes`, `BrushRenderContextTests`, `RenderContextTests`) ; famille C (5 tests, champs prives de `MGElement` lus par reflexion renommes en camelCase : `_renderTransform`, `_layoutBounds`, `_animationSlot`, `_appliedTemplateDefaults` via `CreateOwnerStub`) ; famille D (2 tests, `ResolvedPilotWriteSitesTests` : lignes de `AllowedLines` et `PendingMigration` decalees, chemins de brushes). Suite complete : 0 echec sur 2017. Revue independante (verifier) : CONFIRMED, un constat P4 consultatif (certains extraits `var` correspondent desormais a plusieurs lignes du meme fichier ; l'invariant garde reste asserte par l'extrait compagnon).
+
+Commit : `test: realign source-reading tests with the clean code reformat`
 
 ### ⚪ U1. Easings de Bezier
 

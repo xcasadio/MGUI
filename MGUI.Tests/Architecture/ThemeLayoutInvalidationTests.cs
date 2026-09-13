@@ -31,7 +31,7 @@ public class ThemeLayoutInvalidationTests
     private static readonly Color Tint = new(201, 64, 150);
 
     private static readonly FieldInfo AppliedTemplateDefaultsField =
-        typeof(MGElement).GetField("_AppliedTemplateDefaults", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        typeof(MGElement).GetField("_appliedTemplateDefaults", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
     [Fact]
     public void A_Text_Block_Requests_Layout_Only_When_The_Theme_Changes_The_Font_It_Follows()

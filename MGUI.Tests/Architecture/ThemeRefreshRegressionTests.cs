@@ -24,7 +24,7 @@ public class ThemeRefreshRegressionTests
         ThemeRefreshOwnerStub owner = (ThemeRefreshOwnerStub)FormatterServices.GetUninitializedObject(typeof(ThemeRefreshOwnerStub));
 #pragma warning restore SYSLIB0050
 
-        FieldInfo? appliedDefaultsField = typeof(MGElement).GetField("_AppliedTemplateDefaults", BindingFlags.Instance | BindingFlags.NonPublic);
+        FieldInfo? appliedDefaultsField = typeof(MGElement).GetField("_appliedTemplateDefaults", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(appliedDefaultsField);
         appliedDefaultsField!.SetValue(owner, new Dictionary<string, object>(StringComparer.Ordinal));
 
