@@ -14,7 +14,7 @@ Couvre `MGUI.Core/UI/Styling/*`, `MGUI.Core/UI/MGResources.cs`, `MGUI.Core/UI/MG
 - Jamais de dependency property system complet a la WPF. Si un moteur de valeurs resolues est etendu, il reste borne aux proprietes exposees au theme/style/template et aux proprietes layout-affecting.
 - Le renderer reste neutre: brushes, geometrie et draw calls uniquement. Les decisions de skin se resolvent au-dessus de lui.
 - `MGResources` est la facade unique d'agregation des themes, styles, ressources, textures et templates.
-- `VisualStateFillBrush`, `VisualStateSetting<T>` et la famille `MGContentPresenter` sont les primitives sanctionnees de projection d'etat et de composition.
+- `VisualStateFillBrush`, `VisualStateSetting<T>` et la famille `MGContentPresenter` sont les primitives sanctionnees de projection d'etat et de composition. `VisualStateBrush<T>.CheckedValue`/`HasCheckedValue` (U5, ADR-0008) est un cinquieme slot code seul sur `VisualStateFillBrush`/`VisualStateColorBrush`, consomme par `MGToggleButton.CheckedBackgroundBrush`/`CheckedTextForeground` : jamais un champ DTO de theme, jamais un slot `UIResolvedPropertyStore`.
 - Une re-application de theme ne reconstruit pas la structure si seul le chrome change. La recreation de structure n'est jamais un chemin chaud de frame.
 
 ## Vue d'ensemble

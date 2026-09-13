@@ -290,6 +290,60 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
 
     public TDataType GetUnderlay(PrimaryVisualState State) => GetValue(State);
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TDataType _CheckedValue;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _HasCheckedValue;
+
+    /// <summary>Code-only slot (U5, ADR-0008) consumed by <see cref="MGToggleButton"/>'s <c>CheckedBackgroundBrush</c>/<c>CheckedTextForeground</c>:
+    /// the value drawn/used while the toggle is checked, in place of <see cref="VisualStateSetting{TDataType}.SelectedValue"/>.<br/>
+    /// Not a theme DTO field, not an animation target, not a <see cref="MGUI.Core.UI.Styling.UIResolvedPropertyStore"/> slot: purely code-set.<para/>
+    /// For a reference <typeparamref name="TDataType"/>, setting <see langword="null"/> clears it (same as <see cref="ClearCheckedValue"/>);
+    /// for a struct <typeparamref name="TDataType"/> (<see cref="Color"/>), <see cref="HasCheckedValue"/> is the only way to tell "unset" apart
+    /// from a legitimately assigned default value.</summary>
+    public TDataType CheckedValue
+    {
+        get => _CheckedValue;
+        set
+        {
+            bool isNull = value is null;
+            if (!EqualityComparer<TDataType>.Default.Equals(_CheckedValue, value) || _HasCheckedValue == isNull)
+            {
+                _CheckedValue = value;
+                _HasCheckedValue = !isNull;
+                NotifyPropertyChanged(nameof(CheckedValue));
+                NotifyPropertyChanged(nameof(HasCheckedValue));
+            }
+        }
+    }
+
+    /// <summary>True after <see cref="CheckedValue"/> was set to a non-null value (always true for a struct <typeparamref name="TDataType"/>
+    /// once assigned, since a struct value can never be null); false initially and after <see cref="ClearCheckedValue"/>.</summary>
+    public bool HasCheckedValue => _HasCheckedValue;
+
+    /// <summary>Clears <see cref="CheckedValue"/>/<see cref="HasCheckedValue"/> so <see cref="GetValue(VisualState, bool)"/> falls back
+    /// to <see cref="VisualStateSetting{TDataType}.SelectedValue"/> again.</summary>
+    public void ClearCheckedValue()
+    {
+        if (_HasCheckedValue)
+        {
+            _CheckedValue = default;
+            _HasCheckedValue = false;
+            NotifyPropertyChanged(nameof(CheckedValue));
+            NotifyPropertyChanged(nameof(HasCheckedValue));
+        }
+    }
+
+    /// <summary>Returns <see cref="CheckedValue"/> when <paramref name="isChecked"/> is true and <see cref="HasCheckedValue"/>;
+    /// otherwise <see cref="VisualStateSetting{TDataType}.GetValue(PrimaryVisualState)"/> of <paramref name="state"/>'s
+    /// <see cref="VisualState.Primary"/>. The plain <see cref="VisualStateSetting{TDataType}.GetValue(PrimaryVisualState)"/>
+    /// and <see cref="GetUnderlay(PrimaryVisualState)"/> overloads are unchanged and never consult <see cref="CheckedValue"/>.</summary>
+    public TDataType GetValue(VisualState state, bool isChecked) => GetValue(state.Primary, isChecked);
+
+    /// <summary>See <see cref="GetValue(VisualState, bool)"/>.</summary>
+    public TDataType GetValue(PrimaryVisualState state, bool isChecked) =>
+        isChecked && _HasCheckedValue ? _CheckedValue : GetValue(state);
+
     /// <summary>Retrieves the <see cref="Color"/> used by <see cref="GetFillOverlay(SecondaryVisualState)"/> / <see cref="GetBorderOverlay(SecondaryVisualState)"/></summary>
     public Color? GetColorOverlay(SecondaryVisualState State) =>
         State switch
@@ -361,6 +415,10 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
             InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier)
     {
         OverlayOpacity = InheritFrom.OverlayOpacity;
+        if (InheritFrom.HasCheckedValue)
+        {
+            CheckedValue = InheritFrom.CheckedValue?.Copy();
+        }
     }
 
     /// <summary>Draws the fill overlay of <paramref name="State"/> (Hovered / Pressed) with <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> applied; nothing for <see cref="SecondaryVisualState.None"/> or an opacity of 0.</summary>
@@ -434,6 +492,16 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
         {
             PaintLifecycle.Update(disabled, UA);
         }
+
+        if (HasCheckedValue)
+        {
+            var checkedBrush = CheckedValue;
+            if (checkedBrush != null && !ReferenceEquals(checkedBrush, normal) && !ReferenceEquals(checkedBrush, selected)
+                && !ReferenceEquals(checkedBrush, focused) && !ReferenceEquals(checkedBrush, disabled))
+            {
+                PaintLifecycle.Update(checkedBrush, UA);
+            }
+        }
     }
 
     public VisualStateFillBrush Copy() => new(this);
@@ -460,6 +528,10 @@ public class VisualStateColorBrush : VisualStateBrush<Color>
             InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier)
     {
         OverlayOpacity = InheritFrom.OverlayOpacity;
+        if (InheritFrom.HasCheckedValue)
+        {
+            CheckedValue = InheritFrom.CheckedValue;
+        }
     }
 
     public VisualStateColorBrush Copy() => new(this);

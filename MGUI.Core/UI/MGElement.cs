@@ -1683,8 +1683,22 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             NotifyPropertyChanged(nameof(BackgroundOverlay));
 
             ReapplyBackgroundSubSlots();
+            OnBackgroundBrushContainerReplaced();
         }
     }
+
+    /// <summary>Fix round 1 (U5): invoked at the end of <see cref="ApplyBackgroundEffective"/>, every time the whole
+    /// <see cref="BackgroundBrush"/> container is actually replaced by a new <see cref="VisualStateFillBrush"/> instance --
+    /// whether through the public <see cref="BackgroundBrush"/> setter, <see cref="SetBackground"/>, or
+    /// <see cref="ClearBackgroundPilotSource"/> (so this also covers a whole-brush write made by a different owner, e.g.
+    /// <c>MGExpander.ExpanderButtonBackgroundBrush</c>'s setter or a pilot/style resolver assigning the whole container).<para/>
+    /// <see cref="ReapplyBackgroundSubSlots"/> already re-applies every tracked Normal/Selected/Disabled/Focused/FocusedColor
+    /// sub-slot onto the new container because those are recorded in <see cref="ResolvedValues"/>; a value tracked OUTSIDE
+    /// that store (such as <see cref="MGToggleButton"/>'s <see cref="VisualStateBrush{TDataType}.CheckedValue"/> slot, which
+    /// is not a <see cref="UIValueSlot"/> and is written directly onto the container instance) is NOT covered by that
+    /// re-application and would otherwise be silently dropped by any whole-container swap this hook does not know about
+    /// in advance. The default implementation does nothing; only <see cref="MGToggleButton"/> overrides it.</summary>
+    protected virtual void OnBackgroundBrushContainerReplaced() { }
 
     /// <summary>R2's re-application: for each Background sub-slot, if its winner is applicable (precedence at
     /// least the current Whole winner's), writes it onto <see cref="_backgroundBrush"/>'s matching sub-field,
@@ -4278,11 +4292,20 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         return false;
     }
 
+    /// <summary>Resolves the <see cref="IFillBrush"/> that <see cref="DrawBackground(ElementDrawArgs, Rectangle)"/> draws as the underlay of
+    /// <paramref name="brush"/> for <paramref name="state"/> (U5, ADR-0008): by default identical to <see cref="VisualStateBrush{TDataType}.GetUnderlay(PrimaryVisualState)"/>,
+    /// so every element other than <see cref="MGToggleButton"/> draws exactly as before this slice. <see cref="MGToggleButton"/> overrides this single hook
+    /// to consult <see cref="VisualStateBrush{TDataType}.CheckedValue"/> while checked; every other <see cref="VisualStateBrush{TDataType}.GetUnderlay(PrimaryVisualState)"/>
+    /// call site across the framework (<see cref="BackgroundUnderlay"/>, <see cref="MGBorder"/>, <see cref="Containers.Grids.MGGridSplitter"/>,
+    /// <see cref="Containers.Grids.MGUniformGrid"/>, <see cref="MGProgressBar"/>, <see cref="MGResizeGrip"/>, <see cref="MGScrollViewer"/>,
+    /// <see cref="MGWindow"/>, and <see cref="MGRadioIndicatorIcon"/> in <c>UISymbolElements.cs</c>) is untouched.</summary>
+    protected virtual IFillBrush ResolveBackgroundUnderlay(VisualStateFillBrush brush, PrimaryVisualState state) => brush.GetUnderlay(state);
+
     public virtual void DrawBackground(ElementDrawArgs DA, Rectangle layoutBounds)
     {
         if (TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out var backgroundShape, out var backgroundGeometry, true))
         {
-            BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
+            ResolveBackgroundUnderlay(BackgroundBrush, DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
 
             var secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
             BackgroundBrush.DrawFillOverlay(DA, secondaryState, this, backgroundShape, backgroundGeometry);
@@ -4290,7 +4313,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         var BackgroundBounds = GetBackgroundBounds(layoutBounds);
-        BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, BackgroundBounds);
+        ResolveBackgroundUnderlay(BackgroundBrush, DA.VisualState.Primary)?.Draw(DA, this, BackgroundBounds);
         var SecondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
         BackgroundBrush.DrawFillOverlay(DA, SecondaryState, this, BackgroundBounds);
     }
