@@ -12,7 +12,10 @@ namespace MGUI.Shared.Helpers
 {
     public static class RenderUtils
     {
-        public static void Begin(this PrimitiveBatch @this, Matrix Projection, Matrix View) => @this.Begin(ref Projection, ref View);
+        /// <param name="BlendState">Required: <see cref="PrimitiveBatch.Begin(ref Matrix, ref Matrix, BlendState)"/> assigns the device blend state itself
+        /// (falling back to <see cref="BlendState.NonPremultiplied"/> when null), which would discard the state resolved by the caller.</param>
+        public static void Begin(this PrimitiveBatch @this, Matrix Projection, Matrix View, BlendState BlendState)
+            => @this.Begin(ref Projection, ref View, BlendState ?? throw new ArgumentNullException(nameof(BlendState)));
 
         /// <param name="PreserveContents">If true, the render target content will be preserved even if it is slow or requires extra memory.</param>
         public static RenderTarget2D CreateRenderTarget(GraphicsDevice GD, Rectangle Dimensions, bool PreserveContents)
