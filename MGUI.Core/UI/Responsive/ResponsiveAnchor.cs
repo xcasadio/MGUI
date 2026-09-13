@@ -1,19 +1,18 @@
-namespace MGUI.Core.UI.Responsive
+namespace MGUI.Core.UI.Responsive;
+
+public enum ResponsiveAnchor
 {
-    public enum ResponsiveAnchor
-    {
-        None,
-        TopLeft,
-        TopCenter,
-        TopRight,
-        MiddleLeft,
-        Center,
-        MiddleRight,
-        BottomLeft,
-        BottomCenter,
-        BottomRight,
-        StretchHorizontal,
-        StretchVertical,
-        Stretch,
-    }
+    None,
+    TopLeft,
+    TopCenter,
+    TopRight,
+    MiddleLeft,
+    Center,
+    MiddleRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
+    StretchHorizontal,
+    StretchVertical,
+    Stretch,
 }

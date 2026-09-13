@@ -1,12 +1,11 @@
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public enum MGPropertyGridEditorKind
 {
-    public enum MGPropertyGridEditorKind
-    {
-        Bool,
-        Int,
-        Float,
-        Double,
-        String,
-        Color,
-    }
+    Bool,
+    Int,
+    Float,
+    Double,
+    String,
+    Color,
 }

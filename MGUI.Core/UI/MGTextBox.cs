@@ -1,13 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Text;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using ColorTranslator = System.Drawing.ColorTranslator;
 using System.Text.RegularExpressions;
 using Microsoft.Xna.Framework.Input;
@@ -19,1781 +13,1780 @@ using MGUI.Core.UI.TextEditing;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Rendering.Clipping;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public enum TextEntryMode
 {
-    public enum TextEntryMode
+    /// <summary>New characters will be inserted into the existing Text at the caret position.</summary>
+    Insert,
+    /// <summary>New characters will replace the existing character at the caret position.</summary>
+    Overwrite
+}
+
+/// <summary>A single or multi-line text entry control.<para/>
+/// Chrome/behaviour boundary (backlog task 11 of <c>Docs/Tasks/styling-theme-tasks.md</c>): the control template (<see cref="MGControlTemplateCatalog.TextBoxTemplateName"/>,
+/// whose defaults <see cref="MGNumericUpDown"/>'s template also applies) owns the visual structure (<see cref="BorderPartName"/>, <see cref="TextBlockPartName"/>,
+/// <see cref="PlaceholderTextBlockPartName"/>, <see cref="CharacterCountPartName"/>, <see cref="ResizeGripPartName"/>) and every purely visual value: background,
+/// padding, minimum height, selection colors, content alignments, the margin, font size and corner of the character count, and the markup of its texts.
+/// This class owns the behaviour: text and character limit, caret, selection and its formatting, keyboard and mouse input, scrolling and resizing. It keeps
+/// the state that drives a part in its own fields and pushes it onto the attached parts (placeholder text, counter visibility and text, resize grip visibility).</summary>
+public class MGTextBox : MGElement, ITextEntryHost
+{
+    public const string BorderPartName = "PART_Border";
+    public const string TextBlockPartName = "PART_TextBlock";
+    public const string PlaceholderTextBlockPartName = "PART_PlaceholderTextBlock";
+    public const string CharacterCountPartName = "PART_CharacterCount";
+    public const string ResizeGripPartName = "PART_ResizeGrip";
+
+    public override bool CanHandleKeyboardInput => true;
+
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
     {
-        /// <summary>New characters will be inserted into the existing Text at the caret position.</summary>
-        Insert,
-        /// <summary>New characters will replace the existing character at the caret position.</summary>
-        Overwrite
+        yield return new(BorderPartName, typeof(MGBorder));
+        yield return new(TextBlockPartName, typeof(MGTextBlock));
+        yield return new(PlaceholderTextBlockPartName, typeof(MGTextBlock));
+        yield return new(CharacterCountPartName, typeof(MGTextBlock));
+        yield return new(ResizeGripPartName, typeof(MGResizeGrip));
     }
 
-    /// <summary>A single or multi-line text entry control.<para/>
-    /// Chrome/behaviour boundary (backlog task 11 of <c>Docs/Tasks/styling-theme-tasks.md</c>): the control template (<see cref="MGControlTemplateCatalog.TextBoxTemplateName"/>,
-    /// whose defaults <see cref="MGNumericUpDown"/>'s template also applies) owns the visual structure (<see cref="BorderPartName"/>, <see cref="TextBlockPartName"/>,
-    /// <see cref="PlaceholderTextBlockPartName"/>, <see cref="CharacterCountPartName"/>, <see cref="ResizeGripPartName"/>) and every purely visual value: background,
-    /// padding, minimum height, selection colors, content alignments, the margin, font size and corner of the character count, and the markup of its texts.
-    /// This class owns the behaviour: text and character limit, caret, selection and its formatting, keyboard and mouse input, scrolling and resizing. It keeps
-    /// the state that drives a part in its own fields and pushes it onto the attached parts (placeholder text, counter visibility and text, resize grip visibility).</summary>
-    public class MGTextBox : MGElement, ITextEntryHost
+    internal static bool ShouldPreserveTextEntryKey(Keys key, bool isReadonly, bool acceptsReturn, bool acceptsTab)
+        => MGTextEditingInputHelpers.ShouldPreserveTextEntryKey(key, isReadonly, acceptsReturn, acceptsTab);
+
+    internal static bool ShouldProcessRepeatedKey(bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
+        => MGTextEditingInputHelpers.ShouldProcessRepeatedKey(isHeldKeyRepeated, isControlDown, isPrintableKey, key);
+
+    internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
+        => ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key, false);
+
+    internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key,
+        bool streamStartedAsControlShortcut)
+        => MGTextEditingInputHelpers.ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key, streamStartedAsControlShortcut);
+
+    internal static bool IsControlShortcutKey(Keys key)
+        => MGTextEditingInputHelpers.IsControlShortcutKey(key);
+    internal static int NormalizeEditableCaretIndex(int indexInOriginalText, int textLength)
+        => MGTextEditingInputHelpers.NormalizeEditableCaretIndex(indexInOriginalText, textLength);
+
+    internal bool ShouldPreserveTextEntryKey(Keys key)
+        => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
+
+    bool ITextEntryHost.ShouldPreserveTextEntryKey(Keys key) => ShouldPreserveTextEntryKey(key);
+
+    #region Border
+    /// <summary>Provides direct access to this element's border.</summary>
+    public MGComponent<MGBorder> BorderComponent { get; private set; }
+    private MGBorder BorderElement { get; set; }
+    public override MGBorder GetBorder() => BorderElement;
+
+    public IBorderBrush BorderBrush
     {
-        public const string BorderPartName = "PART_Border";
-        public const string TextBlockPartName = "PART_TextBlock";
-        public const string PlaceholderTextBlockPartName = "PART_PlaceholderTextBlock";
-        public const string CharacterCountPartName = "PART_CharacterCount";
-        public const string ResizeGripPartName = "PART_ResizeGrip";
+        get => BorderElement.BorderBrush;
+        set => BorderElement.BorderBrush = value;
+    }
 
-        public override bool CanHandleKeyboardInput => true;
+    public Thickness BorderThickness
+    {
+        get => BorderElement.BorderThickness;
+        set => BorderElement.BorderThickness = value;
+    }
 
-        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    public MGCornerRadius CornerRadius
+    {
+        get => BorderElement.CornerRadius;
+        set => BorderElement.CornerRadius = value;
+    }
+    #endregion Border
+
+    #region Text
+    /// <summary>Provides direct access to the textblock component that displays this textbox's text.</summary>
+    public MGComponent<MGTextBlock> TextBlockComponent { get; private set; }
+    private MGTextBlock TextBlockElement { get; set; }
+
+    protected virtual string GetTextBackingField() => _Text ?? "";
+    protected virtual void SetTextBackingField(string Value) => _Text = Value;
+
+    public int FontSize => TextBlockElement.FontSize;
+    public bool TrySetFontSize(int Value) => TextBlockElement.TrySetFontSize(Value);
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _Text;
+    /// <summary>To set this value, use <see cref="SetText(string)"/>.<para/>
+    /// If this <see cref="MGTextBox"/> is an <see cref="MGPasswordBox"/>, this value will only contain <see cref="MGPasswordBox.PasswordCharacter"/>s (and special characters such as \n).<para/>
+    /// See also: <see cref="MGPasswordBox.Password"/></summary>
+    public string Text { 
+        get => _Text ?? string.Empty;
+        //  This setter is mainly intended for use by XAML DataBindings
+        set => SetText(value);
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _HasStableTextFootprint;
+    /// <summary>
+    /// True when this textbox is hosted in a layout that already reserves enough width/height for edited text.
+    /// Stable footprint textboxes can update their text content without invalidating parent layout on every key press.
+    /// </summary>
+    public bool HasStableTextFootprint
+    {
+        get => _HasStableTextFootprint;
+        set
         {
-            yield return new(BorderPartName, typeof(MGBorder));
-            yield return new(TextBlockPartName, typeof(MGTextBlock));
-            yield return new(PlaceholderTextBlockPartName, typeof(MGTextBlock));
-            yield return new(CharacterCountPartName, typeof(MGTextBlock));
-            yield return new(ResizeGripPartName, typeof(MGResizeGrip));
-        }
-
-        internal static bool ShouldPreserveTextEntryKey(Keys key, bool isReadonly, bool acceptsReturn, bool acceptsTab)
-            => MGTextEditingInputHelpers.ShouldPreserveTextEntryKey(key, isReadonly, acceptsReturn, acceptsTab);
-
-        internal static bool ShouldProcessRepeatedKey(bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
-            => MGTextEditingInputHelpers.ShouldProcessRepeatedKey(isHeldKeyRepeated, isControlDown, isPrintableKey, key);
-
-        internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key)
-            => ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key, false);
-
-        internal static bool ShouldHandleRepeatedKey(bool hasKeyboardFocus, bool isHeldKeyRepeated, bool isControlDown, bool isPrintableKey, Keys key,
-            bool streamStartedAsControlShortcut)
-            => MGTextEditingInputHelpers.ShouldHandleRepeatedKey(hasKeyboardFocus, isHeldKeyRepeated, isControlDown, isPrintableKey, key, streamStartedAsControlShortcut);
-
-        internal static bool IsControlShortcutKey(Keys key)
-            => MGTextEditingInputHelpers.IsControlShortcutKey(key);
-        internal static int NormalizeEditableCaretIndex(int indexInOriginalText, int textLength)
-            => MGTextEditingInputHelpers.NormalizeEditableCaretIndex(indexInOriginalText, textLength);
-
-        internal bool ShouldPreserveTextEntryKey(Keys key)
-            => ShouldPreserveTextEntryKey(key, IsReadonly, AcceptsReturn, AcceptsTab);
-
-        bool ITextEntryHost.ShouldPreserveTextEntryKey(Keys key) => ShouldPreserveTextEntryKey(key);
-
-        #region Border
-        /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; private set; }
-        private MGBorder BorderElement { get; set; }
-        public override MGBorder GetBorder() => BorderElement;
-
-        public IBorderBrush BorderBrush
-        {
-            get => BorderElement.BorderBrush;
-            set => BorderElement.BorderBrush = value;
-        }
-
-        public Thickness BorderThickness
-        {
-            get => BorderElement.BorderThickness;
-            set => BorderElement.BorderThickness = value;
-        }
-
-        public MGCornerRadius CornerRadius
-        {
-            get => BorderElement.CornerRadius;
-            set => BorderElement.CornerRadius = value;
-        }
-        #endregion Border
-
-        #region Text
-        /// <summary>Provides direct access to the textblock component that displays this textbox's text.</summary>
-        public MGComponent<MGTextBlock> TextBlockComponent { get; private set; }
-        private MGTextBlock TextBlockElement { get; set; }
-
-        protected virtual string GetTextBackingField() => _Text ?? "";
-        protected virtual void SetTextBackingField(string Value) => _Text = Value;
-
-        public int FontSize => TextBlockElement.FontSize;
-        public bool TrySetFontSize(int Value) => TextBlockElement.TrySetFontSize(Value);
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _Text;
-        /// <summary>To set this value, use <see cref="SetText(string)"/>.<para/>
-        /// If this <see cref="MGTextBox"/> is an <see cref="MGPasswordBox"/>, this value will only contain <see cref="MGPasswordBox.PasswordCharacter"/>s (and special characters such as \n).<para/>
-        /// See also: <see cref="MGPasswordBox.Password"/></summary>
-        public string Text { 
-            get => _Text ?? string.Empty;
-            //  This setter is mainly intended for use by XAML DataBindings
-            set => SetText(value);
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _HasStableTextFootprint;
-        /// <summary>
-        /// True when this textbox is hosted in a layout that already reserves enough width/height for edited text.
-        /// Stable footprint textboxes can update their text content without invalidating parent layout on every key press.
-        /// </summary>
-        public bool HasStableTextFootprint
-        {
-            get => _HasStableTextFootprint;
-            set
+            if (_HasStableTextFootprint != value)
             {
-                if (_HasStableTextFootprint != value)
+                _HasStableTextFootprint = value;
+                if (TextBlockElement != null)
                 {
-                    _HasStableTextFootprint = value;
-                    if (TextBlockElement != null)
-                    {
-                        TextBlockElement.HasStableTextFootprint = value;
-                    }
-
-                    NPC(nameof(HasStableTextFootprint));
-                }
-            }
-        }
-
-        /// <returns>True if <see cref="Text"/> value was changed.</returns>
-        public virtual bool SetText(string Value) => SetText(Value, false, HasStableTextFootprint);
-
-        public bool SetText(string Value, bool SuppressLayoutChanged) => SetText(Value, false, SuppressLayoutChanged || HasStableTextFootprint);
-
-        /// <param name="ExecuteEvenIfSameValue">If true, will attempt to set the value even if <see cref="Text"/> already has the same value as <paramref name="Value"/>.<para/>
-        /// This is mainly intended for use by subclasses that alter the <paramref name="Value"/>, such as <see cref="MGPasswordBox"/><br/>
-        /// (For example, a Password might change from "123" to "234", but this method would only see "***" -> "***"</param>
-        /// <returns>True if <see cref="Text"/> value was changed.</returns>
-        protected virtual bool SetText(string Value, bool ExecuteEvenIfSameValue, bool SuppressLayoutChanged)
-        {
-            if (!AcceptsReturn && (Value.Contains('\n') || Value.Contains('\r')))
-            {
-                return false;
-            }
-
-            if (CharacterLimit.HasValue && Value.Length > CharacterLimit.Value)
-            {
-                return false;
-            }
-
-            if (GetTextBackingField() != Value || ExecuteEvenIfSameValue)
-            {
-                if (TextChanging != null)
-                {
-                    CancelEventArgs<string> Args = new(Text);
-                    TextChanging.Invoke(this, Args);
-                    if (Args.Cancel)
-                    {
-                        return false;
-                    }
+                    TextBlockElement.HasStableTextFootprint = value;
                 }
 
-                string Previous = Text;
-
-                _Text = Value;
-                NPC(nameof(Text));
-
-                if (!IsExecutingUndoRedo)
-                {
-                    ClearRedoStack();
-                }
-
-                UpdateCharacterCountText();
-                UpdatePlaceholderVisibility();
-                UpdateFormattedText(SuppressLayoutChanged);
-
-                TextChanged?.Invoke(this, new(Previous, Text));
-
-                //if (Caret.HasPosition && Caret.Position.Value.IndexInOriginalText >= Text.Length)
-                //    Caret.MoveToStartOfLine(TextRenderInfo.Lines.FirstOrDefault());
-
-                if (Caret.HasPosition && string.IsNullOrEmpty(Text))
-                {
-                    Caret.MoveToStartOfLine(TextRenderInfo.Lines.FirstOrDefault());
-                }
-
-                return true;
-            }
-            else
-            {
-                return false;
+                NPC(nameof(HasStableTextFootprint));
             }
         }
+    }
 
-        /// <summary>Invoked when <see cref="Text"/> is about to change.</summary>
-        public event EventHandler<CancelEventArgs<string>> TextChanging;
-        /// <summary>Invoked immediately after <see cref="Text"/> has changed.<para/>
-        /// For <see cref="MGPasswordBox"/>, consider using <see cref="MGPasswordBox.PasswordChanged"/></summary>
-        public event EventHandler<EventArgs<string>> TextChanged;
+    /// <returns>True if <see cref="Text"/> value was changed.</returns>
+    public virtual bool SetText(string Value) => SetText(Value, false, HasStableTextFootprint);
 
-        #region Formmated Text
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _FormattedText;
-        public string FormattedText { get => _FormattedText; }
+    public bool SetText(string Value, bool SuppressLayoutChanged) => SetText(Value, false, SuppressLayoutChanged || HasStableTextFootprint);
 
-        /// <param name="Silent">If true, <see cref="MGTextBlock"/> will not invoke its LayoutChanged event.<para/>
-        /// This value should only be trued when changing the markdown of the text, but not the actual rendered text itself.<br/>
-        /// For example, changing the foreground color of the text does not affect its layout.</param>
-        private void SetFormattedText(string Value, bool Silent)
+    /// <param name="ExecuteEvenIfSameValue">If true, will attempt to set the value even if <see cref="Text"/> already has the same value as <paramref name="Value"/>.<para/>
+    /// This is mainly intended for use by subclasses that alter the <paramref name="Value"/>, such as <see cref="MGPasswordBox"/><br/>
+    /// (For example, a Password might change from "123" to "234", but this method would only see "***" -> "***"</param>
+    /// <returns>True if <see cref="Text"/> value was changed.</returns>
+    protected virtual bool SetText(string Value, bool ExecuteEvenIfSameValue, bool SuppressLayoutChanged)
+    {
+        if (!AcceptsReturn && (Value.Contains('\n') || Value.Contains('\r')))
         {
-            if (_FormattedText != Value)
-            {
-                _FormattedText = Value;
-                TextBlockElement.SetText(FormattedText, Silent || HasStableTextFootprint);
-                NPC(nameof(FormattedText));
-            }
+            return false;
         }
 
-        protected virtual void UpdateFormattedText(bool Silent)
+        if (CharacterLimit.HasValue && Value.Length > CharacterLimit.Value)
         {
-            string EscapedText = FTTokenizer.EscapeMarkdown(Text);
-            string FormattedText = EscapedText;
+            return false;
+        }
 
-            if (CurrentSelection.HasValue && CurrentSelection.Value.Length > 0)
+        if (GetTextBackingField() != Value || ExecuteEvenIfSameValue)
+        {
+            if (TextChanging != null)
             {
-                List<int> EscapedIndices = new();
-                int CurrentEscapedIndex = 0;
-                for (int i = 0; i < Text.Length; i++)
+                CancelEventArgs<string> Args = new(Text);
+                TextChanging.Invoke(this, Args);
+                if (Args.Cancel)
                 {
-                    EscapedIndices.Add(CurrentEscapedIndex);
-                    if (Text[i] == FTTokenizer.OpenTagChar)
-                    {
-                        CurrentEscapedIndex++;
-                    }
+                    return false;
+                }
+            }
 
+            string Previous = Text;
+
+            _Text = Value;
+            NPC(nameof(Text));
+
+            if (!IsExecutingUndoRedo)
+            {
+                ClearRedoStack();
+            }
+
+            UpdateCharacterCountText();
+            UpdatePlaceholderVisibility();
+            UpdateFormattedText(SuppressLayoutChanged);
+
+            TextChanged?.Invoke(this, new(Previous, Text));
+
+            //if (Caret.HasPosition && Caret.Position.Value.IndexInOriginalText >= Text.Length)
+            //    Caret.MoveToStartOfLine(TextRenderInfo.Lines.FirstOrDefault());
+
+            if (Caret.HasPosition && string.IsNullOrEmpty(Text))
+            {
+                Caret.MoveToStartOfLine(TextRenderInfo.Lines.FirstOrDefault());
+            }
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Invoked when <see cref="Text"/> is about to change.</summary>
+    public event EventHandler<CancelEventArgs<string>> TextChanging;
+    /// <summary>Invoked immediately after <see cref="Text"/> has changed.<para/>
+    /// For <see cref="MGPasswordBox"/>, consider using <see cref="MGPasswordBox.PasswordChanged"/></summary>
+    public event EventHandler<EventArgs<string>> TextChanged;
+
+    #region Formmated Text
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _FormattedText;
+    public string FormattedText { get => _FormattedText; }
+
+    /// <param name="Silent">If true, <see cref="MGTextBlock"/> will not invoke its LayoutChanged event.<para/>
+    /// This value should only be trued when changing the markdown of the text, but not the actual rendered text itself.<br/>
+    /// For example, changing the foreground color of the text does not affect its layout.</param>
+    private void SetFormattedText(string Value, bool Silent)
+    {
+        if (_FormattedText != Value)
+        {
+            _FormattedText = Value;
+            TextBlockElement.SetText(FormattedText, Silent || HasStableTextFootprint);
+            NPC(nameof(FormattedText));
+        }
+    }
+
+    protected virtual void UpdateFormattedText(bool Silent)
+    {
+        string EscapedText = FTTokenizer.EscapeMarkdown(Text);
+        string FormattedText = EscapedText;
+
+        if (CurrentSelection.HasValue && CurrentSelection.Value.Length > 0)
+        {
+            List<int> EscapedIndices = new();
+            int CurrentEscapedIndex = 0;
+            for (int i = 0; i < Text.Length; i++)
+            {
+                EscapedIndices.Add(CurrentEscapedIndex);
+                if (Text[i] == FTTokenizer.OpenTagChar)
+                {
                     CurrentEscapedIndex++;
                 }
-                EscapedIndices.Add(CurrentEscapedIndex);
 
-                bool HasFocus = GetDesktop().FocusedKeyboardHandler == this;
-                string FGColor = HasFocus ? FocusedSelectionForegroundColorString : UnfocusedSelectionForegroundColorString;
-                string BGColor = HasFocus ? FocusedSelectionBackgroundColorString : UnfocusedSelectionBackgroundColorString;
+                CurrentEscapedIndex++;
+            }
+            EscapedIndices.Add(CurrentEscapedIndex);
 
-                string SelectionStartMarkdown = $"[fg={FGColor}][bg={BGColor}]";
-                string SelectionEndMarkdown = "[/bg][/fg]";
+            bool HasFocus = GetDesktop().FocusedKeyboardHandler == this;
+            string FGColor = HasFocus ? FocusedSelectionForegroundColorString : UnfocusedSelectionForegroundColorString;
+            string BGColor = HasFocus ? FocusedSelectionBackgroundColorString : UnfocusedSelectionBackgroundColorString;
 
-                int ActualStartIndex = Math.Clamp(CurrentSelection.Value.StartIndex, 0, EscapedIndices.Count - 1);
-                int ActualEndIndex = Math.Clamp(CurrentSelection.Value.EndIndex, ActualStartIndex, EscapedIndices.Count - 1);
+            string SelectionStartMarkdown = $"[fg={FGColor}][bg={BGColor}]";
+            string SelectionEndMarkdown = "[/bg][/fg]";
 
-                //  '\\' is an escape character for '[', so strings like @"Hello\[b]World" are rendered as: "Hello[b]World",
-                //  treating the formatting code that follows the escape character as a literal string value.
-                //  Since we are about to insert a '[' character, we must double-escape any escape characters that precede the inserted markdown.
-                //  EX: @"Hello\World" -> @"Hello\\[fg=white][bg=black]World[/bg][/fg]"
-                void DoubleEscapeAtIndex(int Index)
+            int ActualStartIndex = Math.Clamp(CurrentSelection.Value.StartIndex, 0, EscapedIndices.Count - 1);
+            int ActualEndIndex = Math.Clamp(CurrentSelection.Value.EndIndex, ActualStartIndex, EscapedIndices.Count - 1);
+
+            //  '\\' is an escape character for '[', so strings like @"Hello\[b]World" are rendered as: "Hello[b]World",
+            //  treating the formatting code that follows the escape character as a literal string value.
+            //  Since we are about to insert a '[' character, we must double-escape any escape characters that precede the inserted markdown.
+            //  EX: @"Hello\World" -> @"Hello\\[fg=white][bg=black]World[/bg][/fg]"
+            void DoubleEscapeAtIndex(int Index)
+            {
+                int CurrentIndex = Index;
+                int UnescapedCount = 0;
+                while (CurrentIndex >= 0 && CurrentIndex < Text.Length && Text[CurrentIndex] == FTTokenizer.EscapeOpenTagChar)
                 {
-                    int CurrentIndex = Index;
-                    int UnescapedCount = 0;
-                    while (CurrentIndex >= 0 && CurrentIndex < Text.Length && Text[CurrentIndex] == FTTokenizer.EscapeOpenTagChar)
+                    UnescapedCount++;
+                    CurrentIndex--;
+                }
+                int RunStartTextIndex = CurrentIndex + 1;  // inclusive start of backslash run in Text
+
+                if (UnescapedCount > 0)
+                {
+                    string InsertionValue = string.Concat(Enumerable.Repeat(FTTokenizer.EscapeOpenTagChar, UnescapedCount));
+
+                    // FIX (Task 6): Use EscapedIndices to find the correct FormattedText position for the
+                    // start of the backslash run, instead of using the raw Text index directly.
+                    // After the first DoubleEscapeAtIndex call modifies FormattedText, the second call
+                    // must account for the already-inserted chars; EscapedIndices is kept up-to-date below.
+                    int FMInsertPos = EscapedIndices[RunStartTextIndex];
+                    FormattedText = FormattedText.Insert(FMInsertPos, InsertionValue);
+
+                    // FIX (Task 6): Increment all EscapedIndices whose FM position is >= FMInsertPos, by
+                    // UnescapedCount. The previous logic incremented in a staggered per-char loop that
+                    // skipped EscapedIndices[RunStartTextIndex] and therefore left that entry one too low
+                    // whenever two or more consecutive backslashes ended a run (off-by-one).
+                    for (int j = 0; j < EscapedIndices.Count; j++)
                     {
-                        UnescapedCount++;
-                        CurrentIndex--;
-                    }
-                    int RunStartTextIndex = CurrentIndex + 1;  // inclusive start of backslash run in Text
-
-                    if (UnescapedCount > 0)
-                    {
-                        string InsertionValue = string.Concat(Enumerable.Repeat(FTTokenizer.EscapeOpenTagChar, UnescapedCount));
-
-                        // FIX (Task 6): Use EscapedIndices to find the correct FormattedText position for the
-                        // start of the backslash run, instead of using the raw Text index directly.
-                        // After the first DoubleEscapeAtIndex call modifies FormattedText, the second call
-                        // must account for the already-inserted chars; EscapedIndices is kept up-to-date below.
-                        int FMInsertPos = EscapedIndices[RunStartTextIndex];
-                        FormattedText = FormattedText.Insert(FMInsertPos, InsertionValue);
-
-                        // FIX (Task 6): Increment all EscapedIndices whose FM position is >= FMInsertPos, by
-                        // UnescapedCount. The previous logic incremented in a staggered per-char loop that
-                        // skipped EscapedIndices[RunStartTextIndex] and therefore left that entry one too low
-                        // whenever two or more consecutive backslashes ended a run (off-by-one).
-                        for (int j = 0; j < EscapedIndices.Count; j++)
+                        if (EscapedIndices[j] >= FMInsertPos)
                         {
-                            if (EscapedIndices[j] >= FMInsertPos)
-                            {
-                                EscapedIndices[j] += UnescapedCount;
-                            }
+                            EscapedIndices[j] += UnescapedCount;
                         }
-
-                        Debug.Assert(EscapedIndices[RunStartTextIndex] == FMInsertPos + UnescapedCount,
-                            $"[Task6] EscapedIndices[{RunStartTextIndex}] should be {FMInsertPos + UnescapedCount} after shift, got {EscapedIndices[RunStartTextIndex]}");
                     }
+
+                    Debug.Assert(EscapedIndices[RunStartTextIndex] == FMInsertPos + UnescapedCount,
+                        $"[Task6] EscapedIndices[{RunStartTextIndex}] should be {FMInsertPos + UnescapedCount} after shift, got {EscapedIndices[RunStartTextIndex]}");
                 }
-
-                DoubleEscapeAtIndex(ActualStartIndex - 1);
-                DoubleEscapeAtIndex(ActualEndIndex - 1);
-
-                FormattedText = FormattedText.Insert(EscapedIndices[ActualStartIndex], SelectionStartMarkdown);
-                FormattedText = FormattedText.Insert(EscapedIndices[ActualEndIndex] + SelectionStartMarkdown.Length, SelectionEndMarkdown);
             }
 
-            SetFormattedText(FormattedText, Silent);
+            DoubleEscapeAtIndex(ActualStartIndex - 1);
+            DoubleEscapeAtIndex(ActualEndIndex - 1);
+
+            FormattedText = FormattedText.Insert(EscapedIndices[ActualStartIndex], SelectionStartMarkdown);
+            FormattedText = FormattedText.Insert(EscapedIndices[ActualEndIndex] + SelectionStartMarkdown.Length, SelectionEndMarkdown);
         }
 
-        /// <summary>Refreshes the formatted text's selection colors when this textbox gains or loses keyboard focus.</summary>
-        protected internal override void OnKeyboardFocusChanged(bool gained)
-        {
-            base.OnKeyboardFocusChanged(gained);
-            UpdateFormattedText(true);
-        }
-        #endregion Formmated Text
+        SetFormattedText(FormattedText, Silent);
+    }
 
-        #region Placeholder Text
-        /// <summary>Provides direct access to the textblock component that displays the <see cref="PlaceholderText"/> when <see cref="Text"/> is empty.</summary>
-        public MGComponent<MGTextBlock> PlaceholderTextBlockComponent { get; private set; }
-        private MGTextBlock PlaceholderTextBlockElement { get; set; }
+    /// <summary>Refreshes the formatted text's selection colors when this textbox gains or loses keyboard focus.</summary>
+    protected internal override void OnKeyboardFocusChanged(bool gained)
+    {
+        base.OnKeyboardFocusChanged(gained);
+        UpdateFormattedText(true);
+    }
+    #endregion Formmated Text
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _PlaceholderText;
-        /// <summary>Text to display in when <see cref="Text"/> is empty. Default value: null<para/>
-        /// This value supports some basic markdown, such as:<br/>
-        /// <code>"[opacity=0.5][i][b][u][fg=Red][shadow=Black 1 1]Enter a value[/shadow][/fg][/u][/b][/i][/opacity]"</code><para/>
-        /// Recommended to surround your text with "[opacity=0.5][i] ... [/i][/opacity]", such as:<para/>
-        /// "[opacity=0.5][i]Enter a value[/i][/opacity]"</summary>
-        public string PlaceholderText
+    #region Placeholder Text
+    /// <summary>Provides direct access to the textblock component that displays the <see cref="PlaceholderText"/> when <see cref="Text"/> is empty.</summary>
+    public MGComponent<MGTextBlock> PlaceholderTextBlockComponent { get; private set; }
+    private MGTextBlock PlaceholderTextBlockElement { get; set; }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _PlaceholderText;
+    /// <summary>Text to display in when <see cref="Text"/> is empty. Default value: null<para/>
+    /// This value supports some basic markdown, such as:<br/>
+    /// <code>"[opacity=0.5][i][b][u][fg=Red][shadow=Black 1 1]Enter a value[/shadow][/fg][/u][/b][/i][/opacity]"</code><para/>
+    /// Recommended to surround your text with "[opacity=0.5][i] ... [/i][/opacity]", such as:<para/>
+    /// "[opacity=0.5][i]Enter a value[/i][/opacity]"</summary>
+    public string PlaceholderText
+    {
+        get => _PlaceholderText;
+        set
         {
-            get => _PlaceholderText;
-            set
+            if (_PlaceholderText != value)
             {
-                if (_PlaceholderText != value)
+                _PlaceholderText = value;
+                SyncPlaceholderTextPart();
+                NPC(nameof(PlaceholderText));
+            }
+        }
+    }
+
+    private void SyncPlaceholderTextPart()
+    {
+        if (PlaceholderTextBlockElement == null)
+        {
+            return;
+        }
+
+        PlaceholderTextBlockElement.Text = PlaceholderText;
+        UpdatePlaceholderVisibility();
+    }
+
+    private void UpdatePlaceholderVisibility()
+    {
+        if (PlaceholderTextBlockElement == null)
+        {
+            return;
+        }
+
+        PlaceholderTextBlockElement.Visibility = !string.IsNullOrEmpty(PlaceholderText) && string.IsNullOrEmpty(Text) ? Visibility.Visible : Visibility.Collapsed;
+    }
+    #endregion Placeholder Text
+
+    internal TextRenderInfo TextRenderInfo { get; private set; }
+
+    /// <summary>The minimum # of lines to display, regardless of how many lines the actual text content requires.<para/>
+    /// Default value: 0<para/>
+    /// See also: <see cref="MaxLines"/>, <see cref="MGTextBlock.MinLines"/>, <see cref="MGTextBlock.MaxLines"/></summary>
+    public int MinLines
+    {
+        get => TextBlockElement.MinLines;
+        set
+        {
+            if (TextBlockElement.MinLines != value)
+            {
+                TextBlockElement.MinLines = value;
+                NPC(nameof(MinLines));
+            }
+        }
+    }
+
+    /// <summary>The maximum # of lines to display, regardless of how many lines the actual text content requires.<br/>
+    /// Use null to indicate there is no maximum.<para/>
+    /// Default value: null<para/>
+    /// See also: <see cref="MinLines"/>, <see cref="MGTextBlock.MinLines"/>, <see cref="MGTextBlock.MaxLines"/></summary>
+    public int? MaxLines
+    {
+        get => TextBlockElement.MaxLines;
+        set
+        {
+            if (TextBlockElement.MaxLines != value)
+            {
+                TextBlockElement.MaxLines = value;
+                NPC(nameof(MaxLines));
+            }
+        }
+    }
+
+    public bool WrapText
+    {
+        get => TextBlockElement.WrapText;
+        set
+        {
+            if (TextBlockElement.WrapText != value)
+            {
+                TextBlockElement.WrapText = value;
+                NPC(nameof(WrapText));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int? _CharacterLimit;
+    /// <summary>The maximum # of characters that can be inputted in this <see cref="MGTextBox"/>. Use null for no character limit.<para/>
+    /// Some characters are automatically added to this <see cref="MGTextBox"/>,<br/>
+    /// such as hyphens that are appended at the end of a line when a single word's width exceeds the line's width and the word must wrap across multiple lines.<br/>
+    /// These characters do not count towards the limit.<para/>
+    /// Linebreaks count as 1 character ('\n'). Tabs are typically treated as 4 spaces and thus count as 4 characters. See also: <see cref="MGTextRun.TabSpacesCount"/></summary>
+    public int? CharacterLimit
+    {
+        get => _CharacterLimit;
+        set
+        {
+            if (_CharacterLimit != value)
+            {
+                int? Previous = CharacterLimit;
+                _CharacterLimit = value;
+                if (CharacterLimit.HasValue && Text.Length > CharacterLimit)
                 {
-                    _PlaceholderText = value;
-                    SyncPlaceholderTextPart();
-                    NPC(nameof(PlaceholderText));
+                    SetText(GetTextBackingField().Substring(0, CharacterLimit.Value));
                 }
-            }
-        }
-
-        private void SyncPlaceholderTextPart()
-        {
-            if (PlaceholderTextBlockElement == null)
-            {
-                return;
-            }
-
-            PlaceholderTextBlockElement.Text = PlaceholderText;
-            UpdatePlaceholderVisibility();
-        }
-
-        private void UpdatePlaceholderVisibility()
-        {
-            if (PlaceholderTextBlockElement == null)
-            {
-                return;
-            }
-
-            PlaceholderTextBlockElement.Visibility = !string.IsNullOrEmpty(PlaceholderText) && string.IsNullOrEmpty(Text) ? Visibility.Visible : Visibility.Collapsed;
-        }
-        #endregion Placeholder Text
-
-        internal TextRenderInfo TextRenderInfo { get; private set; }
-
-        /// <summary>The minimum # of lines to display, regardless of how many lines the actual text content requires.<para/>
-        /// Default value: 0<para/>
-        /// See also: <see cref="MaxLines"/>, <see cref="MGTextBlock.MinLines"/>, <see cref="MGTextBlock.MaxLines"/></summary>
-        public int MinLines
-        {
-            get => TextBlockElement.MinLines;
-            set
-            {
-                if (TextBlockElement.MinLines != value)
-                {
-                    TextBlockElement.MinLines = value;
-                    NPC(nameof(MinLines));
-                }
-            }
-        }
-
-        /// <summary>The maximum # of lines to display, regardless of how many lines the actual text content requires.<br/>
-        /// Use null to indicate there is no maximum.<para/>
-        /// Default value: null<para/>
-        /// See also: <see cref="MinLines"/>, <see cref="MGTextBlock.MinLines"/>, <see cref="MGTextBlock.MaxLines"/></summary>
-        public int? MaxLines
-        {
-            get => TextBlockElement.MaxLines;
-            set
-            {
-                if (TextBlockElement.MaxLines != value)
-                {
-                    TextBlockElement.MaxLines = value;
-                    NPC(nameof(MaxLines));
-                }
-            }
-        }
-
-        public bool WrapText
-        {
-            get => TextBlockElement.WrapText;
-            set
-            {
-                if (TextBlockElement.WrapText != value)
-                {
-                    TextBlockElement.WrapText = value;
-                    NPC(nameof(WrapText));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int? _CharacterLimit;
-        /// <summary>The maximum # of characters that can be inputted in this <see cref="MGTextBox"/>. Use null for no character limit.<para/>
-        /// Some characters are automatically added to this <see cref="MGTextBox"/>,<br/>
-        /// such as hyphens that are appended at the end of a line when a single word's width exceeds the line's width and the word must wrap across multiple lines.<br/>
-        /// These characters do not count towards the limit.<para/>
-        /// Linebreaks count as 1 character ('\n'). Tabs are typically treated as 4 spaces and thus count as 4 characters. See also: <see cref="MGTextRun.TabSpacesCount"/></summary>
-        public int? CharacterLimit
-        {
-            get => _CharacterLimit;
-            set
-            {
-                if (_CharacterLimit != value)
-                {
-                    int? Previous = CharacterLimit;
-                    _CharacterLimit = value;
-                    if (CharacterLimit.HasValue && Text.Length > CharacterLimit)
-                    {
-                        SetText(GetTextBackingField().Substring(0, CharacterLimit.Value));
-                    }
-                    UpdateCharacterCountText();
-                    NPC(nameof(CharacterLimit));
-                    OnCharacterLimitChanged?.Invoke(this, new(Previous, CharacterLimit));
-                }
-            }
-        }
-
-        public event EventHandler<EventArgs<int?>> OnCharacterLimitChanged;
-
-        /// <summary>Provides direct access to the textblock component that displays the character counts when <see cref="ShowCharacterCount"/> is true.</summary>
-        public MGComponent<MGTextBlock> CharacterCountComponent { get; private set; }
-        private MGTextBlock CharacterCountElement { get; set; }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _ShowCharacterCount;
-
-        /// <summary>If true, the current character count will be shown in the bottom-right corner of this <see cref="MGTextBox"/>.<para/>
-        /// If <see cref="CharacterLimit"/> has a non-null value, the counter will also display the limit, such as "100 / 500"</summary>
-        public bool ShowCharacterCount
-        {
-            get => CharacterCountElement?.Visibility == Visibility.Visible || _ShowCharacterCount;
-            set
-            {
-                if (ShowCharacterCount != value)
-                {
-                    _ShowCharacterCount = value;
-                    SyncCharacterCountVisibility();
-
-                    NPC(nameof(ShowCharacterCount));
-                }
-            }
-        }
-
-        private void SyncCharacterCountVisibility()
-        {
-            if (CharacterCountElement == null)
-            {
-                return;
-            }
-
-            CharacterCountElement.Visibility = _ShowCharacterCount ? Visibility.Visible : Visibility.Collapsed;
-            if (CharacterCountElement.Visibility == Visibility.Visible)
-            {
                 UpdateCharacterCountText();
+                NPC(nameof(CharacterLimit));
+                OnCharacterLimitChanged?.Invoke(this, new(Previous, CharacterLimit));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _LimitedCharacterCountFormatString;
-        /// <summary>Only relevant if <see cref="ShowCharacterCount"/> is true and <see cref="CharacterLimit"/> is not null.<para/>
-        /// A format string to use when computing the character-count text displayed in the bottom-right corner of this <see cref="MGTextBox"/>.<br/>
-        /// "{{CharacterCount}}" and "{{CharacterLimit}}" will be replaced with their actual underlying values when formatting the string.<para/>
-        /// Default value:<code>"[b]{{CharacterCount}}[/b] / [b]{{CharacterLimit}}[/b]"</code><para/>
-        /// This value supports some basic text markdown, such as "[b]" for bold text, "[fg=Red]" to set the text foreground color to a given value, "[opacity=0.5]" etc.<para/>
-        /// See also: <see cref="ShowCharacterCount"/>, <see cref="CharacterLimit"/>, <see cref="LimitlessCharacterCountFormatString"/></summary>
-        public string LimitedCharacterCountFormatString
+    public event EventHandler<EventArgs<int?>> OnCharacterLimitChanged;
+
+    /// <summary>Provides direct access to the textblock component that displays the character counts when <see cref="ShowCharacterCount"/> is true.</summary>
+    public MGComponent<MGTextBlock> CharacterCountComponent { get; private set; }
+    private MGTextBlock CharacterCountElement { get; set; }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _ShowCharacterCount;
+
+    /// <summary>If true, the current character count will be shown in the bottom-right corner of this <see cref="MGTextBox"/>.<para/>
+    /// If <see cref="CharacterLimit"/> has a non-null value, the counter will also display the limit, such as "100 / 500"</summary>
+    public bool ShowCharacterCount
+    {
+        get => CharacterCountElement?.Visibility == Visibility.Visible || _ShowCharacterCount;
+        set
         {
-            get => _LimitedCharacterCountFormatString;
-            set
+            if (ShowCharacterCount != value)
             {
-                if (_LimitedCharacterCountFormatString != value)
-                {
-                    _LimitedCharacterCountFormatString = value;
-                    if (CharacterLimit.HasValue)
-                    {
-                        UpdateCharacterCountText();
-                    }
+                _ShowCharacterCount = value;
+                SyncCharacterCountVisibility();
 
-                    NPC(nameof(LimitedCharacterCountFormatString));
-                }
+                NPC(nameof(ShowCharacterCount));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _LimitlessCharacterCountFormatString;
-        /// <summary>Only relevant if <see cref="ShowCharacterCount"/> is true and <see cref="CharacterLimit"/> is null.<para/>
-        /// A format string to use when computing the character-count text displayed in the bottom-right corner of this <see cref="MGTextBox"/>.<br/>
-        /// "{{CharacterCount}}" will be replaced with its actual underlying value when formatting the string.<para/>
-        /// Default value:<code>"[b]{{CharacterCount}}[/b] character(s)"</code><para/>
-        /// This value supports some basic text markdown, such as "[b]" for bold text, "[fg=Red]" to set the text foreground color to a given value, "[opacity=0.5]" etc.<para/>
-        /// See also: <see cref="ShowCharacterCount"/>, <see cref="CharacterLimit"/>, <see cref="LimitedCharacterCountFormatString"/></summary>
-        public string LimitlessCharacterCountFormatString
+    private void SyncCharacterCountVisibility()
+    {
+        if (CharacterCountElement == null)
         {
-            get => _LimitlessCharacterCountFormatString;
-            set
-            {
-                if (_LimitlessCharacterCountFormatString != value)
-                {
-                    _LimitlessCharacterCountFormatString = value;
-                    if (!CharacterLimit.HasValue)
-                    {
-                        UpdateCharacterCountText();
-                    }
-
-                    NPC(nameof(LimitlessCharacterCountFormatString));
-                }
-            }
+            return;
         }
 
-        private void UpdateCharacterCountText()
+        CharacterCountElement.Visibility = _ShowCharacterCount ? Visibility.Visible : Visibility.Collapsed;
+        if (CharacterCountElement.Visibility == Visibility.Visible)
         {
-            if (CharacterCountElement == null)
-            {
-                return;
-            }
-
-            if (ShowCharacterCount)
-            {
-                string Value;
-                if (CharacterLimit.HasValue && !string.IsNullOrEmpty(LimitedCharacterCountFormatString))
-                {
-                    Value = LimitedCharacterCountFormatString.Replace("{{CharacterCount}}", (Text?.Length ?? 0).ToString()).Replace("{{CharacterLimit}}", CharacterLimit.Value.ToString());
-                }
-                else if (!CharacterLimit.HasValue && !string.IsNullOrEmpty(LimitlessCharacterCountFormatString))
-                {
-                    Value = LimitlessCharacterCountFormatString.Replace("{{CharacterCount}}", (Text?.Length ?? 0).ToString());
-                }
-                else
-                {
-                    Value = $"{Text?.Length ?? 0}";
-                }
-
-                CharacterCountElement.Text = Value;
-            }
-        }
-        #endregion Text
-
-        #region Selection
-        private bool _AllowsTextSelection = true;
-        /// <summary>True if the user should be able to click+drag to select Text.<para/>
-        /// Default value: true</summary>
-        public bool AllowsTextSelection
-        {
-            get => _AllowsTextSelection;
-            set
-            {
-                if (_AllowsTextSelection != value)
-                {
-                    _AllowsTextSelection = value;
-                    NPC(nameof(AllowsTextSelection));
-                    if (!AllowsTextSelection)
-                    {
-                        CurrentSelection = null;
-                    }
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool IsDraggingSelection { get; set; } = false;
-
-        public record struct TextSelection(int Index1, int Index2)
-        {
-            public int StartIndex => Math.Min(Index1, Index2);
-            public int EndIndex => Math.Max(Index1, Index2);
-            public int Length => EndIndex - StartIndex;
-
-            public int ActualStartIndex(string Text) => Math.Clamp(StartIndex, 0, Text.Length);
-            public int ActualEndIndex(string Text) => Math.Clamp(EndIndex, 0, Text.Length);
-            public int ActualLength(string Text) => ActualEndIndex(Text) - ActualStartIndex(Text);
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TextSelection? _CurrentSelection;
-        /// <summary>The currently-selected substring.<para/>
-        /// Recommended to use <see cref="TrySelectText(string, bool)"/> or <see cref="SelectAll"/> instead of directly setting this property.<para/>
-        /// See also: <see cref="SelectionChanged"/></summary>
-        public TextSelection? CurrentSelection
-        {
-            get => _CurrentSelection;
-            set
-            {
-                TextSelection? ActualValue = !AllowsTextSelection ? null : value;
-                if (_CurrentSelection != ActualValue)
-                {
-                    TextSelection? Previous = CurrentSelection;
-                    _CurrentSelection = ActualValue;
-                    UpdateFormattedText(true);
-                    //if (CurrentSelection.HasValue)
-                    //    CurrentCursorPosition = null;
-                    NPC(nameof(CurrentSelection));
-                    SelectionChanged?.Invoke(this, new(Previous, CurrentSelection));
-                }
-            }
-        }
-
-        /// <summary>Invoked after <see cref="CurrentSelection"/> changes.</summary>
-        public event EventHandler<EventArgs<TextSelection?>> SelectionChanged;
-
-        public void SelectAll()
-        {
-            CurrentSelection = new(0, TextRenderInfo.GetLastChar().IndexInOriginalText + 1);
-        }
-
-        /// <summary>Attempts to select the given <paramref name="Text"/>. Does not modify the selection if the <paramref name="Text"/> was not found.</summary>
-        /// <param name="FirstOccurrence">If true, the first occurrence of the given <paramref name="Text"/> will be selected, if found within this.<see cref="Text"/>.<para/>
-        /// If false, the last occurrence of the given <paramref name="Text"/> will be selected, if found within this.<see cref="Text"/></param>
-        public bool TrySelectText(string Text, bool FirstOccurrence = true)
-        {
-            if (string.IsNullOrEmpty(Text))
-            {
-                return false;
-            }
-
-            int Index = FirstOccurrence ? this.Text.IndexOf(Text) : this.Text.LastIndexOf(Text);
-            if (Index < 0)
-            {
-                return false;
-            }
-            else
-            {
-                CurrentSelection = new(Index, Index + Text.Length);
-                return true;
-            }
-        }
-
-        #region Colors
-        #region Focused
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _FocusedSelectionForegroundColor;
-        /// <summary>The text foreground color of the selected text while this <see cref="MGTextBox"/> has focus.<para/>
-        /// See also: <see cref="FocusedSelectionForegroundColor"/>, <see cref="FocusedSelectionBackgroundColor"/>, 
-        /// <see cref="UnfocusedSelectionForegroundColor"/>, <see cref="UnfocusedSelectionBackgroundColor"/></summary>
-        public Color FocusedSelectionForegroundColor
-        {
-            get => _FocusedSelectionForegroundColor;
-            set
-            {
-                if (_FocusedSelectionForegroundColor != value)
-                {
-                    _FocusedSelectionForegroundColor = value;
-                    FocusedSelectionForegroundColorString = ColorTranslator.ToHtml(FocusedSelectionForegroundColor.AsDrawingColor());
-                    NPC(nameof(FocusedSelectionForegroundColor));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _FocusedSelectionForegroundColorString;
-        private string FocusedSelectionForegroundColorString
-        {
-            get => _FocusedSelectionForegroundColorString;
-            set
-            {
-                if (_FocusedSelectionForegroundColorString != value)
-                {
-                    _FocusedSelectionForegroundColorString = value;
-                    if (CurrentSelection.HasValue)
-                    {
-                        UpdateFormattedText(true);
-                    }
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _FocusedSelectedBackgroundColor;
-        /// <summary>The text background color of the selected text while this <see cref="MGTextBox"/> has focus.<para/>
-        /// See also: <see cref="FocusedSelectionForegroundColor"/>, <see cref="FocusedSelectionBackgroundColor"/>, 
-        /// <see cref="UnfocusedSelectionForegroundColor"/>, <see cref="UnfocusedSelectionBackgroundColor"/></summary>
-        public Color FocusedSelectionBackgroundColor
-        {
-            get => _FocusedSelectedBackgroundColor;
-            set
-            {
-                if (_FocusedSelectedBackgroundColor != value)
-                {
-                    _FocusedSelectedBackgroundColor = value;
-                    FocusedSelectionBackgroundColorString = ColorTranslator.ToHtml(FocusedSelectionBackgroundColor.AsDrawingColor());
-                    NPC(nameof(FocusedSelectionBackgroundColor));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _FocusedSelectionBackgroundColorString;
-        private string FocusedSelectionBackgroundColorString
-        {
-            get => _FocusedSelectionBackgroundColorString;
-            set
-            {
-                if (_FocusedSelectionBackgroundColorString != value)
-                {
-                    _FocusedSelectionBackgroundColorString = value;
-                    if (CurrentSelection.HasValue)
-                    {
-                        UpdateFormattedText(true);
-                    }
-                }
-            }
-        }
-        #endregion Focused
-
-        #region Unfocused
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _UnfocusedSelectionForegroundColor;
-        /// <summary>The text foreground color of the selected text while this <see cref="MGTextBox"/> does NOT have focus.<para/>
-        /// See also: <see cref="FocusedSelectionForegroundColor"/>, <see cref="FocusedSelectionBackgroundColor"/>, 
-        /// <see cref="UnfocusedSelectionForegroundColor"/>, <see cref="UnfocusedSelectionBackgroundColor"/></summary>
-        public Color UnfocusedSelectionForegroundColor
-        {
-            get => _UnfocusedSelectionForegroundColor;
-            set
-            {
-                if (_UnfocusedSelectionForegroundColor != value)
-                {
-                    _UnfocusedSelectionForegroundColor = value;
-                    UnfocusedSelectionForegroundColorString = ColorTranslator.ToHtml(UnfocusedSelectionForegroundColor.AsDrawingColor());
-                    NPC(nameof(UnfocusedSelectionForegroundColor));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _UnfocusedSelectionForegroundColorString;
-        private string UnfocusedSelectionForegroundColorString
-        {
-            get => _UnfocusedSelectionForegroundColorString;
-            set
-            {
-                if (_UnfocusedSelectionForegroundColorString != value)
-                {
-                    _UnfocusedSelectionForegroundColorString = value;
-                    if (CurrentSelection.HasValue)
-                    {
-                        UpdateFormattedText(true);
-                    }
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _UnfocusedSelectionBackgroundColor;
-        /// <summary>The text background color of the selected text while this <see cref="MGTextBox"/> does NOT have focus.<para/>
-        /// See also: <see cref="FocusedSelectionForegroundColor"/>, <see cref="FocusedSelectionBackgroundColor"/>, 
-        /// <see cref="UnfocusedSelectionForegroundColor"/>, <see cref="UnfocusedSelectionBackgroundColor"/></summary>
-        public Color UnfocusedSelectionBackgroundColor
-        {
-            get => _UnfocusedSelectionBackgroundColor;
-            set
-            {
-                if (_UnfocusedSelectionBackgroundColor != value)
-                {
-                    _UnfocusedSelectionBackgroundColor = value;
-                    UnfocusedSelectionBackgroundColorString = ColorTranslator.ToHtml(UnfocusedSelectionBackgroundColor.AsDrawingColor());
-                    NPC(nameof(UnfocusedSelectionBackgroundColor));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _UnfocusedSelectionBackgroundColorString;
-        private string UnfocusedSelectionBackgroundColorString
-        {
-            get => _UnfocusedSelectionBackgroundColorString;
-            set
-            {
-                if (_UnfocusedSelectionBackgroundColorString != value)
-                {
-                    _UnfocusedSelectionBackgroundColorString = value;
-                    if (CurrentSelection.HasValue)
-                    {
-                        UpdateFormattedText(true);
-                    }
-                }
-            }
-        }
-        #endregion Unfocused
-        #endregion Colors
-        #endregion Selection
-
-        #region Mouse History
-        private record struct MousePressMetadata(Vector2 Position)
-        {
-            public DateTime Timestamp { get; init; } = DateTime.Now;
-            public bool IsRecent(TimeSpan Interval) => DateTime.Now.Subtract(Timestamp) <= Interval;
-            public bool IsNearby(Vector2 Position, int Threshold = 8) => Vector2.DistanceSquared(this.Position, Position) <= Threshold * Threshold;
-        }
-
-        private static readonly TimeSpan DoublePressInterval = TimeSpan.FromSeconds(0.4);
-        private static readonly TimeSpan TriplePressInterval = TimeSpan.FromSeconds(0.6);
-        private static readonly TimeSpan QuadruplePressInterval = TimeSpan.FromSeconds(0.8);
-
-        private const int MousePressHistorySize = 10;
-        private readonly List<MousePressMetadata> MousePressHistory = new();
-        private void AddMousePressHistory(Vector2 Position, out bool IsDoublePress, out bool IsTriplePress, out bool IsQuadruplePress)
-        {
-            MousePressHistory.Add(new(Position));
-            if (MousePressHistory.Count > MousePressHistorySize)
-            {
-                MousePressHistory.RemoveAt(0);
-            }
-
-            IsDoublePress = MousePressHistory.Count >= 2 && MousePressHistory[^2].IsRecent(DoublePressInterval) && MousePressHistory[^2].IsNearby(Position);
-            IsTriplePress = MousePressHistory.Count >= 3 && MousePressHistory.Skip(MousePressHistory.Count - 3).All(x => x.IsRecent(TriplePressInterval) && x.IsNearby(Position));
-            IsQuadruplePress = MousePressHistory.Count >= 4 && MousePressHistory.Skip(MousePressHistory.Count - 4).All(x => x.IsRecent(QuadruplePressInterval) && x.IsNearby(Position));
-        }
-        #endregion Mouse History
-
-        #region Undo / Redo
-        public const int DefaultUndoRedoHistorySize = 20;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _UndoRedoHistorySize;
-        /// <summary>The maximum number of undo or redo states that will be kept in memory. Decreasing this value may result in the oldest undo or redo states being lost.<para/>
-        /// Default value: <see cref="DefaultUndoRedoHistorySize"/></summary>
-        public int UndoRedoHistorySize
-        {
-            get => _UndoRedoHistorySize;
-            set
-            {
-                if (_UndoRedoHistorySize != value)
-                {
-                    _UndoRedoHistorySize = value;
-                    UndoStack.SetLimit(UndoRedoHistorySize);
-                    RedoStack.SetLimit(UndoRedoHistorySize);
-                    NPC(nameof(UndoRedoHistorySize));
-                }
-            }
-        }
-
-        private record struct RestorableState(MGTextCaret.CaretPosition? CaretPosition, TextSelection? Selection, string Text);
-        private RestorableState CreateRestorableState() => new(Caret.Position, CurrentSelection, GetTextBackingField());
-
-        private readonly MGTextUndoStack<RestorableState> UndoStack = new(DefaultUndoRedoHistorySize);
-
-        private void AddUndoState(RestorableState State) => UndoStack.Push(State);
-
-        private bool IsExecutingUndoRedo = false;
-
-        public bool TryUndo()
-        {
-            if (IsReadonly || !IsEnabled)
-            {
-                return false;
-            }
-
-            try
-            {
-                IsExecutingUndoRedo = true;
-                if (UndoStack.TryPop(out RestorableState State))
-                {
-                    RestorableState RedoState = CreateRestorableState();
-                    if (SetText(State.Text))
-                    {
-                        Caret.Position = State.CaretPosition;
-                        CurrentSelection = State.Selection;
-                        AddRedoState(RedoState);
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            finally { IsExecutingUndoRedo = false; }
-        }
-
-        private readonly MGTextUndoStack<RestorableState> RedoStack = new(DefaultUndoRedoHistorySize);
-
-        private void AddRedoState(RestorableState State) => RedoStack.Push(State);
-        private void ClearRedoStack() => RedoStack.Clear();
-
-        public bool TryRedo()
-        {
-            if (IsReadonly || !IsEnabled)
-            {
-                return false;
-            }
-
-            try
-            {
-                IsExecutingUndoRedo = true;
-                if (RedoStack.TryPop(out RestorableState State))
-                {
-                    RestorableState UndoState = CreateRestorableState();
-                    if (SetText(State.Text))
-                    {
-                        Caret.Position = State.CaretPosition;
-                        CurrentSelection = State.Selection;
-                        AddUndoState(UndoState);
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            finally { IsExecutingUndoRedo = false; }
-        }
-        #endregion Undo / Redo
-
-        /// <summary>Attempts to set this element as the value for <see cref="MGDesktop.FocusedKeyboardHandler"/> at the end of the next update tick.</summary>
-        public void RequestFocus() => GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Programmatic);
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _IsReadonly;
-        public bool IsReadonly
-        {
-            get => _IsReadonly;
-            set
-            {
-                if (_IsReadonly != value)
-                {
-                    _IsReadonly = value;
-                    if (IsReadonly)
-                    {
-                        IsDraggingSelection = false;
-                        Caret.Position = null;
-                        CurrentSelection = null;
-                    }
-
-                    NPC(nameof(IsReadonly));
-                    ReadonlyChanged?.Invoke(this, IsReadonly);
-                }
-            }
-        }
-
-        /// <summary>Invoked when <see cref="IsReadonly"/> changes.</summary>
-        public event EventHandler<bool> ReadonlyChanged;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _AcceptsReturn;
-        /// <summary>Note: This feature is not available for <see cref="MGPasswordBox"/>.<para/>
-        /// Default value: true</summary>
-        public virtual bool AcceptsReturn
-        {
-            get => _AcceptsReturn;
-            set
-            {
-                if (_AcceptsReturn != value)
-                {
-                    _AcceptsReturn = value;
-                    NPC(nameof(AcceptsReturn));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _AcceptsTab;
-        /// <summary>Note: This feature is not available for <see cref="MGPasswordBox"/>.<para/>
-        /// Default value: true</summary>
-        public virtual bool AcceptsTab
-        {
-            get => _AcceptsTab;
-            set
-            {
-                if (_AcceptsTab != value)
-                {
-                    _AcceptsTab = value;
-                    NPC(nameof(AcceptsTab));
-                }
-            }
-        }
-
-        [DebuggerBrowsable (DebuggerBrowsableState.Never)]
-        private bool _IsHeldKeyRepeated = true;
-        /// <summary>If true, the most-recently pressed key will be repeatedly inputted (~30 times/second). Default value: true<br/>
-        /// Some keys might not be repeated, such as special characters, or special keyboard shortcuts like 'Ctrl+C'.<para/>
-        /// EX: Text="". Press 'A'. Text="A". Keep holding 'A' for about 1 second. Text="AAAAAAAAAAAAAAAA". Release 'A'.<para/>
-        /// See also: <see cref="InitialKeyRepeatDelay"/>, <see cref="KeyRepeatInterval"/></summary>
-        public bool IsHeldKeyRepeated
-        {
-            get => _IsHeldKeyRepeated;
-            set
-            {
-                if (_IsHeldKeyRepeated != value)
-                {
-                    _IsHeldKeyRepeated = value;
-                    SyncKeyboardRepeatPolicy();
-                    NPC(nameof(IsHeldKeyRepeated));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TimeSpan _InitialKeyRepeatDelay = TimeSpan.FromSeconds(0.5);
-        /// <summary>The initial delay before a pressed key will be repeatedly inputted.<para/>
-        /// See also: <see cref="IsHeldKeyRepeated"/> <see cref="KeyRepeatInterval"/></summary>
-        public TimeSpan InitialKeyRepeatDelay
-        {
-            get => _InitialKeyRepeatDelay;
-            set
-            {
-                if (_InitialKeyRepeatDelay != value)
-                {
-                    _InitialKeyRepeatDelay = value;
-                    SyncKeyboardRepeatPolicy();
-                    NPC(nameof(InitialKeyRepeatDelay));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TimeSpan _KeyRepeatInterval = TimeSpan.FromSeconds(1.0 / 30); // 30 repetitions per second when holding down a key
-        /// <summary>How often to repeatedly input the most-recently pressed key.<para/>
-        /// See also: <see cref="IsHeldKeyRepeated"/>, <see cref="InitialKeyRepeatDelay"/></summary>
-        public TimeSpan KeyRepeatInterval
-        {
-            get => _KeyRepeatInterval;
-            set
-            {
-                if (_KeyRepeatInterval != value)
-                {
-                    _KeyRepeatInterval = value;
-                    SyncKeyboardRepeatPolicy();
-                    NPC(nameof(KeyRepeatInterval));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TextEntryMode _TextEntryMode = TextEntryMode.Insert;
-        public TextEntryMode TextEntryMode
-        {
-            get => _TextEntryMode;
-            set
-            {
-                if (_TextEntryMode != value)
-                {
-                    _TextEntryMode = value;
-                    NPC(nameof(TextEntryMode));
-                }
-            }
-        }
-
-        public MGTextCaret Caret { get; private set; }
-
-        private StringClipboard Clipboard { get; } = new();
-        private HashSet<long> ShortcutOriginStreamIds { get; } = new();
-
-        #region Resizing
-        /// <summary>Provides direct access to the resizer grip that appears in the bottom-right corner of this textbox when <see cref="IsUserResizable"/> is true.</summary>
-        public MGComponent<MGResizeGrip> ResizeGripComponent { get; private set; }
-        private MGResizeGrip ResizeGripElement { get; set; }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _IsUserResizable;
-        /// <summary>If true, a <see cref="MGResizeGrip"/> will be visible in the bottom-right corner of the window, 
-        /// allowing the user to click+drag it to adjust this <see cref="MGElement"/>'s <see cref="MGElement.PreferredWidth"/> / <see cref="MGElement.PreferredHeight"/></summary>
-        public bool IsUserResizable
-        {
-            get => _IsUserResizable;
-            set
-            {
-                if (_IsUserResizable != value)
-                {
-                    _IsUserResizable = value;
-                    SyncResizeGripVisibility();
-                    NPC(nameof(IsUserResizable));
-                }
-                else
-                {
-                    SyncResizeGripVisibility();
-                }
-            }
-        }
-
-        private void SyncResizeGripVisibility()
-        {
-            if (ResizeGripElement != null)
-            {
-                ResizeGripElement.Visibility = _IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
-            }
-        }
-        #endregion Resizing
-
-        /// <param name="CharacterLimit">Use null for no limit. Recommended to set this to a reasonable value to avoid performance issues.</param>
-        public MGTextBox(MGWindow Window, int? CharacterLimit = 1000, bool ShowCharacterCount = false, bool IsUserResizable = false)
-            : this(Window, MGElementType.TextBox, CharacterLimit, ShowCharacterCount, IsUserResizable)
-        {
-
-        }
-
-        protected MGTextBox(MGWindow Window, MGElementType ElementType, int? CharacterLimit, bool ShowCharacterCount, bool IsUserResizable) 
-            : base(Window, ElementType)
-        {
-            using (BeginInitializing())
-            {
-                DrawBackgroundBorderOverlayEnabled = false;
-                IsReadonly = false;
-                this.CharacterLimit = CharacterLimit;
-                AcceptsReturn = true;
-                AcceptsTab = true;
-
-                // Chrome: the parts, the content alignments and the character count format strings come from the template (TextBox.Default).
-                DefaultControlTemplateName = MGControlTemplateCatalog.TextBoxTemplateName;
-
-                this.IsUserResizable = IsUserResizable;
-                PlaceholderText = null;
-                this.ShowCharacterCount = ShowCharacterCount;
-
-                MouseHandler.LMBPressedInside += (sender, e) =>
-                {
-                    try
-                    {
-                        Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                        AddMousePressHistory(Position.ToVector2(), out bool IsDoublePress, out bool IsTriplePress, out bool IsQuadruplePress);
-
-                        GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Pointer);
-
-                        Caret.MoveToApproximateScreenPosition(Position.ToVector2());
-
-                        CurrentSelection = null;
-                        if (TextRenderInfo.TryGetCharAtScreenPosition(Position.ToVector2(), out CharRenderInfo CharInfo))
-                        {
-                            if (IsQuadruplePress)
-                            {
-                                SelectAll();
-                            }
-                            else if (IsTriplePress)
-                            {
-                                CurrentSelection = new(CharInfo.Line.FirstCharacter.IndexInOriginalText, CharInfo.Line.LastCharacter.IndexInOriginalText + 1);
-                            }
-                            else if (IsDoublePress)
-                            {
-                                int Index = CharInfo.IndexInOriginalText;
-                                if (Index >= 0 && Index < Text.Length)
-                                {
-                                    bool ClickedWordCharacter = Regex.IsMatch(Text[Index].ToString(), @"\w");
-                                    if (ClickedWordCharacter)
-                                    {
-                                        //  Get all word-characters to the left of the pressed character
-                                        int PreviousCharacters = Text.Substring(0, Index).Reverse().TakeWhile(x => Regex.IsMatch(x.ToString(), @"\w")).Count();
-                                        //  Get all word-characters to the right of the pressed character
-                                        int NextCharacters = Text.Skip(Index).TakeWhile(x => Regex.IsMatch(x.ToString(), @"\w")).Count();
-
-                                        //  Also include the next space if it's the first non-word character we find while traversing to the right
-                                        if (CharInfo.IndexInOriginalText + NextCharacters < Text.Length && Text[CharInfo.IndexInOriginalText + NextCharacters] == ' ')
-                                        {
-                                            NextCharacters++;
-                                        }
-
-                                        CurrentSelection = new(CharInfo.IndexInOriginalText - PreviousCharacters, Math.Min(Text.Length, CharInfo.IndexInOriginalText + NextCharacters));
-                                    }
-                                    else
-                                    {
-                                        //  Get all non-word characters to the left of the pressed character
-                                        int PreviousCharacters = Text.Substring(0, Index).Reverse().TakeWhile(x => Regex.IsMatch(x.ToString(), @"\W")).Count();
-                                        //  Get all non-word characters to the right of the pressed character
-                                        int NextCharacters = Text.Skip(Index).TakeWhile(x => Regex.IsMatch(x.ToString(), @"\W")).Count();
-
-                                        CurrentSelection = new(CharInfo.IndexInOriginalText - PreviousCharacters, Math.Min(Text.Length, CharInfo.IndexInOriginalText + NextCharacters));
-                                    }
-                                }
-                            }
-                        }
-
-                        e.SetHandledBy(this, false);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine(ex.Message + "\n" + ex.ToString());
-                    }
-                };
-
-                MouseHandler.LMBReleasedInside += (sender, e) =>
-                {
-                    if (e.PressedArgs.HandledBy == this)
-                    {
-                        e.SetHandledBy(this, false);
-                    }
-                };
-
-                MouseHandler.DragStart += (sender, e) =>
-                {
-                    if (e.IsLMB && AllowsTextSelection)
-                    {
-                        Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                        if (TextRenderInfo.TryGetCharAtScreenPosition(LayoutSpacePosition.ToVector2(), out CharRenderInfo CharInfo))
-                        {
-                            IsDraggingSelection = true;
-                            bool IsLeftEdge = LayoutSpacePosition.X <= CharInfo.CenterX;
-                            int SelectionIndex = IsLeftEdge ? CharInfo.IndexInOriginalText : CharInfo.IndexInOriginalText + 1;
-                            CurrentSelection = new(SelectionIndex, SelectionIndex);
-                            e.SetHandledBy(this, false);
-                        }
-                    }
-                };
-
-                MouseHandler.DragEnd += (sender, e) =>
-                {
-                    if (e.IsLMB)
-                    {
-                        IsDraggingSelection = false;
-                    }
-                };
-
-                MouseHandler.Dragged += (sender, e) =>
-                {
-                    if (e.IsLMB && IsDraggingSelection && (Text?.Length ?? 0) > 0 && CurrentSelection.HasValue && AllowsTextSelection)
-                    {
-                        Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-
-                        int LayoutBoundsVerticalPadding = 5;
-                        if (LayoutSpacePosition.Y < LayoutBounds.Top - LayoutBoundsVerticalPadding)
-                        {
-                            int SelectionIndex = TextRenderInfo.GetFirstChar().IndexInOriginalText;
-                            CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
-                        }
-                        else if (LayoutSpacePosition.Y > LayoutBounds.Bottom + LayoutBoundsVerticalPadding)
-                        {
-                            int SelectionIndex = TextRenderInfo.GetLastChar().IndexInOriginalText + 1;
-                            CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
-                        }
-                        else if (TextRenderInfo.TryGetCharAtScreenPosition(LayoutSpacePosition.ToVector2(), out CharRenderInfo CharInfo))
-                        {
-                            bool IsLeftEdge = LayoutSpacePosition.X <= CharInfo.CenterX;
-                            int SelectionIndex = IsLeftEdge ? CharInfo.IndexInOriginalText : CharInfo.IndexInOriginalText + 1;
-                            //Debug.WriteLine($"Dragged from {CurrentSelection.Value.StartIndex} to {SelectionIndex}");
-                            CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
-                        }
-
-                        e.SetHandled(this, false);
-                    }
-                };
-
-                KeyboardHandler.Pressed += (sender, e) =>
-                {
-                    TrackShortcutOriginStream(e);
-                    HandleKeyPress(e);
-                    e.SetHandledBy(this, false);
-                };
-
-                KeyboardHandler.KeyRepeat += (sender, e) =>
-                {
-                    bool streamStartedAsControlShortcut = e.Stream != null && ShortcutOriginStreamIds.Contains(e.Stream.Id);
-                    if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key,
-                        streamStartedAsControlShortcut))
-                    {
-                        return;
-                    }
-
-                    HandleKeyPress(e);
-                    e.SetHandledBy(this, false);
-                };
-
-                KeyboardHandler.KeyUp += (sender, e) =>
-                {
-                    if (e.Stream != null)
-                    {
-                        ShortcutOriginStreamIds.Remove(e.Stream.Id);
-                    }
-                };
-
-                SyncKeyboardRepeatPolicy();
-            }
-        }
-
-        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
-        {
-            BorderElement = Structure.Parts[BorderPartName] as MGBorder;
-            TextBlockElement = Structure.Parts[TextBlockPartName] as MGTextBlock;
-            PlaceholderTextBlockElement = Structure.Parts[PlaceholderTextBlockPartName] as MGTextBlock;
-            CharacterCountElement = Structure.Parts[CharacterCountPartName] as MGTextBlock;
-            ResizeGripElement = Structure.Parts[ResizeGripPartName] as MGResizeGrip;
-
-            bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
-            EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
-            if (needsBorderNotifications)
-            {
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
-            }
-
-            EnsureComponentBinding(() => ResizeGripComponent, value => ResizeGripComponent = value, ResizeGripElement, MGComponentBase.Create);
-
-            EnsureComponentBinding(() => PlaceholderTextBlockComponent, value => PlaceholderTextBlockComponent = value, PlaceholderTextBlockElement,
-                element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
-                    true, true, false, false, false, false, true,
-                    (AvailableBounds, ComponentSize) => GetTemplatePlaceholderBounds(AvailableBounds, ComponentSize.Size)));
-
-            EnsureComponentBinding(() => CharacterCountComponent, value => CharacterCountComponent = value, CharacterCountElement,
-                element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
-                    true, false, false, false, false, true, true,
-                    // The counter's corner is chrome: the template sets it through the part's own alignments.
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, element.HorizontalAlignment, element.VerticalAlignment, ComponentSize.Size)));
-
-            EnsureComponentBinding(() => TextBlockComponent, value => TextBlockComponent = value, TextBlockElement,
-                element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
-                    false, false, true, true, false, false, true,
-                    (AvailableBounds, ComponentSize) => GetTemplateTextBlockBounds(AvailableBounds, ComponentSize.Size)));
-
-            TextBlockElement.HasStableTextFootprint = HasStableTextFootprint;
-            TextRenderInfo = new(this, TextBlockElement);
-            Caret = new(this, TextBlockElement);
-            SyncPlaceholderTextPart();
-            SyncCharacterCountVisibility();
-            SyncResizeGripVisibility();
             UpdateCharacterCountText();
         }
+    }
 
-        private Rectangle GetTemplatePlaceholderBounds(Rectangle availableBounds, Size componentSize)
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _LimitedCharacterCountFormatString;
+    /// <summary>Only relevant if <see cref="ShowCharacterCount"/> is true and <see cref="CharacterLimit"/> is not null.<para/>
+    /// A format string to use when computing the character-count text displayed in the bottom-right corner of this <see cref="MGTextBox"/>.<br/>
+    /// "{{CharacterCount}}" and "{{CharacterLimit}}" will be replaced with their actual underlying values when formatting the string.<para/>
+    /// Default value:<code>"[b]{{CharacterCount}}[/b] / [b]{{CharacterLimit}}[/b]"</code><para/>
+    /// This value supports some basic text markdown, such as "[b]" for bold text, "[fg=Red]" to set the text foreground color to a given value, "[opacity=0.5]" etc.<para/>
+    /// See also: <see cref="ShowCharacterCount"/>, <see cref="CharacterLimit"/>, <see cref="LimitlessCharacterCountFormatString"/></summary>
+    public string LimitedCharacterCountFormatString
+    {
+        get => _LimitedCharacterCountFormatString;
+        set
         {
-            Rectangle paddedBounds = availableBounds.GetCompressed(Padding);
-            int height = Math.Min(componentSize.Height, paddedBounds.Height);
-            if (height <= 0)
+            if (_LimitedCharacterCountFormatString != value)
             {
-                return paddedBounds;
-            }
-
-            return ApplyAlignment(paddedBounds, HorizontalAlignment.Stretch, VerticalContentAlignment, new Size(paddedBounds.Width, height));
-        }
-
-        private Rectangle GetTemplateTextBlockBounds(Rectangle availableBounds, Size componentSize)
-        {
-            Rectangle textBounds = GetTemplatePlaceholderBounds(availableBounds, componentSize);
-            if (!_EnableScrolling || _TextScrollOffsetX == 0)
-            {
-                return textBounds;
-            }
-
-            return new Rectangle(textBounds.Left - _TextScrollOffsetX, textBounds.Top,
-                textBounds.Width + _TextScrollOffsetX, textBounds.Height);
-        }
-
-        private void SyncKeyboardRepeatPolicy()
-        {
-            if (KeyboardHandler == null)
-            {
-                return;
-            }
-
-            KeyboardHandler.RepeatPolicy.Enabled = IsHeldKeyRepeated;
-            KeyboardHandler.RepeatPolicy.InitialDelay = InitialKeyRepeatDelay;
-            KeyboardHandler.RepeatPolicy.Interval = KeyRepeatInterval;
-        }
-
-        private void TrackShortcutOriginStream(BaseKeyPressedEventArgs e)
-        {
-            if (e.Stream == null)
-            {
-                return;
-            }
-
-            if (e.Tracker.IsControlDown && IsControlShortcutKey(e.Key))
-            {
-                ShortcutOriginStreamIds.Add(e.Stream.Id);
-            }
-        }
-
-        #region Scrolling
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _EnableScrolling;
-        /// <summary>If true, text that overflows the textbox width is scrollable; the view automatically scrolls to keep the caret visible.<para/>
-        /// Setting this to true also enables <see cref="MGElement.ClipToBounds"/> on this element.<para/>
-        /// Default value: false<para/>
-        /// Note: This is primarily designed for single-line textboxes. Multi-line scrolling is best handled by wrapping in an <see cref="MGScrollViewer"/>.</summary>
-        public bool EnableScrolling
-        {
-            get => _EnableScrolling;
-            set
-            {
-                if (_EnableScrolling != value)
+                _LimitedCharacterCountFormatString = value;
+                if (CharacterLimit.HasValue)
                 {
-                    _EnableScrolling = value;
-                    if (_EnableScrolling)
-                    {
-                        ClipToBounds = true;
-                    }
-                    else
-                    {
-                        _TextScrollOffsetX = 0;
-                        ClipToBounds = false;
-                        LayoutChanged(this, true);
-                    }
-                    NPC(nameof(EnableScrolling));
+                    UpdateCharacterCountText();
                 }
+
+                NPC(nameof(LimitedCharacterCountFormatString));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _TextScrollOffsetX;
-
-        private void EnsureCaretVisible()
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _LimitlessCharacterCountFormatString;
+    /// <summary>Only relevant if <see cref="ShowCharacterCount"/> is true and <see cref="CharacterLimit"/> is null.<para/>
+    /// A format string to use when computing the character-count text displayed in the bottom-right corner of this <see cref="MGTextBox"/>.<br/>
+    /// "{{CharacterCount}}" will be replaced with its actual underlying value when formatting the string.<para/>
+    /// Default value:<code>"[b]{{CharacterCount}}[/b] character(s)"</code><para/>
+    /// This value supports some basic text markdown, such as "[b]" for bold text, "[fg=Red]" to set the text foreground color to a given value, "[opacity=0.5]" etc.<para/>
+    /// See also: <see cref="ShowCharacterCount"/>, <see cref="CharacterLimit"/>, <see cref="LimitedCharacterCountFormatString"/></summary>
+    public string LimitlessCharacterCountFormatString
+    {
+        get => _LimitlessCharacterCountFormatString;
+        set
         {
-            if (!EnableScrolling || !Caret.HasPosition)
+            if (_LimitlessCharacterCountFormatString != value)
             {
-                return;
-            }
-
-            Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-            if (PaddedBounds.Width <= 0)
-            {
-                return;
-            }
-
-            Rectangle CaretBounds = Caret.Position.Value.Bounds;
-
-            if (CaretBounds.Left < PaddedBounds.Left)
-            {
-                int NewOffset = Math.Max(0, _TextScrollOffsetX - (PaddedBounds.Left - CaretBounds.Left));
-                if (NewOffset != _TextScrollOffsetX)
+                _LimitlessCharacterCountFormatString = value;
+                if (!CharacterLimit.HasValue)
                 {
-                    _TextScrollOffsetX = NewOffset;
-                    LayoutChanged(this, true);
+                    UpdateCharacterCountText();
                 }
-            }
-            else if (CaretBounds.Right > PaddedBounds.Right)
-            {
-                int NewOffset = _TextScrollOffsetX + (CaretBounds.Right - PaddedBounds.Right);
-                if (NewOffset != _TextScrollOffsetX)
-                {
-                    _TextScrollOffsetX = NewOffset;
-                    LayoutChanged(this, true);
-                }
+
+                NPC(nameof(LimitlessCharacterCountFormatString));
             }
         }
-        #endregion Scrolling
+    }
 
-        private void HandleKeyPress(BaseKeyPressedEventArgs e)
+    private void UpdateCharacterCountText()
+    {
+        if (CharacterCountElement == null)
         {
-            //Debug.WriteLine($"{e.PrintableValue} {e.IsHandled}");
-            if (!e.IsPrintableKey)
+            return;
+        }
+
+        if (ShowCharacterCount)
+        {
+            string Value;
+            if (CharacterLimit.HasValue && !string.IsNullOrEmpty(LimitedCharacterCountFormatString))
             {
-                //  Handle non-printable keys such as arrow keys
-                switch (e.Key)
-                {
-                    case Keys.Insert when !IsReadonly:
-                        TextEntryMode = TextEntryMode == TextEntryMode.Insert ? TextEntryMode.Overwrite : TextEntryMode.Insert;
-                        break;
-
-                    case Keys.Left:
-                        if (Caret.MoveLeft(1))
-                        {
-                            CurrentSelection = null;
-                        }
-
-                        break;
-                    case Keys.Right:
-                        if (Caret.MoveRight(1))
-                        {
-                            CurrentSelection = null;
-                        }
-
-                        break;
-                    case Keys.Up:
-                        if (Caret.MoveUp(1))
-                        {
-                            CurrentSelection = null;
-                        }
-
-                        break;
-                    case Keys.Down:
-                        if (Caret.MoveDown(1))
-                        {
-                            CurrentSelection = null;
-                        }
-
-                        break;
-
-                    case Keys.Home:
-                        if (Caret.MoveToStartOfCurrentLine())
-                        {
-                            CurrentSelection = null;
-                        }
-
-                        break;
-                    case Keys.End:
-                        if (Caret.MoveToEndOfCurrentLine())
-                        {
-                            CurrentSelection = null;
-                        }
-
-                        break;
-
-                    case Keys.Back or Keys.Delete when !IsReadonly:
-                        if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
-                        {
-                            RestorableState UndoState = CreateRestorableState();
-                            int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
-                            int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                            string CurrentText = GetTextBackingField();
-                            string NewValue = CurrentText.Substring(0, SelectionStart) + CurrentText.Substring(SelectionEnd);
-                            if (SetText(NewValue))
-                            {
-                                AddUndoState(UndoState);
-                                CurrentSelection = null;
-                                TextBlockElement.UpdateLines();
-                                _ = Caret.MoveToOriginalCharacterIndexOrEnd(SelectionStart, true);
-                            }
-                        }
-                        else if (Caret.HasPosition)
-                        {
-                            bool IsBackspace = e.Key == Keys.Back;
-                            bool IsDelete = e.Key == Keys.Delete;
-
-                            int Offset = IsDelete ? 1 : 0;
-                            string CurrentText = GetTextBackingField();
-                            //  The caret index lives in the displayed text and can exceed the backing field if the two ever diverge
-                            //  (e.g. an expanded tab): clamp it like the insertion path does so the slices below can never go out of range.
-                            int Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
-
-                            if ((IsBackspace && Index > 0) || (IsDelete && Index < CurrentText.Length))
-                            {
-                                StringBuilder SB = new();
-                                string NewText;
-                                SB.Append(CurrentText.AsSpan(0, Index - 1 + Offset));
-                                if (Index < CurrentText.Length)
-                                {
-                                    SB.Append(CurrentText.AsSpan(Index + Offset));
-                                }
-
-                                NewText = SB.ToString();
-                                if (SetText(NewText))
-                                {
-                                    TextBlockElement.UpdateLines();
-
-                                    if (IsBackspace)
-                                    {
-                                        _ = Caret.MoveToOriginalCharacterIndexOrLeft(Caret.Position.Value.IndexInOriginalText - 1 + Offset, true);
-                                    }
-                                    else if (IsDelete)
-                                    {
-                                        _ = Caret.MoveToOriginalCharacterIndexOrRight(Caret.Position.Value.IndexInOriginalText - 1 + Offset, true);
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                }
+                Value = LimitedCharacterCountFormatString.Replace("{{CharacterCount}}", (Text?.Length ?? 0).ToString()).Replace("{{CharacterLimit}}", CharacterLimit.Value.ToString());
+            }
+            else if (!CharacterLimit.HasValue && !string.IsNullOrEmpty(LimitlessCharacterCountFormatString))
+            {
+                Value = LimitlessCharacterCountFormatString.Replace("{{CharacterCount}}", (Text?.Length ?? 0).ToString());
             }
             else
             {
-                bool Handled = false;
+                Value = $"{Text?.Length ?? 0}";
+            }
 
-                if (e.Tracker.IsControlDown)
+            CharacterCountElement.Text = Value;
+        }
+    }
+    #endregion Text
+
+    #region Selection
+    private bool _AllowsTextSelection = true;
+    /// <summary>True if the user should be able to click+drag to select Text.<para/>
+    /// Default value: true</summary>
+    public bool AllowsTextSelection
+    {
+        get => _AllowsTextSelection;
+        set
+        {
+            if (_AllowsTextSelection != value)
+            {
+                _AllowsTextSelection = value;
+                NPC(nameof(AllowsTextSelection));
+                if (!AllowsTextSelection)
                 {
-                    //  Handle keyboard shortcuts such as Ctrl+C or Ctrl+V
-                    bool IsKeyboardShortcut = IsControlShortcutKey(e.Key);
-                    if (IsKeyboardShortcut)
-                    {
-                        string CurrentText = GetTextBackingField();
-                        switch (e.Key)
-                        {
-                            case Keys.X when !IsReadonly:
-                                //  Cut
-                                if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
-                                {
-                                    RestorableState UndoState = CreateRestorableState();
-                                    int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
-                                    int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                                    string SelectedText = Text.Substring(SelectionStart, SelectionEnd - SelectionStart); // Could use CurrentText instead of Text to allow PasswordBoxes to copy the underlying text instead of the password characters *
-                                    string NewValue = CurrentText.Substring(0, SelectionStart) + CurrentText.Substring(SelectionEnd);
-                                    if (SetText(NewValue))
-                                    {
-                                        AddUndoState(UndoState);
-                                        CurrentSelection = null;
-                                        TextBlockElement.UpdateLines();
-                                        _ = Caret.MoveToOriginalCharacterIndexOrRight(SelectionStart - 1, false);
-                                        Clipboard.Text = SelectedText;
-                                    }
-                                }
-                                Handled = true;
-                                break;
-                            case Keys.C:
-                                if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
-                                {
-                                    int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
-                                    int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                                    string SelectedText = Text.Substring(SelectionStart, SelectionEnd - SelectionStart); // Could use CurrentText instead of Text to allow PasswordBoxes to copy the underlying text instead of the password character *
-                                    Clipboard.Text = SelectedText;
-                                }
-                                Handled = true;
-                                break;
-                            case Keys.V when !IsReadonly:
-                                //  Paste
-                                string ClipboardText = Clipboard.Text;
-                                if (!string.IsNullOrEmpty(ClipboardText))
-                                {
-                                    if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
-                                    {
-                                        RestorableState UndoState = CreateRestorableState();
-                                        int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
-                                        int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                                        string NewValue = CurrentText.Substring(0, SelectionStart) + ClipboardText + CurrentText.Substring(SelectionEnd);
-                                        if (SetText(NewValue))
-                                        {
-                                            AddUndoState(UndoState);
-                                            CurrentSelection = null;
-                                            TextBlockElement.UpdateLines();
-                                            int NumCharactersInserted = ClipboardText.Length;
-                                            _ = Caret.MoveToOriginalCharacterIndexOrRight(SelectionStart + NumCharactersInserted - 1, false);
-                                        }
-                                        //  We should still clear the selection even if pasting didn't change the text value.
-                                        //  EX: Text="Foo", Clipboard="oo", Select the text "oo" and paste.
-                                        //  Text attempts to change from "Foo" to "Foo", SetText returns false since nothing changed, so previous if-statement didn't execute
-                                        else if (GetTextBackingField() == NewValue)
-                                        {
-                                            CurrentSelection = null;
-                                        }
-                                    }
-                                    else if (Caret.HasPosition)
-                                    {
-                                        RestorableState UndoState = CreateRestorableState();
-                                        int CaretIndex = Caret.Position.Value.IndexInOriginalText;
-                                        string NewValue = CurrentText.Substring(0, CaretIndex) + ClipboardText + CurrentText.Substring(CaretIndex);
-                                        if (SetText(NewValue))
-                                        {
-                                            AddUndoState(UndoState);
-                                            CurrentSelection = null;
-                                            TextBlockElement.UpdateLines();
-                                            int NumCharactersInserted = ClipboardText.Length;
-                                            _ = Caret.MoveToOriginalCharacterIndexOrRight(CaretIndex + NumCharactersInserted - 1, false);
-                                        }
-                                    }
-                                }
-                                Handled = true;
-                                break;
+                    CurrentSelection = null;
+                }
+            }
+        }
+    }
 
-                            case Keys.Z when !IsReadonly:
-                                //  Undo
-                                _ = TryUndo();
-                                Handled = true;
-                                break;
-                            case Keys.Y when !IsReadonly:
-                                //  Redo
-                                _ = TryRedo();
-                                Handled = true;
-                                break;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool IsDraggingSelection { get; set; } = false;
 
-                            case Keys.A:
-                                SelectAll();
-                                Handled = true;
-                                break;
+    public record struct TextSelection(int Index1, int Index2)
+    {
+        public int StartIndex => Math.Min(Index1, Index2);
+        public int EndIndex => Math.Max(Index1, Index2);
+        public int Length => EndIndex - StartIndex;
 
-                            case Keys.D when !IsReadonly:
-                                //  Duplicate current line
-                                if (Caret.HasPosition && TextRenderInfo.TryGetCharAtScreenPosition(Caret.Position.Value.Bounds.Center.ToVector2(), out CharRenderInfo CharInfo))
-                                {
-                                    RestorableState UndoState = CreateRestorableState();
-                                    int LineStart = CharInfo.Line.FirstCharacter.IndexInOriginalText;
-                                    int LineEnd = CharInfo.Line.LastCharacter.IndexInOriginalText + 1;
-                                    if (CurrentText.Substring(LineStart).Length >= (LineEnd - LineStart))
-                                    {
-                                        string LineText = CurrentText.Substring(LineStart, LineEnd - LineStart);
-                                        string NewValue = CurrentText.Substring(0, LineStart) + LineText + '\n' + LineText + CurrentText.Substring(LineEnd);
-                                        if (SetText(NewValue))
-                                        {
-                                            AddUndoState(UndoState);
-                                            CurrentSelection = null;
-                                            TextBlockElement.UpdateLines();
-                                            int NumCharactersInserted = LineText.Length + 1; // +1 because of the linebreak character appended to the end of the line
-                                                                                             //_ = Caret.MoveToOriginalCharacterIndexOrRight(CharInfo.IndexInOriginalText + NumCharactersInserted - 1, false);
-                                        }
-                                    }
-                                }
-                                Handled = true;
-                                break;
-                        }
-                    }
+        public int ActualStartIndex(string Text) => Math.Clamp(StartIndex, 0, Text.Length);
+        public int ActualEndIndex(string Text) => Math.Clamp(EndIndex, 0, Text.Length);
+        public int ActualLength(string Text) => ActualEndIndex(Text) - ActualStartIndex(Text);
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TextSelection? _CurrentSelection;
+    /// <summary>The currently-selected substring.<para/>
+    /// Recommended to use <see cref="TrySelectText(string, bool)"/> or <see cref="SelectAll"/> instead of directly setting this property.<para/>
+    /// See also: <see cref="SelectionChanged"/></summary>
+    public TextSelection? CurrentSelection
+    {
+        get => _CurrentSelection;
+        set
+        {
+            TextSelection? ActualValue = !AllowsTextSelection ? null : value;
+            if (_CurrentSelection != ActualValue)
+            {
+                TextSelection? Previous = CurrentSelection;
+                _CurrentSelection = ActualValue;
+                UpdateFormattedText(true);
+                //if (CurrentSelection.HasValue)
+                //    CurrentCursorPosition = null;
+                NPC(nameof(CurrentSelection));
+                SelectionChanged?.Invoke(this, new(Previous, CurrentSelection));
+            }
+        }
+    }
+
+    /// <summary>Invoked after <see cref="CurrentSelection"/> changes.</summary>
+    public event EventHandler<EventArgs<TextSelection?>> SelectionChanged;
+
+    public void SelectAll()
+    {
+        CurrentSelection = new(0, TextRenderInfo.GetLastChar().IndexInOriginalText + 1);
+    }
+
+    /// <summary>Attempts to select the given <paramref name="Text"/>. Does not modify the selection if the <paramref name="Text"/> was not found.</summary>
+    /// <param name="FirstOccurrence">If true, the first occurrence of the given <paramref name="Text"/> will be selected, if found within this.<see cref="Text"/>.<para/>
+    /// If false, the last occurrence of the given <paramref name="Text"/> will be selected, if found within this.<see cref="Text"/></param>
+    public bool TrySelectText(string Text, bool FirstOccurrence = true)
+    {
+        if (string.IsNullOrEmpty(Text))
+        {
+            return false;
+        }
+
+        int Index = FirstOccurrence ? this.Text.IndexOf(Text) : this.Text.LastIndexOf(Text);
+        if (Index < 0)
+        {
+            return false;
+        }
+        else
+        {
+            CurrentSelection = new(Index, Index + Text.Length);
+            return true;
+        }
+    }
+
+    #region Colors
+    #region Focused
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _FocusedSelectionForegroundColor;
+    /// <summary>The text foreground color of the selected text while this <see cref="MGTextBox"/> has focus.<para/>
+    /// See also: <see cref="FocusedSelectionForegroundColor"/>, <see cref="FocusedSelectionBackgroundColor"/>, 
+    /// <see cref="UnfocusedSelectionForegroundColor"/>, <see cref="UnfocusedSelectionBackgroundColor"/></summary>
+    public Color FocusedSelectionForegroundColor
+    {
+        get => _FocusedSelectionForegroundColor;
+        set
+        {
+            if (_FocusedSelectionForegroundColor != value)
+            {
+                _FocusedSelectionForegroundColor = value;
+                FocusedSelectionForegroundColorString = ColorTranslator.ToHtml(FocusedSelectionForegroundColor.AsDrawingColor());
+                NPC(nameof(FocusedSelectionForegroundColor));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _FocusedSelectionForegroundColorString;
+    private string FocusedSelectionForegroundColorString
+    {
+        get => _FocusedSelectionForegroundColorString;
+        set
+        {
+            if (_FocusedSelectionForegroundColorString != value)
+            {
+                _FocusedSelectionForegroundColorString = value;
+                if (CurrentSelection.HasValue)
+                {
+                    UpdateFormattedText(true);
+                }
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _FocusedSelectedBackgroundColor;
+    /// <summary>The text background color of the selected text while this <see cref="MGTextBox"/> has focus.<para/>
+    /// See also: <see cref="FocusedSelectionForegroundColor"/>, <see cref="FocusedSelectionBackgroundColor"/>, 
+    /// <see cref="UnfocusedSelectionForegroundColor"/>, <see cref="UnfocusedSelectionBackgroundColor"/></summary>
+    public Color FocusedSelectionBackgroundColor
+    {
+        get => _FocusedSelectedBackgroundColor;
+        set
+        {
+            if (_FocusedSelectedBackgroundColor != value)
+            {
+                _FocusedSelectedBackgroundColor = value;
+                FocusedSelectionBackgroundColorString = ColorTranslator.ToHtml(FocusedSelectionBackgroundColor.AsDrawingColor());
+                NPC(nameof(FocusedSelectionBackgroundColor));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _FocusedSelectionBackgroundColorString;
+    private string FocusedSelectionBackgroundColorString
+    {
+        get => _FocusedSelectionBackgroundColorString;
+        set
+        {
+            if (_FocusedSelectionBackgroundColorString != value)
+            {
+                _FocusedSelectionBackgroundColorString = value;
+                if (CurrentSelection.HasValue)
+                {
+                    UpdateFormattedText(true);
+                }
+            }
+        }
+    }
+    #endregion Focused
+
+    #region Unfocused
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _UnfocusedSelectionForegroundColor;
+    /// <summary>The text foreground color of the selected text while this <see cref="MGTextBox"/> does NOT have focus.<para/>
+    /// See also: <see cref="FocusedSelectionForegroundColor"/>, <see cref="FocusedSelectionBackgroundColor"/>, 
+    /// <see cref="UnfocusedSelectionForegroundColor"/>, <see cref="UnfocusedSelectionBackgroundColor"/></summary>
+    public Color UnfocusedSelectionForegroundColor
+    {
+        get => _UnfocusedSelectionForegroundColor;
+        set
+        {
+            if (_UnfocusedSelectionForegroundColor != value)
+            {
+                _UnfocusedSelectionForegroundColor = value;
+                UnfocusedSelectionForegroundColorString = ColorTranslator.ToHtml(UnfocusedSelectionForegroundColor.AsDrawingColor());
+                NPC(nameof(UnfocusedSelectionForegroundColor));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _UnfocusedSelectionForegroundColorString;
+    private string UnfocusedSelectionForegroundColorString
+    {
+        get => _UnfocusedSelectionForegroundColorString;
+        set
+        {
+            if (_UnfocusedSelectionForegroundColorString != value)
+            {
+                _UnfocusedSelectionForegroundColorString = value;
+                if (CurrentSelection.HasValue)
+                {
+                    UpdateFormattedText(true);
+                }
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _UnfocusedSelectionBackgroundColor;
+    /// <summary>The text background color of the selected text while this <see cref="MGTextBox"/> does NOT have focus.<para/>
+    /// See also: <see cref="FocusedSelectionForegroundColor"/>, <see cref="FocusedSelectionBackgroundColor"/>, 
+    /// <see cref="UnfocusedSelectionForegroundColor"/>, <see cref="UnfocusedSelectionBackgroundColor"/></summary>
+    public Color UnfocusedSelectionBackgroundColor
+    {
+        get => _UnfocusedSelectionBackgroundColor;
+        set
+        {
+            if (_UnfocusedSelectionBackgroundColor != value)
+            {
+                _UnfocusedSelectionBackgroundColor = value;
+                UnfocusedSelectionBackgroundColorString = ColorTranslator.ToHtml(UnfocusedSelectionBackgroundColor.AsDrawingColor());
+                NPC(nameof(UnfocusedSelectionBackgroundColor));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _UnfocusedSelectionBackgroundColorString;
+    private string UnfocusedSelectionBackgroundColorString
+    {
+        get => _UnfocusedSelectionBackgroundColorString;
+        set
+        {
+            if (_UnfocusedSelectionBackgroundColorString != value)
+            {
+                _UnfocusedSelectionBackgroundColorString = value;
+                if (CurrentSelection.HasValue)
+                {
+                    UpdateFormattedText(true);
+                }
+            }
+        }
+    }
+    #endregion Unfocused
+    #endregion Colors
+    #endregion Selection
+
+    #region Mouse History
+    private record struct MousePressMetadata(Vector2 Position)
+    {
+        public DateTime Timestamp { get; init; } = DateTime.Now;
+        public bool IsRecent(TimeSpan Interval) => DateTime.Now.Subtract(Timestamp) <= Interval;
+        public bool IsNearby(Vector2 Position, int Threshold = 8) => Vector2.DistanceSquared(this.Position, Position) <= Threshold * Threshold;
+    }
+
+    private static readonly TimeSpan DoublePressInterval = TimeSpan.FromSeconds(0.4);
+    private static readonly TimeSpan TriplePressInterval = TimeSpan.FromSeconds(0.6);
+    private static readonly TimeSpan QuadruplePressInterval = TimeSpan.FromSeconds(0.8);
+
+    private const int MousePressHistorySize = 10;
+    private readonly List<MousePressMetadata> MousePressHistory = new();
+    private void AddMousePressHistory(Vector2 Position, out bool IsDoublePress, out bool IsTriplePress, out bool IsQuadruplePress)
+    {
+        MousePressHistory.Add(new(Position));
+        if (MousePressHistory.Count > MousePressHistorySize)
+        {
+            MousePressHistory.RemoveAt(0);
+        }
+
+        IsDoublePress = MousePressHistory.Count >= 2 && MousePressHistory[^2].IsRecent(DoublePressInterval) && MousePressHistory[^2].IsNearby(Position);
+        IsTriplePress = MousePressHistory.Count >= 3 && MousePressHistory.Skip(MousePressHistory.Count - 3).All(x => x.IsRecent(TriplePressInterval) && x.IsNearby(Position));
+        IsQuadruplePress = MousePressHistory.Count >= 4 && MousePressHistory.Skip(MousePressHistory.Count - 4).All(x => x.IsRecent(QuadruplePressInterval) && x.IsNearby(Position));
+    }
+    #endregion Mouse History
+
+    #region Undo / Redo
+    public const int DefaultUndoRedoHistorySize = 20;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _UndoRedoHistorySize;
+    /// <summary>The maximum number of undo or redo states that will be kept in memory. Decreasing this value may result in the oldest undo or redo states being lost.<para/>
+    /// Default value: <see cref="DefaultUndoRedoHistorySize"/></summary>
+    public int UndoRedoHistorySize
+    {
+        get => _UndoRedoHistorySize;
+        set
+        {
+            if (_UndoRedoHistorySize != value)
+            {
+                _UndoRedoHistorySize = value;
+                UndoStack.SetLimit(UndoRedoHistorySize);
+                RedoStack.SetLimit(UndoRedoHistorySize);
+                NPC(nameof(UndoRedoHistorySize));
+            }
+        }
+    }
+
+    private record struct RestorableState(MGTextCaret.CaretPosition? CaretPosition, TextSelection? Selection, string Text);
+    private RestorableState CreateRestorableState() => new(Caret.Position, CurrentSelection, GetTextBackingField());
+
+    private readonly MGTextUndoStack<RestorableState> UndoStack = new(DefaultUndoRedoHistorySize);
+
+    private void AddUndoState(RestorableState State) => UndoStack.Push(State);
+
+    private bool IsExecutingUndoRedo = false;
+
+    public bool TryUndo()
+    {
+        if (IsReadonly || !IsEnabled)
+        {
+            return false;
+        }
+
+        try
+        {
+            IsExecutingUndoRedo = true;
+            if (UndoStack.TryPop(out RestorableState State))
+            {
+                RestorableState RedoState = CreateRestorableState();
+                if (SetText(State.Text))
+                {
+                    Caret.Position = State.CaretPosition;
+                    CurrentSelection = State.Selection;
+                    AddRedoState(RedoState);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        finally { IsExecutingUndoRedo = false; }
+    }
+
+    private readonly MGTextUndoStack<RestorableState> RedoStack = new(DefaultUndoRedoHistorySize);
+
+    private void AddRedoState(RestorableState State) => RedoStack.Push(State);
+    private void ClearRedoStack() => RedoStack.Clear();
+
+    public bool TryRedo()
+    {
+        if (IsReadonly || !IsEnabled)
+        {
+            return false;
+        }
+
+        try
+        {
+            IsExecutingUndoRedo = true;
+            if (RedoStack.TryPop(out RestorableState State))
+            {
+                RestorableState UndoState = CreateRestorableState();
+                if (SetText(State.Text))
+                {
+                    Caret.Position = State.CaretPosition;
+                    CurrentSelection = State.Selection;
+                    AddUndoState(UndoState);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        finally { IsExecutingUndoRedo = false; }
+    }
+    #endregion Undo / Redo
+
+    /// <summary>Attempts to set this element as the value for <see cref="MGDesktop.FocusedKeyboardHandler"/> at the end of the next update tick.</summary>
+    public void RequestFocus() => GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Programmatic);
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _IsReadonly;
+    public bool IsReadonly
+    {
+        get => _IsReadonly;
+        set
+        {
+            if (_IsReadonly != value)
+            {
+                _IsReadonly = value;
+                if (IsReadonly)
+                {
+                    IsDraggingSelection = false;
+                    Caret.Position = null;
+                    CurrentSelection = null;
                 }
 
-                if (!Handled && !IsReadonly && (AcceptsReturn || e.Key != Keys.Enter) && (AcceptsTab || e.Key != Keys.Tab))
-                {
-                    bool IsEnter = e.Key == Keys.Enter;
-                    bool IsTab = e.Key == Keys.Tab;
+                NPC(nameof(IsReadonly));
+                ReadonlyChanged?.Invoke(this, IsReadonly);
+            }
+        }
+    }
 
+    /// <summary>Invoked when <see cref="IsReadonly"/> changes.</summary>
+    public event EventHandler<bool> ReadonlyChanged;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _AcceptsReturn;
+    /// <summary>Note: This feature is not available for <see cref="MGPasswordBox"/>.<para/>
+    /// Default value: true</summary>
+    public virtual bool AcceptsReturn
+    {
+        get => _AcceptsReturn;
+        set
+        {
+            if (_AcceptsReturn != value)
+            {
+                _AcceptsReturn = value;
+                NPC(nameof(AcceptsReturn));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _AcceptsTab;
+    /// <summary>Note: This feature is not available for <see cref="MGPasswordBox"/>.<para/>
+    /// Default value: true</summary>
+    public virtual bool AcceptsTab
+    {
+        get => _AcceptsTab;
+        set
+        {
+            if (_AcceptsTab != value)
+            {
+                _AcceptsTab = value;
+                NPC(nameof(AcceptsTab));
+            }
+        }
+    }
+
+    [DebuggerBrowsable (DebuggerBrowsableState.Never)]
+    private bool _IsHeldKeyRepeated = true;
+    /// <summary>If true, the most-recently pressed key will be repeatedly inputted (~30 times/second). Default value: true<br/>
+    /// Some keys might not be repeated, such as special characters, or special keyboard shortcuts like 'Ctrl+C'.<para/>
+    /// EX: Text="". Press 'A'. Text="A". Keep holding 'A' for about 1 second. Text="AAAAAAAAAAAAAAAA". Release 'A'.<para/>
+    /// See also: <see cref="InitialKeyRepeatDelay"/>, <see cref="KeyRepeatInterval"/></summary>
+    public bool IsHeldKeyRepeated
+    {
+        get => _IsHeldKeyRepeated;
+        set
+        {
+            if (_IsHeldKeyRepeated != value)
+            {
+                _IsHeldKeyRepeated = value;
+                SyncKeyboardRepeatPolicy();
+                NPC(nameof(IsHeldKeyRepeated));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TimeSpan _InitialKeyRepeatDelay = TimeSpan.FromSeconds(0.5);
+    /// <summary>The initial delay before a pressed key will be repeatedly inputted.<para/>
+    /// See also: <see cref="IsHeldKeyRepeated"/> <see cref="KeyRepeatInterval"/></summary>
+    public TimeSpan InitialKeyRepeatDelay
+    {
+        get => _InitialKeyRepeatDelay;
+        set
+        {
+            if (_InitialKeyRepeatDelay != value)
+            {
+                _InitialKeyRepeatDelay = value;
+                SyncKeyboardRepeatPolicy();
+                NPC(nameof(InitialKeyRepeatDelay));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TimeSpan _KeyRepeatInterval = TimeSpan.FromSeconds(1.0 / 30); // 30 repetitions per second when holding down a key
+    /// <summary>How often to repeatedly input the most-recently pressed key.<para/>
+    /// See also: <see cref="IsHeldKeyRepeated"/>, <see cref="InitialKeyRepeatDelay"/></summary>
+    public TimeSpan KeyRepeatInterval
+    {
+        get => _KeyRepeatInterval;
+        set
+        {
+            if (_KeyRepeatInterval != value)
+            {
+                _KeyRepeatInterval = value;
+                SyncKeyboardRepeatPolicy();
+                NPC(nameof(KeyRepeatInterval));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TextEntryMode _TextEntryMode = TextEntryMode.Insert;
+    public TextEntryMode TextEntryMode
+    {
+        get => _TextEntryMode;
+        set
+        {
+            if (_TextEntryMode != value)
+            {
+                _TextEntryMode = value;
+                NPC(nameof(TextEntryMode));
+            }
+        }
+    }
+
+    public MGTextCaret Caret { get; private set; }
+
+    private StringClipboard Clipboard { get; } = new();
+    private HashSet<long> ShortcutOriginStreamIds { get; } = new();
+
+    #region Resizing
+    /// <summary>Provides direct access to the resizer grip that appears in the bottom-right corner of this textbox when <see cref="IsUserResizable"/> is true.</summary>
+    public MGComponent<MGResizeGrip> ResizeGripComponent { get; private set; }
+    private MGResizeGrip ResizeGripElement { get; set; }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _IsUserResizable;
+    /// <summary>If true, a <see cref="MGResizeGrip"/> will be visible in the bottom-right corner of the window, 
+    /// allowing the user to click+drag it to adjust this <see cref="MGElement"/>'s <see cref="MGElement.PreferredWidth"/> / <see cref="MGElement.PreferredHeight"/></summary>
+    public bool IsUserResizable
+    {
+        get => _IsUserResizable;
+        set
+        {
+            if (_IsUserResizable != value)
+            {
+                _IsUserResizable = value;
+                SyncResizeGripVisibility();
+                NPC(nameof(IsUserResizable));
+            }
+            else
+            {
+                SyncResizeGripVisibility();
+            }
+        }
+    }
+
+    private void SyncResizeGripVisibility()
+    {
+        if (ResizeGripElement != null)
+        {
+            ResizeGripElement.Visibility = _IsUserResizable ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+    #endregion Resizing
+
+    /// <param name="CharacterLimit">Use null for no limit. Recommended to set this to a reasonable value to avoid performance issues.</param>
+    public MGTextBox(MGWindow Window, int? CharacterLimit = 1000, bool ShowCharacterCount = false, bool IsUserResizable = false)
+        : this(Window, MGElementType.TextBox, CharacterLimit, ShowCharacterCount, IsUserResizable)
+    {
+
+    }
+
+    protected MGTextBox(MGWindow Window, MGElementType ElementType, int? CharacterLimit, bool ShowCharacterCount, bool IsUserResizable) 
+        : base(Window, ElementType)
+    {
+        using (BeginInitializing())
+        {
+            DrawBackgroundBorderOverlayEnabled = false;
+            IsReadonly = false;
+            this.CharacterLimit = CharacterLimit;
+            AcceptsReturn = true;
+            AcceptsTab = true;
+
+            // Chrome: the parts, the content alignments and the character count format strings come from the template (TextBox.Default).
+            DefaultControlTemplateName = MGControlTemplateCatalog.TextBoxTemplateName;
+
+            this.IsUserResizable = IsUserResizable;
+            PlaceholderText = null;
+            this.ShowCharacterCount = ShowCharacterCount;
+
+            MouseHandler.LMBPressedInside += (sender, e) =>
+            {
+                try
+                {
+                    Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    AddMousePressHistory(Position.ToVector2(), out bool IsDoublePress, out bool IsTriplePress, out bool IsQuadruplePress);
+
+                    GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Pointer);
+
+                    Caret.MoveToApproximateScreenPosition(Position.ToVector2());
+
+                    CurrentSelection = null;
+                    if (TextRenderInfo.TryGetCharAtScreenPosition(Position.ToVector2(), out CharRenderInfo CharInfo))
+                    {
+                        if (IsQuadruplePress)
+                        {
+                            SelectAll();
+                        }
+                        else if (IsTriplePress)
+                        {
+                            CurrentSelection = new(CharInfo.Line.FirstCharacter.IndexInOriginalText, CharInfo.Line.LastCharacter.IndexInOriginalText + 1);
+                        }
+                        else if (IsDoublePress)
+                        {
+                            int Index = CharInfo.IndexInOriginalText;
+                            if (Index >= 0 && Index < Text.Length)
+                            {
+                                bool ClickedWordCharacter = Regex.IsMatch(Text[Index].ToString(), @"\w");
+                                if (ClickedWordCharacter)
+                                {
+                                    //  Get all word-characters to the left of the pressed character
+                                    int PreviousCharacters = Text.Substring(0, Index).Reverse().TakeWhile(x => Regex.IsMatch(x.ToString(), @"\w")).Count();
+                                    //  Get all word-characters to the right of the pressed character
+                                    int NextCharacters = Text.Skip(Index).TakeWhile(x => Regex.IsMatch(x.ToString(), @"\w")).Count();
+
+                                    //  Also include the next space if it's the first non-word character we find while traversing to the right
+                                    if (CharInfo.IndexInOriginalText + NextCharacters < Text.Length && Text[CharInfo.IndexInOriginalText + NextCharacters] == ' ')
+                                    {
+                                        NextCharacters++;
+                                    }
+
+                                    CurrentSelection = new(CharInfo.IndexInOriginalText - PreviousCharacters, Math.Min(Text.Length, CharInfo.IndexInOriginalText + NextCharacters));
+                                }
+                                else
+                                {
+                                    //  Get all non-word characters to the left of the pressed character
+                                    int PreviousCharacters = Text.Substring(0, Index).Reverse().TakeWhile(x => Regex.IsMatch(x.ToString(), @"\W")).Count();
+                                    //  Get all non-word characters to the right of the pressed character
+                                    int NextCharacters = Text.Skip(Index).TakeWhile(x => Regex.IsMatch(x.ToString(), @"\W")).Count();
+
+                                    CurrentSelection = new(CharInfo.IndexInOriginalText - PreviousCharacters, Math.Min(Text.Length, CharInfo.IndexInOriginalText + NextCharacters));
+                                }
+                            }
+                        }
+                    }
+
+                    e.SetHandledBy(this, false);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message + "\n" + ex.ToString());
+                }
+            };
+
+            MouseHandler.LMBReleasedInside += (sender, e) =>
+            {
+                if (e.PressedArgs.HandledBy == this)
+                {
+                    e.SetHandledBy(this, false);
+                }
+            };
+
+            MouseHandler.DragStart += (sender, e) =>
+            {
+                if (e.IsLMB && AllowsTextSelection)
+                {
+                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    if (TextRenderInfo.TryGetCharAtScreenPosition(LayoutSpacePosition.ToVector2(), out CharRenderInfo CharInfo))
+                    {
+                        IsDraggingSelection = true;
+                        bool IsLeftEdge = LayoutSpacePosition.X <= CharInfo.CenterX;
+                        int SelectionIndex = IsLeftEdge ? CharInfo.IndexInOriginalText : CharInfo.IndexInOriginalText + 1;
+                        CurrentSelection = new(SelectionIndex, SelectionIndex);
+                        e.SetHandledBy(this, false);
+                    }
+                }
+            };
+
+            MouseHandler.DragEnd += (sender, e) =>
+            {
+                if (e.IsLMB)
+                {
+                    IsDraggingSelection = false;
+                }
+            };
+
+            MouseHandler.Dragged += (sender, e) =>
+            {
+                if (e.IsLMB && IsDraggingSelection && (Text?.Length ?? 0) > 0 && CurrentSelection.HasValue && AllowsTextSelection)
+                {
+                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+
+                    int LayoutBoundsVerticalPadding = 5;
+                    if (LayoutSpacePosition.Y < LayoutBounds.Top - LayoutBoundsVerticalPadding)
+                    {
+                        int SelectionIndex = TextRenderInfo.GetFirstChar().IndexInOriginalText;
+                        CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
+                    }
+                    else if (LayoutSpacePosition.Y > LayoutBounds.Bottom + LayoutBoundsVerticalPadding)
+                    {
+                        int SelectionIndex = TextRenderInfo.GetLastChar().IndexInOriginalText + 1;
+                        CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
+                    }
+                    else if (TextRenderInfo.TryGetCharAtScreenPosition(LayoutSpacePosition.ToVector2(), out CharRenderInfo CharInfo))
+                    {
+                        bool IsLeftEdge = LayoutSpacePosition.X <= CharInfo.CenterX;
+                        int SelectionIndex = IsLeftEdge ? CharInfo.IndexInOriginalText : CharInfo.IndexInOriginalText + 1;
+                        //Debug.WriteLine($"Dragged from {CurrentSelection.Value.StartIndex} to {SelectionIndex}");
+                        CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
+                    }
+
+                    e.SetHandled(this, false);
+                }
+            };
+
+            KeyboardHandler.Pressed += (sender, e) =>
+            {
+                TrackShortcutOriginStream(e);
+                HandleKeyPress(e);
+                e.SetHandledBy(this, false);
+            };
+
+            KeyboardHandler.KeyRepeat += (sender, e) =>
+            {
+                bool streamStartedAsControlShortcut = e.Stream != null && ShortcutOriginStreamIds.Contains(e.Stream.Id);
+                if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key,
+                        streamStartedAsControlShortcut))
+                {
+                    return;
+                }
+
+                HandleKeyPress(e);
+                e.SetHandledBy(this, false);
+            };
+
+            KeyboardHandler.KeyUp += (sender, e) =>
+            {
+                if (e.Stream != null)
+                {
+                    ShortcutOriginStreamIds.Remove(e.Stream.Id);
+                }
+            };
+
+            SyncKeyboardRepeatPolicy();
+        }
+    }
+
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        BorderElement = Structure.Parts[BorderPartName] as MGBorder;
+        TextBlockElement = Structure.Parts[TextBlockPartName] as MGTextBlock;
+        PlaceholderTextBlockElement = Structure.Parts[PlaceholderTextBlockPartName] as MGTextBlock;
+        CharacterCountElement = Structure.Parts[CharacterCountPartName] as MGTextBlock;
+        ResizeGripElement = Structure.Parts[ResizeGripPartName] as MGResizeGrip;
+
+        bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+        EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
+        if (needsBorderNotifications)
+        {
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+        }
+
+        EnsureComponentBinding(() => ResizeGripComponent, value => ResizeGripComponent = value, ResizeGripElement, MGComponentBase.Create);
+
+        EnsureComponentBinding(() => PlaceholderTextBlockComponent, value => PlaceholderTextBlockComponent = value, PlaceholderTextBlockElement,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+                true, true, false, false, false, false, true,
+                (AvailableBounds, ComponentSize) => GetTemplatePlaceholderBounds(AvailableBounds, ComponentSize.Size)));
+
+        EnsureComponentBinding(() => CharacterCountComponent, value => CharacterCountComponent = value, CharacterCountElement,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+                true, false, false, false, false, true, true,
+                // The counter's corner is chrome: the template sets it through the part's own alignments.
+                (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, element.HorizontalAlignment, element.VerticalAlignment, ComponentSize.Size)));
+
+        EnsureComponentBinding(() => TextBlockComponent, value => TextBlockComponent = value, TextBlockElement,
+            element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.BeforeContents,
+                false, false, true, true, false, false, true,
+                (AvailableBounds, ComponentSize) => GetTemplateTextBlockBounds(AvailableBounds, ComponentSize.Size)));
+
+        TextBlockElement.HasStableTextFootprint = HasStableTextFootprint;
+        TextRenderInfo = new(this, TextBlockElement);
+        Caret = new(this, TextBlockElement);
+        SyncPlaceholderTextPart();
+        SyncCharacterCountVisibility();
+        SyncResizeGripVisibility();
+        UpdateCharacterCountText();
+    }
+
+    private Rectangle GetTemplatePlaceholderBounds(Rectangle availableBounds, Size componentSize)
+    {
+        Rectangle paddedBounds = availableBounds.GetCompressed(Padding);
+        int height = Math.Min(componentSize.Height, paddedBounds.Height);
+        if (height <= 0)
+        {
+            return paddedBounds;
+        }
+
+        return ApplyAlignment(paddedBounds, HorizontalAlignment.Stretch, VerticalContentAlignment, new Size(paddedBounds.Width, height));
+    }
+
+    private Rectangle GetTemplateTextBlockBounds(Rectangle availableBounds, Size componentSize)
+    {
+        Rectangle textBounds = GetTemplatePlaceholderBounds(availableBounds, componentSize);
+        if (!_EnableScrolling || _TextScrollOffsetX == 0)
+        {
+            return textBounds;
+        }
+
+        return new Rectangle(textBounds.Left - _TextScrollOffsetX, textBounds.Top,
+            textBounds.Width + _TextScrollOffsetX, textBounds.Height);
+    }
+
+    private void SyncKeyboardRepeatPolicy()
+    {
+        if (KeyboardHandler == null)
+        {
+            return;
+        }
+
+        KeyboardHandler.RepeatPolicy.Enabled = IsHeldKeyRepeated;
+        KeyboardHandler.RepeatPolicy.InitialDelay = InitialKeyRepeatDelay;
+        KeyboardHandler.RepeatPolicy.Interval = KeyRepeatInterval;
+    }
+
+    private void TrackShortcutOriginStream(BaseKeyPressedEventArgs e)
+    {
+        if (e.Stream == null)
+        {
+            return;
+        }
+
+        if (e.Tracker.IsControlDown && IsControlShortcutKey(e.Key))
+        {
+            ShortcutOriginStreamIds.Add(e.Stream.Id);
+        }
+    }
+
+    #region Scrolling
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _EnableScrolling;
+    /// <summary>If true, text that overflows the textbox width is scrollable; the view automatically scrolls to keep the caret visible.<para/>
+    /// Setting this to true also enables <see cref="MGElement.ClipToBounds"/> on this element.<para/>
+    /// Default value: false<para/>
+    /// Note: This is primarily designed for single-line textboxes. Multi-line scrolling is best handled by wrapping in an <see cref="MGScrollViewer"/>.</summary>
+    public bool EnableScrolling
+    {
+        get => _EnableScrolling;
+        set
+        {
+            if (_EnableScrolling != value)
+            {
+                _EnableScrolling = value;
+                if (_EnableScrolling)
+                {
+                    ClipToBounds = true;
+                }
+                else
+                {
+                    _TextScrollOffsetX = 0;
+                    ClipToBounds = false;
+                    LayoutChanged(this, true);
+                }
+                NPC(nameof(EnableScrolling));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _TextScrollOffsetX;
+
+    private void EnsureCaretVisible()
+    {
+        if (!EnableScrolling || !Caret.HasPosition)
+        {
+            return;
+        }
+
+        Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
+        if (PaddedBounds.Width <= 0)
+        {
+            return;
+        }
+
+        Rectangle CaretBounds = Caret.Position.Value.Bounds;
+
+        if (CaretBounds.Left < PaddedBounds.Left)
+        {
+            int NewOffset = Math.Max(0, _TextScrollOffsetX - (PaddedBounds.Left - CaretBounds.Left));
+            if (NewOffset != _TextScrollOffsetX)
+            {
+                _TextScrollOffsetX = NewOffset;
+                LayoutChanged(this, true);
+            }
+        }
+        else if (CaretBounds.Right > PaddedBounds.Right)
+        {
+            int NewOffset = _TextScrollOffsetX + (CaretBounds.Right - PaddedBounds.Right);
+            if (NewOffset != _TextScrollOffsetX)
+            {
+                _TextScrollOffsetX = NewOffset;
+                LayoutChanged(this, true);
+            }
+        }
+    }
+    #endregion Scrolling
+
+    private void HandleKeyPress(BaseKeyPressedEventArgs e)
+    {
+        //Debug.WriteLine($"{e.PrintableValue} {e.IsHandled}");
+        if (!e.IsPrintableKey)
+        {
+            //  Handle non-printable keys such as arrow keys
+            switch (e.Key)
+            {
+                case Keys.Insert when !IsReadonly:
+                    TextEntryMode = TextEntryMode == TextEntryMode.Insert ? TextEntryMode.Overwrite : TextEntryMode.Insert;
+                    break;
+
+                case Keys.Left:
+                    if (Caret.MoveLeft(1))
+                    {
+                        CurrentSelection = null;
+                    }
+
+                    break;
+                case Keys.Right:
+                    if (Caret.MoveRight(1))
+                    {
+                        CurrentSelection = null;
+                    }
+
+                    break;
+                case Keys.Up:
+                    if (Caret.MoveUp(1))
+                    {
+                        CurrentSelection = null;
+                    }
+
+                    break;
+                case Keys.Down:
+                    if (Caret.MoveDown(1))
+                    {
+                        CurrentSelection = null;
+                    }
+
+                    break;
+
+                case Keys.Home:
+                    if (Caret.MoveToStartOfCurrentLine())
+                    {
+                        CurrentSelection = null;
+                    }
+
+                    break;
+                case Keys.End:
+                    if (Caret.MoveToEndOfCurrentLine())
+                    {
+                        CurrentSelection = null;
+                    }
+
+                    break;
+
+                case Keys.Back or Keys.Delete when !IsReadonly:
                     if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
                     {
                         RestorableState UndoState = CreateRestorableState();
                         int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
                         int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
                         string CurrentText = GetTextBackingField();
-                        string NewValue = CurrentText.Substring(0, SelectionStart) + e.PrintableValue + CurrentText.Substring(SelectionEnd);
+                        string NewValue = CurrentText.Substring(0, SelectionStart) + CurrentText.Substring(SelectionEnd);
                         if (SetText(NewValue))
                         {
                             AddUndoState(UndoState);
                             CurrentSelection = null;
                             TextBlockElement.UpdateLines();
-                            int NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
-                            _ = Caret.MoveToOriginalCharacterIndexOrEnd(SelectionStart + NumCharactersInserted - 1, false);
+                            _ = Caret.MoveToOriginalCharacterIndexOrEnd(SelectionStart, true);
                         }
                     }
                     else if (Caret.HasPosition)
                     {
-                        StringBuilder SB = new();
-                        string NewText;
+                        bool IsBackspace = e.Key == Keys.Back;
+                        bool IsDelete = e.Key == Keys.Delete;
+
+                        int Offset = IsDelete ? 1 : 0;
                         string CurrentText = GetTextBackingField();
+                        //  The caret index lives in the displayed text and can exceed the backing field if the two ever diverge
+                        //  (e.g. an expanded tab): clamp it like the insertion path does so the slices below can never go out of range.
                         int Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
 
-                        switch (TextEntryMode)
+                        if ((IsBackspace && Index > 0) || (IsDelete && Index < CurrentText.Length))
                         {
-                            case TextEntryMode.Insert:
-                                SB.Append(CurrentText.AsSpan(0, Index));
-                                SB.Append(e.PrintableValue);
-                                if (Index < CurrentText.Length)
+                            StringBuilder SB = new();
+                            string NewText;
+                            SB.Append(CurrentText.AsSpan(0, Index - 1 + Offset));
+                            if (Index < CurrentText.Length)
+                            {
+                                SB.Append(CurrentText.AsSpan(Index + Offset));
+                            }
+
+                            NewText = SB.ToString();
+                            if (SetText(NewText))
+                            {
+                                TextBlockElement.UpdateLines();
+
+                                if (IsBackspace)
                                 {
-                                    SB.Append(CurrentText.AsSpan(Index));
+                                    _ = Caret.MoveToOriginalCharacterIndexOrLeft(Caret.Position.Value.IndexInOriginalText - 1 + Offset, true);
                                 }
-
-                                NewText = SB.ToString();
-                                break;
-                            case TextEntryMode.Overwrite:
-                                SB.Append(CurrentText.AsSpan(0, Index));
-                                SB.Append(e.PrintableValue);
-                                if (Index + 1 < CurrentText.Length)
+                                else if (IsDelete)
                                 {
-                                    SB.Append(CurrentText.AsSpan(Index + 1));
+                                    _ = Caret.MoveToOriginalCharacterIndexOrRight(Caret.Position.Value.IndexInOriginalText - 1 + Offset, true);
                                 }
-
-                                NewText = SB.ToString();
-                                break;
-                            default: throw new NotImplementedException($"Unrecognized {nameof(UI.TextEntryMode)}: {TextEntryMode}");
+                            }
                         }
+                    }
+                    break;
+            }
+        }
+        else
+        {
+            bool Handled = false;
 
-                        //Debug.WriteLine($"{nameof(MGTextBox)}: Insert key - {e.PrintableValue}");
-                        if (SetText(NewText))
-                        {
-                            TextBlockElement.UpdateLines();
-                        }
+            if (e.Tracker.IsControlDown)
+            {
+                //  Handle keyboard shortcuts such as Ctrl+C or Ctrl+V
+                bool IsKeyboardShortcut = IsControlShortcutKey(e.Key);
+                if (IsKeyboardShortcut)
+                {
+                    string CurrentText = GetTextBackingField();
+                    switch (e.Key)
+                    {
+                        case Keys.X when !IsReadonly:
+                            //  Cut
+                            if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
+                            {
+                                RestorableState UndoState = CreateRestorableState();
+                                int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
+                                int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
+                                string SelectedText = Text.Substring(SelectionStart, SelectionEnd - SelectionStart); // Could use CurrentText instead of Text to allow PasswordBoxes to copy the underlying text instead of the password characters *
+                                string NewValue = CurrentText.Substring(0, SelectionStart) + CurrentText.Substring(SelectionEnd);
+                                if (SetText(NewValue))
+                                {
+                                    AddUndoState(UndoState);
+                                    CurrentSelection = null;
+                                    TextBlockElement.UpdateLines();
+                                    _ = Caret.MoveToOriginalCharacterIndexOrRight(SelectionStart - 1, false);
+                                    Clipboard.Text = SelectedText;
+                                }
+                            }
+                            Handled = true;
+                            break;
+                        case Keys.C:
+                            if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
+                            {
+                                int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
+                                int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
+                                string SelectedText = Text.Substring(SelectionStart, SelectionEnd - SelectionStart); // Could use CurrentText instead of Text to allow PasswordBoxes to copy the underlying text instead of the password character *
+                                Clipboard.Text = SelectedText;
+                            }
+                            Handled = true;
+                            break;
+                        case Keys.V when !IsReadonly:
+                            //  Paste
+                            string ClipboardText = Clipboard.Text;
+                            if (!string.IsNullOrEmpty(ClipboardText))
+                            {
+                                if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
+                                {
+                                    RestorableState UndoState = CreateRestorableState();
+                                    int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
+                                    int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
+                                    string NewValue = CurrentText.Substring(0, SelectionStart) + ClipboardText + CurrentText.Substring(SelectionEnd);
+                                    if (SetText(NewValue))
+                                    {
+                                        AddUndoState(UndoState);
+                                        CurrentSelection = null;
+                                        TextBlockElement.UpdateLines();
+                                        int NumCharactersInserted = ClipboardText.Length;
+                                        _ = Caret.MoveToOriginalCharacterIndexOrRight(SelectionStart + NumCharactersInserted - 1, false);
+                                    }
+                                    //  We should still clear the selection even if pasting didn't change the text value.
+                                    //  EX: Text="Foo", Clipboard="oo", Select the text "oo" and paste.
+                                    //  Text attempts to change from "Foo" to "Foo", SetText returns false since nothing changed, so previous if-statement didn't execute
+                                    else if (GetTextBackingField() == NewValue)
+                                    {
+                                        CurrentSelection = null;
+                                    }
+                                }
+                                else if (Caret.HasPosition)
+                                {
+                                    RestorableState UndoState = CreateRestorableState();
+                                    int CaretIndex = Caret.Position.Value.IndexInOriginalText;
+                                    string NewValue = CurrentText.Substring(0, CaretIndex) + ClipboardText + CurrentText.Substring(CaretIndex);
+                                    if (SetText(NewValue))
+                                    {
+                                        AddUndoState(UndoState);
+                                        CurrentSelection = null;
+                                        TextBlockElement.UpdateLines();
+                                        int NumCharactersInserted = ClipboardText.Length;
+                                        _ = Caret.MoveToOriginalCharacterIndexOrRight(CaretIndex + NumCharactersInserted - 1, false);
+                                    }
+                                }
+                            }
+                            Handled = true;
+                            break;
 
+                        case Keys.Z when !IsReadonly:
+                            //  Undo
+                            _ = TryUndo();
+                            Handled = true;
+                            break;
+                        case Keys.Y when !IsReadonly:
+                            //  Redo
+                            _ = TryRedo();
+                            Handled = true;
+                            break;
+
+                        case Keys.A:
+                            SelectAll();
+                            Handled = true;
+                            break;
+
+                        case Keys.D when !IsReadonly:
+                            //  Duplicate current line
+                            if (Caret.HasPosition && TextRenderInfo.TryGetCharAtScreenPosition(Caret.Position.Value.Bounds.Center.ToVector2(), out CharRenderInfo CharInfo))
+                            {
+                                RestorableState UndoState = CreateRestorableState();
+                                int LineStart = CharInfo.Line.FirstCharacter.IndexInOriginalText;
+                                int LineEnd = CharInfo.Line.LastCharacter.IndexInOriginalText + 1;
+                                if (CurrentText.Substring(LineStart).Length >= (LineEnd - LineStart))
+                                {
+                                    string LineText = CurrentText.Substring(LineStart, LineEnd - LineStart);
+                                    string NewValue = CurrentText.Substring(0, LineStart) + LineText + '\n' + LineText + CurrentText.Substring(LineEnd);
+                                    if (SetText(NewValue))
+                                    {
+                                        AddUndoState(UndoState);
+                                        CurrentSelection = null;
+                                        TextBlockElement.UpdateLines();
+                                        int NumCharactersInserted = LineText.Length + 1; // +1 because of the linebreak character appended to the end of the line
+                                        //_ = Caret.MoveToOriginalCharacterIndexOrRight(CharInfo.IndexInOriginalText + NumCharactersInserted - 1, false);
+                                    }
+                                }
+                            }
+                            Handled = true;
+                            break;
+                    }
+                }
+            }
+
+            if (!Handled && !IsReadonly && (AcceptsReturn || e.Key != Keys.Enter) && (AcceptsTab || e.Key != Keys.Tab))
+            {
+                bool IsEnter = e.Key == Keys.Enter;
+                bool IsTab = e.Key == Keys.Tab;
+
+                if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
+                {
+                    RestorableState UndoState = CreateRestorableState();
+                    int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
+                    int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
+                    string CurrentText = GetTextBackingField();
+                    string NewValue = CurrentText.Substring(0, SelectionStart) + e.PrintableValue + CurrentText.Substring(SelectionEnd);
+                    if (SetText(NewValue))
+                    {
+                        AddUndoState(UndoState);
+                        CurrentSelection = null;
+                        TextBlockElement.UpdateLines();
                         int NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
-                        if (IsEnter)
-                        {
-                            _ = Caret.MoveToOriginalCharacterIndexOrLeft(Index + NumCharactersInserted, true);
-                        }
-                        else
-                        {
-                            _ = Caret.MoveToOriginalCharacterIndexOrRight(Index + NumCharactersInserted - 1, false);
-                        }
+                        _ = Caret.MoveToOriginalCharacterIndexOrEnd(SelectionStart + NumCharactersInserted - 1, false);
+                    }
+                }
+                else if (Caret.HasPosition)
+                {
+                    StringBuilder SB = new();
+                    string NewText;
+                    string CurrentText = GetTextBackingField();
+                    int Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
+
+                    switch (TextEntryMode)
+                    {
+                        case TextEntryMode.Insert:
+                            SB.Append(CurrentText.AsSpan(0, Index));
+                            SB.Append(e.PrintableValue);
+                            if (Index < CurrentText.Length)
+                            {
+                                SB.Append(CurrentText.AsSpan(Index));
+                            }
+
+                            NewText = SB.ToString();
+                            break;
+                        case TextEntryMode.Overwrite:
+                            SB.Append(CurrentText.AsSpan(0, Index));
+                            SB.Append(e.PrintableValue);
+                            if (Index + 1 < CurrentText.Length)
+                            {
+                                SB.Append(CurrentText.AsSpan(Index + 1));
+                            }
+
+                            NewText = SB.ToString();
+                            break;
+                        default: throw new NotImplementedException($"Unrecognized {nameof(UI.TextEntryMode)}: {TextEntryMode}");
+                    }
+
+                    //Debug.WriteLine($"{nameof(MGTextBox)}: Insert key - {e.PrintableValue}");
+                    if (SetText(NewText))
+                    {
+                        TextBlockElement.UpdateLines();
+                    }
+
+                    int NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
+                    if (IsEnter)
+                    {
+                        _ = Caret.MoveToOriginalCharacterIndexOrLeft(Index + NumCharactersInserted, true);
+                    }
+                    else
+                    {
+                        _ = Caret.MoveToOriginalCharacterIndexOrRight(Index + NumCharactersInserted - 1, false);
                     }
                 }
             }
         }
-
-        public override void UpdateSelf(ElementUpdateArgs UA)
-        {
-            base.UpdateSelf(UA);
-            if (EnableScrolling)
-            {
-                EnsureCaretVisible();
-            }
-
-            if (GetDesktop().FocusedKeyboardHandler == this)
-            {
-                SyncKeyboardRepeatPolicy();
-            }
-        }
-
-        public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-            => DrawSelfBaseImplementation(DA, LayoutBounds);
-
-        protected override void DrawContents(ElementDrawArgs DA)
-        {
-            Caret.Draw(DA, LayoutBounds);
-        }
-
-        internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-            => CreateBorderBackedContentsClipDefinition(DA, layoutBounds, $"{ElementType}.Contents");
     }
+
+    public override void UpdateSelf(ElementUpdateArgs UA)
+    {
+        base.UpdateSelf(UA);
+        if (EnableScrolling)
+        {
+            EnsureCaretVisible();
+        }
+
+        if (GetDesktop().FocusedKeyboardHandler == this)
+        {
+            SyncKeyboardRepeatPolicy();
+        }
+    }
+
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+        => DrawSelfBaseImplementation(DA, LayoutBounds);
+
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        Caret.Draw(DA, LayoutBounds);
+    }
+
+    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => CreateBorderBackedContentsClipDefinition(DA, layoutBounds, $"{ElementType}.Contents");
 }

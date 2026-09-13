@@ -1,40 +1,38 @@
 using MGUI.Shared.Input.Semantic;
-using System;
 
-namespace MGUI.Core.UI.InputRouting
+namespace MGUI.Core.UI.InputRouting;
+
+public class GameplayInputContext : IInputContext
 {
-    public class GameplayInputContext : IInputContext
+    private readonly Func<bool> _isActive;
+    private readonly Func<InputActionEvent, bool> _tryHandle;
+
+    public string Name { get; }
+    public int Priority { get; }
+    public bool IsActive => _isActive();
+
+    public GameplayInputContext(string name, Func<InputActionEvent, bool> tryHandle, int priority = 0, Func<bool> isActive = null)
     {
-        private readonly Func<bool> _isActive;
-        private readonly Func<InputActionEvent, bool> _tryHandle;
-
-        public string Name { get; }
-        public int Priority { get; }
-        public bool IsActive => _isActive();
-
-        public GameplayInputContext(string name, Func<InputActionEvent, bool> tryHandle, int priority = 0, Func<bool> isActive = null)
+        if (string.IsNullOrWhiteSpace(name))
         {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new ArgumentException("A context name is required.", nameof(name));
-            }
-
-            Name = name;
-            Priority = priority;
-            _tryHandle = tryHandle ?? throw new ArgumentNullException(nameof(tryHandle));
-            _isActive = isActive ?? (() => true);
+            throw new ArgumentException("A context name is required.", nameof(name));
         }
 
-        public bool TryHandle(InputActionEvent actionEvent, out InputCaptureResult result)
-        {
-            if (_tryHandle(actionEvent))
-            {
-                result = InputCaptureResult.Handled(Name, "Handled by gameplay fallback");
-                return true;
-            }
+        Name = name;
+        Priority = priority;
+        _tryHandle = tryHandle ?? throw new ArgumentNullException(nameof(tryHandle));
+        _isActive = isActive ?? (() => true);
+    }
 
-            result = InputCaptureResult.Ignored(Name, "Gameplay fallback ignored the action");
-            return false;
+    public bool TryHandle(InputActionEvent actionEvent, out InputCaptureResult result)
+    {
+        if (_tryHandle(actionEvent))
+        {
+            result = InputCaptureResult.Handled(Name, "Handled by gameplay fallback");
+            return true;
         }
+
+        result = InputCaptureResult.Ignored(Name, "Gameplay fallback ignored the action");
+        return false;
     }
 }

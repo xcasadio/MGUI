@@ -10,14 +10,8 @@
 // Specs:       http://avalon/connecteddata/M5%20Specs/Transformer.mht
 //
 //---------------------------------------------------------------------------
- 
-using System;
-using System.Windows;
-using System.Globalization;
-using System.Reflection;
- 
-namespace MGUI.Core.UI.Data_Binding.Converters
-{
+
+namespace MGUI.Core.UI.Data_Binding.Converters;
 #if !UseWPF
     /// <summary>
     /// Interface for ValueConverter object
@@ -95,4 +89,3 @@ namespace MGUI.Core.UI.Data_Binding.Converters
         object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture);
     }
 #endif
-}

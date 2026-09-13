@@ -1,720 +1,731 @@
 ﻿using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Shared.Helpers;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MGUI.Shared.Rendering;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public enum RatingItemShape
 {
-    public enum RatingItemShape
+    Star,
+    Diamond,
+    Circle,
+    Rectangle,
+    Triangle
+}
+
+/// <summary>Similar to a <see cref="MGSlider"/>, except this uses shapes instead of a continuous number line and thumb. 
+/// And this element always starts counting from zero instead of having a <see cref="MGSlider.Minimum"/> equivalent.<para/>
+/// Sample usage: Displaying a mission's difficulty, or allowing users to rate other user-generated content such as custom maps</summary>
+public class MGRatingControl : MGElement
+{
+    internal static float GetNavigationStep(bool useDiscreteValues, float? discreteValueInterval)
+        => useDiscreteValues && discreteValueInterval.HasValue && discreteValueInterval.Value > 0 ? discreteValueInterval.Value : 1f;
+
+    private static readonly Rectangle Rect256 = new(0, 0, 256, 256);
+    private static readonly Dictionary<RatingItemShape, ReadOnlyCollection<Vector2>> ShapeVertices256 = new()
     {
-        Star,
-        Diamond,
-        Circle,
-        Rectangle,
-        Triangle
+        { 
+            RatingItemShape.Star,
+            Get5PointStarVertices(Rect256).Reverse<Vector2>().ToList().AsReadOnly()
+        },
+        {
+            RatingItemShape.Diamond,
+            new List<Vector2>()
+            {
+                new(Rect256.Center.X, 0),
+                new(Rect256.Right - Rect256.Width / 6, Rect256.Center.Y),
+                new(Rect256.Center.X, Rect256.Bottom),
+                new(Rect256.Left + Rect256.Width / 6, Rect256.Center.Y)
+            }.AsReadOnly()
+        },
+        { 
+            RatingItemShape.Circle,
+            CreateCircleVertices(Rect256, 32)
+        },
+        { 
+            RatingItemShape.Rectangle, 
+            Rect256.GetCorners().Select(x => x.ToVector2()).ToList().AsReadOnly()
+        },
+        {
+            RatingItemShape.Triangle,
+            new List<Vector2>()
+            {
+                new(Rect256.Left, Rect256.Bottom - Rect256.Height / 8),
+                new(Rect256.Right, Rect256.Bottom - Rect256.Height / 8),
+                new(Rect256.Center.X, Rect256.Top + Rect256.Height / 8)
+            }.AsReadOnly()
+        }
+    };
+
+    private static ReadOnlyCollection<Vector2> CreateCircleVertices(Rectangle bounds, int sides)
+        => GetCircleVertices(bounds.Center.ToVector2(), Math.Min(bounds.Width / 2, bounds.Height / 2), sides).ToList().AsReadOnly();
+
+    private static Vector2[] GetCircleVertices(Vector2 origin, double radius, int sides, double angleOffset = 0.0)
+    {
+        const double Max = 2.0 * Math.PI;
+        Vector2[] points = new Vector2[sides];
+        double step = Max / sides;
+        double theta = angleOffset;
+
+        for (int i = 0; i < sides; i++)
+        {
+            points[i] = origin + new Vector2((float)(radius * Math.Cos(theta)), (float)(radius * Math.Sin(theta)));
+            theta += step;
+        }
+
+        return points;
     }
 
-    /// <summary>Similar to a <see cref="MGSlider"/>, except this uses shapes instead of a continuous number line and thumb. 
-    /// And this element always starts counting from zero instead of having a <see cref="MGSlider.Minimum"/> equivalent.<para/>
-    /// Sample usage: Displaying a mission's difficulty, or allowing users to rate other user-generated content such as custom maps</summary>
-    public class MGRatingControl : MGElement
+    public RatingItemShape ItemShape { get; set; }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _ItemSize;
+    /// <summary>The dimensions, in pixels, of each item in this <see cref="MGRatingControl"/>.<para/>
+    /// Default value: 16<br/>
+    /// Recommended value: 16-96</summary>
+    public int ItemSize
     {
-        internal static float GetNavigationStep(bool useDiscreteValues, float? discreteValueInterval)
-            => useDiscreteValues && discreteValueInterval.HasValue && discreteValueInterval.Value > 0 ? discreteValueInterval.Value : 1f;
-
-        private static readonly Rectangle Rect256 = new(0, 0, 256, 256);
-        private static readonly Dictionary<RatingItemShape, ReadOnlyCollection<Vector2>> ShapeVertices256 = new()
+        get => _ItemSize;
+        set
         {
-            { 
-                RatingItemShape.Star,
-                Get5PointStarVertices(Rect256).Reverse<Vector2>().ToList().AsReadOnly()
-            },
+            if (_ItemSize != value)
             {
-                RatingItemShape.Diamond,
-                new List<Vector2>()
-                {
-                    new(Rect256.Center.X, 0),
-                    new(Rect256.Right - Rect256.Width / 6, Rect256.Center.Y),
-                    new(Rect256.Center.X, Rect256.Bottom),
-                    new(Rect256.Left + Rect256.Width / 6, Rect256.Center.Y)
-                }.AsReadOnly()
-            },
-            { 
-                RatingItemShape.Circle,
-                CreateCircleVertices(Rect256, 32)
-            },
-            { 
-                RatingItemShape.Rectangle, 
-                Rect256.GetCorners().Select(x => x.ToVector2()).ToList().AsReadOnly()
-            },
-            {
-                RatingItemShape.Triangle,
-                new List<Vector2>()
-                {
-                    new(Rect256.Left, Rect256.Bottom - Rect256.Height / 8),
-                    new(Rect256.Right, Rect256.Bottom - Rect256.Height / 8),
-                    new(Rect256.Center.X, Rect256.Top + Rect256.Height / 8)
-                }.AsReadOnly()
-            }
-        };
-
-        private static ReadOnlyCollection<Vector2> CreateCircleVertices(Rectangle bounds, int sides)
-            => GetCircleVertices(bounds.Center.ToVector2(), Math.Min(bounds.Width / 2, bounds.Height / 2), sides).ToList().AsReadOnly();
-
-        private static Vector2[] GetCircleVertices(Vector2 origin, double radius, int sides, double angleOffset = 0.0)
-        {
-            const double Max = 2.0 * Math.PI;
-            Vector2[] points = new Vector2[sides];
-            double step = Max / sides;
-            double theta = angleOffset;
-
-            for (int i = 0; i < sides; i++)
-            {
-                points[i] = origin + new Vector2((float)(radius * Math.Cos(theta)), (float)(radius * Math.Sin(theta)));
-                theta += step;
-            }
-
-            return points;
-        }
-
-        public RatingItemShape ItemShape { get; set; }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _ItemSize;
-        /// <summary>The dimensions, in pixels, of each item in this <see cref="MGRatingControl"/>.<para/>
-        /// Default value: 16<br/>
-        /// Recommended value: 16-96</summary>
-        public int ItemSize
-        {
-            get => _ItemSize;
-            set
-            {
-                if (_ItemSize != value)
-                {
-                    _ItemSize = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(ItemSize));
-                }
+                _ItemSize = value;
+                LayoutChanged(this, true);
+                NPC(nameof(ItemSize));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _Spacing;
-        /// <summary>The spacing, in pixels, between each consecutive item.<para/>
-        /// Default value: 3</summary>
-        public int Spacing
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _Spacing;
+    /// <summary>The spacing, in pixels, between each consecutive item.<para/>
+    /// Default value: 3</summary>
+    public int Spacing
+    {
+        get => _Spacing;
+        set
         {
-            get => _Spacing;
-            set
+            if (_Spacing != value)
             {
-                if (_Spacing != value)
-                {
-                    _Spacing = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(Spacing));
-                }
+                _Spacing = value;
+                LayoutChanged(this, true);
+                NPC(nameof(Spacing));
+            }
+        }
+    }
+
+    #region Value
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private float _Minimum;
+    /// <summary>The inclusive minimum that <see cref="Value"/> can be set to.<para/>
+    /// To set this value, use <see cref="SetRange(float, float)"/><para/>
+    /// Default value: 0<br/>
+    /// Recommended value: 0, 0.5f, or 1.</summary>
+    public float Minimum { get => _Minimum; }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private float _Maximum;
+    /// <summary>The inclusive maximum that <see cref="Value"/> can be set to.<para/>
+    /// To set this value, use <see cref="SetRange(float, float)"/><para/>
+    /// Default value: 5<br/>
+    /// Recommended value: 5 or 10<br/>
+    /// Max value: 100</summary>
+    public float Maximum { get => _Maximum; }
+
+    public int NumItems => (int)Math.Ceiling(Maximum);
+
+    public void SetRange(float Minimum, float Maximum)
+    {
+        if (this.Minimum != Minimum || this.Maximum != Maximum)
+        {
+            float PreviousMaximum = this.Maximum;
+
+            if (Minimum > Maximum)
+            {
+                throw new ArgumentException($"{nameof(MGSlider)}.{nameof(Minimum)} cannot be greater than {nameof(MGSlider)}.{nameof(Maximum)}");
+            }
+
+            _Minimum = Minimum;
+            _Maximum = Maximum;
+            _ = SetValue(Value);
+
+            if (PreviousMaximum != Maximum)
+            {
+                LayoutChanged(this, true);
+            }
+
+            NPC(nameof(Minimum));
+            NPC(nameof(Maximum));
+            NPC(nameof(Interval));
+        }
+    }
+
+    /// <summary>Convenience property that simply returns: <see cref="Maximum"/> - <see cref="Minimum"/></summary>
+    public float Interval => Maximum - Minimum;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private float _Value;
+    /// <summary>The current value that this <see cref="MGRatingControl"/> is set to.<para/>
+    /// To set this value, use <see cref="SetValue(float)"/></summary>
+    public float Value { get => _Value; }
+    /// <summary>See also: <see cref="GetActualValue(float)"/></summary>
+    public float SetValue(float DesiredValue)
+    {
+        float ActualValue = GetActualValue(DesiredValue);
+        if (Value != ActualValue)
+        {
+            _Value = ActualValue;
+            NPC(nameof(Value));
+        }
+        return ActualValue;
+    }
+
+    /// <summary>Returns a valid value for <see cref="Value"/>.<para/>
+    /// The given <paramref name="DesiredValue"/> will be clamped to the range [<see cref="Minimum"/>, <see cref="Maximum"/>],<br/>
+    /// and set to a valid multiple of <see cref="DiscreteValueInterval"/> if <see cref="UseDiscreteValues"/>==true</summary>
+    public float GetActualValue(float DesiredValue)
+    {
+        float Result = Math.Clamp(DesiredValue, Minimum, Maximum);
+
+        if (UseDiscreteValues && DiscreteValueInterval.HasValue)
+        {
+            if (!Result.IsAlmostEqual(Minimum) && !Result.IsAlmostEqual(Maximum))
+            {
+                //  Round to the nearest multiple of the DiscreteValueInterval (starting from Minimum, rather than from 0)
+                //  EX: Minimum=2, Interval=0.35, Value=3.3         Round( (3.3-2)/.35 ) = 4            4 * .35 + 2 = 3.4
+                Result = (int)Math.Round((Result - Minimum) / DiscreteValueInterval.Value, MidpointRounding.ToEven) * DiscreteValueInterval.Value + Minimum;
             }
         }
 
-        #region Value
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private float _Minimum;
-        /// <summary>The inclusive minimum that <see cref="Value"/> can be set to.<para/>
-        /// To set this value, use <see cref="SetRange(float, float)"/><para/>
-        /// Default value: 0<br/>
-        /// Recommended value: 0, 0.5f, or 1.</summary>
-        public float Minimum { get => _Minimum; }
+        return Result;
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private float _Maximum;
-        /// <summary>The inclusive maximum that <see cref="Value"/> can be set to.<para/>
-        /// To set this value, use <see cref="SetRange(float, float)"/><para/>
-        /// Default value: 5<br/>
-        /// Recommended value: 5 or 10<br/>
-        /// Max value: 100</summary>
-        public float Maximum { get => _Maximum; }
-
-        public int NumItems => (int)Math.Ceiling(Maximum);
-
-        public void SetRange(float Minimum, float Maximum)
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _UseDiscreteValues;
+    /// <summary>If true, <see cref="Value"/> will snap to the nearest multiple of the given <see cref="DiscreteValueInterval"/>.<para/>
+    /// If false, <see cref="Value"/> is continuous and can be any numeric value in the inclusive range [<see cref="Minimum"/>,<see cref="Maximum"/>].</summary>
+    public bool UseDiscreteValues
+    {
+        get => _UseDiscreteValues;
+        set
         {
-            if (this.Minimum != Minimum || this.Maximum != Maximum)
+            if (_UseDiscreteValues != value)
             {
-                float PreviousMaximum = this.Maximum;
-
-                if (Minimum > Maximum)
+                _UseDiscreteValues = value;
+                if (UseDiscreteValues)
                 {
-                    throw new ArgumentException($"{nameof(MGSlider)}.{nameof(Minimum)} cannot be greater than {nameof(MGSlider)}.{nameof(Maximum)}");
-                }
-
-                _Minimum = Minimum;
-                _Maximum = Maximum;
-                _ = SetValue(Value);
-
-                if (PreviousMaximum != Maximum)
-                {
-                    LayoutChanged(this, true);
+                    _ = SetValue(Value);
                 }
 
-                NPC(nameof(Minimum));
-                NPC(nameof(Maximum));
-                NPC(nameof(Interval));
+                NPC(nameof(UseDiscreteValues));
             }
         }
+    }
 
-        /// <summary>Convenience property that simply returns: <see cref="Maximum"/> - <see cref="Minimum"/></summary>
-        public float Interval => Maximum - Minimum;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private float _Value;
-        /// <summary>The current value that this <see cref="MGRatingControl"/> is set to.<para/>
-        /// To set this value, use <see cref="SetValue(float)"/></summary>
-        public float Value { get => _Value; }
-        /// <summary>See also: <see cref="GetActualValue(float)"/></summary>
-        public float SetValue(float DesiredValue)
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private float? _DiscreteValueInterval;
+    /// <summary>Only relevant if <see cref="UseDiscreteValues"/> is true. Represents the interval that <see cref="Value"/> will snap to.</summary>
+    public float? DiscreteValueInterval
+    {
+        get => _DiscreteValueInterval;
+        set
         {
-            float ActualValue = GetActualValue(DesiredValue);
-            if (Value != ActualValue)
+            if (_DiscreteValueInterval != value)
             {
-                _Value = ActualValue;
-                NPC(nameof(Value));
-            }
-            return ActualValue;
-        }
-
-        /// <summary>Returns a valid value for <see cref="Value"/>.<para/>
-        /// The given <paramref name="DesiredValue"/> will be clamped to the range [<see cref="Minimum"/>, <see cref="Maximum"/>],<br/>
-        /// and set to a valid multiple of <see cref="DiscreteValueInterval"/> if <see cref="UseDiscreteValues"/>==true</summary>
-        public float GetActualValue(float DesiredValue)
-        {
-            float Result = Math.Clamp(DesiredValue, Minimum, Maximum);
-
-            if (UseDiscreteValues && DiscreteValueInterval.HasValue)
-            {
-                if (!Result.IsAlmostEqual(Minimum) && !Result.IsAlmostEqual(Maximum))
+                _DiscreteValueInterval = value;
+                if (UseDiscreteValues)
                 {
-                    //  Round to the nearest multiple of the DiscreteValueInterval (starting from Minimum, rather than from 0)
-                    //  EX: Minimum=2, Interval=0.35, Value=3.3         Round( (3.3-2)/.35 ) = 4            4 * .35 + 2 = 3.4
-                    Result = (int)Math.Round((Result - Minimum) / DiscreteValueInterval.Value, MidpointRounding.ToEven) * DiscreteValueInterval.Value + Minimum;
+                    _ = SetValue(Value);
                 }
-            }
 
-            return Result;
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _UseDiscreteValues;
-        /// <summary>If true, <see cref="Value"/> will snap to the nearest multiple of the given <see cref="DiscreteValueInterval"/>.<para/>
-        /// If false, <see cref="Value"/> is continuous and can be any numeric value in the inclusive range [<see cref="Minimum"/>,<see cref="Maximum"/>].</summary>
-        public bool UseDiscreteValues
-        {
-            get => _UseDiscreteValues;
-            set
-            {
-                if (_UseDiscreteValues != value)
-                {
-                    _UseDiscreteValues = value;
-                    if (UseDiscreteValues)
-                    {
-                        _ = SetValue(Value);
-                    }
-
-                    NPC(nameof(UseDiscreteValues));
-                }
+                NPC(nameof(DiscreteValueInterval));
             }
         }
+    }
+    #endregion Value
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private float? _DiscreteValueInterval;
-        /// <summary>Only relevant if <see cref="UseDiscreteValues"/> is true. Represents the interval that <see cref="Value"/> will snap to.</summary>
-        public float? DiscreteValueInterval
+    #region Stroke / Fill Settings
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _UnfilledShapeStrokeThickness;
+    public int UnfilledShapeStrokeThickness
+    {
+        get => _UnfilledShapeStrokeThickness;
+        set
         {
-            get => _DiscreteValueInterval;
-            set
+            if (_UnfilledShapeStrokeThickness != value)
             {
-                if (_DiscreteValueInterval != value)
-                {
-                    _DiscreteValueInterval = value;
-                    if (UseDiscreteValues)
-                    {
-                        _ = SetValue(Value);
-                    }
-
-                    NPC(nameof(DiscreteValueInterval));
-                }
+                _UnfilledShapeStrokeThickness = value;
+                NPC(nameof(UnfilledShapeStrokeThickness));
             }
         }
-        #endregion Value
+    }
 
-        #region Stroke / Fill Settings
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _UnfilledShapeStrokeThickness;
-        public int UnfilledShapeStrokeThickness
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _UnfilledShapeStrokeColor;
+    public Color UnfilledShapeStrokeColor
+    {
+        get => _UnfilledShapeStrokeColor;
+        set
         {
-            get => _UnfilledShapeStrokeThickness;
-            set
+            if (_UnfilledShapeStrokeColor != value)
             {
-                if (_UnfilledShapeStrokeThickness != value)
-                {
-                    _UnfilledShapeStrokeThickness = value;
-                    NPC(nameof(UnfilledShapeStrokeThickness));
-                }
+                _UnfilledShapeStrokeColor = value;
+                NPC(nameof(UnfilledShapeStrokeColor));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _UnfilledShapeStrokeColor;
-        public Color UnfilledShapeStrokeColor
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _UnfilledShapeFillColor;
+    public Color UnfilledShapeFillColor
+    {
+        get => _UnfilledShapeFillColor;
+        set
         {
-            get => _UnfilledShapeStrokeColor;
-            set
+            if (_UnfilledShapeFillColor != value)
             {
-                if (_UnfilledShapeStrokeColor != value)
-                {
-                    _UnfilledShapeStrokeColor = value;
-                    NPC(nameof(UnfilledShapeStrokeColor));
-                }
+                _UnfilledShapeFillColor = value;
+                NPC(nameof(UnfilledShapeFillColor));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _UnfilledShapeFillColor;
-        public Color UnfilledShapeFillColor
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _FilledShapeStrokeThickness;
+    public int FilledShapeStrokeThickness
+    {
+        get => _FilledShapeStrokeThickness;
+        set
         {
-            get => _UnfilledShapeFillColor;
-            set
+            if (_FilledShapeStrokeThickness != value)
             {
-                if (_UnfilledShapeFillColor != value)
-                {
-                    _UnfilledShapeFillColor = value;
-                    NPC(nameof(UnfilledShapeFillColor));
-                }
+                _FilledShapeStrokeThickness = value;
+                NPC(nameof(FilledShapeStrokeThickness));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _FilledShapeStrokeThickness;
-        public int FilledShapeStrokeThickness
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _FilledShapeStrokeColor;
+    public Color FilledShapeStrokeColor
+    {
+        get => _FilledShapeStrokeColor;
+        set
         {
-            get => _FilledShapeStrokeThickness;
-            set
+            if (_FilledShapeStrokeColor != value)
             {
-                if (_FilledShapeStrokeThickness != value)
-                {
-                    _FilledShapeStrokeThickness = value;
-                    NPC(nameof(FilledShapeStrokeThickness));
-                }
+                _FilledShapeStrokeColor = value;
+                NPC(nameof(FilledShapeStrokeColor));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _FilledShapeStrokeColor;
-        public Color FilledShapeStrokeColor
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _FilledShapeFillColor;
+    public Color FilledShapeFillColor
+    {
+        get => _FilledShapeFillColor;
+        set
         {
-            get => _FilledShapeStrokeColor;
-            set
+            if (_FilledShapeFillColor != value)
             {
-                if (_FilledShapeStrokeColor != value)
-                {
-                    _FilledShapeStrokeColor = value;
-                    NPC(nameof(FilledShapeStrokeColor));
-                }
+                _FilledShapeFillColor = value;
+                NPC(nameof(FilledShapeFillColor));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _FilledShapeFillColor;
-        public Color FilledShapeFillColor
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _PreviewShapeStrokeThickness;
+    public int PreviewShapeStrokeThickness
+    {
+        get => _PreviewShapeStrokeThickness;
+        set
         {
-            get => _FilledShapeFillColor;
-            set
+            if (_PreviewShapeStrokeThickness != value)
             {
-                if (_FilledShapeFillColor != value)
-                {
-                    _FilledShapeFillColor = value;
-                    NPC(nameof(FilledShapeFillColor));
-                }
+                _PreviewShapeStrokeThickness = value;
+                NPC(nameof(PreviewShapeStrokeThickness));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _PreviewShapeStrokeThickness;
-        public int PreviewShapeStrokeThickness
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _PreviewShapeStrokeColor;
+    public Color PreviewShapeStrokeColor
+    {
+        get => _PreviewShapeStrokeColor;
+        set
         {
-            get => _PreviewShapeStrokeThickness;
-            set
+            if (_PreviewShapeStrokeColor != value)
             {
-                if (_PreviewShapeStrokeThickness != value)
-                {
-                    _PreviewShapeStrokeThickness = value;
-                    NPC(nameof(PreviewShapeStrokeThickness));
-                }
+                _PreviewShapeStrokeColor = value;
+                NPC(nameof(PreviewShapeStrokeColor));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _PreviewShapeStrokeColor;
-        public Color PreviewShapeStrokeColor
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _PreviewShapeFillColor;
+    /// <summary>The fill color to use when drawing <see cref="PreviewValue"/>, if there is one.<para/>
+    /// Recommended to use a transparent <see cref="Color"/> so that <see cref="UnfilledShapeFillColor"/> and/or <see cref="FilledShapeFillColor"/> will still be partially visible underneath.</summary>
+    public Color PreviewShapeFillColor
+    {
+        get => _PreviewShapeFillColor;
+        set
         {
-            get => _PreviewShapeStrokeColor;
-            set
+            if (_PreviewShapeFillColor != value)
             {
-                if (_PreviewShapeStrokeColor != value)
-                {
-                    _PreviewShapeStrokeColor = value;
-                    NPC(nameof(PreviewShapeStrokeColor));
-                }
+                _PreviewShapeFillColor = value;
+                NPC(nameof(PreviewShapeFillColor));
             }
         }
+    }
+    #endregion Stroke / Fill Settings
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _PreviewShapeFillColor;
-        /// <summary>The fill color to use when drawing <see cref="PreviewValue"/>, if there is one.<para/>
-        /// Recommended to use a transparent <see cref="Color"/> so that <see cref="UnfilledShapeFillColor"/> and/or <see cref="FilledShapeFillColor"/> will still be partially visible underneath.</summary>
-        public Color PreviewShapeFillColor
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private float? _PreviewValue;
+    /// <summary>The value that the user's mouse cursor is hovering over, or null if not hovered (or if <see cref="IsReadonly"/> is true)</summary>
+    public float? PreviewValue
+    {
+        get => _PreviewValue;
+        private set
         {
-            get => _PreviewShapeFillColor;
-            set
+            float? ActualValue = !value.HasValue ? null : GetActualValue(value.Value);
+            if (PreviewValue != ActualValue)
             {
-                if (_PreviewShapeFillColor != value)
-                {
-                    _PreviewShapeFillColor = value;
-                    NPC(nameof(PreviewShapeFillColor));
-                }
+                _PreviewValue = ActualValue;
+                NPC(nameof(PreviewValue));
             }
         }
-        #endregion Stroke / Fill Settings
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private float? _PreviewValue;
-        /// <summary>The value that the user's mouse cursor is hovering over, or null if not hovered (or if <see cref="IsReadonly"/> is true)</summary>
-        public float? PreviewValue
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _IsReadonly;
+    /// <summary>If true, the user will be unable to modify <see cref="Value"/> via clicking or clicking+dragging within this <see cref="MGRatingControl"/>'s bounds.<para/>
+    /// Default value: false</summary>
+    public bool IsReadonly
+    {
+        get => _IsReadonly;
+        set
         {
-            get => _PreviewValue;
-            private set
+            if (_IsReadonly != value)
             {
-                float? ActualValue = !value.HasValue ? null : GetActualValue(value.Value);
-                if (PreviewValue != ActualValue)
-                {
-                    _PreviewValue = ActualValue;
-                    NPC(nameof(PreviewValue));
-                }
+                _IsReadonly = value;
+                PreviewValue = null;
+                NPC(nameof(IsReadonly));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _IsReadonly;
-        /// <summary>If true, the user will be unable to modify <see cref="Value"/> via clicking or clicking+dragging within this <see cref="MGRatingControl"/>'s bounds.<para/>
-        /// Default value: false</summary>
-        public bool IsReadonly
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Orientation _Orientation;
+    /// <summary>Whether items are arranged left-to-right (<see cref="Orientation.Horizontal"/>) or top-to-bottom (<see cref="Orientation.Vertical"/>).<para/>
+    /// Default value: <see cref="Orientation.Horizontal"/></summary>
+    public Orientation Orientation
+    {
+        get => _Orientation;
+        set
         {
-            get => _IsReadonly;
-            set
+            if (_Orientation != value)
             {
-                if (_IsReadonly != value)
+                _Orientation = value;
+                LayoutChanged(this, true);
+                NPC(nameof(Orientation));
+            }
+        }
+    }
+
+    public MGRatingControl(MGWindow ParentWindow, int MinimumValue = 0, int MaximumValue = 5, int Size = 16, 
+        bool UseDiscreteValues = true, float? DiscreteValueInterval = 1, RatingItemShape Shape = RatingItemShape.Star)
+        : base(ParentWindow, MGElementType.RatingControl)
+    {
+        using (BeginInitializing())
+        {
+            IsFocusable = true;
+            ItemShape = Shape;
+            ItemSize = Size;
+            Spacing = 3;
+            this.UseDiscreteValues = UseDiscreteValues;
+            this.DiscreteValueInterval = DiscreteValueInterval;
+            SetRange(MinimumValue, MaximumValue);
+
+            Orientation = Orientation.Horizontal;
+            IsReadonly = false;
+
+            UnfilledShapeStrokeThickness = 1;
+            UnfilledShapeStrokeColor = Color.Black;
+            UnfilledShapeFillColor = Color.Transparent;
+
+            FilledShapeStrokeThickness = 1;
+            FilledShapeStrokeColor = Color.Black;
+            FilledShapeFillColor = Color.Yellow;
+
+            PreviewShapeStrokeThickness = 0;
+            PreviewShapeStrokeColor = Color.Transparent;
+            PreviewShapeFillColor = Color.LightBlue * 0.35f;
+
+            MouseHandler.MovedInside += (sender, e) =>
+            {
+                UpdatePreviewValue(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition));
+            };
+
+            MouseHandler.MovedOutside += (sender, e) => { PreviewValue = null; };
+
+            MouseHandler.LMBPressedInside += (sender, e) =>
+            {
+                if (!IsReadonly && PreviewValue.HasValue)
                 {
-                    _IsReadonly = value;
+                    SetValue(PreviewValue.Value);
                     PreviewValue = null;
-                    NPC(nameof(IsReadonly));
+                    e.SetHandledBy(this, false);
                 }
-            }
-        }
+            };
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Orientation _Orientation;
-        /// <summary>Whether items are arranged left-to-right (<see cref="Orientation.Horizontal"/>) or top-to-bottom (<see cref="Orientation.Vertical"/>).<para/>
-        /// Default value: <see cref="Orientation.Horizontal"/></summary>
-        public Orientation Orientation
-        {
-            get => _Orientation;
-            set
+            MouseHandler.DragStart += (sender, e) =>
             {
-                if (_Orientation != value)
+                if (e.IsLMB && !IsReadonly)
                 {
-                    _Orientation = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(Orientation));
+                    e.SetHandledBy(this, false);
                 }
-            }
-        }
+            };
 
-        public MGRatingControl(MGWindow ParentWindow, int MinimumValue = 0, int MaximumValue = 5, int Size = 16, 
-            bool UseDiscreteValues = true, float? DiscreteValueInterval = 1, RatingItemShape Shape = RatingItemShape.Star)
-            : base(ParentWindow, MGElementType.RatingControl)
-        {
-            using (BeginInitializing())
+            MouseHandler.Dragged += (sender, e) =>
             {
-                IsFocusable = true;
-                ItemShape = Shape;
-                ItemSize = Size;
-                Spacing = 3;
-                this.UseDiscreteValues = UseDiscreteValues;
-                this.DiscreteValueInterval = DiscreteValueInterval;
-                SetRange(MinimumValue, MaximumValue);
-
-                Orientation = Orientation.Horizontal;
-                IsReadonly = false;
-
-                UnfilledShapeStrokeThickness = 1;
-                UnfilledShapeStrokeColor = Color.Black;
-                UnfilledShapeFillColor = Color.Transparent;
-
-                FilledShapeStrokeThickness = 1;
-                FilledShapeStrokeColor = Color.Black;
-                FilledShapeFillColor = Color.Yellow;
-
-                PreviewShapeStrokeThickness = 0;
-                PreviewShapeStrokeColor = Color.Transparent;
-                PreviewShapeFillColor = Color.LightBlue * 0.35f;
-
-                MouseHandler.MovedInside += (sender, e) =>
+                if (e.IsLMB && !IsReadonly)
                 {
-                    UpdatePreviewValue(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition));
-                };
+                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    UpdatePreviewValue(LayoutSpacePosition);
+                    SetValue(PreviewValue.Value);
+                    PreviewValue = null;
+                    e.SetHandled(this, false);
+                }
+            };
 
-                MouseHandler.MovedOutside += (sender, e) => { PreviewValue = null; };
-
-                MouseHandler.LMBPressedInside += (sender, e) =>
+            MouseHandler.DragEnd += (sender, e) =>
+            {
+                if (e.IsLMB)
                 {
                     if (!IsReadonly && PreviewValue.HasValue)
                     {
                         SetValue(PreviewValue.Value);
-                        PreviewValue = null;
-                        e.SetHandledBy(this, false);
-                    }
-                };
-
-                MouseHandler.DragStart += (sender, e) =>
-                {
-                    if (e.IsLMB && !IsReadonly)
-                    {
-                        e.SetHandledBy(this, false);
-                    }
-                };
-
-                MouseHandler.Dragged += (sender, e) =>
-                {
-                    if (e.IsLMB && !IsReadonly)
-                    {
-                        Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                        UpdatePreviewValue(LayoutSpacePosition);
-                        SetValue(PreviewValue.Value);
-                        PreviewValue = null;
                         e.SetHandled(this, false);
                     }
-                };
-
-                MouseHandler.DragEnd += (sender, e) =>
-                {
-                    if (e.IsLMB)
-                    {
-                        if (!IsReadonly && PreviewValue.HasValue)
-                        {
-                            SetValue(PreviewValue.Value);
-                            e.SetHandled(this, false);
-                        }
-                    }
-                };
-            }
-        }
-
-        private bool TryAdjustValue(float delta)
-        {
-            float previousValue = Value;
-            SetValue(Value + delta);
-            return !Value.IsAlmostEqual(previousValue);
-        }
-
-        public override bool TryHandleNavigationAction(UINavigationAction action)
-        {
-            if (IsReadonly)
-            {
-                return false;
-            }
-
-            float step = GetNavigationStep(UseDiscreteValues, DiscreteValueInterval);
-            float largeStep = step * 5f;
-
-            return action switch
-            {
-                UINavigationAction.MoveLeft when Orientation == Orientation.Horizontal => TryAdjustValue(-step),
-                UINavigationAction.MoveRight when Orientation == Orientation.Horizontal => TryAdjustValue(step),
-                UINavigationAction.MoveUp when Orientation == Orientation.Vertical => TryAdjustValue(-step),
-                UINavigationAction.MoveDown when Orientation == Orientation.Vertical => TryAdjustValue(step),
-                UINavigationAction.Decrement => TryAdjustValue(-step),
-                UINavigationAction.Increment => TryAdjustValue(step),
-                UINavigationAction.PageUp => TryAdjustValue(-largeStep),
-                UINavigationAction.PageDown => TryAdjustValue(largeStep),
-                UINavigationAction.Home => TryAdjustValue(Minimum - Value),
-                UINavigationAction.End => TryAdjustValue(Maximum - Value),
-                UINavigationAction.Submit => true,
-                _ => false
+                }
             };
         }
+    }
 
-        private void UpdatePreviewValue(Point MousePosition)
+    private bool TryAdjustValue(float delta)
+    {
+        float previousValue = Value;
+        SetValue(Value + delta);
+        return !Value.IsAlmostEqual(previousValue);
+    }
+
+    public override bool TryHandleNavigationAction(UINavigationAction action)
+    {
+        if (IsReadonly)
         {
-            if (IsReadonly)
-            {
-                PreviewValue = null;
-                return;
-            }
-
-            Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-            bool IsVertical = Orientation == Orientation.Vertical;
-            int Position = IsVertical ? MousePosition.Y : MousePosition.X;
-            int RangeStart = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
-            int RangeEnd = IsVertical ? PaddedBounds.Bottom : PaddedBounds.Right;
-
-            if (Position <= RangeStart)
-            {
-                PreviewValue = Minimum;
-            }
-            else if (Position >= RangeEnd)
-            {
-                PreviewValue = Maximum;
-            }
-            else
-            {
-                int RelativePosition = Position - RangeStart;
-                int PaddedItemSize = ItemSize + Spacing;
-                int FilledValue = (RelativePosition + Spacing) / PaddedItemSize;
-                float PartialValue = Math.Max(0, (RelativePosition - FilledValue * PaddedItemSize)) * 1.0f / ItemSize;
-                PreviewValue = FilledValue + PartialValue;
-            }
+            return false;
         }
 
-        public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
-        {
-            SharedSize = new(0);
+        float step = GetNavigationStep(UseDiscreteValues, DiscreteValueInterval);
+        float largeStep = step * 5f;
 
-            int PrimarySize = NumItems * ItemSize + (NumItems - 1) * Spacing;
-            int SecondarySize = ItemSize;
-            int Width = Orientation == Orientation.Vertical ? SecondarySize : PrimarySize;
-            int Height = Orientation == Orientation.Vertical ? PrimarySize : SecondarySize;
-            return new(Width, Height, 0, 0);
+        return action switch
+        {
+            UINavigationAction.MoveLeft when Orientation == Orientation.Horizontal => TryAdjustValue(-step),
+            UINavigationAction.MoveRight when Orientation == Orientation.Horizontal => TryAdjustValue(step),
+            UINavigationAction.MoveUp when Orientation == Orientation.Vertical => TryAdjustValue(-step),
+            UINavigationAction.MoveDown when Orientation == Orientation.Vertical => TryAdjustValue(step),
+            UINavigationAction.Decrement => TryAdjustValue(-step),
+            UINavigationAction.Increment => TryAdjustValue(step),
+            UINavigationAction.PageUp => TryAdjustValue(-largeStep),
+            UINavigationAction.PageDown => TryAdjustValue(largeStep),
+            UINavigationAction.Home => TryAdjustValue(Minimum - Value),
+            UINavigationAction.End => TryAdjustValue(Maximum - Value),
+            UINavigationAction.Submit => true,
+            _ => false
+        };
+    }
+
+    private void UpdatePreviewValue(Point MousePosition)
+    {
+        if (IsReadonly)
+        {
+            PreviewValue = null;
+            return;
         }
 
-        public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+        Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
+        bool IsVertical = Orientation == Orientation.Vertical;
+        int Position = IsVertical ? MousePosition.Y : MousePosition.X;
+        int RangeStart = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
+        int RangeEnd = IsVertical ? PaddedBounds.Bottom : PaddedBounds.Right;
+
+        if (Position <= RangeStart)
         {
-            float Opacity = DA.Opacity;
-            Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-            bool IsVertical = Orientation == Orientation.Vertical;
-            int CurrentPos = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
+            PreviewValue = Minimum;
+        }
+        else if (Position >= RangeEnd)
+        {
+            PreviewValue = Maximum;
+        }
+        else
+        {
+            int RelativePosition = Position - RangeStart;
+            int PaddedItemSize = ItemSize + Spacing;
+            int FilledValue = (RelativePosition + Spacing) / PaddedItemSize;
+            float PartialValue = Math.Max(0, (RelativePosition - FilledValue * PaddedItemSize)) * 1.0f / ItemSize;
+            PreviewValue = FilledValue + PartialValue;
+        }
+    }
 
-            for (int i = 0; i < NumItems; i++)
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    {
+        SharedSize = new(0);
+
+        int PrimarySize = NumItems * ItemSize + (NumItems - 1) * Spacing;
+        int SecondarySize = ItemSize;
+        int Width = Orientation == Orientation.Vertical ? SecondarySize : PrimarySize;
+        int Height = Orientation == Orientation.Vertical ? PrimarySize : SecondarySize;
+        return new(Width, Height, 0, 0);
+    }
+
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    {
+        float Opacity = DA.Opacity;
+        Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
+        bool IsVertical = Orientation == Orientation.Vertical;
+        int CurrentPos = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
+
+        for (int i = 0; i < NumItems; i++)
+        {
+            Rectangle Dest = IsVertical
+                ? new(PaddedBounds.X, CurrentPos, ItemSize, ItemSize)
+                : new(CurrentPos, PaddedBounds.Y, ItemSize, ItemSize);
+
+            DrawValue(DA, Dest, 1.0f, UnfilledShapeStrokeThickness, UnfilledShapeStrokeColor * Opacity, UnfilledShapeFillColor * Opacity, IsVertical);
+
+            float FilledPercent = Math.Clamp(Value - i, 0, 1);
+            DrawValue(DA, Dest, FilledPercent, FilledShapeStrokeThickness, FilledShapeStrokeColor * Opacity, FilledShapeFillColor * Opacity, IsVertical);
+
+            if (PreviewValue.HasValue)
             {
-                Rectangle Dest = IsVertical
-                    ? new(PaddedBounds.X, CurrentPos, ItemSize, ItemSize)
-                    : new(CurrentPos, PaddedBounds.Y, ItemSize, ItemSize);
+                float PreviewFilledPercent = Math.Clamp(PreviewValue.Value - i, 0, 1);
+                DrawValue(DA, Dest, PreviewFilledPercent, PreviewShapeStrokeThickness, PreviewShapeStrokeColor * Opacity, PreviewShapeFillColor * Opacity, IsVertical);
+            }
 
-                DrawValue(DA, Dest, 1.0f, UnfilledShapeStrokeThickness, UnfilledShapeStrokeColor * Opacity, UnfilledShapeFillColor * Opacity, IsVertical);
+            CurrentPos += ItemSize + Spacing;
+        }
+    }
 
-                float FilledPercent = Math.Clamp(Value - i, 0, 1);
-                DrawValue(DA, Dest, FilledPercent, FilledShapeStrokeThickness, FilledShapeStrokeColor * Opacity, FilledShapeFillColor * Opacity, IsVertical);
+    private Rectangle GetPartialClipRect(Rectangle destination, float filledPercent, bool isVertical)
+        => isVertical
+            ? new(destination.Left, destination.Top, destination.Width, (int)(destination.Height * filledPercent))
+            : new(destination.Left, destination.Top, (int)(destination.Width * filledPercent), destination.Height);
 
-                if (PreviewValue.HasValue)
+    private void DrawValue(ElementDrawArgs DA, Rectangle Destination, float FilledPercent,
+        int StrokeThickness, Color StrokeColor, Color FillColor, bool IsVertical)
+    {
+        Vector2 Offset = DA.Offset.ToVector2();
+        float ScaleFactor = ItemSize / 256.0f;
+
+        bool IsCompletelyFilled = FilledPercent.IsAlmostEqual(1);
+        bool IsCompletelyUnfilled = FilledPercent.IsAlmostEqual(0);
+        bool IsPartiallyFilled = !IsCompletelyFilled && !IsCompletelyUnfilled;
+
+        if (IsCompletelyUnfilled)
+        {
+            return;
+        }
+
+        switch (ItemShape)
+        {
+            case RatingItemShape.Star:
+            case RatingItemShape.Diamond:
+                Vector2 Origin = Offset + Destination.TopLeft().ToVector2();
+                List<Vector2> Vertices = ShapeVertices256[ItemShape].Select(x => x * ScaleFactor).ToList();
+
+                if (IsCompletelyFilled)
                 {
-                    float PreviewFilledPercent = Math.Clamp(PreviewValue.Value - i, 0, 1);
-                    DrawValue(DA, Dest, PreviewFilledPercent, PreviewShapeStrokeThickness, PreviewShapeStrokeColor * Opacity, PreviewShapeFillColor * Opacity, IsVertical);
+                    DA.DT.StrokeAndFillPolygon(Origin, Vertices, StrokeColor, FillColor, StrokeThickness);
                 }
-
-                CurrentPos += ItemSize + Spacing;
-            }
-        }
-
-        private Rectangle GetPartialClipRect(Rectangle destination, float filledPercent, bool isVertical)
-            => isVertical
-                ? new(destination.Left, destination.Top, destination.Width, (int)(destination.Height * filledPercent))
-                : new(destination.Left, destination.Top, (int)(destination.Width * filledPercent), destination.Height);
-
-        private void DrawValue(ElementDrawArgs DA, Rectangle Destination, float FilledPercent,
-            int StrokeThickness, Color StrokeColor, Color FillColor, bool IsVertical)
-        {
-            Vector2 Offset = DA.Offset.ToVector2();
-            float ScaleFactor = ItemSize / 256.0f;
-
-            bool IsCompletelyFilled = FilledPercent.IsAlmostEqual(1);
-            bool IsCompletelyUnfilled = FilledPercent.IsAlmostEqual(0);
-            bool IsPartiallyFilled = !IsCompletelyFilled && !IsCompletelyUnfilled;
-
-            if (IsCompletelyUnfilled)
-            {
-                return;
-            }
-
-            switch (ItemShape)
-            {
-                case RatingItemShape.Star:
-                case RatingItemShape.Diamond:
-                    Vector2 Origin = Offset + Destination.TopLeft().ToVector2();
-                    List<Vector2> Vertices = ShapeVertices256[ItemShape].Select(x => x * ScaleFactor).ToList();
-
-                    if (IsCompletelyFilled)
+                else if (IsPartiallyFilled)
+                {
+                    Rectangle UnscaledClipTarget = IsVertical
+                        ? new(Destination.Left, Destination.Top, Destination.Width, (int)(Vertices.Min(v => v.Y) + (Vertices.Max(v => v.Y) - Vertices.Min(v => v.Y)) * FilledPercent))
+                        : new(Destination.Left, Destination.Top, (int)(Vertices.Min(v => v.X) + (Vertices.Max(v => v.X) - Vertices.Min(v => v.X)) * FilledPercent), Destination.Height);
+                    Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.StrokeAndFillPolygon(Origin, Vertices, StrokeColor, FillColor, StrokeThickness);
                     }
-                    else if (IsPartiallyFilled)
-                    {
-                        Rectangle UnscaledClipTarget = IsVertical
-                            ? new(Destination.Left, Destination.Top, Destination.Width, (int)(Vertices.Min(v => v.Y) + (Vertices.Max(v => v.Y) - Vertices.Min(v => v.Y)) * FilledPercent))
-                            : new(Destination.Left, Destination.Top, (int)(Vertices.Min(v => v.X) + (Vertices.Max(v => v.X) - Vertices.Min(v => v.X)) * FilledPercent), Destination.Height);
-                        Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
-                        using (DA.DT.PushRectangleClip(ClipTarget, true))
-                        {
-                            DA.DT.StrokeAndFillPolygon(Origin, Vertices, StrokeColor, FillColor, StrokeThickness);
-                        }
-                    }
-                    break;
-                case RatingItemShape.Circle:
-                    Vector2 Center = Offset + Destination.Center.ToVector2();
-                    float Radius = Math.Min(Destination.Width / 2, Destination.Height / 2);
+                }
+                break;
+            case RatingItemShape.Circle:
+                Vector2 Center = Offset + Destination.Center.ToVector2();
+                float Radius = Math.Min(Destination.Width / 2, Destination.Height / 2);
 
-                    if (IsCompletelyFilled)
+                if (IsCompletelyFilled)
+                {
+                    DA.DT.FillCircle(Center, FillColor, Radius - StrokeThickness);
+                    DA.DT.StrokeCircle(Center, StrokeColor, Radius, StrokeThickness);
+                    //DA.DT.StrokeAndFillCircle(Center, StrokeColor, FillColor, Radius, StrokeThickness);
+                }
+                else if (IsPartiallyFilled)
+                {
+                    Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
+                    Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.FillCircle(Center, FillColor, Radius - StrokeThickness);
                         DA.DT.StrokeCircle(Center, StrokeColor, Radius, StrokeThickness);
                         //DA.DT.StrokeAndFillCircle(Center, StrokeColor, FillColor, Radius, StrokeThickness);
                     }
-                    else if (IsPartiallyFilled)
-                    {
-                        Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
-                        Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
-                        using (DA.DT.PushRectangleClip(ClipTarget, true))
-                        {
-                            DA.DT.FillCircle(Center, FillColor, Radius - StrokeThickness);
-                            DA.DT.StrokeCircle(Center, StrokeColor, Radius, StrokeThickness);
-                            //DA.DT.StrokeAndFillCircle(Center, StrokeColor, FillColor, Radius, StrokeThickness);
-                        }
-                    }
-                    break;
-                case RatingItemShape.Rectangle:
-                    if (IsCompletelyFilled)
+                }
+                break;
+            case RatingItemShape.Rectangle:
+                if (IsCompletelyFilled)
+                {
+                    DA.DT.StrokeAndFillRectangle(Offset, Destination, StrokeColor, FillColor, StrokeThickness);
+                }
+                else if (IsPartiallyFilled)
+                {
+                    Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
+                    Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.StrokeAndFillRectangle(Offset, Destination, StrokeColor, FillColor, StrokeThickness);
                     }
-                    else if (IsPartiallyFilled)
+                }
+                break;
+            case RatingItemShape.Triangle:
+                Origin = Offset + Destination.TopLeft().ToVector2();
+                IList<Vector2> TriangleVertices = ShapeVertices256[RatingItemShape.Triangle].Select(x => x * ScaleFactor).ToList();
+
+                if (IsCompletelyFilled)
+                {
+                    DA.DT.FillTriangle(Origin, TriangleVertices[0], FillColor, TriangleVertices[1], FillColor, TriangleVertices[2], FillColor);
+                    if (StrokeThickness > 0)
                     {
-                        Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
-                        Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
-                        using (DA.DT.PushRectangleClip(ClipTarget, true))
+                        foreach (var LineSegment in TriangleVertices.SelectConsecutivePairs(true))
                         {
-                            DA.DT.StrokeAndFillRectangle(Offset, Destination, StrokeColor, FillColor, StrokeThickness);
+                            DA.DT.StrokeLineSegment(Origin, LineSegment.Item1, LineSegment.Item2, StrokeColor, StrokeThickness);
                         }
                     }
-                    break;
-                case RatingItemShape.Triangle:
-                    Origin = Offset + Destination.TopLeft().ToVector2();
-                    IList<Vector2> TriangleVertices = ShapeVertices256[RatingItemShape.Triangle].Select(x => x * ScaleFactor).ToList();
-
-                    if (IsCompletelyFilled)
+                }
+                else if (IsPartiallyFilled)
+                {
+                    Rectangle UnscaledClipTarget = IsVertical
+                        ? new(Destination.Left, Destination.Top, Destination.Width, (int)(TriangleVertices.Min(v => v.Y) + (TriangleVertices.Max(v => v.Y) - TriangleVertices.Min(v => v.Y)) * FilledPercent))
+                        : new(Destination.Left, Destination.Top, (int)(TriangleVertices.Min(v => v.X) + (TriangleVertices.Max(v => v.X) - TriangleVertices.Min(v => v.X)) * FilledPercent), Destination.Height);
+                    Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.FillTriangle(Origin, TriangleVertices[0], FillColor, TriangleVertices[1], FillColor, TriangleVertices[2], FillColor);
                         if (StrokeThickness > 0)
@@ -725,43 +736,26 @@ namespace MGUI.Core.UI
                             }
                         }
                     }
-                    else if (IsPartiallyFilled)
-                    {
-                        Rectangle UnscaledClipTarget = IsVertical
-                            ? new(Destination.Left, Destination.Top, Destination.Width, (int)(TriangleVertices.Min(v => v.Y) + (TriangleVertices.Max(v => v.Y) - TriangleVertices.Min(v => v.Y)) * FilledPercent))
-                            : new(Destination.Left, Destination.Top, (int)(TriangleVertices.Min(v => v.X) + (TriangleVertices.Max(v => v.X) - TriangleVertices.Min(v => v.X)) * FilledPercent), Destination.Height);
-                        Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
-                        using (DA.DT.PushRectangleClip(ClipTarget, true))
-                        {
-                            DA.DT.FillTriangle(Origin, TriangleVertices[0], FillColor, TriangleVertices[1], FillColor, TriangleVertices[2], FillColor);
-                            if (StrokeThickness > 0)
-                            {
-                                foreach (var LineSegment in TriangleVertices.SelectConsecutivePairs(true))
-                                {
-                                    DA.DT.StrokeLineSegment(Origin, LineSegment.Item1, LineSegment.Item2, StrokeColor, StrokeThickness);
-                                }
-                            }
-                        }
-                    }
-                    break;
-            }
+                }
+                break;
         }
+    }
 
-        private static List<Vector2> Get5PointStarVertices(Rectangle Region)
-        {
-            float InnerRadius = Region.Width / 5.0f;
-            float OuterRadius = Region.Width / 2.0f;
+    private static List<Vector2> Get5PointStarVertices(Rectangle Region)
+    {
+        float InnerRadius = Region.Width / 5.0f;
+        float OuterRadius = Region.Width / 2.0f;
 
-            float Ang36 = (float)(Math.PI / 5.0);   // 36Â° x PI/180
-            float Ang72 = 2.0f * Ang36;     // 72Â° x PI/180
-            float Sin36 = (float)Math.Sin(Ang36);
-            float Sin72 = (float)Math.Sin(Ang72);
-            float Cos36 = (float)Math.Cos(Ang36);
-            float Cos72 = (float)Math.Cos(Ang72);
+        float Ang36 = (float)(Math.PI / 5.0);   // 36Â° x PI/180
+        float Ang72 = 2.0f * Ang36;     // 72Â° x PI/180
+        float Sin36 = (float)Math.Sin(Ang36);
+        float Sin72 = (float)Math.Sin(Ang72);
+        float Cos36 = (float)Math.Cos(Ang36);
+        float Cos72 = (float)Math.Cos(Ang72);
 
-            Vector2 Center = new Vector2((Region.Left + Region.Right) / 2.0f, (Region.Top + Region.Bottom) / 2.0f);
+        Vector2 Center = new Vector2((Region.Left + Region.Right) / 2.0f, (Region.Top + Region.Bottom) / 2.0f);
 
-            List<Vector2> Vertices = new(10);
+        List<Vector2> Vertices = new(10);
 
 #if NEVER
             //Taken from: https://www.daniweb.com/programming/software-development/code/360165/draw-any-star-you-want
@@ -784,28 +778,27 @@ namespace MGUI.Core.UI
             Vertices.Add(new Vector2(Center.X - OuterRadius * Sin72, Center.Y - OuterRadius * Cos72));
             Vertices.Add(new Vector2(Center.X - InnerRadius * Sin36, Center.Y - InnerRadius * Cos36));
 #else
-            float YOffset = InnerRadius / 8;
+        float YOffset = InnerRadius / 8;
 
-            //  Top of the star: 12:00 hours
-            Vertices.Add(new Vector2(Center.X, Center.Y - OuterRadius + YOffset));
+        //  Top of the star: 12:00 hours
+        Vertices.Add(new Vector2(Center.X, Center.Y - OuterRadius + YOffset));
 
-            //  Right-side vertices
-            Vertices.Add(new Vector2(Center.X + InnerRadius * Sin36, Center.Y - InnerRadius * Cos36 + YOffset));
-            Vertices.Add(new Vector2(Region.Right, Center.Y - InnerRadius * Cos36 + YOffset));
-            Vertices.Add(new Vector2(Center.X + InnerRadius * Sin72, Center.Y + InnerRadius * Cos72 + YOffset));
-            Vertices.Add(new Vector2(Center.X + OuterRadius * Sin36 + InnerRadius / 2, Center.Y + OuterRadius * Cos36 + YOffset));
+        //  Right-side vertices
+        Vertices.Add(new Vector2(Center.X + InnerRadius * Sin36, Center.Y - InnerRadius * Cos36 + YOffset));
+        Vertices.Add(new Vector2(Region.Right, Center.Y - InnerRadius * Cos36 + YOffset));
+        Vertices.Add(new Vector2(Center.X + InnerRadius * Sin72, Center.Y + InnerRadius * Cos72 + YOffset));
+        Vertices.Add(new Vector2(Center.X + OuterRadius * Sin36 + InnerRadius / 2, Center.Y + OuterRadius * Cos36 + YOffset));
 
-            //  Bottom of the star: 6:00 hours
-            Vertices.Add(new Vector2(Center.X, Center.Y + InnerRadius + YOffset));
+        //  Bottom of the star: 6:00 hours
+        Vertices.Add(new Vector2(Center.X, Center.Y + InnerRadius + YOffset));
 
-            //  Left-side vertices
-            Vertices.Add(new Vector2(Center.X - OuterRadius * Sin36 - InnerRadius / 2, Center.Y + OuterRadius * Cos36 + YOffset));
-            Vertices.Add(new Vector2(Center.X - InnerRadius * Sin72, Center.Y + InnerRadius * Cos72 + YOffset));
-            Vertices.Add(new Vector2(Region.Left, Center.Y - InnerRadius * Cos36 + YOffset));
-            Vertices.Add(new Vector2(Center.X - InnerRadius * Sin36, Center.Y - InnerRadius * Cos36 + YOffset));
+        //  Left-side vertices
+        Vertices.Add(new Vector2(Center.X - OuterRadius * Sin36 - InnerRadius / 2, Center.Y + OuterRadius * Cos36 + YOffset));
+        Vertices.Add(new Vector2(Center.X - InnerRadius * Sin72, Center.Y + InnerRadius * Cos72 + YOffset));
+        Vertices.Add(new Vector2(Region.Left, Center.Y - InnerRadius * Cos36 + YOffset));
+        Vertices.Add(new Vector2(Center.X - InnerRadius * Sin36, Center.Y - InnerRadius * Cos36 + YOffset));
 
 #endif
-            return Vertices;
-        }
+        return Vertices;
     }
 }

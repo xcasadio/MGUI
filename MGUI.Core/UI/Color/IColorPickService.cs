@@ -1,43 +1,40 @@
-using System;
+namespace MGUI.Core.UI;
 
-namespace MGUI.Core.UI
+public interface IColorPickService
 {
-    public interface IColorPickService
+    bool IsSupported { get; }
+    bool BeginPick(ColorPickRequest request);
+    void CancelPick();
+    event EventHandler<ColorPickedEventArgs> ColorPicked;
+    event EventHandler ColorPickCancelled;
+}
+
+public sealed class UnsupportedColorPickService : IColorPickService
+{
+    public static UnsupportedColorPickService Instance { get; } = new();
+
+    private UnsupportedColorPickService()
     {
-        bool IsSupported { get; }
-        bool BeginPick(ColorPickRequest request);
-        void CancelPick();
-        event EventHandler<ColorPickedEventArgs> ColorPicked;
-        event EventHandler ColorPickCancelled;
     }
 
-    public sealed class UnsupportedColorPickService : IColorPickService
+    public bool IsSupported => false;
+
+    public event EventHandler<ColorPickedEventArgs> ColorPicked
     {
-        public static UnsupportedColorPickService Instance { get; } = new();
+        add { }
+        remove { }
+    }
 
-        private UnsupportedColorPickService()
-        {
-        }
+    public event EventHandler ColorPickCancelled
+    {
+        add { }
+        remove { }
+    }
 
-        public bool IsSupported => false;
+    public bool BeginPick(ColorPickRequest request)
+        => false;
 
-        public event EventHandler<ColorPickedEventArgs> ColorPicked
-        {
-            add { }
-            remove { }
-        }
-
-        public event EventHandler ColorPickCancelled
-        {
-            add { }
-            remove { }
-        }
-
-        public bool BeginPick(ColorPickRequest request)
-            => false;
-
-        public void CancelPick()
-        {
-        }
+    public void CancelPick()
+    {
     }
 }

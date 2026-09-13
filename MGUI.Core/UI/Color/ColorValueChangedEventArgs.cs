@@ -1,16 +1,13 @@
-using System;
+namespace MGUI.Core.UI;
 
-namespace MGUI.Core.UI
+public sealed class ColorValueChangedEventArgs : EventArgs
 {
-    public sealed class ColorValueChangedEventArgs : EventArgs
-    {
-        public ColorValue PreviousValue { get; }
-        public ColorValue NewValue { get; }
+    public ColorValue PreviousValue { get; }
+    public ColorValue NewValue { get; }
 
-        public ColorValueChangedEventArgs(ColorValue previousValue, ColorValue newValue)
-        {
-            PreviousValue = previousValue;
-            NewValue = newValue;
-        }
+    public ColorValueChangedEventArgs(ColorValue previousValue, ColorValue newValue)
+    {
+        PreviousValue = previousValue;
+        NewValue = newValue;
     }
 }

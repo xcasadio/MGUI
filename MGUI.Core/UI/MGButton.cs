@@ -1,10 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using MGUI.Shared.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
@@ -13,371 +7,370 @@ using MGUI.Shared.Input;
 using System.Diagnostics;
 using MGUI.Core.UI.Styling;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public class MGButton : MGSingleContentHost
 {
-    public class MGButton : MGSingleContentHost
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _AutoWidthFromContent;
+    public bool AutoWidthFromContent
     {
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _AutoWidthFromContent;
-        public bool AutoWidthFromContent
+        get => _AutoWidthFromContent;
+        set
         {
-            get => _AutoWidthFromContent;
-            set
+            if (_AutoWidthFromContent != value)
             {
-                if (_AutoWidthFromContent != value)
-                {
-                    _AutoWidthFromContent = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(AutoWidthFromContent));
-                }
+                _AutoWidthFromContent = value;
+                LayoutChanged(this, true);
+                NPC(nameof(AutoWidthFromContent));
             }
         }
+    }
 
-        protected internal override bool IgnorePreferredWidthDuringMeasure => AutoWidthFromContent;
+    protected internal override bool IgnorePreferredWidthDuringMeasure => AutoWidthFromContent;
 
-        #region Border
-        /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; }
-        private MGBorder BorderElement { get; }
-        public override MGBorder GetBorder() => BorderElement;
+    #region Border
+    /// <summary>Provides direct access to this element's border.</summary>
+    public MGComponent<MGBorder> BorderComponent { get; }
+    private MGBorder BorderElement { get; }
+    public override MGBorder GetBorder() => BorderElement;
 
-        public IBorderBrush BorderBrush
+    public IBorderBrush BorderBrush
+    {
+        get => BorderElement.BorderBrush;
+        set => BorderElement.BorderBrush = value;
+    }
+
+    public Thickness BorderThickness
+    {
+        get => BorderElement.BorderThickness;
+        set => BorderElement.BorderThickness = value;
+    }
+
+    public MGCornerRadius CornerRadius
+    {
+        get => BorderElement.CornerRadius;
+        set => BorderElement.CornerRadius = value;
+    }
+    #endregion Border
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _CommandName;
+    /// <summary>The name of the command to execute when this <see cref="MGButton"/> is left-clicked, or null if no named command should be executed when left-clicked.<para/>
+    /// If <see cref="Command"/> is also specified, <see cref="Command"/> will take priority and be executed first.<br/>
+    /// (Which may result in the <see cref="CommandName"/> logic not being executed if <see cref="Command"/> returns true)<para/>
+    /// See also:<br/><see cref="Command"/><br/><see cref="MGElement.GetResources"/><br/><see cref="MGResources.Commands"/><br/><see cref="MGResources.AddCommand(string, Action{MGElement})"/></summary>
+    public string CommandName
+    {
+        get => _CommandName;
+        set
         {
-            get => BorderElement.BorderBrush;
-            set => BorderElement.BorderBrush = value;
-        }
-
-        public Thickness BorderThickness
-        {
-            get => BorderElement.BorderThickness;
-            set => BorderElement.BorderThickness = value;
-        }
-
-        public MGCornerRadius CornerRadius
-        {
-            get => BorderElement.CornerRadius;
-            set => BorderElement.CornerRadius = value;
-        }
-        #endregion Border
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _CommandName;
-        /// <summary>The name of the command to execute when this <see cref="MGButton"/> is left-clicked, or null if no named command should be executed when left-clicked.<para/>
-        /// If <see cref="Command"/> is also specified, <see cref="Command"/> will take priority and be executed first.<br/>
-        /// (Which may result in the <see cref="CommandName"/> logic not being executed if <see cref="Command"/> returns true)<para/>
-        /// See also:<br/><see cref="Command"/><br/><see cref="MGElement.GetResources"/><br/><see cref="MGResources.Commands"/><br/><see cref="MGResources.AddCommand(string, Action{MGElement})"/></summary>
-        public string CommandName
-        {
-            get => _CommandName;
-            set
+            if (_CommandName != value)
             {
-                if (_CommandName != value)
-                {
-                    _CommandName = value;
-                    NPC(nameof(CommandName));
-                }
+                _CommandName = value;
+                NPC(nameof(CommandName));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Func<MGButton, bool> _Command;
-        /// <summary>The function to execute when this <see cref="MGButton"/> is left-clicked, or null if no explicit action should be executed when left-clicked.<para/>
-        /// The parameter of this <see cref="Func{T, TResult}"/> is this <see cref="MGButton"/> instance.<br/>
-        /// The return value should be true if the function handled the click, or false to let the click propagate to other mouse handlers.<para/>
-        /// If both <see cref="CommandName"/> and <see cref="Command"/> are specified, this <see cref="Command"/> takes priority and is executed first.<br/>
-        /// (Which may result in the <see cref="CommandName"/> logic not being executed if this <see cref="Command"/> returns true)</summary>
-        public Func<MGButton, bool> Command
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Func<MGButton, bool> _Command;
+    /// <summary>The function to execute when this <see cref="MGButton"/> is left-clicked, or null if no explicit action should be executed when left-clicked.<para/>
+    /// The parameter of this <see cref="Func{T, TResult}"/> is this <see cref="MGButton"/> instance.<br/>
+    /// The return value should be true if the function handled the click, or false to let the click propagate to other mouse handlers.<para/>
+    /// If both <see cref="CommandName"/> and <see cref="Command"/> are specified, this <see cref="Command"/> takes priority and is executed first.<br/>
+    /// (Which may result in the <see cref="CommandName"/> logic not being executed if this <see cref="Command"/> returns true)</summary>
+    public Func<MGButton, bool> Command
+    {
+        get => _Command;
+        set
         {
-            get => _Command;
-            set
+            if (_Command != value)
             {
-                if (_Command != value)
-                {
-                    _Command = value;
-                    NPC(nameof(Command));
-                }
+                _Command = value;
+                NPC(nameof(Command));
             }
         }
+    }
 
-        private bool HasCommand => !string.IsNullOrEmpty(CommandName) || Command != null;
+    private bool HasCommand => !string.IsNullOrEmpty(CommandName) || Command != null;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _IsRepeatButton;
-        /// <summary>If true, this <see cref="MGButton"/>'s <see cref="CommandName"/> and/or <see cref="Command"/> will be repeatedly fired while the mouse is held pressed overtop it.<para/>
-        /// See also: <see cref="InitialRepeatInterval"/>, <see cref="RepeatInterval"/></summary>
-        public bool IsRepeatButton
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _IsRepeatButton;
+    /// <summary>If true, this <see cref="MGButton"/>'s <see cref="CommandName"/> and/or <see cref="Command"/> will be repeatedly fired while the mouse is held pressed overtop it.<para/>
+    /// See also: <see cref="InitialRepeatInterval"/>, <see cref="RepeatInterval"/></summary>
+    public bool IsRepeatButton
+    {
+        get => _IsRepeatButton;
+        set
         {
-            get => _IsRepeatButton;
-            set
+            if (_IsRepeatButton != value)
             {
-                if (_IsRepeatButton != value)
-                {
-                    _IsRepeatButton = value;
-                    NPC(nameof(IsRepeatButton));
-                }
+                _IsRepeatButton = value;
+                NPC(nameof(IsRepeatButton));
             }
         }
+    }
 
-        /// <summary>0.5s</summary>
-        public static readonly TimeSpan DefaultInitialRepeatInterval = TimeSpan.FromSeconds(0.5);
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TimeSpan _InitialRepeatInterval = DefaultInitialRepeatInterval;
-        /// <summary>Only relevant if <see cref="IsRepeatButton"/> is true.<para/>
-        /// The initial delay before this <see cref="MGButton"/>'s <see cref="CommandName"/> and/or <see cref="Command"/> will be repeatedly fired while the mouse is held pressed overtop it.<br/>
-        /// Default value: <see cref="DefaultInitialRepeatInterval"/><para/>
-        /// See also: <see cref="IsRepeatButton"/>, <see cref="RepeatInterval"/></summary>
-        public TimeSpan InitialRepeatInterval
+    /// <summary>0.5s</summary>
+    public static readonly TimeSpan DefaultInitialRepeatInterval = TimeSpan.FromSeconds(0.5);
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TimeSpan _InitialRepeatInterval = DefaultInitialRepeatInterval;
+    /// <summary>Only relevant if <see cref="IsRepeatButton"/> is true.<para/>
+    /// The initial delay before this <see cref="MGButton"/>'s <see cref="CommandName"/> and/or <see cref="Command"/> will be repeatedly fired while the mouse is held pressed overtop it.<br/>
+    /// Default value: <see cref="DefaultInitialRepeatInterval"/><para/>
+    /// See also: <see cref="IsRepeatButton"/>, <see cref="RepeatInterval"/></summary>
+    public TimeSpan InitialRepeatInterval
+    {
+        get => _InitialRepeatInterval;
+        set
         {
-            get => _InitialRepeatInterval;
-            set
+            if (_InitialRepeatInterval != value)
             {
-                if (_InitialRepeatInterval != value)
-                {
-                    _InitialRepeatInterval = value;
-                    NPC(nameof(InitialRepeatInterval));
-                }
+                _InitialRepeatInterval = value;
+                NPC(nameof(InitialRepeatInterval));
             }
         }
+    }
 
-        /// <summary>10 repetitions per second</summary>
-        public static readonly TimeSpan DefaultRepeatInterval = TimeSpan.FromSeconds(1.0 / 10);
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TimeSpan _RepeatInterval = DefaultRepeatInterval;
-        /// <summary>Only relevant if <see cref="IsRepeatButton"/> is true.<para/>
-        /// How often to repeatedly fire this <see cref="MGButton"/>'s <see cref="CommandName"/> and/or <see cref="Command"/> while the mouse is held pressed overtop it.<br/>
-        /// Default value: <see cref="DefaultRepeatInterval"/><para/>
-        /// See also: <see cref="IsRepeatButton"/>, <see cref="InitialRepeatInterval"/></summary>
-        public TimeSpan RepeatInterval
+    /// <summary>10 repetitions per second</summary>
+    public static readonly TimeSpan DefaultRepeatInterval = TimeSpan.FromSeconds(1.0 / 10);
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TimeSpan _RepeatInterval = DefaultRepeatInterval;
+    /// <summary>Only relevant if <see cref="IsRepeatButton"/> is true.<para/>
+    /// How often to repeatedly fire this <see cref="MGButton"/>'s <see cref="CommandName"/> and/or <see cref="Command"/> while the mouse is held pressed overtop it.<br/>
+    /// Default value: <see cref="DefaultRepeatInterval"/><para/>
+    /// See also: <see cref="IsRepeatButton"/>, <see cref="InitialRepeatInterval"/></summary>
+    public TimeSpan RepeatInterval
+    {
+        get => _RepeatInterval;
+        set
         {
-            get => _RepeatInterval;
-            set
+            if (_RepeatInterval != value)
             {
-                if (_RepeatInterval != value)
-                {
-                    _RepeatInterval = value;
-                    NPC(nameof(RepeatInterval));
-                }
+                _RepeatInterval = value;
+                NPC(nameof(RepeatInterval));
             }
         }
+    }
 
-        /// <param name="HandleLeftClick">An <see cref="Action"/> to invoke when this <see cref="MGButton"/> is left-clicked.<para/>
-        /// This handler will only be invoked if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is false.<br/>
-        /// This handler will also set <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> to true after being invoked.<para/>
-        /// If you want to avoid this default behavior, manually subscribe to <see cref="OnLeftClicked"/>,<br/>
-        /// call <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>,<br/>
-        /// or set <see cref="Command"/> instead.</param>
-        public MGButton(MGWindow Window, Action<MGButton> HandleLeftClick = null)
-            : this(Window, new(1), MGUniformBorderBrush.Black, HandleLeftClick) { }
+    /// <param name="HandleLeftClick">An <see cref="Action"/> to invoke when this <see cref="MGButton"/> is left-clicked.<para/>
+    /// This handler will only be invoked if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is false.<br/>
+    /// This handler will also set <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> to true after being invoked.<para/>
+    /// If you want to avoid this default behavior, manually subscribe to <see cref="OnLeftClicked"/>,<br/>
+    /// call <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>,<br/>
+    /// or set <see cref="Command"/> instead.</param>
+    public MGButton(MGWindow Window, Action<MGButton> HandleLeftClick = null)
+        : this(Window, new(1), MGUniformBorderBrush.Black, HandleLeftClick) { }
 
-        /// <param name="HandleLeftClick">An <see cref="Action"/> to invoke when this <see cref="MGButton"/> is left-clicked.<para/>
-        /// This handler will only be invoked if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is false.<br/>
-        /// This handler will also set <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> to true after being invoked.<para/>
-        /// If you want to avoid this default behavior, manually subscribe to <see cref="OnLeftClicked"/>,<br/>
-        /// call <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>,<br/>
-        /// or set <see cref="Command"/> instead.</param>
-        public MGButton(MGWindow Window, Thickness BorderThickness, IBorderBrush BorderBrush, Action<MGButton> HandleLeftClick = null)
-            : base(Window, MGElementType.Button)
+    /// <param name="HandleLeftClick">An <see cref="Action"/> to invoke when this <see cref="MGButton"/> is left-clicked.<para/>
+    /// This handler will only be invoked if <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> is false.<br/>
+    /// This handler will also set <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> to true after being invoked.<para/>
+    /// If you want to avoid this default behavior, manually subscribe to <see cref="OnLeftClicked"/>,<br/>
+    /// call <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>,<br/>
+    /// or set <see cref="Command"/> instead.</param>
+    public MGButton(MGWindow Window, Thickness BorderThickness, IBorderBrush BorderBrush, Action<MGButton> HandleLeftClick = null)
+        : base(Window, MGElementType.Button)
+    {
+        using (BeginInitializing())
         {
-            using (BeginInitializing())
+            AutoWidthFromContent = GetTheme().DefaultButtonAutoWidthFromContent;
+            IsFocusable = true;
+            MinWidth = 16;
+            SetMinHeight(16, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+
+            BorderElement = new(Window, BorderThickness, BorderBrush);
+            BorderComponent = MGComponentBase.Create(BorderElement);
+            AddComponent(BorderComponent);
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+
+            HorizontalContentAlignment = HorizontalAlignment.Center;
+            VerticalContentAlignment = VerticalAlignment.Center;
+            SetPadding(new(4,1,4,1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            ThemeTransitions.Apply(this, GetTheme()?.Animation);
+
+            MouseHandler.PressedInside += (sender, e) =>
+            { 
+                PressedArgs = e;
+                if (IsRepeatButton)
+                {
+                    e.SetHandledBy(this, false);
+                }
+            };
+            MouseHandler.ReleasedInside += (sender, e) =>
             {
-                AutoWidthFromContent = GetTheme().DefaultButtonAutoWidthFromContent;
-                IsFocusable = true;
-                MinWidth = 16;
-                SetMinHeight(16, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+                bool pressedInsideThisButton = PressedArgs != null;
 
-                BorderElement = new(Window, BorderThickness, BorderBrush);
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
-
-                HorizontalContentAlignment = HorizontalAlignment.Center;
-                VerticalContentAlignment = VerticalAlignment.Center;
-                SetPadding(new(4,1,4,1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                ThemeTransitions.Apply(this, GetTheme()?.Animation);
-
-                MouseHandler.PressedInside += (sender, e) =>
-                { 
-                    PressedArgs = e;
-                    if (IsRepeatButton)
-                    {
-                        e.SetHandledBy(this, false);
-                    }
-                };
-                MouseHandler.ReleasedInside += (sender, e) =>
+                if (e.IsLMB && pressedInsideThisButton)
                 {
-                    bool pressedInsideThisButton = PressedArgs != null;
-
-                    if (e.IsLMB && pressedInsideThisButton)
-                    {
-                        OnLeftClicked?.Invoke(this, e);
-                        //e.SetHandledBy(this, false); // Avoid auto-handling left-clicks because some controls like MGComboBox react to inputs after the child button received it
-                    }
-                    else if (e.IsRMB && pressedInsideThisButton)
-                    {
-                        OnRightClicked?.Invoke(this, e);
-                        //e.SetHandledBy(this, false); // Avoid auto-handling right-clicks because it may prevent MGElement from opening ContextMenus
-                    }
-
-                    if (pressedInsideThisButton)
-                    {
-                        PressedArgs = null;
-                    }
-                };
-                MouseHandler.ReleasedOutside += (sender, e) =>
+                    OnLeftClicked?.Invoke(this, e);
+                    //e.SetHandledBy(this, false); // Avoid auto-handling left-clicks because some controls like MGComboBox react to inputs after the child button received it
+                }
+                else if (e.IsRMB && pressedInsideThisButton)
                 {
-                    if (PressedArgs != null)
-                    {
-                        PressedArgs = null;
-                    }
-                };
-
-                if (HandleLeftClick != null)
-                {
-                    Command = (btn) => 
-                    {
-                        HandleLeftClick(btn);
-                        return true;
-                    };
+                    OnRightClicked?.Invoke(this, e);
+                    //e.SetHandledBy(this, false); // Avoid auto-handling right-clicks because it may prevent MGElement from opening ContextMenus
                 }
 
-                OnLeftClicked += (sender, e) =>
+                if (pressedInsideThisButton)
                 {
-                    //  For repeat buttons, I avoid invoking the commands on mouse released because it feels a bit strange.
-                    //  EX: RepeatInterval=1s. Press at t=0, Repeat at t=1, Release at t=1.2 - this would fire the commands twice, once at t=1 and again at t=1.2,
-                    //  which just seems weird for the last execution to have an unpredictable interval compared to every prior execution
-                    if (!IsRepeatButton || !RepeatedAt.HasValue)
-                    {
-                        TryInvokeCommands(e, false);
-                    }
+                    PressedArgs = null;
+                }
+            };
+            MouseHandler.ReleasedOutside += (sender, e) =>
+            {
+                if (PressedArgs != null)
+                {
+                    PressedArgs = null;
+                }
+            };
+
+            if (HandleLeftClick != null)
+            {
+                Command = (btn) => 
+                {
+                    HandleLeftClick(btn);
+                    return true;
                 };
             }
-        }
 
-        /// <summary>The transitions the theme installs on this button (ADR-0007, decision 5): <c>RenderScale</c> and <c>Background.Overlay</c>
-        /// over <see cref="MGThemeAnimationSettings"/>; a transition the application attaches on one of these paths is left alone.</summary>
-        private readonly Animation.UIThemeTransitions ThemeTransitions = new();
-
-        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
-        {
-            base.OnThemeChanged(PreviousTheme, CurrentTheme);
-
-            if (CurrentTheme != null)
+            OnLeftClicked += (sender, e) =>
             {
-                SetBackground(CurrentTheme.GetBackgroundBrush(MGElementType.Button), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
-            }
-
-            ThemeTransitions.Apply(this, CurrentTheme?.Animation);
-        }
-
-        internal static BaseMouseReleasedEventArgs CreateNavigationReleasedEventArgs()
-        {
-            BaseMousePressedEventArgs pressedArgs = new(null, MouseButton.Left, Point.Zero, TimeSpan.Zero);
-            return new(null, pressedArgs, MouseButton.Left, Point.Zero, TimeSpan.Zero);
-        }
-
-        protected virtual bool TryHandleSubmitAction()
-        {
-            bool hasHandler = OnLeftClicked != null;
-            BaseMouseReleasedEventArgs args = CreateNavigationReleasedEventArgs();
-            OnLeftClicked?.Invoke(this, args);
-            return hasHandler || args.IsHandled;
-        }
-
-        private bool TryInvokeCommands(HandledByEventArgs<IMouseHandlerHost> args, bool IsRepeating)
-        {
-            bool CanInvoke() => !args.IsHandled || (IsRepeating && args.HandledBy == this);
-
-            bool Invoked = false;
-
-            if (CanInvoke() && this.Command != null)
-            {
-                bool Handled = this.Command(this);
-                if (Handled)
+                //  For repeat buttons, I avoid invoking the commands on mouse released because it feels a bit strange.
+                //  EX: RepeatInterval=1s. Press at t=0, Repeat at t=1, Release at t=1.2 - this would fire the commands twice, once at t=1 and again at t=1.2,
+                //  which just seems weird for the last execution to have an unpredictable interval compared to every prior execution
+                if (!IsRepeatButton || !RepeatedAt.HasValue)
                 {
-                    args.SetHandledBy(this, false);
+                    TryInvokeCommands(e, false);
                 }
+            };
+        }
+    }
 
-                Invoked = true;
-            }
+    /// <summary>The transitions the theme installs on this button (ADR-0007, decision 5): <c>RenderScale</c> and <c>Background.Overlay</c>
+    /// over <see cref="MGThemeAnimationSettings"/>; a transition the application attaches on one of these paths is left alone.</summary>
+    private readonly Animation.UIThemeTransitions ThemeTransitions = new();
 
-            if (CanInvoke() && GetResources().TryGetCommand(CommandName, out Action<MGElement> Command))
+    protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+    {
+        base.OnThemeChanged(PreviousTheme, CurrentTheme);
+
+        if (CurrentTheme != null)
+        {
+            SetBackground(CurrentTheme.GetBackgroundBrush(MGElementType.Button), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+        }
+
+        ThemeTransitions.Apply(this, CurrentTheme?.Animation);
+    }
+
+    internal static BaseMouseReleasedEventArgs CreateNavigationReleasedEventArgs()
+    {
+        BaseMousePressedEventArgs pressedArgs = new(null, MouseButton.Left, Point.Zero, TimeSpan.Zero);
+        return new(null, pressedArgs, MouseButton.Left, Point.Zero, TimeSpan.Zero);
+    }
+
+    protected virtual bool TryHandleSubmitAction()
+    {
+        bool hasHandler = OnLeftClicked != null;
+        BaseMouseReleasedEventArgs args = CreateNavigationReleasedEventArgs();
+        OnLeftClicked?.Invoke(this, args);
+        return hasHandler || args.IsHandled;
+    }
+
+    private bool TryInvokeCommands(HandledByEventArgs<IMouseHandlerHost> args, bool IsRepeating)
+    {
+        bool CanInvoke() => !args.IsHandled || (IsRepeating && args.HandledBy == this);
+
+        bool Invoked = false;
+
+        if (CanInvoke() && this.Command != null)
+        {
+            bool Handled = this.Command(this);
+            if (Handled)
             {
                 args.SetHandledBy(this, false);
-                Command(this);
-                Invoked = true;
             }
 
-            return Invoked;
+            Invoked = true;
         }
 
-        private BaseMousePressedEventArgs PressedArgs { get; set; }
-        /// <summary>Only relevant if <see cref="IsRepeatButton"/> is true.<para/>
-        /// The last time that this <see cref="MGButton"/> was pressed.</summary>
-        private DateTime? PressedAt { get; set; }
-        /// <summary>Only relevant if <see cref="IsRepeatButton"/> is true.<para/>
-        /// The last time that this <see cref="MGButton"/>'s <see cref="CommandName"/> and/or <see cref="Command"/> was repeated.</summary>
-        private DateTime? RepeatedAt { get; set; }
-
-        private bool IsRepeatPending(DateTime Now) => 
-            (!RepeatedAt.HasValue && Now.Subtract(PressedAt.Value) >= InitialRepeatInterval) ||
-            (RepeatedAt.HasValue && Now.Subtract(RepeatedAt.Value) >= RepeatInterval);
-
-        public override void UpdateSelf(ElementUpdateArgs UA)
+        if (CanInvoke() && GetResources().TryGetCommand(CommandName, out Action<MGElement> Command))
         {
-            if (IsRepeatButton && VisualState.IsPressed)
-            {
-                DateTime Now = DateTime.Now;
-                if (!PressedAt.HasValue)
-                {
-                    PressedAt = Now;
-                }
-                else if (HasCommand && IsRepeatPending(Now) && PressedArgs != null)
-                {
-                    RepeatedAt = Now;
-                    _ = TryInvokeCommands(PressedArgs, true);
-                }
-            }
-            else
-            {
-                PressedAt = null;
-                RepeatedAt = null;
-            }
-
-            base.UpdateSelf(UA);
+            args.SetHandledBy(this, false);
+            Command(this);
+            Invoked = true;
         }
 
-        /// <summary>Helper method to subscribe to <see cref="OnLeftClicked"/>.<para/>
-        /// Recommended to set <see cref="Command"/> or <see cref="CommandName"/> instead, unless you require multiple handlers for the left-click event.</summary>
-        /// <param name="Command">The <see cref="Action"/> to invoke when this <see cref="MGButton"/> is left-clicked (more specifically, occurs when the left mouse button is released overtop of this <see cref="MGButton"/>)</param>
-        /// <param name="SetsHandledToTrue">If true, this <paramref name="Command"/> will set <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> to true if it executes.</param>
-        public void AddCommandHandler(Action<MGButton, BaseMouseReleasedEventArgs> Command, bool SetsHandledToTrue = true)
-        {
-            if (Command != null)
-            {
-                OnLeftClicked += (sender, e) =>
-                {
-                    if (SetsHandledToTrue)
-                    {
-                        e.SetHandledBy(this, false);
-                    }
-
-                    Command(this, e);
-                };
-            }
-        }
-
-        /// <summary>Invoked when the left mouse button is released overtop of this <see cref="MGButton"/>.<para/>
-        /// Consider checking <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> at the start of this <see cref="EventHandler"/><br/>
-        /// or subscribing via <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>.</summary>
-        public event EventHandler<BaseMouseReleasedEventArgs> OnLeftClicked;
-        /// <summary>Invoked when the right mouse button is released overtop of this <see cref="MGButton"/>.<para/>
-        /// Consider checking <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> at the start of this <see cref="EventHandler"/><br/>
-        /// or subscribing via <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>.</summary>
-        public event EventHandler<BaseMouseReleasedEventArgs> OnRightClicked;
-
-        public override bool TryHandleNavigationAction(UINavigationAction action)
-            => action == UINavigationAction.Submit && TryHandleSubmitAction();
+        return Invoked;
     }
+
+    private BaseMousePressedEventArgs PressedArgs { get; set; }
+    /// <summary>Only relevant if <see cref="IsRepeatButton"/> is true.<para/>
+    /// The last time that this <see cref="MGButton"/> was pressed.</summary>
+    private DateTime? PressedAt { get; set; }
+    /// <summary>Only relevant if <see cref="IsRepeatButton"/> is true.<para/>
+    /// The last time that this <see cref="MGButton"/>'s <see cref="CommandName"/> and/or <see cref="Command"/> was repeated.</summary>
+    private DateTime? RepeatedAt { get; set; }
+
+    private bool IsRepeatPending(DateTime Now) => 
+        (!RepeatedAt.HasValue && Now.Subtract(PressedAt.Value) >= InitialRepeatInterval) ||
+        (RepeatedAt.HasValue && Now.Subtract(RepeatedAt.Value) >= RepeatInterval);
+
+    public override void UpdateSelf(ElementUpdateArgs UA)
+    {
+        if (IsRepeatButton && VisualState.IsPressed)
+        {
+            DateTime Now = DateTime.Now;
+            if (!PressedAt.HasValue)
+            {
+                PressedAt = Now;
+            }
+            else if (HasCommand && IsRepeatPending(Now) && PressedArgs != null)
+            {
+                RepeatedAt = Now;
+                _ = TryInvokeCommands(PressedArgs, true);
+            }
+        }
+        else
+        {
+            PressedAt = null;
+            RepeatedAt = null;
+        }
+
+        base.UpdateSelf(UA);
+    }
+
+    /// <summary>Helper method to subscribe to <see cref="OnLeftClicked"/>.<para/>
+    /// Recommended to set <see cref="Command"/> or <see cref="CommandName"/> instead, unless you require multiple handlers for the left-click event.</summary>
+    /// <param name="Command">The <see cref="Action"/> to invoke when this <see cref="MGButton"/> is left-clicked (more specifically, occurs when the left mouse button is released overtop of this <see cref="MGButton"/>)</param>
+    /// <param name="SetsHandledToTrue">If true, this <paramref name="Command"/> will set <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> to true if it executes.</param>
+    public void AddCommandHandler(Action<MGButton, BaseMouseReleasedEventArgs> Command, bool SetsHandledToTrue = true)
+    {
+        if (Command != null)
+        {
+            OnLeftClicked += (sender, e) =>
+            {
+                if (SetsHandledToTrue)
+                {
+                    e.SetHandledBy(this, false);
+                }
+
+                Command(this, e);
+            };
+        }
+    }
+
+    /// <summary>Invoked when the left mouse button is released overtop of this <see cref="MGButton"/>.<para/>
+    /// Consider checking <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> at the start of this <see cref="EventHandler"/><br/>
+    /// or subscribing via <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>.</summary>
+    public event EventHandler<BaseMouseReleasedEventArgs> OnLeftClicked;
+    /// <summary>Invoked when the right mouse button is released overtop of this <see cref="MGButton"/>.<para/>
+    /// Consider checking <see cref="HandledByEventArgs{THandlerType}.IsHandled"/> at the start of this <see cref="EventHandler"/><br/>
+    /// or subscribing via <see cref="AddCommandHandler(Action{MGButton, BaseMouseReleasedEventArgs}, bool)"/>.</summary>
+    public event EventHandler<BaseMouseReleasedEventArgs> OnRightClicked;
+
+    public override bool TryHandleNavigationAction(UINavigationAction action)
+        => action == UINavigationAction.Submit && TryHandleSubmitAction();
 }

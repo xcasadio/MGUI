@@ -1,176 +1,166 @@
 ﻿using Microsoft.Xna.Framework;
-using MGUI.Shared.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Shapes;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public class MGRectangle : MGElement
 {
-    public class MGRectangle : MGElement
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _Width;
+    public int Width
     {
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _Width;
-        public int Width
+        get => _Width;
+        set
         {
-            get => _Width;
-            set
+            if (_Width != value)
             {
-                if (_Width != value)
-                {
-                    _Width = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(Width));
-                }
+                _Width = value;
+                LayoutChanged(this, true);
+                NPC(nameof(Width));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _Height;
-        public int Height
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _Height;
+    public int Height
+    {
+        get => _Height;
+        set
         {
-            get => _Height;
-            set
+            if (_Height != value)
             {
-                if (_Height != value)
-                {
-                    _Height = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(Height));
-                }
+                _Height = value;
+                LayoutChanged(this, true);
+                NPC(nameof(Height));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Color _Stroke;
-        /// <summary>The <see cref="Color"/> to use for the border of this <see cref="MGRectangle"/>.<para/>
-        /// See also: <see cref="StrokeThickness"/></summary>
-        public Color Stroke
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Color _Stroke;
+    /// <summary>The <see cref="Color"/> to use for the border of this <see cref="MGRectangle"/>.<para/>
+    /// See also: <see cref="StrokeThickness"/></summary>
+    public Color Stroke
+    {
+        get => _Stroke;
+        set
         {
-            get => _Stroke;
-            set
+            if (_Stroke != value)
             {
-                if (_Stroke != value)
-                {
-                    _Stroke = value;
-                    NPC(nameof(Stroke));
-                }
+                _Stroke = value;
+                NPC(nameof(Stroke));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _StrokeThickness;
-        /// <summary>The uniform thickness of each side of this <see cref="MGRectangle"/>'s border.<para/>
-        /// See also: <see cref="Stroke"/></summary>
-        public int StrokeThickness
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _StrokeThickness;
+    /// <summary>The uniform thickness of each side of this <see cref="MGRectangle"/>'s border.<para/>
+    /// See also: <see cref="Stroke"/></summary>
+    public int StrokeThickness
+    {
+        get => _StrokeThickness;
+        set
         {
-            get => _StrokeThickness;
-            set
+            if (_StrokeThickness != value)
             {
-                if (_StrokeThickness != value)
-                {
-                    _StrokeThickness = value;
-                    NPC(nameof(StrokeThickness));
-                }
+                _StrokeThickness = value;
+                NPC(nameof(StrokeThickness));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private IFillBrush _Fill;
-        /// <summary>The brush to use to fill the space occupied by this <see cref="MGRectangle"/>.<para/>
-        /// See also: <see cref="Width"/>, <see cref="Height"/></summary>
-        public IFillBrush Fill
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private IFillBrush _Fill;
+    /// <summary>The brush to use to fill the space occupied by this <see cref="MGRectangle"/>.<para/>
+    /// See also: <see cref="Width"/>, <see cref="Height"/></summary>
+    public IFillBrush Fill
+    {
+        get => _Fill;
+        set
         {
-            get => _Fill;
-            set
+            if (_Fill != value)
             {
-                if (_Fill != value)
-                {
-                    _Fill = value;
-                    NPC(nameof(Fill));
-                }
+                _Fill = value;
+                NPC(nameof(Fill));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MGCornerRadius _CornerRadius;
-        public MGCornerRadius CornerRadius
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private MGCornerRadius _CornerRadius;
+    public MGCornerRadius CornerRadius
+    {
+        get => _CornerRadius;
+        set
         {
-            get => _CornerRadius;
-            set
+            if (!_CornerRadius.Equals(value))
             {
-                if (!_CornerRadius.Equals(value))
-                {
-                    _CornerRadius = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(CornerRadius));
-                }
+                _CornerRadius = value;
+                LayoutChanged(this, true);
+                NPC(nameof(CornerRadius));
             }
         }
+    }
 
-        public MGRectangle(MGWindow Window, int Width, int Height, Color Stroke, int StrokeThickness, Color Fill)
-            : this(Window, Width, Height, Stroke, StrokeThickness, Fill.AsFillBrush()) { }
+    public MGRectangle(MGWindow Window, int Width, int Height, Color Stroke, int StrokeThickness, Color Fill)
+        : this(Window, Width, Height, Stroke, StrokeThickness, Fill.AsFillBrush()) { }
 
-        public MGRectangle(MGWindow Window, int Width, int Height, Color Stroke, int StrokeThickness, IFillBrush Fill)
-            : base(Window, MGElementType.Rectangle)
+    public MGRectangle(MGWindow Window, int Width, int Height, Color Stroke, int StrokeThickness, IFillBrush Fill)
+        : base(Window, MGElementType.Rectangle)
+    {
+        using (BeginInitializing())
         {
-            using (BeginInitializing())
-            {
-                this.Width = Width;
-                this.Height = Height;
+            this.Width = Width;
+            this.Height = Height;
 
-                this.Stroke = Stroke;
-                this.StrokeThickness = StrokeThickness;
-                this.Fill = Fill;
-                this.CornerRadius = MGCornerRadius.Zero;
+            this.Stroke = Stroke;
+            this.StrokeThickness = StrokeThickness;
+            this.Fill = Fill;
+            this.CornerRadius = MGCornerRadius.Zero;
 
-                HorizontalAlignment = HorizontalAlignment.Center;
-                VerticalAlignment = VerticalAlignment.Center;
-            }
+            HorizontalAlignment = HorizontalAlignment.Center;
+            VerticalAlignment = VerticalAlignment.Center;
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    {
+        foreach (IFillBrush Brush in base.GetFillBrushes())
+        {
+            yield return Brush;
         }
 
-        /// <inheritdoc/>
-        protected override IEnumerable<IFillBrush> GetFillBrushes()
-        {
-            foreach (IFillBrush Brush in base.GetFillBrushes())
-            {
-                yield return Brush;
-            }
+        yield return Fill;
+    }
 
-            yield return Fill;
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    {
+        SharedSize = new(0);
+        return new(Width, Height, 0, 0);
+    }
+
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    {
+        Rectangle ActualBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(Width, Height));
+        if (ActualBounds.Width <= 0 || ActualBounds.Height <= 0)
+        {
+            return;
         }
 
-        public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+        MGBoxShape shape = new MGBoxShape(ActualBounds, new Thickness(StrokeThickness), CornerRadius).Normalize();
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+
+        Fill?.Draw(DA, this, shape, geometry);
+        if (StrokeThickness > 0)
         {
-            SharedSize = new(0);
-            return new(Width, Height, 0, 0);
-        }
-
-        public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-        {
-            Rectangle ActualBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(Width, Height));
-            if (ActualBounds.Width <= 0 || ActualBounds.Height <= 0)
-            {
-                return;
-            }
-
-            MGBoxShape shape = new MGBoxShape(ActualBounds, new Thickness(StrokeThickness), CornerRadius).Normalize();
-            MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
-
-            Fill?.Draw(DA, this, shape, geometry);
-            if (StrokeThickness > 0)
-            {
-                new MGUniformBorderBrush(Stroke.AsFillBrush()).Draw(DA, this, shape, geometry);
-            }
+            new MGUniformBorderBrush(Stroke.AsFillBrush()).Draw(DA, this, shape, geometry);
         }
     }
 }

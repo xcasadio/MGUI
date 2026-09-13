@@ -1,15 +1,6 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using MGUI.Core.UI.Containers;
+﻿using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MonoGame.Extended;
 using System.Diagnostics;
 using MGUI.Core.UI.Data_Binding;
 
@@ -19,702 +10,701 @@ using System.Windows.Markup;
 using Portable.Xaml.Markup;
 #endif
 
-namespace MGUI.Core.UI.XAML
+namespace MGUI.Core.UI.XAML;
+
+[ContentProperty(nameof(Children))]
+public abstract class MultiContentHost : Element
 {
-    [ContentProperty(nameof(Children))]
-    public abstract class MultiContentHost : Element
+    [Browsable(false)]
+    public List<Element> Children { get; set; } = new();
+
+    protected internal override IEnumerable<Element> GetChildren() => Children;
+}
+
+[ContentProperty(nameof(Content))]
+public abstract class SingleContentHost : Element
+{
+    [Category("Data")]
+    public Element Content { get; set; }
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        [Browsable(false)]
-        public List<Element> Children { get; set; } = new();
-
-        protected internal override IEnumerable<Element> GetChildren() => Children;
-    }
-
-    [ContentProperty(nameof(Content))]
-    public abstract class SingleContentHost : Element
-    {
-        [Category("Data")]
-        public Element Content { get; set; }
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (IncludeContent && Content != null)
         {
-            if (IncludeContent && Content != null)
-            {
-                MGSingleContentHost TypedElement = Element as MGSingleContentHost;
-                TypedElement.SetContent(Content.ToElement<MGElement>(Element.SelfOrParentWindow, Element));
-            }
-        }
-
-        protected internal override IEnumerable<Element> GetChildren()
-        {
-            if (Content != null)
-            {
-                yield return Content;
-            }
+            MGSingleContentHost TypedElement = Element as MGSingleContentHost;
+            TypedElement.SetContent(Content.ToElement<MGElement>(Element.SelfOrParentWindow, Element));
         }
     }
 
-    public struct ColumnDefinition
+    protected internal override IEnumerable<Element> GetChildren()
     {
-        [Category("Layout")]
-        public GridLength Length { get; set; }
-        [Category("Layout")]
-        public GridLength Width { get => Length; set => Length = value; }
-        [Category("Layout")]
-        public int? MinWidth { get; set; }
-        [Category("Layout")]
-        public int? MaxWidth { get; set; }
-        public override string ToString() => $"{nameof(ColumnDefinition)}: {Length}";
-    }
-
-    public struct RowDefinition
-    {
-        [Category("Layout")]
-        public GridLength Length { get; set; }
-        [Category("Layout")]
-        public GridLength Height { get => Length; set => Length = value; }
-        [Category("Layout")]
-        public int? MinHeight { get; set; }
-        [Category("Layout")]
-        public int? MaxHeight { get; set; }
-        public override string ToString() => $"{nameof(RowDefinition)}: {Length}";
-    }
-
-    public class GridSplitter : Element
-    {
-        public override MGElementType ElementType => MGElementType.GridSplitter;
-
-        [Category("Layout")]
-        public int? Size { get; set; }
-        [Category("Layout")]
-        public Size? TickSize { get; set; }
-        [Category("Appearance")]
-        public FillBrush Foreground { get; set; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGridSplitter(Window);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (Content != null)
         {
-            MGDesktop Desktop = Element.GetDesktop();
+            yield return Content;
+        }
+    }
+}
 
-            MGGridSplitter GridSplitter = Element as MGGridSplitter;
+public struct ColumnDefinition
+{
+    [Category("Layout")]
+    public GridLength Length { get; set; }
+    [Category("Layout")]
+    public GridLength Width { get => Length; set => Length = value; }
+    [Category("Layout")]
+    public int? MinWidth { get; set; }
+    [Category("Layout")]
+    public int? MaxWidth { get; set; }
+    public override string ToString() => $"{nameof(ColumnDefinition)}: {Length}";
+}
 
-            if (Size.HasValue)
-            {
-                GridSplitter.Size = Size.Value;
-            }
+public struct RowDefinition
+{
+    [Category("Layout")]
+    public GridLength Length { get; set; }
+    [Category("Layout")]
+    public GridLength Height { get => Length; set => Length = value; }
+    [Category("Layout")]
+    public int? MinHeight { get; set; }
+    [Category("Layout")]
+    public int? MaxHeight { get; set; }
+    public override string ToString() => $"{nameof(RowDefinition)}: {Length}";
+}
 
-            if (TickSize.HasValue)
-            {
-                GridSplitter.TickSize = TickSize.Value.ToSize();
-            }
+public class GridSplitter : Element
+{
+    public override MGElementType ElementType => MGElementType.GridSplitter;
 
-            if (Foreground != null)
-            {
-                GridSplitter.Foreground.NormalValue = Foreground.ToFillBrush(Desktop, Element);
-            }
+    [Category("Layout")]
+    public int? Size { get; set; }
+    [Category("Layout")]
+    public Size? TickSize { get; set; }
+    [Category("Appearance")]
+    public FillBrush Foreground { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGridSplitter(Window);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        MGDesktop Desktop = Element.GetDesktop();
+
+        MGGridSplitter GridSplitter = Element as MGGridSplitter;
+
+        if (Size.HasValue)
+        {
+            GridSplitter.Size = Size.Value;
         }
 
-        protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
-
-        protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
+        if (TickSize.HasValue)
         {
-            foreach (var Item in base.GetBindableObjects(Element))
-            {
-                yield return Item;
-            }
+            GridSplitter.TickSize = TickSize.Value.ToSize();
+        }
 
-            if (Element is MGGridSplitter TypedElement)
-            {
-                yield return (Foreground, TypedElement.Foreground?.NormalValue, $"{nameof(MGGridSplitter.Foreground)}.{nameof(VisualStateFillBrush.NormalValue)}");
-            }
+        if (Foreground != null)
+        {
+            GridSplitter.Foreground.NormalValue = Foreground.ToFillBrush(Desktop, Element);
         }
     }
 
-    public class Grid : MultiContentHost
+    protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
+
+    protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
     {
-        public override MGElementType ElementType => MGElementType.Grid;
-
-        [Category("Layout")]
-        public string RowLengths { get; set; }
-        [Category("Layout")]
-        public string ColumnLengths { get; set; }
-        [Category("Layout")]
-        public List<RowDefinition> RowDefinitions { get; set; } = new();
-        [Category("Layout")]
-        public List<ColumnDefinition> ColumnDefinitions { get; set; } = new();
-
-        [Category("Behavior")]
-        public GridSelectionMode? SelectionMode { get; set; }
-        [Category("Behavior")]
-        public bool? CanDeselectByClickingSelectedCell { get; set; }
-        [Category("Appearance")]
-        public FillBrush SelectionBackground { get; set; }
-        [Category("Appearance")]
-        public FillBrush SelectionOverlay { get; set; }
-
-        [Category("Appearance")]
-        public GridLineIntersection? GridLineIntersectionHandling { get; set; }
-        [Category("Appearance")]
-        public GridLinesVisibility? GridLinesVisibility { get; set; }
-        [Category("Layout")]
-        public int? GridLineMargin { get; set; }
-        [Category("Appearance")]
-        public FillBrush HorizontalGridLineBrush { get; set; }
-        [Category("Appearance")]
-        public FillBrush VerticalGridLineBrush { get; set; }
-
-        [Category("Layout")]
-        public int? RowSpacing { get; set; }
-        [Category("Layout")]
-        public int? ColumnSpacing { get; set; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGrid(Window);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        foreach (var Item in base.GetBindableObjects(Element))
         {
-            MGDesktop Desktop = Element.GetDesktop();
-
-            MGGrid Grid = Element as MGGrid;
-
-            if (RowLengths != null)
-            {
-                Grid.AddRows(ConstrainedGridLength.ParseMultiple(RowLengths));
-            }
-
-            if (ColumnLengths != null)
-            {
-                Grid.AddColumns(ConstrainedGridLength.ParseMultiple(ColumnLengths));
-            }
-
-            foreach (RowDefinition RowDefinition in RowDefinitions)
-            {
-                Containers.Grids.RowDefinition RD = Grid.AddRow(RowDefinition.Length);
-                RD.SetSizeConstraints(RowDefinition.MinHeight, RowDefinition.MaxHeight);
-            }
-
-            foreach (ColumnDefinition ColumnDefinition in ColumnDefinitions)
-            {
-                Containers.Grids.ColumnDefinition CD = Grid.AddColumn(ColumnDefinition.Length);
-                CD.SetSizeConstraints(ColumnDefinition.MinWidth, ColumnDefinition.MaxWidth);
-            }
-
-            if (SelectionMode.HasValue)
-            {
-                Grid.SelectionMode = SelectionMode.Value;
-            }
-
-            if (CanDeselectByClickingSelectedCell.HasValue)
-            {
-                Grid.CanDeselectByClickingSelectedCell = CanDeselectByClickingSelectedCell.Value;
-            }
-
-            if (SelectionBackground != null)
-            {
-                Grid.SelectionBackground = SelectionBackground.ToFillBrush(Desktop, Element);
-            }
-
-            if (SelectionOverlay != null)
-            {
-                Grid.SelectionOverlay = SelectionOverlay.ToFillBrush(Desktop, Element);
-            }
-
-            if (GridLineIntersectionHandling.HasValue)
-            {
-                Grid.GridLineIntersectionHandling = GridLineIntersectionHandling.Value;
-            }
-
-            if (GridLinesVisibility.HasValue)
-            {
-                Grid.GridLinesVisibility = GridLinesVisibility.Value;
-            }
-
-            if (GridLineMargin.HasValue)
-            {
-                Grid.GridLineMargin = GridLineMargin.Value;
-            }
-
-            if (HorizontalGridLineBrush != null)
-            {
-                Grid.HorizontalGridLineBrush = HorizontalGridLineBrush.ToFillBrush(Desktop, Element);
-            }
-
-            if (VerticalGridLineBrush != null)
-            {
-                Grid.VerticalGridLineBrush = VerticalGridLineBrush.ToFillBrush(Desktop, Element);
-            }
-
-            if (RowSpacing.HasValue)
-            {
-                Grid.RowSpacing = RowSpacing.Value;
-            }
-
-            if (ColumnSpacing.HasValue)
-            {
-                Grid.ColumnSpacing = ColumnSpacing.Value;
-            }
-
-            if (IncludeContent && Children.Any())
-            {
-                if (string.IsNullOrEmpty(RowLengths) && RowDefinitions.Count == 0)
-                {
-                    Grid.AddRow(GridLength.Auto);
-                }
-
-                if (string.IsNullOrEmpty(ColumnLengths) && ColumnDefinitions.Count == 0)
-                {
-                    Grid.AddColumn(GridLength.Auto);
-                }
-
-                foreach (Element Child in Children)
-                {
-                    MGElement ChildElement = Child.ToElement<MGElement>(Grid.SelfOrParentWindow, Grid);
-                    Grid.TryAddChild(Child.GridRow, Child.GridColumn, new GridSpan(Child.GridRowSpan, Child.GridColumnSpan, Child.GridAffectsMeasure), ChildElement);
-                }
-            }
+            yield return Item;
         }
 
-        protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
+        if (Element is MGGridSplitter TypedElement)
         {
-            foreach (var Item in base.GetBindableObjects(Element))
+            yield return (Foreground, TypedElement.Foreground?.NormalValue, $"{nameof(MGGridSplitter.Foreground)}.{nameof(VisualStateFillBrush.NormalValue)}");
+        }
+    }
+}
+
+public class Grid : MultiContentHost
+{
+    public override MGElementType ElementType => MGElementType.Grid;
+
+    [Category("Layout")]
+    public string RowLengths { get; set; }
+    [Category("Layout")]
+    public string ColumnLengths { get; set; }
+    [Category("Layout")]
+    public List<RowDefinition> RowDefinitions { get; set; } = new();
+    [Category("Layout")]
+    public List<ColumnDefinition> ColumnDefinitions { get; set; } = new();
+
+    [Category("Behavior")]
+    public GridSelectionMode? SelectionMode { get; set; }
+    [Category("Behavior")]
+    public bool? CanDeselectByClickingSelectedCell { get; set; }
+    [Category("Appearance")]
+    public FillBrush SelectionBackground { get; set; }
+    [Category("Appearance")]
+    public FillBrush SelectionOverlay { get; set; }
+
+    [Category("Appearance")]
+    public GridLineIntersection? GridLineIntersectionHandling { get; set; }
+    [Category("Appearance")]
+    public GridLinesVisibility? GridLinesVisibility { get; set; }
+    [Category("Layout")]
+    public int? GridLineMargin { get; set; }
+    [Category("Appearance")]
+    public FillBrush HorizontalGridLineBrush { get; set; }
+    [Category("Appearance")]
+    public FillBrush VerticalGridLineBrush { get; set; }
+
+    [Category("Layout")]
+    public int? RowSpacing { get; set; }
+    [Category("Layout")]
+    public int? ColumnSpacing { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGGrid(Window);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        MGDesktop Desktop = Element.GetDesktop();
+
+        MGGrid Grid = Element as MGGrid;
+
+        if (RowLengths != null)
+        {
+            Grid.AddRows(ConstrainedGridLength.ParseMultiple(RowLengths));
+        }
+
+        if (ColumnLengths != null)
+        {
+            Grid.AddColumns(ConstrainedGridLength.ParseMultiple(ColumnLengths));
+        }
+
+        foreach (RowDefinition RowDefinition in RowDefinitions)
+        {
+            Containers.Grids.RowDefinition RD = Grid.AddRow(RowDefinition.Length);
+            RD.SetSizeConstraints(RowDefinition.MinHeight, RowDefinition.MaxHeight);
+        }
+
+        foreach (ColumnDefinition ColumnDefinition in ColumnDefinitions)
+        {
+            Containers.Grids.ColumnDefinition CD = Grid.AddColumn(ColumnDefinition.Length);
+            CD.SetSizeConstraints(ColumnDefinition.MinWidth, ColumnDefinition.MaxWidth);
+        }
+
+        if (SelectionMode.HasValue)
+        {
+            Grid.SelectionMode = SelectionMode.Value;
+        }
+
+        if (CanDeselectByClickingSelectedCell.HasValue)
+        {
+            Grid.CanDeselectByClickingSelectedCell = CanDeselectByClickingSelectedCell.Value;
+        }
+
+        if (SelectionBackground != null)
+        {
+            Grid.SelectionBackground = SelectionBackground.ToFillBrush(Desktop, Element);
+        }
+
+        if (SelectionOverlay != null)
+        {
+            Grid.SelectionOverlay = SelectionOverlay.ToFillBrush(Desktop, Element);
+        }
+
+        if (GridLineIntersectionHandling.HasValue)
+        {
+            Grid.GridLineIntersectionHandling = GridLineIntersectionHandling.Value;
+        }
+
+        if (GridLinesVisibility.HasValue)
+        {
+            Grid.GridLinesVisibility = GridLinesVisibility.Value;
+        }
+
+        if (GridLineMargin.HasValue)
+        {
+            Grid.GridLineMargin = GridLineMargin.Value;
+        }
+
+        if (HorizontalGridLineBrush != null)
+        {
+            Grid.HorizontalGridLineBrush = HorizontalGridLineBrush.ToFillBrush(Desktop, Element);
+        }
+
+        if (VerticalGridLineBrush != null)
+        {
+            Grid.VerticalGridLineBrush = VerticalGridLineBrush.ToFillBrush(Desktop, Element);
+        }
+
+        if (RowSpacing.HasValue)
+        {
+            Grid.RowSpacing = RowSpacing.Value;
+        }
+
+        if (ColumnSpacing.HasValue)
+        {
+            Grid.ColumnSpacing = ColumnSpacing.Value;
+        }
+
+        if (IncludeContent && Children.Any())
+        {
+            if (string.IsNullOrEmpty(RowLengths) && RowDefinitions.Count == 0)
             {
-                yield return Item;
+                Grid.AddRow(GridLength.Auto);
             }
 
-            if (Element is MGGrid TypedElement)
+            if (string.IsNullOrEmpty(ColumnLengths) && ColumnDefinitions.Count == 0)
             {
-                yield return (SelectionBackground, TypedElement.SelectionBackground, nameof(MGGrid.SelectionBackground));
-                yield return (SelectionOverlay, TypedElement.SelectionOverlay, nameof(MGGrid.SelectionOverlay));
-                yield return (HorizontalGridLineBrush, TypedElement.HorizontalGridLineBrush, nameof(MGGrid.HorizontalGridLineBrush));
-                yield return (VerticalGridLineBrush, TypedElement.VerticalGridLineBrush, nameof(MGGrid.VerticalGridLineBrush));
+                Grid.AddColumn(GridLength.Auto);
+            }
+
+            foreach (Element Child in Children)
+            {
+                MGElement ChildElement = Child.ToElement<MGElement>(Grid.SelfOrParentWindow, Grid);
+                Grid.TryAddChild(Child.GridRow, Child.GridColumn, new GridSpan(Child.GridRowSpan, Child.GridColumnSpan, Child.GridAffectsMeasure), ChildElement);
             }
         }
     }
 
-    public class UniformGrid : MultiContentHost
+    protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
     {
-        public override MGElementType ElementType => MGElementType.UniformGrid;
-
-        [Category("Layout")]
-        public int? Rows { get; set; }
-        [Category("Layout")]
-        public int? Columns { get; set; }
-
-        [Category("Layout")]
-        public Size? CellSize { get; set; }
-        [Category("Layout")]
-        public int? HeaderRowHeight { get; set; }
-        [Category("Layout")]
-        public int? HeaderColumnWidth { get; set; }
-
-        [Category("Behavior")]
-        public GridSelectionMode? SelectionMode { get; set; }
-        [Category("Behavior")]
-        public bool? CanDeselectByClickingSelectedCell { get; set; }
-        [Category("Appearance")]
-        public FillBrush SelectionBackground { get; set; }
-        [Category("Appearance")]
-        public FillBrush SelectionOverlay { get; set; }
-
-        [Category("Appearance")]
-        public GridLineIntersection? GridLineIntersectionHandling { get; set; }
-        [Category("Appearance")]
-        public GridLinesVisibility? GridLinesVisibility { get; set; }
-        [Category("Layout")]
-        public int? GridLineMargin { get; set; }
-        [Category("Appearance")]
-        public FillBrush HorizontalGridLineBrush { get; set; }
-        [Category("Appearance")]
-        public FillBrush VerticalGridLineBrush { get; set; }
-
-        [Category("Layout")]
-        public int? RowSpacing { get; set; }
-        [Category("Layout")]
-        public int? ColumnSpacing { get; set; }
-
-        [Category("Appearance")]
-        public FillBrush CellBackground { get; set; }
-        [Category("Behavior")]
-        public bool? DrawEmptyCells { get; set; }
-
-        /// <summary>If true, the Row and Column values of each child element will be automatically assigned in order.<para/>
-        /// For example, if there are 2 columns, 3 rows:<br/>
-        /// 1st child will be placed in Row=0,Column=0. 2nd child will be placed in Row=0,Column=1. 3rd child will be placed in Row=1,Column=0 etc.<para/>
-        /// Explicitly setting the child element's row or column to a non-zero value will override this behavior.</summary>
-        [Category("Behavior")]
-        public bool? AutoAssignCells { get; set; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGUniformGrid(Window, Rows ?? 0, Columns ?? 0, CellSize?.ToSize() ?? MonoGame.Extended.Size.Empty);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        foreach (var Item in base.GetBindableObjects(Element))
         {
-            MGDesktop Desktop = Element.GetDesktop();
+            yield return Item;
+        }
 
-            MGUniformGrid Grid = Element as MGUniformGrid;
+        if (Element is MGGrid TypedElement)
+        {
+            yield return (SelectionBackground, TypedElement.SelectionBackground, nameof(MGGrid.SelectionBackground));
+            yield return (SelectionOverlay, TypedElement.SelectionOverlay, nameof(MGGrid.SelectionOverlay));
+            yield return (HorizontalGridLineBrush, TypedElement.HorizontalGridLineBrush, nameof(MGGrid.HorizontalGridLineBrush));
+            yield return (VerticalGridLineBrush, TypedElement.VerticalGridLineBrush, nameof(MGGrid.VerticalGridLineBrush));
+        }
+    }
+}
 
-            if (Rows.HasValue)
+public class UniformGrid : MultiContentHost
+{
+    public override MGElementType ElementType => MGElementType.UniformGrid;
+
+    [Category("Layout")]
+    public int? Rows { get; set; }
+    [Category("Layout")]
+    public int? Columns { get; set; }
+
+    [Category("Layout")]
+    public Size? CellSize { get; set; }
+    [Category("Layout")]
+    public int? HeaderRowHeight { get; set; }
+    [Category("Layout")]
+    public int? HeaderColumnWidth { get; set; }
+
+    [Category("Behavior")]
+    public GridSelectionMode? SelectionMode { get; set; }
+    [Category("Behavior")]
+    public bool? CanDeselectByClickingSelectedCell { get; set; }
+    [Category("Appearance")]
+    public FillBrush SelectionBackground { get; set; }
+    [Category("Appearance")]
+    public FillBrush SelectionOverlay { get; set; }
+
+    [Category("Appearance")]
+    public GridLineIntersection? GridLineIntersectionHandling { get; set; }
+    [Category("Appearance")]
+    public GridLinesVisibility? GridLinesVisibility { get; set; }
+    [Category("Layout")]
+    public int? GridLineMargin { get; set; }
+    [Category("Appearance")]
+    public FillBrush HorizontalGridLineBrush { get; set; }
+    [Category("Appearance")]
+    public FillBrush VerticalGridLineBrush { get; set; }
+
+    [Category("Layout")]
+    public int? RowSpacing { get; set; }
+    [Category("Layout")]
+    public int? ColumnSpacing { get; set; }
+
+    [Category("Appearance")]
+    public FillBrush CellBackground { get; set; }
+    [Category("Behavior")]
+    public bool? DrawEmptyCells { get; set; }
+
+    /// <summary>If true, the Row and Column values of each child element will be automatically assigned in order.<para/>
+    /// For example, if there are 2 columns, 3 rows:<br/>
+    /// 1st child will be placed in Row=0,Column=0. 2nd child will be placed in Row=0,Column=1. 3rd child will be placed in Row=1,Column=0 etc.<para/>
+    /// Explicitly setting the child element's row or column to a non-zero value will override this behavior.</summary>
+    [Category("Behavior")]
+    public bool? AutoAssignCells { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGUniformGrid(Window, Rows ?? 0, Columns ?? 0, CellSize?.ToSize() ?? MonoGame.Extended.Size.Empty);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        MGDesktop Desktop = Element.GetDesktop();
+
+        MGUniformGrid Grid = Element as MGUniformGrid;
+
+        if (Rows.HasValue)
+        {
+            Grid.Rows = Rows.Value;
+        }
+
+        if (Columns.HasValue)
+        {
+            Grid.Columns = Columns.Value;
+        }
+
+        if (CellSize.HasValue)
+        {
+            Grid.CellSize = CellSize.Value.ToSize();
+        }
+
+        if (HeaderRowHeight.HasValue)
+        {
+            Grid.HeaderRowHeight = HeaderRowHeight.Value;
+        }
+
+        if (HeaderColumnWidth.HasValue)
+        {
+            Grid.HeaderColumnWidth = HeaderColumnWidth.Value;
+        }
+
+        if (SelectionMode.HasValue)
+        {
+            Grid.SelectionMode = SelectionMode.Value;
+        }
+
+        if (CanDeselectByClickingSelectedCell.HasValue)
+        {
+            Grid.CanDeselectByClickingSelectedCell = CanDeselectByClickingSelectedCell.Value;
+        }
+
+        if (SelectionBackground != null)
+        {
+            Grid.SelectionBackground = SelectionBackground.ToFillBrush(Desktop, Element);
+        }
+
+        if (SelectionOverlay != null)
+        {
+            Grid.SelectionOverlay = SelectionOverlay.ToFillBrush(Desktop, Element);
+        }
+
+        if (GridLineIntersectionHandling.HasValue)
+        {
+            Grid.GridLineIntersectionHandling = GridLineIntersectionHandling.Value;
+        }
+
+        if (GridLinesVisibility.HasValue)
+        {
+            Grid.GridLinesVisibility = GridLinesVisibility.Value;
+        }
+
+        if (GridLineMargin.HasValue)
+        {
+            Grid.GridLineMargin = GridLineMargin.Value;
+        }
+
+        if (HorizontalGridLineBrush != null)
+        {
+            Grid.HorizontalGridLineBrush = HorizontalGridLineBrush.ToFillBrush(Desktop, Element);
+        }
+
+        if (VerticalGridLineBrush != null)
+        {
+            Grid.VerticalGridLineBrush = VerticalGridLineBrush.ToFillBrush(Desktop, Element);
+        }
+
+        if (RowSpacing.HasValue)
+        {
+            Grid.RowSpacing = RowSpacing.Value;
+        }
+
+        if (ColumnSpacing.HasValue)
+        {
+            Grid.ColumnSpacing = ColumnSpacing.Value;
+        }
+
+        if (CellBackground != null)
+        {
+            Grid.CellBackground.NormalValue = CellBackground.ToFillBrush(Desktop, Element);
+        }
+
+        if (DrawEmptyCells.HasValue)
+        {
+            Grid.DrawEmptyCells = DrawEmptyCells.Value;
+        }
+
+        if (IncludeContent)
+        {
+            //  Try to calculate the length of the other dimension if only the Rows or only the Columns are specified
+            int NumChildren = Children.Count;
+            if (Rows.HasValue && !Columns.HasValue)
             {
+                Columns = (int)Math.Ceiling(NumChildren / (double)Rows.Value);
+                Grid.Columns = Columns.Value;
+            }
+            else if (Columns.HasValue && !Rows.HasValue)
+            {
+                Rows = (int)Math.Ceiling(NumChildren / (double)Columns.Value);
                 Grid.Rows = Rows.Value;
             }
 
-            if (Columns.HasValue)
+            //  Add each child to the grid
+            int Counter = 0;
+            foreach (Element Child in Children)
             {
-                Grid.Columns = Columns.Value;
-            }
+                MGElement ChildElement = Child.ToElement<MGElement>(Grid.SelfOrParentWindow, Grid);
 
-            if (CellSize.HasValue)
-            {
-                Grid.CellSize = CellSize.Value.ToSize();
-            }
-
-            if (HeaderRowHeight.HasValue)
-            {
-                Grid.HeaderRowHeight = HeaderRowHeight.Value;
-            }
-
-            if (HeaderColumnWidth.HasValue)
-            {
-                Grid.HeaderColumnWidth = HeaderColumnWidth.Value;
-            }
-
-            if (SelectionMode.HasValue)
-            {
-                Grid.SelectionMode = SelectionMode.Value;
-            }
-
-            if (CanDeselectByClickingSelectedCell.HasValue)
-            {
-                Grid.CanDeselectByClickingSelectedCell = CanDeselectByClickingSelectedCell.Value;
-            }
-
-            if (SelectionBackground != null)
-            {
-                Grid.SelectionBackground = SelectionBackground.ToFillBrush(Desktop, Element);
-            }
-
-            if (SelectionOverlay != null)
-            {
-                Grid.SelectionOverlay = SelectionOverlay.ToFillBrush(Desktop, Element);
-            }
-
-            if (GridLineIntersectionHandling.HasValue)
-            {
-                Grid.GridLineIntersectionHandling = GridLineIntersectionHandling.Value;
-            }
-
-            if (GridLinesVisibility.HasValue)
-            {
-                Grid.GridLinesVisibility = GridLinesVisibility.Value;
-            }
-
-            if (GridLineMargin.HasValue)
-            {
-                Grid.GridLineMargin = GridLineMargin.Value;
-            }
-
-            if (HorizontalGridLineBrush != null)
-            {
-                Grid.HorizontalGridLineBrush = HorizontalGridLineBrush.ToFillBrush(Desktop, Element);
-            }
-
-            if (VerticalGridLineBrush != null)
-            {
-                Grid.VerticalGridLineBrush = VerticalGridLineBrush.ToFillBrush(Desktop, Element);
-            }
-
-            if (RowSpacing.HasValue)
-            {
-                Grid.RowSpacing = RowSpacing.Value;
-            }
-
-            if (ColumnSpacing.HasValue)
-            {
-                Grid.ColumnSpacing = ColumnSpacing.Value;
-            }
-
-            if (CellBackground != null)
-            {
-                Grid.CellBackground.NormalValue = CellBackground.ToFillBrush(Desktop, Element);
-            }
-
-            if (DrawEmptyCells.HasValue)
-            {
-                Grid.DrawEmptyCells = DrawEmptyCells.Value;
-            }
-
-            if (IncludeContent)
-            {
-                //  Try to calculate the length of the other dimension if only the Rows or only the Columns are specified
-                int NumChildren = Children.Count;
-                if (Rows.HasValue && !Columns.HasValue)
+                int Row = Child.GridRow;
+                int Column = Child.GridColumn;
+                if (AutoAssignCells.HasValue && AutoAssignCells.Value)
                 {
-                    Columns = (int)Math.Ceiling(NumChildren / (double)Rows.Value);
-                    Grid.Columns = Columns.Value;
-                }
-                else if (Columns.HasValue && !Rows.HasValue)
-                {
-                    Rows = (int)Math.Ceiling(NumChildren / (double)Columns.Value);
-                    Grid.Rows = Rows.Value;
-                }
-
-                //  Add each child to the grid
-                int Counter = 0;
-                foreach (Element Child in Children)
-                {
-                    MGElement ChildElement = Child.ToElement<MGElement>(Grid.SelfOrParentWindow, Grid);
-
-                    int Row = Child.GridRow;
-                    int Column = Child.GridColumn;
-                    if (AutoAssignCells.HasValue && AutoAssignCells.Value)
+                    if (Row == 0)
                     {
-                        if (Row == 0)
-                        {
-                            Row = Counter / Grid.Columns;
-                        }
-
-                        if (Column == 0)
-                        {
-                            Column = Counter % Grid.Columns;
-                        }
+                        Row = Counter / Grid.Columns;
                     }
 
-                    Grid.TryAddChild(Row, Column, ChildElement);
-                    Counter++;
+                    if (Column == 0)
+                    {
+                        Column = Counter % Grid.Columns;
+                    }
                 }
-            }
-        }
 
-        protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
-        {
-            foreach (var Item in base.GetBindableObjects(Element))
-            {
-                yield return Item;
-            }
-
-            if (Element is MGUniformGrid TypedElement)
-            {
-                yield return (SelectionBackground, TypedElement.SelectionBackground, nameof(MGUniformGrid.SelectionBackground));
-                yield return (SelectionOverlay, TypedElement.SelectionOverlay, nameof(MGUniformGrid.SelectionOverlay));
-                yield return (HorizontalGridLineBrush, TypedElement.HorizontalGridLineBrush, nameof(MGUniformGrid.HorizontalGridLineBrush));
-                yield return (VerticalGridLineBrush, TypedElement.VerticalGridLineBrush, nameof(MGUniformGrid.VerticalGridLineBrush));
-                yield return (CellBackground, TypedElement.CellBackground?.NormalValue, $"{nameof(MGUniformGrid.CellBackground)}.{nameof(VisualStateFillBrush.NormalValue)}");
+                Grid.TryAddChild(Row, Column, ChildElement);
+                Counter++;
             }
         }
     }
 
-    public class DockPanel : MultiContentHost
+    protected override IEnumerable<(XAMLBindableBase Source, object Target, string TargetPath)> GetBindableObjects(MGElement Element)
     {
-        public override MGElementType ElementType => MGElementType.DockPanel;
-
-        public bool? LastChildFill { get; set; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGDockPanel(Window);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        foreach (var Item in base.GetBindableObjects(Element))
         {
-            MGDockPanel DockPanel = Element as MGDockPanel;
+            yield return Item;
+        }
 
-            if (LastChildFill.HasValue)
-            {
-                DockPanel.LastChildFill = LastChildFill.Value;
-            }
+        if (Element is MGUniformGrid TypedElement)
+        {
+            yield return (SelectionBackground, TypedElement.SelectionBackground, nameof(MGUniformGrid.SelectionBackground));
+            yield return (SelectionOverlay, TypedElement.SelectionOverlay, nameof(MGUniformGrid.SelectionOverlay));
+            yield return (HorizontalGridLineBrush, TypedElement.HorizontalGridLineBrush, nameof(MGUniformGrid.HorizontalGridLineBrush));
+            yield return (VerticalGridLineBrush, TypedElement.VerticalGridLineBrush, nameof(MGUniformGrid.VerticalGridLineBrush));
+            yield return (CellBackground, TypedElement.CellBackground?.NormalValue, $"{nameof(MGUniformGrid.CellBackground)}.{nameof(VisualStateFillBrush.NormalValue)}");
+        }
+    }
+}
 
-            if (IncludeContent)
+public class DockPanel : MultiContentHost
+{
+    public override MGElementType ElementType => MGElementType.DockPanel;
+
+    public bool? LastChildFill { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGDockPanel(Window);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        MGDockPanel DockPanel = Element as MGDockPanel;
+
+        if (LastChildFill.HasValue)
+        {
+            DockPanel.LastChildFill = LastChildFill.Value;
+        }
+
+        if (IncludeContent)
+        {
+            foreach (Element Child in Children)
             {
-                foreach (Element Child in Children)
-                {
-                    MGElement ChildElement = Child.ToElement<MGElement>(DockPanel.ParentWindow, DockPanel);
-                    DockPanel.TryAddChild(ChildElement, Child.Dock);
-                }
+                MGElement ChildElement = Child.ToElement<MGElement>(DockPanel.ParentWindow, DockPanel);
+                DockPanel.TryAddChild(ChildElement, Child.Dock);
             }
         }
     }
+}
 
-    public class StackPanel : MultiContentHost
+public class StackPanel : MultiContentHost
+{
+    public override MGElementType ElementType => MGElementType.StackPanel;
+
+    [Category("Border")]
+    public Border Border { get; set; } = new() { InheritsParentStyles = false };
+
+    [Category("Border")]
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [Browsable(false)]
+    public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
+
+    [Category("Border")]
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [Browsable(false)]
+    public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+    [Category("Layout")]
+    public Orientation? Orientation { get; set; }
+    [Category("Layout")]
+    public int? Spacing { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGStackPanel(Window, Orientation ?? UI.Orientation.Vertical);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        public override MGElementType ElementType => MGElementType.StackPanel;
+        MGStackPanel StackPanel = Element as MGStackPanel;
+        Border.ApplySettings(Parent, StackPanel.BorderComponent.Element, false);
 
-        [Category("Border")]
-        public Border Border { get; set; } = new() { InheritsParentStyles = false };
-
-        [Category("Border")]
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        [Browsable(false)]
-        public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
-
-        [Category("Border")]
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        [Browsable(false)]
-        public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
-
-        [Category("Layout")]
-        public Orientation? Orientation { get; set; }
-        [Category("Layout")]
-        public int? Spacing { get; set; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGStackPanel(Window, Orientation ?? UI.Orientation.Vertical);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (Orientation.HasValue)
         {
-            MGStackPanel StackPanel = Element as MGStackPanel;
-            Border.ApplySettings(Parent, StackPanel.BorderComponent.Element, false);
+            StackPanel.Orientation = Orientation.Value;
+        }
 
-            if (Orientation.HasValue)
-            {
-                StackPanel.Orientation = Orientation.Value;
-            }
+        if (Spacing.HasValue)
+        {
+            StackPanel.Spacing = Spacing.Value;
+        }
 
-            if (Spacing.HasValue)
+        if (IncludeContent)
+        {
+            foreach (Element Child in Children)
             {
-                StackPanel.Spacing = Spacing.Value;
-            }
-
-            if (IncludeContent)
-            {
-                foreach (Element Child in Children)
-                {
-                    MGElement ChildElement = Child.ToElement<MGElement>(StackPanel.ParentWindow, StackPanel);
-                    StackPanel.TryAddChild(ChildElement);
-                }
+                MGElement ChildElement = Child.ToElement<MGElement>(StackPanel.ParentWindow, StackPanel);
+                StackPanel.TryAddChild(ChildElement);
             }
         }
     }
+}
 
-    public class WrapPanel : MultiContentHost
+public class WrapPanel : MultiContentHost
+{
+    public override MGElementType ElementType => MGElementType.WrapPanel;
+
+    [Category("Border")]
+    public Border Border { get; set; } = new() { InheritsParentStyles = false };
+
+    [Category("Border")]
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [Browsable(false)]
+    public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
+
+    [Category("Border")]
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [Browsable(false)]
+    public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+    [Category("Layout")]
+    public Orientation? Orientation { get; set; }
+    [Category("Layout")]
+    public int? Spacing { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGWrapPanel(Window, Orientation ?? UI.Orientation.Horizontal);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        public override MGElementType ElementType => MGElementType.WrapPanel;
+        MGWrapPanel WrapPanel = Element as MGWrapPanel;
+        Border.ApplySettings(Parent, WrapPanel.BorderComponent.Element, false);
 
-        [Category("Border")]
-        public Border Border { get; set; } = new() { InheritsParentStyles = false };
-
-        [Category("Border")]
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        [Browsable(false)]
-        public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
-
-        [Category("Border")]
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        [Browsable(false)]
-        public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
-
-        [Category("Layout")]
-        public Orientation? Orientation { get; set; }
-        [Category("Layout")]
-        public int? Spacing { get; set; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGWrapPanel(Window, Orientation ?? UI.Orientation.Horizontal);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (Orientation.HasValue)
         {
-            MGWrapPanel WrapPanel = Element as MGWrapPanel;
-            Border.ApplySettings(Parent, WrapPanel.BorderComponent.Element, false);
+            WrapPanel.Orientation = Orientation.Value;
+        }
 
-            if (Orientation.HasValue)
-            {
-                WrapPanel.Orientation = Orientation.Value;
-            }
+        if (Spacing.HasValue)
+        {
+            WrapPanel.Spacing = Spacing.Value;
+        }
 
-            if (Spacing.HasValue)
+        if (IncludeContent)
+        {
+            foreach (Element Child in Children)
             {
-                WrapPanel.Spacing = Spacing.Value;
-            }
-
-            if (IncludeContent)
-            {
-                foreach (Element Child in Children)
-                {
-                    MGElement ChildElement = Child.ToElement<MGElement>(WrapPanel.ParentWindow, WrapPanel);
-                    WrapPanel.TryAddChild(ChildElement);
-                }
+                MGElement ChildElement = Child.ToElement<MGElement>(WrapPanel.ParentWindow, WrapPanel);
+                WrapPanel.TryAddChild(ChildElement);
             }
         }
     }
+}
 
-    public class Canvas : MultiContentHost
+public class Canvas : MultiContentHost
+{
+    public override MGElementType ElementType => MGElementType.Canvas;
+
+    [Category("Border")]
+    public Border Border { get; set; } = new() { InheritsParentStyles = false };
+
+    [Category("Border")]
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [Browsable(false)]
+    public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
+
+    [Category("Border")]
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [Browsable(false)]
+    public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGCanvas(Window);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        public override MGElementType ElementType => MGElementType.Canvas;
+        MGCanvas Canvas = Element as MGCanvas;
+        Border.ApplySettings(Parent, Canvas.BorderComponent.Element, false);
 
-        [Category("Border")]
-        public Border Border { get; set; } = new() { InheritsParentStyles = false };
-
-        [Category("Border")]
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public BorderBrush BorderBrush { get => Border.BorderBrush; set => Border.BorderBrush = value; }
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        [Browsable(false)]
-        public BorderBrush BB { get => BorderBrush; set => BorderBrush = value; }
-
-        [Category("Border")]
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Thickness? BorderThickness { get => Border.BorderThickness; set => Border.BorderThickness = value; }
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        [Browsable(false)]
-        public Thickness? BT { get => BorderThickness; set => BorderThickness = value; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGCanvas(Window);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (IncludeContent)
         {
-            MGCanvas Canvas = Element as MGCanvas;
-            Border.ApplySettings(Parent, Canvas.BorderComponent.Element, false);
-
-            if (IncludeContent)
+            foreach (Element Child in Children)
             {
-                foreach (Element Child in Children)
-                {
-                    MGElement ChildElement = Child.ToElement<MGElement>(Canvas.ParentWindow, Canvas);
-                    Canvas.TryAddChild(ChildElement, Child.CanvasLeft, Child.CanvasTop, Child.CanvasRight, Child.CanvasBottom);
-                }
+                MGElement ChildElement = Child.ToElement<MGElement>(Canvas.ParentWindow, Canvas);
+                Canvas.TryAddChild(ChildElement, Child.CanvasLeft, Child.CanvasTop, Child.CanvasRight, Child.CanvasBottom);
             }
         }
     }
+}
 
-    public class OverlayPanel : MultiContentHost
+public class OverlayPanel : MultiContentHost
+{
+    public override MGElementType ElementType => MGElementType.OverlayPanel;
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGOverlayPanel(Window);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        public override MGElementType ElementType => MGElementType.OverlayPanel;
+        MGOverlayPanel OverlayPanel = Element as MGOverlayPanel;
 
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGOverlayPanel(Window);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (IncludeContent)
         {
-            MGOverlayPanel OverlayPanel = Element as MGOverlayPanel;
-
-            if (IncludeContent)
+            foreach (Element Child in Children)
             {
-                foreach (Element Child in Children)
-                {
-                    MGElement ChildElement = Child.ToElement<MGElement>(OverlayPanel.ParentWindow, OverlayPanel);
-                    OverlayPanel.TryAddChild(ChildElement, Child.Offset.ToThickness(), Child.ZIndex);
-                }
+                MGElement ChildElement = Child.ToElement<MGElement>(OverlayPanel.ParentWindow, OverlayPanel);
+                OverlayPanel.TryAddChild(ChildElement, Child.Offset.ToThickness(), Child.ZIndex);
             }
         }
     }
+}
 
-    public class ResponsiveRoot : MultiContentHost
+public class ResponsiveRoot : MultiContentHost
+{
+    public override MGElementType ElementType => MGElementType.OverlayPanel;
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGResponsiveRoot(Window);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        public override MGElementType ElementType => MGElementType.OverlayPanel;
+        MGResponsiveRoot ResponsiveRoot = Element as MGResponsiveRoot;
 
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGResponsiveRoot(Window);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (IncludeContent)
         {
-            MGResponsiveRoot ResponsiveRoot = Element as MGResponsiveRoot;
-
-            if (IncludeContent)
+            foreach (Element Child in Children)
             {
-                foreach (Element Child in Children)
-                {
-                    MGElement ChildElement = Child.ToElement<MGElement>(ResponsiveRoot.ParentWindow, ResponsiveRoot);
-                    ResponsiveRoot.TryAddChild(ChildElement, Child.Offset.ToThickness(), Child.ZIndex);
-                }
+                MGElement ChildElement = Child.ToElement<MGElement>(ResponsiveRoot.ParentWindow, ResponsiveRoot);
+                ResponsiveRoot.TryAddChild(ChildElement, Child.Offset.ToThickness(), Child.ZIndex);
             }
         }
     }

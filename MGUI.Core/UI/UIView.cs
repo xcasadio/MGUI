@@ -1,36 +1,34 @@
-using System;
 using MGUI.Shared.Rendering;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+/// <summary>Runtime view wrapper that attaches an <see cref="MGDesktop"/> to a specific <see cref="IUISurface"/>.</summary>
+public class UIView : IUIView
 {
-    /// <summary>Runtime view wrapper that attaches an <see cref="MGDesktop"/> to a specific <see cref="IUISurface"/>.</summary>
-    public class UIView : IUIView
+    public MGDesktop Desktop { get; }
+    public IUISurface Surface { get; }
+
+    public UIView(MGDesktop Desktop, IUISurface Surface)
     {
-        public MGDesktop Desktop { get; }
-        public IUISurface Surface { get; }
+        this.Desktop = Desktop ?? throw new ArgumentNullException(nameof(Desktop));
+        this.Surface = Surface ?? throw new ArgumentNullException(nameof(Surface));
 
-        public UIView(MGDesktop Desktop, IUISurface Surface)
+        Desktop.AttachView(this);
+    }
+
+    public void Update() => Desktop.Update();
+
+    public void Draw(IUIDrawTransaction DT, float opacity = 1.0f)
+    {
+        if (DT == null)
         {
-            this.Desktop = Desktop ?? throw new ArgumentNullException(nameof(Desktop));
-            this.Surface = Surface ?? throw new ArgumentNullException(nameof(Surface));
-
-            Desktop.AttachView(this);
+            throw new ArgumentNullException(nameof(DT));
         }
 
-        public void Update() => Desktop.Update();
-
-        public void Draw(IUIDrawTransaction DT, float opacity = 1.0f)
+        IUIRenderTarget renderTarget = Surface.GetRenderTarget();
+        using (renderTarget != null ? DT.SetRenderTargetTemporary(renderTarget, null) : null)
         {
-            if (DT == null)
-            {
-                throw new ArgumentNullException(nameof(DT));
-            }
-
-            IUIRenderTarget renderTarget = Surface.GetRenderTarget();
-            using (renderTarget != null ? DT.SetRenderTargetTemporary(renderTarget, null) : null)
-            {
-                Desktop.Draw(DT, opacity);
-            }
+            Desktop.Draw(DT, opacity);
         }
     }
 }

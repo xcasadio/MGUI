@@ -1,7 +1,6 @@
-namespace MGUI.Core.UI.TextEditing
+namespace MGUI.Core.UI.TextEditing;
+
+public interface IRichTextCompletionProvider
 {
-    public interface IRichTextCompletionProvider
-    {
-        MGRichTextCompletionResult GetCompletions(MGRichTextCompletionContext context);
-    }
+    MGRichTextCompletionResult GetCompletions(MGRichTextCompletionContext context);
 }

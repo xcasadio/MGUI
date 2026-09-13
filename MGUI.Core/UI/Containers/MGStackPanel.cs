@@ -1,361 +1,358 @@
 ﻿using MonoGame.Extended;
-using System;
-using System.Collections.Generic;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
 using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 
-namespace MGUI.Core.UI.Containers
+namespace MGUI.Core.UI.Containers;
+
+public class MGStackPanel : MGMultiContentHost
 {
-    public class MGStackPanel : MGMultiContentHost
+    private readonly List<Thickness> _measuredChildSizes = new();
+
+    #region Border
+    /// <summary>Provides direct access to this element's border.</summary>
+    public MGComponent<MGBorder> BorderComponent { get; }
+    private MGBorder BorderElement { get; }
+    public override MGBorder GetBorder() => BorderElement;
+
+    public IBorderBrush BorderBrush
     {
-        private readonly List<Thickness> _measuredChildSizes = new();
+        get => BorderElement.BorderBrush;
+        set => BorderElement.BorderBrush = value;
+    }
 
-        #region Border
-        /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; }
-        private MGBorder BorderElement { get; }
-        public override MGBorder GetBorder() => BorderElement;
+    public Thickness BorderThickness
+    {
+        get => BorderElement.BorderThickness;
+        set => BorderElement.BorderThickness = value;
+    }
 
-        public IBorderBrush BorderBrush
+    public MGCornerRadius CornerRadius
+    {
+        get => BorderElement.CornerRadius;
+        set => BorderElement.CornerRadius = value;
+    }
+    #endregion Border
+
+    private Orientation _Orientation;
+    public Orientation Orientation
+    {
+        get => _Orientation;
+        set
         {
-            get => BorderElement.BorderBrush;
-            set => BorderElement.BorderBrush = value;
-        }
-
-        public Thickness BorderThickness
-        {
-            get => BorderElement.BorderThickness;
-            set => BorderElement.BorderThickness = value;
-        }
-
-        public MGCornerRadius CornerRadius
-        {
-            get => BorderElement.CornerRadius;
-            set => BorderElement.CornerRadius = value;
-        }
-        #endregion Border
-
-        private Orientation _Orientation;
-        public Orientation Orientation
-        {
-            get => _Orientation;
-            set
+            if (_Orientation != value)
             {
-                if (_Orientation != value)
-                {
-                    _Orientation = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(Orientation));
-                }
+                _Orientation = value;
+                LayoutChanged(this, true);
+                NPC(nameof(Orientation));
             }
         }
+    }
 
-        /*private FlowDirection _FlowDirection;
-        public FlowDirection FlowDirection
+    /*private FlowDirection _FlowDirection;
+    public FlowDirection FlowDirection
+    {
+        get => _FlowDirection;
+        set
         {
-            get => _FlowDirection;
-            set
+            if (_FlowDirection != value)
             {
-                if (_FlowDirection != value)
-                {
-                    _FlowDirection = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(FlowDirection));
-                }
-            }
-        }*/
-
-        private int _Spacing;
-        /// <summary>A padding amount, in pixels, between each consecutive non-collapsed child in this <see cref="MGStackPanel"/>.<br/>
-        /// Spacing is ignored between children where <see cref="MGElement.IsVisibilityCollapsed"/> is true.<para/>
-        /// Default value: 0</summary>
-        public int Spacing
-        {
-            get => _Spacing;
-            set
-            {
-                if (_Spacing != value)
-                {
-                    _Spacing = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(Spacing));
-                }
+                _FlowDirection = value;
+                LayoutChanged(this, true);
+                NPC(nameof(FlowDirection));
             }
         }
+    }*/
 
-        /// <summary>The effective spacing used during measure/arrange, after applying <see cref="MGElement.ResponsiveSpacingScaleFactor"/> to <see cref="Spacing"/>.<br/>
-        /// Equals <see cref="Spacing"/> when responsive spacing scaling doesn't apply (e.g. outside a responsive subtree, or at scale factor 1.0).</summary>
-        internal int ResolvedSpacing => ResolveOwnedSpacing(_Spacing);
-
-        /// <returns>True if the given <paramref name="Item"/> was successfully added.<br/>
-        /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
-        public bool TryAddChild(MGElement Item)
+    private int _Spacing;
+    /// <summary>A padding amount, in pixels, between each consecutive non-collapsed child in this <see cref="MGStackPanel"/>.<br/>
+    /// Spacing is ignored between children where <see cref="MGElement.IsVisibilityCollapsed"/> is true.<para/>
+    /// Default value: 0</summary>
+    public int Spacing
+    {
+        get => _Spacing;
+        set
         {
-            if (!CanChangeContent)
+            if (_Spacing != value)
             {
-                return false;
+                _Spacing = value;
+                LayoutChanged(this, true);
+                NPC(nameof(Spacing));
             }
+        }
+    }
 
-            _Children.Add(Item);
+    /// <summary>The effective spacing used during measure/arrange, after applying <see cref="MGElement.ResponsiveSpacingScaleFactor"/> to <see cref="Spacing"/>.<br/>
+    /// Equals <see cref="Spacing"/> when responsive spacing scaling doesn't apply (e.g. outside a responsive subtree, or at scale factor 1.0).</summary>
+    internal int ResolvedSpacing => ResolveOwnedSpacing(_Spacing);
+
+    /// <returns>True if the given <paramref name="Item"/> was successfully added.<br/>
+    /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
+    public bool TryAddChild(MGElement Item)
+    {
+        if (!CanChangeContent)
+        {
+            return false;
+        }
+
+        _Children.Add(Item);
+        return true;
+    }
+
+    /// <returns>True if the given <paramref name="Item"/> was successfully inserted.<br/>
+    /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
+    public bool TryInsertChild(int Index, MGElement Item)
+    {
+        if (!CanChangeContent || Index < 0 || Index > _Children.Count)
+        {
+            return false;
+        }
+
+        if (Index == _Children.Count)
+        {
+            return TryAddChild(Item);
+        }
+        else
+        {
+            _Children.Insert(Index, Item);
             return true;
         }
+    }
 
-        /// <returns>True if the given <paramref name="Item"/> was successfully inserted.<br/>
-        /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
-        public bool TryInsertChild(int Index, MGElement Item)
+    /// <returns>True if the given <paramref name="Item"/> was found in <see cref="MGMultiContentHost.Children"/> and was successfully removed.<br/>
+    /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
+    public bool TryRemoveChild(MGElement Item)
+    {
+        if (!CanChangeContent)
         {
-            if (!CanChangeContent || Index < 0 || Index > _Children.Count)
-            {
-                return false;
-            }
-
-            if (Index == _Children.Count)
-            {
-                return TryAddChild(Item);
-            }
-            else
-            {
-                _Children.Insert(Index, Item);
-                return true;
-            }
+            return false;
         }
 
-        /// <returns>True if the given <paramref name="Item"/> was found in <see cref="MGMultiContentHost.Children"/> and was successfully removed.<br/>
-        /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
-        public bool TryRemoveChild(MGElement Item)
-        {
-            if (!CanChangeContent)
-            {
-                return false;
-            }
+        return _Children.Remove(Item);
+    }
 
-            return _Children.Remove(Item);
+    /// <returns>True if the given <paramref name="Old"/> item was found in <see cref="MGMultiContentHost.Children"/> and was successfully replaced with <paramref name="New"/>.<br/>
+    /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
+    public bool TryReplaceChild(MGElement Old, MGElement New)
+    {
+        if (!CanChangeContent)
+        {
+            return false;
         }
 
-        /// <returns>True if the given <paramref name="Old"/> item was found in <see cref="MGMultiContentHost.Children"/> and was successfully replaced with <paramref name="New"/>.<br/>
-        /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
-        public bool TryReplaceChild(MGElement Old, MGElement New)
+        int Index = _Children.IndexOf(Old);
+        if (Index < 0)
         {
-            if (!CanChangeContent)
-            {
-                return false;
-            }
-
-            int Index = _Children.IndexOf(Old);
-            if (Index < 0)
-            {
-                return false;
-            }
-
-            _Children[Index] = New;
-            return true;
+            return false;
         }
 
-        /// <summary>Removes all elements from every row/column of this grid</summary>
-        public bool TryRemoveAll()
-        {
-            if (!CanChangeContent)
-            {
-                return false;
-            }
+        _Children[Index] = New;
+        return true;
+    }
 
-            _Children.ClearOneByOne();
-            return true;
+    /// <summary>Removes all elements from every row/column of this grid</summary>
+    public bool TryRemoveAll()
+    {
+        if (!CanChangeContent)
+        {
+            return false;
         }
 
-        public MGStackPanel(MGWindow Window, Orientation Orientation)
-            : base(Window, MGElementType.StackPanel)
-        {
-            using (BeginInitializing())
-            {
-                BorderElement = new(Window, 0, null as IFillBrush);
-                BorderComponent = MGComponentBase.Create(BorderElement);
-                AddComponent(BorderComponent);
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+        _Children.ClearOneByOne();
+        return true;
+    }
 
-                this.Orientation = Orientation;
-                //this.FlowDirection = FlowDirection.LeftToRight;
-                Spacing = 0;
+    public MGStackPanel(MGWindow Window, Orientation Orientation)
+        : base(Window, MGElementType.StackPanel)
+    {
+        using (BeginInitializing())
+        {
+            BorderElement = new(Window, 0, null as IFillBrush);
+            BorderComponent = MGComponentBase.Create(BorderElement);
+            AddComponent(BorderComponent);
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+
+            this.Orientation = Orientation;
+            //this.FlowDirection = FlowDirection.LeftToRight;
+            Spacing = 0;
+        }
+    }
+
+    private void EnsureMeasuredChildSizeCapacity(int count)
+    {
+        while (_measuredChildSizes.Count < count)
+        {
+            _measuredChildSizes.Add(default);
+        }
+    }
+
+    private void UpdateChildLayoutIfNeeded(MGElement child, Rectangle childBounds)
+    {
+        if (!child.IsLayoutValid || child.AllocatedBounds != childBounds)
+        {
+            child.UpdateLayout(childBounds);
+        }
+    }
+
+    private Thickness MeasureVerticalChildren(Size availableSize, out int nonCollapsedChildrenCount)
+    {
+        EnsureMeasuredChildSizeCapacity(Children.Count);
+
+        int resolvedSpacing = ResolvedSpacing;
+        Size remainingSize = availableSize;
+        int maxWidth = 0;
+        int totalHeight = 0;
+        nonCollapsedChildrenCount = 0;
+
+        for (int i = 0; i < Children.Count; i++)
+        {
+            MGElement child = Children[i];
+            child.UpdateMeasurement(remainingSize, out _, out Thickness fullSize, out _, out _);
+            _measuredChildSizes[i] = fullSize;
+
+            if (fullSize.Width > maxWidth)
+            {
+                maxWidth = fullSize.Width;
             }
+
+            totalHeight += fullSize.Height;
+
+            if (!child.IsVisibilityCollapsed)
+            {
+                nonCollapsedChildrenCount++;
+            }
+
+            int consumedHeight = fullSize.Height + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
+            remainingSize = remainingSize.Subtract(new Size(0, consumedHeight), 0, 0);
         }
 
-        private void EnsureMeasuredChildSizeCapacity(int count)
+        if (nonCollapsedChildrenCount > 1)
         {
-            while (_measuredChildSizes.Count < count)
-            {
-                _measuredChildSizes.Add(default);
-            }
+            totalHeight += resolvedSpacing * (nonCollapsedChildrenCount - 1);
         }
 
-        private void UpdateChildLayoutIfNeeded(MGElement child, Rectangle childBounds)
+        return new Thickness(maxWidth, totalHeight, 0, 0);
+    }
+
+    private Thickness MeasureHorizontalChildren(Size availableSize, out int nonCollapsedChildrenCount)
+    {
+        EnsureMeasuredChildSizeCapacity(Children.Count);
+
+        int resolvedSpacing = ResolvedSpacing;
+        Size remainingSize = availableSize;
+        int totalWidth = 0;
+        int maxHeight = 0;
+        nonCollapsedChildrenCount = 0;
+
+        for (int i = 0; i < Children.Count; i++)
         {
-            if (!child.IsLayoutValid || child.AllocatedBounds != childBounds)
+            MGElement child = Children[i];
+            child.UpdateMeasurement(remainingSize, out _, out Thickness fullSize, out _, out _);
+            _measuredChildSizes[i] = fullSize;
+
+            totalWidth += fullSize.Width;
+            if (fullSize.Height > maxHeight)
             {
-                child.UpdateLayout(childBounds);
+                maxHeight = fullSize.Height;
             }
+
+            if (!child.IsVisibilityCollapsed)
+            {
+                nonCollapsedChildrenCount++;
+            }
+
+            int consumedWidth = fullSize.Width + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
+            remainingSize = remainingSize.Subtract(new Size(consumedWidth, 0), 0, 0);
         }
 
-        private Thickness MeasureVerticalChildren(Size availableSize, out int nonCollapsedChildrenCount)
+        if (nonCollapsedChildrenCount > 1)
         {
-            EnsureMeasuredChildSizeCapacity(Children.Count);
+            totalWidth += resolvedSpacing * (nonCollapsedChildrenCount - 1);
+        }
 
+        return new Thickness(totalWidth, maxHeight, 0, 0);
+    }
+
+    protected override void UpdateContentLayout(Rectangle Bounds)
+    {
+        if (!HasContent)
+        {
+            return;
+        }
+
+        Size AvailableSize = new(Bounds.Width, Bounds.Height);
+
+        if (Orientation == Orientation.Vertical)
+        {
+            Thickness totalContentSize = MeasureVerticalChildren(AvailableSize, out _);
+
+            //  Account for content alignment
+            int ConsumedWidth = HorizontalContentAlignment == HorizontalAlignment.Stretch ? AvailableSize.Width : Math.Min(AvailableSize.Width, totalContentSize.Width);
+            Size ConsumedContentSize = new(ConsumedWidth, totalContentSize.Height);
+            Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
+
+            //  Allocate space for each child
             int resolvedSpacing = ResolvedSpacing;
-            Size remainingSize = availableSize;
-            int maxWidth = 0;
-            int totalHeight = 0;
-            nonCollapsedChildrenCount = 0;
-
+            int CurrentY = AlignedBounds.Top;
             for (int i = 0; i < Children.Count; i++)
             {
-                MGElement child = Children[i];
-                child.UpdateMeasurement(remainingSize, out _, out Thickness fullSize, out _, out _);
-                _measuredChildSizes[i] = fullSize;
-
-                if (fullSize.Width > maxWidth)
-                {
-                    maxWidth = fullSize.Width;
-                }
-
-                totalHeight += fullSize.Height;
-
-                if (!child.IsVisibilityCollapsed)
-                {
-                    nonCollapsedChildrenCount++;
-                }
-
-                int consumedHeight = fullSize.Height + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
-                remainingSize = remainingSize.Subtract(new Size(0, consumedHeight), 0, 0);
+                MGElement Child = Children[i];
+                int Height = _measuredChildSizes[i].Height;
+                Rectangle ChildBounds = new(AlignedBounds.Left, CurrentY, AlignedBounds.Width, Height);
+                UpdateChildLayoutIfNeeded(Child, ChildBounds);
+                CurrentY += Height + (Child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
             }
-
-            if (nonCollapsedChildrenCount > 1)
-            {
-                totalHeight += resolvedSpacing * (nonCollapsedChildrenCount - 1);
-            }
-
-            return new Thickness(maxWidth, totalHeight, 0, 0);
         }
-
-        private Thickness MeasureHorizontalChildren(Size availableSize, out int nonCollapsedChildrenCount)
+        else if (Orientation == Orientation.Horizontal)
         {
-            EnsureMeasuredChildSizeCapacity(Children.Count);
+            Thickness totalContentSize = MeasureHorizontalChildren(AvailableSize, out _);
 
+            //  Account for content alignment
+            int ConsumedHeight = VerticalContentAlignment == VerticalAlignment.Stretch ? AvailableSize.Height : Math.Min(AvailableSize.Height, totalContentSize.Height);
+            Size ConsumedContentSize = new(totalContentSize.Width, ConsumedHeight);
+            Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
+
+            //  Allocate space for each child
             int resolvedSpacing = ResolvedSpacing;
-            Size remainingSize = availableSize;
-            int totalWidth = 0;
-            int maxHeight = 0;
-            nonCollapsedChildrenCount = 0;
-
+            int CurrentX = AlignedBounds.Left;
             for (int i = 0; i < Children.Count; i++)
             {
-                MGElement child = Children[i];
-                child.UpdateMeasurement(remainingSize, out _, out Thickness fullSize, out _, out _);
-                _measuredChildSizes[i] = fullSize;
-
-                totalWidth += fullSize.Width;
-                if (fullSize.Height > maxHeight)
-                {
-                    maxHeight = fullSize.Height;
-                }
-
-                if (!child.IsVisibilityCollapsed)
-                {
-                    nonCollapsedChildrenCount++;
-                }
-
-                int consumedWidth = fullSize.Width + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
-                remainingSize = remainingSize.Subtract(new Size(consumedWidth, 0), 0, 0);
+                MGElement Child = Children[i];
+                int Width = _measuredChildSizes[i].Width;
+                Rectangle ChildBounds = new(CurrentX, AlignedBounds.Top, Width, AlignedBounds.Height);
+                UpdateChildLayoutIfNeeded(Child, ChildBounds);
+                CurrentX += Width + (Child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
             }
-
-            if (nonCollapsedChildrenCount > 1)
-            {
-                totalWidth += resolvedSpacing * (nonCollapsedChildrenCount - 1);
-            }
-
-            return new Thickness(totalWidth, maxHeight, 0, 0);
         }
-
-        protected override void UpdateContentLayout(Rectangle Bounds)
+        else
         {
-            if (!HasContent)
-            {
-                return;
-            }
+            throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+        }
+    }
 
-            Size AvailableSize = new(Bounds.Width, Bounds.Height);
-
+    protected override Thickness UpdateContentMeasurement(Size AvailableSize)
+    {
+        if (HasContent)
+        {
             if (Orientation == Orientation.Vertical)
             {
-                Thickness totalContentSize = MeasureVerticalChildren(AvailableSize, out _);
-
-                //  Account for content alignment
-                int ConsumedWidth = HorizontalContentAlignment == HorizontalAlignment.Stretch ? AvailableSize.Width : Math.Min(AvailableSize.Width, totalContentSize.Width);
-                Size ConsumedContentSize = new(ConsumedWidth, totalContentSize.Height);
-                Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
-
-                //  Allocate space for each child
-                int resolvedSpacing = ResolvedSpacing;
-                int CurrentY = AlignedBounds.Top;
-                for (int i = 0; i < Children.Count; i++)
-                {
-                    MGElement Child = Children[i];
-                    int Height = _measuredChildSizes[i].Height;
-                    Rectangle ChildBounds = new(AlignedBounds.Left, CurrentY, AlignedBounds.Width, Height);
-                    UpdateChildLayoutIfNeeded(Child, ChildBounds);
-                    CurrentY += Height + (Child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
-                }
+                return MeasureVerticalChildren(AvailableSize, out _);
             }
             else if (Orientation == Orientation.Horizontal)
             {
-                Thickness totalContentSize = MeasureHorizontalChildren(AvailableSize, out _);
-
-                //  Account for content alignment
-                int ConsumedHeight = VerticalContentAlignment == VerticalAlignment.Stretch ? AvailableSize.Height : Math.Min(AvailableSize.Height, totalContentSize.Height);
-                Size ConsumedContentSize = new(totalContentSize.Width, ConsumedHeight);
-                Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
-
-                //  Allocate space for each child
-                int resolvedSpacing = ResolvedSpacing;
-                int CurrentX = AlignedBounds.Left;
-                for (int i = 0; i < Children.Count; i++)
-                {
-                    MGElement Child = Children[i];
-                    int Width = _measuredChildSizes[i].Width;
-                    Rectangle ChildBounds = new(CurrentX, AlignedBounds.Top, Width, AlignedBounds.Height);
-                    UpdateChildLayoutIfNeeded(Child, ChildBounds);
-                    CurrentX += Width + (Child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
-                }
+                return MeasureHorizontalChildren(AvailableSize, out _);
             }
             else
             {
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
             }
         }
-
-        protected override Thickness UpdateContentMeasurement(Size AvailableSize)
+        else
         {
-            if (HasContent)
-            {
-                if (Orientation == Orientation.Vertical)
-                {
-                    return MeasureVerticalChildren(AvailableSize, out _);
-                }
-                else if (Orientation == Orientation.Horizontal)
-                {
-                    return MeasureHorizontalChildren(AvailableSize, out _);
-                }
-                else
-                {
-                    throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
-                }
-            }
-            else
-            {
-                return UpdateContentMeasurementBaseImplementation(AvailableSize);
-            }
+            return UpdateContentMeasurementBaseImplementation(AvailableSize);
         }
     }
 }

@@ -1,117 +1,113 @@
-using System;
-using System.Collections.Generic;
+namespace MGUI.Core.UI.TextEditing;
 
-namespace MGUI.Core.UI.TextEditing
+public sealed class CSharpRichTextSyntaxHighlighter : IRichTextSyntaxHighlighter
 {
-    public sealed class CSharpRichTextSyntaxHighlighter : IRichTextSyntaxHighlighter
+    private static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
     {
-        private static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
-        {
-            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "class", "const", "continue",
-            "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false",
-            "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal",
-            "is", "lock", "long", "namespace", "new", "null", "object", "operator", "out", "override", "params", "private",
-            "protected", "public", "readonly", "record", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc",
-            "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked",
-            "unsafe", "ushort", "using", "virtual", "void", "volatile", "while", "var"
-        };
+        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "class", "const", "continue",
+        "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false",
+        "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal",
+        "is", "lock", "long", "namespace", "new", "null", "object", "operator", "out", "override", "params", "private",
+        "protected", "public", "readonly", "record", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc",
+        "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked",
+        "unsafe", "ushort", "using", "virtual", "void", "volatile", "while", "var"
+    };
 
-        public MGRichTextHighlightResult Highlight(MGRichTextHighlightContext context)
-        {
-            string text = context.Text ?? string.Empty;
-            MGRichTextSyntaxPalette palette = context.Palette ?? MGRichTextSyntaxPalette.Default;
-            List<MGStyledTextSpan> spans = new();
-            int index = 0;
+    public MGRichTextHighlightResult Highlight(MGRichTextHighlightContext context)
+    {
+        string text = context.Text ?? string.Empty;
+        MGRichTextSyntaxPalette palette = context.Palette ?? MGRichTextSyntaxPalette.Default;
+        List<MGStyledTextSpan> spans = new();
+        int index = 0;
 
-            while (index < text.Length)
+        while (index < text.Length)
+        {
+            char character = text[index];
+
+            if (character == '/' && index + 1 < text.Length && text[index + 1] == '/')
             {
-                char character = text[index];
-
-                if (character == '/' && index + 1 < text.Length && text[index + 1] == '/')
+                int startIndex = index;
+                index += 2;
+                while (index < text.Length && text[index] != '\n')
                 {
-                    int startIndex = index;
-                    index += 2;
-                    while (index < text.Length && text[index] != '\n')
-                    {
-                        index++;
-                    }
-
-                    spans.Add(CreateSpan(startIndex, index, palette.Comment, "comment"));
-                    continue;
-                }
-
-                if (character == '"')
-                {
-                    int startIndex = index;
                     index++;
-                    bool isEscaped = false;
-                    while (index < text.Length)
-                    {
-                        char stringCharacter = text[index++];
-                        if (stringCharacter == '"' && !isEscaped)
-                        {
-                            break;
-                        }
-
-                        isEscaped = stringCharacter == '\\' && !isEscaped;
-                        if (stringCharacter != '\\')
-                        {
-                            isEscaped = false;
-                        }
-                    }
-
-                    spans.Add(CreateSpan(startIndex, index, palette.String, "string"));
-                    continue;
                 }
 
-                if (char.IsDigit(character))
-                {
-                    int startIndex = index;
-                    index++;
-                    while (index < text.Length && (char.IsDigit(text[index]) || text[index] == '.'))
-                    {
-                        index++;
-                    }
-
-                    spans.Add(CreateSpan(startIndex, index, palette.Number, "number"));
-                    continue;
-                }
-
-                if (IsIdentifierStart(character))
-                {
-                    int startIndex = index;
-                    index++;
-                    while (index < text.Length && IsIdentifierPart(text[index]))
-                    {
-                        index++;
-                    }
-
-                    string token = text.Substring(startIndex, index - startIndex);
-                    if (Keywords.Contains(token))
-                    {
-                        spans.Add(CreateSpan(startIndex, index, palette.Keyword, "keyword", isBold: true));
-                    }
-                    else if (char.IsUpper(token[0]))
-                    {
-                        spans.Add(CreateSpan(startIndex, index, palette.TypeName, "type"));
-                    }
-
-                    continue;
-                }
-
-                index++;
+                spans.Add(CreateSpan(startIndex, index, palette.Comment, "comment"));
+                continue;
             }
 
-            return new MGRichTextHighlightResult(context.Version, spans);
+            if (character == '"')
+            {
+                int startIndex = index;
+                index++;
+                bool isEscaped = false;
+                while (index < text.Length)
+                {
+                    char stringCharacter = text[index++];
+                    if (stringCharacter == '"' && !isEscaped)
+                    {
+                        break;
+                    }
+
+                    isEscaped = stringCharacter == '\\' && !isEscaped;
+                    if (stringCharacter != '\\')
+                    {
+                        isEscaped = false;
+                    }
+                }
+
+                spans.Add(CreateSpan(startIndex, index, palette.String, "string"));
+                continue;
+            }
+
+            if (char.IsDigit(character))
+            {
+                int startIndex = index;
+                index++;
+                while (index < text.Length && (char.IsDigit(text[index]) || text[index] == '.'))
+                {
+                    index++;
+                }
+
+                spans.Add(CreateSpan(startIndex, index, palette.Number, "number"));
+                continue;
+            }
+
+            if (IsIdentifierStart(character))
+            {
+                int startIndex = index;
+                index++;
+                while (index < text.Length && IsIdentifierPart(text[index]))
+                {
+                    index++;
+                }
+
+                string token = text.Substring(startIndex, index - startIndex);
+                if (Keywords.Contains(token))
+                {
+                    spans.Add(CreateSpan(startIndex, index, palette.Keyword, "keyword", isBold: true));
+                }
+                else if (char.IsUpper(token[0]))
+                {
+                    spans.Add(CreateSpan(startIndex, index, palette.TypeName, "type"));
+                }
+
+                continue;
+            }
+
+            index++;
         }
 
-        private static bool IsIdentifierStart(char character)
-            => char.IsLetter(character) || character == '_';
-
-        private static bool IsIdentifierPart(char character)
-            => char.IsLetterOrDigit(character) || character == '_';
-
-        private static MGStyledTextSpan CreateSpan(int startIndex, int endIndex, Microsoft.Xna.Framework.Color color, string classification, bool isBold = false)
-            => new(new MGTextRange(startIndex, endIndex), new MGRichTextStyle(Foreground: color, IsBold: isBold), classification);
+        return new MGRichTextHighlightResult(context.Version, spans);
     }
+
+    private static bool IsIdentifierStart(char character)
+        => char.IsLetter(character) || character == '_';
+
+    private static bool IsIdentifierPart(char character)
+        => char.IsLetterOrDigit(character) || character == '_';
+
+    private static MGStyledTextSpan CreateSpan(int startIndex, int endIndex, Microsoft.Xna.Framework.Color color, string classification, bool isBold = false)
+        => new(new MGTextRange(startIndex, endIndex), new MGRichTextStyle(Foreground: color, IsBold: isBold), classification);
 }

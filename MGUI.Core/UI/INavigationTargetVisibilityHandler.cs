@@ -1,7 +1,6 @@
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+internal interface INavigationTargetVisibilityHandler
 {
-    internal interface INavigationTargetVisibilityHandler
-    {
-        void EnsureNavigationTargetVisible();
-    }
+    void EnsureNavigationTargetVisible();
 }

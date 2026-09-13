@@ -1,7 +1,6 @@
-namespace MGUI.Core.UI.TextEditing
+namespace MGUI.Core.UI.TextEditing;
+
+public interface IRichTextSyntaxHighlighter
 {
-    public interface IRichTextSyntaxHighlighter
-    {
-        MGRichTextHighlightResult Highlight(MGRichTextHighlightContext context);
-    }
+    MGRichTextHighlightResult Highlight(MGRichTextHighlightContext context);
 }

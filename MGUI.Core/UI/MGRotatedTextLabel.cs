@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
-using System;
 
 namespace MGUI.Core.UI;
 

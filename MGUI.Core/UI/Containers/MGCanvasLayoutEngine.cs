@@ -1,104 +1,102 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
-using System.Collections.Generic;
 
-namespace MGUI.Core.UI.Containers
+namespace MGUI.Core.UI.Containers;
+
+internal readonly record struct CanvasChildMeasurement(int Width, int Height, int? Left = null, int? Top = null, int? Right = null, int? Bottom = null, bool IsCollapsed = false);
+
+internal sealed class CanvasLayoutResult
 {
-    internal readonly record struct CanvasChildMeasurement(int Width, int Height, int? Left = null, int? Top = null, int? Right = null, int? Bottom = null, bool IsCollapsed = false);
+    public Size DesiredSize { get; }
+    public IReadOnlyList<Rectangle> ChildBounds { get; }
 
-    internal sealed class CanvasLayoutResult
+    public CanvasLayoutResult(Size desiredSize, IReadOnlyList<Rectangle> childBounds)
     {
-        public Size DesiredSize { get; }
-        public IReadOnlyList<Rectangle> ChildBounds { get; }
+        DesiredSize = desiredSize;
+        ChildBounds = childBounds;
+    }
+}
 
-        public CanvasLayoutResult(Size desiredSize, IReadOnlyList<Rectangle> childBounds)
+internal static class MGCanvasLayoutEngine
+{
+    public static Size Measure(IReadOnlyList<CanvasChildMeasurement> children)
+    {
+        int width = 0;
+        int height = 0;
+
+        foreach (CanvasChildMeasurement child in children)
         {
-            DesiredSize = desiredSize;
-            ChildBounds = childBounds;
+            if (child.IsCollapsed)
+            {
+                continue;
+            }
+
+            int childLeft = ResolveDesiredOffset(child.Left, child.Right);
+            int childTop = ResolveDesiredOffset(child.Top, child.Bottom);
+            width = System.Math.Max(width, childLeft + child.Width);
+            height = System.Math.Max(height, childTop + child.Height);
+        }
+
+        return new Size(width, height);
+    }
+
+    public static CanvasLayoutResult Arrange(IReadOnlyList<CanvasChildMeasurement> children, Rectangle bounds)
+    {
+        List<Rectangle> childBounds = new(children.Count);
+        ArrangeInto(children, bounds, childBounds);
+
+        return new CanvasLayoutResult(Measure(children), childBounds);
+    }
+
+    public static void ArrangeInto(IReadOnlyList<CanvasChildMeasurement> children, Rectangle bounds, List<Rectangle> childBounds)
+    {
+        childBounds.Clear();
+        for (int i = 0; i < children.Count; i++)
+        {
+            childBounds.Add(Rectangle.Empty);
+        }
+
+        for (int i = 0; i < children.Count; i++)
+        {
+            CanvasChildMeasurement child = children[i];
+            if (child.IsCollapsed)
+            {
+                continue;
+            }
+
+            int x = ResolveArrangeOffset(bounds.Left, bounds.Width, child.Width, child.Left, child.Right);
+            int y = ResolveArrangeOffset(bounds.Top, bounds.Height, child.Height, child.Top, child.Bottom);
+            childBounds[i] = new Rectangle(x, y, child.Width, child.Height);
         }
     }
 
-    internal static class MGCanvasLayoutEngine
+    private static int ResolveDesiredOffset(int? primary, int? secondary)
     {
-        public static Size Measure(IReadOnlyList<CanvasChildMeasurement> children)
+        if (primary.HasValue)
         {
-            int width = 0;
-            int height = 0;
-
-            foreach (CanvasChildMeasurement child in children)
-            {
-                if (child.IsCollapsed)
-                {
-                    continue;
-                }
-
-                int childLeft = ResolveDesiredOffset(child.Left, child.Right);
-                int childTop = ResolveDesiredOffset(child.Top, child.Bottom);
-                width = System.Math.Max(width, childLeft + child.Width);
-                height = System.Math.Max(height, childTop + child.Height);
-            }
-
-            return new Size(width, height);
+            return System.Math.Max(0, primary.Value);
         }
 
-        public static CanvasLayoutResult Arrange(IReadOnlyList<CanvasChildMeasurement> children, Rectangle bounds)
+        if (secondary.HasValue)
         {
-            List<Rectangle> childBounds = new(children.Count);
-            ArrangeInto(children, bounds, childBounds);
-
-            return new CanvasLayoutResult(Measure(children), childBounds);
+            return System.Math.Max(0, secondary.Value);
         }
 
-        public static void ArrangeInto(IReadOnlyList<CanvasChildMeasurement> children, Rectangle bounds, List<Rectangle> childBounds)
+        return 0;
+    }
+
+    private static int ResolveArrangeOffset(int origin, int availableSize, int childSize, int? primary, int? secondary)
+    {
+        if (primary.HasValue)
         {
-            childBounds.Clear();
-            for (int i = 0; i < children.Count; i++)
-            {
-                childBounds.Add(Rectangle.Empty);
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                CanvasChildMeasurement child = children[i];
-                if (child.IsCollapsed)
-                {
-                    continue;
-                }
-
-                int x = ResolveArrangeOffset(bounds.Left, bounds.Width, child.Width, child.Left, child.Right);
-                int y = ResolveArrangeOffset(bounds.Top, bounds.Height, child.Height, child.Top, child.Bottom);
-                childBounds[i] = new Rectangle(x, y, child.Width, child.Height);
-            }
+            return origin + primary.Value;
         }
 
-        private static int ResolveDesiredOffset(int? primary, int? secondary)
+        if (secondary.HasValue)
         {
-            if (primary.HasValue)
-            {
-                return System.Math.Max(0, primary.Value);
-            }
-
-            if (secondary.HasValue)
-            {
-                return System.Math.Max(0, secondary.Value);
-            }
-
-            return 0;
+            return origin + System.Math.Max(0, availableSize - childSize - secondary.Value);
         }
 
-        private static int ResolveArrangeOffset(int origin, int availableSize, int childSize, int? primary, int? secondary)
-        {
-            if (primary.HasValue)
-            {
-                return origin + primary.Value;
-            }
-
-            if (secondary.HasValue)
-            {
-                return origin + System.Math.Max(0, availableSize - childSize - secondary.Value);
-            }
-
-            return origin;
-        }
+        return origin;
     }
 }

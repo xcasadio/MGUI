@@ -1,14 +1,11 @@
-using System;
+namespace MGUI.Core.UI;
 
-namespace MGUI.Core.UI
+public sealed class ColorPickedEventArgs : EventArgs
 {
-    public sealed class ColorPickedEventArgs : EventArgs
-    {
-        public ColorValue Value { get; }
+    public ColorValue Value { get; }
 
-        public ColorPickedEventArgs(ColorValue value)
-        {
-            Value = value;
-        }
+    public ColorPickedEventArgs(ColorValue value)
+    {
+        Value = value;
     }
 }

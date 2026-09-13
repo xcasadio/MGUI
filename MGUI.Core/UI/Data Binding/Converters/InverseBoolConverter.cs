@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Globalization;
 
 #if UseWPF
 using System.Windows.Markup;
@@ -12,35 +7,34 @@ using System.Windows.Data;
 using Portable.Xaml.Markup;
 #endif
 
-namespace MGUI.Core.UI.Data_Binding.Converters
+namespace MGUI.Core.UI.Data_Binding.Converters;
+
+public class InverseBoolConverter : MarkupExtension, IValueConverter
 {
-    public class InverseBoolConverter : MarkupExtension, IValueConverter
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        if (value is bool BoolValue)
         {
-            if (value is bool BoolValue)
-            {
-                return !BoolValue;
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+            return !BoolValue;
         }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        else
         {
-            if (value is bool BoolValue)
-            {
-                return !BoolValue;
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+            throw new NotImplementedException();
         }
-
-        private static readonly InverseBoolConverter Instance = new();
-        public override object ProvideValue(IServiceProvider serviceProvider) => Instance;
     }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool BoolValue)
+        {
+            return !BoolValue;
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    private static readonly InverseBoolConverter Instance = new();
+    public override object ProvideValue(IServiceProvider serviceProvider) => Instance;
 }

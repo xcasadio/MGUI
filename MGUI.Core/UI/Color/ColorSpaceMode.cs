@@ -1,8 +1,7 @@
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public enum ColorSpaceMode
 {
-    public enum ColorSpaceMode
-    {
-        Srgb,
-        Linear
-    }
+    Srgb,
+    Linear
 }

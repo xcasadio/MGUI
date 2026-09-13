@@ -1,5 +1,3 @@
-using System;
-
 namespace MGUI.Core.UI.Docking.Controls;
 
 internal static class DockSplitSizing

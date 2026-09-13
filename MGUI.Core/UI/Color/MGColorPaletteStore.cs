@@ -1,50 +1,49 @@
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public sealed class MGColorPaletteStore
 {
-    public sealed class MGColorPaletteStore
+    public MGColorPalette RecentColors { get; }
+    public MGColorPalette Favorites { get; }
+    public System.Collections.Generic.List<MGColorPalette> ProjectPalettes { get; }
+    public int MaxRecentColors { get; set; } = 16;
+
+    public MGColorPaletteStore()
     {
-        public MGColorPalette RecentColors { get; }
-        public MGColorPalette Favorites { get; }
-        public System.Collections.Generic.List<MGColorPalette> ProjectPalettes { get; }
-        public int MaxRecentColors { get; set; } = 16;
+        RecentColors = new MGColorPalette("Recent");
+        Favorites = new MGColorPalette("Favorites");
+        ProjectPalettes = new System.Collections.Generic.List<MGColorPalette>();
+    }
 
-        public MGColorPaletteStore()
+    public MGColorSwatch AddRecent(ColorValue value, string name = null)
+        => RecentColors.AddOrMoveToFront(name ?? value.ToHex(ColorValueFormat.HexRgba), value, MaxRecentColors);
+
+    public MGColorSwatch AddFavorite(string name, ColorValue value)
+        => Favorites.AddSwatch(name, value);
+
+    public bool RemoveFavorite(MGColorSwatch swatch)
+        => Favorites.RemoveSwatch(swatch);
+
+    public MGColorPalette AddProjectPalette(MGColorPalette palette)
+    {
+        if (palette != null)
         {
-            RecentColors = new MGColorPalette("Recent");
-            Favorites = new MGColorPalette("Favorites");
-            ProjectPalettes = new System.Collections.Generic.List<MGColorPalette>();
+            ProjectPalettes.Add(palette);
         }
 
-        public MGColorSwatch AddRecent(ColorValue value, string name = null)
-            => RecentColors.AddOrMoveToFront(name ?? value.ToHex(ColorValueFormat.HexRgba), value, MaxRecentColors);
+        return palette;
+    }
 
-        public MGColorSwatch AddFavorite(string name, ColorValue value)
-            => Favorites.AddSwatch(name, value);
+    public string ExportPalette(MGColorPalette palette, bool indented = true)
+        => MGColorPaletteSerializer.ToJson(palette, indented);
 
-        public bool RemoveFavorite(MGColorSwatch swatch)
-            => Favorites.RemoveSwatch(swatch);
-
-        public MGColorPalette AddProjectPalette(MGColorPalette palette)
+    public bool TryImportProjectPalette(string json, out MGColorPalette palette, out System.Collections.Generic.IReadOnlyList<string> diagnostics)
+    {
+        bool success = MGColorPaletteSerializer.TryFromJson(json, out palette, out diagnostics);
+        if (success && palette != null)
         {
-            if (palette != null)
-            {
-                ProjectPalettes.Add(palette);
-            }
-
-            return palette;
+            ProjectPalettes.Add(palette);
         }
 
-        public string ExportPalette(MGColorPalette palette, bool indented = true)
-            => MGColorPaletteSerializer.ToJson(palette, indented);
-
-        public bool TryImportProjectPalette(string json, out MGColorPalette palette, out System.Collections.Generic.IReadOnlyList<string> diagnostics)
-        {
-            bool success = MGColorPaletteSerializer.TryFromJson(json, out palette, out diagnostics);
-            if (success && palette != null)
-            {
-                ProjectPalettes.Add(palette);
-            }
-
-            return success;
-        }
+        return success;
     }
 }

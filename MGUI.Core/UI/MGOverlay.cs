@@ -2,583 +2,573 @@
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Shared.Helpers;
-using MGUI.Shared.Input;
-using MGUI.Shared.Input.Mouse;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MGUI.Core.UI.Styling;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+/// <summary>Manages 1 or more <see cref="MGOverlay"/>s, allowing you to define overlay(s) overtop of a piece of content. The overlays span the same bounds and scope as this <see cref="MGOverlayHost"/>.<para/>
+/// Although you could just use an <see cref="MGOverlayPanel"/> to achieve similar results, <see cref="MGOverlay"/>s provides a more convenient and specialized use-case.<br/>
+/// For example, this class can guarantee that no inputs fall-through to content underneath the overlay (<see cref="IsModal"/>=<see langword="true"/>). It also ensures that, if there are multiple overlays
+/// for the same content, at most only 1 of them will be visibile/interactable at a time.</summary>
+public class MGOverlayHost : MGSingleContentHost
 {
-    /// <summary>Manages 1 or more <see cref="MGOverlay"/>s, allowing you to define overlay(s) overtop of a piece of content. The overlays span the same bounds and scope as this <see cref="MGOverlayHost"/>.<para/>
-    /// Although you could just use an <see cref="MGOverlayPanel"/> to achieve similar results, <see cref="MGOverlay"/>s provides a more convenient and specialized use-case.<br/>
-    /// For example, this class can guarantee that no inputs fall-through to content underneath the overlay (<see cref="IsModal"/>=<see langword="true"/>). It also ensures that, if there are multiple overlays
-    /// for the same content, at most only 1 of them will be visibile/interactable at a time.</summary>
-    public class MGOverlayHost : MGSingleContentHost
+    public const string ActiveOverlayPresenterPartName = "PART_ActiveOverlayPresenter";
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private List<MGOverlay> _Overlays { get; } = new();
+    public IReadOnlyList<MGOverlay> Overlays => _Overlays;
+
+    /// <summary>Add a new <see cref="MGOverlay"/> with the given <paramref name="OverlayContent"/> to this <see cref="MGOverlayHost"/>.<para/>
+    /// Note: this does not open the overlay.<br/>See also: <see cref="TryOpen(MGOverlay)"/></summary>
+    /// <param name="OverlayContent">The content to display in the created overlay element.</param>
+    /// <param name="ShowCloseButton">Determines the default value for <see cref="MGOverlay.ShowCloseButton"/> on the created <see cref="MGOverlay"/>.</param>
+    /// <returns>The newly-created overlay.</returns>
+    public MGOverlay AddOverlay(MGElement OverlayContent, bool ShowCloseButton = false)
     {
-        public const string ActiveOverlayPresenterPartName = "PART_ActiveOverlayPresenter";
+        MGOverlay Overlay = new(this, OverlayContent);
+        Overlay.OnZIndexChanged += HandleOverlayZIndexChanged;
+        Overlay.ShowCloseButton = ShowCloseButton;
+        _Overlays.Add(Overlay);
+        InvokeContentAdded(Overlay);
+        UpdateActiveOverlay();
+        return Overlay;
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private List<MGOverlay> _Overlays { get; } = new();
-        public IReadOnlyList<MGOverlay> Overlays => _Overlays;
-
-        /// <summary>Add a new <see cref="MGOverlay"/> with the given <paramref name="OverlayContent"/> to this <see cref="MGOverlayHost"/>.<para/>
-        /// Note: this does not open the overlay.<br/>See also: <see cref="TryOpen(MGOverlay)"/></summary>
-        /// <param name="OverlayContent">The content to display in the created overlay element.</param>
-        /// <param name="ShowCloseButton">Determines the default value for <see cref="MGOverlay.ShowCloseButton"/> on the created <see cref="MGOverlay"/>.</param>
-        /// <returns>The newly-created overlay.</returns>
-        public MGOverlay AddOverlay(MGElement OverlayContent, bool ShowCloseButton = false)
+    /// <returns><see langword="true"/> if the given <paramref name="Overlay"/> was successfully removed.<para/>
+    /// <see langword="false"/> if it could not be removed, either because it was not a valid <see cref="MGOverlay"/> belonging to this <see cref="MGOverlayHost"/>,
+    /// or because it was already opened and closing it was cancelled by <see cref="MGOverlay.OnClosing"/>.</returns>
+    public bool TryRemoveOverlay(MGOverlay Overlay)
+    {
+        if (_Overlays.Contains(Overlay))
         {
-            MGOverlay Overlay = new(this, OverlayContent);
-            Overlay.OnZIndexChanged += HandleOverlayZIndexChanged;
-            Overlay.ShowCloseButton = ShowCloseButton;
-            _Overlays.Add(Overlay);
-            InvokeContentAdded(Overlay);
-            UpdateActiveOverlay();
-            return Overlay;
-        }
-
-        /// <returns><see langword="true"/> if the given <paramref name="Overlay"/> was successfully removed.<para/>
-        /// <see langword="false"/> if it could not be removed, either because it was not a valid <see cref="MGOverlay"/> belonging to this <see cref="MGOverlayHost"/>,
-        /// or because it was already opened and closing it was cancelled by <see cref="MGOverlay.OnClosing"/>.</returns>
-        public bool TryRemoveOverlay(MGOverlay Overlay)
-        {
-            if (_Overlays.Contains(Overlay))
+            bool WasOpen = _OpenOverlays.Contains(Overlay);
+            if (WasOpen)
             {
-                bool WasOpen = _OpenOverlays.Contains(Overlay);
-                if (WasOpen)
+                CancelEventArgs<MGOverlay> ClosingArgs = new(Overlay);
+                Overlay.InvokeOnClosing(ClosingArgs);
+                if (ClosingArgs.Cancel)
                 {
-                    CancelEventArgs<MGOverlay> ClosingArgs = new(Overlay);
-                    Overlay.InvokeOnClosing(ClosingArgs);
-                    if (ClosingArgs.Cancel)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
-
-                Overlay.OnZIndexChanged -= HandleOverlayZIndexChanged;
-                _Overlays.Remove(Overlay);
-                InvokeContentRemoved(Overlay);
-
-                if (WasOpen)
-                {
-                    Overlay.InvokeOnClosed();
-                    Overlay.NPC(nameof(MGOverlay.IsOpen));
-                    UpdateActiveOverlay();
-                }
-
-                return true;
             }
 
-            return false;
-        }
+            Overlay.OnZIndexChanged -= HandleOverlayZIndexChanged;
+            _Overlays.Remove(Overlay);
+            InvokeContentRemoved(Overlay);
 
-        private void HandleOverlayZIndexChanged(object sender, double e)
-        {
-            if (sender is MGOverlay Overlay && _OpenOverlays.Contains(Overlay) && _OpenOverlays.Count > 1)
+            if (WasOpen)
             {
+                Overlay.InvokeOnClosed();
+                Overlay.NPC(nameof(MGOverlay.IsOpen));
                 UpdateActiveOverlay();
             }
-        }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private List<MGOverlay> _OpenOverlays { get; } = new();
-        /// <summary>The overlays that are currently open.<br/>
-        /// Note: If multiple overlays are open, only 1 of them can be visible/interactable at a time.<para/> 
-        /// To open or close an overlay, use:<br/><see cref="TryOpen(MGOverlay)"/><br/><see cref="TryClose(MGOverlay)"/><para/>
-        /// See also: <see cref="ActiveOverlay"/></summary>
-        public IReadOnlyList<MGOverlay> OpenOverlays => _OpenOverlays;
-
-        public bool TryOpen(MGOverlay Overlay)
-        {
-            //  Validate that the overlay belongs to this element
-            if (!_Overlays.Contains(Overlay))
-            {
-                return false;
-            }
-
-            //  Validate that the overlay isn't already open
-            if (_OpenOverlays.Contains(Overlay))
-            {
-                return false;
-            }
-
-            CancelEventArgs<MGOverlay> OpeningArgs = new(Overlay);
-            Overlay.InvokeOnOpening(OpeningArgs);
-            if (OpeningArgs.Cancel)
-            {
-                return false;
-            }
-
-            _OpenOverlays.Add(Overlay);
-            Overlay.InvokeOnOpened();
-            Overlay.NPC(nameof(MGOverlay.IsOpen));
-
-            UpdateActiveOverlay();
             return true;
         }
 
-        public bool TryClose(MGOverlay Overlay)
+        return false;
+    }
+
+    private void HandleOverlayZIndexChanged(object sender, double e)
+    {
+        if (sender is MGOverlay Overlay && _OpenOverlays.Contains(Overlay) && _OpenOverlays.Count > 1)
         {
-            if (!_OpenOverlays.Contains(Overlay))
-            {
-                return false;
-            }
-
-            CancelEventArgs<MGOverlay> ClosingArgs = new(Overlay);
-            Overlay.InvokeOnClosing(ClosingArgs);
-            if (ClosingArgs.Cancel)
-            {
-                return false;
-            }
-
-            _OpenOverlays.Remove(Overlay);
-            Overlay.InvokeOnClosed();
-            Overlay.NPC(nameof(MGOverlay.IsOpen));
-
             UpdateActiveOverlay();
-            return true;
-        }
-
-        private bool _IsModal;
-        /// <summary>If <see langword="true" />, unhandled mouse inputs will not be allowed to fall-through to content underneath the active overlay when an overlay is being displayed.<para/>
-        /// Default value: <see langword="true" /></summary>
-        public bool IsModal
-        {
-            get => _IsModal;
-            set
-            {
-                if (_IsModal != value)
-                {
-                    _IsModal = value;
-                    NPC(nameof(IsModal));
-                }
-            }
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MGOverlay _ActiveOverlay;
-        /// <summary>The currently active overlay, or <see langword="null" /> if no overlays are open.<br/>
-        /// If multiple overlays are open, this is the overlay with the highest <see cref="MGOverlay.ZIndex"/> value.<para/>
-        /// This value is automatically derived from the <see cref="OpenOverlays"/>.<br/>
-        /// To change this value, use:<br/><see cref="TryOpen(MGOverlay)"/><br/><see cref="TryClose(MGOverlay)"/><para/>
-        /// See also: <see cref="OnActiveOverlayChanged"/></summary>
-        public MGOverlay ActiveOverlay => _ActiveOverlay;
-
-        private void SetActiveOverlay(MGOverlay Value)
-        {
-            if (_ActiveOverlay != Value)
-            {
-                MGOverlay PreviousValue = _ActiveOverlay;
-                _ActiveOverlay = Value;
-                NPC(nameof(ActiveOverlay));
-                ActiveOverlayPresenter.SetContent(ActiveOverlay);
-                ActiveOverlayPresenter.Visibility = ActiveOverlay == null ? Visibility.Collapsed : Visibility.Visible;
-                //LayoutChanged(this, true);
-                PreviousValue?.InvokeOnDeactivated();
-                ActiveOverlay?.InvokeOnActivated();
-                OnActiveOverlayChanged?.Invoke(this, new(PreviousValue, ActiveOverlay));
-            }
-        }
-
-        private void UpdateActiveOverlay() => SetActiveOverlay(_OpenOverlays.OrderByDescending(x => x.ZIndex).FirstOrDefault());
-
-        private bool IsPointerOutsideActiveOverlay(Point pointerPosition)
-            => ActiveOverlay != null && !ActiveOverlay.ActualLayoutBounds.Contains(pointerPosition);
-
-        /// <summary>Invoked when <see cref="ActiveOverlay"/> changes to a new value.<para/>
-        /// Note: This event is invoked after <see cref="MGOverlay.OnActivated"/> and <see cref="MGOverlay.OnDeactivated"/>.</summary>
-        public event EventHandler<EventArgs<MGOverlay>> OnActiveOverlayChanged;
-
-        public MGComponent<MGContentPresenter> ActiveOverlayPresenterComponent { get; }
-        /// <summary>The wrapper that renders the <see cref="ActiveOverlay"/>. This element is only visible when there is an overlay being shown.</summary>
-        public MGContentPresenter ActiveOverlayPresenter { get; }
-
-        public MGOverlayHost(MGWindow Window)
-            : base(Window, MGElementType.OverlayHost)
-        {
-            using (BeginInitializing())
-            {
-                _Overlays = new();
-                OverlayBackground = DefaultOverlayBackground.Copy();
-
-                IsModal = true;
-
-                SetPadding(GetTheme().Overlay.HostPadding, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-
-                ActiveOverlayPresenter = new(Window, true);
-                RegisterTemplatePart(ActiveOverlayPresenterPartName, ActiveOverlayPresenter);
-                ActiveOverlayPresenterComponent = new(ActiveOverlayPresenter, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, true,
-                    (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
-                ActiveOverlayPresenter.Visibility = Visibility.Collapsed;
-                AddComponent(ActiveOverlayPresenterComponent);
-
-                //  Ensure all inputs are handled by the overlay presenter so they cannot fall-through to the content when an overlay is active
-                ActiveOverlayPresenter.MouseHandler.PressedInside += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
-                ActiveOverlayPresenter.MouseHandler.ReleasedInside += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
-                ActiveOverlayPresenter.MouseHandler.DragStart += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
-                ActiveOverlayPresenter.MouseHandler.Scrolled += (sender, e) =>
-                {
-                    if (Name == MGDesktop.OverlayName) // MGDesktop.OverlayHost is a special overlay that is rendered over the entire desktop, so it swallows scroll events that occur outside the active overlay
-                    {
-                        TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
-                    }
-                    else if (IsModal && ActiveOverlay != null && Content != null)
-                    {
-                        //  Only swallow the mouse scroll events if the content underneath the overlay is scrollable.
-                        //  This will allow scroll events to continue bubbling up the visual tree if the content under the overlay wasn't scrollable
-                        //  (Such as if the parent of the OverlayHost was wrapped in a ScrollViewer)
-                        bool IsContentScrollable = Content.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Any(x => x.ElementType == MGElementType.ScrollViewer);
-                        if (IsContentScrollable)
-                        {
-                            TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
-                        }
-                    }
-                };
-
-                //  Block keyboard inputs from falling through to content when an overlay is active.
-                //  If the focused keyboard handler belongs to the content behind the overlay (not the overlay itself),
-                //  clear focus so keyboard events do not reach hidden/blocked content.
-                OnBeginUpdate += (sender, e) =>
-                {
-                    if (IsModal && ActiveOverlay != null)
-                    {
-                        bool IsInsideActiveOverlay(MGElement element)
-                        {
-                            if (element == null)
-                            {
-                                return false;
-                            }
-
-                            return element == ActiveOverlayPresenter
-                                || ActiveOverlayPresenter.IsSelfOrAncestorOf(element)
-                                || ActiveOverlay.IsSelfOrAncestorOf(element)
-                                || ActiveOverlayPresenter.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Contains(element);
-                        }
-
-                        MGElement Queued = GetDesktop().QueuedFocusedKeyboardHandler;
-                        if (Queued != null && !IsInsideActiveOverlay(Queued))
-                        {
-                            GetDesktop().ClearQueuedFocusedKeyboardHandler();
-                        }
-
-                        MGElement Focused = GetDesktop().FocusedKeyboardHandler;
-                        if (Focused != null && !IsInsideActiveOverlay(Focused))
-                        {
-                            Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
-                            GetDesktop().ClearFocusedKeyboardHandler();
-                        }
-                    }
-                };
-
-                void TryHandleInputs(Point pointerPosition, Action SetHandled)
-                {
-                    if (IsModal && ActiveOverlay != null && IsPointerOutsideActiveOverlay(pointerPosition))
-                    {
-                        SetHandled();
-                    }
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        protected override IEnumerable<IFillBrush> GetFillBrushes()
-        {
-            foreach (IFillBrush Brush in base.GetFillBrushes())
-            {
-                yield return Brush;
-            }
-
-            yield return OverlayBackground;
-        }
-
-        //Maybe an IsMutuallyExclusive property, which determines if multiple overlays can be active concurrently?
-
-        protected override void SetContentVirtual(MGElement Value)
-        {
-            if (_Content != Value)
-            {
-                MGElement Previous = _Content;
-                base.SetContentVirtual(Value);
-
-                if (Previous != null)
-                {
-                    Previous.OnEndDraw -= Content_OnEndDraw;
-                }
-
-                if (Content != null)
-                {
-                    Content.OnEndDraw += Content_OnEndDraw;
-                }
-
-                void Content_OnEndDraw(object sender, MGElementDrawEventArgs e)
-                {
-                    //  Draw the OverlayBackground overtop of the content, but underneath the active overlay
-                    if (ActiveOverlay != null && OverlayBackground != null)
-                    {
-                        Rectangle BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
-                        Rectangle BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
-                        OverlayBackground.Draw(e.DA, this, BackgroundBounds);
-                    }
-                }
-            }
-        }
-
-        /// <summary>Default value: A solid black brush with 0.35 opacity.</summary>
-        public static IFillBrush DefaultOverlayBackground { get; set; } = Color.Black.AsFillBrush() * 0.35f;
-
-        private IFillBrush _OverlayBackground;
-        /// <summary>A background brush drawn overtop of the content, but underneath the <see cref="ActiveOverlay"/>.<br/>
-        /// Unlike <see cref="MGElement.BackgroundBrush"/>, this brush is only drawn if an overlay is currently being shown.<br/>
-        /// Recommended to use a semi-transparent brush so that the content underneath the overlay is still partially visible.<para/>
-        /// Default value: <see cref="DefaultOverlayBackground"/></summary>
-        public IFillBrush OverlayBackground
-        {
-            get => _OverlayBackground;
-            set
-            {
-                if (_OverlayBackground != value)
-                {
-                    _OverlayBackground = value;
-                    NPC(nameof(OverlayBackground));
-                }
-            }
-        }
-
-        public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
-        {
-            base.DrawBackground(DA, LayoutBounds);
-
-            //  Draw the OverlayBackground
-            //  (Usually the OverlayBackground is rendered after Content.OnEndDraw, but Content could be null which means it wouldn't have been handled in SetContentVirtual)
-            if (Content == null && ActiveOverlay != null && OverlayBackground != null)
-            {
-                Rectangle BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
-                Rectangle BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
-                OverlayBackground.Draw(DA, this, BackgroundBounds);
-            }
-        }
-
-        /*public override IEnumerable<MGElement> GetChildren()
-        {
-            foreach (MGElement Child in base.GetChildren())
-                yield return Child;
-
-            //  The ActiveOverlay is wrapped in an MGComponent so it should already be enumerated
-            if (ActiveOverlay != null)
-                yield return ActiveOverlay;
-        }*/
-
-        public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
-        {
-            IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
-            if (!IncludeInactive)
-            {
-                return baseChildren;
-            }
-
-            List<MGElement> result = new(baseChildren.Count + _Overlays.Count);
-            result.AddRange(baseChildren);
-
-            foreach (MGOverlay InactiveOverlay in _Overlays)
-            {
-                if (InactiveOverlay != ActiveOverlay)
-                {
-                    result.Add(InactiveOverlay);
-                }
-            }
-
-            return result;
         }
     }
 
-    /// <summary>Represents an overlay overtop of a piece of content. To instantiate this class, create an <see cref="MGOverlayHost"/> and call <see cref="MGOverlayHost.AddOverlay(MGElement, bool)"/></summary>
-    public class MGOverlay : MGSingleContentHost
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private List<MGOverlay> _OpenOverlays { get; } = new();
+    /// <summary>The overlays that are currently open.<br/>
+    /// Note: If multiple overlays are open, only 1 of them can be visible/interactable at a time.<para/> 
+    /// To open or close an overlay, use:<br/><see cref="TryOpen(MGOverlay)"/><br/><see cref="TryClose(MGOverlay)"/><para/>
+    /// See also: <see cref="ActiveOverlay"/></summary>
+    public IReadOnlyList<MGOverlay> OpenOverlays => _OpenOverlays;
+
+    public bool TryOpen(MGOverlay Overlay)
     {
-        public const string BorderPartName = "PART_Border";
-        public const string CloseButtonPartName = "PART_CloseButton";
-
-        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        //  Validate that the overlay belongs to this element
+        if (!_Overlays.Contains(Overlay))
         {
-            yield return new(BorderPartName, typeof(MGBorder));
-            yield return new(CloseButtonPartName, typeof(MGButton));
+            return false;
         }
 
-        public MGOverlayHost Host { get; }
-
-        #region Border
-        /// <summary>Provides direct access to this element's border.</summary>
-        public MGComponent<MGBorder> BorderComponent { get; private set; }
-        private MGBorder BorderElement { get; set; }
-        public override MGBorder GetBorder() => BorderElement;
-
-        public IBorderBrush BorderBrush
+        //  Validate that the overlay isn't already open
+        if (_OpenOverlays.Contains(Overlay))
         {
-            get => BorderElement.BorderBrush;
-            set => BorderElement.BorderBrush = value;
+            return false;
         }
 
-        public Thickness BorderThickness
+        CancelEventArgs<MGOverlay> OpeningArgs = new(Overlay);
+        Overlay.InvokeOnOpening(OpeningArgs);
+        if (OpeningArgs.Cancel)
         {
-            get => BorderElement.BorderThickness;
-            set => BorderElement.BorderThickness = value;
+            return false;
         }
 
-        public MGCornerRadius CornerRadius
-        {
-            get => BorderElement.CornerRadius;
-            set => BorderElement.CornerRadius = value;
-        }
-        #endregion Border
+        _OpenOverlays.Add(Overlay);
+        Overlay.InvokeOnOpened();
+        Overlay.NPC(nameof(MGOverlay.IsOpen));
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private double _ZIndex;
-        /// <summary>Only relevant if multiple overlays belonging to the same <see cref="MGOverlayHost"/> are currently open.<br/>
-        /// In that case, the open overlay with the highest <see cref="ZIndex"/> is shown.</summary>
-        public double ZIndex
+        UpdateActiveOverlay();
+        return true;
+    }
+
+    public bool TryClose(MGOverlay Overlay)
+    {
+        if (!_OpenOverlays.Contains(Overlay))
         {
-            get => _ZIndex;
-            set
+            return false;
+        }
+
+        CancelEventArgs<MGOverlay> ClosingArgs = new(Overlay);
+        Overlay.InvokeOnClosing(ClosingArgs);
+        if (ClosingArgs.Cancel)
+        {
+            return false;
+        }
+
+        _OpenOverlays.Remove(Overlay);
+        Overlay.InvokeOnClosed();
+        Overlay.NPC(nameof(MGOverlay.IsOpen));
+
+        UpdateActiveOverlay();
+        return true;
+    }
+
+    private bool _IsModal;
+    /// <summary>If <see langword="true" />, unhandled mouse inputs will not be allowed to fall-through to content underneath the active overlay when an overlay is being displayed.<para/>
+    /// Default value: <see langword="true" /></summary>
+    public bool IsModal
+    {
+        get => _IsModal;
+        set
+        {
+            if (_IsModal != value)
             {
-                if (_ZIndex != value)
-                {
-                    _ZIndex = value;
-                    NPC(nameof(ZIndex));
-                    OnZIndexChanged?.Invoke(this, ZIndex);
-                }
+                _IsModal = value;
+                NPC(nameof(IsModal));
             }
         }
+    }
 
-        internal event EventHandler<double> OnZIndexChanged;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private MGOverlay _ActiveOverlay;
+    /// <summary>The currently active overlay, or <see langword="null" /> if no overlays are open.<br/>
+    /// If multiple overlays are open, this is the overlay with the highest <see cref="MGOverlay.ZIndex"/> value.<para/>
+    /// This value is automatically derived from the <see cref="OpenOverlays"/>.<br/>
+    /// To change this value, use:<br/><see cref="TryOpen(MGOverlay)"/><br/><see cref="TryClose(MGOverlay)"/><para/>
+    /// See also: <see cref="OnActiveOverlayChanged"/></summary>
+    public MGOverlay ActiveOverlay => _ActiveOverlay;
 
-        /// <summary>True if this overlay is currently open.<para/>
-        /// Note: If multiple overlays belonging to the same <see cref="MGOverlayHost"/> are currently open, only the one with the highest <see cref="ZIndex"/> will be shown.</summary>
-        public bool IsOpen
+    private void SetActiveOverlay(MGOverlay Value)
+    {
+        if (_ActiveOverlay != Value)
         {
-            get => Host.OpenOverlays.Contains(this);
-            set
-            {
-                if (IsOpen && !value)
-                {
-                    _ = Host.TryClose(this);
-                }
-                else if (!IsOpen && value)
-                {
-                    _ = Host.TryOpen(this);
-                }
-            }
+            MGOverlay PreviousValue = _ActiveOverlay;
+            _ActiveOverlay = Value;
+            NPC(nameof(ActiveOverlay));
+            ActiveOverlayPresenter.SetContent(ActiveOverlay);
+            ActiveOverlayPresenter.Visibility = ActiveOverlay == null ? Visibility.Collapsed : Visibility.Visible;
+            //LayoutChanged(this, true);
+            PreviousValue?.InvokeOnDeactivated();
+            ActiveOverlay?.InvokeOnActivated();
+            OnActiveOverlayChanged?.Invoke(this, new(PreviousValue, ActiveOverlay));
         }
+    }
 
-        #region Events
-        /// <summary>Invoked just after this <see cref="MGOverlay"/> is opened.<para/>
-        /// If multiple overlays belonging to the same <see cref="MGOverlayHost"/> are open at once, only one of them will actually be visible.<br/>
-        /// You may instead wish to use <see cref="OnActivated"/>.<para/>
-        /// See also:<br/><see cref="OnOpened"/><br/><see cref="OnOpening"/><br/><see cref="OnClosed" /><br/><see cref="OnClosing"/><br/><see cref="OnActivated"/><br/><see cref="OnDeactivated"/></summary>
-        public event EventHandler<MGOverlay> OnOpened;
-        internal void InvokeOnOpened() => OnOpened?.Invoke(this, this);
-        /// <summary>Invoked just before this <see cref="MGOverlay"/> is opened. Cancellable.<para/>
-        /// See also:<br/><see cref="OnOpened"/><br/><see cref="OnOpening"/><br/><see cref="OnClosed" /><br/><see cref="OnClosing"/><br/><see cref="OnActivated"/><br/><see cref="OnDeactivated"/></summary>
-        public event EventHandler<CancelEventArgs<MGOverlay>> OnOpening;
-        internal void InvokeOnOpening(CancelEventArgs<MGOverlay> Args) => OnOpening?.Invoke(this, Args);
+    private void UpdateActiveOverlay() => SetActiveOverlay(_OpenOverlays.OrderByDescending(x => x.ZIndex).FirstOrDefault());
 
-        /// <summary>Invoked just after this <see cref="MGOverlay"/> is closed.<para/>
-        /// If multiple overlays belonging to the same <see cref="MGOverlayHost"/> were open at once, only one of them will actually be visible.<br/>
-        /// You may instead wish to use <see cref="OnDeactivated"/>.<para/>
-        /// See also:<br/><see cref="OnOpened"/><br/><see cref="OnOpening"/><br/><see cref="OnClosed" /><br/><see cref="OnClosing"/><br/><see cref="OnActivated"/><br/><see cref="OnDeactivated"/></summary>
-        public event EventHandler<MGOverlay> OnClosed;
-        internal void InvokeOnClosed() => OnClosed?.Invoke(this, this);
-        /// <summary>Invoked just before this <see cref="MGOverlay"/> is closed. Cancellable.<para/>
-        /// See also:<br/><see cref="OnOpened"/><br/><see cref="OnOpening"/><br/><see cref="OnClosed" /><br/><see cref="OnClosing"/><br/><see cref="OnActivated"/><br/><see cref="OnDeactivated"/></summary>
-        public event EventHandler<CancelEventArgs<MGOverlay>> OnClosing;
-        internal void InvokeOnClosing(CancelEventArgs<MGOverlay> Args) => OnClosing?.Invoke(this, Args);
+    private bool IsPointerOutsideActiveOverlay(Point pointerPosition)
+        => ActiveOverlay != null && !ActiveOverlay.ActualLayoutBounds.Contains(pointerPosition);
 
-        /// <summary>Invoked just after this <see cref="MGOverlay"/> is set as the visible active overlay.<para/>
-        /// See also: <see cref="MGOverlayHost.ActiveOverlay"/></summary>
-        public event EventHandler<MGOverlay> OnActivated;
-        internal void InvokeOnActivated() => OnActivated?.Invoke(this, this);
-        /// <summary>Invoked just after this <see cref="MGOverlay"/> is unset as the visible active overlay.<para/>
-        /// See also: <see cref="MGOverlayHost.ActiveOverlay"/></summary>
-        public event EventHandler<MGOverlay> OnDeactivated;
-        internal void InvokeOnDeactivated() => OnDeactivated?.Invoke(this, this);
-        #endregion Events
+    /// <summary>Invoked when <see cref="ActiveOverlay"/> changes to a new value.<para/>
+    /// Note: This event is invoked after <see cref="MGOverlay.OnActivated"/> and <see cref="MGOverlay.OnDeactivated"/>.</summary>
+    public event EventHandler<EventArgs<MGOverlay>> OnActiveOverlayChanged;
 
-        public MGComponent<MGButton> CloseButtonComponent { get; private set; }
-        /// <summary>Only visible if <see cref="ShowCloseButton"/> is <see langword="true" />.<para/>
-        /// By default, this is placed in the top-right corner and shares its consumed space with the overlay content.<br/>
-        /// (Meaning this button might be rendered overtop of other overlay content. You may wish to add a top and/or right <see cref="MGElement.Padding"/> to your overlay content to avoid overlaps with the close button).</summary>
-        public MGButton CloseButton { get; private set; }
+    public MGComponent<MGContentPresenter> ActiveOverlayPresenterComponent { get; }
+    /// <summary>The wrapper that renders the <see cref="ActiveOverlay"/>. This element is only visible when there is an overlay being shown.</summary>
+    public MGContentPresenter ActiveOverlayPresenter { get; }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _ShowCloseButton;
-
-        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    public MGOverlayHost(MGWindow Window)
+        : base(Window, MGElementType.OverlayHost)
+    {
+        using (BeginInitializing())
         {
-            BorderElement = Structure.Parts[BorderPartName] as MGBorder;
-            CloseButton = Structure.Parts[CloseButtonPartName] as MGButton;
+            _Overlays = new();
+            OverlayBackground = DefaultOverlayBackground.Copy();
 
-            bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
-            EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
-            if (needsBorderNotifications)
+            IsModal = true;
+
+            SetPadding(GetTheme().Overlay.HostPadding, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+
+            ActiveOverlayPresenter = new(Window, true);
+            RegisterTemplatePart(ActiveOverlayPresenterPartName, ActiveOverlayPresenter);
+            ActiveOverlayPresenterComponent = new(ActiveOverlayPresenter, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, true,
+                (AvailableBounds, ComponentSize) => AvailableBounds.GetCompressed(Padding));
+            ActiveOverlayPresenter.Visibility = Visibility.Collapsed;
+            AddComponent(ActiveOverlayPresenterComponent);
+
+            //  Ensure all inputs are handled by the overlay presenter so they cannot fall-through to the content when an overlay is active
+            ActiveOverlayPresenter.MouseHandler.PressedInside += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
+            ActiveOverlayPresenter.MouseHandler.ReleasedInside += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
+            ActiveOverlayPresenter.MouseHandler.DragStart += (sender, e) => TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
+            ActiveOverlayPresenter.MouseHandler.Scrolled += (sender, e) =>
             {
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
-            }
-
-            EnsureComponentBinding(() => CloseButtonComponent, value => CloseButtonComponent = value, CloseButton,
-                element => new(element, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, false,
-                    (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Top, ComponentSize.Size)));
-
-            ShowCloseButton = _ShowCloseButton;
-        }
-
-        /// <summary><see langword="true"/> if the <see cref="CloseButton"/> should be displayed in the top-right corner.<para/>
-        /// Default value: <see langword="false"/></summary>
-        public bool ShowCloseButton
-        {
-            get => CloseButton?.Visibility == Visibility.Visible || (CloseButton == null && _ShowCloseButton);
-            set
-            {
-                if (_ShowCloseButton != value)
+                if (Name == MGDesktop.OverlayName) // MGDesktop.OverlayHost is a special overlay that is rendered over the entire desktop, so it swallows scroll events that occur outside the active overlay
                 {
-                    _ShowCloseButton = value;
-                    if (CloseButton != null)
+                    TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
+                }
+                else if (IsModal && ActiveOverlay != null && Content != null)
+                {
+                    //  Only swallow the mouse scroll events if the content underneath the overlay is scrollable.
+                    //  This will allow scroll events to continue bubbling up the visual tree if the content under the overlay wasn't scrollable
+                    //  (Such as if the parent of the OverlayHost was wrapped in a ScrollViewer)
+                    bool IsContentScrollable = Content.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Any(x => x.ElementType == MGElementType.ScrollViewer);
+                    if (IsContentScrollable)
                     {
-                        CloseButton.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                        TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
                     }
-                    NPC(nameof(ShowCloseButton));
                 }
-                else if (CloseButton != null)
+            };
+
+            //  Block keyboard inputs from falling through to content when an overlay is active.
+            //  If the focused keyboard handler belongs to the content behind the overlay (not the overlay itself),
+            //  clear focus so keyboard events do not reach hidden/blocked content.
+            OnBeginUpdate += (sender, e) =>
+            {
+                if (IsModal && ActiveOverlay != null)
+                {
+                    bool IsInsideActiveOverlay(MGElement element)
+                    {
+                        if (element == null)
+                        {
+                            return false;
+                        }
+
+                        return element == ActiveOverlayPresenter
+                               || ActiveOverlayPresenter.IsSelfOrAncestorOf(element)
+                               || ActiveOverlay.IsSelfOrAncestorOf(element)
+                               || ActiveOverlayPresenter.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Contains(element);
+                    }
+
+                    MGElement Queued = GetDesktop().QueuedFocusedKeyboardHandler;
+                    if (Queued != null && !IsInsideActiveOverlay(Queued))
+                    {
+                        GetDesktop().ClearQueuedFocusedKeyboardHandler();
+                    }
+
+                    MGElement Focused = GetDesktop().FocusedKeyboardHandler;
+                    if (Focused != null && !IsInsideActiveOverlay(Focused))
+                    {
+                        Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
+                        GetDesktop().ClearFocusedKeyboardHandler();
+                    }
+                }
+            };
+
+            void TryHandleInputs(Point pointerPosition, Action SetHandled)
+            {
+                if (IsModal && ActiveOverlay != null && IsPointerOutsideActiveOverlay(pointerPosition))
+                {
+                    SetHandled();
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    {
+        foreach (IFillBrush Brush in base.GetFillBrushes())
+        {
+            yield return Brush;
+        }
+
+        yield return OverlayBackground;
+    }
+
+    //Maybe an IsMutuallyExclusive property, which determines if multiple overlays can be active concurrently?
+
+    protected override void SetContentVirtual(MGElement Value)
+    {
+        if (_Content != Value)
+        {
+            MGElement Previous = _Content;
+            base.SetContentVirtual(Value);
+
+            if (Previous != null)
+            {
+                Previous.OnEndDraw -= Content_OnEndDraw;
+            }
+
+            if (Content != null)
+            {
+                Content.OnEndDraw += Content_OnEndDraw;
+            }
+
+            void Content_OnEndDraw(object sender, MGElementDrawEventArgs e)
+            {
+                //  Draw the OverlayBackground overtop of the content, but underneath the active overlay
+                if (ActiveOverlay != null && OverlayBackground != null)
+                {
+                    Rectangle BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
+                    Rectangle BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
+                    OverlayBackground.Draw(e.DA, this, BackgroundBounds);
+                }
+            }
+        }
+    }
+
+    /// <summary>Default value: A solid black brush with 0.35 opacity.</summary>
+    public static IFillBrush DefaultOverlayBackground { get; set; } = Color.Black.AsFillBrush() * 0.35f;
+
+    private IFillBrush _OverlayBackground;
+    /// <summary>A background brush drawn overtop of the content, but underneath the <see cref="ActiveOverlay"/>.<br/>
+    /// Unlike <see cref="MGElement.BackgroundBrush"/>, this brush is only drawn if an overlay is currently being shown.<br/>
+    /// Recommended to use a semi-transparent brush so that the content underneath the overlay is still partially visible.<para/>
+    /// Default value: <see cref="DefaultOverlayBackground"/></summary>
+    public IFillBrush OverlayBackground
+    {
+        get => _OverlayBackground;
+        set
+        {
+            if (_OverlayBackground != value)
+            {
+                _OverlayBackground = value;
+                NPC(nameof(OverlayBackground));
+            }
+        }
+    }
+
+    public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
+    {
+        base.DrawBackground(DA, LayoutBounds);
+
+        //  Draw the OverlayBackground
+        //  (Usually the OverlayBackground is rendered after Content.OnEndDraw, but Content could be null which means it wouldn't have been handled in SetContentVirtual)
+        if (Content == null && ActiveOverlay != null && OverlayBackground != null)
+        {
+            Rectangle BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
+            Rectangle BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
+            OverlayBackground.Draw(DA, this, BackgroundBounds);
+        }
+    }
+
+    /*public override IEnumerable<MGElement> GetChildren()
+    {
+        foreach (MGElement Child in base.GetChildren())
+            yield return Child;
+
+        //  The ActiveOverlay is wrapped in an MGComponent so it should already be enumerated
+        if (ActiveOverlay != null)
+            yield return ActiveOverlay;
+    }*/
+
+    public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
+    {
+        IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
+        if (!IncludeInactive)
+        {
+            return baseChildren;
+        }
+
+        List<MGElement> result = new(baseChildren.Count + _Overlays.Count);
+        result.AddRange(baseChildren);
+
+        foreach (MGOverlay InactiveOverlay in _Overlays)
+        {
+            if (InactiveOverlay != ActiveOverlay)
+            {
+                result.Add(InactiveOverlay);
+            }
+        }
+
+        return result;
+    }
+}
+
+/// <summary>Represents an overlay overtop of a piece of content. To instantiate this class, create an <see cref="MGOverlayHost"/> and call <see cref="MGOverlayHost.AddOverlay(MGElement, bool)"/></summary>
+public class MGOverlay : MGSingleContentHost
+{
+    public const string BorderPartName = "PART_Border";
+    public const string CloseButtonPartName = "PART_CloseButton";
+
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    {
+        yield return new(BorderPartName, typeof(MGBorder));
+        yield return new(CloseButtonPartName, typeof(MGButton));
+    }
+
+    public MGOverlayHost Host { get; }
+
+    #region Border
+    /// <summary>Provides direct access to this element's border.</summary>
+    public MGComponent<MGBorder> BorderComponent { get; private set; }
+    private MGBorder BorderElement { get; set; }
+    public override MGBorder GetBorder() => BorderElement;
+
+    public IBorderBrush BorderBrush
+    {
+        get => BorderElement.BorderBrush;
+        set => BorderElement.BorderBrush = value;
+    }
+
+    public Thickness BorderThickness
+    {
+        get => BorderElement.BorderThickness;
+        set => BorderElement.BorderThickness = value;
+    }
+
+    public MGCornerRadius CornerRadius
+    {
+        get => BorderElement.CornerRadius;
+        set => BorderElement.CornerRadius = value;
+    }
+    #endregion Border
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private double _ZIndex;
+    /// <summary>Only relevant if multiple overlays belonging to the same <see cref="MGOverlayHost"/> are currently open.<br/>
+    /// In that case, the open overlay with the highest <see cref="ZIndex"/> is shown.</summary>
+    public double ZIndex
+    {
+        get => _ZIndex;
+        set
+        {
+            if (_ZIndex != value)
+            {
+                _ZIndex = value;
+                NPC(nameof(ZIndex));
+                OnZIndexChanged?.Invoke(this, ZIndex);
+            }
+        }
+    }
+
+    internal event EventHandler<double> OnZIndexChanged;
+
+    /// <summary>True if this overlay is currently open.<para/>
+    /// Note: If multiple overlays belonging to the same <see cref="MGOverlayHost"/> are currently open, only the one with the highest <see cref="ZIndex"/> will be shown.</summary>
+    public bool IsOpen
+    {
+        get => Host.OpenOverlays.Contains(this);
+        set
+        {
+            if (IsOpen && !value)
+            {
+                _ = Host.TryClose(this);
+            }
+            else if (!IsOpen && value)
+            {
+                _ = Host.TryOpen(this);
+            }
+        }
+    }
+
+    #region Events
+    /// <summary>Invoked just after this <see cref="MGOverlay"/> is opened.<para/>
+    /// If multiple overlays belonging to the same <see cref="MGOverlayHost"/> are open at once, only one of them will actually be visible.<br/>
+    /// You may instead wish to use <see cref="OnActivated"/>.<para/>
+    /// See also:<br/><see cref="OnOpened"/><br/><see cref="OnOpening"/><br/><see cref="OnClosed" /><br/><see cref="OnClosing"/><br/><see cref="OnActivated"/><br/><see cref="OnDeactivated"/></summary>
+    public event EventHandler<MGOverlay> OnOpened;
+    internal void InvokeOnOpened() => OnOpened?.Invoke(this, this);
+    /// <summary>Invoked just before this <see cref="MGOverlay"/> is opened. Cancellable.<para/>
+    /// See also:<br/><see cref="OnOpened"/><br/><see cref="OnOpening"/><br/><see cref="OnClosed" /><br/><see cref="OnClosing"/><br/><see cref="OnActivated"/><br/><see cref="OnDeactivated"/></summary>
+    public event EventHandler<CancelEventArgs<MGOverlay>> OnOpening;
+    internal void InvokeOnOpening(CancelEventArgs<MGOverlay> Args) => OnOpening?.Invoke(this, Args);
+
+    /// <summary>Invoked just after this <see cref="MGOverlay"/> is closed.<para/>
+    /// If multiple overlays belonging to the same <see cref="MGOverlayHost"/> were open at once, only one of them will actually be visible.<br/>
+    /// You may instead wish to use <see cref="OnDeactivated"/>.<para/>
+    /// See also:<br/><see cref="OnOpened"/><br/><see cref="OnOpening"/><br/><see cref="OnClosed" /><br/><see cref="OnClosing"/><br/><see cref="OnActivated"/><br/><see cref="OnDeactivated"/></summary>
+    public event EventHandler<MGOverlay> OnClosed;
+    internal void InvokeOnClosed() => OnClosed?.Invoke(this, this);
+    /// <summary>Invoked just before this <see cref="MGOverlay"/> is closed. Cancellable.<para/>
+    /// See also:<br/><see cref="OnOpened"/><br/><see cref="OnOpening"/><br/><see cref="OnClosed" /><br/><see cref="OnClosing"/><br/><see cref="OnActivated"/><br/><see cref="OnDeactivated"/></summary>
+    public event EventHandler<CancelEventArgs<MGOverlay>> OnClosing;
+    internal void InvokeOnClosing(CancelEventArgs<MGOverlay> Args) => OnClosing?.Invoke(this, Args);
+
+    /// <summary>Invoked just after this <see cref="MGOverlay"/> is set as the visible active overlay.<para/>
+    /// See also: <see cref="MGOverlayHost.ActiveOverlay"/></summary>
+    public event EventHandler<MGOverlay> OnActivated;
+    internal void InvokeOnActivated() => OnActivated?.Invoke(this, this);
+    /// <summary>Invoked just after this <see cref="MGOverlay"/> is unset as the visible active overlay.<para/>
+    /// See also: <see cref="MGOverlayHost.ActiveOverlay"/></summary>
+    public event EventHandler<MGOverlay> OnDeactivated;
+    internal void InvokeOnDeactivated() => OnDeactivated?.Invoke(this, this);
+    #endregion Events
+
+    public MGComponent<MGButton> CloseButtonComponent { get; private set; }
+    /// <summary>Only visible if <see cref="ShowCloseButton"/> is <see langword="true" />.<para/>
+    /// By default, this is placed in the top-right corner and shares its consumed space with the overlay content.<br/>
+    /// (Meaning this button might be rendered overtop of other overlay content. You may wish to add a top and/or right <see cref="MGElement.Padding"/> to your overlay content to avoid overlaps with the close button).</summary>
+    public MGButton CloseButton { get; private set; }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _ShowCloseButton;
+
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        BorderElement = Structure.Parts[BorderPartName] as MGBorder;
+        CloseButton = Structure.Parts[CloseButtonPartName] as MGButton;
+
+        bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+        EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
+        if (needsBorderNotifications)
+        {
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+        }
+
+        EnsureComponentBinding(() => CloseButtonComponent, value => CloseButtonComponent = value, CloseButton,
+            element => new(element, ComponentUpdatePriority.BeforeContents, ComponentDrawPriority.AfterContents, true, true, true, true, false, false, false,
+                (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Top, ComponentSize.Size)));
+
+        ShowCloseButton = _ShowCloseButton;
+    }
+
+    /// <summary><see langword="true"/> if the <see cref="CloseButton"/> should be displayed in the top-right corner.<para/>
+    /// Default value: <see langword="false"/></summary>
+    public bool ShowCloseButton
+    {
+        get => CloseButton?.Visibility == Visibility.Visible || (CloseButton == null && _ShowCloseButton);
+        set
+        {
+            if (_ShowCloseButton != value)
+            {
+                _ShowCloseButton = value;
+                if (CloseButton != null)
                 {
                     CloseButton.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
                 }
+                NPC(nameof(ShowCloseButton));
+            }
+            else if (CloseButton != null)
+            {
+                CloseButton.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
             }
         }
+    }
 
-        /// <summary>To instantiate an <see cref="MGOverlay"/>, use <see cref="MGOverlayHost.AddOverlay(MGElement, bool)"/></summary>
-        internal MGOverlay(MGOverlayHost Host, MGElement Content)
-            : base(Host.ParentWindow, MGElementType.Overlay)
+    /// <summary>To instantiate an <see cref="MGOverlay"/>, use <see cref="MGOverlayHost.AddOverlay(MGElement, bool)"/></summary>
+    internal MGOverlay(MGOverlayHost Host, MGElement Content)
+        : base(Host.ParentWindow, MGElementType.Overlay)
+    {
+        using (BeginInitializing())
         {
-            using (BeginInitializing())
-            {
-                this.Host = Host;
-                SetContent(Content);
-                SetParent(Host);
+            this.Host = Host;
+            SetContent(Content);
+            SetParent(Host);
 
-                HorizontalAlignment = HorizontalAlignment.Center;
-                VerticalAlignment = VerticalAlignment.Center;
+            HorizontalAlignment = HorizontalAlignment.Center;
+            VerticalAlignment = VerticalAlignment.Center;
 
-                ShowCloseButton = false;
-                DefaultControlTemplateName = MGControlTemplateCatalog.OverlayTemplateName;
-            }
+            ShowCloseButton = false;
+            DefaultControlTemplateName = MGControlTemplateCatalog.OverlayTemplateName;
         }
     }
 }

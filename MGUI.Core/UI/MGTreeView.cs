@@ -1,945 +1,939 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Shared.Input.Keyboard;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Linq;
 using MGUI.Core.UI.Styling;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+/// <summary>
+/// Represents a control that displays hierarchical data in a tree structure with expandable and collapsible nodes.
+/// </summary>
+public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandler
 {
-    /// <summary>
-    /// Represents a control that displays hierarchical data in a tree structure with expandable and collapsible nodes.
-    /// </summary>
-    public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandler
+    public const string OuterBorderPartName = "PART_OuterBorder";
+    public const string ScrollViewerPartName = "PART_ScrollViewer";
+    public const string ItemsPanelPartName = "PART_ItemsPanel";
+
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
     {
-        public const string OuterBorderPartName = "PART_OuterBorder";
-        public const string ScrollViewerPartName = "PART_ScrollViewer";
-        public const string ItemsPanelPartName = "PART_ItemsPanel";
+        yield return new(OuterBorderPartName, typeof(MGBorder));
+        yield return new(ScrollViewerPartName, typeof(MGScrollViewer));
+        yield return new(ItemsPanelPartName, typeof(MGStackPanel));
+    }
 
-        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    internal static int GetNextVisibleNavigationIndex(int currentIndex, int count, UINavigationAction action)
+    {
+        if (count <= 0)
         {
-            yield return new(OuterBorderPartName, typeof(MGBorder));
-            yield return new(ScrollViewerPartName, typeof(MGScrollViewer));
-            yield return new(ItemsPanelPartName, typeof(MGStackPanel));
+            return -1;
         }
 
-        internal static int GetNextVisibleNavigationIndex(int currentIndex, int count, UINavigationAction action)
+        int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+        return action switch
         {
-            if (count <= 0)
-            {
-                return -1;
-            }
+            UINavigationAction.MoveUp => Math.Max(0, normalizedIndex - 1),
+            UINavigationAction.MoveDown => Math.Min(count - 1, normalizedIndex + 1),
+            UINavigationAction.Home => 0,
+            UINavigationAction.End => count - 1,
+            _ => normalizedIndex
+        };
+    }
 
-            int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
-            return action switch
-            {
-                UINavigationAction.MoveUp => Math.Max(0, normalizedIndex - 1),
-                UINavigationAction.MoveDown => Math.Min(count - 1, normalizedIndex + 1),
-                UINavigationAction.Home => 0,
-                UINavigationAction.End => count - 1,
-                _ => normalizedIndex
-            };
-        }
+    private readonly ObservableCollection<MGTreeViewItem> _Items;
+    private MGTreeViewItem _SelectedItem;
+    private readonly List<MGTreeViewItem> _VisibleItemsCache;
+    private int _IndentSize = MGControlTemplateCatalog.DefaultTreeViewIndentSize;
+    private VisualStateFillBrush _SelectionBackgroundBrush;
+    private Color _SelectionForeground;
+    private ScrollBarVisibility _VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+    private ScrollBarVisibility _HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+    private System.Collections.IEnumerable _ItemsSource;
+    private string _ChildrenPropertyName = "Children";
 
-        private readonly ObservableCollection<MGTreeViewItem> _Items;
-        private MGTreeViewItem _SelectedItem;
-        private readonly List<MGTreeViewItem> _VisibleItemsCache;
-        private int _IndentSize = MGControlTemplateCatalog.DefaultTreeViewIndentSize;
-        private VisualStateFillBrush _SelectionBackgroundBrush;
-        private Color _SelectionForeground;
-        private ScrollBarVisibility _VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        private ScrollBarVisibility _HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
-        private System.Collections.IEnumerable _ItemsSource;
-        private string _ChildrenPropertyName = "Children";
+    /// <summary>
+    /// Gets the outer border element that wraps the entire tree view.
+    /// </summary>
+    public MGBorder OuterBorder { get; private set; }
 
-        /// <summary>
-        /// Gets the outer border element that wraps the entire tree view.
-        /// </summary>
-        public MGBorder OuterBorder { get; private set; }
+    /// <summary>
+    /// Gets the scroll viewer that provides scrolling functionality for the tree view.
+    /// </summary>
+    public MGScrollViewer ScrollViewer { get; private set; }
 
-        /// <summary>
-        /// Gets the scroll viewer that provides scrolling functionality for the tree view.
-        /// </summary>
-        public MGScrollViewer ScrollViewer { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the visibility mode of the vertical scrollbar used by the tree view.
-        /// </summary>
-        public ScrollBarVisibility VerticalScrollBarVisibility
+    /// <summary>
+    /// Gets or sets the visibility mode of the vertical scrollbar used by the tree view.
+    /// </summary>
+    public ScrollBarVisibility VerticalScrollBarVisibility
+    {
+        get => ScrollViewer?.VerticalScrollBarVisibility ?? _VerticalScrollBarVisibility;
+        set
         {
-            get => ScrollViewer?.VerticalScrollBarVisibility ?? _VerticalScrollBarVisibility;
-            set
+            if (_VerticalScrollBarVisibility != value)
             {
-                if (_VerticalScrollBarVisibility != value)
+                _VerticalScrollBarVisibility = value;
+                if (ScrollViewer != null)
                 {
-                    _VerticalScrollBarVisibility = value;
-                    if (ScrollViewer != null)
+                    ScrollViewer.VerticalScrollBarVisibility = value;
+                }
+
+                NPC(nameof(VerticalScrollBarVisibility));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the visibility mode of the horizontal scrollbar used by the tree view.
+    /// </summary>
+    public ScrollBarVisibility HorizontalScrollBarVisibility
+    {
+        get => ScrollViewer?.HorizontalScrollBarVisibility ?? _HorizontalScrollBarVisibility;
+        set
+        {
+            if (_HorizontalScrollBarVisibility != value)
+            {
+                _HorizontalScrollBarVisibility = value;
+                if (ScrollViewer != null)
+                {
+                    ScrollViewer.HorizontalScrollBarVisibility = value;
+                }
+
+                NPC(nameof(HorizontalScrollBarVisibility));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the panel that contains all root-level tree view items.
+    /// </summary>
+    public MGStackPanel ItemsPanel { get; private set; }
+
+    /// <summary>
+    /// Gets the collection of root-level items in the tree view.
+    /// </summary>
+    public IReadOnlyList<MGTreeViewItem> Items => _Items;
+
+    /// <summary>
+    /// Gets or sets the currently selected item in the tree view.
+    /// </summary>
+    public MGTreeViewItem SelectedItem
+    {
+        get => _SelectedItem;
+        set
+        {
+            if (_SelectedItem != value)
+            {
+                _SelectedItem = value;
+                NPC(nameof(SelectedItem));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the amount of indentation (in pixels) for each level of the tree hierarchy.
+    /// </summary>
+    public int IndentSize
+    {
+        get => _IndentSize;
+        set
+        {
+            if (_IndentSize != value)
+            {
+                _IndentSize = value;
+                foreach (var item in Items)
+                {
+                    RegisterItemRecursive(item);
+                }
+                NPC(nameof(IndentSize));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the brush used to paint the background of selected items.
+    /// </summary>
+    public VisualStateFillBrush SelectionBackgroundBrush
+    {
+        get => _SelectionBackgroundBrush;
+        set
+        {
+            if (_SelectionBackgroundBrush != value)
+            {
+                _SelectionBackgroundBrush = value;
+                SelectedItem?.RefreshSelectionVisual();
+                NPC(nameof(SelectionBackgroundBrush));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the foreground color used for selected items.
+    /// </summary>
+    public Color SelectionForeground
+    {
+        get => _SelectionForeground;
+        set
+        {
+            if (_SelectionForeground != value)
+            {
+                _SelectionForeground = value;
+                SelectedItem?.RefreshSelectionVisual();
+                NPC(nameof(SelectionForeground));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the brush used to paint the border of the tree view.
+    /// </summary>
+    public IBorderBrush BorderBrush
+    {
+        get => OuterBorder.BorderBrush;
+        set => OuterBorder.BorderBrush = value;
+    }
+
+    /// <summary>
+    /// Gets or sets the thickness of the border around the tree view.
+    /// </summary>
+    public MonoGame.Extended.Thickness BorderThickness
+    {
+        get => OuterBorder.BorderThickness;
+        set => OuterBorder.BorderThickness = value;
+    }
+
+    /// <summary>
+    /// Gets or sets the data source used to generate the tree view items.
+    /// </summary>
+    public System.Collections.IEnumerable ItemsSource
+    {
+        get => _ItemsSource;
+        set
+        {
+            if (_ItemsSource != value)
+            {
+                if (_ItemsSource is System.Collections.Specialized.INotifyCollectionChanged oldCollection)
+                {
+                    oldCollection.CollectionChanged -= ItemsSource_CollectionChanged;
+                }
+
+                _ItemsSource = value;
+
+                if (_ItemsSource is System.Collections.Specialized.INotifyCollectionChanged newCollection)
+                {
+                    newCollection.CollectionChanged += ItemsSource_CollectionChanged;
+                }
+
+                GenerateItemsFromSource();
+                NPC(nameof(ItemsSource));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to the ItemsSource collection.
+    /// </summary>
+    private void ItemsSource_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        switch (e.Action)
+        {
+            case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
+                if (e.NewItems != null)
+                {
+                    foreach (var obj in e.NewItems)
                     {
-                        ScrollViewer.VerticalScrollBarVisibility = value;
+                        if (obj != null)
+                        {
+                            var item = CreateItemFromData(obj, 0);
+                            AddItem(item);
+                        }
                     }
-
-                    NPC(nameof(VerticalScrollBarVisibility));
                 }
+                break;
+            case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
+                GenerateItemsFromSource();
+                break;
+            case System.Collections.Specialized.NotifyCollectionChangedAction.Reset:
+                GenerateItemsFromSource();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the name of the property that contains child items in the data source.
+    /// </summary>
+    public string ChildrenPropertyName
+    {
+        get => _ChildrenPropertyName;
+        set
+        {
+            if (_ChildrenPropertyName != value)
+            {
+                _ChildrenPropertyName = value;
+                NPC(nameof(ChildrenPropertyName));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Occurs when the selected item changes.
+    /// </summary>
+    public event EventHandler<MGTreeViewItem> SelectionChanged;
+
+    /// <summary>
+    /// Occurs when an item is expanded to show its children.
+    /// </summary>
+    public event EventHandler<MGTreeViewItem> ItemExpanded;
+
+    /// <summary>
+    /// Occurs when an item is collapsed to hide its children.
+    /// </summary>
+    public event EventHandler<MGTreeViewItem> ItemCollapsed;
+
+    /// <summary>
+    /// Occurs when an item is double-clicked.
+    /// </summary>
+    public event EventHandler<MGTreeViewItem> ItemDoubleClicked;
+
+    /// <summary>
+    /// Occurs when an item is right-clicked.
+    /// </summary>
+    public event EventHandler<MGTreeViewItem> ItemRightClicked;
+
+    public MGTreeView(MGWindow Window)
+        : base(Window, MGElementType.TreeView)
+    {
+        using (BeginInitializing())
+        {
+            _Items = new ObservableCollection<MGTreeViewItem>();
+            _Items.CollectionChanged += Items_CollectionChanged;
+
+            _VisibleItemsCache = new List<MGTreeViewItem>();
+
+            DefaultControlTemplateName = MGControlTemplateCatalog.TreeViewTemplateName;
+        }
+
+        // Enable keyboard navigation
+        IsFocusable = true;
+    }
+
+    protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+    {
+        MGStackPanel PreviousItemsPanel = ItemsPanel;
+        OuterBorder = Structure.Parts[OuterBorderPartName] as MGBorder;
+        ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
+        ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
+
+        ScrollViewer.VerticalScrollBarVisibility = _VerticalScrollBarVisibility;
+        ScrollViewer.HorizontalScrollBarVisibility = _HorizontalScrollBarVisibility;
+
+        ItemsPanel.CanChangeContent = false;
+        using (ScrollViewer.AllowChangingContentTemporarily())
+        {
+            ScrollViewer.SetContent(ItemsPanel);
+        }
+
+        using (OuterBorder.AllowChangingContentTemporarily())
+        {
+            OuterBorder.SetContent(ScrollViewer);
+        }
+
+        using (AllowChangingContentTemporarily())
+        {
+            SetContent(OuterBorder);
+        }
+
+        //  A structure rebuilt by a theme change that maps the tree view to another template replaces the items panel: the root items leave the
+        //  replaced panel before joining the new one (removal clears their parent), where the layout and the theme notification reach them again.
+        if (PreviousItemsPanel != null && !ReferenceEquals(PreviousItemsPanel, ItemsPanel))
+        {
+            using (PreviousItemsPanel.AllowChangingContentTemporarily())
+            {
+                _ = PreviousItemsPanel.TryRemoveAll();
             }
         }
 
-        /// <summary>
-        /// Gets or sets the visibility mode of the horizontal scrollbar used by the tree view.
-        /// </summary>
-        public ScrollBarVisibility HorizontalScrollBarVisibility
+        if (_Items != null && _Items.Count > 0)
         {
-            get => ScrollViewer?.HorizontalScrollBarVisibility ?? _HorizontalScrollBarVisibility;
-            set
+            using (ItemsPanel.AllowChangingContentTemporarily())
+            using (ItemsPanel.SuspendContentLayout())
             {
-                if (_HorizontalScrollBarVisibility != value)
+                foreach (MGTreeViewItem Item in _Items)
                 {
-                    _HorizontalScrollBarVisibility = value;
-                    if (ScrollViewer != null)
+                    _ = ItemsPanel.TryAddChild(Item);
+                }
+            }
+        }
+    }
+
+    /// <summary>Handles keyboard input for navigation within the tree view.</summary>
+    private void OnKeyPressed(object sender, BaseKeyPressedEventArgs e)
+    {
+        if (e.IsHandled)
+        {
+            return;
+        }
+
+        // If nothing is selected and a navigation key is pressed, select the first visible item
+        if (SelectedItem == null)
+        {
+            if (e.Key is Keys.Down or Keys.Up or Keys.Home or Keys.End or Keys.Left or Keys.Right or Keys.Enter or Keys.Space)
+            {
+                var firstItem = _VisibleItemsCache?.FirstOrDefault();
+                if (firstItem != null)
+                {
+                    SelectItem(firstItem);
+                    e.SetHandledBy(this, true);
+                }
+            }
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Keys.Up:
+            {
+                var prev = GetPreviousVisibleItem(SelectedItem);
+                if (prev != null)
+                {
+                    SelectItem(prev);
+                }
+
+                e.SetHandledBy(this, true);
+                break;
+            }
+            case Keys.Down:
+            {
+                var next = GetNextVisibleItem(SelectedItem);
+                if (next != null)
+                {
+                    SelectItem(next);
+                }
+
+                e.SetHandledBy(this, true);
+                break;
+            }
+            case Keys.Right:
+                if (!SelectedItem.IsExpanded)
+                {
+                    SelectedItem.Expand();
+                }
+                else
+                {
+                    var firstChild = SelectedItem.Items.FirstOrDefault();
+                    if (firstChild != null)
                     {
-                        ScrollViewer.HorizontalScrollBarVisibility = value;
+                        SelectItem(firstChild);
                     }
-
-                    NPC(nameof(HorizontalScrollBarVisibility));
                 }
+                RebuildVisibleItemsCache();
+                e.SetHandledBy(this, true);
+                break;
+            case Keys.Left:
+                if (SelectedItem.IsExpanded)
+                {
+                    SelectedItem.Collapse();
+                }
+                else if (SelectedItem.ParentItem != null)
+                {
+                    SelectItem(SelectedItem.ParentItem);
+                }
+
+                RebuildVisibleItemsCache();
+                e.SetHandledBy(this, true);
+                break;
+            case Keys.Home:
+            {
+                var first = _VisibleItemsCache?.FirstOrDefault();
+                if (first != null)
+                {
+                    SelectItem(first);
+                }
+
+                e.SetHandledBy(this, true);
+                break;
             }
+            case Keys.End:
+            {
+                var last = _VisibleItemsCache?.LastOrDefault();
+                if (last != null)
+                {
+                    SelectItem(last);
+                }
+
+                e.SetHandledBy(this, true);
+                break;
+            }
+            case Keys.Space:
+            case Keys.Enter:
+                SelectedItem.ToggleExpansion();
+                RebuildVisibleItemsCache();
+                e.SetHandledBy(this, true);
+                break;
+        }
+    }
+
+    public override bool TryHandleNavigationAction(UINavigationAction action)
+    {
+        if (_VisibleItemsCache.Count == 0)
+        {
+            return false;
         }
 
-        /// <summary>
-        /// Gets the panel that contains all root-level tree view items.
-        /// </summary>
-        public MGStackPanel ItemsPanel { get; private set; }
-
-        /// <summary>
-        /// Gets the collection of root-level items in the tree view.
-        /// </summary>
-        public IReadOnlyList<MGTreeViewItem> Items => _Items;
-
-        /// <summary>
-        /// Gets or sets the currently selected item in the tree view.
-        /// </summary>
-        public MGTreeViewItem SelectedItem
+        if (SelectedItem == null)
         {
-            get => _SelectedItem;
-            set
+            if (action is UINavigationAction.MoveDown or UINavigationAction.MoveUp or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Submit)
             {
-                if (_SelectedItem != value)
+                MGTreeViewItem firstItem = _VisibleItemsCache.FirstOrDefault();
+                if (firstItem != null)
                 {
-                    _SelectedItem = value;
-                    NPC(nameof(SelectedItem));
+                    SelectItem(firstItem);
+                    return true;
                 }
             }
+
+            return false;
         }
 
-        /// <summary>
-        /// Gets or sets the amount of indentation (in pixels) for each level of the tree hierarchy.
-        /// </summary>
-        public int IndentSize
+        switch (action)
         {
-            get => _IndentSize;
-            set
+            case UINavigationAction.MoveUp:
+            case UINavigationAction.MoveDown:
+            case UINavigationAction.Home:
+            case UINavigationAction.End:
             {
-                if (_IndentSize != value)
+                int currentIndex = _VisibleItemsCache.IndexOf(SelectedItem);
+                int nextIndex = GetNextVisibleNavigationIndex(currentIndex, _VisibleItemsCache.Count, action);
+                if (nextIndex < 0)
                 {
-                    _IndentSize = value;
-                    foreach (var item in Items)
+                    return false;
+                }
+
+                SelectItem(_VisibleItemsCache[nextIndex]);
+                return true;
+            }
+            case UINavigationAction.MoveRight:
+                if (!SelectedItem.IsExpanded)
+                {
+                    SelectedItem.Expand();
+                }
+                else
+                {
+                    MGTreeViewItem firstChild = SelectedItem.Items.FirstOrDefault();
+                    if (firstChild != null)
                     {
-                        RegisterItemRecursive(item);
+                        SelectItem(firstChild);
                     }
-                    NPC(nameof(IndentSize));
                 }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the brush used to paint the background of selected items.
-        /// </summary>
-        public VisualStateFillBrush SelectionBackgroundBrush
-        {
-            get => _SelectionBackgroundBrush;
-            set
-            {
-                if (_SelectionBackgroundBrush != value)
+                RebuildVisibleItemsCache();
+                return true;
+            case UINavigationAction.MoveLeft:
+                if (SelectedItem.IsExpanded)
                 {
-                    _SelectionBackgroundBrush = value;
-                    SelectedItem?.RefreshSelectionVisual();
-                    NPC(nameof(SelectionBackgroundBrush));
+                    SelectedItem.Collapse();
                 }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the foreground color used for selected items.
-        /// </summary>
-        public Color SelectionForeground
-        {
-            get => _SelectionForeground;
-            set
-            {
-                if (_SelectionForeground != value)
+                else if (SelectedItem.ParentItem != null)
                 {
-                    _SelectionForeground = value;
-                    SelectedItem?.RefreshSelectionVisual();
-                    NPC(nameof(SelectionForeground));
+                    SelectItem(SelectedItem.ParentItem);
                 }
-            }
+
+                RebuildVisibleItemsCache();
+                return true;
+            case UINavigationAction.Submit:
+                SelectedItem.ToggleExpansion();
+                RebuildVisibleItemsCache();
+                return true;
+            default:
+                return false;
         }
+    }
 
-        /// <summary>
-        /// Gets or sets the brush used to paint the border of the tree view.
-        /// </summary>
-        public IBorderBrush BorderBrush
-        {
-            get => OuterBorder.BorderBrush;
-            set => OuterBorder.BorderBrush = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the thickness of the border around the tree view.
-        /// </summary>
-        public MonoGame.Extended.Thickness BorderThickness
-        {
-            get => OuterBorder.BorderThickness;
-            set => OuterBorder.BorderThickness = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the data source used to generate the tree view items.
-        /// </summary>
-        public System.Collections.IEnumerable ItemsSource
-        {
-            get => _ItemsSource;
-            set
-            {
-                if (_ItemsSource != value)
-                {
-                    if (_ItemsSource is System.Collections.Specialized.INotifyCollectionChanged oldCollection)
-                    {
-                        oldCollection.CollectionChanged -= ItemsSource_CollectionChanged;
-                    }
-
-                    _ItemsSource = value;
-
-                    if (_ItemsSource is System.Collections.Specialized.INotifyCollectionChanged newCollection)
-                    {
-                        newCollection.CollectionChanged += ItemsSource_CollectionChanged;
-                    }
-
-                    GenerateItemsFromSource();
-                    NPC(nameof(ItemsSource));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Handles changes to the ItemsSource collection.
-        /// </summary>
-        private void ItemsSource_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    private void Items_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        using (ItemsPanel.AllowChangingContentTemporarily())
+        using (ItemsPanel.SuspendContentLayout())
         {
             switch (e.Action)
             {
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
                     if (e.NewItems != null)
                     {
-                        foreach (var obj in e.NewItems)
+                        foreach (MGTreeViewItem item in e.NewItems)
                         {
-                            if (obj != null)
-                            {
-                                var item = CreateItemFromData(obj, 0);
-                                AddItem(item);
-                            }
+                            ItemsPanel.TryAddChild(item);
                         }
                     }
                     break;
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
-                    GenerateItemsFromSource();
+                    if (e.OldItems != null)
+                    {
+                        foreach (MGTreeViewItem item in e.OldItems)
+                        {
+                            ItemsPanel.TryRemoveChild(item);
+                        }
+                    }
                     break;
                 case System.Collections.Specialized.NotifyCollectionChangedAction.Reset:
-                    GenerateItemsFromSource();
+                    ItemsPanel.TryRemoveAll();
                     break;
             }
         }
+        RebuildVisibleItemsCache();
+    }
 
-        /// <summary>
-        /// Gets or sets the name of the property that contains child items in the data source.
-        /// </summary>
-        public string ChildrenPropertyName
+    /// <summary>
+    /// Rebuilds the cache of visible items in the tree view.
+    /// </summary>
+    internal void RebuildVisibleItemsCache()
+    {
+        _VisibleItemsCache.Clear();
+        foreach (var rootItem in Items)
         {
-            get => _ChildrenPropertyName;
-            set
+            _VisibleItemsCache.Add(rootItem);
+            if (rootItem.IsExpanded)
             {
-                if (_ChildrenPropertyName != value)
-                {
-                    _ChildrenPropertyName = value;
-                    NPC(nameof(ChildrenPropertyName));
-                }
+                _VisibleItemsCache.AddRange(rootItem.GetVisibleDescendants());
             }
         }
+    }
 
-        /// <summary>
-        /// Occurs when the selected item changes.
-        /// </summary>
-        public event EventHandler<MGTreeViewItem> SelectionChanged;
-
-        /// <summary>
-        /// Occurs when an item is expanded to show its children.
-        /// </summary>
-        public event EventHandler<MGTreeViewItem> ItemExpanded;
-
-        /// <summary>
-        /// Occurs when an item is collapsed to hide its children.
-        /// </summary>
-        public event EventHandler<MGTreeViewItem> ItemCollapsed;
-
-        /// <summary>
-        /// Occurs when an item is double-clicked.
-        /// </summary>
-        public event EventHandler<MGTreeViewItem> ItemDoubleClicked;
-
-        /// <summary>
-        /// Occurs when an item is right-clicked.
-        /// </summary>
-        public event EventHandler<MGTreeViewItem> ItemRightClicked;
-
-        public MGTreeView(MGWindow Window)
-        : base(Window, MGElementType.TreeView)
+    /// <summary>
+    /// Adds a root-level item to the tree view.
+    /// </summary>
+    /// <param name="item">The item to add as a root-level item.</param>
+    /// <exception cref="ArgumentNullException">Thrown when item is null.</exception>
+    public void AddItem(MGTreeViewItem item)
+    {
+        if (item == null)
         {
-            using (BeginInitializing())
-            {
-                _Items = new ObservableCollection<MGTreeViewItem>();
-                _Items.CollectionChanged += Items_CollectionChanged;
-
-                _VisibleItemsCache = new List<MGTreeViewItem>();
-
-                DefaultControlTemplateName = MGControlTemplateCatalog.TreeViewTemplateName;
-            }
-
-            // Enable keyboard navigation
-            IsFocusable = true;
+            throw new ArgumentNullException(nameof(item));
         }
 
-        protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
+        _Items.Add(item);
+        item.ParentItem = null;
+        item.Level = 0;
+        RegisterItemRecursive(item);
+        RebuildVisibleItemsCache();
+    }
+
+    /// <summary>
+    /// Registers the given item and all of its descendants with this tree view (owner assignment, indentation, event hooks).
+    /// </summary>
+    internal void RegisterItemRecursive(MGTreeViewItem item)
+    {
+        if (item == null)
         {
-            MGStackPanel PreviousItemsPanel = ItemsPanel;
-            OuterBorder = Structure.Parts[OuterBorderPartName] as MGBorder;
-            ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
-            ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
-
-            ScrollViewer.VerticalScrollBarVisibility = _VerticalScrollBarVisibility;
-            ScrollViewer.HorizontalScrollBarVisibility = _HorizontalScrollBarVisibility;
-
-            ItemsPanel.CanChangeContent = false;
-            using (ScrollViewer.AllowChangingContentTemporarily())
-            {
-                ScrollViewer.SetContent(ItemsPanel);
-            }
-
-            using (OuterBorder.AllowChangingContentTemporarily())
-            {
-                OuterBorder.SetContent(ScrollViewer);
-            }
-
-            using (AllowChangingContentTemporarily())
-            {
-                SetContent(OuterBorder);
-            }
-
-            //  A structure rebuilt by a theme change that maps the tree view to another template replaces the items panel: the root items leave the
-            //  replaced panel before joining the new one (removal clears their parent), where the layout and the theme notification reach them again.
-            if (PreviousItemsPanel != null && !ReferenceEquals(PreviousItemsPanel, ItemsPanel))
-            {
-                using (PreviousItemsPanel.AllowChangingContentTemporarily())
-                {
-                    _ = PreviousItemsPanel.TryRemoveAll();
-                }
-            }
-
-            if (_Items != null && _Items.Count > 0)
-            {
-                using (ItemsPanel.AllowChangingContentTemporarily())
-                using (ItemsPanel.SuspendContentLayout())
-                {
-                    foreach (MGTreeViewItem Item in _Items)
-                    {
-                        _ = ItemsPanel.TryAddChild(Item);
-                    }
-                }
-            }
+            return;
         }
 
-        /// <summary>Handles keyboard input for navigation within the tree view.</summary>
-        private void OnKeyPressed(object sender, BaseKeyPressedEventArgs e)
+        item._OwnerTreeView = this;
+        item.Level = item.ParentItem == null ? 0 : item.ParentItem.Level + 1;
+        item.UpdateIndentation();
+        item.Expanded -= OnItemExpanded;
+        item.Expanded += OnItemExpanded;
+        item.Collapsed -= OnItemCollapsed;
+        item.Collapsed += OnItemCollapsed;
+        foreach (var child in item.Items)
         {
-            if (e.IsHandled)
-            {
-                return;
-            }
-
-            // If nothing is selected and a navigation key is pressed, select the first visible item
-            if (SelectedItem == null)
-            {
-                if (e.Key is Keys.Down or Keys.Up or Keys.Home or Keys.End or Keys.Left or Keys.Right or Keys.Enter or Keys.Space)
-                {
-                    var firstItem = _VisibleItemsCache?.FirstOrDefault();
-                    if (firstItem != null)
-                    {
-                        SelectItem(firstItem);
-                        e.SetHandledBy(this, true);
-                    }
-                }
-                return;
-            }
-
-            switch (e.Key)
-            {
-                case Keys.Up:
-                {
-                    var prev = GetPreviousVisibleItem(SelectedItem);
-                    if (prev != null)
-                    {
-                        SelectItem(prev);
-                    }
-
-                    e.SetHandledBy(this, true);
-                    break;
-                }
-                case Keys.Down:
-                {
-                    var next = GetNextVisibleItem(SelectedItem);
-                    if (next != null)
-                    {
-                        SelectItem(next);
-                    }
-
-                    e.SetHandledBy(this, true);
-                    break;
-                }
-                case Keys.Right:
-                    if (!SelectedItem.IsExpanded)
-                    {
-                        SelectedItem.Expand();
-                    }
-                    else
-                    {
-                        var firstChild = SelectedItem.Items.FirstOrDefault();
-                        if (firstChild != null)
-                        {
-                            SelectItem(firstChild);
-                        }
-                    }
-                    RebuildVisibleItemsCache();
-                    e.SetHandledBy(this, true);
-                    break;
-                case Keys.Left:
-                    if (SelectedItem.IsExpanded)
-                    {
-                        SelectedItem.Collapse();
-                    }
-                    else if (SelectedItem.ParentItem != null)
-                    {
-                        SelectItem(SelectedItem.ParentItem);
-                    }
-
-                    RebuildVisibleItemsCache();
-                    e.SetHandledBy(this, true);
-                    break;
-                case Keys.Home:
-                {
-                    var first = _VisibleItemsCache?.FirstOrDefault();
-                    if (first != null)
-                    {
-                        SelectItem(first);
-                    }
-
-                    e.SetHandledBy(this, true);
-                    break;
-                }
-                case Keys.End:
-                {
-                    var last = _VisibleItemsCache?.LastOrDefault();
-                    if (last != null)
-                    {
-                        SelectItem(last);
-                    }
-
-                    e.SetHandledBy(this, true);
-                    break;
-                }
-                case Keys.Space:
-                case Keys.Enter:
-                    SelectedItem.ToggleExpansion();
-                    RebuildVisibleItemsCache();
-                    e.SetHandledBy(this, true);
-                    break;
-            }
+            RegisterItemRecursive(child);
         }
+    }
 
-        public override bool TryHandleNavigationAction(UINavigationAction action)
+    /// <summary>
+    /// Handles the Expanded event of a tree view item.
+    /// </summary>
+    private void OnItemExpanded(object sender, EventArgs e)
+    {
+        if (sender is MGTreeViewItem item)
         {
-            if (_VisibleItemsCache.Count == 0)
-            {
-                return false;
-            }
-
-            if (SelectedItem == null)
-            {
-                if (action is UINavigationAction.MoveDown or UINavigationAction.MoveUp or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Submit)
-                {
-                    MGTreeViewItem firstItem = _VisibleItemsCache.FirstOrDefault();
-                    if (firstItem != null)
-                    {
-                        SelectItem(firstItem);
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            switch (action)
-            {
-                case UINavigationAction.MoveUp:
-                case UINavigationAction.MoveDown:
-                case UINavigationAction.Home:
-                case UINavigationAction.End:
-                {
-                    int currentIndex = _VisibleItemsCache.IndexOf(SelectedItem);
-                    int nextIndex = GetNextVisibleNavigationIndex(currentIndex, _VisibleItemsCache.Count, action);
-                    if (nextIndex < 0)
-                    {
-                        return false;
-                    }
-
-                    SelectItem(_VisibleItemsCache[nextIndex]);
-                    return true;
-                }
-                case UINavigationAction.MoveRight:
-                    if (!SelectedItem.IsExpanded)
-                    {
-                        SelectedItem.Expand();
-                    }
-                    else
-                    {
-                        MGTreeViewItem firstChild = SelectedItem.Items.FirstOrDefault();
-                        if (firstChild != null)
-                        {
-                            SelectItem(firstChild);
-                        }
-                    }
-                    RebuildVisibleItemsCache();
-                    return true;
-                case UINavigationAction.MoveLeft:
-                    if (SelectedItem.IsExpanded)
-                    {
-                        SelectedItem.Collapse();
-                    }
-                    else if (SelectedItem.ParentItem != null)
-                    {
-                        SelectItem(SelectedItem.ParentItem);
-                    }
-
-                    RebuildVisibleItemsCache();
-                    return true;
-                case UINavigationAction.Submit:
-                    SelectedItem.ToggleExpansion();
-                    RebuildVisibleItemsCache();
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        private void Items_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        {
-            using (ItemsPanel.AllowChangingContentTemporarily())
-            using (ItemsPanel.SuspendContentLayout())
-            {
-                switch (e.Action)
-                {
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
-                        if (e.NewItems != null)
-                        {
-                            foreach (MGTreeViewItem item in e.NewItems)
-                            {
-                                ItemsPanel.TryAddChild(item);
-                            }
-                        }
-                        break;
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
-                        if (e.OldItems != null)
-                        {
-                            foreach (MGTreeViewItem item in e.OldItems)
-                            {
-                                ItemsPanel.TryRemoveChild(item);
-                            }
-                        }
-                        break;
-                    case System.Collections.Specialized.NotifyCollectionChangedAction.Reset:
-                        ItemsPanel.TryRemoveAll();
-                        break;
-                }
-            }
+            ItemExpanded?.Invoke(this, item);
             RebuildVisibleItemsCache();
         }
+    }
 
-        /// <summary>
-        /// Rebuilds the cache of visible items in the tree view.
-        /// </summary>
-        internal void RebuildVisibleItemsCache()
+    /// <summary>
+    /// Handles the Collapsed event of a tree view item.
+    /// </summary>
+    private void OnItemCollapsed(object sender, EventArgs e)
+    {
+        if (sender is MGTreeViewItem item)
         {
-            _VisibleItemsCache.Clear();
-            foreach (var rootItem in Items)
-            {
-                _VisibleItemsCache.Add(rootItem);
-                if (rootItem.IsExpanded)
-                {
-                    _VisibleItemsCache.AddRange(rootItem.GetVisibleDescendants());
-                }
-            }
-        }
-
-        /// <summary>
-        /// Adds a root-level item to the tree view.
-        /// </summary>
-        /// <param name="item">The item to add as a root-level item.</param>
-        /// <exception cref="ArgumentNullException">Thrown when item is null.</exception>
-        public void AddItem(MGTreeViewItem item)
-        {
-            if (item == null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
-
-            _Items.Add(item);
-            item.ParentItem = null;
-            item.Level = 0;
-            RegisterItemRecursive(item);
+            ItemCollapsed?.Invoke(this, item);
             RebuildVisibleItemsCache();
         }
+    }
 
-        /// <summary>
-        /// Registers the given item and all of its descendants with this tree view (owner assignment, indentation, event hooks).
-        /// </summary>
-        internal void RegisterItemRecursive(MGTreeViewItem item)
+    /// <summary>
+    /// Removes a root-level item from the tree view.
+    /// </summary>
+    /// <param name="item">The item to remove.</param>
+    public void RemoveItem(MGTreeViewItem item)
+    {
+        _Items.Remove(item);
+        if (item != null)
         {
-            if (item == null)
-            {
-                return;
-            }
-
-            item._OwnerTreeView = this;
-            item.Level = item.ParentItem == null ? 0 : item.ParentItem.Level + 1;
-            item.UpdateIndentation();
-            item.Expanded -= OnItemExpanded;
-            item.Expanded += OnItemExpanded;
-            item.Collapsed -= OnItemCollapsed;
-            item.Collapsed += OnItemCollapsed;
-            foreach (var child in item.Items)
-            {
-                RegisterItemRecursive(child);
-            }
+            item._OwnerTreeView = null;
         }
+    }
 
-        /// <summary>
-        /// Handles the Expanded event of a tree view item.
-        /// </summary>
-        private void OnItemExpanded(object sender, EventArgs e)
+    /// <summary>
+    /// Removes all root-level items from the tree view.
+    /// </summary>
+    public void ClearItems()
+    {
+        for (int index = _Items.Count - 1; index >= 0; index--)
         {
-            if (sender is MGTreeViewItem item)
-            {
-                ItemExpanded?.Invoke(this, item);
-                RebuildVisibleItemsCache();
-            }
+            RemoveItem(_Items[index]);
         }
+    }
 
-        /// <summary>
-        /// Handles the Collapsed event of a tree view item.
-        /// </summary>
-        private void OnItemCollapsed(object sender, EventArgs e)
+    /// <summary>
+    /// Gets the next visible item after the specified item in the tree view.
+    /// </summary>
+    /// <param name="current">The current item.</param>
+    /// <returns>The next visible item, or null if there is no next item.</returns>
+    public MGTreeViewItem GetNextVisibleItem(MGTreeViewItem current)
+    {
+        if (current == null)
         {
-            if (sender is MGTreeViewItem item)
-            {
-                ItemCollapsed?.Invoke(this, item);
-                RebuildVisibleItemsCache();
-            }
-        }
-
-        /// <summary>
-        /// Removes a root-level item from the tree view.
-        /// </summary>
-        /// <param name="item">The item to remove.</param>
-        public void RemoveItem(MGTreeViewItem item)
-        {
-            _Items.Remove(item);
-            if (item != null)
-            {
-                item._OwnerTreeView = null;
-            }
-        }
-
-        /// <summary>
-        /// Removes all root-level items from the tree view.
-        /// </summary>
-        public void ClearItems()
-        {
-            for (int index = _Items.Count - 1; index >= 0; index--)
-            {
-                RemoveItem(_Items[index]);
-            }
-        }
-
-        /// <summary>
-        /// Gets the next visible item after the specified item in the tree view.
-        /// </summary>
-        /// <param name="current">The current item.</param>
-        /// <returns>The next visible item, or null if there is no next item.</returns>
-        public MGTreeViewItem GetNextVisibleItem(MGTreeViewItem current)
-        {
-            if (current == null)
-            {
-                return null;
-            }
-
-            int index = _VisibleItemsCache.IndexOf(current);
-            if (index == -1)
-            {
-                return null;
-            }
-
-            if (index + 1 < _VisibleItemsCache.Count)
-            {
-                return _VisibleItemsCache[index + 1];
-            }
-
             return null;
         }
 
-        /// <summary>
-        /// Gets the previous visible item before the specified item in the tree view.
-        /// </summary>
-        /// <param name="current">The current item.</param>
-        /// <returns>The previous visible item, or null if there is no previous item.</returns>
-        public MGTreeViewItem GetPreviousVisibleItem(MGTreeViewItem current)
+        int index = _VisibleItemsCache.IndexOf(current);
+        if (index == -1)
         {
-            if (current == null)
-            {
-                return null;
-            }
-
-            int index = _VisibleItemsCache.IndexOf(current);
-            if (index == -1)
-            {
-                return null;
-            }
-
-            if (index - 1 >= 0)
-            {
-                return _VisibleItemsCache[index - 1];
-            }
-
             return null;
         }
 
-        /// <summary>
-        /// Notifies the tree view that an item has been selected.
-        /// </summary>
-        /// <param name="item">The item that was selected, or null to clear selection.</param>
-        internal void NotifyItemSelected(MGTreeViewItem item)
+        if (index + 1 < _VisibleItemsCache.Count)
         {
-            if (_SelectedItem == item)
-            {
-                return;
-            }
-
-            if (_SelectedItem != null)
-            {
-                _SelectedItem.SetSelected(false);
-            }
-
-            _SelectedItem = item;
-            if (_SelectedItem != null)
-            {
-                _SelectedItem.SetSelected(true);
-            }
-
-            SelectionChanged?.Invoke(this, item);
-            NPC(nameof(SelectedItem));
+            return _VisibleItemsCache[index + 1];
         }
 
-        /// <summary>
-        /// Selects the specified item in the tree view.
-        /// </summary>
-        /// <param name="item">The item to select.</param>
-        public void SelectItem(MGTreeViewItem item)
+        return null;
+    }
+
+    /// <summary>
+    /// Gets the previous visible item before the specified item in the tree view.
+    /// </summary>
+    /// <param name="current">The current item.</param>
+    /// <returns>The previous visible item, or null if there is no previous item.</returns>
+    public MGTreeViewItem GetPreviousVisibleItem(MGTreeViewItem current)
+    {
+        if (current == null)
         {
-            NotifyItemSelected(item);
-            if (item != null)
-            {
-                ScrollIntoView(item);
-            }
+            return null;
         }
 
-        /// <summary>
-        /// Clears the current selection in the tree view.
-        /// </summary>
-        public void ClearSelection()
+        int index = _VisibleItemsCache.IndexOf(current);
+        if (index == -1)
         {
-            NotifyItemSelected(null);
+            return null;
         }
 
-        /// <summary>
-        /// Scrolls the tree view to make the specified item visible.
-        /// </summary>
-        /// <param name="item">The item to scroll into view.</param>
-        public void ScrollIntoView(MGTreeViewItem item)
+        if (index - 1 >= 0)
         {
-            if (item == null)
-            {
-                return;
-            }
+            return _VisibleItemsCache[index - 1];
+        }
 
-            if (!_VisibleItemsCache.Contains(item))
-            {
-                RebuildVisibleItemsCache();
-            }
+        return null;
+    }
 
-            if (ScrollViewer.MaxVerticalOffset <= 0)
-            {
-                return;
-            }
+    /// <summary>
+    /// Notifies the tree view that an item has been selected.
+    /// </summary>
+    /// <param name="item">The item that was selected, or null to clear selection.</param>
+    internal void NotifyItemSelected(MGTreeViewItem item)
+    {
+        if (_SelectedItem == item)
+        {
+            return;
+        }
 
-            var bounds = item.LayoutBounds;
-            float itemTop = bounds.Y;
-            float itemBottom = bounds.Bottom;
-            float contentTop = ScrollViewer.Content?.LayoutBounds.Top ?? 0;
-            float viewportTop = contentTop + ScrollViewer.VerticalOffset;
-            float viewportHeight = ScrollViewer.ContentViewport.Height;
-            float viewportBottom = viewportTop + viewportHeight;
-            bool invalidBounds = bounds.Height <= 0;
-            float newOffset = viewportTop;
-            if (!invalidBounds)
+        if (_SelectedItem != null)
+        {
+            _SelectedItem.SetSelected(false);
+        }
+
+        _SelectedItem = item;
+        if (_SelectedItem != null)
+        {
+            _SelectedItem.SetSelected(true);
+        }
+
+        SelectionChanged?.Invoke(this, item);
+        NPC(nameof(SelectedItem));
+    }
+
+    /// <summary>
+    /// Selects the specified item in the tree view.
+    /// </summary>
+    /// <param name="item">The item to select.</param>
+    public void SelectItem(MGTreeViewItem item)
+    {
+        NotifyItemSelected(item);
+        if (item != null)
+        {
+            ScrollIntoView(item);
+        }
+    }
+
+    /// <summary>
+    /// Clears the current selection in the tree view.
+    /// </summary>
+    public void ClearSelection()
+    {
+        NotifyItemSelected(null);
+    }
+
+    /// <summary>
+    /// Scrolls the tree view to make the specified item visible.
+    /// </summary>
+    /// <param name="item">The item to scroll into view.</param>
+    public void ScrollIntoView(MGTreeViewItem item)
+    {
+        if (item == null)
+        {
+            return;
+        }
+
+        if (!_VisibleItemsCache.Contains(item))
+        {
+            RebuildVisibleItemsCache();
+        }
+
+        if (ScrollViewer.MaxVerticalOffset <= 0)
+        {
+            return;
+        }
+
+        var bounds = item.LayoutBounds;
+        float itemTop = bounds.Y;
+        float itemBottom = bounds.Bottom;
+        float contentTop = ScrollViewer.Content?.LayoutBounds.Top ?? 0;
+        float viewportTop = contentTop + ScrollViewer.VerticalOffset;
+        float viewportHeight = ScrollViewer.ContentViewport.Height;
+        float viewportBottom = viewportTop + viewportHeight;
+        bool invalidBounds = bounds.Height <= 0;
+        float newOffset = viewportTop;
+        if (!invalidBounds)
+        {
+            if (itemTop < viewportTop)
             {
-                if (itemTop < viewportTop)
+                newOffset = itemTop;
+            }
+            else if (itemBottom > viewportBottom)
+            {
+                newOffset = itemBottom - viewportHeight;
+            }
+        }
+        else
+        {
+            int index = _VisibleItemsCache.IndexOf(item);
+            if (index >= 0)
+            {
+                int estimatedHeight = item.ActualHeight > 0 ? item.ActualHeight : (_VisibleItemsCache.FirstOrDefault()?.ActualHeight ?? 24);
+                float estimatedTop = index * estimatedHeight;
+                float estimatedBottom = estimatedTop + estimatedHeight;
+                if (estimatedTop < viewportTop)
                 {
-                    newOffset = itemTop;
+                    newOffset = estimatedTop;
                 }
-                else if (itemBottom > viewportBottom)
+                else if (estimatedBottom > viewportBottom)
                 {
-                    newOffset = itemBottom - viewportHeight;
+                    newOffset = estimatedBottom - viewportHeight;
                 }
             }
-            else
+        }
+        if (newOffset < 0)
+        {
+            newOffset = 0;
+        }
+
+        if (newOffset > ScrollViewer.MaxVerticalOffset)
+        {
+            newOffset = ScrollViewer.MaxVerticalOffset;
+        }
+
+        if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
+        {
+            ScrollViewer.VerticalOffset = newOffset;
+        }
+    }
+
+    void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible()
+    {
+        if (SelectedItem != null)
+        {
+            ScrollIntoView(SelectedItem);
+        }
+    }
+
+    /// <summary>
+    /// Generates tree view items from the ItemsSource data.
+    /// </summary>
+    private void GenerateItemsFromSource()
+    {
+        ClearItems();
+        if (ItemsSource == null)
+        {
+            return;
+        }
+
+        foreach (var obj in ItemsSource)
+        {
+            if (obj != null)
             {
-                int index = _VisibleItemsCache.IndexOf(item);
-                if (index >= 0)
+                var item = CreateItemFromData(obj, 0);
+                AddItem(item);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a tree view item from a data object, recursively creating child items.
+    /// </summary>
+    /// <param name="data">The data object to create an item from.</param>
+    /// <param name="level">The depth level of this item in the tree hierarchy.</param>
+    /// <returns>A new MGTreeViewItem populated with the data.</returns>
+    private MGTreeViewItem CreateItemFromData(object data, int level)
+    {
+        var item = new MGTreeViewItem(SelfOrParentWindow) { DataContext = data, Level = level, Header = data };
+        var dataType = data.GetType();
+        var childrenProperty = dataType.GetProperty(ChildrenPropertyName);
+        if (childrenProperty != null)
+        {
+            var childrenValue = childrenProperty.GetValue(data);
+            if (childrenValue is System.Collections.IEnumerable children)
+            {
+                foreach (var child in children)
                 {
-                    int estimatedHeight = item.ActualHeight > 0 ? item.ActualHeight : (_VisibleItemsCache.FirstOrDefault()?.ActualHeight ?? 24);
-                    float estimatedTop = index * estimatedHeight;
-                    float estimatedBottom = estimatedTop + estimatedHeight;
-                    if (estimatedTop < viewportTop)
+                    if (child != null)
                     {
-                        newOffset = estimatedTop;
-                    }
-                    else if (estimatedBottom > viewportBottom)
-                    {
-                        newOffset = estimatedBottom - viewportHeight;
+                        var childItem = CreateItemFromData(child, level + 1);
+                        item.AddItem(childItem);
                     }
                 }
             }
-            if (newOffset < 0)
-            {
-                newOffset = 0;
-            }
-
-            if (newOffset > ScrollViewer.MaxVerticalOffset)
-            {
-                newOffset = ScrollViewer.MaxVerticalOffset;
-            }
-
-            if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
-            {
-                ScrollViewer.VerticalOffset = newOffset;
-            }
         }
 
-        void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible()
-        {
-            if (SelectedItem != null)
-            {
-                ScrollIntoView(SelectedItem);
-            }
-        }
+        return item;
+    }
 
-        /// <summary>
-        /// Generates tree view items from the ItemsSource data.
-        /// </summary>
-        private void GenerateItemsFromSource()
-        {
-            ClearItems();
-            if (ItemsSource == null)
-            {
-                return;
-            }
+    /// <summary>
+    /// Triggers the ItemDoubleClicked event.
+    /// </summary>
+    internal void RaiseItemDoubleClicked(MGTreeViewItem item)
+    {
+        ItemDoubleClicked?.Invoke(this, item);
+    }
 
-            foreach (var obj in ItemsSource)
-            {
-                if (obj != null)
-                {
-                    var item = CreateItemFromData(obj, 0);
-                    AddItem(item);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Creates a tree view item from a data object, recursively creating child items.
-        /// </summary>
-        /// <param name="data">The data object to create an item from.</param>
-        /// <param name="level">The depth level of this item in the tree hierarchy.</param>
-        /// <returns>A new MGTreeViewItem populated with the data.</returns>
-        private MGTreeViewItem CreateItemFromData(object data, int level)
-        {
-            var item = new MGTreeViewItem(SelfOrParentWindow) { DataContext = data, Level = level, Header = data };
-            var dataType = data.GetType();
-            var childrenProperty = dataType.GetProperty(ChildrenPropertyName);
-            if (childrenProperty != null)
-            {
-                var childrenValue = childrenProperty.GetValue(data);
-                if (childrenValue is System.Collections.IEnumerable children)
-                {
-                    foreach (var child in children)
-                    {
-                        if (child != null)
-                        {
-                            var childItem = CreateItemFromData(child, level + 1);
-                            item.AddItem(childItem);
-                        }
-                    }
-                }
-            }
-
-            return item;
-        }
-
-        /// <summary>
-        /// Triggers the ItemDoubleClicked event.
-        /// </summary>
-        internal void RaiseItemDoubleClicked(MGTreeViewItem item)
-        {
-            ItemDoubleClicked?.Invoke(this, item);
-        }
-
-        /// <summary>
-        /// Triggers the ItemRightClicked event.
-        /// </summary>
-        internal void RaiseItemRightClicked(MGTreeViewItem item)
-        {
-            ItemRightClicked?.Invoke(this, item);
-        }
+    /// <summary>
+    /// Triggers the ItemRightClicked event.
+    /// </summary>
+    internal void RaiseItemRightClicked(MGTreeViewItem item)
+    {
+        ItemRightClicked?.Invoke(this, item);
     }
 }

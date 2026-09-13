@@ -1,356 +1,353 @@
 using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 
-namespace MGUI.Core.UI.XAML
+namespace MGUI.Core.UI.XAML;
+
+internal static class ShapeXamlParser
 {
-    internal static class ShapeXamlParser
+    public static Vector2 ParsePoint(string value)
     {
-        public static Vector2 ParsePoint(string value)
+        float[] values = ParseNumbers(value);
+        if (values.Length != 2)
         {
-            float[] values = ParseNumbers(value);
-            if (values.Length != 2)
-            {
-                throw new ArgumentException(value);
-            }
-
-            return new Vector2(values[0], values[1]);
+            throw new ArgumentException(value);
         }
 
-        public static Vector2[] ParsePoints(string value)
-        {
-            float[] values = ParseNumbers(value);
-            if (values.Length == 0)
-            {
-                return Array.Empty<Vector2>();
-            }
-
-            if (values.Length % 2 != 0)
-            {
-                throw new ArgumentException(value);
-            }
-
-            Vector2[] points = new Vector2[values.Length / 2];
-            for (int i = 0; i < values.Length; i += 2)
-            {
-                points[i / 2] = new Vector2(values[i], values[i + 1]);
-            }
-
-            return points;
-        }
-
-        public static MGPathLiteCommand[] ParsePathLiteCommands(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return Array.Empty<MGPathLiteCommand>();
-            }
-
-            string normalized = value
-                .Replace(",", " ")
-                .Replace("M", " M ", StringComparison.OrdinalIgnoreCase)
-                .Replace("L", " L ", StringComparison.OrdinalIgnoreCase)
-                .Replace("Z", " Z ", StringComparison.OrdinalIgnoreCase);
-
-            string[] tokens = normalized.Split(new[] { ' ', '\t', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
-            List<MGPathLiteCommand> commands = new();
-
-            int index = 0;
-            while (index < tokens.Length)
-            {
-                string token = tokens[index++];
-                switch (token.ToUpperInvariant())
-                {
-                    case "M":
-                        commands.Add(MGPathLiteCommand.MoveTo(ParsePathPoint(tokens, ref index)));
-                        break;
-                    case "L":
-                        commands.Add(MGPathLiteCommand.LineTo(ParsePathPoint(tokens, ref index)));
-                        break;
-                    case "Z":
-                        commands.Add(MGPathLiteCommand.Close());
-                        break;
-                    default:
-                        throw new ArgumentException(value);
-                }
-            }
-
-            return commands.ToArray();
-        }
-
-        private static Vector2 ParsePathPoint(string[] tokens, ref int index)
-        {
-            if (index + 1 >= tokens.Length)
-            {
-                throw new ArgumentException(string.Join(" ", tokens));
-            }
-
-            float x = float.Parse(tokens[index++], CultureInfo.InvariantCulture);
-            float y = float.Parse(tokens[index++], CultureInfo.InvariantCulture);
-            return new Vector2(x, y);
-        }
-
-        private static float[] ParseNumbers(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return Array.Empty<float>();
-            }
-
-            string[] tokens = value.Split(new[] { ',', ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            float[] numbers = new float[tokens.Length];
-            for (int i = 0; i < tokens.Length; i++)
-            {
-                numbers[i] = float.Parse(tokens[i], CultureInfo.InvariantCulture);
-            }
-
-            return numbers;
-        }
+        return new Vector2(values[0], values[1]);
     }
 
-    public class Ellipse : Element
+    public static Vector2[] ParsePoints(string value)
     {
-        public override MGElementType ElementType => MGElementType.Ellipse;
+        float[] values = ParseNumbers(value);
+        if (values.Length == 0)
+        {
+            return Array.Empty<Vector2>();
+        }
 
-        [Category("Border")]
-        public XAMLColor? Stroke { get; set; }
-        [Category("Border")]
-        public float? StrokeThickness { get; set; }
-        [Category("Appearance")]
-        public FillBrush Fill { get; set; }
-        [Category("Appearance")]
-        public int? SegmentCount { get; set; }
+        if (values.Length % 2 != 0)
+        {
+            throw new ArgumentException(value);
+        }
 
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
-            => new MGEllipse(Window, Width ?? 16, Height ?? 16,
-                Stroke?.ToXNAColor() ?? Color.White,
-                StrokeThickness ?? 1f,
+        Vector2[] points = new Vector2[values.Length / 2];
+        for (int i = 0; i < values.Length; i += 2)
+        {
+            points[i / 2] = new Vector2(values[i], values[i + 1]);
+        }
+
+        return points;
+    }
+
+    public static MGPathLiteCommand[] ParsePathLiteCommands(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Array.Empty<MGPathLiteCommand>();
+        }
+
+        string normalized = value
+            .Replace(",", " ")
+            .Replace("M", " M ", StringComparison.OrdinalIgnoreCase)
+            .Replace("L", " L ", StringComparison.OrdinalIgnoreCase)
+            .Replace("Z", " Z ", StringComparison.OrdinalIgnoreCase);
+
+        string[] tokens = normalized.Split(new[] { ' ', '\t', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        List<MGPathLiteCommand> commands = new();
+
+        int index = 0;
+        while (index < tokens.Length)
+        {
+            string token = tokens[index++];
+            switch (token.ToUpperInvariant())
+            {
+                case "M":
+                    commands.Add(MGPathLiteCommand.MoveTo(ParsePathPoint(tokens, ref index)));
+                    break;
+                case "L":
+                    commands.Add(MGPathLiteCommand.LineTo(ParsePathPoint(tokens, ref index)));
+                    break;
+                case "Z":
+                    commands.Add(MGPathLiteCommand.Close());
+                    break;
+                default:
+                    throw new ArgumentException(value);
+            }
+        }
+
+        return commands.ToArray();
+    }
+
+    private static Vector2 ParsePathPoint(string[] tokens, ref int index)
+    {
+        if (index + 1 >= tokens.Length)
+        {
+            throw new ArgumentException(string.Join(" ", tokens));
+        }
+
+        float x = float.Parse(tokens[index++], CultureInfo.InvariantCulture);
+        float y = float.Parse(tokens[index++], CultureInfo.InvariantCulture);
+        return new Vector2(x, y);
+    }
+
+    private static float[] ParseNumbers(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Array.Empty<float>();
+        }
+
+        string[] tokens = value.Split(new[] { ',', ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        float[] numbers = new float[tokens.Length];
+        for (int i = 0; i < tokens.Length; i++)
+        {
+            numbers[i] = float.Parse(tokens[i], CultureInfo.InvariantCulture);
+        }
+
+        return numbers;
+    }
+}
+
+public class Ellipse : Element
+{
+    public override MGElementType ElementType => MGElementType.Ellipse;
+
+    [Category("Border")]
+    public XAMLColor? Stroke { get; set; }
+    [Category("Border")]
+    public float? StrokeThickness { get; set; }
+    [Category("Appearance")]
+    public FillBrush Fill { get; set; }
+    [Category("Appearance")]
+    public int? SegmentCount { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+        => new MGEllipse(Window, Width ?? 16, Height ?? 16,
+            Stroke?.ToXNAColor() ?? Color.White,
+            StrokeThickness ?? 1f,
             Color.Transparent);
 
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        MGDesktop Desktop = Element.GetDesktop();
+        MGEllipse ellipse = Element as MGEllipse;
+
+        if (Stroke.HasValue)
         {
-            MGDesktop Desktop = Element.GetDesktop();
-            MGEllipse ellipse = Element as MGEllipse;
-
-            if (Stroke.HasValue)
-            {
-                ellipse.Stroke = Stroke.Value.ToXNAColor();
-            }
-
-            if (StrokeThickness.HasValue)
-            {
-                ellipse.StrokeThickness = StrokeThickness.Value;
-            }
-
-            if (Fill != null)
-            {
-                ellipse.FillBrush = Fill.ToFillBrush(Desktop, Element);
-            }
-
-            if (SegmentCount.HasValue)
-            {
-                ellipse.SegmentCount = SegmentCount.Value;
-            }
-
-            if (Width.HasValue)
-            {
-                ellipse.Width = Width.Value;
-            }
-
-            if (Height.HasValue)
-            {
-                ellipse.Height = Height.Value;
-            }
+            ellipse.Stroke = Stroke.Value.ToXNAColor();
         }
 
-        protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
-    }
-
-    public class Line : Element
-    {
-        public override MGElementType ElementType => MGElementType.Line;
-
-        [Category("Layout")]
-        public string StartPoint { get; set; }
-        [Category("Layout")]
-        public string EndPoint { get; set; }
-        [Category("Border")]
-        public XAMLColor? Stroke { get; set; }
-        [Category("Border")]
-        public float? StrokeThickness { get; set; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
-            => new MGLine(Window,
-                ShapeXamlParser.ParsePoint(StartPoint ?? "0,0"),
-                ShapeXamlParser.ParsePoint(EndPoint ?? "16,0"),
-                Stroke?.ToXNAColor() ?? Color.White,
-                StrokeThickness ?? 1f);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (StrokeThickness.HasValue)
         {
-            MGLine line = Element as MGLine;
-
-            if (!string.IsNullOrWhiteSpace(StartPoint))
-            {
-                line.StartPoint = ShapeXamlParser.ParsePoint(StartPoint);
-            }
-
-            if (!string.IsNullOrWhiteSpace(EndPoint))
-            {
-                line.EndPoint = ShapeXamlParser.ParsePoint(EndPoint);
-            }
-
-            if (Stroke.HasValue)
-            {
-                line.Stroke = Stroke.Value.ToXNAColor();
-            }
-
-            if (StrokeThickness.HasValue)
-            {
-                line.StrokeThickness = StrokeThickness.Value;
-            }
+            ellipse.StrokeThickness = StrokeThickness.Value;
         }
 
-        protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
-    }
-
-    public class Polyline : Element
-    {
-        public override MGElementType ElementType => MGElementType.Polyline;
-
-        [Category("Layout")]
-        public string Points { get; set; }
-        [Category("Border")]
-        public XAMLColor? Stroke { get; set; }
-        [Category("Border")]
-        public float? StrokeThickness { get; set; }
-
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
-            => new MGPolyline(Window,
-                ShapeXamlParser.ParsePoints(Points),
-                Stroke?.ToXNAColor() ?? Color.White,
-                StrokeThickness ?? 1f);
-
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+        if (Fill != null)
         {
-            MGPolyline polyline = Element as MGPolyline;
-
-            if (!string.IsNullOrWhiteSpace(Points))
-            {
-                polyline.Points = ShapeXamlParser.ParsePoints(Points);
-            }
-
-            if (Stroke.HasValue)
-            {
-                polyline.Stroke = Stroke.Value.ToXNAColor();
-            }
-
-            if (StrokeThickness.HasValue)
-            {
-                polyline.StrokeThickness = StrokeThickness.Value;
-            }
+            ellipse.FillBrush = Fill.ToFillBrush(Desktop, Element);
         }
 
-        protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
+        if (SegmentCount.HasValue)
+        {
+            ellipse.SegmentCount = SegmentCount.Value;
+        }
+
+        if (Width.HasValue)
+        {
+            ellipse.Width = Width.Value;
+        }
+
+        if (Height.HasValue)
+        {
+            ellipse.Height = Height.Value;
+        }
     }
 
-    public class Polygon : Element
+    protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
+}
+
+public class Line : Element
+{
+    public override MGElementType ElementType => MGElementType.Line;
+
+    [Category("Layout")]
+    public string StartPoint { get; set; }
+    [Category("Layout")]
+    public string EndPoint { get; set; }
+    [Category("Border")]
+    public XAMLColor? Stroke { get; set; }
+    [Category("Border")]
+    public float? StrokeThickness { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+        => new MGLine(Window,
+            ShapeXamlParser.ParsePoint(StartPoint ?? "0,0"),
+            ShapeXamlParser.ParsePoint(EndPoint ?? "16,0"),
+            Stroke?.ToXNAColor() ?? Color.White,
+            StrokeThickness ?? 1f);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        public override MGElementType ElementType => MGElementType.Polygon;
+        MGLine line = Element as MGLine;
 
-        [Category("Layout")]
-        public string Points { get; set; }
-        [Category("Border")]
-        public XAMLColor? Stroke { get; set; }
-        [Category("Border")]
-        public float? StrokeThickness { get; set; }
-        [Category("Appearance")]
-        public FillBrush Fill { get; set; }
+        if (!string.IsNullOrWhiteSpace(StartPoint))
+        {
+            line.StartPoint = ShapeXamlParser.ParsePoint(StartPoint);
+        }
 
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
-            => new MGPolygon(Window,
-                ShapeXamlParser.ParsePoints(Points),
-                Stroke?.ToXNAColor() ?? Color.White,
-                StrokeThickness ?? 1f,
+        if (!string.IsNullOrWhiteSpace(EndPoint))
+        {
+            line.EndPoint = ShapeXamlParser.ParsePoint(EndPoint);
+        }
+
+        if (Stroke.HasValue)
+        {
+            line.Stroke = Stroke.Value.ToXNAColor();
+        }
+
+        if (StrokeThickness.HasValue)
+        {
+            line.StrokeThickness = StrokeThickness.Value;
+        }
+    }
+
+    protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
+}
+
+public class Polyline : Element
+{
+    public override MGElementType ElementType => MGElementType.Polyline;
+
+    [Category("Layout")]
+    public string Points { get; set; }
+    [Category("Border")]
+    public XAMLColor? Stroke { get; set; }
+    [Category("Border")]
+    public float? StrokeThickness { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+        => new MGPolyline(Window,
+            ShapeXamlParser.ParsePoints(Points),
+            Stroke?.ToXNAColor() ?? Color.White,
+            StrokeThickness ?? 1f);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        MGPolyline polyline = Element as MGPolyline;
+
+        if (!string.IsNullOrWhiteSpace(Points))
+        {
+            polyline.Points = ShapeXamlParser.ParsePoints(Points);
+        }
+
+        if (Stroke.HasValue)
+        {
+            polyline.Stroke = Stroke.Value.ToXNAColor();
+        }
+
+        if (StrokeThickness.HasValue)
+        {
+            polyline.StrokeThickness = StrokeThickness.Value;
+        }
+    }
+
+    protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
+}
+
+public class Polygon : Element
+{
+    public override MGElementType ElementType => MGElementType.Polygon;
+
+    [Category("Layout")]
+    public string Points { get; set; }
+    [Category("Border")]
+    public XAMLColor? Stroke { get; set; }
+    [Category("Border")]
+    public float? StrokeThickness { get; set; }
+    [Category("Appearance")]
+    public FillBrush Fill { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+        => new MGPolygon(Window,
+            ShapeXamlParser.ParsePoints(Points),
+            Stroke?.ToXNAColor() ?? Color.White,
+            StrokeThickness ?? 1f,
             Color.Transparent);
 
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        MGDesktop Desktop = Element.GetDesktop();
+        MGPolygon polygon = Element as MGPolygon;
+
+        if (!string.IsNullOrWhiteSpace(Points))
         {
-            MGDesktop Desktop = Element.GetDesktop();
-            MGPolygon polygon = Element as MGPolygon;
-
-            if (!string.IsNullOrWhiteSpace(Points))
-            {
-                polygon.Points = ShapeXamlParser.ParsePoints(Points);
-            }
-
-            if (Stroke.HasValue)
-            {
-                polygon.Stroke = Stroke.Value.ToXNAColor();
-            }
-
-            if (StrokeThickness.HasValue)
-            {
-                polygon.StrokeThickness = StrokeThickness.Value;
-            }
-
-            if (Fill != null)
-            {
-                polygon.FillBrush = Fill.ToFillBrush(Desktop, Element);
-            }
+            polygon.Points = ShapeXamlParser.ParsePoints(Points);
         }
 
-        protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
+        if (Stroke.HasValue)
+        {
+            polygon.Stroke = Stroke.Value.ToXNAColor();
+        }
+
+        if (StrokeThickness.HasValue)
+        {
+            polygon.StrokeThickness = StrokeThickness.Value;
+        }
+
+        if (Fill != null)
+        {
+            polygon.FillBrush = Fill.ToFillBrush(Desktop, Element);
+        }
     }
 
-    public class PathLite : Element
-    {
-        public override MGElementType ElementType => MGElementType.PathLite;
+    protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
+}
 
-        [Category("Layout")]
-        public string Data { get; set; }
-        [Category("Border")]
-        public XAMLColor? Stroke { get; set; }
-        [Category("Border")]
-        public float? StrokeThickness { get; set; }
-        [Category("Appearance")]
-        public FillBrush Fill { get; set; }
+public class PathLite : Element
+{
+    public override MGElementType ElementType => MGElementType.PathLite;
 
-        protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
-            => new MGPathLite(Window,
-                ShapeXamlParser.ParsePathLiteCommands(Data),
-                Stroke?.ToXNAColor() ?? Color.White,
-                StrokeThickness ?? 1f,
+    [Category("Layout")]
+    public string Data { get; set; }
+    [Category("Border")]
+    public XAMLColor? Stroke { get; set; }
+    [Category("Border")]
+    public float? StrokeThickness { get; set; }
+    [Category("Appearance")]
+    public FillBrush Fill { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
+        => new MGPathLite(Window,
+            ShapeXamlParser.ParsePathLiteCommands(Data),
+            Stroke?.ToXNAColor() ?? Color.White,
+            StrokeThickness ?? 1f,
             Color.Transparent);
 
-        protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        MGDesktop Desktop = Element.GetDesktop();
+        MGPathLite pathLite = Element as MGPathLite;
+
+        if (!string.IsNullOrWhiteSpace(Data))
         {
-            MGDesktop Desktop = Element.GetDesktop();
-            MGPathLite pathLite = Element as MGPathLite;
-
-            if (!string.IsNullOrWhiteSpace(Data))
-            {
-                pathLite.Commands = ShapeXamlParser.ParsePathLiteCommands(Data);
-            }
-
-            if (Stroke.HasValue)
-            {
-                pathLite.Stroke = Stroke.Value.ToXNAColor();
-            }
-
-            if (StrokeThickness.HasValue)
-            {
-                pathLite.StrokeThickness = StrokeThickness.Value;
-            }
-
-            if (Fill != null)
-            {
-                pathLite.FillBrush = Fill.ToFillBrush(Desktop, Element);
-            }
+            pathLite.Commands = ShapeXamlParser.ParsePathLiteCommands(Data);
         }
 
-        protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
+        if (Stroke.HasValue)
+        {
+            pathLite.Stroke = Stroke.Value.ToXNAColor();
+        }
+
+        if (StrokeThickness.HasValue)
+        {
+            pathLite.StrokeThickness = StrokeThickness.Value;
+        }
+
+        if (Fill != null)
+        {
+            pathLite.FillBrush = Fill.ToFillBrush(Desktop, Element);
+        }
     }
+
+    protected internal override IEnumerable<Element> GetChildren() => Array.Empty<Element>();
 }

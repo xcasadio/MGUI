@@ -1,9 +1,8 @@
-namespace MGUI.Core.UI.TextEditing
+namespace MGUI.Core.UI.TextEditing;
+
+public enum MGRichTextCompletionTrigger
 {
-    public enum MGRichTextCompletionTrigger
-    {
-        Manual,
-        Character,
-        TextChanged
-    }
+    Manual,
+    Character,
+    TextChanged
 }

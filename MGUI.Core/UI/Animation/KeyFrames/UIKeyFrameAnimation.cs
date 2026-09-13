@@ -1,71 +1,70 @@
 using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Animation.Interpolation;
 
-namespace MGUI.Core.UI.Animation.KeyFrames
+namespace MGUI.Core.UI.Animation.KeyFrames;
+
+/// <summary>
+/// A property animation driven by a <see cref="UIKeyFrameTrack{T}"/> (ADR-0007, decision 2): the value at a progress is interpolated between
+/// the two keys around it, with the easing of the key the segment ends on; the global <see cref="UIAnimation{T}.Easing"/> is ignored.
+/// <code>
+/// new UIKeyFrameAnimation&lt;float&gt;("Opacity") { Duration = TimeSpan.FromSeconds(1), Track = { { 0f, 0f }, { 0.5f, 1f }, { 1f, 0f } } }
+/// </code>
+/// <see cref="UIAnimation{T}.From"/> and <see cref="UIAnimation{T}.To"/> are taken from the track: the first key (or the current value when
+/// the track does not start at 0) and the last key. Everything else (delay, repeat, auto-reverse, fill and cancel behaviours, ownership,
+/// conflicts) is the engine's.
+/// </summary>
+public class UIKeyFrameAnimation<T> : UIPropertyAnimation<T>
 {
-    /// <summary>
-    /// A property animation driven by a <see cref="UIKeyFrameTrack{T}"/> (ADR-0007, decision 2): the value at a progress is interpolated between
-    /// the two keys around it, with the easing of the key the segment ends on; the global <see cref="UIAnimation{T}.Easing"/> is ignored.
-    /// <code>
-    /// new UIKeyFrameAnimation&lt;float&gt;("Opacity") { Duration = TimeSpan.FromSeconds(1), Track = { { 0f, 0f }, { 0.5f, 1f }, { 1f, 0f } } }
-    /// </code>
-    /// <see cref="UIAnimation{T}.From"/> and <see cref="UIAnimation{T}.To"/> are taken from the track: the first key (or the current value when
-    /// the track does not start at 0) and the last key. Everything else (delay, repeat, auto-reverse, fill and cancel behaviours, ownership,
-    /// conflicts) is the engine's.
-    /// </summary>
-    public class UIKeyFrameAnimation<T> : UIPropertyAnimation<T>
+    private IUIInterpolator<T> _TrackInterpolator;
+    private IUIEasingFunction[] _Easings = Array.Empty<IUIEasingFunction>();
+
+    public UIKeyFrameAnimation() { }
+
+    public UIKeyFrameAnimation(string property)
+        : base(property)
     {
-        private IUIInterpolator<T> _TrackInterpolator;
-        private IUIEasingFunction[] _Easings = Array.Empty<IUIEasingFunction>();
+    }
 
-        public UIKeyFrameAnimation() { }
+    /// <summary>The keys. Validated when the animation starts.</summary>
+    public UIKeyFrameTrack<T> Track { get; set; } = new();
 
-        public UIKeyFrameAnimation(string property)
-            : base(property)
+    protected internal override void OnStarting(object inheritedBase)
+    {
+        UIKeyFrameTrack<T> track = Track ?? throw new InvalidOperationException($"{nameof(UIKeyFrameAnimation<T>)} needs a {nameof(Track)}.");
+        track.Validate();
+
+        if (track.StartsAtZero)
         {
+            From = track.Frames[0].Value;
+        }
+        else
+        {
+            ClearFrom();
         }
 
-        /// <summary>The keys. Validated when the animation starts.</summary>
-        public UIKeyFrameTrack<T> Track { get; set; } = new();
-
-        protected internal override void OnStarting(object inheritedBase)
+        To = track.Frames[^1].Value;
+        _TrackInterpolator = Interpolator ?? UIInterpolators.Get<T>();
+        if (_Easings.Length != track.Count)
         {
-            UIKeyFrameTrack<T> track = Track ?? throw new InvalidOperationException($"{nameof(UIKeyFrameAnimation<T>)} needs a {nameof(Track)}.");
-            track.Validate();
-
-            if (track.StartsAtZero)
-            {
-                From = track.Frames[0].Value;
-            }
-            else
-            {
-                ClearFrom();
-            }
-
-            To = track.Frames[^1].Value;
-            _TrackInterpolator = Interpolator ?? UIInterpolators.Get<T>();
-            if (_Easings.Length != track.Count)
-            {
-                _Easings = new IUIEasingFunction[track.Count];
-            }
-
-            for (int i = 0; i < track.Count; i++)
-            {
-                _Easings[i] = track.Frames[i].ResolveEasing();
-            }
-
-            base.OnStarting(inheritedBase);
+            _Easings = new IUIEasingFunction[track.Count];
         }
 
-        protected internal override void ApplyProgress(float progress)
+        for (int i = 0; i < track.Count; i++)
         {
-            UIKeyFrameTrack<T> track = Track;
-            track.FindSegment(progress, out int fromIndex, out int toIndex, out float local);
-            T from = fromIndex >= 0 ? track.Frames[fromIndex].Value : StartValue;
-            T to = track.Frames[toIndex].Value;
-            float eased = _Easings[toIndex].Ease(local);
-            CurrentValue = _TrackInterpolator.Lerp(from, to, eased);
-            WriteValue(CurrentValue);
+            _Easings[i] = track.Frames[i].ResolveEasing();
         }
+
+        base.OnStarting(inheritedBase);
+    }
+
+    protected internal override void ApplyProgress(float progress)
+    {
+        UIKeyFrameTrack<T> track = Track;
+        track.FindSegment(progress, out int fromIndex, out int toIndex, out float local);
+        T from = fromIndex >= 0 ? track.Frames[fromIndex].Value : StartValue;
+        T to = track.Frames[toIndex].Value;
+        float eased = _Easings[toIndex].Ease(local);
+        CurrentValue = _TrackInterpolator.Lerp(from, to, eased);
+        WriteValue(CurrentValue);
     }
 }

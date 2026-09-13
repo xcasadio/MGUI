@@ -1,15 +1,14 @@
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public enum ColorValueFormat
 {
-    public enum ColorValueFormat
-    {
-        HexRgb,
-        HexArgb,
-        HexRgba,
-        RgbByte,
-        RgbaByte,
-        RgbFloat,
-        RgbaFloat,
-        Vector3,
-        Vector4
-    }
+    HexRgb,
+    HexArgb,
+    HexRgba,
+    RgbByte,
+    RgbaByte,
+    RgbFloat,
+    RgbaFloat,
+    Vector3,
+    Vector4
 }

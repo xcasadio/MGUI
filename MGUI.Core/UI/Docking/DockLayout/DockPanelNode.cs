@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using MGUI.Core.UI.Docking;
-
 namespace MGUI.Core.UI.Docking.DockLayout;
 
 /// <summary>

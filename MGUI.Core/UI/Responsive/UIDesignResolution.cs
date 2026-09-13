@@ -1,31 +1,29 @@
 using MonoGame.Extended;
-using System;
 
-namespace MGUI.Core.UI.Responsive
+namespace MGUI.Core.UI.Responsive;
+
+public readonly record struct UIDesignResolution
 {
-    public readonly record struct UIDesignResolution
+    public int Width { get; }
+    public int Height { get; }
+
+    public UIDesignResolution(int width, int height)
     {
-        public int Width { get; }
-        public int Height { get; }
-
-        public UIDesignResolution(int width, int height)
+        if (width <= 0)
         {
-            if (width <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(width));
-            }
-
-            if (height <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(height));
-            }
-
-            Width = width;
-            Height = height;
+            throw new ArgumentOutOfRangeException(nameof(width));
         }
 
-        public Size ToSize() => new(Width, Height);
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
 
-        public static UIDesignResolution HD => new(1920, 1080);
+        Width = width;
+        Height = height;
     }
+
+    public Size ToSize() => new(Width, Height);
+
+    public static UIDesignResolution HD => new(1920, 1080);
 }

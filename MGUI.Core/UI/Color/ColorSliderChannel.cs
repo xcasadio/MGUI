@@ -1,14 +1,13 @@
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public enum ColorSliderChannel
 {
-    public enum ColorSliderChannel
-    {
-        Hue,
-        Alpha,
-        Red,
-        Green,
-        Blue,
-        Saturation,
-        Value,
-        Intensity
-    }
+    Hue,
+    Alpha,
+    Red,
+    Green,
+    Blue,
+    Saturation,
+    Value,
+    Intensity
 }

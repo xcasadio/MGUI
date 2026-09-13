@@ -1,10 +1,9 @@
-namespace MGUI.Core.UI.Styling
+namespace MGUI.Core.UI.Styling;
+
+public enum UIResourceScope
 {
-    public enum UIResourceScope
-    {
-        Desktop,
-        Window,
-        Subtree,
-        Template,
-    }
+    Desktop,
+    Window,
+    Subtree,
+    Template,
 }

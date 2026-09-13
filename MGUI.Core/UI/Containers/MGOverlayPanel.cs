@@ -1,201 +1,194 @@
 ﻿using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Shared.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MGUI.Core.UI.Responsive;
 
-namespace MGUI.Core.UI.Containers
+namespace MGUI.Core.UI.Containers;
+
+/// <summary>A simple layout container that renders all its child elements overtop of each other, in the order they were added to this container, or in order of their Z-Index if specified.<para/>
+/// Children may also have an optional <see cref="Thickness"/> offset that determines how much empty space is around them inside this panel.</summary>
+public class MGOverlayPanel : MGMultiContentHost
 {
-    /// <summary>A simple layout container that renders all its child elements overtop of each other, in the order they were added to this container, or in order of their Z-Index if specified.<para/>
-    /// Children may also have an optional <see cref="Thickness"/> offset that determines how much empty space is around them inside this panel.</summary>
-    public class MGOverlayPanel : MGMultiContentHost
+    private class OverlayChildComparer : IComparer<OverlayPanelChild>
     {
-        private class OverlayChildComparer : IComparer<OverlayPanelChild>
+        public int Compare(OverlayPanelChild x, OverlayPanelChild y)
         {
-            public int Compare(OverlayPanelChild x, OverlayPanelChild y)
+            if (!x.HasZIndex && !y.HasZIndex)
             {
-                if (!x.HasZIndex && !y.HasZIndex)
-                {
-                    return 0;
-                }
-                else if (x.HasZIndex && y.HasZIndex)
-                {
-                    return x.ZIndex.Value.CompareTo(y.ZIndex.Value);
-                }
-                else if (!x.HasZIndex)
-                {
-                    return -1;
-                }
-                else
-                {
-                    return 1;
-                }
+                return 0;
             }
-        }
-
-        private readonly record struct OverlayPanelChild(MGElement Item, Thickness Offset, double? ZIndex)
-        {
-            public bool HasZIndex => ZIndex.HasValue;
-        }
-
-        private readonly List<OverlayPanelChild> PanelChildren = new();
-        private IEnumerable<OverlayPanelChild> SortedChildren => PanelChildren.OrderBy(x => x.HasZIndex).ThenBy(x => x.ZIndex ?? int.MinValue);
-
-        /// <param name="Offset">An offset to apply to this element's bounds. Use zero to have the element fill the entire panel's bounds (minus the panel's padding)</param>
-        /// <param name="ZIndex">Determines the order that children are rendered in. Higher value is rendered last, appearing overtop of everything else.<para/>
-        /// Children with <paramref name="ZIndex"/>=null will be rendered first.<para/>
-        /// If multiple children have the same <paramref name="ZIndex"/> value, they are rendered in the same order that they were added to this panel in.</param>
-        /// <returns>True if the given <paramref name="Item"/> was successfully added.<br/>
-        /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
-        public bool TryAddChild(MGElement Item, Thickness Offset = default, double? ZIndex = null)
-        {
-            if (!CanChangeContent)
+            else if (x.HasZIndex && y.HasZIndex)
             {
-                return false;
+                return x.ZIndex.Value.CompareTo(y.ZIndex.Value);
             }
-
-            if (!_Children.Contains(Item))
+            else if (!x.HasZIndex)
             {
-                _Children.Add(Item);
-                PanelChildren.Add(new OverlayPanelChild(Item, Offset, ZIndex));
-                return true;
+                return -1;
             }
             else
             {
-                return false;
+                return 1;
             }
         }
+    }
 
-        /// <returns>True if the given <paramref name="Item"/> was found in <see cref="MGMultiContentHost.Children"/> and was successfully removed.<br/>
-        /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
-        public bool TryRemoveChild(MGElement Item)
+    private readonly record struct OverlayPanelChild(MGElement Item, Thickness Offset, double? ZIndex)
+    {
+        public bool HasZIndex => ZIndex.HasValue;
+    }
+
+    private readonly List<OverlayPanelChild> PanelChildren = new();
+    private IEnumerable<OverlayPanelChild> SortedChildren => PanelChildren.OrderBy(x => x.HasZIndex).ThenBy(x => x.ZIndex ?? int.MinValue);
+
+    /// <param name="Offset">An offset to apply to this element's bounds. Use zero to have the element fill the entire panel's bounds (minus the panel's padding)</param>
+    /// <param name="ZIndex">Determines the order that children are rendered in. Higher value is rendered last, appearing overtop of everything else.<para/>
+    /// Children with <paramref name="ZIndex"/>=null will be rendered first.<para/>
+    /// If multiple children have the same <paramref name="ZIndex"/> value, they are rendered in the same order that they were added to this panel in.</param>
+    /// <returns>True if the given <paramref name="Item"/> was successfully added.<br/>
+    /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
+    public bool TryAddChild(MGElement Item, Thickness Offset = default, double? ZIndex = null)
+    {
+        if (!CanChangeContent)
         {
-            if (!CanChangeContent)
-            {
-                return false;
-            }
-
-            if (_Children.Remove(Item))
-            {
-                OverlayPanelChild ToRemove = PanelChildren.First(x => x.Item == Item);
-                PanelChildren.Remove(ToRemove);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
-        /// <param name="Offset">An offset to apply to the new element's bounds. Use zero to have the element fill the entire panel's bounds (minus the panel's padding)</param>
-        /// <returns>True if the given <paramref name="Old"/> item was found in <see cref="MGMultiContentHost.Children"/> and was successfully replaced with <paramref name="New"/>.<br/>
-        /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
-        public bool TryReplaceChild(MGElement Old, MGElement New, Thickness Offset = default, double? ZIndex = null)
+        if (!_Children.Contains(Item))
         {
-            if (!CanChangeContent)
-            {
-                return false;
-            }
-
-            int Index = _Children.IndexOf(Old);
-            if (Index < 0)
-            {
-                return false;
-            }
-
-            _Children[Index] = New;
-            OverlayPanelChild ToRemove = PanelChildren.First(x => x.Item == Old);
-            PanelChildren.Remove(ToRemove);
-            PanelChildren.Add(new OverlayPanelChild(New, Offset, ZIndex));
+            _Children.Add(Item);
+            PanelChildren.Add(new OverlayPanelChild(Item, Offset, ZIndex));
             return true;
         }
-
-        public MGOverlayPanel(MGWindow Window)
-            : base(Window, MGElementType.OverlayPanel)
+        else
         {
-            using (BeginInitializing())
-            {
+            return false;
+        }
+    }
 
+    /// <returns>True if the given <paramref name="Item"/> was found in <see cref="MGMultiContentHost.Children"/> and was successfully removed.<br/>
+    /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
+    public bool TryRemoveChild(MGElement Item)
+    {
+        if (!CanChangeContent)
+        {
+            return false;
+        }
+
+        if (_Children.Remove(Item))
+        {
+            OverlayPanelChild ToRemove = PanelChildren.First(x => x.Item == Item);
+            PanelChildren.Remove(ToRemove);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    /// <param name="Offset">An offset to apply to the new element's bounds. Use zero to have the element fill the entire panel's bounds (minus the panel's padding)</param>
+    /// <returns>True if the given <paramref name="Old"/> item was found in <see cref="MGMultiContentHost.Children"/> and was successfully replaced with <paramref name="New"/>.<br/>
+    /// False otherwise, such as if <see cref="MGContentHost.CanChangeContent"/> is false.</returns>
+    public bool TryReplaceChild(MGElement Old, MGElement New, Thickness Offset = default, double? ZIndex = null)
+    {
+        if (!CanChangeContent)
+        {
+            return false;
+        }
+
+        int Index = _Children.IndexOf(Old);
+        if (Index < 0)
+        {
+            return false;
+        }
+
+        _Children[Index] = New;
+        OverlayPanelChild ToRemove = PanelChildren.First(x => x.Item == Old);
+        PanelChildren.Remove(ToRemove);
+        PanelChildren.Add(new OverlayPanelChild(New, Offset, ZIndex));
+        return true;
+    }
+
+    public MGOverlayPanel(MGWindow Window)
+        : base(Window, MGElementType.OverlayPanel)
+    {
+        using (BeginInitializing())
+        {
+
+        }
+    }
+
+    public override IEnumerable<MGElement> GetChildren() => SortedChildren.Select(x => x.Item);
+
+    internal static Rectangle CreateAnchoredBounds(Rectangle availableBounds, Size desiredSize, ResponsiveAnchor anchor)
+    {
+        int width = Math.Min(availableBounds.Width, Math.Max(0, desiredSize.Width));
+        int height = Math.Min(availableBounds.Height, Math.Max(0, desiredSize.Height));
+
+        return anchor switch
+        {
+            ResponsiveAnchor.TopLeft => new Rectangle(availableBounds.Left, availableBounds.Top, width, height),
+            ResponsiveAnchor.TopCenter => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top, width, height),
+            ResponsiveAnchor.TopRight => new Rectangle(availableBounds.Right - width, availableBounds.Top, width, height),
+            ResponsiveAnchor.MiddleLeft => new Rectangle(availableBounds.Left, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
+            ResponsiveAnchor.Center => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
+            ResponsiveAnchor.MiddleRight => new Rectangle(availableBounds.Right - width, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
+            ResponsiveAnchor.BottomLeft => new Rectangle(availableBounds.Left, availableBounds.Bottom - height, width, height),
+            ResponsiveAnchor.BottomCenter => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Bottom - height, width, height),
+            ResponsiveAnchor.BottomRight => new Rectangle(availableBounds.Right - width, availableBounds.Bottom - height, width, height),
+            ResponsiveAnchor.StretchHorizontal => new Rectangle(availableBounds.Left, availableBounds.Top + (availableBounds.Height - height) / 2, availableBounds.Width, height),
+            ResponsiveAnchor.StretchVertical => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top, width, availableBounds.Height),
+            ResponsiveAnchor.Stretch => availableBounds,
+            _ => availableBounds,
+        };
+    }
+
+    protected override void UpdateContentLayout(Rectangle Bounds)
+    {
+        foreach (OverlayPanelChild Child in SortedChildren)
+        {
+            Thickness offset = Child.Item.ResolveExternalSpacing(Child.Offset);
+            Rectangle availableBounds = Bounds.GetCompressed(offset);
+
+            if (availableBounds.Width <= 0 || availableBounds.Height <= 0)
+            {
+                Child.Item.UpdateLayout(Rectangle.Empty);
+                continue;
             }
-        }
 
-        public override IEnumerable<MGElement> GetChildren() => SortedChildren.Select(x => x.Item);
-
-        internal static Rectangle CreateAnchoredBounds(Rectangle availableBounds, Size desiredSize, ResponsiveAnchor anchor)
-        {
-            int width = Math.Min(availableBounds.Width, Math.Max(0, desiredSize.Width));
-            int height = Math.Min(availableBounds.Height, Math.Max(0, desiredSize.Height));
-
-            return anchor switch
+            if (Child.Item.ResponsiveAnchor == ResponsiveAnchor.None)
             {
-                ResponsiveAnchor.TopLeft => new Rectangle(availableBounds.Left, availableBounds.Top, width, height),
-                ResponsiveAnchor.TopCenter => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top, width, height),
-                ResponsiveAnchor.TopRight => new Rectangle(availableBounds.Right - width, availableBounds.Top, width, height),
-                ResponsiveAnchor.MiddleLeft => new Rectangle(availableBounds.Left, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
-                ResponsiveAnchor.Center => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
-                ResponsiveAnchor.MiddleRight => new Rectangle(availableBounds.Right - width, availableBounds.Top + (availableBounds.Height - height) / 2, width, height),
-                ResponsiveAnchor.BottomLeft => new Rectangle(availableBounds.Left, availableBounds.Bottom - height, width, height),
-                ResponsiveAnchor.BottomCenter => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Bottom - height, width, height),
-                ResponsiveAnchor.BottomRight => new Rectangle(availableBounds.Right - width, availableBounds.Bottom - height, width, height),
-                ResponsiveAnchor.StretchHorizontal => new Rectangle(availableBounds.Left, availableBounds.Top + (availableBounds.Height - height) / 2, availableBounds.Width, height),
-                ResponsiveAnchor.StretchVertical => new Rectangle(availableBounds.Left + (availableBounds.Width - width) / 2, availableBounds.Top, width, availableBounds.Height),
-                ResponsiveAnchor.Stretch => availableBounds,
-                _ => availableBounds,
-            };
-        }
-
-        protected override void UpdateContentLayout(Rectangle Bounds)
-        {
-            foreach (OverlayPanelChild Child in SortedChildren)
-            {
-                Thickness offset = Child.Item.ResolveExternalSpacing(Child.Offset);
-                Rectangle availableBounds = Bounds.GetCompressed(offset);
-
-                if (availableBounds.Width <= 0 || availableBounds.Height <= 0)
-                {
-                    Child.Item.UpdateLayout(Rectangle.Empty);
-                    continue;
-                }
-
-                if (Child.Item.ResponsiveAnchor == ResponsiveAnchor.None)
-                {
-                    Child.Item.UpdateLayout(availableBounds);
-                }
-                else
-                {
-                    Child.Item.UpdateMeasurement(availableBounds.Size, out _, out Thickness fullSize, out _, out _);
-                    Rectangle anchoredBounds = CreateAnchoredBounds(availableBounds, fullSize.Size, Child.Item.ResponsiveAnchor);
-                    Child.Item.UpdateLayout(anchoredBounds);
-                }
-            }
-        }
-
-        protected override Thickness UpdateContentMeasurement(Size AvailableSize)
-        {
-            if (HasContent)
-            {
-                //  Measure each child
-                Dictionary<MGElement, Size> RequestedSizes = new();
-                foreach (OverlayPanelChild Child in PanelChildren)
-                {
-                    Child.Item.UpdateMeasurement(AvailableSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
-                    Thickness Offset = Child.Item.ResolveExternalSpacing(Child.Offset);
-                    RequestedSizes.Add(Child.Item, FullSize.Size.Add(Offset.Size, 0, 0));
-                }
-
-                //  Return the largest dimensions
-                return new Thickness(RequestedSizes.Values.Max(x => x.Width), RequestedSizes.Values.Max(x => x.Height), 0, 0);
-
+                Child.Item.UpdateLayout(availableBounds);
             }
             else
             {
-                return UpdateContentMeasurementBaseImplementation(AvailableSize);
+                Child.Item.UpdateMeasurement(availableBounds.Size, out _, out Thickness fullSize, out _, out _);
+                Rectangle anchoredBounds = CreateAnchoredBounds(availableBounds, fullSize.Size, Child.Item.ResponsiveAnchor);
+                Child.Item.UpdateLayout(anchoredBounds);
             }
+        }
+    }
+
+    protected override Thickness UpdateContentMeasurement(Size AvailableSize)
+    {
+        if (HasContent)
+        {
+            //  Measure each child
+            Dictionary<MGElement, Size> RequestedSizes = new();
+            foreach (OverlayPanelChild Child in PanelChildren)
+            {
+                Child.Item.UpdateMeasurement(AvailableSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
+                Thickness Offset = Child.Item.ResolveExternalSpacing(Child.Offset);
+                RequestedSizes.Add(Child.Item, FullSize.Size.Add(Offset.Size, 0, 0));
+            }
+
+            //  Return the largest dimensions
+            return new Thickness(RequestedSizes.Values.Max(x => x.Width), RequestedSizes.Values.Max(x => x.Height), 0, 0);
+
+        }
+        else
+        {
+            return UpdateContentMeasurementBaseImplementation(AvailableSize);
         }
     }
 }

@@ -1,13 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
@@ -15,251 +7,250 @@ using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
 using MGUI.Core.UI.Styling;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public class MGGroupBox : MGSingleContentHost
 {
-    public class MGGroupBox : MGSingleContentHost
+    public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
     {
-        public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
+        IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
+        if (!IncludeActive)
         {
-            IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
-            if (!IncludeActive)
+            return baseChildren;
+        }
+
+        List<MGElement> result = new(baseChildren.Count + 1);
+        result.AddRange(baseChildren);
+        result.Add(OuterHeaderPresenter);
+        return result;
+    }
+
+    #region Border
+    private MGBorder BorderElement { get; }
+    public override MGBorder GetBorder() => BorderElement;
+
+    public MGUniformBorderBrush BorderBrush
+    {
+        get => (MGUniformBorderBrush)BorderElement.BorderBrush;
+        set => BorderElement.BorderBrush = value;
+    }
+
+    // Note (ADR-0005/S2): this facade adds its own equality guard and LayoutChanged on top of the ones
+    // BorderElement.BorderThickness already raises. A future tagged write routed through GetBorder()
+    // (GetBorder().SetBorderThickness(value, source)) still lands on BorderElement's public setter here,
+    // so it must keep raising this LayoutChanged too — do not drop this guard when BorderElement's own
+    // setter becomes precedence-aware.
+    public Thickness BorderThickness
+    {
+        get => BorderElement.BorderThickness;
+        set
+        {
+            if (!BorderElement.BorderThickness.Equals(value))
             {
-                return baseChildren;
+                BorderElement.BorderThickness = value;
+                LayoutChanged(this, true);
             }
-
-            List<MGElement> result = new(baseChildren.Count + 1);
-            result.AddRange(baseChildren);
-            result.Add(OuterHeaderPresenter);
-            return result;
         }
+    }
 
-        #region Border
-        private MGBorder BorderElement { get; }
-        public override MGBorder GetBorder() => BorderElement;
+    public MGCornerRadius CornerRadius
+    {
+        get => BorderElement.CornerRadius;
+        set => BorderElement.CornerRadius = value;
+    }
+    #endregion Border
 
-        public MGUniformBorderBrush BorderBrush
+    /// <summary>The primary header of this <see cref="MGGroupBox"/> which contains both the <see cref="Expander"/> and the <see cref="HeaderPresenter"/></summary>
+    public MGHeaderedContentPresenter OuterHeaderPresenter { get; }
+    /// <summary>Only visible if <see cref="IsExpandable"/> is true. Defaults to a 5px right margin.</summary>
+    public MGExpander Expander { get; }
+    /// <summary>The wrapper element that contains the <see cref="Header"/>.</summary>
+    public MGContentPresenter HeaderPresenter { get; }
+
+    public bool IsExpandable
+    {
+        get => Expander.Visibility == Visibility.Visible;
+        set
         {
-            get => (MGUniformBorderBrush)BorderElement.BorderBrush;
-            set => BorderElement.BorderBrush = value;
-        }
-
-        // Note (ADR-0005/S2): this facade adds its own equality guard and LayoutChanged on top of the ones
-        // BorderElement.BorderThickness already raises. A future tagged write routed through GetBorder()
-        // (GetBorder().SetBorderThickness(value, source)) still lands on BorderElement's public setter here,
-        // so it must keep raising this LayoutChanged too — do not drop this guard when BorderElement's own
-        // setter becomes precedence-aware.
-        public Thickness BorderThickness
-        {
-            get => BorderElement.BorderThickness;
-            set
+            if (IsExpandable != value)
             {
-                if (!BorderElement.BorderThickness.Equals(value))
+                Expander.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                NPC(nameof(IsExpandable));
+                NPC(nameof(HasHeaderContent));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private MGElement _Header;
+    /// <summary>The content to displays in this <see cref="MGGroupBox"/>'s header, above the content and vertically-centered with the top edge of the <see cref="BorderBrush"/>.</summary>
+    public MGElement Header
+    {
+        get => _Header;
+        set
+        {
+            if (_Header != value)
+            {
+                _Header = value;
+                using (HeaderPresenter.AllowChangingContentTemporarily())
                 {
-                    BorderElement.BorderThickness = value;
-                    LayoutChanged(this, true);
+                    HeaderPresenter.SetContent(Header);
                 }
+                NPC(nameof(Header));
+                NPC(nameof(HasHeaderContent));
             }
         }
+    }
 
-        public MGCornerRadius CornerRadius
+    private bool HasHeaderContent => IsExpandable || Header != null;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _HeaderHorizontalMargin;
+    /// <summary>The empty width to the left and the right of the <see cref="Header"/>. This space will not be occupied by the top portion of the border.</summary>
+    public int HeaderHorizontalMargin
+    {
+        get => _HeaderHorizontalMargin;
+        set
         {
-            get => BorderElement.CornerRadius;
-            set => BorderElement.CornerRadius = value;
-        }
-        #endregion Border
-
-        /// <summary>The primary header of this <see cref="MGGroupBox"/> which contains both the <see cref="Expander"/> and the <see cref="HeaderPresenter"/></summary>
-        public MGHeaderedContentPresenter OuterHeaderPresenter { get; }
-        /// <summary>Only visible if <see cref="IsExpandable"/> is true. Defaults to a 5px right margin.</summary>
-        public MGExpander Expander { get; }
-        /// <summary>The wrapper element that contains the <see cref="Header"/>.</summary>
-        public MGContentPresenter HeaderPresenter { get; }
-
-        public bool IsExpandable
-        {
-            get => Expander.Visibility == Visibility.Visible;
-            set
+            if (_HeaderHorizontalMargin != value)
             {
-                if (IsExpandable != value)
-                {
-                    Expander.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-                    NPC(nameof(IsExpandable));
-                    NPC(nameof(HasHeaderContent));
-                }
+                _HeaderHorizontalMargin = value;
+                LayoutChanged(this, true);
+                NPC(nameof(HeaderHorizontalMargin));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MGElement _Header;
-        /// <summary>The content to displays in this <see cref="MGGroupBox"/>'s header, above the content and vertically-centered with the top edge of the <see cref="BorderBrush"/>.</summary>
-        public MGElement Header
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _HeaderHorizontalPadding;
+    /// <summary>The empty width to the left and the right of the <see cref="Header"/>. This space WILL be occupied by the top portion of the border.</summary>
+    public int HeaderHorizontalPadding
+    {
+        get => _HeaderHorizontalPadding;
+        set
         {
-            get => _Header;
-            set
+            if (_HeaderHorizontalPadding != value)
             {
-                if (_Header != value)
-                {
-                    _Header = value;
-                    using (HeaderPresenter.AllowChangingContentTemporarily())
-                    {
-                        HeaderPresenter.SetContent(Header);
-                    }
-                    NPC(nameof(Header));
-                    NPC(nameof(HasHeaderContent));
-                }
+                _HeaderHorizontalPadding = value;
+                LayoutChanged(this, true);
+                NPC(nameof(HeaderHorizontalPadding));
             }
         }
+    }
 
-        private bool HasHeaderContent => IsExpandable || Header != null;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _HeaderHorizontalMargin;
-        /// <summary>The empty width to the left and the right of the <see cref="Header"/>. This space will not be occupied by the top portion of the border.</summary>
-        public int HeaderHorizontalMargin
+    public MGGroupBox(MGWindow Window, MGElement Header = null)
+        : base(Window, MGElementType.GroupBox)
+    {
+        using (BeginInitializing())
         {
-            get => _HeaderHorizontalMargin;
-            set
-            {
-                if (_HeaderHorizontalMargin != value)
-                {
-                    _HeaderHorizontalMargin = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(HeaderHorizontalMargin));
-                }
-            }
-        }
+            HeaderHorizontalMargin = 5;
+            HeaderHorizontalPadding = 10;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private int _HeaderHorizontalPadding;
-        /// <summary>The empty width to the left and the right of the <see cref="Header"/>. This space WILL be occupied by the top portion of the border.</summary>
-        public int HeaderHorizontalPadding
+            BorderElement = new(Window, new Thickness(2), MGUniformBorderBrush.Black);
+            BorderElement.SetParent(this);
+            BorderElement.ManagedParent = this;
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+
+            Expander = new(Window);
+            Expander.SetMargin(new(0, 0, 5, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            Expander.VerticalAlignment = VerticalAlignment.Center;
+            HeaderPresenter = new(Window);
+            HeaderPresenter.VerticalAlignment = VerticalAlignment.Center;
+            HeaderPresenter.CanChangeContent = false;
+            OuterHeaderPresenter = new(Window, Expander, HeaderPresenter);
+            OuterHeaderPresenter.Spacing = 0;
+            OuterHeaderPresenter.CanChangeContent = false;
+            OuterHeaderPresenter.ManagedParent = this;
+            OuterHeaderPresenter.SetParent(this);
+
+            SetPadding(new(8,4,8,8), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+
+            this.Header = Header;
+
+            OnContentAdded += (sender, e) => { Expander.BindVisibility(e); };
+            OnContentRemoved += (sender, e) => { Expander.UnbindVisibility(e); };
+
+            OnLayoutUpdated += (sender, e) =>
+            {
+                Size HeaderlessSize = GetHeaderlessSize();
+                Size AvailableSize = LayoutBounds.Size.AsSize().Subtract(HeaderlessSize, 0, 0);
+                OuterHeaderPresenter.UpdateMeasurement(AvailableSize, out _, out Thickness HeaderContentSize, out _, out _);
+                Rectangle HeaderBounds = new(LayoutBounds.Left + BorderThickness.Left + HeaderHorizontalMargin + HeaderHorizontalPadding, LayoutBounds.Top, HeaderContentSize.Width, HeaderContentSize.Height);
+                OuterHeaderPresenter.UpdateLayout(HeaderBounds);
+            };
+
+        }
+    }
+
+    private Size GetHeaderlessSize()
+    {
+        int Width = BorderThickness.Width + HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2;
+        int Height = BorderThickness.Height;
+        return new(Width, Height);
+    }
+
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    {
+        Size HeaderlessSize = GetHeaderlessSize();
+
+        Size RemainingSize = AvailableSize.Subtract(HeaderlessSize, 0, 0);
+        OuterHeaderPresenter.UpdateMeasurement(RemainingSize, out _, out Thickness HeaderSize, out _, out _);
+
+        SharedSize = new(HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2 + HeaderSize.Width, 0, 0, 0);
+
+        return new(BorderThickness.Left + HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2 + HeaderSize.Width, 
+            BorderThickness.Height + HeaderSize.Height, BorderThickness.Right, BorderThickness.Bottom);
+    }
+
+    public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
+    {
+        //  Move the top edge of the background downwards by half the header's height (since we also do this to the border)
+        Rectangle ActualLayoutBounds = new(LayoutBounds.Left, LayoutBounds.Top + OuterHeaderPresenter.LayoutBounds.Height / 2, LayoutBounds.Width, LayoutBounds.Height - OuterHeaderPresenter.LayoutBounds.Height / 2);
+
+        base.DrawBackground(DA, ActualLayoutBounds);
+    }
+
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    {
+        //  Move the top edge of the border down by half the header's height
+        Rectangle BorderBounds = new(LayoutBounds.Left, LayoutBounds.Top + OuterHeaderPresenter.LayoutBounds.Height / 2, LayoutBounds.Width, LayoutBounds.Height - OuterHeaderPresenter.LayoutBounds.Height / 2);
+
+        //  Draw each side of the border
+        Thickness BT = BorderThickness;
+        IFillBrush Brush = BorderBrush.Brush;
+        if (BT.Left > 0)
         {
-            get => _HeaderHorizontalPadding;
-            set
-            {
-                if (_HeaderHorizontalPadding != value)
-                {
-                    _HeaderHorizontalPadding = value;
-                    LayoutChanged(this, true);
-                    NPC(nameof(HeaderHorizontalPadding));
-                }
-            }
+            Brush.Draw(DA, this, new(BorderBounds.Left, BorderBounds.Top, BT.Left, BorderBounds.Height));
         }
 
-        public MGGroupBox(MGWindow Window, MGElement Header = null)
-            : base(Window, MGElementType.GroupBox)
+        if (BT.Right > 0)
         {
-            using (BeginInitializing())
-            {
-                HeaderHorizontalMargin = 5;
-                HeaderHorizontalPadding = 10;
-
-                BorderElement = new(Window, new Thickness(2), MGUniformBorderBrush.Black);
-                BorderElement.SetParent(this);
-                BorderElement.ManagedParent = this;
-                BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-                BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-                BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
-
-                Expander = new(Window);
-                Expander.SetMargin(new(0, 0, 5, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                Expander.VerticalAlignment = VerticalAlignment.Center;
-                HeaderPresenter = new(Window);
-                HeaderPresenter.VerticalAlignment = VerticalAlignment.Center;
-                HeaderPresenter.CanChangeContent = false;
-                OuterHeaderPresenter = new(Window, Expander, HeaderPresenter);
-                OuterHeaderPresenter.Spacing = 0;
-                OuterHeaderPresenter.CanChangeContent = false;
-                OuterHeaderPresenter.ManagedParent = this;
-                OuterHeaderPresenter.SetParent(this);
-
-                SetPadding(new(8,4,8,8), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-
-                this.Header = Header;
-
-                OnContentAdded += (sender, e) => { Expander.BindVisibility(e); };
-                OnContentRemoved += (sender, e) => { Expander.UnbindVisibility(e); };
-
-                OnLayoutUpdated += (sender, e) =>
-                {
-                    Size HeaderlessSize = GetHeaderlessSize();
-                    Size AvailableSize = LayoutBounds.Size.AsSize().Subtract(HeaderlessSize, 0, 0);
-                    OuterHeaderPresenter.UpdateMeasurement(AvailableSize, out _, out Thickness HeaderContentSize, out _, out _);
-                    Rectangle HeaderBounds = new(LayoutBounds.Left + BorderThickness.Left + HeaderHorizontalMargin + HeaderHorizontalPadding, LayoutBounds.Top, HeaderContentSize.Width, HeaderContentSize.Height);
-                    OuterHeaderPresenter.UpdateLayout(HeaderBounds);
-                };
-
-            }
+            Brush.Draw(DA, this, new(BorderBounds.Right - BT.Right, BorderBounds.Top, BT.Right, BorderBounds.Height));
         }
 
-        private Size GetHeaderlessSize()
+        if (BT.Top > 0)
         {
-            int Width = BorderThickness.Width + HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2;
-            int Height = BorderThickness.Height;
-            return new(Width, Height);
+            if (HasHeaderContent)
+            {
+                //  Divide the top border into 2 pieces, the part to the left of the header content and the part to the right of it
+                int StartX = BorderBounds.Left + BT.Left;
+                Brush.Draw(DA, this, new(StartX, BorderBounds.Top, HeaderHorizontalPadding, BT.Top));
+                StartX += HeaderHorizontalPadding + HeaderHorizontalMargin + OuterHeaderPresenter.LayoutBounds.Width + HeaderHorizontalMargin;
+                Brush.Draw(DA, this, new(StartX, BorderBounds.Top, BorderBounds.Right - StartX, BT.Top));
+            }
+            else
+            {
+                Brush.Draw(DA, this, new(BorderBounds.Left + BT.Left, BorderBounds.Top, BorderBounds.Width - BT.Width, BT.Top));
+            }
         }
-
-        public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+        if (BT.Bottom > 0)
         {
-            Size HeaderlessSize = GetHeaderlessSize();
-
-            Size RemainingSize = AvailableSize.Subtract(HeaderlessSize, 0, 0);
-            OuterHeaderPresenter.UpdateMeasurement(RemainingSize, out _, out Thickness HeaderSize, out _, out _);
-
-            SharedSize = new(HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2 + HeaderSize.Width, 0, 0, 0);
-
-            return new(BorderThickness.Left + HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2 + HeaderSize.Width, 
-                BorderThickness.Height + HeaderSize.Height, BorderThickness.Right, BorderThickness.Bottom);
+            Brush.Draw(DA, this, new(BorderBounds.Left + BT.Left, BorderBounds.Bottom - BT.Bottom, BorderBounds.Width - BT.Width, BT.Bottom));
         }
 
-        public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
-        {
-            //  Move the top edge of the background downwards by half the header's height (since we also do this to the border)
-            Rectangle ActualLayoutBounds = new(LayoutBounds.Left, LayoutBounds.Top + OuterHeaderPresenter.LayoutBounds.Height / 2, LayoutBounds.Width, LayoutBounds.Height - OuterHeaderPresenter.LayoutBounds.Height / 2);
-
-            base.DrawBackground(DA, ActualLayoutBounds);
-        }
-
-        public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
-        {
-            //  Move the top edge of the border down by half the header's height
-            Rectangle BorderBounds = new(LayoutBounds.Left, LayoutBounds.Top + OuterHeaderPresenter.LayoutBounds.Height / 2, LayoutBounds.Width, LayoutBounds.Height - OuterHeaderPresenter.LayoutBounds.Height / 2);
-
-            //  Draw each side of the border
-            Thickness BT = BorderThickness;
-            IFillBrush Brush = BorderBrush.Brush;
-            if (BT.Left > 0)
-            {
-                Brush.Draw(DA, this, new(BorderBounds.Left, BorderBounds.Top, BT.Left, BorderBounds.Height));
-            }
-
-            if (BT.Right > 0)
-            {
-                Brush.Draw(DA, this, new(BorderBounds.Right - BT.Right, BorderBounds.Top, BT.Right, BorderBounds.Height));
-            }
-
-            if (BT.Top > 0)
-            {
-                if (HasHeaderContent)
-                {
-                    //  Divide the top border into 2 pieces, the part to the left of the header content and the part to the right of it
-                    int StartX = BorderBounds.Left + BT.Left;
-                    Brush.Draw(DA, this, new(StartX, BorderBounds.Top, HeaderHorizontalPadding, BT.Top));
-                    StartX += HeaderHorizontalPadding + HeaderHorizontalMargin + OuterHeaderPresenter.LayoutBounds.Width + HeaderHorizontalMargin;
-                    Brush.Draw(DA, this, new(StartX, BorderBounds.Top, BorderBounds.Right - StartX, BT.Top));
-                }
-                else
-                {
-                    Brush.Draw(DA, this, new(BorderBounds.Left + BT.Left, BorderBounds.Top, BorderBounds.Width - BT.Width, BT.Top));
-                }
-            }
-            if (BT.Bottom > 0)
-            {
-                Brush.Draw(DA, this, new(BorderBounds.Left + BT.Left, BorderBounds.Bottom - BT.Bottom, BorderBounds.Width - BT.Width, BT.Bottom));
-            }
-
-            //  Draw the header
-            OuterHeaderPresenter.Draw(DA);
-        }
+        //  Draw the header
+        OuterHeaderPresenter.Draw(DA);
     }
 }

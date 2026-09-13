@@ -1,17 +1,16 @@
-namespace MGUI.Core.UI.Styling
+namespace MGUI.Core.UI.Styling;
+
+public enum UIValueSourceKind
 {
-    public enum UIValueSourceKind
-    {
-        DefaultValue,
-        Inherited,
-        Theme,
-        DynamicResource,
-        ImplicitStyle,
-        ExplicitStyle,
-        Template,
-        VisualState,
-        LocalBinding,
-        LocalValue,
-        Animation,
-    }
+    DefaultValue,
+    Inherited,
+    Theme,
+    DynamicResource,
+    ImplicitStyle,
+    ExplicitStyle,
+    Template,
+    VisualState,
+    LocalBinding,
+    LocalValue,
+    Animation,
 }

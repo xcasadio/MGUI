@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Styling;
-using MGUI.Shared.Helpers;
 using MGUI.Shared.Input.Mouse;
 
 namespace MGUI.Core.UI.Docking.Controls;

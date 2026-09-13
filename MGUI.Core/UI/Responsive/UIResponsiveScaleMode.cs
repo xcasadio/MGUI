@@ -1,7 +1,6 @@
-namespace MGUI.Core.UI.Responsive
+namespace MGUI.Core.UI.Responsive;
+
+public enum UIResponsiveScaleMode
 {
-    public enum UIResponsiveScaleMode
-    {
-        UniformFit,
-    }
+    UniformFit,
 }

@@ -1,10 +1,9 @@
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+public enum ColorPickerMode
 {
-    public enum ColorPickerMode
-    {
-        Hsv,
-        Rgb,
-        Hsl,
-        Text
-    }
+    Hsv,
+    Rgb,
+    Hsl,
+    Text
 }

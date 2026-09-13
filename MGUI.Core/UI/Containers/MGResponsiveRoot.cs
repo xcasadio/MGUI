@@ -1,21 +1,18 @@
-using MGUI.Core.UI.Responsive;
+namespace MGUI.Core.UI.Containers;
 
-namespace MGUI.Core.UI.Containers
+public class MGResponsiveRoot : MGOverlayPanel
 {
-    public class MGResponsiveRoot : MGOverlayPanel
+    public MGResponsiveRoot(MGWindow window)
+        : base(window)
     {
-        public MGResponsiveRoot(MGWindow window)
-            : base(window)
+        using (BeginInitializing())
         {
-            using (BeginInitializing())
-            {
-                UseResponsiveLayout = true;
-                HorizontalAlignment = HorizontalAlignment.Stretch;
-                VerticalAlignment = VerticalAlignment.Stretch;
-                HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                VerticalContentAlignment = VerticalAlignment.Stretch;
-                ClipToBounds = true;
-            }
+            UseResponsiveLayout = true;
+            HorizontalAlignment = HorizontalAlignment.Stretch;
+            VerticalAlignment = VerticalAlignment.Stretch;
+            HorizontalContentAlignment = HorizontalAlignment.Stretch;
+            VerticalContentAlignment = VerticalAlignment.Stretch;
+            ClipToBounds = true;
         }
     }
 }

@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
-using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.DockLayout;
-using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Docking.Controls;

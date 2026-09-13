@@ -1,39 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
-namespace MGUI.Core.UI.Data_Binding
+namespace MGUI.Core.UI.Data_Binding;
+
+/// <summary>Wrapper class that only propagates the <see cref="PropertyChanged"/> events of the given <see cref="Source"/> object 
+/// if the <see cref="PropertyChangedEventArgs.PropertyName"/> matches the given <see cref="PropertyName"/>.</summary>
+internal class PropertyNameListener : INotifyPropertyChanged
 {
-    /// <summary>Wrapper class that only propagates the <see cref="PropertyChanged"/> events of the given <see cref="Source"/> object 
-    /// if the <see cref="PropertyChangedEventArgs.PropertyName"/> matches the given <see cref="PropertyName"/>.</summary>
-    internal class PropertyNameListener : INotifyPropertyChanged
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    public readonly INotifyPropertyChanged Source;
+    public readonly string PropertyName;
+
+    public PropertyNameListener(INotifyPropertyChanged Source, string PropertyName)
     {
-        public event PropertyChangedEventHandler PropertyChanged;
+        this.Source = Source;
+        this.PropertyName = PropertyName;
+        this.Source.PropertyChanged += Source_PropertyChanged;
+    }
 
-        public readonly INotifyPropertyChanged Source;
-        public readonly string PropertyName;
-
-        public PropertyNameListener(INotifyPropertyChanged Source, string PropertyName)
+    private void Source_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == PropertyName)
         {
-            this.Source = Source;
-            this.PropertyName = PropertyName;
-            this.Source.PropertyChanged += Source_PropertyChanged;
+            PropertyChanged?.Invoke(sender, e);
         }
+    }
 
-        private void Source_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == PropertyName)
-            {
-                PropertyChanged?.Invoke(sender, e);
-            }
-        }
-
-        public void Detach()
-        {
-            Source.PropertyChanged -= Source_PropertyChanged;
-        }
+    public void Detach()
+    {
+        Source.PropertyChanged -= Source_PropertyChanged;
     }
 }

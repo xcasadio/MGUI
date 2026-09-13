@@ -2,1016 +2,1009 @@
 using MonoGame.Extended;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MGUI.Core.UI.Styling;
 
-namespace MGUI.Core.UI
+namespace MGUI.Core.UI;
+
+/// <summary>For concrete implementations, see also:<para/>
+/// <see cref="MGDesktop"/> (For root-level <see cref="MGContextMenu"/>)<br/>
+/// <see cref="MGContextMenu"/> (For nested <see cref="MGContextMenu"/>s)</summary>
+public interface IContextMenuHost
 {
-    /// <summary>For concrete implementations, see also:<para/>
-    /// <see cref="MGDesktop"/> (For root-level <see cref="MGContextMenu"/>)<br/>
-    /// <see cref="MGContextMenu"/> (For nested <see cref="MGContextMenu"/>s)</summary>
-    public interface IContextMenuHost
-    {
-        public MGContextMenu ActiveContextMenu { get; }
-        public bool TryCloseActiveContextMenu();
+    public MGContextMenu ActiveContextMenu { get; }
+    public bool TryCloseActiveContextMenu();
 
-        public bool TryOpenContextMenu(MGContextMenu Menu, Rectangle Anchor);
-        public bool TryOpenContextMenu(MGContextMenu Menu, Point Position)
-            => TryOpenContextMenu(Menu, new Rectangle(Position.X, Position.Y, 1, 1));
+    public bool TryOpenContextMenu(MGContextMenu Menu, Rectangle Anchor);
+    public bool TryOpenContextMenu(MGContextMenu Menu, Point Position)
+        => TryOpenContextMenu(Menu, new Rectangle(Position.X, Position.Y, 1, 1));
+}
+
+public class ContextMenuOpeningClosingEventArgs : CancelEventArgs
+{
+    public MGContextMenu CurrentValue { get; }
+    public MGContextMenu NewValue { get; }
+
+    public ContextMenuOpeningClosingEventArgs(MGContextMenu CurrentValue, MGContextMenu NewValue)
+    {
+        this.CurrentValue = CurrentValue;
+        this.NewValue = NewValue;
+    }
+}
+
+public class MGContextMenu : MGWindow, IContextMenuHost
+{
+    internal MGMenuBarItem OpenedFromMenuBarItem { get; set; }
+    internal MGMenuBar OpenedFromMenuBar => OpenedFromMenuBarItem?.MenuBar;
+
+    public const string ScrollViewerPartName = "PART_ScrollViewer";
+    public const string ItemsPanelPartName = "PART_ItemsPanel";
+
+    protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+    {
+        if (string.Equals(AppliedControlTemplateName, MGControlTemplateCatalog.WindowTemplateName, StringComparison.Ordinal))
+        {
+            foreach (MGControlTemplatePartRequirement requirement in base.GetRequiredControlTemplateParts())
+            {
+                yield return requirement;
+            }
+
+            yield break;
+        }
+
+        yield return new(ScrollViewerPartName, typeof(MGScrollViewer));
+        yield return new(ItemsPanelPartName, typeof(MGStackPanel));
     }
 
-    public class ContextMenuOpeningClosingEventArgs : CancelEventArgs
+    public static Rectangle FitMenuToViewport(Rectangle Anchor, Size Size, Rectangle Viewport)
     {
-        public MGContextMenu CurrentValue { get; }
-        public MGContextMenu NewValue { get; }
-
-        public ContextMenuOpeningClosingEventArgs(MGContextMenu CurrentValue, MGContextMenu NewValue)
+        int ActualX = Anchor.Right;
+        if (ActualX + Size.Width > Viewport.Right)
         {
-            this.CurrentValue = CurrentValue;
-            this.NewValue = NewValue;
+            ActualX = Math.Max(Viewport.Left, Anchor.Left - Size.Width);
+        }
+
+        int ActualY = Anchor.Top;
+        if (ActualY + Size.Height > Viewport.Bottom)
+        {
+            ActualY = Math.Max(Viewport.Top, Viewport.Bottom - Size.Height);
+        }
+
+        Rectangle Bounds = new(ActualX, ActualY, Math.Min(Size.Width, Viewport.Width), Math.Min(Size.Height, Viewport.Height));
+        return Bounds;
+    }
+
+    #region Open / Close
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _CanContextMenuOpen;
+    /// <summary>True if this <see cref="MGContextMenu"/> can be shown.</summary>
+    public bool CanContextMenuOpen
+    {
+        get => _CanContextMenuOpen;
+        set
+        {
+            if (_CanContextMenuOpen != value)
+            {
+                _CanContextMenuOpen = value;
+                NPC(nameof(CanContextMenuOpen));
+            }
         }
     }
 
-    public class MGContextMenu : MGWindow, IContextMenuHost
+    /// <summary>True if this <see cref="MGContextMenu"/> is currently being shown. To open this <see cref="MGContextMenu"/>, use <see cref="Host"/>'s <see cref="IContextMenuHost.TryOpenContextMenu(MGContextMenu, Point)"/>.<para/>
+    /// See also: <see cref="MGDesktop.ActiveContextMenu"/>,  <see cref="MGContextMenu.ActiveContextMenu"/></summary>
+    public bool IsContextMenuOpen { get => Host.ActiveContextMenu == this; }
+
+    /// <summary>See also: <see cref="IContextMenuHost.TryOpenContextMenu(MGContextMenu, Point)"/><br/>(<see cref="MGContextMenu"/> and <see cref="MGDesktop"/> are implementations of <see cref="IContextMenuHost"/>)</summary>
+    /// <returns>True if this <see cref="MGContextMenu"/> wasn't already opened, and now is opened.<br/>
+    /// False if unable to open, such as if it was already open, closing the current menu was cancelled, opening this menu was cancelled, or <see cref="CanContextMenuOpen"/> is false.</returns>
+    public bool TryOpenContextMenu(Rectangle Anchor) => !IsContextMenuOpen && Host.TryOpenContextMenu(this, Anchor);
+    /// <summary>See also: <see cref="IContextMenuHost.TryOpenContextMenu(MGContextMenu, Point)"/><br/>(<see cref="MGContextMenu"/> and <see cref="MGDesktop"/> are implementations of <see cref="IContextMenuHost"/>)</summary>
+    /// <returns>True if this <see cref="MGContextMenu"/> wasn't already opened, and now is opened.<br/>
+    /// False if unable to open, such as if it was already open, closing the current menu was cancelled, opening this menu was cancelled, or <see cref="CanContextMenuOpen"/> is false.</returns>
+    public bool TryOpenContextMenu(Point Position) => !IsContextMenuOpen && Host.TryOpenContextMenu(this, Position);
+
+    /// <summary>See also: <see cref="MGDesktop.TryCloseActiveContextMenu"/></summary>
+    /// <returns>True if this <see cref="MGContextMenu"/> was open, and then was successfully closed.<br/>
+    /// False if it wasn't already open, or the action was cancelled.</returns>
+    public bool TryCloseContextMenu() => IsContextMenuOpen && Host.TryCloseActiveContextMenu();
+
+    /// <returns>True if the opening should proceed; false if a subscriber cancelled it.</returns>
+    internal bool InvokeContextMenuOpening()
     {
-        internal MGMenuBarItem OpenedFromMenuBarItem { get; set; }
-        internal MGMenuBar OpenedFromMenuBar => OpenedFromMenuBarItem?.MenuBar;
-
-        public const string ScrollViewerPartName = "PART_ScrollViewer";
-        public const string ItemsPanelPartName = "PART_ItemsPanel";
-
-        protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
+        // Run the factory first so that newly created items can subscribe to ContextMenuOpening
+        // and receive it during this same open cycle (e.g. to evaluate ComputeIsVisible).
+        // If the open is subsequently cancelled the items will simply be rebuilt on the next open.
+        if (ItemsFactory != null)
         {
-            if (string.Equals(AppliedControlTemplateName, MGControlTemplateCatalog.WindowTemplateName, StringComparison.Ordinal))
-            {
-                foreach (MGControlTemplatePartRequirement requirement in base.GetRequiredControlTemplateParts())
-                {
-                    yield return requirement;
-                }
-
-                yield break;
-            }
-
-            yield return new(ScrollViewerPartName, typeof(MGScrollViewer));
-            yield return new(ItemsPanelPartName, typeof(MGStackPanel));
+            ClearItems();
+            ItemsFactory(this);
         }
 
-        public static Rectangle FitMenuToViewport(Rectangle Anchor, Size Size, Rectangle Viewport)
+        if (ContextMenuOpening != null)
         {
-            int ActualX = Anchor.Right;
-            if (ActualX + Size.Width > Viewport.Right)
+            var args = new System.ComponentModel.CancelEventArgs();
+            ContextMenuOpening.Invoke(this, args);
+            if (args.Cancel)
             {
-                ActualX = Math.Max(Viewport.Left, Anchor.Left - Size.Width);
-            }
-
-            int ActualY = Anchor.Top;
-            if (ActualY + Size.Height > Viewport.Bottom)
-            {
-                ActualY = Math.Max(Viewport.Top, Viewport.Bottom - Size.Height);
-            }
-
-            Rectangle Bounds = new(ActualX, ActualY, Math.Min(Size.Width, Viewport.Width), Math.Min(Size.Height, Viewport.Height));
-            return Bounds;
-        }
-
-        #region Open / Close
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _CanContextMenuOpen;
-        /// <summary>True if this <see cref="MGContextMenu"/> can be shown.</summary>
-        public bool CanContextMenuOpen
-        {
-            get => _CanContextMenuOpen;
-            set
-            {
-                if (_CanContextMenuOpen != value)
-                {
-                    _CanContextMenuOpen = value;
-                    NPC(nameof(CanContextMenuOpen));
-                }
+                return false;
             }
         }
 
-        /// <summary>True if this <see cref="MGContextMenu"/> is currently being shown. To open this <see cref="MGContextMenu"/>, use <see cref="Host"/>'s <see cref="IContextMenuHost.TryOpenContextMenu(MGContextMenu, Point)"/>.<para/>
-        /// See also: <see cref="MGDesktop.ActiveContextMenu"/>,  <see cref="MGContextMenu.ActiveContextMenu"/></summary>
-        public bool IsContextMenuOpen { get => Host.ActiveContextMenu == this; }
+        return true;
+    }
+    internal void InvokeContextMenuOpened()
+    {
+        GetDesktop().PushFocusScope(this, GetDesktop().FocusedKeyboardHandler);
+        MGContextMenuItem initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
+        initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);
+        NPC(nameof(IsContextMenuOpen));
+        ContextMenuOpened?.Invoke(this, EventArgs.Empty);
+    }
+    internal void InvokeContextMenuClosing() => ContextMenuClosing?.Invoke(this, EventArgs.Empty);
+    internal void InvokeContextMenuClosed()
+    {
+        GetDesktop().PopFocusScope(this);
+        NPC(nameof(IsContextMenuOpen));
+        ContextMenuClosed?.Invoke(this, EventArgs.Empty);
+    }
 
-        /// <summary>See also: <see cref="IContextMenuHost.TryOpenContextMenu(MGContextMenu, Point)"/><br/>(<see cref="MGContextMenu"/> and <see cref="MGDesktop"/> are implementations of <see cref="IContextMenuHost"/>)</summary>
-        /// <returns>True if this <see cref="MGContextMenu"/> wasn't already opened, and now is opened.<br/>
-        /// False if unable to open, such as if it was already open, closing the current menu was cancelled, opening this menu was cancelled, or <see cref="CanContextMenuOpen"/> is false.</returns>
-        public bool TryOpenContextMenu(Rectangle Anchor) => !IsContextMenuOpen && Host.TryOpenContextMenu(this, Anchor);
-        /// <summary>See also: <see cref="IContextMenuHost.TryOpenContextMenu(MGContextMenu, Point)"/><br/>(<see cref="MGContextMenu"/> and <see cref="MGDesktop"/> are implementations of <see cref="IContextMenuHost"/>)</summary>
-        /// <returns>True if this <see cref="MGContextMenu"/> wasn't already opened, and now is opened.<br/>
-        /// False if unable to open, such as if it was already open, closing the current menu was cancelled, opening this menu was cancelled, or <see cref="CanContextMenuOpen"/> is false.</returns>
-        public bool TryOpenContextMenu(Point Position) => !IsContextMenuOpen && Host.TryOpenContextMenu(this, Position);
+    /// <summary>Fired just before this <see cref="MGContextMenu"/> is shown, <em>after</em> <see cref="ItemsFactory"/> has run.<br/>
+    /// Set <see cref="System.ComponentModel.CancelEventArgs.Cancel"/> to <see langword="true"/> to prevent the menu from opening.<para/>
+    /// <b>Dynamic items:</b> Use <see cref="ItemsFactory"/> instead of subscribing here to add/clear items.
+    /// <see cref="ItemsFactory"/> is called automatically on every open (before this event fires) and avoids the risks below.<para/>
+    /// <b>Double-subscription warning:</b> This is a standard C# event — subscribing N times means the handler
+    /// runs N times per open. If the same object re-subscribes on every tab-rebuild or layout pass, items (or
+    /// other side-effects) will accumulate. Always pair a subscription with an unsubscription, or use
+    /// <see cref="ItemsFactory"/> which replaces the handler pattern entirely.<para/>
+    /// <b>Recommended patterns:</b>
+    /// <list type="bullet">
+    ///   <item>Static items: declare them once in XAML or in the constructor — no handler needed.</item>
+    ///   <item>Dynamic items: set <see cref="ItemsFactory"/> once.</item>
+    ///   <item>Conditional logic (not item-building): subscribe here, but ensure you unsubscribe when
+    ///         the hosting element is disposed / rebuilt.</item>
+    /// </list></summary>
+    public event EventHandler<System.ComponentModel.CancelEventArgs> ContextMenuOpening;
+    public event EventHandler<EventArgs> ContextMenuOpened;
+    public event EventHandler<EventArgs> ContextMenuClosing;
+    public event EventHandler<EventArgs> ContextMenuClosed;
+    #endregion Open / Close
 
-        /// <summary>See also: <see cref="MGDesktop.TryCloseActiveContextMenu"/></summary>
-        /// <returns>True if this <see cref="MGContextMenu"/> was open, and then was successfully closed.<br/>
-        /// False if it wasn't already open, or the action was cancelled.</returns>
-        public bool TryCloseContextMenu() => IsContextMenuOpen && Host.TryCloseActiveContextMenu();
-
-        /// <returns>True if the opening should proceed; false if a subscriber cancelled it.</returns>
-        internal bool InvokeContextMenuOpening()
+    #region Close Conditions
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _StaysOpenOnItemSelected;
+    /// <summary>If true, this menu will not be automatically closed when the user clicks on a particular <see cref="MGContextMenuButton"/> to execute.<para/>
+    /// Warning - Closing this menu may be cancelled, such as via <see cref="MGDesktop.ContextMenuClosing"/>'s 'Cancel' property.<para/>
+    /// Default value: false<para/>See also: <see cref="StaysOpenOnItemToggled"/></summary>
+    public bool StaysOpenOnItemSelected
+    {
+        get => _StaysOpenOnItemSelected;
+        set
         {
-            // Run the factory first so that newly created items can subscribe to ContextMenuOpening
-            // and receive it during this same open cycle (e.g. to evaluate ComputeIsVisible).
-            // If the open is subsequently cancelled the items will simply be rebuilt on the next open.
-            if (ItemsFactory != null)
+            if (_StaysOpenOnItemSelected != value)
             {
-                ClearItems();
-                ItemsFactory(this);
-            }
-
-            if (ContextMenuOpening != null)
-            {
-                var args = new System.ComponentModel.CancelEventArgs();
-                ContextMenuOpening.Invoke(this, args);
-                if (args.Cancel)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-        internal void InvokeContextMenuOpened()
-        {
-            GetDesktop().PushFocusScope(this, GetDesktop().FocusedKeyboardHandler);
-            MGContextMenuItem initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
-            initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);
-            NPC(nameof(IsContextMenuOpen));
-            ContextMenuOpened?.Invoke(this, EventArgs.Empty);
-        }
-        internal void InvokeContextMenuClosing() => ContextMenuClosing?.Invoke(this, EventArgs.Empty);
-        internal void InvokeContextMenuClosed()
-        {
-            GetDesktop().PopFocusScope(this);
-            NPC(nameof(IsContextMenuOpen));
-            ContextMenuClosed?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>Fired just before this <see cref="MGContextMenu"/> is shown, <em>after</em> <see cref="ItemsFactory"/> has run.<br/>
-        /// Set <see cref="System.ComponentModel.CancelEventArgs.Cancel"/> to <see langword="true"/> to prevent the menu from opening.<para/>
-        /// <b>Dynamic items:</b> Use <see cref="ItemsFactory"/> instead of subscribing here to add/clear items.
-        /// <see cref="ItemsFactory"/> is called automatically on every open (before this event fires) and avoids the risks below.<para/>
-        /// <b>Double-subscription warning:</b> This is a standard C# event — subscribing N times means the handler
-        /// runs N times per open. If the same object re-subscribes on every tab-rebuild or layout pass, items (or
-        /// other side-effects) will accumulate. Always pair a subscription with an unsubscription, or use
-        /// <see cref="ItemsFactory"/> which replaces the handler pattern entirely.<para/>
-        /// <b>Recommended patterns:</b>
-        /// <list type="bullet">
-        ///   <item>Static items: declare them once in XAML or in the constructor — no handler needed.</item>
-        ///   <item>Dynamic items: set <see cref="ItemsFactory"/> once.</item>
-        ///   <item>Conditional logic (not item-building): subscribe here, but ensure you unsubscribe when
-        ///         the hosting element is disposed / rebuilt.</item>
-        /// </list></summary>
-        public event EventHandler<System.ComponentModel.CancelEventArgs> ContextMenuOpening;
-        public event EventHandler<EventArgs> ContextMenuOpened;
-        public event EventHandler<EventArgs> ContextMenuClosing;
-        public event EventHandler<EventArgs> ContextMenuClosed;
-        #endregion Open / Close
-
-        #region Close Conditions
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _StaysOpenOnItemSelected;
-        /// <summary>If true, this menu will not be automatically closed when the user clicks on a particular <see cref="MGContextMenuButton"/> to execute.<para/>
-        /// Warning - Closing this menu may be cancelled, such as via <see cref="MGDesktop.ContextMenuClosing"/>'s 'Cancel' property.<para/>
-        /// Default value: false<para/>See also: <see cref="StaysOpenOnItemToggled"/></summary>
-        public bool StaysOpenOnItemSelected
-        {
-            get => _StaysOpenOnItemSelected;
-            set
-            {
-                if (_StaysOpenOnItemSelected != value)
-                {
-                    _StaysOpenOnItemSelected = value;
-                    NPC(nameof(StaysOpenOnItemSelected));
-                }
+                _StaysOpenOnItemSelected = value;
+                NPC(nameof(StaysOpenOnItemSelected));
             }
         }
+    }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private bool _StaysOpenOnItemToggled;
-        /// <summary>If true, this menu will not be automatically closed when the user clicks on a particular <see cref="MGContextMenuToggle"/> to toggle.<para/>
-        /// Warning - Closing this menu may be cancelled, such as via <see cref="MGDesktop.ContextMenuClosing"/>'s 'Cancel' property.<para/>
-        /// Default value: true<para/>See also: <see cref="StaysOpenOnItemSelected"/></summary>
-        public bool StaysOpenOnItemToggled
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _StaysOpenOnItemToggled;
+    /// <summary>If true, this menu will not be automatically closed when the user clicks on a particular <see cref="MGContextMenuToggle"/> to toggle.<para/>
+    /// Warning - Closing this menu may be cancelled, such as via <see cref="MGDesktop.ContextMenuClosing"/>'s 'Cancel' property.<para/>
+    /// Default value: true<para/>See also: <see cref="StaysOpenOnItemSelected"/></summary>
+    public bool StaysOpenOnItemToggled
+    {
+        get => _StaysOpenOnItemToggled;
+        set
         {
-            get => _StaysOpenOnItemToggled;
-            set
+            if (_StaysOpenOnItemToggled != value)
             {
-                if (_StaysOpenOnItemToggled != value)
-                {
-                    _StaysOpenOnItemToggled = value;
-                    NPC(nameof(StaysOpenOnItemToggled));
-                }
+                _StaysOpenOnItemToggled = value;
+                NPC(nameof(StaysOpenOnItemToggled));
             }
         }
+    }
 
-        public static float DefaultAutoCloseThreshold = 75;
+    public static float DefaultAutoCloseThreshold = 75;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private float? _AutoCloseThreshold;
-        /// <summary>Only relevant if <see cref="IsSubmenu"/> is false.<br/>
-        /// Determines how far away the mouse can move from <see cref="MGElement.LayoutBounds"/> before this menu is automatically closed.<para/>
-        /// Warning - Closing this menu may be cancelled, such as via <see cref="MGDesktop.ContextMenuClosing"/>'s 'Cancel' property.<para/>
-        /// Default value: <see cref="DefaultAutoCloseThreshold"/></summary>
-        public float? AutoCloseThreshold
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private float? _AutoCloseThreshold;
+    /// <summary>Only relevant if <see cref="IsSubmenu"/> is false.<br/>
+    /// Determines how far away the mouse can move from <see cref="MGElement.LayoutBounds"/> before this menu is automatically closed.<para/>
+    /// Warning - Closing this menu may be cancelled, such as via <see cref="MGDesktop.ContextMenuClosing"/>'s 'Cancel' property.<para/>
+    /// Default value: <see cref="DefaultAutoCloseThreshold"/></summary>
+    public float? AutoCloseThreshold
+    {
+        get => _AutoCloseThreshold;
+        set
         {
-            get => _AutoCloseThreshold;
-            set
+            if (_AutoCloseThreshold != value)
             {
-                if (_AutoCloseThreshold != value)
-                {
-                    _AutoCloseThreshold = value;
-                    NPC(nameof(AutoCloseThreshold));
-                }
+                _AutoCloseThreshold = value;
+                NPC(nameof(AutoCloseThreshold));
             }
         }
-        #endregion Close Conditions
+    }
+    #endregion Close Conditions
 
-        public MGButton CreateDefaultDropdownButton(MGWindow Window)
+    public MGButton CreateDefaultDropdownButton(MGWindow Window)
+    {
+        MGButton Button = new(Window ?? this, new(0), MGUniformBorderBrush.Transparent);
+
+        Button.SetPadding(new(5, 3, 20, 3), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        Button.SetMargin(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+
+        Button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+        Button.VerticalContentAlignment = VerticalAlignment.Center;
+        Button.HorizontalAlignment = HorizontalAlignment.Stretch;
+        Button.VerticalAlignment = VerticalAlignment.Stretch;
+
+        Button.SetBorderThicknessTagged(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
+        Button.SetBackground(background, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+        Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+        Button.SetDefaultTextForegroundAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+
+        return Button;
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Func<MGWindow, MGButton> _ButtonWrapperTemplate;
+    /// <summary>Every <see cref="MGContextMenuButton"/> and <see cref="MGContextMenuToggle"/> within <see cref="Items"/> will be automatically wrapped in an <see cref="MGButton"/> created by this function.<para/>
+    /// Default value: <see cref="CreateDefaultDropdownButton"/></summary>
+    public Func<MGWindow, MGButton> ButtonWrapperTemplate
+    {
+        get => _ButtonWrapperTemplate;
+        set
         {
-            MGButton Button = new(Window ?? this, new(0), MGUniformBorderBrush.Transparent);
-
-            Button.SetPadding(new(5, 3, 20, 3), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            Button.SetMargin(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-
-            Button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-            Button.VerticalContentAlignment = VerticalAlignment.Center;
-            Button.HorizontalAlignment = HorizontalAlignment.Stretch;
-            Button.VerticalAlignment = VerticalAlignment.Stretch;
-
-            Button.SetBorderThicknessTagged(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
-            Button.SetBackground(background, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
-            Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
-            Button.SetDefaultTextForegroundAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
-
-            return Button;
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Func<MGWindow, MGButton> _ButtonWrapperTemplate;
-        /// <summary>Every <see cref="MGContextMenuButton"/> and <see cref="MGContextMenuToggle"/> within <see cref="Items"/> will be automatically wrapped in an <see cref="MGButton"/> created by this function.<para/>
-        /// Default value: <see cref="CreateDefaultDropdownButton"/></summary>
-        public Func<MGWindow, MGButton> ButtonWrapperTemplate
-        {
-            get => _ButtonWrapperTemplate;
-            set
+            if (_ButtonWrapperTemplate != value)
             {
-                if (_ButtonWrapperTemplate != value)
-                {
-                    _ButtonWrapperTemplate = value;
-                    NPC(nameof(ButtonWrapperTemplate));
-                    ButtonWrapperTemplateChanged?.Invoke(this, EventArgs.Empty);
-                }
-            }
-        }
-
-        public event EventHandler<EventArgs> ButtonWrapperTemplateChanged;
-
-        protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
-        {
-            base.OnThemeChanged(PreviousTheme, CurrentTheme);
-
-            if (CurrentTheme != null && ButtonWrapperTemplate == CreateDefaultDropdownButton)
-            {
+                _ButtonWrapperTemplate = value;
+                NPC(nameof(ButtonWrapperTemplate));
                 ButtonWrapperTemplateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
+    }
 
-        #region Items
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private ObservableCollection<MGContextMenuItem> _Items { get; }
-        public IList<MGContextMenuItem> Items => _Items;
+    public event EventHandler<EventArgs> ButtonWrapperTemplateChanged;
 
-        /// <param name="Action">The action to invoke if the <see cref="MGContextMenuButton"/> is left-clicked.</param>
-        public MGContextMenuButton AddButton(string Text, Action<MGContextMenuButton> Action)
-            => AddButton(new MGTextBlock(this, Text, null, GetTheme().FontSettings.ContextMenuFontSize), Action);
+    protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
+    {
+        base.OnThemeChanged(PreviousTheme, CurrentTheme);
 
-        /// <param name="Action">The action to invoke if the <see cref="MGContextMenuButton"/> is left-clicked.</param>
-        public MGContextMenuButton AddButton(MGElement Content, Action<MGContextMenuButton> Action)
+        if (CurrentTheme != null && ButtonWrapperTemplate == CreateDefaultDropdownButton)
         {
-            MGContextMenuButton Button = new(this, Content, Action);
-            _Items.Add(Button);
-            return Button;
+            ButtonWrapperTemplateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    #region Items
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private ObservableCollection<MGContextMenuItem> _Items { get; }
+    public IList<MGContextMenuItem> Items => _Items;
+
+    /// <param name="Action">The action to invoke if the <see cref="MGContextMenuButton"/> is left-clicked.</param>
+    public MGContextMenuButton AddButton(string Text, Action<MGContextMenuButton> Action)
+        => AddButton(new MGTextBlock(this, Text, null, GetTheme().FontSettings.ContextMenuFontSize), Action);
+
+    /// <param name="Action">The action to invoke if the <see cref="MGContextMenuButton"/> is left-clicked.</param>
+    public MGContextMenuButton AddButton(MGElement Content, Action<MGContextMenuButton> Action)
+    {
+        MGContextMenuButton Button = new(this, Content, Action);
+        _Items.Add(Button);
+        return Button;
+    }
+
+    public MGContextMenuToggle AddCheckBox(string Text, bool IsChecked)
+        => AddToggle(new MGTextBlock(this, Text, null, GetTheme().FontSettings.ContextMenuFontSize), IsChecked);
+
+    public MGContextMenuToggle AddToggle(MGElement Content, bool IsChecked)
+    {
+        MGContextMenuToggle CheckBox = new(this, Content, IsChecked);
+        _Items.Add(CheckBox);
+        return CheckBox;
+    }
+
+    public MGContextMenuSeparator AddSeparator(int Height = 4)
+    {
+        MGContextMenuSeparator Separator = new(this, Height);
+        _Items.Add(Separator);
+        return Separator;
+    }
+
+    /// <summary>Removes all items from this menu, correctly unregistering internal event handlers
+    /// and removing elements from the visual tree.
+    /// <para/>Prefer this over calling <c>Items.Clear()</c> directly, which does not clean up properly
+    /// due to <see cref="ObservableCollection{T}"/>'s Reset action not carrying <c>OldItems</c>.</summary>
+    public void ClearItems()
+    {
+        for (int i = _Items.Count - 1; i >= 0; i--)
+        {
+            _Items.RemoveAt(i);
+        }
+    }
+
+    /// <summary>Optional factory called every time this menu is about to open (just <em>before</em>
+    /// <see cref="ContextMenuOpening"/> fires).
+    /// When set, <see cref="ClearItems"/> is called automatically before the factory runs,
+    /// so the item list is always freshly built.
+    /// Items created by the factory subscribe to <see cref="ContextMenuOpening"/> during construction
+    /// and therefore receive it for the same open cycle — so <see cref="MGContextMenuItem.ComputeIsVisible"/>
+    /// is evaluated correctly on first open.
+    /// <para/>This is the recommended approach for <em>dynamic</em> menus whose items change
+    /// between invocations — it replaces the fragile pattern of subscribing to
+    /// <see cref="ContextMenuOpening"/> and calling <c>Clear()+AddButton()</c> inside the handler.
+    /// <para/>Example:
+    /// <code>
+    /// menu.ItemsFactory = m =>
+    /// {
+    ///     m.AddButton("Close",  _ => Close());
+    ///     m.AddButton("Reload", _ => Reload());
+    /// };
+    /// </code></summary>
+    public Action<MGContextMenu> ItemsFactory { get; set; }
+
+    /// <summary>Adds a radio button item to this <see cref="MGContextMenu"/>.<para/>
+    /// Items sharing the same <paramref name="GroupName"/> are mutually exclusive.</summary>
+    public MGContextMenuRadioButton AddRadioButton(string Text, string GroupName, bool IsChecked = false)
+        => AddRadioButton(new MGTextBlock(this, Text, null, GetTheme().FontSettings.ContextMenuFontSize), GroupName, IsChecked);
+
+    /// <summary>Adds a radio button item to this <see cref="MGContextMenu"/>.<para/>
+    /// Items sharing the same <paramref name="GroupName"/> are mutually exclusive.</summary>
+    public MGContextMenuRadioButton AddRadioButton(MGElement Content, string GroupName, bool IsChecked = false)
+    {
+        MGContextMenuRadioButton RadioButton = new(this, Content, GroupName, IsChecked);
+        _Items.Add(RadioButton);
+        return RadioButton;
+    }
+
+    #region Radio Groups
+    private Dictionary<string, List<MGContextMenuRadioButton>> _RadioGroups { get; } = new();
+
+    internal void RegisterRadioItem(MGContextMenuRadioButton Item)
+    {
+        if (Item.GroupName == null)
+        {
+            return;
         }
 
-        public MGContextMenuToggle AddCheckBox(string Text, bool IsChecked)
-            => AddToggle(new MGTextBlock(this, Text, null, GetTheme().FontSettings.ContextMenuFontSize), IsChecked);
-
-        public MGContextMenuToggle AddToggle(MGElement Content, bool IsChecked)
+        if (!_RadioGroups.TryGetValue(Item.GroupName, out List<MGContextMenuRadioButton> Group))
         {
-            MGContextMenuToggle CheckBox = new(this, Content, IsChecked);
-            _Items.Add(CheckBox);
-            return CheckBox;
+            Group = new();
+            _RadioGroups[Item.GroupName] = Group;
+        }
+        Group.Add(Item);
+    }
+
+    internal void UnregisterRadioItem(MGContextMenuRadioButton Item)
+    {
+        if (Item.GroupName != null && _RadioGroups.TryGetValue(Item.GroupName, out List<MGContextMenuRadioButton> Group))
+        {
+            Group.Remove(Item);
+        }
+    }
+
+    internal void OnRadioButtonGroupNameChanged(MGContextMenuRadioButton Item, string OldGroup, string NewGroup)
+    {
+        if (OldGroup != null && _RadioGroups.TryGetValue(OldGroup, out List<MGContextMenuRadioButton> OldList))
+        {
+            OldList.Remove(Item);
         }
 
-        public MGContextMenuSeparator AddSeparator(int Height = 4)
+        if (NewGroup != null)
         {
-            MGContextMenuSeparator Separator = new(this, Height);
-            _Items.Add(Separator);
-            return Separator;
+            if (!_RadioGroups.TryGetValue(NewGroup, out List<MGContextMenuRadioButton> NewList))
+            {
+                NewList = new();
+                _RadioGroups[NewGroup] = NewList;
+            }
+            NewList.Add(Item);
+        }
+    }
+
+    /// <summary>Sets the given <paramref name="CheckedItem"/> as the only checked item in the group <paramref name="GroupName"/>,
+    /// unchecking all others in that group.</summary>
+    public void SetCheckedRadioItem(string GroupName, MGContextMenuRadioButton CheckedItem)
+    {
+        if (GroupName == null || !_RadioGroups.TryGetValue(GroupName, out List<MGContextMenuRadioButton> Group))
+        {
+            return;
         }
 
-        /// <summary>Removes all items from this menu, correctly unregistering internal event handlers
-        /// and removing elements from the visual tree.
-        /// <para/>Prefer this over calling <c>Items.Clear()</c> directly, which does not clean up properly
-        /// due to <see cref="ObservableCollection{T}"/>'s Reset action not carrying <c>OldItems</c>.</summary>
-        public void ClearItems()
+        foreach (MGContextMenuRadioButton Item in Group)
         {
-            for (int i = _Items.Count - 1; i >= 0; i--)
-            {
-                _Items.RemoveAt(i);
-            }
+            Item.IsChecked = Item == CheckedItem;
         }
 
-        /// <summary>Optional factory called every time this menu is about to open (just <em>before</em>
-        /// <see cref="ContextMenuOpening"/> fires).
-        /// When set, <see cref="ClearItems"/> is called automatically before the factory runs,
-        /// so the item list is always freshly built.
-        /// Items created by the factory subscribe to <see cref="ContextMenuOpening"/> during construction
-        /// and therefore receive it for the same open cycle — so <see cref="MGContextMenuItem.ComputeIsVisible"/>
-        /// is evaluated correctly on first open.
-        /// <para/>This is the recommended approach for <em>dynamic</em> menus whose items change
-        /// between invocations — it replaces the fragile pattern of subscribing to
-        /// <see cref="ContextMenuOpening"/> and calling <c>Clear()+AddButton()</c> inside the handler.
-        /// <para/>Example:
-        /// <code>
-        /// menu.ItemsFactory = m =>
-        /// {
-        ///     m.AddButton("Close",  _ => Close());
-        ///     m.AddButton("Reload", _ => Reload());
-        /// };
-        /// </code></summary>
-        public Action<MGContextMenu> ItemsFactory { get; set; }
+        ItemRadioSelected?.Invoke(this, CheckedItem);
+    }
+    #endregion Radio Groups
+    #endregion Items
 
-        /// <summary>Adds a radio button item to this <see cref="MGContextMenu"/>.<para/>
-        /// Items sharing the same <paramref name="GroupName"/> are mutually exclusive.</summary>
-        public MGContextMenuRadioButton AddRadioButton(string Text, string GroupName, bool IsChecked = false)
-            => AddRadioButton(new MGTextBlock(this, Text, null, GetTheme().FontSettings.ContextMenuFontSize), GroupName, IsChecked);
+    public MGScrollViewer ScrollViewerElement { get; }
+    public MGStackPanel ItemsPanel { get; }
 
-        /// <summary>Adds a radio button item to this <see cref="MGContextMenu"/>.<para/>
-        /// Items sharing the same <paramref name="GroupName"/> are mutually exclusive.</summary>
-        public MGContextMenuRadioButton AddRadioButton(MGElement Content, string GroupName, bool IsChecked = false)
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Size _HeaderSize;
+    /// <summary>The size of the header items that appear on the left edge of each <see cref="MGContextMenuItem"/>.<para/>
+    /// For <see cref="MGContextMenuButton"/>s, this is either blank space or an icon.<br/>
+    /// For <see cref="MGContextMenuToggle"/>s, this is a check mark.<para/>
+    /// Default value: 14x14</summary>
+    public Size HeaderSize
+    {
+        get => _HeaderSize;
+        set
         {
-            MGContextMenuRadioButton RadioButton = new(this, Content, GroupName, IsChecked);
-            _Items.Add(RadioButton);
-            return RadioButton;
-        }
-
-        #region Radio Groups
-        private Dictionary<string, List<MGContextMenuRadioButton>> _RadioGroups { get; } = new();
-
-        internal void RegisterRadioItem(MGContextMenuRadioButton Item)
-        {
-            if (Item.GroupName == null)
+            if (_HeaderSize != value)
             {
-                return;
-            }
-
-            if (!_RadioGroups.TryGetValue(Item.GroupName, out List<MGContextMenuRadioButton> Group))
-            {
-                Group = new();
-                _RadioGroups[Item.GroupName] = Group;
-            }
-            Group.Add(Item);
-        }
-
-        internal void UnregisterRadioItem(MGContextMenuRadioButton Item)
-        {
-            if (Item.GroupName != null && _RadioGroups.TryGetValue(Item.GroupName, out List<MGContextMenuRadioButton> Group))
-            {
-                Group.Remove(Item);
+                Size Previous = HeaderSize;
+                _HeaderSize = value;
+                NPC(nameof(HeaderSize));
+                HeaderSizeChanged?.Invoke(this, new(Previous, HeaderSize));
             }
         }
+    }
 
-        internal void OnRadioButtonGroupNameChanged(MGContextMenuRadioButton Item, string OldGroup, string NewGroup)
+    public event EventHandler<EventArgs<Size>> HeaderSizeChanged;
+
+    #region Nested Menu
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private MGContextMenu _ActiveContextMenu;
+    /// <summary>The currently open nested <see cref="MGContextMenu"/>.</summary>
+    public MGContextMenu ActiveContextMenu { get => _ActiveContextMenu; }
+
+    /// <returns>True if there was no <see cref="ActiveContextMenu"/> or it was successfully closed, false otherwise.</returns>
+    public bool TryCloseActiveContextMenu()
+    {
+        if (ActiveContextMenu != null)
         {
-            if (OldGroup != null && _RadioGroups.TryGetValue(OldGroup, out List<MGContextMenuRadioButton> OldList))
-            {
-                OldList.Remove(Item);
-            }
-
-            if (NewGroup != null)
-            {
-                if (!_RadioGroups.TryGetValue(NewGroup, out List<MGContextMenuRadioButton> NewList))
-                {
-                    NewList = new();
-                    _RadioGroups[NewGroup] = NewList;
-                }
-                NewList.Add(Item);
-            }
-        }
-
-        /// <summary>Sets the given <paramref name="CheckedItem"/> as the only checked item in the group <paramref name="GroupName"/>,
-        /// unchecking all others in that group.</summary>
-        public void SetCheckedRadioItem(string GroupName, MGContextMenuRadioButton CheckedItem)
-        {
-            if (GroupName == null || !_RadioGroups.TryGetValue(GroupName, out List<MGContextMenuRadioButton> Group))
-            {
-                return;
-            }
-
-            foreach (MGContextMenuRadioButton Item in Group)
-            {
-                Item.IsChecked = Item == CheckedItem;
-            }
-
-            ItemRadioSelected?.Invoke(this, CheckedItem);
-        }
-        #endregion Radio Groups
-        #endregion Items
-
-        public MGScrollViewer ScrollViewerElement { get; }
-        public MGStackPanel ItemsPanel { get; }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Size _HeaderSize;
-        /// <summary>The size of the header items that appear on the left edge of each <see cref="MGContextMenuItem"/>.<para/>
-        /// For <see cref="MGContextMenuButton"/>s, this is either blank space or an icon.<br/>
-        /// For <see cref="MGContextMenuToggle"/>s, this is a check mark.<para/>
-        /// Default value: 14x14</summary>
-        public Size HeaderSize
-        {
-            get => _HeaderSize;
-            set
-            {
-                if (_HeaderSize != value)
-                {
-                    Size Previous = HeaderSize;
-                    _HeaderSize = value;
-                    NPC(nameof(HeaderSize));
-                    HeaderSizeChanged?.Invoke(this, new(Previous, HeaderSize));
-                }
-            }
-        }
-
-        public event EventHandler<EventArgs<Size>> HeaderSizeChanged;
-
-        #region Nested Menu
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MGContextMenu _ActiveContextMenu;
-        /// <summary>The currently open nested <see cref="MGContextMenu"/>.</summary>
-        public MGContextMenu ActiveContextMenu { get => _ActiveContextMenu; }
-
-        /// <returns>True if there was no <see cref="ActiveContextMenu"/> or it was successfully closed, false otherwise.</returns>
-        public bool TryCloseActiveContextMenu()
-        {
-            if (ActiveContextMenu != null)
-            {
-                if (!ActiveContextMenu.TryCloseActiveContextMenu())
-                {
-                    return false;
-                }
-
-                MGContextMenu Previous = ActiveContextMenu;
-                ActiveContextMenu.InvokeContextMenuClosing();
-                _ActiveContextMenu = null;
-                NPC(nameof(ActiveContextMenu));
-                Previous.InvokeContextMenuClosed();
-                SubmenuClosed?.Invoke(this, Previous);
-                return true;
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        /// <returns>True if the <paramref name="Menu"/> was already opened, or was successfully opened.<br/>
-        /// False if <see cref="MGContextMenu.CanContextMenuOpen"/> is false.</returns>
-        public bool TryOpenContextMenu(MGContextMenu Menu, Rectangle Anchor)
-        {
-            if (!TryCloseActiveContextMenu())
+            if (!ActiveContextMenu.TryCloseActiveContextMenu())
             {
                 return false;
             }
 
-            if (Menu == null || !Menu.CanContextMenuOpen)
-            {
-                return false;
-            }
-
-            Rectangle ValidBounds = GetDesktop().ValidScreenBounds;
-            if (Menu.IsContextMenuOpen)
-            {
-                Size MenuSizeScreenSpace = new((int)(Menu.RenderBounds.Width * Menu.Scale), (int)(Menu.RenderBounds.Height * Menu.Scale));
-                Point NewPosition = FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
-                Menu.Left = NewPosition.X;
-                Menu.Top = NewPosition.Y;
-                Menu.ValidateWindowSizeAndPosition();
-                return true;
-            }
-            else
-            {
-                if (!Menu.InvokeContextMenuOpening())
-                {
-                    return false;
-                }
-
-                _ActiveContextMenu = Menu;
-
-                Menu.Scale = Scale;
-
-                int MinWidth = 100;
-                int MinHeight = 0;
-                int MaxWidth = 1000;
-                int MaxHeight = 800;
-
-                Size MenuSizeUnscaledScreenSpace = Menu.ComputeContentSize(MinWidth, MinHeight, MaxWidth, MaxHeight);
-                Size MenuSizeScreenSpace = new((int)(MenuSizeUnscaledScreenSpace.Width * Menu.Scale), (int)(MenuSizeUnscaledScreenSpace.Height * Menu.Scale));
-
-                Point Position = FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
-                Menu.TopLeft = Position;
-                _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
-
-                NPC(nameof(ActiveContextMenu));
-                ActiveContextMenu.InvokeContextMenuOpened();
-                SubmenuOpened?.Invoke(this, Menu);
-                return true;
-            }
+            MGContextMenu Previous = ActiveContextMenu;
+            ActiveContextMenu.InvokeContextMenuClosing();
+            _ActiveContextMenu = null;
+            NPC(nameof(ActiveContextMenu));
+            Previous.InvokeContextMenuClosed();
+            SubmenuClosed?.Invoke(this, Previous);
+            return true;
         }
-
-        public IEnumerable<MGContextMenu> Submenus
+        else
         {
-            get
-            {
-                MGContextMenu Current = ActiveContextMenu;
-                while (Current != null)
-                {
-                    yield return Current;
-                    Current = Current.ActiveContextMenu;
-                }
-            }
+            return true;
         }
+    }
 
-        /// <summary>True if the current mouse position is hovering any nested submenu in <see cref="Submenus"/>. See also: <see cref="ActiveContextMenu"/></summary>
-        public bool IsHoveringSubmenu(int Padding)
+    /// <returns>True if the <paramref name="Menu"/> was already opened, or was successfully opened.<br/>
+    /// False if <see cref="MGContextMenu.CanContextMenuOpen"/> is false.</returns>
+    public bool TryOpenContextMenu(MGContextMenu Menu, Rectangle Anchor)
+    {
+        if (!TryCloseActiveContextMenu())
         {
-            Point CurrentMousePosition = InputTracker.Mouse.CurrentPosition;
-            foreach (MGContextMenu Submenu in Submenus)
-            {
-                Point LayoutSpacePosition = Submenu.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, CurrentMousePosition);
-                Rectangle SubmenuBounds = Submenu.LayoutBounds.GetExpanded(Padding);
-                if (SubmenuBounds.ContainsInclusive(LayoutSpacePosition))
-                {
-                    return true;
-                }
-            }
-
             return false;
         }
 
-        internal event EventHandler<MGContextMenu> SubmenuOpened;
-        internal event EventHandler<MGContextMenu> SubmenuClosed;
-        #endregion Nested Menu
-
-        /// <summary>Invoked when a <see cref="MGContextMenuButton"/> item is clicked.<br/>
-        /// The <see cref="MGContextMenuButton"/> may exist within a nested submenu (See also: <see cref="Submenus"/>)</summary>
-        public event EventHandler<MGContextMenuButton> ItemSelected;
-        /// <summary>Invoked when a <see cref="MGContextMenuToggle"/> item is clicked, after the <see cref="MGContextMenuToggle.IsChecked"/> value changes. <br/>
-        /// The <see cref="MGContextMenuButton"/> may exist within a nested submenu (See also: <see cref="Submenus"/>)</summary>
-        public event EventHandler<MGContextMenuToggle> ItemToggled;
-        /// <summary>Invoked when a <see cref="MGContextMenuRadioButton"/> item is clicked and becomes checked.<br/>
-        /// The <see cref="MGContextMenuRadioButton"/> may exist within a nested submenu (See also: <see cref="Submenus"/>)</summary>
-        public event EventHandler<MGContextMenuRadioButton> ItemRadioSelected;
-
-        public IContextMenuHost Host { get; }
-        public bool IsSubmenu => Host is MGContextMenu;
-
-        /// <summary>Consider subscribing to <see cref="ItemSelected"/> and <see cref="ItemToggled"/> to handle user actions.</summary>
-        public static MGContextMenu CreateSimpleMenu(MGDesktop Desktop, string Title, Color? TextForeground, params MGSimpleContextMenuItem[] Items)
+        if (Menu == null || !Menu.CanContextMenuOpen)
         {
-            MGContextMenu Menu = new(Desktop, Title);
-            AddItemsToMenu(Menu, TextForeground, Items?.ToList());
-            return Menu;
+            return false;
         }
 
-        /// <summary>Consider subscribing to <see cref="ItemSelected"/> and <see cref="ItemToggled"/> to handle user actions.</summary>
-        public static MGContextMenu CreateSimpleMenu(MGWindow Window, string Title, Color? TextForeground, params MGSimpleContextMenuItem[] Items)
+        Rectangle ValidBounds = GetDesktop().ValidScreenBounds;
+        if (Menu.IsContextMenuOpen)
         {
-            MGContextMenu Menu = new(Window, Title);
-            AddItemsToMenu(Menu, TextForeground, Items?.ToList());
-            return Menu;
+            Size MenuSizeScreenSpace = new((int)(Menu.RenderBounds.Width * Menu.Scale), (int)(Menu.RenderBounds.Height * Menu.Scale));
+            Point NewPosition = FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
+            Menu.Left = NewPosition.X;
+            Menu.Top = NewPosition.Y;
+            Menu.ValidateWindowSizeAndPosition();
+            return true;
         }
-
-        private static void AddItemsToMenu(MGContextMenu Menu, Color? TextForeground, List<MGSimpleContextMenuItem> Items)
+        else
         {
-            if (Menu == null)
+            if (!Menu.InvokeContextMenuOpening())
             {
-                throw new ArgumentNullException(nameof(Menu));
+                return false;
             }
 
-            if (Items != null)
+            _ActiveContextMenu = Menu;
+
+            Menu.Scale = Scale;
+
+            int MinWidth = 100;
+            int MinHeight = 0;
+            int MaxWidth = 1000;
+            int MaxHeight = 800;
+
+            Size MenuSizeUnscaledScreenSpace = Menu.ComputeContentSize(MinWidth, MinHeight, MaxWidth, MaxHeight);
+            Size MenuSizeScreenSpace = new((int)(MenuSizeUnscaledScreenSpace.Width * Menu.Scale), (int)(MenuSizeUnscaledScreenSpace.Height * Menu.Scale));
+
+            Point Position = FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
+            Menu.TopLeft = Position;
+            _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
+
+            NPC(nameof(ActiveContextMenu));
+            ActiveContextMenu.InvokeContextMenuOpened();
+            SubmenuOpened?.Invoke(this, Menu);
+            return true;
+        }
+    }
+
+    public IEnumerable<MGContextMenu> Submenus
+    {
+        get
+        {
+            MGContextMenu Current = ActiveContextMenu;
+            while (Current != null)
             {
-                int FontSize = Menu.GetTheme().FontSettings.ContextMenuFontSize;
-                foreach (MGSimpleContextMenuItem Item in Items)
-                {
-                    MGContextMenuItem GeneratedItem;
-                    MGTextBlock Content = new(Menu, Item.Text, TextForeground, FontSize);
-                    if (!Item.IsToggle)
-                    {
-                        MGContextMenuButton ButtonItem = Menu.AddButton(Content, null);
-                        ButtonItem.Icon = Item.Icon;
-                        GeneratedItem = ButtonItem;
+                yield return Current;
+                Current = Current.ActiveContextMenu;
+            }
+        }
+    }
 
-                        if (Item.Submenu?.Any() == true)
-                        {
-                            MGContextMenu Submenu = new(Menu);
-                            AddItemsToMenu(Submenu, TextForeground, Item.Submenu);
-                            ButtonItem.Submenu = Submenu;
-                        }
-                    }
-                    else
-                    {
-                        MGContextMenuToggle ToggleItem = Menu.AddToggle(Content, Item.IsChecked);
-                        GeneratedItem = ToggleItem;
-
-                        if (Item.Submenu?.Any() == true)
-                        {
-                            MGContextMenu Submenu = new(Menu);
-                            AddItemsToMenu(Submenu, TextForeground, Item.Submenu);
-                            ToggleItem.Submenu = Submenu;
-                        }
-                    }
-
-                    GeneratedItem.ComputeIsVisible = Item.ComputeIsVisible;
-                    GeneratedItem.CommandId = Item.CommandId;
-                    Item.GeneratedItem = GeneratedItem;
-                }
+    /// <summary>True if the current mouse position is hovering any nested submenu in <see cref="Submenus"/>. See also: <see cref="ActiveContextMenu"/></summary>
+    public bool IsHoveringSubmenu(int Padding)
+    {
+        Point CurrentMousePosition = InputTracker.Mouse.CurrentPosition;
+        foreach (MGContextMenu Submenu in Submenus)
+        {
+            Point LayoutSpacePosition = Submenu.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, CurrentMousePosition);
+            Rectangle SubmenuBounds = Submenu.LayoutBounds.GetExpanded(Padding);
+            if (SubmenuBounds.ContainsInclusive(LayoutSpacePosition))
+            {
+                return true;
             }
         }
 
-        /// <summary>Creates a nested <see cref="MGContextMenu"/>. It inherits the theme of <paramref name="ParentContextMenu"/>'s resource scope.</summary>
-        public MGContextMenu(MGContextMenu ParentContextMenu)
-            : this(ParentContextMenu, ParentContextMenu.TitleText)
+        return false;
+    }
+
+    internal event EventHandler<MGContextMenu> SubmenuOpened;
+    internal event EventHandler<MGContextMenu> SubmenuClosed;
+    #endregion Nested Menu
+
+    /// <summary>Invoked when a <see cref="MGContextMenuButton"/> item is clicked.<br/>
+    /// The <see cref="MGContextMenuButton"/> may exist within a nested submenu (See also: <see cref="Submenus"/>)</summary>
+    public event EventHandler<MGContextMenuButton> ItemSelected;
+    /// <summary>Invoked when a <see cref="MGContextMenuToggle"/> item is clicked, after the <see cref="MGContextMenuToggle.IsChecked"/> value changes. <br/>
+    /// The <see cref="MGContextMenuButton"/> may exist within a nested submenu (See also: <see cref="Submenus"/>)</summary>
+    public event EventHandler<MGContextMenuToggle> ItemToggled;
+    /// <summary>Invoked when a <see cref="MGContextMenuRadioButton"/> item is clicked and becomes checked.<br/>
+    /// The <see cref="MGContextMenuRadioButton"/> may exist within a nested submenu (See also: <see cref="Submenus"/>)</summary>
+    public event EventHandler<MGContextMenuRadioButton> ItemRadioSelected;
+
+    public IContextMenuHost Host { get; }
+    public bool IsSubmenu => Host is MGContextMenu;
+
+    /// <summary>Consider subscribing to <see cref="ItemSelected"/> and <see cref="ItemToggled"/> to handle user actions.</summary>
+    public static MGContextMenu CreateSimpleMenu(MGDesktop Desktop, string Title, Color? TextForeground, params MGSimpleContextMenuItem[] Items)
+    {
+        MGContextMenu Menu = new(Desktop, Title);
+        AddItemsToMenu(Menu, TextForeground, Items?.ToList());
+        return Menu;
+    }
+
+    /// <summary>Consider subscribing to <see cref="ItemSelected"/> and <see cref="ItemToggled"/> to handle user actions.</summary>
+    public static MGContextMenu CreateSimpleMenu(MGWindow Window, string Title, Color? TextForeground, params MGSimpleContextMenuItem[] Items)
+    {
+        MGContextMenu Menu = new(Window, Title);
+        AddItemsToMenu(Menu, TextForeground, Items?.ToList());
+        return Menu;
+    }
+
+    private static void AddItemsToMenu(MGContextMenu Menu, Color? TextForeground, List<MGSimpleContextMenuItem> Items)
+    {
+        if (Menu == null)
         {
-            Host = ParentContextMenu;
-            HeaderSize = ParentContextMenu.HeaderSize;
-            //  Keep this submenu's own default wrapper factory when the parent uses the parent's default: OnThemeChanged only rebuilds the rows
-            //  when ButtonWrapperTemplate is this instance's CreateDefaultDropdownButton (delegate equality compares targets).
-            if (ParentContextMenu.ButtonWrapperTemplate != ParentContextMenu.CreateDefaultDropdownButton)
-            {
-                ButtonWrapperTemplate = ParentContextMenu.ButtonWrapperTemplate;
-            }
-            StaysOpenOnItemSelected = ParentContextMenu.StaysOpenOnItemSelected;
-            StaysOpenOnItemToggled = ParentContextMenu.StaysOpenOnItemToggled;
-            AutoCloseThreshold = null;
+            throw new ArgumentNullException(nameof(Menu));
         }
 
-        /// <summary>Creates a root-level <see cref="MGContextMenu"/>. Without an explicit <paramref name="Theme"/>, it inherits the theme of
-        /// <paramref name="Window"/>'s resource scope and follows its changes.</summary>
-        public MGContextMenu(MGWindow Window, string TitleText = "[b]Choose Option[/b]", MGTheme Theme = null)
-            : this(Window.Desktop, Theme, Window, TitleText) { }
-
-        /// <summary>Creates a root-level <see cref="MGContextMenu"/> that does not belong to any <see cref="MGWindow"/>s</summary>
-        public MGContextMenu(MGDesktop Desktop, string TitleText = "[b]Choose Option[/b]", MGTheme Theme = null)
-            : this(Desktop, Theme, null, TitleText) { }
-
-        protected MGContextMenu(MGDesktop Desktop, MGTheme WindowTheme, MGWindow Window, string TitleText = "[b]Choose Option[/b]")
-            : base(Desktop, WindowTheme, Window, MGElementType.ContextMenu, 0, 0, 1, 1)
+        if (Items != null)
         {
-            using (BeginInitializing())
+            int FontSize = Menu.GetTheme().FontSettings.ContextMenuFontSize;
+            foreach (MGSimpleContextMenuItem Item in Items)
             {
-                Host = Desktop;
-
-                IsDraggable = false;
-                AllowsClickThrough = false;
-                IsCloseButtonVisible = false;
-                //  Excluded from window click-activation (decision utilisateur, Docs/input-window-activation-design.md section 3.a):
-                //  MGContextMenu owns nested MGContextMenu windows of its own, which would otherwise be reordered on every internal click.
-                ActivatesOnClick = false;
-
-                ItemsPanel = new(this, Orientation.Vertical);
-                RegisterTemplatePart(ItemsPanelPartName, ItemsPanel);
-                ItemsPanel.Spacing = 2;
-                ItemsPanel.ManagedParent = this;
-                MGScrollViewer SV = new(this, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled);
-                ScrollViewerElement = SV;
-                RegisterTemplatePart(ScrollViewerPartName, ScrollViewerElement);
-                SV.SetPadding(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                SV.SetContent(ItemsPanel);
-                SV.ManagedParent = this;
-                SetContent(SV);
-
-                SV.CanChangeContent = false;
-                ItemsPanel.CanChangeContent = false;
-                CanChangeContent = false;
-
-                this.TitleText = TitleText;
-                IsTitleBarVisible = !string.IsNullOrEmpty(TitleText);
-                if (TitleBarTextBlockElement != null)
+                MGContextMenuItem GeneratedItem;
+                MGTextBlock Content = new(Menu, Item.Text, TextForeground, FontSize);
+                if (!Item.IsToggle)
                 {
-                    TitleBarTextBlockElement.TextAlignment = HorizontalAlignment.Center;
-                }
+                    MGContextMenuButton ButtonItem = Menu.AddButton(Content, null);
+                    ButtonItem.Icon = Item.Icon;
+                    GeneratedItem = ButtonItem;
 
-                SetPadding(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
-                SetBorderThicknessTagged(new(1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-
-                IsUserResizable = false;
-
-                MinWidth = 150;
-                MaxWidth = 600;
-                SetMinHeight(0, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                MaxHeight = 600;
-                DefaultControlTemplateName = MGControlTemplateCatalog.ContextMenuTemplateName;
-
-                HeaderSize = new Size(14, 14);
-
-                StaysOpenOnItemSelected = false;
-                StaysOpenOnItemToggled = true;
-                AutoCloseThreshold = DefaultAutoCloseThreshold;
-                CanContextMenuOpen = true;
-
-                CanChangeContent = false;
-
-                _Items = new();
-                _Items.CollectionChanged += (sender, e) =>
-                {
-                    using (ItemsPanel.AllowChangingContentTemporarily())
+                    if (Item.Submenu?.Any() == true)
                     {
-                        if (e.Action is NotifyCollectionChangedAction.Add)
-                        {
-                            if (e.NewItems != null)
-                            {
-                                int Index = e.NewStartingIndex;
-                                foreach (MGContextMenuItem Item in e.NewItems)
-                                {
-                                    if (Item is MGContextMenuButton Button)
-                                    {
-                                        Button.OnSelected += MenuItem_ItemSelected;
-                                    }
-                                    else if (Item is MGContextMenuToggle Toggle)
-                                    {
-                                        Toggle.OnToggled += MenuItem_ItemToggled;
-                                    }
-                                    else if (Item is MGContextMenuRadioButton RadioButton)
-                                    {
-                                        RadioButton.OnToggled += MenuItem_ItemRadioSelected;
-                                    }
-
-                                    ItemsPanel.TryInsertChild(Index, Item);
-                                    Index++;
-                                }
-                            }
-                        }
-
-                        if (e.Action is NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Reset)
-                        {
-                            if (e.OldItems != null)
-                            {
-                                foreach (MGContextMenuItem Item in e.OldItems)
-                                {
-                                    if (Item is MGContextMenuButton Button)
-                                    {
-                                        Button.OnSelected -= MenuItem_ItemSelected;
-                                    }
-                                    else if (Item is MGContextMenuToggle Toggle)
-                                    {
-                                        Toggle.OnToggled -= MenuItem_ItemToggled;
-                                    }
-                                    else if (Item is MGContextMenuRadioButton RadioButton)
-                                    {
-                                        RadioButton.OnToggled -= MenuItem_ItemRadioSelected;
-                                        UnregisterRadioItem(RadioButton);
-                                    }
-                                    ItemsPanel.TryRemoveChild(Item);
-                                }
-                            }
-                        }
-
-                        if (e.Action is NotifyCollectionChangedAction.Replace or NotifyCollectionChangedAction.Move)
-                        {
-                            //  For Replace/Move: remove old items, then add new items at the correct index
-                            if (e.OldItems != null)
-                            {
-                                foreach (MGContextMenuItem Item in e.OldItems)
-                                {
-                                    if (Item is MGContextMenuButton Button)
-                                    {
-                                        Button.OnSelected -= MenuItem_ItemSelected;
-                                    }
-                                    else if (Item is MGContextMenuToggle Toggle)
-                                    {
-                                        Toggle.OnToggled -= MenuItem_ItemToggled;
-                                    }
-                                    else if (Item is MGContextMenuRadioButton RadioButton)
-                                    {
-                                        RadioButton.OnToggled -= MenuItem_ItemRadioSelected;
-                                        UnregisterRadioItem(RadioButton);
-                                    }
-                                    ItemsPanel.TryRemoveChild(Item);
-                                }
-                            }
-
-                            if (e.NewItems != null)
-                            {
-                                int Index = e.NewStartingIndex;
-                                foreach (MGContextMenuItem Item in e.NewItems)
-                                {
-                                    if (Item is MGContextMenuButton Button)
-                                    {
-                                        Button.OnSelected += MenuItem_ItemSelected;
-                                    }
-                                    else if (Item is MGContextMenuToggle Toggle)
-                                    {
-                                        Toggle.OnToggled += MenuItem_ItemToggled;
-                                    }
-                                    else if (Item is MGContextMenuRadioButton RadioButton)
-                                    {
-                                        RadioButton.OnToggled += MenuItem_ItemRadioSelected;
-                                    }
-
-                                    ItemsPanel.TryInsertChild(Index, Item);
-                                    Index++;
-                                }
-                            }
-                        }
+                        MGContextMenu Submenu = new(Menu);
+                        AddItemsToMenu(Submenu, TextForeground, Item.Submenu);
+                        ButtonItem.Submenu = Submenu;
                     }
-                };
-
-                ButtonWrapperTemplate = CreateDefaultDropdownButton;
-
-                MouseHandler.MovedOutside += (sender, e) =>
-                {
-                    if (IsContextMenuOpen && !IsSubmenu && !IsHoveringSubmenu(5) && AutoCloseThreshold.HasValue)
-                    {
-                        Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
-                        if (((RectangleF)LayoutBounds).SquaredDistanceTo(LayoutSpacePosition) >= AutoCloseThreshold.Value * AutoCloseThreshold.Value)
-                        {
-                            TryCloseContextMenu();
-                        }
-                    }
-                };
-
-                MouseHandler.PressedOutside += (sender, e) =>
-                {
-                    if (IsContextMenuOpen)
-                    {
-                        TryCloseContextMenu();
-                        e.SetHandledBy(this, false);
-                    }
-                };
-
-                //  Draw the submenu(s)
-                if (ParentWindow != null && ParentWindow.ElementType != MGElementType.ContextMenu)
-                {
-                    //  If the ContextMenu is inside of another Window, don't draw the submenu until after the parent window is done drawing,
-                    //  so that the submenu is overtop of the rest of the parent window's content
-                    ParentWindow.OnEndDraw += (sender, e) =>
-                    {
-                        //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
-                        //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
-                        using (e.DA.DT.PushRectangleClip(null, false))
-                        {
-                            ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
-                        }
-                    };
                 }
                 else
                 {
-                    //  If the ContextMenu is its own root-level window, draw the submenu immediately after we're done drawing this ContextMenu
-                    OnEndDraw += (sender, e) =>
+                    MGContextMenuToggle ToggleItem = Menu.AddToggle(Content, Item.IsChecked);
+                    GeneratedItem = ToggleItem;
+
+                    if (Item.Submenu?.Any() == true)
                     {
-                        //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
-                        //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
-                        using (e.DA.DT.PushRectangleClip(null, false))
-                        {
-                            ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
-                        }
-                    };
-                }
-
-                //  Spaghetti logic for cases where you nest a ContextMenu directly inside of a Window,
-                //  rather than making this ContextMenu be its own root-level Window content via Element.ContextMenu
-                if (ParentWindow != null && ParentWindow.ElementType != MGElementType.ContextMenu)
-                {
-                    ParentWindow.OnWindowPositionChanged += (sender, e) =>
-                    {
-                        Point PreviousPosition = LayoutBounds.TopLeft();
-                        Point Offset = new(e.NewValue.Left - e.PreviousValue.Left, e.NewValue.Top - e.PreviousValue.Top);
-                        InvokeWindowPositionChanged(PreviousPosition, PreviousPosition + Offset);
-                    };
-                }
-
-                OnBeginUpdateContents += (sender, e) =>
-                {
-                    ActiveContextMenu?.Update(e.UA.AsZeroOffset());
-                };
-
-                SubmenuOpened += (sender, e) =>
-                {
-                    e.ItemSelected += Submenu_ItemSelected;
-                    e.ItemToggled += Submenu_ItemToggled;
-                    e.ItemRadioSelected += Submenu_ItemRadioSelected;
-                };
-
-                SubmenuClosed += (sender, e) =>
-                {
-                    e.ItemSelected -= Submenu_ItemSelected;
-                    e.ItemToggled -= Submenu_ItemToggled;
-                    e.ItemRadioSelected -= Submenu_ItemRadioSelected;
-                };
-
-                ItemSelected += (sender, e) =>
-                {
-                    if (!StaysOpenOnItemSelected)
-                    {
-                        TryCloseContextMenu();
-                    }
-                };
-
-                ItemToggled += (sender, e) =>
-                {
-                    if (!StaysOpenOnItemToggled)
-                    {
-                        TryCloseContextMenu();
-                    }
-                };
-
-                ItemRadioSelected += (sender, e) =>
-                {
-                    if (!StaysOpenOnItemToggled)
-                    {
-                        TryCloseContextMenu();
-                    }
-                };
-            }
-        }
-
-        private void Submenu_ItemSelected(object sender, MGContextMenuButton e) => ItemSelected?.Invoke(this, e);
-        private void Submenu_ItemToggled(object sender, MGContextMenuToggle e) => ItemToggled?.Invoke(this, e);
-        private void Submenu_ItemRadioSelected(object sender, MGContextMenuRadioButton e) => ItemRadioSelected?.Invoke(this, e);
-
-        private void MenuItem_ItemSelected(object sender, EventArgs e)
-        {
-            if (sender is MGContextMenuButton Button)
-            {
-                ItemSelected?.Invoke(this, Button);
-            }
-        }
-
-        private void MenuItem_ItemToggled(object sender, bool e)
-        {
-            if (sender is MGContextMenuToggle Toggle)
-            {
-                ItemToggled?.Invoke(this, Toggle);
-            }
-        }
-
-        private void MenuItem_ItemRadioSelected(object sender, bool e)
-        {
-            if (sender is MGContextMenuRadioButton RadioButton && RadioButton.IsChecked)
-            {
-                ItemRadioSelected?.Invoke(this, RadioButton);
-            }
-        }
-
-        public override bool TryHandleNavigationAction(UINavigationAction action)
-        {
-            if (OpenedFromMenuBar != null && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Home or UINavigationAction.End)
-            {
-                return OpenedFromMenuBar.TryHandleNavigationAction(action);
-            }
-
-            return base.TryHandleNavigationAction(action);
-        }
-
-        public IEnumerable<TMenuItemType> GetItemsOfType<TMenuItemType>(bool IncludeSubmenus)
-            where TMenuItemType : MGContextMenuItem
-        {
-            foreach (MGContextMenuItem Item in Items)
-            {
-                if (Item is TMenuItemType TypedItem)
-                {
-                    yield return TypedItem;
-                }
-
-                if (IncludeSubmenus && Item is MGWrappedContextMenuItem WrappedItem && WrappedItem.Submenu != null)
-                {
-                    foreach (TMenuItemType NestedItem in WrappedItem.Submenu.GetItemsOfType<TMenuItemType>(IncludeSubmenus))
-                    {
-                        yield return NestedItem;
+                        MGContextMenu Submenu = new(Menu);
+                        AddItemsToMenu(Submenu, TextForeground, Item.Submenu);
+                        ToggleItem.Submenu = Submenu;
                     }
                 }
+
+                GeneratedItem.ComputeIsVisible = Item.ComputeIsVisible;
+                GeneratedItem.CommandId = Item.CommandId;
+                Item.GeneratedItem = GeneratedItem;
             }
         }
-
-        /// <summary>Throws <see cref="InvalidOperationException"/> if no <see cref="MGContextMenuItem"/> was found with the given <paramref name="CommandId"/></summary>
-        public TMenuItemType FindItemByCommandId<TMenuItemType>(string CommandId)
-            where TMenuItemType : MGContextMenuItem
-            => GetItemsOfType<TMenuItemType>(true).First(x => x.CommandId == CommandId);
     }
+
+    /// <summary>Creates a nested <see cref="MGContextMenu"/>. It inherits the theme of <paramref name="ParentContextMenu"/>'s resource scope.</summary>
+    public MGContextMenu(MGContextMenu ParentContextMenu)
+        : this(ParentContextMenu, ParentContextMenu.TitleText)
+    {
+        Host = ParentContextMenu;
+        HeaderSize = ParentContextMenu.HeaderSize;
+        //  Keep this submenu's own default wrapper factory when the parent uses the parent's default: OnThemeChanged only rebuilds the rows
+        //  when ButtonWrapperTemplate is this instance's CreateDefaultDropdownButton (delegate equality compares targets).
+        if (ParentContextMenu.ButtonWrapperTemplate != ParentContextMenu.CreateDefaultDropdownButton)
+        {
+            ButtonWrapperTemplate = ParentContextMenu.ButtonWrapperTemplate;
+        }
+        StaysOpenOnItemSelected = ParentContextMenu.StaysOpenOnItemSelected;
+        StaysOpenOnItemToggled = ParentContextMenu.StaysOpenOnItemToggled;
+        AutoCloseThreshold = null;
+    }
+
+    /// <summary>Creates a root-level <see cref="MGContextMenu"/>. Without an explicit <paramref name="Theme"/>, it inherits the theme of
+    /// <paramref name="Window"/>'s resource scope and follows its changes.</summary>
+    public MGContextMenu(MGWindow Window, string TitleText = "[b]Choose Option[/b]", MGTheme Theme = null)
+        : this(Window.Desktop, Theme, Window, TitleText) { }
+
+    /// <summary>Creates a root-level <see cref="MGContextMenu"/> that does not belong to any <see cref="MGWindow"/>s</summary>
+    public MGContextMenu(MGDesktop Desktop, string TitleText = "[b]Choose Option[/b]", MGTheme Theme = null)
+        : this(Desktop, Theme, null, TitleText) { }
+
+    protected MGContextMenu(MGDesktop Desktop, MGTheme WindowTheme, MGWindow Window, string TitleText = "[b]Choose Option[/b]")
+        : base(Desktop, WindowTheme, Window, MGElementType.ContextMenu, 0, 0, 1, 1)
+    {
+        using (BeginInitializing())
+        {
+            Host = Desktop;
+
+            IsDraggable = false;
+            AllowsClickThrough = false;
+            IsCloseButtonVisible = false;
+            //  Excluded from window click-activation (decision utilisateur, Docs/input-window-activation-design.md section 3.a):
+            //  MGContextMenu owns nested MGContextMenu windows of its own, which would otherwise be reordered on every internal click.
+            ActivatesOnClick = false;
+
+            ItemsPanel = new(this, Orientation.Vertical);
+            RegisterTemplatePart(ItemsPanelPartName, ItemsPanel);
+            ItemsPanel.Spacing = 2;
+            ItemsPanel.ManagedParent = this;
+            MGScrollViewer SV = new(this, ScrollBarVisibility.Auto, ScrollBarVisibility.Disabled);
+            ScrollViewerElement = SV;
+            RegisterTemplatePart(ScrollViewerPartName, ScrollViewerElement);
+            SV.SetPadding(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            SV.SetContent(ItemsPanel);
+            SV.ManagedParent = this;
+            SetContent(SV);
+
+            SV.CanChangeContent = false;
+            ItemsPanel.CanChangeContent = false;
+            CanChangeContent = false;
+
+            this.TitleText = TitleText;
+            IsTitleBarVisible = !string.IsNullOrEmpty(TitleText);
+            if (TitleBarTextBlockElement != null)
+            {
+                TitleBarTextBlockElement.TextAlignment = HorizontalAlignment.Center;
+            }
+
+            SetPadding(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            SetBorderBrushTagged(MGUniformBorderBrush.Transparent, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
+            SetBorderThicknessTagged(new(1), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+
+            IsUserResizable = false;
+
+            MinWidth = 150;
+            MaxWidth = 600;
+            SetMinHeight(0, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            MaxHeight = 600;
+            DefaultControlTemplateName = MGControlTemplateCatalog.ContextMenuTemplateName;
+
+            HeaderSize = new Size(14, 14);
+
+            StaysOpenOnItemSelected = false;
+            StaysOpenOnItemToggled = true;
+            AutoCloseThreshold = DefaultAutoCloseThreshold;
+            CanContextMenuOpen = true;
+
+            CanChangeContent = false;
+
+            _Items = new();
+            _Items.CollectionChanged += (sender, e) =>
+            {
+                using (ItemsPanel.AllowChangingContentTemporarily())
+                {
+                    if (e.Action is NotifyCollectionChangedAction.Add)
+                    {
+                        if (e.NewItems != null)
+                        {
+                            int Index = e.NewStartingIndex;
+                            foreach (MGContextMenuItem Item in e.NewItems)
+                            {
+                                if (Item is MGContextMenuButton Button)
+                                {
+                                    Button.OnSelected += MenuItem_ItemSelected;
+                                }
+                                else if (Item is MGContextMenuToggle Toggle)
+                                {
+                                    Toggle.OnToggled += MenuItem_ItemToggled;
+                                }
+                                else if (Item is MGContextMenuRadioButton RadioButton)
+                                {
+                                    RadioButton.OnToggled += MenuItem_ItemRadioSelected;
+                                }
+
+                                ItemsPanel.TryInsertChild(Index, Item);
+                                Index++;
+                            }
+                        }
+                    }
+
+                    if (e.Action is NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Reset)
+                    {
+                        if (e.OldItems != null)
+                        {
+                            foreach (MGContextMenuItem Item in e.OldItems)
+                            {
+                                if (Item is MGContextMenuButton Button)
+                                {
+                                    Button.OnSelected -= MenuItem_ItemSelected;
+                                }
+                                else if (Item is MGContextMenuToggle Toggle)
+                                {
+                                    Toggle.OnToggled -= MenuItem_ItemToggled;
+                                }
+                                else if (Item is MGContextMenuRadioButton RadioButton)
+                                {
+                                    RadioButton.OnToggled -= MenuItem_ItemRadioSelected;
+                                    UnregisterRadioItem(RadioButton);
+                                }
+                                ItemsPanel.TryRemoveChild(Item);
+                            }
+                        }
+                    }
+
+                    if (e.Action is NotifyCollectionChangedAction.Replace or NotifyCollectionChangedAction.Move)
+                    {
+                        //  For Replace/Move: remove old items, then add new items at the correct index
+                        if (e.OldItems != null)
+                        {
+                            foreach (MGContextMenuItem Item in e.OldItems)
+                            {
+                                if (Item is MGContextMenuButton Button)
+                                {
+                                    Button.OnSelected -= MenuItem_ItemSelected;
+                                }
+                                else if (Item is MGContextMenuToggle Toggle)
+                                {
+                                    Toggle.OnToggled -= MenuItem_ItemToggled;
+                                }
+                                else if (Item is MGContextMenuRadioButton RadioButton)
+                                {
+                                    RadioButton.OnToggled -= MenuItem_ItemRadioSelected;
+                                    UnregisterRadioItem(RadioButton);
+                                }
+                                ItemsPanel.TryRemoveChild(Item);
+                            }
+                        }
+
+                        if (e.NewItems != null)
+                        {
+                            int Index = e.NewStartingIndex;
+                            foreach (MGContextMenuItem Item in e.NewItems)
+                            {
+                                if (Item is MGContextMenuButton Button)
+                                {
+                                    Button.OnSelected += MenuItem_ItemSelected;
+                                }
+                                else if (Item is MGContextMenuToggle Toggle)
+                                {
+                                    Toggle.OnToggled += MenuItem_ItemToggled;
+                                }
+                                else if (Item is MGContextMenuRadioButton RadioButton)
+                                {
+                                    RadioButton.OnToggled += MenuItem_ItemRadioSelected;
+                                }
+
+                                ItemsPanel.TryInsertChild(Index, Item);
+                                Index++;
+                            }
+                        }
+                    }
+                }
+            };
+
+            ButtonWrapperTemplate = CreateDefaultDropdownButton;
+
+            MouseHandler.MovedOutside += (sender, e) =>
+            {
+                if (IsContextMenuOpen && !IsSubmenu && !IsHoveringSubmenu(5) && AutoCloseThreshold.HasValue)
+                {
+                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
+                    if (((RectangleF)LayoutBounds).SquaredDistanceTo(LayoutSpacePosition) >= AutoCloseThreshold.Value * AutoCloseThreshold.Value)
+                    {
+                        TryCloseContextMenu();
+                    }
+                }
+            };
+
+            MouseHandler.PressedOutside += (sender, e) =>
+            {
+                if (IsContextMenuOpen)
+                {
+                    TryCloseContextMenu();
+                    e.SetHandledBy(this, false);
+                }
+            };
+
+            //  Draw the submenu(s)
+            if (ParentWindow != null && ParentWindow.ElementType != MGElementType.ContextMenu)
+            {
+                //  If the ContextMenu is inside of another Window, don't draw the submenu until after the parent window is done drawing,
+                //  so that the submenu is overtop of the rest of the parent window's content
+                ParentWindow.OnEndDraw += (sender, e) =>
+                {
+                    //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
+                    //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
+                    using (e.DA.DT.PushRectangleClip(null, false))
+                    {
+                        ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
+                    }
+                };
+            }
+            else
+            {
+                //  If the ContextMenu is its own root-level window, draw the submenu immediately after we're done drawing this ContextMenu
+                OnEndDraw += (sender, e) =>
+                {
+                    //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
+                    //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
+                    using (e.DA.DT.PushRectangleClip(null, false))
+                    {
+                        ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
+                    }
+                };
+            }
+
+            //  Spaghetti logic for cases where you nest a ContextMenu directly inside of a Window,
+            //  rather than making this ContextMenu be its own root-level Window content via Element.ContextMenu
+            if (ParentWindow != null && ParentWindow.ElementType != MGElementType.ContextMenu)
+            {
+                ParentWindow.OnWindowPositionChanged += (sender, e) =>
+                {
+                    Point PreviousPosition = LayoutBounds.TopLeft();
+                    Point Offset = new(e.NewValue.Left - e.PreviousValue.Left, e.NewValue.Top - e.PreviousValue.Top);
+                    InvokeWindowPositionChanged(PreviousPosition, PreviousPosition + Offset);
+                };
+            }
+
+            OnBeginUpdateContents += (sender, e) =>
+            {
+                ActiveContextMenu?.Update(e.UA.AsZeroOffset());
+            };
+
+            SubmenuOpened += (sender, e) =>
+            {
+                e.ItemSelected += Submenu_ItemSelected;
+                e.ItemToggled += Submenu_ItemToggled;
+                e.ItemRadioSelected += Submenu_ItemRadioSelected;
+            };
+
+            SubmenuClosed += (sender, e) =>
+            {
+                e.ItemSelected -= Submenu_ItemSelected;
+                e.ItemToggled -= Submenu_ItemToggled;
+                e.ItemRadioSelected -= Submenu_ItemRadioSelected;
+            };
+
+            ItemSelected += (sender, e) =>
+            {
+                if (!StaysOpenOnItemSelected)
+                {
+                    TryCloseContextMenu();
+                }
+            };
+
+            ItemToggled += (sender, e) =>
+            {
+                if (!StaysOpenOnItemToggled)
+                {
+                    TryCloseContextMenu();
+                }
+            };
+
+            ItemRadioSelected += (sender, e) =>
+            {
+                if (!StaysOpenOnItemToggled)
+                {
+                    TryCloseContextMenu();
+                }
+            };
+        }
+    }
+
+    private void Submenu_ItemSelected(object sender, MGContextMenuButton e) => ItemSelected?.Invoke(this, e);
+    private void Submenu_ItemToggled(object sender, MGContextMenuToggle e) => ItemToggled?.Invoke(this, e);
+    private void Submenu_ItemRadioSelected(object sender, MGContextMenuRadioButton e) => ItemRadioSelected?.Invoke(this, e);
+
+    private void MenuItem_ItemSelected(object sender, EventArgs e)
+    {
+        if (sender is MGContextMenuButton Button)
+        {
+            ItemSelected?.Invoke(this, Button);
+        }
+    }
+
+    private void MenuItem_ItemToggled(object sender, bool e)
+    {
+        if (sender is MGContextMenuToggle Toggle)
+        {
+            ItemToggled?.Invoke(this, Toggle);
+        }
+    }
+
+    private void MenuItem_ItemRadioSelected(object sender, bool e)
+    {
+        if (sender is MGContextMenuRadioButton RadioButton && RadioButton.IsChecked)
+        {
+            ItemRadioSelected?.Invoke(this, RadioButton);
+        }
+    }
+
+    public override bool TryHandleNavigationAction(UINavigationAction action)
+    {
+        if (OpenedFromMenuBar != null && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Home or UINavigationAction.End)
+        {
+            return OpenedFromMenuBar.TryHandleNavigationAction(action);
+        }
+
+        return base.TryHandleNavigationAction(action);
+    }
+
+    public IEnumerable<TMenuItemType> GetItemsOfType<TMenuItemType>(bool IncludeSubmenus)
+        where TMenuItemType : MGContextMenuItem
+    {
+        foreach (MGContextMenuItem Item in Items)
+        {
+            if (Item is TMenuItemType TypedItem)
+            {
+                yield return TypedItem;
+            }
+
+            if (IncludeSubmenus && Item is MGWrappedContextMenuItem WrappedItem && WrappedItem.Submenu != null)
+            {
+                foreach (TMenuItemType NestedItem in WrappedItem.Submenu.GetItemsOfType<TMenuItemType>(IncludeSubmenus))
+                {
+                    yield return NestedItem;
+                }
+            }
+        }
+    }
+
+    /// <summary>Throws <see cref="InvalidOperationException"/> if no <see cref="MGContextMenuItem"/> was found with the given <paramref name="CommandId"/></summary>
+    public TMenuItemType FindItemByCommandId<TMenuItemType>(string CommandId)
+        where TMenuItemType : MGContextMenuItem
+        => GetItemsOfType<TMenuItemType>(true).First(x => x.CommandId == CommandId);
 }

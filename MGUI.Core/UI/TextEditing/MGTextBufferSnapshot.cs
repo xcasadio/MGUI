@@ -1,33 +1,29 @@
-using System;
-using System.Collections.Generic;
+namespace MGUI.Core.UI.TextEditing;
 
-namespace MGUI.Core.UI.TextEditing
+public sealed class MGTextBufferSnapshot
 {
-    public sealed class MGTextBufferSnapshot
+    private readonly int[] _lineStarts;
+
+    public string Text { get; }
+    public int Version { get; }
+    public int LineCount => _lineStarts.Length;
+    public IReadOnlyList<int> LineStarts => _lineStarts;
+
+    internal MGTextBufferSnapshot(string text, int version, IReadOnlyList<int> lineStarts)
     {
-        private readonly int[] _lineStarts;
+        Text = text ?? string.Empty;
+        Version = version;
+        _lineStarts = new int[lineStarts?.Count ?? 0];
 
-        public string Text { get; }
-        public int Version { get; }
-        public int LineCount => _lineStarts.Length;
-        public IReadOnlyList<int> LineStarts => _lineStarts;
-
-        internal MGTextBufferSnapshot(string text, int version, IReadOnlyList<int> lineStarts)
+        if (lineStarts == null || lineStarts.Count == 0)
         {
-            Text = text ?? string.Empty;
-            Version = version;
-            _lineStarts = new int[lineStarts?.Count ?? 0];
+            _lineStarts = new[] { 0 };
+            return;
+        }
 
-            if (lineStarts == null || lineStarts.Count == 0)
-            {
-                _lineStarts = new[] { 0 };
-                return;
-            }
-
-            for (int index = 0; index < lineStarts.Count; index++)
-            {
-                _lineStarts[index] = lineStarts[index];
-            }
+        for (int index = 0; index < lineStarts.Count; index++)
+        {
+            _lineStarts[index] = lineStarts[index];
         }
     }
 }

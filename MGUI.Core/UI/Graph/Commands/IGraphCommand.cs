@@ -1,9 +1,8 @@
-namespace MGUI.Core.UI.Graph
+namespace MGUI.Core.UI.Graph;
+
+public interface IGraphCommand
 {
-    public interface IGraphCommand
-    {
-        string Name { get; }
-        bool Execute(GraphDocument document);
-        bool Undo(GraphDocument document);
-    }
+    string Name { get; }
+    bool Execute(GraphDocument document);
+    bool Undo(GraphDocument document);
 }
