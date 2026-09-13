@@ -10,7 +10,7 @@ public readonly record struct UIKeyFrame<T>(float Offset, T Value, string Easing
 {
     /// <summary>The easing function named by <see cref="Easing"/>, <see cref="UIEasing.Linear"/> when null or unknown.</summary>
     public IUIEasingFunction ResolveEasing()
-        => Easing != null && UIEasing.TryGet(Easing, out IUIEasingFunction function) ? function : UIEasing.Linear;
+        => Easing != null && UIEasing.TryGet(Easing, out var function) ? function : UIEasing.Linear;
 }
 
 /// <summary>
@@ -27,7 +27,7 @@ public sealed class UIKeyFrameTrack<T> : IEnumerable<UIKeyFrame<T>>
 
     public UIKeyFrameTrack(IEnumerable<UIKeyFrame<T>> frames)
     {
-        foreach (UIKeyFrame<T> frame in frames ?? throw new ArgumentNullException(nameof(frames)))
+        foreach (var frame in frames ?? throw new ArgumentNullException(nameof(frames)))
         {
             Add(frame);
         }
@@ -46,7 +46,7 @@ public sealed class UIKeyFrameTrack<T> : IEnumerable<UIKeyFrame<T>>
             throw new ArgumentOutOfRangeException(nameof(frame), frame.Offset, "A key frame offset lies in [0, 1].");
         }
 
-        int index = _Frames.FindIndex(x => x.Offset >= frame.Offset);
+        var index = _Frames.FindIndex(x => x.Offset >= frame.Offset);
         if (index < 0)
         {
             _Frames.Add(frame);
@@ -91,7 +91,7 @@ public sealed class UIKeyFrameTrack<T> : IEnumerable<UIKeyFrame<T>>
         int low = 0, high = _Frames.Count - 1;
         while (low < high)
         {
-            int mid = (low + high) >> 1;
+            var mid = (low + high) >> 1;
             if (_Frames[mid].Offset < progress)
             {
                 low = mid + 1;
@@ -104,9 +104,9 @@ public sealed class UIKeyFrameTrack<T> : IEnumerable<UIKeyFrame<T>>
 
         toIndex = low;
         fromIndex = toIndex - 1;
-        float fromOffset = fromIndex >= 0 ? _Frames[fromIndex].Offset : 0f;
-        float toOffset = _Frames[toIndex].Offset;
-        float span = toOffset - fromOffset;
+        var fromOffset = fromIndex >= 0 ? _Frames[fromIndex].Offset : 0f;
+        var toOffset = _Frames[toIndex].Offset;
+        var span = toOffset - fromOffset;
         localProgress = span <= 0f ? 1f : Math.Clamp((progress - fromOffset) / span, 0f, 1f);
     }
 

@@ -135,24 +135,24 @@ public class MGCheckStateIcon : MGElement
 
     private static Rectangle GetCheckedSquareBounds(Rectangle bounds)
     {
-        int padding = Math.Max(2, Math.Min(bounds.Width, bounds.Height) / 4);
-        Rectangle targetBounds = bounds.GetCompressed(padding);
+        var padding = Math.Max(2, Math.Min(bounds.Width, bounds.Height) / 4);
+        var targetBounds = bounds.GetCompressed(padding);
         return targetBounds.Width > 0 && targetBounds.Height > 0 ? targetBounds : bounds;
     }
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Vector2 origin = DA.Offset.ToVector2();
+        var origin = DA.Offset.ToVector2();
 
         if (!CheckState.HasValue)
         {
-            Rectangle targetBounds = layoutBounds.GetScaledFromCenter(0.60f);
+            var targetBounds = layoutBounds.GetScaledFromCenter(0.60f);
             if (targetBounds.Width % 2 != 0 || targetBounds.Height % 2 != 0)
             {
                 targetBounds = new(targetBounds.Left, targetBounds.Top, targetBounds.Width / 2 * 2, targetBounds.Height / 2 * 2);
             }
 
-            Color fillColor = IndeterminateFillColor == Color.Transparent ? MarkColor : IndeterminateFillColor;
+            var fillColor = IndeterminateFillColor == Color.Transparent ? MarkColor : IndeterminateFillColor;
             if (IsShadowed)
             {
                 DA.DT.FillRectangle(origin, targetBounds.GetTranslated(ShadowOffset), ShadowColor * DA.Opacity);
@@ -164,8 +164,8 @@ public class MGCheckStateIcon : MGElement
         {
             if (CheckedIndicatorStyle == CheckIndicatorStyle.FilledSquare)
             {
-                Rectangle targetBounds = GetCheckedSquareBounds(layoutBounds);
-                Color fillColor = CheckedFillColor == Color.Transparent ? MarkColor : CheckedFillColor;
+                var targetBounds = GetCheckedSquareBounds(layoutBounds);
+                var fillColor = CheckedFillColor == Color.Transparent ? MarkColor : CheckedFillColor;
 
                 if (IsShadowed)
                 {
@@ -274,21 +274,21 @@ public class MGRadioIndicatorIcon : MGElement
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Color fillColor = Background?.GetUnderlay(VisualState.Primary) ?? Color.Transparent;
+        var fillColor = Background?.GetUnderlay(VisualState.Primary) ?? Color.Transparent;
         Color? overlayColor = null;
 
         if (!ParentWindow.HasModalWindow && Background != null)
         {
-            Point layoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
-            bool isPressed = false;
+            var layoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
+            var isPressed = false;
             if (InputTracker.Mouse.RecentButtonPressedEvents[MouseButton.Left] != null)
             {
-                Point pressPositionScreenSpace = InputTracker.Mouse.RecentButtonPressedEvents[MouseButton.Left].Position;
-                Point pressPositionLayoutSpace = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, pressPositionScreenSpace);
+                var pressPositionScreenSpace = InputTracker.Mouse.RecentButtonPressedEvents[MouseButton.Left].Position;
+                var pressPositionLayoutSpace = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, pressPositionScreenSpace);
                 isPressed = layoutBounds.ContainsInclusive(pressPositionLayoutSpace);
             }
 
-            bool isHovered = layoutBounds.ContainsInclusive(layoutSpacePosition);
+            var isHovered = layoutBounds.ContainsInclusive(layoutSpacePosition);
             overlayColor = Background.GetColorOverlay(isPressed ? SecondaryVisualState.Pressed : isHovered ? SecondaryVisualState.Hovered : SecondaryVisualState.None);
         }
 
@@ -517,7 +517,7 @@ public class MGDockPinIcon : MGElement
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        string textureName = IsPinned ? PinnedTextureName : AutoHideTextureName;
+        var textureName = IsPinned ? PinnedTextureName : AutoHideTextureName;
         if (!string.IsNullOrEmpty(textureName) && GetResources().TryDrawTexture(DA.DT, textureName, layoutBounds, DA.Opacity, Color))
         {
             return;
@@ -596,7 +596,7 @@ public class MGWindowStateIcon : MGElement
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        string textureName = IsRestoredState ? MaximizedTextureName : NormalTextureName;
+        var textureName = IsRestoredState ? MaximizedTextureName : NormalTextureName;
         if (!string.IsNullOrEmpty(textureName) && GetResources().TryDrawTexture(DA.DT, textureName, layoutBounds, DA.Opacity, Color))
         {
             return;

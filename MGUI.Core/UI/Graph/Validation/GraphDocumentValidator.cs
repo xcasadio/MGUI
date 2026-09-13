@@ -30,10 +30,10 @@ public class GraphDocumentValidator : IGraphValidator
 
     private void ValidateEdges(GraphDocument document, GraphValidationResult result)
     {
-        for (int i = 0; i < document.Edges.Count; i++)
+        for (var i = 0; i < document.Edges.Count; i++)
         {
-            GraphEdgeModel edge = document.Edges[i];
-            GraphConnectionValidationResult connection = _compatibilityService.ValidateConnection(
+            var edge = document.Edges[i];
+            var connection = _compatibilityService.ValidateConnection(
                 document,
                 edge.SourceNodeId,
                 edge.SourcePortId,
@@ -50,21 +50,21 @@ public class GraphDocumentValidator : IGraphValidator
 
     private static void ValidateRequiredPorts(GraphDocument document, GraphValidationResult result)
     {
-        for (int nodeIndex = 0; nodeIndex < document.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < document.Nodes.Count; nodeIndex++)
         {
-            GraphNodeModel node = document.Nodes[nodeIndex];
-            for (int portIndex = 0; portIndex < node.Ports.Count; portIndex++)
+            var node = document.Nodes[nodeIndex];
+            for (var portIndex = 0; portIndex < node.Ports.Count; portIndex++)
             {
-                GraphPortModel port = node.Ports[portIndex];
+                var port = node.Ports[portIndex];
                 if (!port.IsRequired || port.Direction != GraphPortDirection.Input)
                 {
                     continue;
                 }
 
-                bool connected = false;
-                for (int edgeIndex = 0; edgeIndex < document.Edges.Count; edgeIndex++)
+                var connected = false;
+                for (var edgeIndex = 0; edgeIndex < document.Edges.Count; edgeIndex++)
                 {
-                    GraphEdgeModel edge = document.Edges[edgeIndex];
+                    var edge = document.Edges[edgeIndex];
                     if (edge.TargetNodeId == node.Id && edge.TargetPortId == port.Id)
                     {
                         connected = true;

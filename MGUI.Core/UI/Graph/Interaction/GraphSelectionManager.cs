@@ -23,7 +23,7 @@ public sealed class GraphSelectionManager
 
     public bool Clear()
     {
-        bool changed = SelectedNodeIds.Count > 0 || SelectedEdgeIds.Count > 0;
+        var changed = SelectedNodeIds.Count > 0 || SelectedEdgeIds.Count > 0;
         SelectedNodeIds.Clear();
         SelectedEdgeIds.Clear();
         return changed;
@@ -36,7 +36,7 @@ public sealed class GraphSelectionManager
             return false;
         }
 
-        bool changed = false;
+        var changed = false;
         if (!additive)
         {
             changed |= ClearExceptNode(nodeId);
@@ -60,7 +60,7 @@ public sealed class GraphSelectionManager
             return false;
         }
 
-        bool changed = false;
+        var changed = false;
         if (!additive)
         {
             changed |= ClearExceptEdge(edgeId);
@@ -78,7 +78,7 @@ public sealed class GraphSelectionManager
 
     public bool SelectNodes(IEnumerable<Guid> nodeIds, bool additive = false)
     {
-        bool changed = false;
+        var changed = false;
         if (!additive)
         {
             changed |= Clear();
@@ -89,7 +89,7 @@ public sealed class GraphSelectionManager
             return changed;
         }
 
-        foreach (Guid nodeId in nodeIds)
+        foreach (var nodeId in nodeIds)
         {
             if (nodeId != Guid.Empty)
             {
@@ -102,7 +102,7 @@ public sealed class GraphSelectionManager
 
     public bool SelectNodesInRectangle(GraphDocument document, RectangleF worldRectangle, bool additive = false)
     {
-        bool changed = false;
+        var changed = false;
         if (!additive)
         {
             changed |= Clear();
@@ -113,9 +113,9 @@ public sealed class GraphSelectionManager
             return changed;
         }
 
-        for (int nodeIndex = 0; nodeIndex < document.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < document.Nodes.Count; nodeIndex++)
         {
-            GraphNodeModel node = document.Nodes[nodeIndex];
+            var node = document.Nodes[nodeIndex];
             if (node != null && Intersects(worldRectangle, GetNodeWorldBounds(node)))
             {
                 changed |= SelectedNodeIds.Add(node.Id);
@@ -139,7 +139,7 @@ public sealed class GraphSelectionManager
             return ClampSize(node.Size.Value);
         }
 
-        return TryGetAutoMeasuredWorldSize(node, out Vector2 measured)
+        return TryGetAutoMeasuredWorldSize(node, out var measured)
             ? measured
             : new Vector2(160.0f, 100.0f);
     }
@@ -151,7 +151,7 @@ public sealed class GraphSelectionManager
             return;
         }
 
-        Vector2 clamped = ClampSize(size);
+        var clamped = ClampSize(size);
         node.EditorMetadata[AutoMeasuredWidthMetadataKey] = clamped.X.ToString(CultureInfo.InvariantCulture);
         node.EditorMetadata[AutoMeasuredHeightMetadataKey] = clamped.Y.ToString(CultureInfo.InvariantCulture);
     }
@@ -174,7 +174,7 @@ public sealed class GraphSelectionManager
             return new RectangleF();
         }
 
-        Vector2 size = GetNodeWorldSize(node);
+        var size = GetNodeWorldSize(node);
         return new RectangleF(node.Position.X, node.Position.Y, Math.Max(1.0f, size.X), Math.Max(1.0f, size.Y));
     }
 
@@ -186,10 +186,10 @@ public sealed class GraphSelectionManager
             return false;
         }
 
-        if (!node.EditorMetadata.TryGetValue(AutoMeasuredWidthMetadataKey, out string widthText)
-            || !node.EditorMetadata.TryGetValue(AutoMeasuredHeightMetadataKey, out string heightText)
-            || !float.TryParse(widthText, NumberStyles.Float, CultureInfo.InvariantCulture, out float width)
-            || !float.TryParse(heightText, NumberStyles.Float, CultureInfo.InvariantCulture, out float height))
+        if (!node.EditorMetadata.TryGetValue(AutoMeasuredWidthMetadataKey, out var widthText)
+            || !node.EditorMetadata.TryGetValue(AutoMeasuredHeightMetadataKey, out var heightText)
+            || !float.TryParse(widthText, NumberStyles.Float, CultureInfo.InvariantCulture, out var width)
+            || !float.TryParse(heightText, NumberStyles.Float, CultureInfo.InvariantCulture, out var height))
         {
             return false;
         }
@@ -203,7 +203,7 @@ public sealed class GraphSelectionManager
 
     private bool ClearExceptNode(Guid nodeId)
     {
-        bool changed = false;
+        var changed = false;
         if (SelectedEdgeIds.Count > 0)
         {
             SelectedEdgeIds.Clear();
@@ -226,7 +226,7 @@ public sealed class GraphSelectionManager
 
     private bool ClearExceptEdge(Guid edgeId)
     {
-        bool changed = false;
+        var changed = false;
         if (SelectedNodeIds.Count > 0)
         {
             SelectedNodeIds.Clear();

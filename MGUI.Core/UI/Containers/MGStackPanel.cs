@@ -141,7 +141,7 @@ public class MGStackPanel : MGMultiContentHost
             return false;
         }
 
-        int Index = _Children.IndexOf(Old);
+        var Index = _Children.IndexOf(Old);
         if (Index < 0)
         {
             return false;
@@ -201,16 +201,16 @@ public class MGStackPanel : MGMultiContentHost
     {
         EnsureMeasuredChildSizeCapacity(Children.Count);
 
-        int resolvedSpacing = ResolvedSpacing;
-        Size remainingSize = availableSize;
-        int maxWidth = 0;
-        int totalHeight = 0;
+        var resolvedSpacing = ResolvedSpacing;
+        var remainingSize = availableSize;
+        var maxWidth = 0;
+        var totalHeight = 0;
         nonCollapsedChildrenCount = 0;
 
-        for (int i = 0; i < Children.Count; i++)
+        for (var i = 0; i < Children.Count; i++)
         {
-            MGElement child = Children[i];
-            child.UpdateMeasurement(remainingSize, out _, out Thickness fullSize, out _, out _);
+            var child = Children[i];
+            child.UpdateMeasurement(remainingSize, out _, out var fullSize, out _, out _);
             _measuredChildSizes[i] = fullSize;
 
             if (fullSize.Width > maxWidth)
@@ -225,7 +225,7 @@ public class MGStackPanel : MGMultiContentHost
                 nonCollapsedChildrenCount++;
             }
 
-            int consumedHeight = fullSize.Height + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
+            var consumedHeight = fullSize.Height + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
             remainingSize = remainingSize.Subtract(new Size(0, consumedHeight), 0, 0);
         }
 
@@ -241,16 +241,16 @@ public class MGStackPanel : MGMultiContentHost
     {
         EnsureMeasuredChildSizeCapacity(Children.Count);
 
-        int resolvedSpacing = ResolvedSpacing;
-        Size remainingSize = availableSize;
-        int totalWidth = 0;
-        int maxHeight = 0;
+        var resolvedSpacing = ResolvedSpacing;
+        var remainingSize = availableSize;
+        var totalWidth = 0;
+        var maxHeight = 0;
         nonCollapsedChildrenCount = 0;
 
-        for (int i = 0; i < Children.Count; i++)
+        for (var i = 0; i < Children.Count; i++)
         {
-            MGElement child = Children[i];
-            child.UpdateMeasurement(remainingSize, out _, out Thickness fullSize, out _, out _);
+            var child = Children[i];
+            child.UpdateMeasurement(remainingSize, out _, out var fullSize, out _, out _);
             _measuredChildSizes[i] = fullSize;
 
             totalWidth += fullSize.Width;
@@ -264,7 +264,7 @@ public class MGStackPanel : MGMultiContentHost
                 nonCollapsedChildrenCount++;
             }
 
-            int consumedWidth = fullSize.Width + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
+            var consumedWidth = fullSize.Width + (child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
             remainingSize = remainingSize.Subtract(new Size(consumedWidth, 0), 0, 0);
         }
 
@@ -287,20 +287,20 @@ public class MGStackPanel : MGMultiContentHost
 
         if (Orientation == Orientation.Vertical)
         {
-            Thickness totalContentSize = MeasureVerticalChildren(AvailableSize, out _);
+            var totalContentSize = MeasureVerticalChildren(AvailableSize, out _);
 
             //  Account for content alignment
-            int ConsumedWidth = HorizontalContentAlignment == HorizontalAlignment.Stretch ? AvailableSize.Width : Math.Min(AvailableSize.Width, totalContentSize.Width);
+            var ConsumedWidth = HorizontalContentAlignment == HorizontalAlignment.Stretch ? AvailableSize.Width : Math.Min(AvailableSize.Width, totalContentSize.Width);
             Size ConsumedContentSize = new(ConsumedWidth, totalContentSize.Height);
-            Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
+            var AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
 
             //  Allocate space for each child
-            int resolvedSpacing = ResolvedSpacing;
-            int CurrentY = AlignedBounds.Top;
-            for (int i = 0; i < Children.Count; i++)
+            var resolvedSpacing = ResolvedSpacing;
+            var CurrentY = AlignedBounds.Top;
+            for (var i = 0; i < Children.Count; i++)
             {
-                MGElement Child = Children[i];
-                int Height = _measuredChildSizes[i].Height;
+                var Child = Children[i];
+                var Height = _measuredChildSizes[i].Height;
                 Rectangle ChildBounds = new(AlignedBounds.Left, CurrentY, AlignedBounds.Width, Height);
                 UpdateChildLayoutIfNeeded(Child, ChildBounds);
                 CurrentY += Height + (Child.IsVisibilityCollapsed ? 0 : resolvedSpacing);
@@ -308,20 +308,20 @@ public class MGStackPanel : MGMultiContentHost
         }
         else if (Orientation == Orientation.Horizontal)
         {
-            Thickness totalContentSize = MeasureHorizontalChildren(AvailableSize, out _);
+            var totalContentSize = MeasureHorizontalChildren(AvailableSize, out _);
 
             //  Account for content alignment
-            int ConsumedHeight = VerticalContentAlignment == VerticalAlignment.Stretch ? AvailableSize.Height : Math.Min(AvailableSize.Height, totalContentSize.Height);
+            var ConsumedHeight = VerticalContentAlignment == VerticalAlignment.Stretch ? AvailableSize.Height : Math.Min(AvailableSize.Height, totalContentSize.Height);
             Size ConsumedContentSize = new(totalContentSize.Width, ConsumedHeight);
-            Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
+            var AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
 
             //  Allocate space for each child
-            int resolvedSpacing = ResolvedSpacing;
-            int CurrentX = AlignedBounds.Left;
-            for (int i = 0; i < Children.Count; i++)
+            var resolvedSpacing = ResolvedSpacing;
+            var CurrentX = AlignedBounds.Left;
+            for (var i = 0; i < Children.Count; i++)
             {
-                MGElement Child = Children[i];
-                int Width = _measuredChildSizes[i].Width;
+                var Child = Children[i];
+                var Width = _measuredChildSizes[i].Width;
                 Rectangle ChildBounds = new(CurrentX, AlignedBounds.Top, Width, AlignedBounds.Height);
                 UpdateChildLayoutIfNeeded(Child, ChildBounds);
                 CurrentX += Width + (Child.IsVisibilityCollapsed ? 0 : resolvedSpacing);

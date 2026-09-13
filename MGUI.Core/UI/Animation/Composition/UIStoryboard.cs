@@ -20,10 +20,10 @@ public sealed class UIStoryboard : UIAnimationGroup, IEnumerable<UIAnimation>
 
     protected override TimeSpan ComputeDuration()
     {
-        TimeSpan longest = TimeSpan.Zero;
-        foreach (UIAnimation child in Children)
+        var longest = TimeSpan.Zero;
+        foreach (var child in Children)
         {
-            TimeSpan length = LengthOf(child);
+            var length = LengthOf(child);
             if (length == TimeSpan.MaxValue)
             {
                 throw new InvalidOperationException($"A child of a {nameof(UIStoryboard)} cannot repeat forever ({child}); set {nameof(RepeatForever)} on the storyboard instead.");
@@ -47,7 +47,7 @@ public sealed class UIStoryboard : UIAnimationGroup, IEnumerable<UIAnimation>
         }
 
         _Started = true;
-        for (int i = 0; i < Children.Count; i++)
+        for (var i = 0; i < Children.Count; i++)
         {
             StartChild(Children[i]);
         }

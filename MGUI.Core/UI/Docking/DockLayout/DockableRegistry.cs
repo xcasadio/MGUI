@@ -124,7 +124,7 @@ public class DockableRegistry
             return;
         }
 
-        bool wasHidden = _visibleIds.Add(dockableId); // returns true if added
+        var wasHidden = _visibleIds.Add(dockableId); // returns true if added
         if (wasHidden)
         {
             OnShown?.Invoke(this, def);
@@ -142,7 +142,7 @@ public class DockableRegistry
             return;
         }
 
-        bool wasVisible = _visibleIds.Remove(dockableId);
+        var wasVisible = _visibleIds.Remove(dockableId);
         if (wasVisible)
         {
             OnHidden?.Invoke(this, def);

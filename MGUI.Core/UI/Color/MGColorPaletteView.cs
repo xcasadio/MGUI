@@ -82,20 +82,20 @@ public class MGColorPaletteView : MGElement
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness sharedSize)
     {
         sharedSize = new(0);
-        int count = Palette?.Swatches.Count ?? 0;
-        int columns = Math.Max(1, Columns);
-        int rows = count == 0 ? 0 : (int)Math.Ceiling(count / (double)columns);
-        int width = columns * SwatchSize + Math.Max(0, columns - 1) * Spacing + BorderThickness * 2;
-        int height = rows * SwatchSize + Math.Max(0, rows - 1) * Spacing + BorderThickness * 2;
+        var count = Palette?.Swatches.Count ?? 0;
+        var columns = Math.Max(1, Columns);
+        var rows = count == 0 ? 0 : (int)Math.Ceiling(count / (double)columns);
+        var width = columns * SwatchSize + Math.Max(0, columns - 1) * Spacing + BorderThickness * 2;
+        var height = rows * SwatchSize + Math.Max(0, rows - 1) * Spacing + BorderThickness * 2;
         return new(width, height, 0, 0);
     }
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
-        for (int index = 0; index < (Palette?.Swatches.Count ?? 0); index++)
+        var bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
+        for (var index = 0; index < (Palette?.Swatches.Count ?? 0); index++)
         {
-            Rectangle swatchBounds = GetSwatchBounds(bounds, index, Columns, SwatchSize, Spacing, BorderThickness);
+            var swatchBounds = GetSwatchBounds(bounds, index, Columns, SwatchSize, Spacing, BorderThickness);
             DrawCheckerboard(DA, swatchBounds);
             DA.DT.FillRectangle(DA.Offset.ToVector2(), swatchBounds, Palette.Swatches[index].Value.ToXnaColor() * DA.Opacity);
             DrawRectangleBorder(DA, swatchBounds, ReferenceEquals(Palette.Swatches[index], SelectedSwatch) ? SelectedBorderColor : BorderColor);
@@ -108,7 +108,7 @@ public class MGColorPaletteView : MGElement
 
     public override bool TryHandleNavigationAction(UINavigationAction action)
     {
-        int count = Palette?.Swatches.Count ?? 0;
+        var count = Palette?.Swatches.Count ?? 0;
         if (count == 0)
         {
             return false;
@@ -116,7 +116,7 @@ public class MGColorPaletteView : MGElement
 
         if (action == UINavigationAction.Submit)
         {
-            int submitIndex = FocusedSwatchIndex >= 0 ? FocusedSwatchIndex : SelectedSwatch == null ? 0 : Palette.Swatches.IndexOf(SelectedSwatch);
+            var submitIndex = FocusedSwatchIndex >= 0 ? FocusedSwatchIndex : SelectedSwatch == null ? 0 : Palette.Swatches.IndexOf(SelectedSwatch);
             return submitIndex >= 0 && submitIndex < count && SelectSwatch(Palette.Swatches[submitIndex]);
         }
 
@@ -125,7 +125,7 @@ public class MGColorPaletteView : MGElement
             return false;
         }
 
-        int nextIndex = GetNavigationIndex(FocusedSwatchIndex, count, Columns, action);
+        var nextIndex = GetNavigationIndex(FocusedSwatchIndex, count, Columns, action);
         if (nextIndex == FocusedSwatchIndex)
         {
             return false;
@@ -138,18 +138,18 @@ public class MGColorPaletteView : MGElement
 
     internal static Rectangle GetSwatchBounds(Rectangle bounds, int index, int columns, int swatchSize, int spacing, int borderThickness)
     {
-        int actualColumns = Math.Max(1, columns);
-        int row = index / actualColumns;
-        int column = index % actualColumns;
-        int x = bounds.X + borderThickness + column * (swatchSize + spacing);
-        int y = bounds.Y + borderThickness + row * (swatchSize + spacing);
+        var actualColumns = Math.Max(1, columns);
+        var row = index / actualColumns;
+        var column = index % actualColumns;
+        var x = bounds.X + borderThickness + column * (swatchSize + spacing);
+        var y = bounds.Y + borderThickness + row * (swatchSize + spacing);
         return new Rectangle(x, y, Math.Max(0, swatchSize), Math.Max(0, swatchSize));
     }
 
     internal static int? GetSwatchIndexFromPoint(Point point, Rectangle bounds, int count, int columns, int swatchSize, int spacing, int borderThickness)
     {
-        int actualColumns = Math.Max(1, columns);
-        for (int index = 0; index < count; index++)
+        var actualColumns = Math.Max(1, columns);
+        for (var index = 0; index < count; index++)
         {
             if (GetSwatchBounds(bounds, index, actualColumns, swatchSize, spacing, borderThickness).Contains(point))
             {
@@ -167,8 +167,8 @@ public class MGColorPaletteView : MGElement
             return -1;
         }
 
-        int actualColumns = Math.Max(1, columns);
-        int normalized = currentIndex < 0 || currentIndex >= count ? 0 : currentIndex;
+        var actualColumns = Math.Max(1, columns);
+        var normalized = currentIndex < 0 || currentIndex >= count ? 0 : currentIndex;
         return action switch
         {
             UINavigationAction.MoveLeft or UINavigationAction.MovePrevious => Math.Max(0, normalized - 1),
@@ -185,9 +185,9 @@ public class MGColorPaletteView : MGElement
 
     private Size GetDesiredSize()
     {
-        int count = Palette?.Swatches.Count ?? 0;
-        int columns = Math.Max(1, Columns);
-        int rows = count == 0 ? 0 : (int)Math.Ceiling(count / (double)columns);
+        var count = Palette?.Swatches.Count ?? 0;
+        var columns = Math.Max(1, Columns);
+        var rows = count == 0 ? 0 : (int)Math.Ceiling(count / (double)columns);
         return new Size(
             columns * SwatchSize + Math.Max(0, columns - 1) * Spacing + BorderThickness * 2,
             rows * SwatchSize + Math.Max(0, rows - 1) * Spacing + BorderThickness * 2);
@@ -195,9 +195,9 @@ public class MGColorPaletteView : MGElement
 
     private void OnReleasedInside(object sender, BaseMouseReleasedEventArgs e)
     {
-        Point layoutPoint = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-        Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
-        int? index = GetSwatchIndexFromPoint(layoutPoint, bounds, Palette?.Swatches.Count ?? 0, Columns, SwatchSize, Spacing, BorderThickness);
+        var layoutPoint = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+        var bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
+        var index = GetSwatchIndexFromPoint(layoutPoint, bounds, Palette?.Swatches.Count ?? 0, Columns, SwatchSize, Spacing, BorderThickness);
         if (index.HasValue && SelectSwatch(Palette.Swatches[index.Value]))
         {
             e.SetHandledBy(this, false);
@@ -221,14 +221,14 @@ public class MGColorPaletteView : MGElement
 
     private void DrawCheckerboard(ElementDrawArgs DA, Rectangle bounds)
     {
-        int cellSize = Math.Max(1, CheckerboardCellSize);
-        for (int y = bounds.Top; y < bounds.Bottom; y += cellSize)
+        var cellSize = Math.Max(1, CheckerboardCellSize);
+        for (var y = bounds.Top; y < bounds.Bottom; y += cellSize)
         {
-            int height = Math.Min(cellSize, bounds.Bottom - y);
-            for (int x = bounds.Left; x < bounds.Right; x += cellSize)
+            var height = Math.Min(cellSize, bounds.Bottom - y);
+            for (var x = bounds.Left; x < bounds.Right; x += cellSize)
             {
-                int width = Math.Min(cellSize, bounds.Right - x);
-                bool light = ((x - bounds.Left) / cellSize + (y - bounds.Top) / cellSize) % 2 == 0;
+                var width = Math.Min(cellSize, bounds.Right - x);
+                var light = ((x - bounds.Left) / cellSize + (y - bounds.Top) / cellSize) % 2 == 0;
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, y, width, height), (light ? CheckerboardLightColor : CheckerboardDarkColor) * DA.Opacity);
             }
         }
@@ -236,8 +236,8 @@ public class MGColorPaletteView : MGElement
 
     private void DrawRectangleBorder(ElementDrawArgs DA, Rectangle bounds, Color color)
     {
-        int thickness = Math.Max(1, BorderThickness);
-        Color actual = color * DA.Opacity;
+        var thickness = Math.Max(1, BorderThickness);
+        var actual = color * DA.Opacity;
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Y, bounds.Width, thickness), actual);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Bottom - thickness, bounds.Width, thickness), actual);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Y, thickness, bounds.Height), actual);

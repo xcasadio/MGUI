@@ -89,7 +89,7 @@ public class MGBinding : MarkupExtension
 
     public override object ProvideValue(IServiceProvider Provider)
     {
-        IProvideValueTarget ProvideValueTarget = (IProvideValueTarget)Provider.GetService(typeof(IProvideValueTarget));
+        var ProvideValueTarget = (IProvideValueTarget)Provider.GetService(typeof(IProvideValueTarget));
         if (ProvideValueTarget.TargetProperty is PropertyInfo TargetProperty && ProvideValueTarget.TargetObject is XAMLBindableBase TargetObject)
         {
             //  Save the binding info onto the target object so it can be evaluated later on (once we've instantiated the MGElement instance from the Element object)

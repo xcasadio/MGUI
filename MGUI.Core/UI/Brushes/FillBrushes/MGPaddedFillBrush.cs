@@ -45,25 +45,25 @@ public class MGPaddedFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
     {
-        float Opacity = DA.Opacity;
+        var Opacity = DA.Opacity;
         if (Opacity > 0 && !Opacity.IsAlmostZero() && Brush != null)
         {
-            Rectangle PaddedBounds = Bounds.GetCompressed(Padding);
+            var PaddedBounds = Bounds.GetCompressed(Padding);
 
             if (Scale.HasValue)
             {
                 PaddedBounds = PaddedBounds.GetScaledFromCenter(Scale.Value);
             }
 
-            int DesiredWidth = Math.Clamp(PaddedBounds.Width, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
-            int DesiredHeight = Math.Clamp(PaddedBounds.Height, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
+            var DesiredWidth = Math.Clamp(PaddedBounds.Width, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
+            var DesiredHeight = Math.Clamp(PaddedBounds.Height, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
 
             //Rectangle ClampedBounds = new(
             //    PaddedBounds.Left - (DesiredWidth - PaddedBounds.Width) / 2, 
             //    PaddedBounds.Top - (DesiredHeight - PaddedBounds.Height) / 2, 
             //    DesiredWidth, DesiredHeight);
 
-            Rectangle ActualBounds = MGElement.ApplyAlignment(PaddedBounds, HorizontalAlignment ?? UI.HorizontalAlignment.Stretch, VerticalAlignment ?? UI.VerticalAlignment.Stretch, new Size(DesiredWidth, DesiredHeight));
+            var ActualBounds = MGElement.ApplyAlignment(PaddedBounds, HorizontalAlignment ?? UI.HorizontalAlignment.Stretch, VerticalAlignment ?? UI.VerticalAlignment.Stretch, new Size(DesiredWidth, DesiredHeight));
 
             Brush.Draw(DA, Element, ActualBounds);
         }
@@ -71,29 +71,29 @@ public class MGPaddedFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        float opacity = DA.Opacity;
+        var opacity = DA.Opacity;
         if (opacity <= 0 || opacity.IsAlmostZero() || Brush == null)
         {
             return;
         }
 
-        Rectangle paddedBounds = Shape.OuterBounds.GetCompressed(Padding);
+        var paddedBounds = Shape.OuterBounds.GetCompressed(Padding);
 
         if (Scale.HasValue)
         {
             paddedBounds = paddedBounds.GetScaledFromCenter(Scale.Value);
         }
 
-        int desiredWidth = Math.Clamp(paddedBounds.Width, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
-        int desiredHeight = Math.Clamp(paddedBounds.Height, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
-        Rectangle actualBounds = MGElement.ApplyAlignment(
+        var desiredWidth = Math.Clamp(paddedBounds.Width, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
+        var desiredHeight = Math.Clamp(paddedBounds.Height, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
+        var actualBounds = MGElement.ApplyAlignment(
             paddedBounds,
             HorizontalAlignment ?? UI.HorizontalAlignment.Stretch,
             VerticalAlignment ?? UI.VerticalAlignment.Stretch,
             new Size(desiredWidth, desiredHeight));
 
-        MGBoxShape paddedShape = new MGBoxShape(actualBounds, new Thickness(0), Shape.NormalizedCornerRadius).Normalize();
-        MGBoxGeometry paddedGeometry = MGBoxGeometryBuilder.Build(paddedShape, Geometry.CornerSegmentCount);
+        var paddedShape = new MGBoxShape(actualBounds, new Thickness(0), Shape.NormalizedCornerRadius).Normalize();
+        var paddedGeometry = MGBoxGeometryBuilder.Build(paddedShape, Geometry.CornerSegmentCount);
         Brush.Draw(DA, Element, paddedGeometry.Shape, paddedGeometry);
     }
 

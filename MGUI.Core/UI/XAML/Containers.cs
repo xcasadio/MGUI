@@ -32,7 +32,7 @@ public abstract class SingleContentHost : Element
     {
         if (IncludeContent && Content != null)
         {
-            MGSingleContentHost TypedElement = Element as MGSingleContentHost;
+            var TypedElement = Element as MGSingleContentHost;
             TypedElement.SetContent(Content.ToElement<MGElement>(Element.SelfOrParentWindow, Element));
         }
     }
@@ -87,9 +87,9 @@ public class GridSplitter : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGGridSplitter GridSplitter = Element as MGGridSplitter;
+        var GridSplitter = Element as MGGridSplitter;
 
         if (Size.HasValue)
         {
@@ -165,9 +165,9 @@ public class Grid : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGGrid Grid = Element as MGGrid;
+        var Grid = Element as MGGrid;
 
         if (RowLengths != null)
         {
@@ -179,15 +179,15 @@ public class Grid : MultiContentHost
             Grid.AddColumns(ConstrainedGridLength.ParseMultiple(ColumnLengths));
         }
 
-        foreach (RowDefinition RowDefinition in RowDefinitions)
+        foreach (var RowDefinition in RowDefinitions)
         {
-            Containers.Grids.RowDefinition RD = Grid.AddRow(RowDefinition.Length);
+            var RD = Grid.AddRow(RowDefinition.Length);
             RD.SetSizeConstraints(RowDefinition.MinHeight, RowDefinition.MaxHeight);
         }
 
-        foreach (ColumnDefinition ColumnDefinition in ColumnDefinitions)
+        foreach (var ColumnDefinition in ColumnDefinitions)
         {
-            Containers.Grids.ColumnDefinition CD = Grid.AddColumn(ColumnDefinition.Length);
+            var CD = Grid.AddColumn(ColumnDefinition.Length);
             CD.SetSizeConstraints(ColumnDefinition.MinWidth, ColumnDefinition.MaxWidth);
         }
 
@@ -258,9 +258,9 @@ public class Grid : MultiContentHost
                 Grid.AddColumn(GridLength.Auto);
             }
 
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
-                MGElement ChildElement = Child.ToElement<MGElement>(Grid.SelfOrParentWindow, Grid);
+                var ChildElement = Child.ToElement<MGElement>(Grid.SelfOrParentWindow, Grid);
                 Grid.TryAddChild(Child.GridRow, Child.GridColumn, new GridSpan(Child.GridRowSpan, Child.GridColumnSpan, Child.GridAffectsMeasure), ChildElement);
             }
         }
@@ -340,9 +340,9 @@ public class UniformGrid : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGUniformGrid Grid = Element as MGUniformGrid;
+        var Grid = Element as MGUniformGrid;
 
         if (Rows.HasValue)
         {
@@ -437,7 +437,7 @@ public class UniformGrid : MultiContentHost
         if (IncludeContent)
         {
             //  Try to calculate the length of the other dimension if only the Rows or only the Columns are specified
-            int NumChildren = Children.Count;
+            var NumChildren = Children.Count;
             if (Rows.HasValue && !Columns.HasValue)
             {
                 Columns = (int)Math.Ceiling(NumChildren / (double)Rows.Value);
@@ -450,13 +450,13 @@ public class UniformGrid : MultiContentHost
             }
 
             //  Add each child to the grid
-            int Counter = 0;
-            foreach (Element Child in Children)
+            var Counter = 0;
+            foreach (var Child in Children)
             {
-                MGElement ChildElement = Child.ToElement<MGElement>(Grid.SelfOrParentWindow, Grid);
+                var ChildElement = Child.ToElement<MGElement>(Grid.SelfOrParentWindow, Grid);
 
-                int Row = Child.GridRow;
-                int Column = Child.GridColumn;
+                var Row = Child.GridRow;
+                var Column = Child.GridColumn;
                 if (AutoAssignCells.HasValue && AutoAssignCells.Value)
                 {
                     if (Row == 0)
@@ -504,7 +504,7 @@ public class DockPanel : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDockPanel DockPanel = Element as MGDockPanel;
+        var DockPanel = Element as MGDockPanel;
 
         if (LastChildFill.HasValue)
         {
@@ -513,9 +513,9 @@ public class DockPanel : MultiContentHost
 
         if (IncludeContent)
         {
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
-                MGElement ChildElement = Child.ToElement<MGElement>(DockPanel.ParentWindow, DockPanel);
+                var ChildElement = Child.ToElement<MGElement>(DockPanel.ParentWindow, DockPanel);
                 DockPanel.TryAddChild(ChildElement, Child.Dock);
             }
         }
@@ -552,7 +552,7 @@ public class StackPanel : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGStackPanel StackPanel = Element as MGStackPanel;
+        var StackPanel = Element as MGStackPanel;
         Border.ApplySettings(Parent, StackPanel.BorderComponent.Element, false);
 
         if (Orientation.HasValue)
@@ -567,9 +567,9 @@ public class StackPanel : MultiContentHost
 
         if (IncludeContent)
         {
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
-                MGElement ChildElement = Child.ToElement<MGElement>(StackPanel.ParentWindow, StackPanel);
+                var ChildElement = Child.ToElement<MGElement>(StackPanel.ParentWindow, StackPanel);
                 StackPanel.TryAddChild(ChildElement);
             }
         }
@@ -606,7 +606,7 @@ public class WrapPanel : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGWrapPanel WrapPanel = Element as MGWrapPanel;
+        var WrapPanel = Element as MGWrapPanel;
         Border.ApplySettings(Parent, WrapPanel.BorderComponent.Element, false);
 
         if (Orientation.HasValue)
@@ -621,9 +621,9 @@ public class WrapPanel : MultiContentHost
 
         if (IncludeContent)
         {
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
-                MGElement ChildElement = Child.ToElement<MGElement>(WrapPanel.ParentWindow, WrapPanel);
+                var ChildElement = Child.ToElement<MGElement>(WrapPanel.ParentWindow, WrapPanel);
                 WrapPanel.TryAddChild(ChildElement);
             }
         }
@@ -655,14 +655,14 @@ public class Canvas : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGCanvas Canvas = Element as MGCanvas;
+        var Canvas = Element as MGCanvas;
         Border.ApplySettings(Parent, Canvas.BorderComponent.Element, false);
 
         if (IncludeContent)
         {
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
-                MGElement ChildElement = Child.ToElement<MGElement>(Canvas.ParentWindow, Canvas);
+                var ChildElement = Child.ToElement<MGElement>(Canvas.ParentWindow, Canvas);
                 Canvas.TryAddChild(ChildElement, Child.CanvasLeft, Child.CanvasTop, Child.CanvasRight, Child.CanvasBottom);
             }
         }
@@ -677,13 +677,13 @@ public class OverlayPanel : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGOverlayPanel OverlayPanel = Element as MGOverlayPanel;
+        var OverlayPanel = Element as MGOverlayPanel;
 
         if (IncludeContent)
         {
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
-                MGElement ChildElement = Child.ToElement<MGElement>(OverlayPanel.ParentWindow, OverlayPanel);
+                var ChildElement = Child.ToElement<MGElement>(OverlayPanel.ParentWindow, OverlayPanel);
                 OverlayPanel.TryAddChild(ChildElement, Child.Offset.ToThickness(), Child.ZIndex);
             }
         }
@@ -698,13 +698,13 @@ public class ResponsiveRoot : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGResponsiveRoot ResponsiveRoot = Element as MGResponsiveRoot;
+        var ResponsiveRoot = Element as MGResponsiveRoot;
 
         if (IncludeContent)
         {
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
-                MGElement ChildElement = Child.ToElement<MGElement>(ResponsiveRoot.ParentWindow, ResponsiveRoot);
+                var ChildElement = Child.ToElement<MGElement>(ResponsiveRoot.ParentWindow, ResponsiveRoot);
                 ResponsiveRoot.TryAddChild(ChildElement, Child.Offset.ToThickness(), Child.ZIndex);
             }
         }

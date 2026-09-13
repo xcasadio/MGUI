@@ -21,18 +21,18 @@ internal static class MGCanvasLayoutEngine
 {
     public static Size Measure(IReadOnlyList<CanvasChildMeasurement> children)
     {
-        int width = 0;
-        int height = 0;
+        var width = 0;
+        var height = 0;
 
-        foreach (CanvasChildMeasurement child in children)
+        foreach (var child in children)
         {
             if (child.IsCollapsed)
             {
                 continue;
             }
 
-            int childLeft = ResolveDesiredOffset(child.Left, child.Right);
-            int childTop = ResolveDesiredOffset(child.Top, child.Bottom);
+            var childLeft = ResolveDesiredOffset(child.Left, child.Right);
+            var childTop = ResolveDesiredOffset(child.Top, child.Bottom);
             width = System.Math.Max(width, childLeft + child.Width);
             height = System.Math.Max(height, childTop + child.Height);
         }
@@ -51,21 +51,21 @@ internal static class MGCanvasLayoutEngine
     public static void ArrangeInto(IReadOnlyList<CanvasChildMeasurement> children, Rectangle bounds, List<Rectangle> childBounds)
     {
         childBounds.Clear();
-        for (int i = 0; i < children.Count; i++)
+        for (var i = 0; i < children.Count; i++)
         {
             childBounds.Add(Rectangle.Empty);
         }
 
-        for (int i = 0; i < children.Count; i++)
+        for (var i = 0; i < children.Count; i++)
         {
-            CanvasChildMeasurement child = children[i];
+            var child = children[i];
             if (child.IsCollapsed)
             {
                 continue;
             }
 
-            int x = ResolveArrangeOffset(bounds.Left, bounds.Width, child.Width, child.Left, child.Right);
-            int y = ResolveArrangeOffset(bounds.Top, bounds.Height, child.Height, child.Top, child.Bottom);
+            var x = ResolveArrangeOffset(bounds.Left, bounds.Width, child.Width, child.Left, child.Right);
+            var y = ResolveArrangeOffset(bounds.Top, bounds.Height, child.Height, child.Top, child.Bottom);
             childBounds[i] = new Rectangle(x, y, child.Width, child.Height);
         }
     }

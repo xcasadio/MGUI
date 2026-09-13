@@ -42,12 +42,12 @@ internal static class UIPilotPropertyResolver
         if (root is not MGElement element || string.IsNullOrWhiteSpace(dottedPath))
             return false;
 
-        string[] segments = dottedPath.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        var segments = dottedPath.Split('.', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length is 0 or > 2)
             return false;
 
-        string head = segments[0];
-        string sub = segments.Length == 2 ? segments[1] : null;
+        var head = segments[0];
+        var sub = segments.Length == 2 ? segments[1] : null;
 
         if (sub == null)
         {

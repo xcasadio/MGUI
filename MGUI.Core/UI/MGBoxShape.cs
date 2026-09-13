@@ -29,7 +29,7 @@ public readonly record struct MGBoxShape(Rectangle OuterBounds, Thickness Border
             return false;
         }
 
-        MGCornerRadius radius = NormalizedCornerRadius;
+        var radius = NormalizedCornerRadius;
         if (radius.IsZero)
         {
             return true;
@@ -67,27 +67,27 @@ public readonly record struct MGBoxShape(Rectangle OuterBounds, Thickness Border
 
     private static bool IsWithinArc(Vector2 point, float centerX, float centerY, int radius)
     {
-        float dx = point.X - centerX;
-        float dy = point.Y - centerY;
+        var dx = point.X - centerX;
+        var dy = point.Y - centerY;
         return dx * dx + dy * dy <= (float)radius * radius;
     }
 
     public Rectangle GetInnerBounds()
     {
-        Thickness thickness = NormalizedBorderThickness;
+        var thickness = NormalizedBorderThickness;
 
-        int left = Math.Min(OuterBounds.Right, OuterBounds.Left + thickness.Left);
-        int top = Math.Min(OuterBounds.Bottom, OuterBounds.Top + thickness.Top);
-        int right = Math.Max(OuterBounds.Left, OuterBounds.Right - thickness.Right);
-        int bottom = Math.Max(OuterBounds.Top, OuterBounds.Bottom - thickness.Bottom);
+        var left = Math.Min(OuterBounds.Right, OuterBounds.Left + thickness.Left);
+        var top = Math.Min(OuterBounds.Bottom, OuterBounds.Top + thickness.Top);
+        var right = Math.Max(OuterBounds.Left, OuterBounds.Right - thickness.Right);
+        var bottom = Math.Max(OuterBounds.Top, OuterBounds.Bottom - thickness.Bottom);
 
         return new Rectangle(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top));
     }
 
     public MGCornerRadius GetInnerCornerRadius()
     {
-        Thickness thickness = NormalizedBorderThickness;
-        MGCornerRadius radius = NormalizedCornerRadius;
+        var thickness = NormalizedBorderThickness;
+        var radius = NormalizedCornerRadius;
 
         MGCornerRadius inner = new(
             GetInnerCornerValue(radius.TopLeft, thickness.Left, thickness.Top),
@@ -115,15 +115,15 @@ public readonly record struct MGBoxShape(Rectangle OuterBounds, Thickness Border
 
     private static MGCornerRadius NormalizeCornerRadius(Rectangle bounds, MGCornerRadius radius)
     {
-        int topLeft = Math.Max(0, radius.TopLeft);
-        int topRight = Math.Max(0, radius.TopRight);
-        int bottomRight = Math.Max(0, radius.BottomRight);
-        int bottomLeft = Math.Max(0, radius.BottomLeft);
+        var topLeft = Math.Max(0, radius.TopLeft);
+        var topRight = Math.Max(0, radius.TopRight);
+        var bottomRight = Math.Max(0, radius.BottomRight);
+        var bottomLeft = Math.Max(0, radius.BottomLeft);
 
-        int width = Math.Max(0, bounds.Width);
-        int height = Math.Max(0, bounds.Height);
+        var width = Math.Max(0, bounds.Width);
+        var height = Math.Max(0, bounds.Height);
 
-        double scale = 1.0;
+        var scale = 1.0;
         scale = GetConstraintScale(scale, width, topLeft + topRight);
         scale = GetConstraintScale(scale, width, bottomLeft + bottomRight);
         scale = GetConstraintScale(scale, height, topLeft + bottomLeft);

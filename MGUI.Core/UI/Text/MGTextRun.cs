@@ -54,7 +54,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 MGTextRunUnderlineConfig UnderlineConfig = new(true);
                 if (!string.IsNullOrEmpty(Action.Parameter))
                 {
-                    (int? Height, int? VerticalOffset, IFillBrush Brush) = FTTokenizer.ParseUnderlineValue(Action.Parameter.Substring(1));
+                    (var Height, var VerticalOffset, var Brush) = FTTokenizer.ParseUnderlineValue(Action.Parameter.Substring(1));
                     UnderlineConfig = new MGTextRunUnderlineConfig(true, Height ?? 1, VerticalOffset ?? 0, Brush);
                 }
                 return this with { Underline = UnderlineConfig };
@@ -66,7 +66,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
             case FTActionType.SetOpacity:
             {
                 PreviousOpacities.Add(Opacity);
-                float Value = float.Parse(Action.Parameter.Substring(1), CultureInfo.InvariantCulture);
+                var Value = float.Parse(Action.Parameter.Substring(1), CultureInfo.InvariantCulture);
                 return this with { Opacity = Value };
             }
             case FTActionType.RevertOpacity:
@@ -76,7 +76,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
             case FTActionType.SetForeground:
             {
                 PreviousForegrounds.Add(Foreground);
-                Color Value = ColorStringConverter.ParseColor(Action.Parameter.Substring(1)).ToXNAColor(); //ColorTranslator.FromHtml(Action.Parameter.Substring(1)).AsXNAColor();
+                var Value = ColorStringConverter.ParseColor(Action.Parameter.Substring(1)).ToXNAColor(); //ColorTranslator.FromHtml(Action.Parameter.Substring(1)).AsXNAColor();
                 return this with { Foreground = Value };
             }
             case FTActionType.RevertForeground:
@@ -86,7 +86,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
             case FTActionType.SetBackground:
             {
                 PreviousBackgrounds.Add(Background);
-                (IFillBrush Brush, Thickness Padding) = FTTokenizer.ParseBackgroundValue(Action.Parameter.Substring(1));
+                (var Brush, var Padding) = FTTokenizer.ParseBackgroundValue(Action.Parameter.Substring(1));
                 return this with { Background = new MGTextRunBackgroundConfig(Brush, Padding) };
             }
             case FTActionType.RevertBackground:
@@ -96,8 +96,8 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
             case FTActionType.SetShadowing:
             {
                 PreviousShadows.Add(Shadow);
-                string[] Words = Action.Parameter.Substring(1).Split(' ');
-                Color ParsedShadowColor = ColorTranslator.FromHtml(Words[0]).AsXNAColor();
+                var Words = Action.Parameter.Substring(1).Split(' ');
+                var ParsedShadowColor = ColorTranslator.FromHtml(Words[0]).AsXNAColor();
                 Vector2 ParsedShadowOffset = Words.Length == 3 ? new(int.Parse(Words[1]), int.Parse(Words[2])) : new(1, 1);
                 return this with { Shadow = new MGTextRunShadowConfig(ParsedShadowColor, ParsedShadowOffset) };
             }
@@ -175,24 +175,24 @@ public abstract class MGTextRun
 
         FormattedText = FormattedText.Replace("\t", TabReplacement);
 
-        if (!Tokenizer.TryTokenize(FormattedText, true, out List<FTTokenMatch> Tokens))
+        if (!Tokenizer.TryTokenize(FormattedText, true, out var Tokens))
         {
             //FTTokenMatch InvalidToken = Tokens.First(x => x.TokenType == FTTokenType.InvalidToken);
             //throw new InvalidDataException($"Formatted text does not match valid format: {FormattedText}\n\nError at token #{Tokens.IndexOf(InvalidToken) + 1} with value: {InvalidToken.Value}");
 
             //  Parse as much as we can until hitting an InvalidToken.
             //  Once we do, convert all remaining text into a StringLiteral token
-            List<FTTokenMatch> Temp = Tokens;
+            var Temp = Tokens;
             Tokens = new List<FTTokenMatch>();
-            for (int i = 0; i < Temp.Count; i++)
+            for (var i = 0; i < Temp.Count; i++)
             {
-                FTTokenMatch CurrentToken = Temp[i];
+                var CurrentToken = Temp[i];
                 if (i + 1 < Temp.Count)
                 {
-                    FTTokenMatch NextToken = Temp[i + 1];
+                    var NextToken = Temp[i + 1];
                     if (NextToken.TokenType == FTTokenType.InvalidToken)
                     {
-                        string Value = CurrentToken.Value + CurrentToken.RemainingText;
+                        var Value = CurrentToken.Value + CurrentToken.RemainingText;
                         Tokens.Add(new FTTokenMatch(FTTokenType.StringLiteral, Value, ""));
                         break;
                     }
@@ -202,7 +202,7 @@ public abstract class MGTextRun
             }
         }
 
-        foreach (MGTextRun Run in ParseRuns(Tokens, DefaultSettings))
+        foreach (var Run in ParseRuns(Tokens, DefaultSettings))
         {
             yield return Run;
         }
@@ -210,7 +210,7 @@ public abstract class MGTextRun
 
     public static IEnumerable<MGTextRun> ParseRuns(List<FTTokenMatch> Tokens, MGTextRunConfig DefaultSettings)
     {
-        MGTextRunConfig CurrentState = DefaultSettings with { };
+        var CurrentState = DefaultSettings with { };
 
         List<float> PreviousOpacities = new();
         List<Color?> PreviousForegrounds = new();
@@ -224,18 +224,18 @@ public abstract class MGTextRun
         string CurrentActionId = null;
         List<string> PreviousActionIds = new();
 
-        List<FTAction> Actions = Parser.ParseTokens(Tokens).ToList();
-        for (int i = 0; i < Actions.Count; i++)
+        var Actions = Parser.ParseTokens(Tokens).ToList();
+        for (var i = 0; i < Actions.Count; i++)
         {
-            FTAction CurrentAction = Actions[i];
+            var CurrentAction = Actions[i];
             CurrentState = CurrentState.ApplyAction(CurrentAction, PreviousOpacities, PreviousForegrounds, PreviousUnderlines, PreviousBackgrounds, PreviousShadows);
 
             if (CurrentAction.ActionType == FTActionType.StringLiteral)
             {
                 StringBuilder LiteralValue = new();
 
-                bool HasNextAction = true;
-                FTAction NextAction = CurrentAction;
+                var HasNextAction = true;
+                var NextAction = CurrentAction;
                 while (HasNextAction && NextAction.ActionType is FTActionType.StringLiteral or FTActionType.Ignore)
                 {
                     CurrentAction = NextAction;
@@ -244,7 +244,7 @@ public abstract class MGTextRun
                         LiteralValue.Append(CurrentAction.Parameter);
                     }
 
-                    int NextIndex = i + 1;
+                    var NextIndex = i + 1;
                     HasNextAction = NextIndex < Actions.Count;
                     NextAction = HasNextAction ? Actions[NextIndex] : default;
                     i++;
@@ -269,7 +269,7 @@ public abstract class MGTextRun
                     PreviousToolTipIds.Add(CurrentToolTipId);
                 }
 
-                string NewToolTipValue = CurrentAction.Parameter.Substring(1);
+                var NewToolTipValue = CurrentAction.Parameter.Substring(1);
                 CurrentToolTipId = FTTokenizer.ToolTipValueParser.Match(NewToolTipValue).Groups["ToolTipName"].Value;
             }
             else if (CurrentAction.ActionType == FTActionType.RevertToolTip)
@@ -283,7 +283,7 @@ public abstract class MGTextRun
                     PreviousActionIds.Add(CurrentActionId);
                 }
 
-                string NewActionValue = CurrentAction.Parameter.Substring(1);
+                var NewActionValue = CurrentAction.Parameter.Substring(1);
                 CurrentActionId = FTTokenizer.ActionValueParser.Match(NewActionValue).Groups["ActionName"].Value;
             }
             else if (CurrentAction.ActionType == FTActionType.RevertAction)
@@ -311,7 +311,7 @@ public class MGTextRunText : MGTextRun
 
     public bool HasAny(params char[] characters)
     {
-        foreach (char c in characters)
+        foreach (var c in characters)
         {
             if (Text.Contains(c))
             {
@@ -329,7 +329,7 @@ public class MGTextRunText : MGTextRun
             return false;
         }
 
-        foreach (char c in characters)
+        foreach (var c in characters)
         {
             if (Text.StartsWith(c))
             {

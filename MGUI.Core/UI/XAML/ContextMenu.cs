@@ -52,7 +52,7 @@ public class ContextMenu : Window
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGContextMenu ContextMenu = Element as MGContextMenu;
+        var ContextMenu = Element as MGContextMenu;
         ScrollViewer.ApplySettings(ContextMenu, ContextMenu.ScrollViewerElement, false);
         ItemsPanel.ApplySettings(ContextMenu, ContextMenu.ItemsPanel, false);
 
@@ -85,7 +85,7 @@ public class ContextMenu : Window
         {
             ContextMenu.ButtonWrapperTemplate = (Item) =>
             {
-                MGButton Button = ContextMenu.CreateDefaultDropdownButton(ContextMenu);
+                var Button = ContextMenu.CreateDefaultDropdownButton(ContextMenu);
                 ButtonWrapperTemplate.ApplySettings(Button.Parent, Button, true);
                 return Button;
             };
@@ -93,7 +93,7 @@ public class ContextMenu : Window
 
         if (IncludeContent)
         {
-            foreach (ContextMenuItem Item in Items)
+            foreach (var Item in Items)
             {
                 _ = Item.ToElement<MGContextMenuItem>(Element.SelfOrParentWindow, ContextMenu);
             }
@@ -104,7 +104,7 @@ public class ContextMenu : Window
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -117,7 +117,7 @@ public class ContextMenu : Window
             yield return ButtonWrapperTemplate;
         }
 
-        foreach (ContextMenuItem Item in Items)
+        foreach (var Item in Items)
         {
             yield return Item;
         }
@@ -135,7 +135,7 @@ public abstract class WrappedContextMenuItem : ContextMenuItem
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGWrappedContextMenuItem ContextMenuItem = Element as MGWrappedContextMenuItem;
+        var ContextMenuItem = Element as MGWrappedContextMenuItem;
 
         if (Submenu != null)
         {
@@ -172,7 +172,7 @@ public class ContextMenuButton : WrappedContextMenuItem
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGContextMenuButton ContextMenuButton = Element as MGContextMenuButton;
+        var ContextMenuButton = Element as MGContextMenuButton;
 
         if (CommandId != null)
         {
@@ -229,7 +229,7 @@ public class ContextMenuToggle : WrappedContextMenuItem
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGContextMenuToggle ContextMenuToggle = Element as MGContextMenuToggle;
+        var ContextMenuToggle = Element as MGContextMenuToggle;
 
         if (CommandId != null)
         {
@@ -270,7 +270,7 @@ public class ContextMenuSeparator : ContextMenuItem
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGContextMenuSeparator ContextMenuSeparator = Element as MGContextMenuSeparator;
+        var ContextMenuSeparator = Element as MGContextMenuSeparator;
         Separator.ApplySettings(Element, ContextMenuSeparator.SeparatorElement, false);
         base.ApplyDerivedSettings(Parent, Element, IncludeContent);
     }
@@ -316,7 +316,7 @@ public class ContextMenuRadioButton : WrappedContextMenuItem
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGContextMenuRadioButton RadioButton = Element as MGContextMenuRadioButton;
+        var RadioButton = Element as MGContextMenuRadioButton;
 
         if (CommandId != null)
         {

@@ -222,8 +222,8 @@ public class MGDockAutoHideDrawer : MGElement
     /// on this drawer and are pushed to the parts. A structure replaced by another template detaches the parts it replaces.</summary>
     protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
     {
-        MGBorder pinButton = (MGBorder)Structure.Parts[PinButtonPartName];
-        MGBorder closeButton = (MGBorder)Structure.Parts[CloseButtonPartName];
+        var pinButton = (MGBorder)Structure.Parts[PinButtonPartName];
+        var closeButton = (MGBorder)Structure.Parts[CloseButtonPartName];
         if (!ReferenceEquals(_pinBtn, pinButton))
         {
             if (_pinBtn != null)
@@ -418,7 +418,7 @@ public class MGDockAutoHideDrawer : MGElement
         _pinBtn?.UpdateMeasurement( new Size(HeaderButtonSize, HeaderButtonSize), out _, out _, out _, out _);
         _closeBtn?.UpdateMeasurement(new Size(HeaderButtonSize, HeaderButtonSize), out _, out _, out _, out _);
         // Content
-        int contentHeight = Math.Max(0, AvailableSize.Height - HeaderHeight);
+        var contentHeight = Math.Max(0, AvailableSize.Height - HeaderHeight);
         _content?.UpdateMeasurement(new Size(AvailableSize.Width, contentHeight), out _, out _, out _, out _);
         return new Thickness(AvailableSize.Width, AvailableSize.Height, 0, 0);
     }
@@ -426,8 +426,8 @@ public class MGDockAutoHideDrawer : MGElement
     protected override void UpdateContentLayout(Rectangle Bounds)
     {
         // Content below header
-        int contentY = Bounds.Y + HeaderHeight;
-        int contentH = Math.Max(0, Bounds.Height - HeaderHeight);
+        var contentY = Bounds.Y + HeaderHeight;
+        var contentH = Math.Max(0, Bounds.Height - HeaderHeight);
         _content?.UpdateLayout(new Rectangle(Bounds.X, contentY, Bounds.Width, contentH));
 
         // The parts are attached together; none exists until a control template supplies them.
@@ -437,19 +437,19 @@ public class MGDockAutoHideDrawer : MGElement
         }
 
         _border.UpdateLayout(Bounds);
-        int headerW = Bounds.Width;
+        var headerW = Bounds.Width;
         _header.UpdateLayout(new Rectangle(Bounds.X, Bounds.Y, headerW, HeaderHeight));
 
         // Title takes up remaining space after the two icon buttons
-        int titleW = Math.Max(0, headerW - HeaderButtonSize * 2 - 2);
-        int btnY   = Bounds.Y + (HeaderHeight - HeaderButtonSize) / 2;
+        var titleW = Math.Max(0, headerW - HeaderButtonSize * 2 - 2);
+        var btnY   = Bounds.Y + (HeaderHeight - HeaderButtonSize) / 2;
         _titleLabel.UpdateLayout(new Rectangle(Bounds.X, Bounds.Y, titleW, HeaderHeight));
         _pinBtn.UpdateLayout(new Rectangle(Bounds.X + titleW, btnY, HeaderButtonSize, HeaderButtonSize));
         _closeBtn.UpdateLayout(new Rectangle(Bounds.X + titleW + HeaderButtonSize, btnY, HeaderButtonSize, HeaderButtonSize));
         _pinIcon.UpdateLayout(GetCenteredIconBounds(_pinBtn.LayoutBounds, 14));
         _closeIcon.UpdateLayout(GetCenteredIconBounds(_closeBtn.LayoutBounds, 12));
 
-        Rectangle gripBounds = GetResizeGripRect(Bounds);
+        var gripBounds = GetResizeGripRect(Bounds);
         _resizeGrip.Visibility = gripBounds.Width > 0 && gripBounds.Height > 0 ? Visibility.Visible : Visibility.Collapsed;
         if (_resizeGrip.Visibility == Visibility.Visible)
         {
@@ -480,13 +480,13 @@ public class MGDockAutoHideDrawer : MGElement
         base.UpdateSelf(UA);
 
         var mouse    = ParentWindow.Desktop.InputTracker.Mouse;
-        Point mp     = mouse.CurrentPosition;
-        bool lmbDown = mouse.CurrentState.LeftButton  == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
-        bool wasDown = mouse.PreviousState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+        var mp     = mouse.CurrentPosition;
+        var lmbDown = mouse.CurrentState.LeftButton  == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+        var wasDown = mouse.PreviousState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
 
         if (!_isResizing && lmbDown && !wasDown)
         {
-            Rectangle grip = GetResizeGripRect(LayoutBounds);
+            var grip = GetResizeGripRect(LayoutBounds);
             if (grip.Width > 0 && grip.Contains(mp))
             {
                 _isResizing     = true;
@@ -496,7 +496,7 @@ public class MGDockAutoHideDrawer : MGElement
         }
         else if (_isResizing && lmbDown)
         {
-            int newSize = Math.Max(60, _resizeStartSize + ComputeResizeDelta(mp));
+            var newSize = Math.Max(60, _resizeStartSize + ComputeResizeDelta(mp));
             if (ActivePanel != null && ActivePanel.DrawerSize != newSize)
             {
                 ActivePanel.DrawerSize = newSize;

@@ -86,10 +86,10 @@ public class FTTokenDefinition
             return null;
         }
 
-        Match Match = Regex.Match(Input);
+        var Match = Regex.Match(Input);
         if (Match.Success)
         {
-            string RemainingText = "";
+            var RemainingText = "";
             if (Match.Length != Input.Length)
             {
                 RemainingText = Input.Substring(Match.Length);
@@ -161,8 +161,8 @@ public class FTTokenizer
             FTTokenType.ActionValue
         };
 
-        string EscapedOpenTag = Regex.Escape(OpenTagChar.ToString());
-        string EscapedCloseTag = Regex.Escape(CloseTagChar.ToString());
+        var EscapedOpenTag = Regex.Escape(OpenTagChar.ToString());
+        var EscapedCloseTag = Regex.Escape(CloseTagChar.ToString());
 
         //  Open Tag
         Definitions.Add(new(FTTokenType.OpenTag, $@"^{EscapedOpenTag}",
@@ -177,7 +177,7 @@ public class FTTokenizer
         );
 
         //  Tag Types
-        string BoldTypePattern = $@"(?i)(bold|b(?={EscapedCloseTag}))(?-i)";
+        var BoldTypePattern = $@"(?i)(bold|b(?={EscapedCloseTag}))(?-i)";
         Definitions.Add(new(FTTokenType.BoldOpenTagType, $@"^{BoldTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -187,7 +187,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string ItalicTypePattern = $@"(?i)(italic|i(?={EscapedCloseTag}))(?-i)";
+        var ItalicTypePattern = $@"(?i)(italic|i(?={EscapedCloseTag}))(?-i)";
         Definitions.Add(new(FTTokenType.ItalicOpenTagType, $@"^{ItalicTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -197,7 +197,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string OpacityTypePattern = $@"(?i)(opacity|o(?=(\=|{EscapedCloseTag})))(?-i)";
+        var OpacityTypePattern = $@"(?i)(opacity|o(?=(\=|{EscapedCloseTag})))(?-i)";
         Definitions.Add(new(FTTokenType.OpacityOpenTagType, $@"^{OpacityTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -207,7 +207,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string UnderlineTypePattern = $@"(?i)(underline|u(?=(\=|{EscapedCloseTag})))(?-i)";
+        var UnderlineTypePattern = $@"(?i)(underline|u(?=(\=|{EscapedCloseTag})))(?-i)";
         Definitions.Add(new(FTTokenType.UnderlineOpenTagType, $@"^{UnderlineTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -217,7 +217,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string ForegroundTypePattern = $@"(?i)(fg|foreground|color|c(?=(\=|{EscapedCloseTag})))(?-i)";
+        var ForegroundTypePattern = $@"(?i)(fg|foreground|color|c(?=(\=|{EscapedCloseTag})))(?-i)";
         Definitions.Add(new(FTTokenType.ForegroundOpenTagType, $@"^{ForegroundTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -227,7 +227,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string BackgroundTypePattern = @"(?i)(bg|background)(?-i)";
+        var BackgroundTypePattern = @"(?i)(bg|background)(?-i)";
         Definitions.Add(new(FTTokenType.BackgroundOpenTagType, $@"^{BackgroundTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -237,7 +237,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string ShadowTypePattern = $@"(?i)(shadow|s(?=(\=|{EscapedCloseTag})))(?-i)";
+        var ShadowTypePattern = $@"(?i)(shadow|s(?=(\=|{EscapedCloseTag})))(?-i)";
         Definitions.Add(new(FTTokenType.ShadowOpenTagType, $@"^{ShadowTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -247,13 +247,13 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string ImageTypePattern = $@"(?i)(image|img)(?=\=)(?-i)";
+        var ImageTypePattern = $@"(?i)(image|img)(?=\=)(?-i)";
         Definitions.Add(new(FTTokenType.ImageOpenTagType, $@"^{ImageTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string ToolTipTypePattern = $@"(?i)(tooltip|tt)(?-i)";
+        var ToolTipTypePattern = $@"(?i)(tooltip|tt)(?-i)";
         Definitions.Add(new(FTTokenType.ToolTipOpenTagType, $@"^{ToolTipTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -263,7 +263,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string ActionTypePattern = $@"(?i)(action|command)(?-i)";
+        var ActionTypePattern = $@"(?i)(action|command)(?-i)";
         Definitions.Add(new(FTTokenType.ActionOpenTagType, $@"^{ActionTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -274,7 +274,7 @@ public class FTTokenizer
         );
 
         //  Tag Values
-        string OpacityPattern = $@"0?\.\d\d?";
+        var OpacityPattern = $@"0?\.\d\d?";
         Definitions.Add(new(FTTokenType.OpacityValue, $@"^={OpacityPattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpacityOpenTagType),
             Enumerable.Empty<FTTokenType?>())
@@ -288,7 +288,7 @@ public class FTTokenizer
         const string ColorHexPattern = @"#[a-fA-F0-9]{6,8}";
         const string ColorNamePattern = @"[a-zA-Z]+";
         const string ColorRGBPattern = @"(?i)RGBA?(?-i)\(\d{1,3}, ?\d{1,3}, ?\d{1,3}(, ?\d{1,3})?\)";
-        string ColorPattern = $@"({ColorRGBPattern}|{ColorHexPattern}|{ColorNamePattern})( ?\* ?\d+(\.\d+)?)?";
+        var ColorPattern = $@"({ColorRGBPattern}|{ColorHexPattern}|{ColorNamePattern})( ?\* ?\d+(\.\d+)?)?";
         Definitions.Add(new(FTTokenType.ForegroundValue, $@"^={ColorPattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.ForegroundOpenTagType),
             Enumerable.Empty<FTTokenType?>())
@@ -299,7 +299,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        string ShadowValuePattern = $@"{ColorPattern}( -?\d{{1,2}}( |,)-?\d{{1,2}})?";
+        var ShadowValuePattern = $@"{ColorPattern}( -?\d{{1,2}}( |,)-?\d{{1,2}})?";
         Definitions.Add(new(FTTokenType.ShadowValue, $@"^={ShadowValuePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.ShadowOpenTagType),
             Enumerable.Empty<FTTokenType?>())
@@ -350,14 +350,14 @@ public class FTTokenizer
     public static readonly Regex UnderlineValueParser = new(UnderlineValuePattern);
     public static (int? Height, int? VerticalOffset, IFillBrush Brush) ParseUnderlineValue(string Value)
     {
-        Match Match = UnderlineValueParser.Match(Value);
+        var Match = UnderlineValueParser.Match(Value);
 
         int? Height = Match.Groups["Height"].Success ? int.Parse(Match.Groups["Height"].Value) : null;
         int? VerticalOffset = Match.Groups["Offset"].Success ? int.Parse(Match.Groups["Offset"].Value) : null;
         IFillBrush Brush = null;
         if (Match.Groups["Brush"].Success)
         {
-            string BrushString = Match.Groups["Brush"].Value;
+            var BrushString = Match.Groups["Brush"].Value;
             Brush = FillBrushStringConverter.ParseFillBrush(BrushString).ToFillBrush(null, null);
         }
 
@@ -370,11 +370,11 @@ public class FTTokenizer
     public static readonly Regex BackgroundValueParser = new(BackgroundValuePattern);
     public static (IFillBrush Brush, Thickness Padding) ParseBackgroundValue(string Value)
     {
-        Match Match = BackgroundValueParser.Match(Value);
+        var Match = BackgroundValueParser.Match(Value);
 
-        string BrushString = Match.Groups["Brush"].Value;
-        IFillBrush Brush = FillBrushStringConverter.ParseFillBrush(BrushString).ToFillBrush(null, null);
-        Thickness Padding = Match.Groups["Padding"].Success ? Thickness.Parse(Match.Groups["Padding"].Value) : default;
+        var BrushString = Match.Groups["Brush"].Value;
+        var Brush = FillBrushStringConverter.ParseFillBrush(BrushString).ToFillBrush(null, null);
+        var Padding = Match.Groups["Padding"].Success ? Thickness.Parse(Match.Groups["Padding"].Value) : default;
 
         return (Brush, Padding);
     }
@@ -394,9 +394,9 @@ public class FTTokenizer
 
     internal static (string SourceName, int? TargetWidth, int? TargetHeight) ParseImageValue(string Value)
     {
-        Match Match = ImageValueParser.Match(Value);
+        var Match = ImageValueParser.Match(Value);
 
-        string SourceName = Match.Groups["SourceName"].Value;
+        var SourceName = Match.Groups["SourceName"].Value;
         int? Width = Match.Groups["Width"].Success ? int.Parse(Match.Groups["Width"].Value) : null;
         int? Height = Match.Groups["Height"].Success ? int.Parse(Match.Groups["Height"].Value) : null;
 
@@ -431,14 +431,14 @@ public class FTTokenizer
         //   "\[tag]"   → N=1 (odd):  '[' IS escaped  → renders literal '[tag]'
         //   "\\[tag]"  → N=2 (even): '[' NOT escaped → renders literal '\' + bold/tag
         //   "\\\[tag]" → N=3 (odd):  '[' IS escaped  → renders literal '\[tag]'
-        int consecutiveEscapeCount = 0;
+        var consecutiveEscapeCount = 0;
 
-        foreach (char c in Text)
+        foreach (var c in Text)
         {
             if (c == OpenTagChar)
             {
                 // Add 'consecutiveEscapeCount' extra backslashes (doubling the run) + 1 escape for '['.
-                for (int k = 0; k < consecutiveEscapeCount; k++)
+                for (var k = 0; k < consecutiveEscapeCount; k++)
                 {
                     Result.Append(EscapeOpenTagChar);
                 }
@@ -487,20 +487,20 @@ public class FTTokenizer
             yield break;
         }
 
-        string RemainingText = Text;
+        var RemainingText = Text;
         StringBuilder CurrentStringLiteral = new();
 
-        bool IsTokenizingFormattingCode = false;
+        var IsTokenizingFormattingCode = false;
 
         FTTokenType? PreviousToken = null;
         while (!string.IsNullOrEmpty(RemainingText))
         {
             if (!IsTokenizingFormattingCode)
             {
-                Match Match = Regex.Match(RemainingText, Pattern);
+                var Match = Regex.Match(RemainingText, Pattern);
                 if (Match.Success && !string.IsNullOrEmpty(Match.Value))
                 {
-                    string StringLiteral = Match.Value.Replace($"{EscapeOpenTagChar}{OpenTagChar}", $"{OpenTagChar}");
+                    var StringLiteral = Match.Value.Replace($"{EscapeOpenTagChar}{OpenTagChar}", $"{OpenTagChar}");
                     CurrentStringLiteral.Append(StringLiteral);
                     RemainingText = RemainingText.Substring(Match.Length);
                 }
@@ -513,7 +513,7 @@ public class FTTokenizer
                 {
                     if (CurrentStringLiteral.Length > 0)
                     {
-                        foreach (FTTokenMatch Item in TokenizeLineBreaks(CurrentStringLiteral.ToString(), ShouldTokenizeLineBreaks))
+                        foreach (var Item in TokenizeLineBreaks(CurrentStringLiteral.ToString(), ShouldTokenizeLineBreaks))
                         {
                             yield return Item;
                         }
@@ -527,7 +527,7 @@ public class FTTokenizer
             }
             else
             {
-                FTTokenMatch Match = Definitions.Select(x => x.Match(PreviousToken, RemainingText)).First(x => x != null).Value;
+                var Match = Definitions.Select(x => x.Match(PreviousToken, RemainingText)).First(x => x != null).Value;
                 yield return Match;
                 RemainingText = Match.RemainingText;
                 PreviousToken = Match.TokenType;
@@ -545,7 +545,7 @@ public class FTTokenizer
 
         if (CurrentStringLiteral.Length > 0)
         {
-            foreach (FTTokenMatch Item in TokenizeLineBreaks(CurrentStringLiteral.ToString(), ShouldTokenizeLineBreaks))
+            foreach (var Item in TokenizeLineBreaks(CurrentStringLiteral.ToString(), ShouldTokenizeLineBreaks))
             {
                 yield return Item;
             }
@@ -568,7 +568,7 @@ public class FTTokenizer
             Match Match;
             while ((Match = LineBreakRegex.Match(Text)).Success)
             {
-                int Index = Match.Index;
+                var Index = Match.Index;
                 if (Index != 0)
                 {
                     yield return new(FTTokenType.StringLiteral, Text.Substring(0, Index), "");

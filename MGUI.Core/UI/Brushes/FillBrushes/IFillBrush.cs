@@ -45,8 +45,8 @@ public interface IFillBrush : ICloneable
     {
         if (this is MGSolidFillBrush SolidFillBrush)
         {
-            Color CurrentColor = SolidFillBrush.Color;
-            Color NewColor = CurrentColor.Darken(ShadowIntensity);
+            var CurrentColor = SolidFillBrush.Color;
+            var NewColor = CurrentColor.Darken(ShadowIntensity);
             Result = NewColor.AsFillBrush();
             return true;
         }
@@ -80,23 +80,23 @@ public class IFillBrushStringConverter : TypeConverter
 
     public static IFillBrush ParseFillBrush(string Value)
     {
-        string[] colorStrings = Value.Split('|');
+        var colorStrings = Value.Split('|');
         if (colorStrings.Length == 1)
         {
-            Color Color = XNAColorStringConverter.ParseColor(colorStrings[0]);
+            var Color = XNAColorStringConverter.ParseColor(colorStrings[0]);
             return new MGSolidFillBrush(Color);
         }
         else if (colorStrings.Length == 2)
         {
-            Color Color1 = XNAColorStringConverter.ParseColor(colorStrings[0]);
-            Color Color2 = XNAColorStringConverter.ParseColor(colorStrings[1]);
-            Color Lerped = Color.Lerp(Color1, Color2, 0.5f);
-            Color Diagonals = Lerped;
+            var Color1 = XNAColorStringConverter.ParseColor(colorStrings[0]);
+            var Color2 = XNAColorStringConverter.ParseColor(colorStrings[1]);
+            var Lerped = Color.Lerp(Color1, Color2, 0.5f);
+            var Diagonals = Lerped;
             return new MGGradientFillBrush(Color1, Diagonals, Color2, Diagonals);
         }
         else if (colorStrings.Length == 4)
         {
-            Color[] Colors = colorStrings.Select(x => XNAColorStringConverter.ParseColor(x)).ToArray();
+            var Colors = colorStrings.Select(x => XNAColorStringConverter.ParseColor(x)).ToArray();
             return new MGGradientFillBrush(Colors[0], Colors[1], Colors[2], Colors[3]);
         }
         else
@@ -137,13 +137,13 @@ public class XNAColorStringConverter : TypeConverter
     {
         static DrawingColor ParseDrawingColor(string colorName)
         {
-            Match RGBMatch = RGBColorRegex.Match(colorName);
+            var RGBMatch = RGBColorRegex.Match(colorName);
             if (RGBMatch.Success)
             {
-                int r = int.Parse(RGBMatch.Groups["RedComponent"].Value);
-                int g = int.Parse(RGBMatch.Groups["GreenComponent"].Value);
-                int b = int.Parse(RGBMatch.Groups["BlueComponent"].Value);
-                int a = RGBMatch.Groups["AlphaComponent"].Success ? int.Parse(RGBMatch.Groups["AlphaComponent"].Value) : byte.MaxValue;
+                var r = int.Parse(RGBMatch.Groups["RedComponent"].Value);
+                var g = int.Parse(RGBMatch.Groups["GreenComponent"].Value);
+                var b = int.Parse(RGBMatch.Groups["BlueComponent"].Value);
+                var a = RGBMatch.Groups["AlphaComponent"].Success ? int.Parse(RGBMatch.Groups["AlphaComponent"].Value) : byte.MaxValue;
                 return DrawingColor.FromArgb(a, r, g, b);
             }
             //  Special case because System.Drawing.Color.Transparent [rgb(255,255,255,0)] is NOT the same as Microsoft.Xna.Framework.Color.Transparent [rgb(0,0,0,0)]
@@ -158,24 +158,24 @@ public class XNAColorStringConverter : TypeConverter
             }
         }
 
-        int asteriskIndex = Value.IndexOf('*');
+        var asteriskIndex = Value.IndexOf('*');
         if (asteriskIndex > 0)
         {
-            string colorName = Value.Substring(0, asteriskIndex).Trim();
-            DrawingColor color = ParseDrawingColor(colorName);
-            string opacityScalarString = Value.Substring(asteriskIndex + 1).Trim();
+            var colorName = Value.Substring(0, asteriskIndex).Trim();
+            var color = ParseDrawingColor(colorName);
+            var opacityScalarString = Value.Substring(asteriskIndex + 1).Trim();
             if (opacityScalarString.EndsWith("f", StringComparison.CurrentCultureIgnoreCase))
             {
                 opacityScalarString = opacityScalarString[..^1];
             }
 
-            float opacityScalar = float.Parse(opacityScalarString, CultureInfo.InvariantCulture);
+            var opacityScalar = float.Parse(opacityScalarString, CultureInfo.InvariantCulture);
 
             return new Color(color.R, color.G, color.B, color.A) * opacityScalar;
         }
         else
         {
-            DrawingColor color = ParseDrawingColor(Value);
+            var color = ParseDrawingColor(Value);
             return new Color(color.R, color.G, color.B, color.A);
         }
     }

@@ -78,7 +78,7 @@ public class ColorValueStringConverter : TypeConverter
 
     public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
     {
-        if (value is string stringValue && ColorParser.TryParse(stringValue, out ColorValue colorValue))
+        if (value is string stringValue && ColorParser.TryParse(stringValue, out var colorValue))
         {
             return new XAMLColorValue(colorValue);
         }
@@ -116,23 +116,23 @@ public class FillBrushStringConverter : TypeConverter
 
     public static FillBrush ParseFillBrush(string Value)
     {
-        string[] colorStrings = Value.Split('|');
+        var colorStrings = Value.Split('|');
         if (colorStrings.Length == 1)
         {
-            XAMLColor Color = ColorStringConverter.ParseColor(colorStrings[0]);
+            var Color = ColorStringConverter.ParseColor(colorStrings[0]);
             return new SolidFillBrush(Color);
         }
         else if (colorStrings.Length == 2)
         {
-            XAMLColor Color1 = ColorStringConverter.ParseColor(colorStrings[0]);
-            XAMLColor Color2 = ColorStringConverter.ParseColor(colorStrings[1]);
-            XNAColor Lerped = XNAColor.Lerp(Color1.ToXNAColor(), Color2.ToXNAColor(), 0.5f);
-            XAMLColor Diagonals = new XAMLColor(Lerped.R, Lerped.G, Lerped.B, Lerped.A);
+            var Color1 = ColorStringConverter.ParseColor(colorStrings[0]);
+            var Color2 = ColorStringConverter.ParseColor(colorStrings[1]);
+            var Lerped = XNAColor.Lerp(Color1.ToXNAColor(), Color2.ToXNAColor(), 0.5f);
+            var Diagonals = new XAMLColor(Lerped.R, Lerped.G, Lerped.B, Lerped.A);
             return new GradientFillBrush(Color1, Diagonals, Color2, Diagonals);
         }
         else if (colorStrings.Length == 4)
         {
-            XAMLColor[] Colors = colorStrings.Select(x => ColorStringConverter.ParseColor(x)).ToArray();
+            var Colors = colorStrings.Select(x => ColorStringConverter.ParseColor(x)).ToArray();
             return new GradientFillBrush(Colors[0], Colors[1], Colors[2], Colors[3]);
         }
         else
@@ -272,7 +272,7 @@ public class CompositedFillBrush : FillBrush
             yield return Item;
         }
 
-        foreach (FillBrush Brush in Brushes)
+        foreach (var Brush in Brushes)
         {
             yield return (Brush, nameof(Brushes));
         }
@@ -367,7 +367,7 @@ public class NineSliceFillBrush : FillBrush
             throw new ArgumentNullException(nameof(SourceName));
         }
 
-        if (!Desktop.Resources.TryGetTexture(SourceName, out MGTextureData Source))
+        if (!Desktop.Resources.TryGetTexture(SourceName, out var Source))
         {
             throw new InvalidOperationException($"No Texture was found with the name '{SourceName}' in {nameof(MGResources)}.{nameof(MGResources.Textures)}.");
         }
@@ -394,15 +394,15 @@ public class BorderBrushStringConverter : TypeConverter
     {
         if (value is string stringValue)
         {
-            string[] fillBrushStrings = stringValue.Split('-');
+            var fillBrushStrings = stringValue.Split('-');
             if (fillBrushStrings.Length == 1)
             {
-                FillBrush FillBrush = (FillBrush)FillBrushStringConverter.ConvertFrom(context, culture, fillBrushStrings[0]);
+                var FillBrush = (FillBrush)FillBrushStringConverter.ConvertFrom(context, culture, fillBrushStrings[0]);
                 return new UniformBorderBrush(FillBrush);
             }
             else if (fillBrushStrings.Length is 2 or 4)
             {
-                FillBrush[] FillBrushes = fillBrushStrings.Select(x => (FillBrush)FillBrushStringConverter.ConvertFrom(context, culture, x)).ToArray();
+                var FillBrushes = fillBrushStrings.Select(x => (FillBrush)FillBrushStringConverter.ConvertFrom(context, culture, x)).ToArray();
                 if (FillBrushes.Length == 2)
                 {
                     return new DockedBorderBrush(FillBrushes[0], FillBrushes[1], FillBrushes[1], FillBrushes[0]);
@@ -553,8 +553,8 @@ public class HighlightBorderBrush : BorderBrush
 
     public override IBorderBrush ToBorderBrush(MGDesktop Desktop, MGElement Element)
     {
-        MGElement ActualElement = Element is MGBorder && Element.IsComponent ? Element.ComponentParent : Element;
-        MGHighlightBorderBrush Brush = new MGHighlightBorderBrush(Underlay?.ToBorderBrush(Desktop, ActualElement), HighlightColor?.ToXNAColor() ?? XNAColor.Yellow, 
+        var ActualElement = Element is MGBorder && Element.IsComponent ? Element.ComponentParent : Element;
+        var Brush = new MGHighlightBorderBrush(Underlay?.ToBorderBrush(Desktop, ActualElement), HighlightColor?.ToXNAColor() ?? XNAColor.Yellow, 
             AnimationType ?? HighlightAnimation.Pulse, ActualElement);
 
         if (AnimationProgress.HasValue)
@@ -668,7 +668,7 @@ public class CompositedBorderBrush : BorderBrush
             yield return Item;
         }
 
-        foreach (BorderBrush Brush in Brushes)
+        foreach (var Brush in Brushes)
         {
             yield return (Brush, nameof(Brushes));
         }

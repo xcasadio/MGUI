@@ -22,7 +22,7 @@ public sealed class MGDataGridSelectionChangedEventArgs<TItemType> : EventArgs
 public class MGDataGrid<TItemType> : MGListView<TItemType>
 {
     public int SelectedRowIndex => SelectedData.HasValue ? DataGrid.GetRowIndex(SelectedData.Value.Cell.Row) : -1;
-    public TItemType SelectedItem => TryGetSelectedItem(out TItemType item) ? item : default!;
+    public TItemType SelectedItem => TryGetSelectedItem(out var item) ? item : default!;
 
     public event EventHandler<MGDataGridSelectionChangedEventArgs<TItemType>> SelectedItemChanged;
 
@@ -71,7 +71,7 @@ public class MGDataGrid<TItemType> : MGListView<TItemType>
             throw new ArgumentNullException(nameof(cellTemplate));
         }
 
-        MGTextBlock header = CreateHeaderTextBlock(headerText, headerTextAlignment);
+        var header = CreateHeaderTextBlock(headerText, headerTextAlignment);
         MGDataGridTextColumn<TItemType> column = new(this, width, header, cellTemplate);
         AddColumnCore(column);
 
@@ -83,7 +83,7 @@ public class MGDataGrid<TItemType> : MGListView<TItemType>
 
     public bool TryGetSelectedItem(out TItemType item)
     {
-        int selectedRowIndex = SelectedRowIndex;
+        var selectedRowIndex = SelectedRowIndex;
         if (selectedRowIndex >= 0 && RowItems != null && selectedRowIndex < RowItems.Count)
         {
             item = RowItems[selectedRowIndex].Data;
@@ -119,7 +119,7 @@ public class MGDataGrid<TItemType> : MGListView<TItemType>
             return false;
         }
 
-        MGElement firstVisibleCell = RowItems[rowIndex].GetRowContents().Values.FirstOrDefault();
+        var firstVisibleCell = RowItems[rowIndex].GetRowContents().Values.FirstOrDefault();
         if (firstVisibleCell == null)
         {
             return false;
@@ -136,7 +136,7 @@ public class MGDataGrid<TItemType> : MGListView<TItemType>
             return false;
         }
 
-        int rowIndex = RowItems.Select((row, index) => new { row, index })
+        var rowIndex = RowItems.Select((row, index) => new { row, index })
             .FirstOrDefault(x => Equals(x.row.Data, item))?.index ?? -1;
         return EnsureRowVisible(rowIndex);
     }
@@ -176,13 +176,13 @@ public class MGDataGrid<TItemType> : MGListView<TItemType>
 
     private void HandleSelectionChanged(object sender, Containers.Grids.GridSelection? selection)
     {
-        bool hasSelection = TryGetSelectedItem(out TItemType item);
+        var hasSelection = TryGetSelectedItem(out var item);
         SelectedItemChanged?.Invoke(this, new MGDataGridSelectionChangedEventArgs<TItemType>(hasSelection, SelectedRowIndex, item));
     }
 
     private MGTextBlock CreateHeaderTextBlock(string headerText, HorizontalAlignment headerTextAlignment)
     {
-        MGTextBlock headerTextBlock = new MGTextBlock(SelfOrParentWindow, headerText ?? string.Empty)
+        var headerTextBlock = new MGTextBlock(SelfOrParentWindow, headerText ?? string.Empty)
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
             TextAlignment = headerTextAlignment,
@@ -208,7 +208,7 @@ internal sealed class MGDataGridTextColumn<TItemType> : MGListViewColumn<TItemTy
 
     public override void UpdateSortIndicator()
     {
-        string suffix = CurrentSortDirection switch
+        var suffix = CurrentSortDirection switch
         {
             SortDirection.Ascending => " ▲",
             SortDirection.Descending => " ▼",

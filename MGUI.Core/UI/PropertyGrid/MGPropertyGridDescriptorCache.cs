@@ -19,7 +19,7 @@ internal static class MGPropertyGridDescriptorCache
             throw new ArgumentNullException(nameof(type));
         }
 
-        if (!Cache.TryGetValue(type, out IReadOnlyList<MGPropertyGridDescriptor> descriptors))
+        if (!Cache.TryGetValue(type, out var descriptors))
         {
             descriptors = BuildDescriptors(type);
             Cache[type] = descriptors;
@@ -96,30 +96,30 @@ internal static class MGPropertyGridDescriptorCache
     {
         List<MGPropertyGridDescriptor> result = new();
 
-        foreach (PropertyInfo property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             if (property.GetIndexParameters().Length > 0)
             {
                 continue;
             }
 
-            MethodInfo getter = property.GetMethod;
+            var getter = property.GetMethod;
             if (getter == null || !getter.IsPublic)
             {
                 continue;
             }
 
-            if (!TryGetEditorKind(property.PropertyType, out MGPropertyGridEditorKind editorKind))
+            if (!TryGetEditorKind(property.PropertyType, out var editorKind))
             {
                 continue;
             }
 
-            MethodInfo setter = property.SetMethod;
-            ReadOnlyAttribute readOnlyAttribute = property.GetCustomAttribute<ReadOnlyAttribute>();
-            DisplayNameAttribute displayNameAttribute = property.GetCustomAttribute<DisplayNameAttribute>();
-            CategoryAttribute categoryAttribute = property.GetCustomAttribute<CategoryAttribute>();
+            var setter = property.SetMethod;
+            var readOnlyAttribute = property.GetCustomAttribute<ReadOnlyAttribute>();
+            var displayNameAttribute = property.GetCustomAttribute<DisplayNameAttribute>();
+            var categoryAttribute = property.GetCustomAttribute<CategoryAttribute>();
 
-            bool isReadOnly = setter == null || !setter.IsPublic || readOnlyAttribute?.IsReadOnly == true;
+            var isReadOnly = setter == null || !setter.IsPublic || readOnlyAttribute?.IsReadOnly == true;
 
             result.Add(new MGPropertyGridDescriptor
             {
@@ -143,12 +143,12 @@ internal static class MGPropertyGridDescriptorCache
 
         foreach (PropertyDescriptor property in properties)
         {
-            if (property == null || !TryGetEditorKind(property.PropertyType, out MGPropertyGridEditorKind editorKind))
+            if (property == null || !TryGetEditorKind(property.PropertyType, out var editorKind))
             {
                 continue;
             }
 
-            bool isReadOnly = property.IsReadOnly;
+            var isReadOnly = property.IsReadOnly;
             result.Add(new MGPropertyGridDescriptor
             {
                 Name = property.Name,

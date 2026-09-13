@@ -299,7 +299,7 @@ public static class UIThemeValueInvalidation
 
     /// <exception cref="ArgumentException"><paramref name="themeValuePath"/> is not a classified theme value.</exception>
     public static UIInvalidationKind GetInvalidation(string themeValuePath)
-        => TryGetInvalidation(themeValuePath, out UIInvalidationKind invalidation)
+        => TryGetInvalidation(themeValuePath, out var invalidation)
             ? invalidation
             : throw new ArgumentException($"'{themeValuePath}' is not a classified {nameof(MGTheme)} value.", nameof(themeValuePath));
 
@@ -311,7 +311,7 @@ public static class UIThemeValueInvalidation
     /// of that value. Meant for <see cref="MGElement.GetThemeInvalidation"/> overrides, which compare what their theme callback reads.</summary>
     public static UIInvalidationKind ForChange<T>(string themeValuePath, T previousValue, T currentValue, IEqualityComparer<T> comparer = null)
     {
-        UIInvalidationKind invalidation = GetInvalidation(themeValuePath);
+        var invalidation = GetInvalidation(themeValuePath);
         return (comparer ?? EqualityComparer<T>.Default).Equals(previousValue, currentValue)
             ? RenderOnly
             : RenderOnly | invalidation;

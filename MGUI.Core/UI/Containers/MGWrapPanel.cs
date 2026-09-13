@@ -113,7 +113,7 @@ public class MGWrapPanel : MGMultiContentHost
             return false;
         }
 
-        int index = _Children.IndexOf(oldItem);
+        var index = _Children.IndexOf(oldItem);
         if (index < 0)
         {
             return false;
@@ -158,10 +158,10 @@ public class MGWrapPanel : MGMultiContentHost
             return;
         }
 
-        int resolvedSpacing = ResolvedSpacing;
-        List<WrapPanelChildMeasurement> childMeasurements = MeasureChildren(bounds.Size);
+        var resolvedSpacing = ResolvedSpacing;
+        var childMeasurements = MeasureChildren(bounds.Size);
         MGWrapPanelLayoutEngine.ArrangeInto(childMeasurements, bounds, Orientation, resolvedSpacing, _ArrangedChildBounds);
-        for (int i = 0; i < Children.Count; i++)
+        for (var i = 0; i < Children.Count; i++)
         {
             Children[i].UpdateLayout(_ArrangedChildBounds[i]);
         }
@@ -174,18 +174,18 @@ public class MGWrapPanel : MGMultiContentHost
             return UpdateContentMeasurementBaseImplementation(availableSize);
         }
 
-        int resolvedSpacing = ResolvedSpacing;
-        List<WrapPanelChildMeasurement> childMeasurements = MeasureChildren(availableSize);
-        Size desiredSize = MGWrapPanelLayoutEngine.Measure(childMeasurements, availableSize, Orientation, resolvedSpacing);
+        var resolvedSpacing = ResolvedSpacing;
+        var childMeasurements = MeasureChildren(availableSize);
+        var desiredSize = MGWrapPanelLayoutEngine.Measure(childMeasurements, availableSize, Orientation, resolvedSpacing);
         return new Thickness(desiredSize.Width, desiredSize.Height, 0, 0);
     }
 
     private List<WrapPanelChildMeasurement> MeasureChildren(Size availableSize)
     {
         _ChildMeasurements.Clear();
-        foreach (MGElement child in Children)
+        foreach (var child in Children)
         {
-            child.UpdateMeasurement(availableSize, out _, out Thickness fullSize, out _, out _);
+            child.UpdateMeasurement(availableSize, out _, out var fullSize, out _, out _);
             _ChildMeasurements.Add(new WrapPanelChildMeasurement(fullSize.Width, fullSize.Height, child.IsVisibilityCollapsed));
         }
 

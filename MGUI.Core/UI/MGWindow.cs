@@ -48,7 +48,7 @@ public class MGWindow : MGSingleContentHost
     {
         base.ApplyControlTemplate(IsThemeRefresh);
 
-        HashSet<string> requiredParts = GetRequiredControlTemplateParts()
+        var requiredParts = GetRequiredControlTemplateParts()
             .Select(x => x.Name)
             .ToHashSet(StringComparer.Ordinal);
 
@@ -135,7 +135,7 @@ public class MGWindow : MGSingleContentHost
         get => _WindowWidth;
         set
         {
-            int ActualValue = Math.Clamp(value, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
+            var ActualValue = Math.Clamp(value, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
             if (_WindowWidth != ActualValue)
             {
                 _WindowWidth = ActualValue;
@@ -154,7 +154,7 @@ public class MGWindow : MGSingleContentHost
         get => _WindowHeight;
         set
         {
-            int ActualValue = Math.Clamp(value, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
+            var ActualValue = Math.Clamp(value, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
             if (_WindowHeight != ActualValue)
             {
                 _WindowHeight = ActualValue;
@@ -221,10 +221,10 @@ public class MGWindow : MGSingleContentHost
 
     internal static (MonoGame.Extended.Size MinSize, MonoGame.Extended.Size MaxSize) GetEffectiveSizeConstraints(int MinWidth, int MinHeight, int MaxWidth, int MaxHeight)
     {
-        int ActualMaxWidth = Math.Max(0, MaxWidth);
-        int ActualMaxHeight = Math.Max(0, MaxHeight);
-        int ActualMinWidth = Math.Clamp(MinWidth, 0, ActualMaxWidth);
-        int ActualMinHeight = Math.Clamp(MinHeight, 0, ActualMaxHeight);
+        var ActualMaxWidth = Math.Max(0, MaxWidth);
+        var ActualMaxHeight = Math.Max(0, MaxHeight);
+        var ActualMinWidth = Math.Clamp(MinWidth, 0, ActualMaxWidth);
+        var ActualMinHeight = Math.Clamp(MinHeight, 0, ActualMaxHeight);
         return (new(ActualMinWidth, ActualMinHeight), new(ActualMaxWidth, ActualMaxHeight));
     }
 
@@ -235,8 +235,8 @@ public class MGWindow : MGSingleContentHost
             MinHeight,
             Math.Min(GetDesktop().ValidScreenBounds.Width, MaxWidth),
             Math.Min(GetDesktop().ValidScreenBounds.Height, MaxHeight));
-        UpdateMeasurement(MaxSize, out _, out Thickness FullSize, out _, out _);
-        Size Size = FullSize.Size.Clamp(MinSize, MaxSize);
+        UpdateMeasurement(MaxSize, out _, out var FullSize, out _, out _);
+        var Size = FullSize.Size.Clamp(MinSize, MaxSize);
         return Size;
     }
 
@@ -253,9 +253,9 @@ public class MGWindow : MGSingleContentHost
             MinHeight,
             Math.Min(GetDesktop().ValidScreenBounds.Width - Left, MaxWidth ?? int.MaxValue),
             Math.Min(GetDesktop().ValidScreenBounds.Height - Top, MaxHeight ?? int.MaxValue));
-        Size AvailableSize = GetActualAvailableSize(new Size(WindowWidth, WindowHeight), Value).Clamp(MinSize, MaxSize);
-        UpdateMeasurement(AvailableSize, out _, out Thickness FullSize, out _, out _);
-        Size Size = FullSize.Size.Clamp(MinSize, MaxSize);
+        var AvailableSize = GetActualAvailableSize(new Size(WindowWidth, WindowHeight), Value).Clamp(MinSize, MaxSize);
+        UpdateMeasurement(AvailableSize, out _, out var FullSize, out _, out _);
+        var Size = FullSize.Size.Clamp(MinSize, MaxSize);
         WindowWidth = Size.Width;
         WindowHeight = Size.Height;
         LayoutChanged(this, true);
@@ -273,7 +273,7 @@ public class MGWindow : MGSingleContentHost
 
     protected static Size GetActualAvailableSize(Size Size, SizeToContent SizeToContent)
     {
-        int ActualAvailableWidth = SizeToContent switch
+        var ActualAvailableWidth = SizeToContent switch
         {
             SizeToContent.Manual => Size.Width,
             SizeToContent.Width => int.MaxValue,
@@ -282,7 +282,7 @@ public class MGWindow : MGSingleContentHost
             _ => throw new NotImplementedException($"Unrecognized {nameof(SizeToContent)}: {SizeToContent}")
         };
 
-        int ActualAvailableHeight = SizeToContent switch
+        var ActualAvailableHeight = SizeToContent switch
         {
             SizeToContent.Manual => Size.Height,
             SizeToContent.Width => Size.Height,
@@ -307,7 +307,7 @@ public class MGWindow : MGSingleContentHost
         {
             if (_Scale != value)
             {
-                float Previous = Scale;
+                var Previous = Scale;
                 _Scale = value;
                 UpdateScaleTransforms();
 #if NEVER
@@ -339,7 +339,7 @@ public class MGWindow : MGSingleContentHost
     {
         if (IsWindowScaled)
         {
-            Vector2 ScaleOrigin = TopLeft.ToVector2(); //TopLeft.ToVector2() + new Vector2(WindowWidth / 2, WindowHeight / 2); // Center of window
+            var ScaleOrigin = TopLeft.ToVector2(); //TopLeft.ToVector2() + new Vector2(WindowWidth / 2, WindowHeight / 2); // Center of window
             UnscaledScreenSpaceToScaledScreenSpace =
                 Matrix.CreateTranslation(new Vector3(-ScaleOrigin, 0)) *
                 Matrix.CreateScale(Scale) *
@@ -434,8 +434,8 @@ public class MGWindow : MGSingleContentHost
             return;
         }
 
-        MGWindow previousTopModal = ModalWindow;
-        List<MGWindow> previousModalWindows = _ModalWindows.ToList();
+        var previousTopModal = ModalWindow;
+        var previousModalWindows = _ModalWindows.ToList();
 
         _ModalWindows.Clear();
         if (value != null)
@@ -463,8 +463,8 @@ public class MGWindow : MGSingleContentHost
             throw new ArgumentException("Cannot add a window as a modal child of itself.", nameof(modalWindow));
         }
 
-        MGWindow previousTopModal = ModalWindow;
-        List<MGWindow> previousModalWindows = _ModalWindows.ToList();
+        var previousTopModal = ModalWindow;
+        var previousModalWindows = _ModalWindows.ToList();
         _ModalWindows.Add(modalWindow);
         SynchronizeModalState(previousModalWindows, previousTopModal);
     }
@@ -476,8 +476,8 @@ public class MGWindow : MGSingleContentHost
             return false;
         }
 
-        MGWindow previousTopModal = ModalWindow;
-        List<MGWindow> previousModalWindows = _ModalWindows.ToList();
+        var previousTopModal = ModalWindow;
+        var previousModalWindows = _ModalWindows.ToList();
         _ModalWindows.Remove(modalWindow);
         SynchronizeModalState(previousModalWindows, previousTopModal);
         return true;
@@ -486,15 +486,15 @@ public class MGWindow : MGSingleContentHost
     private void SynchronizeModalState(IReadOnlyList<MGWindow> previousModalWindows, MGWindow previousTopModal)
     {
         IReadOnlyList<MGWindow> currentModalWindows = _ModalWindows.ToList();
-        MGWindow currentTopModal = ModalWindow;
+        var currentTopModal = ModalWindow;
 
-        foreach (MGWindow removedModal in previousModalWindows.Where(x => !currentModalWindows.Contains(x)))
+        foreach (var removedModal in previousModalWindows.Where(x => !currentModalWindows.Contains(x)))
         {
             Desktop.NotifyWindowClosed(removedModal);
             removedModal.NPC(nameof(IsModalWindow));
         }
 
-        foreach (MGWindow addedModal in currentModalWindows.Where(x => !previousModalWindows.Contains(x)))
+        foreach (var addedModal in currentModalWindows.Where(x => !previousModalWindows.Contains(x)))
         {
             Desktop.NotifyWindowOpened(addedModal);
             addedModal.NPC(nameof(IsModalWindow));
@@ -596,9 +596,9 @@ public class MGWindow : MGSingleContentHost
             yield return this;
         }
 
-        foreach (MGWindow Nested in NestedWindows)
+        foreach (var Nested in NestedWindows)
         {
-            foreach (MGWindow Item in Nested.RecurseNestedWindows(true, TraversalMode))
+            foreach (var Item in Nested.RecurseNestedWindows(true, TraversalMode))
             {
                 yield return Item;
             }
@@ -652,7 +652,7 @@ public class MGWindow : MGSingleContentHost
         get => TitleBarElement?.Visibility == Visibility.Visible || (TitleBarElement == null && _IsTitleBarVisible);
         set
         {
-            Visibility ActualValue = value ? Visibility.Visible : Visibility.Collapsed;
+            var ActualValue = value ? Visibility.Visible : Visibility.Collapsed;
             if (_IsTitleBarVisible != value)
             {
                 _IsTitleBarVisible = value;
@@ -694,7 +694,7 @@ public class MGWindow : MGSingleContentHost
         get => CloseButtonElement?.Visibility == Visibility.Visible || (CloseButtonElement == null && _IsCloseButtonVisible);
         set
         {
-            Visibility ActualValue = value ? Visibility.Visible : Visibility.Collapsed;
+            var ActualValue = value ? Visibility.Visible : Visibility.Collapsed;
             if (_IsCloseButtonVisible != value)
             {
                 _IsCloseButtonVisible = value;
@@ -735,9 +735,9 @@ public class MGWindow : MGSingleContentHost
         TitleBarElement = Structure.Parts[TitleBarPartName] as MGDockPanel;
         TitleBarTextBlockElement = Structure.Parts[TitleBarTextPartName] as MGTextBlock;
         CloseButtonElement = Structure.Parts[CloseButtonPartName] as MGButton;
-        ResizeGripElement = Structure.Parts.TryGetValue(ResizeGripPartName, out MGElement resizeGrip) ? resizeGrip as MGResizeGrip : null;
+        ResizeGripElement = Structure.Parts.TryGetValue(ResizeGripPartName, out var resizeGrip) ? resizeGrip as MGResizeGrip : null;
 
-        bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+        var needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
@@ -781,7 +781,7 @@ public class MGWindow : MGSingleContentHost
                 }
             }
 
-            bool IsClosed = false;
+            var IsClosed = false;
             if (ParentWindow != null && ParentWindow.ModalWindows.Contains(this))
             {
                 IsClosed = ParentWindow.RemoveModalWindow(this);
@@ -816,7 +816,7 @@ public class MGWindow : MGSingleContentHost
     public bool HasRadioButtonGroup(string Name) => RadioButtonGroups.ContainsKey(Name);
     public MGRadioButtonGroup GetOrCreateRadioButtonGroup(string Name)
     {
-        if (RadioButtonGroups.TryGetValue(Name, out MGRadioButtonGroup ExistingGroup))
+        if (RadioButtonGroups.TryGetValue(Name, out var ExistingGroup))
         {
             return ExistingGroup;
         }
@@ -1028,7 +1028,7 @@ public class MGWindow : MGSingleContentHost
             return false;
         }
 
-        int collapsedHeight = TitleBarElement.LayoutBounds.Bottom - LayoutBounds.Top + BorderThickness.Bottom;
+        var collapsedHeight = TitleBarElement.LayoutBounds.Bottom - LayoutBounds.Top + BorderThickness.Bottom;
         if (collapsedHeight <= 0)
         {
             return false;
@@ -1065,7 +1065,7 @@ public class MGWindow : MGSingleContentHost
                 return;
             }
 
-            Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+            var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
             if (TitleBarElement.LayoutBounds.ContainsInclusive(LayoutSpacePosition)
                 && (CloseButtonElement == null || !CloseButtonElement.LayoutBounds.ContainsInclusive(LayoutSpacePosition)))
             {
@@ -1090,7 +1090,7 @@ public class MGWindow : MGSingleContentHost
             if (_Theme != value)
             {
                 _Theme = value;
-                MGResources Resources = EnsureResourceScope(UIResourceScope.Window);
+                var Resources = EnsureResourceScope(UIResourceScope.Window);
                 if (value == null)
                 {
                     Resources.ClearDefaultThemeOverride();
@@ -1200,7 +1200,7 @@ public class MGWindow : MGSingleContentHost
             return true;
         }
 
-        for (int i = 0; i < _NestedWindows.Count; i++)
+        for (var i = 0; i < _NestedWindows.Count; i++)
         {
             if (_NestedWindows[i].OccludesUnscaledPosition(UnscaledScreenPosition))
             {
@@ -1232,9 +1232,9 @@ public class MGWindow : MGSingleContentHost
             return Desktop.IsUnscaledPositionOccludedAbove(this, Origin, UnscaledScreenPosition);
         }
 
-        IReadOnlyList<MGWindow> Siblings = ParentWindow.NestedWindows;
-        int MyIndex = -1;
-        for (int i = 0; i < Siblings.Count; i++)
+        var Siblings = ParentWindow.NestedWindows;
+        var MyIndex = -1;
+        for (var i = 0; i < Siblings.Count; i++)
         {
             if (Siblings[i] == this)
             {
@@ -1250,9 +1250,9 @@ public class MGWindow : MGSingleContentHost
                 return true;
             }
 
-            for (int i = 0; i < Siblings.Count; i++)
+            for (var i = 0; i < Siblings.Count; i++)
             {
-                MGWindow Sibling = Siblings[i];
+                var Sibling = Siblings[i];
                 if (Sibling != this && IsDrawnAbove(Sibling, i, this, MyIndex) && Sibling.OccludesUnscaledPosition(UnscaledScreenPosition))
                 {
                     return true;
@@ -1278,7 +1278,7 @@ public class MGWindow : MGSingleContentHost
             return null;
         }
 
-        MGElement current = PressedElement;
+        var current = PressedElement;
         while (current != null)
         {
             if (current is IActiveMouseDragCapture capture && capture.IsActiveMouseDragCapture)
@@ -1380,7 +1380,7 @@ public class MGWindow : MGSingleContentHost
             _ = EnsureResourceScope(UIResourceScope.Window);
             Theme = WindowTheme;
 
-            MGTheme ActualTheme = GetTheme();
+            var ActualTheme = GetTheme();
 
             WindowMouseHandler = InputTracker.Mouse.CreateHandler(this, null);
 #pragma warning disable CS0618 // WindowKeyboardHandler is [Obsolete]; MGWindow itself must still create/pump it unchanged for source compatibility with existing subscribers.
@@ -1427,8 +1427,8 @@ public class MGWindow : MGSingleContentHost
             {
                 if (ElementType == MGElementType.Window && e.NewValue != HorizontalAlignment.Stretch)
                 {
-                    string Error = $"The {nameof(HorizontalAlignment)} of a root-level window element must always be set to: " +
-                                   $"{nameof(HorizontalAlignment)}.{nameof(HorizontalAlignment.Stretch)}";
+                    var Error = $"The {nameof(HorizontalAlignment)} of a root-level window element must always be set to: " +
+                                $"{nameof(HorizontalAlignment)}.{nameof(HorizontalAlignment.Stretch)}";
                     throw new InvalidOperationException(Error);
                 }
             };
@@ -1436,8 +1436,8 @@ public class MGWindow : MGSingleContentHost
             {
                 if (ElementType == MGElementType.Window && e.NewValue != VerticalAlignment.Stretch)
                 {
-                    string Error = $"The {nameof(VerticalAlignment)} of a root-level window element must always be set to: " +
-                                   $"{nameof(VerticalAlignment)}.{nameof(VerticalAlignment.Stretch)}";
+                    var Error = $"The {nameof(VerticalAlignment)} of a root-level window element must always be set to: " +
+                                $"{nameof(VerticalAlignment)}.{nameof(VerticalAlignment.Stretch)}";
                     throw new InvalidOperationException(Error);
                 }
             };
@@ -1451,13 +1451,13 @@ public class MGWindow : MGSingleContentHost
                 PressedElementAtBeginUpdate = PressedElement;
                 HoveredElementAtBeginUpdate = HoveredElement;
 
-                bool hasActiveDragCapture = HasActiveMouseDragCapture();
-                bool suppressHoveredElementUpdate = !MouseHandler.Tracker.MouseLeftButtonReleasedRecently && hasActiveDragCapture;
-                bool occlusionEnded = (_WasOccludedAtMousePos && !IsOccludedAtMousePos) || _RefreshHoveredElementAfterNestedOcclusion;
+                var hasActiveDragCapture = HasActiveMouseDragCapture();
+                var suppressHoveredElementUpdate = !MouseHandler.Tracker.MouseLeftButtonReleasedRecently && hasActiveDragCapture;
+                var occlusionEnded = (_WasOccludedAtMousePos && !IsOccludedAtMousePos) || _RefreshHoveredElementAfterNestedOcclusion;
                 _WasOccludedAtMousePos = IsOccludedAtMousePos;
                 _RefreshHoveredElementAfterNestedOcclusion = false;
-                bool shouldUpdateHoveredElement = !suppressHoveredElementUpdate
-                                                  && (MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements || occlusionEnded);
+                var shouldUpdateHoveredElement = !suppressHoveredElementUpdate
+                                                 && (MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements || occlusionEnded);
 
                 using (UIPerformanceProbe.BeginDesktopPhase("Window.ValidateAndLayout"))
                 {
@@ -1601,14 +1601,14 @@ public class MGWindow : MGSingleContentHost
                 //  are updated before this window's own MouseHandler), that focus wins over the resolved target below.
                 if (Desktop.QueuedFocusedKeyboardHandler == null)
                 {
-                    MGElement autoFocusTarget = Desktop.ResolveAutoFocusTarget(this, false);
+                    var autoFocusTarget = Desktop.ResolveAutoFocusTarget(this, false);
                     autoFocusTarget?.Focus(KeyboardFocusSource.Pointer);
                 }
             };
 
             OnBeginUpdateContents += (sender, e) =>
             {
-                ElementUpdateArgs UpdateArgs = e.UA.ChangeOffset(Origin);
+                var UpdateArgs = e.UA.ChangeOffset(Origin);
 
                 //  Pumped here, before this window's content children are updated below (OnBeginUpdateContents fires
                 //  before UpdateContents, see MGElement.Update), so a subscriber genuinely previews the tick's keys
@@ -1630,10 +1630,10 @@ public class MGWindow : MGSingleContentHost
 
                     //  Track ToolTip occlusion for nested windows, mirroring the logic in MGDesktop.Update().
                     //  When a nested window is being hovered, windows beneath it should not be able to override the active ToolTip.
-                    bool isNestedWindowOccludedAtMousePos = ModalWindow != null && ModalWindow.VisualState.IsPressedOrHovered;
-                    foreach (MGWindow Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
+                    var isNestedWindowOccludedAtMousePos = ModalWindow != null && ModalWindow.VisualState.IsPressedOrHovered;
+                    foreach (var Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
                     {
-                        MGToolTip previousQueuedToolTip = GetDesktop().QueuedToolTip;
+                        var previousQueuedToolTip = GetDesktop().QueuedToolTip;
                         Nested.Update(UpdateArgs);
                         //  If a higher-priority nested window is occluding the mouse, prevent this window from overriding the ToolTip
                         if (isNestedWindowOccludedAtMousePos)
@@ -1720,7 +1720,7 @@ public class MGWindow : MGSingleContentHost
         {
             if (e.IsLMB && IsDraggable && e.Condition == DragStartCondition.MouseMovedAfterPress && IsTitleBarVisible)
             {
-                Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                 if (TitleBarElement.LayoutBounds.ContainsInclusive(LayoutSpacePosition) && !CloseButtonElement.LayoutBounds.ContainsInclusive(LayoutSpacePosition))
                 {
                     IsDraggingWindowPosition = true;
@@ -1735,7 +1735,7 @@ public class MGWindow : MGSingleContentHost
         {
             if (e.IsLMB && IsDraggingWindowPosition)
             {
-                float Scalar = 1.0f / Scale;
+                var Scalar = 1.0f / Scale;
                 Point Delta = new((int)(e.PositionDelta.X * Scalar), (int)(e.PositionDelta.Y * Scalar));
                 DragWindowPositionOffset = Delta;
             }
@@ -1752,13 +1752,13 @@ public class MGWindow : MGSingleContentHost
                     Left += Delta.X;
                     Top += Delta.Y;
 
-                    foreach (MGWindow Nested in _NestedWindows)
+                    foreach (var Nested in _NestedWindows)
                     {
                         Nested.Left += Delta.X;
                         Nested.Top += Delta.Y;
                     }
 
-                    foreach (MGWindow modalWindow in _ModalWindows)
+                    foreach (var modalWindow in _ModalWindows)
                     {
                         modalWindow.Left += Delta.X;
                         modalWindow.Top += Delta.Y;
@@ -1772,11 +1772,11 @@ public class MGWindow : MGSingleContentHost
                         ValidateWindowSizeAndPosition();
                         UpdateLayout(new Rectangle(Left, Top, WindowWidth, WindowHeight));
 
-                        Rectangle TitleBarLayoutBounds = TitleBarElement.LayoutBounds;
-                        Rectangle TitleBarScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, TitleBarLayoutBounds);
+                        var TitleBarLayoutBounds = TitleBarElement.LayoutBounds;
+                        var TitleBarScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, TitleBarLayoutBounds);
 
-                        Rectangle ValidScreenBounds = Desktop.ValidScreenBounds;
-                        Rectangle ValidLayoutBounds = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, ValidScreenBounds);
+                        var ValidScreenBounds = Desktop.ValidScreenBounds;
+                        var ValidLayoutBounds = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, ValidScreenBounds);
 
                         //  Shift the window up so the bottom of the title bar is above the bottom of the desktop bounds
                         if (TitleBarScreenBounds.Bottom > ValidScreenBounds.Bottom)
@@ -1833,7 +1833,7 @@ public class MGWindow : MGSingleContentHost
     public new bool TryGetElementByName(string Name, out MGElement Element) => ElementsByName.TryGetValue(Name, out Element);
     public bool TryGetElementByName<T>(string Name, out T Element) where T : MGElement
     {
-        if (TryGetElementByName(Name, out MGElement Result))
+        if (TryGetElementByName(Name, out var Result))
         {
             Element = Result as T;
             return Element != null;
@@ -1854,8 +1854,8 @@ public class MGWindow : MGSingleContentHost
 
         if (e.ToolTip != null)
         {
-            MGToolTip TT = e.ToolTip;
-            foreach (MGElement Element in TT.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
+            var TT = e.ToolTip;
+            foreach (var Element in TT.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
             {
                 Element_Added(TT, Element);
             }
@@ -1863,8 +1863,8 @@ public class MGWindow : MGSingleContentHost
 
         if (e.ContextMenu != null)
         {
-            MGContextMenu CM = e.ContextMenu;
-            foreach (MGElement Element in CM.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
+            var CM = e.ContextMenu;
+            foreach (var Element in CM.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
             {
                 Element_Added(CM, Element);
             }
@@ -1884,8 +1884,8 @@ public class MGWindow : MGSingleContentHost
 
         if (e.ToolTip != null)
         {
-            MGToolTip TT = e.ToolTip;
-            foreach (MGElement Element in TT.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
+            var TT = e.ToolTip;
+            foreach (var Element in TT.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
             {
                 Element_Removed(TT, Element);
             }
@@ -1893,8 +1893,8 @@ public class MGWindow : MGSingleContentHost
 
         if (e.ContextMenu != null)
         {
-            MGContextMenu CM = e.ContextMenu;
-            foreach (MGElement Element in CM.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
+            var CM = e.ContextMenu;
+            foreach (var Element in CM.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
             {
                 Element_Removed(CM, Element);
             }
@@ -1928,7 +1928,7 @@ public class MGWindow : MGSingleContentHost
             Previous.OnDirectOrNestedContentAdded -= Element_Added;
             Previous.OnDirectOrNestedContentRemoved -= Element_Removed;
 
-            foreach (MGElement Element in Previous.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
+            foreach (var Element in Previous.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
             {
                 Element_Removed(Previous, Element);
             }
@@ -1939,7 +1939,7 @@ public class MGWindow : MGSingleContentHost
             New.OnDirectOrNestedContentAdded += Element_Added;
             New.OnDirectOrNestedContentRemoved += Element_Removed;
 
-            foreach (MGElement Element in New.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
+            foreach (var Element in New.TraverseVisualTree(true, false, false, false, TreeTraversalMode.Preorder))
             {
                 Element_Added(New, Element);
             }
@@ -1962,7 +1962,7 @@ public class MGWindow : MGSingleContentHost
     {
         PreviousBackgroundBrush = BackgroundBrush.Copy();
         LocalBackgroundSlotsReplacedByChromelessStyle = new UIResolvedValue<IFillBrush>[ChromelessBackgroundSlots.Length];
-        for (int i = 0; i < ChromelessBackgroundSlots.Length; i++)
+        for (var i = 0; i < ChromelessBackgroundSlots.Length; i++)
         {
             TryGetResolvedContribution(UIPilotProperty.Background, ChromelessBackgroundSlots[i], UIValueSourceKind.LocalValue, out LocalBackgroundSlotsReplacedByChromelessStyle[i]);
         }
@@ -1976,9 +1976,9 @@ public class MGWindow : MGSingleContentHost
     /// <see cref="WindowStyle.None"/> is restored as a local value.</summary>
     private void RestoreBackgroundAfterChromelessStyle()
     {
-        for (int i = 0; i < ChromelessBackgroundSlots.Length; i++)
+        for (var i = 0; i < ChromelessBackgroundSlots.Length; i++)
         {
-            UIValueSlot Slot = ChromelessBackgroundSlots[i];
+            var Slot = ChromelessBackgroundSlots[i];
             if (!TryGetResolvedContribution(UIPilotProperty.Background, Slot, UIValueSourceKind.LocalValue, out UIResolvedValue<IFillBrush> Current)
                 || Current.Source.Name != ChromelessBackgroundName)
             {
@@ -1987,7 +1987,7 @@ public class MGWindow : MGSingleContentHost
 
             if (LocalBackgroundSlotsReplacedByChromelessStyle != null && LocalBackgroundSlotsReplacedByChromelessStyle[i].IsSet)
             {
-                UIResolvedValue<IFillBrush> Replaced = LocalBackgroundSlotsReplacedByChromelessStyle[i];
+                var Replaced = LocalBackgroundSlotsReplacedByChromelessStyle[i];
                 SetBackgroundSlot(Slot, Replaced.Value, Replaced.Source);
             }
             else
@@ -2061,7 +2061,7 @@ public class MGWindow : MGSingleContentHost
     {
         get
         {
-            MGWindow Current = ParentWindow;
+            var Current = ParentWindow;
             while (Current != null)
             {
                 yield return Current;
@@ -2104,7 +2104,7 @@ public class MGWindow : MGSingleContentHost
             DA.DT.FillRectangle(DA.Offset.ToVector2(), LayoutBounds, Color.Black * 0.5f);
         }
 
-        foreach (MGWindow Nested in _NestedWindows.OrderBy(x => x.IsTopmost))
+        foreach (var Nested in _NestedWindows.OrderBy(x => x.IsTopmost))
         {
             Nested.Draw(DA);
         }
@@ -2116,8 +2116,8 @@ public class MGWindow : MGSingleContentHost
             try
             {
                 IsDrawingDraggedWindowPreview = true;
-                float TempOpacity = DA.Opacity * 0.25f;
-                Point TempOffset = DA.Offset + DragWindowPositionOffset.Value;
+                var TempOpacity = DA.Opacity * 0.25f;
+                var TempOffset = DA.Offset + DragWindowPositionOffset.Value;
                 Draw(DA.SetOpacity(TempOpacity) with { Offset = TempOffset });
             }
             finally { IsDrawingDraggedWindowPreview = false; }
@@ -2136,16 +2136,16 @@ public class MGWindow : MGSingleContentHost
         }
 
         MGBoxShape windowShape = new(LayoutBounds, BorderThickness, CornerRadius);
-        MGBoxShape normalizedWindowShape = windowShape.Normalize();
-        Rectangle hostBounds = normalizedWindowShape.InnerBounds;
-        Rectangle titleBarBounds = Rectangle.Intersect(hostBounds, TitleBarElement.LayoutBounds);
+        var normalizedWindowShape = windowShape.Normalize();
+        var hostBounds = normalizedWindowShape.InnerBounds;
+        var titleBarBounds = Rectangle.Intersect(hostBounds, TitleBarElement.LayoutBounds);
         if (titleBarBounds.Width <= 0 || titleBarBounds.Height <= 0)
         {
             return;
         }
 
-        MGBoxShape titleBarShape = MGBoxShapeRegionHelper.CreateSubShape(hostBounds, normalizedWindowShape.InnerCornerRadius, titleBarBounds);
-        MGBoxGeometry titleBarGeometry = MGBoxGeometryBuilder.Build(titleBarShape);
+        var titleBarShape = MGBoxShapeRegionHelper.CreateSubShape(hostBounds, normalizedWindowShape.InnerCornerRadius, titleBarBounds);
+        var titleBarGeometry = MGBoxGeometryBuilder.Build(titleBarShape);
         TitleBarElement.BackgroundBrush.GetUnderlay(TitleBarElement.VisualState.Primary)?.Draw(DA, TitleBarElement, titleBarShape, titleBarGeometry);
         TitleBarElement.BackgroundBrush.GetFillOverlay(TitleBarElement.VisualState.Secondary)?.Draw(DA, TitleBarElement, titleBarShape, titleBarGeometry);
     }

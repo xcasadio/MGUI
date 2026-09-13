@@ -15,18 +15,18 @@ public sealed class CSharpRichTextSyntaxHighlighter : IRichTextSyntaxHighlighter
 
     public MGRichTextHighlightResult Highlight(MGRichTextHighlightContext context)
     {
-        string text = context.Text ?? string.Empty;
-        MGRichTextSyntaxPalette palette = context.Palette ?? MGRichTextSyntaxPalette.Default;
+        var text = context.Text ?? string.Empty;
+        var palette = context.Palette ?? MGRichTextSyntaxPalette.Default;
         List<MGStyledTextSpan> spans = new();
-        int index = 0;
+        var index = 0;
 
         while (index < text.Length)
         {
-            char character = text[index];
+            var character = text[index];
 
             if (character == '/' && index + 1 < text.Length && text[index + 1] == '/')
             {
-                int startIndex = index;
+                var startIndex = index;
                 index += 2;
                 while (index < text.Length && text[index] != '\n')
                 {
@@ -39,12 +39,12 @@ public sealed class CSharpRichTextSyntaxHighlighter : IRichTextSyntaxHighlighter
 
             if (character == '"')
             {
-                int startIndex = index;
+                var startIndex = index;
                 index++;
-                bool isEscaped = false;
+                var isEscaped = false;
                 while (index < text.Length)
                 {
-                    char stringCharacter = text[index++];
+                    var stringCharacter = text[index++];
                     if (stringCharacter == '"' && !isEscaped)
                     {
                         break;
@@ -63,7 +63,7 @@ public sealed class CSharpRichTextSyntaxHighlighter : IRichTextSyntaxHighlighter
 
             if (char.IsDigit(character))
             {
-                int startIndex = index;
+                var startIndex = index;
                 index++;
                 while (index < text.Length && (char.IsDigit(text[index]) || text[index] == '.'))
                 {
@@ -76,14 +76,14 @@ public sealed class CSharpRichTextSyntaxHighlighter : IRichTextSyntaxHighlighter
 
             if (IsIdentifierStart(character))
             {
-                int startIndex = index;
+                var startIndex = index;
                 index++;
                 while (index < text.Length && IsIdentifierPart(text[index]))
                 {
                     index++;
                 }
 
-                string token = text.Substring(startIndex, index - startIndex);
+                var token = text.Substring(startIndex, index - startIndex);
                 if (Keywords.Contains(token))
                 {
                     spans.Add(CreateSpan(startIndex, index, palette.Keyword, "keyword", isBold: true));

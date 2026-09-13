@@ -21,7 +21,7 @@ public sealed class MGTextBufferSnapshot
             return;
         }
 
-        for (int index = 0; index < lineStarts.Count; index++)
+        for (var index = 0; index < lineStarts.Count; index++)
         {
             _lineStarts[index] = lineStarts[index];
         }

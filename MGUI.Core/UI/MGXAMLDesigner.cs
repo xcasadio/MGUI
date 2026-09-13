@@ -58,7 +58,7 @@ public class MGXAMLDesigner : MGElement
             //  Create the textbox that the xaml string is read from
             MGScrollViewer MarkupScrollViewer = new(ParentWindow);
             FromStringTextBoxComponent = new(ParentWindow, null);
-            string SampleXAML = 
+            var SampleXAML = 
                 @"<Button Background=""RoyalBlue|DarkBlue"" Padding=""10,8"" VerticalAlignment=""Center"">
     <TextBlock IsBold=""true"" FontSize=""14"" TextAlignment=""Center"" Text=""Hello\nWorld"" />
 </Button>";
@@ -85,19 +85,19 @@ public class MGXAMLDesigner : MGElement
                 }
                 else
                 {
-                    string AssemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                    var AssemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 #if DEBUG
                     InitialDirectory = Path.GetFullPath(Path.Combine(AssemblyDirectory, "..", "..", ".."));
 #else
                         InitialDirectory = AssemblyDirectory;
 #endif
                 }
-                if (TryBrowseFilePath(InitialDirectory, out string SelectedFilePath))
+                if (TryBrowseFilePath(InitialDirectory, out var SelectedFilePath))
                 {
                     FromFileTextBoxComponent.SetText(SelectedFilePath);
                 }
             });
-            if (FilePathBrowseButton.BackgroundBrush.NormalValue != null && FilePathBrowseButton.BackgroundBrush.NormalValue.TryDarken(0.25f, out IFillBrush Darkened))
+            if (FilePathBrowseButton.BackgroundBrush.NormalValue != null && FilePathBrowseButton.BackgroundBrush.NormalValue.TryDarken(0.25f, out var Darkened))
             {
                 FilePathBrowseButton.SetBackgroundSlot(UIValueSlot.Normal, Darkened, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             }
@@ -112,7 +112,7 @@ public class MGXAMLDesigner : MGElement
             FromFileAutoRefreshCheckBox = new(ParentWindow, true);
             FromFileAutoRefreshCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             FromFileAutoRefreshCheckBox.SetContent("Auto-refresh parsed content");
-            MGToolTip AutoRefreshToolTip = new MGToolTip(ParentWindow, FromFileAutoRefreshCheckBox, 0, 0);
+            var AutoRefreshToolTip = new MGToolTip(ParentWindow, FromFileAutoRefreshCheckBox, 0, 0);
             AutoRefreshToolTip.SetDefaultTextForegroundAll(Color.White, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
             AutoRefreshToolTip.SetContent("If checked, the parsed content will automatically refresh whenever the selected file is saved.");
             AutoRefreshToolTip.ApplySizeToContent(SizeToContent.WidthAndHeight, 50, 50, 350, null, false);
@@ -120,7 +120,7 @@ public class MGXAMLDesigner : MGElement
 
             //  Populate the 'From File' tab content
             MGDockPanel FilePathDockPanel = new(ParentWindow);
-            MGTextBlock filePathLabel = new MGTextBlock(ParentWindow, "File Path:") { IsBold = true, VerticalAlignment = VerticalAlignment.Center };
+            var filePathLabel = new MGTextBlock(ParentWindow, "File Path:") { IsBold = true, VerticalAlignment = VerticalAlignment.Center };
             filePathLabel.SetMargin(new(0, 0, 5, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             FilePathDockPanel.TryAddChild(filePathLabel, Dock.Left);
             FilePathDockPanel.TryAddChild(FilePathBrowseButton, Dock.Right);
@@ -149,7 +149,7 @@ public class MGXAMLDesigner : MGElement
             MainGrid.AddColumn(GridLength.CreateWeightedLength(1.0));
             MainGrid.TryAddChild(0, 0, MarkupPresenter);
             MainGrid.TryAddChild(2, 0, Tmp);
-            MGGridSplitter gridSplitter = new MGGridSplitter(ParentWindow);
+            var gridSplitter = new MGGridSplitter(ParentWindow);
             gridSplitter.SetMargin(new(0, 2), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             MainGrid.TryAddChild(1, 0, gridSplitter);
             MainGrid.CanChangeContent = false;
@@ -166,7 +166,7 @@ public class MGXAMLDesigner : MGElement
             {
                 if (MarkupPresenter.Content is MGWindow XAMLWindow)
                 {
-                    Rectangle PreviousLayoutBounds = LayoutBounds;
+                    var PreviousLayoutBounds = LayoutBounds;
                     Point Offset = new(e.NewValue.Left - e.PreviousValue.Left, e.NewValue.Top - e.PreviousValue.Top);
                     XAMLWindow.TopLeft += Offset;
                 }
@@ -223,7 +223,7 @@ public class MGXAMLDesigner : MGElement
         }
 
         //  Microsoft.Win32.OpenFileDialog.ShowDialog() requires STA apartment state
-        ApartmentState State = Thread.CurrentThread.GetApartmentState();
+        var State = Thread.CurrentThread.GetApartmentState();
         if (State == ApartmentState.STA)
         {
             FilePath = Browse();

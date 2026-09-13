@@ -15,32 +15,32 @@ public static class MGBoxGeometryBuilder
 
     public static MGBoxGeometry Build(MGBoxShape shape, int cornerSegmentCount = 8, float scale = 1.0f)
     {
-        MGBoxShape normalized = shape.Normalize();
-        int actualCornerSegmentCount = Math.Max(1, cornerSegmentCount);
+        var normalized = shape.Normalize();
+        var actualCornerSegmentCount = Math.Max(1, cornerSegmentCount);
         CacheKey key = new(normalized, actualCornerSegmentCount, scale);
 
-        if (Cache.TryGetValue(key, out MGBoxGeometry cachedGeometry))
+        if (Cache.TryGetValue(key, out var cachedGeometry))
         {
             return cachedGeometry;
         }
 
-        MGBoxGeometry geometry = BuildUncached(normalized, actualCornerSegmentCount);
+        var geometry = BuildUncached(normalized, actualCornerSegmentCount);
         Cache[key] = geometry;
         return geometry;
     }
 
     internal static MGBoxGeometry BuildInteriorFillGeometry(MGBoxGeometry borderGeometry, float overlapPixels = 0.0f)
     {
-        MGBoxShape fillShape = new MGBoxShape(borderGeometry.Shape.InnerBounds, new MonoGame.Extended.Thickness(0), borderGeometry.Shape.InnerCornerRadius).Normalize();
+        var fillShape = new MGBoxShape(borderGeometry.Shape.InnerBounds, new MonoGame.Extended.Thickness(0), borderGeometry.Shape.InnerCornerRadius).Normalize();
         if (!borderGeometry.HasInnerContour)
         {
             return Build(fillShape, borderGeometry.CornerSegmentCount);
         }
 
-        Vector2[] contour = overlapPixels > 0
+        var contour = overlapPixels > 0
             ? ExpandContourTowardOuter(borderGeometry.OuterContour, borderGeometry.InnerContour, overlapPixels)
             : borderGeometry.InnerContour.ToArray();
-        int[] fillIndices = BuildFillIndices(contour.Length);
+        var fillIndices = BuildFillIndices(contour.Length);
         return new MGBoxGeometry(
             fillShape,
             contour,
@@ -54,20 +54,20 @@ public static class MGBoxGeometryBuilder
 
     private static Vector2[] ExpandContourTowardOuter(IReadOnlyList<Vector2> outerContour, IReadOnlyList<Vector2> innerContour, float overlapPixels)
     {
-        Vector2[] expanded = new Vector2[innerContour.Count];
-        for (int i = 0; i < innerContour.Count; i++)
+        var expanded = new Vector2[innerContour.Count];
+        for (var i = 0; i < innerContour.Count; i++)
         {
-            Vector2 inner = innerContour[i];
-            Vector2 outer = outerContour[i];
-            Vector2 delta = outer - inner;
-            float distance = delta.Length();
+            var inner = innerContour[i];
+            var outer = outerContour[i];
+            var delta = outer - inner;
+            var distance = delta.Length();
             if (distance <= 0.001f)
             {
                 expanded[i] = inner;
                 continue;
             }
 
-            float t = Math.Min(1.0f, overlapPixels / distance);
+            var t = Math.Min(1.0f, overlapPixels / distance);
             expanded[i] = inner + delta * t;
         }
 
@@ -76,14 +76,14 @@ public static class MGBoxGeometryBuilder
 
     private static MGBoxGeometry BuildUncached(MGBoxShape normalized, int actualCornerSegmentCount)
     {
-        bool usesRectangleFastPath = !normalized.HasRoundedCorners;
+        var usesRectangleFastPath = !normalized.HasRoundedCorners;
 
-        Vector2[] outerContour = BuildContour(normalized.OuterBounds, normalized.NormalizedCornerRadius, actualCornerSegmentCount, out int[] outerCornerPointCounts);
-        Vector2[] innerContour = BuildInnerContour(normalized, actualCornerSegmentCount, outerCornerPointCounts);
+        var outerContour = BuildContour(normalized.OuterBounds, normalized.NormalizedCornerRadius, actualCornerSegmentCount, out var outerCornerPointCounts);
+        var innerContour = BuildInnerContour(normalized, actualCornerSegmentCount, outerCornerPointCounts);
 
-        Vector2[] vertices = CombineVertices(outerContour, innerContour);
-        int[] fillIndices = BuildFillIndices(outerContour.Length);
-        int[] borderRingIndices = BuildBorderRingIndices(outerContour.Length, innerContour.Length);
+        var vertices = CombineVertices(outerContour, innerContour);
+        var fillIndices = BuildFillIndices(outerContour.Length);
+        var borderRingIndices = BuildBorderRingIndices(outerContour.Length, innerContour.Length);
 
         return new MGBoxGeometry(
             normalized,
@@ -110,7 +110,7 @@ public static class MGBoxGeometryBuilder
             return Array.Empty<Vector2>();
         }
 
-        Rectangle innerBounds = normalized.InnerBounds;
+        var innerBounds = normalized.InnerBounds;
         if (innerBounds.Width <= 0 || innerBounds.Height <= 0 || outerCornerPointCounts.Length < 4)
         {
             //  Residual case: the border thickness consumes the whole box. No inner contour, no border ring mesh (see Docs/drawing-architecture.md).
@@ -148,7 +148,7 @@ public static class MGBoxGeometryBuilder
         if (radius <= 0)
         {
             Vector2 point = new(centerX, centerY);
-            for (int i = 0; i < pointCount; i++)
+            for (var i = 0; i < pointCount; i++)
             {
                 points.Add(point);
             }
@@ -156,10 +156,10 @@ public static class MGBoxGeometryBuilder
             return;
         }
 
-        for (int i = 0; i < pointCount; i++)
+        for (var i = 0; i < pointCount; i++)
         {
-            float progress = pointCount == 1 ? 0f : i / (float)(pointCount - 1);
-            float angle = startAngle + (endAngle - startAngle) * progress;
+            var progress = pointCount == 1 ? 0f : i / (float)(pointCount - 1);
+            var angle = startAngle + (endAngle - startAngle) * progress;
             points.Add(new Vector2(
                 centerX + (float)Math.Cos(angle) * radius,
                 centerY + (float)Math.Sin(angle) * radius));
@@ -168,7 +168,7 @@ public static class MGBoxGeometryBuilder
 
     private static Vector2[] CombineVertices(Vector2[] outerContour, Vector2[] innerContour)
     {
-        Vector2[] result = new Vector2[outerContour.Length + innerContour.Length];
+        var result = new Vector2[outerContour.Length + innerContour.Length];
         Array.Copy(outerContour, 0, result, 0, outerContour.Length);
         Array.Copy(innerContour, 0, result, outerContour.Length, innerContour.Length);
         return result;
@@ -182,7 +182,7 @@ public static class MGBoxGeometryBuilder
         }
 
         List<int> indices = new((outerContourCount - 2) * 3);
-        for (int i = 1; i < outerContourCount - 1; i++)
+        for (var i = 1; i < outerContourCount - 1; i++)
         {
             indices.Add(0);
             indices.Add(i);
@@ -200,14 +200,14 @@ public static class MGBoxGeometryBuilder
         }
 
         List<int> indices = new(outerContourCount * 6);
-        int innerOffset = outerContourCount;
-        for (int i = 0; i < outerContourCount; i++)
+        var innerOffset = outerContourCount;
+        for (var i = 0; i < outerContourCount; i++)
         {
-            int next = (i + 1) % outerContourCount;
-            int outerCurrent = i;
-            int outerNext = next;
-            int innerCurrent = innerOffset + i;
-            int innerNext = innerOffset + next;
+            var next = (i + 1) % outerContourCount;
+            var outerCurrent = i;
+            var outerNext = next;
+            var innerCurrent = innerOffset + i;
+            var innerNext = innerOffset + next;
 
             indices.Add(outerCurrent);
             indices.Add(outerNext);
@@ -284,10 +284,10 @@ public static class MGBoxGeometryBuilder
             return;
         }
 
-        for (int i = 0; i <= cornerSegmentCount; i++)
+        for (var i = 0; i <= cornerSegmentCount; i++)
         {
-            float progress = i / (float)cornerSegmentCount;
-            float angle = startAngle + (endAngle - startAngle) * progress;
+            var progress = i / (float)cornerSegmentCount;
+            var angle = startAngle + (endAngle - startAngle) * progress;
             Vector2 point = new(
                 centerX + (float)Math.Cos(angle) * radius,
                 centerY + (float)Math.Sin(angle) * radius);

@@ -27,7 +27,7 @@ public sealed class UIAnimationManager
     public void Update(TimeSpan frameElapsed)
     {
         Clock.Advance(frameElapsed);
-        TimeSpan delta = Clock.DeltaTime;
+        var delta = Clock.DeltaTime;
         if (delta <= TimeSpan.Zero)
         {
             return;
@@ -38,10 +38,10 @@ public sealed class UIAnimationManager
         {
             //  An animation started during this tick (a child of a group, a transition run) is advanced from the next frame: its first
             //  frame is the one where it was started, so a child scheduled at an offset of a sequence stays aligned with that timeline.
-            int count = _Active.Count;
-            for (int i = 0; i < count; i++)
+            var count = _Active.Count;
+            for (var i = 0; i < count; i++)
             {
-                UIAnimation animation = _Active[i];
+                var animation = _Active[i];
                 if (animation.IsActive)
                 {
                     animation.Advance(delta);
@@ -56,7 +56,7 @@ public sealed class UIAnimationManager
         if (_SweepNeeded)
         {
             _SweepNeeded = false;
-            for (int i = _Active.Count - 1; i >= 0; i--)
+            for (var i = _Active.Count - 1; i >= 0; i--)
             {
                 if (!_Active[i].IsActive)
                 {
@@ -69,7 +69,7 @@ public sealed class UIAnimationManager
     /// <summary>Pauses every active animation (each keeps its own state; the clock is untouched, see <see cref="UIAnimationClock.IsPaused"/> for a global freeze).</summary>
     public void PauseAll()
     {
-        for (int i = 0; i < _Active.Count; i++)
+        for (var i = 0; i < _Active.Count; i++)
         {
             _Active[i].Pause();
         }
@@ -78,7 +78,7 @@ public sealed class UIAnimationManager
     /// <summary>Resumes every paused animation.</summary>
     public void ResumeAll()
     {
-        for (int i = 0; i < _Active.Count; i++)
+        for (var i = 0; i < _Active.Count; i++)
         {
             _Active[i].Resume();
         }
@@ -87,7 +87,7 @@ public sealed class UIAnimationManager
     /// <summary>Cancels every active animation according to its own <see cref="UIAnimation.CancelBehavior"/>.</summary>
     public void CancelAll()
     {
-        for (int i = _Active.Count - 1; i >= 0; i--)
+        for (var i = _Active.Count - 1; i >= 0; i--)
         {
             _Active[i].Cancel();
         }
@@ -108,7 +108,7 @@ public sealed class UIAnimationManager
             throw new ArgumentNullException(nameof(animation));
         }
 
-        string path = animation.TargetKey;
+        var path = animation.TargetKey;
         if (string.IsNullOrWhiteSpace(path))
         {
             throw new InvalidOperationException($"{animation.GetType().Name} has no target path.");
@@ -129,7 +129,7 @@ public sealed class UIAnimationManager
                 animation.OnReleaseHold();
             }
 
-            if (_ByTarget.TryGetValue(registered, out UIAnimation staleEntry) && ReferenceEquals(staleEntry, animation))
+            if (_ByTarget.TryGetValue(registered, out var staleEntry) && ReferenceEquals(staleEntry, animation))
             {
                 _ByTarget.Remove(registered);
             }
@@ -138,7 +138,7 @@ public sealed class UIAnimationManager
         }
 
         object inheritedBase = null;
-        if (_ByTarget.TryGetValue(key, out UIAnimation previous))
+        if (_ByTarget.TryGetValue(key, out var previous))
         {
             if (ReferenceEquals(previous, animation))
             {
@@ -198,7 +198,7 @@ public sealed class UIAnimationManager
 
         if (animation.RegisteredKey is (MGElement Owner, string Path) key)
         {
-            if (_ByTarget.TryGetValue(key, out UIAnimation current) && ReferenceEquals(current, animation))
+            if (_ByTarget.TryGetValue(key, out var current) && ReferenceEquals(current, animation))
             {
                 _ByTarget.Remove(key);
             }
@@ -220,7 +220,7 @@ public sealed class UIAnimationManager
     /// so that closing a window also cancels the animations of its nested windows, tooltips and popups (review finding, S3).</summary>
     private static bool IsWindowOrAncestorWindow(MGWindow candidate, MGWindow window)
     {
-        for (MGWindow current = window; current != null; current = current.ParentWindow)
+        for (var current = window; current != null; current = current.ParentWindow)
         {
             if (ReferenceEquals(current, candidate))
             {
@@ -234,9 +234,9 @@ public sealed class UIAnimationManager
     /// <summary>Re-captures the displaying window of the animations owned by <paramref name="owner"/> after it was re-parented (review finding, S3).</summary>
     internal void RefreshOwnerWindow(MGElement owner)
     {
-        for (int i = 0; i < _Active.Count; i++)
+        for (var i = 0; i < _Active.Count; i++)
         {
-            UIAnimation animation = _Active[i];
+            var animation = _Active[i];
             if (ReferenceEquals(animation.Owner, owner))
             {
                 animation.RefreshOwnerWindow();
@@ -248,10 +248,10 @@ public sealed class UIAnimationManager
     {
         //  A restore can notify a transition that starts a new run on the same owner during this pass (review finding, S6): re-scan until
         //  no matching animation is left, with a bound against a pathological ping-pong.
-        for (int pass = 0; pass < 4; pass++)
+        for (var pass = 0; pass < 4; pass++)
         {
-            bool cancelledAny = false;
-            for (int i = _Active.Count - 1; i >= 0; i--)
+            var cancelledAny = false;
+            for (var i = _Active.Count - 1; i >= 0; i--)
             {
                 if (i >= _Active.Count)
                 {
@@ -259,7 +259,7 @@ public sealed class UIAnimationManager
                     continue;
                 }
 
-                UIAnimation animation = _Active[i];
+                var animation = _Active[i];
                 if (animation.IsActive && predicate(animation))
                 {
                     animation.CancelCore(restoreBaseValue ? UIAnimationCancelBehavior.RestoreBaseValue : animation.CancelBehavior);
@@ -279,7 +279,7 @@ public sealed class UIAnimationManager
         }
 
         List<(MGElement Owner, string Path)> released = null;
-        foreach (KeyValuePair<(MGElement Owner, string Path), UIAnimation> entry in _ByTarget)
+        foreach (var entry in _ByTarget)
         {
             if (entry.Value.IsHeld && predicate(entry.Value))
             {
@@ -292,9 +292,9 @@ public sealed class UIAnimationManager
             return;
         }
 
-        foreach ((MGElement Owner, string Path) key in released)
+        foreach (var key in released)
         {
-            UIAnimation held = _ByTarget[key];
+            var held = _ByTarget[key];
             _ByTarget.Remove(key);
             held.IsHeld = false;
             held.RegisteredKey = null;
@@ -304,8 +304,8 @@ public sealed class UIAnimationManager
 
     internal int CountOwnedBy(MGElement owner)
     {
-        int count = 0;
-        for (int i = 0; i < _Active.Count; i++)
+        var count = 0;
+        for (var i = 0; i < _Active.Count; i++)
         {
             if (ReferenceEquals(_Active[i].Owner, owner))
             {
@@ -317,7 +317,7 @@ public sealed class UIAnimationManager
     }
 
     internal bool IsAnimating(MGElement owner, string path)
-        => path != null && _ByTarget.TryGetValue((owner, path), out UIAnimation animation) && animation.IsActive;
+        => path != null && _ByTarget.TryGetValue((owner, path), out var animation) && animation.IsActive;
 
     internal IEnumerable<UIAnimation> EnumerateOwnedBy(MGElement owner)
         => _Active.Where(x => ReferenceEquals(x.Owner, owner)).ToArray();

@@ -87,7 +87,7 @@ public readonly record struct GridSelection(MGGrid Grid, GridCell Cell, GridSele
             case GridSelectionMode.Row:
                 if (Grid.Rows.Contains(Cell.Row))
                 {
-                    foreach (ColumnDefinition Column in Grid.Columns)
+                    foreach (var Column in Grid.Columns)
                     {
                         yield return new GridCell(Cell.Row, Column);
                     }
@@ -96,7 +96,7 @@ public readonly record struct GridSelection(MGGrid Grid, GridCell Cell, GridSele
             case GridSelectionMode.Column:
                 if (Grid.Columns.Contains(Cell.Column))
                 {
-                    foreach (RowDefinition Row in Grid.Rows)
+                    foreach (var Row in Grid.Rows)
                     {
                         yield return new GridCell(Row, Cell.Column);
                     }
@@ -161,25 +161,25 @@ public class MGGrid : MGMultiContentHost
     /// This method is typically only used when simplifying the row/column definitions before applying resizing logic, such as in <see cref="MGGridSplitter"/>.</summary>
     public void NormalizeWeightedLengths()
     {
-        bool WasSuppressingDimensionChanged = SuppressDimensionChanged;
+        var WasSuppressingDimensionChanged = SuppressDimensionChanged;
         try
         {
             SuppressDimensionChanged = true;
 
-            foreach (ColumnDefinition Column in _Columns)
+            foreach (var Column in _Columns)
             {
                 if (Column.Length.IsWeightedLength)
                 {
-                    int NormalizedWeight = Math.Clamp(Column.Width, Column.MinWidth ?? 0, Column.MaxWidth ?? int.MaxValue);
+                    var NormalizedWeight = Math.Clamp(Column.Width, Column.MinWidth ?? 0, Column.MaxWidth ?? int.MaxValue);
                     Column.Length = GridLength.CreateWeightedLength(NormalizedWeight);
                 }
             }
 
-            foreach (RowDefinition Row in _Rows)
+            foreach (var Row in _Rows)
             {
                 if (Row.Length.IsWeightedLength)
                 {
-                    int NormalizedWeight = Math.Clamp(Row.Height, Row.MinHeight ?? 0, Row.MaxHeight ?? int.MaxValue);
+                    var NormalizedWeight = Math.Clamp(Row.Height, Row.MinHeight ?? 0, Row.MaxHeight ?? int.MaxValue);
                     Row.Length = GridLength.CreateWeightedLength(NormalizedWeight);
                 }
             }
@@ -285,16 +285,16 @@ public class MGGrid : MGMultiContentHost
         Dictionary<GridCell, Rectangle> CellBounds = new();
 
         //  Snapshot the resolved margins once for this pass - they don't change while iterating cells.
-        int resolvedRowGridLineMargin = IncludeGridLineMargin ? 0 : Math.Max(0, ResolvedRowGridLineMargin);
-        int resolvedColumnGridLineMargin = IncludeGridLineMargin ? 0 : Math.Max(0, ResolvedColumnGridLineMargin);
+        var resolvedRowGridLineMargin = IncludeGridLineMargin ? 0 : Math.Max(0, ResolvedRowGridLineMargin);
+        var resolvedColumnGridLineMargin = IncludeGridLineMargin ? 0 : Math.Max(0, ResolvedColumnGridLineMargin);
 
-        foreach (RowDefinition Row in _Rows)
+        foreach (var Row in _Rows)
         {
-            foreach (ColumnDefinition Column in _Columns)
+            foreach (var Column in _Columns)
             {
                 GridCell Cell = new(Row, Column);
                 Rectangle PaddedBounds = new(Column.Left, Row.Top, Column.Width, Row.Height);
-                Rectangle ActualBounds = IncludeGridLineMargin
+                var ActualBounds = IncludeGridLineMargin
                     ? PaddedBounds
                     : PaddedBounds.GetExpanded(new Thickness(resolvedColumnGridLineMargin, resolvedRowGridLineMargin, resolvedColumnGridLineMargin, resolvedRowGridLineMargin));
                 CellBounds.Add(Cell, ActualBounds);
@@ -344,7 +344,7 @@ public class MGGrid : MGMultiContentHost
     public IReadOnlyList<MGElement> GetCellContent(RowDefinition Row, ColumnDefinition Column) => GetCellContent(new GridCell(Row, Column));
     public IReadOnlyList<MGElement> GetCellContent(GridCell Cell)
     {
-        if (TryGetCellContentList(Cell, out List<MGElement> CellContent))
+        if (TryGetCellContentList(Cell, out var CellContent))
         {
             return CellContent;
         }
@@ -356,7 +356,7 @@ public class MGGrid : MGMultiContentHost
 
     private bool TryGetCellContentList(GridCell cell, out List<MGElement> cellContent)
     {
-        if (ChildrenByRC.TryGetValue(cell.Row, out Dictionary<ColumnDefinition, List<MGElement>> rowContent)
+        if (ChildrenByRC.TryGetValue(cell.Row, out var rowContent)
             && rowContent.TryGetValue(cell.Column, out cellContent))
         {
             return true;
@@ -371,8 +371,8 @@ public class MGGrid : MGMultiContentHost
     {
         if (RowIndex >= 0 && RowIndex < _Rows.Count && ColumnIndex >= 0 && ColumnIndex < _Columns.Count)
         {
-            RowDefinition Row = _Rows[RowIndex];
-            ColumnDefinition Column = _Columns[ColumnIndex];
+            var Row = _Rows[RowIndex];
+            var Column = _Columns[ColumnIndex];
             return TryAddChild(Row, Column, Span, Item);
         }
         else
@@ -435,7 +435,7 @@ public class MGGrid : MGMultiContentHost
 
         if (_Children.Remove(Item))
         {
-            GridCell Cell = ChildCellLookup[Item];
+            var Cell = ChildCellLookup[Item];
             ChildrenByRC[Cell.Row][Cell.Column].Remove(Item);
             ChildCellLookup.Remove(Item);
             ChildSpanLookup.Remove(Item);
@@ -466,8 +466,8 @@ public class MGGrid : MGMultiContentHost
     {
         if (RowIndex >= 0 && RowIndex < _Rows.Count && ColumnIndex >= 0 && ColumnIndex < _Columns.Count)
         {
-            RowDefinition Row = _Rows[RowIndex];
-            ColumnDefinition Column = _Columns[ColumnIndex];
+            var Row = _Rows[RowIndex];
+            var Column = _Columns[ColumnIndex];
             return ClearCellContent(Row, Column);
         }
         else
@@ -494,8 +494,8 @@ public class MGGrid : MGMultiContentHost
             return Removed;
         }
 
-        IReadOnlyList<MGElement> CellContent = GetCellContent(Row, Column);
-        foreach (MGElement Element in CellContent)
+        var CellContent = GetCellContent(Row, Column);
+        foreach (var Element in CellContent)
         {
             if (_Children.Remove(Element))
             {
@@ -528,7 +528,7 @@ public class MGGrid : MGMultiContentHost
     {
         if (ColumnIndex >= 0 && ColumnIndex < _Columns.Count)
         {
-            ColumnDefinition Column = _Columns[ColumnIndex];
+            var Column = _Columns[ColumnIndex];
             return ClearColumnContent(Column);
         }
         else
@@ -550,11 +550,11 @@ public class MGGrid : MGMultiContentHost
             return Removed;
         }
 
-        foreach (RowDefinition Row in Rows)
+        foreach (var Row in Rows)
         {
-            if (ChildrenByRC.TryGetValue(Row, out Dictionary<ColumnDefinition, List<MGElement>> RowContent) && RowContent.TryGetValue(Column, out List<MGElement> CellContent))
+            if (ChildrenByRC.TryGetValue(Row, out var RowContent) && RowContent.TryGetValue(Column, out var CellContent))
             {
-                foreach (MGElement Element in CellContent)
+                foreach (var Element in CellContent)
                 {
                     if (_Children.Remove(Element))
                     {
@@ -581,7 +581,7 @@ public class MGGrid : MGMultiContentHost
     {
         if (RowIndex >= 0 && RowIndex < _Rows.Count)
         {
-            RowDefinition Row = _Rows[RowIndex];
+            var Row = _Rows[RowIndex];
             return ClearRowContent(Row);
         }
         else
@@ -603,12 +603,12 @@ public class MGGrid : MGMultiContentHost
             return Removed;
         }
 
-        if (ChildrenByRC.TryGetValue(Row, out Dictionary<ColumnDefinition, List<MGElement>> RowContent))
+        if (ChildrenByRC.TryGetValue(Row, out var RowContent))
         {
             foreach (var KVP in RowContent)
             {
-                ColumnDefinition Column = KVP.Key;
-                foreach (MGElement Element in KVP.Value)
+                var Column = KVP.Key;
+                foreach (var Element in KVP.Value)
                 {
                     if (_Children.Remove(Element))
                     {
@@ -694,7 +694,7 @@ public class MGGrid : MGMultiContentHost
     {
         AllowDeselect = AllowDeselect && CanDeselectByClickingSelectedCell;
 
-        Rectangle Viewport = LayoutBounds; // Does this also need to be translated by this.Origin?
+        var Viewport = LayoutBounds; // Does this also need to be translated by this.Origin?
         if (TryFindParentOfType(out MGScrollViewer SV, false))
         {
             // Viewport formula for nested ScrollViewers — analysed and confirmed correct.
@@ -721,12 +721,12 @@ public class MGGrid : MGMultiContentHost
 
         if (Cell.HasValue)
         {
-            bool ClickedExistingSelection = false;
+            var ClickedExistingSelection = false;
             if (HasSelection && SelectionAtStartOfMousePress.HasValue)
             {
-                GridCell PreviousCell = SelectionAtStartOfMousePress.Value.Cell;
-                GridCell CurrentCell = CurrentSelection.Value.Cell;
-                GridCell ClickedCell = Cell.Value;
+                var PreviousCell = SelectionAtStartOfMousePress.Value.Cell;
+                var CurrentCell = CurrentSelection.Value.Cell;
+                var ClickedCell = Cell.Value;
 
                 ClickedExistingSelection = SelectionMode switch
                 {
@@ -867,8 +867,8 @@ public class MGGrid : MGMultiContentHost
 
     private void CheckIfOuterPaddingChanged()
     {
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
         if (resolvedRowSpacing > 0 && ResolvedRowGridLineMargin < resolvedRowSpacing &&
             (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge) || GridLinesVisibility.HasFlag(GridLinesVisibility.BottomEdge)))
         {
@@ -999,12 +999,12 @@ public class MGGrid : MGMultiContentHost
             SelectionMouseHandler.LMBPressedInside += (sender, e) =>
             {
                 SelectionAtStartOfMousePress = CurrentSelection;
-                Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                var Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                 UpdateSelection(Position, false);
             };
             SelectionMouseHandler.LMBReleasedInside += (sender, e) =>
             {
-                Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                var Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                 UpdateSelection(Position, true);
             };
 
@@ -1013,12 +1013,12 @@ public class MGGrid : MGMultiContentHost
                 //  Draw the selection overlay
                 if (HasSelection && SelectionOverlay != null)
                 {
-                    Rectangle? ScissorBounds = e.DA.DT.CurrentClipBounds;
-                    foreach (GridCell Cell in CurrentSelection.Value)
+                    var ScissorBounds = e.DA.DT.CurrentClipBounds;
+                    foreach (var Cell in CurrentSelection.Value)
                     {
-                        if (_CellBounds.TryGetValue(Cell, out Rectangle Bounds))
+                        if (_CellBounds.TryGetValue(Cell, out var Bounds))
                         {
-                            Rectangle ScreenSpaceBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, Bounds.GetTranslated(e.DA.Offset));
+                            var ScreenSpaceBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, Bounds.GetTranslated(e.DA.Offset));
                             if (ScissorBounds.HasValue && ScreenSpaceBounds.Intersects(ScissorBounds.Value))
                             {
                                 SelectionOverlay.Draw(e.DA, this, Bounds);
@@ -1034,12 +1034,12 @@ public class MGGrid : MGMultiContentHost
             Window.OnWindowPositionChanged += (sender, e) =>
             {
                 Point Offset = new(e.NewValue.Left - e.PreviousValue.Left, e.NewValue.Top - e.PreviousValue.Top);
-                foreach (ColumnDefinition Column in Columns)
+                foreach (var Column in Columns)
                 {
                     Column.Left += Offset.X;
                 }
 
-                foreach (RowDefinition Row in Rows)
+                foreach (var Row in Rows)
                 {
                     Row.Top += Offset.Y;
                 }
@@ -1055,7 +1055,7 @@ public class MGGrid : MGMultiContentHost
     /// <inheritdoc/>
     protected override IEnumerable<IFillBrush> GetFillBrushes()
     {
-        foreach (IFillBrush Brush in base.GetFillBrushes())
+        foreach (var Brush in base.GetFillBrushes())
         {
             yield return Brush;
         }
@@ -1096,8 +1096,8 @@ public class MGGrid : MGMultiContentHost
 
     private int GetSpannedColumnWidth(int columnIndex, int columnSpan, Dictionary<ColumnDefinition, int> columnWidths, int resolvedColumnSpacing)
     {
-        int width = 0;
-        for (int spanOffset = 0; spanOffset < columnSpan; spanOffset++)
+        var width = 0;
+        for (var spanOffset = 0; spanOffset < columnSpan; spanOffset++)
         {
             if (spanOffset > 0)
             {
@@ -1112,15 +1112,15 @@ public class MGGrid : MGMultiContentHost
 
     private Rectangle GetSpannedBounds(int columnIndex, int rowIndex, GridSpan span)
     {
-        Rectangle bounds = Rectangle.Empty;
-        bool hasBounds = false;
+        var bounds = Rectangle.Empty;
+        var hasBounds = false;
 
-        for (int columnOffset = 0; columnOffset < span.ColumnSpan; columnOffset++)
+        for (var columnOffset = 0; columnOffset < span.ColumnSpan; columnOffset++)
         {
-            for (int rowOffset = 0; rowOffset < span.RowSpan; rowOffset++)
+            for (var rowOffset = 0; rowOffset < span.RowSpan; rowOffset++)
             {
                 GridCell spannedCell = new(_Rows[rowIndex + rowOffset], _Columns[columnIndex + columnOffset]);
-                Rectangle cellBounds = _CellBounds[spannedCell];
+                var cellBounds = _CellBounds[spannedCell];
                 bounds = hasBounds ? Rectangle.Union(bounds, cellBounds) : cellBounds;
                 hasBounds = true;
             }
@@ -1143,11 +1143,11 @@ public class MGGrid : MGMultiContentHost
 
         //  If Width or Height is arbitrarily large, this element is being measured within a ScrollViewer.
         //  Which means we can't just request all the AvailableSize, or we'd end up with infinitely-sized content inside the ScrollViewer.
-        bool IsPseudoInfiniteWidth = AvailableSize.Width >= 1000000;
-        bool IsPseduoInfiniteHeight = AvailableSize.Height >= 1000000;
+        var IsPseudoInfiniteWidth = AvailableSize.Width >= 1000000;
+        var IsPseduoInfiniteHeight = AvailableSize.Height >= 1000000;
 
-        double TotalColumnWeight = 0.0;
-        foreach (ColumnDefinition column in Columns)
+        var TotalColumnWeight = 0.0;
+        foreach (var column in Columns)
         {
             if (column.Length.IsWeightedLength)
             {
@@ -1155,9 +1155,9 @@ public class MGGrid : MGMultiContentHost
             }
         }
 
-        double RemainingColumnWeight = TotalColumnWeight;
-        double TotalRowWeight = 0.0;
-        foreach (RowDefinition row in Rows)
+        var RemainingColumnWeight = TotalColumnWeight;
+        var TotalRowWeight = 0.0;
+        foreach (var row in Rows)
         {
             if (row.Length.IsWeightedLength)
             {
@@ -1165,9 +1165,9 @@ public class MGGrid : MGMultiContentHost
             }
         }
 
-        double RemainingRowWeight = TotalRowWeight;
+        var RemainingRowWeight = TotalRowWeight;
 
-        int TotalColumnSpacingWidth = (Columns.Count - 1) * resolvedColumnSpacing;
+        var TotalColumnSpacingWidth = (Columns.Count - 1) * resolvedColumnSpacing;
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
         {
             TotalColumnSpacingWidth += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
@@ -1178,7 +1178,7 @@ public class MGGrid : MGMultiContentHost
             TotalColumnSpacingWidth += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
         }
 
-        int TotalRowSpacingHeight = (Rows.Count - 1) * resolvedRowSpacing;
+        var TotalRowSpacingHeight = (Rows.Count - 1) * resolvedRowSpacing;
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
         {
             TotalRowSpacingHeight += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
@@ -1190,9 +1190,9 @@ public class MGGrid : MGMultiContentHost
         }
 
         //  Fill in the trivial column measurements where we know exactly how wide they are
-        int TotalWidth = TotalColumnSpacingWidth;
-        int RemainingColumnWidth = Math.Max(0, AvailableSize.Width - TotalColumnSpacingWidth);
-        foreach (ColumnDefinition Column in Columns)
+        var TotalWidth = TotalColumnSpacingWidth;
+        var RemainingColumnWidth = Math.Max(0, AvailableSize.Width - TotalColumnSpacingWidth);
+        foreach (var Column in Columns)
         {
             int? ColumnWidth = null;
             if (Column.Length.IsPixelLength)
@@ -1206,7 +1206,7 @@ public class MGGrid : MGMultiContentHost
 
             if (ColumnWidth.HasValue)
             {
-                int Width = GeneralUtils.Min(RemainingColumnWidth, ColumnWidth.Value, Column.MaxWidth ?? int.MaxValue);
+                var Width = GeneralUtils.Min(RemainingColumnWidth, ColumnWidth.Value, Column.MaxWidth ?? int.MaxValue);
                 ColumnWidths.Add(Column, Width);
                 TotalWidth += Width;
                 RemainingColumnWidth -= Width;
@@ -1214,9 +1214,9 @@ public class MGGrid : MGMultiContentHost
         }
 
         //  Fill in the trival row measurements where we know exactly how tall they are
-        int TotalHeight = TotalRowSpacingHeight;
-        int RemainingRowHeight = Math.Max(0, AvailableSize.Height - TotalRowSpacingHeight);
-        foreach (RowDefinition Row in Rows)
+        var TotalHeight = TotalRowSpacingHeight;
+        var RemainingRowHeight = Math.Max(0, AvailableSize.Height - TotalRowSpacingHeight);
+        foreach (var Row in Rows)
         {
             int? RowHeight = null;
             if (Row.Length.IsPixelLength)
@@ -1230,7 +1230,7 @@ public class MGGrid : MGMultiContentHost
 
             if (RowHeight.HasValue)
             {
-                int Height = GeneralUtils.Min(RemainingRowHeight, RowHeight.Value, Row.MaxHeight ?? int.MaxValue);
+                var Height = GeneralUtils.Min(RemainingRowHeight, RowHeight.Value, Row.MaxHeight ?? int.MaxValue);
                 RowHeights.Add(Row, Height);
                 TotalHeight += Height;
                 RemainingRowHeight -= Height;
@@ -1243,7 +1243,7 @@ public class MGGrid : MGMultiContentHost
             .OrderBy(x => x.Length.IsAutoLength || IsPseudoInfiniteWidth ? 0 : 1)
             .ThenBy(x => x.MaxWidth ?? int.MaxValue) // Try to handle columns with a MaxWidth first because if the column's width gets truncated, it might free up more width for the next weighted column to use
             .ThenByDescending(x => x.MinWidth.HasValue); // Try to handle columns with a MinWidth first because if the column's width gets increased upwards to the MinWidth, it consumes more space than usual, leaving less space for the next weighted column to use
-        foreach (ColumnDefinition Column in RemainingColumns)
+        foreach (var Column in RemainingColumns)
         {
             int ColumnWidth;
             if (RemainingColumnWidth <= 0)
@@ -1256,10 +1256,10 @@ public class MGGrid : MGMultiContentHost
             }
             else
             {
-                bool IsWeightedWidth = Column.Length.IsWeightedLength && !IsPseudoInfiniteWidth; // If measured inside a scrollviewer, * lengths are treated as Auto
+                var IsWeightedWidth = Column.Length.IsWeightedLength && !IsPseudoInfiniteWidth; // If measured inside a scrollviewer, * lengths are treated as Auto
                 if (IsWeightedWidth && !IsMeasuring)
                 {
-                    double ColumnWeight = Column.Length.Weight;
+                    var ColumnWeight = Column.Length.Weight;
 #if DEBUG
                     if (ColumnWeight > RemainingColumnWeight)
                     {
@@ -1273,40 +1273,40 @@ public class MGGrid : MGMultiContentHost
                 {
                     //  Note: If we're measuring the content (pre-processing phase), rather than allocating space to the content, we need to know the minimum dimensions required to show the content.
                     //  So weighted columns are treated like Auto-sized columns (with their width capped at what the weighted width would be)
-                    int WeightedWidth = int.MaxValue;
+                    var WeightedWidth = int.MaxValue;
                     if (IsWeightedWidth)
                     {
-                        double ColumnWeight = Column.Length.Weight;
+                        var ColumnWeight = Column.Length.Weight;
                         WeightedWidth = Math.Clamp((int)Math.Round(RemainingColumnWidth * (ColumnWeight / RemainingColumnWeight), MidpointRounding.ToEven), Column.MinWidth ?? 0, Column.MaxWidth ?? int.MaxValue);
                         RemainingColumnWeight -= ColumnWeight;
                     }
 
                     //  Measure every element in this column
                     List<int> ColumnChildWidths = new();
-                    int CellAvailableWidth = GeneralUtils.Min(RemainingColumnWidth, WeightedWidth, Column.MaxWidth ?? int.MaxValue);
-                    foreach (RowDefinition Row in Rows)
+                    var CellAvailableWidth = GeneralUtils.Min(RemainingColumnWidth, WeightedWidth, Column.MaxWidth ?? int.MaxValue);
+                    foreach (var Row in Rows)
                     {
                         GridCell Cell = new(Row, Column);
-                        if (!RowHeights.TryGetValue(Row, out int RowHeight))
+                        if (!RowHeights.TryGetValue(Row, out var RowHeight))
                         {
                             RowHeight = RemainingRowHeight; // Lazy 'solution' because I'm too dumb to come up with the actual correct logic that avoids circular dependencies...
                         }
 
                         Size CellAvailableSize = new(CellAvailableWidth, RowHeight);
-                        if (!TryGetCellContentList(Cell, out List<MGElement> cellContent))
+                        if (!TryGetCellContentList(Cell, out var cellContent))
                         {
                             continue;
                         }
 
-                        for (int elementIndex = 0; elementIndex < cellContent.Count; elementIndex++)
+                        for (var elementIndex = 0; elementIndex < cellContent.Count; elementIndex++)
                         {
-                            MGElement Element = cellContent[elementIndex];
+                            var Element = cellContent[elementIndex];
                             if (!ChildSpanLookup[Element].AffectsMeasure)
                             {
                                 continue;
                             }
 
-                            Element.UpdateMeasurement(CellAvailableSize, out _, out Thickness ElementSize, out _, out _);
+                            Element.UpdateMeasurement(CellAvailableSize, out _, out var ElementSize, out _, out _);
                             ColumnChildWidths.Add(ElementSize.Size.Width);
                         }
                     }
@@ -1328,7 +1328,7 @@ public class MGGrid : MGMultiContentHost
             .OrderBy(x => x.Length.IsAutoLength || IsPseduoInfiniteHeight ? 0 : 1)
             .ThenBy(x => x.MaxHeight ?? int.MaxValue) // Try to handle rows with a MaxHeight first because if the row's height gets truncated, it might free up more height for the next weighted row to use
             .ThenByDescending(x => x.MinHeight.HasValue); // Try to handle rows with a MinHeight first because if the row's height gets increased upwards to the MinHeight, it consumes more space than usual, leaving less space for the next weighted row to use
-        foreach (RowDefinition Row in RemainingRows)
+        foreach (var Row in RemainingRows)
         {
             int RowHeight;
             if (RemainingRowHeight <= 0)
@@ -1341,10 +1341,10 @@ public class MGGrid : MGMultiContentHost
             }
             else
             {
-                bool IsWeightedHeight = Row.Length.IsWeightedLength && !IsPseduoInfiniteHeight; // If measured inside a scrollviewer, * lengths are treated as Auto
+                var IsWeightedHeight = Row.Length.IsWeightedLength && !IsPseduoInfiniteHeight; // If measured inside a scrollviewer, * lengths are treated as Auto
                 if (IsWeightedHeight && !IsMeasuring)
                 {
-                    double RowWeight = Row.Length.Weight;
+                    var RowWeight = Row.Length.Weight;
 #if DEBUG
                     if (RowWeight > RemainingRowWeight)
                     {
@@ -1358,47 +1358,47 @@ public class MGGrid : MGMultiContentHost
                 {
                     //  Note: If we're measuring the content (pre-processing phase), rather than allocating space to the content, we need to know the minimum dimensions required to show the content.
                     //  So weighted rows are treated like Auto-sized rows (with their height capped at what the weighted height would be)
-                    int WeightedHeight = int.MaxValue;
+                    var WeightedHeight = int.MaxValue;
                     if (IsWeightedHeight)
                     {
-                        double RowWeight = Row.Length.Weight;
+                        var RowWeight = Row.Length.Weight;
                         WeightedHeight = Math.Clamp((int)Math.Round(RemainingRowHeight * (RowWeight / RemainingRowWeight), MidpointRounding.ToEven), Row.MinHeight ?? 0, Row.MaxHeight ?? int.MaxValue);
                         RemainingRowWeight -= RowWeight;
                     }
 
                     //  Measure every element in this row
                     List<int> RowChildHeights = new();
-                    int CellAvailableHeight = GeneralUtils.Min(RemainingRowHeight, WeightedHeight, Row.MaxHeight ?? int.MaxValue);
-                    for (int ColumnIndex = 0; ColumnIndex < _Columns.Count; ColumnIndex++)
+                    var CellAvailableHeight = GeneralUtils.Min(RemainingRowHeight, WeightedHeight, Row.MaxHeight ?? int.MaxValue);
+                    for (var ColumnIndex = 0; ColumnIndex < _Columns.Count; ColumnIndex++)
                     {
-                        ColumnDefinition Column = _Columns[ColumnIndex];
+                        var Column = _Columns[ColumnIndex];
                         GridCell Cell = new(Row, Column);
-                        int ColumnWidth = ColumnWidths[Column];
+                        var ColumnWidth = ColumnWidths[Column];
 
                         Size CellAvailableSize = new(ColumnWidth, CellAvailableHeight);
-                        if (!TryGetCellContentList(Cell, out List<MGElement> cellContent))
+                        if (!TryGetCellContentList(Cell, out var cellContent))
                         {
                             continue;
                         }
 
-                        for (int elementIndex = 0; elementIndex < cellContent.Count; elementIndex++)
+                        for (var elementIndex = 0; elementIndex < cellContent.Count; elementIndex++)
                         {
-                            MGElement Element = cellContent[elementIndex];
+                            var Element = cellContent[elementIndex];
                             if (!ChildSpanLookup[Element].AffectsMeasure)
                             {
                                 continue;
                             }
 
-                            int AvailableWidth = CellAvailableSize.Width;
+                            var AvailableWidth = CellAvailableSize.Width;
 
                             //  Measure the element using the total width of the spanned columns
-                            int ColumnSpan = ChildSpanLookup[Element].ColumnSpan;
+                            var ColumnSpan = ChildSpanLookup[Element].ColumnSpan;
                             if (ColumnSpan != 1)
                             {
                                 AvailableWidth = GetSpannedColumnWidth(ColumnIndex, ColumnSpan, ColumnWidths, resolvedColumnSpacing);
                             }
 
-                            Element.UpdateMeasurement(new Size(AvailableWidth, CellAvailableSize.Height), out _, out Thickness ElementSize, out _, out _);
+                            Element.UpdateMeasurement(new Size(AvailableWidth, CellAvailableSize.Height), out _, out var ElementSize, out _, out _);
                             RowChildHeights.Add(ElementSize.Size.Height);
                         }
                     }
@@ -1424,11 +1424,11 @@ public class MGGrid : MGMultiContentHost
             return UpdateContentMeasurementBaseImplementation(AvailableSize);
         }
 
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
-        int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
-        int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
-        GridDimensions Dimensions = ComputeDimensions(AvailableSize, true, resolvedRowSpacing, resolvedColumnSpacing, resolvedRowGridLineMargin, resolvedColumnGridLineMargin);
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+        var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+        var Dimensions = ComputeDimensions(AvailableSize, true, resolvedRowSpacing, resolvedColumnSpacing, resolvedRowGridLineMargin, resolvedColumnGridLineMargin);
         return new Thickness(Dimensions.TotalWidth, Dimensions.TotalHeight, 0, 0);
     }
 
@@ -1436,43 +1436,43 @@ public class MGGrid : MGMultiContentHost
     {
         Size AvailableSize = new(Bounds.Width, Bounds.Height);
 
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
-        int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
-        int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+        var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-        GridDimensions Dimensions = ComputeDimensions(AvailableSize, false, resolvedRowSpacing, resolvedColumnSpacing, resolvedRowGridLineMargin, resolvedColumnGridLineMargin);
-        Dictionary<ColumnDefinition, int> ColumnWidths = Dimensions.ColumnWidths;
-        Dictionary<RowDefinition, int> RowHeights = Dimensions.RowHeights;
+        var Dimensions = ComputeDimensions(AvailableSize, false, resolvedRowSpacing, resolvedColumnSpacing, resolvedRowGridLineMargin, resolvedColumnGridLineMargin);
+        var ColumnWidths = Dimensions.ColumnWidths;
+        var RowHeights = Dimensions.RowHeights;
         Size TotalContentSize = new(Dimensions.TotalWidth, Dimensions.TotalHeight);
 
         //  Account for content alignment
-        int ConsumedWidth = HorizontalContentAlignment == HorizontalAlignment.Stretch ? AvailableSize.Width : Math.Min(AvailableSize.Width, TotalContentSize.Width);
+        var ConsumedWidth = HorizontalContentAlignment == HorizontalAlignment.Stretch ? AvailableSize.Width : Math.Min(AvailableSize.Width, TotalContentSize.Width);
         Size ConsumedContentSize = new(ConsumedWidth, TotalContentSize.Height);
-        Rectangle AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
+        var AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
 
-        int CurrentX = AlignedBounds.Left;
+        var CurrentX = AlignedBounds.Left;
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
         {
             CurrentX += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
         }
 
         //  Set the bounds of each cell
-        foreach (ColumnDefinition Column in Columns)
+        foreach (var Column in Columns)
         {
-            int ColumnWidth = ColumnWidths[Column];
+            var ColumnWidth = ColumnWidths[Column];
             Column.Left = CurrentX;
             Column.Width = ColumnWidth;
 
-            int CurrentY = AlignedBounds.Top;
+            var CurrentY = AlignedBounds.Top;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
             {
                 CurrentY += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
             }
 
-            foreach (RowDefinition Row in Rows)
+            foreach (var Row in Rows)
             {
-                int RowHeight = RowHeights[Row];
+                var RowHeight = RowHeights[Row];
                 Row.Top = CurrentY;
                 Row.Height = RowHeight;
 
@@ -1485,25 +1485,25 @@ public class MGGrid : MGMultiContentHost
         _CellBounds = GetCellBounds(true);
 
         //  Allocate space for each child
-        for (int ColumnIndex = 0; ColumnIndex < Columns.Count; ColumnIndex++)
+        for (var ColumnIndex = 0; ColumnIndex < Columns.Count; ColumnIndex++)
         {
-            ColumnDefinition Column = Columns[ColumnIndex];
-            for (int RowIndex = 0; RowIndex < Rows.Count; RowIndex++)
+            var Column = Columns[ColumnIndex];
+            for (var RowIndex = 0; RowIndex < Rows.Count; RowIndex++)
             {
-                RowDefinition Row = Rows[RowIndex];
+                var Row = Rows[RowIndex];
 
                 GridCell Cell = new(Row, Column);
-                if (!TryGetCellContentList(Cell, out List<MGElement> cellContent))
+                if (!TryGetCellContentList(Cell, out var cellContent))
                 {
                     continue;
                 }
 
-                for (int childIndex = 0; childIndex < cellContent.Count; childIndex++)
+                for (var childIndex = 0; childIndex < cellContent.Count; childIndex++)
                 {
-                    MGElement Child = cellContent[childIndex];
-                    GridSpan Span = ChildSpanLookup[Child];
-                    Rectangle spannedBounds = GetSpannedBounds(ColumnIndex, RowIndex, Span);
-                    Rectangle ElementBounds = Rectangle.Intersect(Bounds, spannedBounds);
+                    var Child = cellContent[childIndex];
+                    var Span = ChildSpanLookup[Child];
+                    var spannedBounds = GetSpannedBounds(ColumnIndex, RowIndex, Span);
+                    var ElementBounds = Rectangle.Intersect(Bounds, spannedBounds);
                     UpdateChildLayoutIfNeeded(Child, ElementBounds);
                 }
             }
@@ -1515,10 +1515,10 @@ public class MGGrid : MGMultiContentHost
         //  Draw the selection background
         if (HasSelection && SelectionBackground != null)
         {
-            Rectangle? ScissorBounds = DA.DT.CurrentClipBounds;
-            foreach (GridCell Cell in CurrentSelection.Value)
+            var ScissorBounds = DA.DT.CurrentClipBounds;
+            foreach (var Cell in CurrentSelection.Value)
             {
-                if (_CellBounds.TryGetValue(Cell, out Rectangle Bounds))
+                if (_CellBounds.TryGetValue(Cell, out var Bounds))
                 {
                     if (ScissorBounds.HasValue && Bounds.GetTranslated(DA.Offset).Intersects(ScissorBounds.Value))
                     {
@@ -1528,8 +1528,8 @@ public class MGGrid : MGMultiContentHost
             }
         }
 
-        bool HasHorizontalGridLines = (GridLinesVisibility & GridLinesVisibility.AllHorizontal) != 0;
-        bool HasVerticalGridLines = (GridLinesVisibility & GridLinesVisibility.AllVertical) != 0;
+        var HasHorizontalGridLines = (GridLinesVisibility & GridLinesVisibility.AllHorizontal) != 0;
+        var HasVerticalGridLines = (GridLinesVisibility & GridLinesVisibility.AllVertical) != 0;
 
         if (HasHorizontalGridLines && HasVerticalGridLines)
         {
@@ -1562,10 +1562,10 @@ public class MGGrid : MGMultiContentHost
     /// Usually this is just (_Rows[^1], _Columns[^1]) but might not be in cases where a new row/column was just added and the layout for it is yet to be calculated.</summary>
     private GridCell GetLastCellWithKnownBounds()
     {
-        ColumnDefinition LastKnownColumn = _Columns.FirstOrDefault();
-        for (int i = _Columns.Count - 1; i >= 0; i--)
+        var LastKnownColumn = _Columns.FirstOrDefault();
+        for (var i = _Columns.Count - 1; i >= 0; i--)
         {
-            ColumnDefinition CD = _Columns[i];
+            var CD = _Columns[i];
             if (CD.Left != default || CD.Width != default)
             {
                 LastKnownColumn = CD;
@@ -1573,10 +1573,10 @@ public class MGGrid : MGMultiContentHost
             }
         }
 
-        RowDefinition LastKnownRow = _Rows.FirstOrDefault();
-        for (int i = _Rows.Count - 1; i >= 0; i--)
+        var LastKnownRow = _Rows.FirstOrDefault();
+        for (var i = _Rows.Count - 1; i >= 0; i--)
         {
-            RowDefinition RD = _Rows[i];
+            var RD = _Rows[i];
             if (RD.Top != default || RD.Height != default)
             {
                 LastKnownRow = RD;
@@ -1594,21 +1594,21 @@ public class MGGrid : MGMultiContentHost
             return;
         }
 
-        _CellBounds.TryGetValue(new GridCell(_Rows[0], _Columns[0]), out Rectangle TopLeftCellBounds);
-        _CellBounds.TryGetValue(GetLastCellWithKnownBounds(), out Rectangle BottomRightCellBounds);
+        _CellBounds.TryGetValue(new GridCell(_Rows[0], _Columns[0]), out var TopLeftCellBounds);
+        _CellBounds.TryGetValue(GetLastCellWithKnownBounds(), out var BottomRightCellBounds);
 
         //  Snapshot the resolved spacing/margin once for this drawing pass.
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
-        int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
-        int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+        var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-        int Left = TopLeftCellBounds.Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
-        int Right = BottomRightCellBounds.Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
-        int Top = TopLeftCellBounds.Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
-        int Bottom = BottomRightCellBounds.Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+        var Left = TopLeftCellBounds.Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+        var Right = BottomRightCellBounds.Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+        var Top = TopLeftCellBounds.Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+        var Bottom = BottomRightCellBounds.Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
 
-        int FilledHeight = Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin * 2);
+        var FilledHeight = Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin * 2);
 
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
         {
@@ -1624,9 +1624,9 @@ public class MGGrid : MGMultiContentHost
 
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.InnerHorizontal))
         {
-            for (int i = 0; i < Rows.Count; i++)
+            for (var i = 0; i < Rows.Count; i++)
             {
-                RowDefinition Row = Rows[i];
+                var Row = Rows[i];
 
                 if (i != Rows.Count - 1)
                 {
@@ -1644,21 +1644,21 @@ public class MGGrid : MGMultiContentHost
             return;
         }
 
-        _CellBounds.TryGetValue(new GridCell(_Rows[0], _Columns[0]), out Rectangle TopLeftCellBounds);
-        _CellBounds.TryGetValue(GetLastCellWithKnownBounds(), out Rectangle BottomRightCellBounds);
+        _CellBounds.TryGetValue(new GridCell(_Rows[0], _Columns[0]), out var TopLeftCellBounds);
+        _CellBounds.TryGetValue(GetLastCellWithKnownBounds(), out var BottomRightCellBounds);
 
         //  Snapshot the resolved spacing/margin once for this drawing pass.
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
-        int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
-        int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+        var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-        int Left = TopLeftCellBounds.Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
-        int Right = BottomRightCellBounds.Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
-        int Top = TopLeftCellBounds.Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
-        int Bottom = BottomRightCellBounds.Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+        var Left = TopLeftCellBounds.Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+        var Right = BottomRightCellBounds.Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+        var Top = TopLeftCellBounds.Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+        var Bottom = BottomRightCellBounds.Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
 
-        int FilledWidth = Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin * 2);
+        var FilledWidth = Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin * 2);
 
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
         {
@@ -1674,9 +1674,9 @@ public class MGGrid : MGMultiContentHost
 
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.InnerVertical))
         {
-            for (int i = 0; i < Columns.Count; i++)
+            for (var i = 0; i < Columns.Count; i++)
             {
-                ColumnDefinition Column = Columns[i];
+                var Column = Columns[i];
 
                 if (i != Columns.Count - 1)
                 {

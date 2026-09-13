@@ -96,7 +96,7 @@ public class MGDockSplitContainer : MGElement
         get => _splitRatio;
         set
         {
-            float clamped = Math.Clamp(value, 0.0f, 1.0f);
+            var clamped = Math.Clamp(value, 0.0f, 1.0f);
             if (_splitRatio != clamped)
             {
                 _splitRatio = clamped;
@@ -270,7 +270,7 @@ public class MGDockSplitContainer : MGElement
     /// </summary>
     private float ClampRatioToMinSizes(float ratio)
     {
-        int availableSize = (Orientation == Orientation.Horizontal)
+        var availableSize = (Orientation == Orientation.Horizontal)
             ? LayoutBounds.Width - SplitterThickness
             : LayoutBounds.Height - SplitterThickness;
 
@@ -280,8 +280,8 @@ public class MGDockSplitContainer : MGElement
         }
 
         // Calculate effective minimum sizes (considering nested splits if ModelNode is available)
-        int effectiveMinFirstSize = MinFirstSize;
-        int effectiveMinSecondSize = MinSecondSize;
+        var effectiveMinFirstSize = MinFirstSize;
+        var effectiveMinSecondSize = MinSecondSize;
 
         if (ModelNode != null)
         {
@@ -326,9 +326,9 @@ public class MGDockSplitContainer : MGElement
             return new Thickness(0);
         }
 
-        Thickness firstSize = new Thickness(0);
-        Thickness secondSize = new Thickness(0);
-        Thickness splitterSize = new Thickness(0);
+        var firstSize = new Thickness(0);
+        var secondSize = new Thickness(0);
+        var splitterSize = new Thickness(0);
 
         // Measure children
         if (FirstChild != null)
@@ -350,14 +350,14 @@ public class MGDockSplitContainer : MGElement
         if (Orientation == Orientation.Horizontal)
         {
             // Horizontal: widths add up, height is max
-            int totalWidth = firstSize.Width + splitterSize.Width + secondSize.Width;
-            int maxHeight = Math.Max(firstSize.Height, Math.Max(splitterSize.Height, secondSize.Height));
+            var totalWidth = firstSize.Width + splitterSize.Width + secondSize.Width;
+            var maxHeight = Math.Max(firstSize.Height, Math.Max(splitterSize.Height, secondSize.Height));
             return new Thickness(totalWidth, maxHeight, 0, 0);
         }
 
         // Vertical: heights add up, width is max
-        int maxWidth = Math.Max(firstSize.Width, Math.Max(splitterSize.Width, secondSize.Width));
-        int totalHeight = firstSize.Height + splitterSize.Height + secondSize.Height;
+        var maxWidth = Math.Max(firstSize.Width, Math.Max(splitterSize.Width, secondSize.Width));
+        var totalHeight = firstSize.Height + splitterSize.Height + secondSize.Height;
         return new Thickness(maxWidth, totalHeight, 0, 0);
     }
 
@@ -373,9 +373,9 @@ public class MGDockSplitContainer : MGElement
         if (Orientation == Orientation.Horizontal)
         {
             // Horizontal split: side by side
-            int availableWidth = Bounds.Width - SplitterThickness;
+            var availableWidth = Bounds.Width - SplitterThickness;
                 
-            DockSplitSizing.ComputeChildSizes(SplitRatio, availableWidth, MinFirstSize, MinSecondSize, out int firstWidth, out int secondWidth);
+            DockSplitSizing.ComputeChildSizes(SplitRatio, availableWidth, MinFirstSize, MinSecondSize, out var firstWidth, out var secondWidth);
 
             // Calculate bounds
             firstBounds = new Rectangle(Bounds.X, Bounds.Y, firstWidth, Bounds.Height);
@@ -385,9 +385,9 @@ public class MGDockSplitContainer : MGElement
         else
         {
             // Vertical split: top and bottom
-            int availableHeight = Bounds.Height - SplitterThickness;
+            var availableHeight = Bounds.Height - SplitterThickness;
                 
-            DockSplitSizing.ComputeChildSizes(SplitRatio, availableHeight, MinFirstSize, MinSecondSize, out int firstHeight, out int secondHeight);
+            DockSplitSizing.ComputeChildSizes(SplitRatio, availableHeight, MinFirstSize, MinSecondSize, out var firstHeight, out var secondHeight);
 
             // Calculate bounds
             firstBounds = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, firstHeight);

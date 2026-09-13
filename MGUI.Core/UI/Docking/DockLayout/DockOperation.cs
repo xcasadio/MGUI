@@ -125,7 +125,7 @@ public static class DockOperation
 
         // Remove panel from current parent if it has one
         DockTabGroupNode emptyGroupToCleanup = null;
-        bool draggingFromTargetGroup = false;
+        var draggingFromTargetGroup = false;
             
         if (panel.Parent is DockTabGroupNode currentGroup)
         {
@@ -146,7 +146,7 @@ public static class DockOperation
                 
             // Check if targetNode is a descendant of currentGroup
             // If so, we need to be careful as removing the panel might affect the tree
-            bool targetIsDescendant = IsDescendant(currentGroup, targetNode);
+            var targetIsDescendant = IsDescendant(currentGroup, targetNode);
                 
             currentGroup.RemovePanel(panel);
                 
@@ -206,8 +206,8 @@ public static class DockOperation
         // IMPORTANT: Save the parent reference AND detach targetNode BEFORE creating the split
         // This prevents parent reference corruption when the split's setter tries to clear the old child
         var targetNodeParent = targetNode.Parent;
-        bool wasFirstChild = false;
-        bool wasSecondChild = false;
+        var wasFirstChild = false;
+        var wasSecondChild = false;
             
         // Temporarily detach targetNode from its parent to avoid conflicts
         if (targetNodeParent is DockSplitNode tempSplitParent)
@@ -304,7 +304,7 @@ public static class DockOperation
         }
 
         // The existing root — may be null if the layout is empty
-        DockNode existingRoot = model.RootNode;
+        var existingRoot = model.RootNode;
 
         // Create a new tab group for the dropped panel
         var newTabGroup = new DockTabGroupNode();
@@ -471,7 +471,7 @@ public static class DockOperation
         }
 
         // Get the sibling (non-empty child)
-        DockNode sibling = splitNode.GetSibling(emptyChild);
+        var sibling = splitNode.GetSibling(emptyChild);
 
         if (sibling == null)
         {
@@ -566,8 +566,8 @@ public static class DockOperation
         // Handle SplitNode
         if (node is DockSplitNode splitNode)
         {
-            bool firstCleanable = CleanupNodeRecursive(model, splitNode.FirstChild);
-            bool secondCleanable = CleanupNodeRecursive(model, splitNode.SecondChild);
+            var firstCleanable = CleanupNodeRecursive(model, splitNode.FirstChild);
+            var secondCleanable = CleanupNodeRecursive(model, splitNode.SecondChild);
 
             if (firstCleanable && secondCleanable)
             {

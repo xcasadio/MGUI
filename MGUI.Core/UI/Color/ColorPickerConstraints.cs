@@ -12,11 +12,11 @@ public sealed class ColorPickerConstraints
 
     public ColorValue Apply(ColorValue value)
     {
-        float maxChannel = AllowHdr ? MaxChannelValue : Math.Min(MaxChannelValue, 1f);
-        float r = Clamp(value.R, MinChannelValue, maxChannel);
-        float g = Clamp(value.G, MinChannelValue, maxChannel);
-        float b = Clamp(value.B, MinChannelValue, maxChannel);
-        float a = AllowAlpha ? Clamp(value.A, 0f, 1f) : 1f;
+        var maxChannel = AllowHdr ? MaxChannelValue : Math.Min(MaxChannelValue, 1f);
+        var r = Clamp(value.R, MinChannelValue, maxChannel);
+        var g = Clamp(value.G, MinChannelValue, maxChannel);
+        var b = Clamp(value.B, MinChannelValue, maxChannel);
+        var a = AllowAlpha ? Clamp(value.A, 0f, 1f) : 1f;
         return new ColorValue(r, g, b, a, value.ColorSpace, AllowHdr && value.IsHdr);
     }
 

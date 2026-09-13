@@ -133,8 +133,8 @@ public static class UIBuiltInAnimationTargets
     {
         public string Path => Paths.RenderScale;
         public bool IsStoreBacked => true;
-        public float GetValue(MGElement element) => element.TryGetEffectiveStateScale(out float scale) ? scale : 1.0f;
-        public float GetUnderlyingValue(MGElement element) => element.TryGetStateScaleWithoutOverride(out float scale) ? scale : 1.0f;
+        public float GetValue(MGElement element) => element.TryGetEffectiveStateScale(out var scale) ? scale : 1.0f;
+        public float GetUnderlyingValue(MGElement element) => element.TryGetStateScaleWithoutOverride(out var scale) ? scale : 1.0f;
         public void SetValue(MGElement element, float value, string animationName) => element.SetStateScaleOverride(value);
         public void RestoreBaseValue(MGElement element, float baseValue) => element.SetStateScaleOverride(null);
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed) => new StateScaleSubscription(element, changed);

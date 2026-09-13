@@ -63,7 +63,7 @@ internal sealed class UIResolvedPropertyStore
 
         public override void CopyContributionsTo(List<UIResolvedContribution> target)
         {
-            for (int i = 0; i < Contributions.Count; i++)
+            for (var i = 0; i < Contributions.Count; i++)
                 target.Add(new UIResolvedContribution(Kinds[i], Contributions[i].Source, Contributions[i].Value));
         }
     }
@@ -86,7 +86,7 @@ internal sealed class UIResolvedPropertyStore
     private Entry<T> GetOrCreateEntry<T>(UIPilotProperty property, UIValueSlot slot, int index)
     {
         _entries ??= new Entry[PropertyCount * SlotCount];
-        Entry existing = _entries[index];
+        var existing = _entries[index];
         if (existing == null)
         {
             Entry<T> created = new();
@@ -103,7 +103,7 @@ internal sealed class UIResolvedPropertyStore
 
     private Entry<T> GetExistingEntry<T>(UIPilotProperty property, UIValueSlot slot, int index)
     {
-        Entry existing = _entries?[index];
+        var existing = _entries?[index];
         if (existing == null)
             return null;
 
@@ -115,7 +115,7 @@ internal sealed class UIResolvedPropertyStore
 
     private static int FindInsertionIndex<T>(List<UIResolvedValue<T>> contributions, UIValuePrecedence precedence)
     {
-        for (int i = 0; i < contributions.Count; i++)
+        for (var i = 0; i < contributions.Count; i++)
         {
             if (contributions[i].Source.Precedence < precedence)
                 return i;
@@ -138,15 +138,15 @@ internal sealed class UIResolvedPropertyStore
     public bool Set<T>(UIPilotProperty property, UIValueSlot slot, T value, UIValueResolutionSource source, IEqualityComparer<T> comparer, out bool effectiveChanged, out UIResolvedValue<T> effective)
     {
         comparer ??= EqualityComparer<T>.Default;
-        int index = IndexOf(property, slot);
-        Entry<T> entry = GetOrCreateEntry<T>(property, slot, index);
+        var index = IndexOf(property, slot);
+        var entry = GetOrCreateEntry<T>(property, slot, index);
 
-        UIResolvedValue<T> oldEffective = entry.Contributions.Count > 0
+        var oldEffective = entry.Contributions.Count > 0
             ? entry.Contributions[0]
             : UIResolvedValue<T>.Unset(entry.EmptiedInvalidation);
 
         UIResolvedValue<T> contribution = new(value, source);
-        int existingIndex = entry.Kinds.IndexOf(source.Kind);
+        var existingIndex = entry.Kinds.IndexOf(source.Kind);
         bool added;
         if (existingIndex >= 0)
         {
@@ -155,7 +155,7 @@ internal sealed class UIResolvedPropertyStore
         }
         else
         {
-            int insertAt = FindInsertionIndex(entry.Contributions, source.Precedence);
+            var insertAt = FindInsertionIndex(entry.Contributions, source.Precedence);
             entry.Contributions.Insert(insertAt, contribution);
             entry.Kinds.Insert(insertAt, source.Kind);
             added = true;
@@ -178,8 +178,8 @@ internal sealed class UIResolvedPropertyStore
     public bool Unset<T>(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind kind, IEqualityComparer<T> comparer, out bool effectiveChanged, out UIResolvedValue<T> effective)
     {
         comparer ??= EqualityComparer<T>.Default;
-        int index = IndexOf(property, slot);
-        Entry<T> entry = GetExistingEntry<T>(property, slot, index);
+        var index = IndexOf(property, slot);
+        var entry = GetExistingEntry<T>(property, slot, index);
         if (entry == null)
         {
             effective = UIResolvedValue<T>.Unset(UIInvalidationKind.None);
@@ -187,11 +187,11 @@ internal sealed class UIResolvedPropertyStore
             return false;
         }
 
-        UIResolvedValue<T> oldEffective = entry.Contributions.Count > 0
+        var oldEffective = entry.Contributions.Count > 0
             ? entry.Contributions[0]
             : UIResolvedValue<T>.Unset(entry.EmptiedInvalidation);
 
-        int existingIndex = entry.Kinds.IndexOf(kind);
+        var existingIndex = entry.Kinds.IndexOf(kind);
         if (existingIndex < 0)
         {
             effective = oldEffective;
@@ -199,7 +199,7 @@ internal sealed class UIResolvedPropertyStore
             return false;
         }
 
-        UIResolvedValue<T> removed = entry.Contributions[existingIndex];
+        var removed = entry.Contributions[existingIndex];
         entry.Contributions.RemoveAt(existingIndex);
         entry.Kinds.RemoveAt(existingIndex);
 
@@ -228,8 +228,8 @@ internal sealed class UIResolvedPropertyStore
     /// </summary>
     public bool TryGetWinner<T>(UIPilotProperty property, UIValueSlot slot, out UIResolvedValue<T> winner)
     {
-        int index = IndexOf(property, slot);
-        Entry<T> entry = GetExistingEntry<T>(property, slot, index);
+        var index = IndexOf(property, slot);
+        var entry = GetExistingEntry<T>(property, slot, index);
         if (entry == null)
         {
             winner = UIResolvedValue<T>.Unset(UIInvalidationKind.None);
@@ -252,11 +252,11 @@ internal sealed class UIResolvedPropertyStore
     /// </summary>
     public bool TryGetContribution<T>(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind kind, out UIResolvedValue<T> contribution)
     {
-        int index = IndexOf(property, slot);
-        Entry<T> entry = GetExistingEntry<T>(property, slot, index);
+        var index = IndexOf(property, slot);
+        var entry = GetExistingEntry<T>(property, slot, index);
         if (entry != null)
         {
-            int existingIndex = entry.Kinds.IndexOf(kind);
+            var existingIndex = entry.Kinds.IndexOf(kind);
             if (existingIndex >= 0)
             {
                 contribution = entry.Contributions[existingIndex];
@@ -285,7 +285,7 @@ internal sealed class UIResolvedPropertyStore
         if (_entries == null)
             return EmptyKinds;
 
-        Entry entry = _entries[IndexOf(property, slot)];
+        var entry = _entries[IndexOf(property, slot)];
         return entry?.KindsView ?? EmptyKinds;
     }
 
@@ -301,7 +301,7 @@ internal sealed class UIResolvedPropertyStore
         if (_entries == null)
             return EmptyContributions;
 
-        Entry entry = _entries[IndexOf(property, slot)];
+        var entry = _entries[IndexOf(property, slot)];
         if (entry == null || entry.KindsView.Count == 0)
             return EmptyContributions;
 

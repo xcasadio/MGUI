@@ -20,18 +20,18 @@ public static class UIResponsiveResolver
                 false);
         }
 
-        float widthRatio = viewportSize.Width / (float)settings.DesignResolution.Width;
-        float heightRatio = viewportSize.Height / (float)settings.DesignResolution.Height;
+        var widthRatio = viewportSize.Width / (float)settings.DesignResolution.Width;
+        var heightRatio = viewportSize.Height / (float)settings.DesignResolution.Height;
 
-        float viewportScale = settings.UIScaleMode switch
+        var viewportScale = settings.UIScaleMode switch
         {
             UIResponsiveScaleMode.UniformFit => Math.Min(widthRatio, heightRatio),
             _ => throw new NotImplementedException($"Unrecognized {nameof(UIResponsiveScaleMode)}: {settings.UIScaleMode}"),
         };
 
-        float actualDpiScale = settings.UseDpiScale ? Math.Max(0.1f, dpiScale) : 1.0f;
-        float uiScale = UIResponsiveMath.ClampPositive(viewportScale * actualDpiScale, settings.MinUIScaleFactor, settings.MaxUIScaleFactor);
-        float textScale = UIResponsiveMath.ClampPositive(uiScale * settings.TextScaleMultiplier, settings.MinTextScaleFactor, settings.MaxTextScaleFactor);
+        var actualDpiScale = settings.UseDpiScale ? Math.Max(0.1f, dpiScale) : 1.0f;
+        var uiScale = UIResponsiveMath.ClampPositive(viewportScale * actualDpiScale, settings.MinUIScaleFactor, settings.MaxUIScaleFactor);
+        var textScale = UIResponsiveMath.ClampPositive(uiScale * settings.TextScaleMultiplier, settings.MinTextScaleFactor, settings.MaxTextScaleFactor);
 
         return new UIResolvedMetrics(
             settings.DesignResolution,

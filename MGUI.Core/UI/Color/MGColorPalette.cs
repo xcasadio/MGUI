@@ -28,7 +28,7 @@ public sealed class MGColorPalette
             return false;
         }
 
-        MGColorSwatch swatch = Swatches[oldIndex];
+        var swatch = Swatches[oldIndex];
         Swatches.RemoveAt(oldIndex);
         Swatches.Insert(newIndex, swatch);
         return true;
@@ -36,7 +36,7 @@ public sealed class MGColorPalette
 
     public MGColorSwatch AddOrMoveToFront(string name, ColorValue value, int maxCount)
     {
-        int existingIndex = Swatches.FindIndex(x => x.Value == value);
+        var existingIndex = Swatches.FindIndex(x => x.Value == value);
         MGColorSwatch swatch;
         if (existingIndex >= 0)
         {
@@ -50,7 +50,7 @@ public sealed class MGColorPalette
         }
 
         Swatches.Insert(0, swatch);
-        int limit = Math.Max(0, maxCount);
+        var limit = Math.Max(0, maxCount);
         while (Swatches.Count > limit)
         {
             Swatches.RemoveAt(Swatches.Count - 1);

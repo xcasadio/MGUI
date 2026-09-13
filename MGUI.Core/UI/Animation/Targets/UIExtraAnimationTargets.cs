@@ -109,7 +109,7 @@ public static class UIExtraAnimationTargets
 
         public UIGradientColors GetValue(MGElement element)
         {
-            IFillBrush brush = element.BackgroundBrush?.NormalValue;
+            var brush = element.BackgroundBrush?.NormalValue;
             if (brush is MGGradientFillBrush gradient)
             {
                 return new UIGradientColors(gradient.TopLeftColor, gradient.TopRightColor, gradient.BottomRightColor, gradient.BottomLeftColor);
@@ -144,7 +144,7 @@ public static class UIExtraAnimationTargets
 
         public UIDiagonalGradientColors GetValue(MGElement element)
         {
-            IFillBrush brush = element.BackgroundBrush?.NormalValue;
+            var brush = element.BackgroundBrush?.NormalValue;
             if (brush is MGDiagonalGradientFillBrush gradient)
             {
                 return new UIDiagonalGradientColors(gradient.Color1, gradient.Color2, gradient.Color1Position);

@@ -126,7 +126,7 @@ public class VirtualizingStackPanel : MGMultiContentHost
             return;
         }
 
-        if (TryFindParentOfType<MGScrollViewer>(out MGScrollViewer sv))
+        if (TryFindParentOfType<MGScrollViewer>(out var sv))
         {
             _parentScrollViewer = sv;
             _parentVerticalOffsetChangedHandler ??= (_, _) => RequestVirtualizationLayoutRefresh();
@@ -142,9 +142,9 @@ public class VirtualizingStackPanel : MGMultiContentHost
     private void RecycleAllItems()
     {
         // Collect indices first to avoid modifying the dictionary during iteration
-        int[] indices = new int[_realizedItems.Count];
+        var indices = new int[_realizedItems.Count];
         _realizedItems.Keys.CopyTo(indices, 0);
-        foreach (int idx in indices)
+        foreach (var idx in indices)
         {
             RecycleItem(idx);
         }
@@ -171,7 +171,7 @@ public class VirtualizingStackPanel : MGMultiContentHost
             return;
         }
 
-        MGElement element = ItemGenerator(index);
+        var element = ItemGenerator(index);
         if (element == null)
         {
             return;
@@ -187,7 +187,7 @@ public class VirtualizingStackPanel : MGMultiContentHost
 
     private void RecycleItem(int index)
     {
-        if (!_realizedItems.TryGetValue(index, out MGElement element))
+        if (!_realizedItems.TryGetValue(index, out var element))
         {
             return;
         }
@@ -234,15 +234,15 @@ public class VirtualizingStackPanel : MGMultiContentHost
 
         EnsureScrollViewerAttached();
 
-        int finiteWidth = GetFiniteContentWidth(bounds.Width);
+        var finiteWidth = GetFiniteContentWidth(bounds.Width);
         if (finiteWidth > 0 && bounds.Width != finiteWidth)
         {
             bounds = new Rectangle(bounds.X, bounds.Y, finiteWidth, bounds.Height);
         }
 
         // Determine visible range from scroll viewer
-        int scrollOffset = 0;
-        int viewportHeight = bounds.Height; // fallback: full virtual height
+        var scrollOffset = 0;
+        var viewportHeight = bounds.Height; // fallback: full virtual height
         if (_parentScrollViewer != null)
         {
             scrollOffset = (int)_parentScrollViewer.VerticalOffset;
@@ -253,11 +253,11 @@ public class VirtualizingStackPanel : MGMultiContentHost
             }
         }
 
-        int firstNeeded = Math.Max(0, (int)(scrollOffset / (double)UniformItemHeight) - BufferCount);
-        int lastNeeded  = Math.Min(TotalItemCount - 1,
+        var firstNeeded = Math.Max(0, (int)(scrollOffset / (double)UniformItemHeight) - BufferCount);
+        var lastNeeded  = Math.Min(TotalItemCount - 1,
             (int)((scrollOffset + viewportHeight - 1) / (double)UniformItemHeight) + BufferCount);
 
-        bool rangeChanged = firstNeeded != _cachedFirstNeeded || lastNeeded != _cachedLastNeeded;
+        var rangeChanged = firstNeeded != _cachedFirstNeeded || lastNeeded != _cachedLastNeeded;
 
         if (rangeChanged)
         {
@@ -267,23 +267,23 @@ public class VirtualizingStackPanel : MGMultiContentHost
             // Recycle items that fell outside the new range (no LINQ, avoids allocations)
             if (_realizedItems.Count > 0)
             {
-                int[] toRecycle = new int[_realizedItems.Count];
-                int count = 0;
-                foreach (int k in _realizedItems.Keys)
+                var toRecycle = new int[_realizedItems.Count];
+                var count = 0;
+                foreach (var k in _realizedItems.Keys)
                 {
                     if (k < firstNeeded || k > lastNeeded)
                     {
                         toRecycle[count++] = k;
                     }
                 }
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
                     RecycleItem(toRecycle[i]);
                 }
             }
 
             // Realize items newly in range
-            for (int i = firstNeeded; i <= lastNeeded; i++)
+            for (var i = firstNeeded; i <= lastNeeded; i++)
             {
                 if (!_realizedItems.ContainsKey(i))
                 {
@@ -299,7 +299,7 @@ public class VirtualizingStackPanel : MGMultiContentHost
         // Always reposition realized items (bounds may have changed even when the range did not)
         foreach (var (idx, element) in _realizedItems)
         {
-            int y = bounds.Top + idx * UniformItemHeight;
+            var y = bounds.Top + idx * UniformItemHeight;
             Rectangle itemBounds = new(bounds.Left, y, bounds.Width, UniformItemHeight);
             if (!element.IsLayoutValid || element.AllocatedBounds != itemBounds)
             {
@@ -319,26 +319,26 @@ public class VirtualizingStackPanel : MGMultiContentHost
 
         if (_parentScrollViewer != null)
         {
-            int viewportWidth = _parentScrollViewer.ContentViewport.Width;
+            var viewportWidth = _parentScrollViewer.ContentViewport.Width;
             if (viewportWidth > 0 && !IsUnbounded(viewportWidth))
             {
                 return viewportWidth;
             }
         }
 
-        int layoutWidth = LayoutBounds.Width;
+        var layoutWidth = LayoutBounds.Width;
         if (layoutWidth > 0 && !IsUnbounded(layoutWidth))
         {
             return layoutWidth;
         }
 
-        int actualWidth = ActualLayoutBounds.Width;
+        var actualWidth = ActualLayoutBounds.Width;
         if (actualWidth > 0 && !IsUnbounded(actualWidth))
         {
             return actualWidth;
         }
 
-        int parentWidth = Parent?.ActualLayoutBounds.Width ?? 0;
+        var parentWidth = Parent?.ActualLayoutBounds.Width ?? 0;
         if (parentWidth > 0 && !IsUnbounded(parentWidth))
         {
             return parentWidth;

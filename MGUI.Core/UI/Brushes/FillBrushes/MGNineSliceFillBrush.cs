@@ -32,13 +32,13 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
     {
         this.TargetMargin = TargetMargin;
 
-        IUIImageResource Image = Source.Image;
+        var Image = Source.Image;
         if (Image == null)
         {
             throw new ArgumentNullException(nameof(Source));
         }
 
-        Rectangle Bounds = Source.SourceRect ?? new Rectangle(0, 0, Image.Width, Image.Height);
+        var Bounds = Source.SourceRect ?? new Rectangle(0, 0, Image.Width, Image.Height);
 
         //  Validate the source margin
         Thickness Margin;
@@ -61,13 +61,13 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
             Margin = new(Bounds.Width / 3, Bounds.Height / 3);
         }
 
-        int LeftColumnSize = Margin.Left;
-        int RightColumnSize = Margin.Right;
-        int CenterColumnSize = Bounds.Width - LeftColumnSize - RightColumnSize;
+        var LeftColumnSize = Margin.Left;
+        var RightColumnSize = Margin.Right;
+        var CenterColumnSize = Bounds.Width - LeftColumnSize - RightColumnSize;
 
-        int TopRowSize = Margin.Top;
-        int BottomRowSize = Margin.Bottom;
-        int CenterRowSize = Bounds.Height - TopRowSize - BottomRowSize;
+        var TopRowSize = Margin.Top;
+        var BottomRowSize = Margin.Bottom;
+        var CenterRowSize = Bounds.Height - TopRowSize - BottomRowSize;
 
         //  Compute the top row regions
         TopLeft = new(Image, new(Bounds.Left, Bounds.Top, LeftColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
@@ -113,13 +113,13 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
 
         Bounds = Bounds.GetTranslated(DA.Offset);
 
-        int LeftColumnSize = TargetMargin.Left;
-        int RightColumnSize = TargetMargin.Right;
-        int CenterColumnSize = Bounds.Width - LeftColumnSize - RightColumnSize;
+        var LeftColumnSize = TargetMargin.Left;
+        var RightColumnSize = TargetMargin.Right;
+        var CenterColumnSize = Bounds.Width - LeftColumnSize - RightColumnSize;
 
-        int TopRowSize = TargetMargin.Top;
-        int BottomRowSize = TargetMargin.Bottom;
-        int CenterRowSize = Bounds.Height - TopRowSize - BottomRowSize;
+        var TopRowSize = TargetMargin.Top;
+        var BottomRowSize = TargetMargin.Bottom;
+        var CenterRowSize = Bounds.Height - TopRowSize - BottomRowSize;
 
         //  Draw the top row
         if (TopRowSize > 0)
@@ -204,18 +204,18 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
             return;
         }
 
-        Rectangle bounds = Shape.OuterBounds;
+        var bounds = Shape.OuterBounds;
 
-        int LeftColumnSize = TargetMargin.Left;
-        int RightColumnSize = TargetMargin.Right;
-        int CenterColumnSize = bounds.Width - LeftColumnSize - RightColumnSize;
+        var LeftColumnSize = TargetMargin.Left;
+        var RightColumnSize = TargetMargin.Right;
+        var CenterColumnSize = bounds.Width - LeftColumnSize - RightColumnSize;
 
-        int TopRowSize = TargetMargin.Top;
-        int BottomRowSize = TargetMargin.Bottom;
-        int CenterRowSize = bounds.Height - TopRowSize - BottomRowSize;
+        var TopRowSize = TargetMargin.Top;
+        var BottomRowSize = TargetMargin.Bottom;
+        var CenterRowSize = bounds.Height - TopRowSize - BottomRowSize;
 
-        Vector2 origin = DA.Offset.ToVector2();
-        IReadOnlyList<Vector2> outerContour = Geometry.OuterContour;
+        var origin = DA.Offset.ToVector2();
+        var outerContour = Geometry.OuterContour;
 
         List<Vector2> quadPolygon = new(4);
         List<Vector2> clipped = new(8);
@@ -231,7 +231,7 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
                 return;
             }
 
-            IUIImageResource image = patch.Image;
+            var image = patch.Image;
             if (image == null || image.IsDisposed)
             {
                 return;
@@ -249,23 +249,23 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
                 return;
             }
 
-            Color color = Color.White * patch.Opacity * DA.Opacity;
+            var color = Color.White * patch.Opacity * DA.Opacity;
 
-            PatchBatch batch = batches.Find(b => ReferenceEquals(b.Image, image) && b.Color == color && b.Vertices.Count + clipped.Count <= short.MaxValue);
+            var batch = batches.Find(b => ReferenceEquals(b.Image, image) && b.Color == color && b.Vertices.Count + clipped.Count <= short.MaxValue);
             if (batch == null)
             {
                 batch = new PatchBatch(image, color);
                 batches.Add(batch);
             }
 
-            Rectangle sourceRect = patch.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
-            float inverseImageWidth = 1f / image.Width;
-            float inverseImageHeight = 1f / image.Height;
+            var sourceRect = patch.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
+            var inverseImageWidth = 1f / image.Width;
+            var inverseImageHeight = 1f / image.Height;
             Vector2 uvTopLeft = new(sourceRect.Left * inverseImageWidth, sourceRect.Top * inverseImageHeight);
             Vector2 uvBottomRight = new(sourceRect.Right * inverseImageWidth, sourceRect.Bottom * inverseImageHeight);
 
-            int baseIndex = batch.Vertices.Count;
-            foreach (Vector2 vertex in clipped)
+            var baseIndex = batch.Vertices.Count;
+            foreach (var vertex in clipped)
             {
                 batch.Vertices.Add(vertex);
                 batch.TextureCoordinates.Add(MGConvexPolygonClipper.InterpolateRectUV(vertex, destination, uvTopLeft, uvBottomRight));
@@ -324,7 +324,7 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
             }
         }
 
-        foreach (PatchBatch batch in batches)
+        foreach (var batch in batches)
         {
             DA.Context.DrawTexturedTriangleList(origin, batch.Image, batch.Vertices, batch.TextureCoordinates, batch.Indices, batch.Color);
         }

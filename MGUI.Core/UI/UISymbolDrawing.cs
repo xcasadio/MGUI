@@ -16,7 +16,7 @@ public static class UISymbolDrawing
 {
     public static void DrawCheckMark(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, Color color, float thickness = 2.0f)
     {
-        foreach ((Vector2 v0, Vector2 v1) in GetCheckMarkVertices(bounds).SelectConsecutivePairs(false))
+        foreach ((var v0, var v1) in GetCheckMarkVertices(bounds).SelectConsecutivePairs(false))
         {
             drawContext.StrokeLineSegment(origin, v0, v1, color, thickness);
         }
@@ -24,7 +24,7 @@ public static class UISymbolDrawing
 
     public static IReadOnlyList<Vector2> GetCheckMarkVertices(Rectangle bounds)
     {
-        Vector2 topLeft = bounds.TopLeft().ToVector2();
+        var topLeft = bounds.TopLeft().ToVector2();
         return new[]
         {
             topLeft + new Vector2(bounds.Width * 0.2f, bounds.Height * 0.5f),
@@ -41,8 +41,8 @@ public static class UISymbolDrawing
     public static void DrawRadioIndicator(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, Color borderColor,
         float borderThickness, Color fillColor, Color? overlayColor, bool isChecked, Color checkedColor, int numSides = 32)
     {
-        Point center = bounds.Center;
-        int radius = bounds.Width / 2;
+        var center = bounds.Center;
+        var radius = bounds.Width / 2;
 
         drawContext.FillCircle(center.ToVector2() + origin, fillColor, radius - borderThickness / 2.0f, numSides);
         drawContext.StrokeCircle(center.ToVector2() + origin, borderColor, radius, borderThickness, numSides);
@@ -55,25 +55,25 @@ public static class UISymbolDrawing
 
         if (isChecked)
         {
-            int innerRadius = radius - 4;
+            var innerRadius = radius - 4;
             drawContext.FillCircle(center.ToVector2() + origin, checkedColor, innerRadius, numSides);
         }
     }
 
     public static void DrawRadioBullet(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, Color ringColor, bool isChecked, Color fillColor, int numSides = 16)
     {
-        int diameter = System.Math.Min(bounds.Width, bounds.Height) - 4;
+        var diameter = System.Math.Min(bounds.Width, bounds.Height) - 4;
         if (diameter <= 0)
         {
             return;
         }
 
-        Vector2 center = (bounds.Center).ToVector2() + origin;
-        float radius = diameter / 2.0f;
+        var center = (bounds.Center).ToVector2() + origin;
+        var radius = diameter / 2.0f;
         drawContext.StrokeCircle(center, ringColor, radius, 1.0f, numSides);
         if (isChecked)
         {
-            float innerRadius = System.Math.Max(1.0f, radius - 3.0f);
+            var innerRadius = System.Math.Max(1.0f, radius - 3.0f);
             drawContext.FillCircle(center, fillColor, innerRadius, numSides);
         }
     }
@@ -88,26 +88,26 @@ public static class UISymbolDrawing
 
         if (isVertical)
         {
-            int centerX = bounds.X + bounds.Width / 2;
-            int centerY = bounds.Y + bounds.Height / 2;
-            int startY = centerY - (dotCount * (dotSize + spacing)) / 2;
+            var centerX = bounds.X + bounds.Width / 2;
+            var centerY = bounds.Y + bounds.Height / 2;
+            var startY = centerY - (dotCount * (dotSize + spacing)) / 2;
 
-            for (int index = 0; index < dotCount; index++)
+            for (var index = 0; index < dotCount; index++)
             {
-                int dotY = startY + index * (dotSize + spacing);
+                var dotY = startY + index * (dotSize + spacing);
                 Rectangle dotRect = new(centerX - dotSize / 2, dotY, dotSize, dotSize);
                 drawContext.FillRectangle(origin, new MonoGame.Extended.RectangleF(dotRect.X, dotRect.Y, dotRect.Width, dotRect.Height), dotColor);
             }
         }
         else
         {
-            int centerX = bounds.X + bounds.Width / 2;
-            int centerY = bounds.Y + bounds.Height / 2;
-            int startX = centerX - (dotCount * (dotSize + spacing)) / 2;
+            var centerX = bounds.X + bounds.Width / 2;
+            var centerY = bounds.Y + bounds.Height / 2;
+            var startX = centerX - (dotCount * (dotSize + spacing)) / 2;
 
-            for (int index = 0; index < dotCount; index++)
+            for (var index = 0; index < dotCount; index++)
             {
-                int dotX = startX + index * (dotSize + spacing);
+                var dotX = startX + index * (dotSize + spacing);
                 Rectangle dotRect = new(dotX, centerY - dotSize / 2, dotSize, dotSize);
                 drawContext.FillRectangle(origin, new MonoGame.Extended.RectangleF(dotRect.X, dotRect.Y, dotRect.Width, dotRect.Height), dotColor);
             }
@@ -116,9 +116,9 @@ public static class UISymbolDrawing
 
     public static void DrawCloseIcon(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, Color color, float thickness = 1.5f)
     {
-        float centerX = bounds.X + bounds.Width * 0.5f;
-        float centerY = bounds.Y + bounds.Height * 0.5f;
-        float half = System.Math.Min(bounds.Width, bounds.Height) * 0.375f;
+        var centerX = bounds.X + bounds.Width * 0.5f;
+        var centerY = bounds.Y + bounds.Height * 0.5f;
+        var half = System.Math.Min(bounds.Width, bounds.Height) * 0.375f;
         drawContext.StrokeLineSegment(origin,
             new Vector2(centerX - half, centerY - half), new Vector2(centerX + half, centerY + half),
             color, thickness);
@@ -129,9 +129,9 @@ public static class UISymbolDrawing
 
     public static void DrawDockPinIcon(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, Color color)
     {
-        float centerX = bounds.X + bounds.Width * 0.5f;
-        float centerY = bounds.Y + bounds.Height * 0.5f;
-        int halfSize = System.Math.Max(2, System.Math.Min(bounds.Width, bounds.Height) / 4);
+        var centerX = bounds.X + bounds.Width * 0.5f;
+        var centerY = bounds.Y + bounds.Height * 0.5f;
+        var halfSize = System.Math.Max(2, System.Math.Min(bounds.Width, bounds.Height) / 4);
         drawContext.FillRectangle(origin,
             new MonoGame.Extended.RectangleF(centerX - halfSize, centerY - halfSize - 1, halfSize * 2, halfSize * 2),
             color);
@@ -142,14 +142,14 @@ public static class UISymbolDrawing
 
     public static void DrawEllipsisIcon(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, Color color)
     {
-        float centerX = bounds.X + bounds.Width * 0.5f;
-        float centerY = bounds.Y + bounds.Height * 0.5f;
+        var centerX = bounds.X + bounds.Width * 0.5f;
+        var centerY = bounds.Y + bounds.Height * 0.5f;
         const float dotRadius = 1.5f;
         const float spacing = 5.0f;
 
-        for (int index = -1; index <= 1; index++)
+        for (var index = -1; index <= 1; index++)
         {
-            float dotX = centerX + index * spacing;
+            var dotX = centerX + index * spacing;
             drawContext.FillRectangle(origin,
                 new MonoGame.Extended.RectangleF(dotX - dotRadius, centerY - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f),
                 color);
@@ -158,8 +158,8 @@ public static class UISymbolDrawing
 
     public static void DrawWindowStateIcon(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, bool isRestoredState, Color color)
     {
-        float centerX = bounds.X + bounds.Width * 0.5f;
-        float centerY = bounds.Y + bounds.Height * 0.5f;
+        var centerX = bounds.X + bounds.Width * 0.5f;
+        var centerY = bounds.Y + bounds.Height * 0.5f;
 
         if (isRestoredState)
         {

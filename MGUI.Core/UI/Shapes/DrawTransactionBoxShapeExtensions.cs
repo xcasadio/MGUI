@@ -9,7 +9,7 @@ public static class DrawTransactionBoxShapeExtensions
     public static void FillRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxShape shape, Color color,
         int cornerSegmentCount = 8)
     {
-        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
+        var geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
         FillRoundedRectangle(drawContext, origin, geometry, color);
     }
 
@@ -27,7 +27,7 @@ public static class DrawTransactionBoxShapeExtensions
     public static void StrokeRoundedRectangle(this IUIDrawContext drawContext, Vector2 origin, MGBoxShape shape, Color color,
         int cornerSegmentCount = 8)
     {
-        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
+        var geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
         StrokeRoundedRectangle(drawContext, origin, geometry, color);
     }
 
@@ -45,7 +45,7 @@ public static class DrawTransactionBoxShapeExtensions
     public static void DrawBorderRing(this IUIDrawContext drawContext, Vector2 origin, MGBoxShape shape, Color color,
         int cornerSegmentCount = 8)
     {
-        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
+        var geometry = MGBoxGeometryBuilder.Build(shape, cornerSegmentCount);
         drawContext.DrawBorderRing(origin, geometry, color);
     }
 
@@ -97,11 +97,11 @@ public static class DrawTransactionBoxShapeExtensions
     private static void DrawTriangleList(IUIDrawContext drawContext, Vector2 origin, System.Collections.Generic.IReadOnlyList<Vector2> vertices,
         System.Collections.Generic.IReadOnlyList<int> indices, Color color)
     {
-        for (int i = 0; i + 2 < indices.Count; i += 3)
+        for (var i = 0; i + 2 < indices.Count; i += 3)
         {
-            Vector2 v0 = vertices[indices[i]];
-            Vector2 v1 = vertices[indices[i + 1]];
-            Vector2 v2 = vertices[indices[i + 2]];
+            var v0 = vertices[indices[i]];
+            var v1 = vertices[indices[i + 1]];
+            var v2 = vertices[indices[i + 2]];
             drawContext.FillTriangle(origin, v0, color, v1, color, v2, color);
         }
     }

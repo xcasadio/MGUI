@@ -45,7 +45,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
             return -1;
         }
 
-        int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+        var normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
         return action switch
         {
             UINavigationAction.MoveUp => Math.Max(0, normalizedIndex - 1),
@@ -71,7 +71,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
                 if (InternalRowItems != null)
                 {
                     // Collect and clean up all templated content from existing rows before clearing
-                    IEnumerable<MGElement> OldElements = InternalRowItems
+                    var OldElements = InternalRowItems
                         .SelectMany(x => x.GetRowContents().Values);
                     HandleTemplatedContentRemoved(OldElements);
                     InternalRowItems.CollectionChanged -= RowItems_CollectionChanged;  // Fix: was incorrectly += causing duplicate subscriptions
@@ -82,7 +82,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     InternalRowItems.CollectionChanged += RowItems_CollectionChanged;
                 }
 
-                foreach (MGListViewColumn<TItemType> LVIColumn in _Columns)
+                foreach (var LVIColumn in _Columns)
                 {
                     LVIColumn.RefreshColumnContent();
                 }
@@ -97,8 +97,8 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
     {
         if (Items != null)
         {
-            int count = 0;
-            foreach (MGElement Item in Items)
+            var count = 0;
+            foreach (var Item in Items)
             {
                 Item.RemoveDataBindings(true);
                 count++;
@@ -119,7 +119,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
                 // Clean up all templated content before clearing
                 if (InternalRowItems != null)
                 {
-                    IEnumerable<MGElement> OldElements = InternalRowItems
+                    var OldElements = InternalRowItems
                         .SelectMany(x => x.GetRowContents().Values);
                     HandleTemplatedContentRemoved(OldElements);
                 }
@@ -143,9 +143,9 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
             }
             else if (e.Action is NotifyCollectionChangedAction.Replace)
             {
-                List<MGListViewItem<TItemType>> Old = e.OldItems.Cast<MGListViewItem<TItemType>>().ToList();
-                List<MGListViewItem<TItemType>> New = e.NewItems.Cast<MGListViewItem<TItemType>>().ToList();
-                for (int i = 0; i < Old.Count; i++)
+                var Old = e.OldItems.Cast<MGListViewItem<TItemType>>().ToList();
+                var New = e.NewItems.Cast<MGListViewItem<TItemType>>().ToList();
+                for (var i = 0; i < Old.Count; i++)
                 {
                     // Clean up old templated content before replacing
                     HandleTemplatedContentRemoved(Old[i].GetRowContents().Values);
@@ -185,7 +185,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     _ = DataGrid.TryRemoveAll();
 
                     //  Make exactly 1 row per item in the collection
-                    int RowCount = ItemsSource?.Count ?? 0;
+                    var RowCount = ItemsSource?.Count ?? 0;
                     while (DataGrid.Rows.Count < RowCount)
                         DataGrid.AddRow(RowLength);
                     while (DataGrid.Rows.Count > RowCount)
@@ -198,7 +198,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
                 }
                 else
                 {
-                    IEnumerable<MGListViewItem<TItemType>> Values = ItemsSource.Select((x, Index) => new MGListViewItem<TItemType>(this, x, DataGrid.Rows[Index]));
+                    var Values = ItemsSource.Select((x, Index) => new MGListViewItem<TItemType>(this, x, DataGrid.Rows[Index]));
                     InternalRowItems = new ObservableCollection<MGListViewItem<TItemType>>(Values);
                 }
 
@@ -215,10 +215,10 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
         }
         else if (e.Action is NotifyCollectionChangedAction.Add && e.NewItems != null)
         {
-            int CurrentIndex = e.NewStartingIndex;
+            var CurrentIndex = e.NewStartingIndex;
             foreach (TItemType Item in e.NewItems)
             {
-                RowDefinition NewRow = DataGrid.InsertRow(CurrentIndex, RowLength);
+                var NewRow = DataGrid.InsertRow(CurrentIndex, RowLength);
                 MGListViewItem<TItemType> NewRowItem = new(this, Item, NewRow);
                 InternalRowItems.Insert(CurrentIndex, NewRowItem);
                 CurrentIndex++;
@@ -226,7 +226,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
         }
         else if (e.Action is NotifyCollectionChangedAction.Remove && e.OldItems != null)
         {
-            int CurrentIndex = e.OldStartingIndex;
+            var CurrentIndex = e.OldStartingIndex;
             foreach (TItemType Item in e.OldItems)
             {
                 InternalRowItems.RemoveAt(CurrentIndex);
@@ -234,11 +234,11 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
         }
         else if (e.Action is NotifyCollectionChangedAction.Replace)
         {
-            List<TItemType> Old = e.OldItems.Cast<TItemType>().ToList();
-            List<TItemType> New = e.NewItems.Cast<TItemType>().ToList();
-            for (int i = 0; i < Old.Count; i++)
+            var Old = e.OldItems.Cast<TItemType>().ToList();
+            var New = e.NewItems.Cast<TItemType>().ToList();
+            for (var i = 0; i < Old.Count; i++)
             {
-                MGListViewItem<TItemType> OldRowItem = InternalRowItems[i];
+                var OldRowItem = InternalRowItems[i];
                 MGListViewItem<TItemType> NewRowItem = new(this, New[i], OldRowItem.DataRow);
                 InternalRowItems[e.OldStartingIndex + i] = NewRowItem;
             }
@@ -270,7 +270,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
     public MGListViewColumn<TItemType> AddColumn(ListViewColumnWidth Width, MGElement Header, Func<TItemType, MGElement> ItemTemplate)
     {
-        MGListViewColumn<TItemType> Column = CreateColumn(Width, Header, ItemTemplate);
+        var Column = CreateColumn(Width, Header, ItemTemplate);
         return AddColumnCore(Column);
     }
 
@@ -320,7 +320,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
                 if (DataGrid != null)
                 {
-                    foreach (RowDefinition Row in DataGrid.Rows)
+                    foreach (var Row in DataGrid.Rows)
                     {
                         Row.Length = RowLength;
                     }
@@ -392,8 +392,8 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
     protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
     {
-        MGGrid PreviousHeaderGrid = HeaderGrid;
-        MGGrid PreviousDataGrid = DataGrid;
+        var PreviousHeaderGrid = HeaderGrid;
+        var PreviousDataGrid = DataGrid;
         DockPanelElement = Structure.Parts[DockPanelPartName] as MGDockPanel;
         HeaderGrid = Structure.Parts[HeaderGridPartName] as MGGrid;
         ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
@@ -455,11 +455,11 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
         List<(MGListViewItem<TItemType> Row, MGListViewColumn<TItemType> Column, MGElement Content)> Cells = new();
         if (InternalRowItems != null)
         {
-            foreach (MGListViewItem<TItemType> Row in InternalRowItems)
+            foreach (var Row in InternalRowItems)
             {
-                foreach (MGListViewColumn<TItemType> Column in _Columns)
+                foreach (var Column in _Columns)
                 {
-                    foreach (MGElement Content in PreviousDataGrid.GetCellContent(Row.DataRow, Column.DataColumn))
+                    foreach (var Content in PreviousDataGrid.GetCellContent(Row.DataRow, Column.DataColumn))
                     {
                         Cells.Add((Row, Column, Content));
                     }
@@ -467,10 +467,10 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
             }
         }
 
-        GridSelectionMode PreviousSelectionMode = PreviousDataGrid.SelectionMode;
-        GridSelection? PreviousSelection = PreviousDataGrid.CurrentSelection;
-        int SelectedRowIndex = PreviousSelection?.Cell.Row.Index ?? -1;
-        int SelectedColumnIndex = PreviousSelection?.Cell.Column.Index ?? -1;
+        var PreviousSelectionMode = PreviousDataGrid.SelectionMode;
+        var PreviousSelection = PreviousDataGrid.CurrentSelection;
+        var SelectedRowIndex = PreviousSelection?.Cell.Row.Index ?? -1;
+        var SelectedColumnIndex = PreviousSelection?.Cell.Column.Index ?? -1;
 
         using (PreviousHeaderGrid.AllowChangingContentTemporarily())
         {
@@ -485,8 +485,8 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
         using (HeaderGrid.AllowChangingContentTemporarily())
         using (DataGrid.AllowChangingContentTemporarily())
         {
-            RowDefinition HeaderRow = HeaderGrid.Rows[0];
-            foreach (MGListViewColumn<TItemType> Column in _Columns)
+            var HeaderRow = HeaderGrid.Rows[0];
+            foreach (var Column in _Columns)
             {
                 Column.HeaderColumn = HeaderGrid.AddColumn(Column.Width.Length);
                 Column.DataColumn = DataGrid.AddColumn(Column.Width.Length);
@@ -498,13 +498,13 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
             if (InternalRowItems != null)
             {
-                foreach (MGListViewItem<TItemType> Row in InternalRowItems)
+                foreach (var Row in InternalRowItems)
                 {
                     Row.DataRow = DataGrid.AddRow(RowLength);
                 }
             }
 
-            foreach ((MGListViewItem<TItemType> Row, MGListViewColumn<TItemType> Column, MGElement Content) in Cells)
+            foreach ((var Row, var Column, var Content) in Cells)
             {
                 _ = DataGrid.TryAddChild(Row.DataRow, Column.DataColumn, Content);
             }
@@ -527,8 +527,8 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
         get => _FocusedRowIndex;
         set
         {
-            int count = RowItems?.Count ?? 0;
-            int clamped = count == 0 ? -1 : Math.Clamp(value, 0, count - 1);
+            var count = RowItems?.Count ?? 0;
+            var clamped = count == 0 ? -1 : Math.Clamp(value, 0, count - 1);
             if (_FocusedRowIndex != clamped) { _FocusedRowIndex = clamped; NPC(nameof(FocusedRowIndex)); }
         }
     }
@@ -541,7 +541,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
             return;
         }
 
-        MGElement firstVisibleCell = RowItems[FocusedRowIndex].GetRowContents().Values.FirstOrDefault();
+        var firstVisibleCell = RowItems[FocusedRowIndex].GetRowContents().Values.FirstOrDefault();
         if (firstVisibleCell != null)
         {
             ScrollViewer.EnsureElementVisible(firstVisibleCell);
@@ -552,13 +552,13 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
     private void OnListViewKeyPressed(object sender, BaseKeyPressedEventArgs e)
     {
-        int count = RowItems?.Count ?? 0;
+        var count = RowItems?.Count ?? 0;
         if (count == 0)
         {
             return;
         }
 
-        int newIndex = FocusedRowIndex;
+        var newIndex = FocusedRowIndex;
         switch (e.Key)
         {
             case Keys.Up:       newIndex = Math.Max(0, FocusedRowIndex <= 0 ? 0 : FocusedRowIndex - 1); break;
@@ -585,7 +585,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
     public override bool TryHandleNavigationAction(UINavigationAction action)
     {
-        int count = RowItems?.Count ?? 0;
+        var count = RowItems?.Count ?? 0;
         if (count == 0)
         {
             return false;
@@ -596,7 +596,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
             return false;
         }
 
-        int nextIndex = GetNextNavigationIndex(FocusedRowIndex, count, action);
+        var nextIndex = GetNextNavigationIndex(FocusedRowIndex, count, action);
         if (nextIndex < 0)
         {
             return false;
@@ -625,10 +625,10 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
         Settings.ScrollViewer.ApplySettings(this, ScrollViewer, false);
         Settings.DataGrid.ApplySettings(this, DataGrid, false);
 
-        foreach (ListViewColumn ColumnDefinition in Settings.Columns)
+        foreach (var ColumnDefinition in Settings.Columns)
         {
-            ListViewColumnWidth Width = ColumnDefinition.Width.ToWidth();
-            MGElement Header = ColumnDefinition.Header.ToElement<MGElement>(SelfOrParentWindow, this);
+            var Width = ColumnDefinition.Width.ToWidth();
+            var Header = ColumnDefinition.Header.ToElement<MGElement>(SelfOrParentWindow, this);
 
             Func<TItemType, MGElement> CellTemplate;
             if (ColumnDefinition.CellTemplate != null)
@@ -810,8 +810,8 @@ public class MGListViewItem<TItemType>
     public Dictionary<MGListViewColumn<TItemType>, MGElement> GetRowContents()
     {
         Dictionary<MGListViewColumn<TItemType>, MGElement> Cells = new();
-        IReadOnlyDictionary<ColumnDefinition, IReadOnlyList<MGElement>> RowContentByColumn = DataGrid.GetRowContent(DataRow);
-        foreach (MGListViewColumn<TItemType> Column in ListView.Columns)
+        var RowContentByColumn = DataGrid.GetRowContent(DataRow);
+        foreach (var Column in ListView.Columns)
         {
             if (RowContentByColumn.TryGetValue(Column.DataColumn, out var Elements) && Elements.Count > 0)
             {
@@ -841,11 +841,11 @@ public class MGListViewItem<TItemType>
             // Clean up existing templated content before regenerating the row
             ListView.HandleTemplatedContentRemoved(GetRowContents().Values);
             DataGrid.ClearRowContent(DataRow);
-            foreach (MGListViewColumn<TItemType> Column in ListView.Columns)
+            foreach (var Column in ListView.Columns)
             {
                 if (Column.CellTemplate != null)
                 {
-                    MGElement CellContent = Column.CellTemplate(Data);
+                    var CellContent = Column.CellTemplate(Data);
                     DataGrid.TryAddChild(DataRow, Column.DataColumn, CellContent);
                 }
             }
@@ -884,7 +884,7 @@ public class MGListViewColumn<TItemType> : ViewModelBase
 
                 _Header = value;
 
-                RowDefinition HeaderRow = HeaderGrid.Rows[0];
+                var HeaderRow = HeaderGrid.Rows[0];
                 using (HeaderGrid.AllowChangingContentTemporarily())
                 {
                     HeaderGrid.ClearCellContent(HeaderRow, HeaderColumn);
@@ -926,7 +926,7 @@ public class MGListViewColumn<TItemType> : ViewModelBase
             // Clean up existing templated content in this column before regenerating it
             if (ListView.RowItems != null)
             {
-                IEnumerable<MGElement> OldElements = ListView.RowItems
+                var OldElements = ListView.RowItems
                     .Select(item => item.GetRowContents())
                     .Where(contents => contents.ContainsKey(this))
                     .Select(contents => contents[this]);
@@ -935,10 +935,10 @@ public class MGListViewColumn<TItemType> : ViewModelBase
             DataGrid.ClearColumnContent(DataColumn);
             if (ListView.RowItems != null && CellTemplate != null)
             {
-                for (int i = 0; i < ListView.RowItems.Count; i++)
+                for (var i = 0; i < ListView.RowItems.Count; i++)
                 {
-                    MGListViewItem<TItemType> RowItem = ListView.RowItems[i];
-                    MGElement CellContent = CellTemplate(RowItem.Data);
+                    var RowItem = ListView.RowItems[i];
+                    var CellContent = CellTemplate(RowItem.Data);
                     DataGrid.TryAddChild(RowItem.DataRow, DataColumn, CellContent);
                 }
             }
@@ -1023,7 +1023,7 @@ public class MGListViewColumn<TItemType> : ViewModelBase
             return;
         }
 
-        SortDirection newDir = CurrentSortDirection == SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending;
+        var newDir = CurrentSortDirection == SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending;
         ListView.SortByColumn(this, newDir);
     }
 

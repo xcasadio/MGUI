@@ -26,7 +26,7 @@ public readonly record struct StaticGridSelection(MGUniformGrid Grid, GridCellIn
             case GridSelectionMode.Row:
                 if (Grid.IsValidRowIndex(Cell.Row))
                 {
-                    for (int ColumnIndex = 0; ColumnIndex < Grid.Columns; ColumnIndex++)
+                    for (var ColumnIndex = 0; ColumnIndex < Grid.Columns; ColumnIndex++)
                     {
                         yield return new GridCellIndex(Cell.Row, ColumnIndex);
                     }
@@ -35,7 +35,7 @@ public readonly record struct StaticGridSelection(MGUniformGrid Grid, GridCellIn
             case GridSelectionMode.Column:
                 if (Grid.IsValidColumnIndex(Cell.Column))
                 {
-                    for (int RowIndex = 0; RowIndex < Grid.Rows; RowIndex++)
+                    for (var RowIndex = 0; RowIndex < Grid.Rows; RowIndex++)
                     {
                         yield return new GridCellIndex(RowIndex, Cell.Column);
                     }
@@ -68,11 +68,11 @@ public class MGUniformGrid : MGMultiContentHost
         {
             if (_Rows != value)
             {
-                int PreviousRows = Rows;
+                var PreviousRows = Rows;
                 _Rows = value;
                 if (Rows < PreviousRows)
                 {
-                    for (int i = PreviousRows - 1; i >= Rows; i--)
+                    for (var i = PreviousRows - 1; i >= Rows; i--)
                     {
                         _ = ClearRowContent(i);
                     }
@@ -93,11 +93,11 @@ public class MGUniformGrid : MGMultiContentHost
         {
             if (_Columns != value)
             {
-                int PreviousColumns = Columns;
+                var PreviousColumns = Columns;
                 _Columns = value;
                 if (Columns < PreviousColumns)
                 {
-                    for (int i = PreviousColumns - 1; i >= Columns; i--)
+                    for (var i = PreviousColumns - 1; i >= Columns; i--)
                     {
                         _ = ClearColumnContent(i);
                     }
@@ -174,34 +174,34 @@ public class MGUniformGrid : MGMultiContentHost
         Dictionary<GridCellIndex, Rectangle> CellBounds = new();
 
         //  Snapshot the resolved spacing/margins once for this pass.
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
-        int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
-        int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+        var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-        int CurrentX = LayoutBounds.Left + Padding.Left;
+        var CurrentX = LayoutBounds.Left + Padding.Left;
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
         {
             CurrentX += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
         }
 
-        for (int ColumnIndex = 0; ColumnIndex < Columns; ColumnIndex++)
+        for (var ColumnIndex = 0; ColumnIndex < Columns; ColumnIndex++)
         {
-            int ColumnWidth = ColumnIndex == 0 && HeaderColumnWidth.HasValue ? HeaderColumnWidth.Value : CellSize.Width;
+            var ColumnWidth = ColumnIndex == 0 && HeaderColumnWidth.HasValue ? HeaderColumnWidth.Value : CellSize.Width;
 
-            int CurrentY = LayoutBounds.Top + Padding.Top;
+            var CurrentY = LayoutBounds.Top + Padding.Top;
             if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
             {
                 CurrentY += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
             }
 
-            for (int RowIndex = 0; RowIndex < Rows; RowIndex++)
+            for (var RowIndex = 0; RowIndex < Rows; RowIndex++)
             {
-                int RowHeight = RowIndex == 0 && HeaderRowHeight.HasValue ? HeaderRowHeight.Value : CellSize.Height;
+                var RowHeight = RowIndex == 0 && HeaderRowHeight.HasValue ? HeaderRowHeight.Value : CellSize.Height;
 
                 GridCellIndex Cell = new(RowIndex, ColumnIndex);
                 Rectangle PaddedBounds = new(CurrentX, CurrentY, ColumnWidth, RowHeight);
-                Rectangle ActualBounds = IncludeGridLineMargin
+                var ActualBounds = IncludeGridLineMargin
                     ? PaddedBounds
                     : PaddedBounds.GetExpanded(new Thickness(Math.Max(0, resolvedColumnGridLineMargin), Math.Max(0, resolvedRowGridLineMargin), Math.Max(0, resolvedColumnGridLineMargin), Math.Max(0, resolvedRowGridLineMargin)));
                 CellBounds.Add(Cell, ActualBounds);
@@ -228,10 +228,10 @@ public class MGUniformGrid : MGMultiContentHost
     public IReadOnlyDictionary<GridCellIndex, IReadOnlyList<MGElement>> GetRowContent(int Row)
     {
         Dictionary<GridCellIndex, List<MGElement>> RowContent = new();
-        for (int Column = 0; Column < Columns; Column++)
+        for (var Column = 0; Column < Columns; Column++)
         {
             GridCellIndex Cell = new(Row, Column);
-            if (ChildrenByRC.TryGetValue(Cell, out List<MGElement> Elements))
+            if (ChildrenByRC.TryGetValue(Cell, out var Elements))
             {
                 RowContent.Add(Cell, Elements);
             }
@@ -242,10 +242,10 @@ public class MGUniformGrid : MGMultiContentHost
     public IReadOnlyDictionary<GridCellIndex, IReadOnlyList<MGElement>> GetColumnContent(int Column)
     {
         Dictionary<GridCellIndex, List<MGElement>> ColumnContent = new();
-        for (int Row = 0; Row < Rows; Row++)
+        for (var Row = 0; Row < Rows; Row++)
         {
             GridCellIndex Cell = new(Row, Column);
-            if (ChildrenByRC.TryGetValue(Cell, out List<MGElement> Elements))
+            if (ChildrenByRC.TryGetValue(Cell, out var Elements))
             {
                 ColumnContent.Add(Cell, Elements);
             }
@@ -256,7 +256,7 @@ public class MGUniformGrid : MGMultiContentHost
     public IReadOnlyList<MGElement> GetCellContent(int Row, int Column) => GetCellContent(new GridCellIndex(Row, Column));
     public IReadOnlyList<MGElement> GetCellContent(GridCellIndex Cell)
     {
-        if (ChildrenByRC.TryGetValue(Cell, out List<MGElement> Elements))
+        if (ChildrenByRC.TryGetValue(Cell, out var Elements))
         {
             return Elements;
         }
@@ -315,7 +315,7 @@ public class MGUniformGrid : MGMultiContentHost
 
         if (_Children.Remove(Item))
         {
-            GridCellIndex Cell = ChildCellLookup[Item];
+            var Cell = ChildCellLookup[Item];
             ChildrenByRC[Cell].Remove(Item);
             ChildCellLookup.Remove(Item);
             return true;
@@ -349,8 +349,8 @@ public class MGUniformGrid : MGMultiContentHost
             return Removed;
         }
 
-        IReadOnlyList<MGElement> CellContent = GetCellContent(Cell);
-        foreach (MGElement Element in CellContent)
+        var CellContent = GetCellContent(Cell);
+        foreach (var Element in CellContent)
         {
             if (_Children.Remove(Element))
             {
@@ -381,7 +381,7 @@ public class MGUniformGrid : MGMultiContentHost
     public List<MGElement> ClearRowContent(int Row)
     {
         List<MGElement> Removed = new();
-        for (int Column = 0; Column < Columns; Column++)
+        for (var Column = 0; Column < Columns; Column++)
         {
             GridCellIndex Cell = new(Row, Column);
             Removed.AddRange(ClearCellContent(Cell));
@@ -392,7 +392,7 @@ public class MGUniformGrid : MGMultiContentHost
     public List<MGElement> ClearColumnContent(int Column)
     {
         List<MGElement> Removed = new();
-        for (int Row = 0; Row < Rows; Row++)
+        for (var Row = 0; Row < Rows; Row++)
         {
             GridCellIndex Cell = new(Row, Column);
             Removed.AddRange(ClearCellContent(Cell));
@@ -462,7 +462,7 @@ public class MGUniformGrid : MGMultiContentHost
     {
         AllowDeselect = AllowDeselect && CanDeselectByClickingSelectedCell;
 
-        Rectangle Viewport = LayoutBounds; // Does this also need to be translated by this.Origin?
+        var Viewport = LayoutBounds; // Does this also need to be translated by this.Origin?
         if (TryFindParentOfType(out MGScrollViewer SV, false))
         {
             // Viewport formula for nested ScrollViewers — analysed and confirmed correct.
@@ -489,12 +489,12 @@ public class MGUniformGrid : MGMultiContentHost
 
         if (Cell.HasValue)
         {
-            bool ClickedExistingSelection = false;
+            var ClickedExistingSelection = false;
             if (HasSelection && SelectionAtStartOfMousePress.HasValue)
             {
-                GridCellIndex PreviousCell = SelectionAtStartOfMousePress.Value.Cell;
-                GridCellIndex CurrentCell = CurrentSelection.Value.Cell;
-                GridCellIndex ClickedCell = Cell.Value;
+                var PreviousCell = SelectionAtStartOfMousePress.Value.Cell;
+                var CurrentCell = CurrentSelection.Value.Cell;
+                var ClickedCell = Cell.Value;
 
                 ClickedExistingSelection = SelectionMode switch
                 {
@@ -635,8 +635,8 @@ public class MGUniformGrid : MGMultiContentHost
 
     private void CheckIfOuterPaddingChanged()
     {
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
         if (resolvedRowSpacing > 0 && ResolvedRowGridLineMargin < resolvedRowSpacing &&
             (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge) || GridLinesVisibility.HasFlag(GridLinesVisibility.BottomEdge)))
         {
@@ -776,12 +776,12 @@ public class MGUniformGrid : MGMultiContentHost
             SelectionMouseHandler.LMBPressedInside += (sender, e) =>
             {
                 SelectionAtStartOfMousePress = CurrentSelection;
-                Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                var Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                 UpdateSelection(Position, false);
             };
             SelectionMouseHandler.LMBReleasedInside += (sender, e) =>
             {
-                Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                var Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                 UpdateSelection(Position, true);
             };
 
@@ -793,12 +793,12 @@ public class MGUniformGrid : MGMultiContentHost
                 //  Draw the selection overlay
                 if (HasSelection && SelectionOverlay != null)
                 {
-                    Rectangle? ScissorBounds = e.DA.DT.CurrentClipBounds;
-                    foreach (GridCellIndex Cell in CurrentSelection.Value)
+                    var ScissorBounds = e.DA.DT.CurrentClipBounds;
+                    foreach (var Cell in CurrentSelection.Value)
                     {
-                        if (_CellBounds.TryGetValue(Cell, out Rectangle Bounds))
+                        if (_CellBounds.TryGetValue(Cell, out var Bounds))
                         {
-                            Rectangle ScreenSpaceBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, Bounds.GetTranslated(e.DA.Offset));
+                            var ScreenSpaceBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, Bounds.GetTranslated(e.DA.Offset));
                             if (ScissorBounds.HasValue && ScreenSpaceBounds.Intersects(ScissorBounds.Value))
                             {
                                 SelectionOverlay.Draw(e.DA, this, Bounds);
@@ -821,7 +821,7 @@ public class MGUniformGrid : MGMultiContentHost
     /// <inheritdoc/>
     protected override IEnumerable<IFillBrush> GetFillBrushes()
     {
-        foreach (IFillBrush Brush in base.GetFillBrushes())
+        foreach (var Brush in base.GetFillBrushes())
         {
             yield return Brush;
         }
@@ -835,7 +835,7 @@ public class MGUniformGrid : MGMultiContentHost
     /// <inheritdoc/>
     protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
     {
-        foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+        foreach (var Brush in base.GetVisualStateFillBrushes())
         {
             yield return Brush;
         }
@@ -863,12 +863,12 @@ public class MGUniformGrid : MGMultiContentHost
         }
 
         //  Snapshot the resolved spacing/margins once for this measure pass.
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
-        int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
-        int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+        var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-        int TotalColumnSpacingWidth = (Columns - 1) * resolvedColumnSpacing;
+        var TotalColumnSpacingWidth = (Columns - 1) * resolvedColumnSpacing;
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
         {
             TotalColumnSpacingWidth += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
@@ -879,13 +879,13 @@ public class MGUniformGrid : MGMultiContentHost
             TotalColumnSpacingWidth += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
         }
 
-        int TotalWidth = TotalColumnSpacingWidth + CellSize.Width * Columns;
+        var TotalWidth = TotalColumnSpacingWidth + CellSize.Width * Columns;
         if (HeaderColumnWidth.HasValue && Columns > 0)
         {
             TotalWidth += HeaderColumnWidth.Value - CellSize.Width;
         }
 
-        int TotalRowSpacingHeight = (Rows - 1) * resolvedRowSpacing;
+        var TotalRowSpacingHeight = (Rows - 1) * resolvedRowSpacing;
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
         {
             TotalRowSpacingHeight += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
@@ -896,7 +896,7 @@ public class MGUniformGrid : MGMultiContentHost
             TotalRowSpacingHeight += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
         }
 
-        int TotalHeight = TotalRowSpacingHeight + CellSize.Height * Rows;
+        var TotalHeight = TotalRowSpacingHeight + CellSize.Height * Rows;
         if (HeaderRowHeight.HasValue && Rows > 0)
         {
             TotalHeight += HeaderRowHeight.Value - CellSize.Height;
@@ -912,10 +912,10 @@ public class MGUniformGrid : MGMultiContentHost
         _CellBounds = GetCellBounds(LayoutBounds, true);
         foreach (var KVP in _CellBounds)
         {
-            Rectangle CellBounds = KVP.Value;
-            foreach (MGElement Element in GetCellContent(KVP.Key))
+            var CellBounds = KVP.Value;
+            foreach (var Element in GetCellContent(KVP.Key))
             {
-                Rectangle ElementBounds = Rectangle.Intersect(LayoutBounds, CellBounds);
+                var ElementBounds = Rectangle.Intersect(LayoutBounds, CellBounds);
                 Element.UpdateLayout(ElementBounds);
             }
         }
@@ -929,10 +929,10 @@ public class MGUniformGrid : MGMultiContentHost
         //  Draw the selection background
         if (HasSelection && SelectionBackground != null)
         {
-            Rectangle? ScissorBounds = DA.DT.CurrentClipBounds;
-            foreach (GridCellIndex Cell in CurrentSelection.Value)
+            var ScissorBounds = DA.DT.CurrentClipBounds;
+            foreach (var Cell in CurrentSelection.Value)
             {
-                if (_CellBounds.TryGetValue(Cell, out Rectangle Bounds))
+                if (_CellBounds.TryGetValue(Cell, out var Bounds))
                 {
                     if (ScissorBounds.HasValue && Bounds.GetTranslated(DA.Offset).Intersects(ScissorBounds.Value))
                     {
@@ -942,8 +942,8 @@ public class MGUniformGrid : MGMultiContentHost
             }
         }
 
-        bool HasHorizontalGridLines = (GridLinesVisibility & GridLinesVisibility.AllHorizontal) != 0;
-        bool HasVerticalGridLines = (GridLinesVisibility & GridLinesVisibility.AllVertical) != 0;
+        var HasHorizontalGridLines = (GridLinesVisibility & GridLinesVisibility.AllHorizontal) != 0;
+        var HasVerticalGridLines = (GridLinesVisibility & GridLinesVisibility.AllVertical) != 0;
 
         if (HasHorizontalGridLines && HasVerticalGridLines)
         {
@@ -971,12 +971,12 @@ public class MGUniformGrid : MGMultiContentHost
             DrawVerticalGridLines(DA, LayoutBounds);
         }
 
-        for (int C = 0; C < Columns; C++)
+        for (var C = 0; C < Columns; C++)
         {
-            for (int R = 0; R < Rows; R++)
+            for (var R = 0; R < Rows; R++)
             {
                 GridCellIndex Index = new(R, C);
-                Rectangle Bounds = _CellBounds[Index];
+                var Bounds = _CellBounds[Index];
 
                 if (DrawEmptyCells || GetCellContent(Index).Count > 0)
                 {
@@ -1003,17 +1003,17 @@ public class MGUniformGrid : MGMultiContentHost
         }
 
         //  Snapshot the resolved spacing/margins once for this drawing pass.
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
-        int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
-        int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+        var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-        int Left = _CellBounds[new(0, 0)].Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
-        int Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
-        int Top = _CellBounds[new(0, 0)].Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
-        int Bottom = _CellBounds[new(Rows - 1, 0)].Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+        var Left = _CellBounds[new(0, 0)].Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+        var Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+        var Top = _CellBounds[new(0, 0)].Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+        var Bottom = _CellBounds[new(Rows - 1, 0)].Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
 
-        int FilledHeight = Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin * 2);
+        var FilledHeight = Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin * 2);
 
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
         {
@@ -1029,12 +1029,12 @@ public class MGUniformGrid : MGMultiContentHost
 
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.InnerHorizontal))
         {
-            for (int i = 0; i < Rows; i++)
+            for (var i = 0; i < Rows; i++)
             {
                 if (i != Rows - 1)
                 {
                     GridCellIndex Cell = new(i, 0);
-                    Rectangle CellBounds = _CellBounds[Cell];
+                    var CellBounds = _CellBounds[Cell];
 
                     Rectangle GridLineBounds = new(Left, CellBounds.Bottom + resolvedRowGridLineMargin, Right - Left, FilledHeight);
                     HorizontalGridLineBrush.Draw(DA, this, GridLineBounds);
@@ -1051,17 +1051,17 @@ public class MGUniformGrid : MGMultiContentHost
         }
 
         //  Snapshot the resolved spacing/margins once for this drawing pass.
-        int resolvedRowSpacing = ResolvedRowSpacing;
-        int resolvedColumnSpacing = ResolvedColumnSpacing;
-        int resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
-        int resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
+        var resolvedRowSpacing = ResolvedRowSpacing;
+        var resolvedColumnSpacing = ResolvedColumnSpacing;
+        var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
+        var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
-        int Left = _CellBounds[new(0, 0)].Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
-        int Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
-        int Top = _CellBounds[new(0, 0)].Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
-        int Bottom = _CellBounds[new(Rows - 1, 0)].Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+        var Left = _CellBounds[new(0, 0)].Left - Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+        var Right = _CellBounds[new(0, Columns - 1)].Right + Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
+        var Top = _CellBounds[new(0, 0)].Top - Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
+        var Bottom = _CellBounds[new(Rows - 1, 0)].Bottom + Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
 
-        int FilledWidth = Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin * 2);
+        var FilledWidth = Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin * 2);
 
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
         {
@@ -1077,12 +1077,12 @@ public class MGUniformGrid : MGMultiContentHost
 
         if (GridLinesVisibility.HasFlag(GridLinesVisibility.InnerVertical))
         {
-            for (int i = 0; i < Columns; i++)
+            for (var i = 0; i < Columns; i++)
             {
                 if (i != Columns - 1)
                 {
                     GridCellIndex Cell = new(0, i);
-                    Rectangle CellBounds = _CellBounds[Cell];
+                    var CellBounds = _CellBounds[Cell];
 
                     Rectangle GridLineBounds = new(CellBounds.Right + resolvedColumnGridLineMargin, Top, FilledWidth, Bottom - Top);
                     VerticalGridLineBrush.Draw(DA, this, GridLineBounds);

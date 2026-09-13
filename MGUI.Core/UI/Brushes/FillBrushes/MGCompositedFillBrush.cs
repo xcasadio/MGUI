@@ -19,7 +19,7 @@ public class MGCompositedFillBrush : IFillBrush
     /// deduplicated by reference against every other slot/element that references them for the frame.</summary>
     public void Update(UpdateBaseArgs UA)
     {
-        foreach (IFillBrush Brush in Brushes)
+        foreach (var Brush in Brushes)
         {
             PaintLifecycle.Update(Brush, UA);
         }
@@ -27,7 +27,7 @@ public class MGCompositedFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
     {
-        foreach (IFillBrush Brush in Brushes)
+        foreach (var Brush in Brushes)
         {
             Brush.Draw(DA, Element, Bounds);
         }
@@ -35,7 +35,7 @@ public class MGCompositedFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        foreach (IFillBrush Brush in Brushes)
+        foreach (var Brush in Brushes)
         {
             Brush.Draw(DA, Element, Shape, Geometry);
         }

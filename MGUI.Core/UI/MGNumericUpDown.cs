@@ -30,7 +30,7 @@ public class MGNumericUpDown : MGTextBox
 
     protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()
     {
-        foreach (MGControlTemplatePartRequirement requirement in base.GetRequiredControlTemplateParts())
+        foreach (var requirement in base.GetRequiredControlTemplateParts())
         {
             yield return requirement;
         }
@@ -91,7 +91,7 @@ public class MGNumericUpDown : MGTextBox
         get => Model.Minimum;
         set
         {
-            double previousValue = Value;
+            var previousValue = Value;
             if (!Model.SetRange(value, Maximum))
             {
                 return;
@@ -107,7 +107,7 @@ public class MGNumericUpDown : MGTextBox
         get => Model.Maximum;
         set
         {
-            double previousValue = Value;
+            var previousValue = Value;
             if (!Model.SetRange(Minimum, value))
             {
                 return;
@@ -142,7 +142,7 @@ public class MGNumericUpDown : MGTextBox
         get => Model.DecimalPlaces;
         set
         {
-            double previousValue = Value;
+            var previousValue = Value;
             if (!Model.SetDecimalPlaces(value))
             {
                 return;
@@ -194,9 +194,9 @@ public class MGNumericUpDown : MGTextBox
     {
         base.AttachControlTemplateStructure(structure);
 
-        structure.Parts.TryGetValue(SpinnerHostPartName, out MGElement spinnerHostPart);
-        structure.Parts.TryGetValue(IncreaseButtonPartName, out MGElement increaseButtonPart);
-        structure.Parts.TryGetValue(DecreaseButtonPartName, out MGElement decreaseButtonPart);
+        structure.Parts.TryGetValue(SpinnerHostPartName, out var spinnerHostPart);
+        structure.Parts.TryGetValue(IncreaseButtonPartName, out var increaseButtonPart);
+        structure.Parts.TryGetValue(DecreaseButtonPartName, out var decreaseButtonPart);
 
         SpinnerHostElement = spinnerHostPart as MGGrid;
         IncreaseButtonElement = increaseButtonPart as MGButton;
@@ -212,7 +212,7 @@ public class MGNumericUpDown : MGTextBox
                 false, true, false, false, true, false, false,
                 (availableBounds, componentSize) =>
                 {
-                    int width = Math.Min(componentSize.Width, availableBounds.Width);
+                    var width = Math.Min(componentSize.Width, availableBounds.Width);
                     return new Rectangle(availableBounds.Right - width, availableBounds.Top, width, availableBounds.Height);
                 }));
 
@@ -234,8 +234,8 @@ public class MGNumericUpDown : MGTextBox
             TextBlockComponent,
         };
 
-        bool hasAnyComponent = false;
-        for (int i = 0; i < orderedComponents.Length; i++)
+        var hasAnyComponent = false;
+        for (var i = 0; i < orderedComponents.Length; i++)
         {
             if (orderedComponents[i] != null)
             {
@@ -249,7 +249,7 @@ public class MGNumericUpDown : MGTextBox
             return;
         }
 
-        for (int i = 0; i < orderedComponents.Length; i++)
+        for (var i = 0; i < orderedComponents.Length; i++)
         {
             if (orderedComponents[i] != null)
             {
@@ -309,7 +309,7 @@ public class MGNumericUpDown : MGTextBox
 
     private bool SetValueCore(double value, bool syncText)
     {
-        double previousValue = Value;
+        var previousValue = Value;
         if (!Model.SetValue(value))
         {
             if (syncText)
@@ -358,7 +358,7 @@ public class MGNumericUpDown : MGTextBox
             return;
         }
 
-        if (Model.TryParseText(Text, out double parsedValue))
+        if (Model.TryParseText(Text, out var parsedValue))
         {
             HasPendingTextValidationError = false;
             SetValueCore(parsedValue, false);
@@ -387,7 +387,7 @@ public class MGNumericUpDown : MGTextBox
             return;
         }
 
-        NumericAdjustmentAction action = GetKeyboardAdjustmentAction(e.Key);
+        var action = GetKeyboardAdjustmentAction(e.Key);
         if (action == NumericAdjustmentAction.None)
         {
             return;
@@ -406,8 +406,8 @@ public class MGNumericUpDown : MGTextBox
             return false;
         }
 
-        bool valueChanged = false;
-        if (Model.TryApplyText(Text, out double parsedValue))
+        var valueChanged = false;
+        if (Model.TryApplyText(Text, out var parsedValue))
         {
             valueChanged = SetValueCore(parsedValue, true);
         }
@@ -453,7 +453,7 @@ public class MGNumericUpDown : MGTextBox
 
     public override bool TryHandleNavigationAction(UINavigationAction action)
     {
-        NumericAdjustmentAction mappedAction = GetNavigationAdjustmentAction(action);
+        var mappedAction = GetNavigationAdjustmentAction(action);
         if (mappedAction == NumericAdjustmentAction.None)
         {
             return base.TryHandleNavigationAction(action);

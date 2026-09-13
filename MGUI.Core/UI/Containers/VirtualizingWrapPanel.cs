@@ -27,7 +27,7 @@ internal static class VirtualizingWrapPanelLayout
             return int.MaxValue;
         }
 
-        int pitch = Math.Max(1, itemWidth + Math.Max(0, spacing));
+        var pitch = Math.Max(1, itemWidth + Math.Max(0, spacing));
         return Math.Max(1, (availableWidth + Math.Max(0, spacing)) / pitch);
     }
 
@@ -49,16 +49,16 @@ internal static class VirtualizingWrapPanelLayout
             return Size.Empty;
         }
 
-        int columns = GetColumnCount(availableSize.Width, itemWidth, spacing);
+        var columns = GetColumnCount(availableSize.Width, itemWidth, spacing);
         if (columns == int.MaxValue)
         {
             columns = totalItemCount;
         }
 
-        int rows = GetRowCount(totalItemCount, columns);
-        int actualSpacing = Math.Max(0, spacing);
-        int width = columns * itemWidth + Math.Max(0, columns - 1) * actualSpacing;
-        int height = rows * itemHeight + Math.Max(0, rows - 1) * actualSpacing;
+        var rows = GetRowCount(totalItemCount, columns);
+        var actualSpacing = Math.Max(0, spacing);
+        var width = columns * itemWidth + Math.Max(0, columns - 1) * actualSpacing;
+        var height = rows * itemHeight + Math.Max(0, rows - 1) * actualSpacing;
         return new Size(width, height);
     }
 
@@ -76,24 +76,24 @@ internal static class VirtualizingWrapPanelLayout
             return new VirtualizingWrapPanelVisibleRange(-1, -1);
         }
 
-        int rowPitch = Math.Max(1, itemHeight + Math.Max(0, spacing));
-        int totalRows = GetRowCount(totalItemCount, columns);
-        int firstRow = Math.Max(0, verticalOffset / rowPitch - Math.Max(0, bufferRows));
-        int lastRow = Math.Min(
+        var rowPitch = Math.Max(1, itemHeight + Math.Max(0, spacing));
+        var totalRows = GetRowCount(totalItemCount, columns);
+        var firstRow = Math.Max(0, verticalOffset / rowPitch - Math.Max(0, bufferRows));
+        var lastRow = Math.Min(
             totalRows - 1,
             Math.Max(0, (verticalOffset + Math.Max(1, viewportHeight) - 1) / rowPitch) + Math.Max(0, bufferRows));
 
-        int firstIndex = firstRow * columns;
-        int lastIndex = Math.Min(totalItemCount - 1, ((lastRow + 1) * columns) - 1);
+        var firstIndex = firstRow * columns;
+        var lastIndex = Math.Min(totalItemCount - 1, ((lastRow + 1) * columns) - 1);
         return new VirtualizingWrapPanelVisibleRange(firstIndex, lastIndex);
     }
 
     public static Rectangle GetItemBounds(int index, int columns, Rectangle bounds, int itemWidth, int itemHeight, int spacing)
     {
         columns = Math.Max(1, columns);
-        int actualSpacing = Math.Max(0, spacing);
-        int row = index / columns;
-        int column = index % columns;
+        var actualSpacing = Math.Max(0, spacing);
+        var row = index / columns;
+        var column = index % columns;
         return new Rectangle(
             bounds.Left + column * (itemWidth + actualSpacing),
             bounds.Top + row * (itemHeight + actualSpacing),
@@ -139,7 +139,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
         get => _totalItemCount;
         set
         {
-            int clamped = Math.Max(0, value);
+            var clamped = Math.Max(0, value);
             if (_totalItemCount != clamped)
             {
                 _totalItemCount = clamped;
@@ -156,7 +156,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
         get => _itemWidth;
         set
         {
-            int clamped = Math.Max(1, value);
+            var clamped = Math.Max(1, value);
             if (_itemWidth != clamped)
             {
                 _itemWidth = clamped;
@@ -174,7 +174,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
         get => _itemHeight;
         set
         {
-            int clamped = Math.Max(1, value);
+            var clamped = Math.Max(1, value);
             if (_itemHeight != clamped)
             {
                 _itemHeight = clamped;
@@ -192,7 +192,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
         get => _spacing;
         set
         {
-            int clamped = Math.Max(0, value);
+            var clamped = Math.Max(0, value);
             if (_spacing != clamped)
             {
                 _spacing = clamped;
@@ -271,14 +271,14 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             return;
         }
 
-        int resolvedSpacing = ResolvedSpacing;
-        int columns = GetColumnsForWidth(Math.Max(1, LayoutBounds.Width), resolvedSpacing);
-        int row = index / columns;
-        int rowPitch = ItemHeight + resolvedSpacing;
-        int elementStart = LayoutBounds.Top + row * rowPitch;
-        int elementEnd = elementStart + ItemHeight;
-        float viewportStart = LayoutBounds.Top + _parentScrollViewer.VerticalOffset;
-        float newOffset = MGScrollViewer.GetVisibleOffset(
+        var resolvedSpacing = ResolvedSpacing;
+        var columns = GetColumnsForWidth(Math.Max(1, LayoutBounds.Width), resolvedSpacing);
+        var row = index / columns;
+        var rowPitch = ItemHeight + resolvedSpacing;
+        var elementStart = LayoutBounds.Top + row * rowPitch;
+        var elementEnd = elementStart + ItemHeight;
+        var viewportStart = LayoutBounds.Top + _parentScrollViewer.VerticalOffset;
+        var newOffset = MGScrollViewer.GetVisibleOffset(
             _parentScrollViewer.VerticalOffset,
             viewportStart,
             _parentScrollViewer.ContentViewport.Height,
@@ -294,8 +294,8 @@ public class VirtualizingWrapPanel : MGMultiContentHost
 
     protected override Thickness UpdateContentMeasurement(Size availableSize)
     {
-        int resolvedSpacing = ResolvedSpacing;
-        Size desiredSize = VirtualizingWrapPanelLayout.Measure(TotalItemCount, availableSize, ItemWidth, ItemHeight, resolvedSpacing);
+        var resolvedSpacing = ResolvedSpacing;
+        var desiredSize = VirtualizingWrapPanelLayout.Measure(TotalItemCount, availableSize, ItemWidth, ItemHeight, resolvedSpacing);
         return new Thickness(desiredSize.Width, desiredSize.Height, 0, 0);
     }
 
@@ -309,10 +309,10 @@ public class VirtualizingWrapPanel : MGMultiContentHost
 
         EnsureScrollViewerAttached();
 
-        int resolvedSpacing = ResolvedSpacing;
-        int columns = GetColumnsForWidth(bounds.Width, resolvedSpacing);
-        int verticalOffset = 0;
-        int viewportHeight = bounds.Height;
+        var resolvedSpacing = ResolvedSpacing;
+        var columns = GetColumnsForWidth(bounds.Width, resolvedSpacing);
+        var verticalOffset = 0;
+        var viewportHeight = bounds.Height;
         if (_parentScrollViewer != null)
         {
             verticalOffset = (int)_parentScrollViewer.VerticalOffset;
@@ -323,7 +323,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             }
         }
 
-        VirtualizingWrapPanelVisibleRange range = VirtualizingWrapPanelLayout.GetVisibleRange(
+        var range = VirtualizingWrapPanelLayout.GetVisibleRange(
             TotalItemCount,
             columns,
             ItemHeight,
@@ -332,7 +332,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             viewportHeight,
             BufferRows);
 
-        bool rangeChanged = range.FirstIndex != _cachedFirstNeeded || range.LastIndex != _cachedLastNeeded || columns != CurrentColumnCount;
+        var rangeChanged = range.FirstIndex != _cachedFirstNeeded || range.LastIndex != _cachedLastNeeded || columns != CurrentColumnCount;
         if (rangeChanged)
         {
             _cachedFirstNeeded = range.FirstIndex;
@@ -342,7 +342,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             if (_realizedItems.Count > 0)
             {
                 _itemsToRecycle.Clear();
-                foreach (int index in _realizedItems.Keys)
+                foreach (var index in _realizedItems.Keys)
                 {
                     if (range.IsEmpty || index < range.FirstIndex || index > range.LastIndex)
                     {
@@ -350,7 +350,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
                     }
                 }
 
-                for (int i = 0; i < _itemsToRecycle.Count; i++)
+                for (var i = 0; i < _itemsToRecycle.Count; i++)
                 {
                     RecycleItem(_itemsToRecycle[i]);
                 }
@@ -358,7 +358,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
 
             if (!range.IsEmpty)
             {
-                for (int index = range.FirstIndex; index <= range.LastIndex; index++)
+                for (var index = range.FirstIndex; index <= range.LastIndex; index++)
                 {
                     if (!_realizedItems.ContainsKey(index))
                     {
@@ -373,8 +373,8 @@ public class VirtualizingWrapPanel : MGMultiContentHost
 
         foreach (var pair in _realizedItems)
         {
-            Rectangle itemBounds = VirtualizingWrapPanelLayout.GetItemBounds(pair.Key, columns, bounds, ItemWidth, ItemHeight, resolvedSpacing);
-            MGElement element = pair.Value;
+            var itemBounds = VirtualizingWrapPanelLayout.GetItemBounds(pair.Key, columns, bounds, ItemWidth, ItemHeight, resolvedSpacing);
+            var element = pair.Value;
             if (!element.IsLayoutValid || element.AllocatedBounds != itemBounds)
             {
                 element.UpdateLayout(itemBounds);
@@ -408,7 +408,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             return;
         }
 
-        if (TryFindParentOfType<MGScrollViewer>(out MGScrollViewer scrollViewer))
+        if (TryFindParentOfType<MGScrollViewer>(out var scrollViewer))
         {
             _parentScrollViewer = scrollViewer;
             _parentVerticalOffsetChangedHandler ??= (_, _) => RequestVirtualizationLayoutRefresh();
@@ -423,7 +423,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
 
     private void RealizeItem(int index)
     {
-        MGElement element = ItemGenerator(index);
+        var element = ItemGenerator(index);
         if (element == null)
         {
             return;
@@ -439,7 +439,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
 
     private void RecycleItem(int index)
     {
-        if (!_realizedItems.TryGetValue(index, out MGElement element))
+        if (!_realizedItems.TryGetValue(index, out var element))
         {
             return;
         }
@@ -455,12 +455,12 @@ public class VirtualizingWrapPanel : MGMultiContentHost
         if (_realizedItems.Count > 0)
         {
             _itemsToRecycle.Clear();
-            foreach (int index in _realizedItems.Keys)
+            foreach (var index in _realizedItems.Keys)
             {
                 _itemsToRecycle.Add(index);
             }
 
-            for (int i = 0; i < _itemsToRecycle.Count; i++)
+            for (var i = 0; i < _itemsToRecycle.Count; i++)
             {
                 RecycleItem(_itemsToRecycle[i]);
             }

@@ -18,7 +18,7 @@ public static class DataBindingManager
         DataBinding Binding = new(Config, TargetObject);
         _Bindings.Add(Binding);
 
-        if (_BindingsByTargetObject.TryGetValue(TargetObject, out List<DataBinding> ObjectBindings))
+        if (_BindingsByTargetObject.TryGetValue(TargetObject, out var ObjectBindings))
         {
             //  Validate that there isn't already a binding for this TargetObject+TargetProperty tuple
             //  (TODO: I guess we could instead remove the existing binding to replace it with the new one)
@@ -47,9 +47,9 @@ public static class DataBindingManager
             throw new ArgumentNullException(nameof(Binding));
         }
 
-        bool Result = _Bindings.Remove(Binding);
+        var Result = _Bindings.Remove(Binding);
 
-        if (_BindingsByTargetObject.TryGetValue(Binding.TargetObject, out List<DataBinding> ObjectBindings))
+        if (_BindingsByTargetObject.TryGetValue(Binding.TargetObject, out var ObjectBindings))
         {
             if (ObjectBindings.Remove(Binding) && ObjectBindings.Count == 0)
             {
@@ -74,9 +74,9 @@ public static class DataBindingManager
             throw new ArgumentNullException(nameof(TargetObject));
         }
 
-        if (_BindingsByTargetObject.TryGetValue(TargetObject, out List<DataBinding> ObjectBindings))
+        if (_BindingsByTargetObject.TryGetValue(TargetObject, out var ObjectBindings))
         {
-            foreach (DataBinding Binding in ObjectBindings)
+            foreach (var Binding in ObjectBindings)
             {
                 Binding.Dispose();
             }

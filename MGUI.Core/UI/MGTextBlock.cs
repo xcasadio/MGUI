@@ -107,12 +107,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
     {
         if (this.FontFamily != FontFamily || this.FontSize != FontSize)
         {
-            string PreviousFontFamily = this.FontFamily;
-            int PreviousFontSize = this.FontSize;
+            var PreviousFontFamily = this.FontFamily;
+            var PreviousFontSize = this.FontSize;
 
             // Validate that the requested font exists before committing the change
-            int effectiveFontSize = Math.Max(1, UIResponsiveMath.ScaleInt(FontSize, ResponsiveTextScaleFactor));
-            ResolvedFont validationFont = TextEngine.ResolveFont(new FontSpec(FontFamily, effectiveFontSize, CustomFontStyles.Normal));
+            var effectiveFontSize = Math.Max(1, UIResponsiveMath.ScaleInt(FontSize, ResponsiveTextScaleFactor));
+            var validationFont = TextEngine.ResolveFont(new FontSpec(FontFamily, effectiveFontSize, CustomFontStyles.Normal));
             if (!validationFont.IsAvailable || validationFont.IsFallback)
             {
                 return false;
@@ -122,7 +122,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             _FontSize = FontSize;
 
             // Resolve text-measurement handles for all 4 style variants
-            ITextMeasurementEngine engine = TextEngine;
+            var engine = TextEngine;
             RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Normal));
             RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold));
             RF_Italic     = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Italic));
@@ -155,12 +155,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// so <see cref="FontFamily"/> and <see cref="FontSize"/> are still the values from before the refresh; a theme change that keeps the default font stays Draw.</summary>
     protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
     {
-        string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
-        string CurrentDefaultFontFamily = CurrentTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
-        int PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
-        int CurrentDefaultFontSize = CurrentTheme?.FontSettings.DefaultFontSize ?? FontSize;
+        var PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
+        var CurrentDefaultFontFamily = CurrentTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
+        var PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
+        var CurrentDefaultFontSize = CurrentTheme?.FontSettings.DefaultFontSize ?? FontSize;
 
-        UIInvalidationKind Invalidation = UIInvalidationKind.Draw;
+        var Invalidation = UIInvalidationKind.Draw;
         if (string.Equals(FontFamily, PreviousDefaultFontFamily, StringComparison.Ordinal))
         {
             Invalidation |= UIThemeValueInvalidation.ForChange("FontSettings.DefaultFontFamily", PreviousDefaultFontFamily, CurrentDefaultFontFamily, StringComparer.Ordinal);
@@ -176,13 +176,13 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)
     {
-        string PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
-        string CurrentDefaultFontFamily = CurrentTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
-        int PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
-        int CurrentDefaultFontSize = CurrentTheme?.FontSettings.DefaultFontSize ?? FontSize;
+        var PreviousDefaultFontFamily = PreviousTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
+        var CurrentDefaultFontFamily = CurrentTheme?.FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
+        var PreviousDefaultFontSize = PreviousTheme?.FontSettings.DefaultFontSize ?? FontSize;
+        var CurrentDefaultFontSize = CurrentTheme?.FontSettings.DefaultFontSize ?? FontSize;
 
-        bool UsesThemeFontFamily = string.Equals(FontFamily, PreviousDefaultFontFamily, StringComparison.Ordinal);
-        bool UsesThemeFontSize = FontSize == PreviousDefaultFontSize;
+        var UsesThemeFontFamily = string.Equals(FontFamily, PreviousDefaultFontFamily, StringComparison.Ordinal);
+        var UsesThemeFontSize = FontSize == PreviousDefaultFontSize;
         if (UsesThemeFontFamily || UsesThemeFontSize)
         {
             _ = TrySetFont(UsesThemeFontFamily ? CurrentDefaultFontFamily : FontFamily, UsesThemeFontSize ? CurrentDefaultFontSize : FontSize);
@@ -199,7 +199,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// </summary>
     internal void RefreshTextEngine()
     {
-        ITextMeasurementEngine engine = TextEngine;
+        var engine = TextEngine;
         RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Normal));
         RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold));
         RF_Italic     = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Italic));
@@ -378,7 +378,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     {
         UnsetForegroundSubSlotsAtPrecedence(source.Precedence);
 
-        ResolvedValues.Set(UIPilotProperty.Foreground, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool effectiveChanged, out UIResolvedValue<VisualStateSetting<Color?>> effective);
+        ResolvedValues.Set(UIPilotProperty.Foreground, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out var effectiveChanged, out UIResolvedValue<VisualStateSetting<Color?>> effective);
         if (effectiveChanged)
             ApplyForegroundEffective(effective.Value);
     }
@@ -390,7 +390,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     {
         ValidateForegroundSlot(slot);
 
-        ResolvedValues.Set(UIPilotProperty.Foreground, slot, value, source, EqualityComparer<Color?>.Default, out _, out UIResolvedValue<Color?> effective);
+        ResolvedValues.Set(UIPilotProperty.Foreground, slot, value, source, EqualityComparer<Color?>.Default, out _, out var effective);
         if (effective.Source.Kind == source.Kind && IsForegroundSubSlotApplicable(effective.Source.Precedence))
             ApplyForegroundSlotPhysical(slot, effective.Value);
     }
@@ -427,9 +427,9 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     private void UnsetForegroundSlotAtPrecedence(UIValueSlot slot, UIValuePrecedence precedence)
     {
-        foreach (UIValueSourceKind kind in ResolvedValues.Contributions(UIPilotProperty.Foreground, slot).ToArray())
+        foreach (var kind in ResolvedValues.Contributions(UIPilotProperty.Foreground, slot).ToArray())
         {
-            if (ResolvedValues.TryGetContribution<Color?>(UIPilotProperty.Foreground, slot, kind, out UIResolvedValue<Color?> contribution) && contribution.Source.Precedence == precedence)
+            if (ResolvedValues.TryGetContribution<Color?>(UIPilotProperty.Foreground, slot, kind, out var contribution) && contribution.Source.Precedence == precedence)
                 ResolvedValues.Unset<Color?>(UIPilotProperty.Foreground, slot, kind, EqualityComparer<Color?>.Default, out _, out _);
         }
     }
@@ -440,14 +440,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
         switch (slot)
         {
             case UIValueSlot.Whole:
-                if (ResolvedValues.Unset(UIPilotProperty.Foreground, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool wholeChanged, out UIResolvedValue<VisualStateSetting<Color?>> whole) && wholeChanged)
+                if (ResolvedValues.Unset(UIPilotProperty.Foreground, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out var wholeChanged, out UIResolvedValue<VisualStateSetting<Color?>> whole) && wholeChanged)
                     ApplyForegroundEffective(whole.Value);
                 break;
             case UIValueSlot.Normal:
             case UIValueSlot.Selected:
             case UIValueSlot.Disabled:
             case UIValueSlot.Focused:
-                if (ResolvedValues.Unset(UIPilotProperty.Foreground, slot, kind, EqualityComparer<Color?>.Default, out bool slotChanged, out UIResolvedValue<Color?> slotValue)
+                if (ResolvedValues.Unset(UIPilotProperty.Foreground, slot, kind, EqualityComparer<Color?>.Default, out var slotChanged, out var slotValue)
                     && slotChanged && slotValue.IsSet && IsForegroundSubSlotApplicable(slotValue.Source.Precedence))
                 {
                     ApplyForegroundSlotPhysical(slot, slotValue.Value);
@@ -483,21 +483,21 @@ public class MGTextBlock : MGElement, ITextMeasurer
         if (ResolvedEntryCount == 0 || _Foreground == null)
             return;
 
-        if (!ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) || !whole.IsSet)
+        if (!ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out var whole) || !whole.IsSet)
             return;
 
-        UIValuePrecedence effectivePrecedence = whole.Source.Precedence;
+        var effectivePrecedence = whole.Source.Precedence;
 
         _SuppressForegroundContainerNotify = true;
         try
         {
-            if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Normal, out UIResolvedValue<Color?> normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
+            if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Normal, out var normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
                 _Foreground.NormalValue = normal.Value;
-            if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Selected, out UIResolvedValue<Color?> selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
+            if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Selected, out var selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
                 _Foreground.SelectedValue = selected.Value;
-            if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Disabled, out UIResolvedValue<Color?> disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
+            if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Disabled, out var disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
                 _Foreground.DisabledValue = disabled.Value;
-            if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Focused, out UIResolvedValue<Color?> focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
+            if (ResolvedValues.TryGetWinner<Color?>(UIPilotProperty.Foreground, UIValueSlot.Focused, out var focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
                 _Foreground.FocusedValue = focused.Value;
         }
         finally
@@ -529,11 +529,11 @@ public class MGTextBlock : MGElement, ITextMeasurer
     }
 
     private bool IsForegroundSubSlotApplicable(UIValuePrecedence precedence)
-        => !TryGetForegroundEffectivePrecedence(out UIValuePrecedence effective) || precedence >= effective;
+        => !TryGetForegroundEffectivePrecedence(out var effective) || precedence >= effective;
 
     private bool TryGetForegroundEffectivePrecedence(out UIValuePrecedence precedence)
     {
-        if (ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) && whole.IsSet)
+        if (ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out var whole) && whole.IsSet)
         {
             precedence = whole.Source.Precedence;
             return true;
@@ -547,14 +547,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// <c>MGElement.TryGetResolvedBackgroundSubSlotValue</c>.</summary>
     private bool TryGetResolvedForegroundSubSlotValue<T>(UIValueSlot slot, out UIResolvedValue<T> value)
     {
-        if (ResolvedValues.TryGetWinner<T>(UIPilotProperty.Foreground, slot, out UIResolvedValue<T> winner)
+        if (ResolvedValues.TryGetWinner<T>(UIPilotProperty.Foreground, slot, out var winner)
             && winner.IsSet && IsForegroundSubSlotApplicable(winner.Source.Precedence))
         {
             value = winner;
             return true;
         }
 
-        if (_Foreground != null && ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) && whole.IsSet)
+        if (_Foreground != null && ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out var whole) && whole.IsSet)
         {
             object physical = slot switch
             {
@@ -621,13 +621,13 @@ public class MGTextBlock : MGElement, ITextMeasurer
     {
         if (property == UIPilotProperty.Foreground && typeof(T) == typeof(Color?))
         {
-            if (TryGetResolvedForegroundSubSlotOrWholeValue(slot, out UIResolvedValue<Color?> containerValue) && containerValue.Value.HasValue)
+            if (TryGetResolvedForegroundSubSlotOrWholeValue(slot, out var containerValue) && containerValue.Value.HasValue)
             {
                 value = (UIResolvedValue<T>)(object)containerValue;
                 return true;
             }
 
-            Color? derived = DerivedDefaultTextForeground;
+            var derived = DerivedDefaultTextForeground;
             if (derived.HasValue)
             {
                 UIResolvedValue<Color?> inherited = new(derived, UIValueResolutionSource.Inherited(UIInvalidationKind.Draw));
@@ -635,7 +635,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
                 return true;
             }
 
-            Color themeFallback = GetTheme().TextBlockFallbackForeground.GetValue(false).GetValue(VisualState.Primary);
+            var themeFallback = GetTheme().TextBlockFallbackForeground.GetValue(false).GetValue(VisualState.Primary);
             UIResolvedValue<Color?> themeValue = new(themeFallback, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             value = (UIResolvedValue<T>)(object)themeValue;
             return true;
@@ -651,9 +651,9 @@ public class MGTextBlock : MGElement, ITextMeasurer
     {
         if (slot == UIValueSlot.Whole)
         {
-            if (ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) && whole.IsSet)
+            if (ResolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.Foreground, UIValueSlot.Whole, out var whole) && whole.IsSet)
             {
-                Color? physical = whole.Value?.GetValue(VisualState.Primary);
+                var physical = whole.Value?.GetValue(VisualState.Primary);
                 value = new UIResolvedValue<Color?>(physical, whole.Source);
                 return true;
             }
@@ -786,7 +786,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     private void SetTextCore(string Value, MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
     {
-        bool HadExplicitRuns = HasExplicitRuns;
+        var HadExplicitRuns = HasExplicitRuns;
         if (_Text != Value || HadExplicitRuns)
         {
             _Text = Value;
@@ -838,10 +838,10 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     private void ApplyTextMutation(MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
     {
-        bool HasPreviousDesiredSize = TryGetCurrentLayoutDesiredTextSize(out Thickness PreviousDesiredSize);
+        var HasPreviousDesiredSize = TryGetCurrentLayoutDesiredTextSize(out var PreviousDesiredSize);
 
         UpdateRuns();
-        MGTextInvalidationMode ResolvedInvalidationMode = ResolveTextInvalidationMode(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
+        var ResolvedInvalidationMode = ResolveTextInvalidationMode(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
         if (ResolvedInvalidationMode == MGTextInvalidationMode.RelayoutParent)
         {
             InvokeLayoutChanged();
@@ -849,7 +849,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
         }
 
         UpdateLines();
-        if (!HasPreviousDesiredSize || !TryGetCurrentLayoutDesiredTextSize(out Thickness CurrentDesiredSize) ||
+        if (!HasPreviousDesiredSize || !TryGetCurrentLayoutDesiredTextSize(out var CurrentDesiredSize) ||
             !AreTextDesiredSizesEqual(PreviousDesiredSize, CurrentDesiredSize) || !CachedTextMeasurementsStillMatch())
         {
             InvokeLayoutChanged();
@@ -896,9 +896,9 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     private bool CachedTextMeasurementsStillMatch()
     {
-        foreach (ElementMeasurement Measurement in RecentSelfMeasurements)
+        foreach (var Measurement in RecentSelfMeasurements)
         {
-            if (!TryMeasureDesiredTextSize(Measurement.AvailableSize, Runs, out Thickness CurrentDesiredSize) ||
+            if (!TryMeasureDesiredTextSize(Measurement.AvailableSize, Runs, out var CurrentDesiredSize) ||
                 !AreTextDesiredSizesEqual(Measurement.RequestedSize, CurrentDesiredSize))
             {
                 return false;
@@ -916,14 +916,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
             return false;
         }
 
-        List<MGTextLine> ParsedLines = MGTextLine.ParseLines(this, TextContentSize.Width, WrapText, TextRuns, IgnoreEmptySpaceLines).ToList();
+        var ParsedLines = MGTextLine.ParseLines(this, TextContentSize.Width, WrapText, TextRuns, IgnoreEmptySpaceLines).ToList();
         DesiredSize = MeasureDesiredTextSize(ParsedLines);
         return true;
     }
 
     private Thickness MeasureDesiredTextSize(IReadOnlyList<MGTextLine> TextLines)
     {
-        int MeasuredLineCount = TextLines?.Count ?? 0;
+        var MeasuredLineCount = TextLines?.Count ?? 0;
         if (MaxLines.HasValue && MeasuredLineCount > MaxLines.Value)
         {
             MeasuredLineCount = Math.Max(0, MaxLines.Value);
@@ -931,9 +931,9 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
         float Width = 0;
         float Height = 0;
-        for (int i = 0; i < MeasuredLineCount; i++)
+        for (var i = 0; i < MeasuredLineCount; i++)
         {
-            MGTextLine Line = TextLines[i];
+            var Line = TextLines[i];
             Width = Math.Max(Width, Line.LineWidth);
             Height += Line.LineTotalHeight;
         }
@@ -985,14 +985,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
             //  Then clicking the substring "Click here" should invoke the command named "Action1" (in MGResources.Commands)
             if (ActionBounds.Any())
             {
-                Point MousePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
+                var MousePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
 
                 foreach (var KVP in ActionBounds)
                 {
-                    string CommandName = KVP.Key;
-                    if (GetResources().TryGetCommand(CommandName, out Action<MGElement> Command))
+                    var CommandName = KVP.Key;
+                    if (GetResources().TryGetCommand(CommandName, out var Command))
                     {
-                        foreach (Rectangle Bounds in KVP.Value)
+                        foreach (var Bounds in KVP.Value)
                         {
                             if (Bounds.Contains(MousePosition))
                             {
@@ -1009,18 +1009,18 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     private ReadOnlyCollection<MGTextRun> SanitizeRuns(IEnumerable<MGTextRun> SourceRuns)
     {
-        MGDesktop Desktop = GetDesktop();
+        var Desktop = GetDesktop();
         List<MGTextRun> Temp = new();
 
-        foreach (MGTextRun Run in SourceRuns ?? Enumerable.Empty<MGTextRun>())
+        foreach (var Run in SourceRuns ?? Enumerable.Empty<MGTextRun>())
         {
-            MGTextRun CurrentRun = Run;
+            var CurrentRun = Run;
 
             //  If a TextRunImage didn't specify destination dimensions, use the default size of the image
             if (Run.RunType == TextRunType.Image && Run is MGTextRunImage ImageRun &&
                 ImageRun.TargetWidth <= 0 && ImageRun.TargetHeight <= 0)
             {
-                (int? DefaultWidth, int? DefaultHeight) = Desktop.Resources.GetTextureDimensions(ImageRun.SourceName);
+                (var DefaultWidth, var DefaultHeight) = Desktop.Resources.GetTextureDimensions(ImageRun.SourceName);
                 CurrentRun = new MGTextRunImage(ImageRun.SourceName, DefaultWidth ?? 0, DefaultHeight ?? 0, ImageRun.ToolTipId, ImageRun.ActionId);
             }
 
@@ -1038,12 +1038,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
         }
         else if (AllowsInlineFormatting)
         {
-            IEnumerable<MGTextRun> ParsedRuns = MGTextRun.ParseRuns(Text, DefaultTextRunSettings);
+            var ParsedRuns = MGTextRun.ParseRuns(Text, DefaultTextRunSettings);
             Runs = SanitizeRuns(ParsedRuns);
         }
         else
         {
-            List<FTTokenMatch> Tokens = FTTokenizer.TokenizeLineBreaks(Text, true).ToList();
+            var Tokens = FTTokenizer.TokenizeLineBreaks(Text, true).ToList();
             Runs = MGTextRun.ParseRuns(Tokens, DefaultTextRunSettings).ToList().AsReadOnly();
         }
 
@@ -1062,7 +1062,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     internal void UpdateLines()
     {
-        int LineParseWidth = GetTextLineParseWidth();
+        var LineParseWidth = GetTextLineParseWidth();
         if (!AreLinesDirty && Lines != null && LineParseWidth == LastLineParseWidth)
         {
             return;
@@ -1089,7 +1089,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     internal Rectangle GetPaddedLayoutBounds(Rectangle layoutBounds)
     {
-        Thickness padding = ResolvedPadding;
+        var padding = ResolvedPadding;
         return new Rectangle(layoutBounds.Left + padding.Left, layoutBounds.Top + padding.Top,
             Math.Max(0, layoutBounds.Width - padding.Left - padding.Right),
             Math.Max(0, layoutBounds.Height - padding.Top - padding.Bottom));
@@ -1102,13 +1102,13 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     internal float GetRenderedTextStartY(Rectangle layoutBounds, float renderedTextHeight)
     {
-        Rectangle paddedBounds = GetPaddedLayoutBounds(layoutBounds);
+        var paddedBounds = GetPaddedLayoutBounds(layoutBounds);
         if (renderedTextHeight <= 0)
         {
             return paddedBounds.Top;
         }
 
-        Rectangle alignedBounds = ApplyAlignment(paddedBounds, HorizontalAlignment.Stretch, VerticalContentAlignment,
+        var alignedBounds = ApplyAlignment(paddedBounds, HorizontalAlignment.Stretch, VerticalContentAlignment,
             new Size(paddedBounds.Width, Math.Min(paddedBounds.Height, (int)Math.Ceiling(renderedTextHeight))));
         return alignedBounds.Top;
     }
@@ -1207,8 +1207,8 @@ public class MGTextBlock : MGElement, ITextMeasurer
     {
         using (BeginInitializing())
         {
-            MGDesktop Desktop = GetDesktop();
-            MGTheme Theme = GetTheme();
+            var Desktop = GetDesktop();
+            var Theme = GetTheme();
             WrapText = Theme.DefaultTextBlockWrapText;
             AutoWidthFromContent = Theme.DefaultTextBlockAutoWidthFromContent;
             if (!TrySetFont(Theme.FontSettings.DefaultFontFamily ?? Desktop.DefaultFontFamily, FontSize ?? GetTheme().FontSettings.DefaultFontSize))
@@ -1249,13 +1249,13 @@ public class MGTextBlock : MGElement, ITextMeasurer
             return Vector2.Zero;
         }
 
-        ResolvedFont resolved = GetResolvedFont(IsBold, IsItalic);
+        var resolved = GetResolvedFont(IsBold, IsItalic);
         if (resolved?.NativeFont == null)
         {
             return Vector2.Zero;
         }
 
-        Vector2 measured = TextEngine.MeasureText(resolved, Text);
+        var measured = TextEngine.MeasureText(resolved, Text);
         // LineHeight from the engine may be 0 for some backends; fall back to resolved value.
         return new Vector2(measured.X, measured.Y > 0 ? measured.Y : resolved.LineHeight);
     }
@@ -1273,12 +1273,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     private bool TryGetCachedSelfMeasurement(Size AvailableSize, out Thickness? Result)
     {
-        foreach (ElementMeasurement Measurement in RecentSelfMeasurements)
+        foreach (var Measurement in RecentSelfMeasurements)
         {
             //  Not sure what logic is appropriate for this
             //  The thought process is, if we measured this textblock already with a larger available size,
             //      we should be able to re-use the measurement as long as the new available size is still >= whatever was previously requested.
-            bool IsMatch = false;
+            var IsMatch = false;
             if (Measurement.AvailableSize == AvailableSize)
             {
                 IsMatch = true;
@@ -1318,7 +1318,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
     {
-        Size PaddedSize = AvailableSize.Subtract(PaddingSize, 0, 0);
+        var PaddedSize = AvailableSize.Subtract(PaddingSize, 0, 0);
 
         Size RemainingSize = new(
             Math.Max(0, PreferredWidth.HasValue ? PreferredWidth.Value - HorizontalPadding : PaddedSize.Width),
@@ -1326,12 +1326,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
         );
 
         SharedSize = new(0);
-        if (TryGetCachedSelfMeasurement(RemainingSize, out Thickness? CachedMeasurement))
+        if (TryGetCachedSelfMeasurement(RemainingSize, out var CachedMeasurement))
         {
             return CachedMeasurement.Value;
         }
 
-        Thickness Measurement = TryMeasureDesiredTextSize(RemainingSize, Runs, out Thickness DesiredSize) ? DesiredSize : new(0);
+        var Measurement = TryMeasureDesiredTextSize(RemainingSize, Runs, out var DesiredSize) ? DesiredSize : new(0);
 
         ElementMeasurement SelfMeasurement = new(RemainingSize, Measurement, SharedSize, new(0));
         CacheSelfMeasurement(SelfMeasurement);
@@ -1356,14 +1356,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
         {
             try
             {
-                Point MousePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
+                var MousePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
 
                 foreach (var KVP in ToolTipBounds)
                 {
-                    string ToolTipName = KVP.Key;
+                    var ToolTipName = KVP.Key;
                     if (ParentWindow.TryGetNamedToolTip(ToolTipName, out ToolTip))
                     {
-                        foreach (Rectangle Bounds in KVP.Value)
+                        foreach (var Bounds in KVP.Value)
                         {
                             if (Bounds.Contains(MousePosition))
                             {
@@ -1392,104 +1392,104 @@ public class MGTextBlock : MGElement, ITextMeasurer
         //  Update TextProgress (makes the Text appear slowly over time instead of all at once)
         if (TextCharactersPerSecond.HasValue && NumCharacters > 0 && (!TextProgress.HasValue || TextProgress.Value < 1.0))
         {
-            double ElapsedCharacters = UA.BA.FrameElapsed.TotalSeconds * TextCharactersPerSecond.Value;
-            double ElapsedProgress = ElapsedCharacters / NumCharacters;
+            var ElapsedCharacters = UA.BA.FrameElapsed.TotalSeconds * TextCharactersPerSecond.Value;
+            var ElapsedProgress = ElapsedCharacters / NumCharacters;
             TextProgress = TextProgress.HasValue ? TextProgress.Value + ElapsedProgress : ElapsedProgress;
         }
     }
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
-        MGDesktop Desktop = GetDesktop();
+        var Desktop = GetDesktop();
         IUIDrawContext DT = DA.DT;
-        float Opacity = DA.Opacity;
-        Color DefaultForeground = ActualForeground;
+        var Opacity = DA.Opacity;
+        var DefaultForeground = ActualForeground;
 
-        Matrix Transform = Matrix.CreateTranslation(new Vector3(DA.Offset.ToVector2(), 0));
-        float ImageSizeScalar = 1.0f;
+        var Transform = Matrix.CreateTranslation(new Vector3(DA.Offset.ToVector2(), 0));
+        var ImageSizeScalar = 1.0f;
 
         ActionBounds.Clear();
         ToolTipBounds.Clear();
 
-        int RemainingCharacters = TextProgress.HasValue ? (int)(TextProgress.Value * NumCharacters) : NumCharacters;
+        var RemainingCharacters = TextProgress.HasValue ? (int)(TextProgress.Value * NumCharacters) : NumCharacters;
 
-        Thickness padding = ResolvedPadding;
-        Rectangle paddedBounds = GetPaddedLayoutBounds(LayoutBounds);
-        float CurrentY = GetRenderedTextStartY(LayoutBounds, Lines);
+        var padding = ResolvedPadding;
+        var paddedBounds = GetPaddedLayoutBounds(LayoutBounds);
+        var CurrentY = GetRenderedTextStartY(LayoutBounds, Lines);
 
-        foreach (MGTextLine Line in Lines)
+        foreach (var Line in Lines)
         {
             Rectangle LineBounds = new(paddedBounds.Left, (int)CurrentY, paddedBounds.Width, (int)Line.LineTotalHeight);
             float CurrentX = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.LineWidth, (int)Line.LineTotalHeight)).Left;
             float TextYPosition = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.LineWidth, (int)Line.LineTextHeight)).Y;
 
-            foreach (MGTextRun Run in Line.Runs)
+            foreach (var Run in Line.Runs)
             {
                 RectangleF RunBounds; // The bounds of the MGTextRun, in CoordinateSpace.Layout space
 
                 if (Run.RunType == TextRunType.Image && Run is MGTextRunImage ImageRun)
                 {
-                    int ImgWidth = ImageRun.TargetWidth;
-                    int ImgHeight = ImageRun.TargetHeight;
-                    int YPosition = ApplyAlignment(LineBounds, HorizontalAlignment.Center, VerticalContentAlignment, new Size(ImgWidth, ImgHeight)).Top;
-                    Point Position = new Vector2((int)CurrentX, YPosition).TransformBy(Transform).ToPoint();
+                    var ImgWidth = ImageRun.TargetWidth;
+                    var ImgHeight = ImageRun.TargetHeight;
+                    var YPosition = ApplyAlignment(LineBounds, HorizontalAlignment.Center, VerticalContentAlignment, new Size(ImgWidth, ImgHeight)).Top;
+                    var Position = new Vector2((int)CurrentX, YPosition).TransformBy(Transform).ToPoint();
                     Desktop.Resources.TryDrawTexture(DT, ImageRun.SourceName, Position, (int)(ImgWidth * ImageSizeScalar), (int)(ImgHeight * ImageSizeScalar), DA.Opacity);
                     RunBounds = new(CurrentX, YPosition, ImgWidth, ImgHeight);
                     CurrentX += ImgWidth;
                 }
                 else if (Run.RunType == TextRunType.Text && Run is MGTextRunText TextRun)
                 {
-                    bool IsBold   = TextRun.Settings.IsBold;
-                    bool IsItalic = TextRun.Settings.IsItalic;
-                    ResolvedFont resolved   = GetResolvedFont(IsBold, IsItalic);
-                    float drawScale = GetTheme().FontSettings.UseExactScale
+                    var IsBold   = TextRun.Settings.IsBold;
+                    var IsItalic = TextRun.Settings.IsItalic;
+                    var resolved   = GetResolvedFont(IsBold, IsItalic);
+                    var drawScale = GetTheme().FontSettings.UseExactScale
                         ? resolved.ExactScale
                         : resolved.SuggestedScale;
 
-                    float ActualOpacity = Opacity * TextRun.Settings.Opacity;
-                    Color Foreground = (TextRun.Settings.Foreground ?? DefaultForeground) * ActualOpacity;
+                    var ActualOpacity = Opacity * TextRun.Settings.Opacity;
+                    var Foreground = (TextRun.Settings.Foreground ?? DefaultForeground) * ActualOpacity;
 
-                    string ActualText = TextRun.Text;
+                    var ActualText = TextRun.Text;
                     if (TextProgress.HasValue && RemainingCharacters < TextRun.Text.Length)
                     {
                         ActualText = TextRun.Text.Substring(0, RemainingCharacters);
                     }
 
-                    Vector2 TextSize = MeasureText(ActualText, IsBold, IsItalic);
+                    var TextSize = MeasureText(ActualText, IsBold, IsItalic);
                     Vector2 visualDrawPosition = new(CurrentX, TextYPosition);
-                    Vector2 engineAdjustedDrawPosition = visualDrawPosition + (resolved.DrawOrigin * drawScale);
+                    var engineAdjustedDrawPosition = visualDrawPosition + (resolved.DrawOrigin * drawScale);
 
                     //  Draw background
                     if (TextRun.Settings.HasBackground)
                     {
-                        IFillBrush BackgroundBrush = TextRun.Settings.Background.Brush;
-                        Thickness BackgroundPadding = TextRun.Settings.Background.Padding;
+                        var BackgroundBrush = TextRun.Settings.Background.Brush;
+                        var BackgroundPadding = TextRun.Settings.Background.Padding;
 
-                        Rectangle BackgroundDestination = new Rectangle((int)CurrentX, (int)TextYPosition, (int)TextSize.X, (int)Line.LineTextHeight)
+                        var BackgroundDestination = new Rectangle((int)CurrentX, (int)TextYPosition, (int)TextSize.X, (int)Line.LineTextHeight)
                             .GetExpanded(BackgroundPadding);
                         BackgroundBrush.Draw(DA.SetOpacity(ActualOpacity), this, BackgroundDestination);
                     }
 
                     //  Draw underline
-                    MGTextRunUnderlineConfig UnderlineSettings = TextRun.Settings.Underline;
+                    var UnderlineSettings = TextRun.Settings.Underline;
                     if (TextRun.Settings.Underline.IsEnabled)
                     {
-                        int UnderlineHeight = UnderlineSettings.Height;
-                        int UnderlineYOffset = UnderlineSettings.VerticalOffset;
-                        IFillBrush UnderlineBrush = TextRun.Settings.Underline.Brush ?? Foreground.AsFillBrush();
+                        var UnderlineHeight = UnderlineSettings.Height;
+                        var UnderlineYOffset = UnderlineSettings.VerticalOffset;
+                        var UnderlineBrush = TextRun.Settings.Underline.Brush ?? Foreground.AsFillBrush();
 
-                        RectangleF Destination = new RectangleF(CurrentX, TextYPosition + Line.LineTextHeight - 2 + UnderlineYOffset, TextSize.X, UnderlineHeight);
+                        var Destination = new RectangleF(CurrentX, TextYPosition + Line.LineTextHeight - 2 + UnderlineYOffset, TextSize.X, UnderlineHeight);
                         //.CreateTransformedF(Transform); // IFillBrush.Draw will already account for ElementDrawArgs.Offset
                         UnderlineBrush.Draw(DA.SetOpacity(ActualOpacity), this, Destination.RoundUp());
                         //DT.FillRectangle(Vector2.Zero, Destination, Foreground);
                     }
 
-                    Vector2 Position = engineAdjustedDrawPosition.TransformBy(Transform);
+                    var Position = engineAdjustedDrawPosition.TransformBy(Transform);
                     if (TextRun.Settings.IsShadowed)
                     {
                         //  Draw text twice, once for the shadow, then again for itself
-                        Color ShadowColor = (TextRun.Settings.Shadow.ShadowColor ?? DefaultForeground) * ActualOpacity;
-                        Vector2 ShadowOffset = TextRun.Settings.Shadow.ShadowOffset ?? new(1, 1);
+                        var ShadowColor = (TextRun.Settings.Shadow.ShadowColor ?? DefaultForeground) * ActualOpacity;
+                        var ShadowOffset = TextRun.Settings.Shadow.ShadowOffset ?? new(1, 1);
 
                         DT.DrawTextViaEngine(resolved, ActualText, Position + ShadowOffset, ShadowColor, resolved.DrawOrigin, drawScale);
                         DT.DrawTextViaEngine(resolved, ActualText, Position,               Foreground,  resolved.DrawOrigin, drawScale);
@@ -1516,12 +1516,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
                 //  Keep track of which parts of the textblock content have their own tooltip or delegate to invoke when clicking in the bounds
                 if (Run.HasToolTip || Run.HasAction)
                 {
-                    Rectangle RoundedRunBounds = RunBounds.RoundUp();
+                    var RoundedRunBounds = RunBounds.RoundUp();
 
                     if (Run.HasToolTip)
                     {
-                        string ToolTipName = Run.ToolTipId;
-                        if (!ToolTipBounds.TryGetValue(ToolTipName, out List<Rectangle> Bounds))
+                        var ToolTipName = Run.ToolTipId;
+                        if (!ToolTipBounds.TryGetValue(ToolTipName, out var Bounds))
                         {
                             Bounds = new();
                             ToolTipBounds.Add(ToolTipName, Bounds);
@@ -1532,8 +1532,8 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
                     if (Run.HasAction)
                     {
-                        string ActionName = Run.ActionId;
-                        if (!ActionBounds.TryGetValue(ActionName, out List<Rectangle> Bounds))
+                        var ActionName = Run.ActionId;
+                        if (!ActionBounds.TryGetValue(ActionName, out var Bounds))
                         {
                             Bounds = new();
                             ActionBounds.Add(ActionName, Bounds);

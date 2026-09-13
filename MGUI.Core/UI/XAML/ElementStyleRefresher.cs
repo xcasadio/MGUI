@@ -140,7 +140,7 @@ internal static class ElementStyleRefresher
 
         public IReadOnlyDictionary<MGElementType, Style> GetImplicitStyles(MGResources Resources)
         {
-            if (!ImplicitStylesByScope.TryGetValue(Resources, out IReadOnlyDictionary<MGElementType, Style> Styles))
+            if (!ImplicitStylesByScope.TryGetValue(Resources, out var Styles))
             {
                 Styles = Resources.GetMergedImplicitStyles();
                 ImplicitStylesByScope.Add(Resources, Styles);
@@ -159,7 +159,7 @@ internal static class ElementStyleRefresher
 
         RefreshPass Pass = new();
         HashSet<MGElement> Visited = new(ReferenceEqualityComparer.Instance);
-        foreach (MGElement Element in Root.TraverseVisualTree(true, true, true, true, MGElement.TreeTraversalMode.Preorder).ToList())
+        foreach (var Element in Root.TraverseVisualTree(true, true, true, true, MGElement.TreeTraversalMode.Preorder).ToList())
         {
             if (Visited.Add(Element) && Element.StyleScope != null)
             {
@@ -179,13 +179,13 @@ internal static class ElementStyleRefresher
         Dictionary<string, object> ExplicitValues = new(StringComparer.Ordinal);
         if (Scope.IsStyleable)
         {
-            MGResources Resources = Element.GetResources();
-            if (Scope.UsesResourceStyles && Pass.GetImplicitStyles(Resources).TryGetValue(Scope.ElementType, out Style ResourceStyle))
+            var Resources = Element.GetResources();
+            if (Scope.UsesResourceStyles && Pass.GetImplicitStyles(Resources).TryGetValue(Scope.ElementType, out var ResourceStyle))
             {
                 CollectSetters(ResourceStyle, ImplicitValues);
             }
 
-            foreach (Style InlineStyle in Scope.InlineStyles)
+            foreach (var InlineStyle in Scope.InlineStyles)
             {
                 if (InlineStyle.Name == null && InlineStyle.TargetType == Scope.ElementType)
                 {
@@ -195,9 +195,9 @@ internal static class ElementStyleRefresher
 
             if (Scope.StyleNames != null)
             {
-                foreach (string StyleName in Scope.StyleNames.Split(','))
+                foreach (var StyleName in Scope.StyleNames.Split(','))
                 {
-                    Style NamedStyle = FindNamedStyle(Scope, Resources, StyleName);
+                    var NamedStyle = FindNamedStyle(Scope, Resources, StyleName);
                     if (NamedStyle == null)
                     {
                         Pass.Skipped.Add(new(Element, StyleName, UIStyleRefreshSkipReason.StyleNotFound, null));
@@ -213,7 +213,7 @@ internal static class ElementStyleRefresher
         // Every property styled now, plus the ones styled by the parse or by the previous refresh, whose contribution may have to be given up.
         List<string> PropertyNames = new();
         HashSet<string> SeenNames = new(StringComparer.Ordinal);
-        foreach (string PropertyName in ImplicitValues.Keys.Concat(ExplicitValues.Keys).Concat(Element.RefreshedStyleProperties ?? Scope.StyledPropertyNames ?? NoProperties))
+        foreach (var PropertyName in ImplicitValues.Keys.Concat(ExplicitValues.Keys).Concat(Element.RefreshedStyleProperties ?? Scope.StyledPropertyNames ?? NoProperties))
         {
             if (SeenNames.Add(PropertyName))
             {
@@ -222,7 +222,7 @@ internal static class ElementStyleRefresher
         }
 
         HashSet<string> StyledProperties = null;
-        foreach (string PropertyName in PropertyNames)
+        foreach (var PropertyName in PropertyNames)
         {
             // A setter for a property the definition does not have is ignored, as at parse time.
             if (GetDefinitionProperty(Scope.DefinitionType, PropertyName) == null)
@@ -230,10 +230,10 @@ internal static class ElementStyleRefresher
                 continue;
             }
 
-            bool IsExplicit = ExplicitValues.TryGetValue(PropertyName, out object Value);
-            bool IsStyled = IsExplicit || ImplicitValues.TryGetValue(PropertyName, out Value);
+            var IsExplicit = ExplicitValues.TryGetValue(PropertyName, out var Value);
+            var IsStyled = IsExplicit || ImplicitValues.TryGetValue(PropertyName, out Value);
 
-            if (!Properties.TryGetValue(PropertyName, out RefreshableProperty Property) || !Property.AppliesTo(Scope, Element))
+            if (!Properties.TryGetValue(PropertyName, out var Property) || !Property.AppliesTo(Scope, Element))
             {
                 if (IsStyled)
                 {
@@ -246,14 +246,14 @@ internal static class ElementStyleRefresher
             UIValueSourceKind? AppliedKind = null;
             if (IsStyled)
             {
-                UIValueSourceKind Kind = IsExplicit ? UIValueSourceKind.ExplicitStyle : UIValueSourceKind.ImplicitStyle;
-                if (!TryConvert(Scope, PropertyName, Value, out object Converted, out string Error))
+                var Kind = IsExplicit ? UIValueSourceKind.ExplicitStyle : UIValueSourceKind.ImplicitStyle;
+                if (!TryConvert(Scope, PropertyName, Value, out var Converted, out var Error))
                 {
                     Pass.Skipped.Add(new(Element, PropertyName, UIStyleRefreshSkipReason.InvalidValue, Error));
                 }
                 else if (Converted != null)
                 {
-                    UIValueResolutionSource Source = Kind == UIValueSourceKind.ExplicitStyle
+                    var Source = Kind == UIValueSourceKind.ExplicitStyle
                         ? UIValueResolutionSource.ExplicitStyle(Property.Invalidation, PropertyName)
                         : UIValueResolutionSource.ImplicitStyle(Property.Invalidation, PropertyName);
                     try
@@ -272,7 +272,7 @@ internal static class ElementStyleRefresher
 
             // Give up the style contributions that no longer hold the style value of this property: like the parse, a property styled by a named
             // style keeps no implicit style contribution.
-            foreach (UIValueSourceKind Kind in StyleKinds)
+            foreach (var Kind in StyleKinds)
             {
                 if (AppliedKind != Kind)
                 {
@@ -286,7 +286,7 @@ internal static class ElementStyleRefresher
 
     private static void CollectSetters(Style Style, Dictionary<string, object> Values)
     {
-        foreach (Setter Setter in Style.Setters)
+        foreach (var Setter in Style.Setters)
         {
             if (Setter?.Property != null)
             {
@@ -298,7 +298,7 @@ internal static class ElementStyleRefresher
     /// <summary>The named style <paramref name="StyleName"/> in scope: an inline style from the nearest definition, then a style of the resource scopes.</summary>
     private static Style FindNamedStyle(ElementStyleScope Scope, MGResources Resources, string StyleName)
     {
-        for (int i = Scope.InlineStyles.Count - 1; i >= 0; i--)
+        for (var i = Scope.InlineStyles.Count - 1; i >= 0; i--)
         {
             if (Scope.InlineStyles[i].Name == StyleName)
             {
@@ -306,7 +306,7 @@ internal static class ElementStyleRefresher
             }
         }
 
-        return Scope.UsesResourceStyles && Resources.TryGetStyle(StyleName, out Style Style) ? Style : null;
+        return Scope.UsesResourceStyles && Resources.TryGetStyle(StyleName, out var Style) ? Style : null;
     }
 
     /// <summary>Converts a setter value to the type of the definition property, with the converter <see cref="Element.ProcessStyles(MGResources)"/> uses.</summary>
@@ -321,7 +321,7 @@ internal static class ElementStyleRefresher
 
         try
         {
-            PropertyInfo DefinitionProperty = GetDefinitionProperty(Scope.DefinitionType, PropertyName);
+            var DefinitionProperty = GetDefinitionProperty(Scope.DefinitionType, PropertyName);
             Converted = TypeDescriptor.GetConverter(DefinitionProperty.PropertyType).ConvertFrom(null, CultureInfo.InvariantCulture, StringValue);
             return true;
         }
@@ -336,8 +336,8 @@ internal static class ElementStyleRefresher
 
     private static int ClearContributions(RefreshableProperty Property, ElementStyleScope Scope, MGElement Element, UIValueSourceKind Kind)
     {
-        int Cleared = 0;
-        foreach ((MGElement Target, UIPilotProperty Pilot, UIValueSlot Slot) in Property.Contributions(Scope, Element))
+        var Cleared = 0;
+        foreach ((var Target, var Pilot, var Slot) in Property.Contributions(Scope, Element))
         {
             if (Target != null && Target.EnumerateResolvedContributions(Pilot, Slot).Any(Contribution => Contribution.Kind == Kind))
             {

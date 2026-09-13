@@ -23,7 +23,7 @@ public class UIViewInputRouter
 
     public UIView RouteToTargetView(IReadOnlyList<UIView> Views, UIView HoveredView = null)
     {
-        UIView target = ResolveTargetView(Views, HoveredView);
+        var target = ResolveTargetView(Views, HoveredView);
         if (target != null)
         {
             PreferredInputView = target;

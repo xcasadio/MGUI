@@ -23,20 +23,20 @@ public readonly struct MGGradientFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
     {
-        float Opacity = DA.Opacity;
-        if (Opacity > 0 && !Opacity.IsAlmostZero())
+        var opacity = DA.Opacity;
+        if (opacity > 0 && !opacity.IsAlmostZero())
         {
             DA.DT.FillQuadrilateralLinearClamp(DA.Offset.ToVector2(),
-                Bounds.TopLeft().ToVector2(), TopLeftColor * Opacity,
-                Bounds.TopRight().ToVector2(), TopRightColor * Opacity,
-                Bounds.BottomRight().ToVector2(), BottomRightColor * Opacity,
-                Bounds.BottomLeft().ToVector2(), BottomLeftColor * Opacity);
+                Bounds.TopLeft().ToVector2(), TopLeftColor * opacity,
+                Bounds.TopRight().ToVector2(), TopRightColor * opacity,
+                Bounds.BottomRight().ToVector2(), BottomRightColor * opacity,
+                Bounds.BottomLeft().ToVector2(), BottomLeftColor * opacity);
         }
     }
 
     public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        float opacity = DA.Opacity;
+        var opacity = DA.Opacity;
         if (opacity <= 0 || opacity.IsAlmostZero())
         {
             return;
@@ -48,13 +48,13 @@ public readonly struct MGGradientFillBrush : IFillBrush
             return;
         }
 
-        Vector2 origin = DA.Offset.ToVector2();
-        Rectangle bounds = Shape.OuterBounds;
-        for (int i = 0; i + 2 < Geometry.FillIndices.Count; i += 3)
+        var origin = DA.Offset.ToVector2();
+        var bounds = Shape.OuterBounds;
+        for (var i = 0; i + 2 < Geometry.FillIndices.Count; i += 3)
         {
-            Vector2 v0 = Geometry.Vertices[Geometry.FillIndices[i]];
-            Vector2 v1 = Geometry.Vertices[Geometry.FillIndices[i + 1]];
-            Vector2 v2 = Geometry.Vertices[Geometry.FillIndices[i + 2]];
+            var v0 = Geometry.Vertices[Geometry.FillIndices[i]];
+            var v1 = Geometry.Vertices[Geometry.FillIndices[i + 1]];
+            var v2 = Geometry.Vertices[Geometry.FillIndices[i + 2]];
 
             DA.DT.FillTriangle(
                 origin,
@@ -71,11 +71,11 @@ public readonly struct MGGradientFillBrush : IFillBrush
             return TopLeftColor;
         }
 
-        float horizontal = Math.Clamp((point.X - bounds.Left) / bounds.Width, 0f, 1f);
-        float vertical = Math.Clamp((point.Y - bounds.Top) / bounds.Height, 0f, 1f);
+        var horizontal = Math.Clamp((point.X - bounds.Left) / bounds.Width, 0f, 1f);
+        var vertical = Math.Clamp((point.Y - bounds.Top) / bounds.Height, 0f, 1f);
 
-        Color top = Color.Lerp(TopLeftColor, TopRightColor, horizontal);
-        Color bottom = Color.Lerp(BottomLeftColor, BottomRightColor, horizontal);
+        var top = Color.Lerp(TopLeftColor, TopRightColor, horizontal);
+        var bottom = Color.Lerp(BottomLeftColor, BottomRightColor, horizontal);
         return Color.Lerp(top, bottom, vertical);
     }
 
@@ -124,7 +124,7 @@ public readonly struct MGDiagonalGradientFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
     {
-        float Opacity = DA.Opacity;
+        var Opacity = DA.Opacity;
         if (Opacity > 0 && !Opacity.IsAlmostZero())
         {
             DA.DT.FillQuadrilateralLinearClamp(DA.Offset.ToVector2(),

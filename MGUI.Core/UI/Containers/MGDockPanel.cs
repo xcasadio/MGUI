@@ -134,9 +134,9 @@ public class MGDockPanel : MGMultiContentHost
             return false;
         }
 
-        for (int i = 0; i < DockedChildren.Count; i++)
+        for (var i = 0; i < DockedChildren.Count; i++)
         {
-            DockedChild ActualItem = DockedChildren[i];
+            var ActualItem = DockedChildren[i];
             if (ActualItem.Item == Item)
             {
                 DockedChildren.RemoveAt(i);
@@ -171,20 +171,20 @@ public class MGDockPanel : MGMultiContentHost
         //Referenced:
         //https://referencesource.microsoft.com/#PresentationFramework/src/Framework/System/windows/Controls/DockPanel.cs
 
-        int AccumulatedLeft = 0;
-        int AccumulatedTop = 0;
-        int AccumulatedRight = 0;
-        int AccumulatedBottom = 0;
+        var AccumulatedLeft = 0;
+        var AccumulatedTop = 0;
+        var AccumulatedRight = 0;
+        var AccumulatedBottom = 0;
 
-        for (int childIndex = 0; childIndex < DockedChildren.Count; childIndex++)
+        for (var childIndex = 0; childIndex < DockedChildren.Count; childIndex++)
         {
-            DockedChild Child = DockedChildren[childIndex];
-            Dock? actualDock = GetActualDockPosition(childIndex);
-            int AccumulatedWidth = AccumulatedLeft + AccumulatedRight;
-            int AccumulatedHeight = AccumulatedTop + AccumulatedBottom;
+            var Child = DockedChildren[childIndex];
+            var actualDock = GetActualDockPosition(childIndex);
+            var AccumulatedWidth = AccumulatedLeft + AccumulatedRight;
+            var AccumulatedHeight = AccumulatedTop + AccumulatedBottom;
 
-            Size RemainingSize = AvailableSize.Subtract(new Size(AccumulatedWidth, AccumulatedHeight), 0, 0);
-            if (!TryGetCachedChildMeasurement(childIndex, Child.Item, RemainingSize, out Thickness FullSize))
+            var RemainingSize = AvailableSize.Subtract(new Size(AccumulatedWidth, AccumulatedHeight), 0, 0);
+            if (!TryGetCachedChildMeasurement(childIndex, Child.Item, RemainingSize, out var FullSize))
             {
                 Child.Item.UpdateMeasurement(RemainingSize, out _, out FullSize, out _, out _);
                 CacheChildMeasurement(childIndex, RemainingSize, FullSize);
@@ -235,16 +235,16 @@ public class MGDockPanel : MGMultiContentHost
             //Referenced:
             //https://referencesource.microsoft.com/#PresentationFramework/src/Framework/System/windows/Controls/DockPanel.cs
 
-            int TotalContentWidth = 0;
-            int TotalContentHeight = 0;
-            int AccumulatedWidth = 0;
-            int AccumulatedHeight = 0;
+            var TotalContentWidth = 0;
+            var TotalContentHeight = 0;
+            var AccumulatedWidth = 0;
+            var AccumulatedHeight = 0;
 
-            for (int childIndex = 0; childIndex < DockedChildren.Count; childIndex++)
+            for (var childIndex = 0; childIndex < DockedChildren.Count; childIndex++)
             {
-                DockedChild Child = DockedChildren[childIndex];
-                Size RemainingSize = AvailableSize.Subtract(new Size(AccumulatedWidth, AccumulatedHeight), 0, 0);
-                if (!TryGetCachedChildMeasurement(childIndex, Child.Item, RemainingSize, out Thickness FullSize))
+                var Child = DockedChildren[childIndex];
+                var RemainingSize = AvailableSize.Subtract(new Size(AccumulatedWidth, AccumulatedHeight), 0, 0);
+                if (!TryGetCachedChildMeasurement(childIndex, Child.Item, RemainingSize, out var FullSize))
                 {
                     Child.Item.UpdateMeasurement(RemainingSize, out _, out FullSize, out _, out _);
                     CacheChildMeasurement(childIndex, RemainingSize, FullSize);

@@ -29,7 +29,7 @@ public abstract class MGShapeElementBase : MGElement
         get => _StrokeThickness;
         set
         {
-            float actualValue = Math.Max(0f, value);
+            var actualValue = Math.Max(0f, value);
             if (!_StrokeThickness.Equals(actualValue))
             {
                 _StrokeThickness = actualValue;
@@ -50,7 +50,7 @@ public abstract class MGShapeElementBase : MGElement
         get => _Fill;
         set
         {
-            bool isCurrentSolidFill = FillBrush is MGSolidFillBrush solidFill && solidFill.Color == value;
+            var isCurrentSolidFill = FillBrush is MGSolidFillBrush solidFill && solidFill.Color == value;
             if (_Fill != value || !isCurrentSolidFill)
             {
                 _Fill = value;
@@ -93,7 +93,7 @@ public abstract class MGShapeElementBase : MGElement
     /// <inheritdoc/>
     protected override IEnumerable<IFillBrush> GetFillBrushes()
     {
-        foreach (IFillBrush Brush in base.GetFillBrushes())
+        foreach (var Brush in base.GetFillBrushes())
         {
             yield return Brush;
         }
@@ -120,14 +120,14 @@ public abstract class MGShapeElementBase : MGElement
             return;
         }
 
-        using ClipScope _ = DA.Context.PushClipTemporary(clipDefinition);
+        using var _ = DA.Context.PushClipTemporary(clipDefinition);
         FillBrush.Draw(DA, this, bounds);
     }
 
     private void SetFillBrushCore(IFillBrush value, bool updateLegacyColor)
     {
-        IFillBrush actualValue = value ?? new MGSolidFillBrush(Color.Transparent);
-        bool fillBrushChanged = !Equals(_FillBrush, actualValue);
+        var actualValue = value ?? new MGSolidFillBrush(Color.Transparent);
+        var fillBrushChanged = !Equals(_FillBrush, actualValue);
         if (fillBrushChanged)
         {
             _FillBrush = actualValue;

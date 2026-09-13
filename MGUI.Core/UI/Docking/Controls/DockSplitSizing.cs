@@ -4,23 +4,23 @@ internal static class DockSplitSizing
 {
     public static float ClampRatioToMinSizes(float ratio, int availableSize, int minFirstSize, int minSecondSize)
     {
-        float boundedRatio = Math.Clamp(ratio, 0f, 1f);
+        var boundedRatio = Math.Clamp(ratio, 0f, 1f);
         if (availableSize <= 0)
         {
             return boundedRatio;
         }
 
-        int safeMinFirstSize = Math.Max(0, minFirstSize);
-        int safeMinSecondSize = Math.Max(0, minSecondSize);
+        var safeMinFirstSize = Math.Max(0, minFirstSize);
+        var safeMinSecondSize = Math.Max(0, minSecondSize);
 
-        float minRatio = (float)safeMinFirstSize / availableSize;
-        float maxRatio = (float)(availableSize - safeMinSecondSize) / availableSize;
+        var minRatio = (float)safeMinFirstSize / availableSize;
+        var maxRatio = (float)(availableSize - safeMinSecondSize) / availableSize;
         if (minRatio <= maxRatio)
         {
             return Math.Clamp(boundedRatio, minRatio, maxRatio);
         }
 
-        int totalMinSize = safeMinFirstSize + safeMinSecondSize;
+        var totalMinSize = safeMinFirstSize + safeMinSecondSize;
         if (totalMinSize <= 0)
         {
             return boundedRatio;
@@ -38,12 +38,12 @@ internal static class DockSplitSizing
             return;
         }
 
-        int safeMinFirstSize = Math.Max(0, minFirstSize);
-        int safeMinSecondSize = Math.Max(0, minSecondSize);
+        var safeMinFirstSize = Math.Max(0, minFirstSize);
+        var safeMinSecondSize = Math.Max(0, minSecondSize);
 
         if (safeMinFirstSize + safeMinSecondSize > availableSize)
         {
-            int totalMinSize = safeMinFirstSize + safeMinSecondSize;
+            var totalMinSize = safeMinFirstSize + safeMinSecondSize;
             if (totalMinSize <= 0)
             {
                 firstSize = (int)Math.Round(availableSize * Math.Clamp(ratio, 0f, 1f), MidpointRounding.ToEven);
@@ -58,7 +58,7 @@ internal static class DockSplitSizing
             return;
         }
 
-        float clampedRatio = ClampRatioToMinSizes(ratio, availableSize, safeMinFirstSize, safeMinSecondSize);
+        var clampedRatio = ClampRatioToMinSizes(ratio, availableSize, safeMinFirstSize, safeMinSecondSize);
         firstSize = (int)(availableSize * clampedRatio);
         secondSize = availableSize - firstSize;
 

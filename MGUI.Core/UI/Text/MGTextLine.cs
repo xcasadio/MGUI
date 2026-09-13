@@ -81,10 +81,10 @@ public record class MGTextLine
             WrappableRuns = OriginalRuns.Where(x => x.RunType != TextRunType.Text || (!string.IsNullOrEmpty(((MGTextRunText)x).Text)))
                 .Select(Run => new WrappableRun(this, Run)).ToList().AsReadOnly();
 
-            for (int i = 0; i < WrappableRuns.Count; i++)
+            for (var i = 0; i < WrappableRuns.Count; i++)
             {
-                WrappableRun Current = WrappableRuns[i];
-                WrappableRun Next = i == WrappableRuns.Count - 1 ? null : WrappableRuns[i + 1];
+                var Current = WrappableRuns[i];
+                var Next = i == WrappableRuns.Count - 1 ? null : WrappableRuns[i + 1];
 
                 if (Next != null && Current.IsText && Next.IsText)
                 {
@@ -103,8 +103,8 @@ public record class MGTextLine
 
         public WrappableRun GetNext(WrappableRun Current)
         {
-            int Index = RemainingRuns.IndexOf(Current);
-            int NextIndex = Index + 1;
+            var Index = RemainingRuns.IndexOf(Current);
+            var NextIndex = Index + 1;
             if (RemainingRuns.Count > NextIndex)
             {
                 return RemainingRuns[NextIndex];
@@ -136,7 +136,7 @@ public record class MGTextLine
 
             if (OriginalRun is MGTextRunText TextRun)
             {
-                List<string> Words = TextRun.Text.SplitAndKeepDelimiters(Group.WordDelimiters).ToList();
+                var Words = TextRun.Text.SplitAndKeepDelimiters(Group.WordDelimiters).ToList();
                 OriginalWords = Words.Select(x => new WrappableRunWord(this, x, TextRun.Settings, false)).ToList();
             }
             else
@@ -164,7 +164,7 @@ public record class MGTextLine
         public WrappableRunWord GetNext(WrappableRunWord Current)
         {
             int Index = RemainingWords.IndexOf(Current);
-            int NextIndex = Index + 1;
+            var NextIndex = Index + 1;
             if (RemainingWords.Count > NextIndex)
             {
                 return RemainingWords[NextIndex];
@@ -279,8 +279,8 @@ public record class MGTextLine
 
         const string MultiLineWordSuffix = "-"; // A suffix to append to the end of a line, when the line only consists of a single word that must wrap across multiple lines
 
-        float MinLineHeight = (float)Math.Ceiling(Measurer.MeasureText(" ", false, false).Y);
-        int LineNumber = 1;
+        var MinLineHeight = (float)Math.Ceiling(Measurer.MeasureText(" ", false, false).Y);
+        var LineNumber = 1;
         List<MGTextRun> CurrentLine = new();
         float CurrentX = 0;
         // Whole-string sum of the widths of runs already committed to CurrentLine.
@@ -288,7 +288,7 @@ public record class MGTextLine
         // to 0 inside FlushLine.  Used by the idempotent wrapping decision below.
         float CommittedRunsWidth = 0;
         List<int> CurrentIndicesMap = new();
-        int CurrentIndexInOriginalText = 0;
+        var CurrentIndexInOriginalText = 0;
 
         MGTextLine PreviousLine = null;
 
@@ -301,7 +301,7 @@ public record class MGTextLine
 
             if (EndsInLinebreakCharacter)
             {
-                for (int i = 0; i < LineBreakCharacterCount; i++)
+                for (var i = 0; i < LineBreakCharacterCount; i++)
                 {
                     CurrentIndicesMap.Add(CurrentIndexInOriginalText);
                     CurrentIndexInOriginalText++;
@@ -316,15 +316,15 @@ public record class MGTextLine
             // kerning within a run is captured correctly.  The wrapping-accumulated CurrentX is
             // discarded because it was built word-by-word and can differ from the per-run whole-string
             // measurement after kerning adjustments.
-            List<Vector2> TextRunSizes = CurrentLine.Where(x => x.RunType == TextRunType.Text).Cast<MGTextRunText>()
+            var TextRunSizes = CurrentLine.Where(x => x.RunType == TextRunType.Text).Cast<MGTextRunText>()
                 .Select(x => Measurer.MeasureText(x.Text, x.Settings.IsBold, x.Settings.IsItalic)).ToList();
-            List<Vector2> ImageRunSizes = CurrentLine.Where(x => x.RunType == TextRunType.Image).Cast<MGTextRunImage>()
+            var ImageRunSizes = CurrentLine.Where(x => x.RunType == TextRunType.Image).Cast<MGTextRunImage>()
                 .Select(x => new Vector2(x.TargetWidth, x.TargetHeight)).ToList();
 
-            float LineWidth = TextRunSizes.Sum(x => x.X) + ImageRunSizes.Sum(x => x.X);
-            float LineTextHeight = TextRunSizes.DefaultIfEmpty(Vector2.Zero).Max(x => x.Y);
-            float LineImageHeight = ImageRunSizes.DefaultIfEmpty(Vector2.Zero).Max(x => x.Y);
-            float LineTotalHeight = GeneralUtils.Max(MinLineHeight, LineTextHeight, LineImageHeight);
+            var LineWidth = TextRunSizes.Sum(x => x.X) + ImageRunSizes.Sum(x => x.X);
+            var LineTextHeight = TextRunSizes.DefaultIfEmpty(Vector2.Zero).Max(x => x.Y);
+            var LineImageHeight = ImageRunSizes.DefaultIfEmpty(Vector2.Zero).Max(x => x.Y);
+            var LineTotalHeight = GeneralUtils.Max(MinLineHeight, LineTextHeight, LineImageHeight);
 
             Line = new(CurrentLine, LineWidth, LineTextHeight, LineImageHeight, LineTotalHeight, LineNumber, EndsInLinebreakCharacter, CurrentIndicesMap);
             LineNumber++;
@@ -333,8 +333,8 @@ public record class MGTextLine
             CurrentX = 0;
             CommittedRunsWidth = 0;
 
-            bool IsIgnoreable = IgnoreEmptySpaceLines && PreviousLine != null && !PreviousLine.EndsInLinebreakCharacter &&
-                                Line.Runs.Count == 1 && Line.Runs.First() is MGTextRunText TextRun && TextRun.Text == " ";
+            var IsIgnoreable = IgnoreEmptySpaceLines && PreviousLine != null && !PreviousLine.EndsInLinebreakCharacter &&
+                               Line.Runs.Count == 1 && Line.Runs.First() is MGTextRunText TextRun && TextRun.Text == " ";
             PreviousLine = Line;
             return !IsIgnoreable;
         }
@@ -367,7 +367,7 @@ public record class MGTextLine
                 }
                 else
                 {
-                    int ImgWidth = ImageRun.TargetWidth;
+                    var ImgWidth = ImageRun.TargetWidth;
                     if (CurrentLine.Any() && CommittedRunsWidth + ImgWidth > MaxLineWidth && FlushLine(out Line, false))
                     {
                         yield return Line;
@@ -385,7 +385,7 @@ public record class MGTextLine
                     string Text = Run.GetAllRemainingText();
                     CurrentLine.Add(Run.AsTextRun(Text));
                     CommittedRunsWidth += Measurer.MeasureText(Text, TextRun.Settings.IsBold, TextRun.Settings.IsItalic).X;
-                    foreach (char c in Text)
+                    foreach (var c in Text)
                     {
                         CurrentIndicesMap.Add(CurrentIndexInOriginalText);
                         CurrentIndexInOriginalText++;
@@ -403,10 +403,10 @@ public record class MGTextLine
                         //  Measure the next chunk to calculate word-wrapping on
                         //  This may be several consecutive items.
                         //  EX: "Hello[b]World" results in 2 runs: Run1="Hello", Run2="World" but there is no word delimiter (space) between them so it's a single word "HelloWorld"
-                        List<Vector2> Measurements = CurrentAndNext.Select((Word, Index) =>
+                        var Measurements = CurrentAndNext.Select((Word, Index) =>
                             Measurer.MeasureText(Word.Text, Word.IsBold, Word.IsItalic)).ToList();
-                        float CurrentWidth = Measurements[0].X;
-                        float TotalWidth = Measurements.Sum(x => x.X);
+                        var CurrentWidth = Measurements[0].X;
+                        var TotalWidth = Measurements.Sum(x => x.X);
 
                         // IDEMPOTENT WRAPPING DECISION
                         // We project the line width using the same whole-string-per-run measurement that
@@ -423,19 +423,19 @@ public record class MGTextLine
                         if (CurrentAndNext.All(w => w.Run == Run))
                         {
                             // Intra-run: whole-string measurement eliminates kerning divergence
-                            string Candidate = UnwrappedText.ToString() + string.Concat(CurrentAndNext.Select(w => w.Text));
+                            var Candidate = UnwrappedText.ToString() + string.Concat(CurrentAndNext.Select(w => w.Text));
                             ProjectedWidth = CommittedRunsWidth
                                              + Measurer.MeasureText(Candidate, Current.IsBold, Current.IsItalic).X;
                         }
                         else
                         {
                             // Cross-run HasNext: sum per-run whole-string widths
-                            bool IsFirstGroup = true;
+                            var IsFirstGroup = true;
                             ProjectedWidth = CommittedRunsWidth;
                             foreach (IGrouping<WrappableRun, WrappableRunWord> G in CurrentAndNext.GroupBy(w => w.Run))
                             {
-                                string GroupText = (IsFirstGroup ? UnwrappedText.ToString() : "")
-                                                   + string.Concat(G.Select(w => w.Text));
+                                var GroupText = (IsFirstGroup ? UnwrappedText.ToString() : "")
+                                                + string.Concat(G.Select(w => w.Text));
                                 ProjectedWidth += Measurer.MeasureText(GroupText, G.First().IsBold, G.First().IsItalic).X;
                                 IsFirstGroup = false;
                             }
@@ -502,7 +502,7 @@ public record class MGTextLine
                                 {
                                     foreach (WrappableRunWord Word in WordsByRun)
                                     {
-                                        Vector2 WordSize = Measurer.MeasureText(Word.Text, Word.IsBold, Word.IsItalic);
+                                        var WordSize = Measurer.MeasureText(Word.Text, Word.IsBold, Word.IsItalic);
                                         if (CurrentX + WordSize.X + MaxLineSuffixWidth <= MaxLineWidth)
                                         {
                                             UnwrappedText.Append(Word.Text);
@@ -515,12 +515,12 @@ public record class MGTextLine
                                         }
                                         else
                                         {
-                                            for (int CharIndex = 0; CharIndex < Word.Text.Length; CharIndex++)
+                                            for (var CharIndex = 0; CharIndex < Word.Text.Length; CharIndex++)
                                             {
                                                 char CurrentChar = Word.Text[CharIndex];
-                                                float CharacterWidth = Measurer.MeasureText(CurrentChar.ToString(), Word.IsBold, Word.IsItalic).X;
-                                                bool FitsOnCurrentLine = (CurrentLine.Count == 0 && UnwrappedText.Length == 0) || // Ensure we at least have 1 character per line to avoid infinite loop
-                                                                         (CurrentX + CharacterWidth + MaxLineSuffixWidth <= MaxLineWidth);
+                                                var CharacterWidth = Measurer.MeasureText(CurrentChar.ToString(), Word.IsBold, Word.IsItalic).X;
+                                                var FitsOnCurrentLine = (CurrentLine.Count == 0 && UnwrappedText.Length == 0) || // Ensure we at least have 1 character per line to avoid infinite loop
+                                                                        (CurrentX + CharacterWidth + MaxLineSuffixWidth <= MaxLineWidth);
 
                                                 if (FitsOnCurrentLine)
                                                 {
@@ -534,7 +534,7 @@ public record class MGTextLine
                                                     if (!string.IsNullOrEmpty(MultiLineWordSuffix))
                                                     {
                                                         UnwrappedText.Append(MultiLineWordSuffix);
-                                                        foreach (char c in MultiLineWordSuffix)
+                                                        foreach (var c in MultiLineWordSuffix)
                                                         {
                                                             CurrentIndicesMap.Add(CurrentIndexInOriginalText);
                                                         }
@@ -570,7 +570,7 @@ public record class MGTextLine
 
                     if (UnwrappedText.ToString().Length > 0)
                     {
-                        string CommittedText = UnwrappedText.ToString();
+                        var CommittedText = UnwrappedText.ToString();
                         CurrentLine.Add(Run.AsTextRun(CommittedText));
                         CommittedRunsWidth += Measurer.MeasureText(CommittedText, TextRun.Settings.IsBold, TextRun.Settings.IsItalic).X;
                     }

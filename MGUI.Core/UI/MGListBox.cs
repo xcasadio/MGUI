@@ -56,7 +56,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return -1;
         }
 
-        int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+        var normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
         return action switch
         {
             UINavigationAction.MoveUp => Math.Max(0, normalizedIndex - 1),
@@ -76,8 +76,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return Math.Clamp(currentOffset, 0, maxOffset);
         }
 
-        float itemTop = contentTop + (itemIndex * itemHeight);
-        float itemBottom = itemTop + itemHeight;
+        var itemTop = contentTop + (itemIndex * itemHeight);
+        var itemBottom = itemTop + itemHeight;
         return MGScrollViewer.GetVisibleOffset(currentOffset, contentTop + currentOffset, viewportHeight, maxOffset, itemTop, itemBottom);
     }
 
@@ -224,7 +224,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 {
                     HandleTemplatedContentRemoved(InternalItems.Select(x => x.Content));
                     InternalItems.CollectionChanged -= ListBoxItems_CollectionChanged;
-                    foreach (MGListBoxItem<TItemType> Removed in InternalItems)
+                    foreach (var Removed in InternalItems)
                     {
                         OnListBoxItemRemoved?.Invoke(this, Removed);
                     }
@@ -233,7 +233,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 if (InternalItems != null)
                 {
                     InternalItems.CollectionChanged += ListBoxItems_CollectionChanged;
-                    foreach (MGListBoxItem<TItemType> Added in InternalItems)
+                    foreach (var Added in InternalItems)
                     {
                         OnListBoxItemAdded?.Invoke(this, Added);
                     }
@@ -247,7 +247,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     //  Add the new ListBoxItems to the ItemsPanel (skipped when virtualizing: VSP manages its own children)
                     if (!IsVirtualizing && InternalItems != null)
                     {
-                        foreach (MGListBoxItem<TItemType> LBI in InternalItems)
+                        foreach (var LBI in InternalItems)
                         {
                             _ = ItemsPanel.TryAddChild(LBI.ContentPresenter);
                         }
@@ -307,7 +307,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             // Clean up selection for removed items
             if (virtualRemoved.Count > 0 && SelectedItems != null)
             {
-                List<MGListBoxItem<TItemType>> newSel = SelectedItems.Where(x => !virtualRemoved.Contains(x)).ToList();
+                var newSel = SelectedItems.Where(x => !virtualRemoved.Contains(x)).ToList();
                 if (newSel.Count != SelectedItems.Count)
                 {
                     SelectedItems = newSel.AsReadOnly();
@@ -337,7 +337,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             }
             else if (e.Action is NotifyCollectionChangedAction.Add && e.NewItems != null)
             {
-                int Index = e.NewStartingIndex;
+                var Index = e.NewStartingIndex;
                 foreach (MGListBoxItem<TItemType> Item in e.NewItems)
                 {
                     ItemsPanel.TryInsertChild(Index, Item.ContentPresenter);
@@ -362,9 +362,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             }
             else if (e.Action is NotifyCollectionChangedAction.Replace)
             {
-                List<MGListBoxItem<TItemType>> Old = e.OldItems.Cast<MGListBoxItem<TItemType>>().ToList();
-                List<MGListBoxItem<TItemType>> New = e.NewItems.Cast<MGListBoxItem<TItemType>>().ToList();
-                for (int i = 0; i < Old.Count; i++)
+                var Old = e.OldItems.Cast<MGListBoxItem<TItemType>>().ToList();
+                var New = e.NewItems.Cast<MGListBoxItem<TItemType>>().ToList();
+                for (var i = 0; i < Old.Count; i++)
                 {
                     if (ItemsPanel.TryReplaceChild(Old[i].ContentPresenter, New[i].ContentPresenter))
                     {
@@ -393,7 +393,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             //  Ensure none of the removed items are Selected
             if (SelectedItems != null)
             {
-                List<MGListBoxItem<TItemType>> NewSelectedItems = SelectedItems.Where(x => !Removed.Contains(x)).ToList();
+                var NewSelectedItems = SelectedItems.Where(x => !Removed.Contains(x)).ToList();
                 if (NewSelectedItems.Count != SelectedItems.Count || !NewSelectedItems.SequenceEqual(SelectedItems))
                 {
                     SelectedItems = NewSelectedItems.AsReadOnly();
@@ -469,7 +469,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
                 if (ItemsSource == null)
                 {
-                    bool wasVirtualizing = IsVirtualizing;
+                    var wasVirtualizing = IsVirtualizing;
                     IsVirtualizing = false;
                     InternalItems = null;
                     _logicalItemsList = null;
@@ -485,8 +485,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 }
                 else
                 {
-                    bool newVirtualize = ShouldVirtualize(ItemsSource.Count);
-                    bool wasVirtualizing = IsVirtualizing;
+                    var newVirtualize = ShouldVirtualize(ItemsSource.Count);
+                    var wasVirtualizing = IsVirtualizing;
                     // Set flag BEFORE InternalItems so InternalItems.set sees the correct mode
                     IsVirtualizing = newVirtualize;
 
@@ -509,7 +509,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     else
                     {
                         _logicalItemsList = null;
-                        IEnumerable<MGListBoxItem<TItemType>> Values = ItemsSource.Select((x, Index) =>
+                        var Values = ItemsSource.Select((x, Index) =>
                             new MGListBoxItem<TItemType>(this, x) { LogicalIndex = Index });
                         InternalItems = new ObservableCollection<MGListBoxItem<TItemType>>(Values);
                         if (wasVirtualizing && ScrollViewer != null)
@@ -542,7 +542,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         }
         else if (e.Action is NotifyCollectionChangedAction.Add && e.NewItems != null)
         {
-            int CurrentIndex = e.NewStartingIndex;
+            var CurrentIndex = e.NewStartingIndex;
             foreach (TItemType Item in e.NewItems)
             {
                 MGListBoxItem<TItemType> NewRowItem = new(this, Item);
@@ -552,7 +552,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         }
         else if (e.Action is NotifyCollectionChangedAction.Remove && e.OldItems != null)
         {
-            int CurrentIndex = e.OldStartingIndex;
+            var CurrentIndex = e.OldStartingIndex;
             foreach (TItemType Item in e.OldItems)
             {
                 InternalItems.RemoveAt(CurrentIndex);
@@ -561,11 +561,11 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         }
         else if (e.Action is NotifyCollectionChangedAction.Replace)
         {
-            List<TItemType> Old = e.OldItems.Cast<TItemType>().ToList();
-            List<TItemType> New = e.NewItems.Cast<TItemType>().ToList();
-            for (int i = 0; i < Old.Count; i++)
+            var Old = e.OldItems.Cast<TItemType>().ToList();
+            var New = e.NewItems.Cast<TItemType>().ToList();
+            for (var i = 0; i < Old.Count; i++)
             {
-                MGListBoxItem<TItemType> OldRowItem = InternalItems[i];
+                var OldRowItem = InternalItems[i];
                 MGListBoxItem<TItemType> NewRowItem = new(this, New[i]);
                 InternalItems[e.OldStartingIndex + i] = NewRowItem;
             }
@@ -597,8 +597,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             _logicalItemsList = ItemsSource as IList<TItemType> ?? ItemsSource?.ToList();
         }
 
-        int previousCount = VirtualizingPanel.TotalItemCount;
-        int newCount = _logicalItemsList?.Count ?? 0;
+        var previousCount = VirtualizingPanel.TotalItemCount;
+        var newCount = _logicalItemsList?.Count ?? 0;
 
         int firstAffectedIndex;
         int indexDelta;
@@ -628,8 +628,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             ClearSelection();
         }
 
-        bool selectionItemsRemoved = firstAffectedIndex >= 0 && indexDelta != 0
-                                                             && ShiftSelectedIndices(firstAffectedIndex, indexDelta, newCount);
+        var selectionItemsRemoved = firstAffectedIndex >= 0 && indexDelta != 0
+                                                            && ShiftSelectedIndices(firstAffectedIndex, indexDelta, newCount);
 
         VirtualizingPanel.TotalItemCount = newCount;
         EnsureUniformItemHeightMeasured(previousCount, newCount);
@@ -671,16 +671,16 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return false;
         }
 
-        int[] previousIndices = new int[_selectedIndices.Count];
+        var previousIndices = new int[_selectedIndices.Count];
         _selectedIndices.CopyTo(previousIndices);
 
-        bool itemsRemoved = false;
-        bool anyChange = false;
+        var itemsRemoved = false;
+        var anyChange = false;
         _selectedIndices.Clear();
 
-        for (int i = 0; i < previousIndices.Length; i++)
+        for (var i = 0; i < previousIndices.Length; i++)
         {
-            int index = previousIndices[i];
+            var index = previousIndices[i];
             if (index < firstAffectedIndex)
             {
                 _selectedIndices.Add(index);
@@ -695,7 +695,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 continue;
             }
 
-            int shifted = index + indexDelta;
+            var shifted = index + indexDelta;
             if (shifted >= 0 && shifted < newCount)
             {
                 _selectedIndices.Add(shifted);
@@ -828,8 +828,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 yield break;
             }
 
-            IList<TItemType> asList = ItemsSource as IList<TItemType> ?? ItemsSource.ToList();
-            foreach (int idx in _selectedIndices)
+            var asList = ItemsSource as IList<TItemType> ?? ItemsSource.ToList();
+            foreach (var idx in _selectedIndices)
             {
                 if (idx >= 0 && idx < asList.Count)
                 {
@@ -850,7 +850,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             {
                 if (SelectedItems != null)
                 {
-                    foreach (MGListBoxItem<TItemType> Item in SelectedItems)
+                    foreach (var Item in SelectedItems)
                     {
                         Item.ContentPresenter.IsSelected = false;
                     }
@@ -863,14 +863,14 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     throw new ArgumentNullException($"{nameof(MGListBoxItem<object>)}.{nameof(SelectedItems)} cannnot contain null items.");
                 }
 
-                foreach (MGListBoxItem<TItemType> Item in SelectedItems)
+                foreach (var Item in SelectedItems)
                 {
                     Item.ContentPresenter.IsSelected = true;
                 }
 
                 // Maintain index-based selection set in sync via LogicalIndex (works in both normal and virtual modes)
                 _selectedIndices.Clear();
-                foreach (MGListBoxItem<TItemType> item in SelectedItems)
+                foreach (var item in SelectedItems)
                 {
                     if (item.LogicalIndex >= 0)
                     {
@@ -909,11 +909,11 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         if (IsVirtualizing && _logicalItemsList != null)
         {
             // In virtual mode InternalItems is null — scan the raw data list directly
-            for (int i = 0; i < _logicalItemsList.Count; i++)
+            for (var i = 0; i < _logicalItemsList.Count; i++)
             {
                 if (EqualityComparer.Equals(_logicalItemsList[i], Item))
                 {
-                    if (_realizedItems.TryGetValue(i, out MGListBoxItem<TItemType> realized))
+                    if (_realizedItems.TryGetValue(i, out var realized))
                     {
                         // Item is currently visible — select through normal path so all events fire
                         SelectedItems = new List<MGListBoxItem<TItemType>>() { realized }.AsReadOnly();
@@ -941,7 +941,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         }
         else
         {
-            foreach (MGListBoxItem<TItemType> LBI in ListBoxItems ?? Enumerable.Empty<MGListBoxItem<TItemType>>())
+            foreach (var LBI in ListBoxItems ?? Enumerable.Empty<MGListBoxItem<TItemType>>())
             {
                 if (EqualityComparer.Equals(LBI.Data, Item))
                 {
@@ -981,7 +981,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             {
                 // In virtual mode we track by index; realized items will reflect selection
                 _selectedIndices.Clear();
-                for (int i = 0; i < _logicalItemsList.Count; i++)
+                for (var i = 0; i < _logicalItemsList.Count; i++)
                 {
                     _selectedIndices.Add(i);
                 }
@@ -1027,8 +1027,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         get => _FocusedIndex;
         set
         {
-            int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (InternalItems?.Count ?? 0);
-            int clamped = count == 0 ? -1 : Math.Clamp(value, 0, count - 1);
+            var count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (InternalItems?.Count ?? 0);
+            var clamped = count == 0 ? -1 : Math.Clamp(value, 0, count - 1);
             if (_FocusedIndex != clamped) { _FocusedIndex = clamped; NPC(nameof(FocusedIndex)); }
         }
     }
@@ -1083,17 +1083,17 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     private MGListBoxItem<TItemType> GetItemAtMousePosition(Microsoft.Xna.Framework.Point screenPos)
     {
         // Choose total item count from the appropriate source for the current mode
-        int itemCount = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (InternalItems?.Count ?? 0);
+        var itemCount = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (InternalItems?.Count ?? 0);
         if (itemCount == 0)
         {
             return null;
         }
 
         // Convert screen → unscaled screen once
-        Vector2 unscaledPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPos.ToVector2());
+        var unscaledPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPos.ToVector2());
 
         // Select the actual items panel (regular or virtualizing)
-        MGElement activePanel = IsVirtualizing ? (MGElement)VirtualizingPanel : ItemsPanel;
+        var activePanel = IsVirtualizing ? (MGElement)VirtualizingPanel : ItemsPanel;
 
         // Quick reject: mouse must be within the active panel's visible area
         if (activePanel == null || activePanel.ActualLayoutBounds.IsEmpty || !activePanel.ActualLayoutBounds.ContainsInclusive(unscaledPos))
@@ -1102,14 +1102,14 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         }
 
         // Fast path: O(1) for uniform-height items
-        int uniformH = 0;
+        var uniformH = 0;
         if (IsVirtualizing && VirtualizingPanel != null && VirtualizingPanel.UniformItemHeight > 0)
         {
             uniformH = VirtualizingPanel.UniformItemHeight;
         }
         else if (!IsVirtualizing && InternalItems?.Count >= 1)
         {
-            int firstItemH = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
+            var firstItemH = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
             if (InternalItems.Count < 2 || InternalItems[1].ContentPresenter.AllocatedBounds.Height == firstItemH)
             {
                 uniformH = firstItemH;
@@ -1118,8 +1118,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
         if (uniformH > 0)
         {
-            float localY = unscaledPos.Y + activePanel.Origin.Y - activePanel.AlignedContentBounds.Y;
-            int index = (int)(localY / uniformH);
+            var localY = unscaledPos.Y + activePanel.Origin.Y - activePanel.AlignedContentBounds.Y;
+            var index = (int)(localY / uniformH);
             if (index >= 0 && index < itemCount)
             {
                 if (IsVirtualizing)
@@ -1140,7 +1140,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         {
             foreach (var kvp in _realizedItems)
             {
-                Rectangle bounds = kvp.Value.ContentPresenter.ActualLayoutBounds;
+                var bounds = kvp.Value.ContentPresenter.ActualLayoutBounds;
                 if (!bounds.IsEmpty && bounds.ContainsInclusive(unscaledPos))
                 {
                     return kvp.Value;
@@ -1149,9 +1149,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         }
         else if (InternalItems != null)
         {
-            for (int i = 0; i < InternalItems.Count; i++)
+            for (var i = 0; i < InternalItems.Count; i++)
             {
-                Rectangle bounds = InternalItems[i].ContentPresenter.ActualLayoutBounds;
+                var bounds = InternalItems[i].ContentPresenter.ActualLayoutBounds;
                 if (!bounds.IsEmpty && bounds.ContainsInclusive(unscaledPos))
                 {
                     return InternalItems[i];
@@ -1165,7 +1165,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     /// Works in both regular and virtualized modes without requiring callers to inspect realized wrappers.</summary>
     public bool TryGetItemAtPosition(Microsoft.Xna.Framework.Point screenPos, out TItemType item)
     {
-        MGListBoxItem<TItemType> listBoxItem = GetItemAtMousePosition(screenPos);
+        var listBoxItem = GetItemAtMousePosition(screenPos);
         if (listBoxItem != null)
         {
             item = listBoxItem.Data;
@@ -1188,7 +1188,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
         ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
 
-        bool needsOuterBorderNotifications = OuterBorderComponent == null || !ReferenceEquals(OuterBorderComponent.Element, OuterBorder);
+        var needsOuterBorderNotifications = OuterBorderComponent == null || !ReferenceEquals(OuterBorderComponent.Element, OuterBorder);
         EnsureComponentBinding(() => OuterBorderComponent, value => OuterBorderComponent = value, OuterBorder, MGComponentBase.Create);
         if (needsOuterBorderNotifications)
         {
@@ -1196,7 +1196,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             OuterBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(OuterBorderThickness)); };
         }
 
-        bool needsTitleNotifications = TitleComponent == null || !ReferenceEquals(TitleComponent.Element, TitleBorder);
+        var needsTitleNotifications = TitleComponent == null || !ReferenceEquals(TitleComponent.Element, TitleBorder);
         EnsureComponentBinding(() => TitleComponent, value => TitleComponent = value, TitleBorder,
             element => new(element, true, false, false, true, false, false, false,
                 (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size)));
@@ -1206,7 +1206,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             TitleBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(TitleBorderThickness)); };
         }
 
-        bool needsInnerBorderNotifications = InnerBorderComponent == null || !ReferenceEquals(InnerBorderComponent.Element, InnerBorder);
+        var needsInnerBorderNotifications = InnerBorderComponent == null || !ReferenceEquals(InnerBorderComponent.Element, InnerBorder);
         EnsureComponentBinding(() => InnerBorderComponent, value => InnerBorderComponent = value, InnerBorder,
             element => new(element, true, false, true, true, false, false, false,
                 (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Stretch, ComponentSize.Size)));
@@ -1248,7 +1248,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             using (ItemsPanel.AllowChangingContentTemporarily())
             {
                 _ = ItemsPanel.TryRemoveAll();
-                foreach (MGListBoxItem<TItemType> item in InternalItems)
+                foreach (var item in InternalItems)
                 {
                     _ = ItemsPanel.TryAddChild(item.ContentPresenter);
                 }
@@ -1286,7 +1286,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return;
         }
 
-        if (_realizedItems.TryGetValue(FocusedIndex, out MGListBoxItem<TItemType> realizedItem))
+        if (_realizedItems.TryGetValue(FocusedIndex, out var realizedItem))
         {
             ScrollViewer.EnsureElementVisible(realizedItem.ContentPresenter);
             return;
@@ -1297,9 +1297,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return;
         }
 
-        int itemHeight = VirtualizingPanel?.UniformItemHeight > 0 ? VirtualizingPanel.UniformItemHeight : MeasureNaturalItemHeight();
+        var itemHeight = VirtualizingPanel?.UniformItemHeight > 0 ? VirtualizingPanel.UniformItemHeight : MeasureNaturalItemHeight();
         float contentTop = (VirtualizingPanel as MGElement)?.LayoutBounds.Top ?? ItemsPanel.LayoutBounds.Top;
-        float newOffset = GetVisibleVerticalOffsetForIndex(ScrollViewer.VerticalOffset, contentTop, ScrollViewer.ContentViewport.Height,
+        var newOffset = GetVisibleVerticalOffsetForIndex(ScrollViewer.VerticalOffset, contentTop, ScrollViewer.ContentViewport.Height,
             ScrollViewer.MaxVerticalOffset, FocusedIndex, itemHeight);
 
         if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
@@ -1373,7 +1373,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
         SyncVirtualizedItemsPanelChrome();
 
-        int totalCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
+        var totalCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
         VirtualizingPanel.TotalItemCount = totalCount;
         VirtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
         VirtualizingPanel.ItemGenerator = (idx) =>
@@ -1382,9 +1382,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
             // Try to reuse a recycled wrapper from the pool
             if (_logicalItemsList != null &&
-                VirtualizingPanel.TryDequeueRecycledElement(out MGElement recycledEl) &&
+                VirtualizingPanel.TryDequeueRecycledElement(out var recycledEl) &&
                 recycledEl is MGBorder recycledCp &&
-                _contentPresToItem.TryGetValue(recycledCp, out MGListBoxItem<TItemType> recycledItem))
+                _contentPresToItem.TryGetValue(recycledCp, out var recycledItem))
             {
                 // Rebind the recycled wrapper to the new data index
                 recycledItem.UpdateData(idx, _logicalItemsList[idx]);
@@ -1442,7 +1442,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     {
         if (InternalItems?.Count > 0)
         {
-            int h = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
+            var h = InternalItems[0].ContentPresenter.AllocatedBounds.Height;
             if (h > 0)
             {
                 return h;
@@ -1485,7 +1485,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return _cachedNaturalItemHeight;
         }
 
-        int measured = MeasureNaturalItemHeight();
+        var measured = MeasureNaturalItemHeight();
 
         //  MeasureNaturalItemHeight falls back to a default when there is no item to measure from.
         //  Caching that fallback would freeze the row height at a value no real item ever had.
@@ -1518,7 +1518,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         try
         {
             // Build the item content via the template (same as real items)
-            MGElement content = ItemTemplate(_logicalItemsList[0]);
+            var content = ItemTemplate(_logicalItemsList[0]);
             if (content == null)
             {
                 return 26;
@@ -1537,7 +1537,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             // Use a wide rect so text wrapping doesn't artificially inflate height,
             // and a tall rect (2000) so VA=Top reports the true natural height.
             probe.UpdateLayout(new Rectangle(0, 0, 1200, 2000));
-            int h = probe.LayoutBounds.Height;
+            var h = probe.LayoutBounds.Height;
             return h > 4 ? h : 26;
         }
         catch
@@ -1603,7 +1603,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 //  Pushed to the items from here rather than pulled by each item from ItemTemplateChanged:
                 //  a per-item subscription would root every wrapper this list box ever created in the event's
                 //  invocation list, and cost an O(n) Delegate.Combine per wrapper created.
-                foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())
+                foreach (var item in EnumerateItemWrappers())
                 {
                     item.RefreshContent();
                 }
@@ -1634,7 +1634,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 _ItemContainerStyle = value;
                 InvalidateItemHeightCache();
 
-                foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())
+                foreach (var item in EnumerateItemWrappers())
                 {
                     item.RefreshContainerStyle();
                 }
@@ -1668,9 +1668,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     {
         if (InternalItems != null)
         {
-            for (int i = 0; i < InternalItems.Count; i++)
+            for (var i = 0; i < InternalItems.Count; i++)
             {
-                IFillBrush Brush = AlternatingRowBackgrounds?.Any() == true ? AlternatingRowBackgrounds[i % AlternatingRowBackgrounds.Count] : null;
+                var Brush = AlternatingRowBackgrounds?.Any() == true ? AlternatingRowBackgrounds[i % AlternatingRowBackgrounds.Count] : null;
                 // ADR-0005/S5: see the matching comment above on the Replace branch -- LocalValue, not Theme, so
                 // this application-facing refresh (also invoked by the theme callback) always wins as last writer.
                 InternalItems[i].ContentPresenter.SetBackgroundSlot(UIValueSlot.Normal, Brush, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
@@ -1706,7 +1706,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
         //  EnumerateItemWrappers also covers the virtualized case, where InternalItems is null and the
         //  wrappers live in the recycle pool.
-        foreach (MGListBoxItem<TItemType> item in EnumerateItemWrappers())
+        foreach (var item in EnumerateItemWrappers())
         {
             if (ItemContainerStyle == ApplyDefaultItemContainerStyle)
             {
@@ -1723,8 +1723,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     /// (backlog tasks 7 and 14).</summary>
     protected internal override UIInvalidationKind GetThemeInvalidation(MGTheme PreviousTheme, MGTheme CurrentTheme)
     {
-        MGThemeListBoxSettings previous = PreviousTheme?.ListBox;
-        MGThemeListBoxSettings current = (CurrentTheme ?? GetTheme()).ListBox;
+        var previous = PreviousTheme?.ListBox;
+        var current = (CurrentTheme ?? GetTheme()).ListBox;
         if (previous == null)
         {
             return UIInvalidationKind.Draw | UIThemeValueInvalidation.LayoutAffecting;
@@ -1742,14 +1742,14 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     {
         if (IsVirtualizing)
         {
-            foreach (MGListBoxItem<TItemType> item in _contentPresToItem.Values)
+            foreach (var item in _contentPresToItem.Values)
             {
                 yield return item;
             }
         }
         else if (InternalItems != null)
         {
-            foreach (MGListBoxItem<TItemType> item in InternalItems)
+            foreach (var item in InternalItems)
             {
                 yield return item;
             }
@@ -1833,9 +1833,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
                 if (ReleasedItem != null)
                 {
-                    bool IsReleasedItemAlreadySelected = SelectedItems?.Contains(ReleasedItem) == true;
-                    bool IsShiftDown = InputTracker.Keyboard.IsShiftDown;
-                    bool IsControlDown = InputTracker.Keyboard.IsControlDown;
+                    var IsReleasedItemAlreadySelected = SelectedItems?.Contains(ReleasedItem) == true;
+                    var IsShiftDown = InputTracker.Keyboard.IsShiftDown;
+                    var IsControlDown = InputTracker.Keyboard.IsControlDown;
 
                     void SelectSingle()
                     {
@@ -1859,11 +1859,11 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                         }
                         else if (InternalItems != null)
                         {
-                            int SourceIndex = InternalItems.IndexOf(SelectionSourceItem);
-                            int PressedIndex = InternalItems.IndexOf(ReleasedItem);
+                            var SourceIndex = InternalItems.IndexOf(SelectionSourceItem);
+                            var PressedIndex = InternalItems.IndexOf(ReleasedItem);
 
-                            int StartIndex = Math.Min(SourceIndex, PressedIndex);
-                            int EndIndex = Math.Max(SourceIndex, PressedIndex);
+                            var StartIndex = Math.Min(SourceIndex, PressedIndex);
+                            var EndIndex = Math.Max(SourceIndex, PressedIndex);
 
                             SelectedItems = InternalItems.Skip(StartIndex).Take(EndIndex - StartIndex + 1).ToList().AsReadOnly();
                         }
@@ -1907,7 +1907,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     }
                     if (ReleasedItem != null)
                     {
-                        int idx = IsVirtualizing
+                        var idx = IsVirtualizing
                             ? (_logicalItemsList?.IndexOf(ReleasedItem.Data) ?? -1)
                             : (ListBoxItems != null ? ListBoxItems.ToList().IndexOf(ReleasedItem) : -1);
                         if (idx >= 0)
@@ -1930,13 +1930,13 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return;
         }
 
-        int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
+        var count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
         if (count == 0)
         {
             return;
         }
 
-        bool isCtrlDown = e.Tracker.IsControlDown;
+        var isCtrlDown = e.Tracker.IsControlDown;
 
         // Ctrl+A — select all (Multiple/Contiguous mode)
         if (isCtrlDown && e.Key == Keys.A)
@@ -1952,7 +1952,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
     public override bool TryHandleNavigationAction(UINavigationAction action)
     {
-        int count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
+        var count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (ListBoxItems?.Count ?? 0);
         if (count == 0)
         {
             return false;
@@ -1960,7 +1960,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
         if (action == UINavigationAction.Submit && FocusedIndex >= 0 && FocusedIndex < count && SelectionMode != ListBoxSelectionMode.None)
         {
-            TItemType focusedItem = GetLogicalItemAt(FocusedIndex);
+            var focusedItem = GetLogicalItemAt(FocusedIndex);
             if (focusedItem != null)
             {
                 SelectItem(focusedItem, true);
@@ -1973,7 +1973,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return false;
         }
 
-        int nextIndex = GetNextNavigationIndex(FocusedIndex, count, action);
+        var nextIndex = GetNextNavigationIndex(FocusedIndex, count, action);
         if (nextIndex < 0)
         {
             return false;
@@ -1982,7 +1982,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         FocusedIndex = nextIndex;
         if (SelectionMode != ListBoxSelectionMode.None)
         {
-            TItemType focusedItem = GetLogicalItemAt(FocusedIndex);
+            var focusedItem = GetLogicalItemAt(FocusedIndex);
             if (focusedItem != null)
             {
                 SelectItem(focusedItem, true);
@@ -2001,7 +2001,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     //  Do not modify the method signature.
     internal void LoadSettings(ListBox Settings, bool IncludeContent)
     {
-        MGDesktop Desktop = GetDesktop();
+        var Desktop = GetDesktop();
 
         Settings.OuterBorder.ApplySettings(this, OuterBorder, false);
         Settings.InnerBorder.ApplySettings(this, InnerBorder, false);
@@ -2028,12 +2028,12 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         if (Settings.Items?.Any() == true)
         {
             List<TItemType> TempItems = new();
-            Type TargetType = typeof(TItemType);
-            foreach (object Item in Settings.Items)
+            var TargetType = typeof(TItemType);
+            foreach (var Item in Settings.Items)
             {
                 if (TargetType.IsAssignableFrom(Item.GetType()))
                 {
-                    TItemType Value = (TItemType)Item;
+                    var Value = (TItemType)Item;
                     TempItems.Add(Value);
                 }
             }

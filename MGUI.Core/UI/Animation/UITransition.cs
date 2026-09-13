@@ -50,9 +50,9 @@ public abstract class UITransition
     /// <exception cref="ArgumentException">The path is unknown.</exception>
     public static UITransition Create(string property, TimeSpan duration, TimeSpan delay = default, IUIEasingFunction easing = null)
     {
-        Type valueType = UIAnimationTargets.GetValueType(property) ?? throw new ArgumentException(
+        var valueType = UIAnimationTargets.GetValueType(property) ?? throw new ArgumentException(
             $"Unknown animation target '{property}'. Registered paths: {string.Join(", ", UIAnimationTargets.Paths)}.", nameof(property));
-        UITransition transition = (UITransition)Activator.CreateInstance(typeof(UITransition<>).MakeGenericType(valueType), property);
+        var transition = (UITransition)Activator.CreateInstance(typeof(UITransition<>).MakeGenericType(valueType), property);
         transition.Duration = duration;
         transition.Delay = delay;
         transition.Easing = easing;
@@ -147,7 +147,7 @@ public sealed class UITransition<T> : UITransition
 
     protected override void OnAttached()
     {
-        IUIAnimationTarget<T> target = UIAnimationTargets.Resolve<T>(_Property);
+        var target = UIAnimationTargets.Resolve<T>(_Property);
         _Target = target as IUIObservableAnimationTarget<T> ?? throw new InvalidOperationException(
             $"The animation target '{_Property}' ({target.GetType().Name}) is not observable: it cannot be used in a transition, only in an explicit animation.");
         SettledValue = _Target.GetUnderlyingValue(Owner);
@@ -172,7 +172,7 @@ public sealed class UITransition<T> : UITransition
             return;
         }
 
-        T underlying = _Target.GetUnderlyingValue(Owner);
+        var underlying = _Target.GetUnderlyingValue(Owner);
 
         if (Owner.Parent == null && !Owner.IsWindow)
         {
@@ -202,7 +202,7 @@ public sealed class UITransition<T> : UITransition
             return;
         }
 
-        T from = Animation != null && Animation.IsActive ? Animation.CurrentValue : (_HasSettledValue ? SettledValue : underlying);
+        var from = Animation != null && Animation.IsActive ? Animation.CurrentValue : (_HasSettledValue ? SettledValue : underlying);
         SettledValue = underlying;
         _HasSettledValue = true;
 

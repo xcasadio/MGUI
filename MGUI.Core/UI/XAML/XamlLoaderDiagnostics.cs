@@ -72,16 +72,16 @@ internal static class XamlLoaderDiagnostics
             return;
         }
 
-        XDocument document = XDocument.Parse(markup, LoadOptions.SetLineInfo);
-        foreach (XElement element in document.Descendants())
+        var document = XDocument.Parse(markup, LoadOptions.SetLineInfo);
+        foreach (var element in document.Descendants())
         {
-            string localName = element.Name.LocalName;
+            var localName = element.Name.LocalName;
             if (localName.Contains('.', StringComparison.Ordinal))
             {
                 continue;
             }
 
-            Type elementType = XAMLParser.ResolveElementType(localName);
+            var elementType = XAMLParser.ResolveElementType(localName);
             if (elementType != null)
             {
                 ValidateKnownAttributes(element, elementType, source, documentKind);
@@ -105,7 +105,7 @@ internal static class XamlLoaderDiagnostics
             return;
         }
 
-        foreach (ControlTemplateDefinition definition in definitions)
+        foreach (var definition in definitions)
         {
             if (definition == null)
             {
@@ -116,7 +116,7 @@ internal static class XamlLoaderDiagnostics
             CollectNames(definition.Root, names);
             if (definition.DetachedRoots != null)
             {
-                foreach (Element detachedRoot in definition.DetachedRoots)
+                foreach (var detachedRoot in definition.DetachedRoots)
                 {
                     CollectNames(detachedRoot, names);
                 }
@@ -127,20 +127,20 @@ internal static class XamlLoaderDiagnostics
                 continue;
             }
 
-            foreach (TemplatePartDefinition part in definition.Parts)
+            foreach (var part in definition.Parts)
             {
                 if (part == null || !part.IsRequired)
                 {
                     continue;
                 }
 
-                string elementName = string.IsNullOrWhiteSpace(part.ElementName) ? part.Name : part.ElementName;
+                var elementName = string.IsNullOrWhiteSpace(part.ElementName) ? part.Name : part.ElementName;
                 if (!string.IsNullOrWhiteSpace(elementName) && names.Contains(elementName))
                 {
                     continue;
                 }
 
-                string templateName = string.IsNullOrWhiteSpace(definition.Name) ? "<unnamed>" : definition.Name;
+                var templateName = string.IsNullOrWhiteSpace(definition.Name) ? "<unnamed>" : definition.Name;
                 throw CreateException(
                     source,
                     "control template document",
@@ -212,7 +212,7 @@ internal static class XamlLoaderDiagnostics
             names.Add(element.Name);
         }
 
-        foreach (Element child in element.GetChildren())
+        foreach (var child in element.GetChildren())
         {
             CollectNames(child, names);
         }
@@ -220,7 +220,7 @@ internal static class XamlLoaderDiagnostics
 
     private static void ValidateKnownAttributes(XElement element, Type elementType, XamlDocumentSource source, string documentKind)
     {
-        foreach (XAttribute attribute in element.Attributes())
+        foreach (var attribute in element.Attributes())
         {
             if (attribute.IsNamespaceDeclaration)
             {
@@ -232,7 +232,7 @@ internal static class XamlLoaderDiagnostics
                 continue;
             }
 
-            string attributeName = attribute.Name.LocalName;
+            var attributeName = attribute.Name.LocalName;
             if (attributeName.Contains('.', StringComparison.Ordinal))
             {
                 continue;
@@ -255,9 +255,9 @@ internal static class XamlLoaderDiagnostics
 
     private static XamlLoaderDiagnosticCode Classify(Exception exception)
     {
-        foreach (Exception current in EnumerateExceptionChain(exception))
+        foreach (var current in EnumerateExceptionChain(exception))
         {
-            string message = current?.Message ?? string.Empty;
+            var message = current?.Message ?? string.Empty;
             if (message.IndexOf("Unsupported", StringComparison.OrdinalIgnoreCase) >= 0
                 && message.IndexOf("document root", StringComparison.OrdinalIgnoreCase) >= 0)
             {
@@ -305,9 +305,9 @@ internal static class XamlLoaderDiagnostics
     private static string GetDiagnosticMessage(Exception exception)
     {
         string outermost = null;
-        foreach (Exception current in EnumerateExceptionChain(exception))
+        foreach (var current in EnumerateExceptionChain(exception))
         {
-            string message = current?.Message;
+            var message = current?.Message;
             if (string.IsNullOrWhiteSpace(message))
             {
                 continue;
@@ -334,7 +334,7 @@ internal static class XamlLoaderDiagnostics
 
     private static IEnumerable<Exception> EnumerateExceptionChain(Exception exception)
     {
-        Exception current = exception;
+        var current = exception;
         while (current != null)
         {
             yield return current;
@@ -352,10 +352,10 @@ internal static class XamlLoaderDiagnostics
             return null;
         }
 
-        PropertyInfo property = exception.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+        var property = exception.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
         if (property?.PropertyType == typeof(int))
         {
-            int value = (int)property.GetValue(exception);
+            var value = (int)property.GetValue(exception);
             return value > 0 ? value : null;
         }
 

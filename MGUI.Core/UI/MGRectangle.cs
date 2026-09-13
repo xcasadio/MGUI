@@ -132,7 +132,7 @@ public class MGRectangle : MGElement
     /// <inheritdoc/>
     protected override IEnumerable<IFillBrush> GetFillBrushes()
     {
-        foreach (IFillBrush Brush in base.GetFillBrushes())
+        foreach (var Brush in base.GetFillBrushes())
         {
             yield return Brush;
         }
@@ -148,14 +148,14 @@ public class MGRectangle : MGElement
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
-        Rectangle ActualBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(Width, Height));
+        var ActualBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(Width, Height));
         if (ActualBounds.Width <= 0 || ActualBounds.Height <= 0)
         {
             return;
         }
 
-        MGBoxShape shape = new MGBoxShape(ActualBounds, new Thickness(StrokeThickness), CornerRadius).Normalize();
-        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        var shape = new MGBoxShape(ActualBounds, new Thickness(StrokeThickness), CornerRadius).Normalize();
+        var geometry = MGBoxGeometryBuilder.Build(shape);
 
         Fill?.Draw(DA, this, shape, geometry);
         if (StrokeThickness > 0)

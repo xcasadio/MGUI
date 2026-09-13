@@ -39,7 +39,7 @@ public class MenuBar : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGMenuBar MenuBar = Element as MGMenuBar;
+        var MenuBar = Element as MGMenuBar;
 
         ItemsPanel.ApplySettings(MenuBar, MenuBar.ItemsPanel, false);
 
@@ -47,7 +47,7 @@ public class MenuBar : SingleContentHost
         {
             MenuBar.ButtonWrapperTemplate = (Win) =>
             {
-                MGButton Button = MenuBar.CreateDefaultBarButton(Win);
+                var Button = MenuBar.CreateDefaultBarButton(Win);
                 ButtonWrapperTemplate.ApplySettings(Win.SelfOrParentWindow, Button, true);
                 return Button;
             };
@@ -55,7 +55,7 @@ public class MenuBar : SingleContentHost
 
         if (IncludeContent)
         {
-            foreach (MenuBarItem Item in Items)
+            foreach (var Item in Items)
             {
                 Item.ToElement<MGMenuBarItem>(Element.SelfOrParentWindow, MenuBar);
             }
@@ -66,7 +66,7 @@ public class MenuBar : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -78,7 +78,7 @@ public class MenuBar : SingleContentHost
             yield return ButtonWrapperTemplate;
         }
 
-        foreach (MenuBarItem Item in Items)
+        foreach (var Item in Items)
         {
             yield return Item;
         }
@@ -109,8 +109,8 @@ public class MenuBarItem : SingleContentHost
     {
         if (Parent is MGMenuBar MenuBar)
         {
-            MGElement ContentElement = Content?.ToElement<MGElement>(Window, null)
-                                       ?? new MGTextBlock(Window, Text ?? "", null, Window.GetTheme().FontSettings.ContextMenuFontSize);
+            var ContentElement = Content?.ToElement<MGElement>(Window, null)
+                                 ?? new MGTextBlock(Window, Text ?? "", null, Window.GetTheme().FontSettings.ContextMenuFontSize);
             return MenuBar.AddItem(ContentElement);
         }
         else
@@ -121,8 +121,8 @@ public class MenuBarItem : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGMenuBarItem Item = Element as MGMenuBarItem;
-        MGWindow Window = Element.SelfOrParentWindow;
+        var Item = Element as MGMenuBarItem;
+        var Window = Element.SelfOrParentWindow;
 
         if (IncludeContent)
         {
@@ -137,7 +137,7 @@ public class MenuBarItem : SingleContentHost
                 MGContextMenu DropdownMenu = new(Window, "");
                 DropdownMenu.IsTitleBarVisible = false;
                 DropdownMenu.AutoCloseThreshold = null;
-                foreach (ContextMenuItem CMItem in Items)
+                foreach (var CMItem in Items)
                 {
                     CMItem.ToElement<MGContextMenuItem>(Window, DropdownMenu);
                 }
@@ -154,7 +154,7 @@ public class MenuBarItem : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -164,7 +164,7 @@ public class MenuBarItem : SingleContentHost
             yield return Submenu;
         }
 
-        foreach (ContextMenuItem Item in Items)
+        foreach (var Item in Items)
         {
             yield return Item;
         }

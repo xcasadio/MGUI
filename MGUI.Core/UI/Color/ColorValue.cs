@@ -53,7 +53,7 @@ public readonly struct ColorValue : IEquatable<ColorValue>
 
     public Color ToXnaColor()
     {
-        ColorValue clamped = ClampLdr();
+        var clamped = ClampLdr();
         return new Color(
             ToByte(clamped.R),
             ToByte(clamped.G),

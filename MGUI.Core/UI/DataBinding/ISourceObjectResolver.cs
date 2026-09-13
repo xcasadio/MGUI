@@ -70,7 +70,7 @@ public class SourceObjectResolverElementName : ISourceObjectResolver
 
     public object ResolveSourceObject(object TargetObject)
     {
-        if (TargetObject is IElementNameResolver Resolver && Resolver.TryGetElementByName(ElementName, out MGElement NamedElement))
+        if (TargetObject is IElementNameResolver Resolver && Resolver.TryGetElementByName(ElementName, out var NamedElement))
         {
             return NamedElement;
         }
@@ -96,7 +96,7 @@ public class SourceObjectResolverStaticResource : ISourceObjectResolver
 
     public object ResolveSourceObject(object TargetObject)
     {
-        if (TargetObject is IResourcesResolver Resolver && Resolver.GetResources()?.TryGetStaticResource(ResourceName, out object Resource) == true)
+        if (TargetObject is IResourcesResolver Resolver && Resolver.GetResources()?.TryGetStaticResource(ResourceName, out var Resource) == true)
         {
             return Resource;
         }
@@ -137,8 +137,8 @@ public class SourceObjectResolverElementAncestor<T> : ISourceObjectResolver
 
         if (TargetObject is MGElement Element)
         {
-            int Count = AncestorLevel;
-            MGElement Current = Element;
+            var Count = AncestorLevel;
+            var Current = Element;
 
             while (Count > 0 && Current != null)
             {

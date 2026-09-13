@@ -43,9 +43,9 @@ public static class UIAnimationTargets
     /// <summary>The value type of the target registered under <paramref name="path"/>, or null when the path is unknown.</summary>
     public static Type GetValueType(string path)
     {
-        if (path != null && Registry.TryGetValue(path, out object target))
+        if (path != null && Registry.TryGetValue(path, out var target))
         {
-            Type targetInterface = target.GetType().GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IUIAnimationTarget<>));
+            var targetInterface = target.GetType().GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IUIAnimationTarget<>));
             return targetInterface.GetGenericArguments()[0];
         }
 
@@ -56,7 +56,7 @@ public static class UIAnimationTargets
     /// <exception cref="InvalidOperationException">The path is registered for another value type.</exception>
     public static bool TryGet<T>(string path, out IUIAnimationTarget<T> target)
     {
-        if (path != null && Registry.TryGetValue(path, out object registered))
+        if (path != null && Registry.TryGetValue(path, out var registered))
         {
             if (registered is IUIAnimationTarget<T> typed)
             {

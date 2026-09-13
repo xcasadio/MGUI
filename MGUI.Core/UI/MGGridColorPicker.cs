@@ -239,7 +239,7 @@ public static class ColorPalettes
             switch (Palette)
             {
                 case ColorPalette._6Bit_Grayscale:
-                    for (int c = 0; c <= byte.MaxValue; c += 4)
+                    for (var c = 0; c <= byte.MaxValue; c += 4)
                     {
                         Result.Add(new Color(c, c, c));
                     }
@@ -261,10 +261,10 @@ public class MGGridColorPicker : MGElement
             return null;
         }
 
-        int current = Math.Clamp(currentIndex ?? 0, 0, colorCount - 1);
-        int row = current / columns;
-        int column = current % columns;
-        int rowCount = (colorCount - 1) / columns + 1;
+        var current = Math.Clamp(currentIndex ?? 0, 0, colorCount - 1);
+        var row = current / columns;
+        var column = current % columns;
+        var rowCount = (colorCount - 1) / columns + 1;
 
         switch (direction)
         {
@@ -282,7 +282,7 @@ public class MGGridColorPicker : MGElement
                 break;
         }
 
-        int candidate = row * columns + column;
+        var candidate = row * columns + column;
         return Math.Min(candidate, colorCount - 1);
     }
 
@@ -360,7 +360,7 @@ public class MGGridColorPicker : MGElement
     public void SetColors(ColorPalette Palette, bool TryUseRecommendedColumnCount)
     {
         Colors = ColorPalettes.GetColors(Palette);
-        if (TryUseRecommendedColumnCount && ColorPalettes.SuggestedColumnCounts.TryGetValue(Palette, out int SuggestedColumnCount))
+        if (TryUseRecommendedColumnCount && ColorPalettes.SuggestedColumnCounts.TryGetValue(Palette, out var SuggestedColumnCount))
         {
             Columns = SuggestedColumnCount;
         }
@@ -490,7 +490,7 @@ public class MGGridColorPicker : MGElement
 
     protected override IEnumerable<IBorderBrush> GetBorderBrushes()
     {
-        foreach (IBorderBrush Brush in base.GetBorderBrushes())
+        foreach (var Brush in base.GetBorderBrushes())
         {
             yield return Brush;
         }
@@ -503,7 +503,7 @@ public class MGGridColorPicker : MGElement
     /// <inheritdoc/>
     protected override IEnumerable<IFillBrush> GetFillBrushes()
     {
-        foreach (IFillBrush Brush in base.GetFillBrushes())
+        foreach (var Brush in base.GetFillBrushes())
         {
             yield return Brush;
         }
@@ -609,7 +609,7 @@ public class MGGridColorPicker : MGElement
         get => SelectedColorIndexes.Count >= 1 ? Colors[SelectedColorIndexes.First()] : null;
         set
         {
-            if (!value.HasValue || !TryGetColorIndex(value.Value, out int Index))
+            if (!value.HasValue || !TryGetColorIndex(value.Value, out var Index))
             {
                 SelectedColorIndexes = new List<int>();
             }
@@ -746,7 +746,7 @@ public class MGGridColorPicker : MGElement
             MouseHandler.Exited += (sender, e) => HoveredColorIndex = null;
             MouseHandler.MovedInside += (sender, e) =>
             {
-                if (TryGetHoveredColorIndex(e.CurrentPosition, out GridCellIndex? CellIndex, out int? LinearIndex))
+                if (TryGetHoveredColorIndex(e.CurrentPosition, out var CellIndex, out var LinearIndex))
                 {
                     HoveredColorIndex = LinearIndex;
                 }
@@ -797,7 +797,7 @@ public class MGGridColorPicker : MGElement
 
         if (direction.HasValue)
         {
-            int? nextIndex = GetAdjacentColorIndex(GetCurrentNavigationColorIndex(), Columns, Colors?.Count ?? 0, direction.Value);
+            var nextIndex = GetAdjacentColorIndex(GetCurrentNavigationColorIndex(), Columns, Colors?.Count ?? 0, direction.Value);
             if (!nextIndex.HasValue)
             {
                 return false;
@@ -821,8 +821,8 @@ public class MGGridColorPicker : MGElement
     /// <param name="LinearIndex">The index of the hovered color if counting left-to-right, top-to-bottom, starting from the top-left corner</param>
     public bool TryGetHoveredColorIndex(Point MousePosition, out GridCellIndex? CellIndex, out int? LinearIndex)
     {
-        Point LayoutPosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, MousePosition);
-        Rectangle PaddedBounds = LayoutBounds.GetCompressed(BorderThickness).GetCompressed(Padding);
+        var LayoutPosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, MousePosition);
+        var PaddedBounds = LayoutBounds.GetCompressed(BorderThickness).GetCompressed(Padding);
         if (!PaddedBounds.Contains(LayoutPosition))
         {
             CellIndex = null;
@@ -830,9 +830,9 @@ public class MGGridColorPicker : MGElement
             return false;
         }
 
-        int RelativeX = LayoutPosition.X - PaddedBounds.Left;
-        int SpacedWidth = ColorSize.Width + ColumnSpacing;
-        int Column = RelativeX / SpacedWidth;
+        var RelativeX = LayoutPosition.X - PaddedBounds.Left;
+        var SpacedWidth = ColorSize.Width + ColumnSpacing;
+        var Column = RelativeX / SpacedWidth;
         if (RelativeX % SpacedWidth >= ColorSize.Width) // Check if the position is between 2 columns
         {
             CellIndex = null;
@@ -840,9 +840,9 @@ public class MGGridColorPicker : MGElement
             return false;
         }
 
-        int RelativeY = LayoutPosition.Y - PaddedBounds.Top;
-        int SpacedHeight = ColorSize.Height + RowSpacing;
-        int Row = RelativeY / SpacedHeight;
+        var RelativeY = LayoutPosition.Y - PaddedBounds.Top;
+        var SpacedHeight = ColorSize.Height + RowSpacing;
+        var Row = RelativeY / SpacedHeight;
         if (RelativeY % SpacedHeight >= ColorSize.Height) // Check if the position is between 2 rows
         {
             CellIndex = null;
@@ -866,8 +866,8 @@ public class MGGridColorPicker : MGElement
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
     {
         SharedSize = new(0);
-        int Width = ColorSize.Width * Columns + ColumnSpacing * (Columns - 1);
-        int Height = ColorSize.Height * Rows + RowSpacing * (Rows - 1);
+        var Width = ColorSize.Width * Columns + ColumnSpacing * (Columns - 1);
+        var Height = ColorSize.Height * Rows + RowSpacing * (Rows - 1);
         return new(Width, Height, 0, 0);
     }
 
@@ -875,7 +875,7 @@ public class MGGridColorPicker : MGElement
     {
         base.DrawSelf(DA, LayoutBounds);
 
-        Rectangle PaddedBounds = LayoutBounds.GetCompressed(BorderThickness).GetCompressed(Padding);
+        var PaddedBounds = LayoutBounds.GetCompressed(BorderThickness).GetCompressed(Padding);
 
         // Explicit local decision for this control (not a generic clip-pipeline hook): the swatch grid is
         // painted directly in DrawSelf rather than through a Component/DrawContents pass, so there is no
@@ -884,24 +884,24 @@ public class MGGridColorPicker : MGElement
         // MGComponent draws the border ring BeforeSelf (see MGComponent.cs ComponentDrawPriority.BeforeSelf).
         // Clip own paint to the rounded host silhouette so the corners stay intact; hit testing is untouched
         // and stays rectangular (VisualShape != ContentClipShape invariant, Docs/rendering-architecture.md).
-        ClipDefinition swatchClip = (HasBorder && !CornerRadius.IsZero)
+        var swatchClip = (HasBorder && !CornerRadius.IsZero)
             ? CreateBorderBackedContentsClipDefinition(DA, LayoutBounds, $"{ElementType}.Swatches")
             : null;
 
-        using ClipScope _ = swatchClip == null ? null : DA.Context.PushClipTemporary(swatchClip);
+        using var _ = swatchClip == null ? null : DA.Context.PushClipTemporary(swatchClip);
 
-        int StartX = PaddedBounds.Left;
-        int StartY = PaddedBounds.Top;
-        int Row = 0;
-        int Column = 0;
-        foreach (Color Color in Colors)
+        var StartX = PaddedBounds.Left;
+        var StartY = PaddedBounds.Top;
+        var Row = 0;
+        var Column = 0;
+        foreach (var Color in Colors)
         {
-            int X = StartX + Column * ColorSize.Width + Column * ColumnSpacing;
-            int Y = StartY + Row * ColorSize.Height + Row * RowSpacing;
+            var X = StartX + Column * ColorSize.Width + Column * ColumnSpacing;
+            var Y = StartY + Row * ColorSize.Height + Row * RowSpacing;
             Rectangle Bounds = new(X, Y, ColorSize.Width, ColorSize.Height);
             DA.DT.FillRectangle(DA.Offset.ToVector2(), Bounds, Color);
 
-            int Index = Row * Columns + Column;
+            var Index = Row * Columns + Column;
             if (IsIndexSelected(Index))
             {
                 SelectedColorOverlay?.Draw(DA, this, Bounds);
@@ -927,13 +927,13 @@ public class MGGridColorPicker : MGElement
     }
 
     public bool IsIndexSelected(int Index) => SelectedColorIndexes.Contains(Index);
-    public bool IsColorSelected(Color c) => TryGetColorIndex(c, out int Index) && IsIndexSelected(Index);
+    public bool IsColorSelected(Color c) => TryGetColorIndex(c, out var Index) && IsIndexSelected(Index);
     public bool TryGetColorIndex(Color c, out int Index) => TryGetIndexOf(Colors, c, out Index);
 
     private static bool TryGetIndexOf<T>(IReadOnlyList<T> self, T elementToFind, out int index)
     {
-        int i = 0;
-        foreach (T element in self)
+        var i = 0;
+        foreach (var element in self)
         {
             if (Equals(element, elementToFind))
             {

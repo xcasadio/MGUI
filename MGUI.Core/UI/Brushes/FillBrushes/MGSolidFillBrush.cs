@@ -23,7 +23,7 @@ public readonly struct MGSolidFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
     {
-        Color ActualColor = Color * DA.Opacity;
+        var ActualColor = Color * DA.Opacity;
         if (ActualColor != Color.Transparent)
         {
             DA.Context.FillRectangle(DA.Offset.ToVector2(), Bounds, ActualColor);
@@ -32,7 +32,7 @@ public readonly struct MGSolidFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        Color actualColor = Color * DA.Opacity;
+        var actualColor = Color * DA.Opacity;
         if (actualColor == Color.Transparent)
         {
             return;

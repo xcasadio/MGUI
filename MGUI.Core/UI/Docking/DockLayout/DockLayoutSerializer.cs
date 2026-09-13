@@ -303,7 +303,7 @@ public static class DockLayoutSerializer
     {
         var tabGroupNode = new DockTabGroupNode(dto.Id);
 
-        int skippedCount = 0;
+        var skippedCount = 0;
 
         if (dto.Panels != null)
         {

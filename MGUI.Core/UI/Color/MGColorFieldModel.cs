@@ -99,8 +99,8 @@ public sealed class MGColorFieldModel
 
     private void SetValue(ColorValue? value)
     {
-        ColorValue? previous = Value;
-        bool wasMixed = _isMixed;
+        var previous = Value;
+        var wasMixed = _isMixed;
         Value = value;
         _isMixed = false;
         if (wasMixed || previous != Value)

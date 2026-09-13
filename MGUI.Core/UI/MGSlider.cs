@@ -17,7 +17,7 @@ public class MGSlider : MGElement
             return discreteValueInterval.Value;
         }
 
-        float interval = maximum - minimum;
+        var interval = maximum - minimum;
         return interval > 0 ? interval / 10f : 1f;
     }
 
@@ -52,17 +52,17 @@ public class MGSlider : MGElement
                 throw new ArgumentException($"{nameof(MGSlider)}.{nameof(Minimum)} cannot be greater than {nameof(MGSlider)}.{nameof(Maximum)}");
             }
 
-            float PreviousMin = this.Minimum;
-            float PreviousMax = this.Maximum;
+            var PreviousMin = this.Minimum;
+            var PreviousMax = this.Maximum;
 
-            bool MinimumChanged = false;
+            var MinimumChanged = false;
             if (_Minimum != Minimum)
             {
                 _Minimum = Minimum;
                 MinimumChanged = true;
             }
 
-            bool MaximumChanged = false;
+            var MaximumChanged = false;
             if (_Maximum != Maximum)
             {
                 _Maximum = Maximum;
@@ -105,10 +105,10 @@ public class MGSlider : MGElement
     /// <summary>See also: <see cref="GetActualValue(float)"/></summary>
     public float SetValue(float DesiredValue)
     {
-        float ActualValue = GetActualValue(DesiredValue);
+        var ActualValue = GetActualValue(DesiredValue);
         if (Value != ActualValue)
         {
-            float Previous = Value;
+            var Previous = Value;
             _Value = ActualValue;
             NPC(nameof(Value));
             ValueChanged?.Invoke(this, new(Previous, Value));
@@ -123,7 +123,7 @@ public class MGSlider : MGElement
     /// and set to a valid multiple of <see cref="DiscreteValueInterval"/> if <see cref="UseDiscreteValues"/>==true</summary>
     public float GetActualValue(float DesiredValue)
     {
-        float Result = Math.Clamp(DesiredValue, Minimum, Maximum);
+        var Result = Math.Clamp(DesiredValue, Minimum, Maximum);
 
         if (UseDiscreteValues && DiscreteValueInterval.HasValue)
         {
@@ -666,7 +666,7 @@ public class MGSlider : MGElement
         using (BeginInitializing())
         {
             IsFocusable = true;
-            MGTheme Theme = GetTheme();
+            var Theme = GetTheme();
 
             SetRange(Minimum, Maximum);
             SetValue(Value);
@@ -783,15 +783,15 @@ public class MGSlider : MGElement
 
     private bool TryAdjustValue(float delta)
     {
-        float previousValue = Value;
+        var previousValue = Value;
         SetValue(Value + delta);
         return !Value.IsAlmostEqual(previousValue);
     }
 
     public override bool TryHandleNavigationAction(UINavigationAction action)
     {
-        float step = GetNavigationStep(Minimum, Maximum, UseDiscreteValues, DiscreteValueInterval);
-        float largeStep = step * 5f;
+        var step = GetNavigationStep(Minimum, Maximum, UseDiscreteValues, DiscreteValueInterval);
+        var largeStep = step * 5f;
 
         return action switch
         {
@@ -811,7 +811,7 @@ public class MGSlider : MGElement
 
     protected override IEnumerable<IBorderBrush> GetBorderBrushes()
     {
-        foreach (IBorderBrush Brush in base.GetBorderBrushes())
+        foreach (var Brush in base.GetBorderBrushes())
         {
             yield return Brush;
         }
@@ -824,7 +824,7 @@ public class MGSlider : MGElement
     /// <inheritdoc/>
     protected override IEnumerable<IFillBrush> GetFillBrushes()
     {
-        foreach (IFillBrush Brush in base.GetFillBrushes())
+        foreach (var Brush in base.GetFillBrushes())
         {
             yield return Brush;
         }
@@ -839,7 +839,7 @@ public class MGSlider : MGElement
     /// <inheritdoc/>
     protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
     {
-        foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+        foreach (var Brush in base.GetVisualStateFillBrushes())
         {
             yield return Brush;
         }
@@ -852,7 +852,7 @@ public class MGSlider : MGElement
         base.UpdateSelf(UA);
         if (IsHitTestVisible && !RecentDrawWasClipped)
         {
-            Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
+            var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
             IsHoveringNumberLine = RecentStretchedNumberLineBounds.ContainsInclusive(LayoutSpacePosition);
             IsHoveringThumb = RecentThumbBounds.GetExpanded(5).ContainsInclusive(LayoutSpacePosition);
         }
@@ -860,15 +860,15 @@ public class MGSlider : MGElement
 
     private void HandleSliderInput(Vector2 CursorPosition)
     {
-        Rectangle NumberLineBounds = ComputeNumberLineBounds(LayoutBounds);
+        var NumberLineBounds = ComputeNumberLineBounds(LayoutBounds);
         if (Orientation == Orientation.Horizontal)
         {
-            float Percent = (CursorPosition.X - NumberLineBounds.Left) / NumberLineBounds.Width;
+            var Percent = (CursorPosition.X - NumberLineBounds.Left) / NumberLineBounds.Width;
             SetValue(Minimum + Percent * Interval);
         }
         else if (Orientation == Orientation.Vertical)
         {
-            float Percent = (CursorPosition.Y - NumberLineBounds.Top) / NumberLineBounds.Height;
+            var Percent = (CursorPosition.Y - NumberLineBounds.Top) / NumberLineBounds.Height;
             SetValue(Minimum + Percent * Interval);
         }
         else
@@ -919,33 +919,33 @@ public class MGSlider : MGElement
         if (Orientation == Orientation.Horizontal)
         {
             //  Compute number line position
-            int XPadding = Math.Max(ActualThumbWidth / 2, DrawTicks ? ActualTickWidth / 2 : 0);
-            int NumberLineStartPosition = (int)Math.Clamp(LayoutBounds.Left + XPadding, LayoutBounds.Left, LayoutBounds.Right);
-            int NumberLineEndPosition = (int)Math.Clamp(LayoutBounds.Right - XPadding, LayoutBounds.Left, LayoutBounds.Right);
+            var XPadding = Math.Max(ActualThumbWidth / 2, DrawTicks ? ActualTickWidth / 2 : 0);
+            var NumberLineStartPosition = (int)Math.Clamp(LayoutBounds.Left + XPadding, LayoutBounds.Left, LayoutBounds.Right);
+            var NumberLineEndPosition = (int)Math.Clamp(LayoutBounds.Right - XPadding, LayoutBounds.Left, LayoutBounds.Right);
             if (NumberLineStartPosition == NumberLineEndPosition)
             {
                 NumberLineStartPosition = LayoutBounds.Center.X;
                 NumberLineEndPosition = NumberLineStartPosition;
             }
-            int NumberLineWidth = NumberLineEndPosition - NumberLineStartPosition;
+            var NumberLineWidth = NumberLineEndPosition - NumberLineStartPosition;
 
-            Rectangle NumberLineBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(NumberLineWidth, NumberLineSize));
+            var NumberLineBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(NumberLineWidth, NumberLineSize));
             return NumberLineBounds;
         }
         else if (Orientation == Orientation.Vertical)
         {
             //  Compute number line position
-            int YPadding = Math.Max(ActualThumbHeight / 2, DrawTicks ? ActualTickHeight / 2 : 0);
-            int NumberLineStartPosition = (int)Math.Clamp(LayoutBounds.Top + YPadding, LayoutBounds.Top, LayoutBounds.Bottom);
-            int NumberLineEndPosition = (int)Math.Clamp(LayoutBounds.Bottom - YPadding, LayoutBounds.Top, LayoutBounds.Bottom);
+            var YPadding = Math.Max(ActualThumbHeight / 2, DrawTicks ? ActualTickHeight / 2 : 0);
+            var NumberLineStartPosition = (int)Math.Clamp(LayoutBounds.Top + YPadding, LayoutBounds.Top, LayoutBounds.Bottom);
+            var NumberLineEndPosition = (int)Math.Clamp(LayoutBounds.Bottom - YPadding, LayoutBounds.Top, LayoutBounds.Bottom);
             if (NumberLineStartPosition == NumberLineEndPosition)
             {
                 NumberLineStartPosition = LayoutBounds.Center.Y;
                 NumberLineEndPosition = NumberLineStartPosition;
             }
-            int NumberLineHeight = NumberLineEndPosition - NumberLineStartPosition;
+            var NumberLineHeight = NumberLineEndPosition - NumberLineStartPosition;
 
-            Rectangle NumberLineBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(NumberLineSize, NumberLineHeight));
+            var NumberLineBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(NumberLineSize, NumberLineHeight));
             return NumberLineBounds;
         }
         else
@@ -964,17 +964,17 @@ public class MGSlider : MGElement
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
-        SecondaryVisualState VisualState = this.VisualState.GetSecondaryState(IsDraggingThumb, false);
+        var VisualState = this.VisualState.GetSecondaryState(IsDraggingThumb, false);
         IFillBrush OverlayFillBrush = FocusBrush.GetFillOverlay(VisualState);
         IBorderBrush OverlayBorderBrush = FocusBrush.GetBorderOverlay(VisualState);
 
         //  Apply padding
         LayoutBounds = new(LayoutBounds.Left + Padding.Left, LayoutBounds.Top + Padding.Top, LayoutBounds.Width - Padding.Width, LayoutBounds.Height - Padding.Height);
 
-        Rectangle NumberLineBounds = ComputeNumberLineBounds(LayoutBounds);
+        var NumberLineBounds = ComputeNumberLineBounds(LayoutBounds);
         RecentNumberLineBounds = NumberLineBounds;
 
-        bool DrawTicks = CanDrawTickMarks && this.DrawTicks;
+        var DrawTicks = CanDrawTickMarks && this.DrawTicks;
         if (Orientation == Orientation.Horizontal)
         {
             RecentStretchedNumberLineBounds = new(NumberLineBounds.Left, LayoutBounds.Top, NumberLineBounds.Width, LayoutBounds.Height);
@@ -988,24 +988,24 @@ public class MGSlider : MGElement
             if (DrawTicks && NumberLineBounds.Width > 0)
             {
                 Size TickSize = new(ActualTickWidth, ActualTickHeight);
-                float IntervalPercent = TickFrequency.Value / Interval;
-                float IntervalPixels = NumberLineBounds.Width * IntervalPercent;
+                var IntervalPercent = TickFrequency.Value / Interval;
+                var IntervalPixels = NumberLineBounds.Width * IntervalPercent;
 
                 //  Draw the ticks between the min and max
-                float CurrentXPosition = NumberLineBounds.Left + IntervalPixels;
+                var CurrentXPosition = NumberLineBounds.Left + IntervalPixels;
                 while (CurrentXPosition < NumberLineBounds.Right)
                 {
-                    Rectangle TickBounds = ApplyAlignment(new((int)CurrentXPosition, LayoutBounds.Top, 0, LayoutBounds.Height), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
+                    var TickBounds = ApplyAlignment(new((int)CurrentXPosition, LayoutBounds.Top, 0, LayoutBounds.Height), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
                     ActualTickFillBrush.Draw(DA, this, TickBounds);
                     TickBorderBrush?.Draw(DA, this, TickBounds, TickBorderThickness);
                     CurrentXPosition += IntervalPixels;
                 }
 
                 //  Draw the ticks at the min and max
-                Rectangle MinTickBounds = ApplyAlignment(new(NumberLineBounds.Left, LayoutBounds.Top, 0, LayoutBounds.Height), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
+                var MinTickBounds = ApplyAlignment(new(NumberLineBounds.Left, LayoutBounds.Top, 0, LayoutBounds.Height), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
                 ActualTickFillBrush.Draw(DA, this, MinTickBounds);
                 TickBorderBrush?.Draw(DA, this, MinTickBounds, TickBorderThickness);
-                Rectangle MaxTickBounds = ApplyAlignment(new(NumberLineBounds.Right, LayoutBounds.Top, 0, LayoutBounds.Height), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
+                var MaxTickBounds = ApplyAlignment(new(NumberLineBounds.Right, LayoutBounds.Top, 0, LayoutBounds.Height), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
                 ActualTickFillBrush.Draw(DA, this, MaxTickBounds);
                 TickBorderBrush?.Draw(DA, this, MaxTickBounds, TickBorderThickness);
             }
@@ -1023,7 +1023,7 @@ public class MGSlider : MGElement
 
             //  Draw the thumb
             Size ThumbSize = new(ActualThumbWidth, ActualThumbHeight);
-            Rectangle ThumbBounds = ApplyAlignment(new((int)ThumbXPosition, LayoutBounds.Top, 0, LayoutBounds.Height), HorizontalAlignment.Center, VerticalAlignment.Center, ThumbSize);
+            var ThumbBounds = ApplyAlignment(new((int)ThumbXPosition, LayoutBounds.Top, 0, LayoutBounds.Height), HorizontalAlignment.Center, VerticalAlignment.Center, ThumbSize);
             RecentThumbBounds = ThumbBounds;
             ActualThumbFillBrush.Draw(DA, this, ThumbBounds);
             ThumbBorderBrush?.Draw(DA, this, ThumbBounds, ThumbBorderThickness);
@@ -1035,21 +1035,21 @@ public class MGSlider : MGElement
             {
                 //  Divide the number line into 2 pieces, the piece left of the thumb, and the piece right of the thumb
                 //  so that we don't draw overtop of the thumb with the number line overlays
-                Rectangle LeftNumberLine = Rectangle.Empty;
+                var LeftNumberLine = Rectangle.Empty;
                 if (NumberLineBounds.Left < ThumbBounds.Left)
                 {
                     LeftNumberLine = new(NumberLineBounds.Left, NumberLineBounds.Top, ThumbBounds.Left - NumberLineBounds.Left, NumberLineBounds.Height);
                 }
 
-                Rectangle RightNumberLine = Rectangle.Empty;
+                var RightNumberLine = Rectangle.Empty;
                 if (NumberLineBounds.Right > ThumbBounds.Right)
                 {
                     RightNumberLine = new(ThumbBounds.Right, NumberLineBounds.Top, NumberLineBounds.Right - ThumbBounds.Right, NumberLineBounds.Height);
                 }
 
-                List<Rectangle> NumberLineChunks = new List<Rectangle>() { LeftNumberLine, RightNumberLine }.Where(x => x != Rectangle.Empty).ToList();
+                var NumberLineChunks = new List<Rectangle>() { LeftNumberLine, RightNumberLine }.Where(x => x != Rectangle.Empty).ToList();
 
-                foreach (Rectangle Bounds in NumberLineChunks)
+                foreach (var Bounds in NumberLineChunks)
                 {
                     OverlayFillBrush?.Draw(DA, this, Bounds);
                     OverlayBorderBrush?.Draw(DA, this, Bounds, NumberLineBorderThickness);
@@ -1071,24 +1071,24 @@ public class MGSlider : MGElement
             if (DrawTicks && NumberLineBounds.Height > 0)
             {
                 Size TickSize = new(ActualTickWidth, ActualTickHeight);
-                float IntervalPercent = TickFrequency.Value / Interval;
-                float IntervalPixels = NumberLineBounds.Height * IntervalPercent;
+                var IntervalPercent = TickFrequency.Value / Interval;
+                var IntervalPixels = NumberLineBounds.Height * IntervalPercent;
 
                 //  Draw the ticks between the min and max
-                float CurrentYPosition = NumberLineBounds.Top + IntervalPixels;
+                var CurrentYPosition = NumberLineBounds.Top + IntervalPixels;
                 while (CurrentYPosition < NumberLineBounds.Bottom)
                 {
-                    Rectangle TickBounds = ApplyAlignment(new(LayoutBounds.Left, (int)CurrentYPosition, LayoutBounds.Width, 0), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
+                    var TickBounds = ApplyAlignment(new(LayoutBounds.Left, (int)CurrentYPosition, LayoutBounds.Width, 0), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
                     ActualTickFillBrush.Draw(DA, this, TickBounds);
                     TickBorderBrush?.Draw(DA, this, TickBounds, TickBorderThickness);
                     CurrentYPosition += IntervalPixels;
                 }
 
                 //  Draw the ticks at the min and max
-                Rectangle MinTickBounds = ApplyAlignment(new(LayoutBounds.Left, NumberLineBounds.Top, LayoutBounds.Width, 0), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
+                var MinTickBounds = ApplyAlignment(new(LayoutBounds.Left, NumberLineBounds.Top, LayoutBounds.Width, 0), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
                 ActualTickFillBrush.Draw(DA, this, MinTickBounds);
                 TickBorderBrush?.Draw(DA, this, MinTickBounds, TickBorderThickness);
-                Rectangle MaxTickBounds = ApplyAlignment(new(LayoutBounds.Right, NumberLineBounds.Top, LayoutBounds.Width, 0), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
+                var MaxTickBounds = ApplyAlignment(new(LayoutBounds.Right, NumberLineBounds.Top, LayoutBounds.Width, 0), HorizontalAlignment.Center, VerticalAlignment.Center, TickSize);
                 ActualTickFillBrush.Draw(DA, this, MaxTickBounds);
                 TickBorderBrush?.Draw(DA, this, MaxTickBounds, TickBorderThickness);
             }
@@ -1106,7 +1106,7 @@ public class MGSlider : MGElement
 
             //  Draw the thumb
             Size ThumbSize = new(ActualThumbWidth, ActualThumbHeight);
-            Rectangle ThumbBounds = ApplyAlignment(new(LayoutBounds.Left, (int)ThumbYPosition, LayoutBounds.Width, 0), HorizontalAlignment.Center, VerticalAlignment.Center, ThumbSize);
+            var ThumbBounds = ApplyAlignment(new(LayoutBounds.Left, (int)ThumbYPosition, LayoutBounds.Width, 0), HorizontalAlignment.Center, VerticalAlignment.Center, ThumbSize);
             RecentThumbBounds = ThumbBounds;
             ActualThumbFillBrush.Draw(DA, this, ThumbBounds);
             ThumbBorderBrush?.Draw(DA, this, ThumbBounds, ThumbBorderThickness);
@@ -1118,21 +1118,21 @@ public class MGSlider : MGElement
             {
                 //  Divide the number line into 2 pieces, the piece above the thumb, and the piece below the thumb
                 //  so that we don't draw overtop of the thumb with the number line overlays
-                Rectangle TopNumberLine = Rectangle.Empty;
+                var TopNumberLine = Rectangle.Empty;
                 if (NumberLineBounds.Top < ThumbBounds.Top)
                 {
                     TopNumberLine = new(NumberLineBounds.Left, NumberLineBounds.Top, NumberLineBounds.Width, ThumbBounds.Top - NumberLineBounds.Top);
                 }
 
-                Rectangle BottomNumberLine = Rectangle.Empty;
+                var BottomNumberLine = Rectangle.Empty;
                 if (NumberLineBounds.Bottom > ThumbBounds.Bottom)
                 {
                     BottomNumberLine = new(NumberLineBounds.Left, ThumbBounds.Bottom, NumberLineBounds.Width, NumberLineBounds.Bottom - ThumbBounds.Bottom);
                 }
 
-                List<Rectangle> NumberLineChunks = new List<Rectangle>() { TopNumberLine, BottomNumberLine }.Where(x => x != Rectangle.Empty).ToList();
+                var NumberLineChunks = new List<Rectangle>() { TopNumberLine, BottomNumberLine }.Where(x => x != Rectangle.Empty).ToList();
 
-                foreach (Rectangle Bounds in NumberLineChunks)
+                foreach (var Bounds in NumberLineChunks)
                 {
                     OverlayFillBrush?.Draw(DA, this, Bounds);
                     OverlayBorderBrush?.Draw(DA, this, Bounds, NumberLineBorderThickness);

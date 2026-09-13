@@ -170,13 +170,13 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             OriginalColumns = InheritFrom.OriginalColumns.Select(x => x.GetCopy()).ToList();
 
             _ActualToOriginalColumn = new();
-            for (int i = 0; i < ActualColumns.Count; i++)
+            for (var i = 0; i < ActualColumns.Count; i++)
             {
                 _ActualToOriginalColumn.Add(ActualColumns[i], OriginalColumns[i]);
             }
 
             _OriginalToActualColumn = new();
-            for (int i = 0; i < OriginalColumns.Count; i++)
+            for (var i = 0; i < OriginalColumns.Count; i++)
             {
                 _OriginalToActualColumn.Add(OriginalColumns[i], ActualColumns[i]);
             }
@@ -185,13 +185,13 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             OriginalRows = InheritFrom.OriginalRows.Select(x => x.GetCopy()).ToList();
 
             _ActualToOriginalRow = new();
-            for (int i = 0; i < ActualRows.Count; i++)
+            for (var i = 0; i < ActualRows.Count; i++)
             {
                 _ActualToOriginalRow.Add(ActualRows[i], OriginalRows[i]);
             }
 
             _OriginalToActualRow = new();
-            for (int i = 0; i < OriginalRows.Count; i++)
+            for (var i = 0; i < OriginalRows.Count; i++)
             {
                 _OriginalToActualRow.Add(OriginalRows[i], ActualRows[i]);
             }
@@ -200,7 +200,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
         public GridDragData(MGGridSplitter GridSplitter, MGGrid OwnerGrid, bool NormalizeWeightedLengths)
         {
             this.GridSplitter = GridSplitter;
-            OwnerGrid.TryGetCell(GridSplitter, out GridCell Cell);
+            OwnerGrid.TryGetCell(GridSplitter, out var Cell);
             GridSplitterCell = Cell;
             this.OwnerGrid = OwnerGrid;
 
@@ -213,13 +213,13 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             OriginalColumns = ActualColumns.Select(x => x.GetCopy()).ToList();
 
             _ActualToOriginalColumn = new();
-            for (int i = 0; i < ActualColumns.Count; i++)
+            for (var i = 0; i < ActualColumns.Count; i++)
             {
                 _ActualToOriginalColumn.Add(ActualColumns[i], OriginalColumns[i]);
             }
 
             _OriginalToActualColumn = new();
-            for (int i = 0; i < OriginalColumns.Count; i++)
+            for (var i = 0; i < OriginalColumns.Count; i++)
             {
                 _OriginalToActualColumn.Add(OriginalColumns[i], ActualColumns[i]);
             }
@@ -228,13 +228,13 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             OriginalRows = ActualRows.Select(x => x.GetCopy()).ToList();
 
             _ActualToOriginalRow = new();
-            for (int i = 0; i < ActualRows.Count; i++)
+            for (var i = 0; i < ActualRows.Count; i++)
             {
                 _ActualToOriginalRow.Add(ActualRows[i], OriginalRows[i]);
             }
 
             _OriginalToActualRow = new();
-            for (int i = 0; i < OriginalRows.Count; i++)
+            for (var i = 0; i < OriginalRows.Count; i++)
             {
                 _OriginalToActualRow.Add(OriginalRows[i], ActualRows[i]);
             }
@@ -253,7 +253,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
             BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
 
-            MGTheme Theme = GetTheme();
+            var Theme = GetTheme();
 
             VerticalAlignment = VerticalAlignment.Stretch;
             HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -288,7 +288,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             {
                 if (e.IsLMB && IsDragging)
                 {
-                    float Scalar = 1.0f / SelfOrParentWindow.Scale;
+                    var Scalar = 1.0f / SelfOrParentWindow.Scale;
                     Point Delta = new((int)(e.PositionDelta.X * Scalar), (int)(e.PositionDelta.Y * Scalar));
                     ApplyResizing(Delta);
                 }
@@ -299,7 +299,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
     /// <inheritdoc/>
     protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
     {
-        foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+        foreach (var Brush in base.GetVisualStateFillBrushes())
         {
             yield return Brush;
         }
@@ -373,15 +373,15 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
                             .ToList();
                     }
 
-                    int MaxReduction = DecreasedRows.Sum(x => Math.Max(0, x.Height - (x.MinHeight ?? 0))); // Maximum height that can be removed from the previous rows
-                    int MaxIncrease = IncreasedRows.Any(x => !x.MaxHeight.HasValue) ? int.MaxValue : IncreasedRows.Sum(x => Math.Max(0, x.MaxHeight.Value - x.Height)); // Maximum height that can be added to the next rows
-                    int ResizeAmount = GeneralUtils.Min(Math.Abs(Delta), MaxReduction, MaxIncrease);
+                    var MaxReduction = DecreasedRows.Sum(x => Math.Max(0, x.Height - (x.MinHeight ?? 0))); // Maximum height that can be removed from the previous rows
+                    var MaxIncrease = IncreasedRows.Any(x => !x.MaxHeight.HasValue) ? int.MaxValue : IncreasedRows.Sum(x => Math.Max(0, x.MaxHeight.Value - x.Height)); // Maximum height that can be added to the next rows
+                    var ResizeAmount = GeneralUtils.Min(Math.Abs(Delta), MaxReduction, MaxIncrease);
 
-                    int TotalRemainingRemovedHeight = ResizeAmount; // The amount we still have to reduce previous rows by
-                    for (int i = 0; i < OrderedDecreasedRows.Count; i++)
+                    var TotalRemainingRemovedHeight = ResizeAmount; // The amount we still have to reduce previous rows by
+                    for (var i = 0; i < OrderedDecreasedRows.Count; i++)
                     {
-                        RowDefinition Source = OrderedDecreasedRows[i];
-                        int CurrentRemovedHeight = GeneralUtils.Min(Source.Height - (Source.MinHeight ?? 0), TotalRemainingRemovedHeight);
+                        var Source = OrderedDecreasedRows[i];
+                        var CurrentRemovedHeight = GeneralUtils.Min(Source.Height - (Source.MinHeight ?? 0), TotalRemainingRemovedHeight);
                         if (CurrentRemovedHeight > 0)
                         {
                             //  Reduce the height of the source row
@@ -392,11 +392,11 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
                                 _ => throw new NotImplementedException($"Unrecognized {nameof(GridUnitType)}: {Source.Length.UnitType}"),
                             };
 
-                            int TotalRemainingAddedHeight = CurrentRemovedHeight;
-                            for (int j = 0; j < OrderedIncreasedRows.Count; j++)
+                            var TotalRemainingAddedHeight = CurrentRemovedHeight;
+                            for (var j = 0; j < OrderedIncreasedRows.Count; j++)
                             {
-                                RowDefinition Target = OrderedIncreasedRows[j];
-                                int CurrentAddedHeight = GeneralUtils.Min((Target.MaxHeight ?? int.MaxValue) - Target.Height, TotalRemainingAddedHeight);
+                                var Target = OrderedIncreasedRows[j];
+                                var CurrentAddedHeight = GeneralUtils.Min((Target.MaxHeight ?? int.MaxValue) - Target.Height, TotalRemainingAddedHeight);
                                 if (CurrentAddedHeight > 0)
                                 {
                                     Data.OriginalToActualRow[Target].Length = Target.Length.UnitType switch
@@ -468,15 +468,15 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
                             .ToList();
                     }
 
-                    int MaxReduction = DecreasedColumns.Sum(x => Math.Max(0, x.Width - (x.MinWidth ?? 0))); // Maximum width that can be removed from the previous columns
-                    int MaxIncrease = IncreasedColumns.Any(x => !x.MaxWidth.HasValue) ? int.MaxValue : IncreasedColumns.Sum(x => Math.Max(0, x.MaxWidth.Value - x.Width)); // Maximum width that can be added to the next columns
-                    int ResizeAmount = GeneralUtils.Min(Math.Abs(Delta), MaxReduction, MaxIncrease);
+                    var MaxReduction = DecreasedColumns.Sum(x => Math.Max(0, x.Width - (x.MinWidth ?? 0))); // Maximum width that can be removed from the previous columns
+                    var MaxIncrease = IncreasedColumns.Any(x => !x.MaxWidth.HasValue) ? int.MaxValue : IncreasedColumns.Sum(x => Math.Max(0, x.MaxWidth.Value - x.Width)); // Maximum width that can be added to the next columns
+                    var ResizeAmount = GeneralUtils.Min(Math.Abs(Delta), MaxReduction, MaxIncrease);
 
-                    int TotalRemainingRemovedWidth = ResizeAmount; // The amount we still have to reduce previous columns by
-                    for (int i = 0; i < OrderedDecreasedColumns.Count; i++)
+                    var TotalRemainingRemovedWidth = ResizeAmount; // The amount we still have to reduce previous columns by
+                    for (var i = 0; i < OrderedDecreasedColumns.Count; i++)
                     {
-                        ColumnDefinition Source = OrderedDecreasedColumns[i];
-                        int CurrentRemovedWidth = GeneralUtils.Min(Source.Width - (Source.MinWidth ?? 0), TotalRemainingRemovedWidth);
+                        var Source = OrderedDecreasedColumns[i];
+                        var CurrentRemovedWidth = GeneralUtils.Min(Source.Width - (Source.MinWidth ?? 0), TotalRemainingRemovedWidth);
                         if (CurrentRemovedWidth > 0)
                         {
                             //  Reduce the width of the source column
@@ -487,11 +487,11 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
                                 _ => throw new NotImplementedException($"Unrecognized {nameof(GridUnitType)}: {Source.Length.UnitType}"),
                             };
 
-                            int TotalRemainingAddedWidth = CurrentRemovedWidth;
-                            for (int j = 0; j < OrderedIncreasedColumns.Count; j++)
+                            var TotalRemainingAddedWidth = CurrentRemovedWidth;
+                            for (var j = 0; j < OrderedIncreasedColumns.Count; j++)
                             {
-                                ColumnDefinition Target = OrderedIncreasedColumns[j];
-                                int CurrentAddedWidth = GeneralUtils.Min((Target.MaxWidth ?? int.MaxValue) - Target.Width, TotalRemainingAddedWidth);
+                                var Target = OrderedIncreasedColumns[j];
+                                var CurrentAddedWidth = GeneralUtils.Min((Target.MaxWidth ?? int.MaxValue) - Target.Width, TotalRemainingAddedWidth);
                                 if (CurrentAddedWidth > 0)
                                 {
                                     Data.OriginalToActualColumn[Target].Length = Target.Length.UnitType switch
@@ -534,35 +534,35 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
-        bool IsHorizontal = Orientation == Orientation.Horizontal;
-        bool IsVertical = Orientation == Orientation.Vertical;
+        var IsHorizontal = Orientation == Orientation.Horizontal;
+        var IsVertical = Orientation == Orientation.Vertical;
 
-        Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
+        var PaddedBounds = LayoutBounds.GetCompressed(Padding);
 
         List<Rectangle> TickBounds = new();
         if (Foreground != null)
         {
-            int TickWidth = IsHorizontal ? Math.Min(PaddedBounds.Width - 4, TickSize.Width) : TickSize.Height;
-            int TickHeight = IsVertical ? TickSize.Width : Math.Min(PaddedBounds.Height - 4, TickSize.Height);
-            int TickSpacing = Math.Min(Size - (TickSize.Height + 1) * 2, 2);
+            var TickWidth = IsHorizontal ? Math.Min(PaddedBounds.Width - 4, TickSize.Width) : TickSize.Height;
+            var TickHeight = IsVertical ? TickSize.Width : Math.Min(PaddedBounds.Height - 4, TickSize.Height);
+            var TickSpacing = Math.Min(Size - (TickSize.Height + 1) * 2, 2);
 
             if (IsHorizontal)
             {
-                Rectangle FullTickBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new(TickWidth, TickHeight * 2 + TickSpacing));
+                var FullTickBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new(TickWidth, TickHeight * 2 + TickSpacing));
                 TickBounds.Add(new(FullTickBounds.Left, FullTickBounds.Top, FullTickBounds.Width, TickHeight));
                 TickBounds.Add(new(FullTickBounds.Left, FullTickBounds.Top + TickHeight + TickSpacing, FullTickBounds.Width, TickHeight));
             }
             else if (IsVertical)
             {
-                Rectangle FullTickBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new(TickWidth * 2 + TickSpacing, TickHeight));
+                var FullTickBounds = ApplyAlignment(LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new(TickWidth * 2 + TickSpacing, TickHeight));
                 TickBounds.Add(new(FullTickBounds.Left, FullTickBounds.Top, TickWidth, FullTickBounds.Height));
                 TickBounds.Add(new(FullTickBounds.Left + TickWidth + TickSpacing, FullTickBounds.Top, TickWidth, FullTickBounds.Height));
             }
 
-            IFillBrush Underlay = Foreground.GetUnderlay(VisualState.Primary);
+            var Underlay = Foreground.GetUnderlay(VisualState.Primary);
             if (Underlay != null)
             {
-                foreach (Rectangle Tick in TickBounds)
+                foreach (var Tick in TickBounds)
                 {
                     Underlay.Draw(DA, this, Tick);
                 }
@@ -573,7 +573,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
                 IFillBrush Overlay = Foreground.GetFillOverlay(VisualState.GetSecondaryState(IsDragging, false));
                 if (Overlay != null)
                 {
-                    foreach (Rectangle Tick in TickBounds)
+                    foreach (var Tick in TickBounds)
                     {
                         Overlay.Draw(DA, this, Tick);
                     }

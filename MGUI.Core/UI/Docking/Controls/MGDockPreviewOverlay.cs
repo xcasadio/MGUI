@@ -198,7 +198,7 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
             return;
         }
 
-        Rectangle bounds = TryGetAdornedBounds(out Rectangle adornedBounds) ? adornedBounds : Rectangle.Empty;
+        var bounds = TryGetAdornedBounds(out var adornedBounds) ? adornedBounds : Rectangle.Empty;
         if (bounds != _partBounds)
         {
             _partBounds = bounds;
@@ -209,7 +209,7 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
 
     private void SyncPreviewVisibility()
     {
-        bool isVisible = IsPreviewVisible && PreviewBounds.Width > 0 && PreviewBounds.Height > 0;
+        var isVisible = IsPreviewVisible && PreviewBounds.Width > 0 && PreviewBounds.Height > 0;
         Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -260,7 +260,7 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (MGElement child in GetChildren())
+        foreach (var child in GetChildren())
         {
             child?.Draw(DA);
         }

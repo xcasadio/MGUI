@@ -313,9 +313,9 @@ public class MGDockTabItem : MGElement
     /// A structure replaced by another template releases the components, children and close handler of the parts it replaces.</summary>
     protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
     {
-        MGTextBlock titleText = (MGTextBlock)Structure.Parts[TitleTextPartName];
-        MGBorder closeButton = (MGBorder)Structure.Parts[CloseButtonPartName];
-        MGBorder pinButton = (MGBorder)Structure.Parts[PinButtonPartName];
+        var titleText = (MGTextBlock)Structure.Parts[TitleTextPartName];
+        var closeButton = (MGBorder)Structure.Parts[CloseButtonPartName];
+        var pinButton = (MGBorder)Structure.Parts[PinButtonPartName];
 
         if (_titleText != null && !ReferenceEquals(_titleText, titleText))
         {
@@ -400,7 +400,7 @@ public class MGDockTabItem : MGElement
 
     private Rectangle GetAccentBounds()
     {
-        int accentHeight = IsActive ? 3 : 2;
+        var accentHeight = IsActive ? 3 : 2;
         return new Rectangle(LayoutBounds.X, LayoutBounds.Bottom - accentHeight, LayoutBounds.Width, accentHeight);
     }
 
@@ -418,7 +418,7 @@ public class MGDockTabItem : MGElement
     /// </summary>
     private Rectangle GetCloseButtonBounds()
     {
-        int closeWidth = GetCloseWidth();
+        var closeWidth = GetCloseWidth();
         if (closeWidth <= 0)
         {
             return Rectangle.Empty;
@@ -434,13 +434,13 @@ public class MGDockTabItem : MGElement
     /// </summary>
     private Rectangle GetPinButtonBounds()
     {
-        int pinWidth = GetPinWidth();
+        var pinWidth = GetPinWidth();
         if (pinWidth <= 0)
         {
             return Rectangle.Empty;
         }
 
-        int buttonsWidth = pinWidth + GetCloseWidth();
+        var buttonsWidth = pinWidth + GetCloseWidth();
         return new Rectangle(LayoutBounds.Right - buttonsWidth, LayoutBounds.Y, ButtonSize, LayoutBounds.Height);
     }
 
@@ -517,7 +517,7 @@ public class MGDockTabItem : MGElement
             // Pin / Auto-Hide — only if the panel allows auto-hide
             if (panel?.CanAutoHide == true)
             {
-                string pinLabel = (panel.IsPinned) ? "Auto-Hide" : "Pin (restore)";
+                var pinLabel = (panel.IsPinned) ? "Auto-Hide" : "Pin (restore)";
                 menu.AddButton(pinLabel, _ => PinToggleRequested?.Invoke(this, panel));
                 menu.AddSeparator();
             }
@@ -548,7 +548,7 @@ public class MGDockTabItem : MGElement
 
         if (_surfaceElement != null)
         {
-            IFillBrush effectiveBackground = IsActive
+            var effectiveBackground = IsActive
                 ? ActiveBrush
                 : IsHovered
                     ? HoverBrush
@@ -560,8 +560,8 @@ public class MGDockTabItem : MGElement
 
         if (_accentElement != null)
         {
-            Color accentColor = IsActive ? ActiveAccentColor : HoverAccentColor;
-            bool showAccent = (IsActive || IsHovered) && accentColor.A > 0;
+            var accentColor = IsActive ? ActiveAccentColor : HoverAccentColor;
+            var showAccent = (IsActive || IsHovered) && accentColor.A > 0;
             // Hidden, not Collapsed: this is IsHovered-dependent and is now refreshed once per tick
             // (see UpdateSelf) — toggling to/from Collapsed calls LayoutChanged on every hover change,
             // which would invalidate layout merely from hovering. See remarks below on the close/pin
@@ -576,7 +576,7 @@ public class MGDockTabItem : MGElement
         // the tab is active or hovered (and only when the panel allows the action). Hidden state
         // uses Visibility.Hidden rather than Collapsed: Hidden keeps the reserved layout space and
         // does not invalidate layout, whereas toggling to/from Collapsed would (see MGElement.Visibility).
-        bool closeRevealed = IsCloseAccessoryRevealed;
+        var closeRevealed = IsCloseAccessoryRevealed;
         if (_closeButton != null)
         {
             _closeButton.Visibility = closeRevealed ? Visibility.Visible : Visibility.Hidden;
@@ -588,7 +588,7 @@ public class MGDockTabItem : MGElement
             _closeIconElement.Color = IsActive ? ActiveIconColor : InactiveIconColor;
         }
 
-        bool pinRevealed = IsPinAccessoryRevealed;
+        var pinRevealed = IsPinAccessoryRevealed;
         if (_pinButton != null)
         {
             _pinButton.Visibility = pinRevealed ? Visibility.Visible : Visibility.Hidden;
@@ -617,7 +617,7 @@ public class MGDockTabItem : MGElement
     {
         base.UpdateSelf(UA);
 
-        bool hovered = IsHovered;
+        var hovered = IsHovered;
         if (hovered != _lastIsHovered)
         {
             _lastIsHovered = hovered;
@@ -706,19 +706,19 @@ public class MGDockTabItem : MGElement
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
         // Measure title text with unlimited width so it reports its natural single-line size.
-        int titleWidth = 0;
+        var titleWidth = 0;
         if (_titleText != null)
         {
             var unlimitedSize = new Size(int.MaxValue / 2, AvailableSize.Height);
-            _titleText.UpdateMeasurement(unlimitedSize, out _, out Thickness titleFullSize, out _, out _);
+            _titleText.UpdateMeasurement(unlimitedSize, out _, out var titleFullSize, out _, out _);
             titleWidth = titleFullSize.Width;
         }
 
         // Close and pin buttons occupy fixed reserved areas.
-        int closeWidth = (Panel?.CanClose == true) ? ButtonSize : 0;
-        int pinWidth   = (Panel?.CanAutoHide == true) ? ButtonSize : 0;
+        var closeWidth = (Panel?.CanClose == true) ? ButtonSize : 0;
+        var pinWidth   = (Panel?.CanAutoHide == true) ? ButtonSize : 0;
 
-        int totalWidth = Math.Max(MinTabWidth, titleWidth + pinWidth + closeWidth);
+        var totalWidth = Math.Max(MinTabWidth, titleWidth + pinWidth + closeWidth);
         LastMeasuredWidth = totalWidth; // expose desired width for overflow detection in MGDockTabGroup
         return new Thickness(totalWidth, TabHeight, 0, 0);
     }
@@ -731,11 +731,11 @@ public class MGDockTabItem : MGElement
         }
 
         // Layout title text — occupies everything left of pin + close buttons
-        int closeWidth = GetCloseWidth();
-        int pinWidth   = GetPinWidth();
-        int buttonsWidth = pinWidth + closeWidth;
+        var closeWidth = GetCloseWidth();
+        var pinWidth   = GetPinWidth();
+        var buttonsWidth = pinWidth + closeWidth;
 
-        Rectangle titleBounds = new Rectangle(
+        var titleBounds = new Rectangle(
             Bounds.X,
             Bounds.Y,
             Bounds.Width - buttonsWidth,

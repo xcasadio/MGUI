@@ -53,7 +53,7 @@ public abstract class MGContentHost : MGElement
             OnContentAdded?.Invoke(this, Element);
             OnDirectOrNestedContentAdded?.Invoke(this, Element);
 
-            foreach (MGElement Nested in Element.TraverseVisualTree(false, true, false, false))
+            foreach (var Nested in Element.TraverseVisualTree(false, true, false, false))
             {
                 InvokeNestedContentAdded(this, Nested);
             }
@@ -91,7 +91,7 @@ public abstract class MGContentHost : MGElement
             OnContentRemoved?.Invoke(this, Element);
             OnDirectOrNestedContentRemoved?.Invoke(this, Element);
 
-            foreach (MGElement Nested in Element.TraverseVisualTree(false, true, false, false))
+            foreach (var Nested in Element.TraverseVisualTree(false, true, false, false))
             {
                 InvokeNestedContentRemoved(this, Nested);
             }
@@ -178,7 +178,7 @@ public abstract class MGContentHost : MGElement
 
         public void Dispose()
         {
-            MGContentHost owner = _Owner;
+            var owner = _Owner;
             if (owner == null)
             {
                 return;
@@ -191,7 +191,7 @@ public abstract class MGContentHost : MGElement
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (MGElement Child in GetChildren())
+        foreach (var Child in GetChildren())
         {
             Child.Draw(DA);
         }
@@ -342,7 +342,7 @@ public abstract class MGSingleContentHost : MGContentHost
     {
         if (HasContent)
         {
-            Content.UpdateMeasurement(AvailableSize, out _, out Thickness ContentSize, out _, out _);
+            Content.UpdateMeasurement(AvailableSize, out _, out var ContentSize, out _, out _);
             return ContentSize;
         }
         else
@@ -420,7 +420,7 @@ public class MGHeaderedContentPresenter : MGSingleContentHost
         {
             if (HeaderPresenter.Content != value)
             {
-                MGElement Previous = Header;
+                var Previous = Header;
 
                 if (HeaderChanging != null)
                 {
@@ -456,7 +456,7 @@ public class MGHeaderedContentPresenter : MGSingleContentHost
     {
         if (_HeaderPosition != Value || IsInitializing)
         {
-            Dock Previous = HeaderPosition;
+            var Previous = HeaderPosition;
 
             if (HeaderPositionChanging != null)
             {

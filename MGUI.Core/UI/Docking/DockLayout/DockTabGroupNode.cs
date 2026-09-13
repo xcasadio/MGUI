@@ -278,7 +278,7 @@ public class DockTabGroupNode : DockNode
             return false;
         }
 
-        int currentIndex = Panels.IndexOf(panel);
+        var currentIndex = Panels.IndexOf(panel);
         if (currentIndex < 0)
         {
             return false; // Panel not in this group
@@ -301,7 +301,7 @@ public class DockTabGroupNode : DockNode
         // The newIndex parameter already represents the FINAL desired position
         // after the CalculateTabIndex algorithm's adjustments.
         // We just need to clamp it to the valid range after removal.
-        int insertIndex = newIndex;
+        var insertIndex = newIndex;
         
         // After removing one element, the max valid index is Panels.Count
         if (insertIndex > Panels.Count)
@@ -331,7 +331,7 @@ public class DockTabGroupNode : DockNode
         }
 
         // Tab group width should be at least the widest panel's minimum
-        int maxPanelMinWidth = Panels.Max(p => p?.CalculateEffectiveMinWidth() ?? 100);
+        var maxPanelMinWidth = Panels.Max(p => p?.CalculateEffectiveMinWidth() ?? 100);
         
         // Also consider space needed for tab headers (approximate: 100px per tab minimum, but allow overlap)
         // For simplicity, ensure at least 150px to show a few tabs
@@ -353,7 +353,7 @@ public class DockTabGroupNode : DockNode
         // Tab group height = tab header height + content height
         const int TabHeaderHeight = 30; // Approximate height of tab headers
         
-        int maxPanelMinHeight = Panels.Max(p => p?.CalculateEffectiveMinHeight() ?? 100);
+        var maxPanelMinHeight = Panels.Max(p => p?.CalculateEffectiveMinHeight() ?? 100);
         
         return TabHeaderHeight + maxPanelMinHeight;
     }

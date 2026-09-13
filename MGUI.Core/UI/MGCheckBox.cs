@@ -214,7 +214,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                     throw new InvalidOperationException($"{nameof(MGCheckBox)}.{nameof(IsChecked)} can only be set to 'null' if {nameof(IsThreeState)} is true.");
                 }
 
-                bool? Previous = IsChecked;
+                var Previous = IsChecked;
                 _IsChecked = value;
                 if (CheckStateIcon != null)
                 {

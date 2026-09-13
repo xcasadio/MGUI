@@ -44,7 +44,7 @@ public class MGOverlayHost : MGSingleContentHost
     {
         if (_Overlays.Contains(Overlay))
         {
-            bool WasOpen = _OpenOverlays.Contains(Overlay);
+            var WasOpen = _OpenOverlays.Contains(Overlay);
             if (WasOpen)
             {
                 CancelEventArgs<MGOverlay> ClosingArgs = new(Overlay);
@@ -166,7 +166,7 @@ public class MGOverlayHost : MGSingleContentHost
     {
         if (ActiveOverlay != Value)
         {
-            MGOverlay PreviousValue = ActiveOverlay;
+            var PreviousValue = ActiveOverlay;
             ActiveOverlay = Value;
             NPC(nameof(ActiveOverlay));
             ActiveOverlayPresenter.SetContent(ActiveOverlay);
@@ -225,7 +225,7 @@ public class MGOverlayHost : MGSingleContentHost
                     //  Only swallow the mouse scroll events if the content underneath the overlay is scrollable.
                     //  This will allow scroll events to continue bubbling up the visual tree if the content under the overlay wasn't scrollable
                     //  (Such as if the parent of the OverlayHost was wrapped in a ScrollViewer)
-                    bool IsContentScrollable = Content.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Any(x => x.ElementType == MGElementType.ScrollViewer);
+                    var IsContentScrollable = Content.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Any(x => x.ElementType == MGElementType.ScrollViewer);
                     if (IsContentScrollable)
                     {
                         TryHandleInputs(e.Position, () => e.SetHandledBy(this, false));
@@ -253,13 +253,13 @@ public class MGOverlayHost : MGSingleContentHost
                                || ActiveOverlayPresenter.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Contains(element);
                     }
 
-                    MGElement Queued = GetDesktop().QueuedFocusedKeyboardHandler;
+                    var Queued = GetDesktop().QueuedFocusedKeyboardHandler;
                     if (Queued != null && !IsInsideActiveOverlay(Queued))
                     {
                         GetDesktop().ClearQueuedFocusedKeyboardHandler();
                     }
 
-                    MGElement Focused = GetDesktop().FocusedKeyboardHandler;
+                    var Focused = GetDesktop().FocusedKeyboardHandler;
                     if (Focused != null && !IsInsideActiveOverlay(Focused))
                     {
                         Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
@@ -281,7 +281,7 @@ public class MGOverlayHost : MGSingleContentHost
     /// <inheritdoc/>
     protected override IEnumerable<IFillBrush> GetFillBrushes()
     {
-        foreach (IFillBrush Brush in base.GetFillBrushes())
+        foreach (var Brush in base.GetFillBrushes())
         {
             yield return Brush;
         }
@@ -295,7 +295,7 @@ public class MGOverlayHost : MGSingleContentHost
     {
         if (_Content != Value)
         {
-            MGElement Previous = _Content;
+            var Previous = _Content;
             base.SetContentVirtual(Value);
 
             if (Previous != null)
@@ -313,8 +313,8 @@ public class MGOverlayHost : MGSingleContentHost
                 //  Draw the OverlayBackground overtop of the content, but underneath the active overlay
                 if (ActiveOverlay != null && OverlayBackground != null)
                 {
-                    Rectangle BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
-                    Rectangle BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
+                    var BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
+                    var BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
                     OverlayBackground.Draw(e.DA, this, BackgroundBounds);
                 }
             }
@@ -350,8 +350,8 @@ public class MGOverlayHost : MGSingleContentHost
         //  (Usually the OverlayBackground is rendered after Content.OnEndDraw, but Content could be null which means it wouldn't have been handled in SetContentVirtual)
         if (Content == null && ActiveOverlay != null && OverlayBackground != null)
         {
-            Rectangle BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
-            Rectangle BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
+            var BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
+            var BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
             OverlayBackground.Draw(DA, this, BackgroundBounds);
         }
     }
@@ -368,7 +368,7 @@ public class MGOverlayHost : MGSingleContentHost
 
     public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
     {
-        IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
+        var baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
         if (!IncludeInactive)
         {
             return baseChildren;
@@ -377,7 +377,7 @@ public class MGOverlayHost : MGSingleContentHost
         List<MGElement> result = new(baseChildren.Count + _Overlays.Count);
         result.AddRange(baseChildren);
 
-        foreach (MGOverlay InactiveOverlay in _Overlays)
+        foreach (var InactiveOverlay in _Overlays)
         {
             if (InactiveOverlay != ActiveOverlay)
             {
@@ -513,7 +513,7 @@ public class MGOverlay : MGSingleContentHost
         BorderElement = Structure.Parts[BorderPartName] as MGBorder;
         CloseButton = Structure.Parts[CloseButtonPartName] as MGButton;
 
-        bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+        var needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {

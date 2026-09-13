@@ -61,7 +61,7 @@ public static class UIEasing
 
     static UIEasing()
     {
-        foreach (IUIEasingFunction function in new[]
+        foreach (var function in new[]
                  {
                      Linear,
                      QuadIn, QuadOut, QuadInOut,

@@ -50,7 +50,7 @@ public static class UIInterpolators
     /// <summary>Retrieves the interpolator registered for <typeparamref name="T"/>, or false when none is.</summary>
     public static bool TryGet<T>(out IUIInterpolator<T> interpolator)
     {
-        if (Registry.TryGetValue(typeof(T), out object registered))
+        if (Registry.TryGetValue(typeof(T), out var registered))
         {
             interpolator = (IUIInterpolator<T>)registered;
             return true;

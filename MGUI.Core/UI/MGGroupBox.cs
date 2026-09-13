@@ -13,7 +13,7 @@ public class MGGroupBox : MGSingleContentHost
 {
     public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
     {
-        IReadOnlyList<MGElement> baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
+        var baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
         if (!IncludeActive)
         {
             return baseChildren;
@@ -174,9 +174,9 @@ public class MGGroupBox : MGSingleContentHost
 
             OnLayoutUpdated += (sender, e) =>
             {
-                Size HeaderlessSize = GetHeaderlessSize();
-                Size AvailableSize = LayoutBounds.Size.AsSize().Subtract(HeaderlessSize, 0, 0);
-                OuterHeaderPresenter.UpdateMeasurement(AvailableSize, out _, out Thickness HeaderContentSize, out _, out _);
+                var HeaderlessSize = GetHeaderlessSize();
+                var AvailableSize = LayoutBounds.Size.AsSize().Subtract(HeaderlessSize, 0, 0);
+                OuterHeaderPresenter.UpdateMeasurement(AvailableSize, out _, out var HeaderContentSize, out _, out _);
                 Rectangle HeaderBounds = new(LayoutBounds.Left + BorderThickness.Left + HeaderHorizontalMargin + HeaderHorizontalPadding, LayoutBounds.Top, HeaderContentSize.Width, HeaderContentSize.Height);
                 OuterHeaderPresenter.UpdateLayout(HeaderBounds);
             };
@@ -186,17 +186,17 @@ public class MGGroupBox : MGSingleContentHost
 
     private Size GetHeaderlessSize()
     {
-        int Width = BorderThickness.Width + HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2;
-        int Height = BorderThickness.Height;
+        var Width = BorderThickness.Width + HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2;
+        var Height = BorderThickness.Height;
         return new(Width, Height);
     }
 
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
     {
-        Size HeaderlessSize = GetHeaderlessSize();
+        var HeaderlessSize = GetHeaderlessSize();
 
-        Size RemainingSize = AvailableSize.Subtract(HeaderlessSize, 0, 0);
-        OuterHeaderPresenter.UpdateMeasurement(RemainingSize, out _, out Thickness HeaderSize, out _, out _);
+        var RemainingSize = AvailableSize.Subtract(HeaderlessSize, 0, 0);
+        OuterHeaderPresenter.UpdateMeasurement(RemainingSize, out _, out var HeaderSize, out _, out _);
 
         SharedSize = new(HeaderHorizontalMargin * 2 + HeaderHorizontalPadding * 2 + HeaderSize.Width, 0, 0, 0);
 
@@ -218,8 +218,8 @@ public class MGGroupBox : MGSingleContentHost
         Rectangle BorderBounds = new(LayoutBounds.Left, LayoutBounds.Top + OuterHeaderPresenter.LayoutBounds.Height / 2, LayoutBounds.Width, LayoutBounds.Height - OuterHeaderPresenter.LayoutBounds.Height / 2);
 
         //  Draw each side of the border
-        Thickness BT = BorderThickness;
-        IFillBrush Brush = BorderBrush.Brush;
+        var BT = BorderThickness;
+        var Brush = BorderBrush.Brush;
         if (BT.Left > 0)
         {
             Brush.Draw(DA, this, new(BorderBounds.Left, BorderBounds.Top, BT.Left, BorderBounds.Height));
@@ -235,7 +235,7 @@ public class MGGroupBox : MGSingleContentHost
             if (HasHeaderContent)
             {
                 //  Divide the top border into 2 pieces, the part to the left of the header content and the part to the right of it
-                int StartX = BorderBounds.Left + BT.Left;
+                var StartX = BorderBounds.Left + BT.Left;
                 Brush.Draw(DA, this, new(StartX, BorderBounds.Top, HeaderHorizontalPadding, BT.Top));
                 StartX += HeaderHorizontalPadding + HeaderHorizontalMargin + OuterHeaderPresenter.LayoutBounds.Width + HeaderHorizontalMargin;
                 Brush.Draw(DA, this, new(StartX, BorderBounds.Top, BorderBounds.Right - StartX, BT.Top));

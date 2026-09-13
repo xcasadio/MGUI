@@ -387,8 +387,8 @@ public class DockLayoutModel : INotifyPropertyChanged
 
     public override string ToString()
     {
-        int panelCount = GetAllPanels().Count();
-        int groupCount = GetAllTabGroups().Count();
+        var panelCount = GetAllPanels().Count();
+        var groupCount = GetAllTabGroups().Count();
         return $"DockLayoutModel (Panels: {panelCount}, Groups: {groupCount})";
     }
 }

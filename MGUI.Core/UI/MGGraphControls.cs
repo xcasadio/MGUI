@@ -148,7 +148,7 @@ public class MGGraphView : MGSingleContentHost
         get => _EdgeThickness;
         set
         {
-            float next = Math.Max(0.1f, value);
+            var next = Math.Max(0.1f, value);
             if (!_EdgeThickness.Equals(next))
             {
                 _EdgeThickness = next;
@@ -162,7 +162,7 @@ public class MGGraphView : MGSingleContentHost
         get => _MajorGridLineFrequency;
         set
         {
-            int next = Math.Max(1, value);
+            var next = Math.Max(1, value);
             if (_MajorGridLineFrequency != next)
             {
                 _MajorGridLineFrequency = next;
@@ -176,7 +176,7 @@ public class MGGraphView : MGSingleContentHost
         get => _Document;
         set
         {
-            GraphDocument next = value ?? new GraphDocument();
+            var next = value ?? new GraphDocument();
             if (!ReferenceEquals(_Document, next))
             {
                 if (_Document != null)
@@ -255,7 +255,7 @@ public class MGGraphView : MGSingleContentHost
 
     public void RefreshThemeVisuals()
     {
-        MGTheme theme = GetTheme();
+        var theme = GetTheme();
         NotifyThemeChanged(theme, theme);
     }
 
@@ -272,7 +272,7 @@ public class MGGraphView : MGSingleContentHost
 
     internal Rectangle GetCullingLayoutBounds()
     {
-        Rectangle bounds = NodesCanvas?.LayoutBounds ?? ViewportHost?.LayoutBounds ?? LayoutBounds;
+        var bounds = NodesCanvas?.LayoutBounds ?? ViewportHost?.LayoutBounds ?? LayoutBounds;
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             bounds = NodesCanvas?.ActualLayoutBounds ?? ViewportHost?.ActualLayoutBounds ?? ActualLayoutBounds;
@@ -285,15 +285,15 @@ public class MGGraphView : MGSingleContentHost
 
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
-            MGWindow window = SelfOrParentWindow;
+            var window = SelfOrParentWindow;
             if (window != null)
             {
                 bounds = new Rectangle(0, 0, window.WindowWidth, window.WindowHeight);
             }
         }
 
-        int width = Math.Max(1, bounds.Width);
-        int height = Math.Max(1, bounds.Height);
+        var width = Math.Max(1, bounds.Width);
+        var height = Math.Max(1, bounds.Height);
         return new Rectangle(0, 0, width, height);
     }
 
@@ -305,7 +305,7 @@ public class MGGraphView : MGSingleContentHost
 
     internal void SetEdgeCullingDiagnostics(int edgesVisible, int edgesCulled)
     {
-        GraphCullingDiagnostics diagnostics = CullingDiagnostics;
+        var diagnostics = CullingDiagnostics;
         diagnostics.EdgesVisible = edgesVisible;
         diagnostics.EdgesCulled = edgesCulled;
         diagnostics.EdgeCacheHits = EdgeGeometryCache.CacheHits;
@@ -350,8 +350,8 @@ public class MGGraphView : MGSingleContentHost
         {
             if (e.IsLMB && ConnectionController.IsDragging && ConnectionController.StartPortId == port.PortId)
             {
-                Vector2 viewportPoint = GetViewportPoint(e.Position);
-                ConnectionController.UpdateDrag(viewportPoint, TryGetPortAtScreenPosition(e.Position, out MGGraphPort targetPort) ? targetPort.PortId : null);
+                var viewportPoint = GetViewportPoint(e.Position);
+                ConnectionController.UpdateDrag(viewportPoint, TryGetPortAtScreenPosition(e.Position, out var targetPort) ? targetPort.PortId : null);
             }
         };
 
@@ -359,13 +359,13 @@ public class MGGraphView : MGSingleContentHost
         {
             if (e.IsLMB && ConnectionController.IsDragging && ConnectionController.StartPortId == port.PortId)
             {
-                if (TryGetPortAtScreenPosition(e.EndPosition, out MGGraphPort targetPort))
+                if (TryGetPortAtScreenPosition(e.EndPosition, out var targetPort))
                 {
                     ConnectionController.CompleteDrag(targetPort.PortId);
                 }
                 else
                 {
-                    Guid startPortId = ConnectionController.StartPortId;
+                    var startPortId = ConnectionController.StartPortId;
                     ConnectionController.Cancel();
                     TryOpenNodeCreationMenu(e.EndPosition, startPortId);
                 }
@@ -384,7 +384,7 @@ public class MGGraphView : MGSingleContentHost
 
         node.MouseHandler.LMBPressedInside += (sender, e) =>
         {
-            Vector2 viewportPoint = GetViewportPoint(e.Position);
+            var viewportPoint = GetViewportPoint(e.Position);
             if (TryGetPortAtScreenPosition(e.Position, out _))
             {
                 return;
@@ -397,7 +397,7 @@ public class MGGraphView : MGSingleContentHost
             _PressedCommentId = Guid.Empty;
             _PressedCommentResizeHandle = false;
 
-            bool controlDown = IsControlDown();
+            var controlDown = IsControlDown();
             SelectNode(node.NodeId, additive: controlDown, toggle: controlDown);
             e.SetHandledBy(node, false);
         };
@@ -409,7 +409,7 @@ public class MGGraphView : MGSingleContentHost
                 return;
             }
 
-            Vector2 viewportPoint = GetViewportPoint(e.Position);
+            var viewportPoint = GetViewportPoint(e.Position);
             if (TryGetPortAtScreenPosition(e.Position, out _))
             {
                 return;
@@ -450,7 +450,7 @@ public class MGGraphView : MGSingleContentHost
 
     internal void SetPortConnectionFeedback(Guid portId, bool isSource, bool isTarget, bool isCompatible)
     {
-        if (TryGetPortControl(portId, out MGGraphPort port))
+        if (TryGetPortControl(portId, out var port))
         {
             port.IsConnectionDragSource = isSource;
             port.IsConnectionDragTarget = isTarget;
@@ -460,7 +460,7 @@ public class MGGraphView : MGSingleContentHost
 
     public bool ClearSelection()
     {
-        bool changed = Selection.Clear();
+        var changed = Selection.Clear();
         if (SelectedCommentIds.Count > 0)
         {
             SelectedCommentIds.Clear();
@@ -477,7 +477,7 @@ public class MGGraphView : MGSingleContentHost
 
     public bool SelectNode(Guid nodeId, bool additive = false, bool toggle = false)
     {
-        bool changed = Selection.SelectNode(nodeId, additive, toggle);
+        var changed = Selection.SelectNode(nodeId, additive, toggle);
         if (!additive && SelectedCommentIds.Count > 0)
         {
             SelectedCommentIds.Clear();
@@ -499,7 +499,7 @@ public class MGGraphView : MGSingleContentHost
 
     public bool SelectEdge(Guid edgeId, bool additive = false, bool toggle = false)
     {
-        bool changed = Selection.SelectEdge(edgeId, additive, toggle);
+        var changed = Selection.SelectEdge(edgeId, additive, toggle);
         if (!additive && SelectedCommentIds.Count > 0)
         {
             SelectedCommentIds.Clear();
@@ -516,7 +516,7 @@ public class MGGraphView : MGSingleContentHost
 
     public bool SelectNodesInWorldRectangle(RectangleF worldRectangle, bool additive = false)
     {
-        bool changed = Selection.SelectNodesInRectangle(Document, worldRectangle, additive);
+        var changed = Selection.SelectNodesInRectangle(Document, worldRectangle, additive);
         if (!additive && SelectedCommentIds.Count > 0)
         {
             SelectedCommentIds.Clear();
@@ -544,7 +544,7 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        bool changed = false;
+        var changed = false;
         if (!additive)
         {
             changed |= Selection.Clear();
@@ -579,18 +579,18 @@ public class MGGraphView : MGSingleContentHost
         }
 
         List<IGraphCommand> commands = new();
-        foreach (Guid commentId in SelectedCommentIds)
+        foreach (var commentId in SelectedCommentIds)
         {
-            GraphCommentModel comment = Document.TryGetComment(commentId);
+            var comment = Document.TryGetComment(commentId);
             if (comment == null)
             {
                 continue;
             }
 
-            Rectangle next = OffsetRectangle(comment.Bounds, worldDelta);
+            var next = OffsetRectangle(comment.Bounds, worldDelta);
             if (SnapToGrid)
             {
-                Vector2 snapped = ViewportTransform.SnapPoint(new Vector2(next.X, next.Y));
+                var snapped = ViewportTransform.SnapPoint(new Vector2(next.X, next.Y));
                 next = new Rectangle(
                     (int)MathF.Round(snapped.X),
                     (int)MathF.Round(snapped.Y),
@@ -614,13 +614,13 @@ public class MGGraphView : MGSingleContentHost
 
     public bool ResizeComment(Guid commentId, Rectangle newBounds)
     {
-        GraphCommentModel comment = Document?.TryGetComment(commentId);
+        var comment = Document?.TryGetComment(commentId);
         if (comment == null)
         {
             return false;
         }
 
-        Rectangle normalized = NormalizeCommentBounds(newBounds);
+        var normalized = NormalizeCommentBounds(newBounds);
         if (comment.Bounds == normalized)
         {
             return false;
@@ -636,19 +636,19 @@ public class MGGraphView : MGSingleContentHost
             return Rectangle.Empty;
         }
 
-        Rectangle normalized = NormalizeCommentBounds(comment.Bounds);
+        var normalized = NormalizeCommentBounds(comment.Bounds);
         if (commentBox == null)
         {
             return normalized;
         }
 
-        float zoom = Math.Max(0.01f, ViewportTransform.Zoom);
-        int scaledWidth = Math.Max(1, (int)MathF.Round(normalized.Width * zoom));
-        int scaledHeight = Math.Max(1, (int)MathF.Round(normalized.Height * zoom));
-        string description = GetCommentDescriptionText(title ?? comment.Title, text ?? comment.Text);
-        int measuredHeight = commentBox.MeasureRequiredHeight(scaledWidth, description);
-        int requiredScaledHeight = Math.Max(scaledHeight, measuredHeight);
-        int requiredWorldHeight = Math.Max(normalized.Height, (int)Math.Ceiling(requiredScaledHeight / zoom));
+        var zoom = Math.Max(0.01f, ViewportTransform.Zoom);
+        var scaledWidth = Math.Max(1, (int)MathF.Round(normalized.Width * zoom));
+        var scaledHeight = Math.Max(1, (int)MathF.Round(normalized.Height * zoom));
+        var description = GetCommentDescriptionText(title ?? comment.Title, text ?? comment.Text);
+        var measuredHeight = commentBox.MeasureRequiredHeight(scaledWidth, description);
+        var requiredScaledHeight = Math.Max(scaledHeight, measuredHeight);
+        var requiredWorldHeight = Math.Max(normalized.Height, (int)Math.Ceiling(requiredScaledHeight / zoom));
         return new Rectangle(normalized.X, normalized.Y, normalized.Width, requiredWorldHeight);
     }
 
@@ -668,7 +668,7 @@ public class MGGraphView : MGSingleContentHost
                 return;
             }
 
-            if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out Vector2 viewportPoint))
+            if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out var viewportPoint))
             {
                 return;
             }
@@ -680,7 +680,7 @@ public class MGGraphView : MGSingleContentHost
             _PressedCommentId = commentBox.CommentId;
             _PressedCommentResizeHandle = IsCommentResizeHandleHit(commentBox, viewportPoint);
 
-            bool controlDown = IsControlDown();
+            var controlDown = IsControlDown();
             SelectComment(commentBox.CommentId, additive: controlDown, toggle: controlDown);
             e.SetHandledBy(commentBox, false);
         };
@@ -697,7 +697,7 @@ public class MGGraphView : MGSingleContentHost
                 return;
             }
 
-            if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out Vector2 viewportPoint))
+            if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out var viewportPoint))
             {
                 return;
             }
@@ -756,7 +756,7 @@ public class MGGraphView : MGSingleContentHost
                 return;
             }
 
-            if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out Vector2 viewportPoint))
+            if (!TryResolveCommentPointerInteraction(commentBox, e.Position, out var viewportPoint))
             {
                 return;
             }
@@ -782,7 +782,7 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        if (!TryGetCommentAtScreenPosition(screenPosition, out MGGraphCommentBox targetComment) || !ReferenceEquals(targetComment, commentBox))
+        if (!TryGetCommentAtScreenPosition(screenPosition, out var targetComment) || !ReferenceEquals(targetComment, commentBox))
         {
             return false;
         }
@@ -808,12 +808,12 @@ public class MGGraphView : MGSingleContentHost
             CommitActiveCommentEditor();
         }
 
-        if (!TryGetCommentControl(commentId, out MGGraphCommentBox commentBox))
+        if (!TryGetCommentControl(commentId, out var commentBox))
         {
             return false;
         }
 
-        GraphCommentModel comment = Document?.TryGetComment(commentId);
+        var comment = Document?.TryGetComment(commentId);
         if (comment == null)
         {
             return false;
@@ -821,7 +821,7 @@ public class MGGraphView : MGSingleContentHost
 
         CancelCurrentInteraction();
         commentBox.BeginEdit();
-        MGTextBox bodyTextBox = commentBox.BodyTextBox;
+        var bodyTextBox = commentBox.BodyTextBox;
         if (bodyTextBox == null)
         {
             commentBox.EndEdit(commitChanges: false);
@@ -887,22 +887,22 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        CommentEditorState state = _ActiveCommentEditor;
-        GraphCommentModel comment = Document?.TryGetComment(state.CommentId);
-        MGGraphCommentBox commentBox = state.CommentBox;
-        MGTextBox bodyTextBox = commentBox?.BodyTextBox;
+        var state = _ActiveCommentEditor;
+        var comment = Document?.TryGetComment(state.CommentId);
+        var commentBox = state.CommentBox;
+        var bodyTextBox = commentBox?.BodyTextBox;
         if (commentBox == null || bodyTextBox == null)
         {
             CloseActiveCommentEditor(commitChanges: false);
             return false;
         }
 
-        string newDescription = bodyTextBox.Text ?? string.Empty;
-        bool hasComment = comment != null;
-        string currentDescription = hasComment ? GetCommentDescriptionText(comment.Title, comment.Text) : string.Empty;
-        Rectangle newBounds = hasComment ? NormalizeCommentBoundsToContent(comment, commentBox, text: newDescription) : Rectangle.Empty;
-        bool changed = hasComment && (newDescription != currentDescription || newBounds != comment.Bounds);
-        bool committed = changed && Commands.Execute(Document, new EditCommentCommand(state.CommentId, comment.Title, string.Empty, comment.Text, newDescription, comment.Bounds, newBounds));
+        var newDescription = bodyTextBox.Text ?? string.Empty;
+        var hasComment = comment != null;
+        var currentDescription = hasComment ? GetCommentDescriptionText(comment.Title, comment.Text) : string.Empty;
+        var newBounds = hasComment ? NormalizeCommentBoundsToContent(comment, commentBox, text: newDescription) : Rectangle.Empty;
+        var changed = hasComment && (newDescription != currentDescription || newBounds != comment.Bounds);
+        var committed = changed && Commands.Execute(Document, new EditCommentCommand(state.CommentId, comment.Title, string.Empty, comment.Text, newDescription, comment.Bounds, newBounds));
 
         CloseActiveCommentEditor(commitChanges: committed);
 
@@ -932,7 +932,7 @@ public class MGGraphView : MGSingleContentHost
 
     private void CloseActiveCommentEditor(bool commitChanges)
     {
-        CommentEditorState state = _ActiveCommentEditor;
+        var state = _ActiveCommentEditor;
         if (state == null)
         {
             return;
@@ -963,15 +963,15 @@ public class MGGraphView : MGSingleContentHost
         }
 
         List<GraphNodeMove> moves = new();
-        foreach (Guid nodeId in SelectedNodeIds)
+        foreach (var nodeId in SelectedNodeIds)
         {
-            GraphNodeModel node = Document.TryGetNode(nodeId);
+            var node = Document.TryGetNode(nodeId);
             if (node == null)
             {
                 continue;
             }
 
-            Vector2 next = node.Position + worldDelta;
+            var next = node.Position + worldDelta;
             if (SnapToGrid)
             {
                 next = ViewportTransform.SnapPoint(next);
@@ -1005,8 +1005,8 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        float wheelSteps = scrollWheelDelta / 120.0f;
-        float zoomFactor = MathF.Pow(1.1f, wheelSteps);
+        var wheelSteps = scrollWheelDelta / 120.0f;
+        var zoomFactor = MathF.Pow(1.1f, wheelSteps);
         return ZoomAtViewportPoint(viewportPoint, zoomFactor);
     }
 
@@ -1017,8 +1017,8 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        float previousZoom = ViewportTransform.Zoom;
-        Vector2 previousPan = ViewportTransform.Pan;
+        var previousZoom = ViewportTransform.Zoom;
+        var previousPan = ViewportTransform.Pan;
         ViewportTransform.ZoomAt(viewportPoint, zoomFactor);
         if (ViewportTransform.Zoom.Equals(previousZoom) && ViewportTransform.Pan == previousPan)
         {
@@ -1056,9 +1056,9 @@ public class MGGraphView : MGSingleContentHost
         }
 
         List<GraphNodeModel> selectedNodes = new();
-        for (int nodeIndex = 0; nodeIndex < Document.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < Document.Nodes.Count; nodeIndex++)
         {
-            GraphNodeModel node = Document.Nodes[nodeIndex];
+            var node = Document.Nodes[nodeIndex];
             if (node != null && SelectedNodeIds.Contains(node.Id))
             {
                 selectedNodes.Add(node);
@@ -1138,16 +1138,16 @@ public class MGGraphView : MGSingleContentHost
         HashSet<Guid> selectedNodeIds = new(SelectedNodeIds);
         List<IGraphCommand> commands = new();
 
-        foreach (Guid edgeId in SelectedEdgeIds)
+        foreach (var edgeId in SelectedEdgeIds)
         {
-            GraphEdgeModel edge = Document.TryGetEdge(edgeId);
+            var edge = Document.TryGetEdge(edgeId);
             if (edge != null && !selectedNodeIds.Contains(edge.SourceNodeId) && !selectedNodeIds.Contains(edge.TargetNodeId))
             {
                 commands.Add(new DisconnectPortsCommand(edgeId));
             }
         }
 
-        foreach (Guid nodeId in selectedNodeIds)
+        foreach (var nodeId in selectedNodeIds)
         {
             if (Document.TryGetNode(nodeId) != null)
             {
@@ -1155,7 +1155,7 @@ public class MGGraphView : MGSingleContentHost
             }
         }
 
-        foreach (Guid commentId in SelectedCommentIds)
+        foreach (var commentId in SelectedCommentIds)
         {
             if (Document.TryGetComment(commentId) != null)
             {
@@ -1163,7 +1163,7 @@ public class MGGraphView : MGSingleContentHost
             }
         }
 
-        bool deleted = commands.Count > 0 && Commands.Execute(Document, new GraphBatchCommand("Delete Selection", commands));
+        var deleted = commands.Count > 0 && Commands.Execute(Document, new GraphBatchCommand("Delete Selection", commands));
         if (deleted)
         {
             ClearSelection();
@@ -1174,12 +1174,12 @@ public class MGGraphView : MGSingleContentHost
 
     public bool CopySelectionToClipboard()
     {
-        if (!TryCreateClipboardDocument(out GraphDocument clipboardDocument))
+        if (!TryCreateClipboardDocument(out var clipboardDocument))
         {
             return false;
         }
 
-        GraphSerializationResult result = _ClipboardSerializer.Serialize(clipboardDocument);
+        var result = _ClipboardSerializer.Serialize(clipboardDocument);
         return result.Success
                && !string.IsNullOrWhiteSpace(result.Json)
                && TryWriteClipboardText($"{GraphClipboardPrefix}\n{result.Json}");
@@ -1187,46 +1187,46 @@ public class MGGraphView : MGSingleContentHost
 
     public bool PasteFromClipboard(Vector2? worldPosition = null)
     {
-        if (Document == null || !TryReadClipboardDocument(out GraphDocument clipboardDocument))
+        if (Document == null || !TryReadClipboardDocument(out var clipboardDocument))
         {
             return false;
         }
 
-        Vector2 sourceOrigin = GetClipboardWorldOrigin(clipboardDocument);
-        Vector2 targetOrigin = worldPosition ?? GetDefaultPasteWorldPosition();
+        var sourceOrigin = GetClipboardWorldOrigin(clipboardDocument);
+        var targetOrigin = worldPosition ?? GetDefaultPasteWorldPosition();
         if (SnapToGrid)
         {
             targetOrigin = ViewportTransform.SnapPoint(targetOrigin);
         }
 
-        Vector2 delta = targetOrigin - sourceOrigin;
+        var delta = targetOrigin - sourceOrigin;
         Dictionary<Guid, Guid> nodeIdMap = new();
         Dictionary<Guid, Guid> portIdMap = new();
         List<Guid> pastedNodeIds = new();
         List<Guid> pastedCommentIds = new();
         List<IGraphCommand> commands = new();
 
-        for (int nodeIndex = 0; nodeIndex < clipboardDocument.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < clipboardDocument.Nodes.Count; nodeIndex++)
         {
-            GraphNodeModel pastedNode = CreatePastedNode(clipboardDocument.Nodes[nodeIndex], delta, nodeIdMap, portIdMap);
+            var pastedNode = CreatePastedNode(clipboardDocument.Nodes[nodeIndex], delta, nodeIdMap, portIdMap);
             pastedNodeIds.Add(pastedNode.Id);
             commands.Add(new CreateNodeCommand(pastedNode));
         }
 
-        for (int commentIndex = 0; commentIndex < clipboardDocument.Comments.Count; commentIndex++)
+        for (var commentIndex = 0; commentIndex < clipboardDocument.Comments.Count; commentIndex++)
         {
-            GraphCommentModel pastedComment = CreatePastedComment(clipboardDocument.Comments[commentIndex], delta);
+            var pastedComment = CreatePastedComment(clipboardDocument.Comments[commentIndex], delta);
             pastedCommentIds.Add(pastedComment.Id);
             commands.Add(new CreateCommentCommand(pastedComment));
         }
 
-        for (int edgeIndex = 0; edgeIndex < clipboardDocument.Edges.Count; edgeIndex++)
+        for (var edgeIndex = 0; edgeIndex < clipboardDocument.Edges.Count; edgeIndex++)
         {
-            GraphEdgeModel sourceEdge = clipboardDocument.Edges[edgeIndex];
-            if (!nodeIdMap.TryGetValue(sourceEdge.SourceNodeId, out Guid sourceNodeId)
-                || !nodeIdMap.TryGetValue(sourceEdge.TargetNodeId, out Guid targetNodeId)
-                || !portIdMap.TryGetValue(sourceEdge.SourcePortId, out Guid sourcePortId)
-                || !portIdMap.TryGetValue(sourceEdge.TargetPortId, out Guid targetPortId))
+            var sourceEdge = clipboardDocument.Edges[edgeIndex];
+            if (!nodeIdMap.TryGetValue(sourceEdge.SourceNodeId, out var sourceNodeId)
+                || !nodeIdMap.TryGetValue(sourceEdge.TargetNodeId, out var targetNodeId)
+                || !portIdMap.TryGetValue(sourceEdge.SourcePortId, out var sourcePortId)
+                || !portIdMap.TryGetValue(sourceEdge.TargetPortId, out var targetPortId))
             {
                 continue;
             }
@@ -1237,7 +1237,7 @@ public class MGGraphView : MGSingleContentHost
             }));
         }
 
-        bool pasted = commands.Count > 0 && Commands.Execute(Document, new GraphBatchCommand("Paste Selection", commands));
+        var pasted = commands.Count > 0 && Commands.Execute(Document, new GraphBatchCommand("Paste Selection", commands));
         if (!pasted)
         {
             return false;
@@ -1246,12 +1246,12 @@ public class MGGraphView : MGSingleContentHost
         SelectedNodeIds.Clear();
         SelectedEdgeIds.Clear();
         SelectedCommentIds.Clear();
-        for (int i = 0; i < pastedNodeIds.Count; i++)
+        for (var i = 0; i < pastedNodeIds.Count; i++)
         {
             SelectedNodeIds.Add(pastedNodeIds[i]);
         }
 
-        for (int i = 0; i < pastedCommentIds.Count; i++)
+        for (var i = 0; i < pastedCommentIds.Count; i++)
         {
             SelectedCommentIds.Add(pastedCommentIds[i]);
         }
@@ -1278,18 +1278,18 @@ public class MGGraphView : MGSingleContentHost
             DisallowCycles = Document.DisallowCycles,
         };
 
-        foreach (Guid nodeId in selectedNodeIds)
+        foreach (var nodeId in selectedNodeIds)
         {
-            GraphNodeModel node = Document.TryGetNode(nodeId);
+            var node = Document.TryGetNode(nodeId);
             if (node != null)
             {
                 selectionDocument.AddNode(CloneNode(node));
             }
         }
 
-        for (int edgeIndex = 0; edgeIndex < Document.Edges.Count; edgeIndex++)
+        for (var edgeIndex = 0; edgeIndex < Document.Edges.Count; edgeIndex++)
         {
-            GraphEdgeModel edge = Document.Edges[edgeIndex];
+            var edge = Document.Edges[edgeIndex];
             if (edge != null && selectedNodeIds.Contains(edge.SourceNodeId) && selectedNodeIds.Contains(edge.TargetNodeId))
             {
                 selectionDocument.AddEdge(new GraphEdgeModel(edge.Id, edge.SourceNodeId, edge.SourcePortId, edge.TargetNodeId, edge.TargetPortId)
@@ -1299,9 +1299,9 @@ public class MGGraphView : MGSingleContentHost
             }
         }
 
-        foreach (Guid commentId in SelectedCommentIds)
+        foreach (var commentId in SelectedCommentIds)
         {
-            GraphCommentModel comment = Document.TryGetComment(commentId);
+            var comment = Document.TryGetComment(commentId);
             if (comment != null)
             {
                 selectionDocument.AddComment(CloneComment(comment));
@@ -1320,14 +1320,14 @@ public class MGGraphView : MGSingleContentHost
     private bool TryReadClipboardDocument(out GraphDocument clipboardDocument)
     {
         clipboardDocument = null;
-        string clipboardText = TryReadClipboardText();
+        var clipboardText = TryReadClipboardText();
         if (string.IsNullOrWhiteSpace(clipboardText) || !clipboardText.StartsWith(GraphClipboardPrefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        string json = clipboardText.Substring(GraphClipboardPrefix.Length).TrimStart('\r', '\n');
-        GraphSerializationResult result = _ClipboardSerializer.Deserialize(json);
+        var json = clipboardText.Substring(GraphClipboardPrefix.Length).TrimStart('\r', '\n');
+        var result = _ClipboardSerializer.Deserialize(json);
         if (!result.Success || result.Document == null || (result.Document.Nodes.Count == 0 && result.Document.Comments.Count == 0))
         {
             return false;
@@ -1364,25 +1364,25 @@ public class MGGraphView : MGSingleContentHost
 
     private Vector2 GetDefaultPasteWorldPosition()
     {
-        Point mousePosition = InputTracker.Mouse.CurrentPosition;
+        var mousePosition = InputTracker.Mouse.CurrentPosition;
         if (IsPointerInsideViewport(mousePosition))
         {
             return GetWorldPointFromScreenPosition(mousePosition);
         }
 
-        Rectangle viewportBounds = GetViewportBoundsForFraming();
+        var viewportBounds = GetViewportBoundsForFraming();
         return ViewportTransform.LayoutToWorld(new Vector2(viewportBounds.Center.X, viewportBounds.Center.Y));
     }
 
     private static Vector2 GetClipboardWorldOrigin(GraphDocument clipboardDocument)
     {
-        bool hasValue = false;
-        float left = 0.0f;
-        float top = 0.0f;
+        var hasValue = false;
+        var left = 0.0f;
+        var top = 0.0f;
 
-        for (int nodeIndex = 0; nodeIndex < clipboardDocument.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < clipboardDocument.Nodes.Count; nodeIndex++)
         {
-            Vector2 position = clipboardDocument.Nodes[nodeIndex].Position;
+            var position = clipboardDocument.Nodes[nodeIndex].Position;
             if (!hasValue)
             {
                 left = position.X;
@@ -1396,9 +1396,9 @@ public class MGGraphView : MGSingleContentHost
             }
         }
 
-        for (int commentIndex = 0; commentIndex < clipboardDocument.Comments.Count; commentIndex++)
+        for (var commentIndex = 0; commentIndex < clipboardDocument.Comments.Count; commentIndex++)
         {
-            Rectangle bounds = clipboardDocument.Comments[commentIndex].Bounds;
+            var bounds = clipboardDocument.Comments[commentIndex].Bounds;
             if (!hasValue)
             {
                 left = bounds.Left;
@@ -1425,9 +1425,9 @@ public class MGGraphView : MGSingleContentHost
             EditorMetadata = CopyMetadata(source.EditorMetadata),
         };
 
-        for (int portIndex = 0; portIndex < source.Ports.Count; portIndex++)
+        for (var portIndex = 0; portIndex < source.Ports.Count; portIndex++)
         {
-            GraphPortModel port = source.Ports[portIndex];
+            var port = source.Ports[portIndex];
             clone.Ports.Add(new GraphPortModel(port.NodeId, port.Id, port.Name, port.Direction, port.ValueType, port.Cardinality, port.IsRequired)
             {
                 DefaultValue = port.DefaultValue,
@@ -1441,7 +1441,7 @@ public class MGGraphView : MGSingleContentHost
 
     private static GraphNodeModel CreatePastedNode(GraphNodeModel source, Vector2 delta, Dictionary<Guid, Guid> nodeIdMap, Dictionary<Guid, Guid> portIdMap)
     {
-        Guid newNodeId = Guid.NewGuid();
+        var newNodeId = Guid.NewGuid();
         nodeIdMap[source.Id] = newNodeId;
         GraphNodeModel clone = new(newNodeId, source.NodeType, source.Title, source.Position + delta)
         {
@@ -1451,10 +1451,10 @@ public class MGGraphView : MGSingleContentHost
             EditorMetadata = CopyMetadata(source.EditorMetadata),
         };
 
-        for (int portIndex = 0; portIndex < source.Ports.Count; portIndex++)
+        for (var portIndex = 0; portIndex < source.Ports.Count; portIndex++)
         {
-            GraphPortModel port = source.Ports[portIndex];
-            Guid newPortId = Guid.NewGuid();
+            var port = source.Ports[portIndex];
+            var newPortId = Guid.NewGuid();
             portIdMap[port.Id] = newPortId;
             clone.Ports.Add(new GraphPortModel(newNodeId, newPortId, port.Name, port.Direction, port.ValueType, port.Cardinality, port.IsRequired)
             {
@@ -1491,8 +1491,8 @@ public class MGGraphView : MGSingleContentHost
             return null;
         }
 
-        Vector2 position = SnapToGrid ? ViewportTransform.SnapPoint(worldPosition) : worldPosition;
-        string description = !string.IsNullOrEmpty(text)
+        var position = SnapToGrid ? ViewportTransform.SnapPoint(worldPosition) : worldPosition;
+        var description = !string.IsNullOrEmpty(text)
             ? text
             : string.Equals(title, "Comment", StringComparison.Ordinal) ? string.Empty : title ?? string.Empty;
         GraphCommentModel comment = new(Guid.NewGuid(), new Rectangle((int)MathF.Round(position.X), (int)MathF.Round(position.Y), 260, 120), string.Empty, description);
@@ -1513,11 +1513,11 @@ public class MGGraphView : MGSingleContentHost
             return null;
         }
 
-        GraphNodeModel node = definition.CreateNode(Guid.NewGuid(), worldPosition);
-        bool positionedFromConnectionAnchor = false;
+        var node = definition.CreateNode(Guid.NewGuid(), worldPosition);
+        var positionedFromConnectionAnchor = false;
         if (connectFromPortId.HasValue)
         {
-            GraphPortModel draggedPort = Document.TryGetPort(connectFromPortId.Value);
+            var draggedPort = Document.TryGetPort(connectFromPortId.Value);
             if (draggedPort != null && NodePalette?.TryFindCompatiblePort(node, draggedPort, out GraphPortModel compatiblePort) == true)
             {
                 node.Position = GetNodePositionForPortAnchor(node, compatiblePort, worldPosition);
@@ -1540,7 +1540,7 @@ public class MGGraphView : MGSingleContentHost
 
         if (connectFromPortId.HasValue)
         {
-            GraphPortModel draggedPort = Document.TryGetPort(connectFromPortId.Value);
+            var draggedPort = Document.TryGetPort(connectFromPortId.Value);
             if (draggedPort != null && NodePalette?.TryFindCompatiblePort(node, draggedPort, out GraphPortModel compatiblePort) == true)
             {
                 ConnectionController.TryCreateConnection(connectFromPortId.Value, compatiblePort.Id);
@@ -1557,9 +1557,9 @@ public class MGGraphView : MGSingleContentHost
             return anchorWorldPosition;
         }
 
-        Vector2 originalPosition = node.Position;
+        var originalPosition = node.Position;
         node.Position = Vector2.Zero;
-        bool hasAnchor = GraphPortAnchorResolver.TryGetPortWorldAnchor(node, port, out Vector2 anchorOffset);
+        var hasAnchor = GraphPortAnchorResolver.TryGetPortWorldAnchor(node, port, out var anchorOffset);
         node.Position = originalPosition;
         return hasAnchor ? anchorWorldPosition - anchorOffset : anchorWorldPosition;
     }
@@ -1576,7 +1576,7 @@ public class MGGraphView : MGSingleContentHost
                 menu.AddSeparator();
             }
 
-            MGContextMenuButton commentButton = menu.AddButton("Comment", _ => CreateCommentAt(worldPosition));
+            var commentButton = menu.AddButton("Comment", _ => CreateCommentAt(worldPosition));
             commentButton.CommandId = "graph.createComment";
         }
 
@@ -1586,17 +1586,17 @@ public class MGGraphView : MGSingleContentHost
     public MGContextMenu CreateGraphContextMenu(Vector2 worldPosition, bool includeCreationItems = true)
     {
         MGContextMenu menu = new(ParentWindow, string.Empty);
-        bool hasEditActions = false;
+        var hasEditActions = false;
         if (SelectedNodeIds.Count > 0 || SelectedCommentIds.Count > 0)
         {
-            MGContextMenuButton copyButton = menu.AddButton("Copy", _ => CopySelectionToClipboard());
+            var copyButton = menu.AddButton("Copy", _ => CopySelectionToClipboard());
             copyButton.CommandId = "graph.copy";
             hasEditActions = true;
         }
 
         if (CanPasteFromClipboard())
         {
-            MGContextMenuButton pasteButton = menu.AddButton("Paste", _ => PasteFromClipboard(worldPosition));
+            var pasteButton = menu.AddButton("Paste", _ => PasteFromClipboard(worldPosition));
             pasteButton.CommandId = "graph.paste";
             hasEditActions = true;
         }
@@ -1611,7 +1611,7 @@ public class MGGraphView : MGSingleContentHost
             menu.AddSeparator();
         }
 
-        MGContextMenuButton commentButton = menu.AddButton("Comment", _ => CreateCommentAt(worldPosition));
+        var commentButton = menu.AddButton("Comment", _ => CreateCommentAt(worldPosition));
         commentButton.CommandId = "graph.createComment";
         PopulateNodeCreationMenu(menu, worldPosition, connectFromPortId: null, addLeadingSeparator: true);
         return menu;
@@ -1624,11 +1624,11 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        GraphPortModel draggedPort = connectFromPortId.HasValue ? Document?.TryGetPort(connectFromPortId.Value) : null;
+        var draggedPort = connectFromPortId.HasValue ? Document?.TryGetPort(connectFromPortId.Value) : null;
         IEnumerable<GraphNodeDefinition> definitions = NodePalette?.GetDefinitions(draggedPort) ?? Array.Empty<GraphNodeDefinition>();
         string previousCategory = null;
-        bool addedAny = false;
-        foreach (GraphNodeDefinition definition in definitions)
+        var addedAny = false;
+        foreach (var definition in definitions)
         {
             if (definition == null)
             {
@@ -1645,11 +1645,11 @@ public class MGGraphView : MGSingleContentHost
             }
 
             previousCategory = definition.Category;
-            GraphNodeDefinition capturedDefinition = definition;
-            string label = string.IsNullOrWhiteSpace(definition.Category)
+            var capturedDefinition = definition;
+            var label = string.IsNullOrWhiteSpace(definition.Category)
                 ? definition.DisplayName
                 : $"{definition.Category} / {definition.DisplayName}";
-            MGContextMenuButton button = menu.AddButton(label, _ => CreateNodeFromDefinition(capturedDefinition, worldPosition, connectFromPortId));
+            var button = menu.AddButton(label, _ => CreateNodeFromDefinition(capturedDefinition, worldPosition, connectFromPortId));
             button.CommandId = $"graph.createNode:{definition.NodeType}";
             addedAny = true;
         }
@@ -1683,13 +1683,13 @@ public class MGGraphView : MGSingleContentHost
             return;
         }
 
-        Vector2 viewportPoint = GetViewportPoint(e.Position);
-        Vector2 worldPosition = GetWorldPointFromScreenPosition(e.Position);
-        bool overExistingElement = TryGetNodeAtScreenPosition(e.Position, out _)
-                                   || TryGetPortAtScreenPosition(e.Position, out _)
-                                   || TryGetCommentAtScreenPosition(e.Position, out _)
-                                   || TryGetEdgeAtViewportPoint(viewportPoint, out _);
-        MGContextMenu menu = CreateGraphContextMenu(worldPosition, includeCreationItems: !overExistingElement);
+        var viewportPoint = GetViewportPoint(e.Position);
+        var worldPosition = GetWorldPointFromScreenPosition(e.Position);
+        var overExistingElement = TryGetNodeAtScreenPosition(e.Position, out _)
+                                  || TryGetPortAtScreenPosition(e.Position, out _)
+                                  || TryGetCommentAtScreenPosition(e.Position, out _)
+                                  || TryGetEdgeAtViewportPoint(viewportPoint, out _);
+        var menu = CreateGraphContextMenu(worldPosition, includeCreationItems: !overExistingElement);
         if (menu.Items.Count == 0)
         {
             e.Handled = true;
@@ -1706,8 +1706,8 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        Vector2 worldPosition = GetWorldPointFromScreenPosition(screenPosition);
-        MGContextMenu menu = CreateNodeCreationMenu(worldPosition, connectFromPortId);
+        var worldPosition = GetWorldPointFromScreenPosition(screenPosition);
+        var menu = CreateNodeCreationMenu(worldPosition, connectFromPortId);
         return menu.Items.Count > 0 && menu.TryOpenContextMenu(screenPosition);
     }
 
@@ -1760,8 +1760,8 @@ public class MGGraphView : MGSingleContentHost
         {
             if (_IsPanningViewport && e.IsMMB)
             {
-                Point delta = e.Position - _PanStartScreenPosition;
-                Vector2 nextPan = _PanStartValue + delta.ToVector2();
+                var delta = e.Position - _PanStartScreenPosition;
+                var nextPan = _PanStartValue + delta.ToVector2();
                 if (ViewportTransform.Pan != nextPan)
                 {
                     ViewportTransform.Pan = nextPan;
@@ -1831,12 +1831,12 @@ public class MGGraphView : MGSingleContentHost
             Focus(KeyboardFocusSource.Pointer);
             _PointerPressViewportPoint = GetViewportPoint(e.Position);
             _CurrentSelectionViewportPoint = _PointerPressViewportPoint;
-            bool controlDown = IsControlDown();
+            var controlDown = IsControlDown();
             if (TryGetPortAtScreenPosition(e.Position, out _))
             {
                 return;
             }
-            else if (TryGetNodeAtScreenPosition(e.Position, out MGGraphNode node))
+            else if (TryGetNodeAtScreenPosition(e.Position, out var node))
             {
                 _PressedNodeId = node.NodeId;
                 _PressedCommentId = Guid.Empty;
@@ -1844,7 +1844,7 @@ public class MGGraphView : MGSingleContentHost
                 SelectNode(node.NodeId, additive: controlDown, toggle: controlDown);
                 e.SetHandledBy(this, false);
             }
-            else if (TryGetCommentAtScreenPosition(e.Position, out MGGraphCommentBox commentBox))
+            else if (TryGetCommentAtScreenPosition(e.Position, out var commentBox))
             {
                 _PressedNodeId = Guid.Empty;
                 _PressedCommentId = commentBox.CommentId;
@@ -1852,7 +1852,7 @@ public class MGGraphView : MGSingleContentHost
                 SelectComment(commentBox.CommentId, additive: controlDown, toggle: controlDown);
                 e.SetHandledBy(this, false);
             }
-            else if (TryGetEdgeAtViewportPoint(_PointerPressViewportPoint, out GraphEdgeModel edge))
+            else if (TryGetEdgeAtViewportPoint(_PointerPressViewportPoint, out var edge))
             {
                 _PressedNodeId = Guid.Empty;
                 _PressedCommentId = Guid.Empty;
@@ -1876,7 +1876,7 @@ public class MGGraphView : MGSingleContentHost
         {
             if (AllowZoom && IsPointerInsideViewport(e.Position))
             {
-                Vector2 viewportPoint = GetViewportPoint(e.Position);
+                var viewportPoint = GetViewportPoint(e.Position);
                 if (ZoomAtViewportPoint(viewportPoint, e.ScrollWheelDelta))
                 {
                     e.SetHandledBy(this, false);
@@ -1900,20 +1900,20 @@ public class MGGraphView : MGSingleContentHost
             return;
         }
 
-        for (int nodeIndex = 0; nodeIndex < Document.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < Document.Nodes.Count; nodeIndex++)
         {
-            GraphNodeModel nodeModel = Document.Nodes[nodeIndex];
-            if (nodeModel != null && TryGetNodeControl(nodeModel.Id, out MGGraphNode node))
+            var nodeModel = Document.Nodes[nodeIndex];
+            if (nodeModel != null && TryGetNodeControl(nodeModel.Id, out var node))
             {
                 node.IsSelected = SelectedNodeIds.Contains(nodeModel.Id);
                 node.ApplySelectionVisual();
             }
         }
 
-        for (int commentIndex = 0; commentIndex < Document.Comments.Count; commentIndex++)
+        for (var commentIndex = 0; commentIndex < Document.Comments.Count; commentIndex++)
         {
-            GraphCommentModel commentModel = Document.Comments[commentIndex];
-            if (commentModel != null && TryGetCommentControl(commentModel.Id, out MGGraphCommentBox commentBox))
+            var commentModel = Document.Comments[commentIndex];
+            if (commentModel != null && TryGetCommentControl(commentModel.Id, out var commentBox))
             {
                 commentBox.IsSelected = SelectedCommentIds.Contains(commentModel.Id);
                 commentBox.ApplySelectionVisual();
@@ -1924,9 +1924,9 @@ public class MGGraphView : MGSingleContentHost
     private void BeginNodeDrag()
     {
         _NodeDragStartPositions.Clear();
-        foreach (Guid selectedNodeId in SelectedNodeIds)
+        foreach (var selectedNodeId in SelectedNodeIds)
         {
-            GraphNodeModel node = Document.TryGetNode(selectedNodeId);
+            var node = Document.TryGetNode(selectedNodeId);
             if (node != null)
             {
                 _NodeDragStartPositions[selectedNodeId] = node.Position;
@@ -1938,20 +1938,20 @@ public class MGGraphView : MGSingleContentHost
 
     private void UpdateNodeDrag(Vector2 currentViewportPoint)
     {
-        Vector2 startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
-        Vector2 currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
-        Vector2 worldDelta = currentWorld - startWorld;
-        bool changed = false;
+        var startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
+        var currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
+        var worldDelta = currentWorld - startWorld;
+        var changed = false;
 
-        foreach (KeyValuePair<Guid, Vector2> item in _NodeDragStartPositions)
+        foreach (var item in _NodeDragStartPositions)
         {
-            GraphNodeModel node = Document.TryGetNode(item.Key);
+            var node = Document.TryGetNode(item.Key);
             if (node == null)
             {
                 continue;
             }
 
-            Vector2 next = item.Value + worldDelta;
+            var next = item.Value + worldDelta;
             if (SnapToGrid)
             {
                 next = ViewportTransform.SnapPoint(next);
@@ -1987,7 +1987,7 @@ public class MGGraphView : MGSingleContentHost
         else if (IsSelectionRectangleActive)
         {
             _CurrentSelectionViewportPoint = GetViewportPoint(screenPosition);
-            RectangleF viewportRectangle = SelectionRectangleViewportBounds;
+            var viewportRectangle = SelectionRectangleViewportBounds;
             if (viewportRectangle.Width > 1.0f && viewportRectangle.Height > 1.0f)
             {
                 SelectNodesInWorldRectangle(ViewportRectangleToWorldRectangle(viewportRectangle), additive: IsControlDown());
@@ -2014,9 +2014,9 @@ public class MGGraphView : MGSingleContentHost
     private void CommitNodeDrag()
     {
         List<GraphNodeMove> moves = new();
-        foreach (KeyValuePair<Guid, Vector2> item in _NodeDragStartPositions)
+        foreach (var item in _NodeDragStartPositions)
         {
-            GraphNodeModel node = Document.TryGetNode(item.Key);
+            var node = Document.TryGetNode(item.Key);
             if (node != null && node.Position != item.Value)
             {
                 moves.Add(new GraphNodeMove(item.Key, item.Value, node.Position));
@@ -2040,7 +2040,7 @@ public class MGGraphView : MGSingleContentHost
 
         if (moves.Count == 1)
         {
-            GraphNodeMove move = moves[0];
+            var move = moves[0];
             return Commands.Execute(Document, new MoveNodeCommand(move.NodeId, move.OldPosition, move.NewPosition));
         }
 
@@ -2049,7 +2049,7 @@ public class MGGraphView : MGSingleContentHost
 
     private bool SelectCommentsInWorldRectangle(RectangleF worldRectangle, bool additive = false)
     {
-        bool changed = false;
+        var changed = false;
         if (!additive && SelectedCommentIds.Count > 0)
         {
             SelectedCommentIds.Clear();
@@ -2061,9 +2061,9 @@ public class MGGraphView : MGSingleContentHost
             return changed;
         }
 
-        for (int commentIndex = 0; commentIndex < Document.Comments.Count; commentIndex++)
+        for (var commentIndex = 0; commentIndex < Document.Comments.Count; commentIndex++)
         {
-            GraphCommentModel comment = Document.Comments[commentIndex];
+            var comment = Document.Comments[commentIndex];
             if (comment != null && Intersects(worldRectangle, ToRectangleF(comment.Bounds)))
             {
                 changed |= SelectedCommentIds.Add(comment.Id);
@@ -2076,9 +2076,9 @@ public class MGGraphView : MGSingleContentHost
     private void BeginCommentDrag()
     {
         _CommentDragStartBounds.Clear();
-        foreach (Guid selectedCommentId in SelectedCommentIds)
+        foreach (var selectedCommentId in SelectedCommentIds)
         {
-            GraphCommentModel comment = Document.TryGetComment(selectedCommentId);
+            var comment = Document.TryGetComment(selectedCommentId);
             if (comment != null)
             {
                 _CommentDragStartBounds[selectedCommentId] = comment.Bounds;
@@ -2090,23 +2090,23 @@ public class MGGraphView : MGSingleContentHost
 
     private void UpdateCommentDrag(Vector2 currentViewportPoint)
     {
-        Vector2 startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
-        Vector2 currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
-        Vector2 worldDelta = currentWorld - startWorld;
-        bool changed = false;
+        var startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
+        var currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
+        var worldDelta = currentWorld - startWorld;
+        var changed = false;
 
-        foreach (KeyValuePair<Guid, Rectangle> item in _CommentDragStartBounds)
+        foreach (var item in _CommentDragStartBounds)
         {
-            GraphCommentModel comment = Document.TryGetComment(item.Key);
+            var comment = Document.TryGetComment(item.Key);
             if (comment == null)
             {
                 continue;
             }
 
-            Rectangle next = OffsetRectangle(item.Value, worldDelta);
+            var next = OffsetRectangle(item.Value, worldDelta);
             if (SnapToGrid)
             {
-                Vector2 snapped = ViewportTransform.SnapPoint(new Vector2(next.X, next.Y));
+                var snapped = ViewportTransform.SnapPoint(new Vector2(next.X, next.Y));
                 next = new Rectangle((int)MathF.Round(snapped.X), (int)MathF.Round(snapped.Y), next.Width, next.Height);
             }
 
@@ -2126,9 +2126,9 @@ public class MGGraphView : MGSingleContentHost
     private void CommitCommentDrag()
     {
         List<IGraphCommand> commands = new();
-        foreach (KeyValuePair<Guid, Rectangle> item in _CommentDragStartBounds)
+        foreach (var item in _CommentDragStartBounds)
         {
-            GraphCommentModel comment = Document.TryGetComment(item.Key);
+            var comment = Document.TryGetComment(item.Key);
             if (comment != null && comment.Bounds != item.Value)
             {
                 commands.Add(new MoveCommentCommand(comment.Id, item.Value, comment.Bounds));
@@ -2143,7 +2143,7 @@ public class MGGraphView : MGSingleContentHost
 
     private void BeginCommentResize()
     {
-        GraphCommentModel comment = Document.TryGetComment(_PressedCommentId);
+        var comment = Document.TryGetComment(_PressedCommentId);
         if (comment == null)
         {
             return;
@@ -2155,16 +2155,16 @@ public class MGGraphView : MGSingleContentHost
 
     private void UpdateCommentResize(Vector2 currentViewportPoint)
     {
-        GraphCommentModel comment = Document.TryGetComment(_PressedCommentId);
+        var comment = Document.TryGetComment(_PressedCommentId);
         if (comment == null)
         {
             return;
         }
 
-        Vector2 startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
-        Vector2 currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
-        Vector2 worldDelta = currentWorld - startWorld;
-        Rectangle next = NormalizeCommentBounds(new Rectangle(
+        var startWorld = ViewportTransform.LayoutToWorld(_PointerPressViewportPoint);
+        var currentWorld = ViewportTransform.LayoutToWorld(currentViewportPoint);
+        var worldDelta = currentWorld - startWorld;
+        var next = NormalizeCommentBounds(new Rectangle(
             _CommentResizeStartBounds.X,
             _CommentResizeStartBounds.Y,
             _CommentResizeStartBounds.Width + (int)MathF.Round(worldDelta.X),
@@ -2179,7 +2179,7 @@ public class MGGraphView : MGSingleContentHost
 
     private void CommitCommentResize()
     {
-        GraphCommentModel comment = Document.TryGetComment(_PressedCommentId);
+        var comment = Document.TryGetComment(_PressedCommentId);
         if (comment != null && comment.Bounds != _CommentResizeStartBounds)
         {
             Commands.Execute(Document, new ResizeCommentCommand(comment.Id, _CommentResizeStartBounds, comment.Bounds));
@@ -2194,7 +2194,7 @@ public class MGGraphView : MGSingleContentHost
         }
 
         List<(MGGraphNode Node, int? Left, int? Top, int? Right, int? Bottom)> selectedNodes = new();
-        for (int childIndex = 0; childIndex < NodesCanvas.Children.Count; childIndex++)
+        for (var childIndex = 0; childIndex < NodesCanvas.Children.Count; childIndex++)
         {
             if (NodesCanvas.Children[childIndex] is MGGraphNode node && SelectedNodeIds.Contains(node.NodeId))
             {
@@ -2207,11 +2207,11 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        int startIndex = NodesCanvas.Children.Count - selectedNodes.Count;
-        bool alreadyInFront = startIndex >= 0;
+        var startIndex = NodesCanvas.Children.Count - selectedNodes.Count;
+        var alreadyInFront = startIndex >= 0;
         if (alreadyInFront)
         {
-            for (int selectedIndex = 0; selectedIndex < selectedNodes.Count; selectedIndex++)
+            for (var selectedIndex = 0; selectedIndex < selectedNodes.Count; selectedIndex++)
             {
                 if (!ReferenceEquals(NodesCanvas.Children[startIndex + selectedIndex], selectedNodes[selectedIndex].Node))
                 {
@@ -2228,14 +2228,14 @@ public class MGGraphView : MGSingleContentHost
 
         using (NodesCanvas.AllowChangingContentTemporarily())
         {
-            for (int selectedIndex = 0; selectedIndex < selectedNodes.Count; selectedIndex++)
+            for (var selectedIndex = 0; selectedIndex < selectedNodes.Count; selectedIndex++)
             {
                 NodesCanvas.TryRemoveChild(selectedNodes[selectedIndex].Node);
             }
 
-            for (int selectedIndex = 0; selectedIndex < selectedNodes.Count; selectedIndex++)
+            for (var selectedIndex = 0; selectedIndex < selectedNodes.Count; selectedIndex++)
             {
-                (MGGraphNode node, int? left, int? top, int? right, int? bottom) = selectedNodes[selectedIndex];
+                (var node, var left, var top, var right, var bottom) = selectedNodes[selectedIndex];
                 NodesCanvas.TryAddChild(node, left, top, right, bottom);
             }
         }
@@ -2251,11 +2251,11 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        for (int childIndex = NodesCanvas.Children.Count - 1; childIndex >= 0; childIndex--)
+        for (var childIndex = NodesCanvas.Children.Count - 1; childIndex >= 0; childIndex--)
         {
             if (NodesCanvas.Children[childIndex] is MGGraphNode graphNode)
             {
-                Rectangle bounds = GetNodeViewportBounds(graphNode);
+                var bounds = GetNodeViewportBounds(graphNode);
                 if (bounds.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y)))
                 {
                     node = graphNode;
@@ -2269,7 +2269,7 @@ public class MGGraphView : MGSingleContentHost
 
     private bool TryGetNodeAtScreenPosition(Point screenPosition, out MGGraphNode node)
     {
-        MGElement topmostVisual = GetTopmostGraphVisualAtScreenPosition(screenPosition);
+        var topmostVisual = GetTopmostGraphVisualAtScreenPosition(screenPosition);
         if (topmostVisual is MGGraphNode graphNode)
         {
             node = graphNode;
@@ -2287,11 +2287,11 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        for (int childIndex = NodesCanvas.Children.Count - 1; childIndex >= 0; childIndex--)
+        for (var childIndex = NodesCanvas.Children.Count - 1; childIndex >= 0; childIndex--)
         {
             if (NodesCanvas.Children[childIndex] is MGGraphCommentBox candidate)
             {
-                Rectangle bounds = GetCommentViewportBounds(candidate);
+                var bounds = GetCommentViewportBounds(candidate);
                 if (bounds.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y)))
                 {
                     commentBox = candidate;
@@ -2305,7 +2305,7 @@ public class MGGraphView : MGSingleContentHost
 
     private bool TryGetCommentAtScreenPosition(Point screenPosition, out MGGraphCommentBox commentBox)
     {
-        MGElement topmostVisual = GetTopmostGraphVisualAtScreenPosition(screenPosition);
+        var topmostVisual = GetTopmostGraphVisualAtScreenPosition(screenPosition);
         if (topmostVisual is MGGraphCommentBox graphCommentBox)
         {
             commentBox = graphCommentBox;
@@ -2323,11 +2323,11 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        for (int nodeIndex = NodesCanvas.Children.Count - 1; nodeIndex >= 0; nodeIndex--)
+        for (var nodeIndex = NodesCanvas.Children.Count - 1; nodeIndex >= 0; nodeIndex--)
         {
             if (NodesCanvas.Children[nodeIndex] is MGGraphCommentBox commentBox)
             {
-                Rectangle commentBounds = GetCommentViewportBounds(commentBox);
+                var commentBounds = GetCommentViewportBounds(commentBox);
                 if (commentBounds.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y)))
                 {
                     return false;
@@ -2341,7 +2341,7 @@ public class MGGraphView : MGSingleContentHost
                 continue;
             }
 
-            Rectangle nodeBounds = GetNodeViewportBounds(graphNode);
+            var nodeBounds = GetNodeViewportBounds(graphNode);
             if (!nodeBounds.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y)))
             {
                 continue;
@@ -2352,16 +2352,16 @@ public class MGGraphView : MGSingleContentHost
                 return false;
             }
 
-            for (int portIndex = graphNode.PortsPanel.Children.Count - 1; portIndex >= 0; portIndex--)
+            for (var portIndex = graphNode.PortsPanel.Children.Count - 1; portIndex >= 0; portIndex--)
             {
                 if (graphNode.PortsPanel.Children[portIndex] is MGGraphPort candidate)
                 {
-                    Rectangle bounds = candidate.ActualLayoutBounds.Width > 0 || candidate.ActualLayoutBounds.Height > 0
+                    var bounds = candidate.ActualLayoutBounds.Width > 0 || candidate.ActualLayoutBounds.Height > 0
                         ? candidate.ActualLayoutBounds
                         : candidate.LayoutBounds;
                     if (bounds.Width <= 0 || bounds.Height <= 0)
                     {
-                        Vector2 anchor = candidate.GetLayoutAnchor();
+                        var anchor = candidate.GetLayoutAnchor();
                         bounds = new Rectangle((int)anchor.X - 8, (int)anchor.Y - 8, 16, 16);
                     }
 
@@ -2381,7 +2381,7 @@ public class MGGraphView : MGSingleContentHost
 
     private bool TryGetPortAtScreenPosition(Point screenPosition, out MGGraphPort port)
     {
-        MGElement topmostVisual = GetTopmostGraphVisualAtScreenPosition(screenPosition);
+        var topmostVisual = GetTopmostGraphVisualAtScreenPosition(screenPosition);
         if (topmostVisual is MGGraphPort graphPort)
         {
             port = graphPort;
@@ -2398,7 +2398,7 @@ public class MGGraphView : MGSingleContentHost
             return null;
         }
 
-        MGElement current = SelfOrParentWindow?.HoveredElement;
+        var current = SelfOrParentWindow?.HoveredElement;
         while (current != null)
         {
             if (current == NodesCanvas)
@@ -2425,23 +2425,23 @@ public class MGGraphView : MGSingleContentHost
             return false;
         }
 
-        int segmentCount = ViewportTransform.Zoom < 0.35f ? 8 : GraphBezierGeometry.DefaultSegmentCount;
-        float tolerance = Math.Max(6.0f, EdgeThickness * 2.0f);
-        for (int edgeIndex = Document.Edges.Count - 1; edgeIndex >= 0; edgeIndex--)
+        var segmentCount = ViewportTransform.Zoom < 0.35f ? 8 : GraphBezierGeometry.DefaultSegmentCount;
+        var tolerance = Math.Max(6.0f, EdgeThickness * 2.0f);
+        for (var edgeIndex = Document.Edges.Count - 1; edgeIndex >= 0; edgeIndex--)
         {
-            GraphEdgeModel candidate = Document.Edges[edgeIndex];
+            var candidate = Document.Edges[edgeIndex];
             if (candidate == null)
             {
                 continue;
             }
 
-            if (!TryGetPortLayoutAnchorForInteraction(candidate.SourcePortId, out Vector2 start)
-                || !TryGetPortLayoutAnchorForInteraction(candidate.TargetPortId, out Vector2 end))
+            if (!TryGetPortLayoutAnchorForInteraction(candidate.SourcePortId, out var start)
+                || !TryGetPortLayoutAnchorForInteraction(candidate.TargetPortId, out var end))
             {
                 continue;
             }
 
-            IReadOnlyList<Vector2> points = EdgeGeometryCache.GetOrCreate(candidate.Id, start, end, EdgeThickness, ViewportTransform.Zoom, segmentCount);
+            var points = EdgeGeometryCache.GetOrCreate(candidate.Id, start, end, EdgeThickness, ViewportTransform.Zoom, segmentCount);
             if (_HitTestService.HitTestEdge(points, viewportPoint, tolerance))
             {
                 edge = candidate;
@@ -2454,13 +2454,13 @@ public class MGGraphView : MGSingleContentHost
 
     private bool TryGetPortLayoutAnchorForInteraction(Guid portId, out Vector2 layoutAnchor)
     {
-        if (TryGetPortControl(portId, out MGGraphPort port) && IsRuntimePortAnchorUsable(port))
+        if (TryGetPortControl(portId, out var port) && IsRuntimePortAnchorUsable(port))
         {
             layoutAnchor = port.GetLayoutAnchor();
             return true;
         }
 
-        if (GraphPortAnchorResolver.TryGetPortLayoutAnchor(Document, ViewportTransform, portId, out Vector2 viewportAnchor))
+        if (GraphPortAnchorResolver.TryGetPortLayoutAnchor(Document, ViewportTransform, portId, out var viewportAnchor))
         {
             layoutAnchor = viewportAnchor + GetViewportLayoutOrigin();
             return true;
@@ -2482,7 +2482,7 @@ public class MGGraphView : MGSingleContentHost
             return true;
         }
 
-        return TryGetNodeControl(port.Model.NodeId, out MGGraphNode node) && node.Visibility == Visibility.Visible && HasVisibleActualBounds(node);
+        return TryGetNodeControl(port.Model.NodeId, out var node) && node.Visibility == Visibility.Visible && HasVisibleActualBounds(node);
     }
 
     private static bool HasVisibleActualBounds(MGElement element)
@@ -2490,20 +2490,20 @@ public class MGGraphView : MGSingleContentHost
 
     private Vector2 GetViewportLayoutOrigin()
     {
-        Rectangle bounds = NodesCanvas?.AlignedContentBounds ?? NodesCanvas?.LayoutBounds ?? Rectangle.Empty;
+        var bounds = NodesCanvas?.AlignedContentBounds ?? NodesCanvas?.LayoutBounds ?? Rectangle.Empty;
         return new Vector2(bounds.Left, bounds.Top);
     }
 
     private Rectangle GetNodeViewportBounds(MGGraphNode node)
     {
-        Rectangle bounds = node.ActualLayoutBounds.Width > 0 || node.ActualLayoutBounds.Height > 0 ? node.ActualLayoutBounds : node.LayoutBounds;
+        var bounds = node.ActualLayoutBounds.Width > 0 || node.ActualLayoutBounds.Height > 0 ? node.ActualLayoutBounds : node.LayoutBounds;
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
-            GraphNodeModel model = Document.TryGetNode(node.NodeId);
-            RectangleF worldBounds = GraphSelectionManager.GetNodeWorldBounds(model);
-            Vector2 topLeft = ViewportTransform.WorldToViewport(new Vector2(worldBounds.Left, worldBounds.Top));
-            Vector2 bottomRight = ViewportTransform.WorldToViewport(new Vector2(worldBounds.Right, worldBounds.Bottom));
-            RectangleF viewportBounds = CreateRectangle(topLeft, bottomRight);
+            var model = Document.TryGetNode(node.NodeId);
+            var worldBounds = GraphSelectionManager.GetNodeWorldBounds(model);
+            var topLeft = ViewportTransform.WorldToViewport(new Vector2(worldBounds.Left, worldBounds.Top));
+            var bottomRight = ViewportTransform.WorldToViewport(new Vector2(worldBounds.Right, worldBounds.Bottom));
+            var viewportBounds = CreateRectangle(topLeft, bottomRight);
             return new Rectangle((int)MathF.Floor(viewportBounds.X), (int)MathF.Floor(viewportBounds.Y), (int)MathF.Ceiling(viewportBounds.Width), (int)MathF.Ceiling(viewportBounds.Height));
         }
 
@@ -2512,18 +2512,18 @@ public class MGGraphView : MGSingleContentHost
 
     private Rectangle GetCommentViewportBounds(MGGraphCommentBox commentBox)
     {
-        Rectangle bounds = commentBox.ActualLayoutBounds.Width > 0 || commentBox.ActualLayoutBounds.Height > 0 ? commentBox.ActualLayoutBounds : commentBox.LayoutBounds;
+        var bounds = commentBox.ActualLayoutBounds.Width > 0 || commentBox.ActualLayoutBounds.Height > 0 ? commentBox.ActualLayoutBounds : commentBox.LayoutBounds;
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
-            GraphCommentModel model = Document.TryGetComment(commentBox.CommentId);
+            var model = Document.TryGetComment(commentBox.CommentId);
             if (model == null)
             {
                 return Rectangle.Empty;
             }
 
-            Vector2 topLeft = ViewportTransform.WorldToViewport(new Vector2(model.Bounds.Left, model.Bounds.Top));
-            Vector2 bottomRight = ViewportTransform.WorldToViewport(new Vector2(model.Bounds.Right, model.Bounds.Bottom));
-            RectangleF viewportBounds = CreateRectangle(topLeft, bottomRight);
+            var topLeft = ViewportTransform.WorldToViewport(new Vector2(model.Bounds.Left, model.Bounds.Top));
+            var bottomRight = ViewportTransform.WorldToViewport(new Vector2(model.Bounds.Right, model.Bounds.Bottom));
+            var viewportBounds = CreateRectangle(topLeft, bottomRight);
             return new Rectangle((int)MathF.Floor(viewportBounds.X), (int)MathF.Floor(viewportBounds.Y), (int)MathF.Ceiling(viewportBounds.Width), (int)MathF.Ceiling(viewportBounds.Height));
         }
 
@@ -2532,7 +2532,7 @@ public class MGGraphView : MGSingleContentHost
 
     private bool IsCommentResizeHandleHit(MGGraphCommentBox commentBox, Vector2 viewportPoint)
     {
-        Rectangle bounds = GetCommentViewportBounds(commentBox);
+        var bounds = GetCommentViewportBounds(commentBox);
         const int handleSize = 12;
         Rectangle resizeHandle = new(bounds.Right - handleSize, bounds.Bottom - handleSize, handleSize, handleSize);
         return resizeHandle.Contains((int)MathF.Round(viewportPoint.X), (int)MathF.Round(viewportPoint.Y));
@@ -2542,11 +2542,11 @@ public class MGGraphView : MGSingleContentHost
     {
         if (ViewportHost == null)
         {
-            Vector2 graphUnscaled = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPosition.ToVector2());
+            var graphUnscaled = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPosition.ToVector2());
             return ContainsUnscaledInputPoint(graphUnscaled);
         }
 
-        Vector2 viewportUnscaled = ViewportHost.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPosition.ToVector2());
+        var viewportUnscaled = ViewportHost.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPosition.ToVector2());
         return ViewportHost.ContainsUnscaledInputPoint(viewportUnscaled);
     }
 
@@ -2563,23 +2563,23 @@ public class MGGraphView : MGSingleContentHost
 
     private RectangleF ViewportRectangleToWorldRectangle(RectangleF viewportRectangle)
     {
-        Vector2 worldStart = ViewportTransform.LayoutToWorld(new Vector2(viewportRectangle.Left, viewportRectangle.Top));
-        Vector2 worldEnd = ViewportTransform.LayoutToWorld(new Vector2(viewportRectangle.Right, viewportRectangle.Bottom));
+        var worldStart = ViewportTransform.LayoutToWorld(new Vector2(viewportRectangle.Left, viewportRectangle.Top));
+        var worldEnd = ViewportTransform.LayoutToWorld(new Vector2(viewportRectangle.Right, viewportRectangle.Bottom));
         return CreateRectangle(worldStart, worldEnd);
     }
 
     private bool IsControlDown()
     {
-        KeyboardState keyboard = InputTracker.Keyboard.CurrentState;
+        var keyboard = InputTracker.Keyboard.CurrentState;
         return keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl);
     }
 
     private static RectangleF CreateRectangle(Vector2 first, Vector2 second)
     {
-        float left = Math.Min(first.X, second.X);
-        float top = Math.Min(first.Y, second.Y);
-        float right = Math.Max(first.X, second.X);
-        float bottom = Math.Max(first.Y, second.Y);
+        var left = Math.Min(first.X, second.X);
+        var top = Math.Min(first.Y, second.Y);
+        var right = Math.Max(first.X, second.X);
+        var bottom = Math.Max(first.Y, second.Y);
         return new RectangleF(left, top, right - left, bottom - top);
     }
 
@@ -2597,14 +2597,14 @@ public class MGGraphView : MGSingleContentHost
 
     private Rectangle GetViewportBoundsForFraming()
     {
-        Rectangle bounds = NodesCanvas?.LayoutBounds ?? ViewportHost?.LayoutBounds ?? LayoutBounds;
+        var bounds = NodesCanvas?.LayoutBounds ?? ViewportHost?.LayoutBounds ?? LayoutBounds;
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             bounds = NodesCanvas?.ActualLayoutBounds ?? ViewportHost?.ActualLayoutBounds ?? ActualLayoutBounds;
         }
 
-        int width = Math.Max(1, bounds.Width);
-        int height = Math.Max(1, bounds.Height);
+        var width = Math.Max(1, bounds.Width);
+        var height = Math.Max(1, bounds.Height);
         return new Rectangle(0, 0, width, height);
     }
 }
@@ -2659,7 +2659,7 @@ public class MGGraphNode : MGSingleContentHost
         get => _Title;
         set
         {
-            string next = value ?? string.Empty;
+            var next = value ?? string.Empty;
             if (_Title != next)
             {
                 _Title = next;
@@ -2784,7 +2784,7 @@ public class MGGraphNode : MGSingleContentHost
             _HasCapturedZoomMetrics = true;
         }
 
-        float clampedZoom = Math.Max(0.1f, zoom);
+        var clampedZoom = Math.Max(0.1f, zoom);
         _ = HeaderTextBlock.TrySetFont(HeaderTextBlock.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseHeaderFontSize, clampedZoom)));
         HeaderTextBlock.SetPadding(UIResponsiveMath.ScaleThickness(_BaseHeaderPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         PortsPanel.SetPadding(UIResponsiveMath.ScaleThickness(_BasePortsPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
@@ -2825,7 +2825,7 @@ public class MGGraphNode : MGSingleContentHost
             return;
         }
 
-        MGTheme theme = GetTheme();
+        var theme = GetTheme();
         // ADR-0005: internal selection state, VisualState(70) -- correctly outranks the template catalogue's
         // GraphNode.BorderBrush/BorderThickness (Template(60), migrated in S3), so the selection highlight
         // wins over the template default while a plain application LocalValue(90) still wins over selection.
@@ -2997,7 +2997,7 @@ public class MGGraphPort : MGSingleContentHost
         get => _PortName;
         set
         {
-            string next = value ?? string.Empty;
+            var next = value ?? string.Empty;
             if (_PortName != next)
             {
                 _PortName = next;
@@ -3061,7 +3061,7 @@ public class MGGraphPort : MGSingleContentHost
             _HasCapturedZoomMetrics = true;
         }
 
-        float clampedZoom = Math.Max(0.1f, zoom);
+        var clampedZoom = Math.Max(0.1f, zoom);
         _ = Label.TrySetFont(Label.FontFamily, Math.Max(1, UIResponsiveMath.ScaleInt(_BaseLabelFontSize, clampedZoom)));
         OuterBorder.SetPadding(UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         _CurrentConnectorIconSize = Math.Max(1, UIResponsiveMath.ScaleInt(ConnectorIconSize, clampedZoom));
@@ -3083,8 +3083,8 @@ public class MGGraphPort : MGSingleContentHost
             return;
         }
 
-        bool showLabel = ValueType != GraphValueType.Exec;
-        bool useLeadingIcon = Direction == GraphPortDirection.Input;
+        var showLabel = ValueType != GraphValueType.Exec;
+        var useLeadingIcon = Direction == GraphPortDirection.Input;
         HorizontalAlignment = HorizontalAlignment.Stretch;
         if (OuterBorder != null)
         {
@@ -3153,8 +3153,8 @@ public class MGGraphPort : MGSingleContentHost
 
     private MGElement CreateConnectorIcon()
     {
-        MGTheme theme = GetTheme();
-        Color foreground = theme?.Graph?.PortForeground?.NormalValue ?? Color.White;
+        var theme = GetTheme();
+        var foreground = theme?.Graph?.PortForeground?.NormalValue ?? Color.White;
         if (ValueType == GraphValueType.Exec)
         {
             return new MGTriangleArrowIcon(SelfOrParentWindow)
@@ -3182,7 +3182,7 @@ public class MGGraphPort : MGSingleContentHost
     {
         base.DrawSelf(DA, layoutBounds);
 
-        if (!TryGetPresenterConnectorContentLayoutBounds(out _) && TryGetConnectorIconLayoutBounds(out Rectangle connectorBounds))
+        if (!TryGetPresenterConnectorContentLayoutBounds(out _) && TryGetConnectorIconLayoutBounds(out var connectorBounds))
         {
             DrawFallbackConnectorIcon(DA, connectorBounds);
         }
@@ -3190,15 +3190,15 @@ public class MGGraphPort : MGSingleContentHost
 
     private void DrawFallbackConnectorIcon(ElementDrawArgs DA, Rectangle connectorBounds)
     {
-        MGTheme theme = GetTheme();
-        Color foreground = (theme?.Graph?.PortForeground?.NormalValue ?? Color.White) * DA.Opacity;
+        var theme = GetTheme();
+        var foreground = (theme?.Graph?.PortForeground?.NormalValue ?? Color.White) * DA.Opacity;
         if (ValueType == GraphValueType.Exec)
         {
             UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), connectorBounds, UITriangleArrowDirection.Right, foreground);
             return;
         }
 
-        Color fill = theme?.Graph?.PortBackground is MGSolidFillBrush solid ? solid.Color * DA.Opacity : foreground;
+        var fill = theme?.Graph?.PortBackground is MGSolidFillBrush solid ? solid.Color * DA.Opacity : foreground;
         DA.DT.StrokeAndFillCircle(
             connectorBounds.Center.ToVector2(),
             foreground,
@@ -3210,13 +3210,13 @@ public class MGGraphPort : MGSingleContentHost
 
     public Vector2 GetLayoutAnchor()
     {
-        if (TryGetConnectorIconLayoutBounds(out Rectangle connectorBounds))
+        if (TryGetConnectorIconLayoutBounds(out var connectorBounds))
         {
             float connectorX = Direction == GraphPortDirection.Input ? connectorBounds.Left : connectorBounds.Right;
             return new Vector2(connectorX, connectorBounds.Top + connectorBounds.Height * 0.5f);
         }
 
-        Rectangle bounds = GetAnchorBounds(this);
+        var bounds = GetAnchorBounds(this);
         float anchorX = Direction == GraphPortDirection.Input ? bounds.Left : bounds.Right;
         return new Vector2(anchorX, bounds.Top + bounds.Height * 0.5f);
     }
@@ -3228,7 +3228,7 @@ public class MGGraphPort : MGSingleContentHost
             return true;
         }
 
-        if (TryGetConnectorSlotLayoutBounds(out Rectangle slotBounds))
+        if (TryGetConnectorSlotLayoutBounds(out var slotBounds))
         {
             return TryCreateCenteredConnectorLayoutBounds(slotBounds, out bounds);
         }
@@ -3240,7 +3240,7 @@ public class MGGraphPort : MGSingleContentHost
     private bool TryGetPresenterConnectorContentLayoutBounds(out Rectangle bounds)
     {
         bounds = Rectangle.Empty;
-        MGContentPresenter presenter = Direction == GraphPortDirection.Input ? LeadingIconPresenter : TrailingIconPresenter;
+        var presenter = Direction == GraphPortDirection.Input ? LeadingIconPresenter : TrailingIconPresenter;
         if (presenter == null || presenter.Visibility != Visibility.Visible || presenter.Content == null || presenter.Content.Visibility != Visibility.Visible)
         {
             return false;
@@ -3252,7 +3252,7 @@ public class MGGraphPort : MGSingleContentHost
             return true;
         }
 
-        if (TryGetConnectorSlotLayoutBounds(presenter, out Rectangle slotBounds))
+        if (TryGetConnectorSlotLayoutBounds(presenter, out var slotBounds))
         {
             return TryCreateCenteredConnectorLayoutBounds(slotBounds, out bounds);
         }
@@ -3263,13 +3263,13 @@ public class MGGraphPort : MGSingleContentHost
 
     private bool TryGetConnectorSlotLayoutBounds(out Rectangle bounds)
     {
-        MGContentPresenter presenter = Direction == GraphPortDirection.Input ? LeadingIconPresenter : TrailingIconPresenter;
+        var presenter = Direction == GraphPortDirection.Input ? LeadingIconPresenter : TrailingIconPresenter;
         if (TryGetConnectorSlotLayoutBounds(presenter, out bounds))
         {
             return true;
         }
 
-        Rectangle portBounds = GetAnchorBounds(this);
+        var portBounds = GetAnchorBounds(this);
         return TryGetFallbackConnectorSlotLayoutBounds(portBounds, out bounds);
     }
 
@@ -3305,9 +3305,9 @@ public class MGGraphPort : MGSingleContentHost
             return false;
         }
 
-        int width = Math.Max(1, Math.Min(ConnectorSlotWidth, portBounds.Width));
+        var width = Math.Max(1, Math.Min(ConnectorSlotWidth, portBounds.Width));
         width = Math.Max(1, Math.Min(_CurrentConnectorSlotWidth, portBounds.Width));
-        int left = Direction == GraphPortDirection.Input ? portBounds.Left : portBounds.Right - width;
+        var left = Direction == GraphPortDirection.Input ? portBounds.Left : portBounds.Right - width;
         bounds = new Rectangle(left, portBounds.Top, width, portBounds.Height);
         return true;
     }
@@ -3320,9 +3320,9 @@ public class MGGraphPort : MGSingleContentHost
             return false;
         }
 
-        int size = Math.Max(1, Math.Min(_CurrentConnectorIconSize, Math.Min(slotBounds.Width, slotBounds.Height)));
-        int left = slotBounds.Left + (slotBounds.Width - size) / 2;
-        int top = slotBounds.Top + (slotBounds.Height - size) / 2;
+        var size = Math.Max(1, Math.Min(_CurrentConnectorIconSize, Math.Min(slotBounds.Width, slotBounds.Height)));
+        var left = slotBounds.Left + (slotBounds.Width - size) / 2;
+        var top = slotBounds.Top + (slotBounds.Height - size) / 2;
         bounds = new Rectangle(left, top, size, size);
         return true;
     }
@@ -3352,11 +3352,11 @@ public class MGGraphCommentBox : MGSingleContentHost
 
     private void ValidateRequiredTemplatePart(string partName, Type partType)
     {
-        string availableParts = TemplateParts.Any()
+        var availableParts = TemplateParts.Any()
             ? string.Join(", ", TemplateParts.Select(x => $"{x.Key}:{x.Value?.GetType().Name ?? nameof(MGElement)}"))
             : "<none>";
 
-        if (!TryGetTemplatePart(partName, out MGElement part))
+        if (!TryGetTemplatePart(partName, out var part))
         {
             throw new InvalidOperationException(
                 $"Control template '{ControlTemplate?.Name ?? ResolveControlTemplateName() ?? "<unnamed>"}' for '{GetType().Name}' is missing required part '{partName}' of type '{partType.Name}'. Available parts: {availableParts}.");
@@ -3400,7 +3400,7 @@ public class MGGraphCommentBox : MGSingleContentHost
         get => _Title;
         set
         {
-            string next = value ?? string.Empty;
+            var next = value ?? string.Empty;
             if (_Title != next)
             {
                 _Title = next;
@@ -3419,7 +3419,7 @@ public class MGGraphCommentBox : MGSingleContentHost
         get => _Text;
         set
         {
-            string next = value ?? string.Empty;
+            var next = value ?? string.Empty;
             if (_Text != next)
             {
                 _Text = next;
@@ -3569,7 +3569,7 @@ public class MGGraphCommentBox : MGSingleContentHost
             _HasCapturedZoomMetrics = true;
         }
 
-        float clampedZoom = Math.Max(0.1f, zoom);
+        var clampedZoom = Math.Max(0.1f, zoom);
         BodyTextBox.TrySetFontSize(Math.Max(1, UIResponsiveMath.ScaleInt(_BaseBodyFontSize, clampedZoom)));
         OuterBorder.SetPadding(UIResponsiveMath.ScaleThickness(_BaseOuterPadding, clampedZoom), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
     }
@@ -3590,9 +3590,9 @@ public class MGGraphCommentBox : MGSingleContentHost
             return Math.Max(1, PreferredHeight ?? 1);
         }
 
-        string nextText = description ?? string.Empty;
-        string previousText = BodyTextBox?.Text ?? Text;
-        bool restoreText = BodyTextBox != null && !string.Equals(previousText, nextText, StringComparison.Ordinal);
+        var nextText = description ?? string.Empty;
+        var previousText = BodyTextBox?.Text ?? Text;
+        var restoreText = BodyTextBox != null && !string.Equals(previousText, nextText, StringComparison.Ordinal);
 
         if (restoreText)
         {
@@ -3601,7 +3601,7 @@ public class MGGraphCommentBox : MGSingleContentHost
 
         try
         {
-            OuterBorder.UpdateMeasurement(new Size(Math.Max(1, availableWidth), 1000000), out _, out Thickness fullSize, out _, out _);
+            OuterBorder.UpdateMeasurement(new Size(Math.Max(1, availableWidth), 1000000), out _, out var fullSize, out _, out _);
             return Math.Max(1, fullSize.Height);
         }
         finally

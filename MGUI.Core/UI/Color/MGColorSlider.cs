@@ -86,7 +86,7 @@ public class MGColorSlider : MGElement
         get => _sliderWidth;
         set
         {
-            int actual = Math.Max(0, value);
+            var actual = Math.Max(0, value);
             if (_sliderWidth != actual)
             {
                 _sliderWidth = actual;
@@ -103,7 +103,7 @@ public class MGColorSlider : MGElement
         get => _sliderHeight;
         set
         {
-            int actual = Math.Max(0, value);
+            var actual = Math.Max(0, value);
             if (_sliderHeight != actual)
             {
                 _sliderHeight = actual;
@@ -194,8 +194,8 @@ public class MGColorSlider : MGElement
             throw new ArgumentException($"{nameof(Minimum)} cannot be greater than {nameof(Maximum)}.");
         }
 
-        bool minimumChanged = _minimum != minimum;
-        bool maximumChanged = _maximum != maximum;
+        var minimumChanged = _minimum != minimum;
+        var maximumChanged = _maximum != maximum;
         if (!minimumChanged && !maximumChanged)
         {
             return;
@@ -217,10 +217,10 @@ public class MGColorSlider : MGElement
 
     public float SetValue(float desiredValue)
     {
-        float actual = Math.Clamp(desiredValue, Minimum, Maximum);
+        var actual = Math.Clamp(desiredValue, Minimum, Maximum);
         if (!_value.Equals(actual))
         {
-            float previous = _value;
+            var previous = _value;
             _value = actual;
             NPC(nameof(Value));
             ValueChanged?.Invoke(this, new EventArgs<float>(previous, _value));
@@ -231,8 +231,8 @@ public class MGColorSlider : MGElement
 
     public override bool TryHandleNavigationAction(UINavigationAction action)
     {
-        float step = Math.Max((Maximum - Minimum) / 100f, 0.01f);
-        float largeStep = step * 10f;
+        var step = Math.Max((Maximum - Minimum) / 100f, 0.01f);
+        var largeStep = step * 10f;
         return action switch
         {
             UINavigationAction.MoveLeft when Orientation == Orientation.Horizontal => TryAdjustValue(-step),
@@ -257,13 +257,13 @@ public class MGColorSlider : MGElement
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(SliderWidth, SliderHeight));
+        var bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(SliderWidth, SliderHeight));
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             return;
         }
 
-        Rectangle content = MGColorPreview.GetContentBounds(bounds, BorderThickness);
+        var content = MGColorPreview.GetContentBounds(bounds, BorderThickness);
         if (ShowCheckerboard || Channel == ColorSliderChannel.Alpha)
         {
             DrawCheckerboard(DA, content);
@@ -299,7 +299,7 @@ public class MGColorSlider : MGElement
 
     internal static ColorValue GetGradientColor(ColorSliderChannel channel, float percent, ColorValue baseColor)
     {
-        float p = Math.Clamp(percent, 0f, 1f);
+        var p = Math.Clamp(percent, 0f, 1f);
         return channel switch
         {
             ColorSliderChannel.Hue => ColorSpaceConverter.HsvToRgb(new HsvColor(p * 360f, 1f, 1f, baseColor.A), baseColor.ColorSpace),
@@ -339,18 +339,18 @@ public class MGColorSlider : MGElement
 
     private bool TrySetValue(float value)
     {
-        float previous = Value;
+        var previous = Value;
         SetValue(value);
         return !previous.Equals(Value);
     }
 
     private void SetValueFromScreenPosition(Point screenPosition, bool preview)
     {
-        Point layoutPoint = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, screenPosition);
-        Rectangle bounds = MGColorPreview.GetContentBounds(ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(SliderWidth, SliderHeight)), BorderThickness);
-        float percent = GetPercentFromPoint(layoutPoint, bounds, Orientation);
-        float previous = Value;
-        float actual = SetValue(GetValueFromPercent(percent, Minimum, Maximum));
+        var layoutPoint = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, screenPosition);
+        var bounds = MGColorPreview.GetContentBounds(ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(SliderWidth, SliderHeight)), BorderThickness);
+        var percent = GetPercentFromPoint(layoutPoint, bounds, Orientation);
+        var previous = Value;
+        var actual = SetValue(GetValueFromPercent(percent, Minimum, Maximum));
         if (preview && !previous.Equals(actual))
         {
             ValueChanging?.Invoke(this, new EventArgs<float>(previous, actual));
@@ -361,16 +361,16 @@ public class MGColorSlider : MGElement
     {
         if (Orientation == Orientation.Horizontal)
         {
-            Color[] cache = GetGradientCache(bounds.Width);
-            for (int x = bounds.Left; x < bounds.Right; x++)
+            var cache = GetGradientCache(bounds.Width);
+            for (var x = bounds.Left; x < bounds.Right; x++)
             {
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, bounds.Top, 1, bounds.Height), cache[x - bounds.Left] * DA.Opacity);
             }
         }
         else
         {
-            Color[] cache = GetGradientCache(bounds.Height);
-            for (int y = bounds.Top; y < bounds.Bottom; y++)
+            var cache = GetGradientCache(bounds.Height);
+            for (var y = bounds.Top; y < bounds.Bottom; y++)
             {
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.Left, y, bounds.Width, 1), cache[y - bounds.Top] * DA.Opacity);
             }
@@ -379,16 +379,16 @@ public class MGColorSlider : MGElement
 
     private Color[] GetGradientCache(int length)
     {
-        int actualLength = Math.Max(0, length);
+        var actualLength = Math.Max(0, length);
         if (GradientCache == null || GradientCacheLength != actualLength || GradientCacheChannel != Channel || GradientCacheBaseColor != BaseColor)
         {
             GradientCacheLength = actualLength;
             GradientCacheChannel = Channel;
             GradientCacheBaseColor = BaseColor;
             GradientCache = new Color[actualLength];
-            for (int index = 0; index < GradientCache.Length; index++)
+            for (var index = 0; index < GradientCache.Length; index++)
             {
-                float percent = GradientCache.Length <= 1 ? 0f : index / (float)(GradientCache.Length - 1);
+                var percent = GradientCache.Length <= 1 ? 0f : index / (float)(GradientCache.Length - 1);
                 GradientCache[index] = GetGradientColor(Channel, percent, BaseColor).ToXnaColor();
             }
         }
@@ -398,17 +398,17 @@ public class MGColorSlider : MGElement
 
     private void DrawThumb(ElementDrawArgs DA, Rectangle bounds)
     {
-        float percent = GetPercentFromValue(Value, Minimum, Maximum);
+        var percent = GetPercentFromValue(Value, Minimum, Maximum);
         if (Orientation == Orientation.Horizontal)
         {
-            int x = bounds.Left + (int)MathF.Round(bounds.Width * percent);
+            var x = bounds.Left + (int)MathF.Round(bounds.Width * percent);
             Rectangle thumb = new(Math.Clamp(x - ThumbThickness / 2, bounds.Left, bounds.Right), bounds.Top, ThumbThickness, bounds.Height);
             DA.DT.FillRectangle(DA.Offset.ToVector2(), thumb, ThumbColor * DA.Opacity);
             DrawRectangleBorder(DA, thumb, ThumbBorderColor);
         }
         else
         {
-            int y = bounds.Top + (int)MathF.Round(bounds.Height * percent);
+            var y = bounds.Top + (int)MathF.Round(bounds.Height * percent);
             Rectangle thumb = new(bounds.Left, Math.Clamp(y - ThumbThickness / 2, bounds.Top, bounds.Bottom), bounds.Width, ThumbThickness);
             DA.DT.FillRectangle(DA.Offset.ToVector2(), thumb, ThumbColor * DA.Opacity);
             DrawRectangleBorder(DA, thumb, ThumbBorderColor);
@@ -417,14 +417,14 @@ public class MGColorSlider : MGElement
 
     private void DrawCheckerboard(ElementDrawArgs DA, Rectangle bounds)
     {
-        int cellSize = Math.Max(1, CheckerboardCellSize);
-        for (int y = bounds.Top; y < bounds.Bottom; y += cellSize)
+        var cellSize = Math.Max(1, CheckerboardCellSize);
+        for (var y = bounds.Top; y < bounds.Bottom; y += cellSize)
         {
-            int height = Math.Min(cellSize, bounds.Bottom - y);
-            for (int x = bounds.Left; x < bounds.Right; x += cellSize)
+            var height = Math.Min(cellSize, bounds.Bottom - y);
+            for (var x = bounds.Left; x < bounds.Right; x += cellSize)
             {
-                int width = Math.Min(cellSize, bounds.Right - x);
-                bool light = ((x - bounds.Left) / cellSize + (y - bounds.Top) / cellSize) % 2 == 0;
+                var width = Math.Min(cellSize, bounds.Right - x);
+                var light = ((x - bounds.Left) / cellSize + (y - bounds.Top) / cellSize) % 2 == 0;
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, y, width, height), (light ? CheckerboardLightColor : CheckerboardDarkColor) * DA.Opacity);
             }
         }
@@ -435,8 +435,8 @@ public class MGColorSlider : MGElement
 
     private void DrawRectangleBorder(ElementDrawArgs DA, Rectangle bounds, Color color)
     {
-        int thickness = Math.Max(1, BorderThickness);
-        Color actual = color * DA.Opacity;
+        var thickness = Math.Max(1, BorderThickness);
+        var actual = color * DA.Opacity;
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Y, bounds.Width, thickness), actual);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Bottom - thickness, bounds.Width, thickness), actual);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Y, thickness, bounds.Height), actual);

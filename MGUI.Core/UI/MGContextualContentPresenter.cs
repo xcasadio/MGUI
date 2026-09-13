@@ -87,10 +87,10 @@ public class MGContextualContentPresenter : MGSingleContentHost
 
     private void UpdateDisplayedContent()
     {
-        MGElement DesiredContent = CurrentContent;
+        var DesiredContent = CurrentContent;
         if (Content != DesiredContent)
         {
-            MGElement PreviousContent = Content;
+            var PreviousContent = Content;
             _Content = DesiredContent;
 
             if (PreviousContent != null)
@@ -145,7 +145,7 @@ public class MGContextualContentPresenter : MGSingleContentHost
         }
         if (IncludeActive)
         {
-            MGElement Current = CurrentContent;
+            var Current = CurrentContent;
             if (Current != null)
             {
                 result.Add(Current);

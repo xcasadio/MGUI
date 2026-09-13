@@ -141,7 +141,7 @@ public class XAMLParser
 
     internal static bool TryResolveElementNameAlias(string elementName, out string resolvedName)
     {
-        foreach (KeyValuePair<string, string> item in ElementNameAliases)
+        foreach (var item in ElementNameAliases)
         {
             if (elementName.StartsWith(item.Key, StringComparison.Ordinal))
             {
@@ -171,7 +171,7 @@ public class XAMLParser
             return null;
         }
 
-        if (TryResolveElementNameAlias(localName, out string resolvedName))
+        if (TryResolveElementNameAlias(localName, out var resolvedName))
         {
             localName = resolvedName;
         }
@@ -190,11 +190,11 @@ public class XAMLParser
         {
             //  Find the actual root element tag, skipping any XML comments (<!-- ... -->) and
             //  processing instructions (<? ... ?>) that may precede it.
-            int rootTagStart = -1;
-            int searchPos = 0;
+            var rootTagStart = -1;
+            var searchPos = 0;
             while (searchPos < XAMLString.Length)
             {
-                int tagStart = XAMLString.IndexOf('<', searchPos);
+                var tagStart = XAMLString.IndexOf('<', searchPos);
                 if (tagStart < 0)
                 {
                     break;
@@ -205,7 +205,7 @@ public class XAMLParser
                     break;
                 }
 
-                char nextChar = XAMLString[tagStart + 1];
+                var nextChar = XAMLString[tagStart + 1];
                 if (nextChar != '!' && nextChar != '?')
                 {
                     // This is an element tag, not a comment or PI — this is the root element
@@ -214,7 +214,7 @@ public class XAMLParser
                 }
 
                 // Skip past this comment or processing instruction
-                int tagEnd = XAMLString.IndexOf('>', tagStart + 1);
+                var tagEnd = XAMLString.IndexOf('>', tagStart + 1);
                 if (tagEnd < 0)
                 {
                     break;
@@ -226,15 +226,15 @@ public class XAMLParser
             if (rootTagStart >= 0)
             {
                 //  Insert the required xml namespaces into the root element tag
-                string afterOpenTag = XAMLString.Substring(rootTagStart);
-                int SpaceIndex = afterOpenTag.IndexOf(' ');
+                var afterOpenTag = XAMLString.Substring(rootTagStart);
+                var SpaceIndex = afterOpenTag.IndexOf(' ');
                 if (SpaceIndex >= 0)
                 {
                     XAMLString = $"{XAMLString.Substring(0, rootTagStart + SpaceIndex)} {XMLNameSpaces} {XAMLString.Substring(rootTagStart + SpaceIndex + 1)}";
                 }
                 else
                 {
-                    int InsertionIndex = rootTagStart + afterOpenTag.IndexOf('>');
+                    var InsertionIndex = rootTagStart + afterOpenTag.IndexOf('>');
                     XAMLString = $"{XAMLString.Substring(0, InsertionIndex)} {XMLNameSpaces} {XAMLString.Substring(InsertionIndex)}";
                 }
             }
@@ -245,12 +245,12 @@ public class XAMLParser
         //  "<Button Content="Foo" />"  --> "<MGUI:Button Content="Foo" />"
         //  "<Button.Content>"          --> "<MGUI:Button.Content>"
         //  Where the "MGUI" XML namespace prefix refers to the XMLLocalNameSpaceUri static string
-        XDocument Document = XDocument.Parse(XAMLString);
+        var Document = XDocument.Parse(XAMLString);
 
         foreach (var Element in Document.Descendants())
         {
-            string ElementName = Element.Name.LocalName;
-            if (TryResolveElementNameAlias(ElementName, out string resolvedName))
+            var ElementName = Element.Name.LocalName;
+            if (TryResolveElementNameAlias(ElementName, out var resolvedName))
             {
                 Element.Name = XName.Get(resolvedName, XMLLocalNameSpaceUri);
             }
@@ -258,12 +258,12 @@ public class XAMLParser
 
         using (StringWriter SW = new())
         {
-            using (XmlWriter XW = XmlWriter.Create(SW, new XmlWriterSettings() { OmitXmlDeclaration = true, Indent = true }))
+            using (var XW = XmlWriter.Create(SW, new XmlWriterSettings() { OmitXmlDeclaration = true, Indent = true }))
             {
                 Document.WriteTo(XW);
             }
 
-            string Result = SW.ToString();
+            var Result = SW.ToString();
             return Result;
         }
     }
@@ -283,7 +283,7 @@ public class XAMLParser
             throw new ArgumentNullException(nameof(Source));
         }
 
-        string XAMLString = Source.LoadContent();
+        var XAMLString = Source.LoadContent();
         if (SanitizeXAMLString)
         {
             XAMLString = ValidateXAMLString(XAMLString);
@@ -308,10 +308,10 @@ public class XAMLParser
     {
         return XamlLoaderDiagnostics.Execute(Source, Mode, $"{typeof(TDefinition).Name} definition", () =>
         {
-            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            var XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
             XamlLoaderDiagnostics.ValidateKnownElementNames(XAMLString, Source, $"{typeof(TDefinition).Name} definition", Mode);
 
-            TDefinition Parsed = (TDefinition)XamlServices.Parse(XAMLString);
+            var Parsed = (TDefinition)XamlServices.Parse(XAMLString);
 
             if (Resources != null)
             {
@@ -331,7 +331,7 @@ public class XAMLParser
     {
         return XamlLoaderDiagnostics.Execute(Source, Mode, $"{typeof(TDefinition).Name} object definition", () =>
         {
-            string XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            var XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
             XamlLoaderDiagnostics.ValidateKnownElementNames(XAMLString, Source, $"{typeof(TDefinition).Name} object definition", Mode);
             return (TDefinition)XamlServices.Parse(XAMLString);
         });
@@ -356,14 +356,14 @@ public class XAMLParser
     public static T Load<T>(MGWindow Window, XamlDocumentSource Source, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         where T : MGElement
     {
-        Element Parsed = ParseElementDefinition(Source, Window.GetResources(), SanitizeXAMLString, ReplaceLinebreakLiterals);
+        var Parsed = ParseElementDefinition(Source, Window.GetResources(), SanitizeXAMLString, ReplaceLinebreakLiterals);
         return Parsed.ToElement<T>(Window, null);
     }
 
     public static T Load<T>(MGWindow Window, XamlDocumentSource Source, XamlLoaderMode Mode, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
         where T : MGElement
     {
-        Element Parsed = ParseElementDefinition(Source, Window.GetResources(), Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+        var Parsed = ParseElementDefinition(Source, Window.GetResources(), Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
         return Parsed.ToElement<T>(Window, null);
     }
 
@@ -374,7 +374,7 @@ public class XAMLParser
     public static MGElement LoadPreview(MGWindow Window, XamlDocumentSource Source, object DataContext = null,
         bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
     {
-        MGElement Result = Load<MGElement>(Window, Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
+        var Result = Load<MGElement>(Window, Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
         Result.DataContextOverride = DataContext;
         return Result;
     }
@@ -382,7 +382,7 @@ public class XAMLParser
     public static MGElement LoadPreview(MGWindow Window, XamlDocumentSource Source, object DataContext, XamlLoaderMode Mode,
         bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
     {
-        MGElement Result = Load<MGElement>(Window, Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+        var Result = Load<MGElement>(Window, Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
         Result.DataContextOverride = DataContext;
         return Result;
     }
@@ -397,14 +397,14 @@ public class XAMLParser
     /// See also: <see href="https://stackoverflow.com/a/183435/11689514"/></param>
     public static MGWindow LoadRootWindow(MGDesktop Desktop, XamlDocumentSource Source, bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
     {
-        Window Parsed = ParseWindowDefinition(Source, Desktop.Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
+        var Parsed = ParseWindowDefinition(Source, Desktop.Resources, SanitizeXAMLString, ReplaceLinebreakLiterals);
         return Parsed.ToElement(Desktop);
     }
 
     public static MGWindow LoadRootWindow(MGDesktop Desktop, XamlDocumentSource Source, XamlLoaderMode Mode,
         bool SanitizeXAMLString = false, bool ReplaceLinebreakLiterals = true)
     {
-        Window Parsed = ParseWindowDefinition(Source, Desktop.Resources, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+        var Parsed = ParseWindowDefinition(Source, Desktop.Resources, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
         return Parsed.ToElement(Desktop);
     }
 

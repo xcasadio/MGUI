@@ -176,7 +176,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                 }
             }
 
-            string Previous = Text;
+            var Previous = Text;
 
             _Text = Value;
             NPC(nameof(Text));
@@ -233,14 +233,14 @@ public class MGTextBox : MGElement, ITextEntryHost
 
     protected virtual void UpdateFormattedText(bool Silent)
     {
-        string EscapedText = FTTokenizer.EscapeMarkdown(Text);
-        string FormattedText = EscapedText;
+        var EscapedText = FTTokenizer.EscapeMarkdown(Text);
+        var FormattedText = EscapedText;
 
         if (CurrentSelection.HasValue && CurrentSelection.Value.Length > 0)
         {
             List<int> EscapedIndices = new();
-            int CurrentEscapedIndex = 0;
-            for (int i = 0; i < Text.Length; i++)
+            var CurrentEscapedIndex = 0;
+            for (var i = 0; i < Text.Length; i++)
             {
                 EscapedIndices.Add(CurrentEscapedIndex);
                 if (Text[i] == FTTokenizer.OpenTagChar)
@@ -252,12 +252,12 @@ public class MGTextBox : MGElement, ITextEntryHost
             }
             EscapedIndices.Add(CurrentEscapedIndex);
 
-            bool HasFocus = GetDesktop().FocusedKeyboardHandler == this;
-            string FGColor = HasFocus ? FocusedSelectionForegroundColorString : UnfocusedSelectionForegroundColorString;
-            string BGColor = HasFocus ? FocusedSelectionBackgroundColorString : UnfocusedSelectionBackgroundColorString;
+            var HasFocus = GetDesktop().FocusedKeyboardHandler == this;
+            var FGColor = HasFocus ? FocusedSelectionForegroundColorString : UnfocusedSelectionForegroundColorString;
+            var BGColor = HasFocus ? FocusedSelectionBackgroundColorString : UnfocusedSelectionBackgroundColorString;
 
-            string SelectionStartMarkdown = $"[fg={FGColor}][bg={BGColor}]";
-            string SelectionEndMarkdown = "[/bg][/fg]";
+            var SelectionStartMarkdown = $"[fg={FGColor}][bg={BGColor}]";
+            var SelectionEndMarkdown = "[/bg][/fg]";
 
             int ActualStartIndex = Math.Clamp(CurrentSelection.Value.StartIndex, 0, EscapedIndices.Count - 1);
             int ActualEndIndex = Math.Clamp(CurrentSelection.Value.EndIndex, ActualStartIndex, EscapedIndices.Count - 1);
@@ -268,31 +268,31 @@ public class MGTextBox : MGElement, ITextEntryHost
             //  EX: @"Hello\World" -> @"Hello\\[fg=white][bg=black]World[/bg][/fg]"
             void DoubleEscapeAtIndex(int Index)
             {
-                int CurrentIndex = Index;
-                int UnescapedCount = 0;
+                var CurrentIndex = Index;
+                var UnescapedCount = 0;
                 while (CurrentIndex >= 0 && CurrentIndex < Text.Length && Text[CurrentIndex] == FTTokenizer.EscapeOpenTagChar)
                 {
                     UnescapedCount++;
                     CurrentIndex--;
                 }
-                int RunStartTextIndex = CurrentIndex + 1;  // inclusive start of backslash run in Text
+                var RunStartTextIndex = CurrentIndex + 1;  // inclusive start of backslash run in Text
 
                 if (UnescapedCount > 0)
                 {
-                    string InsertionValue = string.Concat(Enumerable.Repeat(FTTokenizer.EscapeOpenTagChar, UnescapedCount));
+                    var InsertionValue = string.Concat(Enumerable.Repeat(FTTokenizer.EscapeOpenTagChar, UnescapedCount));
 
                     // FIX (Task 6): Use EscapedIndices to find the correct FormattedText position for the
                     // start of the backslash run, instead of using the raw Text index directly.
                     // After the first DoubleEscapeAtIndex call modifies FormattedText, the second call
                     // must account for the already-inserted chars; EscapedIndices is kept up-to-date below.
-                    int FMInsertPos = EscapedIndices[RunStartTextIndex];
+                    var FMInsertPos = EscapedIndices[RunStartTextIndex];
                     FormattedText = FormattedText.Insert(FMInsertPos, InsertionValue);
 
                     // FIX (Task 6): Increment all EscapedIndices whose FM position is >= FMInsertPos, by
                     // UnescapedCount. The previous logic incremented in a staggered per-char loop that
                     // skipped EscapedIndices[RunStartTextIndex] and therefore left that entry one too low
                     // whenever two or more consecutive backslashes ended a run (off-by-one).
-                    for (int j = 0; j < EscapedIndices.Count; j++)
+                    for (var j = 0; j < EscapedIndices.Count; j++)
                     {
                         if (EscapedIndices[j] >= FMInsertPos)
                         {
@@ -433,7 +433,7 @@ public class MGTextBox : MGElement, ITextEntryHost
         {
             if (_CharacterLimit != value)
             {
-                int? Previous = CharacterLimit;
+                var Previous = CharacterLimit;
                 _CharacterLimit = value;
                 if (CharacterLimit.HasValue && Text.Length > CharacterLimit)
                 {
@@ -643,7 +643,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             return false;
         }
 
-        int Index = FirstOccurrence ? this.Text.IndexOf(Text) : this.Text.LastIndexOf(Text);
+        var Index = FirstOccurrence ? this.Text.IndexOf(Text) : this.Text.LastIndexOf(Text);
         if (Index < 0)
         {
             return false;
@@ -1133,15 +1133,15 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 try
                 {
-                    Point Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                    AddMousePressHistory(Position.ToVector2(), out bool IsDoublePress, out bool IsTriplePress, out bool IsQuadruplePress);
+                    var Position = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    AddMousePressHistory(Position.ToVector2(), out var IsDoublePress, out var IsTriplePress, out var IsQuadruplePress);
 
                     GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Pointer);
 
                     Caret.MoveToApproximateScreenPosition(Position.ToVector2());
 
                     CurrentSelection = null;
-                    if (TextRenderInfo.TryGetCharAtScreenPosition(Position.ToVector2(), out CharRenderInfo CharInfo))
+                    if (TextRenderInfo.TryGetCharAtScreenPosition(Position.ToVector2(), out var CharInfo))
                     {
                         if (IsQuadruplePress)
                         {
@@ -1153,16 +1153,16 @@ public class MGTextBox : MGElement, ITextEntryHost
                         }
                         else if (IsDoublePress)
                         {
-                            int Index = CharInfo.IndexInOriginalText;
+                            var Index = CharInfo.IndexInOriginalText;
                             if (Index >= 0 && Index < Text.Length)
                             {
-                                bool ClickedWordCharacter = Regex.IsMatch(Text[Index].ToString(), @"\w");
+                                var ClickedWordCharacter = Regex.IsMatch(Text[Index].ToString(), @"\w");
                                 if (ClickedWordCharacter)
                                 {
                                     //  Get all word-characters to the left of the pressed character
-                                    int PreviousCharacters = Text.Substring(0, Index).Reverse().TakeWhile(x => Regex.IsMatch(x.ToString(), @"\w")).Count();
+                                    var PreviousCharacters = Text.Substring(0, Index).Reverse().TakeWhile(x => Regex.IsMatch(x.ToString(), @"\w")).Count();
                                     //  Get all word-characters to the right of the pressed character
-                                    int NextCharacters = Text.Skip(Index).TakeWhile(x => Regex.IsMatch(x.ToString(), @"\w")).Count();
+                                    var NextCharacters = Text.Skip(Index).TakeWhile(x => Regex.IsMatch(x.ToString(), @"\w")).Count();
 
                                     //  Also include the next space if it's the first non-word character we find while traversing to the right
                                     if (CharInfo.IndexInOriginalText + NextCharacters < Text.Length && Text[CharInfo.IndexInOriginalText + NextCharacters] == ' ')
@@ -1175,9 +1175,9 @@ public class MGTextBox : MGElement, ITextEntryHost
                                 else
                                 {
                                     //  Get all non-word characters to the left of the pressed character
-                                    int PreviousCharacters = Text.Substring(0, Index).Reverse().TakeWhile(x => Regex.IsMatch(x.ToString(), @"\W")).Count();
+                                    var PreviousCharacters = Text.Substring(0, Index).Reverse().TakeWhile(x => Regex.IsMatch(x.ToString(), @"\W")).Count();
                                     //  Get all non-word characters to the right of the pressed character
-                                    int NextCharacters = Text.Skip(Index).TakeWhile(x => Regex.IsMatch(x.ToString(), @"\W")).Count();
+                                    var NextCharacters = Text.Skip(Index).TakeWhile(x => Regex.IsMatch(x.ToString(), @"\W")).Count();
 
                                     CurrentSelection = new(CharInfo.IndexInOriginalText - PreviousCharacters, Math.Min(Text.Length, CharInfo.IndexInOriginalText + NextCharacters));
                                 }
@@ -1205,12 +1205,12 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 if (e.IsLMB && AllowsTextSelection)
                 {
-                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                    if (TextRenderInfo.TryGetCharAtScreenPosition(LayoutSpacePosition.ToVector2(), out CharRenderInfo CharInfo))
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    if (TextRenderInfo.TryGetCharAtScreenPosition(LayoutSpacePosition.ToVector2(), out var CharInfo))
                     {
                         IsDraggingSelection = true;
-                        bool IsLeftEdge = LayoutSpacePosition.X <= CharInfo.CenterX;
-                        int SelectionIndex = IsLeftEdge ? CharInfo.IndexInOriginalText : CharInfo.IndexInOriginalText + 1;
+                        var IsLeftEdge = LayoutSpacePosition.X <= CharInfo.CenterX;
+                        var SelectionIndex = IsLeftEdge ? CharInfo.IndexInOriginalText : CharInfo.IndexInOriginalText + 1;
                         CurrentSelection = new(SelectionIndex, SelectionIndex);
                         e.SetHandledBy(this, false);
                     }
@@ -1229,23 +1229,23 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 if (e.IsLMB && IsDraggingSelection && (Text?.Length ?? 0) > 0 && CurrentSelection.HasValue && AllowsTextSelection)
                 {
-                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
 
-                    int LayoutBoundsVerticalPadding = 5;
+                    var LayoutBoundsVerticalPadding = 5;
                     if (LayoutSpacePosition.Y < LayoutBounds.Top - LayoutBoundsVerticalPadding)
                     {
-                        int SelectionIndex = TextRenderInfo.GetFirstChar().IndexInOriginalText;
+                        var SelectionIndex = TextRenderInfo.GetFirstChar().IndexInOriginalText;
                         CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
                     }
                     else if (LayoutSpacePosition.Y > LayoutBounds.Bottom + LayoutBoundsVerticalPadding)
                     {
-                        int SelectionIndex = TextRenderInfo.GetLastChar().IndexInOriginalText + 1;
+                        var SelectionIndex = TextRenderInfo.GetLastChar().IndexInOriginalText + 1;
                         CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
                     }
-                    else if (TextRenderInfo.TryGetCharAtScreenPosition(LayoutSpacePosition.ToVector2(), out CharRenderInfo CharInfo))
+                    else if (TextRenderInfo.TryGetCharAtScreenPosition(LayoutSpacePosition.ToVector2(), out var CharInfo))
                     {
-                        bool IsLeftEdge = LayoutSpacePosition.X <= CharInfo.CenterX;
-                        int SelectionIndex = IsLeftEdge ? CharInfo.IndexInOriginalText : CharInfo.IndexInOriginalText + 1;
+                        var IsLeftEdge = LayoutSpacePosition.X <= CharInfo.CenterX;
+                        var SelectionIndex = IsLeftEdge ? CharInfo.IndexInOriginalText : CharInfo.IndexInOriginalText + 1;
                         //Debug.WriteLine($"Dragged from {CurrentSelection.Value.StartIndex} to {SelectionIndex}");
                         CurrentSelection = new(CurrentSelection.Value.Index1, SelectionIndex);
                     }
@@ -1263,7 +1263,7 @@ public class MGTextBox : MGElement, ITextEntryHost
 
             KeyboardHandler.KeyRepeat += (sender, e) =>
             {
-                bool streamStartedAsControlShortcut = e.Stream != null && ShortcutOriginStreamIds.Contains(e.Stream.Id);
+                var streamStartedAsControlShortcut = e.Stream != null && ShortcutOriginStreamIds.Contains(e.Stream.Id);
                 if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key,
                         streamStartedAsControlShortcut))
                 {
@@ -1294,7 +1294,7 @@ public class MGTextBox : MGElement, ITextEntryHost
         CharacterCountElement = Structure.Parts[CharacterCountPartName] as MGTextBlock;
         ResizeGripElement = Structure.Parts[ResizeGripPartName] as MGResizeGrip;
 
-        bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+        var needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
@@ -1332,8 +1332,8 @@ public class MGTextBox : MGElement, ITextEntryHost
 
     private Rectangle GetTemplatePlaceholderBounds(Rectangle availableBounds, Size componentSize)
     {
-        Rectangle paddedBounds = availableBounds.GetCompressed(Padding);
-        int height = Math.Min(componentSize.Height, paddedBounds.Height);
+        var paddedBounds = availableBounds.GetCompressed(Padding);
+        var height = Math.Min(componentSize.Height, paddedBounds.Height);
         if (height <= 0)
         {
             return paddedBounds;
@@ -1344,7 +1344,7 @@ public class MGTextBox : MGElement, ITextEntryHost
 
     private Rectangle GetTemplateTextBlockBounds(Rectangle availableBounds, Size componentSize)
     {
-        Rectangle textBounds = GetTemplatePlaceholderBounds(availableBounds, componentSize);
+        var textBounds = GetTemplatePlaceholderBounds(availableBounds, componentSize);
         if (!_EnableScrolling || _TextScrollOffsetX == 0)
         {
             return textBounds;
@@ -1419,17 +1419,17 @@ public class MGTextBox : MGElement, ITextEntryHost
             return;
         }
 
-        Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
+        var PaddedBounds = LayoutBounds.GetCompressed(Padding);
         if (PaddedBounds.Width <= 0)
         {
             return;
         }
 
-        Rectangle CaretBounds = Caret.Position.Value.Bounds;
+        var CaretBounds = Caret.Position.Value.Bounds;
 
         if (CaretBounds.Left < PaddedBounds.Left)
         {
-            int NewOffset = Math.Max(0, _TextScrollOffsetX - (PaddedBounds.Left - CaretBounds.Left));
+            var NewOffset = Math.Max(0, _TextScrollOffsetX - (PaddedBounds.Left - CaretBounds.Left));
             if (NewOffset != _TextScrollOffsetX)
             {
                 _TextScrollOffsetX = NewOffset;
@@ -1438,7 +1438,7 @@ public class MGTextBox : MGElement, ITextEntryHost
         }
         else if (CaretBounds.Right > PaddedBounds.Right)
         {
-            int NewOffset = _TextScrollOffsetX + (CaretBounds.Right - PaddedBounds.Right);
+            var NewOffset = _TextScrollOffsetX + (CaretBounds.Right - PaddedBounds.Right);
             if (NewOffset != _TextScrollOffsetX)
             {
                 _TextScrollOffsetX = NewOffset;
@@ -1510,8 +1510,8 @@ public class MGTextBox : MGElement, ITextEntryHost
                         RestorableState UndoState = CreateRestorableState();
                         int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
                         int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                        string CurrentText = GetTextBackingField();
-                        string NewValue = CurrentText.Substring(0, SelectionStart) + CurrentText.Substring(SelectionEnd);
+                        var CurrentText = GetTextBackingField();
+                        var NewValue = CurrentText.Substring(0, SelectionStart) + CurrentText.Substring(SelectionEnd);
                         if (SetText(NewValue))
                         {
                             AddUndoState(UndoState);
@@ -1522,14 +1522,14 @@ public class MGTextBox : MGElement, ITextEntryHost
                     }
                     else if (Caret.HasPosition)
                     {
-                        bool IsBackspace = e.Key == Keys.Back;
-                        bool IsDelete = e.Key == Keys.Delete;
+                        var IsBackspace = e.Key == Keys.Back;
+                        var IsDelete = e.Key == Keys.Delete;
 
-                        int Offset = IsDelete ? 1 : 0;
-                        string CurrentText = GetTextBackingField();
+                        var Offset = IsDelete ? 1 : 0;
+                        var CurrentText = GetTextBackingField();
                         //  The caret index lives in the displayed text and can exceed the backing field if the two ever diverge
                         //  (e.g. an expanded tab): clamp it like the insertion path does so the slices below can never go out of range.
-                        int Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
+                        var Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
 
                         if ((IsBackspace && Index > 0) || (IsDelete && Index < CurrentText.Length))
                         {
@@ -1562,15 +1562,15 @@ public class MGTextBox : MGElement, ITextEntryHost
         }
         else
         {
-            bool Handled = false;
+            var Handled = false;
 
             if (e.Tracker.IsControlDown)
             {
                 //  Handle keyboard shortcuts such as Ctrl+C or Ctrl+V
-                bool IsKeyboardShortcut = IsControlShortcutKey(e.Key);
+                var IsKeyboardShortcut = IsControlShortcutKey(e.Key);
                 if (IsKeyboardShortcut)
                 {
-                    string CurrentText = GetTextBackingField();
+                    var CurrentText = GetTextBackingField();
                     switch (e.Key)
                     {
                         case Keys.X when !IsReadonly:
@@ -1580,8 +1580,8 @@ public class MGTextBox : MGElement, ITextEntryHost
                                 RestorableState UndoState = CreateRestorableState();
                                 int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
                                 int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                                string SelectedText = Text.Substring(SelectionStart, SelectionEnd - SelectionStart); // Could use CurrentText instead of Text to allow PasswordBoxes to copy the underlying text instead of the password characters *
-                                string NewValue = CurrentText.Substring(0, SelectionStart) + CurrentText.Substring(SelectionEnd);
+                                var SelectedText = Text.Substring(SelectionStart, SelectionEnd - SelectionStart); // Could use CurrentText instead of Text to allow PasswordBoxes to copy the underlying text instead of the password characters *
+                                var NewValue = CurrentText.Substring(0, SelectionStart) + CurrentText.Substring(SelectionEnd);
                                 if (SetText(NewValue))
                                 {
                                     AddUndoState(UndoState);
@@ -1598,14 +1598,14 @@ public class MGTextBox : MGElement, ITextEntryHost
                             {
                                 int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
                                 int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                                string SelectedText = Text.Substring(SelectionStart, SelectionEnd - SelectionStart); // Could use CurrentText instead of Text to allow PasswordBoxes to copy the underlying text instead of the password character *
+                                var SelectedText = Text.Substring(SelectionStart, SelectionEnd - SelectionStart); // Could use CurrentText instead of Text to allow PasswordBoxes to copy the underlying text instead of the password character *
                                 Clipboard.Text = SelectedText;
                             }
                             Handled = true;
                             break;
                         case Keys.V when !IsReadonly:
                             //  Paste
-                            string ClipboardText = Clipboard.Text;
+                            var ClipboardText = Clipboard.Text;
                             if (!string.IsNullOrEmpty(ClipboardText))
                             {
                                 if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
@@ -1613,13 +1613,13 @@ public class MGTextBox : MGElement, ITextEntryHost
                                     RestorableState UndoState = CreateRestorableState();
                                     int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
                                     int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                                    string NewValue = CurrentText.Substring(0, SelectionStart) + ClipboardText + CurrentText.Substring(SelectionEnd);
+                                    var NewValue = CurrentText.Substring(0, SelectionStart) + ClipboardText + CurrentText.Substring(SelectionEnd);
                                     if (SetText(NewValue))
                                     {
                                         AddUndoState(UndoState);
                                         CurrentSelection = null;
                                         TextBlockElement.UpdateLines();
-                                        int NumCharactersInserted = ClipboardText.Length;
+                                        var NumCharactersInserted = ClipboardText.Length;
                                         _ = Caret.MoveToOriginalCharacterIndexOrRight(SelectionStart + NumCharactersInserted - 1, false);
                                     }
                                     //  We should still clear the selection even if pasting didn't change the text value.
@@ -1633,14 +1633,14 @@ public class MGTextBox : MGElement, ITextEntryHost
                                 else if (Caret.HasPosition)
                                 {
                                     RestorableState UndoState = CreateRestorableState();
-                                    int CaretIndex = Caret.Position.Value.IndexInOriginalText;
-                                    string NewValue = CurrentText.Substring(0, CaretIndex) + ClipboardText + CurrentText.Substring(CaretIndex);
+                                    var CaretIndex = Caret.Position.Value.IndexInOriginalText;
+                                    var NewValue = CurrentText.Substring(0, CaretIndex) + ClipboardText + CurrentText.Substring(CaretIndex);
                                     if (SetText(NewValue))
                                     {
                                         AddUndoState(UndoState);
                                         CurrentSelection = null;
                                         TextBlockElement.UpdateLines();
-                                        int NumCharactersInserted = ClipboardText.Length;
+                                        var NumCharactersInserted = ClipboardText.Length;
                                         _ = Caret.MoveToOriginalCharacterIndexOrRight(CaretIndex + NumCharactersInserted - 1, false);
                                     }
                                 }
@@ -1666,21 +1666,21 @@ public class MGTextBox : MGElement, ITextEntryHost
 
                         case Keys.D when !IsReadonly:
                             //  Duplicate current line
-                            if (Caret.HasPosition && TextRenderInfo.TryGetCharAtScreenPosition(Caret.Position.Value.Bounds.Center.ToVector2(), out CharRenderInfo CharInfo))
+                            if (Caret.HasPosition && TextRenderInfo.TryGetCharAtScreenPosition(Caret.Position.Value.Bounds.Center.ToVector2(), out var CharInfo))
                             {
                                 RestorableState UndoState = CreateRestorableState();
-                                int LineStart = CharInfo.Line.FirstCharacter.IndexInOriginalText;
-                                int LineEnd = CharInfo.Line.LastCharacter.IndexInOriginalText + 1;
+                                var LineStart = CharInfo.Line.FirstCharacter.IndexInOriginalText;
+                                var LineEnd = CharInfo.Line.LastCharacter.IndexInOriginalText + 1;
                                 if (CurrentText.Substring(LineStart).Length >= (LineEnd - LineStart))
                                 {
-                                    string LineText = CurrentText.Substring(LineStart, LineEnd - LineStart);
-                                    string NewValue = CurrentText.Substring(0, LineStart) + LineText + '\n' + LineText + CurrentText.Substring(LineEnd);
+                                    var LineText = CurrentText.Substring(LineStart, LineEnd - LineStart);
+                                    var NewValue = CurrentText.Substring(0, LineStart) + LineText + '\n' + LineText + CurrentText.Substring(LineEnd);
                                     if (SetText(NewValue))
                                     {
                                         AddUndoState(UndoState);
                                         CurrentSelection = null;
                                         TextBlockElement.UpdateLines();
-                                        int NumCharactersInserted = LineText.Length + 1; // +1 because of the linebreak character appended to the end of the line
+                                        var NumCharactersInserted = LineText.Length + 1; // +1 because of the linebreak character appended to the end of the line
                                         //_ = Caret.MoveToOriginalCharacterIndexOrRight(CharInfo.IndexInOriginalText + NumCharactersInserted - 1, false);
                                     }
                                 }
@@ -1693,22 +1693,22 @@ public class MGTextBox : MGElement, ITextEntryHost
 
             if (!Handled && !IsReadonly && (AcceptsReturn || e.Key != Keys.Enter) && (AcceptsTab || e.Key != Keys.Tab))
             {
-                bool IsEnter = e.Key == Keys.Enter;
-                bool IsTab = e.Key == Keys.Tab;
+                var IsEnter = e.Key == Keys.Enter;
+                var IsTab = e.Key == Keys.Tab;
 
                 if (CurrentSelection.HasValue && CurrentSelection.Value.ActualLength(Text) > 0)
                 {
                     RestorableState UndoState = CreateRestorableState();
                     int SelectionStart = CurrentSelection.Value.ActualStartIndex(Text);
                     int SelectionEnd = CurrentSelection.Value.ActualEndIndex(Text);
-                    string CurrentText = GetTextBackingField();
-                    string NewValue = CurrentText.Substring(0, SelectionStart) + e.PrintableValue + CurrentText.Substring(SelectionEnd);
+                    var CurrentText = GetTextBackingField();
+                    var NewValue = CurrentText.Substring(0, SelectionStart) + e.PrintableValue + CurrentText.Substring(SelectionEnd);
                     if (SetText(NewValue))
                     {
                         AddUndoState(UndoState);
                         CurrentSelection = null;
                         TextBlockElement.UpdateLines();
-                        int NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
+                        var NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
                         _ = Caret.MoveToOriginalCharacterIndexOrEnd(SelectionStart + NumCharactersInserted - 1, false);
                     }
                 }
@@ -1716,8 +1716,8 @@ public class MGTextBox : MGElement, ITextEntryHost
                 {
                     StringBuilder SB = new();
                     string NewText;
-                    string CurrentText = GetTextBackingField();
-                    int Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
+                    var CurrentText = GetTextBackingField();
+                    var Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
 
                     switch (TextEntryMode)
                     {
@@ -1750,7 +1750,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                         TextBlockElement.UpdateLines();
                     }
 
-                    int NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
+                    var NumCharactersInserted = IsTab ? MGTextRun.TabSpacesCount : 1;
                     if (IsEnter)
                     {
                         _ = Caret.MoveToOriginalCharacterIndexOrLeft(Index + NumCharactersInserted, true);

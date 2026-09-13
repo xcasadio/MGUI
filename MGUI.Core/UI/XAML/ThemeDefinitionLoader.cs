@@ -18,18 +18,18 @@ public static class ThemeDefinitionLoader
                 throw new ArgumentNullException(nameof(Source));
             }
 
-            string markup = Source.LoadContent();
-            XDocument documentRoot = XDocument.Parse(markup, LoadOptions.SetLineInfo);
-            string rootName = documentRoot.Root?.Name.LocalName;
+            var markup = Source.LoadContent();
+            var documentRoot = XDocument.Parse(markup, LoadOptions.SetLineInfo);
+            var rootName = documentRoot.Root?.Name.LocalName;
             if (rootName == nameof(ThemeDefinitionsDocument))
             {
-                ThemeDefinitionsDocument document = XAMLParser.ParseObjectDefinition<ThemeDefinitionsDocument>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                var document = XAMLParser.ParseObjectDefinition<ThemeDefinitionsDocument>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
                 return document?.Themes ?? new List<ThemeDefinition>();
             }
 
             if (rootName == nameof(ThemeDefinition))
             {
-                ThemeDefinition definition = XAMLParser.ParseObjectDefinition<ThemeDefinition>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                var definition = XAMLParser.ParseObjectDefinition<ThemeDefinition>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
                 return definition == null ? Array.Empty<ThemeDefinition>() : new[] { definition };
             }
 
@@ -56,14 +56,14 @@ public static class ThemeDefinitionLoader
             throw new ArgumentNullException(nameof(Definitions));
         }
 
-        Dictionary<string, ThemeDefinition> DefinitionMap = Definitions
+        var DefinitionMap = Definitions
             .Where(x => x != null)
             .ToDictionary(x => x.Name ?? throw new InvalidOperationException($"{nameof(ThemeDefinition)} requires a non-null {nameof(ThemeDefinition.Name)}."));
 
         Dictionary<string, MGTheme> Result = new(StringComparer.Ordinal);
         HashSet<string> Visiting = new(StringComparer.Ordinal);
 
-        foreach (string Name in DefinitionMap.Keys)
+        foreach (var Name in DefinitionMap.Keys)
         {
             Resolve(Name, DefinitionMap, Result, Visiting, ResolveExternalTheme, DefaultFontFamily);
         }
@@ -85,18 +85,18 @@ public static class ThemeDefinitionLoader
                 throw new ArgumentNullException(nameof(Resources));
             }
 
-            IReadOnlyList<ThemeDefinition> Definitions = ParseDefinitions(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
-            string FontFamily = DefaultFontFamily ?? Resources.DefaultTheme?.FontSettings?.DefaultFontFamily;
-            IReadOnlyDictionary<string, MGTheme> Themes = BuildThemes(
+            var Definitions = ParseDefinitions(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+            var FontFamily = DefaultFontFamily ?? Resources.DefaultTheme?.FontSettings?.DefaultFontFamily;
+            var Themes = BuildThemes(
                 Definitions,
                 Name =>
                 {
-                    if (Resources.TryGetTheme(Name, out MGTheme ExistingTheme))
+                    if (Resources.TryGetTheme(Name, out var ExistingTheme))
                     {
                         return ExistingTheme;
                     }
 
-                    if (MGTheme.TryCreateBuiltInTheme(Name, FontFamily, out MGTheme BuiltInTheme))
+                    if (MGTheme.TryCreateBuiltInTheme(Name, FontFamily, out var BuiltInTheme))
                     {
                         return BuiltInTheme;
                     }
@@ -105,7 +105,7 @@ public static class ThemeDefinitionLoader
                 },
                 FontFamily);
 
-            foreach (KeyValuePair<string, MGTheme> Item in Themes)
+            foreach (var Item in Themes)
             {
                 if (Resources.RemoveTheme(Item.Key))
                 {
@@ -120,14 +120,14 @@ public static class ThemeDefinitionLoader
     private static MGTheme Resolve(string Name, IReadOnlyDictionary<string, ThemeDefinition> Definitions,
         IDictionary<string, MGTheme> Cache, ISet<string> Visiting, Func<string, MGTheme> ResolveExternalTheme, string DefaultFontFamily)
     {
-        if (Cache.TryGetValue(Name, out MGTheme Existing))
+        if (Cache.TryGetValue(Name, out var Existing))
         {
             return Existing;
         }
 
-        if (!Definitions.TryGetValue(Name, out ThemeDefinition Definition))
+        if (!Definitions.TryGetValue(Name, out var Definition))
         {
-            MGTheme ExternalTheme = ResolveExternalTheme?.Invoke(Name);
+            var ExternalTheme = ResolveExternalTheme?.Invoke(Name);
             if (ExternalTheme == null)
             {
                 throw new InvalidOperationException($"No theme named '{Name}' was found while resolving {nameof(ThemeDefinition)} inheritance.");
@@ -147,7 +147,7 @@ public static class ThemeDefinitionLoader
             BaseTheme = Resolve(Definition.BasedOn, Definitions, Cache, Visiting, ResolveExternalTheme, DefaultFontFamily);
         }
 
-        MGTheme Result = ThemeDefinitionBuilder.Build(Definition, DefaultFontFamily, BaseTheme);
+        var Result = ThemeDefinitionBuilder.Build(Definition, DefaultFontFamily, BaseTheme);
         Cache[Name] = Result;
         Visiting.Remove(Name);
         return Result;

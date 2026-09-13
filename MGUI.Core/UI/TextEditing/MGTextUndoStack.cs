@@ -42,7 +42,7 @@ internal sealed class MGTextUndoStack<T>
 
     public T Pop()
     {
-        T item = Peek();
+        var item = Peek();
         _items.RemoveAt(_items.Count - 1);
         return item;
     }
@@ -71,7 +71,7 @@ internal sealed class MGTextUndoStack<T>
 
     private void TrimToLimit()
     {
-        int overflow = _items.Count - Limit;
+        var overflow = _items.Count - Limit;
         if (overflow > 0)
         {
             _items.RemoveRange(0, overflow);

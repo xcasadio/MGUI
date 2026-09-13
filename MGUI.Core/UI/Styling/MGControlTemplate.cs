@@ -85,12 +85,12 @@ public sealed class MGControlTemplateContext
 
     public T GetRequiredPart<T>(string Name) where T : MGElement
     {
-        if (!TryGetPart(Name, out MGElement Part) || Part is not T TypedPart)
+        if (!TryGetPart(Name, out var Part) || Part is not T TypedPart)
         {
-            string availableParts = Owner?.TemplateParts?.Any() == true
+            var availableParts = Owner?.TemplateParts?.Any() == true
                 ? string.Join(", ", Owner.TemplateParts.Select(x => $"{x.Key}:{x.Value?.GetType().Name ?? nameof(MGElement)}"))
                 : "<none>";
-            string actualType = Part?.GetType().Name ?? "<missing>";
+            var actualType = Part?.GetType().Name ?? "<missing>";
             throw new InvalidOperationException(
                 $"Template part '{Name}' expected type '{typeof(T).Name}' on '{Owner?.GetType().Name ?? nameof(MGElement)}', but resolved '{actualType}'. Available parts: {availableParts}.");
         }
@@ -176,15 +176,15 @@ public sealed class MGControlTemplateContext
         }
 
         Comparer ??= EqualityComparer<T>.Default;
-        T CurrentValue = GetCurrentValue();
-        bool HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out UIResolvedValue<T> PreviousValue);
+        var CurrentValue = GetCurrentValue();
+        var HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out UIResolvedValue<T> PreviousValue);
         // The record describes the value applied to the target of the previous application. A part default (Template) targets a part that a
         // rebuilt structure replaced, whose current value is the one of its construction: its record cannot tell a value set since. The owner
         // and its values survive the rebuild (MGElement.ApplyControlTemplate carries the owner's values held by a replaced part).
-        bool TargetWasReplaced = IsStructureRebuilt && SourceKind == UIValueSourceKind.Template;
+        var TargetWasReplaced = IsStructureRebuilt && SourceKind == UIValueSourceKind.Template;
         if (!IsThemeRefresh || !HasPrevious || TargetWasReplaced || Comparer.Equals(CurrentValue, PreviousValue.Value))
         {
-            UIValueResolutionSource Source = SourceKind == UIValueSourceKind.Theme
+            var Source = SourceKind == UIValueSourceKind.Theme
                 ? UIValueResolutionSource.Theme(Invalidation, Name)
                 : UIValueResolutionSource.Template(Invalidation, Name);
             SetValue(Value, Source);

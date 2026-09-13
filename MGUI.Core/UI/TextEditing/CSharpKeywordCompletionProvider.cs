@@ -22,7 +22,7 @@ public sealed class CSharpKeywordCompletionProvider : IRichTextCompletionProvide
 
     public MGRichTextCompletionResult GetCompletions(MGRichTextCompletionContext context)
     {
-        IReadOnlyList<MGRichTextCompletionItem> filteredItems = MGRichTextCompletionService.FilterByPrefix(KeywordItems, context.Prefix);
+        var filteredItems = MGRichTextCompletionService.FilterByPrefix(KeywordItems, context.Prefix);
         return new MGRichTextCompletionResult(context.Version, context.ReplacementRange, filteredItems);
     }
 }

@@ -80,7 +80,7 @@ public class MGProgressButton : MGSingleContentHost
 
     protected override IEnumerable<IBorderBrush> GetBorderBrushes()
     {
-        foreach (IBorderBrush Brush in base.GetBorderBrushes())
+        foreach (var Brush in base.GetBorderBrushes())
         {
             yield return Brush;
         }
@@ -92,7 +92,7 @@ public class MGProgressButton : MGSingleContentHost
     /// <inheritdoc/>
     protected override IEnumerable<IFillBrush> GetFillBrushes()
     {
-        foreach (IFillBrush Brush in base.GetFillBrushes())
+        foreach (var Brush in base.GetFillBrushes())
         {
             yield return Brush;
         }
@@ -297,8 +297,8 @@ public class MGProgressButton : MGSingleContentHost
         {
             if (_Value != value)
             {
-                bool WasCompleted = IsCompleted;
-                float Previous = Value;
+                var WasCompleted = IsCompleted;
+                var Previous = Value;
                 _Value = value;
                 NPC(nameof(Value));
                 NPC(nameof(ActualValue));
@@ -372,7 +372,7 @@ public class MGProgressButton : MGSingleContentHost
             return;
         }
 
-        bool shouldRun = Parent != null && Duration is TimeSpan duration && duration >= TimeSpan.Zero && !IsPaused && !IsCompleted && Maximum > Minimum;
+        var shouldRun = Parent != null && Duration is TimeSpan duration && duration >= TimeSpan.Zero && !IsPaused && !IsCompleted && Maximum > Minimum;
         if (!shouldRun)
         {
             if (_DurationAnimation != null && _DurationAnimation.IsActive)
@@ -390,8 +390,8 @@ public class MGProgressButton : MGSingleContentHost
             return;
         }
 
-        float from = Value;
-        double share = Math.Max(0.0, (Maximum - from) / (Maximum - Minimum));
+        var from = Value;
+        var share = Math.Max(0.0, (Maximum - from) / (Maximum - Minimum));
         _IsDurationSyncPending = false;
         _DurationAnimation = new DurationRun
         {
@@ -594,7 +594,7 @@ public class MGProgressButton : MGSingleContentHost
 
     private Rectangle GetProgressBarBounds(Rectangle ElementBounds, bool IncludeProgressBarBorder)
     {
-        Rectangle PaddedBounds = ElementBounds.GetCompressed(ProgressBarMargin);
+        var PaddedBounds = ElementBounds.GetCompressed(ProgressBarMargin);
         if (!IncludeProgressBarBorder && ProgressBarBorderBrush != null)
         {
             PaddedBounds = PaddedBounds.GetCompressed(ProgressBarBorderThickness);
@@ -790,7 +790,7 @@ public class MGProgressButton : MGSingleContentHost
         }
 
         //  Compute the actual dimensions of the progress bar and its margin
-        int Size = ProgressBarSize.Value;
+        var Size = ProgressBarSize.Value;
         Thickness ProgressBarThickness = Orientation switch
         {
             Orientation.Horizontal => new(Size + ProgressBarMargin.Width, Size / 2 + ProgressBarMargin.Height, 0, 0),
@@ -798,7 +798,7 @@ public class MGProgressButton : MGSingleContentHost
             _ => throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}")
         };
 
-        Thickness Result = base.MeasureSelfOverride(AvailableSize, out SharedSize);
+        var Result = base.MeasureSelfOverride(AvailableSize, out SharedSize);
 
         //  Ensure the requested size is at least as large as the progress bar
         if (Result.Width < ProgressBarThickness.Width)
@@ -834,20 +834,20 @@ public class MGProgressButton : MGSingleContentHost
     {
         if (IsProgressBarVisible)
         {
-            Rectangle BorderlessBounds = LayoutBounds.GetCompressed(BorderThickness);
-            Rectangle ProgressBarBorderedBounds = GetProgressBarBounds(BorderlessBounds, true);
-            Rectangle ProgressBarBorderlessBounds = GetProgressBarBounds(BorderlessBounds, false);
+            var BorderlessBounds = LayoutBounds.GetCompressed(BorderThickness);
+            var ProgressBarBorderedBounds = GetProgressBarBounds(BorderlessBounds, true);
+            var ProgressBarBorderlessBounds = GetProgressBarBounds(BorderlessBounds, false);
 
-            float CompletedScalar = ValuePercent / 100.0f;
+            var CompletedScalar = ValuePercent / 100.0f;
             Rectangle CompletedBounds;
             if (Orientation == Orientation.Horizontal)
             {
-                HorizontalAlignment HA = IsReversed ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+                var HA = IsReversed ? HorizontalAlignment.Right : HorizontalAlignment.Left;
                 CompletedBounds = ApplyAlignment(ProgressBarBorderlessBounds, HA, VerticalAlignment.Stretch, new((int)(ProgressBarBorderlessBounds.Width * CompletedScalar), 0));
             }
             else if (Orientation == Orientation.Vertical)
             {
-                VerticalAlignment VA = IsReversed ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+                var VA = IsReversed ? VerticalAlignment.Top : VerticalAlignment.Bottom;
                 CompletedBounds = ApplyAlignment(ProgressBarBorderlessBounds, HorizontalAlignment.Stretch, VA, new(0, (int)(ProgressBarBorderlessBounds.Height * CompletedScalar)));
             }
             else

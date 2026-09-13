@@ -9,17 +9,17 @@ namespace MGUI.Core.UI;
 public class MGEllipse : MGShapeElementBase
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _Width;
+    private int _width;
     public int Width
     {
-        get => _Width;
+        get => _width;
         set
         {
             int actualValue = Math.Max(0, value);
-            if (_Width != actualValue)
+            if (_width != actualValue)
             {
-                _Width = actualValue;
-                _GeometryDirty = true;
+                _width = actualValue;
+                _geometryDirty = true;
                 LayoutChanged(this, true);
                 NPC(nameof(Width));
             }
@@ -27,17 +27,17 @@ public class MGEllipse : MGShapeElementBase
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _Height;
+    private int _height;
     public int Height
     {
-        get => _Height;
+        get => _height;
         set
         {
             int actualValue = Math.Max(0, value);
-            if (_Height != actualValue)
+            if (_height != actualValue)
             {
-                _Height = actualValue;
-                _GeometryDirty = true;
+                _height = actualValue;
+                _geometryDirty = true;
                 LayoutChanged(this, true);
                 NPC(nameof(Height));
             }
@@ -45,24 +45,24 @@ public class MGEllipse : MGShapeElementBase
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _SegmentCount;
+    private int _segmentCount;
     public int SegmentCount
     {
-        get => _SegmentCount;
+        get => _segmentCount;
         set
         {
             int actualValue = Math.Max(3, value);
-            if (_SegmentCount != actualValue)
+            if (_segmentCount != actualValue)
             {
-                _SegmentCount = actualValue;
-                _GeometryDirty = true;
+                _segmentCount = actualValue;
+                _geometryDirty = true;
                 NPC(nameof(SegmentCount));
             }
         }
     }
 
-    private bool _GeometryDirty = true;
-    private Vector2[] _CachedVertices = Array.Empty<Vector2>();
+    private bool _geometryDirty = true;
+    private Vector2[] _cachedVertices = Array.Empty<Vector2>();
 
     public MGEllipse(MGWindow window, int width, int height)
         : this(window, width, height, Color.White, 1f, Color.Transparent)
@@ -98,7 +98,7 @@ public class MGEllipse : MGShapeElementBase
         }
 
         EnsureGeometry();
-        if (_CachedVertices.Length < 3)
+        if (_cachedVertices.Length < 3)
         {
             return;
         }
@@ -110,24 +110,24 @@ public class MGEllipse : MGShapeElementBase
 
         if (hasBrushFill)
         {
-            MGUI.Shared.Rendering.Clipping.ClipGeometry clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(_CachedVertices, origin);
+            MGUI.Shared.Rendering.Clipping.ClipGeometry clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(_cachedVertices, origin);
             DrawClippedFillBrush(DA, bounds,
                 CreateGeometryClipDefinition(TransformClipBounds(DA, bounds), clipGeometry, $"{ElementType}.Fill"));
         }
 
         if (hasSolidFill && HasVisibleStroke)
         {
-            DA.Context.StrokeAndFillPolygon(origin, _CachedVertices, strokeColor, fillColor, StrokeThickness);
+            DA.Context.StrokeAndFillPolygon(origin, _cachedVertices, strokeColor, fillColor, StrokeThickness);
         }
         else if (hasSolidFill)
         {
-            DA.Context.FillPolygon(origin, _CachedVertices, fillColor);
+            DA.Context.FillPolygon(origin, _cachedVertices, fillColor);
         }
         else if (HasVisibleStroke)
         {
-            for (int i = 0; i < _CachedVertices.Length; i++)
+            for (int i = 0; i < _cachedVertices.Length; i++)
             {
-                DA.Context.StrokeLineSegment(origin, _CachedVertices[i], _CachedVertices[(i + 1) % _CachedVertices.Length], strokeColor, StrokeThickness);
+                DA.Context.StrokeLineSegment(origin, _cachedVertices[i], _cachedVertices[(i + 1) % _cachedVertices.Length], strokeColor, StrokeThickness);
             }
         }
     }
@@ -159,13 +159,13 @@ public class MGEllipse : MGShapeElementBase
         }
 
         EnsureGeometry();
-        if (_CachedVertices.Length < 3)
+        if (_cachedVertices.Length < 3)
         {
             return CreateRectangleClipDefinition(TransformClipBounds(DA, bounds), $"{ElementType}.Self");
         }
 
         Vector2 translation = DA.Offset.ToVector2() + bounds.Location.ToVector2();
-        MGUI.Shared.Rendering.Clipping.ClipGeometry geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(_CachedVertices, translation);
+        MGUI.Shared.Rendering.Clipping.ClipGeometry geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(_cachedVertices, translation);
         return CreateGeometryClipDefinition(TransformClipBounds(DA, bounds), geometry, $"{ElementType}.Self");
     }
 
@@ -176,10 +176,10 @@ public class MGEllipse : MGShapeElementBase
 
     private void EnsureGeometry()
     {
-        if (_GeometryDirty)
+        if (_geometryDirty)
         {
-            _CachedVertices = MGVectorShapeHelper.CreateEllipseVertices(Width, Height, HasVisibleStroke ? StrokeThickness : 0f, SegmentCount);
-            _GeometryDirty = false;
+            _cachedVertices = MGVectorShapeHelper.CreateEllipseVertices(Width, Height, HasVisibleStroke ? StrokeThickness : 0f, SegmentCount);
+            _geometryDirty = false;
         }
     }
 }

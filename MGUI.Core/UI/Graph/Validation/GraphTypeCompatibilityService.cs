@@ -21,25 +21,25 @@ public class GraphTypeCompatibilityService
             return GraphConnectionValidationResult.Invalid(nameof(GraphDocument), "Graph document is required.");
         }
 
-        GraphNodeModel sourceNode = document.TryGetNode(sourceNodeId);
+        var sourceNode = document.TryGetNode(sourceNodeId);
         if (sourceNode == null)
         {
             return GraphConnectionValidationResult.Invalid(MissingSourceNode, $"Missing source node '{sourceNodeId}'.");
         }
 
-        GraphNodeModel targetNode = document.TryGetNode(targetNodeId);
+        var targetNode = document.TryGetNode(targetNodeId);
         if (targetNode == null)
         {
             return GraphConnectionValidationResult.Invalid(MissingTargetNode, $"Missing target node '{targetNodeId}'.");
         }
 
-        GraphPortModel sourcePort = document.TryGetPort(sourceNodeId, sourcePortId);
+        var sourcePort = document.TryGetPort(sourceNodeId, sourcePortId);
         if (sourcePort == null)
         {
             return GraphConnectionValidationResult.Invalid(MissingSourcePort, $"Missing source port '{sourcePortId}'.");
         }
 
-        GraphPortModel targetPort = document.TryGetPort(targetNodeId, targetPortId);
+        var targetPort = document.TryGetPort(targetNodeId, targetPortId);
         if (targetPort == null)
         {
             return GraphConnectionValidationResult.Invalid(MissingTargetPort, $"Missing target port '{targetPortId}'.");
@@ -60,9 +60,9 @@ public class GraphTypeCompatibilityService
             return GraphConnectionValidationResult.Invalid(IncompatibleTypes, $"Cannot connect '{sourcePort.ValueType}' to '{targetPort.ValueType}'.");
         }
 
-        for (int i = 0; i < document.Edges.Count; i++)
+        for (var i = 0; i < document.Edges.Count; i++)
         {
-            GraphEdgeModel edge = document.Edges[i];
+            var edge = document.Edges[i];
             if (ignoredEdgeId.HasValue && edge.Id == ignoredEdgeId.Value)
             {
                 continue;
@@ -131,15 +131,15 @@ public class GraphTypeCompatibilityService
 
         while (stack.Count > 0)
         {
-            Guid current = stack.Pop();
+            var current = stack.Pop();
             if (!visited.Add(current))
             {
                 continue;
             }
 
-            for (int i = 0; i < document.Edges.Count; i++)
+            for (var i = 0; i < document.Edges.Count; i++)
             {
-                GraphEdgeModel edge = document.Edges[i];
+                var edge = document.Edges[i];
                 if (ignoredEdgeId.HasValue && edge.Id == ignoredEdgeId.Value)
                 {
                     continue;

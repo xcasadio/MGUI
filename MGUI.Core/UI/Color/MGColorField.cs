@@ -131,7 +131,7 @@ public class MGColorField : MGElement
         get => _colorPickService;
         set
         {
-            IColorPickService actual = value ?? UnsupportedColorPickService.Instance;
+            var actual = value ?? UnsupportedColorPickService.Instance;
             if (ReferenceEquals(_colorPickService, actual))
             {
                 return;
@@ -237,7 +237,7 @@ public class MGColorField : MGElement
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(FieldWidth, FieldHeight));
+        var bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(FieldWidth, FieldHeight));
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             return;
@@ -310,7 +310,7 @@ public class MGColorField : MGElement
             return false;
         }
 
-        ColorValue startValue = Value ?? DefaultValue ?? new ColorValue(0f, 0f, 0f, ShowAlpha ? 0f : 1f);
+        var startValue = Value ?? DefaultValue ?? new ColorValue(0f, 0f, 0f, ShowAlpha ? 0f : 1f);
         Popup.Picker.ShowAlpha = ShowAlpha;
         Popup.Picker.ShowEyeDropper = ShowEyeDropper;
         Popup.Picker.ColorPickService = ColorPickService;
@@ -326,8 +326,8 @@ public class MGColorField : MGElement
     private void OnReleasedInside(object sender, BaseMouseReleasedEventArgs e)
     {
         e.SetHandledBy(this, false);
-        Point layoutPoint = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-        Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(FieldWidth, FieldHeight));
+        var layoutPoint = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+        var bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(FieldWidth, FieldHeight));
         if (IsEyeDropperAvailable && GetEyeDropperBounds(bounds).Contains(layoutPoint))
         {
             _ = BeginEyeDropperPick();
@@ -345,30 +345,30 @@ public class MGColorField : MGElement
 
     private Rectangle GetSwatchBounds(Rectangle bounds)
     {
-        int padding = Math.Max(0, InnerPadding);
-        int size = Math.Max(0, Math.Min(SwatchSize, bounds.Height - padding * 2));
+        var padding = Math.Max(0, InnerPadding);
+        var size = Math.Max(0, Math.Min(SwatchSize, bounds.Height - padding * 2));
         return new Rectangle(bounds.X + padding, bounds.Y + (bounds.Height - size) / 2, size, size);
     }
 
     private Rectangle GetResetBounds(Rectangle bounds)
     {
-        int padding = Math.Max(0, InnerPadding);
+        var padding = Math.Max(0, InnerPadding);
         return new(bounds.Right - padding - ResetButtonWidth, bounds.Y + padding, ResetButtonWidth, Math.Max(0, bounds.Height - padding * 2));
     }
 
     private Rectangle GetEyeDropperBounds(Rectangle bounds)
     {
-        int padding = Math.Max(0, InnerPadding);
-        int right = DefaultValue.HasValue ? GetResetBounds(bounds).Left - Math.Max(0, Spacing) : bounds.Right - padding;
+        var padding = Math.Max(0, InnerPadding);
+        var right = DefaultValue.HasValue ? GetResetBounds(bounds).Left - Math.Max(0, Spacing) : bounds.Right - padding;
         return new(right - EyeDropperButtonWidth, bounds.Y + padding, EyeDropperButtonWidth, Math.Max(0, bounds.Height - padding * 2));
     }
 
     private Rectangle GetTextBounds(Rectangle bounds)
     {
-        Rectangle swatch = GetSwatchBounds(bounds);
-        int padding = Math.Max(0, InnerPadding);
-        int left = swatch.Right + Spacing;
-        int right = IsEyeDropperAvailable ? GetEyeDropperBounds(bounds).Left - Spacing : DefaultValue.HasValue ? GetResetBounds(bounds).Left - Spacing : bounds.Right - padding;
+        var swatch = GetSwatchBounds(bounds);
+        var padding = Math.Max(0, InnerPadding);
+        var left = swatch.Right + Spacing;
+        var right = IsEyeDropperAvailable ? GetEyeDropperBounds(bounds).Left - Spacing : DefaultValue.HasValue ? GetResetBounds(bounds).Left - Spacing : bounds.Right - padding;
         return new Rectangle(left, bounds.Y + padding, Math.Max(0, right - left), Math.Max(0, bounds.Height - padding * 2));
     }
 
@@ -395,7 +395,7 @@ public class MGColorField : MGElement
 
     private void DrawTextStrip(ElementDrawArgs DA, Rectangle bounds)
     {
-        Color fill = Popup.Picker.TextInput.HasValidationError ? new Color(255, 225, 225) : new Color(248, 248, 248);
+        var fill = Popup.Picker.TextInput.HasValidationError ? new Color(255, 225, 225) : new Color(248, 248, 248);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, fill * DA.Opacity);
         DrawTextStripValue(DA, bounds);
         DrawRectangleBorder(DA, bounds, Popup.Picker.TextInput.HasValidationError ? Color.Red : new Color(180, 180, 180));
@@ -408,16 +408,16 @@ public class MGColorField : MGElement
             return;
         }
 
-        string fontFamily = GetTheme().FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
-        int fontSize = GetTheme().FontSettings.DefaultFontSize;
-        ITextMeasurementEngine textEngine = GetTextEngine();
-        ResolvedFont resolved = textEngine.ResolveFont(new FontSpec(fontFamily, fontSize, CustomFontStyles.Normal));
+        var fontFamily = GetTheme().FontSettings.DefaultFontFamily ?? GetDesktop().DefaultFontFamily;
+        var fontSize = GetTheme().FontSettings.DefaultFontSize;
+        var textEngine = GetTextEngine();
+        var resolved = textEngine.ResolveFont(new FontSpec(fontFamily, fontSize, CustomFontStyles.Normal));
         if (!resolved.IsAvailable)
         {
             return;
         }
 
-        float drawScale = GetTheme().FontSettings.UseExactScale ? resolved.ExactScale : resolved.SuggestedScale;
+        var drawScale = GetTheme().FontSettings.UseExactScale ? resolved.ExactScale : resolved.SuggestedScale;
         if (Math.Abs(drawScale) <= float.Epsilon)
         {
             drawScale = resolved.SuggestedScale;
@@ -427,11 +427,11 @@ public class MGColorField : MGElement
             }
         }
 
-        float textHeight = Math.Max(0f, resolved.LineHeight * drawScale);
+        var textHeight = Math.Max(0f, resolved.LineHeight * drawScale);
         float visualX = bounds.X + TextStripPadding;
-        float visualY = bounds.Y + Math.Max(0f, (bounds.Height - textHeight) / 2f);
-        Vector2 drawPosition = new Vector2(visualX, visualY) + (resolved.DrawOrigin * drawScale) + DA.Offset.ToVector2();
-        Color foreground = GetTheme().TextBlockFallbackForeground.GetValue(false).GetValue(VisualState.Primary);
+        var visualY = bounds.Y + Math.Max(0f, (bounds.Height - textHeight) / 2f);
+        var drawPosition = new Vector2(visualX, visualY) + (resolved.DrawOrigin * drawScale) + DA.Offset.ToVector2();
+        var foreground = GetTheme().TextBlockFallbackForeground.GetValue(false).GetValue(VisualState.Primary);
         DA.DT.DrawTextViaEngine(resolved, _cachedDisplayText, drawPosition, foreground * DA.Opacity, resolved.DrawOrigin, drawScale);
     }
 
@@ -443,7 +443,7 @@ public class MGColorField : MGElement
     private void DrawResetButton(ElementDrawArgs DA, Rectangle bounds)
     {
         DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, new Color(235, 235, 235) * DA.Opacity);
-        int thickness = 2;
+        var thickness = 2;
         Rectangle horizontal = new(bounds.X + 4, bounds.Center.Y - thickness / 2, Math.Max(0, bounds.Width - 8), thickness);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), horizontal, BorderColor * DA.Opacity);
         DrawRectangleBorder(DA, bounds, new Color(180, 180, 180));
@@ -456,7 +456,7 @@ public class MGColorField : MGElement
             return false;
         }
 
-        ColorValue currentValue = Value ?? DefaultValue ?? new ColorValue(0f, 0f, 0f, ShowAlpha ? 0f : 1f);
+        var currentValue = Value ?? DefaultValue ?? new ColorValue(0f, 0f, 0f, ShowAlpha ? 0f : 1f);
         return ColorPickService.BeginPick(new ColorPickRequest
         {
             PreserveAlpha = !ShowAlpha,
@@ -470,7 +470,7 @@ public class MGColorField : MGElement
     private void DrawEyeDropperButton(ElementDrawArgs DA, Rectangle bounds)
     {
         DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, new Color(235, 235, 235) * DA.Opacity);
-        Color stroke = BorderColor * DA.Opacity;
+        var stroke = BorderColor * DA.Opacity;
         Rectangle stem = new(bounds.X + 4, bounds.Center.Y - 1, Math.Max(0, bounds.Width - 8), 2);
         Rectangle bulb = new(bounds.X + 3, bounds.Center.Y - 4, 5, 5);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), stem, stroke);
@@ -480,15 +480,15 @@ public class MGColorField : MGElement
 
     private void DrawNullGlyph(ElementDrawArgs DA, Rectangle bounds)
     {
-        Color stroke = BorderColor * DA.Opacity;
-        int thickness = 2;
+        var stroke = BorderColor * DA.Opacity;
+        var thickness = 2;
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X + 3, bounds.Center.Y - thickness / 2, Math.Max(0, bounds.Width - 6), thickness), stroke);
     }
 
     private void DrawMixedGlyph(ElementDrawArgs DA, Rectangle bounds)
     {
-        Color stroke = Color.White * DA.Opacity;
-        int thickness = 2;
+        var stroke = Color.White * DA.Opacity;
+        var thickness = 2;
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X + 3, bounds.Y + 4, Math.Max(0, bounds.Width - 6), thickness), stroke);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X + 3, bounds.Center.Y - thickness / 2, Math.Max(0, bounds.Width - 6), thickness), stroke);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X + 3, bounds.Bottom - 6, Math.Max(0, bounds.Width - 6), thickness), stroke);
@@ -496,8 +496,8 @@ public class MGColorField : MGElement
 
     private void OnColorPicked(object sender, ColorPickedEventArgs e)
     {
-        ColorValue currentValue = Value ?? DefaultValue ?? new ColorValue(0f, 0f, 0f, ShowAlpha ? 0f : 1f);
-        ColorValue actual = ShowAlpha ? e.Value : e.Value.WithAlpha(currentValue.A);
+        var currentValue = Value ?? DefaultValue ?? new ColorValue(0f, 0f, 0f, ShowAlpha ? 0f : 1f);
+        var actual = ShowAlpha ? e.Value : e.Value.WithAlpha(currentValue.A);
         _ = Model.TrySetValue(actual);
     }
 
@@ -507,14 +507,14 @@ public class MGColorField : MGElement
 
     private void DrawCheckerboard(ElementDrawArgs DA, Rectangle bounds)
     {
-        int cellSize = Math.Max(1, CheckerboardCellSize);
-        for (int y = bounds.Top; y < bounds.Bottom; y += cellSize)
+        var cellSize = Math.Max(1, CheckerboardCellSize);
+        for (var y = bounds.Top; y < bounds.Bottom; y += cellSize)
         {
-            int height = Math.Min(cellSize, bounds.Bottom - y);
-            for (int x = bounds.Left; x < bounds.Right; x += cellSize)
+            var height = Math.Min(cellSize, bounds.Bottom - y);
+            for (var x = bounds.Left; x < bounds.Right; x += cellSize)
             {
-                int width = Math.Min(cellSize, bounds.Right - x);
-                bool light = ((x - bounds.Left) / cellSize + (y - bounds.Top) / cellSize) % 2 == 0;
+                var width = Math.Min(cellSize, bounds.Right - x);
+                var light = ((x - bounds.Left) / cellSize + (y - bounds.Top) / cellSize) % 2 == 0;
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, y, width, height), (light ? CheckerboardLightColor : CheckerboardDarkColor) * DA.Opacity);
             }
         }
@@ -522,7 +522,7 @@ public class MGColorField : MGElement
 
     private void DrawRectangleBorder(ElementDrawArgs DA, Rectangle bounds, Color color)
     {
-        Color actual = color * DA.Opacity;
+        var actual = color * DA.Opacity;
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Y, bounds.Width, 1), actual);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Bottom - 1, bounds.Width, 1), actual);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Y, 1, bounds.Height), actual);

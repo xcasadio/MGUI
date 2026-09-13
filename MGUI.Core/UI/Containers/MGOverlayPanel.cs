@@ -76,7 +76,7 @@ public class MGOverlayPanel : MGMultiContentHost
 
         if (_Children.Remove(Item))
         {
-            OverlayPanelChild ToRemove = PanelChildren.First(x => x.Item == Item);
+            var ToRemove = PanelChildren.First(x => x.Item == Item);
             PanelChildren.Remove(ToRemove);
             return true;
         }
@@ -96,14 +96,14 @@ public class MGOverlayPanel : MGMultiContentHost
             return false;
         }
 
-        int Index = _Children.IndexOf(Old);
+        var Index = _Children.IndexOf(Old);
         if (Index < 0)
         {
             return false;
         }
 
         _Children[Index] = New;
-        OverlayPanelChild ToRemove = PanelChildren.First(x => x.Item == Old);
+        var ToRemove = PanelChildren.First(x => x.Item == Old);
         PanelChildren.Remove(ToRemove);
         PanelChildren.Add(new OverlayPanelChild(New, Offset, ZIndex));
         return true;
@@ -122,8 +122,8 @@ public class MGOverlayPanel : MGMultiContentHost
 
     internal static Rectangle CreateAnchoredBounds(Rectangle availableBounds, Size desiredSize, ResponsiveAnchor anchor)
     {
-        int width = Math.Min(availableBounds.Width, Math.Max(0, desiredSize.Width));
-        int height = Math.Min(availableBounds.Height, Math.Max(0, desiredSize.Height));
+        var width = Math.Min(availableBounds.Width, Math.Max(0, desiredSize.Width));
+        var height = Math.Min(availableBounds.Height, Math.Max(0, desiredSize.Height));
 
         return anchor switch
         {
@@ -145,10 +145,10 @@ public class MGOverlayPanel : MGMultiContentHost
 
     protected override void UpdateContentLayout(Rectangle Bounds)
     {
-        foreach (OverlayPanelChild Child in SortedChildren)
+        foreach (var Child in SortedChildren)
         {
-            Thickness offset = Child.Item.ResolveExternalSpacing(Child.Offset);
-            Rectangle availableBounds = Bounds.GetCompressed(offset);
+            var offset = Child.Item.ResolveExternalSpacing(Child.Offset);
+            var availableBounds = Bounds.GetCompressed(offset);
 
             if (availableBounds.Width <= 0 || availableBounds.Height <= 0)
             {
@@ -162,8 +162,8 @@ public class MGOverlayPanel : MGMultiContentHost
             }
             else
             {
-                Child.Item.UpdateMeasurement(availableBounds.Size, out _, out Thickness fullSize, out _, out _);
-                Rectangle anchoredBounds = CreateAnchoredBounds(availableBounds, fullSize.Size, Child.Item.ResponsiveAnchor);
+                Child.Item.UpdateMeasurement(availableBounds.Size, out _, out var fullSize, out _, out _);
+                var anchoredBounds = CreateAnchoredBounds(availableBounds, fullSize.Size, Child.Item.ResponsiveAnchor);
                 Child.Item.UpdateLayout(anchoredBounds);
             }
         }
@@ -175,10 +175,10 @@ public class MGOverlayPanel : MGMultiContentHost
         {
             //  Measure each child
             Dictionary<MGElement, Size> RequestedSizes = new();
-            foreach (OverlayPanelChild Child in PanelChildren)
+            foreach (var Child in PanelChildren)
             {
-                Child.Item.UpdateMeasurement(AvailableSize, out Thickness SelfSize, out Thickness FullSize, out _, out _);
-                Thickness Offset = Child.Item.ResolveExternalSpacing(Child.Offset);
+                Child.Item.UpdateMeasurement(AvailableSize, out var SelfSize, out var FullSize, out _, out _);
+                var Offset = Child.Item.ResolveExternalSpacing(Child.Offset);
                 RequestedSizes.Add(Child.Item, FullSize.Size.Add(Offset.Size, 0, 0));
             }
 

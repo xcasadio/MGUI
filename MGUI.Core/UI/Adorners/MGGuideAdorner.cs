@@ -80,7 +80,7 @@ public class MGGuideAdorner : MGAdorner
         get => _guideThickness;
         set
         {
-            int clamped = Math.Max(1, value);
+            var clamped = Math.Max(1, value);
             if (_guideThickness != clamped)
             {
                 _guideThickness = clamped;
@@ -101,7 +101,7 @@ public class MGGuideAdorner : MGAdorner
         {
             coordinate = PositionOverride.Value;
         }
-        else if (TryGetAdornedBounds(out Rectangle adornedBounds))
+        else if (TryGetAdornedBounds(out var adornedBounds))
         {
             coordinate = MGAdornerGeometryHelper.ResolveGuideCoordinate(adornedBounds, Axis, Alignment);
         }
@@ -110,15 +110,15 @@ public class MGGuideAdorner : MGAdorner
             return;
         }
 
-        int thickness = Math.Max(1, GuideThickness);
-        Color color = GuideColor * DA.Opacity;
+        var thickness = Math.Max(1, GuideThickness);
+        var color = GuideColor * DA.Opacity;
         if (color.A <= 0)
         {
             return;
         }
 
-        int offset = thickness / 2;
-        Rectangle guideBounds = Axis switch
+        var offset = thickness / 2;
+        var guideBounds = Axis switch
         {
             MGGuideAxis.Vertical => new Rectangle(coordinate - offset, layoutBounds.Top, thickness, Math.Max(0, layoutBounds.Height)),
             MGGuideAxis.Horizontal => new Rectangle(layoutBounds.Left, coordinate - offset, Math.Max(0, layoutBounds.Width), thickness),

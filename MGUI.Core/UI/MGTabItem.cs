@@ -22,7 +22,7 @@ public class MGTabItem : MGSingleContentHost
         {
             if (_Header != value)
             {
-                MGElement Previous = Header;
+                var Previous = Header;
                 _Header = value;
                 NPC(nameof(Header));
                 HeaderChanged?.Invoke(this, new(Previous, Header));

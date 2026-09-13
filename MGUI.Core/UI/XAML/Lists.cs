@@ -119,21 +119,21 @@ public class ListBox : MultiContentHost
 
     protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
     {
-        Type GenericType = typeof(MGListBox<>).MakeGenericType(new Type[] { ItemType });
-        object Element = Activator.CreateInstance(GenericType, new object[] { Window });
+        var GenericType = typeof(MGListBox<>).MakeGenericType(new Type[] { ItemType });
+        var Element = Activator.CreateInstance(GenericType, new object[] { Window });
         return Element as MGElement;
     }
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        Type GenericType = typeof(MGListBox<>).MakeGenericType(new Type[] { ItemType });
-        MethodInfo Method = GenericType.GetMethod(nameof(MGListBox<object>.LoadSettings), BindingFlags.Instance | BindingFlags.NonPublic);
+        var GenericType = typeof(MGListBox<>).MakeGenericType(new Type[] { ItemType });
+        var Method = GenericType.GetMethod(nameof(MGListBox<object>.LoadSettings), BindingFlags.Instance | BindingFlags.NonPublic);
         Method.Invoke(Element, new object[] { this, IncludeContent });
     }
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -190,21 +190,21 @@ public class ListView : MultiContentHost
 
     protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
     {
-        Type GenericType = typeof(MGListView<>).MakeGenericType(new Type[] { ItemType });
-        object Element = Activator.CreateInstance(GenericType, new object[] { Window });
+        var GenericType = typeof(MGListView<>).MakeGenericType(new Type[] { ItemType });
+        var Element = Activator.CreateInstance(GenericType, new object[] { Window });
         return Element as MGElement;
     }
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        Type GenericType = typeof(MGListView<>).MakeGenericType(new Type[] { ItemType });
-        MethodInfo Method = GenericType.GetMethod(nameof(MGListView<object>.LoadSettings), BindingFlags.Instance | BindingFlags.NonPublic);
+        var GenericType = typeof(MGListView<>).MakeGenericType(new Type[] { ItemType });
+        var Method = GenericType.GetMethod(nameof(MGListView<object>.LoadSettings), BindingFlags.Instance | BindingFlags.NonPublic);
         Method.Invoke(Element, new object[] { this, IncludeContent });
     }
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -256,14 +256,14 @@ public class ListViewColumnWidth
     {
         if (Value.EndsWith('*'))
         {
-            string WeightString = Value.Substring(0, Value.Length - 1);
-            double Weight = WeightString == string.Empty ? 1.0 : double.Parse(WeightString, CultureInfo.InvariantCulture);
+            var WeightString = Value.Substring(0, Value.Length - 1);
+            var Weight = WeightString == string.Empty ? 1.0 : double.Parse(WeightString, CultureInfo.InvariantCulture);
             return new ListViewColumnWidth() { WidthWeight = Weight };
         }
         else
         {
-            string PixelsString = Value.Replace("px", "", StringComparison.CurrentCultureIgnoreCase);
-            int Pixels = int.Parse(PixelsString);
+            var PixelsString = Value.Replace("px", "", StringComparison.CurrentCultureIgnoreCase);
+            var Pixels = int.Parse(PixelsString);
             return new ListViewColumnWidth() { WidthPixels = Pixels };
         }
     }
@@ -285,7 +285,7 @@ public class ListViewColumnWidthStringConverter : TypeConverter
     {
         if (value is string stringValue)
         {
-            ListViewColumnWidth Width = ListViewColumnWidth.Parse(stringValue);
+            var Width = ListViewColumnWidth.Parse(stringValue);
             return Width;
         }
 

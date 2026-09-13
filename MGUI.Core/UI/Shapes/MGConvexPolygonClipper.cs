@@ -35,12 +35,12 @@ internal static class MGConvexPolygonClipper
         output.AddRange(subject);
 
         //  Clip polygon winding decides which side of each directed edge counts as "inside".
-        bool clockwise = SignedArea(convexClip) < 0;
+        var clockwise = SignedArea(convexClip) < 0;
 
-        for (int i = 0; i < convexClip.Count && output.Count > 0; i++)
+        for (var i = 0; i < convexClip.Count && output.Count > 0; i++)
         {
-            Vector2 edgeStart = convexClip[i];
-            Vector2 edgeEnd = convexClip[(i + 1) % convexClip.Count];
+            var edgeStart = convexClip[i];
+            var edgeEnd = convexClip[(i + 1) % convexClip.Count];
             ClipAgainstEdge(output, scratch, edgeStart, edgeEnd, clockwise);
         }
     }
@@ -49,7 +49,7 @@ internal static class MGConvexPolygonClipper
     /// <paramref name="firstVertexIndex"/> (that first index is the fan's pivot, shared by every triangle). No-op below 3 vertices.</summary>
     public static void AppendFanTriangles(int firstVertexIndex, int vertexCount, List<int> indices)
     {
-        for (int k = 1; k + 1 < vertexCount; k++)
+        for (var k = 1; k + 1 < vertexCount; k++)
         {
             indices.Add(firstVertexIndex);
             indices.Add(firstVertexIndex + k);
@@ -62,10 +62,10 @@ internal static class MGConvexPolygonClipper
     /// top-left maps to <paramref name="uvTopLeft"/>, the destination bottom-right to <paramref name="uvBottomRight"/>.</summary>
     public static Vector2 InterpolateRectUV(Vector2 point, Rectangle sourceRect, Vector2 uvTopLeft, Vector2 uvBottomRight)
     {
-        float clampedX = MathHelper.Clamp(point.X, sourceRect.Left, sourceRect.Right);
-        float clampedY = MathHelper.Clamp(point.Y, sourceRect.Top, sourceRect.Bottom);
-        float tx = sourceRect.Width > 0 ? (clampedX - sourceRect.Left) / sourceRect.Width : 0f;
-        float ty = sourceRect.Height > 0 ? (clampedY - sourceRect.Top) / sourceRect.Height : 0f;
+        var clampedX = MathHelper.Clamp(point.X, sourceRect.Left, sourceRect.Right);
+        var clampedY = MathHelper.Clamp(point.Y, sourceRect.Top, sourceRect.Bottom);
+        var tx = sourceRect.Width > 0 ? (clampedX - sourceRect.Left) / sourceRect.Width : 0f;
+        var ty = sourceRect.Height > 0 ? (clampedY - sourceRect.Top) / sourceRect.Height : 0f;
         return new Vector2(
             uvTopLeft.X + tx * (uvBottomRight.X - uvTopLeft.X),
             uvTopLeft.Y + ty * (uvBottomRight.Y - uvTopLeft.Y));
@@ -79,14 +79,14 @@ internal static class MGConvexPolygonClipper
         }
 
         scratch.Clear();
-        for (int i = 0; i < polygon.Count; i++)
+        for (var i = 0; i < polygon.Count; i++)
         {
-            Vector2 current = polygon[i];
-            Vector2 previous = polygon[(i + polygon.Count - 1) % polygon.Count];
-            float currentValue = axisX ? current.X : current.Y;
-            float previousValue = axisX ? previous.X : previous.Y;
-            bool currentInside = keepGreater ? currentValue >= bound : currentValue <= bound;
-            bool previousInside = keepGreater ? previousValue >= bound : previousValue <= bound;
+            var current = polygon[i];
+            var previous = polygon[(i + polygon.Count - 1) % polygon.Count];
+            var currentValue = axisX ? current.X : current.Y;
+            var previousValue = axisX ? previous.X : previous.Y;
+            var currentInside = keepGreater ? currentValue >= bound : currentValue <= bound;
+            var previousInside = keepGreater ? previousValue >= bound : previousValue <= bound;
 
             if (currentInside)
             {
@@ -114,17 +114,17 @@ internal static class MGConvexPolygonClipper
             return;
         }
 
-        Vector2 edge = edgeEnd - edgeStart;
+        var edge = edgeEnd - edgeStart;
         scratch.Clear();
-        for (int i = 0; i < polygon.Count; i++)
+        for (var i = 0; i < polygon.Count; i++)
         {
-            Vector2 current = polygon[i];
-            Vector2 previous = polygon[(i + polygon.Count - 1) % polygon.Count];
-            float currentSide = Cross(edge, current - edgeStart);
-            float previousSide = Cross(edge, previous - edgeStart);
+            var current = polygon[i];
+            var previous = polygon[(i + polygon.Count - 1) % polygon.Count];
+            var currentSide = Cross(edge, current - edgeStart);
+            var previousSide = Cross(edge, previous - edgeStart);
             //  Clockwise clip polygon: inside is the non-positive side of each directed edge; counter-clockwise: the non-negative side.
-            bool currentInside = clockwise ? currentSide <= 0 : currentSide >= 0;
-            bool previousInside = clockwise ? previousSide <= 0 : previousSide >= 0;
+            var currentInside = clockwise ? currentSide <= 0 : currentSide >= 0;
+            var previousInside = clockwise ? previousSide <= 0 : previousSide >= 0;
 
             if (currentInside)
             {
@@ -150,24 +150,24 @@ internal static class MGConvexPolygonClipper
     private static Vector2 IntersectBound(Vector2 from, Vector2 to, float fromValue, float toValue, float bound)
     {
         //  Endpoints lie on different sides of the bound, so the denominator is never zero.
-        float t = (bound - fromValue) / (toValue - fromValue);
+        var t = (bound - fromValue) / (toValue - fromValue);
         return from + (to - from) * t;
     }
 
     private static Vector2 IntersectEdge(Vector2 from, Vector2 to, float fromSide, float toSide)
     {
         //  Endpoints lie on different sides of the edge line, so the denominator is never zero.
-        float t = fromSide / (fromSide - toSide);
+        var t = fromSide / (fromSide - toSide);
         return from + (to - from) * t;
     }
 
     private static float SignedArea(IReadOnlyList<Vector2> polygon)
     {
-        float area = 0f;
-        for (int i = 0; i < polygon.Count; i++)
+        var area = 0f;
+        for (var i = 0; i < polygon.Count; i++)
         {
-            Vector2 a = polygon[i];
-            Vector2 b = polygon[(i + 1) % polygon.Count];
+            var a = polygon[i];
+            var b = polygon[(i + 1) % polygon.Count];
             area += a.X * b.Y - b.X * a.Y;
         }
 

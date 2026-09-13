@@ -37,13 +37,13 @@ internal sealed class MGDockDropZoneIndicator : MGElement
             return;
         }
 
-        Color fillColor = IsDisabled
+        var fillColor = IsDisabled
             ? DisabledColor
             : (IsHostEdge
                 ? (IsActive ? HostActiveColor : HostInactiveColor)
                 : (IsActive ? ActiveColor : InactiveColor));
 
-        Color borderColor = IsDisabled ? DisabledBorderColor : BorderColor;
+        var borderColor = IsDisabled ? DisabledBorderColor : BorderColor;
 
         DA.DT.FillRectangle(Vector2.Zero, new RectangleF(layoutBounds.X, layoutBounds.Y, layoutBounds.Width, layoutBounds.Height), fillColor);
         DrawBorder(DA, layoutBounds, borderColor, BorderWidth);
@@ -62,13 +62,13 @@ internal sealed class MGDockDropZoneIndicator : MGElement
     private void DrawSymbol(ElementDrawArgs DA, Rectangle bounds, Color color)
     {
         const int iconSize = 24;
-        Rectangle iconRect = new Rectangle(
+        var iconRect = new Rectangle(
             bounds.X + (bounds.Width - iconSize) / 2,
             bounds.Y + (bounds.Height - iconSize) / 2,
             iconSize,
             iconSize);
 
-        string textureKey = Zone switch
+        var textureKey = Zone switch
         {
             DockZone.Left => IsHostEdge ? "DockPanelLeft" : "DockPanelLeftDashed",
             DockZone.Right => IsHostEdge ? "DockPanelRight" : "DockPanelRightDashed",
@@ -299,7 +299,7 @@ public class MGDockDropIndicators : MGElement
     /// <summary>Takes ownership of one zone part; the zone it replaces, if a new structure brings another element, is detached from this overlay.</summary>
     private MGDockDropZoneIndicator BindZoneElement(MGDockDropZoneIndicator previous, MGControlTemplateStructure structure, string partName, DockZone zone, bool isHostEdge)
     {
-        MGDockDropZoneIndicator element = (MGDockDropZoneIndicator)structure.Parts[partName];
+        var element = (MGDockDropZoneIndicator)structure.Parts[partName];
         if (previous != null && !ReferenceEquals(previous, element))
         {
             previous.SetParent(null);
@@ -501,8 +501,8 @@ public class MGDockDropIndicators : MGElement
             return;
         }
 
-        int centerX = _targetBounds.X + _targetBounds.Width / 2;
-        int centerY = _targetBounds.Y + _targetBounds.Height / 2;
+        var centerX = _targetBounds.X + _targetBounds.Width / 2;
+        var centerY = _targetBounds.Y + _targetBounds.Height / 2;
 
         // Layout zones in a cross pattern:
         //       [Top]
@@ -560,9 +560,9 @@ public class MGDockDropIndicators : MGElement
             return;
         }
 
-        int midX = _hostBounds.X + _hostBounds.Width  / 2;
-        int midY = _hostBounds.Y + _hostBounds.Height / 2;
-        int half = ZoneSize / 2;
+        var midX = _hostBounds.X + _hostBounds.Width  / 2;
+        var midY = _hostBounds.Y + _hostBounds.Height / 2;
+        var half = ZoneSize / 2;
 
         // Left  — centred vertically on the left edge
         _hostLeftZoneRect = new Rectangle(

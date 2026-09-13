@@ -34,31 +34,31 @@ public static class ColorFormatter
 
     private static string FormatHexRgb(ColorValue value)
     {
-        (byte r, byte g, byte b, _) = ToBytes(value);
+        (var r, var g, var b, _) = ToBytes(value);
         return FormattableString.Invariant($"#{r:X2}{g:X2}{b:X2}");
     }
 
     private static string FormatHexArgb(ColorValue value)
     {
-        (byte r, byte g, byte b, byte a) = ToBytes(value);
+        (var r, var g, var b, var a) = ToBytes(value);
         return FormattableString.Invariant($"#{a:X2}{r:X2}{g:X2}{b:X2}");
     }
 
     private static string FormatHexRgba(ColorValue value)
     {
-        (byte r, byte g, byte b, byte a) = ToBytes(value);
+        (var r, var g, var b, var a) = ToBytes(value);
         return FormattableString.Invariant($"#{r:X2}{g:X2}{b:X2}{a:X2}");
     }
 
     private static string FormatRgbByte(ColorValue value)
     {
-        (byte r, byte g, byte b, _) = ToBytes(value);
+        (var r, var g, var b, _) = ToBytes(value);
         return FormattableString.Invariant($"rgb({r}, {g}, {b})");
     }
 
     private static string FormatRgbaByte(ColorValue value)
     {
-        (byte r, byte g, byte b, byte a) = ToBytes(value);
+        (var r, var g, var b, var a) = ToBytes(value);
         return FormattableString.Invariant($"rgba({r}, {g}, {b}, {a})");
     }
 
@@ -76,7 +76,7 @@ public static class ColorFormatter
 
     private static (byte R, byte G, byte B, byte A) ToBytes(ColorValue value)
     {
-        ColorValue clamped = value.ClampLdr();
+        var clamped = value.ClampLdr();
         return (ToByte(clamped.R), ToByte(clamped.G), ToByte(clamped.B), ToByte(clamped.A));
     }
 

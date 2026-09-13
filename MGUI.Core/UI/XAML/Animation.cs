@@ -100,8 +100,8 @@ public class Transition
             throw new InvalidOperationException("A Transition needs a Property path.");
         }
 
-        AnimationXamlParser.TryParseDuration(_duration, out TimeSpan duration);
-        AnimationXamlParser.TryParseDuration(_delay, out TimeSpan delay);
+        AnimationXamlParser.TryParseDuration(_duration, out var duration);
+        AnimationXamlParser.TryParseDuration(_delay, out var delay);
         IUIEasingFunction easing = null;
         if (!string.IsNullOrWhiteSpace(_easing))
         {
@@ -149,7 +149,7 @@ public class VisualStateDefinition
         }
 
         UIVisualState state = new(Name);
-        foreach (Setter setter in Setters)
+        foreach (var setter in Setters)
         {
             state.Add(setter.Property, setter.Value);
         }
@@ -257,10 +257,10 @@ public static class AnimationXamlParser
             return true;
         }
 
-        string text = value.Trim();
+        var text = value.Trim();
         if (text.EndsWith("ms", StringComparison.OrdinalIgnoreCase))
         {
-            if (double.TryParse(text[..^2], NumberStyles.Float, CultureInfo.InvariantCulture, out double milliseconds) && milliseconds >= 0)
+            if (double.TryParse(text[..^2], NumberStyles.Float, CultureInfo.InvariantCulture, out var milliseconds) && milliseconds >= 0)
             {
                 duration = TimeSpan.FromMilliseconds(milliseconds);
                 return true;
@@ -274,13 +274,13 @@ public static class AnimationXamlParser
             text = text[..^1];
         }
 
-        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double seconds) && seconds >= 0)
+        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds) && seconds >= 0)
         {
             duration = TimeSpan.FromSeconds(seconds);
             return true;
         }
 
-        if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out TimeSpan parsed) && parsed >= TimeSpan.Zero)
+        if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var parsed) && parsed >= TimeSpan.Zero)
         {
             duration = parsed;
             return true;
@@ -299,7 +299,7 @@ public static class AnimationXamlParser
             throw new InvalidOperationException("A visual state Setter needs a Property path.");
         }
 
-        Type type = UIAnimationTargets.GetValueType(path) ?? throw new InvalidOperationException(
+        var type = UIAnimationTargets.GetValueType(path) ?? throw new InvalidOperationException(
             $"Cannot convert '{path}' to an animation target for a visual state Setter: unknown path. Registered paths: {string.Join(", ", UIAnimationTargets.Paths)}.");
         if (value == null)
         {
@@ -356,7 +356,7 @@ public static class AnimationXamlParser
 
     public static Vector2 ParseVector2(string value)
     {
-        if (!TryParseVector2(value, out Vector2 vector))
+        if (!TryParseVector2(value, out var vector))
         {
             throw new FormatException($"Cannot convert '{value}' to a vector: use 'x,y' or a single number.");
         }
@@ -372,16 +372,16 @@ public static class AnimationXamlParser
             return false;
         }
 
-        string[] parts = value.Split(new[] { ',', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 1 && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float uniform))
+        var parts = value.Split(new[] { ',', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1 && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var uniform))
         {
             vector = new Vector2(uniform, uniform);
             return true;
         }
 
         if (parts.Length == 2
-            && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float x)
-            && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float y))
+            && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+            && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
         {
             vector = new Vector2(x, y);
             return true;

@@ -61,7 +61,7 @@ internal sealed class MGNumericUpDownModel
     public static double CoerceValue(double value, double minimum, double maximum, int decimalPlaces)
     {
         ValidateRange(minimum, maximum);
-        double rounded = RoundValue(value, decimalPlaces);
+        var rounded = RoundValue(value, decimalPlaces);
         return Math.Clamp(rounded, minimum, maximum);
     }
 
@@ -117,7 +117,7 @@ internal sealed class MGNumericUpDownModel
 
     public bool SetValue(double value)
     {
-        double coerced = CoerceValue(value, Minimum, Maximum, DecimalPlaces);
+        var coerced = CoerceValue(value, Minimum, Maximum, DecimalPlaces);
         if (Value == coerced)
         {
             return false;
@@ -148,14 +148,14 @@ internal sealed class MGNumericUpDownModel
             return false;
         }
 
-        bool parsed = double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double parsedValue);
+        var parsed = double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var parsedValue);
         value = parsed ? CoerceValue(parsedValue, Minimum, Maximum, DecimalPlaces) : default;
         return parsed;
     }
 
     public bool TryApplyText(string text, out double value)
     {
-        if (!TryParseText(text, out double parsedValue))
+        if (!TryParseText(text, out var parsedValue))
         {
             value = Value;
             return false;
@@ -178,7 +178,7 @@ internal sealed class MGNumericUpDownModel
 
     public string FormatValue(double value)
     {
-        double previousValue = Value;
+        var previousValue = Value;
         try
         {
             Value = CoerceValue(value, Minimum, Maximum, DecimalPlaces);

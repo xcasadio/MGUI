@@ -60,7 +60,7 @@ internal sealed class UIContainerSlotSubscription : IDisposable
 
     private void AttachContainer()
     {
-        INotifyPropertyChanged container = _GetContainer(_Element);
+        var container = _GetContainer(_Element);
         if (ReferenceEquals(container, _Container))
         {
             return;

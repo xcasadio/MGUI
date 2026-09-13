@@ -58,7 +58,7 @@ public class MGChatBox : MGElement
         {
             if (_TimestampFormat != value)
             {
-                string Previous = TimestampFormat;
+                var Previous = TimestampFormat;
                 _TimestampFormat = value;
                 NPC(nameof(TimestampFormat));
                 TimestampFormatChanged?.Invoke(this, new(Previous, TimestampFormat));
@@ -255,8 +255,8 @@ public class MGChatBox : MGElement
 
     public void SendMessage(string Message)
     {
-        MGScrollViewer ScrollViewer = MessagesContainer.ScrollViewer;
-        bool WasScrolledToBottom = ScrollViewer.VerticalOffset.IsAlmostEqual(ScrollViewer.MaxVerticalOffset);
+        var ScrollViewer = MessagesContainer.ScrollViewer;
+        var WasScrolledToBottom = ScrollViewer.VerticalOffset.IsAlmostEqual(ScrollViewer.MaxVerticalOffset);
         Messages.Add(new(Environment.UserName, DateTime.Now, Message));
         if (WasScrolledToBottom)
         {

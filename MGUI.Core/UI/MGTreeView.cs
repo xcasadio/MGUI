@@ -31,7 +31,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             return -1;
         }
 
-        int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+        var normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
         return action switch
         {
             UINavigationAction.MoveUp => Math.Max(0, normalizedIndex - 1),
@@ -320,7 +320,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
 
     protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
     {
-        MGStackPanel PreviousItemsPanel = ItemsPanel;
+        var PreviousItemsPanel = ItemsPanel;
         OuterBorder = Structure.Parts[OuterBorderPartName] as MGBorder;
         ScrollViewer = Structure.Parts[ScrollViewerPartName] as MGScrollViewer;
         ItemsPanel = Structure.Parts[ItemsPanelPartName] as MGStackPanel;
@@ -359,7 +359,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             using (ItemsPanel.AllowChangingContentTemporarily())
             using (ItemsPanel.SuspendContentLayout())
             {
-                foreach (MGTreeViewItem Item in _Items)
+                foreach (var Item in _Items)
                 {
                     _ = ItemsPanel.TryAddChild(Item);
                 }
@@ -485,7 +485,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
         {
             if (action is UINavigationAction.MoveDown or UINavigationAction.MoveUp or UINavigationAction.Home or UINavigationAction.End or UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Submit)
             {
-                MGTreeViewItem firstItem = _VisibleItemsCache.FirstOrDefault();
+                var firstItem = _VisibleItemsCache.FirstOrDefault();
                 if (firstItem != null)
                 {
                     SelectItem(firstItem);
@@ -503,8 +503,8 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             case UINavigationAction.Home:
             case UINavigationAction.End:
             {
-                int currentIndex = _VisibleItemsCache.IndexOf(SelectedItem);
-                int nextIndex = GetNextVisibleNavigationIndex(currentIndex, _VisibleItemsCache.Count, action);
+                var currentIndex = _VisibleItemsCache.IndexOf(SelectedItem);
+                var nextIndex = GetNextVisibleNavigationIndex(currentIndex, _VisibleItemsCache.Count, action);
                 if (nextIndex < 0)
                 {
                     return false;
@@ -520,7 +520,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
                 }
                 else
                 {
-                    MGTreeViewItem firstChild = SelectedItem.Items.FirstOrDefault();
+                    var firstChild = SelectedItem.Items.FirstOrDefault();
                     if (firstChild != null)
                     {
                         SelectItem(firstChild);
@@ -682,7 +682,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
     /// </summary>
     public void ClearItems()
     {
-        for (int index = _Items.Count - 1; index >= 0; index--)
+        for (var index = _Items.Count - 1; index >= 0; index--)
         {
             RemoveItem(_Items[index]);
         }
@@ -700,7 +700,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             return null;
         }
 
-        int index = _VisibleItemsCache.IndexOf(current);
+        var index = _VisibleItemsCache.IndexOf(current);
         if (index == -1)
         {
             return null;
@@ -726,7 +726,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             return null;
         }
 
-        int index = _VisibleItemsCache.IndexOf(current);
+        var index = _VisibleItemsCache.IndexOf(current);
         if (index == -1)
         {
             return null;
@@ -812,11 +812,11 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
         float itemTop = bounds.Y;
         float itemBottom = bounds.Bottom;
         float contentTop = ScrollViewer.Content?.LayoutBounds.Top ?? 0;
-        float viewportTop = contentTop + ScrollViewer.VerticalOffset;
+        var viewportTop = contentTop + ScrollViewer.VerticalOffset;
         float viewportHeight = ScrollViewer.ContentViewport.Height;
-        float viewportBottom = viewportTop + viewportHeight;
-        bool invalidBounds = bounds.Height <= 0;
-        float newOffset = viewportTop;
+        var viewportBottom = viewportTop + viewportHeight;
+        var invalidBounds = bounds.Height <= 0;
+        var newOffset = viewportTop;
         if (!invalidBounds)
         {
             if (itemTop < viewportTop)
@@ -830,12 +830,12 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
         }
         else
         {
-            int index = _VisibleItemsCache.IndexOf(item);
+            var index = _VisibleItemsCache.IndexOf(item);
             if (index >= 0)
             {
-                int estimatedHeight = item.ActualHeight > 0 ? item.ActualHeight : (_VisibleItemsCache.FirstOrDefault()?.ActualHeight ?? 24);
+                var estimatedHeight = item.ActualHeight > 0 ? item.ActualHeight : (_VisibleItemsCache.FirstOrDefault()?.ActualHeight ?? 24);
                 float estimatedTop = index * estimatedHeight;
-                float estimatedBottom = estimatedTop + estimatedHeight;
+                var estimatedBottom = estimatedTop + estimatedHeight;
                 if (estimatedTop < viewportTop)
                 {
                     newOffset = estimatedTop;

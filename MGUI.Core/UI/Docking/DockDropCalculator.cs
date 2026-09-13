@@ -48,8 +48,8 @@ public static class DockDropCalculator
             return targets;
         }
 
-        int halfW = (int)(hostBounds.Width  * previewRatio);
-        int halfH = (int)(hostBounds.Height * previewRatio);
+        var halfW = (int)(hostBounds.Width  * previewRatio);
+        var halfH = (int)(hostBounds.Height * previewRatio);
 
         // Left edge
         targets.Add(new DockDropTarget(null, DockZone.Left,
@@ -101,7 +101,7 @@ public static class DockDropCalculator
         }
 
         // Calculate margin size (25% of the smallest dimension by default)
-        int marginSize = (int)(Math.Min(groupBounds.Width, groupBounds.Height) * marginPercent);
+        var marginSize = (int)(Math.Min(groupBounds.Width, groupBounds.Height) * marginPercent);
         marginSize = Math.Max(marginSize, 30); // Minimum 30px for usability
         marginSize =
             Math.Min(marginSize,
@@ -220,7 +220,7 @@ public static class DockDropCalculator
             return zones;
         }
 
-        int marginSize = (int)(Math.Min(nodeBounds.Width, nodeBounds.Height) * marginPercent);
+        var marginSize = (int)(Math.Min(nodeBounds.Width, nodeBounds.Height) * marginPercent);
         marginSize = Math.Max(marginSize, 30);
         marginSize = Math.Min(marginSize, Math.Min(nodeBounds.Width, nodeBounds.Height) / 3);
 
@@ -336,21 +336,21 @@ public static class DockDropCalculator
         }
 
         // Find current index of dragged panel
-        int draggedIndex = tabGroup.GroupNode.IndexOf(draggedPanel);
+        var draggedIndex = tabGroup.GroupNode.IndexOf(draggedPanel);
         if (draggedIndex < 0)
         {
             return -1; // Panel not in this group
         }
 
         // Find which tab position the mouse is closest to
-        int targetIndex = 0;
-        bool foundPosition = false;
+        var targetIndex = 0;
+        var foundPosition = false;
         
-        for (int i = 0; i < tabItems.Count; i++)
+        for (var i = 0; i < tabItems.Count; i++)
         {
             var tabItem = tabItems[i];
             var bounds = tabItem.LayoutBounds;
-            int tabMidPoint = bounds.X + bounds.Width / 2;
+            var tabMidPoint = bounds.X + bounds.Width / 2;
 
             if (mouseX < tabMidPoint)
             {
@@ -417,14 +417,14 @@ public static class DockDropCalculator
         }
 
         // Find current visual index of dragged panel
-        int draggedIndex = -1;
+        var draggedIndex = -1;
         if (draggedPanel != null)
         {
             draggedIndex = tabGroup.GroupNode.IndexOf(draggedPanel);
         }
 
         // Convert final index to VISUAL index (compensate for dragged panel still being visible)
-        int visualIndex = targetIndex;
+        var visualIndex = targetIndex;
         if (draggedIndex >= 0 && draggedIndex <= targetIndex)
         {
             // If dragged panel is BEFORE or AT the target position,
@@ -449,8 +449,8 @@ public static class DockDropCalculator
 
         // Create a vertical line indicator (3px wide, full height of tab area)
         var headerBounds = tabGroup.TabHeadersBounds;
-        int lineWidth = 3;
-        Rectangle previewRect = new Rectangle(
+        var lineWidth = 3;
+        var previewRect = new Rectangle(
             insertX - lineWidth / 2,
             headerBounds.Top,
             lineWidth,

@@ -32,7 +32,7 @@ public sealed class MGColorPickerModel
         get => StorageColorSpace == ColorSpaceMode.Linear;
         set
         {
-            ColorSpaceMode target = value ? ColorSpaceMode.Linear : ColorSpaceMode.Srgb;
+            var target = value ? ColorSpaceMode.Linear : ColorSpaceMode.Srgb;
             if (StorageColorSpace != target)
             {
                 SetValue(ColorSpaceConverter.Convert(Value, target));
@@ -81,8 +81,8 @@ public sealed class MGColorPickerModel
             EditTransaction.Cancel();
         }
 
-        ColorValue previous = CommittedValue;
-        ColorValue actual = ApplyValue(value);
+        var previous = CommittedValue;
+        var actual = ApplyValue(value);
         CommittedValue = actual;
         _editStartValue = actual;
         IsEditing = false;
@@ -121,7 +121,7 @@ public sealed class MGColorPickerModel
 
     public void SetTemperatureKelvin(float kelvin, float minKelvin = ColorTemperatureConverter.DefaultMinKelvin, float maxKelvin = ColorTemperatureConverter.DefaultMaxKelvin)
     {
-        float actualKelvin = ColorTemperatureConverter.ClampKelvin(kelvin, minKelvin, maxKelvin);
+        var actualKelvin = ColorTemperatureConverter.ClampKelvin(kelvin, minKelvin, maxKelvin);
         TemperatureKelvin = actualKelvin;
         PreviewDisplayValue(ColorTemperatureConverter.KelvinToRgb(actualKelvin, DisplayColorSpace, minKelvin, maxKelvin).WithAlpha(Value.A));
     }
@@ -131,8 +131,8 @@ public sealed class MGColorPickerModel
 
     public string GetQuickInfoText(ColorValueFormat hexFormat = ColorValueFormat.HexRgba)
     {
-        ColorValue display = DisplayValue;
-        HsvColor hsv = ColorSpaceConverter.RgbToHsv(display);
+        var display = DisplayValue;
+        var hsv = ColorSpaceConverter.RgbToHsv(display);
         return $"{ColorFormatter.Format(display, hexFormat)}  {ColorFormatter.Format(display, ColorValueFormat.RgbaFloat)}  HSV({MathF.Round(hsv.H)}, {hsv.S:0.###}, {hsv.V:0.###})";
     }
 
@@ -156,8 +156,8 @@ public sealed class MGColorPickerModel
             BeginEdit();
         }
 
-        ColorValue previousPreview = Value;
-        ColorValue actual = ApplyValue(value);
+        var previousPreview = Value;
+        var actual = ApplyValue(value);
         if (previousPreview == actual)
         {
             return;
@@ -167,7 +167,7 @@ public sealed class MGColorPickerModel
         ValueChanging?.Invoke(this, new ColorValueChangingEventArgs(_editStartValue, actual));
         if (CommitMode == ColorEditCommitMode.Live)
         {
-            ColorValue previousCommit = CommittedValue;
+            var previousCommit = CommittedValue;
             CommittedValue = actual;
             ValueChanged?.Invoke(this, new ColorValueChangedEventArgs(previousCommit, actual));
         }
@@ -184,7 +184,7 @@ public sealed class MGColorPickerModel
 
     public string GetDisplayText(ColorValueFormat format, bool includeColorSpace = true)
     {
-        string text = ColorFormatter.Format(GetDisplayValue(), format);
+        var text = ColorFormatter.Format(GetDisplayValue(), format);
         return includeColorSpace ? $"{text} [{DisplayColorSpace}]" : text;
     }
 
@@ -195,8 +195,8 @@ public sealed class MGColorPickerModel
             return false;
         }
 
-        ColorValue previousCommit = CommittedValue;
-        ColorValue finalValue = Value;
+        var previousCommit = CommittedValue;
+        var finalValue = Value;
         if (CommitMode != ColorEditCommitMode.Live && previousCommit != finalValue)
         {
             CommittedValue = finalValue;
@@ -217,7 +217,7 @@ public sealed class MGColorPickerModel
             return false;
         }
 
-        ColorValue currentValue = Value;
+        var currentValue = Value;
         ApplyValue(_editStartValue);
         if (CommitMode == ColorEditCommitMode.Live && currentValue != _editStartValue)
         {
@@ -233,8 +233,8 @@ public sealed class MGColorPickerModel
 
     private void SetValue(ColorValue value, bool raiseEvent)
     {
-        ColorValue previous = Value;
-        ColorValue actual = ApplyValue(value);
+        var previous = Value;
+        var actual = ApplyValue(value);
         CommittedValue = actual;
         _editStartValue = actual;
 
@@ -246,7 +246,7 @@ public sealed class MGColorPickerModel
 
     private ColorValue ApplyValue(ColorValue value)
     {
-        ColorValue actual = Constraints.Apply(value);
+        var actual = Constraints.Apply(value);
         Value = actual;
         RefreshDisplayState();
         return actual;
@@ -254,7 +254,7 @@ public sealed class MGColorPickerModel
 
     private void RefreshDisplayState()
     {
-        ColorValue displayValue = GetDisplayValue();
+        var displayValue = GetDisplayValue();
         HsvValue = ColorSpaceConverter.RgbToHsv(displayValue);
         TextInput.SetValue(displayValue);
     }

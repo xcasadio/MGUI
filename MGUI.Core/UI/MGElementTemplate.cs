@@ -26,13 +26,13 @@ public class MGElementTemplate
         {
             return Template(Window);
         }
-        else if (Instances.TryGetValue(Window, out MGElement SharedInstance))
+        else if (Instances.TryGetValue(Window, out var SharedInstance))
         {
             return SharedInstance;
         }
         else
         {
-            MGElement Instance = Template(Window);
+            var Instance = Template(Window);
             Instances.Add(Window, Instance);
             return Instance;
         }

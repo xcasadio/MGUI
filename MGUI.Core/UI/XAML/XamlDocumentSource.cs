@@ -44,7 +44,7 @@ public class XamlDocumentSource
             throw new ArgumentException("A valid file path is required.", nameof(FilePath));
         }
 
-        string FullPath = Path.GetFullPath(FilePath);
+        var FullPath = Path.GetFullPath(FilePath);
         return new(XamlDocumentSourceKind.File, () => File.ReadAllText(FullPath), Path.GetFileName(FullPath), FullPath);
     }
 
@@ -57,7 +57,7 @@ public class XamlDocumentSource
 
         return new(XamlDocumentSourceKind.Stream, () =>
         {
-            using Stream Stream = StreamFactory();
+            using var Stream = StreamFactory();
             using StreamReader Reader = new(Stream, Encoding.UTF8, true, 1024, false);
             return Reader.ReadToEnd();
         }, DisplayName);

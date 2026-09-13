@@ -46,7 +46,7 @@ public readonly struct MGProgressBarGradientBrush : IFillBrush
 
     private Color GetFillColor(float opacity)
     {
-        float progress = ProgressBar.ValuePercent / 100f;
+        var progress = ProgressBar.ValuePercent / 100f;
 
         float min;
         float max;
@@ -68,7 +68,7 @@ public readonly struct MGProgressBarGradientBrush : IFillBrush
         }
 
         progress = (progress - min) / (max - min);
-        int alpha = (int)(c1.A * (1.0f - progress) + c2.A * progress);
+        var alpha = (int)(c1.A * (1.0f - progress) + c2.A * progress);
         return new Color(Color.Lerp(c1, c2, progress), alpha) * opacity;
     }
 

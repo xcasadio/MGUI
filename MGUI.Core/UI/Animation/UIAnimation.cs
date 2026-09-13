@@ -232,26 +232,26 @@ public abstract class UIAnimation
             Started?.Invoke(this, EventArgs.Empty);
         }
 
-        long passTicks = Duration.Ticks;
+        var passTicks = Duration.Ticks;
         if (passTicks <= 0)
         {
             Complete(AutoReverse ? 0f : 1f);
             return;
         }
 
-        long localTicks = Math.Max(0L, (Elapsed - Delay).Ticks);
-        long iterationTicks = AutoReverse ? passTicks * 2 : passTicks;
-        long iteration = localTicks / iterationTicks;
+        var localTicks = Math.Max(0L, (Elapsed - Delay).Ticks);
+        var iterationTicks = AutoReverse ? passTicks * 2 : passTicks;
+        var iteration = localTicks / iterationTicks;
         if (!RepeatForever && iteration > RepeatCount)
         {
             Complete(AutoReverse ? 0f : 1f);
             return;
         }
 
-        long withinIteration = localTicks - iteration * iterationTicks;
+        var withinIteration = localTicks - iteration * iterationTicks;
         IterationElapsed = TimeSpan.FromTicks(withinIteration);
-        float progress = (float)((double)withinIteration / passTicks);
-        bool reversing = false;
+        var progress = (float)((double)withinIteration / passTicks);
+        var reversing = false;
         if (AutoReverse && progress > 1f)
         {
             progress = 2f - progress;

@@ -85,7 +85,7 @@ public abstract class UIAnimationBuilder
     /// step), built once per chain.</summary>
     public UIAnimation Build()
     {
-        List<UIAnimation> steps = _Chain.Steps;
+        var steps = _Chain.Steps;
         if (steps.Count == 1)
         {
             return steps[0];
@@ -94,7 +94,7 @@ public abstract class UIAnimationBuilder
         if (_Chain.Sequence == null)
         {
             UISequenceAnimation sequence = new();
-            for (int i = 0; i < steps.Count; i++)
+            for (var i = 0; i < steps.Count; i++)
             {
                 sequence.Append(steps[i]);
                 sequence.Name ??= steps[i].Name;
@@ -109,7 +109,7 @@ public abstract class UIAnimationBuilder
     /// <summary>Builds and starts the animation on <see cref="Element"/>; returns it (a <see cref="UISequenceAnimation"/> when the chain has several steps).</summary>
     public UIAnimation Play()
     {
-        UIAnimation animation = Build();
+        var animation = Build();
         Element.Animations.Start(animation);
         return animation;
     }
@@ -162,7 +162,7 @@ public sealed class UIAnimationBuilder<T> : UIAnimationBuilder
     /// <exception cref="ArgumentException">The name is unknown.</exception>
     public UIAnimationBuilder<T> Ease(string easingName)
     {
-        if (!UIEasing.TryGet(easingName, out IUIEasingFunction easing))
+        if (!UIEasing.TryGet(easingName, out var easing))
         {
             throw new ArgumentException($"Unknown easing '{easingName}'. Known names: {string.Join(", ", UIEasing.Names)}.", nameof(easingName));
         }

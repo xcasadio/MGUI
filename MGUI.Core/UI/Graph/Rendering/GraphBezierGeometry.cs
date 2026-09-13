@@ -8,7 +8,7 @@ public static class GraphBezierGeometry
 
     public static void BuildDefaultEdge(Vector2 start, Vector2 end, IList<Vector2> output, int segmentCount = DefaultSegmentCount)
     {
-        float handleDistance = Math.Max(64.0f, Math.Abs(end.X - start.X) * 0.5f);
+        var handleDistance = Math.Max(64.0f, Math.Abs(end.X - start.X) * 0.5f);
         Vector2 control1 = new(start.X + handleDistance, start.Y);
         Vector2 control2 = new(end.X - handleDistance, end.Y);
         SampleCubic(start, control1, control2, end, output, segmentCount);
@@ -22,18 +22,18 @@ public static class GraphBezierGeometry
         }
 
         output.Clear();
-        int clampedSegments = Math.Max(1, segmentCount);
-        for (int i = 0; i <= clampedSegments; i++)
+        var clampedSegments = Math.Max(1, segmentCount);
+        for (var i = 0; i <= clampedSegments; i++)
         {
-            float t = i / (float)clampedSegments;
+            var t = i / (float)clampedSegments;
             output.Add(EvaluateCubic(start, control1, control2, end, t));
         }
     }
 
     public static Vector2 EvaluateCubic(Vector2 start, Vector2 control1, Vector2 control2, Vector2 end, float t)
     {
-        float clamped = Math.Clamp(t, 0.0f, 1.0f);
-        float oneMinusT = 1.0f - clamped;
+        var clamped = Math.Clamp(t, 0.0f, 1.0f);
+        var oneMinusT = 1.0f - clamped;
         return oneMinusT * oneMinusT * oneMinusT * start
                + 3.0f * oneMinusT * oneMinusT * clamped * control1
                + 3.0f * oneMinusT * clamped * clamped * control2

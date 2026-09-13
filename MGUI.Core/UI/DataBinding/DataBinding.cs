@@ -133,11 +133,11 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         {
             IList<string> PropertyNames = Config.SourcePaths;
 
-            object Current = SourceRoot;
-            for (int i = 0; i < PropertyNames.Count - 1; i++)
+            var Current = SourceRoot;
+            for (var i = 0; i < PropertyNames.Count - 1; i++)
             {
-                string PropertyName = PropertyNames[i];
-                PropertyInfo Property = GetPublicProperty(Current, PropertyName);
+                var PropertyName = PropertyNames[i];
+                var Property = GetPublicProperty(Current, PropertyName);
                 if (Property == null)
                 {
                     break;
@@ -273,16 +273,16 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 
     public static object ResolvePath(object Root, IList<string> PropertyNames, bool ExcludeLast = false)
     {
-        object Current = Root;
-        for (int i = 0; i < PropertyNames.Count; i++)
+        var Current = Root;
+        for (var i = 0; i < PropertyNames.Count; i++)
         {
             if (Current == null || (ExcludeLast && i == PropertyNames.Count - 1))
             {
                 break;
             }
 
-            string PropertyName = PropertyNames[i];
-            PropertyInfo Property = GetPublicProperty(Current, PropertyName);
+            var PropertyName = PropertyNames[i];
+            var Property = GetPublicProperty(Current, PropertyName);
             Current = Property?.GetValue(Current, null);
         }
 
@@ -297,13 +297,13 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             return null;
         }
 
-        if (!CachedProperties.TryGetValue(Parent, out Dictionary<string, PropertyInfo> PropertiesByName))
+        if (!CachedProperties.TryGetValue(Parent, out var PropertiesByName))
         {
             PropertiesByName = new();
             CachedProperties.Add(Parent, PropertiesByName);
         }
 
-        if (!PropertiesByName.TryGetValue(PropertyName, out PropertyInfo PropInfo))
+        if (!PropertiesByName.TryGetValue(PropertyName, out var PropInfo))
         {
             PropInfo = Parent.GetType().GetProperty(PropertyName);
             PropertiesByName.Add(PropertyName, PropInfo);
@@ -349,22 +349,22 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         //				Then from that property's value, look for a property named "B" and take it's value.
         //				Since we only want the parent property of the innermost source property, we would stop at object "B".
 
-        object InitialSourceRoot = Config.SourceResolver.ResolveSourceObject(Object);
+        var InitialSourceRoot = Config.SourceResolver.ResolveSourceObject(Object);
         switch (Config.DataContextResolver)
         {
             case DataContextResolver.DataContext:
                 //  Retrieve the value of the "DataContext" property
                 if (InitialSourceRoot is IObservableDataContext DataContextHost)
                 {
-                    string DataContextPropertyName = DataContextHost.DataContextPropertyName;
-                    PropertyInfo DataContextProperty = GetPublicProperty(InitialSourceRoot, DataContextPropertyName);
+                    var DataContextPropertyName = DataContextHost.DataContextPropertyName;
+                    var DataContextProperty = GetPublicProperty(InitialSourceRoot, DataContextPropertyName);
                     SourceRoot = DataContextProperty?.GetValue(InitialSourceRoot);
                     DataContextHost.DataContextChanged += (sender, e) => { SourceRoot = DataContextProperty.GetValue(InitialSourceRoot); };
                 }
                 else
                 {
-                    string DataContextPropertyName = IObservableDataContext.DefaultDataContextPropertyName;
-                    PropertyInfo DataContextProperty = GetPublicProperty(InitialSourceRoot, DataContextPropertyName);
+                    var DataContextPropertyName = IObservableDataContext.DefaultDataContextPropertyName;
+                    var DataContextProperty = GetPublicProperty(InitialSourceRoot, DataContextPropertyName);
                     SourceRoot = DataContextProperty?.GetValue(InitialSourceRoot);
                 }
                 break;
@@ -454,7 +454,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
     {
         if (TargetObject != null && TargetProperty != null)
         {
-            Type SourceType = Value?.GetType();
+            var SourceType = Value?.GetType();
             TargetPropertyType ??= GetUnderlyingType(TargetProperty);
 
             if (ConverterSettings.HasValue)
@@ -466,7 +466,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             if ((Value == null && !TargetPropertyType.IsValueType) ||
                 (Value != null && IsAssignableOrConvertible(SourceType, TargetPropertyType)))
             {
-                object ActualValue = ConvertValue(Context, SourceType, TargetPropertyType, Value, null, StringFormat);
+                var ActualValue = ConvertValue(Context, SourceType, TargetPropertyType, Value, null, StringFormat);
                 try
                 {
                     if (TryTaggedWrite == null || !TryTaggedWrite(ActualValue))
@@ -502,7 +502,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             SourcePropertyType ??= GetUnderlyingType(SourceProperty);
             TargetPropertyType ??= GetUnderlyingType(TargetProperty);
 
-            object Value = SourceProperty.GetValue(SourceObject);
+            var Value = SourceProperty.GetValue(SourceObject);
             if (ConverterSettings.HasValue)
             {
                 Value = ConverterSettings.Value.Apply(Value, TargetPropertyType);
@@ -511,7 +511,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 
             if (ConverterSettings.HasValue || IsAssignableOrConvertible(SourcePropertyType, TargetPropertyType))
             {
-                object ActualValue = ConvertValue(Context, SourcePropertyType, TargetPropertyType, Value, null, StringFormat);
+                var ActualValue = ConvertValue(Context, SourcePropertyType, TargetPropertyType, Value, null, StringFormat);
                 try
                 {
                     if (TryTaggedWrite == null || !TryTaggedWrite(ActualValue))
@@ -548,7 +548,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         {
             return Value;
         }
-        else if (TryConvertWithTypeConverter(Context, SourceType, TargetType, Value, out object TypeConvertedValue))
+        else if (TryConvertWithTypeConverter(Context, SourceType, TargetType, Value, out var TypeConvertedValue))
         {
             return TypeConvertedValue;
         }
@@ -585,7 +585,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 
     private static bool TryConvertFromWithTypeConverter(ITypeDescriptorContext Context, Type SourceType, Type TargetType, object Value, out object Result)
     {
-        TypeConverter Converter = GetConverter(TargetType);
+        var Converter = GetConverter(TargetType);
         if (Converter.CanConvertFrom(SourceType))
         {
             try
@@ -604,7 +604,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 
     private static bool TryConvertToWithTypeConverter(ITypeDescriptorContext Context, Type SourceType, Type TargetType, object Value, out object Result)
     {
-        TypeConverter Converter = GetConverter(SourceType);
+        var Converter = GetConverter(SourceType);
         if (Converter.CanConvertTo(TargetType))
         {
             Result = Context == null ?
@@ -631,7 +631,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 
         lock (CanAssignByType)
         {
-            if (!CanAssignByType.TryGetValue(To, out bool CanAssign))
+            if (!CanAssignByType.TryGetValue(To, out var CanAssign))
             {
                 CanAssign = From.IsAssignableTo(To);
                 CanAssignByType.Add(To, CanAssign);
@@ -648,7 +648,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         };
 
         //  Apply some default TypeConverters such as being able to convert a string to a Microsoft.Xna.Framework.Color
-        foreach (KeyValuePair<Type, Type> KVP in BuiltInTypeConverters)
+        foreach (var KVP in BuiltInTypeConverters)
         {
             RegisterDefaultTypeConverter(KVP.Key, KVP.Value);
         }
@@ -669,7 +669,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             return null;
         }
 
-        if (!CachedConverters.TryGetValue(Type, out TypeConverter Converter))
+        if (!CachedConverters.TryGetValue(Type, out var Converter))
         {
             Converter = TypeDescriptor.GetConverter(Type);
             CachedConverters.TryAdd(Type, Converter);
@@ -693,12 +693,12 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             return false;
         }
 
-        TypeConverter Converter = GetConverter(To);
+        var Converter = GetConverter(To);
 
         var CanConvertByType = CachedCanConvertFrom.GetOrAdd(Converter, _ => new Dictionary<Type, bool>());
         lock (CanConvertByType)
         {
-            if (!CanConvertByType.TryGetValue(To, out bool CanConvert))
+            if (!CanConvertByType.TryGetValue(To, out var CanConvert))
             {
                 CanConvert = Converter.CanConvertFrom(From);
                 CanConvertByType.Add(To, CanConvert);
@@ -714,12 +714,12 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             return false;
         }
 
-        TypeConverter Converter = GetConverter(From);
+        var Converter = GetConverter(From);
 
         var CanConvertByType = CachedCanConvertTo.GetOrAdd(Converter, _ => new Dictionary<Type, bool>());
         lock (CanConvertByType)
         {
-            if (!CanConvertByType.TryGetValue(To, out bool CanConvert))
+            if (!CanConvertByType.TryGetValue(To, out var CanConvert))
             {
                 CanConvert = Converter.CanConvertTo(To);
                 CanConvertByType.Add(To, CanConvert);

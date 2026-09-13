@@ -18,18 +18,18 @@ public static class ControlTemplateLoader
                 throw new ArgumentNullException(nameof(Source));
             }
 
-            string markup = Source.LoadContent();
-            XDocument documentRoot = XDocument.Parse(markup, LoadOptions.SetLineInfo);
-            string rootName = documentRoot.Root?.Name.LocalName;
+            var markup = Source.LoadContent();
+            var documentRoot = XDocument.Parse(markup, LoadOptions.SetLineInfo);
+            var rootName = documentRoot.Root?.Name.LocalName;
             IReadOnlyList<ControlTemplateDefinition> definitions;
             if (rootName == nameof(ControlTemplatesDocument) || rootName == nameof(ControlTemplates))
             {
-                ControlTemplatesDocument document = XAMLParser.ParseObjectDefinition<ControlTemplatesDocument>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                var document = XAMLParser.ParseObjectDefinition<ControlTemplatesDocument>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
                 definitions = document?.Templates ?? new List<ControlTemplateDefinition>();
             }
             else if (rootName == nameof(ControlTemplateDefinition) || rootName == nameof(ControlTemplate))
             {
-                ControlTemplateDefinition definition = XAMLParser.ParseObjectDefinition<ControlTemplateDefinition>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+                var definition = XAMLParser.ParseObjectDefinition<ControlTemplateDefinition>(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
                 definitions = definition == null ? Array.Empty<ControlTemplateDefinition>() : new[] { definition };
             }
             else if (Mode == XamlLoaderMode.Strict)
@@ -64,9 +64,9 @@ public static class ControlTemplateLoader
         }
 
         Dictionary<string, ControlTemplateDefinition> definitionsByName = new(StringComparer.Ordinal);
-        foreach (ControlTemplateDefinition definition in Definitions.Where(x => x != null))
+        foreach (var definition in Definitions.Where(x => x != null))
         {
-            string name = definition.Name ?? throw new InvalidOperationException($"{nameof(ControlTemplateDefinition)} requires a non-null {nameof(ControlTemplateDefinition.Name)}.");
+            var name = definition.Name ?? throw new InvalidOperationException($"{nameof(ControlTemplateDefinition)} requires a non-null {nameof(ControlTemplateDefinition.Name)}.");
             definitionsByName[name] = definition;
         }
 
@@ -75,12 +75,12 @@ public static class ControlTemplateLoader
 
         Styling.MGControlTemplate Resolve(string name)
         {
-            if (cache.TryGetValue(name, out Styling.MGControlTemplate cachedTemplate))
+            if (cache.TryGetValue(name, out var cachedTemplate))
             {
                 return cachedTemplate;
             }
 
-            if (!definitionsByName.TryGetValue(name, out ControlTemplateDefinition definition))
+            if (!definitionsByName.TryGetValue(name, out var definition))
             {
                 return ResolveExternalTemplate?.Invoke(name);
             }
@@ -127,7 +127,7 @@ public static class ControlTemplateLoader
             }
         }
 
-        foreach (string name in definitionsByName.Keys)
+        foreach (var name in definitionsByName.Keys)
         {
             _ = Resolve(name);
         }
@@ -147,10 +147,10 @@ public static class ControlTemplateLoader
             throw new ArgumentNullException(nameof(Resources));
         }
 
-        IReadOnlyList<ControlTemplateDefinition> definitions = ParseDefinitions(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
-        IReadOnlyDictionary<string, Styling.MGControlTemplate> templates = BuildTemplates(definitions,
-            name => Resources.TryGetControlTemplate(name, out Styling.MGControlTemplate template) ? template : null);
-        foreach (KeyValuePair<string, Styling.MGControlTemplate> item in templates)
+        var definitions = ParseDefinitions(Source, Mode, SanitizeXAMLString, ReplaceLinebreakLiterals);
+        var templates = BuildTemplates(definitions,
+            name => Resources.TryGetControlTemplate(name, out var template) ? template : null);
+        foreach (var item in templates)
         {
             Resources.RemoveControlTemplate(item.Key);
             Resources.AddControlTemplate(item.Value);
@@ -169,7 +169,7 @@ public static class ControlTemplateLoader
 
         // Backlog task 15: the pilot attributes of the structure are values of the template, not of the application.
         Definition.Root?.MarkAsTemplateStructure(Definition.Name);
-        foreach (Element detachedRoot in Definition.DetachedRoots ?? new List<Element>())
+        foreach (var detachedRoot in Definition.DetachedRoots ?? new List<Element>())
         {
             detachedRoot?.MarkAsTemplateStructure(Definition.Name);
         }
@@ -201,8 +201,8 @@ public static class ControlTemplateLoader
             throw new InvalidOperationException($"XAML control template '{Definition.Name}' requires a live window to instantiate its structure.");
         }
 
-        MGElement root = Definition.Root?.ToElement<MGElement>(Context.Window, Context.Owner);
-        List<MGElement> detachedRoots = Definition.DetachedRoots?
+        var root = Definition.Root?.ToElement<MGElement>(Context.Window, Context.Owner);
+        var detachedRoots = Definition.DetachedRoots?
             .Where(x => x != null)
             .Select(x => x.ToElement<MGElement>(Context.Window, Context.Owner))
             .Where(x => x != null)
@@ -219,7 +219,7 @@ public static class ControlTemplateLoader
                 return;
             }
 
-            foreach (MGElement element in candidateRoot
+            foreach (var element in candidateRoot
                          .TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder)
                          .Where(x => !string.IsNullOrWhiteSpace(x.Name)))
             {
@@ -228,21 +228,21 @@ public static class ControlTemplateLoader
         }
 
         collectNamedElements(root);
-        foreach (MGElement detachedRoot in detachedRoots)
+        foreach (var detachedRoot in detachedRoots)
         {
             collectNamedElements(detachedRoot);
         }
 
-        foreach (TemplatePartDefinition part in Definition.Parts)
+        foreach (var part in Definition.Parts)
         {
-            string elementName = string.IsNullOrWhiteSpace(part.ElementName) ? part.Name : part.ElementName;
-            if (!string.IsNullOrWhiteSpace(elementName) && namedElements.TryGetValue(elementName, out MGElement element))
+            var elementName = string.IsNullOrWhiteSpace(part.ElementName) ? part.Name : part.ElementName;
+            if (!string.IsNullOrWhiteSpace(elementName) && namedElements.TryGetValue(elementName, out var element))
             {
                 structure.AddPart(part.Name, element);
             }
         }
 
-        foreach (MGElement element in namedElements.Values.Distinct())
+        foreach (var element in namedElements.Values.Distinct())
         {
             element.Name = null;
         }
@@ -250,13 +250,13 @@ public static class ControlTemplateLoader
         // Backlog task 15: the values the definition declared on its elements, recorded as Template contributions named "<template>:<element>.<property>"
         // by Element.ResolveXamlSource, are kept with the structure so that MGElement.ApplyControlTemplate applies them again after the defaults of
         // the base applicator. The prefix excludes the template values of the elements' own templates (a Window part applies "Window.*" keys).
-        string declaredPrefix = Definition.Name + ":";
-        IEnumerable<MGElement> structureElements = (root == null ? Enumerable.Empty<MGElement>() : root.TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder))
+        var declaredPrefix = Definition.Name + ":";
+        var structureElements = (root == null ? Enumerable.Empty<MGElement>() : root.TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder))
             .Concat(detachedRoots.SelectMany(x => x.TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder)))
             .Distinct();
-        foreach (MGElement element in structureElements)
+        foreach (var element in structureElements)
         {
-            foreach (Styling.UITemplateDeclaredValue declared in MGElement.EnumerateTemplateContributions(element, declaredPrefix))
+            foreach (var declared in MGElement.EnumerateTemplateContributions(element, declaredPrefix))
             {
                 structure.AddDeclaredValue(declared);
             }

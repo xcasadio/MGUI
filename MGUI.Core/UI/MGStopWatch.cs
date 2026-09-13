@@ -47,8 +47,8 @@ public class MGStopwatch : MGElement
             return;
         }
 
-        string ElapsedDisplayString = ElapsedToString(Elapsed);
-        string ValueDisplayString = ValueDisplayFormat.Replace($"{{{{{nameof(Elapsed)}}}}}", ElapsedDisplayString);
+        var ElapsedDisplayString = ElapsedToString(Elapsed);
+        var ValueDisplayString = ValueDisplayFormat.Replace($"{{{{{nameof(Elapsed)}}}}}", ElapsedDisplayString);
 
         ValueElement.SetText(ValueDisplayString, ForceLayoutRefresh ? MGTextInvalidationMode.RelayoutParent : MGTextInvalidationMode.ReflowLocal);
     }
@@ -86,7 +86,7 @@ public class MGStopwatch : MGElement
         {
             if (_Elapsed != value)
             {
-                TimeSpan Previous = Elapsed;
+                var Previous = Elapsed;
                 _Elapsed = value;
                 UpdateDisplayedValue(false);
                 NPC(nameof(Elapsed));

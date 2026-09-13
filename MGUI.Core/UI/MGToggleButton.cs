@@ -80,7 +80,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
         {
             if (_IsChecked != value)
             {
-                bool Previous = IsChecked;
+                var Previous = IsChecked;
                 _IsChecked = value;
                 NPC(nameof(IsChecked));
                 OnCheckStateChanged?.Invoke(this, new(Previous, IsChecked));

@@ -53,10 +53,10 @@ public class UIFocusNavigationService
             return;
         }
 
-        int existingIndex = FocusScopes.FindLastIndex(x => x.ScopeRoot == scopeRoot);
+        var existingIndex = FocusScopes.FindLastIndex(x => x.ScopeRoot == scopeRoot);
         if (existingIndex >= 0)
         {
-            FocusScopeEntry existingEntry = FocusScopes[existingIndex];
+            var existingEntry = FocusScopes[existingIndex];
             FocusScopes.RemoveAt(existingIndex);
             existingEntry.RestoreFocusTarget = restoreFocusTarget ?? existingEntry.RestoreFocusTarget;
             FocusScopes.Add(existingEntry);
@@ -73,19 +73,19 @@ public class UIFocusNavigationService
             return;
         }
 
-        int existingIndex = FocusScopes.FindLastIndex(x => x.ScopeRoot == scopeRoot);
+        var existingIndex = FocusScopes.FindLastIndex(x => x.ScopeRoot == scopeRoot);
         if (existingIndex < 0)
         {
             return;
         }
 
-        bool wasActiveScope = existingIndex == FocusScopes.Count - 1;
-        FocusScopeEntry entry = FocusScopes[existingIndex];
+        var wasActiveScope = existingIndex == FocusScopes.Count - 1;
+        var entry = FocusScopes[existingIndex];
         FocusScopes.RemoveAt(existingIndex);
 
-        bool shouldRestoreFocus = wasActiveScope
-                                  && Desktop.QueuedFocusedKeyboardHandler == null
-                                  && (Desktop.FocusedKeyboardHandler == null || IsWithinFocusScope(scopeRoot, Desktop.FocusedKeyboardHandler, current => current.Parent));
+        var shouldRestoreFocus = wasActiveScope
+                                 && Desktop.QueuedFocusedKeyboardHandler == null
+                                 && (Desktop.FocusedKeyboardHandler == null || IsWithinFocusScope(scopeRoot, Desktop.FocusedKeyboardHandler, current => current.Parent));
         if (shouldRestoreFocus && IsNavigationTarget(entry.RestoreFocusTarget))
         {
             entry.RestoreFocusTarget.Focus(KeyboardFocusSource.Pointer);
@@ -100,11 +100,11 @@ public class UIFocusNavigationService
 
     public bool MoveFocusNext(KeyboardFocusSource source)
     {
-        IReadOnlyList<MGElement> focusableElements = GetFocusableElements();
-        MGElement anchor = Desktop.FocusedKeyboardHandler ?? GetHoveredNavigationTarget();
+        var focusableElements = GetFocusableElements();
+        var anchor = Desktop.FocusedKeyboardHandler ?? GetHoveredNavigationTarget();
         if (anchor == null)
         {
-            MGElement autoFocusTarget = ResolveAutoFocusTarget(GetNavigationRoot(), true);
+            var autoFocusTarget = ResolveAutoFocusTarget(GetNavigationRoot(), true);
             if (!IsNavigationTarget(autoFocusTarget))
             {
                 return false;
@@ -114,8 +114,8 @@ public class UIFocusNavigationService
             return true;
         }
 
-        int currentIndex = focusableElements.Select((element, index) => new { element, index }).FirstOrDefault(x => x.element == anchor)?.index ?? -1;
-        int nextIndex = MGDesktop.GetWrappedFocusIndex(focusableElements.Count, currentIndex, true);
+        var currentIndex = focusableElements.Select((element, index) => new { element, index }).FirstOrDefault(x => x.element == anchor)?.index ?? -1;
+        var nextIndex = MGDesktop.GetWrappedFocusIndex(focusableElements.Count, currentIndex, true);
         if (nextIndex < 0)
         {
             return false;
@@ -130,11 +130,11 @@ public class UIFocusNavigationService
 
     public bool MoveFocusPrevious(KeyboardFocusSource source)
     {
-        IReadOnlyList<MGElement> focusableElements = GetFocusableElements();
-        MGElement anchor = Desktop.FocusedKeyboardHandler ?? GetHoveredNavigationTarget();
+        var focusableElements = GetFocusableElements();
+        var anchor = Desktop.FocusedKeyboardHandler ?? GetHoveredNavigationTarget();
         if (anchor == null)
         {
-            MGElement autoFocusTarget = ResolveAutoFocusTarget(GetNavigationRoot(), true);
+            var autoFocusTarget = ResolveAutoFocusTarget(GetNavigationRoot(), true);
             if (!IsNavigationTarget(autoFocusTarget))
             {
                 return false;
@@ -144,8 +144,8 @@ public class UIFocusNavigationService
             return true;
         }
 
-        int currentIndex = focusableElements.Select((element, index) => new { element, index }).FirstOrDefault(x => x.element == anchor)?.index ?? -1;
-        int nextIndex = MGDesktop.GetWrappedFocusIndex(focusableElements.Count, currentIndex, false);
+        var currentIndex = focusableElements.Select((element, index) => new { element, index }).FirstOrDefault(x => x.element == anchor)?.index ?? -1;
+        var nextIndex = MGDesktop.GetWrappedFocusIndex(focusableElements.Count, currentIndex, false);
         if (nextIndex < 0)
         {
             return false;
@@ -160,10 +160,10 @@ public class UIFocusNavigationService
 
     public bool NavigateTo(NavigationDirection direction, KeyboardFocusSource source)
     {
-        MGElement focusedElement = Desktop.FocusedKeyboardHandler ?? GetHoveredNavigationTarget();
+        var focusedElement = Desktop.FocusedKeyboardHandler ?? GetHoveredNavigationTarget();
         if (focusedElement == null)
         {
-            MGElement autoFocusTarget = ResolveAutoFocusTarget(GetNavigationRoot(), true);
+            var autoFocusTarget = ResolveAutoFocusTarget(GetNavigationRoot(), true);
             if (!IsNavigationTarget(autoFocusTarget))
             {
                 return false;
@@ -173,15 +173,15 @@ public class UIFocusNavigationService
             return true;
         }
 
-        if (focusedElement.NavigationNeighbors.TryGetValue(direction, out MGElement explicitNeighbor) && IsNavigationTarget(explicitNeighbor))
+        if (focusedElement.NavigationNeighbors.TryGetValue(direction, out var explicitNeighbor) && IsNavigationTarget(explicitNeighbor))
         {
             explicitNeighbor.Focus(source);
             return true;
         }
 
-        IReadOnlyList<MGElement> focusableElements = GetFocusableElements();
-        List<MGElement> candidates = focusableElements.Where(x => x != focusedElement).ToList();
-        int targetIndex = MGDesktop.FindDirectionalNavigationTarget(focusedElement.ActualLayoutBounds, candidates.Select(x => x.ActualLayoutBounds).ToList(), direction);
+        var focusableElements = GetFocusableElements();
+        var candidates = focusableElements.Where(x => x != focusedElement).ToList();
+        var targetIndex = MGDesktop.FindDirectionalNavigationTarget(focusedElement.ActualLayoutBounds, candidates.Select(x => x.ActualLayoutBounds).ToList(), direction);
         if (targetIndex < 0)
         {
             if (Desktop.FocusedKeyboardHandler == null && IsNavigationTarget(focusedElement))
@@ -204,16 +204,16 @@ public class UIFocusNavigationService
             return false;
         }
 
-        MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
+        var focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
             ? Desktop.FocusedKeyboardHandler
             : null;
-        bool shouldPreserveTextEntryKey = ShouldPreserveTextEntryKey(e.Key);
-        if (!FocusInputPolicy.TryGetNavigationAction(e.Key, e.Tracker.IsShiftDown, focusedElement is ITextEntryHost, shouldPreserveTextEntryKey, out UINavigationAction action))
+        var shouldPreserveTextEntryKey = ShouldPreserveTextEntryKey(e.Key);
+        if (!FocusInputPolicy.TryGetNavigationAction(e.Key, e.Tracker.IsShiftDown, focusedElement is ITextEntryHost, shouldPreserveTextEntryKey, out var action))
         {
             return false;
         }
 
-        if (TryDispatchNavigationAction(action, KeyboardFocusSource.Keyboard, out IKeyboardHandlerHost handledBy))
+        if (TryDispatchNavigationAction(action, KeyboardFocusSource.Keyboard, out var handledBy))
         {
             e.SetHandledBy(handledBy, false);
             return true;
@@ -245,11 +245,11 @@ public class UIFocusNavigationService
 
     internal bool TryDispatchNavigationAction(UINavigationAction action, KeyboardFocusSource source, out IKeyboardHandlerHost handledBy)
     {
-        MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
+        var focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
             ? Desktop.FocusedKeyboardHandler
             : null;
 
-        Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
+        var tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
         if (tryHandleFocusedAction?.Invoke(action) == true)
         {
             EnsureNavigationTargetVisible(focusedElement);
@@ -269,18 +269,18 @@ public class UIFocusNavigationService
 
     internal bool TryDispatchGamePadNavigationActions()
     {
-        bool handledAny = false;
-        foreach (GamePadButton button in GamePadNavigationButtons)
+        var handledAny = false;
+        foreach (var button in GamePadNavigationButtons)
         {
-            if (!Desktop.InputTracker.GamePad.WasTriggered(button) || !TryMapGamePadNavigationAction(button, out UINavigationAction action))
+            if (!Desktop.InputTracker.GamePad.WasTriggered(button) || !TryMapGamePadNavigationAction(button, out var action))
             {
                 continue;
             }
 
-            MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
+            var focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
                 ? Desktop.FocusedKeyboardHandler
                 : null;
-            Func<UINavigationAction, bool> tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
+            var tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
             if (tryHandleFocusedAction?.Invoke(action) == true)
             {
                 EnsureNavigationTargetVisible(focusedElement);
@@ -302,7 +302,7 @@ public class UIFocusNavigationService
             return;
         }
 
-        MGElement target = ResolveAutoFocusTarget(GetNavigationRoot(), preferWindowDefault);
+        var target = ResolveAutoFocusTarget(GetNavigationRoot(), preferWindowDefault);
         if (target != null)
         {
             Desktop.QueueFocusedKeyboardHandler(target, KeyboardFocusSource.Programmatic);
@@ -316,7 +316,7 @@ public class UIFocusNavigationService
             return;
         }
 
-        MGElement target = ResolveAutoFocusTarget(window, true);
+        var target = ResolveAutoFocusTarget(window, true);
         if (target != null)
         {
             Desktop.QueueFocusedKeyboardHandler(target, KeyboardFocusSource.Programmatic);
@@ -367,9 +367,9 @@ public class UIFocusNavigationService
             return GetFocusableElements(root).FirstOrDefault();
         }
 
-        MGElement defaultFocus = window.DefaultFocusElement;
-        MGElement lastFocused = Desktop.State.WindowFocusHistory.TryGetValue(window, out MGElement previousFocus) ? previousFocus : null;
-        MGElement firstFocusable = GetFocusableElements(window).FirstOrDefault();
+        var defaultFocus = window.DefaultFocusElement;
+        var lastFocused = Desktop.State.WindowFocusHistory.TryGetValue(window, out var previousFocus) ? previousFocus : null;
+        var firstFocusable = GetFocusableElements(window).FirstOrDefault();
 
         defaultFocus = IsNavigationTarget(defaultFocus) && window.IsSelfOrAncestorOf(defaultFocus) ? defaultFocus : null;
         lastFocused = IsNavigationTarget(lastFocused) && window.IsSelfOrAncestorOf(lastFocused) ? lastFocused : null;
@@ -379,9 +379,9 @@ public class UIFocusNavigationService
 
     private MGElement GetHoveredNavigationTarget()
     {
-        foreach (MGWindow window in Desktop.Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
+        foreach (var window in Desktop.Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
         {
-            MGElement hoveredTarget = GetNearestNavigationTarget(window.HoveredElement);
+            var hoveredTarget = GetNearestNavigationTarget(window.HoveredElement);
             if (hoveredTarget != null)
             {
                 return hoveredTarget;
@@ -393,7 +393,7 @@ public class UIFocusNavigationService
 
     private MGElement GetNavigationRoot()
     {
-        MGElement activeScopeRoot = GetActiveFocusScopeRoot(FocusScopes.Select(x => x.ScopeRoot).ToList());
+        var activeScopeRoot = GetActiveFocusScopeRoot(FocusScopes.Select(x => x.ScopeRoot).ToList());
         MGElement focusedWindowRoot = Desktop.FocusedKeyboardHandler?.SelfOrParentWindow;
         MGElement hoveredWindowRoot = GetHoveredNavigationTarget()?.SelfOrParentWindow;
         MGElement topWindowRoot = Desktop.Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost).FirstOrDefault();
@@ -403,7 +403,7 @@ public class UIFocusNavigationService
 
     private MGElement GetNearestNavigationTarget(MGElement element)
     {
-        for (MGElement current = element; current != null; current = current.Parent)
+        for (var current = element; current != null; current = current.Parent)
         {
             if (IsNavigationTarget(current))
             {
@@ -443,7 +443,7 @@ public class UIFocusNavigationService
             return false;
         }
 
-        MGElement focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
+        var focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
             ? Desktop.FocusedKeyboardHandler
             : null;
         return focusedElement is ITextEntryHost focusedTextEntryHost && focusedTextEntryHost.ShouldPreserveTextEntryKey(keyValue);
@@ -473,7 +473,7 @@ public class UIFocusNavigationService
             return false;
         }
 
-        T current = element;
+        var current = element;
         while (current != null)
         {
             if (ReferenceEquals(current, scopeRoot))

@@ -45,7 +45,7 @@ public abstract class Element : XAMLBindableBase
             return UIValueResolutionSource.Template(kind, $"{TemplateProvenance}:{Name ?? TemplateElementName ?? ElementType.ToString()}.{propertyName}");
         }
 
-        if (StyleProvenance != null && StyleProvenance.TryGetValue(propertyName, out UIValueSourceKind sourceKind))
+        if (StyleProvenance != null && StyleProvenance.TryGetValue(propertyName, out var sourceKind))
         {
             if (sourceKind == UIValueSourceKind.ExplicitStyle)
             {
@@ -92,7 +92,7 @@ public abstract class Element : XAMLBindableBase
         }
 
         TemplateProvenance = templateName;
-        foreach (Element child in GetChildren())
+        foreach (var child in GetChildren())
         {
             child?.MarkAsTemplateStructure(templateName, visited);
         }
@@ -104,14 +104,14 @@ public abstract class Element : XAMLBindableBase
     /// hold outside <see cref="GetChildren"/>. Properties typed <see cref="object"/>, dictionaries and strings are not followed.</summary>
     private static void MarkHeldElements(object node, string templateName, HashSet<object> visited, string ownerName)
     {
-        foreach (PropertyInfo property in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var property in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (!property.CanRead || property.GetIndexParameters().Length > 0)
             {
                 continue;
             }
 
-            Type propertyType = property.PropertyType;
+            var propertyType = property.PropertyType;
             if (typeof(Element).IsAssignableFrom(propertyType))
             {
                 if (property.GetValue(node) is Element held)
@@ -128,7 +128,7 @@ public abstract class Element : XAMLBindableBase
                                                     && typeof(System.Collections.IEnumerable).IsAssignableFrom(propertyType) && !typeof(System.Collections.IDictionary).IsAssignableFrom(propertyType)
                                                     && property.GetValue(node) is System.Collections.IEnumerable items)
             {
-                foreach (object item in items)
+                foreach (var item in items)
                 {
                     if (item is Element element)
                     {
@@ -163,7 +163,7 @@ public abstract class Element : XAMLBindableBase
 
         if (propertyName is "BorderBrush" or "BorderThickness")
         {
-            PropertyInfo BorderProperty = GetType().GetProperty("Border", BindingFlags.Public | BindingFlags.Instance);
+            var BorderProperty = GetType().GetProperty("Border", BindingFlags.Public | BindingFlags.Instance);
             if (BorderProperty != null && BorderProperty.PropertyType == typeof(Border) &&
                 BorderProperty.GetValue(this) is Border NestedBorder)
             {
@@ -413,7 +413,7 @@ public abstract class Element : XAMLBindableBase
     public T ToElement<T>(MGWindow Window, MGElement Parent, Action<T> ApplyBaseSettings = null) 
         where T : MGElement
     {
-        T Element = CreateElementInstance(Window, Parent) as T;
+        var Element = CreateElementInstance(Window, Parent) as T;
         ApplyBaseSettings?.Invoke(Element);
         ApplySettings(Parent, Element, true);
         return Element;
@@ -433,7 +433,7 @@ public abstract class Element : XAMLBindableBase
     {
         using (Element.BeginInitializing())
         {
-            MGDesktop Desktop = Element.GetDesktop();
+            var Desktop = Element.GetDesktop();
 
             //  Backlog task 10: the element keeps the styles resolved for its definition, so that MGElement.RefreshStyles can resolve them again
             if (StyleScope != null)
@@ -615,26 +615,26 @@ public abstract class Element : XAMLBindableBase
             //  when it attaches. The styles' come first, the element's own win per state name or transition path (the collections replace by key).
             if (StyleVisualStates != null)
             {
-                foreach (VisualStateDefinition State in StyleVisualStates)
+                foreach (var State in StyleVisualStates)
                 {
                     Element.VisualStates.Add(State.ToVisualState());
                 }
             }
 
-            foreach (VisualStateDefinition State in VisualStates)
+            foreach (var State in VisualStates)
             {
                 Element.VisualStates.Add(State.ToVisualState());
             }
 
             if (StyleTransitions != null)
             {
-                foreach (Transition Transition in StyleTransitions)
+                foreach (var Transition in StyleTransitions)
                 {
                     Element.Transitions.Add(Transition.ToTransition());
                 }
             }
 
-            foreach (Transition Transition in Transitions)
+            foreach (var Transition in Transitions)
             {
                 Element.Transitions.Add(Transition.ToTransition());
             }
@@ -678,7 +678,7 @@ public abstract class Element : XAMLBindableBase
 
                             //  Store the target object path in the element's metadata so the target objects can be dynamically retrieved later when the binding is being created
                             List<string> Paths;
-                            if (!Element.Metadata.TryGetValue(BindingPathsMetadataKey, out object List))
+                            if (!Element.Metadata.TryGetValue(BindingPathsMetadataKey, out var List))
                             {
                                 Paths = new List<string>();
                                 Element.Metadata.Add(BindingPathsMetadataKey, Paths);
@@ -703,7 +703,7 @@ public abstract class Element : XAMLBindableBase
                                     if (Item.Item != null)
                                     {
                                         yield return Item.Item;
-                                        foreach (XAMLBindableBase Nested in RecurseNestedBindableObjects(Item.Item))
+                                        foreach (var Nested in RecurseNestedBindableObjects(Item.Item))
                                         {
                                             yield return Nested;
                                         }
@@ -713,7 +713,7 @@ public abstract class Element : XAMLBindableBase
                         }
                         if (RecurseNestedBindableObjects(Source).Any(x => x.Bindings?.Any() == true))
                         {
-                            foreach (XAMLBindableBase nested in RecurseNestedBindableObjects(Source))
+                            foreach (var nested in RecurseNestedBindableObjects(Source))
                             {
                                 if (nested.Bindings?.Any() == true)
                                 {
@@ -766,21 +766,21 @@ public abstract class Element : XAMLBindableBase
             return;
         }
 
-        foreach (UIResourceReferenceConfig ResourceReference in Source.ResourceReferences)
+        foreach (var ResourceReference in Source.ResourceReferences)
         {
-            string TargetPath = ResolveTargetPath?.Invoke(ResourceReference.TargetPath) ?? ResourceReference.TargetPath;
-            UIResourceReferenceConfig AppliedReference = ResourceReference with { TargetPath = TargetPath };
+            var TargetPath = ResolveTargetPath?.Invoke(ResourceReference.TargetPath) ?? ResourceReference.TargetPath;
+            var AppliedReference = ResourceReference with { TargetPath = TargetPath };
             _ = UIResourceReferenceApplicator.Apply(HostElement, Target, AppliedReference, HostElement.GetResources());
         }
     }
 
     private string MapTargetPath(string TargetPath)
-        => BindingPathMappings.TryGetValue(TargetPath, out string ActualPath) ? ActualPath : TargetPath;
+        => BindingPathMappings.TryGetValue(TargetPath, out var ActualPath) ? ActualPath : TargetPath;
 
     /// <summary>Maps a XAML property name used as a binding or resource target (e.g. <c>Background</c>) onto the CLR path it targets on
     /// the element (<c>BackgroundBrush.NormalValue</c>). Any other path, including null, is returned unchanged.</summary>
     internal static string MapBindingTargetPath(string TargetPath)
-        => TargetPath != null && BindingPathMappings.TryGetValue(TargetPath, out string ActualPath) ? ActualPath : TargetPath;
+        => TargetPath != null && BindingPathMappings.TryGetValue(TargetPath, out var ActualPath) ? ActualPath : TargetPath;
 
     //  DataBindings are defined in XAML (so they are applied to the properties of the XAML types)
     //  but are bound to the properties of the actual type (such as MGUI.Core.UI.MGButton instead of MGUI.Core.UI.XAML.Button).
@@ -809,7 +809,7 @@ public abstract class Element : XAMLBindableBase
     {
         if (RecurseChildren)
         {
-            foreach (MGElement Child in Element.TraverseVisualTree(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+            foreach (var Child in Element.TraverseVisualTree(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
             {
                 ProcessBindings(Child, false, DataContextOverride);
             }
@@ -823,13 +823,13 @@ public abstract class Element : XAMLBindableBase
 
             if (Element.Bindings?.Any() == true)
             {
-                foreach (BindingConfig Binding in Element.Bindings)
+                foreach (var Binding in Element.Bindings)
                 {
                     object TargetObject = Element;
-                    BindingConfig PostProcessedBinding = Binding;
+                    var PostProcessedBinding = Binding;
 
                     //  Handle some special-cases where the name of the XAML property isn't the same as the corresponding property on the c# object
-                    if (BindingPathMappings.TryGetValue(Binding.TargetPath, out string ActualPath))
+                    if (BindingPathMappings.TryGetValue(Binding.TargetPath, out var ActualPath))
                     {
                         PostProcessedBinding = Binding with { TargetPath = ActualPath };
                     }
@@ -844,19 +844,19 @@ public abstract class Element : XAMLBindableBase
                 Element.Bindings.Clear();
             }
 
-            if (Element.Metadata.TryGetValue(BindingPathsMetadataKey, out object Items))
+            if (Element.Metadata.TryGetValue(BindingPathsMetadataKey, out var Items))
             {
                 if (Items is List<string> BindingPaths)
                 {
-                    MGWindow Window = Element.SelfOrParentWindow;
-                    List<XAMLBindableBase> Targets = new List<XAMLBindableBase>();
+                    var Window = Element.SelfOrParentWindow;
+                    var Targets = new List<XAMLBindableBase>();
 
-                    foreach (string Path in BindingPaths)
+                    foreach (var Path in BindingPaths)
                     {
-                        object Target = DataBinding.DataBinding.ResolvePath(Element, Path.Split('.'));
+                        var Target = DataBinding.DataBinding.ResolvePath(Element, Path.Split('.'));
                         if (Target != null && Target is XAMLBindableBase BindableTarget && BindableTarget.Bindings?.Any() == true)
                         {
-                            foreach (BindingConfig Binding in BindableTarget.Bindings)
+                            foreach (var Binding in BindableTarget.Bindings)
                             {
                                 if (Binding.Converter is StringToToolTipConverter StringToolTipConverter)
                                 {
@@ -919,7 +919,7 @@ public abstract class Element : XAMLBindableBase
 
     protected void ApplyBackground(MGElement Element)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
         if (Background != null)
         {
@@ -951,15 +951,15 @@ public abstract class Element : XAMLBindableBase
     protected internal void ProcessStyles(MGResources Resources)
     {
         Dictionary<string, Style> StylesByName = new();
-        foreach (KeyValuePair<string, Style> KVP in Resources.Styles)
+        foreach (var KVP in Resources.Styles)
         {
             StylesByName[KVP.Key] = KVP.Value;
         }
 
-        MGResources Current = Resources.Parent;
+        var Current = Resources.Parent;
         while (Current != null)
         {
-            foreach (KeyValuePair<string, Style> KVP in Current.Styles)
+            foreach (var KVP in Current.Styles)
             {
                 if (!StylesByName.ContainsKey(KVP.Key))
                 {
@@ -983,9 +983,9 @@ public abstract class Element : XAMLBindableBase
             if (KVP.Value.Setters.Any())
             {
                 var ValuesByProperty = new Dictionary<string, List<object>>();
-                foreach (Setter Setter in KVP.Value.Setters)
+                foreach (var Setter in KVP.Value.Setters)
                 {
-                    if (!ValuesByProperty.TryGetValue(Setter.Property, out List<object> Values))
+                    if (!ValuesByProperty.TryGetValue(Setter.Property, out var Values))
                     {
                         Values = new();
                         ValuesByProperty.Add(Setter.Property, Values);
@@ -1013,14 +1013,14 @@ public abstract class Element : XAMLBindableBase
         StyleTransitions = null;
         StyleVisualStates = null;
 
-        IReadOnlyList<Style> InlineStyles = InheritedInlineStyles;
+        var InlineStyles = InheritedInlineStyles;
         if (Styles.Any(x => x.HasContent))
         {
             InlineStyles = InheritedInlineStyles.Concat(Styles.Where(x => x.HasContent)).ToArray();
         }
 
         //  Append current style setters to indexed data
-        foreach (Style Style in Styles.Where(x => x.HasContent))
+        foreach (var Style in Styles.Where(x => x.HasContent))
         {
             if (Style.Name != null)
             {
@@ -1028,10 +1028,10 @@ public abstract class Element : XAMLBindableBase
             }
             else
             {
-                MGElementType Type = Style.TargetType;
+                var Type = Style.TargetType;
                 if (Style.HasAnimation)
                 {
-                    if (!AnimationStylesByType.TryGetValue(Type, out List<Style> AnimatedStyles))
+                    if (!AnimationStylesByType.TryGetValue(Type, out var AnimatedStyles))
                     {
                         AnimatedStyles = new();
                         AnimationStylesByType.Add(Type, AnimatedStyles);
@@ -1046,10 +1046,10 @@ public abstract class Element : XAMLBindableBase
                     StylesByType.Add(Type, ValuesByProperty);
                 }
 
-                foreach (Setter Setter in Style.Setters)
+                foreach (var Setter in Style.Setters)
                 {
-                    string Property = Setter.Property;
-                    if (!ValuesByProperty.TryGetValue(Property, out List<object> Values))
+                    var Property = Setter.Property;
+                    if (!ValuesByProperty.TryGetValue(Property, out var Values))
                     {
                         Values = new();
                         ValuesByProperty.Add(Property, Values);
@@ -1064,12 +1064,12 @@ public abstract class Element : XAMLBindableBase
         HashSet<string> ModifiedPropertyNames = new();
         if (IsStyleable)
         {
-            Type ThisType = GetType();
+            var ThisType = GetType();
 
             //  Apply implicit styles (styles that aren't referenced by a Name)
             if (StylesByType.TryGetValue(ElementType, out ValuesByProperty))
             {
-                foreach (KeyValuePair<string, List<object>> KVP in ValuesByProperty)
+                foreach (var KVP in ValuesByProperty)
                 {
 #if DEBUG
                     //  Sanity check
@@ -1079,14 +1079,14 @@ public abstract class Element : XAMLBindableBase
                     }
 #endif
 
-                    string PropertyName = KVP.Key;
-                    PropertyInfo PropertyInfo = ThisType.GetProperty(PropertyName, BindingFlags.Public | BindingFlags.Instance); // | BindingFlags.IgnoreCase?
+                    var PropertyName = KVP.Key;
+                    var PropertyInfo = ThisType.GetProperty(PropertyName, BindingFlags.Public | BindingFlags.Instance); // | BindingFlags.IgnoreCase?
                     if (PropertyInfo != null)
                     {
                         if (ModifiedPropertyNames.Contains(PropertyName) || IsXAMLPropertyUnset(PropertyInfo))
                         {
-                            TypeConverter Converter = TypeDescriptor.GetConverter(PropertyInfo.PropertyType);
-                            foreach (object Value in KVP.Value)
+                            var Converter = TypeDescriptor.GetConverter(PropertyInfo.PropertyType);
+                            foreach (var Value in KVP.Value)
                             {
                                 if (Value is string StringValue)
                                 {
@@ -1106,9 +1106,9 @@ public abstract class Element : XAMLBindableBase
             }
 
             //  Transitions and visual states of the implicit styles (desktop level first, then the inline ones, outermost first)
-            if (AnimationStylesByType.TryGetValue(ElementType, out List<Style> ImplicitAnimatedStyles))
+            if (AnimationStylesByType.TryGetValue(ElementType, out var ImplicitAnimatedStyles))
             {
-                foreach (Style Style in ImplicitAnimatedStyles)
+                foreach (var Style in ImplicitAnimatedStyles)
                 {
                     CollectStyleAnimation(Style);
                 }
@@ -1117,15 +1117,15 @@ public abstract class Element : XAMLBindableBase
             //  Apply explicit styles (styles that were explicitly referenced by their Name)
             if (StyleNames != null)
             {
-                string[] Names = StyleNames.Split(',');
-                List<Style> ExplicitStyles = Names.Select(x => StylesByName[x]).Where(x => x.TargetType == ElementType).ToList();
+                var Names = StyleNames.Split(',');
+                var ExplicitStyles = Names.Select(x => StylesByName[x]).Where(x => x.TargetType == ElementType).ToList();
 
                 //  Get all the properties that the explicit styles will modify
-                HashSet<string> PropertyNames = ExplicitStyles.SelectMany(x => x.Setters).Select(x => x.Property).ToHashSet();
+                var PropertyNames = ExplicitStyles.SelectMany(x => x.Setters).Select(x => x.Property).ToHashSet();
                 Dictionary<string, PropertyInfo> PropertiesByName = new();
-                foreach (string PropertyName in PropertyNames)
+                foreach (var PropertyName in PropertyNames)
                 {
-                    PropertyInfo PropertyInfo = ThisType.GetProperty(PropertyName, BindingFlags.Public | BindingFlags.Instance); // | BindingFlags.IgnoreCase?
+                    var PropertyInfo = ThisType.GetProperty(PropertyName, BindingFlags.Public | BindingFlags.Instance); // | BindingFlags.IgnoreCase?
                     if (PropertyInfo != null)
                     {
                         if (ModifiedPropertyNames.Contains(PropertyName) || IsXAMLPropertyUnset(PropertyInfo))
@@ -1136,14 +1136,14 @@ public abstract class Element : XAMLBindableBase
                 }
 
                 //  Apply the values of each setter
-                foreach (Style Style in ExplicitStyles)
+                foreach (var Style in ExplicitStyles)
                 {
-                    foreach (Setter Setter in Style.Setters)
+                    foreach (var Setter in Style.Setters)
                     {
-                        string PropertyName = Setter.Property;
-                        if (PropertiesByName.TryGetValue(PropertyName, out PropertyInfo PropertyInfo))
+                        var PropertyName = Setter.Property;
+                        if (PropertiesByName.TryGetValue(PropertyName, out var PropertyInfo))
                         {
-                            TypeConverter Converter = TypeDescriptor.GetConverter(PropertyInfo.PropertyType);
+                            var Converter = TypeDescriptor.GetConverter(PropertyInfo.PropertyType);
                             if (Setter.Value is string StringValue)
                             {
                                 PropertyInfo.SetValue(this, Converter.ConvertFrom(null, CultureInfo.InvariantCulture, StringValue));
@@ -1160,7 +1160,7 @@ public abstract class Element : XAMLBindableBase
                 }
 
                 //  Transitions and visual states of the named styles, after the implicit ones: the last style wins per path or name
-                foreach (Style Style in ExplicitStyles)
+                foreach (var Style in ExplicitStyles)
                 {
                     CollectStyleAnimation(Style);
                 }
@@ -1172,7 +1172,7 @@ public abstract class Element : XAMLBindableBase
             ModifiedPropertyNames.Count > 0 ? ModifiedPropertyNames : null);
 
         //  Recursively process all children
-        foreach (Element Child in GetChildren())
+        foreach (var Child in GetChildren())
         {
             if (Child.InheritsParentStyles)
             {
@@ -1185,7 +1185,7 @@ public abstract class Element : XAMLBindableBase
         }
 
         //  Remove current style setters from indexed data
-        foreach (Style Style in Styles.Where(x => x.HasContent))
+        foreach (var Style in Styles.Where(x => x.HasContent))
         {
             if (Style.Name != null)
             {
@@ -1193,8 +1193,8 @@ public abstract class Element : XAMLBindableBase
             }
             else
             {
-                MGElementType Type = Style.TargetType;
-                if (Style.HasAnimation && AnimationStylesByType.TryGetValue(Type, out List<Style> AnimatedStyles))
+                var Type = Style.TargetType;
+                if (Style.HasAnimation && AnimationStylesByType.TryGetValue(Type, out var AnimatedStyles))
                 {
                     AnimatedStyles.Remove(Style);
                     if (AnimatedStyles.Count == 0)
@@ -1205,10 +1205,10 @@ public abstract class Element : XAMLBindableBase
 
                 if (StylesByType.TryGetValue(Type, out ValuesByProperty))
                 {
-                    foreach (Setter Setter in Style.Setters)
+                    foreach (var Setter in Style.Setters)
                     {
-                        string Property = Setter.Property;
-                        if (ValuesByProperty.TryGetValue(Property, out List<object> Values))
+                        var Property = Setter.Property;
+                        if (ValuesByProperty.TryGetValue(Property, out var Values))
                         {
                             if (Values.Remove(Setter.Value) && Values.Count == 0)
                             {
@@ -1260,7 +1260,7 @@ public abstract class Element : XAMLBindableBase
             return false;
         }
 
-        Type type = pi.PropertyType;
+        var type = pi.PropertyType;
 
         // Non-nullable value type: the boxed value is never null, so a null-check
         // would always report "not set".  Without an entry in ExplicitlySetProperties

@@ -65,11 +65,11 @@ public class MGRatingControl : MGElement
     private static Vector2[] GetCircleVertices(Vector2 origin, double radius, int sides, double angleOffset = 0.0)
     {
         const double Max = 2.0 * Math.PI;
-        Vector2[] points = new Vector2[sides];
-        double step = Max / sides;
-        double theta = angleOffset;
+        var points = new Vector2[sides];
+        var step = Max / sides;
+        var theta = angleOffset;
 
-        for (int i = 0; i < sides; i++)
+        for (var i = 0; i < sides; i++)
         {
             points[i] = origin + new Vector2((float)(radius * Math.Cos(theta)), (float)(radius * Math.Sin(theta)));
             theta += step;
@@ -138,7 +138,7 @@ public class MGRatingControl : MGElement
     {
         if (this.Minimum != Minimum || this.Maximum != Maximum)
         {
-            float PreviousMaximum = this.Maximum;
+            var PreviousMaximum = this.Maximum;
 
             if (Minimum > Maximum)
             {
@@ -170,7 +170,7 @@ public class MGRatingControl : MGElement
     /// <summary>See also: <see cref="GetActualValue(float)"/></summary>
     public float SetValue(float DesiredValue)
     {
-        float ActualValue = GetActualValue(DesiredValue);
+        var ActualValue = GetActualValue(DesiredValue);
         if (Value != ActualValue)
         {
             Value = ActualValue;
@@ -184,7 +184,7 @@ public class MGRatingControl : MGElement
     /// and set to a valid multiple of <see cref="DiscreteValueInterval"/> if <see cref="UseDiscreteValues"/>==true</summary>
     public float GetActualValue(float DesiredValue)
     {
-        float Result = Math.Clamp(DesiredValue, Minimum, Maximum);
+        var Result = Math.Clamp(DesiredValue, Minimum, Maximum);
 
         if (UseDiscreteValues && DiscreteValueInterval.HasValue)
         {
@@ -493,7 +493,7 @@ public class MGRatingControl : MGElement
             {
                 if (e.IsLMB && !IsReadonly)
                 {
-                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                     UpdatePreviewValue(LayoutSpacePosition);
                     SetValue(PreviewValue.Value);
                     PreviewValue = null;
@@ -517,7 +517,7 @@ public class MGRatingControl : MGElement
 
     private bool TryAdjustValue(float delta)
     {
-        float previousValue = Value;
+        var previousValue = Value;
         SetValue(Value + delta);
         return !Value.IsAlmostEqual(previousValue);
     }
@@ -529,8 +529,8 @@ public class MGRatingControl : MGElement
             return false;
         }
 
-        float step = GetNavigationStep(UseDiscreteValues, DiscreteValueInterval);
-        float largeStep = step * 5f;
+        var step = GetNavigationStep(UseDiscreteValues, DiscreteValueInterval);
+        var largeStep = step * 5f;
 
         return action switch
         {
@@ -557,11 +557,11 @@ public class MGRatingControl : MGElement
             return;
         }
 
-        Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-        bool IsVertical = Orientation == Orientation.Vertical;
-        int Position = IsVertical ? MousePosition.Y : MousePosition.X;
-        int RangeStart = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
-        int RangeEnd = IsVertical ? PaddedBounds.Bottom : PaddedBounds.Right;
+        var PaddedBounds = LayoutBounds.GetCompressed(Padding);
+        var IsVertical = Orientation == Orientation.Vertical;
+        var Position = IsVertical ? MousePosition.Y : MousePosition.X;
+        var RangeStart = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
+        var RangeEnd = IsVertical ? PaddedBounds.Bottom : PaddedBounds.Right;
 
         if (Position <= RangeStart)
         {
@@ -573,10 +573,10 @@ public class MGRatingControl : MGElement
         }
         else
         {
-            int RelativePosition = Position - RangeStart;
-            int PaddedItemSize = ItemSize + Spacing;
-            int FilledValue = (RelativePosition + Spacing) / PaddedItemSize;
-            float PartialValue = Math.Max(0, (RelativePosition - FilledValue * PaddedItemSize)) * 1.0f / ItemSize;
+            var RelativePosition = Position - RangeStart;
+            var PaddedItemSize = ItemSize + Spacing;
+            var FilledValue = (RelativePosition + Spacing) / PaddedItemSize;
+            var PartialValue = Math.Max(0, (RelativePosition - FilledValue * PaddedItemSize)) * 1.0f / ItemSize;
             PreviewValue = FilledValue + PartialValue;
         }
     }
@@ -585,21 +585,21 @@ public class MGRatingControl : MGElement
     {
         SharedSize = new(0);
 
-        int PrimarySize = NumItems * ItemSize + (NumItems - 1) * Spacing;
-        int SecondarySize = ItemSize;
-        int Width = Orientation == Orientation.Vertical ? SecondarySize : PrimarySize;
-        int Height = Orientation == Orientation.Vertical ? PrimarySize : SecondarySize;
+        var PrimarySize = NumItems * ItemSize + (NumItems - 1) * Spacing;
+        var SecondarySize = ItemSize;
+        var Width = Orientation == Orientation.Vertical ? SecondarySize : PrimarySize;
+        var Height = Orientation == Orientation.Vertical ? PrimarySize : SecondarySize;
         return new(Width, Height, 0, 0);
     }
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
-        float Opacity = DA.Opacity;
-        Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-        bool IsVertical = Orientation == Orientation.Vertical;
-        int CurrentPos = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
+        var Opacity = DA.Opacity;
+        var PaddedBounds = LayoutBounds.GetCompressed(Padding);
+        var IsVertical = Orientation == Orientation.Vertical;
+        var CurrentPos = IsVertical ? PaddedBounds.Top : PaddedBounds.Left;
 
-        for (int i = 0; i < NumItems; i++)
+        for (var i = 0; i < NumItems; i++)
         {
             Rectangle Dest = IsVertical
                 ? new(PaddedBounds.X, CurrentPos, ItemSize, ItemSize)
@@ -607,12 +607,12 @@ public class MGRatingControl : MGElement
 
             DrawValue(DA, Dest, 1.0f, UnfilledShapeStrokeThickness, UnfilledShapeStrokeColor * Opacity, UnfilledShapeFillColor * Opacity, IsVertical);
 
-            float FilledPercent = Math.Clamp(Value - i, 0, 1);
+            var FilledPercent = Math.Clamp(Value - i, 0, 1);
             DrawValue(DA, Dest, FilledPercent, FilledShapeStrokeThickness, FilledShapeStrokeColor * Opacity, FilledShapeFillColor * Opacity, IsVertical);
 
             if (PreviewValue.HasValue)
             {
-                float PreviewFilledPercent = Math.Clamp(PreviewValue.Value - i, 0, 1);
+                var PreviewFilledPercent = Math.Clamp(PreviewValue.Value - i, 0, 1);
                 DrawValue(DA, Dest, PreviewFilledPercent, PreviewShapeStrokeThickness, PreviewShapeStrokeColor * Opacity, PreviewShapeFillColor * Opacity, IsVertical);
             }
 
@@ -628,12 +628,12 @@ public class MGRatingControl : MGElement
     private void DrawValue(ElementDrawArgs DA, Rectangle Destination, float FilledPercent,
         int StrokeThickness, Color StrokeColor, Color FillColor, bool IsVertical)
     {
-        Vector2 Offset = DA.Offset.ToVector2();
-        float ScaleFactor = ItemSize / 256.0f;
+        var Offset = DA.Offset.ToVector2();
+        var ScaleFactor = ItemSize / 256.0f;
 
-        bool IsCompletelyFilled = FilledPercent.IsAlmostEqual(1);
-        bool IsCompletelyUnfilled = FilledPercent.IsAlmostEqual(0);
-        bool IsPartiallyFilled = !IsCompletelyFilled && !IsCompletelyUnfilled;
+        var IsCompletelyFilled = FilledPercent.IsAlmostEqual(1);
+        var IsCompletelyUnfilled = FilledPercent.IsAlmostEqual(0);
+        var IsPartiallyFilled = !IsCompletelyFilled && !IsCompletelyUnfilled;
 
         if (IsCompletelyUnfilled)
         {
@@ -644,8 +644,8 @@ public class MGRatingControl : MGElement
         {
             case RatingItemShape.Star:
             case RatingItemShape.Diamond:
-                Vector2 Origin = Offset + Destination.TopLeft().ToVector2();
-                List<Vector2> Vertices = ShapeVertices256[ItemShape].Select(x => x * ScaleFactor).ToList();
+                var Origin = Offset + Destination.TopLeft().ToVector2();
+                var Vertices = ShapeVertices256[ItemShape].Select(x => x * ScaleFactor).ToList();
 
                 if (IsCompletelyFilled)
                 {
@@ -656,7 +656,7 @@ public class MGRatingControl : MGElement
                     Rectangle UnscaledClipTarget = IsVertical
                         ? new(Destination.Left, Destination.Top, Destination.Width, (int)(Vertices.Min(v => v.Y) + (Vertices.Max(v => v.Y) - Vertices.Min(v => v.Y)) * FilledPercent))
                         : new(Destination.Left, Destination.Top, (int)(Vertices.Min(v => v.X) + (Vertices.Max(v => v.X) - Vertices.Min(v => v.X)) * FilledPercent), Destination.Height);
-                    Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    var ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.StrokeAndFillPolygon(Origin, Vertices, StrokeColor, FillColor, StrokeThickness);
@@ -664,7 +664,7 @@ public class MGRatingControl : MGElement
                 }
                 break;
             case RatingItemShape.Circle:
-                Vector2 Center = Offset + Destination.Center.ToVector2();
+                var Center = Offset + Destination.Center.ToVector2();
                 float Radius = Math.Min(Destination.Width / 2, Destination.Height / 2);
 
                 if (IsCompletelyFilled)
@@ -675,8 +675,8 @@ public class MGRatingControl : MGElement
                 }
                 else if (IsPartiallyFilled)
                 {
-                    Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
-                    Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    var UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
+                    var ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.FillCircle(Center, FillColor, Radius - StrokeThickness);
@@ -692,8 +692,8 @@ public class MGRatingControl : MGElement
                 }
                 else if (IsPartiallyFilled)
                 {
-                    Rectangle UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
-                    Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    var UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
+                    var ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.StrokeAndFillRectangle(Offset, Destination, StrokeColor, FillColor, StrokeThickness);
@@ -720,7 +720,7 @@ public class MGRatingControl : MGElement
                     Rectangle UnscaledClipTarget = IsVertical
                         ? new(Destination.Left, Destination.Top, Destination.Width, (int)(TriangleVertices.Min(v => v.Y) + (TriangleVertices.Max(v => v.Y) - TriangleVertices.Min(v => v.Y)) * FilledPercent))
                         : new(Destination.Left, Destination.Top, (int)(TriangleVertices.Min(v => v.X) + (TriangleVertices.Max(v => v.X) - TriangleVertices.Min(v => v.X)) * FilledPercent), Destination.Height);
-                    Rectangle ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    var ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.FillTriangle(Origin, TriangleVertices[0], FillColor, TriangleVertices[1], FillColor, TriangleVertices[2], FillColor);
@@ -739,17 +739,17 @@ public class MGRatingControl : MGElement
 
     private static List<Vector2> Get5PointStarVertices(Rectangle Region)
     {
-        float InnerRadius = Region.Width / 5.0f;
-        float OuterRadius = Region.Width / 2.0f;
+        var InnerRadius = Region.Width / 5.0f;
+        var OuterRadius = Region.Width / 2.0f;
 
-        float Ang36 = (float)(Math.PI / 5.0);   // 36Â° x PI/180
-        float Ang72 = 2.0f * Ang36;     // 72Â° x PI/180
-        float Sin36 = (float)Math.Sin(Ang36);
-        float Sin72 = (float)Math.Sin(Ang72);
-        float Cos36 = (float)Math.Cos(Ang36);
-        float Cos72 = (float)Math.Cos(Ang72);
+        var Ang36 = (float)(Math.PI / 5.0);   // 36Â° x PI/180
+        var Ang72 = 2.0f * Ang36;     // 72Â° x PI/180
+        var Sin36 = (float)Math.Sin(Ang36);
+        var Sin72 = (float)Math.Sin(Ang72);
+        var Cos36 = (float)Math.Cos(Ang36);
+        var Cos72 = (float)Math.Cos(Ang72);
 
-        Vector2 Center = new Vector2((Region.Left + Region.Right) / 2.0f, (Region.Top + Region.Bottom) / 2.0f);
+        var Center = new Vector2((Region.Left + Region.Right) / 2.0f, (Region.Top + Region.Bottom) / 2.0f);
 
         List<Vector2> Vertices = new(10);
 
@@ -774,7 +774,7 @@ public class MGRatingControl : MGElement
             Vertices.Add(new Vector2(Center.X - OuterRadius * Sin72, Center.Y - OuterRadius * Cos72));
             Vertices.Add(new Vector2(Center.X - InnerRadius * Sin36, Center.Y - InnerRadius * Cos36));
 #else
-        float YOffset = InnerRadius / 8;
+        var YOffset = InnerRadius / 8;
 
         //  Top of the star: 12:00 hours
         Vertices.Add(new Vector2(Center.X, Center.Y - OuterRadius + YOffset));

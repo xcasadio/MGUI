@@ -58,22 +58,22 @@ public class GraphDocument
 
     public bool RemoveNode(Guid nodeId)
     {
-        GraphNodeModel node = TryGetNode(nodeId);
+        var node = TryGetNode(nodeId);
         if (node == null)
         {
             return false;
         }
 
-        for (int i = Edges.Count - 1; i >= 0; i--)
+        for (var i = Edges.Count - 1; i >= 0; i--)
         {
-            GraphEdgeModel edge = Edges[i];
+            var edge = Edges[i];
             if (edge.SourceNodeId == nodeId || edge.TargetNodeId == nodeId)
             {
                 Edges.RemoveAt(i);
             }
         }
 
-        bool removed = Nodes.Remove(node);
+        var removed = Nodes.Remove(node);
         if (removed)
         {
             OnGraphChanged();
@@ -84,7 +84,7 @@ public class GraphDocument
 
     public GraphNodeModel TryGetNode(Guid nodeId)
     {
-        for (int i = 0; i < Nodes.Count; i++)
+        for (var i = 0; i < Nodes.Count; i++)
         {
             if (Nodes[i].Id == nodeId)
             {
@@ -103,7 +103,7 @@ public class GraphDocument
             throw new ArgumentException("Port id must not be empty.", nameof(portId));
         }
 
-        GraphNodeModel node = TryGetNode(nodeId) ?? throw new InvalidOperationException($"Cannot add port to missing node '{nodeId}'.");
+        var node = TryGetNode(nodeId) ?? throw new InvalidOperationException($"Cannot add port to missing node '{nodeId}'.");
         if (TryGetPort(nodeId, portId) != null)
         {
             throw new InvalidOperationException($"Node '{nodeId}' already contains port '{portId}'.");
@@ -122,7 +122,7 @@ public class GraphDocument
             throw new ArgumentNullException(nameof(port));
         }
 
-        GraphNodeModel node = TryGetNode(nodeId) ?? throw new InvalidOperationException($"Cannot add port to missing node '{nodeId}'.");
+        var node = TryGetNode(nodeId) ?? throw new InvalidOperationException($"Cannot add port to missing node '{nodeId}'.");
         port.NodeId = nodeId;
         if (TryGetPort(nodeId, port.Id) != null)
         {
@@ -136,13 +136,13 @@ public class GraphDocument
 
     public GraphPortModel TryGetPort(Guid nodeId, Guid portId)
     {
-        GraphNodeModel node = TryGetNode(nodeId);
+        var node = TryGetNode(nodeId);
         if (node == null)
         {
             return null;
         }
 
-        for (int i = 0; i < node.Ports.Count; i++)
+        for (var i = 0; i < node.Ports.Count; i++)
         {
             if (node.Ports[i].Id == portId)
             {
@@ -155,10 +155,10 @@ public class GraphDocument
 
     public GraphPortModel TryGetPort(Guid portId)
     {
-        for (int nodeIndex = 0; nodeIndex < Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < Nodes.Count; nodeIndex++)
         {
-            List<GraphPortModel> ports = Nodes[nodeIndex].Ports;
-            for (int portIndex = 0; portIndex < ports.Count; portIndex++)
+            var ports = Nodes[nodeIndex].Ports;
+            for (var portIndex = 0; portIndex < ports.Count; portIndex++)
             {
                 if (ports[portIndex].Id == portId)
                 {
@@ -182,7 +182,7 @@ public class GraphDocument
             throw new InvalidOperationException($"Graph already contains edge '{edgeId}'.");
         }
 
-        GraphConnectionValidationResult validation = CompatibilityService.ValidateConnection(this, sourceNodeId, sourcePortId, targetNodeId, targetPortId);
+        var validation = CompatibilityService.ValidateConnection(this, sourceNodeId, sourcePortId, targetNodeId, targetPortId);
         if (!validation.IsValid)
         {
             throw new InvalidOperationException(validation.Message);
@@ -212,7 +212,7 @@ public class GraphDocument
 
         if (validate)
         {
-            GraphConnectionValidationResult validation = CompatibilityService.ValidateConnection(this, edge.SourceNodeId, edge.SourcePortId, edge.TargetNodeId, edge.TargetPortId);
+            var validation = CompatibilityService.ValidateConnection(this, edge.SourceNodeId, edge.SourcePortId, edge.TargetNodeId, edge.TargetPortId);
             if (!validation.IsValid)
             {
                 throw new InvalidOperationException(validation.Message);
@@ -226,13 +226,13 @@ public class GraphDocument
 
     public bool Disconnect(Guid edgeId)
     {
-        GraphEdgeModel edge = TryGetEdge(edgeId);
+        var edge = TryGetEdge(edgeId);
         if (edge == null)
         {
             return false;
         }
 
-        bool removed = Edges.Remove(edge);
+        var removed = Edges.Remove(edge);
         if (removed)
         {
             OnGraphChanged();
@@ -243,7 +243,7 @@ public class GraphDocument
 
     public GraphEdgeModel TryGetEdge(Guid edgeId)
     {
-        for (int i = 0; i < Edges.Count; i++)
+        for (var i = 0; i < Edges.Count; i++)
         {
             if (Edges[i].Id == edgeId)
             {
@@ -257,9 +257,9 @@ public class GraphDocument
     public List<GraphEdgeModel> GetEdgesForNode(Guid nodeId)
     {
         List<GraphEdgeModel> result = new();
-        for (int i = 0; i < Edges.Count; i++)
+        for (var i = 0; i < Edges.Count; i++)
         {
-            GraphEdgeModel edge = Edges[i];
+            var edge = Edges[i];
             if (edge.SourceNodeId == nodeId || edge.TargetNodeId == nodeId)
             {
                 result.Add(edge);
@@ -310,13 +310,13 @@ public class GraphDocument
 
     public bool RemoveComment(Guid commentId)
     {
-        GraphCommentModel comment = TryGetComment(commentId);
+        var comment = TryGetComment(commentId);
         if (comment == null)
         {
             return false;
         }
 
-        bool removed = Comments.Remove(comment);
+        var removed = Comments.Remove(comment);
         if (removed)
         {
             OnGraphChanged();
@@ -327,7 +327,7 @@ public class GraphDocument
 
     public GraphCommentModel TryGetComment(Guid commentId)
     {
-        for (int i = 0; i < Comments.Count; i++)
+        for (var i = 0; i < Comments.Count; i++)
         {
             if (Comments[i].Id == commentId)
             {

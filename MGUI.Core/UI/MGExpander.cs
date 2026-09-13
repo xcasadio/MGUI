@@ -230,7 +230,7 @@ public class MGExpander : MGSingleContentHost
                 NPC(nameof(IsExpanded));
                 NPC(nameof(IsCollapsed));
 
-                foreach (MGElement Item in BoundItems)
+                foreach (var Item in BoundItems)
                 {
                     Item.Visibility = IsExpanded ? ExpandedVisibility : CollapsedVisibility;
                 }
@@ -359,14 +359,14 @@ public class MGExpander : MGSingleContentHost
                 false, false, false, false, false, false, false,
                 (availableBounds, componentSize) =>
                 {
-                    int dropdownArrowHeight = ExpanderDropdownArrowSize / 2;
+                    var dropdownArrowHeight = ExpanderDropdownArrowSize / 2;
                     if (dropdownArrowHeight % 2 != 0)
                     {
                         dropdownArrowHeight++;
                     }
 
                     Size dropdownArrowSize = new(ExpanderDropdownArrowSize, dropdownArrowHeight);
-                    Rectangle dropdownArrowBounds = ApplyAlignment(ExpanderToggleButton.LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, dropdownArrowSize);
+                    var dropdownArrowBounds = ApplyAlignment(ExpanderToggleButton.LayoutBounds, HorizontalAlignment.Center, VerticalAlignment.Center, dropdownArrowSize);
                     return IsExpanded
                         ? dropdownArrowBounds.GetTranslated(new Point(0, -1))
                         : dropdownArrowBounds.GetTranslated(new Point(0, 1));

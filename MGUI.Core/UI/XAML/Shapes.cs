@@ -8,7 +8,7 @@ internal static class ShapeXamlParser
 {
     public static Vector2 ParsePoint(string value)
     {
-        float[] values = ParseNumbers(value);
+        var values = ParseNumbers(value);
         if (values.Length != 2)
         {
             throw new ArgumentException(value);
@@ -19,7 +19,7 @@ internal static class ShapeXamlParser
 
     public static Vector2[] ParsePoints(string value)
     {
-        float[] values = ParseNumbers(value);
+        var values = ParseNumbers(value);
         if (values.Length == 0)
         {
             return Array.Empty<Vector2>();
@@ -30,8 +30,8 @@ internal static class ShapeXamlParser
             throw new ArgumentException(value);
         }
 
-        Vector2[] points = new Vector2[values.Length / 2];
-        for (int i = 0; i < values.Length; i += 2)
+        var points = new Vector2[values.Length / 2];
+        for (var i = 0; i < values.Length; i += 2)
         {
             points[i / 2] = new Vector2(values[i], values[i + 1]);
         }
@@ -46,19 +46,19 @@ internal static class ShapeXamlParser
             return Array.Empty<MGPathLiteCommand>();
         }
 
-        string normalized = value
+        var normalized = value
             .Replace(",", " ")
             .Replace("M", " M ", StringComparison.OrdinalIgnoreCase)
             .Replace("L", " L ", StringComparison.OrdinalIgnoreCase)
             .Replace("Z", " Z ", StringComparison.OrdinalIgnoreCase);
 
-        string[] tokens = normalized.Split(new[] { ' ', '\t', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        var tokens = normalized.Split(new[] { ' ', '\t', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
         List<MGPathLiteCommand> commands = new();
 
-        int index = 0;
+        var index = 0;
         while (index < tokens.Length)
         {
-            string token = tokens[index++];
+            var token = tokens[index++];
             switch (token.ToUpperInvariant())
             {
                 case "M":
@@ -85,8 +85,8 @@ internal static class ShapeXamlParser
             throw new ArgumentException(string.Join(" ", tokens));
         }
 
-        float x = float.Parse(tokens[index++], CultureInfo.InvariantCulture);
-        float y = float.Parse(tokens[index++], CultureInfo.InvariantCulture);
+        var x = float.Parse(tokens[index++], CultureInfo.InvariantCulture);
+        var y = float.Parse(tokens[index++], CultureInfo.InvariantCulture);
         return new Vector2(x, y);
     }
 
@@ -97,9 +97,9 @@ internal static class ShapeXamlParser
             return Array.Empty<float>();
         }
 
-        string[] tokens = value.Split(new[] { ',', ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        float[] numbers = new float[tokens.Length];
-        for (int i = 0; i < tokens.Length; i++)
+        var tokens = value.Split(new[] { ',', ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        var numbers = new float[tokens.Length];
+        for (var i = 0; i < tokens.Length; i++)
         {
             numbers[i] = float.Parse(tokens[i], CultureInfo.InvariantCulture);
         }
@@ -129,8 +129,8 @@ public class Ellipse : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
-        MGEllipse ellipse = Element as MGEllipse;
+        var Desktop = Element.GetDesktop();
+        var ellipse = Element as MGEllipse;
 
         if (Stroke.HasValue)
         {
@@ -188,7 +188,7 @@ public class Line : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGLine line = Element as MGLine;
+        var line = Element as MGLine;
 
         if (!string.IsNullOrWhiteSpace(StartPoint))
         {
@@ -233,7 +233,7 @@ public class Polyline : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGPolyline polyline = Element as MGPolyline;
+        var polyline = Element as MGPolyline;
 
         if (!string.IsNullOrWhiteSpace(Points))
         {
@@ -276,8 +276,8 @@ public class Polygon : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
-        MGPolygon polygon = Element as MGPolygon;
+        var Desktop = Element.GetDesktop();
+        var polygon = Element as MGPolygon;
 
         if (!string.IsNullOrWhiteSpace(Points))
         {
@@ -325,8 +325,8 @@ public class PathLite : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
-        MGPathLite pathLite = Element as MGPathLite;
+        var Desktop = Element.GetDesktop();
+        var pathLite = Element as MGPathLite;
 
         if (!string.IsNullOrWhiteSpace(Data))
         {

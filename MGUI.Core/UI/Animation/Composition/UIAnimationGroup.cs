@@ -105,9 +105,9 @@ public abstract class UIAnimationGroup : UIAnimation
 
     private void CancelChildren()
     {
-        for (int i = 0; i < _Children.Count; i++)
+        for (var i = 0; i < _Children.Count; i++)
         {
-            UIAnimation child = _Children[i];
+            var child = _Children[i];
             if (child.IsActive)
             {
                 child.CancelCore(child.CancelBehavior);
@@ -128,7 +128,7 @@ public abstract class UIAnimationGroup : UIAnimation
     /// <summary>Starts <paramref name="child"/> on its owner (or the group's owner) through the manager.</summary>
     protected void StartChild(UIAnimation child)
     {
-        MGElement owner = child.Owner ?? Owner ?? throw new InvalidOperationException("The group has no owner.");
+        var owner = child.Owner ?? Owner ?? throw new InvalidOperationException("The group has no owner.");
         StartedChildren++;
         child.Completed += HandleChildFinished;
         child.Cancelled += HandleChildFinished;
@@ -137,7 +137,7 @@ public abstract class UIAnimationGroup : UIAnimation
 
     private void HandleChildFinished(object sender, EventArgs e)
     {
-        UIAnimation child = (UIAnimation)sender;
+        var child = (UIAnimation)sender;
         child.Completed -= HandleChildFinished;
         child.Cancelled -= HandleChildFinished;
         FinishedChildren++;
@@ -155,8 +155,8 @@ public abstract class UIAnimationGroup : UIAnimation
             return TimeSpan.MaxValue;
         }
 
-        long pass = child.Duration.Ticks * (child.AutoReverse ? 2 : 1);
-        long total = child.Delay.Ticks + pass * (child.RepeatCount + 1L);
+        var pass = child.Duration.Ticks * (child.AutoReverse ? 2 : 1);
+        var total = child.Delay.Ticks + pass * (child.RepeatCount + 1L);
         return total >= TimeSpan.MaxValue.Ticks ? TimeSpan.MaxValue : TimeSpan.FromTicks(total);
     }
 }

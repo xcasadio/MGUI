@@ -283,7 +283,7 @@ public class MGDockHost : MGSingleContentHost
         get => _uiScale;
         set
         {
-            float clamped = Math.Clamp(value, 0.25f, 4f);
+            var clamped = Math.Clamp(value, 0.25f, 4f);
             if (Math.Abs(_uiScale - clamped) > 1e-6f)
             {
                 _uiScale = clamped;
@@ -348,11 +348,11 @@ public class MGDockHost : MGSingleContentHost
             element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
                 true, true, false, false, false, false, false, (AvailableBounds, ComponentSize) => AvailableBounds));
 
-        bool stripsChanged = false;
+        var stripsChanged = false;
         foreach (AutoHideSide side in System.Enum.GetValues(typeof(AutoHideSide)))
         {
-            MGDockAutoHideStrip strip = (MGDockAutoHideStrip)Structure.Parts[GetAutoHideStripPartName(side)];
-            _autoHideStrips.TryGetValue(side, out MGDockAutoHideStrip previousStrip);
+            var strip = (MGDockAutoHideStrip)Structure.Parts[GetAutoHideStripPartName(side)];
+            _autoHideStrips.TryGetValue(side, out var previousStrip);
             if (!ReferenceEquals(previousStrip, strip))
             {
                 if (previousStrip != null)
@@ -369,15 +369,15 @@ public class MGDockHost : MGSingleContentHost
                 stripsChanged = true;
             }
 
-            _autoHideStripComponents.TryGetValue(side, out MGComponent<MGDockAutoHideStrip> stripComponent);
-            AutoHideSide capturedSide = side;
+            _autoHideStripComponents.TryGetValue(side, out var stripComponent);
+            var capturedSide = side;
             EnsureComponentBinding(() => stripComponent, value => stripComponent = value, strip,
                 element => new(element, ComponentUpdatePriority.AfterContents, ComponentDrawPriority.AfterContents,
                     true, true, false, false, false, false, false, (avail, _) => GetStripBounds(capturedSide, avail)));
             _autoHideStripComponents[side] = stripComponent;
         }
 
-        MGDockAutoHideDrawer drawer = (MGDockAutoHideDrawer)Structure.Parts[AutoHideDrawerPartName];
+        var drawer = (MGDockAutoHideDrawer)Structure.Parts[AutoHideDrawerPartName];
         if (!ReferenceEquals(_autoHideDrawer, drawer))
         {
             if (_autoHideDrawer != null)
@@ -441,10 +441,10 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private Microsoft.Xna.Framework.Rectangle ComputeInnerBounds(Microsoft.Xna.Framework.Rectangle bounds)
     {
-        int left   = LayoutModel?.HasAutoHidePanels(AutoHideSide.Left)   == true ? _autoHideStripThickness : 0;
-        int right  = LayoutModel?.HasAutoHidePanels(AutoHideSide.Right)  == true ? _autoHideStripThickness : 0;
-        int top    = LayoutModel?.HasAutoHidePanels(AutoHideSide.Top)    == true ? _autoHideStripThickness : 0;
-        int bottom = LayoutModel?.HasAutoHidePanels(AutoHideSide.Bottom) == true ? _autoHideStripThickness : 0;
+        var left   = LayoutModel?.HasAutoHidePanels(AutoHideSide.Left)   == true ? _autoHideStripThickness : 0;
+        var right  = LayoutModel?.HasAutoHidePanels(AutoHideSide.Right)  == true ? _autoHideStripThickness : 0;
+        var top    = LayoutModel?.HasAutoHidePanels(AutoHideSide.Top)    == true ? _autoHideStripThickness : 0;
+        var bottom = LayoutModel?.HasAutoHidePanels(AutoHideSide.Bottom) == true ? _autoHideStripThickness : 0;
         return new Microsoft.Xna.Framework.Rectangle(
             bounds.X + left,
             bounds.Y + top,
@@ -460,14 +460,14 @@ public class MGDockHost : MGSingleContentHost
         if (_autoHideDrawer?.Visibility == Visibility.Visible)
         {
             var mouseState = ParentWindow.Desktop.InputTracker.Mouse;
-            bool lmbPressed = mouseState.CurrentState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed
-                           && mouseState.PreviousState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+            var lmbPressed = mouseState.CurrentState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed
+                             && mouseState.PreviousState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed;
 
             if (lmbPressed)
             {
-                Point mp = mouseState.CurrentPosition;
-                bool insideDrawer = _autoHideDrawer.LayoutBounds.Contains(mp);
-                bool insideStrip  = false;
+                var mp = mouseState.CurrentPosition;
+                var insideDrawer = _autoHideDrawer.LayoutBounds.Contains(mp);
+                var insideStrip  = false;
                 foreach (var strip in _autoHideStrips.Values)
                 {
                     if (strip.Visibility == Visibility.Visible && strip.LayoutBounds.Contains(mp))
@@ -484,9 +484,9 @@ public class MGDockHost : MGSingleContentHost
         if (!IsDragging)
         {
             var kb = ParentWindow.Desktop.InputTracker.Keyboard;
-            bool ctrlHeld       = kb.IsControlDown;
-            bool shiftHeld      = kb.IsShiftDown;
-            bool tabJustPressed = kb.CurrentKeyPressedEvents[Microsoft.Xna.Framework.Input.Keys.Tab] != null;
+            var ctrlHeld       = kb.IsControlDown;
+            var shiftHeld      = kb.IsShiftDown;
+            var tabJustPressed = kb.CurrentKeyPressedEvents[Microsoft.Xna.Framework.Input.Keys.Tab] != null;
 
             if (ctrlHeld && tabJustPressed)
             {
@@ -505,7 +505,7 @@ public class MGDockHost : MGSingleContentHost
             }
 
             // Check if mouse button is still pressed
-            bool isStillPressed = ParentWindow.Desktop.InputTracker.Mouse.CurrentState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+            var isStillPressed = ParentWindow.Desktop.InputTracker.Mouse.CurrentState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
 
             if (!isStillPressed)
             {
@@ -515,12 +515,12 @@ public class MGDockHost : MGSingleContentHost
             }
 
             // Get current mouse position
-            Point currentMousePosition = ParentWindow.Desktop.InputTracker.Mouse.CurrentPosition;
+            var currentMousePosition = ParentWindow.Desktop.InputTracker.Mouse.CurrentPosition;
 
             // Check if drag threshold has been exceeded
             if (!CurrentDrag.HasExceededThreshold)
             {
-                double distance = Math.Sqrt(
+                var distance = Math.Sqrt(
                     Math.Pow(currentMousePosition.X - CurrentDrag.DragStartPosition.X, 2) +
                     Math.Pow(currentMousePosition.Y - CurrentDrag.DragStartPosition.Y, 2));
 
@@ -554,7 +554,7 @@ public class MGDockHost : MGSingleContentHost
     private void UpdateDragPreview(Point mousePosition)
     {
         // Optimization: skip if mouse hasn't moved significantly
-        double distance = Math.Sqrt(
+        var distance = Math.Sqrt(
             Math.Pow(mousePosition.X - _lastPreviewCalculation.X, 2) +
             Math.Pow(mousePosition.Y - _lastPreviewCalculation.Y, 2));
 
@@ -697,7 +697,7 @@ public class MGDockHost : MGSingleContentHost
                 // Horizontal split (left | right) — the bar is vertical.
                 // Press left half  → add to the right of FirstChild.
                 // Press right half → add to the left of SecondChild.
-                bool leftHalf = mousePosition.X < splitterBounds.X + splitterBounds.Width / 2;
+                var leftHalf = mousePosition.X < splitterBounds.X + splitterBounds.Width / 2;
                 if (leftHalf)
                 {
                     targetChildNode = sc.ModelNode?.FirstChild;
@@ -714,7 +714,7 @@ public class MGDockHost : MGSingleContentHost
                 // Vertical split (top / bottom) — the bar is horizontal.
                 // Press top half    → add below FirstChild.
                 // Press bottom half → add above SecondChild.
-                bool topHalf = mousePosition.Y < splitterBounds.Y + splitterBounds.Height / 2;
+                var topHalf = mousePosition.Y < splitterBounds.Y + splitterBounds.Height / 2;
                 if (topHalf)
                 {
                     targetChildNode = sc.ModelNode?.FirstChild;
@@ -760,10 +760,10 @@ public class MGDockHost : MGSingleContentHost
         // not used), automatically activate the appropriate split zone.
         if (ProximityDockingEnabled && hoveredGroup != null)
         {
-            int band = (int)(ProximityBandWidth * _uiScale);
+            var band = (int)(ProximityBandWidth * _uiScale);
             var gb   = hoveredGroup.LayoutBounds;
 
-            DockZone proximityZone = DockZone.None;
+            var proximityZone = DockZone.None;
             if      (mousePosition.X - gb.X      < band)
             {
                 proximityZone = DockZone.Left;
@@ -988,7 +988,7 @@ public class MGDockHost : MGSingleContentHost
                     else
                     {
                         // Move to different group (or from floating → host)
-                        int insertIndex = target.TabIndex >= 0 ? target.TabIndex : -1;
+                        var insertIndex = target.TabIndex >= 0 ? target.TabIndex : -1;
                         DockOperation.DockAsTab(LayoutModel, panel, targetGroup, insertIndex);
                     }
                 }
@@ -1119,7 +1119,7 @@ public class MGDockHost : MGSingleContentHost
         // Auto-hidden panels (by side)
         if (LayoutModel != null)
         {
-            foreach (AutoHideSide side in new[] { AutoHideSide.Left, AutoHideSide.Top, AutoHideSide.Right, AutoHideSide.Bottom })
+            foreach (var side in new[] { AutoHideSide.Left, AutoHideSide.Top, AutoHideSide.Right, AutoHideSide.Bottom })
             {
                 allPanels.AddRange(LayoutModel.GetAutoHidePanels(side));
             }
@@ -1137,7 +1137,7 @@ public class MGDockHost : MGSingleContentHost
         }
 
         var currentId = ActiveDockable?.Id;
-        int currentIndex = currentId != null ? allPanels.FindIndex(p => p.Id == currentId) : -1;
+        var currentIndex = currentId != null ? allPanels.FindIndex(p => p.Id == currentId) : -1;
 
         int nextIndex;
         if (currentIndex < 0)
@@ -1184,7 +1184,7 @@ public class MGDockHost : MGSingleContentHost
         // Check if panel is auto-hidden
         if (LayoutModel != null)
         {
-            foreach (AutoHideSide side in new[] { AutoHideSide.Left, AutoHideSide.Top, AutoHideSide.Right, AutoHideSide.Bottom })
+            foreach (var side in new[] { AutoHideSide.Left, AutoHideSide.Top, AutoHideSide.Right, AutoHideSide.Bottom })
             {
                 if (LayoutModel.GetAutoHidePanels(side).Any(p => p.Id == panel.Id))
                 {
@@ -1231,8 +1231,8 @@ public class MGDockHost : MGSingleContentHost
         }
 
         var lb = LayoutBounds;
-        int cx = lb.X + lb.Width  / 2;
-        int cy = lb.Y + lb.Height / 2;
+        var cx = lb.X + lb.Width  / 2;
+        var cy = lb.Y + lb.Height / 2;
         ParentWindow.Desktop.TryOpenContextMenu(menu,
             new Microsoft.Xna.Framework.Rectangle(cx, cy, 1, 1));
     }
@@ -1273,7 +1273,7 @@ public class MGDockHost : MGSingleContentHost
 
         // Find a suitable tab group to add the panel into
         var allGroups = GetAllTabGroups().ToList();
-        DockTabGroupNode targetGroup = allGroups.FirstOrDefault();
+        var targetGroup = allGroups.FirstOrDefault();
 
         if (targetGroup != null)
         {
@@ -1336,8 +1336,8 @@ public class MGDockHost : MGSingleContentHost
 
         const int defaultFloatWidth  = 320;
         const int defaultFloatHeight = 260;
-        int left = dropPosition.X - defaultFloatWidth  / 2;
-        int top  = dropPosition.Y - defaultFloatHeight / 2;
+        var left = dropPosition.X - defaultFloatWidth  / 2;
+        var top  = dropPosition.Y - defaultFloatHeight / 2;
 
         var floatWin = new MGFloatingDockWindow(this, panel, left, top, defaultFloatWidth, defaultFloatHeight);
         AttachFloatingWindow(floatWin);
@@ -1372,7 +1372,7 @@ public class MGDockHost : MGSingleContentHost
         }
 
         floatWin.WindowClosed -= OnFloatingWindowClosed;
-        foreach (DockPanelNode panel in floatWin.GroupNode.Panels.ToList())
+        foreach (var panel in floatWin.GroupNode.Panels.ToList())
         {
             NotifyFloatingPanelClosed(panel);
         }
@@ -1484,7 +1484,7 @@ public class MGDockHost : MGSingleContentHost
         // Resolve the target group BEFORE touching the floating window: if there is nowhere to
         // dock the panel, leave it floating untouched rather than detaching it into limbo.
         DockTabGroupNode targetGroup = null;
-        if (_floatedFromGroupId.TryGetValue(panel.Id, out string sourceGroupId) && sourceGroupId != null)
+        if (_floatedFromGroupId.TryGetValue(panel.Id, out var sourceGroupId) && sourceGroupId != null)
         {
             targetGroup = LayoutModel.FindNodeById(sourceGroupId) as DockTabGroupNode;
         }
@@ -1519,10 +1519,10 @@ public class MGDockHost : MGSingleContentHost
         {
             if (_autoHideStripThickness != value)
             {
-                int previous = _autoHideStripThickness;
+                var previous = _autoHideStripThickness;
                 _autoHideStripThickness = value;
                 //  The strips follow the host's inset; a strip whose thickness the application set on its own no longer follows it.
-                foreach (MGDockAutoHideStrip strip in _autoHideStrips.Values)
+                foreach (var strip in _autoHideStrips.Values)
                 {
                     if (strip.StripThickness == previous)
                     {
@@ -1548,8 +1548,8 @@ public class MGDockHost : MGSingleContentHost
         // Top / Bottom strips take the full width.
         // Left / Right strips are inset vertically by any active Top/Bottom strip to avoid
         // corner overlaps when multiple sides are active simultaneously.
-        int topInset    = LayoutModel.HasAutoHidePanels(AutoHideSide.Top)    ? _autoHideStripThickness : 0;
-        int bottomInset = LayoutModel.HasAutoHidePanels(AutoHideSide.Bottom) ? _autoHideStripThickness : 0;
+        var topInset    = LayoutModel.HasAutoHidePanels(AutoHideSide.Top)    ? _autoHideStripThickness : 0;
+        var bottomInset = LayoutModel.HasAutoHidePanels(AutoHideSide.Bottom) ? _autoHideStripThickness : 0;
 
         return side switch
         {
@@ -1569,8 +1569,8 @@ public class MGDockHost : MGSingleContentHost
             return new Microsoft.Xna.Framework.Rectangle(avail.X, -10000, 0, 0);
         }
 
-        int ds = panel.DrawerSize;
-        int st = _autoHideStripThickness;
+        var ds = panel.DrawerSize;
+        var st = _autoHideStripThickness;
         return panel.AutoHideSide switch
         {
             AutoHideSide.Left   => new Microsoft.Xna.Framework.Rectangle(avail.X + st,           avail.Y,              ds, avail.Height),
@@ -1594,7 +1594,7 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
-        AutoHideSide side = InferAutoHideSide(panel);
+        var side = InferAutoHideSide(panel);
 
         // Snapshot the parent group NOW while panel.Parent is still set.
         // DockOperation.RemovePanel clears it, so we must do this before that call.
@@ -1604,7 +1604,7 @@ public class MGDockHost : MGSingleContentHost
         // the original group no longer exists after the panel (alone in its group) is removed.
         if (panel.AutoHideReturnGroup?.Parent is DockSplitNode splitParent)
         {
-            bool isFirst = splitParent.FirstChild == panel.AutoHideReturnGroup;
+            var isFirst = splitParent.FirstChild == panel.AutoHideReturnGroup;
             panel.AutoHideReturnZone = splitParent.Orientation == MGUI.Core.UI.Orientation.Horizontal
                 ? (isFirst ? DockZone.Left  : DockZone.Right)
                 : (isFirst ? DockZone.Top   : DockZone.Bottom);
@@ -1656,7 +1656,7 @@ public class MGDockHost : MGSingleContentHost
             var returnGroup = panel.AutoHideReturnGroup;
             panel.AutoHideReturnGroup = null;   // clear — no longer needed
 
-            bool restoredToOriginal = false;
+            var restoredToOriginal = false;
             if (returnGroup != null && GetAllTabGroups().Contains(returnGroup))
             {
                 // Original group still exists — slip back in as a tab.
@@ -1668,7 +1668,7 @@ public class MGDockHost : MGSingleContentHost
             {
                 // Fall back: recreate the split using the snapshotted zone and ratio.
                 // Map AutoHideReturnZone first; if it wasn't set, infer from AutoHideSide.
-                DockZone fallbackZone = panel.AutoHideReturnZone != DockZone.None
+                var fallbackZone = panel.AutoHideReturnZone != DockZone.None
                     ? panel.AutoHideReturnZone
                     : panel.AutoHideSide switch
                     {
@@ -1678,7 +1678,7 @@ public class MGDockHost : MGSingleContentHost
                         AutoHideSide.Bottom => DockZone.Bottom,
                         _                   => DockZone.Right
                     };
-                float fallbackRatio = panel.AutoHideReturnSplitRatio ?? DockDropCalculator.HostEdgePreviewRatio;
+                var fallbackRatio = panel.AutoHideReturnSplitRatio ?? DockDropCalculator.HostEdgePreviewRatio;
 
                 // Clear saved position metadata
                 panel.AutoHideReturnZone       = DockZone.None;
@@ -1762,14 +1762,14 @@ public class MGDockHost : MGSingleContentHost
                     return AutoHideSide.Left;
                 }
 
-                float cx = (gb.X + gb.Width  * 0.5f - hb.X) / hb.Width;
-                float cy = (gb.Y + gb.Height * 0.5f - hb.Y) / hb.Height;
+                var cx = (gb.X + gb.Width  * 0.5f - hb.X) / hb.Width;
+                var cy = (gb.Y + gb.Height * 0.5f - hb.Y) / hb.Height;
 
-                float dL = cx;
-                float dR = 1f - cx;
-                float dT = cy;
-                float dB = 1f - cy;
-                float min = Math.Min(Math.Min(dL, dR), Math.Min(dT, dB));
+                var dL = cx;
+                var dR = 1f - cx;
+                var dT = cy;
+                var dB = 1f - cy;
+                var min = Math.Min(Math.Min(dL, dR), Math.Min(dT, dB));
                 if (min == dL)
                 {
                     return AutoHideSide.Left;
@@ -1799,7 +1799,7 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
-        foreach (AutoHideSide side in _autoHideStrips.Keys)
+        foreach (var side in _autoHideStrips.Keys)
         {
             var panels = LayoutModel.GetAutoHidePanels(side);
             _autoHideStrips[side].Refresh(panels);
@@ -1939,7 +1939,7 @@ public class MGDockHost : MGSingleContentHost
         // 3. Family restriction — only for tab-docking (Center)
         if (zone == DockZone.Center)
         {
-            string family = panel.Family;
+            var family = panel.Family;
             if (family != null)
             {
                 foreach (var p in targetGroup.Panels)
@@ -2011,7 +2011,7 @@ public class MGDockHost : MGSingleContentHost
         try
         {
             // ── Maximize mode: show only the maximized group ───────────────
-            string maximizedId = CurrentMaximizedGroupId;
+            var maximizedId = CurrentMaximizedGroupId;
             if (maximizedId != null)
             {
                 // Find the tab group node with the matching ID
@@ -2031,7 +2031,7 @@ public class MGDockHost : MGSingleContentHost
             }
 
             // ── Normal mode ────────────────────────────────────────────────
-            MGElement visualRoot = BuildVisualTree(LayoutModel.RootNode);
+            var visualRoot = BuildVisualTree(LayoutModel.RootNode);
             SetContent(visualRoot);
             SyncRegistryVisibility();
         }
@@ -2406,8 +2406,8 @@ public class MGDockHost : MGSingleContentHost
             }
 
             // Check if we're dragging from this same group (for tab reordering)
-            bool isDraggingFromSameGroup = IsDragging && CurrentDrag != null && 
-                                           CurrentDrag.SourceGroup == tabGroup.GroupNode;
+            var isDraggingFromSameGroup = IsDragging && CurrentDrag != null && 
+                                          CurrentDrag.SourceGroup == tabGroup.GroupNode;
 
             // PRIORITY: If dragging from same group and mouse is over tab headers -> REORDER MODE
             if (isDraggingFromSameGroup && 
@@ -2489,8 +2489,8 @@ public class MGDockHost : MGSingleContentHost
             return null;
         }
 
-        bool isDraggingFromSameGroup = IsDragging && CurrentDrag != null && 
-                                       CurrentDrag.SourceGroup == targetGroup.GroupNode;
+        var isDraggingFromSameGroup = IsDragging && CurrentDrag != null && 
+                                      CurrentDrag.SourceGroup == targetGroup.GroupNode;
 
         // Handle Center zone (tab merge or reorder)
         if (zone == DockZone.Center)
@@ -2606,11 +2606,11 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private void RefreshActiveGroupHighlight()
     {
-        string activePanelId = _activeDockable?.Id;
+        var activePanelId = _activeDockable?.Id;
         foreach (var tg in GetAllVisibleTabGroups())
         {
-            bool contains = activePanelId != null
-                && tg.GroupNode?.Panels.Any(p => p.Id == activePanelId) == true;
+            var contains = activePanelId != null
+                           && tg.GroupNode?.Panels.Any(p => p.Id == activePanelId) == true;
             tg.IsActiveGroup = contains;
         }
     }

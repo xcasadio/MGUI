@@ -61,7 +61,7 @@ internal sealed class UIDynamicResourceSubscriptions
     {
         Detach();
 
-        MGResources NewScope = ResolveHostResources();
+        var NewScope = ResolveHostResources();
         if (NewScope != null)
         {
             AttachTo(NewScope);
@@ -134,7 +134,7 @@ internal sealed class UIDynamicResourceSubscriptions
             return;
         }
 
-        foreach (SubscriptionEntry Entry in Entries.Values.ToArray())
+        foreach (var Entry in Entries.Values.ToArray())
         {
             if (string.Equals(Entry.Config.ResourceName, ResourceName, StringComparison.Ordinal))
             {
@@ -145,7 +145,7 @@ internal sealed class UIDynamicResourceSubscriptions
 
     private void ReapplyAll(MGResources Scope)
     {
-        foreach (SubscriptionEntry Entry in Entries.Values.ToArray())
+        foreach (var Entry in Entries.Values.ToArray())
         {
             _ = UIResourceReferenceApplicator.Apply(HostElement, Entry.TargetObject, Entry.Config, Scope);
         }

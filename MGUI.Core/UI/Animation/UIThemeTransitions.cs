@@ -42,7 +42,7 @@ internal sealed class UIThemeTransitions
             UIEasing.TryGet(easingName, out easing);
         }
 
-        UITransition existing = element.Transitions[path];
+        var existing = element.Transitions[path];
         if (current != null && ReferenceEquals(existing, current))
         {
             current.Duration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration;

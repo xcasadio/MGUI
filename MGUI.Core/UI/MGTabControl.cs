@@ -30,7 +30,7 @@ public class MGTabControl : MGHeaderedContentPresenter
             return -1;
         }
 
-        int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+        var normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
         return action switch
         {
             UINavigationAction.MoveLeft or UINavigationAction.MoveUp or UINavigationAction.ShoulderPrevious => Math.Max(0, normalizedIndex - 1),
@@ -68,7 +68,7 @@ public class MGTabControl : MGHeaderedContentPresenter
         List<MGElement> result = new(_Tabs.Count + 1);
         if (IncludeInactive)
         {
-            foreach (MGTabItem Item in _Tabs)
+            foreach (var Item in _Tabs)
             {
                 if (!Item.IsTabSelected)
                 {
@@ -95,7 +95,7 @@ public class MGTabControl : MGHeaderedContentPresenter
     {
         if (Source != null)
         {
-            MGElement current = Source;
+            var current = Source;
             while (current != null)
             {
                 if (current is MGTabItem tabItem)
@@ -202,9 +202,9 @@ public class MGTabControl : MGHeaderedContentPresenter
             if (_SelectedTabHeaderTemplate != value)
             {
                 _SelectedTabHeaderTemplate = value;
-                foreach (KeyValuePair<MGTabItem, MGButton> KVP in ActualTabHeaders.ToList())
+                foreach (var KVP in ActualTabHeaders.ToList())
                 {
-                    MGTabItem Tab = KVP.Key;
+                    var Tab = KVP.Key;
                     if (Tab.IsTabSelected)
                     {
                         UpdateHeaderWrapper(Tab);
@@ -227,9 +227,9 @@ public class MGTabControl : MGHeaderedContentPresenter
             if (_UnselectedTabHeaderTemplate != value)
             {
                 _UnselectedTabHeaderTemplate = value;
-                foreach (KeyValuePair<MGTabItem, MGButton> KVP in ActualTabHeaders.ToList())
+                foreach (var KVP in ActualTabHeaders.ToList())
                 {
-                    MGTabItem Tab = KVP.Key;
+                    var Tab = KVP.Key;
                     if (!Tab.IsTabSelected)
                     {
                         UpdateHeaderWrapper(Tab);
@@ -250,7 +250,7 @@ public class MGTabControl : MGHeaderedContentPresenter
             if (_SelectedTabHeaderControlTemplateName != value)
             {
                 _SelectedTabHeaderControlTemplateName = value;
-                foreach (MGTabItem tab in ActualTabHeaders.Keys.ToList())
+                foreach (var tab in ActualTabHeaders.Keys.ToList())
                 {
                     if (tab.IsTabSelected)
                     {
@@ -272,7 +272,7 @@ public class MGTabControl : MGHeaderedContentPresenter
             if (_UnselectedTabHeaderControlTemplateName != value)
             {
                 _UnselectedTabHeaderControlTemplateName = value;
-                foreach (MGTabItem tab in ActualTabHeaders.Keys.ToList())
+                foreach (var tab in ActualTabHeaders.Keys.ToList())
                 {
                     if (!tab.IsTabSelected)
                     {
@@ -300,7 +300,7 @@ public class MGTabControl : MGHeaderedContentPresenter
 
     private MGButton CreateHeaderWrapper(MGTabItem Tab)
     {
-        MGButton wrapper = Tab.IsTabSelected
+        var wrapper = Tab.IsTabSelected
             ? SelectedTabHeaderTemplate?.Invoke(Tab)
             : UnselectedTabHeaderTemplate?.Invoke(Tab);
 
@@ -313,7 +313,7 @@ public class MGTabControl : MGHeaderedContentPresenter
     }
 
     private static bool IsDefaultHeaderWrapper(MGButton HeaderWrapper)
-        => HeaderWrapper?.Metadata?.TryGetValue(DefaultHeaderWrapperMetadataKey, out object value) == true && value is true;
+        => HeaderWrapper?.Metadata?.TryGetValue(DefaultHeaderWrapperMetadataKey, out var value) == true && value is true;
 
     private void ApplyHeaderWrapperTemplate(MGButton HeaderWrapper, bool IsSelected)
     {
@@ -338,7 +338,7 @@ public class MGTabControl : MGHeaderedContentPresenter
 
     private void UpdateHeaderWrapper(MGTabItem Tab)
     {
-        if (Tab != null && ActualTabHeaders.TryGetValue(Tab, out MGButton OldHeaderWrapper))
+        if (Tab != null && ActualTabHeaders.TryGetValue(Tab, out var OldHeaderWrapper))
         {
             if (!UsesCustomHeaderFactories && IsDefaultHeaderWrapper(OldHeaderWrapper))
             {
@@ -348,7 +348,7 @@ public class MGTabControl : MGHeaderedContentPresenter
                 return;
             }
 
-            MGButton NewHeaderWrapper = CreateHeaderWrapper(Tab);
+            var NewHeaderWrapper = CreateHeaderWrapper(Tab);
             if (ManagedReplaceHeadersPanelChild(OldHeaderWrapper, NewHeaderWrapper))
             {
                 OldHeaderWrapper.SetContent(null as MGElement);
@@ -375,10 +375,10 @@ public class MGTabControl : MGHeaderedContentPresenter
 
         if (TabHeaderPosition == Dock.Left || TabHeaderPosition == Dock.Right)
         {
-            int maxWidth = 0;
-            foreach (MGButton HeaderWrapper in ActualTabHeaders.Values)
+            var maxWidth = 0;
+            foreach (var HeaderWrapper in ActualTabHeaders.Values)
             {
-                HeaderWrapper.UpdateMeasurement(measurementBounds, out _, out Thickness FullSize, out _, out _);
+                HeaderWrapper.UpdateMeasurement(measurementBounds, out _, out var FullSize, out _, out _);
                 maxWidth = Math.Max(maxWidth, FullSize.Width);
             }
 
@@ -387,10 +387,10 @@ public class MGTabControl : MGHeaderedContentPresenter
         }
         else
         {
-            int maxHeight = 0;
-            foreach (MGButton HeaderWrapper in ActualTabHeaders.Values)
+            var maxHeight = 0;
+            foreach (var HeaderWrapper in ActualTabHeaders.Values)
             {
-                HeaderWrapper.UpdateMeasurement(measurementBounds, out _, out Thickness FullSize, out _, out _);
+                HeaderWrapper.UpdateMeasurement(measurementBounds, out _, out var FullSize, out _, out _);
                 maxHeight = Math.Max(maxHeight, FullSize.Height);
             }
 
@@ -415,7 +415,7 @@ public class MGTabControl : MGHeaderedContentPresenter
         HeadersPanelElement = Structure.Parts[HeadersPanelPartName] as MGStackPanel;
         BorderElement = Structure.Parts[BorderPartName] as MGBorder;
 
-        bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+        var needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
@@ -434,9 +434,9 @@ public class MGTabControl : MGHeaderedContentPresenter
             using (HeadersPanelElement.AllowChangingContentTemporarily())
             {
                 _ = HeadersPanelElement.TryRemoveAll();
-                foreach (MGTabItem tab in _Tabs)
+                foreach (var tab in _Tabs)
                 {
-                    if (ActualTabHeaders.TryGetValue(tab, out MGButton headerWrapper))
+                    if (ActualTabHeaders.TryGetValue(tab, out var headerWrapper))
                     {
                         _ = HeadersPanelElement.TryAddChild(headerWrapper);
                     }
@@ -462,9 +462,9 @@ public class MGTabControl : MGHeaderedContentPresenter
     {
         if (_Tabs.Contains(Tab))
         {
-            MGButton TabHeader = ActualTabHeaders[Tab];
+            var TabHeader = ActualTabHeaders[Tab];
             ActualTabHeaders.Remove(Tab);
-            int TabIndex = _Tabs.IndexOf(Tab);
+            var TabIndex = _Tabs.IndexOf(Tab);
 
             _Tabs.Remove(Tab);
             Tab.SetParent(null);
@@ -475,7 +475,7 @@ public class MGTabControl : MGHeaderedContentPresenter
 
             if (SelectedTab == Tab)
             {
-                int NewSelectedTabIndex = Math.Max(0, TabIndex - 1); // Focus to left of the closed tab
+                var NewSelectedTabIndex = Math.Max(0, TabIndex - 1); // Focus to left of the closed tab
                 if (!TrySelectTabAtIndex(NewSelectedTabIndex))
                 {
                     //  No other tab took over the selection (the removed tab was the last one, or SelectedTabChanging cancelled the switch).
@@ -490,7 +490,7 @@ public class MGTabControl : MGHeaderedContentPresenter
     /// there is nothing left to cancel, so <see cref="SelectedTabChanging"/> is not raised, but <see cref="SelectedTabChanged"/> is raised with a null new value.</summary>
     private void ClearSelection()
     {
-        MGTabItem Previous = SelectedTab;
+        var Previous = SelectedTab;
         if (Previous == null)
         {
             return;
@@ -514,7 +514,7 @@ public class MGTabControl : MGHeaderedContentPresenter
     {
         MGTabItem Tab = new(this, TabHeader, TabContent);
 
-        MGButton HeaderWrapper = CreateHeaderWrapper(Tab);
+        var HeaderWrapper = CreateHeaderWrapper(Tab);
         HeaderWrapper.SetContent(TabHeader);
         ActualTabHeaders.Add(Tab, HeaderWrapper);
 
@@ -561,7 +561,7 @@ public class MGTabControl : MGHeaderedContentPresenter
                 }
             }
 
-            MGTabItem Previous = SelectedTab;
+            var Previous = SelectedTab;
             SelectedTab = Tab;
 
             UpdateHeaderWrapper(Previous);
@@ -606,14 +606,14 @@ public class MGTabControl : MGHeaderedContentPresenter
             return false;
         }
 
-        int TabIndex = _Tabs.IndexOf(Tab);
+        var TabIndex = _Tabs.IndexOf(Tab);
         if (TabIndex < 0)
         {
             return false;
         }
 
-        int DesiredIndex = FocusTabToRight ? TabIndex + 1 : TabIndex - 1;
-        int ActualIndex = (DesiredIndex + _Tabs.Count) % _Tabs.Count;
+        var DesiredIndex = FocusTabToRight ? TabIndex + 1 : TabIndex - 1;
+        var ActualIndex = (DesiredIndex + _Tabs.Count) % _Tabs.Count;
         return TrySelectTabAtIndex(ActualIndex);
     }
     #endregion Tabs
@@ -633,7 +633,7 @@ public class MGTabControl : MGHeaderedContentPresenter
             HeaderPositionChanged += (sender, e) =>
             {
                 ApplyHeadersPanelSettings();
-                foreach (MGTabItem tab in ActualTabHeaders.Keys.ToList())
+                foreach (var tab in ActualTabHeaders.Keys.ToList())
                 {
                     UpdateHeaderWrapper(tab);
                 }
@@ -677,7 +677,7 @@ public class MGTabControl : MGHeaderedContentPresenter
 
     private void Tab_HeaderChanged(object sender, EventArgs<MGElement> e)
     {
-        MGTabItem TabItem = sender as MGTabItem;
+        var TabItem = sender as MGTabItem;
         ActualTabHeaders[TabItem].SetContent(e.NewValue);
     }
 
@@ -685,7 +685,7 @@ public class MGTabControl : MGHeaderedContentPresenter
     {
         //  The background only spans the content region of this TabControl,
         //  Does not fill the region with the tab headers
-        Rectangle TabHeadersBounds = HeadersPanelElement.LayoutBounds;
+        var TabHeadersBounds = HeadersPanelElement.LayoutBounds;
         Rectangle TabContentBounds = TabHeaderPosition switch
         {
             Dock.Left => new(TabHeadersBounds.Right, LayoutBounds.Top, LayoutBounds.Width - TabHeadersBounds.Width, LayoutBounds.Height),
@@ -704,18 +704,18 @@ public class MGTabControl : MGHeaderedContentPresenter
             return false;
         }
 
-        bool usesHorizontalHeaderNavigation = TabHeaderPosition is Dock.Top or Dock.Bottom;
-        bool usesVerticalHeaderNavigation = TabHeaderPosition is Dock.Left or Dock.Right;
+        var usesHorizontalHeaderNavigation = TabHeaderPosition is Dock.Top or Dock.Bottom;
+        var usesVerticalHeaderNavigation = TabHeaderPosition is Dock.Left or Dock.Right;
 
-        bool isTabNavigationAction = action is UINavigationAction.Home or UINavigationAction.End or UINavigationAction.ShoulderPrevious or UINavigationAction.ShoulderNext
-                                     || (usesHorizontalHeaderNavigation && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight)
-                                     || (usesVerticalHeaderNavigation && action is UINavigationAction.MoveUp or UINavigationAction.MoveDown);
+        var isTabNavigationAction = action is UINavigationAction.Home or UINavigationAction.End or UINavigationAction.ShoulderPrevious or UINavigationAction.ShoulderNext
+                                    || (usesHorizontalHeaderNavigation && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight)
+                                    || (usesVerticalHeaderNavigation && action is UINavigationAction.MoveUp or UINavigationAction.MoveDown);
         if (!isTabNavigationAction)
         {
             return action == UINavigationAction.Submit && SelectedTab != null;
         }
 
-        int nextIndex = GetAdjacentTabIndex(SelectedTabIndex, _Tabs.Count, action);
+        var nextIndex = GetAdjacentTabIndex(SelectedTabIndex, _Tabs.Count, action);
         return nextIndex >= 0 && TrySelectTabAtIndex(nextIndex);
     }
 

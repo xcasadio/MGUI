@@ -369,7 +369,7 @@ public class MGTheme
 
     public VisualStateFillBrush GetBackgroundBrush(MGElementType Type)
     {
-        if (_Backgrounds.TryGetValue(Type, out ThemeManagedVisualStateFillBrush Value))
+        if (_Backgrounds.TryGetValue(Type, out var Value))
         {
             return Value.GetValue(true);
         }
@@ -381,7 +381,7 @@ public class MGTheme
 
     public void SetBackgroundBrush(MGElementType Type, VisualStateFillBrush Value)
     {
-        if (!_Backgrounds.TryGetValue(Type, out ThemeManagedVisualStateFillBrush ManagedValue))
+        if (!_Backgrounds.TryGetValue(Type, out var ManagedValue))
         {
             ManagedValue = new(Value);
             _Backgrounds.Add(Type, ManagedValue);
@@ -435,7 +435,7 @@ public class MGTheme
 
     public bool TryGetControlTemplateMapping(Type controlType, out string templateName)
     {
-        for (Type currentType = controlType; currentType != null && typeof(MGElement).IsAssignableFrom(currentType); currentType = currentType.BaseType)
+        for (var currentType = controlType; currentType != null && typeof(MGElement).IsAssignableFrom(currentType); currentType = currentType.BaseType)
         {
             if (_ControlTemplateMappingsByType.TryGetValue(currentType, out templateName))
             {
@@ -660,14 +660,14 @@ public class MGTheme
 
     private static IReadOnlyList<MGUI.Core.UI.XAML.ThemeDefinition> LoadBuiltInThemeDefinitions()
     {
-        string Markup = GeneralUtils.ReadEmbeddedResourceAsString(Assembly.GetExecutingAssembly(), BuiltInThemesResourceName);
+        var Markup = GeneralUtils.ReadEmbeddedResourceAsString(Assembly.GetExecutingAssembly(), BuiltInThemesResourceName);
         return MGUI.Core.UI.XAML.ThemeDefinitionLoader.ParseDefinitions(MGUI.Core.UI.XAML.XamlDocumentSource.FromString(Markup, BuiltInThemesResourceName));
     }
 
     private static MGTheme CreateBuiltInTheme(BuiltInTheme ThemeType, string DefaultFontFamily)
     {
-        IReadOnlyDictionary<string, MGTheme> Themes = MGUI.Core.UI.XAML.ThemeDefinitionLoader.BuildThemes(BuiltInThemeDefinitions.Value, null, DefaultFontFamily);
-        if (!Themes.TryGetValue(ThemeType.ToString(), out MGTheme Theme))
+        var Themes = MGUI.Core.UI.XAML.ThemeDefinitionLoader.BuildThemes(BuiltInThemeDefinitions.Value, null, DefaultFontFamily);
+        if (!Themes.TryGetValue(ThemeType.ToString(), out var Theme))
         {
             throw new InvalidOperationException($"No built-in theme definition was found for '{ThemeType}'.");
         }
@@ -690,13 +690,13 @@ public class MGTheme
         }
 
         _ControlTemplateMappings.Clear();
-        foreach (KeyValuePair<MGElementType, string> item in Source.ControlTemplateMappings)
+        foreach (var item in Source.ControlTemplateMappings)
         {
             _ControlTemplateMappings[item.Key] = item.Value;
         }
 
         _ControlTemplateMappingsByType.Clear();
-        foreach (KeyValuePair<Type, string> item in Source.ControlTemplateTypeMappings)
+        foreach (var item in Source.ControlTemplateTypeMappings)
         {
             _ControlTemplateMappingsByType[item.Key] = item.Value;
         }
@@ -711,7 +711,7 @@ public class MGTheme
         ListBoxItemBackground.Value = Source.ListBoxItemBackground.GetValue(true);
 
         ListBoxItemAlternatingRowBackgrounds.Clear();
-        foreach (ThemeManagedFillBrush Background in Source.ListBoxItemAlternatingRowBackgrounds)
+        foreach (var Background in Source.ListBoxItemAlternatingRowBackgrounds)
         {
             ListBoxItemAlternatingRowBackgrounds.Add(new ThemeManagedFillBrush(Background.GetValue(true)));
         }

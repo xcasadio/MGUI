@@ -113,10 +113,10 @@ public sealed class UIRenderTransform : INotifyPropertyChanged
     /// before the current draw transform and inverted by the hit-test, so the same matrix serves both.</summary>
     public static Matrix CreateMatrix(Rectangle bounds, Vector2 translation, Vector2 scale, float rotationDegrees, Vector2 relativeOrigin)
     {
-        float pivotX = bounds.X + bounds.Width * relativeOrigin.X;
-        float pivotY = bounds.Y + bounds.Height * relativeOrigin.Y;
+        var pivotX = bounds.X + bounds.Width * relativeOrigin.X;
+        var pivotY = bounds.Y + bounds.Height * relativeOrigin.Y;
 
-        Matrix matrix = Matrix.CreateTranslation(-pivotX, -pivotY, 0f);
+        var matrix = Matrix.CreateTranslation(-pivotX, -pivotY, 0f);
         if (scale != Vector2.One)
         {
             matrix *= Matrix.CreateScale(scale.X, scale.Y, 1f);
@@ -135,7 +135,7 @@ public sealed class UIRenderTransform : INotifyPropertyChanged
     /// (Pressed / Hovered), which keeps its own pivot whatever <see cref="Origin"/> says (ADR-0006).</summary>
     public static Matrix CreateCenteredScale(Rectangle bounds, float scale)
     {
-        Point center = bounds.Center;
+        var center = bounds.Center;
         return Matrix.CreateTranslation(-center.X, -center.Y, 0f) *
                Matrix.CreateScale(scale) *
                Matrix.CreateTranslation(center.X, center.Y, 0f);

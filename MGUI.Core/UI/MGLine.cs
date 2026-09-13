@@ -67,8 +67,8 @@ public class MGLine : MGVertexShapeElementBase
             return;
         }
 
-        MGPointShapePlacement placement = GetPlacement(layoutBounds);
-        Vector2 origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
+        var placement = GetPlacement(layoutBounds);
+        var origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
         DA.Context.StrokeLineSegment(origin, _NormalizedStartPoint, _NormalizedEndPoint, Stroke * DA.Opacity, StrokeThickness);
     }
 
@@ -79,15 +79,15 @@ public class MGLine : MGVertexShapeElementBase
             return false;
         }
 
-        MGPointShapePlacement placement = GetPlacement(LayoutBounds);
-        Vector2 layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
-        Vector2 localPoint = layoutPoint - placement.GeometryOrigin;
+        var placement = GetPlacement(LayoutBounds);
+        var layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
+        var localPoint = layoutPoint - placement.GeometryOrigin;
         return MGVectorShapeHelper.IsPointNearPolyline(new[] { _NormalizedStartPoint, _NormalizedEndPoint }, localPoint, StrokeThickness, false);
     }
 
     private void RebuildGeometry()
     {
-        Vector2[] normalized = MGVectorShapeHelper.NormalizePoints(new[] { StartPoint, EndPoint }, out RectangleF bounds);
+        var normalized = MGVectorShapeHelper.NormalizePoints(new[] { StartPoint, EndPoint }, out var bounds);
         _NormalizedStartPoint = normalized.Length > 0 ? normalized[0] : Vector2.Zero;
         _NormalizedEndPoint = normalized.Length > 1 ? normalized[1] : Vector2.Zero;
         GeometrySize = new Size(Math.Max(0, (int)Math.Ceiling(bounds.Width)), Math.Max(0, (int)Math.Ceiling(bounds.Height)));

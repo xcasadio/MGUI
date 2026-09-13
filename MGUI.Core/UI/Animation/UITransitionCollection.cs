@@ -33,7 +33,7 @@ public sealed class UITransitionCollection : IEnumerable<UITransition>
             throw new ArgumentNullException(nameof(transition));
         }
 
-        UITransition existing = this[transition.Property];
+        var existing = this[transition.Property];
         if (existing != null)
         {
             if (ReferenceEquals(existing, transition))
@@ -66,9 +66,9 @@ public sealed class UITransitionCollection : IEnumerable<UITransition>
     /// <summary>Detaches every transition.</summary>
     public void Clear()
     {
-        for (int i = _items.Count - 1; i >= 0; i--)
+        for (var i = _items.Count - 1; i >= 0; i--)
         {
-            UITransition transition = _items[i];
+            var transition = _items[i];
             _items.RemoveAt(i);
             transition.Detach();
         }

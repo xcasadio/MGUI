@@ -61,7 +61,7 @@ public abstract class UIAnimation<T> : UIAnimation
     protected internal override void OnStarting(object inheritedBase)
     {
         _ActiveInterpolator = Interpolator ?? UIInterpolators.Get<T>();
-        T current = ReadCurrentValue();
+        var current = ReadCurrentValue();
         StartValue = HasFrom ? _From : current;
         BaseValue = inheritedBase is T inherited ? inherited : current;
         _HasBaseValue = true;
@@ -70,7 +70,7 @@ public abstract class UIAnimation<T> : UIAnimation
 
     protected internal override void ApplyProgress(float progress)
     {
-        float eased = (Easing ?? UIEasing.Linear).Ease(progress);
+        var eased = (Easing ?? UIEasing.Linear).Ease(progress);
         CurrentValue = _ActiveInterpolator.Lerp(StartValue, To, eased);
         WriteValue(CurrentValue);
     }

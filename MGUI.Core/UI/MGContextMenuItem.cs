@@ -114,7 +114,7 @@ public abstract class MGContextMenuItem : MGSingleContentHost
         {
             if (ComputeIsVisible != null)
             {
-                bool IsVisible = ComputeIsVisible();
+                var IsVisible = ComputeIsVisible();
                 Visibility = IsVisible ? Visibility.Visible : Visibility.Collapsed;
             }
         };
@@ -288,7 +288,7 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
                     Submenu.ContextMenuClosed += Submenu_Closed;
                 }
 
-                bool isSubmenuOpen = Submenu?.IsContextMenuOpen == true;
+                var isSubmenuOpen = Submenu?.IsContextMenuOpen == true;
                 ContentWrapper.SpoofIsHoveredWhileDrawingBackground = isSubmenuOpen;
                 if (ContentWrapper.GetBorder() != null)
                 {
@@ -465,9 +465,9 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
     {
         VisualState ownerState = VisualState;
         VisualState wrapperState = ContentWrapper?.VisualState ?? default;
-        bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered
-                                                           || ownerState.IsFocused || wrapperState.IsFocused || ownerState.IsSelected || Submenu?.IsContextMenuOpen == true;
-        bool isPressed = ownerState.IsPressed || wrapperState.IsPressed;
+        var isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered
+                                                          || ownerState.IsFocused || wrapperState.IsFocused || ownerState.IsSelected || Submenu?.IsContextMenuOpen == true;
+        var isPressed = ownerState.IsPressed || wrapperState.IsPressed;
 
         if (ContentWrapper != null)
         {

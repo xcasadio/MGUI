@@ -71,11 +71,11 @@ public static class ColorSpaceConverter
 
     public static HsvColor RgbToHsv(ColorValue value)
     {
-        float max = MathF.Max(value.R, MathF.Max(value.G, value.B));
-        float min = MathF.Min(value.R, MathF.Min(value.G, value.B));
-        float delta = max - min;
+        var max = MathF.Max(value.R, MathF.Max(value.G, value.B));
+        var min = MathF.Min(value.R, MathF.Min(value.G, value.B));
+        var delta = max - min;
 
-        float hue = 0f;
+        var hue = 0f;
         if (delta > 0f)
         {
             if (max.Equals(value.R))
@@ -97,7 +97,7 @@ public static class ColorSpaceConverter
             hue += 360f;
         }
 
-        float saturation = max <= 0f ? 0f : delta / max;
+        var saturation = max <= 0f ? 0f : delta / max;
         return new HsvColor(NormalizeHue(hue), saturation, max, value.A);
     }
 
@@ -106,14 +106,14 @@ public static class ColorSpaceConverter
 
     public static ColorValue HsvToRgb(HsvColor value, ColorSpaceMode colorSpace)
     {
-        float hue = NormalizeHue(value.H);
-        float saturation = Math.Clamp(value.S, 0f, 1f);
-        float chroma = value.V * saturation;
-        float huePrime = hue / 60f;
-        float x = chroma * (1f - MathF.Abs((huePrime % 2f) - 1f));
-        float m = value.V - chroma;
+        var hue = NormalizeHue(value.H);
+        var saturation = Math.Clamp(value.S, 0f, 1f);
+        var chroma = value.V * saturation;
+        var huePrime = hue / 60f;
+        var x = chroma * (1f - MathF.Abs((huePrime % 2f) - 1f));
+        var m = value.V - chroma;
 
-        (float r, float g, float b) = huePrime switch
+        (var r, var g, var b) = huePrime switch
         {
             >= 0f and < 1f => (chroma, x, 0f),
             >= 1f and < 2f => (x, chroma, 0f),
@@ -128,13 +128,13 @@ public static class ColorSpaceConverter
 
     public static HslColor RgbToHsl(ColorValue value)
     {
-        float max = MathF.Max(value.R, MathF.Max(value.G, value.B));
-        float min = MathF.Min(value.R, MathF.Min(value.G, value.B));
-        float delta = max - min;
-        float lightness = (max + min) * 0.5f;
+        var max = MathF.Max(value.R, MathF.Max(value.G, value.B));
+        var min = MathF.Min(value.R, MathF.Min(value.G, value.B));
+        var delta = max - min;
+        var lightness = (max + min) * 0.5f;
 
-        float hue = 0f;
-        float saturation = 0f;
+        var hue = 0f;
+        var saturation = 0f;
         if (delta > 0f)
         {
             saturation = delta / (1f - MathF.Abs(2f * lightness - 1f));
@@ -166,15 +166,15 @@ public static class ColorSpaceConverter
 
     public static ColorValue HslToRgb(HslColor value, ColorSpaceMode colorSpace)
     {
-        float hue = NormalizeHue(value.H);
-        float saturation = Math.Clamp(value.S, 0f, 1f);
-        float lightness = value.L;
-        float chroma = (1f - MathF.Abs(2f * lightness - 1f)) * saturation;
-        float huePrime = hue / 60f;
-        float x = chroma * (1f - MathF.Abs((huePrime % 2f) - 1f));
-        float m = lightness - chroma * 0.5f;
+        var hue = NormalizeHue(value.H);
+        var saturation = Math.Clamp(value.S, 0f, 1f);
+        var lightness = value.L;
+        var chroma = (1f - MathF.Abs(2f * lightness - 1f)) * saturation;
+        var huePrime = hue / 60f;
+        var x = chroma * (1f - MathF.Abs((huePrime % 2f) - 1f));
+        var m = lightness - chroma * 0.5f;
 
-        (float r, float g, float b) = huePrime switch
+        (var r, var g, var b) = huePrime switch
         {
             >= 0f and < 1f => (chroma, x, 0f),
             >= 1f and < 2f => (x, chroma, 0f),
@@ -194,7 +194,7 @@ public static class ColorSpaceConverter
             return 0f;
         }
 
-        float result = hue % 360f;
+        var result = hue % 360f;
         return result < 0f ? result + 360f : result;
     }
 }

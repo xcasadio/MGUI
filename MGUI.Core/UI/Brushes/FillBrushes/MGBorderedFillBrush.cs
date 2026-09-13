@@ -38,12 +38,12 @@ public class MGBorderedFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
     {
-        float Opacity = DA.Opacity;
+        var Opacity = DA.Opacity;
         if (Opacity > 0 && !Opacity.IsAlmostZero())
         {
             if (FillBrush != null)
             {
-                Rectangle FillBounds = PadFillBoundsByBorderThickness ? Bounds.GetCompressed(BorderThickness) : Bounds;
+                var FillBounds = PadFillBoundsByBorderThickness ? Bounds.GetCompressed(BorderThickness) : Bounds;
                 FillBrush.Draw(DA, Element, FillBounds);
             }
 
@@ -53,7 +53,7 @@ public class MGBorderedFillBrush : IFillBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        float opacity = DA.Opacity;
+        var opacity = DA.Opacity;
         if (opacity <= 0 || opacity.IsAlmostZero())
         {
             return;
@@ -61,17 +61,17 @@ public class MGBorderedFillBrush : IFillBrush
 
         if (FillBrush != null)
         {
-            MGBoxShape fillShape = PadFillBoundsByBorderThickness
+            var fillShape = PadFillBoundsByBorderThickness
                 ? new MGBoxShape(Shape.InnerBounds, new Thickness(0), Shape.InnerCornerRadius).Normalize()
                 : new MGBoxShape(Shape.OuterBounds, new Thickness(0), Shape.NormalizedCornerRadius).Normalize();
-            MGBoxGeometry fillGeometry = MGBoxGeometryBuilder.Build(fillShape, Geometry.CornerSegmentCount);
+            var fillGeometry = MGBoxGeometryBuilder.Build(fillShape, Geometry.CornerSegmentCount);
             FillBrush.Draw(DA, Element, fillGeometry.Shape, fillGeometry);
         }
 
         if (BorderBrush != null)
         {
-            MGBoxShape borderShape = new MGBoxShape(Shape.OuterBounds, BorderThickness, Shape.NormalizedCornerRadius).Normalize();
-            MGBoxGeometry borderGeometry = MGBoxGeometryBuilder.Build(borderShape, Geometry.CornerSegmentCount);
+            var borderShape = new MGBoxShape(Shape.OuterBounds, BorderThickness, Shape.NormalizedCornerRadius).Normalize();
+            var borderGeometry = MGBoxGeometryBuilder.Build(borderShape, Geometry.CornerSegmentCount);
             BorderBrush.Draw(DA, Element, borderGeometry.Shape, borderGeometry);
         }
     }

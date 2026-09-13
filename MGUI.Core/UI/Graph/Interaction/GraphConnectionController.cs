@@ -73,7 +73,7 @@ public sealed class GraphConnectionController
             return false;
         }
 
-        bool connected = TryCreateConnection(StartPortId, targetPortId);
+        var connected = TryCreateConnection(StartPortId, targetPortId);
         Cancel();
         return connected;
     }
@@ -100,7 +100,7 @@ public sealed class GraphConnectionController
 
     public GraphConnectionValidationResult Validate(Guid firstPortId, Guid secondPortId)
     {
-        if (!TryNormalizeConnection(firstPortId, secondPortId, out GraphEdgeModel edge, out string diagnostic))
+        if (!TryNormalizeConnection(firstPortId, secondPortId, out var edge, out var diagnostic))
         {
             return GraphConnectionValidationResult.Invalid(nameof(GraphConnectionController), diagnostic);
         }
@@ -110,13 +110,13 @@ public sealed class GraphConnectionController
 
     public bool TryCreateConnection(Guid firstPortId, Guid secondPortId)
     {
-        if (!TryNormalizeConnection(firstPortId, secondPortId, out GraphEdgeModel edge, out string diagnostic))
+        if (!TryNormalizeConnection(firstPortId, secondPortId, out var edge, out var diagnostic))
         {
             LastDiagnostic = diagnostic;
             return false;
         }
 
-        GraphConnectionValidationResult validation = CompatibilityService.ValidateConnection(GraphView.Document, edge.SourceNodeId, edge.SourcePortId, edge.TargetNodeId, edge.TargetPortId);
+        var validation = CompatibilityService.ValidateConnection(GraphView.Document, edge.SourceNodeId, edge.SourcePortId, edge.TargetNodeId, edge.TargetPortId);
         PreviewValidationResult = validation;
         LastDiagnostic = validation.Message;
         if (!validation.IsValid)
@@ -134,8 +134,8 @@ public sealed class GraphConnectionController
             return false;
         }
 
-        bool changed = false;
-        foreach (Guid edgeId in new System.Collections.Generic.List<Guid>(GraphView.SelectedEdgeIds))
+        var changed = false;
+        foreach (var edgeId in new System.Collections.Generic.List<Guid>(GraphView.SelectedEdgeIds))
         {
             changed |= GraphView.Commands.Execute(GraphView.Document, new DisconnectPortsCommand(edgeId));
         }
@@ -152,8 +152,8 @@ public sealed class GraphConnectionController
     {
         edge = null;
         diagnostic = string.Empty;
-        GraphPortModel first = GraphView.Document?.TryGetPort(firstPortId);
-        GraphPortModel second = GraphView.Document?.TryGetPort(secondPortId);
+        var first = GraphView.Document?.TryGetPort(firstPortId);
+        var second = GraphView.Document?.TryGetPort(secondPortId);
         if (first == null || second == null)
         {
             diagnostic = "Both ports must exist.";

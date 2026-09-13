@@ -32,7 +32,7 @@ internal static class UIStoreBackedTargets
     /// <summary>The source of the whole container of <paramref name="pilot"/> on <paramref name="owner"/>, re-targeted to the pilot's invalidation,
     /// or Default when none was recorded (or when an animation is the only thing written there).</summary>
     internal static UIValueResolutionSource WholeSource(MGElement owner, UIPilotProperty pilot)
-        => owner.TryGetResolvedValueSource(pilot, UIValueSlot.Whole, out UIValueResolutionSource whole) && whole.Kind != UIValueSourceKind.Animation
+        => owner.TryGetResolvedValueSource(pilot, UIValueSlot.Whole, out var whole) && whole.Kind != UIValueSourceKind.Animation
             ? new UIValueResolutionSource(whole.Kind, whole.Precedence, UIPilotPropertyResolver.KindOf(pilot), whole.Name)
             : UIValueResolutionSource.Default(UIPilotPropertyResolver.KindOf(pilot));
 
@@ -51,10 +51,10 @@ internal static class UIStoreBackedTargets
     internal static bool Restore(MGElement owner, UIPilotProperty pilot, UIValueSlot slot, UIValueResolutionSource source, Action<UIValueResolutionSource> writeBase)
     {
         owner.ClearPilotSource(pilot, slot, source.Kind);
-        IReadOnlyList<UIResolvedContribution> remaining = owner.EnumerateResolvedContributions(pilot, slot);
-        bool animating = false;
-        bool other = false;
-        for (int i = 0; i < remaining.Count; i++)
+        var remaining = owner.EnumerateResolvedContributions(pilot, slot);
+        var animating = false;
+        var other = false;
+        for (var i = 0; i < remaining.Count; i++)
         {
             if (remaining[i].Kind == UIValueSourceKind.Animation)
             {

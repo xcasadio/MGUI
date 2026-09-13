@@ -39,7 +39,7 @@ public class MGBoundsAdorner : MGAdorner
         get => _borderThickness;
         set
         {
-            int clamped = Math.Max(0, value);
+            var clamped = Math.Max(0, value);
             if (_borderThickness != clamped)
             {
                 _borderThickness = clamped;
@@ -55,7 +55,7 @@ public class MGBoundsAdorner : MGAdorner
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        if (!TryGetAdornedBounds(out Rectangle adornedBounds))
+        if (!TryGetAdornedBounds(out var adornedBounds))
         {
             return;
         }
@@ -78,7 +78,7 @@ public class MGBoundsAdorner : MGAdorner
             return;
         }
 
-        int clamped = Math.Min(thickness, Math.Min(bounds.Width, bounds.Height));
+        var clamped = Math.Min(thickness, Math.Min(bounds.Width, bounds.Height));
         DA.DT.FillRectangle(Vector2.Zero, new RectangleF(bounds.X, bounds.Y, bounds.Width, clamped), color);
         DA.DT.FillRectangle(Vector2.Zero, new RectangleF(bounds.X, bounds.Bottom - clamped, bounds.Width, clamped), color);
         DA.DT.FillRectangle(Vector2.Zero, new RectangleF(bounds.X, bounds.Y, clamped, bounds.Height), color);

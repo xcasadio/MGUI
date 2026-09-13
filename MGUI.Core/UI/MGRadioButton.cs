@@ -67,10 +67,10 @@ public class MGRadioButtonGroup : ViewModelBase
         get => _CheckedItem;
         set
         {
-            MGRadioButton Value = AllowNullCheckedItem ? value : value ?? _RadioButtons.FirstOrDefault();
+            var Value = AllowNullCheckedItem ? value : value ?? _RadioButtons.FirstOrDefault();
             if (_CheckedItem != Value)
             {
-                MGRadioButton Previous = CheckedItem;
+                var Previous = CheckedItem;
                 _CheckedItem = Value;
                 Previous?.NPC(nameof(MGRadioButton.IsChecked));
                 CheckedItem?.NPC(nameof(MGRadioButton.IsChecked));
@@ -108,7 +108,7 @@ public class MGRadioButtonGroup : ViewModelBase
         {
             if (e.Action is NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Replace or NotifyCollectionChangedAction.Reset)
             {
-                bool RemovedCheckedItem = CheckedItem != null && e.OldItems.Cast<MGRadioButton>().Contains(CheckedItem);
+                var RemovedCheckedItem = CheckedItem != null && e.OldItems.Cast<MGRadioButton>().Contains(CheckedItem);
                 if (RemovedCheckedItem)
                 {
                     CheckedItem = null;
@@ -155,7 +155,7 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
             if (_BubbleComponentSize != value)
             {
                 _BubbleComponentSize = value;
-                Size ButtonSize = GetButtonComponentPreferredSize();
+                var ButtonSize = GetButtonComponentPreferredSize();
                 ButtonElement.PreferredWidth = ButtonSize.Width;
                 ButtonElement.PreferredHeight = ButtonSize.Height;
                 IndicatorElement.PreferredWidth = ButtonSize.Width;
@@ -382,9 +382,9 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
             return base.UpdateContentMeasurement(AvailableSize);
         }
 
-        int reservedWidth = ReservedContentLeftWidth;
+        var reservedWidth = ReservedContentLeftWidth;
         Size contentAvailableSize = new(Math.Max(0, AvailableSize.Width - reservedWidth), AvailableSize.Height);
-        Content.UpdateMeasurement(contentAvailableSize, out _, out Thickness contentSize, out _, out _);
+        Content.UpdateMeasurement(contentAvailableSize, out _, out var contentSize, out _, out _);
         return new Thickness(contentSize.Left + reservedWidth, contentSize.Top, contentSize.Right, contentSize.Bottom);
     }
 
@@ -395,7 +395,7 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
             return;
         }
 
-        int reservedWidth = ReservedContentLeftWidth;
+        var reservedWidth = ReservedContentLeftWidth;
         Rectangle contentBounds = new(Bounds.Left + reservedWidth, Bounds.Top, Math.Max(0, Bounds.Width - reservedWidth), Bounds.Height);
         Content.UpdateLayout(contentBounds);
     }

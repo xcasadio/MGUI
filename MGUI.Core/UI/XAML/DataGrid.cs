@@ -6,8 +6,8 @@ public class DataGrid : ListView
 
     protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
     {
-        Type genericType = typeof(MGDataGrid<>).MakeGenericType(new Type[] { ItemType });
-        object element = Activator.CreateInstance(genericType, new object[] { Window });
+        var genericType = typeof(MGDataGrid<>).MakeGenericType(new Type[] { ItemType });
+        var element = Activator.CreateInstance(genericType, new object[] { Window });
         return element as MGElement;
     }
 }

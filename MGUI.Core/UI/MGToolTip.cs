@@ -105,7 +105,7 @@ public class MGToolTip : MGWindow
     public void DrawAtDefaultPosition(ElementDrawArgs DA) => DrawAtMousePosition(DA, DrawOffset.X, DrawOffset.Y);
     public void DrawAtMousePosition(ElementDrawArgs DA, int XOffset = 5, int YOffset = 5)
     {
-        Point CurrentMousePosition = InputTracker.Mouse.CurrentPosition;
+        var CurrentMousePosition = InputTracker.Mouse.CurrentPosition;
         Draw(DA with { Offset = DA.Offset + CurrentMousePosition + new Point(XOffset, YOffset) });
     }
 }

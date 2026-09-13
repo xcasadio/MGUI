@@ -44,7 +44,7 @@ public class ThicknessStringConverter : TypeConverter
     {
         if (value is string stringValue)
         {
-            int[] values = stringValue.Split(',').Select(x => int.Parse(x)).ToArray();
+            var values = stringValue.Split(',').Select(x => int.Parse(x)).ToArray();
             return values.Length switch
             {
                 0 => new Thickness(0),

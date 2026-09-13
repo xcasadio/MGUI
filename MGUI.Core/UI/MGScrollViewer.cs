@@ -23,7 +23,7 @@ public class MGScrollViewer : MGSingleContentHost
             return Math.Clamp(currentOffset, 0, maxOffset);
         }
 
-        float newOffset = currentOffset;
+        var newOffset = currentOffset;
         if (elementStart < currentOffset)
         {
             newOffset = elementStart;
@@ -43,8 +43,8 @@ public class MGScrollViewer : MGSingleContentHost
             return Math.Clamp(currentOffset, 0, maxOffset);
         }
 
-        float newOffset = currentOffset;
-        float viewportEnd = viewportStart + viewportSize;
+        var newOffset = currentOffset;
+        var viewportEnd = viewportStart + viewportSize;
         if (elementStart < viewportStart)
         {
             newOffset -= viewportStart - elementStart;
@@ -77,8 +77,8 @@ public class MGScrollViewer : MGSingleContentHost
             return false;
         }
 
-        Rectangle currentBounds = target.LayoutBounds;
-        for (MGElement current = target.Parent; current != null; current = current.Parent)
+        var currentBounds = target.LayoutBounds;
+        for (var current = target.Parent; current != null; current = current.Parent)
         {
             if (current == Content)
             {
@@ -99,15 +99,15 @@ public class MGScrollViewer : MGSingleContentHost
             return;
         }
 
-        if (!TryGetDescendantBoundsInContentSpace(target, out Rectangle bounds))
+        if (!TryGetDescendantBoundsInContentSpace(target, out var bounds))
         {
             return;
         }
 
-        float verticalViewportStart = Content.LayoutBounds.Top + VerticalOffset;
-        float horizontalViewportStart = Content.LayoutBounds.Left + HorizontalOffset;
-        float newVerticalOffset = GetVisibleOffset(VerticalOffset, verticalViewportStart, ContentViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
-        float newHorizontalOffset = GetVisibleOffset(HorizontalOffset, horizontalViewportStart, ContentViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
+        var verticalViewportStart = Content.LayoutBounds.Top + VerticalOffset;
+        var horizontalViewportStart = Content.LayoutBounds.Left + HorizontalOffset;
+        var newVerticalOffset = GetVisibleOffset(VerticalOffset, verticalViewportStart, ContentViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
+        var newHorizontalOffset = GetVisibleOffset(HorizontalOffset, horizontalViewportStart, ContentViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
 
         if (Math.Abs(newVerticalOffset - VerticalOffset) > 0.5f)
         {
@@ -220,7 +220,7 @@ public class MGScrollViewer : MGSingleContentHost
         {
             if (_VSBBounds != value)
             {
-                Rectangle? Previous = VSBBounds;
+                var Previous = VSBBounds;
                 _VSBBounds = value;
                 NPC(nameof(VSBBounds));
                 NPC(nameof(PaddedVSBBounds));
@@ -242,7 +242,7 @@ public class MGScrollViewer : MGSingleContentHost
         {
             if (_HSBBounds != value)
             {
-                Rectangle? Previous = HSBBounds;
+                var Previous = HSBBounds;
                 _HSBBounds = value;
                 NPC(nameof(HSBBounds));
                 NPC(nameof(PaddedHSBBounds));
@@ -271,10 +271,10 @@ public class MGScrollViewer : MGSingleContentHost
         get => _VerticalOffset;
         set
         {
-            float ClampedValue = Math.Clamp(value, 0, MaxVerticalOffset);
+            var ClampedValue = Math.Clamp(value, 0, MaxVerticalOffset);
             if (_VerticalOffset != ClampedValue)
             {
-                float Previous = VerticalOffset;
+                var Previous = VerticalOffset;
                 _VerticalOffset = ClampedValue;
                 ParentWindow.InvalidatePressedAndHoveredElements = true;
                 NPC(nameof(VerticalOffset));
@@ -296,7 +296,7 @@ public class MGScrollViewer : MGSingleContentHost
         {
             if (_MaxVerticalOffset != value)
             {
-                float Previous = MaxVerticalOffset;
+                var Previous = MaxVerticalOffset;
                 _MaxVerticalOffset = value;
                 VerticalOffset = Math.Clamp(VerticalOffset, 0, MaxVerticalOffset);
                 NPC(nameof(MaxVerticalOffset));
@@ -338,10 +338,10 @@ public class MGScrollViewer : MGSingleContentHost
         get => _HorizontalOffset;
         set
         {
-            float ClampedValue = Math.Clamp(value, 0, MaxHorizontalOffset);
+            var ClampedValue = Math.Clamp(value, 0, MaxHorizontalOffset);
             if (_HorizontalOffset != ClampedValue)
             {
-                float Previous = HorizontalOffset;
+                var Previous = HorizontalOffset;
                 _HorizontalOffset = ClampedValue;
                 ParentWindow.InvalidatePressedAndHoveredElements = true;
                 NPC(nameof(HorizontalOffset));
@@ -362,7 +362,7 @@ public class MGScrollViewer : MGSingleContentHost
         {
             if (_MaxHorizontalOffset != value)
             {
-                float Previous = MaxHorizontalOffset;
+                var Previous = MaxHorizontalOffset;
                 _MaxHorizontalOffset = value;
                 NPC(nameof(MaxHorizontalOffset));
                 HorizontalOffset = Math.Clamp(HorizontalOffset, 0, MaxHorizontalOffset);
@@ -455,7 +455,7 @@ public class MGScrollViewer : MGSingleContentHost
             return Size.Empty;
         }
 
-        for (int index = 0; index < _cachedRequestedContentCount; index++)
+        for (var index = 0; index < _cachedRequestedContentCount; index++)
         {
             if (_cachedRequestedContentAvailableSizes[index] == actualAvailableSize)
             {
@@ -463,11 +463,11 @@ public class MGScrollViewer : MGSingleContentHost
             }
         }
 
-        Content.UpdateMeasurement(actualAvailableSize, out _, out Thickness requestedContentSize, out _, out _);
-        Size measuredRequestedContentSize = ToRequestedContentSize(requestedContentSize);
+        Content.UpdateMeasurement(actualAvailableSize, out _, out var requestedContentSize, out _, out _);
+        var measuredRequestedContentSize = ToRequestedContentSize(requestedContentSize);
 
-        int insertionIndex = Math.Min(_cachedRequestedContentCount, RequestedContentMeasurementCacheSize - 1);
-        for (int index = insertionIndex; index > 0; index--)
+        var insertionIndex = Math.Min(_cachedRequestedContentCount, RequestedContentMeasurementCacheSize - 1);
+        for (var index = insertionIndex; index > 0; index--)
         {
             _cachedRequestedContentAvailableSizes[index] = _cachedRequestedContentAvailableSizes[index - 1];
             _cachedRequestedContentSizes[index] = _cachedRequestedContentSizes[index - 1];
@@ -482,14 +482,14 @@ public class MGScrollViewer : MGSingleContentHost
 
     private Size GetActualMeasurementAvailableSize(Size availableSize)
     {
-        int actualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? availableSize.Width : int.MaxValue;
-        int actualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? availableSize.Height : int.MaxValue;
+        var actualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? availableSize.Width : int.MaxValue;
+        var actualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? availableSize.Height : int.MaxValue;
         return new(actualAvailableWidth, actualAvailableHeight);
     }
 
     private Size MeasureRequestedContentSize(Size availableSize)
     {
-        Size actualAvailableSize = GetActualMeasurementAvailableSize(availableSize);
+        var actualAvailableSize = GetActualMeasurementAvailableSize(availableSize);
         return GetRequestedContentSizeForActualAvailableSize(actualAvailableSize);
     }
 
@@ -521,11 +521,11 @@ public class MGScrollViewer : MGSingleContentHost
 
     private void UpdateScrollMetrics(Size requestedContentSize, Size contentSize)
     {
-        int actualVSBWidth = GetActualVerticalScrollBarWidth(requestedContentSize);
-        int actualHSBHeight = GetActualHorizontalScrollBarHeight(requestedContentSize);
+        var actualVSBWidth = GetActualVerticalScrollBarWidth(requestedContentSize);
+        var actualHSBHeight = GetActualHorizontalScrollBarHeight(requestedContentSize);
 
         Size scrollBarsSize = new(actualVSBWidth, actualHSBHeight);
-        Size viewportSize = LayoutBounds.Size.AsSize().Subtract(scrollBarsSize, 0, 0).Subtract(PaddingSize, 0, 0);
+        var viewportSize = LayoutBounds.Size.AsSize().Subtract(scrollBarsSize, 0, 0).Subtract(PaddingSize, 0, 0);
         ContentViewport = new(LayoutBounds.Left + Padding.Left, LayoutBounds.Top + Padding.Top, viewportSize.Width, viewportSize.Height);
 
         VSBBounds = actualVSBWidth == 0 ? null : new(LayoutBounds.Right - actualVSBWidth, LayoutBounds.Top, actualVSBWidth, LayoutBounds.Height - actualHSBHeight);
@@ -549,7 +549,7 @@ public class MGScrollViewer : MGSingleContentHost
     {
         using (BeginInitializing())
         {
-            MGTheme Theme = GetTheme();
+            var Theme = GetTheme();
 
             VSBVisibility = VerticalScrollBarVisibility;
             HSBVisibility = HorizontalScrollBarVisibility;
@@ -562,16 +562,16 @@ public class MGScrollViewer : MGSingleContentHost
 
             OnLayoutBoundsChanged += (sender, e) =>
             {
-                Size requestedContentSize = (VSBVisibility == ScrollBarVisibility.Auto || HSBVisibility == ScrollBarVisibility.Auto)
+                var requestedContentSize = (VSBVisibility == ScrollBarVisibility.Auto || HSBVisibility == ScrollBarVisibility.Auto)
                     ? MeasureRequestedContentSize(AlignedContentBounds.Size.AsSize())
                     : Size.Empty;
-                Size contentSize = Content?.AllocatedBounds.Size.AsSize() ?? AlignedContentBounds.Size.AsSize();
+                var contentSize = Content?.AllocatedBounds.Size.AsSize() ?? AlignedContentBounds.Size.AsSize();
                 UpdateScrollMetrics(requestedContentSize, contentSize);
             };
 
             MouseHandler.MovedInside += (sender, e) =>
             {
-                Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
+                var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
                 IsHoveringVSB = VSBBounds.HasValue && VSBBounds.Value.ContainsInclusive(LayoutSpacePosition);
                 IsHoveringHSB = HSBBounds.HasValue && HSBBounds.Value.ContainsInclusive(LayoutSpacePosition);
             };
@@ -587,14 +587,14 @@ public class MGScrollViewer : MGSingleContentHost
                 if (IsHoveringVSB)
                 {
                     e.SetHandledBy(this, false);
-                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                     HandleScrollBarInput(Orientation.Vertical, e.Button, LayoutSpacePosition.Y);
                 }
 
                 if (IsHoveringHSB)
                 {
                     e.SetHandledBy(this, false);
-                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                     HandleScrollBarInput(Orientation.Horizontal, e.Button, LayoutSpacePosition.X);
                 }
             };
@@ -639,22 +639,22 @@ public class MGScrollViewer : MGSingleContentHost
                 if (IsDraggingVSB)
                 {
                     e.SetHandled(this, false);
-                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                     HandleScrollBarInput(Orientation.Vertical, e.Button, LayoutSpacePosition.Y);
                 }
 
                 if (IsDraggingHSB)
                 {
                     e.SetHandled(this, false);
-                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                     HandleScrollBarInput(Orientation.Horizontal, e.Button, LayoutSpacePosition.X);
                 }
 
                 if (IsDraggingContent)
                 {
-                    Point DragStart = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.StartPosition);
-                    Point DragCurrent = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-                    Point Delta = DragCurrent - DragStart;
+                    var DragStart = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.StartPosition);
+                    var DragCurrent = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                    var Delta = DragCurrent - DragStart;
                     VerticalOffset = _ContentDragStartVerticalOffset - Delta.Y;
                     HorizontalOffset = _ContentDragStartHorizontalOffset - Delta.X;
                 }
@@ -666,7 +666,7 @@ public class MGScrollViewer : MGSingleContentHost
                 if (IsDraggingVSB || IsDraggingHSB || IsDraggingContent)
                 {
                     MouseHandler.Tracker.CurrentButtonReleasedEvents[MouseButton.Left]?.SetHandledBy(this, false);
-                    foreach (DragStartCondition StartCondition in MouseHandler.DragStartConditions)
+                    foreach (var StartCondition in MouseHandler.DragStartConditions)
                     {
                         MouseHandler.Tracker.CurrentDragStartEvents[StartCondition][MouseButton.Left]?.SetHandledBy(this, false);
                     }
@@ -724,7 +724,7 @@ public class MGScrollViewer : MGSingleContentHost
     /// <inheritdoc/>
     protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
     {
-        foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+        foreach (var Brush in base.GetVisualStateFillBrushes())
         {
             yield return Brush;
         }
@@ -755,7 +755,7 @@ public class MGScrollViewer : MGSingleContentHost
     protected override void UpdateContents(ElementUpdateArgs UA)
     {
         Point ScrollOffset = new((int)HorizontalOffset, (int)VerticalOffset);
-        Point NewOffset = UA.Offset + ScrollOffset;
+        var NewOffset = UA.Offset + ScrollOffset;
         base.UpdateContents(UA.ChangeOffset(NewOffset));
     }
 
@@ -763,18 +763,18 @@ public class MGScrollViewer : MGSingleContentHost
     {
         if (Button == MouseButton.Left && HasContent)
         {
-            Size ContentSize = Content.AllocatedBounds.Size.AsSize();
+            var ContentSize = Content.AllocatedBounds.Size.AsSize();
 
             if (ScrollBar == Orientation.Vertical && VSBVisibility != ScrollBarVisibility.Disabled)
             {
-                Rectangle ScrollBarBounds = PaddedVSBBounds.Value;
+                var ScrollBarBounds = PaddedVSBBounds.Value;
 
-                float PercentInCurrentViewport = ContentViewport.Height * 1.0f / ContentSize.Height;
-                float ScrollBarForegroundHeight = PercentInCurrentViewport * ScrollBarBounds.Height;
+                var PercentInCurrentViewport = ContentViewport.Height * 1.0f / ContentSize.Height;
+                var ScrollBarForegroundHeight = PercentInCurrentViewport * ScrollBarBounds.Height;
 
                 float MinValue = 0;
-                float MaxValue = ScrollBarBounds.Height - ScrollBarForegroundHeight;
-                float AdjustedPosition = Math.Clamp(CursorPosition - ScrollBarBounds.Top - ScrollBarForegroundHeight / 2, MinValue, MaxValue);
+                var MaxValue = ScrollBarBounds.Height - ScrollBarForegroundHeight;
+                var AdjustedPosition = Math.Clamp(CursorPosition - ScrollBarBounds.Top - ScrollBarForegroundHeight / 2, MinValue, MaxValue);
 
                 if (MaxValue == MinValue)
                 {
@@ -787,14 +787,14 @@ public class MGScrollViewer : MGSingleContentHost
             }
             else if (ScrollBar == Orientation.Horizontal && HSBVisibility != ScrollBarVisibility.Disabled)
             {
-                Rectangle ScrollBarBounds = PaddedHSBBounds.Value;
+                var ScrollBarBounds = PaddedHSBBounds.Value;
 
-                float PercentInCurrentViewport = ContentViewport.Width * 1.0f / ContentSize.Width;
-                float ScrollBarForegroundWidth = PercentInCurrentViewport * ScrollBarBounds.Width;
+                var PercentInCurrentViewport = ContentViewport.Width * 1.0f / ContentSize.Width;
+                var ScrollBarForegroundWidth = PercentInCurrentViewport * ScrollBarBounds.Width;
 
                 float MinValue = 0;
-                float MaxValue = ScrollBarBounds.Width - ScrollBarForegroundWidth;
-                float AdjustedPosition = Math.Clamp(CursorPosition - ScrollBarBounds.Left - ScrollBarForegroundWidth / 2, MinValue, MaxValue);
+                var MaxValue = ScrollBarBounds.Width - ScrollBarForegroundWidth;
+                var AdjustedPosition = Math.Clamp(CursorPosition - ScrollBarBounds.Left - ScrollBarForegroundWidth / 2, MinValue, MaxValue);
 
                 if (MaxValue == MinValue)
                 {
@@ -815,7 +815,7 @@ public class MGScrollViewer : MGSingleContentHost
             return base.UpdateContentMeasurement(AvailableSize);
         }
 
-        Size requestedContentSize = MeasureRequestedContentSize(AvailableSize);
+        var requestedContentSize = MeasureRequestedContentSize(AvailableSize);
         return new Thickness(requestedContentSize.Width, requestedContentSize.Height, 0, 0);
     }
 
@@ -823,12 +823,12 @@ public class MGScrollViewer : MGSingleContentHost
     {
         if (Content != null)
         {
-            int ActualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? Bounds.Width : int.MaxValue;
-            int ActualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? Bounds.Height : int.MaxValue;
+            var ActualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? Bounds.Width : int.MaxValue;
+            var ActualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? Bounds.Height : int.MaxValue;
             Size ActualAvailableSize = new(ActualAvailableWidth, ActualAvailableHeight);
 
-            int ActualContentWidth = Bounds.Width;
-            int ActualContentHeight = Bounds.Height;
+            var ActualContentWidth = Bounds.Width;
+            var ActualContentHeight = Bounds.Height;
             Size requestedContentSize = new(ActualContentWidth, ActualContentHeight);
             if (HSBVisibility != ScrollBarVisibility.Disabled || VSBVisibility != ScrollBarVisibility.Disabled)
             {
@@ -837,10 +837,10 @@ public class MGScrollViewer : MGSingleContentHost
                 ActualContentHeight = Math.Max(ActualContentHeight, requestedContentSize.Height);
             }
 
-            Rectangle previousContentViewport = ContentViewport;
+            var previousContentViewport = ContentViewport;
             UpdateScrollMetrics(requestedContentSize, new Size(ActualContentWidth, ActualContentHeight));
             Rectangle ActualBounds = new(Bounds.Left, Bounds.Top, ActualContentWidth, ActualContentHeight);
-            bool contentViewportChanged = ContentViewport != previousContentViewport;
+            var contentViewportChanged = ContentViewport != previousContentViewport;
             if (!Content.IsLayoutValid || Content.AllocatedBounds != ActualBounds || contentViewportChanged)
             {
                 Content.UpdateLayout(ActualBounds);
@@ -861,15 +861,15 @@ public class MGScrollViewer : MGSingleContentHost
         {
             if (HasContent)
             {
-                int ActualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? AvailableSize.Width - HorizontalPadding : int.MaxValue;
-                int ActualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? AvailableSize.Height - VerticalPadding : int.MaxValue;
+                var ActualAvailableWidth = HSBVisibility == ScrollBarVisibility.Disabled ? AvailableSize.Width - HorizontalPadding : int.MaxValue;
+                var ActualAvailableHeight = VSBVisibility == ScrollBarVisibility.Disabled ? AvailableSize.Height - VerticalPadding : int.MaxValue;
                 Size ActualAvailableSize = new(ActualAvailableWidth, ActualAvailableHeight);
-                Size requestedContentSize = GetRequestedContentSizeForActualAvailableSize(ActualAvailableSize);
+                var requestedContentSize = GetRequestedContentSizeForActualAvailableSize(ActualAvailableSize);
                 RequestedContentSize = new Thickness(requestedContentSize.Width, requestedContentSize.Height, 0, 0);
             }
         }
 
-        int ActualVSBWidth = VSBVisibility switch
+        var ActualVSBWidth = VSBVisibility switch
         {
             ScrollBarVisibility.Disabled => 0,
             ScrollBarVisibility.Auto => RequestedContentSize.Height > AvailableSize.Height - VerticalPadding ? VSBWidth : 0,
@@ -879,7 +879,7 @@ public class MGScrollViewer : MGSingleContentHost
             _ => throw new NotImplementedException($"Unrecognized {nameof(ScrollBarVisibility)}: {VSBVisibility}"),
         };
 
-        int ActualHSBHeight = HSBVisibility switch
+        var ActualHSBHeight = HSBVisibility switch
         {
             ScrollBarVisibility.Disabled => 0,
             ScrollBarVisibility.Auto => RequestedContentSize.Width > AvailableSize.Width - HorizontalPadding ? HSBHeight : 0,
@@ -897,18 +897,18 @@ public class MGScrollViewer : MGSingleContentHost
     {
         if (HasContent)
         {
-            bool IsVSBRendered = VSBBounds.HasValue && VSBVisibility != ScrollBarVisibility.Hidden && VSBVisibility != ScrollBarVisibility.Collapsed;
-            bool IsHSBRendered = HSBBounds.HasValue && HSBVisibility != ScrollBarVisibility.Hidden && HSBVisibility != ScrollBarVisibility.Collapsed;
+            var IsVSBRendered = VSBBounds.HasValue && VSBVisibility != ScrollBarVisibility.Hidden && VSBVisibility != ScrollBarVisibility.Collapsed;
+            var IsHSBRendered = HSBBounds.HasValue && HSBVisibility != ScrollBarVisibility.Hidden && HSBVisibility != ScrollBarVisibility.Collapsed;
 
-            int MinSize = 8; // Minimum size of the inner rectangle of a ScrollBar
-            Size ContentSize = Content.AllocatedBounds.Size.AsSize();
+            var MinSize = 8; // Minimum size of the inner rectangle of a ScrollBar
+            var ContentSize = Content.AllocatedBounds.Size.AsSize();
 
             if (IsVSBRendered)
             {
                 //  Calculate the coordinates of the inner rectangle of the scrollbar
-                Rectangle PaddedBounds = PaddedVSBBounds.Value;
-                float PercentInCurrentViewport = ContentViewport.Height * 1.0f / ContentSize.Height;
-                float PercentOutsideCurrentViewport = 1 - PercentInCurrentViewport;
+                var PaddedBounds = PaddedVSBBounds.Value;
+                var PercentInCurrentViewport = ContentViewport.Height * 1.0f / ContentSize.Height;
+                var PercentOutsideCurrentViewport = 1 - PercentInCurrentViewport;
 
                 float StartY;
                 if (MaxVerticalOffset.IsAlmostZero())
@@ -920,10 +920,10 @@ public class MGScrollViewer : MGSingleContentHost
                     StartY = PaddedBounds.Top + PaddedBounds.Height * PercentOutsideCurrentViewport * VerticalOffset / MaxVerticalOffset;
                 }
 
-                float EndY = StartY + PercentInCurrentViewport * PaddedBounds.Height;
+                var EndY = StartY + PercentInCurrentViewport * PaddedBounds.Height;
 
                 //  Validate that the inner rectangle is at least 8 pixels big
-                float Height = EndY - StartY + 1;
+                var Height = EndY - StartY + 1;
                 if (Height < MinSize)
                 {
                     //  Expand both ends by half of the difference
@@ -943,8 +943,8 @@ public class MGScrollViewer : MGSingleContentHost
                     }
                 }
 
-                PrimaryVisualState PrimaryState = IsVSBFocused ? PrimaryVisualState.Selected : VisualState.Primary;
-                SecondaryVisualState SecondaryState = IsDraggingVSB ? SecondaryVisualState.Pressed : IsHoveringVSB ? SecondaryVisualState.Hovered : SecondaryVisualState.None;
+                var PrimaryState = IsVSBFocused ? PrimaryVisualState.Selected : VisualState.Primary;
+                var SecondaryState = IsDraggingVSB ? SecondaryVisualState.Pressed : IsHoveringVSB ? SecondaryVisualState.Hovered : SecondaryVisualState.None;
 
                 //  Intentional rectangle-first exception: scrollbar underlays/overlays are painted over the
                 //  logical rectangular track/thumb bounds; MGScrollViewer exposes no CornerRadius / MGBoxShape
@@ -962,9 +962,9 @@ public class MGScrollViewer : MGSingleContentHost
             if (IsHSBRendered)
             {
                 //  Calculate the coordinates of the inner rectangle of the scrollbar
-                Rectangle PaddedBounds = PaddedHSBBounds.Value;
-                float PercentInCurrentViewport = ContentViewport.Width * 1.0f / ContentSize.Width;
-                float PercentOutsideCurrentViewport = 1 - PercentInCurrentViewport;
+                var PaddedBounds = PaddedHSBBounds.Value;
+                var PercentInCurrentViewport = ContentViewport.Width * 1.0f / ContentSize.Width;
+                var PercentOutsideCurrentViewport = 1 - PercentInCurrentViewport;
 
                 float StartX;
                 if (MaxHorizontalOffset.IsAlmostZero())
@@ -976,10 +976,10 @@ public class MGScrollViewer : MGSingleContentHost
                     StartX = PaddedBounds.Left + PaddedBounds.Width * PercentOutsideCurrentViewport * HorizontalOffset / MaxHorizontalOffset;
                 }
 
-                float EndX = StartX + PercentInCurrentViewport * PaddedBounds.Width;
+                var EndX = StartX + PercentInCurrentViewport * PaddedBounds.Width;
 
                 //  Validate that the inner rectangle is at least 8 pixels big
-                float Width = EndX - StartX + 1;
+                var Width = EndX - StartX + 1;
                 if (Width < MinSize)
                 {
                     //  Expand both ends by half of the difference
@@ -999,8 +999,8 @@ public class MGScrollViewer : MGSingleContentHost
                     }
                 }
 
-                PrimaryVisualState PrimaryState = IsHSBFocused ? PrimaryVisualState.Selected : VisualState.Primary;
-                SecondaryVisualState SecondaryState = IsDraggingHSB ? SecondaryVisualState.Pressed : IsHoveringHSB ? SecondaryVisualState.Hovered : SecondaryVisualState.None;
+                var PrimaryState = IsHSBFocused ? PrimaryVisualState.Selected : VisualState.Primary;
+                var SecondaryState = IsDraggingHSB ? SecondaryVisualState.Pressed : IsHoveringHSB ? SecondaryVisualState.Hovered : SecondaryVisualState.None;
 
                 //  Intentional rectangle-first exception: scrollbar underlays/overlays are painted over the
                 //  logical rectangular track/thumb bounds; MGScrollViewer exposes no CornerRadius / MGBoxShape
@@ -1019,12 +1019,12 @@ public class MGScrollViewer : MGSingleContentHost
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        Point NewOffset = DA.Offset - new Point((int)HorizontalOffset, (int)VerticalOffset);
-        ElementDrawArgs adjustedDA = DA with { Offset = NewOffset };
+        var NewOffset = DA.Offset - new Point((int)HorizontalOffset, (int)VerticalOffset);
+        var adjustedDA = DA with { Offset = NewOffset };
 
         // CPU-side frustum culling (Task 15): skip direct content children whose ActualLayoutBounds
         // is empty (fully clipped), avoiding unnecessary Draw() call overhead for off-viewport elements.
-        foreach (MGElement child in GetChildren())
+        foreach (var child in GetChildren())
         {
             if (!child.ActualLayoutBounds.IsEmpty)
             {
@@ -1035,7 +1035,7 @@ public class MGScrollViewer : MGSingleContentHost
 
     internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
-        Rectangle screenBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, ContentViewport.GetTranslated(DA.Offset));
+        var screenBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, ContentViewport.GetTranslated(DA.Offset));
         return CreateRectangleClipDefinition(screenBounds, $"{ElementType}.Viewport");
     }
 }

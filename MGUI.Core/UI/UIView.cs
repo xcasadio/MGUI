@@ -25,7 +25,7 @@ public class UIView : IUIView
             throw new ArgumentNullException(nameof(DT));
         }
 
-        IUIRenderTarget renderTarget = Surface.GetRenderTarget();
+        var renderTarget = Surface.GetRenderTarget();
         using (renderTarget != null ? DT.SetRenderTargetTemporary(renderTarget, null) : null)
         {
             Desktop.Draw(DT, opacity);

@@ -20,7 +20,7 @@ public static class UIDiagnosticAssertions
 
     private static InvalidOperationException CreateAssertionException(string message, string artifact, string stepName)
     {
-        string prefix = string.IsNullOrWhiteSpace(stepName) ? string.Empty : $"[{stepName}] ";
+        var prefix = string.IsNullOrWhiteSpace(stepName) ? string.Empty : $"[{stepName}] ";
         if (string.IsNullOrWhiteSpace(artifact))
         {
             return new InvalidOperationException(prefix + message);

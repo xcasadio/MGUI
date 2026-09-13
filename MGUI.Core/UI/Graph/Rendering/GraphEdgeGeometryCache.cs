@@ -11,7 +11,7 @@ public sealed class GraphEdgeGeometryCache
 
     public IReadOnlyList<Vector2> GetOrCreate(Guid edgeId, Vector2 start, Vector2 end, float thickness, float zoom, int segmentCount = GraphBezierGeometry.DefaultSegmentCount)
     {
-        if (Cache.TryGetValue(edgeId, out CachedEdgeGeometry cached) && cached.Matches(start, end, thickness, zoom, segmentCount))
+        if (Cache.TryGetValue(edgeId, out var cached) && cached.Matches(start, end, thickness, zoom, segmentCount))
         {
             CacheHits++;
             return cached.Points;
@@ -38,7 +38,7 @@ public sealed class GraphEdgeGeometryCache
         }
 
         List<Guid> missingEdgeIds = null;
-        foreach (Guid edgeId in Cache.Keys)
+        foreach (var edgeId in Cache.Keys)
         {
             if (!ContainsEdge(edges, edgeId))
             {
@@ -52,7 +52,7 @@ public sealed class GraphEdgeGeometryCache
             return;
         }
 
-        for (int edgeIndex = 0; edgeIndex < missingEdgeIds.Count; edgeIndex++)
+        for (var edgeIndex = 0; edgeIndex < missingEdgeIds.Count; edgeIndex++)
         {
             Cache.Remove(missingEdgeIds[edgeIndex]);
         }
@@ -67,7 +67,7 @@ public sealed class GraphEdgeGeometryCache
 
     private static bool ContainsEdge(IReadOnlyList<GraphEdgeModel> edges, Guid edgeId)
     {
-        for (int edgeIndex = 0; edgeIndex < edges.Count; edgeIndex++)
+        for (var edgeIndex = 0; edgeIndex < edges.Count; edgeIndex++)
         {
             if (edges[edgeIndex]?.Id == edgeId)
             {

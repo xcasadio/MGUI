@@ -29,10 +29,10 @@ public readonly struct MGBandedBorderBrush : IBorderBrush
         }
 
         List<MGBorderBand> Bands = new();
-        for (int i = 0; i < Colors.Count; i++)
+        for (var i = 0; i < Colors.Count; i++)
         {
-            Color Color = Colors[i];
-            double Weight = Weights[i];
+            var Color = Colors[i];
+            var Weight = Weights[i];
             Bands.Add(new(Color.AsFillBrush().AsUniformBorderBrush(), Weight));
         }
 
@@ -54,7 +54,7 @@ public readonly struct MGBandedBorderBrush : IBorderBrush
     /// deduplicated by reference against every other slot/element that references them for the frame.</summary>
     void IBorderBrush.Update(UpdateBaseArgs UA)
     {
-        foreach (MGBorderBand Band in Bands)
+        foreach (var Band in Bands)
         {
             PaintLifecycle.Update(Band.Brush, UA);
         }
@@ -67,12 +67,12 @@ public readonly struct MGBandedBorderBrush : IBorderBrush
             return;
         }
 
-        double TotalWeight = Bands.Sum(x => x.ThicknessWeight);
+        var TotalWeight = Bands.Sum(x => x.ThicknessWeight);
 
-        Rectangle RemainingBounds = Bounds;
-        foreach (MGBorderBand Band in Bands)
+        var RemainingBounds = Bounds;
+        foreach (var Band in Bands)
         {
-            double PercentageThickness = Band.ThicknessWeight / TotalWeight;
+            var PercentageThickness = Band.ThicknessWeight / TotalWeight;
             Thickness BandThickness = new(
                 (int)(BT.Left * PercentageThickness), (int)(BT.Top * PercentageThickness), 
                 (int)(BT.Right * PercentageThickness), (int)(BT.Bottom * PercentageThickness));
@@ -90,19 +90,19 @@ public readonly struct MGBandedBorderBrush : IBorderBrush
             return;
         }
 
-        double totalWeight = Bands.Sum(x => x.ThicknessWeight);
-        MGBoxShape remainingShape = Shape.Normalize();
-        Thickness totalThickness = remainingShape.NormalizedBorderThickness;
+        var totalWeight = Bands.Sum(x => x.ThicknessWeight);
+        var remainingShape = Shape.Normalize();
+        var totalThickness = remainingShape.NormalizedBorderThickness;
 
-        foreach (MGBorderBand band in Bands)
+        foreach (var band in Bands)
         {
-            Thickness remainingThickness = remainingShape.NormalizedBorderThickness;
+            var remainingThickness = remainingShape.NormalizedBorderThickness;
             if (remainingThickness.IsEmpty())
             {
                 break;
             }
 
-            double percentageThickness = band.ThicknessWeight / totalWeight;
+            var percentageThickness = band.ThicknessWeight / totalWeight;
             Thickness bandThickness = new(
                 Math.Min(remainingThickness.Left, (int)(totalThickness.Left * percentageThickness)),
                 Math.Min(remainingThickness.Top, (int)(totalThickness.Top * percentageThickness)),
@@ -115,7 +115,7 @@ public readonly struct MGBandedBorderBrush : IBorderBrush
             }
 
             MGBoxShape bandShape = new(remainingShape.OuterBounds, bandThickness, remainingShape.NormalizedCornerRadius);
-            MGBoxGeometry bandGeometry = MGBoxGeometryBuilder.Build(bandShape, Geometry.CornerSegmentCount);
+            var bandGeometry = MGBoxGeometryBuilder.Build(bandShape, Geometry.CornerSegmentCount);
             band.Brush.Draw(DA, Element, bandGeometry.Shape, bandGeometry);
 
             Thickness nextThickness = new(

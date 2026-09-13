@@ -57,7 +57,7 @@ public class MGCanvas : MGMultiContentHost
             return null;
         }
 
-        if (element.Metadata.TryGetValue(metadataKey, out object value) && value is int actualValue)
+        if (element.Metadata.TryGetValue(metadataKey, out var value) && value is int actualValue)
         {
             return actualValue;
         }
@@ -144,9 +144,9 @@ public class MGCanvas : MGMultiContentHost
             return;
         }
 
-        List<CanvasChildMeasurement> childMeasurements = MeasureChildren();
+        var childMeasurements = MeasureChildren();
         MGCanvasLayoutEngine.ArrangeInto(childMeasurements, bounds, _ArrangedChildBounds);
-        for (int i = 0; i < Children.Count; i++)
+        for (var i = 0; i < Children.Count; i++)
         {
             Children[i].UpdateLayout(_ArrangedChildBounds[i]);
         }
@@ -159,16 +159,16 @@ public class MGCanvas : MGMultiContentHost
             return UpdateContentMeasurementBaseImplementation(availableSize);
         }
 
-        Size desiredSize = MGCanvasLayoutEngine.Measure(MeasureChildren());
+        var desiredSize = MGCanvasLayoutEngine.Measure(MeasureChildren());
         return new Thickness(desiredSize.Width, desiredSize.Height, 0, 0);
     }
 
     private List<CanvasChildMeasurement> MeasureChildren()
     {
         _ChildMeasurements.Clear();
-        foreach (MGElement child in Children)
+        foreach (var child in Children)
         {
-            child.UpdateMeasurement(UnlimitedMeasureSize, out _, out Thickness fullSize, out _, out _);
+            child.UpdateMeasurement(UnlimitedMeasureSize, out _, out var fullSize, out _, out _);
             _ChildMeasurements.Add(new CanvasChildMeasurement(fullSize.Width, fullSize.Height, GetLeft(child), GetTop(child), GetRight(child), GetBottom(child), child.IsVisibilityCollapsed));
         }
 

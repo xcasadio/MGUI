@@ -30,7 +30,7 @@ public class UIKeyFrameAnimation<T> : UIPropertyAnimation<T>
 
     protected internal override void OnStarting(object inheritedBase)
     {
-        UIKeyFrameTrack<T> track = Track ?? throw new InvalidOperationException($"{nameof(UIKeyFrameAnimation<T>)} needs a {nameof(Track)}.");
+        var track = Track ?? throw new InvalidOperationException($"{nameof(UIKeyFrameAnimation<T>)} needs a {nameof(Track)}.");
         track.Validate();
 
         if (track.StartsAtZero)
@@ -49,7 +49,7 @@ public class UIKeyFrameAnimation<T> : UIPropertyAnimation<T>
             _Easings = new IUIEasingFunction[track.Count];
         }
 
-        for (int i = 0; i < track.Count; i++)
+        for (var i = 0; i < track.Count; i++)
         {
             _Easings[i] = track.Frames[i].ResolveEasing();
         }
@@ -59,11 +59,11 @@ public class UIKeyFrameAnimation<T> : UIPropertyAnimation<T>
 
     protected internal override void ApplyProgress(float progress)
     {
-        UIKeyFrameTrack<T> track = Track;
-        track.FindSegment(progress, out int fromIndex, out int toIndex, out float local);
-        T from = fromIndex >= 0 ? track.Frames[fromIndex].Value : StartValue;
-        T to = track.Frames[toIndex].Value;
-        float eased = _Easings[toIndex].Ease(local);
+        var track = Track;
+        track.FindSegment(progress, out var fromIndex, out var toIndex, out var local);
+        var from = fromIndex >= 0 ? track.Frames[fromIndex].Value : StartValue;
+        var to = track.Frames[toIndex].Value;
+        var eased = _Easings[toIndex].Ease(local);
         CurrentValue = _TrackInterpolator.Lerp(from, to, eased);
         WriteValue(CurrentValue);
     }

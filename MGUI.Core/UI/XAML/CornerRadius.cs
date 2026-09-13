@@ -43,7 +43,7 @@ public class CornerRadiusStringConverter : TypeConverter
     {
         if (value is string stringValue)
         {
-            int[] values = stringValue.Split(',').Select(x => int.Parse(x.Trim(), CultureInfo.InvariantCulture)).ToArray();
+            var values = stringValue.Split(',').Select(x => int.Parse(x.Trim(), CultureInfo.InvariantCulture)).ToArray();
             return values.Length switch
             {
                 1 => new CornerRadius(values[0]),

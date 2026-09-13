@@ -487,7 +487,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 
 		if (IsEnabled)
 		{
-			TimeSpan CycleDuration = AnimationType switch
+			var CycleDuration = AnimationType switch
 			{
 				HighlightAnimation.Pulse => PulseCycleDuration,
 				HighlightAnimation.Flash => FlashCycleDuration,
@@ -496,20 +496,20 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 				_ => throw new NotImplementedException($"Unrecognized {nameof(HighlightAnimation)}: {AnimationType}")
 			};
 
-			double ElapsedPercent = UA.FrameElapsed / CycleDuration;
+			var ElapsedPercent = UA.FrameElapsed / CycleDuration;
 			AnimationProgress += ElapsedPercent;
 		}
 	}
 
 	private static int PositiveModulo(int x, int m)
 	{
-		int r = x % m;
+		var r = x % m;
 		return r < 0 ? r + m : r;
 	}
 
 	private static double PositiveModulo(double x, double m)
 	{
-		double r = x % m;
+		var r = x % m;
 		return r < 0 ? r + m : r;
 	}
 
@@ -522,19 +522,19 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			return;
 		}
 
-		double Progress = ActualAnimationProgress;
+		var Progress = ActualAnimationProgress;
 		switch (AnimationType)
 		{
 			case HighlightAnimation.Pulse:
-				double FadePercent = PulseFadeDuration / PulseCycleDuration;
+				var FadePercent = PulseFadeDuration / PulseCycleDuration;
 				if (Progress < FadePercent)
 				{
-					float OpacityScalar = 1.0f - (float)(Progress / FadePercent);
+					var OpacityScalar = 1.0f - (float)(Progress / FadePercent);
 					HighlightBorderBrush.Draw(DA.SetOpacity(DA.Opacity * OpacityScalar), Element, Bounds, BT);
 				}
 				break;
 			case HighlightAnimation.Flash:
-				bool IsVisible = Progress <= FlashShowDuration / FlashCycleDuration;
+				var IsVisible = Progress <= FlashShowDuration / FlashCycleDuration;
 				if (IsVisible)
 				{
 					HighlightBorderBrush.Draw(DA, Element, Bounds, BT);
@@ -543,7 +543,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 				break;
 			case HighlightAnimation.Progress:
 			{
-				List<Rectangle> Edges = new List<Rectangle>();
+				var Edges = new List<Rectangle>();
 				if (BT.Left > 0)
 				{
 					Edges.Add(new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
@@ -564,15 +564,15 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 					Edges.Add(new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
 				}
 
-				int OuterPerimeterLength = Bounds.Width * 2 + (Bounds.Height - 1) * 2;
-				int InnerPerimeterLength = OuterPerimeterLength - BT.Width * 2 - BT.Height * 2;
-				int AvgPerimeterLength = (OuterPerimeterLength + InnerPerimeterLength) / 2;
+				var OuterPerimeterLength = Bounds.Width * 2 + (Bounds.Height - 1) * 2;
+				var InnerPerimeterLength = OuterPerimeterLength - BT.Width * 2 - BT.Height * 2;
+				var AvgPerimeterLength = (OuterPerimeterLength + InnerPerimeterLength) / 2;
 
 				//  Returns a point along the outer perimeter of the Rectangle bounds, where the point represents travelling along the perimeter by the given percent
 				//  0.0 = topleft corner, moves clockwise (or counterclockwise if IsReversed=true) along the perimeter
 				Point GetPerimeterPosition(double Percent, bool IsReversed, out int EdgeIndex)
 				{
-					int LinearPosition = PositiveModulo((int)(Percent * OuterPerimeterLength), OuterPerimeterLength);
+					var LinearPosition = PositiveModulo((int)(Percent * OuterPerimeterLength), OuterPerimeterLength);
 
 					if (!IsReversed)
 					{
@@ -636,8 +636,8 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 					}
 				}
 
-				Point StartPosition = GetPerimeterPosition(Progress - ProgressSize / 2.0, ProgressFlowDirection == HighlightFlowDirection.CounterClockwise, out int StartEdge);
-				Point EndPosition = GetPerimeterPosition(Progress + ProgressSize / 2.0, ProgressFlowDirection == HighlightFlowDirection.CounterClockwise, out int EndEdge);
+				var StartPosition = GetPerimeterPosition(Progress - ProgressSize / 2.0, ProgressFlowDirection == HighlightFlowDirection.CounterClockwise, out var StartEdge);
+				var EndPosition = GetPerimeterPosition(Progress + ProgressSize / 2.0, ProgressFlowDirection == HighlightFlowDirection.CounterClockwise, out var EndEdge);
 
 				//  Create a list of vertices representing the outer bounds of the polygon we want to fill in
 				List<Point> OuterVertices = new() { StartPosition };
@@ -652,7 +652,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 					};
 
 					const int NumEdges = 4;
-					int CurrentEdge = StartEdge;
+					var CurrentEdge = StartEdge;
 					if (ProgressFlowDirection == HighlightFlowDirection.Clockwise)
 					{
 						while (CurrentEdge != EndEdge)
@@ -678,7 +678,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 				OuterVertices = OuterVertices.Distinct().ToList(); // There will be duplicate vertices if a start or end point was on a corner
 
 				//  Key = Bounds of a corner, Value = the inner corner point
-				Dictionary<Rectangle, Point> CornerBounds = new Dictionary<Rectangle, Point>()
+				var CornerBounds = new Dictionary<Rectangle, Point>()
 				{
 					{ new Rectangle(Bounds.Left, Bounds.Top, BT.Left, BT.Top), Bounds.TopLeft() + new Point(BT.Left, BT.Top) },
 					{ new Rectangle(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top), Bounds.TopRight() + new Point(-BT.Right, BT.Top) },
@@ -687,13 +687,13 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 				};
 
 				List<Point> Polygon = new(OuterVertices);
-				foreach (Point OuterVertex in OuterVertices.AsEnumerable().Reverse())
+				foreach (var OuterVertex in OuterVertices.AsEnumerable().Reverse())
 				{
 					//  Compute the inner vertex that opposes this outer vertex
-					Point InnerVertex = Point.Zero;
+					var InnerVertex = Point.Zero;
 
 					//  First check if the vertex is within a corner region and if so use the inner corner vertex
-					bool IsCorner = false;
+					var IsCorner = false;
 					foreach (var KVP in CornerBounds)
 					{
 						if (KVP.Key.ContainsInclusive(OuterVertex))
@@ -738,7 +738,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 				break;
 			case HighlightAnimation.Scan:
 			{
-				List<Rectangle> Edges = new List<Rectangle>();
+				var Edges = new List<Rectangle>();
 				if (BT.Left > 0)
 				{
 					Edges.Add(new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
@@ -761,32 +761,32 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 
 				if (Edges.Any())
 				{
-					List<Rectangle> Scanlines = new List<Rectangle>();
+					var Scanlines = new List<Rectangle>();
 
 					switch (ScanOrientation)
 					{
 						case Orientation.Horizontal:
 						{
-							int Left = Bounds.Left;
-							int Right = Bounds.Right;
+							var Left = Bounds.Left;
+							var Right = Bounds.Right;
 
-							int Width = Bounds.Width;
-							int Height = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * Bounds.Height));
+							var Width = Bounds.Width;
+							var Height = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * Bounds.Height));
 
-							int Center = !ScanIsReversed ? Bounds.Top + (int)(Progress * Bounds.Height) : Bounds.Bottom - ((int)(Progress * Bounds.Height));
-							int Top = Center - Height / 2;
-							int Bottom = Center + Height / 2;
+							var Center = !ScanIsReversed ? Bounds.Top + (int)(Progress * Bounds.Height) : Bounds.Bottom - ((int)(Progress * Bounds.Height));
+							var Top = Center - Height / 2;
+							var Bottom = Center + Height / 2;
 
 							//  Handle cases where the scanline needs to loop around to opposite side
 							if (Top < Bounds.Top)
 							{
-								int Overflow = Bounds.Top - Top;
+								var Overflow = Bounds.Top - Top;
 								Scanlines.Add(new Rectangle(Left, Bounds.Top, Width, Height - Overflow));
 								Scanlines.Add(new Rectangle(Left, Bounds.Bottom - Overflow, Width, Overflow));
 							}
 							else if (Bottom > Bounds.Bottom)
 							{
-								int Overflow = Bottom - Bounds.Bottom;
+								var Overflow = Bottom - Bounds.Bottom;
 								Scanlines.Add(new Rectangle(Left, Bounds.Bottom - Height + Overflow, Width, Height - Overflow));
 								Scanlines.Add(new Rectangle(Left, Bounds.Top, Width, Overflow));
 							}
@@ -798,26 +798,26 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 							break;
 						case Orientation.Vertical:
 						{
-							int Top = Bounds.Top;
-							int Bottom = Bounds.Bottom;
+							var Top = Bounds.Top;
+							var Bottom = Bounds.Bottom;
 
-							int Width = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * Bounds.Width));
-							int Height = Bounds.Height;
+							var Width = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * Bounds.Width));
+							var Height = Bounds.Height;
 
-							int Center = !ScanIsReversed ? Bounds.Left + (int)(Progress * Bounds.Width) : Bounds.Right - ((int)(Progress * Bounds.Width));
-							int Left = Center - Width / 2;
-							int Right = Center + Width / 2;
+							var Center = !ScanIsReversed ? Bounds.Left + (int)(Progress * Bounds.Width) : Bounds.Right - ((int)(Progress * Bounds.Width));
+							var Left = Center - Width / 2;
+							var Right = Center + Width / 2;
 
 							//  Handle cases where the scanline needs to loop around to opposite side
 							if (Left < Bounds.Left)
 							{
-								int Overflow = Bounds.Left - Left;
+								var Overflow = Bounds.Left - Left;
 								Scanlines.Add(new Rectangle(Bounds.Left, Top, Width - Overflow, Height));
 								Scanlines.Add(new Rectangle(Bounds.Right - Overflow, Top, Overflow, Height));
 							}
 							else if (Right > Bounds.Right)
 							{
-								int Overflow = Right - Bounds.Right;
+								var Overflow = Right - Bounds.Right;
 								Scanlines.Add(new Rectangle(Bounds.Right - Width + Overflow, Top, Width - Overflow, Height));
 								Scanlines.Add(new Rectangle(Bounds.Left, Top, Overflow, Height));
 							}
@@ -830,11 +830,11 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 						default: throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {ScanOrientation}");
 					}
 
-					foreach (Rectangle Scanline in Scanlines)
+					foreach (var Scanline in Scanlines)
 					{
-						foreach (Rectangle Edge in Edges)
+						foreach (var Edge in Edges)
 						{
-							Rectangle Intersection = Rectangle.Intersect(Scanline, Edge);
+							var Intersection = Rectangle.Intersect(Scanline, Edge);
 							if (!Intersection.IsEmpty)
 							{
 								HighlightFillBrush.Draw(DA, Element, Intersection);
@@ -857,7 +857,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			return;
 		}
 
-		double progress = ActualAnimationProgress;
+		var progress = ActualAnimationProgress;
 
 		if (AnimationType is HighlightAnimation.Progress or HighlightAnimation.Scan)
 		{
@@ -884,15 +884,15 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		switch (AnimationType)
 		{
 			case HighlightAnimation.Pulse:
-				double fadePercent = PulseFadeDuration / PulseCycleDuration;
+				var fadePercent = PulseFadeDuration / PulseCycleDuration;
 				if (progress < fadePercent)
 				{
-					float opacityScalar = 1.0f - (float)(progress / fadePercent);
+					var opacityScalar = 1.0f - (float)(progress / fadePercent);
 					HighlightBorderBrush.Draw(DA.SetOpacity(DA.Opacity * opacityScalar), Element, Shape, Geometry);
 				}
 				break;
 			case HighlightAnimation.Flash:
-				bool isVisible = progress <= FlashShowDuration / FlashCycleDuration;
+				var isVisible = progress <= FlashShowDuration / FlashCycleDuration;
 				if (isVisible)
 				{
 					HighlightBorderBrush.Draw(DA, Element, Shape, Geometry);
@@ -911,38 +911,38 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 	/// position within that quad, and a span that wraps past the end of the contour is emitted as two sub-spans.</summary>
 	private void DrawProgressOnRing(ElementDrawArgs DA, MGBoxGeometry Geometry, double progress)
 	{
-		IReadOnlyList<Vector2> outer = Geometry.OuterContour;
-		IReadOnlyList<Vector2> inner = Geometry.InnerContour;
-		int n = outer.Count;
+		var outer = Geometry.OuterContour;
+		var inner = Geometry.InnerContour;
+		var n = outer.Count;
 		if (n < 2 || inner.Count != n)
 		{
 			return;
 		}
 
-		int anchorIndex = FindTopLeftAnchorIndex(outer);
-		bool isReversed = ProgressFlowDirection == HighlightFlowDirection.CounterClockwise;
+		var anchorIndex = FindTopLeftAnchorIndex(outer);
+		var isReversed = ProgressFlowDirection == HighlightFlowDirection.CounterClockwise;
 
 		//  order[k] = contour index of the k-th vertex visited in sweep order, starting at the anchor.
 		//  arcPos[k] = cumulative arc length (along the outer contour) from the anchor to order[k]; arcPos[n] closes the loop.
-		int[] order = new int[n];
-		double[] arcPos = new double[n + 1];
-		for (int k = 0; k < n; k++)
+		var order = new int[n];
+		var arcPos = new double[n + 1];
+		for (var k = 0; k < n; k++)
 		{
 			order[k] = isReversed ? PositiveModulo(anchorIndex - k, n) : PositiveModulo(anchorIndex + k, n);
 		}
-		for (int k = 1; k <= n; k++)
+		for (var k = 1; k <= n; k++)
 		{
 			arcPos[k] = arcPos[k - 1] + Vector2.Distance(outer[order[k - 1]], outer[order[k % n]]);
 		}
-		double total = arcPos[n];
+		var total = arcPos[n];
 		if (total <= 0.0)
 		{
 			return;
 		}
 
-		double startPercent = progress - ProgressSize / 2.0;
-		double startArc = PositiveModulo(startPercent * total, total);
-		double endArc = startArc + ProgressSize * total;
+		var startPercent = progress - ProgressSize / 2.0;
+		var startArc = PositiveModulo(startPercent * total, total);
+		var endArc = startArc + ProgressSize * total;
 
 		if (endArc <= total)
 		{
@@ -961,34 +961,34 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 				return;
 			}
 
-			Vector2 origin = DA.Offset.ToVector2();
-			for (int k = 0; k < n; k++)
+			var origin = DA.Offset.ToVector2();
+			for (var k = 0; k < n; k++)
 			{
-				double quadStart = arcPos[k];
-				double quadEnd = arcPos[k + 1];
-				double overlapStart = Math.Max(quadStart, rangeStart);
-				double overlapEnd = Math.Min(quadEnd, rangeEnd);
+				var quadStart = arcPos[k];
+				var quadEnd = arcPos[k + 1];
+				var overlapStart = Math.Max(quadStart, rangeStart);
+				var overlapEnd = Math.Min(quadEnd, rangeEnd);
 				if (overlapEnd - overlapStart <= 1e-6)
 				{
 					continue;
 				}
 
-				double quadLength = quadEnd - quadStart;
-				double tStart = quadLength > 1e-9 ? (overlapStart - quadStart) / quadLength : 0.0;
-				double tEnd = quadLength > 1e-9 ? (overlapEnd - quadStart) / quadLength : 1.0;
+				var quadLength = quadEnd - quadStart;
+				var tStart = quadLength > 1e-9 ? (overlapStart - quadStart) / quadLength : 0.0;
+				var tEnd = quadLength > 1e-9 ? (overlapEnd - quadStart) / quadLength : 1.0;
 
-				int i0 = order[k];
-				int i1 = order[(k + 1) % n];
-				Vector2 outerA = outer[i0];
-				Vector2 outerB = outer[i1];
-				Vector2 innerA = inner[i0];
-				Vector2 innerB = inner[i1];
+				var i0 = order[k];
+				var i1 = order[(k + 1) % n];
+				var outerA = outer[i0];
+				var outerB = outer[i1];
+				var innerA = inner[i0];
+				var innerB = inner[i1];
 
 				//  Ring quad = outer at tStart, outer at tEnd, inner at tEnd, inner at tStart (BuildBorderRingIndices emits (o, o2, i2) then (i2, i, o)).
-				Vector2 oStart = Vector2.Lerp(outerA, outerB, (float)tStart);
-				Vector2 oEnd = Vector2.Lerp(outerA, outerB, (float)tEnd);
-				Vector2 iStart = Vector2.Lerp(innerA, innerB, (float)tStart);
-				Vector2 iEnd = Vector2.Lerp(innerA, innerB, (float)tEnd);
+				var oStart = Vector2.Lerp(outerA, outerB, (float)tStart);
+				var oEnd = Vector2.Lerp(outerA, outerB, (float)tEnd);
+				var iStart = Vector2.Lerp(innerA, innerB, (float)tStart);
+				var iEnd = Vector2.Lerp(innerA, innerB, (float)tEnd);
 
 				DA.DT.FillTriangle(origin, oStart, HighlightColor, oEnd, HighlightColor, iEnd, HighlightColor);
 				DA.DT.FillTriangle(origin, iEnd, HighlightColor, iStart, HighlightColor, oStart, HighlightColor);
@@ -1001,11 +1001,11 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 	/// <see cref="DrawProgressOnRing"/>'s percent-0 position.</summary>
 	private static int FindTopLeftAnchorIndex(IReadOnlyList<Vector2> outer)
 	{
-		int anchor = 0;
-		for (int i = 1; i < outer.Count; i++)
+		var anchor = 0;
+		for (var i = 1; i < outer.Count; i++)
 		{
-			Vector2 candidate = outer[i];
-			Vector2 current = outer[anchor];
+			var candidate = outer[i];
+			var current = outer[anchor];
 			if (candidate.Y < current.Y || (candidate.Y == current.Y && candidate.X < current.X))
 			{
 				anchor = i;
@@ -1019,36 +1019,36 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 	/// <see cref="MGConvexPolygonClipper.ClipToRectangle"/> and fills what remains, so the highlight never paints outside the ring.</summary>
 	private void DrawScanOnRing(ElementDrawArgs DA, MGBoxGeometry Geometry, double progress)
 	{
-		IReadOnlyList<Vector2> outer = Geometry.OuterContour;
-		IReadOnlyList<Vector2> inner = Geometry.InnerContour;
-		int n = outer.Count;
+		var outer = Geometry.OuterContour;
+		var inner = Geometry.InnerContour;
+		var n = outer.Count;
 		if (n < 2 || inner.Count != n)
 		{
 			return;
 		}
 
-		Rectangle bounds = Geometry.Shape.OuterBounds;
+		var bounds = Geometry.Shape.OuterBounds;
 		List<Rectangle> scanlines = new();
 
 		switch (ScanOrientation)
 		{
 			case Orientation.Horizontal:
 			{
-				int width = bounds.Width;
-				int height = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * bounds.Height));
-				int center = !ScanIsReversed ? bounds.Top + (int)(progress * bounds.Height) : bounds.Bottom - (int)(progress * bounds.Height);
-				int top = center - height / 2;
-				int bottom = top + height;
+				var width = bounds.Width;
+				var height = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * bounds.Height));
+				var center = !ScanIsReversed ? bounds.Top + (int)(progress * bounds.Height) : bounds.Bottom - (int)(progress * bounds.Height);
+				var top = center - height / 2;
+				var bottom = top + height;
 
 				if (top < bounds.Top)
 				{
-					int overflow = bounds.Top - top;
+					var overflow = bounds.Top - top;
 					scanlines.Add(new Rectangle(bounds.Left, bounds.Top, width, height - overflow));
 					scanlines.Add(new Rectangle(bounds.Left, bounds.Bottom - overflow, width, overflow));
 				}
 				else if (bottom > bounds.Bottom)
 				{
-					int overflow = bottom - bounds.Bottom;
+					var overflow = bottom - bounds.Bottom;
 					scanlines.Add(new Rectangle(bounds.Left, bounds.Bottom - height + overflow, width, height - overflow));
 					scanlines.Add(new Rectangle(bounds.Left, bounds.Top, width, overflow));
 				}
@@ -1060,21 +1060,21 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 				break;
 			case Orientation.Vertical:
 			{
-				int height = bounds.Height;
-				int width = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * bounds.Width));
-				int center = !ScanIsReversed ? bounds.Left + (int)(progress * bounds.Width) : bounds.Right - (int)(progress * bounds.Width);
-				int left = center - width / 2;
-				int right = left + width;
+				var height = bounds.Height;
+				var width = Math.Max(1, (int)Math.Round(Math.Min(ScanSize, 1.0) * bounds.Width));
+				var center = !ScanIsReversed ? bounds.Left + (int)(progress * bounds.Width) : bounds.Right - (int)(progress * bounds.Width);
+				var left = center - width / 2;
+				var right = left + width;
 
 				if (left < bounds.Left)
 				{
-					int overflow = bounds.Left - left;
+					var overflow = bounds.Left - left;
 					scanlines.Add(new Rectangle(bounds.Left, bounds.Top, width - overflow, height));
 					scanlines.Add(new Rectangle(bounds.Right - overflow, bounds.Top, overflow, height));
 				}
 				else if (right > bounds.Right)
 				{
-					int overflow = right - bounds.Right;
+					var overflow = right - bounds.Right;
 					scanlines.Add(new Rectangle(bounds.Right - width + overflow, bounds.Top, width - overflow, height));
 					scanlines.Add(new Rectangle(bounds.Left, bounds.Top, overflow, height));
 				}
@@ -1087,16 +1087,16 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			default: throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {ScanOrientation}");
 		}
 
-		Vector2 origin = DA.Offset.ToVector2();
+		var origin = DA.Offset.ToVector2();
 		List<Vector2> quadPolygon = new(4);
 		List<Vector2> clipped = new(8);
 		List<Vector2> scratch = new(8);
 
-		foreach (Rectangle scanline in scanlines)
+		foreach (var scanline in scanlines)
 		{
-			for (int i = 0; i < n; i++)
+			for (var i = 0; i < n; i++)
 			{
-				int next = (i + 1) % n;
+				var next = (i + 1) % n;
 
 				//  Ring quad i = outer i, outer i+1, inner i+1, inner i (BuildBorderRingIndices emits (o, o2, i2) then (i2, i, o)).
 				quadPolygon.Clear();
@@ -1111,7 +1111,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 					continue;
 				}
 
-				for (int t = 1; t + 1 < clipped.Count; t++)
+				for (var t = 1; t + 1 < clipped.Count; t++)
 				{
 					DA.DT.FillTriangle(origin, clipped[0], HighlightColor, clipped[t], HighlightColor, clipped[t + 1], HighlightColor);
 				}
@@ -1121,7 +1121,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 
 	public IBorderBrush Copy()
 	{
-		MGHighlightBorderBrush Copy = new MGHighlightBorderBrush(Underlay, HighlightColor, AnimationType, Target)
+		var Copy = new MGHighlightBorderBrush(Underlay, HighlightColor, AnimationType, Target)
 		{
 			AnimationProgress = AnimationProgress,
 			IsEnabled = IsEnabled,

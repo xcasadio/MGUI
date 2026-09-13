@@ -43,7 +43,7 @@ internal sealed class MGRichTextEditController
     public MGTextEditResult Replace(MGTextRange range, string text)
     {
         PushUndoSnapshot();
-        MGTextEditResult editResult = Buffer.ApplyEdit(range, text);
+        var editResult = Buffer.ApplyEdit(range, text);
         Selection = Selection.MoveAfterEdit(editResult, Buffer.Length);
         _redoStack.Clear();
         return editResult;
@@ -57,7 +57,7 @@ internal sealed class MGRichTextEditController
             return true;
         }
 
-        int caretIndex = Selection.CaretIndex;
+        var caretIndex = Selection.CaretIndex;
         if (caretIndex <= 0)
         {
             return false;
@@ -75,7 +75,7 @@ internal sealed class MGRichTextEditController
             return true;
         }
 
-        int caretIndex = Selection.CaretIndex;
+        var caretIndex = Selection.CaretIndex;
         if (caretIndex >= Buffer.Length)
         {
             return false;

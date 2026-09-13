@@ -357,7 +357,7 @@ public class MGProgressBar : MGElement
     /// <inheritdoc/>
     protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
     {
-        foreach (VisualStateFillBrush Brush in base.GetVisualStateFillBrushes())
+        foreach (var Brush in base.GetVisualStateFillBrushes())
         {
             yield return Brush;
         }
@@ -381,12 +381,12 @@ public class MGProgressBar : MGElement
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
         MGBoxShape boxShape = new(LayoutBounds, BorderThickness, CornerRadius);
-        MGBoxShape normalizedBoxShape = boxShape.Normalize();
-        Rectangle BorderlessBounds = normalizedBoxShape.InnerBounds;
+        var normalizedBoxShape = boxShape.Normalize();
+        var BorderlessBounds = normalizedBoxShape.InnerBounds;
         Rectangle CompletedBounds;
         Rectangle IncompleteBounds;
 
-        float CompletedScalar = ValuePercent / 100.0f;
+        var CompletedScalar = ValuePercent / 100.0f;
 
         if (Orientation == Orientation.Horizontal)
         {
@@ -439,8 +439,8 @@ public class MGProgressBar : MGElement
             return;
         }
 
-        MGBoxShape segmentShape = MGBoxShapeRegionHelper.CreateSubShape(hostShape.InnerBounds, hostShape.InnerCornerRadius, bounds);
-        MGBoxGeometry segmentGeometry = MGBoxGeometryBuilder.Build(segmentShape);
+        var segmentShape = MGBoxShapeRegionHelper.CreateSubShape(hostShape.InnerBounds, hostShape.InnerCornerRadius, bounds);
+        var segmentGeometry = MGBoxGeometryBuilder.Build(segmentShape);
         brush.GetUnderlay(VisualState.Primary)?.Draw(drawArgs, this, segmentShape, segmentGeometry);
         brush.GetFillOverlay(VisualState.Secondary)?.Draw(drawArgs, this, segmentShape, segmentGeometry);
     }

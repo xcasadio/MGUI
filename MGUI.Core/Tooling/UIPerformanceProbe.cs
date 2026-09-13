@@ -82,18 +82,18 @@ public static class UIPerformanceProbe
                 return;
             }
 
-            string rawPath = Environment.GetEnvironmentVariable(OutputPathEnvironmentVariable);
+            var rawPath = Environment.GetEnvironmentVariable(OutputPathEnvironmentVariable);
             if (!string.IsNullOrWhiteSpace(rawPath))
             {
-                string outputPath = ResolveOutputPath(rawPath);
-                string outputDirectory = Path.GetDirectoryName(outputPath);
+                var outputPath = ResolveOutputPath(rawPath);
+                var outputDirectory = Path.GetDirectoryName(outputPath);
                 if (!string.IsNullOrWhiteSpace(outputDirectory))
                 {
                     Directory.CreateDirectory(outputDirectory);
                 }
 
-                int sampleInterval = ReadPositiveInt(SampleIntervalEnvironmentVariable, DefaultSampleInterval);
-                int topCount = ReadPositiveInt(TopCountEnvironmentVariable, DefaultTopCount);
+                var sampleInterval = ReadPositiveInt(SampleIntervalEnvironmentVariable, DefaultSampleInterval);
+                var topCount = ReadPositiveInt(TopCountEnvironmentVariable, DefaultTopCount);
                 _state = new ProbeState(outputPath, sampleInterval, topCount);
                 File.WriteAllText(outputPath,
                     "CasaEngine MGUI performance probe" + Environment.NewLine +
@@ -119,8 +119,8 @@ public static class UIPerformanceProbe
 
     private static int ReadPositiveInt(string environmentVariable, int fallback)
     {
-        string rawValue = Environment.GetEnvironmentVariable(environmentVariable);
-        return int.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value > 0
+        var rawValue = Environment.GetEnvironmentVariable(environmentVariable);
+        return int.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) && value > 0
             ? value
             : fallback;
     }
@@ -223,17 +223,17 @@ public static class UIPerformanceProbe
                 return;
             }
 
-            long now = Stopwatch.GetTimestamp();
+            var now = Stopwatch.GetTimestamp();
             ActiveScope activeScope = _activeScopes[scopeIndex];
-            long totalTicks = now - activeScope.StartTimestamp;
-            long selfTicks = Math.Max(0, totalTicks - activeScope.ChildTicks);
+            var totalTicks = now - activeScope.StartTimestamp;
+            var selfTicks = Math.Max(0, totalTicks - activeScope.ChildTicks);
 
             if (scopeIndex == _activeScopes.Count - 1)
             {
                 _activeScopes.RemoveAt(scopeIndex);
                 if (_activeScopes.Count > 0)
                 {
-                    int parentIndex = _activeScopes.Count - 1;
+                    var parentIndex = _activeScopes.Count - 1;
                     ActiveScope parentScope = _activeScopes[parentIndex];
                     parentScope.ChildTicks += totalTicks;
                     _activeScopes[parentIndex] = parentScope;
@@ -349,7 +349,7 @@ public static class UIPerformanceProbe
 
         private ElementMetrics GetMetrics(MGElement element)
         {
-            string id = element.UniqueId;
+            var id = element.UniqueId;
             if (!_metricsByElementId.TryGetValue(id, out ElementMetrics metrics))
             {
                 metrics = new ElementMetrics(id, element);
@@ -386,7 +386,7 @@ public static class UIPerformanceProbe
 
             var phases = new List<KeyValuePair<string, DesktopPhaseMetric>>(_desktopPhases);
             phases.Sort((left, right) => right.Value.Ticks.CompareTo(left.Value.Ticks));
-            for (int index = 0; index < phases.Count; index++)
+            for (var index = 0; index < phases.Count; index++)
             {
                 KeyValuePair<string, DesktopPhaseMetric> phase = phases[index];
                 builder.Append("    ");
@@ -403,8 +403,8 @@ public static class UIPerformanceProbe
 
         private void AppendMetricList(StringBuilder builder, List<ElementMetrics> metrics, Func<ElementMetrics, long> getValue, Func<ElementMetrics, long> getTotalValue, Func<ElementMetrics, int> getCount, bool includeInvalidations)
         {
-            int written = 0;
-            for (int i = 0; i < metrics.Count && written < _topCount; i++)
+            var written = 0;
+            for (var i = 0; i < metrics.Count && written < _topCount; i++)
             {
                 ElementMetrics metric = metrics[i];
                 long value = getValue(metric);

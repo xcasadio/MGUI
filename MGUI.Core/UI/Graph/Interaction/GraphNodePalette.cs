@@ -39,9 +39,9 @@ public sealed class GraphNodeDefinition
     public GraphNodeModel CreateNode(Guid nodeId, Vector2 position)
     {
         GraphNodeModel node = new(nodeId, NodeType, DisplayName, position);
-        for (int portIndex = 0; portIndex < Ports.Count; portIndex++)
+        for (var portIndex = 0; portIndex < Ports.Count; portIndex++)
         {
-            GraphPortDefinition port = Ports[portIndex];
+            var port = Ports[portIndex];
             node.Ports.Add(new GraphPortModel(nodeId, Guid.NewGuid(), port.Name, port.Direction, port.ValueType, port.Cardinality, port.IsRequired));
         }
 
@@ -77,9 +77,9 @@ public sealed class GraphNodePalette
             return false;
         }
 
-        for (int portIndex = 0; portIndex < definition.Ports.Count; portIndex++)
+        for (var portIndex = 0; portIndex < definition.Ports.Count; portIndex++)
         {
-            GraphPortDefinition candidate = definition.Ports[portIndex];
+            var candidate = definition.Ports[portIndex];
             if (AreCompatible(draggedPort, candidate))
             {
                 compatiblePort = candidate;
@@ -98,9 +98,9 @@ public sealed class GraphNodePalette
             return false;
         }
 
-        for (int portIndex = 0; portIndex < node.Ports.Count; portIndex++)
+        for (var portIndex = 0; portIndex < node.Ports.Count; portIndex++)
         {
-            GraphPortModel candidate = node.Ports[portIndex];
+            var candidate = node.Ports[portIndex];
             if (AreCompatible(draggedPort, candidate))
             {
                 compatiblePort = candidate;

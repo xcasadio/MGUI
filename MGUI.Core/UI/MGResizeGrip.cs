@@ -202,7 +202,7 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
             {
                 if (e.IsLMB && e.DragStartArgs.HandledBy == this && Parent != null)
                 {
-                    float Scalar = 1.0f / Parent.SelfOrParentWindow.Scale;
+                    var Scalar = 1.0f / Parent.SelfOrParentWindow.Scale;
                     Point Delta = new((int)(e.PositionDelta.X * Scalar), (int)(e.PositionDelta.Y * Scalar));
                     if (Parent is MGWindow TargetWindow)
                     {
@@ -250,23 +250,23 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
-        Rectangle Region = ApplyAlignment(LayoutBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, new Size(Size, Size));
-        Vector2 BottomRight = Region.BottomRight().ToVector2().Translate(-1, -1);
+        var Region = ApplyAlignment(LayoutBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, new Size(Size, Size));
+        var BottomRight = Region.BottomRight().ToVector2().Translate(-1, -1);
 
         //  Draw several small dots in the shape of a right-triangle
         List<Vector2> Points = new();
-        for (int i = 0; i < MaxDots; i++)
+        for (var i = 0; i < MaxDots; i++)
         {
-            for (int j = 0; j < MaxDots - i; j++)
+            for (var j = 0; j < MaxDots - i; j++)
             {
-                Vector2 Position = BottomRight.Translate(i * -Spacing, j * -Spacing);
+                var Position = BottomRight.Translate(i * -Spacing, j * -Spacing);
                 Points.Add(Position);
             }
         }
 
         void FillPoints(Color Color)
         {
-            foreach (Vector2 Point in Points)
+            foreach (var Point in Points)
             {
                 DA.DT.FillPoint(Point + DA.Offset.ToVector2(), Color, 1);
             }
@@ -276,7 +276,7 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
 
         if (!ParentWindow.HasModalWindow)
         {
-            Color? Overlay = Foreground.GetColorOverlay(VisualState.GetSecondaryState(IsDragging, false));
+            var Overlay = Foreground.GetColorOverlay(VisualState.GetSecondaryState(IsDragging, false));
             if (Overlay != null)
             {
                 FillPoints(Overlay.Value * DA.Opacity);

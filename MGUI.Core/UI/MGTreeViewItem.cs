@@ -295,7 +295,7 @@ public class MGTreeViewItem : MGSingleContentHost
 
     internal void UpdateIndentation()
     {
-        int indent = Level * (OwnerTreeView?.IndentSize ?? MGControlTemplateCatalog.DefaultTreeViewIndentSize);
+        var indent = Level * (OwnerTreeView?.IndentSize ?? MGControlTemplateCatalog.DefaultTreeViewIndentSize);
         if (IndentationBorder.PreferredWidth != indent)
         {
             IndentationBorder.PreferredWidth = indent;
@@ -323,7 +323,7 @@ public class MGTreeViewItem : MGSingleContentHost
 
     private void UpdateChildrenVisibility()
     {
-        Visibility newVisibility = IsExpanded ? Visibility.Visible : Visibility.Collapsed;
+        var newVisibility = IsExpanded ? Visibility.Visible : Visibility.Collapsed;
         ChildrenPanel.Visibility = newVisibility;
 
         LayoutChanged(this, true);
@@ -563,7 +563,7 @@ public class MGTreeViewItem : MGSingleContentHost
             HeaderContainer.SetBackground(OwnerTreeView.SelectionBackgroundBrush?.Copy(), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
             if (ExpanderButton != null)
             {
-                VisualStateFillBrush expanderSelectionBackground = OwnerTreeView.SelectionBackgroundBrush?.Copy();
+                var expanderSelectionBackground = OwnerTreeView.SelectionBackgroundBrush?.Copy();
                 expanderSelectionBackground?.SetAll(expanderSelectionBackground.NormalValue);
                 ExpanderButton.SetBackground(expanderSelectionBackground, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
             }
@@ -590,8 +590,8 @@ public class MGTreeViewItem : MGSingleContentHost
     /// </summary>
     private void OnHeaderPanelClick(object sender, Shared.Input.Mouse.BaseMouseClickedEventArgs e)
     {
-        Point layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-        bool clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
+        var layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+        var clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
         TrackHeaderBodySequence(e, clickedExpander);
         if (clickedExpander)
         {
@@ -611,8 +611,8 @@ public class MGTreeViewItem : MGSingleContentHost
 
     private void OnHeaderPanelDoubleClick(object sender, Shared.Input.Mouse.BaseMouseClickedEventArgs e)
     {
-        Point layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-        bool clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
+        var layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+        var clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
         if (clickedExpander)
         {
             return;
@@ -620,7 +620,7 @@ public class MGTreeViewItem : MGSingleContentHost
 
         OwnerTreeView?.NotifyItemSelected(this);
         OwnerTreeView?.Focus();
-        bool sequenceStartedOnHeaderBody = e.Sequence != null && _LastHeaderBodySequenceId == e.Sequence.Id;
+        var sequenceStartedOnHeaderBody = e.Sequence != null && _LastHeaderBodySequenceId == e.Sequence.Id;
         if (ShouldRaiseItemDoubleClicked(HasItems, e.ClickCount, sequenceStartedOnHeaderBody, clickedExpander))
         {
             OwnerTreeView?.RaiseItemDoubleClicked(this);
@@ -669,14 +669,14 @@ public class MGTreeViewItem : MGSingleContentHost
             return;
         }
 
-        Rectangle expanderBounds = ExpanderButton.LayoutBounds;
-        Point center = expanderBounds.Center;
-        int size = 5;
-        Rectangle arrowBounds = !IsExpanded
+        var expanderBounds = ExpanderButton.LayoutBounds;
+        var center = expanderBounds.Center;
+        var size = 5;
+        var arrowBounds = !IsExpanded
             ? new Rectangle(center.X - size / 2, center.Y - size, size, size * 2)
             : new Rectangle(center.X - size, center.Y - size / 2, size * 2, size);
 
-        Color arrowColor = OwnerTreeView?.GetTheme()?.TreeViewExpanderArrowColor ?? Color.Black;
+        var arrowColor = OwnerTreeView?.GetTheme()?.TreeViewExpanderArrowColor ?? Color.Black;
         arrowColor *= DA.Opacity;
         UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), arrowBounds,
             !IsExpanded ? UITriangleArrowDirection.Right : UITriangleArrowDirection.Down, arrowColor);

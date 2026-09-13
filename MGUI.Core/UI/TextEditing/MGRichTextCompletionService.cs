@@ -5,18 +5,18 @@ public static class MGRichTextCompletionService
     public static MGRichTextCompletionContext CreateContext(string text, int caretIndex, MGRichTextCompletionTrigger trigger,
         char? triggerCharacter, int version)
     {
-        string sourceText = text ?? string.Empty;
-        int actualCaretIndex = Math.Clamp(caretIndex, 0, sourceText.Length);
-        MGTextRange replacementRange = GetPrefixRange(sourceText, actualCaretIndex);
-        string prefix = sourceText.Substring(replacementRange.StartIndex, replacementRange.Length);
+        var sourceText = text ?? string.Empty;
+        var actualCaretIndex = Math.Clamp(caretIndex, 0, sourceText.Length);
+        var replacementRange = GetPrefixRange(sourceText, actualCaretIndex);
+        var prefix = sourceText.Substring(replacementRange.StartIndex, replacementRange.Length);
         return new MGRichTextCompletionContext(sourceText, actualCaretIndex, trigger, triggerCharacter, prefix, replacementRange, version);
     }
 
     public static MGTextRange GetPrefixRange(string text, int caretIndex)
     {
-        string sourceText = text ?? string.Empty;
-        int actualCaretIndex = Math.Clamp(caretIndex, 0, sourceText.Length);
-        int startIndex = actualCaretIndex;
+        var sourceText = text ?? string.Empty;
+        var actualCaretIndex = Math.Clamp(caretIndex, 0, sourceText.Length);
+        var startIndex = actualCaretIndex;
         while (startIndex > 0 && IsIdentifierPart(sourceText[startIndex - 1]))
         {
             startIndex--;
@@ -27,22 +27,22 @@ public static class MGRichTextCompletionService
 
     public static MGRichTextCompletionAcceptance CreateAcceptance(MGRichTextCompletionItem item, MGTextRange replacementRange)
     {
-        string insertText = item?.TextToInsert ?? string.Empty;
-        int newCaretIndex = replacementRange.StartIndex + insertText.Length;
+        var insertText = item?.TextToInsert ?? string.Empty;
+        var newCaretIndex = replacementRange.StartIndex + insertText.Length;
         return new MGRichTextCompletionAcceptance(replacementRange.Normalize(), insertText, newCaretIndex);
     }
 
     public static IReadOnlyList<MGRichTextCompletionItem> FilterByPrefix(IEnumerable<MGRichTextCompletionItem> items, string prefix)
     {
         List<MGRichTextCompletionItem> filteredItems = new();
-        string actualPrefix = prefix ?? string.Empty;
+        var actualPrefix = prefix ?? string.Empty;
 
         if (items == null)
         {
             return filteredItems;
         }
 
-        foreach (MGRichTextCompletionItem item in items)
+        foreach (var item in items)
         {
             if (item == null)
             {

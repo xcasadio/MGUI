@@ -7,7 +7,7 @@ public static class ColorHdrHelper
 
     public static ColorValue GetNormalizedBaseColor(ColorValue value)
     {
-        float intensity = GetIntensity(value);
+        var intensity = GetIntensity(value);
         if (intensity <= 0f)
         {
             return new ColorValue(0f, 0f, 0f, value.A, value.ColorSpace, value.IsHdr);
@@ -18,8 +18,8 @@ public static class ColorHdrHelper
 
     public static ColorValue WithIntensity(ColorValue baseColor, float intensity)
     {
-        float actualIntensity = Math.Max(0f, intensity);
-        ColorValue normalized = GetNormalizedBaseColor(baseColor);
+        var actualIntensity = Math.Max(0f, intensity);
+        var normalized = GetNormalizedBaseColor(baseColor);
         return new ColorValue(
             normalized.R * actualIntensity,
             normalized.G * actualIntensity,
@@ -40,7 +40,7 @@ public static class ColorHdrHelper
 
     private static float ToneMapChannel(float value)
     {
-        float actual = Math.Max(0f, value);
+        var actual = Math.Max(0f, value);
         return actual / (1f + actual);
     }
 }

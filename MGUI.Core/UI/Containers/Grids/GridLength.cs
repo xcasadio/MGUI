@@ -114,21 +114,21 @@ public struct GridLength : IEquatable<GridLength>
     /// To represent a <see cref="GridUnitType.Weighted"/> dimension: A positive numeric value, suffixed with '*'. EX: "1.5*". If no numeric value is present, it is assumed to be "1*"</param>
     public static GridLength Parse(string Length)
     {
-        Match Match = AnchoredParser.Match(Length);
+        var Match = AnchoredParser.Match(Length);
         if (Match.Groups["AutoLength"].Success)
         {
             return Auto;
         }
         else if (Match.Groups["PixelLength"].Success)
         {
-            string PixelValueString = Match.Groups["PixelValue"].Value;
-            int Pixels = int.Parse(PixelValueString);
+            var PixelValueString = Match.Groups["PixelValue"].Value;
+            var Pixels = int.Parse(PixelValueString);
             return CreatePixelLength(Pixels);
         }
         else if (Match.Groups["WeightedLength"].Success)
         {
-            string WeightValueString = Match.Groups["WeightValue"].Value;
-            double Weight = WeightValueString == string.Empty ? 1.0 : double.Parse(WeightValueString, CultureInfo.InvariantCulture);
+            var WeightValueString = Match.Groups["WeightValue"].Value;
+            var Weight = WeightValueString == string.Empty ? 1.0 : double.Parse(WeightValueString, CultureInfo.InvariantCulture);
             return CreateWeightedLength(Weight);
         }
         else
@@ -146,7 +146,7 @@ public struct GridLength : IEquatable<GridLength>
     {
         if (!string.IsNullOrEmpty(CommaSeparatedValues))
         {
-            foreach (string Item in CommaSeparatedValues.Split(','))
+            foreach (var Item in CommaSeparatedValues.Split(','))
             {
                 yield return Parse(Item);
             }
@@ -170,7 +170,7 @@ public class GridLengthStringConverter : TypeConverter
     {
         if (value is string stringValue)
         {
-            GridLength Length = GridLength.Parse(stringValue);
+            var Length = GridLength.Parse(stringValue);
             return Length;
         }
 

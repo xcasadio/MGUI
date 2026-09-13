@@ -137,7 +137,7 @@ public class MGDockAutoHideStrip : MGElement
             return;
         }
 
-        Rectangle bounds = GetSeparatorBounds();
+        var bounds = GetSeparatorBounds();
         SeparatorElement.Width = bounds.Width;
         SeparatorElement.Height = bounds.Height;
         SeparatorElement.Fill = SeparatorColor.AsFillBrush();
@@ -215,20 +215,20 @@ public class MGDockAutoHideStrip : MGElement
             return ButtonMinSize;
         }
 
-        ITextMeasurementEngine textEngine = ParentWindow.Desktop.TextEngine;
-        ResolvedFont resolved = textEngine.ResolveFont(new FontSpec(ParentWindow.Desktop.DefaultFontFamily, 11, CustomFontStyles.Normal));
+        var textEngine = ParentWindow.Desktop.TextEngine;
+        var resolved = textEngine.ResolveFont(new FontSpec(ParentWindow.Desktop.DefaultFontFamily, 11, CustomFontStyles.Normal));
         if (!resolved.IsAvailable)
         {
             return ButtonMinSize;
         }
 
-        float textWidth = textEngine.MeasureText(resolved, title).X;
+        var textWidth = textEngine.MeasureText(resolved, title).X;
         if (!resolved.ExactScale.IsAlmostZero())
         {
             textWidth = textWidth / resolved.ExactScale * resolved.SuggestedScale;
         }
 
-        int textPx = (int)Math.Ceiling(textWidth);
+        var textPx = (int)Math.Ceiling(textWidth);
         return Math.Max(ButtonMinSize, textPx + ButtonPadding);
     }
 
@@ -285,11 +285,11 @@ public class MGDockAutoHideStrip : MGElement
         if (IsHorizontal)
         {
             // Top / Bottom: fixed height = StripThickness, width = text-measured per button
-            int totalW = 0;
+            var totalW = 0;
             foreach (var btn in _buttons)
             {
-                string title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
-                int btnW = MeasureButtonSizePx(title);
+                var title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
+                var btnW = MeasureButtonSizePx(title);
                 btn.UpdateMeasurement(new Size(btnW, StripThickness), out _, out _, out _, out _);
                 totalW += btnW + ButtonSpacing;
             }
@@ -299,11 +299,11 @@ public class MGDockAutoHideStrip : MGElement
         {
             // Left / Right: fixed width = StripThickness, height = text-measured per button
             // (text is rotated 90°, so text WIDTH → button HEIGHT)
-            int totalH = 0;
+            var totalH = 0;
             foreach (var btn in _buttons)
             {
-                string title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
-                int btnH = MeasureButtonSizePx(title);
+                var title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
+                var btnH = MeasureButtonSizePx(title);
                 btn.UpdateMeasurement(new Size(StripThickness, btnH), out _, out _, out _, out _);
                 totalH += btnH + ButtonSpacing;
             }
@@ -315,22 +315,22 @@ public class MGDockAutoHideStrip : MGElement
     {
         if (IsHorizontal)
         {
-            int x = Bounds.X;
+            var x = Bounds.X;
             foreach (var btn in _buttons)
             {
-                string title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
-                int w = MeasureButtonSizePx(title);
+                var title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
+                var w = MeasureButtonSizePx(title);
                 btn.UpdateLayout(new Rectangle(x, Bounds.Y, w, Bounds.Height));
                 x += w + ButtonSpacing;
             }
         }
         else
         {
-            int y = Bounds.Y;
+            var y = Bounds.Y;
             foreach (var btn in _buttons)
             {
-                string title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
-                int h = MeasureButtonSizePx(title);
+                var title = _buttonMap.TryGetValue(btn, out var p) ? p.Title : "";
+                var h = MeasureButtonSizePx(title);
                 btn.UpdateLayout(new Rectangle(Bounds.X, y, Bounds.Width, h));
                 y += h + ButtonSpacing;
             }

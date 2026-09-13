@@ -67,7 +67,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             return -1;
         }
 
-        int largeStep = Math.Max(1, itemCount / 5);
+        var largeStep = Math.Max(1, itemCount / 5);
 
         return action switch
         {
@@ -227,7 +227,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         {
             if (_SelectedTemplatedItem != value)
             {
-                TemplatedElement<TItemType, MGButton> PreviousSelection = SelectedTemplatedItem;
+                var PreviousSelection = SelectedTemplatedItem;
                 if (SelectedTemplatedItem != null)
                 {
                     SelectedTemplatedItem.Element.IsSelected = false;
@@ -289,7 +289,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
     private void UpdateSelectedContent()
     {
         Content?.RemoveDataBindings(true);
-        MGElement SelectedContent = SelectedTemplatedItem == null || SelectedItemTemplate == null ? null : SelectedItemTemplate(SelectedTemplatedItem.SourceData);
+        var SelectedContent = SelectedTemplatedItem == null || SelectedItemTemplate == null ? null : SelectedItemTemplate(SelectedTemplatedItem.SourceData);
         ManagedSetContent(SelectedContent);
     }
     #endregion Selected Item
@@ -305,7 +305,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         {
             if (_HoveredItem != value)
             {
-                TemplatedElement<TItemType, MGButton> Previous = HoveredItem;
+                var Previous = HoveredItem;
                 _HoveredItem = value;
                 NPC(nameof(HoveredItem));
                 HoveredItemChanged?.Invoke(this, new(Previous, HoveredItem));
@@ -356,7 +356,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                 }
                 else
                 {
-                    IEnumerable<TemplatedElement<TItemType, MGButton>> Values = ItemsSource.Select(x => new TemplatedElement<TItemType, MGButton>(x, DropdownItemTemplate(x)));
+                    var Values = ItemsSource.Select(x => new TemplatedElement<TItemType, MGButton>(x, DropdownItemTemplate(x)));
                     TemplatedItems = new ObservableCollection<TemplatedElement<TItemType, MGButton>>(Values);
                 }
 
@@ -376,7 +376,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             }
             else if (e.Action is NotifyCollectionChangedAction.Add && e.NewItems != null)
             {
-                int CurrentIndex = e.NewStartingIndex;
+                var CurrentIndex = e.NewStartingIndex;
                 foreach (TItemType Item in e.NewItems)
                 {
                     TemplatedElement<TItemType, MGButton> TemplatedItem = new(Item, DropdownItemTemplate(Item));
@@ -386,7 +386,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             }
             else if (e.Action is NotifyCollectionChangedAction.Remove && e.OldItems != null)
             {
-                int CurrentIndex = e.OldStartingIndex;
+                var CurrentIndex = e.OldStartingIndex;
                 foreach (var Item in e.OldItems)
                 {
                     TemplatedItems.RemoveAt(CurrentIndex);
@@ -395,11 +395,11 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             }
             else if (e.Action is NotifyCollectionChangedAction.Replace)
             {
-                List<TItemType> Old = e.OldItems.Cast<TItemType>().ToList();
-                List<TItemType> New = e.NewItems.Cast<TItemType>().ToList();
-                for (int i = 0; i < Old.Count; i++)
+                var Old = e.OldItems.Cast<TItemType>().ToList();
+                var New = e.NewItems.Cast<TItemType>().ToList();
+                for (var i = 0; i < Old.Count; i++)
                 {
-                    TItemType NewItem = New[i]; 
+                    var NewItem = New[i]; 
                     TemplatedElement<TItemType, MGButton> TemplatedItem = new(NewItem, DropdownItemTemplate(NewItem));
                     TemplatedItems[e.OldStartingIndex + i] = TemplatedItem;
                 }
@@ -441,7 +441,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
                 if (TemplatedItems != null)
                 {
-                    foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
+                    foreach (var item in TemplatedItems)
                     {
                         if (item?.Element != null)
                         {
@@ -494,7 +494,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                 }
                 else
                 {
-                    IEnumerable<TemplatedElement<TItemType, MGButton>> Values = ItemsSource.Select(x => new TemplatedElement<TItemType, MGButton>(x, DropdownItemTemplate(x)));
+                    var Values = ItemsSource.Select(x => new TemplatedElement<TItemType, MGButton>(x, DropdownItemTemplate(x)));
                     TemplatedItems = new ObservableCollection<TemplatedElement<TItemType, MGButton>>(Values);
                 }
 
@@ -556,11 +556,11 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
     internal static int GetFittedDropdownLeft(int PreferredLeft, int PreferredRight, int DesiredWidth, Rectangle Viewport, float Scale)
     {
-        float ActualScale = Scale > 0 ? Scale : 1.0f;
-        int DesiredScreenWidth = Math.Min(Viewport.Width, (int)Math.Ceiling(Math.Max(0, DesiredWidth) * ActualScale));
-        int MaxLeft = Math.Max(Viewport.Left, Viewport.Right - DesiredScreenWidth);
+        var ActualScale = Scale > 0 ? Scale : 1.0f;
+        var DesiredScreenWidth = Math.Min(Viewport.Width, (int)Math.Ceiling(Math.Max(0, DesiredWidth) * ActualScale));
+        var MaxLeft = Math.Max(Viewport.Left, Viewport.Right - DesiredScreenWidth);
 
-        int ActualLeft = PreferredLeft;
+        var ActualLeft = PreferredLeft;
         if (ActualLeft + DesiredScreenWidth > Viewport.Right)
         {
             ActualLeft = PreferredRight - DesiredScreenWidth;
@@ -571,9 +571,9 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
     private void PositionDropdown(int DesiredWidth)
     {
-        Rectangle Viewport = GetDesktop().ValidScreenBounds;
-        Point TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
-        Point TopRight = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomRight());
+        var Viewport = GetDesktop().ValidScreenBounds;
+        var TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
+        var TopRight = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomRight());
         Dropdown.Left = GetFittedDropdownLeft(TopLeft.X, TopRight.X, DesiredWidth, Viewport, Dropdown.Scale);
         Dropdown.Top = TopLeft.Y;
     }
@@ -584,36 +584,36 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
         using (DropdownStackPanel.AllowChangingContentTemporarily())
         {
-            foreach (MGElement Element in DropdownStackPanel.Children.ToList())
+            foreach (var Element in DropdownStackPanel.Children.ToList())
             {
                 DropdownStackPanel.TryRemoveChild(Element);
             }
 
             if (TemplatedItems != null)
             {
-                foreach (TemplatedElement<TItemType, MGButton> UIItem in TemplatedItems)
+                foreach (var UIItem in TemplatedItems)
                 {
                     DropdownStackPanel.TryAddChild(UIItem.Element);
                 }
             }
         }
 
-        Rectangle Viewport = GetDesktop().ValidScreenBounds;
-        Point TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
-        float ActualScale = Dropdown.Scale > 0 ? Dropdown.Scale : 1.0f;
-        int ActualAvailableWidth = Math.Max(0, (int)(Viewport.Width / ActualScale));
-        int AvailableHeightScreenSpace = Viewport.Bottom - TopLeft.Y;
-        int ActualAvailableHeight = Math.Max(0, (int)(AvailableHeightScreenSpace / ActualScale));
+        var Viewport = GetDesktop().ValidScreenBounds;
+        var TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
+        var ActualScale = Dropdown.Scale > 0 ? Dropdown.Scale : 1.0f;
+        var ActualAvailableWidth = Math.Max(0, (int)(Viewport.Width / ActualScale));
+        var AvailableHeightScreenSpace = Viewport.Bottom - TopLeft.Y;
+        var ActualAvailableHeight = Math.Max(0, (int)(AvailableHeightScreenSpace / ActualScale));
         var (MinSize, MaxSize) = MGWindow.GetEffectiveSizeConstraints(
             Math.Max(ActualWidth, MinDropdownWidth),
             MinDropdownHeight,
             Math.Min(MaxDropdownWidth, ActualAvailableWidth),
             Math.Min(MaxDropdownHeight, ActualAvailableHeight));
 
-        Size DesiredSize = Dropdown.ComputeContentSize(MinSize.Width, MinSize.Height, MaxSize.Width, MaxSize.Height);
+        var DesiredSize = Dropdown.ComputeContentSize(MinSize.Width, MinSize.Height, MaxSize.Width, MaxSize.Height);
         PositionDropdown(DesiredSize.Width);
 
-        Size ActualSize = Dropdown.ApplySizeToContent(SizeToContent.WidthAndHeight, MinSize.Width, MinSize.Height, MaxSize.Width, MaxSize.Height, false);
+        var ActualSize = Dropdown.ApplySizeToContent(SizeToContent.WidthAndHeight, MinSize.Width, MinSize.Height, MaxSize.Width, MaxSize.Height, false);
         PositionDropdown(ActualSize.Width);
         Dropdown.ValidateWindowSizeAndPosition();
         Dropdown.UpdateLayout(new Rectangle(Dropdown.Left, Dropdown.Top, Dropdown.WindowWidth, Dropdown.WindowHeight));
@@ -628,7 +628,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         {
             if (_IsDropdownOpen != value)
             {
-                CancelEventArgs e = new CancelEventArgs(false);
+                var e = new CancelEventArgs(false);
                 DropdownOpening?.Invoke(this, e);
                 if (e.Cancel)
                 {
@@ -639,7 +639,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
                 if (IsDropdownOpen)
                 {
-                    Point TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
+                    var TopLeft = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds.BottomLeft());
                     Dropdown.Left = TopLeft.X;
                     Dropdown.Top = TopLeft.Y;
                     UpdateDropdownContent();
@@ -707,7 +707,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         DropdownScrollViewer = Structure.Parts[DropdownScrollViewerPartName] as MGScrollViewer;
         DropdownDockPanel = Structure.Parts[DropdownDockPanelPartName] as MGDockPanel;
 
-        bool needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
+        var needsBorderNotifications = BorderComponent == null || !ReferenceEquals(BorderComponent.Element, BorderElement);
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
@@ -716,7 +716,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
         }
 
-        bool needsDropdownArrowHandlers = DropdownArrowComponent == null || !ReferenceEquals(DropdownArrowComponent.Element, DropdownArrowElement);
+        var needsDropdownArrowHandlers = DropdownArrowComponent == null || !ReferenceEquals(DropdownArrowComponent.Element, DropdownArrowElement);
         EnsureComponentBinding(() => DropdownArrowComponent, value => DropdownArrowComponent = value, DropdownArrowElement,
             element => new(element, false, true, false, true, true, false, false,
                 (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Center, ComponentSize.Size)));
@@ -725,8 +725,8 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         {
             DropdownArrowElement.OnEndingDraw += (sender, e) =>
             {
-                Rectangle ArrowElementFullBounds = DropdownArrowElement.LayoutBounds;
-                Rectangle ArrowPartBounds = ApplyAlignment(ArrowElementFullBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(DropdownArrowWidth, DropdownArrowHeight));
+                var ArrowElementFullBounds = DropdownArrowElement.LayoutBounds;
+                var ArrowPartBounds = ApplyAlignment(ArrowElementFullBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(DropdownArrowWidth, DropdownArrowHeight));
                 UISymbolDrawing.DrawFilledTriangleArrow(e.DA.DT, e.DA.Offset.ToVector2(), ArrowPartBounds, UITriangleArrowDirection.Down,
                     DropdownArrowColor * e.DA.Opacity);
             };
@@ -745,7 +745,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         {
             if (IsDropdownOpen)
             {
-                Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+                var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
                 if (!Dropdown.RenderBounds.ContainsInclusive(LayoutSpacePosition))
                 {
                     IsDropdownOpen = false;
@@ -757,7 +757,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
         if (TemplatedItems != null)
         {
-            foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
+            foreach (var item in TemplatedItems)
             {
                 if (item?.Element != null)
                 {
@@ -778,7 +778,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         //  ControlTemplateInfrastructureTests.
         if (IsThemeRefresh && TemplatedItems != null)
         {
-            foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
+            foreach (var item in TemplatedItems)
             {
                 item?.Element?.ApplyControlTemplate(true);
             }
@@ -886,8 +886,8 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             return;
         }
 
-        MGButton highlighted = (_NavigationTarget ?? SelectedTemplatedItem)?.Element;
-        foreach (TemplatedElement<TItemType, MGButton> item in TemplatedItems)
+        var highlighted = (_NavigationTarget ?? SelectedTemplatedItem)?.Element;
+        foreach (var item in TemplatedItems)
         {
             if (item?.Element != null)
             {
@@ -898,7 +898,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
     void INavigationTargetVisibilityHandler.EnsureNavigationTargetVisible()
     {
-        MGButton target = (_NavigationTarget ?? HoveredItem ?? SelectedTemplatedItem)?.Element;
+        var target = (_NavigationTarget ?? HoveredItem ?? SelectedTemplatedItem)?.Element;
         if (IsDropdownOpen && target != null)
         {
             DropdownScrollViewer?.EnsureElementVisible(target);
@@ -913,8 +913,8 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         }
 
         //  -1 when nothing is selected, so that MoveDown / MoveNext select the first row instead of skipping it.
-        int currentIndex = SelectedIndex;
-        int nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
+        var currentIndex = SelectedIndex;
+        var nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
         if (nextIndex < 0 || nextIndex == currentIndex)
         {
             return false;
@@ -933,9 +933,9 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
 
         //  Start from the keyboard target, else the hovered row, else the committed selection: -1 when there is none, so that the first
         //  MoveDown / MoveNext targets the first row instead of skipping it.
-        TemplatedElement<TItemType, MGButton> anchor = _NavigationTarget ?? HoveredItem;
-        int currentIndex = anchor != null ? TemplatedItems.IndexOf(anchor) : SelectedIndex;
-        int nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
+        var anchor = _NavigationTarget ?? HoveredItem;
+        var currentIndex = anchor != null ? TemplatedItems.IndexOf(anchor) : SelectedIndex;
+        var nextIndex = GetNextNavigationIndex(currentIndex, TemplatedItems.Count, action);
         if (nextIndex < 0)
         {
             return false;
@@ -1036,12 +1036,12 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         if (Settings.Items?.Any() == true)
         {
             List<TItemType> TempItems = new();
-            Type TargetType = typeof(TItemType);
-            foreach (object Item in Settings.Items)
+            var TargetType = typeof(TItemType);
+            foreach (var Item in Settings.Items)
             {
                 if (TargetType.IsAssignableFrom(Item.GetType()))
                 {
-                    TItemType Value = (TItemType)Item;
+                    var Value = (TItemType)Item;
                     TempItems.Add(Value);
                 }
             }
@@ -1056,7 +1056,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         {
             DropdownItemTemplate = (Item) =>
             {
-                MGElement Content = Settings.DropdownItemTemplate.GetContent(Dropdown, this, Item, x =>
+                var Content = Settings.DropdownItemTemplate.GetContent(Dropdown, this, Item, x =>
                 {
                     if (x is MGButton ButtonContent)
                     {
@@ -1070,7 +1070,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                 }
                 else
                 {
-                    MGButton Button = CreateDefaultDropdownButton();
+                    var Button = CreateDefaultDropdownButton();
                     Button.SetContent(Content);
                     return Button;
                 }

@@ -79,8 +79,8 @@ public static class UIColorAnimationTargets
 
         public Color GetValue(MGElement element)
         {
-            VisualStateFillBrush container = element.BackgroundBrush;
-            IFillBrush brush = container == null ? null : _slot switch
+            var container = element.BackgroundBrush;
+            var brush = container == null ? null : _slot switch
             {
                 UIValueSlot.Selected => container.SelectedValue,
                 UIValueSlot.Disabled => container.DisabledValue,
@@ -181,7 +181,7 @@ public static class UIColorAnimationTargets
 
         public Color GetValue(MGElement element)
         {
-            MGBorder border = RequireBorder(element);
+            var border = RequireBorder(element);
             if (border.BorderBrush is MGUniformBorderBrush uniform)
             {
                 return RequireSolid(uniform.Brush, Path, element);

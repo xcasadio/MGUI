@@ -40,7 +40,7 @@ public class MGPasswordBox : MGTextBox
 
 	protected override bool SetText(string Value, bool ExecuteEvenIfSameValue, bool SuppressLayoutChanged)
 	{
-		SecureString Temp = Value?.AsSecureString();
+		var Temp = Value?.AsSecureString();
 		Value = ReplaceNormalCharactersWith(Value, PasswordCharacter);
 		if (base.SetText(Value, true, SuppressLayoutChanged))
 		{
@@ -68,7 +68,7 @@ public class MGPasswordBox : MGTextBox
 		else
 		{
 			StringBuilder SB = new(s.Length);
-			foreach (char Character in s)
+			foreach (var Character in s)
 			{
 				if (SpecialCharacters.Contains(Character))
 				{

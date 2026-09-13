@@ -61,15 +61,15 @@ public class MGPathLite : MGVertexShapeElementBase
             return;
         }
 
-        MGPointShapePlacement placement = GetPlacement(layoutBounds);
-        Vector2 origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
-        Color strokeColor = Stroke * DA.Opacity;
-        bool hasSolidFill = TryGetSolidFillColor(DA.Opacity, out Color fillColor);
-        bool hasBrushFill = HasVisibleFill && !hasSolidFill;
+        var placement = GetPlacement(layoutBounds);
+        var origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
+        var strokeColor = Stroke * DA.Opacity;
+        var hasSolidFill = TryGetSolidFillColor(DA.Opacity, out var fillColor);
+        var hasBrushFill = HasVisibleFill && !hasSolidFill;
 
-        for (int i = 0; i < _Figures.Length; i++)
+        for (var i = 0; i < _Figures.Length; i++)
         {
-            MGPathLiteFigure figure = _Figures[i];
+            var figure = _Figures[i];
             if (figure.Points.Count < 2)
             {
                 continue;
@@ -77,7 +77,7 @@ public class MGPathLite : MGVertexShapeElementBase
 
             if (figure.IsClosed && figure.Points.Count >= 3 && hasBrushFill)
             {
-                ClipGeometry clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, origin);
+                var clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, origin);
                 DrawClippedFillBrush(DA, placement.Bounds,
                     CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), clipGeometry, $"{ElementType}.Fill", allowRectangleFallback: true));
             }
@@ -95,11 +95,11 @@ public class MGPathLite : MGVertexShapeElementBase
 
                 if (HasVisibleStroke)
                 {
-                    int segmentCount = figure.IsClosed ? figure.Points.Count : figure.Points.Count - 1;
-                    for (int segment = 0; segment < segmentCount; segment++)
+                    var segmentCount = figure.IsClosed ? figure.Points.Count : figure.Points.Count - 1;
+                    for (var segment = 0; segment < segmentCount; segment++)
                     {
-                        Vector2 start = figure.Points[segment];
-                        Vector2 end = figure.Points[(segment + 1) % figure.Points.Count];
+                        var start = figure.Points[segment];
+                        var end = figure.Points[(segment + 1) % figure.Points.Count];
                         DA.Context.StrokeLineSegment(origin, start, end, strokeColor, StrokeThickness);
                     }
                 }
@@ -114,13 +114,13 @@ public class MGPathLite : MGVertexShapeElementBase
             return false;
         }
 
-        MGPointShapePlacement placement = GetPlacement(LayoutBounds);
-        Vector2 layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
-        Vector2 localPoint = layoutPoint - placement.GeometryOrigin;
+        var placement = GetPlacement(LayoutBounds);
+        var layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
+        var localPoint = layoutPoint - placement.GeometryOrigin;
 
-        for (int i = 0; i < _Figures.Length; i++)
+        for (var i = 0; i < _Figures.Length; i++)
         {
-            MGPathLiteFigure figure = _Figures[i];
+            var figure = _Figures[i];
             if (figure.IsClosed && figure.Points.Count >= 3 && HasVisibleFill && MGVectorShapeHelper.IsPointInPolygon(figure.Points, localPoint))
             {
                 return true;
@@ -142,14 +142,14 @@ public class MGPathLite : MGVertexShapeElementBase
             return null;
         }
 
-        MGPathLiteFigure figure = _Figures[0];
-        MGPointShapePlacement placement = GetPlacement(layoutBounds);
+        var figure = _Figures[0];
+        var placement = GetPlacement(layoutBounds);
         if (!figure.IsClosed || figure.Points.Count < 3)
         {
             return CreateRectangleClipDefinition(TransformClipBounds(DA, placement.Bounds), $"{ElementType}.Self");
         }
 
-        ClipGeometry geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, DA.Offset.ToVector2() + placement.GeometryOrigin);
+        var geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, DA.Offset.ToVector2() + placement.GeometryOrigin);
         return CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true);
     }
 
@@ -168,9 +168,9 @@ public class MGPathLite : MGVertexShapeElementBase
             currentFigure = null;
         }
 
-        for (int i = 0; i < _Commands.Length; i++)
+        for (var i = 0; i < _Commands.Length; i++)
         {
-            MGPathLiteCommand command = _Commands[i];
+            var command = _Commands[i];
             switch (command.Type)
             {
                 case MGPathLiteCommandType.MoveTo:
@@ -198,18 +198,18 @@ public class MGPathLite : MGVertexShapeElementBase
         }
 
         List<Vector2> allPoints = new();
-        for (int i = 0; i < rawFigures.Count; i++)
+        for (var i = 0; i < rawFigures.Count; i++)
         {
             allPoints.AddRange(rawFigures[i].Points);
         }
 
-        Vector2[] normalizedAllPoints = MGVectorShapeHelper.NormalizePoints(allPoints.ToArray(), out MonoGame.Extended.RectangleF bounds);
+        var normalizedAllPoints = MGVectorShapeHelper.NormalizePoints(allPoints.ToArray(), out var bounds);
         Vector2 offset = new(bounds.X, bounds.Y);
-        MGPathLiteFigure[] normalizedFigures = new MGPathLiteFigure[rawFigures.Count];
-        for (int i = 0; i < rawFigures.Count; i++)
+        var normalizedFigures = new MGPathLiteFigure[rawFigures.Count];
+        for (var i = 0; i < rawFigures.Count; i++)
         {
-            Vector2[] figurePoints = new Vector2[rawFigures[i].Points.Count];
-            for (int pointIndex = 0; pointIndex < figurePoints.Length; pointIndex++)
+            var figurePoints = new Vector2[rawFigures[i].Points.Count];
+            for (var pointIndex = 0; pointIndex < figurePoints.Length; pointIndex++)
             {
                 figurePoints[pointIndex] = rawFigures[i].Points[pointIndex] - offset;
             }

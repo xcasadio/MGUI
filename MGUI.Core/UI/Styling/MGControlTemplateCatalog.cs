@@ -125,7 +125,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGButton button = ComboBox.CreateDefaultDropdownButton();
+        var button = ComboBox.CreateDefaultDropdownButton();
         button.SetContent(CreateCompactSingleLineTextBlock(ComboBox.SelfOrParentWindow, Item?.ToString() ?? string.Empty));
         return button;
     }
@@ -166,7 +166,7 @@ public static class MGControlTemplateCatalog
         // MGListBox materializes an item container (MGListBox.cs's ItemTemplate callback), the same role the
         // catalogue's Context.ApplyThemeDefault/ApplyTemplateValue calls play for the rest of the framework,
         // just without an MGControlTemplateContext (there is no per-item ApplyDefaults phase to hook into).
-        MGTheme theme = Owner.GetTheme();
+        var theme = Owner.GetTheme();
         Item.SetBorderBrush(CreateDefaultListBoxItemBorderBrush(), UIValueResolutionSource.Template(UIInvalidationKind.Draw, "ListBox.Item.BorderBrush"));
         Item.SetBorderThickness(DefaultListBoxItemBorderThickness, UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "ListBox.Item.BorderThickness"));
         // Backlog task 14: the item padding comes from the theme (MGTheme.ListBox.ItemPadding, default DefaultListBoxItemPadding).
@@ -215,11 +215,11 @@ public static class MGControlTemplateCatalog
         // among the definitions it is given before asking the resolver, so handing it those two would base Dark.ListBox and Dark.ListView on a
         // bare structure with no applicator: a list box under Dark received no ListBox.* default (backlog task 14). Only the definitions the
         // catalog has not registered itself are built here.
-        IReadOnlyDictionary<string, MGControlTemplate> builtInXamlTemplates = ControlTemplateLoader.BuildTemplates(
+        var builtInXamlTemplates = ControlTemplateLoader.BuildTemplates(
             BuiltInXamlTemplateDefinitions.Value.Values.Where(x => !Resources.TryGetControlTemplate(x.Name, out _)).ToList(),
-            name => Resources.TryGetControlTemplate(name, out MGControlTemplate template) ? template : null);
+            name => Resources.TryGetControlTemplate(name, out var template) ? template : null);
 
-        foreach (KeyValuePair<string, MGControlTemplate> item in builtInXamlTemplates)
+        foreach (var item in builtInXamlTemplates)
         {
             if (!Resources.TryGetControlTemplate(item.Key, out _))
             {
@@ -233,7 +233,7 @@ public static class MGControlTemplateCatalog
 
     private static IReadOnlyDictionary<string, ControlTemplateDefinition> LoadBuiltInXamlTemplateDefinitions()
     {
-        string markup = GeneralUtils.ReadEmbeddedResourceAsString(Assembly.GetExecutingAssembly(), BuiltInControlTemplatesResourceName);
+        var markup = GeneralUtils.ReadEmbeddedResourceAsString(Assembly.GetExecutingAssembly(), BuiltInControlTemplatesResourceName);
         return ControlTemplateLoader.ParseDefinitions(XamlDocumentSource.FromString(markup, BuiltInControlTemplatesResourceName))
             .Where(x => x != null && !string.IsNullOrWhiteSpace(x.Name))
             .ToDictionary(x => x.Name, StringComparer.Ordinal);
@@ -242,7 +242,7 @@ public static class MGControlTemplateCatalog
     private static MGControlTemplate CreateBuiltInXamlTemplate(string name,
         Action<MGControlTemplateContext> applyDefaults)
     {
-        if (!BuiltInXamlTemplateDefinitions.Value.TryGetValue(name, out ControlTemplateDefinition definition))
+        if (!BuiltInXamlTemplateDefinitions.Value.TryGetValue(name, out var definition))
         {
             throw new InvalidOperationException($"Missing built-in control template asset definition '{name}'.");
         }
@@ -409,7 +409,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = owner.SelfOrParentWindow;
+        var window = owner.SelfOrParentWindow;
         MGBorder border = new(window, new Thickness(1), MGUniformBorderBrush.Black);
         MGContentPresenter dropdownArrow = new(window) { PreferredWidth = MGComboBox<object>.DropdownArrowPaddedWidth, PreferredHeight = MGComboBox<object>.DropdownArrowPaddedHeight };
         // No theme argument: the dropdown's Window scope inherits the owner window's scope, so it follows that scope's theme changes.
@@ -483,7 +483,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = treeView.SelfOrParentWindow;
+        var window = treeView.SelfOrParentWindow;
         MGBorder outerBorder = new(window)
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -500,7 +500,7 @@ public static class MGControlTemplateCatalog
             VerticalAlignment = VerticalAlignment.Top,
             CanChangeContent = false,
         };
-        UIInvalidationKind treeViewStructureInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
+        var treeViewStructureInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
         outerBorder.SetMargin(new Thickness(0), UIValueResolutionSource.Template(treeViewStructureInvalidation, "TreeView.OuterBorder.Margin"));
         outerBorder.SetPadding(new Thickness(0), UIValueResolutionSource.Template(treeViewStructureInvalidation, "TreeView.OuterBorder.Padding"));
         scrollViewer.SetMargin(new Thickness(0), UIValueResolutionSource.Template(treeViewStructureInvalidation, "TreeView.ScrollViewer.Margin"));
@@ -522,7 +522,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = propertyGrid.SelfOrParentWindow;
+        var window = propertyGrid.SelfOrParentWindow;
         MGBorder outerBorder = new(window)
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -539,7 +539,7 @@ public static class MGControlTemplateCatalog
             VerticalAlignment = VerticalAlignment.Top,
             CanChangeContent = false,
         };
-        UIInvalidationKind propertyGridStructureInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
+        var propertyGridStructureInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
         outerBorder.SetMargin(new Thickness(0), UIValueResolutionSource.Template(propertyGridStructureInvalidation, "PropertyGrid.OuterBorder.Margin"));
         outerBorder.SetPadding(new Thickness(0), UIValueResolutionSource.Template(propertyGridStructureInvalidation, "PropertyGrid.OuterBorder.Padding"));
         scrollViewer.SetMargin(new Thickness(0), UIValueResolutionSource.Template(propertyGridStructureInvalidation, "PropertyGrid.ScrollViewer.Margin"));
@@ -561,7 +561,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = graphView.SelfOrParentWindow;
+        var window = graphView.SelfOrParentWindow;
         MGBorder outerBorder = new(window)
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -583,7 +583,7 @@ public static class MGControlTemplateCatalog
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         };
-        UIInvalidationKind graphViewStructureInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
+        var graphViewStructureInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
         outerBorder.SetMargin(new Thickness(0), UIValueResolutionSource.Template(graphViewStructureInvalidation, "GraphView.OuterBorder.Margin"));
         outerBorder.SetPadding(new Thickness(0), UIValueResolutionSource.Template(graphViewStructureInvalidation, "GraphView.OuterBorder.Padding"));
         viewportHost.SetMargin(new Thickness(0), UIValueResolutionSource.Template(graphViewStructureInvalidation, "GraphView.ViewportHost.Margin"));
@@ -608,14 +608,14 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = graphNode.SelfOrParentWindow;
+        var window = graphNode.SelfOrParentWindow;
         MGBorder outerBorder = new(window);
         MGStackPanel stack = new(window, Orientation.Vertical)
         {
             Spacing = 0,
             CanChangeContent = true,
         };
-        MGTextBlock header = CreateDefaultControlTextBlock(window, graphNode.Title, false, true, true);
+        var header = CreateDefaultControlTextBlock(window, graphNode.Title, false, true, true);
         MGGrid portsPanel = new(window)
         {
             CanChangeContent = false,
@@ -647,7 +647,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = graphPort.SelfOrParentWindow;
+        var window = graphPort.SelfOrParentWindow;
         MGBorder outerBorder = new(window);
         MGGrid layout = new(window)
         {
@@ -675,7 +675,7 @@ public static class MGControlTemplateCatalog
             IsHitTestVisible = false,
         };
         trailingIconPresenter.SetMargin(new Thickness(0), UIValueResolutionSource.Template(UIInvalidationKind.Measure | UIInvalidationKind.Arrange, "GraphPort.TrailingIconPresenter.Margin"));
-        MGTextBlock label = CreateDefaultControlTextBlock(window, graphPort.PortName, false, true, true);
+        var label = CreateDefaultControlTextBlock(window, graphPort.PortName, false, true, true);
         label.IsHitTestVisible = false;
         layout.TryAddChild(0, 0, leadingIconPresenter);
         layout.TryAddChild(0, 1, label);
@@ -698,7 +698,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = commentBox.SelfOrParentWindow;
+        var window = commentBox.SelfOrParentWindow;
         MGBorder outerBorder = new(window);
         MGStackPanel stack = new(window, Orientation.Vertical)
         {
@@ -726,14 +726,14 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = textBox.SelfOrParentWindow;
+        var window = textBox.SelfOrParentWindow;
         MGBorder border = new(window);
         MGResizeGrip resizeGrip = new(window);
-        MGTextBlock placeholder = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
+        var placeholder = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
         placeholder.Visibility = Visibility.Collapsed;
         // The counter's margin, font size and corner are template values, see ApplyTextBoxTemplate.
         MGTextBlock characterCount = new(window, "0");
-        MGTextBlock textBlock = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
+        var textBlock = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
         textBlock.ClipToBounds = false;
 
         MGControlTemplateStructure structure = new(null);
@@ -752,28 +752,28 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = numericUpDown.SelfOrParentWindow;
+        var window = numericUpDown.SelfOrParentWindow;
         MGBorder border = new(window);
         MGResizeGrip resizeGrip = new(window)
         {
             Visibility = Visibility.Collapsed,
         };
-        MGTextBlock placeholder = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
+        var placeholder = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
         placeholder.Visibility = Visibility.Collapsed;
         MGTextBlock characterCount = new(window, "0")
         {
             Visibility = Visibility.Collapsed,
         };
-        MGTextBlock textBlock = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
+        var textBlock = CreateDefaultControlTextBlock(window, string.Empty, true, false, true);
         textBlock.ClipToBounds = false;
 
         MGGrid spinnerHost = new(window);
-        UIInvalidationKind numericUpDownStructureInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
+        var numericUpDownStructureInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
         spinnerHost.SetMargin(new Thickness(0), UIValueResolutionSource.Template(numericUpDownStructureInvalidation, "NumericUpDown.SpinnerHost.Margin"));
         spinnerHost.SetPadding(new Thickness(0), UIValueResolutionSource.Template(numericUpDownStructureInvalidation, "NumericUpDown.SpinnerHost.Padding"));
-        MGUI.Core.UI.Containers.Grids.RowDefinition topRow = spinnerHost.AddRow(GridLength.CreateWeightedLength(1));
-        MGUI.Core.UI.Containers.Grids.RowDefinition bottomRow = spinnerHost.AddRow(GridLength.CreateWeightedLength(1));
-        MGUI.Core.UI.Containers.Grids.ColumnDefinition column = spinnerHost.AddColumn(GridLength.Auto);
+        var topRow = spinnerHost.AddRow(GridLength.CreateWeightedLength(1));
+        var bottomRow = spinnerHost.AddRow(GridLength.CreateWeightedLength(1));
+        var column = spinnerHost.AddColumn(GridLength.Auto);
 
         MGButton increaseButton = new(window)
         {
@@ -814,11 +814,11 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme Theme = Window.GetTheme();
-        MGBorder Border = Context.GetRequiredPart<MGBorder>(MGWindow.BorderPartName);
-        MGDockPanel TitleBar = Context.GetRequiredPart<MGDockPanel>(MGWindow.TitleBarPartName);
-        MGTextBlock TitleText = Context.GetRequiredPart<MGTextBlock>(MGWindow.TitleBarTextPartName);
-        MGButton CloseButton = Context.GetRequiredPart<MGButton>(MGWindow.CloseButtonPartName);
+        var Theme = Window.GetTheme();
+        var Border = Context.GetRequiredPart<MGBorder>(MGWindow.BorderPartName);
+        var TitleBar = Context.GetRequiredPart<MGDockPanel>(MGWindow.TitleBarPartName);
+        var TitleText = Context.GetRequiredPart<MGTextBlock>(MGWindow.TitleBarTextPartName);
+        var CloseButton = Context.GetRequiredPart<MGButton>(MGWindow.CloseButtonPartName);
 
         Context.ApplyOwnerThemeDefault("Window.Padding", Theme.Window.Padding, () => Window.Padding, (value, source) => Window.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyOwnerThemeDefault("Window.BorderThickness", Theme.Window.BorderThickness, () => Border.BorderThickness, (value, source) => Border.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -866,10 +866,10 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGBorder Border = Context.GetRequiredPart<MGBorder>(MGOverlay.BorderPartName);
-        MGButton CloseButton = Context.GetRequiredPart<MGButton>(MGOverlay.CloseButtonPartName);
+        var Border = Context.GetRequiredPart<MGBorder>(MGOverlay.BorderPartName);
+        var CloseButton = Context.GetRequiredPart<MGButton>(MGOverlay.CloseButtonPartName);
 
-        MGTheme Theme = Overlay.GetTheme();
+        var Theme = Overlay.GetTheme();
         Context.ApplyOwnerThemeDefault("Overlay.Padding", Theme.Overlay.Padding, () => Overlay.Padding, (value, source) => Overlay.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyOwnerThemeDefault("Overlay.BorderThickness", Theme.Overlay.BorderThickness, () => Border.BorderThickness, (value, source) => Border.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyOwnerThemeDefault("Overlay.BorderBrush", Theme.Overlay.BorderBrush, () => Border.BorderBrush, (value, source) => Border.SetBorderBrush(value, source));
@@ -897,8 +897,8 @@ public static class MGControlTemplateCatalog
 
         ApplyWindowTemplate(Context);
 
-        MGBorder Border = Context.GetRequiredPart<MGBorder>(MGWindow.BorderPartName);
-        MGTheme Theme = ToolTip.GetTheme();
+        var Border = Context.GetRequiredPart<MGBorder>(MGWindow.BorderPartName);
+        var Theme = ToolTip.GetTheme();
 
         // Backlog task 14: the tooltip density comes from the theme (MGTheme.ToolTip) instead of catalog literals.
         Context.ApplyOwnerThemeDefault("ToolTip.BorderBrush", Theme.ToolTip.BorderBrush, () => Border.BorderBrush, (value, source) => Border.SetBorderBrush(value, source));
@@ -925,7 +925,7 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme Theme = Menu.GetTheme();
+        var Theme = Menu.GetTheme();
         Context.ApplyOwnerThemeDefault("ContextMenu.Padding", Theme.ContextMenu.Padding, () => Menu.Padding, (value, source) => Menu.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyOwnerThemeDefault("ContextMenu.BorderBrush", Theme.ContextMenu.BorderBrush, () => Menu.BorderBrush, (value, source) => Menu.SetBorderBrushTagged(value, source));
         Context.ApplyOwnerThemeDefault("ContextMenu.BorderThickness", Theme.ContextMenu.BorderThickness, () => Menu.BorderThickness, (value, source) => Menu.SetBorderThicknessTagged(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -938,10 +938,10 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGContentPresenter HeaderPresenter = Context.GetRequiredPart<MGContentPresenter>(MGWrappedContextMenuItem.HeaderPresenterPartName);
-        MGTextBlock ShortcutText = Context.GetRequiredPart<MGTextBlock>(MGWrappedContextMenuItem.ShortcutTextPartName);
-        MGElement Arrow = Context.GetRequiredPart<MGElement>(MGWrappedContextMenuItem.SubmenuArrowPartName);
-        MGTheme Theme = Context.Owner.GetTheme();
+        var HeaderPresenter = Context.GetRequiredPart<MGContentPresenter>(MGWrappedContextMenuItem.HeaderPresenterPartName);
+        var ShortcutText = Context.GetRequiredPart<MGTextBlock>(MGWrappedContextMenuItem.ShortcutTextPartName);
+        var Arrow = Context.GetRequiredPart<MGElement>(MGWrappedContextMenuItem.SubmenuArrowPartName);
+        var Theme = Context.Owner.GetTheme();
         Context.ApplyThemeDefault("ContextMenuItem.HeaderMargin", Theme.ContextMenuItem.HeaderMargin, () => HeaderPresenter.Margin, (value, source) => HeaderPresenter.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         // PART_HeaderPresenter (icon / check-mark column) deliberately keeps its empty construction background: the row wrapper
         // (MGContextMenu.CreateDefaultDropdownButton) already paints ContextMenuItem.HeaderBackground behind it, so applying the same
@@ -960,13 +960,13 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme Theme = Context.Owner.GetTheme();
-        MGBorder OuterBorder = Context.GetRequiredPart<MGBorder>(MGListBox<object>.OuterBorderPartName);
-        MGBorder InnerBorder = Context.GetRequiredPart<MGBorder>(MGListBox<object>.InnerBorderPartName);
-        MGBorder TitleBorder = Context.GetRequiredPart<MGBorder>(MGListBox<object>.TitleBorderPartName);
-        MGContentPresenter TitlePresenter = Context.GetRequiredPart<MGContentPresenter>(MGListBox<object>.TitlePresenterPartName);
-        MGScrollViewer ScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGListBox<object>.ScrollViewerPartName);
-        MGStackPanel ItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGListBox<object>.ItemsPanelPartName);
+        var Theme = Context.Owner.GetTheme();
+        var OuterBorder = Context.GetRequiredPart<MGBorder>(MGListBox<object>.OuterBorderPartName);
+        var InnerBorder = Context.GetRequiredPart<MGBorder>(MGListBox<object>.InnerBorderPartName);
+        var TitleBorder = Context.GetRequiredPart<MGBorder>(MGListBox<object>.TitleBorderPartName);
+        var TitlePresenter = Context.GetRequiredPart<MGContentPresenter>(MGListBox<object>.TitlePresenterPartName);
+        var ScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGListBox<object>.ScrollViewerPartName);
+        var ItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGListBox<object>.ItemsPanelPartName);
 
         Context.ApplyOwnerThemeDefault("ListBox.MinHeight", Theme.ListBox.MinHeight, () => Context.Owner.MinHeight ?? 0, (value, source) => Context.Owner.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         // ADR-0005/S5: Theme.ListBox.OuterBackground is raw/shared -- copy per subscriber (see the
@@ -995,13 +995,13 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme Theme = Context.Owner.GetTheme();
-        MGGrid HeaderGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.HeaderGridPartName);
-        MGGrid DataGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.DataGridPartName);
-        MGBorder HeaderSpacer = Context.TryGetPart(MGListView<object>.HeaderSpacerPartName, out MGElement headerSpacerPart) ? headerSpacerPart as MGBorder : null;
-        IMGListViewTemplateDefaults defaults = Context.Owner as IMGListViewTemplateDefaults;
-        int spacing = defaults?.TemplateDefaultSpacing ?? 8;
-        int gridLineMargin = defaults?.TemplateDefaultGridLineMargin ?? 3;
+        var Theme = Context.Owner.GetTheme();
+        var HeaderGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.HeaderGridPartName);
+        var DataGrid = Context.GetRequiredPart<MGGrid>(MGListView<object>.DataGridPartName);
+        var HeaderSpacer = Context.TryGetPart(MGListView<object>.HeaderSpacerPartName, out var headerSpacerPart) ? headerSpacerPart as MGBorder : null;
+        var defaults = Context.Owner as IMGListViewTemplateDefaults;
+        var spacing = defaults?.TemplateDefaultSpacing ?? 8;
+        var gridLineMargin = defaults?.TemplateDefaultGridLineMargin ?? 3;
 
         Context.ApplyTemplateValue("ListView.HeaderGridLinesVisibility", GridLinesVisibility.All, () => HeaderGrid.GridLinesVisibility, value => HeaderGrid.GridLinesVisibility = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyTemplateValue("ListView.HeaderGridSpacing", spacing, () => HeaderGrid.RowSpacing, value =>
@@ -1030,7 +1030,7 @@ public static class MGControlTemplateCatalog
 
         if (HeaderSpacer != null)
         {
-            int borderThickness = Math.Max(0, spacing - gridLineMargin * 2);
+            var borderThickness = Math.Max(0, spacing - gridLineMargin * 2);
             Context.ApplyTemplateValue("ListView.HeaderSpacerBorderThickness", new Thickness(0, borderThickness, borderThickness, borderThickness),
                 () => HeaderSpacer.BorderThickness, (value, source) => HeaderSpacer.SetBorderThickness(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
             Context.ApplyThemeDefault("ListView.HeaderSpacerBorderBrush", Theme.ListView.GridLineBrush.AsUniformBorderBrush(), () => HeaderSpacer.BorderBrush, (value, source) => HeaderSpacer.SetBorderBrush(value, source));
@@ -1045,12 +1045,12 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme Theme = Context.Owner.GetTheme();
-        MGBorder Border = Context.GetRequiredPart<MGBorder>(MGComboBox<object>.BorderPartName);
-        MGContentPresenter DropdownArrow = Context.GetRequiredPart<MGContentPresenter>(MGComboBox<object>.DropdownArrowPartName);
-        MGWindow Dropdown = Context.GetRequiredPart<MGWindow>(MGComboBox<object>.DropdownWindowPartName);
-        MGScrollViewer DropdownScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGComboBox<object>.DropdownScrollViewerPartName);
-        MGStackPanel DropdownItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGComboBox<object>.DropdownItemsPanelPartName);
+        var Theme = Context.Owner.GetTheme();
+        var Border = Context.GetRequiredPart<MGBorder>(MGComboBox<object>.BorderPartName);
+        var DropdownArrow = Context.GetRequiredPart<MGContentPresenter>(MGComboBox<object>.DropdownArrowPartName);
+        var Dropdown = Context.GetRequiredPart<MGWindow>(MGComboBox<object>.DropdownWindowPartName);
+        var DropdownScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGComboBox<object>.DropdownScrollViewerPartName);
+        var DropdownItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGComboBox<object>.DropdownItemsPanelPartName);
 
         Context.ApplyOwnerThemeDefault("ComboBox.Background", Theme.GetBackgroundBrush(MGElementType.ComboBox), () => Context.Owner.BackgroundBrush, (value, source) => Context.Owner.SetBackground(value, source));
         Context.ApplyOwnerThemeDefault("ComboBox.Padding", Theme.ComboBox.Padding, () => Context.Owner.Padding, (value, source) => Context.Owner.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -1075,7 +1075,7 @@ public static class MGControlTemplateCatalog
 
     private static bool TryGetComboBoxDropdownItemOwner(MGButton Button, out MGElement Owner)
     {
-        if (Button?.Metadata?.TryGetValue(MGComboBox<object>.DropdownItemTemplateOwnerMetadataKey, out object owner) == true
+        if (Button?.Metadata?.TryGetValue(MGComboBox<object>.DropdownItemTemplateOwnerMetadataKey, out var owner) == true
             && owner is MGElement typedOwner)
         {
             Owner = typedOwner;
@@ -1088,12 +1088,12 @@ public static class MGControlTemplateCatalog
 
     private static void ApplyComboBoxDropdownItemTemplate(MGControlTemplateContext Context)
     {
-        if (Context.Owner is not MGButton Button || !TryGetComboBoxDropdownItemOwner(Button, out MGElement Owner))
+        if (Context.Owner is not MGButton Button || !TryGetComboBoxDropdownItemOwner(Button, out var Owner))
         {
             return;
         }
 
-        MGTheme theme = Owner.GetTheme();
+        var theme = Owner.GetTheme();
         if (theme == null)
         {
             return;
@@ -1117,17 +1117,17 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme Theme = TreeView.GetTheme();
-        MGBorder OuterBorder = Context.GetRequiredPart<MGBorder>(MGTreeView.OuterBorderPartName);
-        MGScrollViewer ScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGTreeView.ScrollViewerPartName);
-        MGStackPanel ItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGTreeView.ItemsPanelPartName);
+        var Theme = TreeView.GetTheme();
+        var OuterBorder = Context.GetRequiredPart<MGBorder>(MGTreeView.OuterBorderPartName);
+        var ScrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGTreeView.ScrollViewerPartName);
+        var ItemsPanel = Context.GetRequiredPart<MGStackPanel>(MGTreeView.ItemsPanelPartName);
 
         Context.ApplyOwnerThemeDefault("TreeView.BorderBrush", Theme?.TreeViewBorderBrush ?? MGUniformBorderBrush.Black, () => OuterBorder.BorderBrush, (value, source) => OuterBorder.SetBorderBrushTagged(value, source));
         Context.ApplyOwnerThemeDefault("TreeView.BorderThickness", Theme?.TreeViewBorderThickness ?? new Thickness(1), () => OuterBorder.BorderThickness, (value, source) => OuterBorder.SetBorderThicknessTagged(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyThemeDefault("TreeView.ScrollViewerPadding", Theme.TreeViewTemplate.ScrollViewerPadding, () => ScrollViewer.Padding, (value, source) => ScrollViewer.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyThemeDefault("TreeView.ItemsPanelPadding", Theme.TreeViewTemplate.ItemsPanelPadding, () => ItemsPanel.Padding, (value, source) => ItemsPanel.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyThemeDefault("TreeView.ItemsPanelSpacing", Theme.TreeViewTemplate.ItemsPanelSpacing, () => ItemsPanel.Spacing, value => ItemsPanel.Spacing = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
-        VisualStateFillBrush SelectionBrush = Theme?.TreeViewSelectionBackground?.GetValue(true);
+        var SelectionBrush = Theme?.TreeViewSelectionBackground?.GetValue(true);
         Context.ApplyOwnerThemeDefault("TreeView.SelectionBackgroundBrush", SelectionBrush ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue)), () => TreeView.SelectionBackgroundBrush, value => TreeView.SelectionBackgroundBrush = value);
         Context.ApplyOwnerThemeDefault("TreeView.SelectionForeground", Theme?.TreeViewSelectionForeground ?? Color.Black, () => TreeView.SelectionForeground, value => TreeView.SelectionForeground = value);
         Context.ApplyOwnerThemeDefault("TreeView.IndentSize", Theme?.TreeViewIndentSize ?? DefaultTreeViewIndentSize, () => TreeView.IndentSize, value => TreeView.IndentSize = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -1140,10 +1140,10 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme theme = propertyGrid.GetTheme();
-        MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGPropertyGrid.OuterBorderPartName);
-        MGScrollViewer scrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGPropertyGrid.ScrollViewerPartName);
-        MGStackPanel categoriesPanel = Context.GetRequiredPart<MGStackPanel>(MGPropertyGrid.CategoriesPanelPartName);
+        var theme = propertyGrid.GetTheme();
+        var outerBorder = Context.GetRequiredPart<MGBorder>(MGPropertyGrid.OuterBorderPartName);
+        var scrollViewer = Context.GetRequiredPart<MGScrollViewer>(MGPropertyGrid.ScrollViewerPartName);
+        var categoriesPanel = Context.GetRequiredPart<MGStackPanel>(MGPropertyGrid.CategoriesPanelPartName);
 
         Context.ApplyOwnerThemeDefault("PropertyGrid.Background", theme.GetBackgroundBrush(MGElementType.PropertyGrid), () => propertyGrid.BackgroundBrush, (value, source) => propertyGrid.SetBackground(value, source));
         Context.ApplyOwnerThemeDefault("PropertyGrid.Padding", theme.PropertyGrid.Padding, () => propertyGrid.Padding, (value, source) => propertyGrid.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -1165,10 +1165,10 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme theme = graphView.GetTheme();
-        MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphView.OuterBorderPartName);
-        MGOverlayPanel viewportHost = Context.GetRequiredPart<MGOverlayPanel>(MGGraphView.ViewportHostPartName);
-        MGCanvas nodesCanvas = Context.GetRequiredPart<MGCanvas>(MGGraphView.NodesCanvasPartName);
+        var theme = graphView.GetTheme();
+        var outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphView.OuterBorderPartName);
+        var viewportHost = Context.GetRequiredPart<MGOverlayPanel>(MGGraphView.ViewportHostPartName);
+        var nodesCanvas = Context.GetRequiredPart<MGCanvas>(MGGraphView.NodesCanvasPartName);
 
         Context.ApplyOwnerThemeDefault("GraphView.Padding", theme.Graph.Padding, () => graphView.Padding, (value, source) => graphView.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyThemeDefault("GraphView.BorderBrush", theme.Graph.BorderBrush, () => outerBorder.BorderBrush, (value, source) => outerBorder.SetBorderBrush(value, source));
@@ -1189,10 +1189,10 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme theme = graphNode.GetTheme();
-        MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphNode.OuterBorderPartName);
-        MGTextBlock header = Context.GetRequiredPart<MGTextBlock>(MGGraphNode.HeaderTextBlockPartName);
-        MGContentPresenter bodyPresenter = Context.GetRequiredPart<MGContentPresenter>(MGGraphNode.BodyPresenterPartName);
+        var theme = graphNode.GetTheme();
+        var outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphNode.OuterBorderPartName);
+        var header = Context.GetRequiredPart<MGTextBlock>(MGGraphNode.HeaderTextBlockPartName);
+        var bodyPresenter = Context.GetRequiredPart<MGContentPresenter>(MGGraphNode.BodyPresenterPartName);
 
         // ADR-0005/S5: theme.Graph.NodeBodyBackground is raw/shared and read here for TWO different elements
         // (outerBorder, bodyPresenter) -- each needs its own copy (see the Window.CloseButtonBackground comment above).
@@ -1217,9 +1217,9 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme theme = graphPort.GetTheme();
-        MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphPort.OuterBorderPartName);
-        MGTextBlock label = Context.GetRequiredPart<MGTextBlock>(MGGraphPort.LabelPartName);
+        var theme = graphPort.GetTheme();
+        var outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphPort.OuterBorderPartName);
+        var label = Context.GetRequiredPart<MGTextBlock>(MGGraphPort.LabelPartName);
 
         Context.ApplyThemeDefault("GraphPort.Background", new VisualStateFillBrush(Color.Transparent.AsFillBrush()), () => outerBorder.BackgroundBrush, (value, source) => outerBorder.SetBackground(value, source));
         Context.ApplyThemeDefault("GraphPort.BorderBrush", theme.Graph.NodeBorderBrush, () => outerBorder.BorderBrush, (value, source) => outerBorder.SetBorderBrush(value, source));
@@ -1236,10 +1236,10 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme theme = commentBox.GetTheme();
-        MGBorder outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphCommentBox.OuterBorderPartName);
-        MGTextBox title = Context.GetRequiredPart<MGTextBox>(MGGraphCommentBox.TitleTextBoxPartName);
-        MGTextBox body = Context.GetRequiredPart<MGTextBox>(MGGraphCommentBox.BodyTextBoxPartName);
+        var theme = commentBox.GetTheme();
+        var outerBorder = Context.GetRequiredPart<MGBorder>(MGGraphCommentBox.OuterBorderPartName);
+        var title = Context.GetRequiredPart<MGTextBox>(MGGraphCommentBox.TitleTextBoxPartName);
+        var body = Context.GetRequiredPart<MGTextBox>(MGGraphCommentBox.BodyTextBoxPartName);
 
         // ADR-0005/S5: theme.Graph.CommentBackground is raw/shared -- copy per subscriber (see the
         // Window.CloseButtonBackground comment above).
@@ -1268,7 +1268,7 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme theme = textBox.GetTheme();
+        var theme = textBox.GetTheme();
         Context.ApplyOwnerThemeDefault("TextBox.Background", theme.GetBackgroundBrush(MGElementType.TextBox), () => textBox.BackgroundBrush, (value, source) => textBox.SetBackground(value, source));
         // Backlog task 14: the text box density comes from the theme (MGTheme.TextBox) instead of catalog literals.
         Context.ApplyOwnerThemeDefault("TextBox.Padding", theme.TextBox.Padding, () => textBox.Padding, (value, source) => textBox.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -1287,7 +1287,7 @@ public static class MGControlTemplateCatalog
         Context.ApplyOwnerThemeDefault("TextBox.LimitlessCharacterCountFormatString", "[b]{{CharacterCount}}[/b] character(s)", () => textBox.LimitlessCharacterCountFormatString,
             value => textBox.LimitlessCharacterCountFormatString = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
-        MGTextBlock characterCount = Context.GetRequiredPart<MGTextBlock>(MGTextBox.CharacterCountPartName);
+        var characterCount = Context.GetRequiredPart<MGTextBlock>(MGTextBox.CharacterCountPartName);
         Context.ApplyTemplateValue("TextBox.CharacterCount.Margin", new Thickness(0, 0, 8, 4), () => characterCount.Margin, (value, source) => characterCount.SetMargin(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyTemplateValue("TextBox.CharacterCount.FontSize", 9, () => characterCount.FontSize, value => characterCount.TrySetFontSize(value), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyTemplateValue("TextBox.CharacterCount.HorizontalAlignment", HorizontalAlignment.Right, () => characterCount.HorizontalAlignment, value => characterCount.HorizontalAlignment = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -1303,12 +1303,12 @@ public static class MGControlTemplateCatalog
 
         ApplyTextBoxTemplate(Context);
 
-        MGGrid spinnerHost = Context.GetRequiredPart<MGGrid>(MGNumericUpDown.SpinnerHostPartName);
-        MGButton increaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.IncreaseButtonPartName);
-        MGButton decreaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.DecreaseButtonPartName);
+        var spinnerHost = Context.GetRequiredPart<MGGrid>(MGNumericUpDown.SpinnerHostPartName);
+        var increaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.IncreaseButtonPartName);
+        var decreaseButton = Context.GetRequiredPart<MGButton>(MGNumericUpDown.DecreaseButtonPartName);
 
         // Backlog task 14: the numeric up/down density comes from the theme (MGTheme.NumericUpDown) instead of catalog literals.
-        MGThemeNumericUpDownSettings numericSettings = numericUpDown.GetTheme().NumericUpDown;
+        var numericSettings = numericUpDown.GetTheme().NumericUpDown;
         Context.ApplyOwnerThemeDefault("NumericUpDown.Padding", numericSettings.Padding, () => numericUpDown.Padding, (value, source) => numericUpDown.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyOwnerThemeDefault("NumericUpDown.MinHeight", numericSettings.MinHeight, () => numericUpDown.MinHeight ?? 0, (value, source) => numericUpDown.SetMinHeight(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         Context.ApplyThemeDefault("NumericUpDown.SpinnerWidth", numericSettings.SpinnerWidth, () => spinnerHost.PreferredWidth ?? 0, value => spinnerHost.PreferredWidth = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -1349,7 +1349,7 @@ public static class MGControlTemplateCatalog
 
     private static MGTriangleArrowIcon CreateNumericSpinnerGlyph(MGWindow window, UITriangleArrowDirection direction)
     {
-        Color glyphColor = window.GetTheme()?.DropdownArrowColor ?? Color.White;
+        var glyphColor = window.GetTheme()?.DropdownArrowColor ?? Color.White;
 
         return new(window)
         {
@@ -1372,9 +1372,9 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTheme Theme = TabControl.GetTheme();
-        MGBorder Border = Context.GetRequiredPart<MGBorder>(MGTabControl.BorderPartName);
-        MGStackPanel HeadersPanel = Context.GetRequiredPart<MGStackPanel>(MGTabControl.HeadersPanelPartName);
+        var Theme = TabControl.GetTheme();
+        var Border = Context.GetRequiredPart<MGBorder>(MGTabControl.BorderPartName);
+        var HeadersPanel = Context.GetRequiredPart<MGStackPanel>(MGTabControl.HeadersPanelPartName);
 
         Context.ApplyOwnerThemeDefault("TabControl.Background", Theme.GetBackgroundBrush(MGElementType.TabControl), () => TabControl.BackgroundBrush, (value, source) => TabControl.SetBackground(value, source));
         Context.ApplyOwnerThemeDefault("TabControl.Padding", Theme.TabControl.Padding, () => TabControl.Padding, (value, source) => TabControl.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
@@ -1437,7 +1437,7 @@ public static class MGControlTemplateCatalog
 
     private static bool TryGetOwningTabControl(MGButton Button, out MGTabControl TabControl)
     {
-        if (Button?.Metadata?.TryGetValue(MGTabControl.HeaderTemplateOwnerMetadataKey, out object owner) == true
+        if (Button?.Metadata?.TryGetValue(MGTabControl.HeaderTemplateOwnerMetadataKey, out var owner) == true
             && owner is MGTabControl typedOwner)
         {
             TabControl = typedOwner;
@@ -1450,22 +1450,22 @@ public static class MGControlTemplateCatalog
 
     private static void ApplyTabHeaderTemplate(MGControlTemplateContext Context, bool IsSelected)
     {
-        if (Context.Owner is not MGButton Button || !TryGetOwningTabControl(Button, out MGTabControl TabControl))
+        if (Context.Owner is not MGButton Button || !TryGetOwningTabControl(Button, out var TabControl))
         {
             return;
         }
 
-        MGTheme theme = TabControl.GetTheme();
+        var theme = TabControl.GetTheme();
         if (theme == null)
         {
             return;
         }
 
-        UIInvalidationKind headerLayoutInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
+        var headerLayoutInvalidation = UIInvalidationKind.Measure | UIInvalidationKind.Arrange;
         // Backlog task 14: the header paddings come from the theme (MGTheme.TabControl); the border thicknesses stay template values, since they
         // encode which edge of the header touches the content, not a density.
-        MGThemeTabControlSettings tabSettings = theme.TabControl;
-        Thickness topBottomPadding = IsSelected ? tabSettings.SelectedHeaderPadding : tabSettings.UnselectedHeaderPadding;
+        var tabSettings = theme.TabControl;
+        var topBottomPadding = IsSelected ? tabSettings.SelectedHeaderPadding : tabSettings.UnselectedHeaderPadding;
 
         Context.ApplyThemeDefault(IsSelected ? "TabHeader.Selected.BorderBrush" : "TabHeader.Unselected.BorderBrush",
             IsSelected ? MGUniformBorderBrush.Black : MGUniformBorderBrush.Gray,
@@ -1522,7 +1522,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = Host.SelfOrParentWindow;
+        var window = Host.SelfOrParentWindow;
         MGControlTemplateStructure structure = new(null);
         structure.AddPart(MGDockHost.PreviewOverlayPartName, new MGDockPreviewOverlay(window));
         structure.AddPart(MGDockHost.DropIndicatorsPartName, new MGDockDropIndicators(window));
@@ -1542,7 +1542,7 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGThemeDockingSettings Docking = Host.GetTheme()?.Docking;
+        var Docking = Host.GetTheme()?.Docking;
         if (Docking == null)
         {
             return;
@@ -1561,7 +1561,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = TabGroup.SelfOrParentWindow;
+        var window = TabGroup.SelfOrParentWindow;
         MGControlTemplateStructure structure = new(null);
         structure.AddPart(MGDockTabGroup.HeadersPanelPartName, new MGStackPanel(window, Orientation.Horizontal)
         {
@@ -1587,7 +1587,7 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGThemeDockingSettings Docking = TabGroup.GetTheme()?.Docking;
+        var Docking = TabGroup.GetTheme()?.Docking;
         if (Docking == null)
         {
             return;
@@ -1607,7 +1607,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = TabItem.SelfOrParentWindow;
+        var window = TabItem.SelfOrParentWindow;
         MGControlTemplateStructure structure = new(null);
         structure.AddPart(MGDockTabItem.SurfacePartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
         structure.AddPart(MGDockTabItem.AccentPartName, new MGRectangle(window, 0, 0, Color.Transparent, 0, Color.Transparent)
@@ -1646,10 +1646,10 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTextBlock TitleText = Context.GetRequiredPart<MGTextBlock>(MGDockTabItem.TitleTextPartName);
-        MGBorder CloseButton = Context.GetRequiredPart<MGBorder>(MGDockTabItem.CloseButtonPartName);
-        MGBorder PinButton = Context.GetRequiredPart<MGBorder>(MGDockTabItem.PinButtonPartName);
-        MGThemeDockingSettings Docking = TabItem.GetTheme()?.Docking;
+        var TitleText = Context.GetRequiredPart<MGTextBlock>(MGDockTabItem.TitleTextPartName);
+        var CloseButton = Context.GetRequiredPart<MGBorder>(MGDockTabItem.CloseButtonPartName);
+        var PinButton = Context.GetRequiredPart<MGBorder>(MGDockTabItem.PinButtonPartName);
+        var Docking = TabItem.GetTheme()?.Docking;
         // Backlog task 14: the title padding follows the theme (Docking.TabTitlePadding).
         Context.ApplyThemeDefault("DockTabItem.TitleText.Padding", Docking?.TabTitlePadding ?? new Thickness(8, 4, 4, 4), () => TitleText.Padding, (value, source) => TitleText.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
         // The accessory buttons take the surface brush of the tab (MGDockTabItem.UpdateVisuals); this container removes their hover overlay.
@@ -1685,7 +1685,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = Drawer.SelfOrParentWindow;
+        var window = Drawer.SelfOrParentWindow;
         MGControlTemplateStructure structure = new(null);
         structure.AddPart(MGDockAutoHideDrawer.BorderPartName, new MGBorder(window, new Thickness(1), (IBorderBrush)null)
         {
@@ -1732,18 +1732,18 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGTextBlock TitleText = Context.GetRequiredPart<MGTextBlock>(MGDockAutoHideDrawer.TitleBarTextPartName);
+        var TitleText = Context.GetRequiredPart<MGTextBlock>(MGDockAutoHideDrawer.TitleBarTextPartName);
         Context.ApplyTemplateValue("DockDrawer.TitleText.Padding", new Thickness(6, 2, 4, 2), () => TitleText.Padding, (value, source) => TitleText.SetPadding(value, source), UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
 
-        MGThemeDockingSettings Docking = Drawer.GetTheme()?.Docking;
+        var Docking = Drawer.GetTheme()?.Docking;
         if (Docking == null)
         {
             return;
         }
 
-        MGBorder Header = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.TitleBarPartName);
-        MGBorder PinButton = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.PinButtonPartName);
-        MGBorder CloseButton = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.CloseButtonPartName);
+        var Header = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.TitleBarPartName);
+        var PinButton = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.PinButtonPartName);
+        var CloseButton = Context.GetRequiredPart<MGBorder>(MGDockAutoHideDrawer.CloseButtonPartName);
 
         Context.ApplyOwnerThemeDefault("DockDrawer.BackgroundBrush", new VisualStateFillBrush(Docking.AutoHideDrawerBackground), () => Drawer.BackgroundBrush, (value, source) => Drawer.SetBackground(value, source));
         Context.ApplyThemeDefault("DockDrawer.HeaderBackgroundBrush", new VisualStateFillBrush(Docking.AutoHideDrawerHeaderBackground), () => Header.BackgroundBrush, (value, source) => Header.SetBackground(value, source));
@@ -1785,7 +1785,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = Splitter.SelfOrParentWindow;
+        var window = Splitter.SelfOrParentWindow;
         MGControlTemplateStructure structure = new(null);
         structure.AddPart(MGDockSplitterBar.SurfacePartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
         structure.AddPart(MGDockSplitterBar.AccentPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
@@ -1823,7 +1823,7 @@ public static class MGControlTemplateCatalog
             return null;
         }
 
-        MGWindow window = Overlay.SelfOrParentWindow;
+        var window = Overlay.SelfOrParentWindow;
         MGControlTemplateStructure structure = new(null);
         structure.AddPart(MGDockPreviewOverlay.SurfacePartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
         structure.AddPart(MGDockPreviewOverlay.BorderPartName, new MGBorder(window, new Thickness(0), (IBorderBrush)null));
@@ -1837,7 +1837,7 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGThemeDockingSettings Docking = Overlay.GetTheme()?.Docking;
+        var Docking = Overlay.GetTheme()?.Docking;
         if (Docking == null)
         {
             return;
@@ -1855,7 +1855,7 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGThemeDockingSettings Docking = Strip.GetTheme()?.Docking;
+        var Docking = Strip.GetTheme()?.Docking;
         if (Docking == null)
         {
             return;
@@ -1877,7 +1877,7 @@ public static class MGControlTemplateCatalog
             return;
         }
 
-        MGThemeDockingSettings Docking = Splitter.GetTheme()?.Docking;
+        var Docking = Splitter.GetTheme()?.Docking;
         if (Docking == null)
         {
             return;

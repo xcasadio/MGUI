@@ -188,16 +188,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return ControlTemplateName;
         }
 
-        MGTheme Theme = GetTheme();
+        var Theme = GetTheme();
         if (Theme != null)
         {
-            if (Theme.TryGetControlTemplateMapping(GetType(), out string RuntimeTypeTemplateName)
+            if (Theme.TryGetControlTemplateMapping(GetType(), out var RuntimeTypeTemplateName)
                 && !string.IsNullOrWhiteSpace(RuntimeTypeTemplateName))
             {
                 return RuntimeTypeTemplateName;
             }
 
-            if (Theme.TryGetControlTemplateMapping(ElementType, out string ThemeTemplateName)
+            if (Theme.TryGetControlTemplateMapping(ElementType, out var ThemeTemplateName)
                 && !string.IsNullOrWhiteSpace(ThemeTemplateName))
             {
                 return ThemeTemplateName;
@@ -215,13 +215,13 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     protected internal virtual void ValidateControlTemplateParts()
     {
-        string availableParts = _templateParts.Any()
+        var availableParts = _templateParts.Any()
             ? string.Join(", ", _templateParts.Select(x => $"{x.Key}:{x.Value?.GetType().Name ?? nameof(MGElement)}"))
             : "<none>";
 
-        foreach (MGControlTemplatePartRequirement Requirement in GetRequiredControlTemplateParts())
+        foreach (var Requirement in GetRequiredControlTemplateParts())
         {
-            if (!_templateParts.TryGetValue(Requirement.Name, out MGElement Part))
+            if (!_templateParts.TryGetValue(Requirement.Name, out var Part))
             {
                 if (Requirement.IsRequired)
                 {
@@ -242,7 +242,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     internal bool TryGetAppliedTemplateDefault<T>(string Name, out T value)
     {
-        if (_appliedTemplateDefaults.TryGetValue(Name, out object Existing))
+        if (_appliedTemplateDefaults.TryGetValue(Name, out var Existing))
         {
             if (Existing is UIResolvedValue<T> Resolved)
             {
@@ -263,7 +263,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     internal bool TryGetAppliedTemplateDefault<T>(string Name, out UIResolvedValue<T> value)
     {
-        if (_appliedTemplateDefaults.TryGetValue(Name, out object Existing))
+        if (_appliedTemplateDefaults.TryGetValue(Name, out var Existing))
         {
             if (Existing is UIResolvedValue<T> Resolved)
             {
@@ -309,7 +309,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        foreach (KeyValuePair<string, MGElement> KVP in Structure.Parts)
+        foreach (var KVP in Structure.Parts)
         {
             if (!string.IsNullOrWhiteSpace(KVP.Key) && KVP.Value != null)
             {
@@ -326,7 +326,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        foreach (string PartName in _instantiatedTemplatePartNames)
+        foreach (var PartName in _instantiatedTemplatePartNames)
         {
             _templateParts.Remove(PartName);
         }
@@ -353,9 +353,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         Dictionary<string, MGElement> Parts = new(StringComparer.Ordinal);
-        foreach (string PartName in _instantiatedTemplatePartNames)
+        foreach (var PartName in _instantiatedTemplatePartNames)
         {
-            if (_templateParts.TryGetValue(PartName, out MGElement Part))
+            if (_templateParts.TryGetValue(PartName, out var Part))
             {
                 Parts[PartName] = Part;
             }
@@ -379,10 +379,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        foreach (KeyValuePair<string, MGElement> KVP in structure.Parts)
+        foreach (var KVP in structure.Parts)
         {
-            MGElement Part = KVP.Value;
-            if (Part == null || !ReplacedParts.TryGetValue(KVP.Key, out MGElement ReplacedPart) || ReplacedPart == null || ReferenceEquals(ReplacedPart, Part))
+            var Part = KVP.Value;
+            if (Part == null || !ReplacedParts.TryGetValue(KVP.Key, out var ReplacedPart) || ReplacedPart == null || ReferenceEquals(ReplacedPart, Part))
             {
                 continue;
             }
@@ -390,11 +390,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             //  By increasing precedence. At a given precedence a whole container goes before its sub-fields (the order of PilotSlots): writing it
             //  drops the sub-field contributions of that precedence (ADR-0005/S5), which the replaced part only holds when they were written after
             //  the container.
-            foreach (UIValueSourceKind Kind in CarriedOwnerSourceKinds)
+            foreach (var Kind in CarriedOwnerSourceKinds)
             {
-                foreach ((UIPilotProperty Property, UIValueSlot Slot) in PilotSlots)
+                foreach ((var Property, var Slot) in PilotSlots)
                 {
-                    foreach (UIResolvedContribution Contribution in ReplacedPart.EnumerateResolvedContributions(Property, Slot))
+                    foreach (var Contribution in ReplacedPart.EnumerateResolvedContributions(Property, Slot))
                     {
                         if (Contribution.Kind == Kind && IsOwnerContributionOnPart(Contribution.Source))
                         {
@@ -456,14 +456,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             yield break;
         }
 
-        foreach ((UIPilotProperty Property, UIValueSlot Slot) in PilotSlots)
+        foreach ((var Property, var Slot) in PilotSlots)
         {
             if (Property == UIPilotProperty.Foreground && Element is not MGTextBlock)
             {
                 continue;
             }
 
-            foreach (UIResolvedContribution Contribution in Element.EnumerateResolvedContributions(Property, Slot))
+            foreach (var Contribution in Element.EnumerateResolvedContributions(Property, Slot))
             {
                 if (Contribution.Kind == UIValueSourceKind.Template && Contribution.Source.Name != null
                                                                     && Contribution.Source.Name.StartsWith(namePrefix, StringComparison.Ordinal))
@@ -484,8 +484,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return false;
         }
 
-        object Value = contribution.Value;
-        UIValueResolutionSource Source = contribution.Source;
+        var Value = contribution.Value;
+        var Source = contribution.Source;
         switch (Property: property, Slot: slot)
         {
             case (UIPilotProperty.Margin, UIValueSlot.Whole) when Value is Thickness Margin:
@@ -543,7 +543,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        foreach (UITemplateDeclaredValue Declared in Structure.DeclaredValues)
+        foreach (var Declared in Structure.DeclaredValues)
         {
             TryApplyContribution(Declared.Target, Declared.Property, Declared.Slot, Declared.Contribution);
         }
@@ -551,7 +551,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     private void ReleaseCarriedOwnerContainer(MGElement ReplacedPart, UIPilotProperty property)
     {
-        foreach (UIResolvedContribution Contribution in ReplacedPart.EnumerateResolvedContributions(property, UIValueSlot.Whole))
+        foreach (var Contribution in ReplacedPart.EnumerateResolvedContributions(property, UIValueSlot.Whole))
         {
             if (IsOwnerContributionOnPart(Contribution.Source))
             {
@@ -570,7 +570,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 return true;
             case UIValueSourceKind.Theme:
                 //  A theme default of the owner, as opposed to one that a templated part applies to itself: the owner recorded that very source.
-                return Source.Name != null && _appliedTemplateDefaults.TryGetValue(Source.Name, out object Applied)
+                return Source.Name != null && _appliedTemplateDefaults.TryGetValue(Source.Name, out var Applied)
                                            && Applied is IUIResolvedValue Resolved && Resolved.Source == Source;
             default:
                 return false;
@@ -600,8 +600,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     protected internal virtual void ApplyControlTemplate(bool IsThemeRefresh)
     {
-        MGControlTemplate Template = ControlTemplate;
-        string ResolvedTemplateName = ResolveControlTemplateName();
+        var Template = ControlTemplate;
+        var ResolvedTemplateName = ResolveControlTemplateName();
         if (Template == null && !string.IsNullOrWhiteSpace(ResolvedTemplateName))
         {
             GetResources().TryGetControlTemplate(ResolvedTemplateName, out Template);
@@ -609,7 +609,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         try
         {
-            bool TemplateChanged = !ReferenceEquals(_appliedStructuredTemplate, Template);
+            var TemplateChanged = !ReferenceEquals(_appliedStructuredTemplate, Template);
             if (TemplateChanged && _appliedTemplateStructure != null && Template?.SupportsStructure == true
                 && ReferenceEquals(_appliedStructuredTemplate.StructureTemplate, Template.StructureTemplate))
             {
@@ -626,11 +626,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 ClearInstantiatedTemplateStructure();
             }
 
-            bool IsStructureRebuilt = false;
+            var IsStructureRebuilt = false;
             if (Template?.SupportsStructure == true && (_appliedTemplateStructure == null || TemplateChanged))
             {
                 MGControlTemplateContext Context = new(this, false);
-                MGControlTemplateStructure Structure = Template.CreateStructure(Context);
+                var Structure = Template.CreateStructure(Context);
                 if (Structure != null)
                 {
                     RegisterInstantiatedTemplateStructure(Structure);
@@ -702,7 +702,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     internal void NotifyThemeChanged(MGTheme PreviousTheme, MGTheme currentTheme)
     {
         // Evaluated before the callbacks, so that an override compares this element's current values with the incoming theme (backlog task 7).
-        UIInvalidationKind Invalidation = GetThemeInvalidation(PreviousTheme, currentTheme);
+        var Invalidation = GetThemeInvalidation(PreviousTheme, currentTheme);
 
         RefreshThemeBackgroundDefault(currentTheme);
         OnThemeChanged(PreviousTheme, currentTheme);
@@ -713,17 +713,17 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             LayoutChanged(this, true);
         }
 
-        IReadOnlyList<MGElement> Children = GetVisualTreeChildren(true, true);
-        for (int i = 0; i < Children.Count; i++)
+        var Children = GetVisualTreeChildren(true, true);
+        for (var i = 0; i < Children.Count; i++)
         {
-            MGElement Child = Children[i];
+            var Child = Children[i];
             if (Child.LocalResources == null)
             {
                 Child.NotifyThemeChanged(PreviousTheme, currentTheme);
             }
         }
 
-        foreach (MGComponentBase Component in Components)
+        foreach (var Component in Components)
         {
             if (Component.BaseElement.LocalResources == null)
             {
@@ -759,7 +759,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        foreach (UIValueSlot Slot in BackgroundSubSlots)
+        foreach (var Slot in BackgroundSubSlots)
         {
             if (_resolvedValues.Contributions(UIPilotProperty.Background, Slot).Contains(UIValueSourceKind.DefaultValue))
             {
@@ -767,7 +767,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             }
         }
 
-        VisualStateFillBrush ThemeBackground = CurrentTheme.GetBackgroundBrush(ElementType);
+        var ThemeBackground = CurrentTheme.GetBackgroundBrush(ElementType);
         if (IsEmptyBackground(ThemeBackground) && !HasUnwrittenBackgroundValue(ConstructorDefault.Value))
         {
             return;
@@ -817,7 +817,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// </summary>
     public ITextMeasurementEngine GetTextEngine()
     {
-        MGElement current = this;
+        var current = this;
         while (current != null)
         {
             if (current.TextEngineOverride != null)
@@ -859,7 +859,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         get
         {
-            int currentGeneration = Volatile.Read(ref _treeTopologyGeneration);
+            var currentGeneration = Volatile.Read(ref _treeTopologyGeneration);
             if (_displayingWindowGeneration != currentGeneration)
             {
                 _displayingWindowGeneration = currentGeneration;
@@ -869,7 +869,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 }
                 else
                 {
-                    MGElement current = Parent;
+                    var current = Parent;
                     MGWindow found = null;
                     while (current != null)
                     {
@@ -922,7 +922,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         if (Parent != Value)
         {
-            MGElement Previous = Parent;
+            var Previous = Parent;
             Parent = Value;
             Interlocked.Increment(ref _treeTopologyGeneration);
             LocalResources?.SetParent(GetInheritedResources());
@@ -995,7 +995,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         _componentsDrawAfterContents.Clear();
         _componentsUpdateBeforeContents.Clear();
         _componentsUpdateAfterContents.Clear();
-        foreach (MGComponentBase c in Components)
+        foreach (var c in Components)
         {
             if (c.DrawBeforeBackground)
             {
@@ -1090,7 +1090,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         Func<TElementType, MGComponent<TElementType>> createComponent)
         where TElementType : MGElement
     {
-        MGComponent<TElementType> Component = GetComponent();
+        var Component = GetComponent();
 
         if (element == null)
         {
@@ -1127,7 +1127,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_name != value)
             {
-                string Previous = Name;
+                var Previous = Name;
                 _name = value;
                 NPC(nameof(Name));
                 OnNameChanged?.Invoke(this, new(Previous, Name));
@@ -1271,7 +1271,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         if ((property == UIPilotProperty.BorderBrush || property == UIPilotProperty.BorderThickness) && !(this is MGBorder))
         {
-            MGBorder border = GetBorder();
+            var border = GetBorder();
             if (border == null)
             {
                 value = UIResolvedValue<T>.Unset();
@@ -1313,15 +1313,15 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         switch (property)
         {
             case UIPilotProperty.Margin:
-                if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<Thickness>.Default, out bool marginChanged, out UIResolvedValue<Thickness> margin) && marginChanged)
+                if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<Thickness>.Default, out var marginChanged, out var margin) && marginChanged)
                     ApplyMarginEffective(margin.Value);
                 break;
             case UIPilotProperty.Padding:
-                if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<Thickness>.Default, out bool paddingChanged, out UIResolvedValue<Thickness> padding) && paddingChanged)
+                if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<Thickness>.Default, out var paddingChanged, out var padding) && paddingChanged)
                     ApplyPaddingEffective(padding.Value);
                 break;
             case UIPilotProperty.MinHeight:
-                if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<int?>.Default, out bool minHeightChanged, out UIResolvedValue<int?> minHeight) && minHeightChanged)
+                if (ResolvedValues.Unset(property, slot, kind, EqualityComparer<int?>.Default, out var minHeightChanged, out var minHeight) && minHeightChanged)
                     ApplyMinHeightEffective(minHeight.Value);
                 break;
             case UIPilotProperty.BorderBrush:
@@ -1444,7 +1444,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         if ((property == UIPilotProperty.BorderBrush || property == UIPilotProperty.BorderThickness) && !(this is MGBorder))
         {
-            MGBorder border = GetBorder();
+            var border = GetBorder();
             return border == null ? Array.Empty<UIResolvedContribution>() : border.EnumerateResolvedContributions(property, slot);
         }
 
@@ -1501,7 +1501,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         UnsetBackgroundSubSlotsAtPrecedence(source.Precedence);
 
-        ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool effectiveChanged, out UIResolvedValue<VisualStateFillBrush> effective);
+        ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out var effectiveChanged, out UIResolvedValue<VisualStateFillBrush> effective);
         if (effectiveChanged)
             ApplyBackgroundEffective(effective.Value);
     }
@@ -1524,7 +1524,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <summary>Tagged write of the container's <see cref="UIValueSlot.FocusedColor"/> sub-slot. See <see cref="SetBackgroundSlot"/>.</summary>
     internal void SetBackgroundFocusedColor(Color? value, UIValueResolutionSource source)
     {
-        ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.FocusedColor, value, source, EqualityComparer<Color?>.Default, out _, out UIResolvedValue<Color?> effective);
+        ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.FocusedColor, value, source, EqualityComparer<Color?>.Default, out _, out var effective);
         if (effective.Source.Kind == source.Kind && IsBackgroundSubSlotApplicable(effective.Source.Precedence))
             ApplyBackgroundFocusedColorPhysical(effective.Value);
     }
@@ -1560,18 +1560,18 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         UnsetBackgroundBrushSlotAtPrecedence(UIValueSlot.Disabled, precedence);
         UnsetBackgroundBrushSlotAtPrecedence(UIValueSlot.Focused, precedence);
 
-        foreach (UIValueSourceKind kind in _resolvedValues.Contributions(UIPilotProperty.Background, UIValueSlot.FocusedColor).ToArray())
+        foreach (var kind in _resolvedValues.Contributions(UIPilotProperty.Background, UIValueSlot.FocusedColor).ToArray())
         {
-            if (_resolvedValues.TryGetContribution<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, kind, out UIResolvedValue<Color?> contribution) && contribution.Source.Precedence == precedence)
+            if (_resolvedValues.TryGetContribution<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, kind, out var contribution) && contribution.Source.Precedence == precedence)
                 _resolvedValues.Unset<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, kind, EqualityComparer<Color?>.Default, out _, out _);
         }
     }
 
     private void UnsetBackgroundBrushSlotAtPrecedence(UIValueSlot slot, UIValuePrecedence precedence)
     {
-        foreach (UIValueSourceKind kind in _resolvedValues.Contributions(UIPilotProperty.Background, slot).ToArray())
+        foreach (var kind in _resolvedValues.Contributions(UIPilotProperty.Background, slot).ToArray())
         {
-            if (_resolvedValues.TryGetContribution<IFillBrush>(UIPilotProperty.Background, slot, kind, out UIResolvedValue<IFillBrush> contribution) && contribution.Source.Precedence == precedence)
+            if (_resolvedValues.TryGetContribution<IFillBrush>(UIPilotProperty.Background, slot, kind, out var contribution) && contribution.Source.Precedence == precedence)
                 _resolvedValues.Unset<IFillBrush>(UIPilotProperty.Background, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out _);
         }
     }
@@ -1585,21 +1585,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         switch (slot)
         {
             case UIValueSlot.Whole:
-                if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool backgroundChanged, out UIResolvedValue<VisualStateFillBrush> background) && backgroundChanged)
+                if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out var backgroundChanged, out UIResolvedValue<VisualStateFillBrush> background) && backgroundChanged)
                     ApplyBackgroundEffective(background.Value);
                 break;
             case UIValueSlot.Normal:
             case UIValueSlot.Selected:
             case UIValueSlot.Disabled:
             case UIValueSlot.Focused:
-                if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool slotChanged, out UIResolvedValue<IFillBrush> slotValue)
+                if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out var slotChanged, out UIResolvedValue<IFillBrush> slotValue)
                     && slotChanged && slotValue.IsSet && IsBackgroundSubSlotApplicable(slotValue.Source.Precedence))
                 {
                     ApplyBackgroundBrushSlotPhysical(slot, slotValue.Value);
                 }
                 break;
             case UIValueSlot.FocusedColor:
-                if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, EqualityComparer<Color?>.Default, out bool colorChanged, out UIResolvedValue<Color?> colorValue)
+                if (ResolvedValues.Unset(UIPilotProperty.Background, slot, kind, EqualityComparer<Color?>.Default, out var colorChanged, out var colorValue)
                     && colorChanged && colorValue.IsSet && IsBackgroundSubSlotApplicable(colorValue.Source.Precedence))
                 {
                     ApplyBackgroundFocusedColorPhysical(colorValue.Value);
@@ -1647,23 +1647,23 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         if (_resolvedValues == null || _backgroundBrush == null)
             return;
 
-        if (!_resolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out UIResolvedValue<VisualStateFillBrush> whole) || !whole.IsSet)
+        if (!_resolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out var whole) || !whole.IsSet)
             return;
 
-        UIValuePrecedence effectivePrecedence = whole.Source.Precedence;
+        var effectivePrecedence = whole.Source.Precedence;
 
         _suppressBackgroundContainerNotify = true;
         try
         {
-            if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, out UIResolvedValue<IFillBrush> normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, out var normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
                 _backgroundBrush.NormalValue = normal.Value;
-            if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Selected, out UIResolvedValue<IFillBrush> selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Selected, out var selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
                 _backgroundBrush.SelectedValue = selected.Value;
-            if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Disabled, out UIResolvedValue<IFillBrush> disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Disabled, out var disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
                 _backgroundBrush.DisabledValue = disabled.Value;
-            if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Focused, out UIResolvedValue<IFillBrush> focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Focused, out var focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
                 _backgroundBrush.FocusedValue = focused.Value;
-            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, out UIResolvedValue<Color?> focusedColor) && focusedColor.IsSet && focusedColor.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, out var focusedColor) && focusedColor.IsSet && focusedColor.Source.Precedence >= effectivePrecedence)
                 _backgroundBrush.FocusedColor = focusedColor.Value;
         }
         finally
@@ -1708,11 +1708,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// physical value of the container this element currently holds -- i.e. there is no Whole winner yet
     /// (nothing to be dormant under), or the sub-slot's precedence is at least the Whole winner's.</summary>
     private bool IsBackgroundSubSlotApplicable(UIValuePrecedence precedence)
-        => !TryGetBackgroundEffectivePrecedence(out UIValuePrecedence effective) || precedence >= effective;
+        => !TryGetBackgroundEffectivePrecedence(out var effective) || precedence >= effective;
 
     private bool TryGetBackgroundEffectivePrecedence(out UIValuePrecedence precedence)
     {
-        if (_resolvedValues != null && _resolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out UIResolvedValue<VisualStateFillBrush> whole) && whole.IsSet)
+        if (_resolvedValues != null && _resolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out var whole) && whole.IsSet)
         {
             precedence = whole.Source.Precedence;
             return true;
@@ -1729,7 +1729,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// the value in that case). Returns false when neither is available.</summary>
     private bool TryGetResolvedBackgroundSubSlotValue<T>(UIValueSlot slot, out UIResolvedValue<T> value)
     {
-        if (_resolvedValues != null && _resolvedValues.TryGetWinner<T>(UIPilotProperty.Background, slot, out UIResolvedValue<T> winner)
+        if (_resolvedValues != null && _resolvedValues.TryGetWinner<T>(UIPilotProperty.Background, slot, out var winner)
                                     && winner.IsSet && IsBackgroundSubSlotApplicable(winner.Source.Precedence))
         {
             value = winner;
@@ -1737,7 +1737,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         if (_backgroundBrush != null && _resolvedValues != null
-                                     && _resolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out UIResolvedValue<VisualStateFillBrush> whole) && whole.IsSet)
+                                     && _resolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out var whole) && whole.IsSet)
         {
             object physical = slot switch
             {
@@ -1810,7 +1810,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         UnsetDefaultTextForegroundSubSlotsAtPrecedence(source.Precedence);
 
-        ResolvedValues.Set(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool effectiveChanged, out UIResolvedValue<VisualStateSetting<Color?>> effective);
+        ResolvedValues.Set(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out var effectiveChanged, out UIResolvedValue<VisualStateSetting<Color?>> effective);
         if (effectiveChanged)
             ApplyDefaultTextForegroundEffective(effective.Value);
     }
@@ -1822,7 +1822,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         ValidateDefaultTextForegroundSlot(slot);
 
-        ResolvedValues.Set(UIPilotProperty.DefaultTextForeground, slot, value, source, EqualityComparer<Color?>.Default, out _, out UIResolvedValue<Color?> effective);
+        ResolvedValues.Set(UIPilotProperty.DefaultTextForeground, slot, value, source, EqualityComparer<Color?>.Default, out _, out var effective);
         if (effective.Source.Kind == source.Kind && IsDefaultTextForegroundSubSlotApplicable(effective.Source.Precedence))
             ApplyDefaultTextForegroundSlotPhysical(slot, effective.Value);
     }
@@ -1859,9 +1859,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     private void UnsetDefaultTextForegroundSlotAtPrecedence(UIValueSlot slot, UIValuePrecedence precedence)
     {
-        foreach (UIValueSourceKind kind in _resolvedValues.Contributions(UIPilotProperty.DefaultTextForeground, slot).ToArray())
+        foreach (var kind in _resolvedValues.Contributions(UIPilotProperty.DefaultTextForeground, slot).ToArray())
         {
-            if (_resolvedValues.TryGetContribution<Color?>(UIPilotProperty.DefaultTextForeground, slot, kind, out UIResolvedValue<Color?> contribution) && contribution.Source.Precedence == precedence)
+            if (_resolvedValues.TryGetContribution<Color?>(UIPilotProperty.DefaultTextForeground, slot, kind, out var contribution) && contribution.Source.Precedence == precedence)
                 _resolvedValues.Unset<Color?>(UIPilotProperty.DefaultTextForeground, slot, kind, EqualityComparer<Color?>.Default, out _, out _);
         }
     }
@@ -1873,14 +1873,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         switch (slot)
         {
             case UIValueSlot.Whole:
-                if (ResolvedValues.Unset(UIPilotProperty.DefaultTextForeground, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out bool wholeChanged, out UIResolvedValue<VisualStateSetting<Color?>> whole) && wholeChanged)
+                if (ResolvedValues.Unset(UIPilotProperty.DefaultTextForeground, slot, kind, System.Collections.Generic.ReferenceEqualityComparer.Instance, out var wholeChanged, out UIResolvedValue<VisualStateSetting<Color?>> whole) && wholeChanged)
                     ApplyDefaultTextForegroundEffective(whole.Value);
                 break;
             case UIValueSlot.Normal:
             case UIValueSlot.Selected:
             case UIValueSlot.Disabled:
             case UIValueSlot.Focused:
-                if (ResolvedValues.Unset(UIPilotProperty.DefaultTextForeground, slot, kind, EqualityComparer<Color?>.Default, out bool slotChanged, out UIResolvedValue<Color?> slotValue)
+                if (ResolvedValues.Unset(UIPilotProperty.DefaultTextForeground, slot, kind, EqualityComparer<Color?>.Default, out var slotChanged, out var slotValue)
                     && slotChanged && slotValue.IsSet && IsDefaultTextForegroundSubSlotApplicable(slotValue.Source.Precedence))
                 {
                     ApplyDefaultTextForegroundSlotPhysical(slot, slotValue.Value);
@@ -1917,21 +1917,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         if (_resolvedValues == null || _defaultTextForeground == null)
             return;
 
-        if (!_resolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) || !whole.IsSet)
+        if (!_resolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, out var whole) || !whole.IsSet)
             return;
 
-        UIValuePrecedence effectivePrecedence = whole.Source.Precedence;
+        var effectivePrecedence = whole.Source.Precedence;
 
         _suppressDefaultTextForegroundContainerNotify = true;
         try
         {
-            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Normal, out UIResolvedValue<Color?> normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Normal, out var normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
                 _defaultTextForeground.NormalValue = normal.Value;
-            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Selected, out UIResolvedValue<Color?> selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Selected, out var selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
                 _defaultTextForeground.SelectedValue = selected.Value;
-            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Disabled, out UIResolvedValue<Color?> disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Disabled, out var disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
                 _defaultTextForeground.DisabledValue = disabled.Value;
-            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Focused, out UIResolvedValue<Color?> focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
+            if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Focused, out var focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
                 _defaultTextForeground.FocusedValue = focused.Value;
         }
         finally
@@ -1964,11 +1964,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     /// <summary>See <see cref="IsBackgroundSubSlotApplicable"/>.</summary>
     private bool IsDefaultTextForegroundSubSlotApplicable(UIValuePrecedence precedence)
-        => !TryGetDefaultTextForegroundEffectivePrecedence(out UIValuePrecedence effective) || precedence >= effective;
+        => !TryGetDefaultTextForegroundEffectivePrecedence(out var effective) || precedence >= effective;
 
     private bool TryGetDefaultTextForegroundEffectivePrecedence(out UIValuePrecedence precedence)
     {
-        if (_resolvedValues != null && _resolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) && whole.IsSet)
+        if (_resolvedValues != null && _resolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, out var whole) && whole.IsSet)
         {
             precedence = whole.Source.Precedence;
             return true;
@@ -1981,7 +1981,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <summary>R6: reads a DefaultTextForeground sub-slot for diagnostics. See <see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>.</summary>
     private bool TryGetResolvedDefaultTextForegroundSubSlotValue<T>(UIValueSlot slot, out UIResolvedValue<T> value)
     {
-        if (_resolvedValues != null && _resolvedValues.TryGetWinner<T>(UIPilotProperty.DefaultTextForeground, slot, out UIResolvedValue<T> winner)
+        if (_resolvedValues != null && _resolvedValues.TryGetWinner<T>(UIPilotProperty.DefaultTextForeground, slot, out var winner)
                                     && winner.IsSet && IsDefaultTextForegroundSubSlotApplicable(winner.Source.Precedence))
         {
             value = winner;
@@ -1989,7 +1989,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         if (_defaultTextForeground != null && _resolvedValues != null
-                                           && _resolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, out UIResolvedValue<VisualStateSetting<Color?>> whole) && whole.IsSet)
+                                           && _resolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, out var whole) && whole.IsSet)
         {
             object physical = slot switch
             {
@@ -2048,7 +2048,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// the resolved value store and applies the winning value (with the usual notifications) only if it changed.</summary>
     internal void SetMargin(Thickness value, UIValueResolutionSource source)
     {
-        ResolvedValues.Set(UIPilotProperty.Margin, UIValueSlot.Whole, value, source, EqualityComparer<Thickness>.Default, out bool effectiveChanged, out UIResolvedValue<Thickness> effective);
+        ResolvedValues.Set(UIPilotProperty.Margin, UIValueSlot.Whole, value, source, EqualityComparer<Thickness>.Default, out var effectiveChanged, out var effective);
         if (effectiveChanged)
             ApplyMarginEffective(effective.Value);
     }
@@ -2057,7 +2057,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         if (!_margin.Equals(value))
         {
-            Thickness Previous = Margin;
+            var Previous = Margin;
             _margin = value;
             LayoutChanged(this, true);
             NPC(nameof(Margin));
@@ -2089,7 +2089,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// the resolved value store and applies the winning value (with the usual notifications) only if it changed.</summary>
     internal void SetPadding(Thickness value, UIValueResolutionSource source)
     {
-        ResolvedValues.Set(UIPilotProperty.Padding, UIValueSlot.Whole, value, source, EqualityComparer<Thickness>.Default, out bool effectiveChanged, out UIResolvedValue<Thickness> effective);
+        ResolvedValues.Set(UIPilotProperty.Padding, UIValueSlot.Whole, value, source, EqualityComparer<Thickness>.Default, out var effectiveChanged, out var effective);
         if (effectiveChanged)
             ApplyPaddingEffective(effective.Value);
     }
@@ -2150,7 +2150,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     #region Alignment
     public static Rectangle ApplyAlignment(Rectangle Bounds, HorizontalAlignment ha, VerticalAlignment va, Size size)
     {
-        int StartX = ha switch
+        var StartX = ha switch
         {
             HorizontalAlignment.Left => Bounds.Left,
             HorizontalAlignment.Center => Bounds.Left + (Bounds.Width - size.Width) / 2,
@@ -2159,7 +2159,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             _ => throw new NotImplementedException($"Unrecognized {nameof(HorizontalAlignment)}: {ha}"),
         };
 
-        int StartY = va switch
+        var StartY = va switch
         {
             VerticalAlignment.Top => Bounds.Top,
             VerticalAlignment.Center => Bounds.Top + (Bounds.Height - size.Height) / 2,
@@ -2180,7 +2180,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_horizontalAlignment != value)
             {
-                HorizontalAlignment Previous = HorizontalAlignment;
+                var Previous = HorizontalAlignment;
                 _horizontalAlignment = value;
                 NPC(nameof(HorizontalAlignment));
                 OnHorizontalAlignmentChanged?.Invoke(this, new(Previous, HorizontalAlignment));
@@ -2200,7 +2200,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_verticalAlignment != value)
             {
-                VerticalAlignment Previous = VerticalAlignment;
+                var Previous = VerticalAlignment;
                 _verticalAlignment = value;
                 NPC(nameof(VerticalAlignment));
                 OnVerticalAlignmentChanged?.Invoke(this, new(Previous, VerticalAlignment));
@@ -2278,7 +2278,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// the resolved value store and applies the winning value (with the usual notifications) only if it changed.</summary>
     internal void SetMinHeight(int? value, UIValueResolutionSource source)
     {
-        ResolvedValues.Set(UIPilotProperty.MinHeight, UIValueSlot.Whole, value, source, EqualityComparer<int?>.Default, out bool effectiveChanged, out UIResolvedValue<int?> effective);
+        ResolvedValues.Set(UIPilotProperty.MinHeight, UIValueSlot.Whole, value, source, EqualityComparer<int?>.Default, out var effectiveChanged, out var effective);
         if (effectiveChanged)
             ApplyMinHeightEffective(effective.Value);
     }
@@ -2425,7 +2425,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_toolTip != value)
             {
-                MGToolTip Previous = ToolTip;
+                var Previous = ToolTip;
                 _toolTip = value;
                 NPC(nameof(ToolTip));
                 ToolTipChanged?.Invoke(this, new(Previous, ToolTip));
@@ -2448,7 +2448,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_contextMenu != value)
             {
-                MGContextMenu Previous = ContextMenu;
+                var Previous = ContextMenu;
                 _contextMenu = value;
                 SyncContextMenuRmbHandler();
                 NPC(nameof(ContextMenu));
@@ -2466,7 +2466,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// based on whether a <see cref="ContextMenu"/> is assigned or <see cref="ContextMenuRequested"/> has subscribers.</summary>
     private void SyncContextMenuRmbHandler()
     {
-        bool needsHandler = _contextMenu != null || _contextMenuRequested != null;
+        var needsHandler = _contextMenu != null || _contextMenuRequested != null;
         if (needsHandler && !_rmbHandlerSubscribed)
         {
             MouseHandler.RMBReleasedInside += TryOpenContextMenuOnRightClick;
@@ -2492,7 +2492,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        MGContextMenu menu = args.Menu;
+        var menu = args.Menu;
         if (menu != null && menu.TryOpenContextMenu(e.Position))
         {
             e.SetHandledBy(menu, false);
@@ -2577,7 +2577,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     protected IMouseHandlerHost AsIMouseHandlerHost() => this;
     bool IMouseViewport.IsInside(Vector2 Position)
     {
-        Vector2 UnscaledPosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, Position);
+        var UnscaledPosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, Position);
         //  Z-order-aware hit-test: a position covered by a window drawn over the window that displays this element (its own
         //  nested/modal windows, sibling nested windows above it, higher desktop windows, the active context menu) is not "inside"
         //  this element, so the Inside/Outside classification of every mouse event - movement, Entered/Exited, hover, press -
@@ -2683,7 +2683,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     private void OnDragMovedInside(object sender, MGUI.Shared.Input.Mouse.BaseMouseMovedEventArgs e)
     {
-        MGDesktop desktop = GetDesktop();
+        var desktop = GetDesktop();
         if (desktop?.DragDropManager?.IsDragging == true)
         {
             desktop.DragDropManager.NotifyDragOver(this, e.CurrentPosition);
@@ -2692,7 +2692,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     private void OnDragExited(object sender, MGUI.Shared.Input.Mouse.BaseMouseMovedEventArgs e)
     {
-        MGDesktop desktop = GetDesktop();
+        var desktop = GetDesktop();
         if (desktop?.DragDropManager?.IsDragging == true)
         {
             desktop.DragDropManager.NotifyDragLeave(this, e.CurrentPosition);
@@ -2782,7 +2782,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_visualState != value)
             {
-                VisualState Previous = VisualState;
+                var Previous = VisualState;
                 _visualState = value;
                 NPC(nameof(VisualState));
                 VisualStateChanged?.Invoke(this, new(Previous, VisualState));
@@ -2846,7 +2846,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return SecondaryVisualState.Pressed;
         }
 
-        bool shouldSuppressHover = hasKeyboardFocus && shouldDisplayFocusedState;
+        var shouldSuppressHover = hasKeyboardFocus && shouldDisplayFocusedState;
         if (!shouldSuppressHover && isHovered && isHoveredElementOrAncestor)
         {
             return SecondaryVisualState.Hovered;
@@ -2973,7 +2973,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_visibility != value)
             {
-                Visibility Previous = Visibility;
+                var Previous = Visibility;
                 _visibility = value;
                 _inputStateDirty = true;
                 if (Previous == Visibility.Collapsed || Visibility == Visibility.Collapsed)
@@ -3064,7 +3064,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             case InvokeLaterPriority.OnBeginUpdate:
             {
-                int RemainingFrames = frameDelay;
+                var RemainingFrames = frameDelay;
                 void Handler(object sender, ElementUpdateEventArgs args)
                 {
                     RemainingFrames--;
@@ -3079,7 +3079,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 break;
             case InvokeLaterPriority.OnBeginUpdateContents:
             {
-                int RemainingFrames = frameDelay;
+                var RemainingFrames = frameDelay;
                 void Handler(object sender, ElementUpdateEventArgs args)
                 {
                     RemainingFrames--;
@@ -3094,7 +3094,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 break;
             case InvokeLaterPriority.OnEndUpdateContents:
             {
-                int RemainingFrames = frameDelay;
+                var RemainingFrames = frameDelay;
                 void Handler(object sender, ElementUpdateEventArgs args)
                 {
                     RemainingFrames--;
@@ -3109,7 +3109,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 break;
             case InvokeLaterPriority.OnEndUpdate:
             {
-                int RemainingFrames = frameDelay;
+                var RemainingFrames = frameDelay;
                 void Handler(object sender, ElementUpdateEventArgs args)
                 {
                     RemainingFrames--;
@@ -3152,7 +3152,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             //  The parent window's effective (scope) theme, not only its explicit Theme field: popups such as context menus and combo box
             //  dropdowns keep no explicit theme and inherit their owner's scope, so the elements built inside them must follow that theme too.
-            MGTheme ActualTheme = theme ?? parentWindow?.LocalResources?.DefaultTheme ?? parentWindow?.Theme ?? Desktop.Theme;
+            var ActualTheme = theme ?? parentWindow?.LocalResources?.DefaultTheme ?? parentWindow?.Theme ?? Desktop.Theme;
 
             SetMargin(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             SetPadding(new(0), UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
@@ -3287,7 +3287,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
         else
         {
-            Matrix Transform = GetTransform(From, to);
+            var Transform = GetTransform(From, to);
             return value.CreateTransformedF(Transform).RoundUp();
         }
     }
@@ -3300,7 +3300,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
         else
         {
-            Matrix Transform = GetTransform(From, to);
+            var Transform = GetTransform(From, to);
             return value.TransformBy(Transform);
         }
     }
@@ -3347,7 +3347,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         if (Offset != Point.Zero)
         {
-            Rectangle PreviousLayoutBounds = LayoutBounds;
+            var PreviousLayoutBounds = LayoutBounds;
             AllocatedBounds = AllocatedBounds.GetTranslated(Offset);
             RenderBounds = RenderBounds.GetTranslated(Offset);
             LayoutBounds = LayoutBounds.GetTranslated(Offset);
@@ -3371,7 +3371,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_actualLayoutBounds != value)
             {
-                Rectangle Previous = ActualLayoutBounds;
+                var Previous = ActualLayoutBounds;
                 _actualLayoutBounds = value;
                 NPC(nameof(ActualLayoutBounds));
                 OnActualLayoutBoundsChanged?.Invoke(this, new(Previous, ActualLayoutBounds));
@@ -3459,7 +3459,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         MGElement Result = null;
         // Convert mouse position to unscaled screen space once, then pass down the tree
-        Vector2 unscaledMousePos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen,
+        var unscaledMousePos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen,
             InputTracker.Mouse.CurrentPosition.ToVector2());
         ComputeTopmostHoveredElement(UA.IsEnabled, UA.IsHitTestVisible, true, unscaledMousePos, ref Result);
         return Result;
@@ -3467,7 +3467,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     private void ComputeTopmostHoveredElement(bool IsParentEnabled, bool isParentHitTestVisible, bool canParentReceiveMouseInput, Vector2 unscaledMousePos, ref MGElement result)
     {
-        bool canReceiveMouseInputWhileHidden = Visibility == Visibility.Hidden && CanHandleInputsWhileHidden;
+        var canReceiveMouseInputWhileHidden = Visibility == Visibility.Hidden && CanHandleInputsWhileHidden;
 
         if (Visibility != Visibility.Visible && !canReceiveMouseInputWhileHidden)
         {
@@ -3485,34 +3485,34 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         TryApplyInverseRenderTransform(ref unscaledMousePos);
 
 
-        bool ComputedIsEnabled = IsParentEnabled && IsEnabled;
-        bool ComputedIsHitTestVisible = isParentHitTestVisible && IsHitTestVisible;
+        var ComputedIsEnabled = IsParentEnabled && IsEnabled;
+        var ComputedIsHitTestVisible = isParentHitTestVisible && IsHitTestVisible;
 
-        bool BaseCanReceiveInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible
-                                   && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
-        bool CanReceiveMouseInput = BaseCanReceiveInput && canParentReceiveMouseInput;
+        var BaseCanReceiveInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible
+                                  && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
+        var CanReceiveMouseInput = BaseCanReceiveInput && canParentReceiveMouseInput;
 
         // Components can overflow parent bounds — always recurse into them
-        foreach (MGElement Component in _componentsDrawBeforeBackground)
+        foreach (var Component in _componentsDrawBeforeBackground)
         {
             Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref result);
         }
 
-        foreach (MGElement Component in _componentsDrawBeforeSelf)
+        foreach (var Component in _componentsDrawBeforeSelf)
         {
             Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref result);
         }
 
         // Early-out: if mouse is outside this element's bounds, skip self-hover and visual children
         // (visual tree children are always clipped to the parent's content area)
-        bool mouseInBounds = ContainsUnscaledInputPoint(unscaledMousePos);
+        var mouseInBounds = ContainsUnscaledInputPoint(unscaledMousePos);
 
         if (mouseInBounds && CanReceiveMouseInput && ComputedIsHitTestVisible && !DisplayingWindow.HasModalWindow && IsHovered)
         {
             result = this;
         }
 
-        foreach (MGElement Component in _componentsDrawBeforeContents)
+        foreach (var Component in _componentsDrawBeforeContents)
         {
             Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref result);
         }
@@ -3522,14 +3522,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         if (mouseInBounds || DesktopHasActiveRenderTransforms)
         {
             // Use indexed for loop to avoid IReadOnlyList enumerator allocation (Task 16)
-            IReadOnlyList<MGElement> vtc = GetVisualTreeChildren(false, true);
-            for (int vtcIdx = 0; vtcIdx < vtc.Count; vtcIdx++)
+            var vtc = GetVisualTreeChildren(false, true);
+            for (var vtcIdx = 0; vtcIdx < vtc.Count; vtcIdx++)
             {
                 vtc[vtcIdx].ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref result);
             }
         }
 
-        foreach (MGElement Component in _componentsDrawAfterContents)
+        foreach (var Component in _componentsDrawAfterContents)
         {
             Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref result);
         }
@@ -3538,13 +3538,13 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     public void Update(ElementUpdateArgs UA)
     {
         using var performanceScope = UIPerformanceProbe.BeginElementUpdate(this);
-        bool ComputedIsEnabled = UA.IsEnabled && IsEnabled;
-        bool ComputedIsSelected = UA.IsSelected || IsSelected;
-        bool ComputedIsHitTestVisible = UA.IsHitTestVisible && IsHitTestVisible;
+        var ComputedIsEnabled = UA.IsEnabled && IsEnabled;
+        var ComputedIsSelected = UA.IsSelected || IsSelected;
+        var ComputedIsHitTestVisible = UA.IsHitTestVisible && IsHitTestVisible;
 
         Origin = UA.Offset;
 
-        Rectangle UnscaledScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, LayoutBounds);
+        var UnscaledScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, LayoutBounds);
         //FIX (Task 5): ActualLayoutBounds is computed by intersecting the received UA.ActualLayoutBounds
         //(which IS the parent's content-area bounds — see below) with this element's own unscaled screen bounds.
         //This correctly clips each element to the visible content area of its parent.
@@ -3596,14 +3596,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         };
         //UA = new(UA.BA, ComputedIsEnabled, ComputedIsSelected, ComputedIsHitTestVisible, UA.Offset, this.ActualLayoutBounds);
 
-        MGDesktop desktop = GetDesktop();
-        bool hasKeyboardFocus = desktop?.FocusedKeyboardHandler == this;
-        bool shouldDisplayFocusedState = desktop?.ShouldDisplayFocusedState == true;
-        PrimaryVisualState newPVS = ResolvePrimaryVisualState(ComputedIsEnabled, ComputedIsSelected, hasKeyboardFocus, shouldDisplayFocusedState);
+        var desktop = GetDesktop();
+        var hasKeyboardFocus = desktop?.FocusedKeyboardHandler == this;
+        var shouldDisplayFocusedState = desktop?.ShouldDisplayFocusedState == true;
+        var newPVS = ResolvePrimaryVisualState(ComputedIsEnabled, ComputedIsSelected, hasKeyboardFocus, shouldDisplayFocusedState);
         //  Resolved from DisplayingWindow (the window that actually displays this element and therefore assigns its HoveredElement/PressedElement),
         //  not SelfOrParentWindow (the window it was constructed with) - see Docs/decisions/0004-hit-test-occlusion-from-displaying-window.md.
-        MGWindow displayingWindow = DisplayingWindow;
-        SecondaryVisualState newSVS = ResolveSecondaryVisualState(
+        var displayingWindow = DisplayingWindow;
+        var newSVS = ResolveSecondaryVisualState(
             ComputedIsHitTestVisible,
             displayingWindow.HasModalWindow,
             IsLMBPressed,
@@ -3620,7 +3620,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         OnBeginUpdate?.Invoke(this, UpdateEventArgs);
 
         // Fix (Task 14): iterate directly instead of .ToList().ForEach() which allocates a temporary List<>
-        foreach (IBorderBrush brush in GetBorderBrushes())
+        foreach (var brush in GetBorderBrushes())
         {
             PaintLifecycle.Update(brush, UA.BA);
         }
@@ -3628,12 +3628,12 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         //  Fill brush lifecycle: tick the background wrappers and the raw fill slots this element draws itself (see GetFillBrushes/GetVisualStateFillBrushes).
         //  A stateful paint is ticked once per frame regardless of how many slots or elements reference it: PaintLifecycle
         //  dedups by reference against UA.BA.PaintRegistry (see Docs/drawing-architecture.md, Limites connues).
-        foreach (VisualStateFillBrush brush in GetVisualStateFillBrushes())
+        foreach (var brush in GetVisualStateFillBrushes())
         {
             brush?.Update(UA.BA);
         }
 
-        foreach (IFillBrush brush in GetFillBrushes())
+        foreach (var brush in GetFillBrushes())
         {
             PaintLifecycle.Update(brush, UA.BA);
         }
@@ -3650,14 +3650,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         if (!RecentDrawWasClipped && HoverStartTime.HasValue && !SelfOrParentWindow.HasModalWindow)
         {
-            if (!TryGetToolTip(out MGToolTip ToolTip))
+            if (!TryGetToolTip(out var ToolTip))
             {
                 ToolTip = this.ToolTip;
             }
 
             if (ToolTip != null && (ComputedIsEnabled || ToolTip.ShowOnDisabled))
             {
-                TimeSpan HoveredTime = DateTime.Now.Subtract(HoverStartTime.Value);
+                var HoveredTime = DateTime.Now.Subtract(HoverStartTime.Value);
                 if (HoveredTime >= ToolTip.ActualShowDelay)
                 {
                     GetDesktop().QueuedToolTip = ToolTip;
@@ -3668,9 +3668,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         // Optimisation (Task 14): skip input eligibility recomputation when nothing that affects it changed.
         // Mouse hit testing is clipped by the last draw result, but keyboard focus must remain stable for a
         // focused text editor even when part of its visual subtree was clipped.
-        bool parentCanMouse = CanInheritMouseInputFromParent();
-        bool parentCanKeyboard = Parent?._CanReceiveKeyboardInput ?? true;
-        bool hasModalWindow = SelfOrParentWindow?.HasModalWindow == true;
+        var parentCanMouse = CanInheritMouseInputFromParent();
+        var parentCanKeyboard = Parent?._CanReceiveKeyboardInput ?? true;
+        var hasModalWindow = SelfOrParentWindow?.HasModalWindow == true;
         if (_inputStateDirty ||
             ComputedIsEnabled != _cachedComputedEnabled ||
             ComputedIsHitTestVisible != _cachedComputedHtVisible ||
@@ -3679,9 +3679,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             hasModalWindow != _cachedHasModalWindow)
         {
             _inputStateDirty = false;
-            bool baseCanReceiveKeyboardInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible;
-            bool BaseCanReceiveMouseInput = baseCanReceiveKeyboardInput
-                                            && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
+            var baseCanReceiveKeyboardInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible;
+            var BaseCanReceiveMouseInput = baseCanReceiveKeyboardInput
+                                           && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
             _CanReceiveMouseInput    = BaseCanReceiveMouseInput && parentCanMouse && !hasModalWindow;
             _CanReceiveKeyboardInput = baseCanReceiveKeyboardInput && parentCanKeyboard;
             _cachedComputedEnabled       = ComputedIsEnabled;
@@ -3701,21 +3701,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         // so it always receives the full (unpadded) bounds.
         // Clamp origin so ContentAreaBounds never exceeds ActualLayoutBounds
         // even when Padding is larger than the available Width/Height.
-        int _cabX = Math.Min(ActualLayoutBounds.X + Padding.Left,  ActualLayoutBounds.Right);
-        int _cabY = Math.Min(ActualLayoutBounds.Y + Padding.Top,   ActualLayoutBounds.Bottom);
-        Rectangle ContentAreaBounds = new Rectangle(
+        var _cabX = Math.Min(ActualLayoutBounds.X + Padding.Left,  ActualLayoutBounds.Right);
+        var _cabY = Math.Min(ActualLayoutBounds.Y + Padding.Top,   ActualLayoutBounds.Bottom);
+        var ContentAreaBounds = new Rectangle(
             _cabX, _cabY,
             Math.Max(0, ActualLayoutBounds.Width  - Padding.Left - Padding.Right),
             Math.Max(0, ActualLayoutBounds.Height - Padding.Top  - Padding.Bottom));
-        ElementUpdateArgs UAForContents = UA with { ActualLayoutBounds = ContentAreaBounds };
+        var UAForContents = UA with { ActualLayoutBounds = ContentAreaBounds };
 
-        foreach (MGElement Component in _componentsUpdateBeforeContents)
+        foreach (var Component in _componentsUpdateBeforeContents)
         {
             Component.Update(UA);               // components get the full (unpadded) bounds
         }
 
         UpdateContents(UAForContents);          // content children get the content-area bounds
-        foreach (MGElement Component in _componentsUpdateAfterContents)
+        foreach (var Component in _componentsUpdateAfterContents)
         {
             Component.Update(UA);              // components get the full (unpadded) bounds
         }
@@ -3730,7 +3730,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             //  Some more testing shows that having 3k elements to draw and update seems fine on my computer if there's only about 500 input handlers to update
             //Maybe can also do something about ListBox/ContextMenu/ComboBox
             //      to consolidate their input handling into a single MouseHandler instead of separate ones for each list item
-            bool shouldUpdateMouseHandler = true;
+            var shouldUpdateMouseHandler = true;
             if (_MouseHandler != null && SelfOrParentWindow?.GetActiveMouseDragCaptureOwner() is MGElement activeMouseDragCaptureOwner)
             {
                 // While a control owns the active mouse drag capture, unrelated siblings should not
@@ -3758,14 +3758,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
     protected virtual void UpdateContents(ElementUpdateArgs UA)
     {
-        IReadOnlyList<MGElement> inactiveChildren = GetVisualTreeChildren(true, false);
-        for (int i = inactiveChildren.Count - 1; i >= 0; i--)
+        var inactiveChildren = GetVisualTreeChildren(true, false);
+        for (var i = inactiveChildren.Count - 1; i >= 0; i--)
         {
             inactiveChildren[i].Update(UA.ChangeHitTestVisible(false));
         }
 
-        IReadOnlyList<MGElement> activeChildren = GetVisualTreeChildren(false, true);
-        for (int i = activeChildren.Count - 1; i >= 0; i--)
+        var activeChildren = GetVisualTreeChildren(false, true);
+        for (var i = activeChildren.Count - 1; i >= 0; i--)
         {
             activeChildren[i].Update(UA);
         }
@@ -3793,7 +3793,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_renderScale != value)
             {
-                bool WasSet = _renderScale.HasValue;
+                var WasSet = _renderScale.HasValue;
                 _renderScale = value;
                 if (WasSet != value.HasValue)
                 {
@@ -3855,7 +3855,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     private void HandleRenderTransformPropertyChanged(object sender, PropertyChangedEventArgs e)
     {
-        bool IsActive = !IsWindow && !_renderTransform.IsIdentity;
+        var IsActive = !IsWindow && !_renderTransform.IsIdentity;
         if (IsActive != HasActiveRenderTransform)
         {
             HasActiveRenderTransform = IsActive;
@@ -3903,8 +3903,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// shadows <see cref="RenderScale"/> for the current state in the draw composition and the hit-test, and counts as an active render transform.</summary>
     internal void SetStateScaleOverride(float? Value)
     {
-        Animation.UIElementAnimationSlot Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
-        bool WasSet = Slot.StateScaleOverride.HasValue;
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        var WasSet = Slot.StateScaleOverride.HasValue;
         if (Slot.StateScaleOverride == Value)
         {
             return;
@@ -3924,8 +3924,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// Returns false, and the identity, when nothing needs to be pushed.</summary>
     internal bool TryGetRenderTransformMatrix(Rectangle UnscaledBounds, out Matrix transform)
     {
-        bool HasStateScale = TryGetEffectiveStateScale(out float StateScale) && Math.Abs(StateScale - 1.0f) > Animation.UIRenderTransform.IdentityEpsilon;
-        bool HasTransform = HasActiveRenderTransform;
+        var HasStateScale = TryGetEffectiveStateScale(out var StateScale) && Math.Abs(StateScale - 1.0f) > Animation.UIRenderTransform.IdentityEpsilon;
+        var HasTransform = HasActiveRenderTransform;
         if (!HasStateScale && !HasTransform)
         {
             transform = Matrix.Identity;
@@ -3935,7 +3935,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         transform = HasStateScale ? Animation.UIRenderTransform.CreateCenteredScale(UnscaledBounds, StateScale) : Matrix.Identity;
         if (HasTransform)
         {
-            Matrix Local = _renderTransform.ToMatrix(UnscaledBounds);
+            var Local = _renderTransform.ToMatrix(UnscaledBounds);
             transform = HasStateScale ? transform * Local : Local;
         }
 
@@ -3947,7 +3947,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// Returns the input unchanged when no element of this desktop has a transform (gated by <see cref="MGDesktop.ActiveRenderTransformCount"/>).</summary>
     internal Vector2 ToLocalUnscaledPoint(Vector2 UnscaledScreenPosition)
     {
-        MGDesktop Desktop = SelfOrParentWindow?.Desktop;
+        var Desktop = SelfOrParentWindow?.Desktop;
         if (Desktop == null || Desktop.ActiveRenderTransformCount == 0)
         {
             return UnscaledScreenPosition;
@@ -3963,7 +3963,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <summary>A changed render transform moves pixels under a still mouse: ask the displaying window to recompute its hovered and pressed elements.</summary>
     private void InvalidateHoverForRenderTransformChange()
     {
-        MGWindow Window = DisplayingWindow;
+        var Window = DisplayingWindow;
         if (Window != null)
         {
             Window.InvalidatePressedAndHoveredElements = true;
@@ -3984,8 +3984,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        Rectangle UnscaledBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, LayoutBounds);
-        if (TryGetRenderTransformMatrix(UnscaledBounds, out Matrix Transform))
+        var UnscaledBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.UnscaledScreen, LayoutBounds);
+        if (TryGetRenderTransformMatrix(UnscaledBounds, out var Transform))
         {
             UnscaledPosition = Vector2.Transform(UnscaledPosition, Matrix.Invert(Transform));
         }
@@ -4039,14 +4039,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return null;
         }
 
-        if (!TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, false))
+        if (!TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out var backgroundShape, out var backgroundGeometry, false))
         {
-            Rectangle backgroundBounds = GetBackgroundBounds(layoutBounds);
-            Rectangle rectangleClipBounds = TransformClipBounds(DA, backgroundBounds);
+            var backgroundBounds = GetBackgroundBounds(layoutBounds);
+            var rectangleClipBounds = TransformClipBounds(DA, backgroundBounds);
             return CreateRectangleClipDefinition(rectangleClipBounds, debugName);
         }
 
-        Rectangle clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
+        var clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
         if (backgroundShape.InnerCornerRadius.IsZero)
         {
             return CreateRectangleClipDefinition(clipBounds, debugName);
@@ -4081,17 +4081,17 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         // Four-corner bounds (ADR-0006, S2): the current transform may carry an ancestor rotation, under which the two-corner helper returns a negative size.
-        Rectangle TargetBounds = LayoutBounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
+        var TargetBounds = LayoutBounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
 
         //  Apply the render-only transform (state scale of RenderScale and/or RenderTransform), if any (ADR-0006, S2).
         //  The local matrix lives in unscaled screen space (the space of DA.Offset and of the input hit-test) and is composed
         //  BEFORE the current transform, which already carries MGWindow.Scale. Nothing is pushed for an identity transform,
         //  so an element without transform never breaks the current batch.
         IDisposable TempTransform = null;
-        Rectangle UnscaledBounds = LayoutBounds.GetTranslated(DA.Offset);
-        if (TryGetRenderTransformMatrix(UnscaledBounds, out Matrix LocalTransform))
+        var UnscaledBounds = LayoutBounds.GetTranslated(DA.Offset);
+        if (TryGetRenderTransformMatrix(UnscaledBounds, out var LocalTransform))
         {
-            Matrix CurrentTransform = DA.DT.CurrentSettings.Transform;
+            var CurrentTransform = DA.DT.CurrentSettings.Transform;
             TempTransform = DA.DT.SetTransformTemporary(LocalTransform * CurrentTransform);
 
             // Rectangle clip bounds are re-evaluated in render-target space after the transform is applied.
@@ -4100,8 +4100,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
 
-        ClipDefinition SelfClipDefinition = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
-        ClipDefinition ContentsClipDefinition = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);
+        var SelfClipDefinition = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
+        var ContentsClipDefinition = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);
 
         if (!DA.DT.CurrentSettings.UsesScissorTest || !DA.DT.CurrentClipBounds.HasValue || TargetBounds.Intersects(DA.DT.CurrentClipBounds.Value))
         {
@@ -4109,7 +4109,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 // Decorative layers follow the element's self clip. Content-only clipping starts later,
                 // so rounded shape paint remains independent from whichever clip backend gets selected.
-                foreach (MGElement Component in _componentsDrawBeforeBackground)
+                foreach (var Component in _componentsDrawBeforeBackground)
                 {
                     Component.Draw(DA);
                 }
@@ -4119,7 +4119,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     DrawBackground(DA, LayoutBounds);
                 }
 
-                foreach (MGElement Component in _componentsDrawBeforeSelf)
+                foreach (var Component in _componentsDrawBeforeSelf)
                 {
                     Component.Draw(DA);
                 }
@@ -4128,14 +4128,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
                 using (ContentsClipDefinition == null ? null : DA.Context.PushClipTemporary(ContentsClipDefinition))
                 {
-                    foreach (MGElement Component in _componentsDrawBeforeContents)
+                    foreach (var Component in _componentsDrawBeforeContents)
                     {
                         Component.Draw(DA);
                     }
 
                     DrawContents(DA);
 
-                    foreach (MGElement Component in _componentsDrawAfterContents)
+                    foreach (var Component in _componentsDrawAfterContents)
                     {
                         Component.Draw(DA);
                     }
@@ -4186,8 +4186,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     private Rectangle GetBackgroundBounds(Rectangle LayoutBounds)
     {
-        Rectangle BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
-        Rectangle BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
+        var BorderlessBounds = !HasBorder ? LayoutBounds : LayoutBounds.GetCompressed(GetBorder().BorderThickness);
+        var BackgroundBounds = BorderlessBounds.GetCompressed(BackgroundRenderPadding);
         return BackgroundBounds;
     }
 
@@ -4196,10 +4196,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         if (HasBorder && !GetBorder().CornerRadius.IsZero)
         {
-            MGBoxShape boxShape = new MGBoxShape(layoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
+            var boxShape = new MGBoxShape(layoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
             if (BackgroundRenderPadding.IsEmpty())
             {
-                MGBoxGeometry boxGeometry = MGBoxGeometryBuilder.Build(boxShape);
+                var boxGeometry = MGBoxGeometryBuilder.Build(boxShape);
                 if (boxGeometry.HasInnerContour)
                 {
                     backgroundGeometry = MGBoxGeometryBuilder.BuildInteriorFillGeometry(boxGeometry, overlapUnderBorder ? 1.0f : 0.0f);
@@ -4208,7 +4208,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 }
             }
 
-            Rectangle backgroundBounds = boxShape.InnerBounds.GetCompressed(BackgroundRenderPadding);
+            var backgroundBounds = boxShape.InnerBounds.GetCompressed(BackgroundRenderPadding);
             backgroundShape = new MGBoxShape(backgroundBounds, new Thickness(0), boxShape.InnerCornerRadius).Normalize();
             backgroundGeometry = MGBoxGeometryBuilder.Build(backgroundShape);
             return true;
@@ -4221,18 +4221,18 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     public virtual void DrawBackground(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        if (TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, true))
+        if (TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out var backgroundShape, out var backgroundGeometry, true))
         {
             BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
 
-            SecondaryVisualState secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
+            var secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
             BackgroundBrush.DrawFillOverlay(DA, secondaryState, this, backgroundShape, backgroundGeometry);
             return;
         }
 
-        Rectangle BackgroundBounds = GetBackgroundBounds(layoutBounds);
+        var BackgroundBounds = GetBackgroundBounds(layoutBounds);
         BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, BackgroundBounds);
-        SecondaryVisualState SecondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
+        var SecondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
         BackgroundBrush.DrawFillOverlay(DA, SecondaryState, this, BackgroundBounds);
     }
 
@@ -4241,7 +4241,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     protected virtual void DrawOverlayBrush(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        if (TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, true))
+        if (TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out var backgroundShape, out var backgroundGeometry, true))
         {
             OverlayBrush?.Draw(DA, this, backgroundShape, backgroundGeometry);
             return;
@@ -4256,8 +4256,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (!GetBorder().CornerRadius.IsZero)
             {
-                MGBoxShape boxShape = new MGBoxShape(layoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
-                MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(boxShape);
+                var boxShape = new MGBoxShape(layoutBounds, GetBorder().BorderThickness, GetBorder().CornerRadius).Normalize();
+                var geometry = MGBoxGeometryBuilder.Build(boxShape);
                 if (DrawBackgroundBorderOverlayEnabled)
                 {
                     BackgroundBrush.DrawBorderOverlay(DA, DA.VisualState.Secondary, this, boxShape, geometry);
@@ -4297,13 +4297,13 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         InvalidateLayout();
         // Use indexed for loop to avoid IReadOnlyList enumerator allocation (Task 16)
-        IReadOnlyList<MGElement> vtcAll = GetVisualTreeChildren(true, true);
-        for (int i = 0; i < vtcAll.Count; i++)
+        var vtcAll = GetVisualTreeChildren(true, true);
+        for (var i = 0; i < vtcAll.Count; i++)
         {
             vtcAll[i].InvalidateLayoutTree();
         }
 
-        foreach (MGComponentBase Component in Components)
+        foreach (var Component in Components)
         {
             Component.BaseElement.InvalidateLayoutTree();
         }
@@ -4387,7 +4387,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             IsUpdatingLayout = true;
 
-            Rectangle PreviousLayoutBounds = LayoutBounds;
+            var PreviousLayoutBounds = LayoutBounds;
 
             if (Bounds.Width <= 0 || Bounds.Height <= 0)
             {
@@ -4406,7 +4406,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 Thickness RequestedFullSize;
                 Thickness SharedSize;
                 Thickness RequestedContentSize;
-                if (TryGetCachedMeasurement(BoundsSize, out ElementMeasurement SelfMeasurement, out ElementMeasurement FullMeasurement))
+                if (TryGetCachedMeasurement(BoundsSize, out var SelfMeasurement, out var FullMeasurement))
                 {
                     RequestedSelfSize = SelfMeasurement.RequestedSize;
                     RequestedFullSize = FullMeasurement.RequestedSize;
@@ -4418,8 +4418,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     UpdateMeasurement(BoundsSize, out RequestedSelfSize, out RequestedFullSize, out SharedSize, out RequestedContentSize);
                 }
 
-                int ConsumedWidth = Math.Min(MaxSizeIncludingMargin.Width, HorizontalAlignment == HorizontalAlignment.Stretch ? BoundsSize.Width : Math.Min(BoundsSize.Width, RequestedFullSize.Width));
-                int ConsumedHeight = Math.Min(MaxSizeIncludingMargin.Height, VerticalAlignment == VerticalAlignment.Stretch ? BoundsSize.Height : Math.Min(BoundsSize.Height, RequestedFullSize.Height));
+                var ConsumedWidth = Math.Min(MaxSizeIncludingMargin.Width, HorizontalAlignment == HorizontalAlignment.Stretch ? BoundsSize.Width : Math.Min(BoundsSize.Width, RequestedFullSize.Width));
+                var ConsumedHeight = Math.Min(MaxSizeIncludingMargin.Height, VerticalAlignment == VerticalAlignment.Stretch ? BoundsSize.Height : Math.Min(BoundsSize.Height, RequestedFullSize.Height));
                 if (ConsumedWidth <= 0 || ConsumedHeight <= 0)
                 {
                     RenderBounds = Rectangle.Empty;
@@ -4430,10 +4430,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 else
                 {
                     //  Account for cases where stretching horizontally or vertically would cause the bounds to exceed MaxWidth and/or MaxHeight
-                    HorizontalAlignment ActualHorizontalAlignment = ResolvedMaxWidth.HasValue && HorizontalAlignment == HorizontalAlignment.Stretch && AllocatedBounds.Width > ResolvedMaxWidth.Value + HorizontalMargin ?
+                    var ActualHorizontalAlignment = ResolvedMaxWidth.HasValue && HorizontalAlignment == HorizontalAlignment.Stretch && AllocatedBounds.Width > ResolvedMaxWidth.Value + HorizontalMargin ?
                         HorizontalAlignment.Center :
                         HorizontalAlignment;
-                    VerticalAlignment ActualVerticalAlignment = ResolvedMaxHeight.HasValue && VerticalAlignment == VerticalAlignment.Stretch && AllocatedBounds.Height > ResolvedMaxHeight.Value + VerticalMargin ?
+                    var ActualVerticalAlignment = ResolvedMaxHeight.HasValue && VerticalAlignment == VerticalAlignment.Stretch && AllocatedBounds.Height > ResolvedMaxHeight.Value + VerticalMargin ?
                         VerticalAlignment.Center :
                         VerticalAlignment;
 
@@ -4450,19 +4450,19 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     }
                     else
                     {
-                        Rectangle RemainingComponentBounds = LayoutBounds;
-                        foreach (MGComponentBase Component in Components)
+                        var RemainingComponentBounds = LayoutBounds;
+                        foreach (var Component in Components)
                         {
-                            Component.BaseElement.UpdateMeasurement(RemainingComponentBounds.Size, out _, out Thickness ComponentSize, out _, out _);
-                            Rectangle ComponentBounds = Component.Arrange(RemainingComponentBounds, ComponentSize);
+                            Component.BaseElement.UpdateMeasurement(RemainingComponentBounds.Size, out _, out var ComponentSize, out _, out _);
+                            var ComponentBounds = Component.Arrange(RemainingComponentBounds, ComponentSize);
                             Component.BaseElement.UpdateLayout(ComponentBounds);
 
-                            int Left = RemainingComponentBounds.Left;
-                            int Right = RemainingComponentBounds.Right;
-                            int Top = RemainingComponentBounds.Top;
-                            int Bottom = RemainingComponentBounds.Bottom;
+                            var Left = RemainingComponentBounds.Left;
+                            var Right = RemainingComponentBounds.Right;
+                            var Top = RemainingComponentBounds.Top;
+                            var Bottom = RemainingComponentBounds.Bottom;
 
-                            Thickness ConsumedSpace = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
+                            var ConsumedSpace = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
                             if (!Component.IsWidthSharedWithContent)
                             {
                                 Left += ConsumedSpace.Left;
@@ -4478,10 +4478,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                             RemainingComponentBounds = new(Left, Top, Right - Left, Bottom - Top);
                         }
 
-                        int ContentBoundsLeft = Math.Min(RenderBounds.Right, RenderBounds.Left + RequestedSelfSize.Left - SharedSize.Left);
-                        int ContentBoundsTop = Math.Min(RenderBounds.Bottom, RenderBounds.Top + RequestedSelfSize.Top - SharedSize.Top);
-                        int ContentBoundsRight = Math.Max(RenderBounds.Left, RenderBounds.Right - RequestedSelfSize.Right - SharedSize.Right);
-                        int ContentBoundsBottom = Math.Max(RenderBounds.Top, RenderBounds.Bottom - RequestedSelfSize.Bottom - SharedSize.Bottom);
+                        var ContentBoundsLeft = Math.Min(RenderBounds.Right, RenderBounds.Left + RequestedSelfSize.Left - SharedSize.Left);
+                        var ContentBoundsTop = Math.Min(RenderBounds.Bottom, RenderBounds.Top + RequestedSelfSize.Top - SharedSize.Top);
+                        var ContentBoundsRight = Math.Max(RenderBounds.Left, RenderBounds.Right - RequestedSelfSize.Right - SharedSize.Right);
+                        var ContentBoundsBottom = Math.Max(RenderBounds.Top, RenderBounds.Bottom - RequestedSelfSize.Bottom - SharedSize.Bottom);
 
                         StretchedContentBounds = new(ContentBoundsLeft, ContentBoundsTop,
                             Math.Max(0, ContentBoundsRight - ContentBoundsLeft), Math.Max(0, ContentBoundsBottom - ContentBoundsTop));
@@ -4568,7 +4568,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         // Reuse the cached sizes so parent containers can rearrange without remeasuring unchanged subtrees.
         if (RecentMeasurementsSelfOnly.Count > 0 && RecentMeasurementsFull.Count > 0)
         {
-            foreach (ElementMeasurement Self in RecentMeasurementsSelfOnly)
+            foreach (var Self in RecentMeasurementsSelfOnly)
             {
                 if (Self.AvailableSize == AvailableSize || 
                     (Self.IsAvailableSizeGreaterThanOrEqual(AvailableSize) && Self.IsRequestedSizeLessThanOrEqual(AvailableSize))) 
@@ -4577,7 +4577,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 {
                     selfMeasurement = Self;
 
-                    foreach (ElementMeasurement Full in RecentMeasurementsFull)
+                    foreach (var Full in RecentMeasurementsFull)
                     {
                         if (Full.AvailableSize == AvailableSize || (Full.IsAvailableSizeGreaterThanOrEqual(AvailableSize) && Full.IsRequestedSizeLessThanOrEqual(AvailableSize)))
                         {
@@ -4602,7 +4602,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     {
         if (CanCacheSelfMeasurement)
         {
-            foreach (ElementMeasurement Measurement in RecentMeasurementsSelfOnly)
+            foreach (var Measurement in RecentMeasurementsSelfOnly)
             {
                 if (Measurement.AvailableSize == AvailableSize || (Measurement.IsAvailableSizeGreaterThanOrEqual(AvailableSize) && Measurement.IsRequestedSizeLessThanOrEqual(AvailableSize)))
                 {
@@ -4639,7 +4639,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         AvailableSize = AvailableSize.AsZeroOrGreater();
 
-        if (TryGetCachedMeasurement(AvailableSize, out ElementMeasurement CachedSelfMeasurement, out ElementMeasurement CachedFullMeasurement))
+        if (TryGetCachedMeasurement(AvailableSize, out var CachedSelfMeasurement, out var CachedFullMeasurement))
         {
             selfSize = CachedSelfMeasurement.RequestedSize;
             fullSize = CachedFullMeasurement.RequestedSize;
@@ -4649,8 +4649,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         //  Truncate the available size based on this element's MaxSize and preferred width/height
-        int? actualPreferredWidth = IgnorePreferredWidthDuringMeasure ? null : ActualPreferredWidth;
-        int? actualPreferredHeight = IgnorePreferredHeightDuringMeasure ? null : ActualPreferredHeight;
+        var actualPreferredWidth = IgnorePreferredWidthDuringMeasure ? null : ActualPreferredWidth;
+        var actualPreferredHeight = IgnorePreferredHeightDuringMeasure ? null : ActualPreferredHeight;
 
         Size RemainingSize = new(
             Math.Clamp(AvailableSize.Width, 0, Math.Min(actualPreferredWidth ?? int.MaxValue, MaxSizeIncludingMargin.Width)), 
@@ -4664,7 +4664,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             CacheSelfMeasurement(SelfMeasurement);
         }
 
-        Thickness UnsharedSelfSize = selfSize.Subtract(sharedSize);
+        var UnsharedSelfSize = selfSize.Subtract(sharedSize);
         RemainingSize = RemainingSize.Subtract(UnsharedSelfSize.Size, 0, 0);
 
         contentSize = UpdateContentMeasurement(RemainingSize);
@@ -4711,13 +4711,13 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         Thickness Total = new(0);
-        Size RemainingSize = AvailableSize;
+        var RemainingSize = AvailableSize;
 
-        Thickness MarginAndPadding = ResolvedMargin.Add(ResolvedPadding);
+        var MarginAndPadding = ResolvedMargin.Add(ResolvedPadding);
         Total = Total.Add(MarginAndPadding);
         RemainingSize = RemainingSize.Subtract(MarginSize, 0, 0);
 
-        Thickness Overridden = MeasureSelfOverride(RemainingSize, out sharedSize);
+        var Overridden = MeasureSelfOverride(RemainingSize, out sharedSize);
         Total = Total.Add(Overridden);
         RemainingSize = RemainingSize.Subtract(Overridden.Size, 0, 0);
 
@@ -4727,14 +4727,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         //   See the TODO comment near the top of this file for the full description.
         Thickness MaxSharedComponentSize = new(0);  // element-wise MAX of all shared-with-content component dimensions
         Thickness UnsharedComponentSum = new(0);    // SUM of component dimensions that are NOT shared with content
-        foreach (MGComponentBase Component in Components)
+        foreach (var Component in Components)
         {
-            Size RemainingSizeForComponent = Component.UsesOwnersPadding ? RemainingSize.Subtract(PaddingSize, 0, 0) : RemainingSize;
+            var RemainingSizeForComponent = Component.UsesOwnersPadding ? RemainingSize.Subtract(PaddingSize, 0, 0) : RemainingSize;
 
-            MGElement Element = Component.BaseElement;
-            Element.UpdateMeasurement(RemainingSizeForComponent, out _, out Thickness ComponentSize, out _, out _);
+            var Element = Component.BaseElement;
+            Element.UpdateMeasurement(RemainingSizeForComponent, out _, out var ComponentSize, out _, out _);
 
-            Thickness ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
+            var ActualComponentSize = Component.ConsumesAnySpace ? Component.Arrange(ComponentSize) : new(0);
             Thickness ComponentSharedSize = new(
                 Component.IsWidthSharedWithContent ? ActualComponentSize.Left : 0,
                 Component.IsHeightSharedWithContent ? ActualComponentSize.Top : 0,
@@ -4763,7 +4763,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         // (used by outer measurement to compute Max(SharedSize, ContentSize))
         sharedSize = sharedSize.Add(MaxSharedComponentSize);
         // Total component contribution = unshared sum + max-shared
-        Thickness TotalComponentSize = UnsharedComponentSum.Add(MaxSharedComponentSize);
+        var TotalComponentSize = UnsharedComponentSum.Add(MaxSharedComponentSize);
         Total = Total.Add(TotalComponentSize);
 
         if (Total.Width <= 0 && Total.Height <= 0)
@@ -4811,9 +4811,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     return _vtcCacheActiveOnly;
                 }
 
-                IEnumerable<MGElement> children = GetChildren();
+                var children = GetChildren();
                 List<MGElement> result = new();
-                foreach (MGElement Child in children)
+                foreach (var Child in children)
                 {
                     result.Add(Child);
                 }
@@ -4824,7 +4824,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             // (true, true) — include inactive + active; not cached per-frame because inactive set
             // may change without a _Children mutation (e.g. tab-selection changes).
-            IEnumerable<MGElement> allChildren = GetChildren();
+            var allChildren = GetChildren();
             if (allChildren is IReadOnlyList<MGElement> arl)
             {
                 return arl;
@@ -4836,7 +4836,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             }
 
             List<MGElement> allResult = new();
-            foreach (MGElement Child in allChildren)
+            foreach (var Child in allChildren)
             {
                 allResult.Add(Child);
             }
@@ -4892,7 +4892,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// or if this <see cref="MGElement"/> is a parent of the given <paramref name="Element"/> anywhere along the visual tree (does not need to be the immediate parent)</summary>
     public bool IsSelfOrAncestorOf(MGElement Element)
     {
-        MGElement Current = Element;
+        var Current = Element;
 
         while (Current != null)
         {
@@ -4929,9 +4929,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             if (includeComponents)
             {
-                foreach (MGComponentBase Component in Components)
+                foreach (var Component in Components)
                 {
-                    foreach (T Item in Component.BaseElement.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
+                    foreach (var Item in Component.BaseElement.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
                     {
                         yield return Item;
                     }
@@ -4940,7 +4940,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             if (includeToolTips && ToolTip != null)
             {
-                foreach (T Item in ToolTip.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
+                foreach (var Item in ToolTip.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
                 {
                     yield return Item;
                 }
@@ -4948,16 +4948,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             if (includeContextMenus && ContextMenu != null)
             {
-                foreach (T Item in ContextMenu.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
+                foreach (var Item in ContextMenu.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
                 {
                     yield return Item;
                 }
             }
         }
 
-        foreach (MGElement Child in GetVisualTreeChildren(true, true))
+        foreach (var Child in GetVisualTreeChildren(true, true))
         {
-            foreach (T Item in Child.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
+            foreach (var Item in Child.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
             {
                 yield return Item;
             }
@@ -4967,9 +4967,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (includeComponents)
             {
-                foreach (MGComponentBase Component in Components)
+                foreach (var Component in Components)
                 {
-                    foreach (T Item in Component.BaseElement.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
+                    foreach (var Item in Component.BaseElement.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
                     {
                         yield return Item;
                     }
@@ -4978,7 +4978,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             if (includeToolTips && ToolTip != null)
             {
-                foreach (T Item in ToolTip.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
+                foreach (var Item in ToolTip.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
                 {
                     yield return Item;
                 }
@@ -4986,7 +4986,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             if (includeContextMenus && ContextMenu != null)
             {
-                foreach (T Item in ContextMenu.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
+                foreach (var Item in ContextMenu.TraverseVisualTree<T>(true, includeComponents, includeToolTips, includeContextMenus, traversalMode))
                 {
                     yield return Item;
                 }

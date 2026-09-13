@@ -18,13 +18,13 @@ public static class ThemeDefinitionBuilder
             throw new ArgumentNullException(nameof(Definition));
         }
 
-        string FontFamily = Definition.FontSettings?.DefaultFontFamily ?? BaseTheme?.FontSettings?.DefaultFontFamily ?? DefaultFontFamily;
+        var FontFamily = Definition.FontSettings?.DefaultFontFamily ?? BaseTheme?.FontSettings?.DefaultFontFamily ?? DefaultFontFamily;
         if (string.IsNullOrWhiteSpace(FontFamily))
         {
             throw new InvalidOperationException($"A {nameof(ThemeDefinition)} requires a default font family either from the definition, the base theme, or the caller.");
         }
 
-        MGTheme Result = BaseTheme?.Copy() ?? MGTheme.CreateEmpty(FontFamily);
+        var Result = BaseTheme?.Copy() ?? MGTheme.CreateEmpty(FontFamily);
         Apply(Result, Definition, FontFamily);
         return Result;
     }
@@ -111,7 +111,7 @@ public static class ThemeDefinitionBuilder
             return Current;
         }
 
-        if (!AnimationXamlParser.TryParseDuration(Value, out TimeSpan Duration))
+        if (!AnimationXamlParser.TryParseDuration(Value, out var Duration))
         {
             throw new InvalidOperationException($"Cannot convert '{Value}' to a duration for Animation.{Name}: use seconds ('0.15'), milliseconds ('150ms') or a TimeSpan ('0:0:0.15').");
         }
@@ -154,14 +154,14 @@ public static class ThemeDefinitionBuilder
             return;
         }
 
-        foreach (ThemeControlTemplateDefinition Definition in Definitions)
+        foreach (var Definition in Definitions)
         {
             if (Definition == null || string.IsNullOrWhiteSpace(Definition.TemplateName))
             {
                 continue;
             }
 
-            bool hasTarget = false;
+            var hasTarget = false;
 
             if (Definition.ElementType.HasValue)
             {
@@ -184,14 +184,14 @@ public static class ThemeDefinitionBuilder
 
     private static Type ResolveControlType(string controlTypeName)
     {
-        Type exactType = Type.GetType(controlTypeName, throwOnError: false);
+        var exactType = Type.GetType(controlTypeName, throwOnError: false);
         if (exactType != null)
         {
             ValidateControlType(exactType, controlTypeName);
             return exactType;
         }
 
-        List<Type> matches = AppDomain.CurrentDomain.GetAssemblies()
+        var matches = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(GetLoadableTypes)
             .Where(type => type != null
                            && !type.IsAbstract
@@ -254,7 +254,7 @@ public static class ThemeDefinitionBuilder
         if (Definition.UseExactScale.HasValue)
             Theme.FontSettings.UseExactScale = Definition.UseExactScale.Value;
 
-        string FontFamily = Definition.DefaultFontFamily ?? DefaultFontFamily;
+        var FontFamily = Definition.DefaultFontFamily ?? DefaultFontFamily;
         if (!string.IsNullOrWhiteSpace(FontFamily))
         {
             Theme.FontSettings.DefaultFontFamily = FontFamily;
@@ -278,14 +278,14 @@ public static class ThemeDefinitionBuilder
             return;
         }
 
-        foreach (ThemeBackgroundDefinition Definition in Definitions)
+        foreach (var Definition in Definitions)
         {
             if (Definition?.Value == null)
             {
                 continue;
             }
 
-            VisualStateFillBrush Current = Theme.GetBackgroundBrush(Definition.ElementType);
+            var Current = Theme.GetBackgroundBrush(Definition.ElementType);
             Theme.SetBackgroundBrush(Definition.ElementType, ApplyVisualStateFillBrush(Definition.Value, Current));
         }
     }
@@ -560,7 +560,7 @@ public static class ThemeDefinitionBuilder
             return;
         }
 
-        foreach (ThemePropertyDefinition Definition in Definitions)
+        foreach (var Definition in Definitions)
         {
             if (Definition == null)
             {
@@ -608,7 +608,7 @@ public static class ThemeDefinitionBuilder
                     if (Definition.FillBrushes?.Count > 0)
                     {
                         Theme.ListBoxItemAlternatingRowBackgrounds.Clear();
-                        foreach (FillBrush Brush in Definition.FillBrushes)
+                        foreach (var Brush in Definition.FillBrushes)
                         {
                             Theme.ListBoxItemAlternatingRowBackgrounds.Add(new ThemeManagedFillBrush(ToFillBrush(Brush)));
                         }
@@ -759,7 +759,7 @@ public static class ThemeDefinitionBuilder
             return Current;
         }
 
-        VisualStateSetting<Color?> Result = Current?.GetCopy() ?? new VisualStateSetting<Color?>(null, null, null, null);
+        var Result = Current?.GetCopy() ?? new VisualStateSetting<Color?>(null, null, null, null);
         if (Current == null && Definition.NormalValue.HasValue)
         {
             Result.SetAll(Definition.NormalValue.Value.ToXNAColor());
@@ -773,7 +773,7 @@ public static class ThemeDefinitionBuilder
 
     private static VisualStateSetting<Color?> ApplyColorSetting(ThemeVisualStateColorSettingDefinition Definition, VisualStateSetting<Color?> Current)
     {
-        VisualStateSetting<Color?> Result = Current?.GetCopy() ?? new VisualStateSetting<Color?>(null, null, null, null);
+        var Result = Current?.GetCopy() ?? new VisualStateSetting<Color?>(null, null, null, null);
         if (Current == null && Definition.NormalValue.HasValue)
         {
             Result.SetAll(Definition.NormalValue.Value.ToXNAColor());
@@ -787,10 +787,10 @@ public static class ThemeDefinitionBuilder
 
     private static VisualStateFillBrush ApplyVisualStateFillBrush(ThemeVisualStateFillBrushDefinition Definition, VisualStateFillBrush Current)
     {
-        VisualStateFillBrush Result = Current?.Copy() ?? new VisualStateFillBrush((IFillBrush)null);
+        var Result = Current?.Copy() ?? new VisualStateFillBrush((IFillBrush)null);
         if (Current == null && Definition.NormalValue != null)
         {
-            IFillBrush NormalBrush = ToFillBrush(Definition.NormalValue);
+            var NormalBrush = ToFillBrush(Definition.NormalValue);
             Result.SetAll(NormalBrush);
         }
         if (Definition.NormalValue != null) Result.NormalValue = ToFillBrush(Definition.NormalValue);
@@ -814,7 +814,7 @@ public static class ThemeDefinitionBuilder
 
     private static VisualStateColorBrush ApplyVisualStateColorBrush(ThemeVisualStateColorBrushDefinition Definition, VisualStateColorBrush Current)
     {
-        VisualStateColorBrush Result = Current?.Copy() ?? new VisualStateColorBrush(default(Color));
+        var Result = Current?.Copy() ?? new VisualStateColorBrush(default(Color));
         if ((Current == null || HasUnsetColorStates(Current)) && Definition.NormalValue.HasValue)
         {
             Result.SetAll(Definition.NormalValue.Value.ToXNAColor());

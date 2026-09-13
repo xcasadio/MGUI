@@ -43,7 +43,7 @@ public sealed class MGRichTextCompletionPopupController
             return false;
         }
 
-        int nextIndex = SelectedIndex + delta;
+        var nextIndex = SelectedIndex + delta;
         if (nextIndex < 0)
         {
             nextIndex = 0;

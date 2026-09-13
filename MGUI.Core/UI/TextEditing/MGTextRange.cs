@@ -14,9 +14,9 @@ public readonly record struct MGTextRange(int Index1, int Index2)
 
     public MGTextRange Clamp(int textLength)
     {
-        int actualLength = Math.Max(0, textLength);
-        int startIndex = Math.Clamp(StartIndex, 0, actualLength);
-        int endIndex = Math.Clamp(EndIndex, startIndex, actualLength);
+        var actualLength = Math.Max(0, textLength);
+        var startIndex = Math.Clamp(StartIndex, 0, actualLength);
+        var endIndex = Math.Clamp(EndIndex, startIndex, actualLength);
         return new(startIndex, endIndex);
     }
 

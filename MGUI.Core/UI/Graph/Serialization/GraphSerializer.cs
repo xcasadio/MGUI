@@ -31,7 +31,7 @@ public sealed class GraphSerializer
             return GraphSerializationResult.Failed("Graph document is required.");
         }
 
-        string json = JsonSerializer.Serialize(ToDto(document), JsonOptions);
+        var json = JsonSerializer.Serialize(ToDto(document), JsonOptions);
         return GraphSerializationResult.FromJson(json);
     }
 
@@ -44,13 +44,13 @@ public sealed class GraphSerializer
 
         try
         {
-            GraphDocumentDto dto = JsonSerializer.Deserialize<GraphDocumentDto>(json, JsonOptions);
+            var dto = JsonSerializer.Deserialize<GraphDocumentDto>(json, JsonOptions);
             if (dto == null)
             {
                 return GraphSerializationResult.Failed("Graph JSON did not contain a document.");
             }
 
-            GraphSerializationResult result = GraphSerializationResult.FromDocument(MigrationService.Migrate(FromDto(dto), null));
+            var result = GraphSerializationResult.FromDocument(MigrationService.Migrate(FromDto(dto), null));
             MigrationService.Migrate(result.Document, result.Diagnostics);
             result.Success = result.Document != null;
             return result;
@@ -74,9 +74,9 @@ public sealed class GraphSerializer
             EditorMetadata = Copy(document.EditorMetadata),
         };
 
-        for (int nodeIndex = 0; nodeIndex < document.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < document.Nodes.Count; nodeIndex++)
         {
-            GraphNodeModel node = document.Nodes[nodeIndex];
+            var node = document.Nodes[nodeIndex];
             GraphNodeDto nodeDto = new()
             {
                 Id = node.Id,
@@ -91,9 +91,9 @@ public sealed class GraphSerializer
                 EditorMetadata = Copy(node.EditorMetadata),
             };
 
-            for (int portIndex = 0; portIndex < node.Ports.Count; portIndex++)
+            for (var portIndex = 0; portIndex < node.Ports.Count; portIndex++)
             {
-                GraphPortModel port = node.Ports[portIndex];
+                var port = node.Ports[portIndex];
                 nodeDto.Ports.Add(new GraphPortDto
                 {
                     Id = port.Id,
@@ -112,9 +112,9 @@ public sealed class GraphSerializer
             dto.Nodes.Add(nodeDto);
         }
 
-        for (int edgeIndex = 0; edgeIndex < document.Edges.Count; edgeIndex++)
+        for (var edgeIndex = 0; edgeIndex < document.Edges.Count; edgeIndex++)
         {
-            GraphEdgeModel edge = document.Edges[edgeIndex];
+            var edge = document.Edges[edgeIndex];
             dto.Edges.Add(new GraphEdgeDto
             {
                 Id = edge.Id,
@@ -126,9 +126,9 @@ public sealed class GraphSerializer
             });
         }
 
-        for (int commentIndex = 0; commentIndex < document.Comments.Count; commentIndex++)
+        for (var commentIndex = 0; commentIndex < document.Comments.Count; commentIndex++)
         {
-            GraphCommentModel comment = document.Comments[commentIndex];
+            var comment = document.Comments[commentIndex];
             GraphCommentDto commentDto = new()
             {
                 Id = comment.Id,
@@ -143,7 +143,7 @@ public sealed class GraphSerializer
 
             if (comment.Color.HasValue)
             {
-                Color color = comment.Color.Value;
+                var color = comment.Color.Value;
                 commentDto.HasColor = true;
                 commentDto.ColorR = color.R;
                 commentDto.ColorG = color.G;
@@ -166,9 +166,9 @@ public sealed class GraphSerializer
             EditorMetadata = Copy(dto.EditorMetadata),
         };
 
-        for (int nodeIndex = 0; nodeIndex < dto.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < dto.Nodes.Count; nodeIndex++)
         {
-            GraphNodeDto nodeDto = dto.Nodes[nodeIndex];
+            var nodeDto = dto.Nodes[nodeIndex];
             GraphNodeModel node = new(nodeDto.Id, nodeDto.NodeType, nodeDto.Title, new Vector2(nodeDto.X, nodeDto.Y))
             {
                 Size = nodeDto.Width.HasValue && nodeDto.Height.HasValue ? new Vector2(nodeDto.Width.Value, nodeDto.Height.Value) : null,
@@ -177,9 +177,9 @@ public sealed class GraphSerializer
                 EditorMetadata = Copy(nodeDto.EditorMetadata),
             };
 
-            for (int portIndex = 0; portIndex < nodeDto.Ports.Count; portIndex++)
+            for (var portIndex = 0; portIndex < nodeDto.Ports.Count; portIndex++)
             {
-                GraphPortDto portDto = nodeDto.Ports[portIndex];
+                var portDto = nodeDto.Ports[portIndex];
                 node.Ports.Add(new GraphPortModel(portDto.NodeId == Guid.Empty ? node.Id : portDto.NodeId, portDto.Id, portDto.Name, portDto.Direction, portDto.ValueType, portDto.Cardinality, portDto.IsRequired)
                 {
                     DefaultValue = portDto.DefaultValue,
@@ -191,18 +191,18 @@ public sealed class GraphSerializer
             document.AddNode(node);
         }
 
-        for (int edgeIndex = 0; edgeIndex < dto.Edges.Count; edgeIndex++)
+        for (var edgeIndex = 0; edgeIndex < dto.Edges.Count; edgeIndex++)
         {
-            GraphEdgeDto edgeDto = dto.Edges[edgeIndex];
+            var edgeDto = dto.Edges[edgeIndex];
             document.AddEdge(new GraphEdgeModel(edgeDto.Id, edgeDto.SourceNodeId, edgeDto.SourcePortId, edgeDto.TargetNodeId, edgeDto.TargetPortId)
             {
                 RenderMetadata = Copy(edgeDto.RenderMetadata),
             }, validate: false);
         }
 
-        for (int commentIndex = 0; commentIndex < dto.Comments.Count; commentIndex++)
+        for (var commentIndex = 0; commentIndex < dto.Comments.Count; commentIndex++)
         {
-            GraphCommentDto commentDto = dto.Comments[commentIndex];
+            var commentDto = dto.Comments[commentIndex];
             GraphCommentModel comment = new(commentDto.Id, new Rectangle(commentDto.X, commentDto.Y, commentDto.Width, commentDto.Height), commentDto.Title, commentDto.Text)
             {
                 EditorMetadata = Copy(commentDto.EditorMetadata),

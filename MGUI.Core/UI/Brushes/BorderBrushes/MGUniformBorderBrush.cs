@@ -68,7 +68,7 @@ public readonly struct MGUniformBorderBrush : IBorderBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        Thickness borderThickness = Shape.NormalizedBorderThickness;
+        var borderThickness = Shape.NormalizedBorderThickness;
         if (borderThickness.IsEmpty())
         {
             return;

@@ -27,15 +27,15 @@ public class MGPolygon : MGPolyline
             return;
         }
 
-        MGPointShapePlacement placement = GetPlacement(layoutBounds);
-        Vector2 origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
-        Color strokeColor = Stroke * DA.Opacity;
-        bool hasSolidFill = TryGetSolidFillColor(DA.Opacity, out Color fillColor);
-        bool hasBrushFill = HasVisibleFill && !hasSolidFill;
+        var placement = GetPlacement(layoutBounds);
+        var origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
+        var strokeColor = Stroke * DA.Opacity;
+        var hasSolidFill = TryGetSolidFillColor(DA.Opacity, out var fillColor);
+        var hasBrushFill = HasVisibleFill && !hasSolidFill;
 
         if (hasBrushFill)
         {
-            ClipGeometry clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, origin);
+            var clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, origin);
             DrawClippedFillBrush(DA, placement.Bounds,
                 CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), clipGeometry, $"{ElementType}.Fill", allowRectangleFallback: true));
         }
@@ -50,7 +50,7 @@ public class MGPolygon : MGPolyline
         }
         else if (HasVisibleStroke)
         {
-            for (int i = 0; i < NormalizedPoints.Length; i++)
+            for (var i = 0; i < NormalizedPoints.Length; i++)
             {
                 DA.Context.StrokeLineSegment(origin, NormalizedPoints[i], NormalizedPoints[(i + 1) % NormalizedPoints.Length], strokeColor, StrokeThickness);
             }
@@ -64,9 +64,9 @@ public class MGPolygon : MGPolyline
             return false;
         }
 
-        MGPointShapePlacement placement = GetPlacement(LayoutBounds);
-        Vector2 layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
-        Vector2 localPoint = layoutPoint - placement.GeometryOrigin;
+        var placement = GetPlacement(LayoutBounds);
+        var layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
+        var localPoint = layoutPoint - placement.GeometryOrigin;
 
         if (HasVisibleFill && MGVectorShapeHelper.IsPointInPolygon(NormalizedPoints, localPoint))
         {
@@ -83,13 +83,13 @@ public class MGPolygon : MGPolyline
             return null;
         }
 
-        MGPointShapePlacement placement = GetPlacement(layoutBounds);
+        var placement = GetPlacement(layoutBounds);
         if (NormalizedPoints.Length < 3)
         {
             return CreateRectangleClipDefinition(TransformClipBounds(DA, placement.Bounds), $"{ElementType}.Self");
         }
 
-        ClipGeometry geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, DA.Offset.ToVector2() + placement.GeometryOrigin);
+        var geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, DA.Offset.ToVector2() + placement.GeometryOrigin);
         return CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true);
     }
 }

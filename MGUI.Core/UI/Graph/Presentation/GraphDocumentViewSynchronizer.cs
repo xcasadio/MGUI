@@ -36,13 +36,13 @@ internal sealed class GraphDocumentViewSynchronizer
         RemoveMissingNodes(modelNodeIds);
         RemoveMissingComments(modelCommentIds);
 
-        RectangleF worldViewport = GraphView.GetCullingWorldViewport();
+        var worldViewport = GraphView.GetCullingWorldViewport();
         GraphCullingDiagnostics diagnostics = new();
 
-        for (int commentIndex = 0; commentIndex < GraphView.Document.Comments.Count; commentIndex++)
+        for (var commentIndex = 0; commentIndex < GraphView.Document.Comments.Count; commentIndex++)
         {
-            GraphCommentModel comment = GraphView.Document.Comments[commentIndex];
-            bool isVisible = !GraphView.EnableViewportCulling || GraphView.CullingService.IsCommentVisible(comment, worldViewport);
+            var comment = GraphView.Document.Comments[commentIndex];
+            var isVisible = !GraphView.EnableViewportCulling || GraphView.CullingService.IsCommentVisible(comment, worldViewport);
             if (isVisible)
             {
                 diagnostics.CommentsVisible++;
@@ -55,10 +55,10 @@ internal sealed class GraphDocumentViewSynchronizer
             }
         }
 
-        for (int nodeIndex = 0; nodeIndex < GraphView.Document.Nodes.Count; nodeIndex++)
+        for (var nodeIndex = 0; nodeIndex < GraphView.Document.Nodes.Count; nodeIndex++)
         {
-            GraphNodeModel node = GraphView.Document.Nodes[nodeIndex];
-            bool isVisible = !GraphView.EnableViewportCulling || GraphView.CullingService.IsNodeVisible(node, worldViewport);
+            var node = GraphView.Document.Nodes[nodeIndex];
+            var isVisible = !GraphView.EnableViewportCulling || GraphView.CullingService.IsNodeVisible(node, worldViewport);
             if (isVisible)
             {
                 diagnostics.NodesVisible++;
@@ -76,7 +76,7 @@ internal sealed class GraphDocumentViewSynchronizer
 
     private void RemoveMissingNodes(HashSet<Guid> modelNodeIds)
     {
-        List<Guid> missingNodeIds = NodesById.Keys.Where(nodeId => !modelNodeIds.Contains(nodeId)).ToList();
+        var missingNodeIds = NodesById.Keys.Where(nodeId => !modelNodeIds.Contains(nodeId)).ToList();
         if (missingNodeIds.Count == 0)
         {
             return;
@@ -84,10 +84,10 @@ internal sealed class GraphDocumentViewSynchronizer
 
         using (GraphView.NodesCanvas.AllowChangingContentTemporarily())
         {
-            for (int missingIndex = 0; missingIndex < missingNodeIds.Count; missingIndex++)
+            for (var missingIndex = 0; missingIndex < missingNodeIds.Count; missingIndex++)
             {
-                Guid nodeId = missingNodeIds[missingIndex];
-                if (NodesById.TryGetValue(nodeId, out MGGraphNode node))
+                var nodeId = missingNodeIds[missingIndex];
+                if (NodesById.TryGetValue(nodeId, out var node))
                 {
                     GraphView.NodesCanvas.TryRemoveChild(node);
                     NodesById.Remove(nodeId);
@@ -95,7 +95,7 @@ internal sealed class GraphDocumentViewSynchronizer
             }
         }
 
-        foreach (Guid portId in PortsById.Where(item => !NodesById.ContainsKey(item.Value.Model?.NodeId ?? Guid.Empty)).Select(item => item.Key).ToList())
+        foreach (var portId in PortsById.Where(item => !NodesById.ContainsKey(item.Value.Model?.NodeId ?? Guid.Empty)).Select(item => item.Key).ToList())
         {
             PortsById.Remove(portId);
         }
@@ -103,7 +103,7 @@ internal sealed class GraphDocumentViewSynchronizer
 
     private void RemoveMissingComments(HashSet<Guid> modelCommentIds)
     {
-        List<Guid> missingCommentIds = CommentsById.Keys.Where(commentId => !modelCommentIds.Contains(commentId)).ToList();
+        var missingCommentIds = CommentsById.Keys.Where(commentId => !modelCommentIds.Contains(commentId)).ToList();
         if (missingCommentIds.Count == 0)
         {
             return;
@@ -111,10 +111,10 @@ internal sealed class GraphDocumentViewSynchronizer
 
         using (GraphView.NodesCanvas.AllowChangingContentTemporarily())
         {
-            for (int missingIndex = 0; missingIndex < missingCommentIds.Count; missingIndex++)
+            for (var missingIndex = 0; missingIndex < missingCommentIds.Count; missingIndex++)
             {
-                Guid commentId = missingCommentIds[missingIndex];
-                if (CommentsById.TryGetValue(commentId, out MGGraphCommentBox commentBox))
+                var commentId = missingCommentIds[missingIndex];
+                if (CommentsById.TryGetValue(commentId, out var commentBox))
                 {
                     GraphView.NodesCanvas.TryRemoveChild(commentBox);
                     CommentsById.Remove(commentId);
@@ -130,7 +130,7 @@ internal sealed class GraphDocumentViewSynchronizer
             return;
         }
 
-        if (!CommentsById.TryGetValue(model.Id, out MGGraphCommentBox commentBox))
+        if (!CommentsById.TryGetValue(model.Id, out var commentBox))
         {
             commentBox = new MGGraphCommentBox(GraphView.SelfOrParentWindow, model);
             CommentsById[model.Id] = commentBox;
@@ -143,13 +143,13 @@ internal sealed class GraphDocumentViewSynchronizer
 
         commentBox.CommentId = model.Id;
         commentBox.Visibility = Visibility.Visible;
-        bool isEditingActiveComment = GraphView.EditingCommentId == model.Id && commentBox.IsEditing;
+        var isEditingActiveComment = GraphView.EditingCommentId == model.Id && commentBox.IsEditing;
         commentBox.Title = model.Title;
         commentBox.Text = !string.IsNullOrWhiteSpace(model.Text) ? model.Text : model.Title ?? string.Empty;
         commentBox.IsSelected = GraphView.SelectedCommentIds.Contains(model.Id);
         commentBox.ApplySelectionVisual();
         commentBox.ApplyZoomScale(GraphView.ViewportTransform.Zoom);
-        Rectangle normalizedBounds = isEditingActiveComment ? model.Bounds : GraphView.NormalizeCommentBoundsToContent(model, commentBox);
+        var normalizedBounds = isEditingActiveComment ? model.Bounds : GraphView.NormalizeCommentBoundsToContent(model, commentBox);
         if (normalizedBounds != model.Bounds)
         {
             model.Bounds = normalizedBounds;
@@ -158,7 +158,7 @@ internal sealed class GraphDocumentViewSynchronizer
         commentBox.PreferredWidth = Math.Max(1, (int)MathF.Round(normalizedBounds.Width * GraphView.ViewportTransform.Zoom));
         commentBox.PreferredHeight = Math.Max(1, (int)MathF.Round(normalizedBounds.Height * GraphView.ViewportTransform.Zoom));
 
-        Vector2 layoutPosition = GraphView.ViewportTransform.WorldToLayout(new Vector2(normalizedBounds.X, normalizedBounds.Y));
+        var layoutPosition = GraphView.ViewportTransform.WorldToLayout(new Vector2(normalizedBounds.X, normalizedBounds.Y));
         MGCanvas.SetLeft(commentBox, (int)MathF.Round(layoutPosition.X));
         MGCanvas.SetTop(commentBox, (int)MathF.Round(layoutPosition.Y));
     }
@@ -170,7 +170,7 @@ internal sealed class GraphDocumentViewSynchronizer
             return;
         }
 
-        if (!NodesById.TryGetValue(model.Id, out MGGraphNode node))
+        if (!NodesById.TryGetValue(model.Id, out var node))
         {
             node = new MGGraphNode(GraphView.SelfOrParentWindow, model);
             NodesById[model.Id] = node;
@@ -190,7 +190,7 @@ internal sealed class GraphDocumentViewSynchronizer
 
         SynchronizePorts(node, model);
 
-        float zoom = Math.Max(0.01f, GraphView.ViewportTransform.Zoom);
+        var zoom = Math.Max(0.01f, GraphView.ViewportTransform.Zoom);
         node.ApplyZoomScale(zoom);
 
         if (model.Size.HasValue)
@@ -203,9 +203,9 @@ internal sealed class GraphDocumentViewSynchronizer
         {
             node.PreferredWidth = null;
             node.PreferredHeight = null;
-            node.UpdateMeasurement(AutoMeasureSize, out _, out Thickness fullSize, out _, out _);
-            int desiredWidth = Math.Max(1, fullSize.Width);
-            int desiredHeight = Math.Max(1, fullSize.Height);
+            node.UpdateMeasurement(AutoMeasureSize, out _, out var fullSize, out _, out _);
+            var desiredWidth = Math.Max(1, fullSize.Width);
+            var desiredHeight = Math.Max(1, fullSize.Height);
             node.PreferredWidth = desiredWidth;
             node.PreferredHeight = desiredHeight;
             GraphSelectionManager.SetAutoMeasuredWorldSize(model, new Vector2(desiredWidth / zoom, desiredHeight / zoom));
@@ -213,7 +213,7 @@ internal sealed class GraphDocumentViewSynchronizer
 
         GraphView.RegisterGraphNode(node);
 
-        Vector2 layoutPosition = GraphView.ViewportTransform.WorldToLayout(model.Position);
+        var layoutPosition = GraphView.ViewportTransform.WorldToLayout(model.Position);
         MGCanvas.SetLeft(node, (int)MathF.Round(layoutPosition.X));
         MGCanvas.SetTop(node, (int)MathF.Round(layoutPosition.Y));
     }
@@ -221,7 +221,7 @@ internal sealed class GraphDocumentViewSynchronizer
     private void SynchronizePorts(MGGraphNode node, GraphNodeModel model)
     {
         HashSet<Guid> modelPortIds = new(model.Ports.Select(port => port.Id));
-        List<Guid> removedPortIds = PortsById
+        var removedPortIds = PortsById
             .Where(item => item.Value?.Model?.NodeId == model.Id && !modelPortIds.Contains(item.Key))
             .Select(item => item.Key)
             .ToList();
@@ -231,7 +231,7 @@ internal sealed class GraphDocumentViewSynchronizer
 
         using (node.PortsPanel.AllowChangingContentTemporarily())
         {
-            for (int removeIndex = 0; removeIndex < removedPortIds.Count; removeIndex++)
+            for (var removeIndex = 0; removeIndex < removedPortIds.Count; removeIndex++)
             {
                 PortsById.Remove(removedPortIds[removeIndex]);
             }
@@ -242,15 +242,15 @@ internal sealed class GraphDocumentViewSynchronizer
                 node.PortsPanel.RemoveRow(node.PortsPanel.Rows[^1]);
             }
 
-            for (int portIndex = 0; portIndex < model.Ports.Count; portIndex++)
+            for (var portIndex = 0; portIndex < model.Ports.Count; portIndex++)
             {
-                GraphPortModel portModel = model.Ports[portIndex];
+                var portModel = model.Ports[portIndex];
                 if (portModel == null || portModel.Id == Guid.Empty)
                 {
                     continue;
                 }
 
-                if (!PortsById.TryGetValue(portModel.Id, out MGGraphPort port))
+                if (!PortsById.TryGetValue(portModel.Id, out var port))
                 {
                     port = new MGGraphPort(GraphView.SelfOrParentWindow, portModel);
                     PortsById[portModel.Id] = port;
@@ -275,16 +275,16 @@ internal sealed class GraphDocumentViewSynchronizer
                 }
             }
 
-            int rowCount = Math.Max(inputPorts.Count, outputPorts.Count);
-            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
+            var rowCount = Math.Max(inputPorts.Count, outputPorts.Count);
+            for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
             {
-                RowDefinition row = node.PortsPanel.AddRow(GridLength.Auto);
-                if (rowIndex < inputPorts.Count && PortsById.TryGetValue(inputPorts[rowIndex].Id, out MGGraphPort inputPort))
+                var row = node.PortsPanel.AddRow(GridLength.Auto);
+                if (rowIndex < inputPorts.Count && PortsById.TryGetValue(inputPorts[rowIndex].Id, out var inputPort))
                 {
                     node.PortsPanel.TryAddChild(row, node.PortsPanel.Columns[0], inputPort);
                 }
 
-                if (rowIndex < outputPorts.Count && PortsById.TryGetValue(outputPorts[rowIndex].Id, out MGGraphPort outputPort))
+                if (rowIndex < outputPorts.Count && PortsById.TryGetValue(outputPorts[rowIndex].Id, out var outputPort))
                 {
                     node.PortsPanel.TryAddChild(row, node.PortsPanel.Columns[1], outputPort);
                 }
@@ -294,7 +294,7 @@ internal sealed class GraphDocumentViewSynchronizer
 
     private void SetNodeVisibility(Guid nodeId, Visibility visibility)
     {
-        if (nodeId != Guid.Empty && NodesById.TryGetValue(nodeId, out MGGraphNode node))
+        if (nodeId != Guid.Empty && NodesById.TryGetValue(nodeId, out var node))
         {
             node.Visibility = visibility;
         }
@@ -302,7 +302,7 @@ internal sealed class GraphDocumentViewSynchronizer
 
     private void SetCommentVisibility(Guid commentId, Visibility visibility)
     {
-        if (commentId != Guid.Empty && CommentsById.TryGetValue(commentId, out MGGraphCommentBox commentBox))
+        if (commentId != Guid.Empty && CommentsById.TryGetValue(commentId, out var commentBox))
         {
             commentBox.Visibility = visibility;
         }
@@ -310,9 +310,9 @@ internal sealed class GraphDocumentViewSynchronizer
 
     private bool IsPortConnected(Guid portId)
     {
-        for (int edgeIndex = 0; edgeIndex < GraphView.Document.Edges.Count; edgeIndex++)
+        for (var edgeIndex = 0; edgeIndex < GraphView.Document.Edges.Count; edgeIndex++)
         {
-            GraphEdgeModel edge = GraphView.Document.Edges[edgeIndex];
+            var edge = GraphView.Document.Edges[edgeIndex];
             if (edge.SourcePortId == portId || edge.TargetPortId == portId)
             {
                 return true;
@@ -329,9 +329,9 @@ internal sealed class GraphDocumentViewSynchronizer
             return false;
         }
 
-        for (int keyIndex = 0; keyIndex < keys.Length; keyIndex++)
+        for (var keyIndex = 0; keyIndex < keys.Length; keyIndex++)
         {
-            if (metadata.TryGetValue(keys[keyIndex], out string value))
+            if (metadata.TryGetValue(keys[keyIndex], out var value))
             {
                 return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
                        || string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)

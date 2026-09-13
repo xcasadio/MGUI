@@ -6,7 +6,7 @@ public readonly record struct MGTextPosition(int Line, int Column) : IComparable
 
     public int CompareTo(MGTextPosition other)
     {
-        int lineComparison = Line.CompareTo(other.Line);
+        var lineComparison = Line.CompareTo(other.Line);
         return lineComparison != 0 ? lineComparison : Column.CompareTo(other.Column);
     }
 

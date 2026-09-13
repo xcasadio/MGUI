@@ -40,8 +40,8 @@ public class GraphCommandStack
             return false;
         }
 
-        int index = UndoStack.Count - 1;
-        IGraphCommand command = UndoStack[index];
+        var index = UndoStack.Count - 1;
+        var command = UndoStack[index];
         UndoStack.RemoveAt(index);
         if (!command.Undo(document))
         {
@@ -59,8 +59,8 @@ public class GraphCommandStack
             return false;
         }
 
-        int index = RedoStack.Count - 1;
-        IGraphCommand command = RedoStack[index];
+        var index = RedoStack.Count - 1;
+        var command = RedoStack[index];
         RedoStack.RemoveAt(index);
         if (!command.Execute(document))
         {

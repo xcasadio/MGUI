@@ -66,14 +66,14 @@ public class GraphViewportTransform
             return;
         }
 
-        Vector2 worldUnderCursor = ViewportToWorld(viewportPoint);
+        var worldUnderCursor = ViewportToWorld(viewportPoint);
         Zoom = Zoom * zoomFactor;
         Pan = viewportPoint - worldUnderCursor * Zoom;
     }
 
     public Vector2 SnapPoint(Vector2 worldPoint)
     {
-        float gridSize = GridSize;
+        var gridSize = GridSize;
         return new Vector2(
             MathF.Round(worldPoint.X / gridSize) * gridSize,
             MathF.Round(worldPoint.Y / gridSize) * gridSize);
@@ -93,8 +93,8 @@ public class GraphViewportTransform
             return;
         }
 
-        float availableWidth = Math.Max(1.0f, viewportBounds.Width - padding * 2.0f);
-        float availableHeight = Math.Max(1.0f, viewportBounds.Height - padding * 2.0f);
+        var availableWidth = Math.Max(1.0f, viewportBounds.Width - padding * 2.0f);
+        var availableHeight = Math.Max(1.0f, viewportBounds.Height - padding * 2.0f);
         Zoom = Math.Min(availableWidth / worldBounds.Width, availableHeight / worldBounds.Height);
 
         Vector2 viewportCenter = new(viewportBounds.X + viewportBounds.Width * 0.5f, viewportBounds.Y + viewportBounds.Height * 0.5f);
@@ -104,7 +104,7 @@ public class GraphViewportTransform
 
     public void FrameAll(IEnumerable<GraphNodeModel> nodes, Rectangle viewportBounds, float padding)
     {
-        if (!TryCreateNodeBounds(nodes, out RectangleF bounds))
+        if (!TryCreateNodeBounds(nodes, out var bounds))
         {
             FrameOrigin(viewportBounds);
             return;
@@ -121,24 +121,24 @@ public class GraphViewportTransform
             return false;
         }
 
-        bool hasAny = false;
-        float left = 0.0f;
-        float top = 0.0f;
-        float right = 0.0f;
-        float bottom = 0.0f;
+        var hasAny = false;
+        var left = 0.0f;
+        var top = 0.0f;
+        var right = 0.0f;
+        var bottom = 0.0f;
 
-        foreach (GraphNodeModel node in nodes)
+        foreach (var node in nodes)
         {
             if (node == null)
             {
                 continue;
             }
 
-            Vector2 size = GraphSelectionManager.GetNodeWorldSize(node);
-            float nodeLeft = node.Position.X;
-            float nodeTop = node.Position.Y;
-            float nodeRight = node.Position.X + Math.Max(1.0f, size.X);
-            float nodeBottom = node.Position.Y + Math.Max(1.0f, size.Y);
+            var size = GraphSelectionManager.GetNodeWorldSize(node);
+            var nodeLeft = node.Position.X;
+            var nodeTop = node.Position.Y;
+            var nodeRight = node.Position.X + Math.Max(1.0f, size.X);
+            var nodeBottom = node.Position.Y + Math.Max(1.0f, size.Y);
 
             if (!hasAny)
             {

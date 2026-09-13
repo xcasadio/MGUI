@@ -41,15 +41,15 @@ public class MGPropertyGrid : MGSingleContentHost
         get => _SelectedObject;
         set
         {
-            bool descriptorsCanVaryPerInstance = value is ICustomTypeDescriptor || _SelectedObject is ICustomTypeDescriptor;
+            var descriptorsCanVaryPerInstance = value is ICustomTypeDescriptor || _SelectedObject is ICustomTypeDescriptor;
             if (ReferenceEquals(_SelectedObject, value))
             {
                 return;
             }
 
             _SelectedObject = value;
-            Type newType = value?.GetType();
-            bool typeChanged = SelectedObjectType != newType;
+            var newType = value?.GetType();
+            var typeChanged = SelectedObjectType != newType;
             SelectedObjectType = newType;
 
             NPC(nameof(SelectedObject));
@@ -78,14 +78,14 @@ public class MGPropertyGrid : MGSingleContentHost
         get => _LabelColumnWidth;
         set
         {
-            int clamped = Math.Max(0, value);
+            var clamped = Math.Max(0, value);
             if (_LabelColumnWidth != clamped)
             {
                 _LabelColumnWidth = clamped;
-                for (int categoryIndex = 0; categoryIndex < _CategoryViews.Count; categoryIndex++)
+                for (var categoryIndex = 0; categoryIndex < _CategoryViews.Count; categoryIndex++)
                 {
                     PropertyGridCategoryView category = _CategoryViews[categoryIndex];
-                    for (int rowIndex = 0; rowIndex < category.Rows.Count; rowIndex++)
+                    for (var rowIndex = 0; rowIndex < category.Rows.Count; rowIndex++)
                     {
                         category.Rows[rowIndex].SetLabelColumnWidth(_LabelColumnWidth);
                     }
@@ -146,8 +146,8 @@ public class MGPropertyGrid : MGSingleContentHost
             return UIInvalidationKind.Draw;
         }
 
-        MGThemePropertyGridSettings previous = previousTheme?.PropertyGrid;
-        MGThemePropertyGridSettings current = (currentTheme ?? GetTheme()).PropertyGrid;
+        var previous = previousTheme?.PropertyGrid;
+        var current = (currentTheme ?? GetTheme()).PropertyGrid;
         if (previous == null)
         {
             return UIInvalidationKind.Draw | UIThemeValueInvalidation.LayoutAffecting;
@@ -179,8 +179,8 @@ public class MGPropertyGrid : MGSingleContentHost
             return;
         }
 
-        Rectangle viewport = ScrollViewer?.ContentViewport ?? Rectangle.Empty;
-        for (int categoryIndex = 0; categoryIndex < _CategoryViews.Count; categoryIndex++)
+        var viewport = ScrollViewer?.ContentViewport ?? Rectangle.Empty;
+        for (var categoryIndex = 0; categoryIndex < _CategoryViews.Count; categoryIndex++)
         {
             PropertyGridCategoryView category = _CategoryViews[categoryIndex];
             if (visibleOnly && category.IsCollapsed)
@@ -188,7 +188,7 @@ public class MGPropertyGrid : MGSingleContentHost
                 continue;
             }
 
-            for (int rowIndex = 0; rowIndex < category.Rows.Count; rowIndex++)
+            for (var rowIndex = 0; rowIndex < category.Rows.Count; rowIndex++)
             {
                 PropertyGridRowView row = category.Rows[rowIndex];
 
@@ -223,7 +223,7 @@ public class MGPropertyGrid : MGSingleContentHost
             return false;
         }
 
-        Rectangle bounds = GetElementViewportBounds(row.Root);
+        var bounds = GetElementViewportBounds(row.Root);
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             return false;
@@ -244,7 +244,7 @@ public class MGPropertyGrid : MGSingleContentHost
             return Rectangle.Empty;
         }
 
-        MGElement parent = element.Parent;
+        var parent = element.Parent;
         if (parent == null)
         {
             return element.ActualLayoutBounds;
@@ -265,12 +265,12 @@ public class MGPropertyGrid : MGSingleContentHost
         }
 
         _Descriptors = MGPropertyGridDescriptorCache.GetDescriptors(SelectedObject);
-        List<MGPropertyGridCategoryModel> categories = BuildCategories(_Descriptors);
-        MGThemePropertyGridSettings settings = GetTheme().PropertyGrid;
+        var categories = BuildCategories(_Descriptors);
+        var settings = GetTheme().PropertyGrid;
 
         using (CategoriesPanel.AllowChangingContentTemporarily())
         {
-            for (int categoryIndex = 0; categoryIndex < categories.Count; categoryIndex++)
+            for (var categoryIndex = 0; categoryIndex < categories.Count; categoryIndex++)
             {
                 PropertyGridCategoryView categoryView = new(this, categories[categoryIndex]);
                 ApplyTheme(categoryView, settings);
@@ -284,7 +284,7 @@ public class MGPropertyGrid : MGSingleContentHost
 
     private void CaptureCollapsedStates()
     {
-        for (int index = 0; index < _CategoryViews.Count; index++)
+        for (var index = 0; index < _CategoryViews.Count; index++)
         {
             PropertyGridCategoryView category = _CategoryViews[index];
             _CategoryCollapsedStates[category.Name] = category.IsCollapsed;
@@ -293,7 +293,7 @@ public class MGPropertyGrid : MGSingleContentHost
 
     private void ClearView()
     {
-        for (int index = 0; index < _CategoryViews.Count; index++)
+        for (var index = 0; index < _CategoryViews.Count; index++)
         {
             _CategoryViews[index].Dispose();
         }
@@ -313,17 +313,17 @@ public class MGPropertyGrid : MGSingleContentHost
         List<MGPropertyGridCategoryModel> result = new();
         Dictionary<string, MGPropertyGridCategoryModel> lookup = new(StringComparer.Ordinal);
 
-        for (int index = 0; index < descriptors.Count; index++)
+        for (var index = 0; index < descriptors.Count; index++)
         {
-            MGPropertyGridDescriptor descriptor = descriptors[index];
-            string categoryName = string.IsNullOrWhiteSpace(descriptor.Category) ? "Misc" : descriptor.Category;
-            if (!lookup.TryGetValue(categoryName, out MGPropertyGridCategoryModel category))
+            var descriptor = descriptors[index];
+            var categoryName = string.IsNullOrWhiteSpace(descriptor.Category) ? "Misc" : descriptor.Category;
+            if (!lookup.TryGetValue(categoryName, out var category))
             {
                 category = new MGPropertyGridCategoryModel
                 {
                     Name = categoryName,
                     Descriptors = new List<MGPropertyGridDescriptor>(),
-                    IsCollapsed = _CategoryCollapsedStates.TryGetValue(categoryName, out bool isCollapsed) && isCollapsed,
+                    IsCollapsed = _CategoryCollapsedStates.TryGetValue(categoryName, out var isCollapsed) && isCollapsed,
                 };
 
                 lookup.Add(categoryName, category);
@@ -370,8 +370,8 @@ public class MGPropertyGrid : MGSingleContentHost
             return;
         }
 
-        MGThemePropertyGridSettings settings = GetTheme().PropertyGrid;
-        for (int categoryIndex = 0; categoryIndex < _CategoryViews.Count; categoryIndex++)
+        var settings = GetTheme().PropertyGrid;
+        for (var categoryIndex = 0; categoryIndex < _CategoryViews.Count; categoryIndex++)
         {
             ApplyTheme(_CategoryViews[categoryIndex], settings);
         }
@@ -381,7 +381,7 @@ public class MGPropertyGrid : MGSingleContentHost
     {
         category.ApplyTheme(settings);
 
-        for (int rowIndex = 0; rowIndex < category.Rows.Count; rowIndex++)
+        for (var rowIndex = 0; rowIndex < category.Rows.Count; rowIndex++)
         {
             category.Rows[rowIndex].ApplyTheme(settings);
         }
@@ -400,7 +400,7 @@ public class MGPropertyGrid : MGSingleContentHost
             MGPropertyGridEditorKind.Float => ((float)value).ToString("R", CultureInfo.InvariantCulture),
             MGPropertyGridEditorKind.Double => ((double)value).ToString("R", CultureInfo.InvariantCulture),
             MGPropertyGridEditorKind.String => value as string ?? string.Empty,
-            MGPropertyGridEditorKind.Color when PropertyGridColorAdapter.TryToColorValue(value, out ColorValue colorValue) => ColorFormatter.Format(colorValue, ColorValueFormat.HexRgba),
+            MGPropertyGridEditorKind.Color when PropertyGridColorAdapter.TryToColorValue(value, out var colorValue) => ColorFormatter.Format(colorValue, ColorValueFormat.HexRgba),
             _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
         };
     }
@@ -410,21 +410,21 @@ public class MGPropertyGrid : MGSingleContentHost
         switch (editorKind)
         {
             case MGPropertyGridEditorKind.Int:
-                if (TryParseIntegerValue(previousValue?.GetType() ?? typeof(int), text, out object integerValue))
+                if (TryParseIntegerValue(previousValue?.GetType() ?? typeof(int), text, out var integerValue))
                 {
                     value = integerValue;
                     return true;
                 }
                 break;
             case MGPropertyGridEditorKind.Float:
-                if (float.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float floatValue))
+                if (float.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var floatValue))
                 {
                     value = floatValue;
                     return true;
                 }
                 break;
             case MGPropertyGridEditorKind.Double:
-                if (double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double doubleValue))
+                if (double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var doubleValue))
                 {
                     value = doubleValue;
                     return true;
@@ -451,60 +451,60 @@ public class MGPropertyGrid : MGSingleContentHost
 
     private static bool TryParseIntegerValue(Type targetType, string text, out object value)
     {
-        Type actualType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+        var actualType = Nullable.GetUnderlyingType(targetType) ?? targetType;
         switch (Type.GetTypeCode(actualType))
         {
             case TypeCode.Byte:
-                if (byte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out byte byteValue))
+                if (byte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var byteValue))
                 {
                     value = byteValue;
                     return true;
                 }
                 break;
             case TypeCode.SByte:
-                if (sbyte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out sbyte sbyteValue))
+                if (sbyte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var sbyteValue))
                 {
                     value = sbyteValue;
                     return true;
                 }
                 break;
             case TypeCode.Int16:
-                if (short.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out short shortValue))
+                if (short.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var shortValue))
                 {
                     value = shortValue;
                     return true;
                 }
                 break;
             case TypeCode.UInt16:
-                if (ushort.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out ushort ushortValue))
+                if (ushort.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ushortValue))
                 {
                     value = ushortValue;
                     return true;
                 }
                 break;
             case TypeCode.Int32:
-                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int intValue))
+                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
                 {
                     value = intValue;
                     return true;
                 }
                 break;
             case TypeCode.UInt32:
-                if (uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint uintValue))
+                if (uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var uintValue))
                 {
                     value = uintValue;
                     return true;
                 }
                 break;
             case TypeCode.Int64:
-                if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long longValue))
+                if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
                 {
                     value = longValue;
                     return true;
                 }
                 break;
             case TypeCode.UInt64:
-                if (ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong ulongValue))
+                if (ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ulongValue))
                 {
                     value = ulongValue;
                     return true;
@@ -552,7 +552,7 @@ public class MGPropertyGrid : MGSingleContentHost
             Name = model?.Name ?? "Misc";
             Rows = new();
 
-            MGWindow window = owner.SelfOrParentWindow;
+            var window = owner.SelfOrParentWindow;
             HeaderButton = new(window, _ => IsCollapsed = !IsCollapsed)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -611,10 +611,10 @@ public class MGPropertyGrid : MGSingleContentHost
             RowsPanel.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             RowsPanel.SetPadding(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
 
-            IReadOnlyList<MGPropertyGridDescriptor> descriptors = model?.Descriptors ?? Array.Empty<MGPropertyGridDescriptor>();
+            var descriptors = model?.Descriptors ?? Array.Empty<MGPropertyGridDescriptor>();
             using (RowsPanel.AllowChangingContentTemporarily())
             {
-                for (int index = 0; index < descriptors.Count; index++)
+                for (var index = 0; index < descriptors.Count; index++)
                 {
                     PropertyGridRowView row = new(owner, this, descriptors[index]);
                     Rows.Add(row);
@@ -642,7 +642,7 @@ public class MGPropertyGrid : MGSingleContentHost
 
         public void ApplyTheme(MGThemePropertyGridSettings settings)
         {
-            VisualStateSetting<Color?> headerForeground = ToTextColorSetting(settings.CategoryHeaderForeground?.Copy());
+            var headerForeground = ToTextColorSetting(settings.CategoryHeaderForeground?.Copy());
             HeaderButton.SetBackground(settings.CategoryHeaderBackground?.Copy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             HeaderButton.SetDefaultTextForeground(headerForeground, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             HeaderButton.SetPadding(settings.CategoryHeaderPadding, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
@@ -655,7 +655,7 @@ public class MGPropertyGrid : MGSingleContentHost
 
         public void Dispose()
         {
-            for (int index = 0; index < Rows.Count; index++)
+            for (var index = 0; index < Rows.Count; index++)
             {
                 Rows[index].Dispose();
             }
@@ -682,14 +682,14 @@ public class MGPropertyGrid : MGSingleContentHost
                 return base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
             }
 
-            Rectangle viewport = Owner.ScrollViewer?.ContentViewport ?? Rectangle.Empty;
+            var viewport = Owner.ScrollViewer?.ContentViewport ?? Rectangle.Empty;
             if (viewport.Width <= 0 || viewport.Height <= 0)
             {
                 return base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
             }
 
             VisibleChildrenBuffer.Clear();
-            for (int i = 0; i < Children.Count; i++)
+            for (var i = 0; i < Children.Count; i++)
             {
                 MGElement child = Children[i];
                 Rectangle bounds = Owner.GetElementViewportBounds(child);
@@ -704,17 +704,17 @@ public class MGPropertyGrid : MGSingleContentHost
 
         protected override void UpdateContents(ElementUpdateArgs UA)
         {
-            Rectangle viewport = Owner.ScrollViewer?.ContentViewport ?? Rectangle.Empty;
+            var viewport = Owner.ScrollViewer?.ContentViewport ?? Rectangle.Empty;
             if (viewport.Width <= 0 || viewport.Height <= 0)
             {
                 base.UpdateContents(UA);
                 return;
             }
 
-            IReadOnlyList<MGElement> activeChildren = GetVisualTreeChildren(false, true);
-            for (int i = activeChildren.Count - 1; i >= 0; i--)
+            var activeChildren = GetVisualTreeChildren(false, true);
+            for (var i = activeChildren.Count - 1; i >= 0; i--)
             {
-                MGElement child = activeChildren[i];
+                var child = activeChildren[i];
                 Rectangle bounds = Owner.GetElementViewportBounds(child);
                 if (bounds.Width > 0 && bounds.Height > 0 && bounds.Intersects(viewport))
                 {
@@ -742,7 +742,7 @@ public class MGPropertyGrid : MGSingleContentHost
             Category = category;
             Descriptor = descriptor;
 
-            MGWindow window = owner.SelfOrParentWindow;
+            var window = owner.SelfOrParentWindow;
             Root = new(window)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -796,7 +796,7 @@ public class MGPropertyGrid : MGSingleContentHost
         public void ApplyTheme(MGThemePropertyGridSettings settings)
         {
             VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
-            VisualStateSetting<Color?> textForeground = ToTextColorSetting(themeText?.Copy());
+            var textForeground = ToTextColorSetting(themeText?.Copy());
 
             Root.SetPadding(settings.RowPadding, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             Root.SetBorderThickness(settings.RowSeparatorBrush != null ? new Thickness(0, 0, 0, 1) : new Thickness(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
@@ -985,7 +985,7 @@ public class MGPropertyGrid : MGSingleContentHost
 
         protected override void ApplyValueCore(object value, bool force)
         {
-            string formattedValue = FormatValue(EditorKind, value);
+            var formattedValue = FormatValue(EditorKind, value);
             if (force || DisplayText.Text != formattedValue)
             {
                 DisplayText.SetText(formattedValue, MGTextInvalidationMode.ReflowLocal);
@@ -999,7 +999,7 @@ public class MGPropertyGrid : MGSingleContentHost
         public override void ApplyTheme(MGThemePropertyGridSettings settings)
         {
             VisualStateColorBrush themeText = Owner.GetTheme().TextBlockFallbackForeground.GetValue(true);
-            VisualStateSetting<Color?> textForeground = ToTextColorSetting(themeText?.Copy());
+            var textForeground = ToTextColorSetting(themeText?.Copy());
             HostBorder.SetDefaultTextForeground(textForeground.GetCopy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             DisplayText.SetDefaultTextForeground(textForeground.GetCopy(), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
         }
@@ -1088,7 +1088,7 @@ public class MGPropertyGrid : MGSingleContentHost
 
         protected override void ApplyValueCore(object value, bool force)
         {
-            string formattedValue = FormatValue(EditorKind, value);
+            var formattedValue = FormatValue(EditorKind, value);
             if (force || TextBox.Text != formattedValue)
             {
                 TextBox.SetText(formattedValue, SuppressLayoutChanged: true);
@@ -1112,7 +1112,7 @@ public class MGPropertyGrid : MGSingleContentHost
 
         private bool TryCommit(bool revertIfInvalid)
         {
-            if (TryParseValue(EditorKind, LastPresentedValue, TextBox.Text, out object parsedValue))
+            if (TryParseValue(EditorKind, LastPresentedValue, TextBox.Text, out var parsedValue))
             {
                 HasValidationError = false;
                 UpdateValidationVisual();
@@ -1217,7 +1217,7 @@ public class MGPropertyGrid : MGSingleContentHost
                 {
                     Field.Model.SetValueFromSource(null);
                 }
-                else if (PropertyGridColorAdapter.TryToColorValue(value, out ColorValue colorValue))
+                else if (PropertyGridColorAdapter.TryToColorValue(value, out var colorValue))
                 {
                     Field.Model.SetValueFromSource(colorValue);
                 }

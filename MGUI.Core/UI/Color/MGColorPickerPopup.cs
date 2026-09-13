@@ -30,7 +30,7 @@ public sealed class MGColorPickerPopup
     public MGColorPickerPopup(MGWindow ownerWindow, ColorPickerOptions options)
     {
         OwnerWindow = ownerWindow ?? throw new ArgumentNullException(nameof(ownerWindow));
-        ColorPickerOptions popupOptions = CreatePopupOptions(options);
+        var popupOptions = CreatePopupOptions(options);
         PopupWidth = 280;
         PopupHeight = 220;
 
@@ -65,7 +65,7 @@ public sealed class MGColorPickerPopup
             throw new ArgumentNullException(nameof(anchor));
         }
 
-        Point preferredTopLeft = anchor.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, anchor.LayoutBounds.BottomLeft());
+        var preferredTopLeft = anchor.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, anchor.LayoutBounds.BottomLeft());
         Open(preferredTopLeft, value);
     }
 
@@ -156,13 +156,13 @@ public sealed class MGColorPickerPopup
 
     internal static Rectangle GetFittedPopupBounds(Point preferredTopLeft, int width, int height, Rectangle viewport, float scale)
     {
-        float actualScale = scale > 0f ? scale : 1f;
-        int desiredScreenWidth = Math.Min(viewport.Width, (int)Math.Ceiling(Math.Max(0, width) * actualScale));
-        int desiredScreenHeight = Math.Min(viewport.Height, (int)Math.Ceiling(Math.Max(0, height) * actualScale));
-        int maxLeft = Math.Max(viewport.Left, viewport.Right - desiredScreenWidth);
-        int left = Math.Clamp(preferredTopLeft.X, viewport.Left, maxLeft);
+        var actualScale = scale > 0f ? scale : 1f;
+        var desiredScreenWidth = Math.Min(viewport.Width, (int)Math.Ceiling(Math.Max(0, width) * actualScale));
+        var desiredScreenHeight = Math.Min(viewport.Height, (int)Math.Ceiling(Math.Max(0, height) * actualScale));
+        var maxLeft = Math.Max(viewport.Left, viewport.Right - desiredScreenWidth);
+        var left = Math.Clamp(preferredTopLeft.X, viewport.Left, maxLeft);
 
-        int top = preferredTopLeft.Y;
+        var top = preferredTopLeft.Y;
         if (top + desiredScreenHeight > viewport.Bottom)
         {
             top = preferredTopLeft.Y - desiredScreenHeight;
@@ -208,7 +208,7 @@ public sealed class MGColorPickerPopup
 
     private void PositionPopup(Point preferredTopLeftScreen)
     {
-        Rectangle bounds = GetFittedPopupBounds(preferredTopLeftScreen, PopupWidth, PopupHeight, OwnerWindow.GetDesktop().ValidScreenBounds, PopupWindow.Scale);
+        var bounds = GetFittedPopupBounds(preferredTopLeftScreen, PopupWidth, PopupHeight, OwnerWindow.GetDesktop().ValidScreenBounds, PopupWindow.Scale);
         PopupWindow.Left = bounds.Left;
         PopupWindow.Top = bounds.Top;
     }
@@ -236,7 +236,7 @@ public sealed class MGColorPickerPopup
             return;
         }
 
-        Point layoutSpacePosition = PopupWindow.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
+        var layoutSpacePosition = PopupWindow.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
         if (!PopupWindow.RenderBounds.ContainsInclusive(layoutSpacePosition))
         {
             _ = CancelAndClose();

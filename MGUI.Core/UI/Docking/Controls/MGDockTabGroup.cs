@@ -172,12 +172,12 @@ public class MGDockTabGroup : MGElement
         {
             if (_tabHeaderHeight != value)
             {
-                int previous = _tabHeaderHeight;
+                var previous = _tabHeaderHeight;
                 _tabHeaderHeight = value;
                 //  The tab items follow the strip height (backlog task 14): both default to the theme's Docking.TabHeaderHeight, and a value set on the
                 //  group by the application must reach the items it already built (RebuildTabHeaders gives it to the ones built later). An item whose
                 //  height the application set on its own no longer follows the group.
-                foreach (MGDockTabItem tabItem in _tabItems.Values)
+                foreach (var tabItem in _tabItems.Values)
                 {
                     if (tabItem.TabHeight == previous)
                     {
@@ -302,7 +302,7 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     private Rectangle GetDropdownButtonBounds()
     {
-        Rectangle maximizeBounds = GetMaximizeButtonBounds();
+        var maximizeBounds = GetMaximizeButtonBounds();
         return new Rectangle(maximizeBounds.X - DropdownBtnWidth, LayoutBounds.Y, DropdownBtnWidth, TabHeaderHeight);
     }
 
@@ -335,8 +335,8 @@ public class MGDockTabGroup : MGElement
     {
         if (_accentElement != null)
         {
-            Color accentColor = GetTheme()?.Docking?.TabActiveAccentColor ?? Color.Transparent;
-            bool showAccent = IsActiveGroup && accentColor.A > 0;
+            var accentColor = GetTheme()?.Docking?.TabActiveAccentColor ?? Color.Transparent;
+            var showAccent = IsActiveGroup && accentColor.A > 0;
             _accentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
             _accentElement.Width = LayoutBounds.Width;
             _accentElement.Height = 2;
@@ -418,8 +418,8 @@ public class MGDockTabGroup : MGElement
     /// A structure replaced by another template releases the parts it replaces, and the tab items are rebuilt in the new headers panel.</summary>
     protected internal override void AttachControlTemplateStructure(MGControlTemplateStructure Structure)
     {
-        MGStackPanel headersPanel = (MGStackPanel)Structure.Parts[HeadersPanelPartName];
-        bool headersPanelChanged = !ReferenceEquals(_tabHeadersPanel, headersPanel);
+        var headersPanel = (MGStackPanel)Structure.Parts[HeadersPanelPartName];
+        var headersPanelChanged = !ReferenceEquals(_tabHeadersPanel, headersPanel);
         if (headersPanelChanged && _tabHeadersPanel != null)
         {
             _tabHeadersPanel.TryRemoveAll();
@@ -648,7 +648,7 @@ public class MGDockTabGroup : MGElement
         }
             
         // Get or create panel content
-        MGElement content = activePanel.GetOrCreateContent();
+        var content = activePanel.GetOrCreateContent();
             
         if (content == null)
         {
@@ -688,7 +688,7 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     private MGElement CreateEmptyContent()
     {
-        MGTextBlock emptyContent = new MGTextBlock(ParentWindow, "Empty Tab Group\n\nNo panels to display.")
+        var emptyContent = new MGTextBlock(ParentWindow, "Empty Tab Group\n\nNo panels to display.")
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
@@ -702,7 +702,7 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     private MGElement CreatePlaceholderContent(string title)
     {
-        MGTextBlock placeholderContent = new MGTextBlock(ParentWindow, $"Panel: {title}\n\n(No content factory defined)")
+        var placeholderContent = new MGTextBlock(ParentWindow, $"Panel: {title}\n\n(No content factory defined)")
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
@@ -755,8 +755,8 @@ public class MGDockTabGroup : MGElement
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
         // ── Header row: tabs + optional scroll buttons + dropdown + maximize ──────
-        int headerWidth  = AvailableSize.Width;
-        int headerHeight = TabHeaderHeight;
+        var headerWidth  = AvailableSize.Width;
+        var headerHeight = TabHeaderHeight;
 
         // Measure tab-strip (collapsed tabs contribute 0 width)
         if (_tabHeadersPanel != null)
@@ -767,15 +767,15 @@ public class MGDockTabGroup : MGElement
         }
 
         // Measure content
-        Thickness contentSize = new Thickness(0);
+        var contentSize = new Thickness(0);
         if (_activeContentContainer != null)
         {
-            Size contentAvailableSize = new Size(headerWidth, Math.Max(0, AvailableSize.Height - headerHeight));
+            var contentAvailableSize = new Size(headerWidth, Math.Max(0, AvailableSize.Height - headerHeight));
             _activeContentContainer.UpdateMeasurement(contentAvailableSize, out _, out contentSize, out _, out _);
         }
 
-        int maxWidth   = Math.Max(headerWidth, contentSize.Width);
-        int totalHeight = headerHeight + contentSize.Height;
+        var maxWidth   = Math.Max(headerWidth, contentSize.Width);
+        var totalHeight = headerHeight + contentSize.Height;
         return new Thickness(maxWidth, totalHeight, 0, 0);
     }
 
@@ -786,16 +786,16 @@ public class MGDockTabGroup : MGElement
             return;
         }
 
-        int panelCount = GroupNode?.Panels.Count ?? 0;
+        var panelCount = GroupNode?.Panels.Count ?? 0;
 
         // ── Determine overflow ────────────────────────────────────────────
         // Always reserve room for the maximize button on the right edge.
         // The dropdown ("...") button is only shown when overflow occurs.
-        int headerAvailableWidth = Bounds.Width - MaximizeBtnWidth;
+        var headerAvailableWidth = Bounds.Width - MaximizeBtnWidth;
 
         // Estimate total tabs width using the per-tab minimum (conservative).
         // On subsequent frames tab LayoutBounds are valid; use the larger value.
-        int totalEstimated = 0;
+        var totalEstimated = 0;
         if (_tabItems.Count > 0)
         {
             foreach (var tab in _tabItems.Values)
@@ -808,10 +808,10 @@ public class MGDockTabGroup : MGElement
             }
         }
 
-        bool newOverflowing = totalEstimated > headerAvailableWidth;
+        var newOverflowing = totalEstimated > headerAvailableWidth;
 
         // Width available for the tab strip itself (shrink further if dropdown is shown)
-        int tabStripWidth = headerAvailableWidth - (newOverflowing ? DropdownBtnWidth : 0);
+        var tabStripWidth = headerAvailableWidth - (newOverflowing ? DropdownBtnWidth : 0);
         tabStripWidth = Math.Max(0, tabStripWidth);
 
         // How many tabs fit inside tabStripWidth?
@@ -823,18 +823,18 @@ public class MGDockTabGroup : MGElement
         else
         {
             newVisibleCount = 0;
-            int accumulated = 0;
+            var accumulated = 0;
             var panels = GroupNode?.Panels;
             if (panels != null)
             {
-                for (int i = _tabScrollIndex; i < panels.Count; i++)
+                for (var i = _tabScrollIndex; i < panels.Count; i++)
                 {
                     if (!_tabItems.TryGetValue(panels[i].Id, out var tab))
                     {
                         continue;
                     }
 
-                    int w = tab.LastMeasuredWidth;
+                    var w = tab.LastMeasuredWidth;
                     if (accumulated + w > tabStripWidth && newVisibleCount > 0)
                     {
                         break;
@@ -849,10 +849,10 @@ public class MGDockTabGroup : MGElement
             // ── INVARIANT: the active tab header is ALWAYS visible ────────────────────
             // Adjust _tabScrollIndex (using the fresh newVisibleCount, not the stale
             // _visibleTabCount) so that the active panel is within the visible window.
-            int activeTabIndex = -1;
+            var activeTabIndex = -1;
             if (GroupNode?.ActivePanelId != null && GroupNode.Panels != null)
             {
-                for (int i = 0; i < GroupNode.Panels.Count; i++)
+                for (var i = 0; i < GroupNode.Panels.Count; i++)
                 {
                     if (GroupNode.Panels[i].Id == GroupNode.ActivePanelId)
                     {
@@ -880,11 +880,11 @@ public class MGDockTabGroup : MGElement
         // Apply visibility to each tab item
         if (GroupNode?.Panels != null)
         {
-            for (int i = 0; i < GroupNode.Panels.Count; i++)
+            for (var i = 0; i < GroupNode.Panels.Count; i++)
             {
                 if (_tabItems.TryGetValue(GroupNode.Panels[i].Id, out var tab))
                 {
-                    bool show = !newOverflowing || (i >= _tabScrollIndex && i < _tabScrollIndex + newVisibleCount);
+                    var show = !newOverflowing || (i >= _tabScrollIndex && i < _tabScrollIndex + newVisibleCount);
                     tab.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
                 }
             }
@@ -895,7 +895,7 @@ public class MGDockTabGroup : MGElement
 
         // ── Layout header row ─────────────────────────────────────────────
         // Order (left → right):  [tabs] [... dropdown (if overflow)] [maximize]
-        int x = Bounds.X;
+        var x = Bounds.X;
 
         // Tab strip
         _tabHeadersPanel.UpdateLayout(new Rectangle(x, Bounds.Y, tabStripWidth, TabHeaderHeight));
@@ -925,7 +925,7 @@ public class MGDockTabGroup : MGElement
         // ── Layout content area ───────────────────────────────────────────
         if (_activeContentContainer != null)
         {
-            Rectangle contentBounds = new Rectangle(
+            var contentBounds = new Rectangle(
                 Bounds.X,
                 Bounds.Y + TabHeaderHeight,
                 Bounds.Width,
@@ -949,8 +949,8 @@ public class MGDockTabGroup : MGElement
     /// <summary>Scroll the visible tab window one step to the right.</summary>
     public void ScrollRight()
     {
-        int panelCount = GroupNode?.Panels.Count ?? 0;
-        int maxIndex   = Math.Max(0, panelCount - _visibleTabCount);
+        var panelCount = GroupNode?.Panels.Count ?? 0;
+        var maxIndex   = Math.Max(0, panelCount - _visibleTabCount);
         if (_tabScrollIndex < maxIndex)
         {
             _tabScrollIndex++;
@@ -1002,7 +1002,7 @@ public class MGDockTabGroup : MGElement
             visibleCount = Math.Max(1, _visibleTabCount);
         }
 
-        int maxIndex = Math.Max(0, panelCount - visibleCount);
+        var maxIndex = Math.Max(0, panelCount - visibleCount);
         _tabScrollIndex = Math.Clamp(_tabScrollIndex, 0, maxIndex);
     }
 

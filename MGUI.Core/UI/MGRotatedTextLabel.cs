@@ -90,18 +90,18 @@ public class MGRotatedTextLabel : MGElement
             return;
         }
 
-        string family = ParentWindow.Desktop.DefaultFontFamily;
-        ITextMeasurementEngine textEngine = GetTextEngine();
-        ResolvedFont resolved = textEngine.ResolveFont(new FontSpec(family, FontSize, CustomFontStyles.Normal));
+        var family = ParentWindow.Desktop.DefaultFontFamily;
+        var textEngine = GetTextEngine();
+        var resolved = textEngine.ResolveFont(new FontSpec(family, FontSize, CustomFontStyles.Normal));
         if (!resolved.IsAvailable)
         {
             return;
         }
 
-        float scale = resolved.SuggestedScale;
-        Vector2 textSize = textEngine.MeasureText(resolved, Text);
-        Vector2 origin = textSize / 2.0f;
-        Vector2 position = new Vector2(
+        var scale = resolved.SuggestedScale;
+        var textSize = textEngine.MeasureText(resolved, Text);
+        var origin = textSize / 2.0f;
+        var position = new Vector2(
             layoutBounds.X + layoutBounds.Width / 2.0f,
             layoutBounds.Y + layoutBounds.Height / 2.0f) + DA.Offset.ToVector2();
 

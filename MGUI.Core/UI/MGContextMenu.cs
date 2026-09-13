@@ -49,7 +49,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     {
         if (string.Equals(AppliedControlTemplateName, MGControlTemplateCatalog.WindowTemplateName, StringComparison.Ordinal))
         {
-            foreach (MGControlTemplatePartRequirement requirement in base.GetRequiredControlTemplateParts())
+            foreach (var requirement in base.GetRequiredControlTemplateParts())
             {
                 yield return requirement;
             }
@@ -63,13 +63,13 @@ public class MGContextMenu : MGWindow, IContextMenuHost
 
     public static Rectangle FitMenuToViewport(Rectangle Anchor, Size Size, Rectangle Viewport)
     {
-        int ActualX = Anchor.Right;
+        var ActualX = Anchor.Right;
         if (ActualX + Size.Width > Viewport.Right)
         {
             ActualX = Math.Max(Viewport.Left, Anchor.Left - Size.Width);
         }
 
-        int ActualY = Anchor.Top;
+        var ActualY = Anchor.Top;
         if (ActualY + Size.Height > Viewport.Bottom)
         {
             ActualY = Math.Max(Viewport.Top, Viewport.Bottom - Size.Height);
@@ -141,7 +141,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     internal void InvokeContextMenuOpened()
     {
         GetDesktop().PushFocusScope(this, GetDesktop().FocusedKeyboardHandler);
-        MGContextMenuItem initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
+        var initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
         initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);
         NPC(nameof(IsContextMenuOpen));
         ContextMenuOpened?.Invoke(this, EventArgs.Empty);
@@ -247,7 +247,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
         Button.VerticalAlignment = VerticalAlignment.Stretch;
 
         Button.SetBorderThicknessTagged(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-        VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((IFillBrush)null);
+        var background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((IFillBrush)null);
         Button.SetBackground(background, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
         Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
         Button.SetDefaultTextForegroundAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
@@ -325,7 +325,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     /// due to <see cref="ObservableCollection{T}"/>'s Reset action not carrying <c>OldItems</c>.</summary>
     public void ClearItems()
     {
-        for (int i = _Items.Count - 1; i >= 0; i--)
+        for (var i = _Items.Count - 1; i >= 0; i--)
         {
             _Items.RemoveAt(i);
         }
@@ -375,7 +375,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             return;
         }
 
-        if (!_RadioGroups.TryGetValue(Item.GroupName, out List<MGContextMenuRadioButton> Group))
+        if (!_RadioGroups.TryGetValue(Item.GroupName, out var Group))
         {
             Group = new();
             _RadioGroups[Item.GroupName] = Group;
@@ -385,7 +385,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
 
     internal void UnregisterRadioItem(MGContextMenuRadioButton Item)
     {
-        if (Item.GroupName != null && _RadioGroups.TryGetValue(Item.GroupName, out List<MGContextMenuRadioButton> Group))
+        if (Item.GroupName != null && _RadioGroups.TryGetValue(Item.GroupName, out var Group))
         {
             Group.Remove(Item);
         }
@@ -393,14 +393,14 @@ public class MGContextMenu : MGWindow, IContextMenuHost
 
     internal void OnRadioButtonGroupNameChanged(MGContextMenuRadioButton Item, string OldGroup, string NewGroup)
     {
-        if (OldGroup != null && _RadioGroups.TryGetValue(OldGroup, out List<MGContextMenuRadioButton> OldList))
+        if (OldGroup != null && _RadioGroups.TryGetValue(OldGroup, out var OldList))
         {
             OldList.Remove(Item);
         }
 
         if (NewGroup != null)
         {
-            if (!_RadioGroups.TryGetValue(NewGroup, out List<MGContextMenuRadioButton> NewList))
+            if (!_RadioGroups.TryGetValue(NewGroup, out var NewList))
             {
                 NewList = new();
                 _RadioGroups[NewGroup] = NewList;
@@ -413,12 +413,12 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     /// unchecking all others in that group.</summary>
     public void SetCheckedRadioItem(string GroupName, MGContextMenuRadioButton CheckedItem)
     {
-        if (GroupName == null || !_RadioGroups.TryGetValue(GroupName, out List<MGContextMenuRadioButton> Group))
+        if (GroupName == null || !_RadioGroups.TryGetValue(GroupName, out var Group))
         {
             return;
         }
 
-        foreach (MGContextMenuRadioButton Item in Group)
+        foreach (var Item in Group)
         {
             Item.IsChecked = Item == CheckedItem;
         }
@@ -444,7 +444,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
         {
             if (_HeaderSize != value)
             {
-                Size Previous = HeaderSize;
+                var Previous = HeaderSize;
                 _HeaderSize = value;
                 NPC(nameof(HeaderSize));
                 HeaderSizeChanged?.Invoke(this, new(Previous, HeaderSize));
@@ -469,7 +469,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
                 return false;
             }
 
-            MGContextMenu Previous = ActiveContextMenu;
+            var Previous = ActiveContextMenu;
             ActiveContextMenu.InvokeContextMenuClosing();
             ActiveContextMenu = null;
             NPC(nameof(ActiveContextMenu));
@@ -497,11 +497,11 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             return false;
         }
 
-        Rectangle ValidBounds = GetDesktop().ValidScreenBounds;
+        var ValidBounds = GetDesktop().ValidScreenBounds;
         if (Menu.IsContextMenuOpen)
         {
             Size MenuSizeScreenSpace = new((int)(Menu.RenderBounds.Width * Menu.Scale), (int)(Menu.RenderBounds.Height * Menu.Scale));
-            Point NewPosition = FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
+            var NewPosition = FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
             Menu.Left = NewPosition.X;
             Menu.Top = NewPosition.Y;
             Menu.ValidateWindowSizeAndPosition();
@@ -518,15 +518,15 @@ public class MGContextMenu : MGWindow, IContextMenuHost
 
             Menu.Scale = Scale;
 
-            int MinWidth = 100;
-            int MinHeight = 0;
-            int MaxWidth = 1000;
-            int MaxHeight = 800;
+            var MinWidth = 100;
+            var MinHeight = 0;
+            var MaxWidth = 1000;
+            var MaxHeight = 800;
 
-            Size MenuSizeUnscaledScreenSpace = Menu.ComputeContentSize(MinWidth, MinHeight, MaxWidth, MaxHeight);
+            var MenuSizeUnscaledScreenSpace = Menu.ComputeContentSize(MinWidth, MinHeight, MaxWidth, MaxHeight);
             Size MenuSizeScreenSpace = new((int)(MenuSizeUnscaledScreenSpace.Width * Menu.Scale), (int)(MenuSizeUnscaledScreenSpace.Height * Menu.Scale));
 
-            Point Position = FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
+            var Position = FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
             Menu.TopLeft = Position;
             _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
 
@@ -541,7 +541,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     {
         get
         {
-            MGContextMenu Current = ActiveContextMenu;
+            var Current = ActiveContextMenu;
             while (Current != null)
             {
                 yield return Current;
@@ -553,11 +553,11 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     /// <summary>True if the current mouse position is hovering any nested submenu in <see cref="Submenus"/>. See also: <see cref="ActiveContextMenu"/></summary>
     public bool IsHoveringSubmenu(int Padding)
     {
-        Point CurrentMousePosition = InputTracker.Mouse.CurrentPosition;
-        foreach (MGContextMenu Submenu in Submenus)
+        var CurrentMousePosition = InputTracker.Mouse.CurrentPosition;
+        foreach (var Submenu in Submenus)
         {
-            Point LayoutSpacePosition = Submenu.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, CurrentMousePosition);
-            Rectangle SubmenuBounds = Submenu.LayoutBounds.GetExpanded(Padding);
+            var LayoutSpacePosition = Submenu.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, CurrentMousePosition);
+            var SubmenuBounds = Submenu.LayoutBounds.GetExpanded(Padding);
             if (SubmenuBounds.ContainsInclusive(LayoutSpacePosition))
             {
                 return true;
@@ -609,14 +609,14 @@ public class MGContextMenu : MGWindow, IContextMenuHost
 
         if (Items != null)
         {
-            int FontSize = Menu.GetTheme().FontSettings.ContextMenuFontSize;
-            foreach (MGSimpleContextMenuItem Item in Items)
+            var FontSize = Menu.GetTheme().FontSettings.ContextMenuFontSize;
+            foreach (var Item in Items)
             {
                 MGContextMenuItem GeneratedItem;
                 MGTextBlock Content = new(Menu, Item.Text, TextForeground, FontSize);
                 if (!Item.IsToggle)
                 {
-                    MGContextMenuButton ButtonItem = Menu.AddButton(Content, null);
+                    var ButtonItem = Menu.AddButton(Content, null);
                     ButtonItem.Icon = Item.Icon;
                     GeneratedItem = ButtonItem;
 
@@ -629,7 +629,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
                 }
                 else
                 {
-                    MGContextMenuToggle ToggleItem = Menu.AddToggle(Content, Item.IsChecked);
+                    var ToggleItem = Menu.AddToggle(Content, Item.IsChecked);
                     GeneratedItem = ToggleItem;
 
                     if (Item.Submenu?.Any() == true)
@@ -740,7 +740,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
                     {
                         if (e.NewItems != null)
                         {
-                            int Index = e.NewStartingIndex;
+                            var Index = e.NewStartingIndex;
                             foreach (MGContextMenuItem Item in e.NewItems)
                             {
                                 if (Item is MGContextMenuButton Button)
@@ -812,7 +812,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
 
                         if (e.NewItems != null)
                         {
-                            int Index = e.NewStartingIndex;
+                            var Index = e.NewStartingIndex;
                             foreach (MGContextMenuItem Item in e.NewItems)
                             {
                                 if (Item is MGContextMenuButton Button)
@@ -842,7 +842,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             {
                 if (IsContextMenuOpen && !IsSubmenu && !IsHoveringSubmenu(5) && AutoCloseThreshold.HasValue)
                 {
-                    Point LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
                     if (((RectangleF)LayoutBounds).SquaredDistanceTo(LayoutSpacePosition) >= AutoCloseThreshold.Value * AutoCloseThreshold.Value)
                     {
                         TryCloseContextMenu();
@@ -894,7 +894,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             {
                 ParentWindow.OnWindowPositionChanged += (sender, e) =>
                 {
-                    Point PreviousPosition = LayoutBounds.TopLeft();
+                    var PreviousPosition = LayoutBounds.TopLeft();
                     Point Offset = new(e.NewValue.Left - e.PreviousValue.Left, e.NewValue.Top - e.PreviousValue.Top);
                     InvokeWindowPositionChanged(PreviousPosition, PreviousPosition + Offset);
                 };
@@ -986,7 +986,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     public IEnumerable<TMenuItemType> GetItemsOfType<TMenuItemType>(bool IncludeSubmenus)
         where TMenuItemType : MGContextMenuItem
     {
-        foreach (MGContextMenuItem Item in Items)
+        foreach (var Item in Items)
         {
             if (Item is TMenuItemType TypedItem)
             {

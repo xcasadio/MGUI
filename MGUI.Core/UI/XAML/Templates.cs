@@ -28,21 +28,21 @@ public class ContentTemplate
     {
         if (Content != null)
         {
-            Element ContentCopy = Content.Copy();
-            MGElement Item = ContentCopy.ToElement(Window, Parent, ApplyBaseSettings);
+            var ContentCopy = Content.Copy();
+            var Item = ContentCopy.ToElement(Window, Parent, ApplyBaseSettings);
             Element.ProcessBindings(Item, true, DataContext);
             return Item;
         }
         else if (ContentTemplateName != null)
         {
-            MGResources Resources = Window.GetResources();
-            if (!Resources.TryGetElementTemplate(ContentTemplateName, out MGElementTemplate Template))
+            var Resources = Window.GetResources();
+            if (!Resources.TryGetElementTemplate(ContentTemplateName, out var Template))
             {
                 Debug.WriteLine($"Warning - No {nameof(MGElementTemplate)} was found with the name '{ContentTemplateName}' in {nameof(MGResources)}.{nameof(MGResources.ElementTemplates)}.");
                 return null;
             }
 
-            MGElement Item = Template.GetInstance(Window);
+            var Item = Template.GetInstance(Window);
             //  Note: ideally ApplyBaseSettings should be invoked *before* the template applies its own customization.
             //  This requires splitting MGElementTemplate.Template into Create + Style phases.
             //  As a best-effort fix, we apply it here (after template creation) so it at least runs.

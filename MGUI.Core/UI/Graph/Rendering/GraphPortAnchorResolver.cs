@@ -12,8 +12,8 @@ internal static class GraphPortAnchorResolver
     public static bool TryGetPortWorldAnchor(GraphDocument document, Guid portId, out Vector2 worldAnchor)
     {
         worldAnchor = default;
-        GraphPortModel port = document?.TryGetPort(portId);
-        GraphNodeModel node = port == null ? null : document.TryGetNode(port.NodeId);
+        var port = document?.TryGetPort(portId);
+        var node = port == null ? null : document.TryGetNode(port.NodeId);
         return TryGetPortWorldAnchor(node, port, out worldAnchor);
     }
 
@@ -25,10 +25,10 @@ internal static class GraphPortAnchorResolver
             return false;
         }
 
-        Vector2 nodeSize = GraphSelectionManager.GetNodeWorldSize(node);
-        int portIndex = GetDirectionalPortIndex(node, port);
-        float portY = Math.Min(Math.Max(MinimumPortTop, FirstPortOffset + portIndex * PortStep), Math.Max(MinimumPortTop, nodeSize.Y - MinimumPortBottomInset));
-        float portX = port.Direction == GraphPortDirection.Input ? 0.0f : nodeSize.X;
+        var nodeSize = GraphSelectionManager.GetNodeWorldSize(node);
+        var portIndex = GetDirectionalPortIndex(node, port);
+        var portY = Math.Min(Math.Max(MinimumPortTop, FirstPortOffset + portIndex * PortStep), Math.Max(MinimumPortTop, nodeSize.Y - MinimumPortBottomInset));
+        var portX = port.Direction == GraphPortDirection.Input ? 0.0f : nodeSize.X;
         worldAnchor = node.Position + new Vector2(portX, portY);
         return true;
     }
@@ -36,7 +36,7 @@ internal static class GraphPortAnchorResolver
     public static bool TryGetPortLayoutAnchor(GraphDocument document, GraphViewportTransform viewport, Guid portId, out Vector2 layoutAnchor)
     {
         layoutAnchor = default;
-        if (viewport == null || !TryGetPortWorldAnchor(document, portId, out Vector2 worldAnchor))
+        if (viewport == null || !TryGetPortWorldAnchor(document, portId, out var worldAnchor))
         {
             return false;
         }
@@ -47,10 +47,10 @@ internal static class GraphPortAnchorResolver
 
     private static int GetDirectionalPortIndex(GraphNodeModel node, GraphPortModel port)
     {
-        int index = 0;
-        for (int candidateIndex = 0; candidateIndex < node.Ports.Count; candidateIndex++)
+        var index = 0;
+        for (var candidateIndex = 0; candidateIndex < node.Ports.Count; candidateIndex++)
         {
-            GraphPortModel candidate = node.Ports[candidateIndex];
+            var candidate = node.Ports[candidateIndex];
             if (candidate == null || candidate.Direction != port.Direction)
             {
                 continue;

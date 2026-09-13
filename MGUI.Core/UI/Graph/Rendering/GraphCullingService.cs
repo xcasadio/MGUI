@@ -24,12 +24,12 @@ public sealed class GraphCullingService
             return new RectangleF(float.MinValue * 0.25f, float.MinValue * 0.25f, float.MaxValue * 0.5f, float.MaxValue * 0.5f);
         }
 
-        Vector2 topLeft = viewport.LayoutToWorld(new Vector2(layoutBounds.Left, layoutBounds.Top));
-        Vector2 bottomRight = viewport.LayoutToWorld(new Vector2(layoutBounds.Right, layoutBounds.Bottom));
-        float left = Math.Min(topLeft.X, bottomRight.X) - padding;
-        float top = Math.Min(topLeft.Y, bottomRight.Y) - padding;
-        float right = Math.Max(topLeft.X, bottomRight.X) + padding;
-        float bottom = Math.Max(topLeft.Y, bottomRight.Y) + padding;
+        var topLeft = viewport.LayoutToWorld(new Vector2(layoutBounds.Left, layoutBounds.Top));
+        var bottomRight = viewport.LayoutToWorld(new Vector2(layoutBounds.Right, layoutBounds.Bottom));
+        var left = Math.Min(topLeft.X, bottomRight.X) - padding;
+        var top = Math.Min(topLeft.Y, bottomRight.Y) - padding;
+        var right = Math.Max(topLeft.X, bottomRight.X) + padding;
+        var bottom = Math.Max(topLeft.Y, bottomRight.Y) + padding;
         return new RectangleF(left, top, Math.Max(1.0f, right - left), Math.Max(1.0f, bottom - top));
     }
 
@@ -51,7 +51,7 @@ public sealed class GraphCullingService
             return true;
         }
 
-        return TryGetEdgeWorldBounds(document, edge, out RectangleF bounds) && Intersects(bounds, worldViewport);
+        return TryGetEdgeWorldBounds(document, edge, out var bounds) && Intersects(bounds, worldViewport);
     }
 
     public bool ShouldDrawEdge(GraphEdgeModel edge, Vector2 startWorld, Vector2 endWorld, RectangleF worldViewport, ISet<Guid> selectedEdgeIds)
@@ -66,7 +66,7 @@ public sealed class GraphCullingService
             return true;
         }
 
-        RectangleF bounds = CreateBounds(startWorld, endWorld, 48.0f);
+        var bounds = CreateBounds(startWorld, endWorld, 48.0f);
         return Intersects(bounds, worldViewport);
     }
 
@@ -74,8 +74,8 @@ public sealed class GraphCullingService
     {
         bounds = default;
         if (document == null || edge == null ||
-            !TryGetPortWorldAnchor(document, edge.SourcePortId, out Vector2 start) ||
-            !TryGetPortWorldAnchor(document, edge.TargetPortId, out Vector2 end))
+            !TryGetPortWorldAnchor(document, edge.SourcePortId, out var start) ||
+            !TryGetPortWorldAnchor(document, edge.TargetPortId, out var end))
         {
             return false;
         }
@@ -89,10 +89,10 @@ public sealed class GraphCullingService
 
     private static RectangleF CreateBounds(Vector2 first, Vector2 second, float padding)
     {
-        float left = Math.Min(first.X, second.X) - padding;
-        float top = Math.Min(first.Y, second.Y) - padding;
-        float right = Math.Max(first.X, second.X) + padding;
-        float bottom = Math.Max(first.Y, second.Y) + padding;
+        var left = Math.Min(first.X, second.X) - padding;
+        var top = Math.Min(first.Y, second.Y) - padding;
+        var right = Math.Max(first.X, second.X) + padding;
+        var bottom = Math.Max(first.Y, second.Y) + padding;
         return new RectangleF(left, top, Math.Max(1.0f, right - left), Math.Max(1.0f, bottom - top));
     }
 

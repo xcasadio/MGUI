@@ -20,7 +20,7 @@ public class MGCompositedBorderBrush : IBorderBrush
     /// deduplicated by reference against every other slot/element that references them for the frame.</summary>
     void IBorderBrush.Update(UpdateBaseArgs UA)
     {
-        foreach (IBorderBrush Brush in Brushes)
+        foreach (var Brush in Brushes)
         {
             PaintLifecycle.Update(Brush, UA);
         }
@@ -28,7 +28,7 @@ public class MGCompositedBorderBrush : IBorderBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
     {
-        foreach (IBorderBrush Brush in Brushes)
+        foreach (var Brush in Brushes)
         {
             Brush.Draw(DA, Element, Bounds, BT);
         }
@@ -36,7 +36,7 @@ public class MGCompositedBorderBrush : IBorderBrush
 
     public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        foreach (IBorderBrush Brush in Brushes)
+        foreach (var Brush in Brushes)
         {
             Brush.Draw(DA, Element, Shape, Geometry);
         }

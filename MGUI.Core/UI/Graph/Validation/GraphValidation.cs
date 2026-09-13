@@ -38,7 +38,7 @@ public sealed class GraphValidationResult
     {
         get
         {
-            for (int i = 0; i < Issues.Count; i++)
+            for (var i = 0; i < Issues.Count; i++)
             {
                 if (Issues[i].Severity == GraphValidationSeverity.Error)
                 {

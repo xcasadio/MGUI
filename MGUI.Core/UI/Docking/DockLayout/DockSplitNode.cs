@@ -72,7 +72,7 @@ public class DockSplitNode : DockNode
         set
         {
             // Clamp to valid range
-            float clampedValue = Math.Clamp(value, 0.0f, 1.0f);
+            var clampedValue = Math.Clamp(value, 0.0f, 1.0f);
                 
             if (Math.Abs(_splitRatio - clampedValue) > 0.001f) // Avoid floating point comparison issues
             {
@@ -231,8 +231,8 @@ public class DockSplitNode : DockNode
         if (Orientation == Orientation.Horizontal)
         {
             // Horizontal split: widths add up
-            int firstMinWidth = FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
-            int secondMinWidth = SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
+            var firstMinWidth = FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
+            var secondMinWidth = SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
             
             // Total width = first child + splitter + second child
             return firstMinWidth + 4 + secondMinWidth; // 4 is default splitter thickness
@@ -240,8 +240,8 @@ public class DockSplitNode : DockNode
         else
         {
             // Vertical split: width is the maximum of children
-            int firstMinWidth = FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
-            int secondMinWidth = SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
+            var firstMinWidth = FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
+            var secondMinWidth = SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
             
             return Math.Max(firstMinWidth, secondMinWidth);
         }
@@ -256,8 +256,8 @@ public class DockSplitNode : DockNode
         if (Orientation == Orientation.Vertical)
         {
             // Vertical split: heights add up
-            int firstMinHeight = FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
-            int secondMinHeight = SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
+            var firstMinHeight = FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
+            var secondMinHeight = SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
             
             // Total height = first child + splitter + second child
             return firstMinHeight + 4 + secondMinHeight; // 4 is default splitter thickness
@@ -265,8 +265,8 @@ public class DockSplitNode : DockNode
         else
         {
             // Horizontal split: height is the maximum of children
-            int firstMinHeight = FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
-            int secondMinHeight = SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
+            var firstMinHeight = FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
+            var secondMinHeight = SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
             
             return Math.Max(firstMinHeight, secondMinHeight);
         }

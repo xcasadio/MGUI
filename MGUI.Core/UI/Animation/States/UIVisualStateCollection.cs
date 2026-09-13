@@ -39,7 +39,7 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
             throw new ArgumentNullException(nameof(state));
         }
 
-        int existing = _States.FindIndex(x => string.Equals(x.Name, state.Name, StringComparison.OrdinalIgnoreCase));
+        var existing = _States.FindIndex(x => string.Equals(x.Name, state.Name, StringComparison.OrdinalIgnoreCase));
         if (existing >= 0)
         {
             if (string.Equals(Current, state.Name, StringComparison.OrdinalIgnoreCase))
@@ -58,7 +58,7 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
     /// <summary>Removes the state named <paramref name="name"/>; if it is the current one, its setters are restored.</summary>
     public bool Remove(string name)
     {
-        int index = _States.FindIndex(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
+        var index = _States.FindIndex(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
         if (index < 0)
         {
             return false;
@@ -88,7 +88,7 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
             return;
         }
 
-        string name = Resolve();
+        var name = Resolve();
         if (!string.Equals(name, Current, StringComparison.OrdinalIgnoreCase))
         {
             Apply(name);
@@ -98,7 +98,7 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
     /// <summary>The name the element would show now, given its <see cref="MGElement.VisualState"/> and checked state, among the defined states.</summary>
     public string Resolve()
     {
-        VisualState state = Owner.VisualState;
+        var state = Owner.VisualState;
         if (state.IsDisabled && Has(UIVisualStateNames.Disabled))
         {
             return UIVisualStateNames.Disabled;
@@ -134,7 +134,7 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
 
     private bool Has(string name)
     {
-        for (int i = 0; i < _States.Count; i++)
+        for (var i = 0; i < _States.Count; i++)
         {
             if (string.Equals(_States[i].Name, name, StringComparison.OrdinalIgnoreCase))
             {
@@ -147,14 +147,14 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
 
     private void Apply(string name)
     {
-        UIVisualState previous = Current == null ? null : this[Current];
-        UIVisualState next = name == null ? null : this[name];
+        var previous = Current == null ? null : this[Current];
+        var next = name == null ? null : this[name];
 
         if (previous != null)
         {
-            for (int i = 0; i < previous.Setters.Count; i++)
+            for (var i = 0; i < previous.Setters.Count; i++)
             {
-                UIVisualStateSetter setter = previous.Setters[i];
+                var setter = previous.Setters[i];
                 if (next == null || !next.HasPath(setter.Path))
                 {
                     setter.Applier.Restore(Owner, _Bases);
@@ -165,7 +165,7 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
         Current = next?.Name;
         if (next != null)
         {
-            for (int i = 0; i < next.Setters.Count; i++)
+            for (var i = 0; i < next.Setters.Count; i++)
             {
                 next.Setters[i].Applier.Apply(Owner, next.Name, _Bases);
             }

@@ -40,10 +40,10 @@ public sealed class UISequenceAnimation : UIAnimationGroup, IEnumerable<UIAnimat
     protected override TimeSpan ComputeDuration()
     {
         _StartOffsets.Clear();
-        TimeSpan cursor = TimeSpan.Zero;
-        foreach (UIAnimation child in Children)
+        var cursor = TimeSpan.Zero;
+        foreach (var child in Children)
         {
-            TimeSpan length = LengthOf(child);
+            var length = LengthOf(child);
             if (length == TimeSpan.MaxValue)
             {
                 throw new InvalidOperationException($"A child of a {nameof(UISequenceAnimation)} cannot repeat forever ({child}); set {nameof(RepeatForever)} on the sequence instead.");
@@ -61,7 +61,7 @@ public sealed class UISequenceAnimation : UIAnimationGroup, IEnumerable<UIAnimat
     {
         // The exact tick position on the timeline (not a round-trip through the float progress), so a child scheduled at an offset
         // starts on the very frame the timeline reaches it.
-        TimeSpan timeline = IterationElapsed;
+        var timeline = IterationElapsed;
         while (_NextChild < Children.Count && _StartOffsets[_NextChild] <= timeline)
         {
             StartChild(Children[_NextChild]);

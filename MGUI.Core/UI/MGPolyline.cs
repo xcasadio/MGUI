@@ -51,11 +51,11 @@ public class MGPolyline : MGVertexShapeElementBase
             return;
         }
 
-        MGPointShapePlacement placement = GetPlacement(layoutBounds);
-        Vector2 origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
-        Color strokeColor = Stroke * DA.Opacity;
+        var placement = GetPlacement(layoutBounds);
+        var origin = DA.Offset.ToVector2() + placement.GeometryOrigin;
+        var strokeColor = Stroke * DA.Opacity;
 
-        for (int i = 0; i < NormalizedPoints.Length - 1; i++)
+        for (var i = 0; i < NormalizedPoints.Length - 1; i++)
         {
             DA.Context.StrokeLineSegment(origin, NormalizedPoints[i], NormalizedPoints[i + 1], strokeColor, StrokeThickness);
         }
@@ -68,15 +68,15 @@ public class MGPolyline : MGVertexShapeElementBase
             return false;
         }
 
-        MGPointShapePlacement placement = GetPlacement(LayoutBounds);
-        Vector2 layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
-        Vector2 localPoint = layoutPoint - placement.GeometryOrigin;
+        var placement = GetPlacement(LayoutBounds);
+        var layoutPoint = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Layout, unscaledScreenPosition);
+        var localPoint = layoutPoint - placement.GeometryOrigin;
         return MGVectorShapeHelper.IsPointNearPolyline(NormalizedPoints, localPoint, StrokeThickness, false);
     }
 
     protected void RebuildGeometry()
     {
-        NormalizedPoints = MGVectorShapeHelper.NormalizePoints(_Points, out MonoGame.Extended.RectangleF bounds);
+        NormalizedPoints = MGVectorShapeHelper.NormalizePoints(_Points, out var bounds);
         GeometrySize = new MonoGame.Extended.Size(Math.Max(0, (int)Math.Ceiling(bounds.Width)), Math.Max(0, (int)Math.Ceiling(bounds.Height)));
         LayoutChanged(this, true);
     }

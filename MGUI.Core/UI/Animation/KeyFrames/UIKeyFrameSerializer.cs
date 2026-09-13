@@ -52,21 +52,21 @@ public static class UIKeyFrameSerializer
             throw new ArgumentException("Empty JSON.", nameof(json));
         }
 
-        UIKeyFrameTrackDto dto = JsonSerializer.Deserialize<UIKeyFrameTrackDto>(json, JsonOptions)
-                                 ?? throw new InvalidOperationException("The JSON does not describe a key frame track.");
+        var dto = JsonSerializer.Deserialize<UIKeyFrameTrackDto>(json, JsonOptions)
+                  ?? throw new InvalidOperationException("The JSON does not describe a key frame track.");
         if (dto.Version != CurrentVersion)
         {
             throw new InvalidOperationException($"Unsupported key frame track version {dto.Version} (supported: {CurrentVersion}).");
         }
 
-        string expected = TypeName<T>();
+        var expected = TypeName<T>();
         if (!string.Equals(dto.ValueType, expected, StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"The key frame track holds values of type '{dto.ValueType}', not '{expected}'.");
         }
 
         UIKeyFrameTrack<T> track = new();
-        foreach (UIKeyFrameDto frame in dto.Frames ?? new List<UIKeyFrameDto>())
+        foreach (var frame in dto.Frames ?? new List<UIKeyFrameDto>())
         {
             track.Add(new UIKeyFrame<T>(frame.Offset, Parse<T>(frame.Value), frame.Easing));
         }
@@ -77,8 +77,8 @@ public static class UIKeyFrameSerializer
     /// <summary>The value type name stored in a JSON track, without reading its frames.</summary>
     public static string ReadValueType(string json)
     {
-        UIKeyFrameTrackDto dto = JsonSerializer.Deserialize<UIKeyFrameTrackDto>(json, JsonOptions)
-                                 ?? throw new InvalidOperationException("The JSON does not describe a key frame track.");
+        var dto = JsonSerializer.Deserialize<UIKeyFrameTrackDto>(json, JsonOptions)
+                  ?? throw new InvalidOperationException("The JSON does not describe a key frame track.");
         return dto.ValueType;
     }
 
@@ -105,15 +105,15 @@ public static class UIKeyFrameSerializer
         }
 
         object value;
-        Type type = typeof(T);
+        var type = typeof(T);
         if (type == typeof(float)) value = float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
         else if (type == typeof(double)) value = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
         else if (type == typeof(int)) value = int.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture);
-        else if (type == typeof(Vector2)) { float[] p = Floats(text, 2); value = new Vector2(p[0], p[1]); }
-        else if (type == typeof(Vector3)) { float[] p = Floats(text, 3); value = new Vector3(p[0], p[1], p[2]); }
-        else if (type == typeof(Vector4)) { float[] p = Floats(text, 4); value = new Vector4(p[0], p[1], p[2], p[3]); }
+        else if (type == typeof(Vector2)) { var p = Floats(text, 2); value = new Vector2(p[0], p[1]); }
+        else if (type == typeof(Vector3)) { var p = Floats(text, 3); value = new Vector3(p[0], p[1], p[2]); }
+        else if (type == typeof(Vector4)) { var p = Floats(text, 4); value = new Vector4(p[0], p[1], p[2], p[3]); }
         else if (type == typeof(Color)) value = ParseColor(text);
-        else if (type == typeof(Thickness)) { int[] p = Ints(text, 4); value = new Thickness(p[0], p[1], p[2], p[3]); }
+        else if (type == typeof(Thickness)) { var p = Ints(text, 4); value = new Thickness(p[0], p[1], p[2], p[3]); }
         else throw new NotSupportedException($"Key frame values of type '{type.Name}' cannot be deserialized.");
 
         return (T)value;
@@ -123,7 +123,7 @@ public static class UIKeyFrameSerializer
 
     private static float[] Floats(string text, int count)
     {
-        string[] parts = text.Split(',');
+        var parts = text.Split(',');
         if (parts.Length != count)
         {
             throw new FormatException($"Expected {count} comma-separated numbers, got '{text}'.");
@@ -134,7 +134,7 @@ public static class UIKeyFrameSerializer
 
     private static int[] Ints(string text, int count)
     {
-        string[] parts = text.Split(',');
+        var parts = text.Split(',');
         if (parts.Length != count)
         {
             throw new FormatException($"Expected {count} comma-separated integers, got '{text}'.");
@@ -145,16 +145,16 @@ public static class UIKeyFrameSerializer
 
     private static Color ParseColor(string text)
     {
-        string hex = text.Trim().TrimStart('#');
+        var hex = text.Trim().TrimStart('#');
         if (hex.Length != 6 && hex.Length != 8)
         {
             throw new FormatException($"Expected a colour as #RRGGBB or #RRGGBBAA, got '{text}'.");
         }
 
-        byte r = byte.Parse(hex[..2], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        byte g = byte.Parse(hex[2..4], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        byte b = byte.Parse(hex[4..6], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        byte a = hex.Length == 8 ? byte.Parse(hex[6..8], NumberStyles.HexNumber, CultureInfo.InvariantCulture) : (byte)255;
+        var r = byte.Parse(hex[..2], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        var g = byte.Parse(hex[2..4], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        var b = byte.Parse(hex[4..6], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        var a = hex.Length == 8 ? byte.Parse(hex[6..8], NumberStyles.HexNumber, CultureInfo.InvariantCulture) : (byte)255;
         return new Color(r, g, b, a);
     }
 

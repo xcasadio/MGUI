@@ -25,7 +25,7 @@ public class MGResizeHandlesAdorner : MGAdorner
         get => _outlineThickness;
         set
         {
-            int clamped = Math.Max(0, value);
+            var clamped = Math.Max(0, value);
             if (_outlineThickness != clamped)
             {
                 _outlineThickness = clamped;
@@ -68,7 +68,7 @@ public class MGResizeHandlesAdorner : MGAdorner
         get => _handleBorderThickness;
         set
         {
-            int clamped = Math.Max(0, value);
+            var clamped = Math.Max(0, value);
             if (_handleBorderThickness != clamped)
             {
                 _handleBorderThickness = clamped;
@@ -83,7 +83,7 @@ public class MGResizeHandlesAdorner : MGAdorner
         get => _handleSize;
         set
         {
-            int clamped = Math.Max(1, value);
+            var clamped = Math.Max(1, value);
             if (_handleSize != clamped)
             {
                 _handleSize = clamped;
@@ -99,7 +99,7 @@ public class MGResizeHandlesAdorner : MGAdorner
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        if (!TryGetAdornedBounds(out Rectangle adornedBounds))
+        if (!TryGetAdornedBounds(out var adornedBounds))
         {
             return;
         }
@@ -112,9 +112,9 @@ public class MGResizeHandlesAdorner : MGAdorner
         Span<Rectangle> handleBounds = stackalloc Rectangle[MGAdornerGeometryHelper.ResizeHandleCount];
         MGAdornerGeometryHelper.FillResizeHandleBounds(adornedBounds, HandleSize, handleBounds);
 
-        for (int i = 0; i < handleBounds.Length; i++)
+        for (var i = 0; i < handleBounds.Length; i++)
         {
-            Rectangle handle = handleBounds[i];
+            var handle = handleBounds[i];
             if (HandleFillColor.A > 0)
             {
                 DA.DT.FillRectangle(Vector2.Zero, new RectangleF(handle.X, handle.Y, handle.Width, handle.Height), HandleFillColor * DA.Opacity);

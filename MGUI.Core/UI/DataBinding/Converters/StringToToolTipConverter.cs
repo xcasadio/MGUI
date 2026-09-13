@@ -76,8 +76,8 @@ public class StringToToolTipConverter : MarkupExtension, IValueConverter
         }
         else
         {
-            MGToolTip ToolTip = StringToToolTipTypeConverter.ToToolTip(Host, StringValue);
-            MGTextBlock TextBlock = ToolTip.Content as MGTextBlock;
+            var ToolTip = StringToToolTipTypeConverter.ToToolTip(Host, StringValue);
+            var TextBlock = ToolTip.Content as MGTextBlock;
 
             if (!string.IsNullOrEmpty(StylePreset) && _Styles.TryGetValue(StylePreset, out var DefaultStyle))
             {

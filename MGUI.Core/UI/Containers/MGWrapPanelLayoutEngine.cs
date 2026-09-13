@@ -38,8 +38,8 @@ internal static class MGWrapPanelLayoutEngine
 
     public static WrapPanelLayoutResult Arrange(IReadOnlyList<WrapPanelChildMeasurement> children, Rectangle bounds, Orientation orientation, int spacing)
     {
-        List<LineInfo> lines = BuildLines(children, bounds.Size, orientation, spacing);
-        Size desiredSize = GetDesiredSize(lines, orientation, spacing);
+        var lines = BuildLines(children, bounds.Size, orientation, spacing);
+        var desiredSize = GetDesiredSize(lines, orientation, spacing);
         List<Rectangle> childBounds = new(children.Count);
         ArrangeInto(children, bounds, orientation, spacing, lines, childBounds);
 
@@ -49,7 +49,7 @@ internal static class MGWrapPanelLayoutEngine
     public static void ArrangeInto(IReadOnlyList<WrapPanelChildMeasurement> children, Rectangle bounds, Orientation orientation, int spacing,
         List<Rectangle> childBounds)
     {
-        List<LineInfo> lines = BuildLines(children, bounds.Size, orientation, spacing);
+        var lines = BuildLines(children, bounds.Size, orientation, spacing);
         ArrangeInto(children, bounds, orientation, spacing, lines, childBounds);
     }
 
@@ -57,21 +57,21 @@ internal static class MGWrapPanelLayoutEngine
         List<LineInfo> lines, List<Rectangle> childBounds)
     {
         childBounds.Clear();
-        for (int i = 0; i < children.Count; i++)
+        for (var i = 0; i < children.Count; i++)
         {
             childBounds.Add(Rectangle.Empty);
         }
 
-        int currentX = bounds.Left;
-        int currentY = bounds.Top;
+        var currentX = bounds.Left;
+        var currentY = bounds.Top;
         if (orientation == Orientation.Horizontal)
         {
-            foreach (LineInfo line in lines)
+            foreach (var line in lines)
             {
-                int childX = currentX;
-                foreach (int childIndex in line.ChildIndices)
+                var childX = currentX;
+                foreach (var childIndex in line.ChildIndices)
                 {
-                    WrapPanelChildMeasurement child = children[childIndex];
+                    var child = children[childIndex];
                     childBounds[childIndex] = new Rectangle(childX, currentY, child.Width, child.Height);
                     childX += child.Width + spacing;
                 }
@@ -81,12 +81,12 @@ internal static class MGWrapPanelLayoutEngine
         }
         else
         {
-            foreach (LineInfo line in lines)
+            foreach (var line in lines)
             {
-                int childY = currentY;
-                foreach (int childIndex in line.ChildIndices)
+                var childY = currentY;
+                foreach (var childIndex in line.ChildIndices)
                 {
-                    WrapPanelChildMeasurement child = children[childIndex];
+                    var child = children[childIndex];
                     childBounds[childIndex] = new Rectangle(currentX, childY, child.Width, child.Height);
                     childY += child.Height + spacing;
                 }
@@ -103,11 +103,11 @@ internal static class MGWrapPanelLayoutEngine
             return new Size(0, 0);
         }
 
-        int mainSize = 0;
-        int crossSize = 0;
-        for (int i = 0; i < lines.Count; i++)
+        var mainSize = 0;
+        var crossSize = 0;
+        for (var i = 0; i < lines.Count; i++)
         {
-            LineInfo line = lines[i];
+            var line = lines[i];
             if (line.MainSize > mainSize)
             {
                 mainSize = line.MainSize;
@@ -129,19 +129,19 @@ internal static class MGWrapPanelLayoutEngine
     {
         List<LineInfo> lines = new();
         LineInfo currentLine = null;
-        int mainLimit = orientation == Orientation.Horizontal ? availableSize.Width : availableSize.Height;
-        bool isUnbounded = IsUnbounded(mainLimit);
+        var mainLimit = orientation == Orientation.Horizontal ? availableSize.Width : availableSize.Height;
+        var isUnbounded = IsUnbounded(mainLimit);
 
-        for (int i = 0; i < children.Count; i++)
+        for (var i = 0; i < children.Count; i++)
         {
-            WrapPanelChildMeasurement child = children[i];
+            var child = children[i];
             if (child.IsCollapsed)
             {
                 continue;
             }
 
-            int childMain = orientation == Orientation.Horizontal ? child.Width : child.Height;
-            int childCross = orientation == Orientation.Horizontal ? child.Height : child.Width;
+            var childMain = orientation == Orientation.Horizontal ? child.Width : child.Height;
+            var childCross = orientation == Orientation.Horizontal ? child.Height : child.Width;
 
             if (currentLine == null)
             {
@@ -149,8 +149,8 @@ internal static class MGWrapPanelLayoutEngine
                 lines.Add(currentLine);
             }
 
-            int candidateMain = currentLine.ChildIndices.Count == 0 ? childMain : currentLine.MainSize + spacing + childMain;
-            bool shouldWrap = currentLine.ChildIndices.Count > 0 && !isUnbounded && candidateMain > mainLimit;
+            var candidateMain = currentLine.ChildIndices.Count == 0 ? childMain : currentLine.MainSize + spacing + childMain;
+            var shouldWrap = currentLine.ChildIndices.Count > 0 && !isUnbounded && candidateMain > mainLimit;
             if (shouldWrap)
             {
                 currentLine = new LineInfo();

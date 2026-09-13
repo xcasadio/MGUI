@@ -21,7 +21,7 @@ public static class MGColorPaletteSerializer
             Name = palette.Name ?? string.Empty,
         };
 
-        foreach (MGColorSwatch swatch in palette.Swatches)
+        foreach (var swatch in palette.Swatches)
         {
             dto.Swatches.Add(new SwatchDto
             {
@@ -51,25 +51,25 @@ public static class MGColorPaletteSerializer
 
         try
         {
-            using JsonDocument document = JsonDocument.Parse(json);
+            using var document = JsonDocument.Parse(json);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
             {
                 diagnostics.Add("Palette JSON root must be an object.");
                 return new MGColorPaletteSerializationResult(false, null, diagnostics);
             }
 
-            JsonElement root = document.RootElement;
-            string name = GetOptionalString(root, "name");
+            var root = document.RootElement;
+            var name = GetOptionalString(root, "name");
             MGColorPalette palette = new(string.IsNullOrWhiteSpace(name) ? "Palette" : name.Trim());
-            if (!root.TryGetProperty("swatches", out JsonElement swatchesElement) || swatchesElement.ValueKind != JsonValueKind.Array)
+            if (!root.TryGetProperty("swatches", out var swatchesElement) || swatchesElement.ValueKind != JsonValueKind.Array)
             {
                 diagnostics.Add("Palette JSON has no swatches array.");
                 return new MGColorPaletteSerializationResult(true, palette, diagnostics);
             }
 
             HashSet<string> usedNames = new(StringComparer.OrdinalIgnoreCase);
-            int index = 0;
-            foreach (JsonElement swatchElement in swatchesElement.EnumerateArray())
+            var index = 0;
+            foreach (var swatchElement in swatchesElement.EnumerateArray())
             {
                 index++;
                 if (swatchElement.ValueKind != JsonValueKind.Object)
@@ -78,7 +78,7 @@ public static class MGColorPaletteSerializer
                     continue;
                 }
 
-                if (!TryReadSwatch(swatchElement, index, usedNames, diagnostics, out MGColorSwatch swatch))
+                if (!TryReadSwatch(swatchElement, index, usedNames, diagnostics, out var swatch))
                 {
                     continue;
                 }
@@ -97,7 +97,7 @@ public static class MGColorPaletteSerializer
 
     public static bool TryFromJson(string json, out MGColorPalette palette, out IReadOnlyList<string> diagnostics)
     {
-        MGColorPaletteSerializationResult result = FromJson(json);
+        var result = FromJson(json);
         palette = result.Palette;
         diagnostics = result.Diagnostics;
         return result.Success;
@@ -106,28 +106,28 @@ public static class MGColorPaletteSerializer
     private static bool TryReadSwatch(JsonElement swatchElement, int index, HashSet<string> usedNames, List<string> diagnostics, out MGColorSwatch swatch)
     {
         swatch = null;
-        string name = GetOptionalString(swatchElement, "name");
+        var name = GetOptionalString(swatchElement, "name");
         name = MakeUniqueName(string.IsNullOrWhiteSpace(name) ? $"Color {index}" : name.Trim(), usedNames);
 
-        ColorSpaceMode colorSpace = ColorSpaceMode.Srgb;
-        string space = GetOptionalString(swatchElement, "space");
+        var colorSpace = ColorSpaceMode.Srgb;
+        var space = GetOptionalString(swatchElement, "space");
         if (!string.IsNullOrWhiteSpace(space) && !Enum.TryParse(space, ignoreCase: true, out colorSpace))
         {
             diagnostics.Add($"Swatch {index} has unknown color space '{space}', using sRGB.");
             colorSpace = ColorSpaceMode.Srgb;
         }
 
-        bool isHdr = TryGetBool(swatchElement, "isHdr", out bool hdr) && hdr;
-        if (!swatchElement.TryGetProperty("value", out JsonElement valueElement) || !TryReadColorValue(valueElement, colorSpace, isHdr, out ColorValue value))
+        var isHdr = TryGetBool(swatchElement, "isHdr", out var hdr) && hdr;
+        if (!swatchElement.TryGetProperty("value", out var valueElement) || !TryReadColorValue(valueElement, colorSpace, isHdr, out var value))
         {
             diagnostics.Add($"Swatch {index} was skipped because its value is invalid.");
             return false;
         }
 
         swatch = new MGColorSwatch(name, value);
-        if (swatchElement.TryGetProperty("metadata", out JsonElement metadataElement) && metadataElement.ValueKind == JsonValueKind.Object)
+        if (swatchElement.TryGetProperty("metadata", out var metadataElement) && metadataElement.ValueKind == JsonValueKind.Object)
         {
-            foreach (JsonProperty property in metadataElement.EnumerateObject())
+            foreach (var property in metadataElement.EnumerateObject())
             {
                 if (property.Value.ValueKind == JsonValueKind.String)
                 {
@@ -144,7 +144,7 @@ public static class MGColorPaletteSerializer
         value = default;
         if (valueElement.ValueKind == JsonValueKind.String)
         {
-            string text = valueElement.GetString();
+            var text = valueElement.GetString();
             if (!ColorParser.TryParse(text, out value))
             {
                 return false;
@@ -159,20 +159,20 @@ public static class MGColorPaletteSerializer
             return false;
         }
 
-        if (!TryGetFloat(valueElement, "r", out float r) || !TryGetFloat(valueElement, "g", out float g) || !TryGetFloat(valueElement, "b", out float b))
+        if (!TryGetFloat(valueElement, "r", out var r) || !TryGetFloat(valueElement, "g", out var g) || !TryGetFloat(valueElement, "b", out var b))
         {
             return false;
         }
 
-        float a = TryGetFloat(valueElement, "a", out float alpha) ? alpha : 1f;
+        var a = TryGetFloat(valueElement, "a", out var alpha) ? alpha : 1f;
         value = new ColorValue(r, g, b, Math.Clamp(a, 0f, 1f), colorSpace, isHdr || r > 1f || g > 1f || b > 1f);
         return true;
     }
 
     private static string MakeUniqueName(string baseName, HashSet<string> usedNames)
     {
-        string actual = baseName;
-        int suffix = 2;
+        var actual = baseName;
+        var suffix = 2;
         while (!usedNames.Add(actual))
         {
             actual = string.Create(CultureInfo.InvariantCulture, $"{baseName} ({suffix++})");
@@ -182,12 +182,12 @@ public static class MGColorPaletteSerializer
     }
 
     private static string GetOptionalString(JsonElement element, string propertyName)
-        => element.TryGetProperty(propertyName, out JsonElement property) && property.ValueKind == JsonValueKind.String ? property.GetString() : null;
+        => element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String ? property.GetString() : null;
 
     private static bool TryGetBool(JsonElement element, string propertyName, out bool value)
     {
         value = false;
-        if (!element.TryGetProperty(propertyName, out JsonElement property) || (property.ValueKind != JsonValueKind.True && property.ValueKind != JsonValueKind.False))
+        if (!element.TryGetProperty(propertyName, out var property) || (property.ValueKind != JsonValueKind.True && property.ValueKind != JsonValueKind.False))
         {
             return false;
         }
@@ -199,7 +199,7 @@ public static class MGColorPaletteSerializer
     private static bool TryGetFloat(JsonElement element, string propertyName, out float value)
     {
         value = 0f;
-        if (!element.TryGetProperty(propertyName, out JsonElement property) || property.ValueKind != JsonValueKind.Number)
+        if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.Number)
         {
             return false;
         }

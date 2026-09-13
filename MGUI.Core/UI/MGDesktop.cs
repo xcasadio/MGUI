@@ -60,7 +60,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
         if (owner != null && modalWindows != null)
         {
-            foreach (MGWindow modalWindow in modalWindows)
+            foreach (var modalWindow in modalWindows)
             {
                 if (modalWindow != null)
                 {
@@ -273,7 +273,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             return false;
         }
 
-        bool canReceiveKeyboardInput = element is IKeyboardHandlerHost keyboardHost && keyboardHost.CanReceiveKeyboardInput();
+        var canReceiveKeyboardInput = element is IKeyboardHandlerHost keyboardHost && keyboardHost.CanReceiveKeyboardInput();
         return FocusInputPolicy.IsKeyboardInputEligible(element.CanHandleKeyboardInput, canReceiveKeyboardInput, IsBlockedByModalOrOverlay(element));
     }
 
@@ -324,17 +324,17 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     internal static int FindDirectionalNavigationTarget(Rectangle currentBounds, IReadOnlyList<Rectangle> candidateBounds, NavigationDirection direction)
     {
-        int bestIndex = -1;
-        double bestDistance = double.MaxValue;
+        var bestIndex = -1;
+        var bestDistance = double.MaxValue;
 
-        Vector2 currentCenter = currentBounds.Center.ToVector2();
-        for (int i = 0; i < candidateBounds.Count; i++)
+        var currentCenter = currentBounds.Center.ToVector2();
+        for (var i = 0; i < candidateBounds.Count; i++)
         {
-            Rectangle candidate = candidateBounds[i];
-            Vector2 candidateCenter = candidate.Center.ToVector2();
-            Vector2 delta = candidateCenter - currentCenter;
+            var candidate = candidateBounds[i];
+            var candidateCenter = candidate.Center.ToVector2();
+            var delta = candidateCenter - currentCenter;
 
-            bool isValidDirection = direction switch
+            var isValidDirection = direction switch
             {
                 NavigationDirection.Up => delta.Y < 0,
                 NavigationDirection.Down => delta.Y > 0,
@@ -406,7 +406,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             return false;
         }
 
-        T current = element;
+        var current = element;
         while (current != null)
         {
             if (ReferenceEquals(current, scopeRoot))
@@ -544,7 +544,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     private UIInputMode ResolveSemanticInputMode(InputActionSource source, UIInputMode currentMode)
     {
-        bool isTextEntryFocused = FocusedKeyboardHandler is ITextEntryHost focusedTextEntryHost && !focusedTextEntryHost.IsReadonly;
+        var isTextEntryFocused = FocusedKeyboardHandler is ITextEntryHost focusedTextEntryHost && !focusedTextEntryHost.IsReadonly;
         return source switch
         {
             InputActionSource.Mouse => UIInputMode.Pointer,
@@ -561,13 +561,13 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     public bool TryHandleInputAction(InputActionEvent actionEvent)
     {
-        if (!actionEvent.Action.IsUIAction() || !TryMapNavigationAction(actionEvent.Action, out UINavigationAction navigationAction))
+        if (!actionEvent.Action.IsUIAction() || !TryMapNavigationAction(actionEvent.Action, out var navigationAction))
         {
             return false;
         }
 
         ActiveInputMode = ResolveSemanticInputMode(actionEvent.Context.Source, ActiveInputMode);
-        bool handled = NavigationService.TryDispatchNavigationAction(navigationAction, GetNavigationFocusSource(actionEvent.Context.Source), actionEvent.Context.Key);
+        var handled = NavigationService.TryDispatchNavigationAction(navigationAction, GetNavigationFocusSource(actionEvent.Context.Source), actionEvent.Context.Key);
         ApplyQueuedFocusChange();
         return handled;
     }
@@ -586,9 +586,9 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     /// </summary>
     public void InvalidateAllLayouts()
     {
-        foreach (MGWindow window in Windows)
+        foreach (var window in Windows)
         {
-            foreach (MGElement element in window.TraverseVisualTree(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+            foreach (var element in window.TraverseVisualTree(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
             {
                 element.InvalidateLayout();
             }
@@ -610,9 +610,9 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         // Step 1: re-resolve font handles and clear TextBlock self-measurement caches.
         // RefreshTextEngine also calls InvokeLayoutChanged which propagates upward, but
         // that only invalidates the parent chain of each TextBlock, not the full tree.
-        foreach (MGWindow window in Windows)
+        foreach (var window in Windows)
         {
-            foreach (MGTextBlock tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+            foreach (var tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
             {
                 tb.RefreshTextEngine();
             }
@@ -652,7 +652,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         {
             if (State.ActiveToolTip != value)
             {
-                bool Cancellable = true;
+                var Cancellable = true;
                 if (ActiveToolTip != null && value != null && ActiveToolTip.Host == value.Host)
                 {
                     Cancellable = false;
@@ -739,7 +739,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                 return false;
             }
 
-            MGContextMenu Previous = ActiveContextMenu;
+            var Previous = ActiveContextMenu;
 
             if (ContextMenuClosing != null)
             {
@@ -781,11 +781,11 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             return false;
         }
 
-        Rectangle ValidBounds = ValidScreenBounds;
+        var ValidBounds = ValidScreenBounds;
         if (Menu.IsContextMenuOpen)
         {
             Size MenuSizeScreenSpace = new((int)(Menu.RenderBounds.Width * Menu.Scale), (int)(Menu.RenderBounds.Height * Menu.Scale));
-            Point NewPosition = MGContextMenu.FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
+            var NewPosition = MGContextMenu.FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
             Menu.Left = NewPosition.X;
             Menu.Top = NewPosition.Y;
             Menu.ValidateWindowSizeAndPosition();
@@ -810,15 +810,15 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
             State.ActiveContextMenu = Menu;
 
-            int MinWidth = 100;
-            int MinHeight = 0;
-            int MaxWidth = 1000;
-            int MaxHeight = 800;
+            var MinWidth = 100;
+            var MinHeight = 0;
+            var MaxWidth = 1000;
+            var MaxHeight = 800;
 
-            Size MenuSizeUnscaledScreenSpace = Menu.ComputeContentSize(MinWidth, MinHeight, MaxWidth, MaxHeight);
+            var MenuSizeUnscaledScreenSpace = Menu.ComputeContentSize(MinWidth, MinHeight, MaxWidth, MaxHeight);
             Size MenuSizeScreenSpace = new((int)(MenuSizeUnscaledScreenSpace.Width * Menu.Scale), (int)(MenuSizeUnscaledScreenSpace.Height * Menu.Scale));
 
-            Point Position = MGContextMenu.FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
+            var Position = MGContextMenu.FitMenuToViewport(Anchor, MenuSizeScreenSpace, ValidBounds).TopLeft();
             Menu.TopLeft = Position;
             _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
 
@@ -948,8 +948,8 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                     throw new InvalidOperationException($"{nameof(MGWindow)}.{nameof(FocusedKeyboardHandler)} cannot be set to an value with {nameof(MGElement)}.{nameof(MGElement.CanHandleKeyboardInput)}=false.");
                 }
 
-                MGElement Previous = FocusedKeyboardHandler;
-                MGWindow PreviousActiveWindow = Previous?.SelfOrParentWindow;
+                var Previous = FocusedKeyboardHandler;
+                var PreviousActiveWindow = Previous?.SelfOrParentWindow;
                 LastFocusChangeSource = value != null && QueuedFocusedKeyboardHandler == value && QueuedFocusedKeyboardHandlerSource.HasValue
                     ? QueuedFocusedKeyboardHandlerSource.Value
                     : KeyboardFocusSource.Programmatic;
@@ -980,7 +980,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                 FocusedKeyboardHandler?.OnKeyboardFocusChanged(true);
                 FocusedKeyboardHandlerChanged?.Invoke(this, new(Previous, FocusedKeyboardHandler));
 
-                MGWindow NewActiveWindow = ActiveWindow;
+                var NewActiveWindow = ActiveWindow;
                 if (PreviousActiveWindow != NewActiveWindow)
                 {
                     NPC(nameof(ActiveWindow));
@@ -1010,8 +1010,8 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     private static void EnsureFocusedElementVisible(MGElement focusedElement)
     {
-        bool encounteredContextMenuRoot = false;
-        for (MGElement current = focusedElement?.Parent; current != null; current = current.Parent)
+        var encounteredContextMenuRoot = false;
+        for (var current = focusedElement?.Parent; current != null; current = current.Parent)
         {
             if (current is MGContextMenu)
             {
@@ -1053,9 +1053,9 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             return GetFocusableElements(root).FirstOrDefault();
         }
 
-        MGElement defaultFocus = window.DefaultFocusElement;
-        MGElement lastFocused = State.WindowFocusHistory.TryGetValue(window, out MGElement previousFocus) ? previousFocus : null;
-        MGElement firstFocusable = GetFocusableElements(window).FirstOrDefault();
+        var defaultFocus = window.DefaultFocusElement;
+        var lastFocused = State.WindowFocusHistory.TryGetValue(window, out var previousFocus) ? previousFocus : null;
+        var firstFocusable = GetFocusableElements(window).FirstOrDefault();
 
         defaultFocus = IsNavigationTarget(defaultFocus) && window.IsSelfOrAncestorOf(defaultFocus) ? defaultFocus : null;
         lastFocused = IsNavigationTarget(lastFocused) && window.IsSelfOrAncestorOf(lastFocused) ? lastFocused : null;
@@ -1099,7 +1099,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         {
             if (_ResponsiveSettings != value)
             {
-                UIResponsiveSettings previous = _ResponsiveSettings;
+                var previous = _ResponsiveSettings;
                 _ResponsiveSettings = value;
                 NPC(nameof(ResponsiveSettings));
                 RecalculateResponsiveMetrics(true);
@@ -1113,7 +1113,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         get => _EffectiveDpiScale;
         set
         {
-            float actualValue = Math.Max(0.1f, value);
+            var actualValue = Math.Max(0.1f, value);
             if (!_EffectiveDpiScale.Equals(actualValue))
             {
                 _EffectiveDpiScale = actualValue;
@@ -1131,7 +1131,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         {
             if (_ResponsiveMetrics != value)
             {
-                UIResolvedMetrics previous = _ResponsiveMetrics;
+                var previous = _ResponsiveMetrics;
                 _ResponsiveMetrics = value;
                 NPC(nameof(ResponsiveMetrics));
                 ResponsiveMetricsChanged?.Invoke(this, new(previous, _ResponsiveMetrics));
@@ -1148,15 +1148,15 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     public void LoadDefaultResources()
     {
         #region Sample Icons
-        IUIImageResource CheckMark_64x64 = Resources.AssetProvider.LoadImage(Path.Combine("Icons", "CheckMark_64x64"));
+        var CheckMark_64x64 = Resources.AssetProvider.LoadImage(Path.Combine("Icons", "CheckMark_64x64"));
         Resources.AddTexture("CheckMark_64x64", new(CheckMark_64x64));
 
-        IUIImageResource AngryMeteor_MilitaryIconsSet = Resources.AssetProvider.LoadImage(Path.Combine("Icons", "AngryMeteor_MilitaryIconsSet"));
+        var AngryMeteor_MilitaryIconsSet = Resources.AssetProvider.LoadImage(Path.Combine("Icons", "AngryMeteor_MilitaryIconsSet"));
         Resources.AddTexture("AngryMeteor", new(AngryMeteor_MilitaryIconsSet));
 
-        int TextureTopMargin = 6;
-        int TextureSpacing = 1;
-        int TextureIconSize = 16;
+        var TextureTopMargin = 6;
+        var TextureSpacing = 1;
+        var TextureIconSize = 16;
         List<(string Name, int Row, int Column)> Icons = new()
         {
             ("ArrowRightGreen", 0, 0),
@@ -1232,11 +1232,11 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             "panel-bottom-white",         "DockPanelBottom",
             "panel-center-white",         "DockPanelCenter"
         };
-        for (int i = 0; i < DockIconEntries.Length; i += 2)
+        for (var i = 0; i < DockIconEntries.Length; i += 2)
         {
-            string fileName   = DockIconEntries[i];
-            string resourceId = DockIconEntries[i + 1];
-            if (Resources.AssetProvider.TryLoadImage(Path.Combine("Icons", "docking", fileName), out IUIImageResource DockTex))
+            var fileName   = DockIconEntries[i];
+            var resourceId = DockIconEntries[i + 1];
+            if (Resources.AssetProvider.TryLoadImage(Path.Combine("Icons", "docking", fileName), out var DockTex))
             {
                 Resources.AddTexture(resourceId, new(DockTex));
             }
@@ -1246,7 +1246,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     public MGDesktop(IUIDesktopRuntime Runtime)
     {
-        ApartmentState ThreadState = Thread.CurrentThread.GetApartmentState();
+        var ThreadState = Thread.CurrentThread.GetApartmentState();
         if (ThreadState != ApartmentState.STA)
         {
             Debug.WriteLine(
@@ -1315,9 +1315,9 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     private void RefreshTextLayouts()
     {
-        foreach (MGWindow window in Windows)
+        foreach (var window in Windows)
         {
-            foreach (MGTextBlock tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+            foreach (var tb in window.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
             {
                 tb.RefreshTextEngine();
             }
@@ -1325,7 +1325,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
         if (OverlayWindow != null)
         {
-            foreach (MGTextBlock tb in OverlayWindow.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+            foreach (var tb in OverlayWindow.TraverseVisualTree<MGTextBlock>(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
             {
                 tb.RefreshTextEngine();
             }
@@ -1334,7 +1334,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     private void InvalidateResponsiveLayouts()
     {
-        foreach (MGWindow window in Windows)
+        foreach (var window in Windows)
         {
             window.InvalidateLayoutTree();
         }
@@ -1344,7 +1344,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     private void RecalculateResponsiveMetrics(bool invalidateLayouts)
     {
-        UIResolvedMetrics resolved = UIResponsiveResolver.Resolve(ResponsiveSettings, ValidScreenBounds.Size, EffectiveDpiScale);
+        var resolved = UIResponsiveResolver.Resolve(ResponsiveSettings, ValidScreenBounds.Size, EffectiveDpiScale);
         if (resolved != ResponsiveMetrics)
         {
             ResponsiveMetrics = resolved;
@@ -1386,15 +1386,15 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         //  One Update() call == one frame == one reset of the paint dedup registry, so a stateful paint shared by
         //  reference across several slots/elements is ticked exactly once this frame regardless of how many places reference it.
         PaintUpdateRegistry.Clear();
-        UpdateBaseArgs BA = Runtime.UpdateArgs with { PaintRegistry = PaintUpdateRegistry };
+        var BA = Runtime.UpdateArgs with { PaintRegistry = PaintUpdateRegistry };
 
         using (UIPerformanceProbe.BeginDesktopPhase("InputModeAndFocus"))
         {
             SanitizeKeyboardFocusState();
 
-            MGElement focusCandidate = QueuedFocusedKeyboardHandler ?? FocusedKeyboardHandler;
-            bool isTextEntryFocused = focusCandidate is ITextEntryHost focusedTextEntryHost && !focusedTextEntryHost.IsReadonly;
-            bool hasNavigationActivity = HasKeyboardActivity(InputTracker.Keyboard) || InputTracker.GamePad.HasActivity();
+            var focusCandidate = QueuedFocusedKeyboardHandler ?? FocusedKeyboardHandler;
+            var isTextEntryFocused = focusCandidate is ITextEntryHost focusedTextEntryHost && !focusedTextEntryHost.IsReadonly;
+            var hasNavigationActivity = HasKeyboardActivity(InputTracker.Keyboard) || InputTracker.GamePad.HasActivity();
             ActiveInputMode = ResolveInputMode(HasMouseActivity(InputTracker.Mouse), hasNavigationActivity, isTextEntryFocused, ActiveInputMode);
             QueueAutoFocusIfNeeded(true);
             ApplyQueuedFocusChange();
@@ -1422,7 +1422,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             ActiveToolTip?.Update(UA.ChangeHitTestVisible(ActiveToolTip.ParentWindow.IsHitTestVisible));
         }
 
-        bool IsWindowOccludedAtMousePos = false;
+        var IsWindowOccludedAtMousePos = false;
 
         List<MGWindow> OrderedWindows;
         using (UIPerformanceProbe.BeginDesktopPhase("OrderedWindows"))
@@ -1433,12 +1433,12 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
         using (UIPerformanceProbe.BeginDesktopPhase("WindowUpdates"))
         {
-            foreach (MGWindow Window in OrderedWindows)
+            foreach (var Window in OrderedWindows)
             {
-                MGToolTip PreviousQueuedToolTip = QueuedToolTip;
+                var PreviousQueuedToolTip = QueuedToolTip;
 
-                bool IsOverlayWindow = Window == OverlayWindow;
-                bool ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
+                var IsOverlayWindow = Window == OverlayWindow;
+                var ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
 
                 //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, documented in Docs/input-architecture.md "Fenetres superposees"):
                 //  tell this window whether a higher window already claimed the mouse position this tick, so it can suppress
@@ -1467,7 +1467,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                     else
                     {
                         //  Since this window DOES allow click-through, validate that at least one opaque element is being hovered
-                        MGElement OpaqueHoveredElement = FindFirstOpaqueParent(Window.HoveredElement, true);
+                        var OpaqueHoveredElement = FindFirstOpaqueParent(Window.HoveredElement, true);
                         if (OpaqueHoveredElement != null && OpaqueHoveredElement != Window)
                         {
                             IsWindowOccludedAtMousePos = true;
@@ -1505,15 +1505,15 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             return true;
         }
 
-        int WindowIndex = Windows.IndexOf(Window);
+        var WindowIndex = Windows.IndexOf(Window);
         if (WindowIndex < 0)
         {
             return false;
         }
 
-        for (int i = 0; i < Windows.Count; i++)
+        for (var i = 0; i < Windows.Count; i++)
         {
-            MGWindow Other = Windows[i];
+            var Other = Windows[i];
             if (Other != Window && MGWindow.IsDrawnAbove(Other, i, Window, WindowIndex) && Other.OccludesUnscaledPosition(UnscaledScreenPosition))
             {
                 return true;
@@ -1526,7 +1526,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     /// <summary>True if <paramref name="Candidate"/> is <paramref name="Window"/> itself or one of its <see cref="MGWindow.ParentWindow"/> ancestors.</summary>
     private static bool IsWindowOrAncestorWindow(MGWindow Candidate, MGWindow Window)
     {
-        for (MGWindow Current = Window; Current != null; Current = Current.ParentWindow)
+        for (var Current = Window; Current != null; Current = Current.ParentWindow)
         {
             if (ReferenceEquals(Current, Candidate))
             {
@@ -1539,7 +1539,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     private static MGElement FindFirstOpaqueParent(MGElement Element, bool IncludeSelf)
     {
-        MGElement Current = IncludeSelf ? Element : Element?.Parent;
+        var Current = IncludeSelf ? Element : Element?.Parent;
         while (Current != null)
         {
             if (Current.Opacity >= 1f || Current.Opacity.IsAlmostEqual(1f))
@@ -1559,12 +1559,12 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         DrawBaseArgs BA = new(Runtime.UpdateArgs.TotalElapsed, DT, Opacity);
         ElementDrawArgs DA = new(BA, new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
 
-        Rectangle ScreenBounds = ValidScreenBounds;
+        var ScreenBounds = ValidScreenBounds;
         if (!BA.DT.CurrentSettings.UsesScissorTest || !BA.DT.CurrentClipBounds.HasValue || ScreenBounds.Intersects(BA.DT.CurrentClipBounds.Value))
         {
             using (BA.DT.PushRectangleClip(ScreenBounds, true))
             {
-                foreach (MGWindow Window in Windows.OrderBy(x => x.IsTopmost))
+                foreach (var Window in Windows.OrderBy(x => x.IsTopmost))
                 {
                     Window.Draw(DA);
                 }
@@ -1592,7 +1592,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     /// <param name="InitialDrawSettings">If null, uses <see cref="DrawSettings.Default"/></param>
     public void Draw(float Opacity = 1.0f, DrawSettings InitialDrawSettings = null)
     {
-        using (IUIDrawTransaction DT = Runtime.CreateDrawTransaction(InitialDrawSettings ?? DrawSettings.Default, false))
+        using (var DT = Runtime.CreateDrawTransaction(InitialDrawSettings ?? DrawSettings.Default, false))
         {
             Draw(DT, Opacity);
         }

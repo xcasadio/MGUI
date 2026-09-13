@@ -163,13 +163,13 @@ public class FTParser
 
     public IEnumerable<FTAction> ParseTokens(IReadOnlyList<FTTokenMatch> TokenMatches)
     {
-        List<FTTokenMatch> RemainingTokens = TokenMatches.ToList();
+        var RemainingTokens = TokenMatches.ToList();
         while (RemainingTokens.Any())
         {
-            bool Found = false;
+            var Found = false;
             foreach (var Definition in Definitions)
             {
-                if (Definition.IsNextMatch(RemainingTokens, out FTAction Match))
+                if (Definition.IsNextMatch(RemainingTokens, out var Match))
                 {
                     if (Match.ActionType != FTActionType.Ignore)
                     {
@@ -184,7 +184,7 @@ public class FTParser
 
             if (!Found)
             {
-                string ErrorMsg = $"Failed to parse {nameof(FTTokenMatch)}s: No valid actions found in remaining sequence: {string.Join(", ", RemainingTokens.Select(x => x.TokenType))}";
+                var ErrorMsg = $"Failed to parse {nameof(FTTokenMatch)}s: No valid actions found in remaining sequence: {string.Join(", ", RemainingTokens.Select(x => x.TokenType))}";
                 throw new InvalidOperationException(ErrorMsg);
             }
         }

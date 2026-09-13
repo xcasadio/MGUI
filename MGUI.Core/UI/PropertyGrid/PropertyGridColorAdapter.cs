@@ -6,7 +6,7 @@ internal static class PropertyGridColorAdapter
 {
     internal static bool IsSupportedColorType(Type propertyType)
     {
-        Type actualType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+        var actualType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
         return actualType == typeof(Color)
                || actualType == typeof(Vector3)
                || actualType == typeof(Vector4)
@@ -41,7 +41,7 @@ internal static class PropertyGridColorAdapter
 
     internal static object ToPropertyValue(ColorValue value, Type propertyType)
     {
-        Type actualType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+        var actualType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
         if (actualType == typeof(Color))
         {
             return value.ToXnaColor();

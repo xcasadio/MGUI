@@ -37,7 +37,7 @@ public static class UIToolingService
         AppendStableDiagnosticSegments(element, segments);
 
         StringBuilder result = new();
-        for (int i = 0; i < segments.Count; i++)
+        for (var i = 0; i < segments.Count; i++)
         {
             if (i > 0)
             {
@@ -58,18 +58,18 @@ public static class UIToolingService
             throw new ArgumentNullException(nameof(desktop));
         }
 
-        MGWindow overlayWindow = desktop.OverlayHost?.SelfOrParentWindow ?? throw new InvalidOperationException(
+        var overlayWindow = desktop.OverlayHost?.SelfOrParentWindow ?? throw new InvalidOperationException(
             $"Unable to capture desktop diagnostics because the {nameof(MGDesktop)} overlay window is not available.");
 
         List<UIWindowDiagnosticSnapshot> windows = new();
-        for (int i = 0; i < desktop.Windows.Count; i++)
+        for (var i = 0; i < desktop.Windows.Count; i++)
         {
             windows.Add(CreateWindowSnapshot(desktop.Windows[i], false));
         }
 
         List<string> openOverlayIds = new();
-        IReadOnlyList<MGOverlay> openOverlays = desktop.OverlayHost.OpenOverlays;
-        for (int i = 0; i < openOverlays.Count; i++)
+        var openOverlays = desktop.OverlayHost.OpenOverlays;
+        for (var i = 0; i < openOverlays.Count; i++)
         {
             openOverlayIds.Add(GetStableDiagnosticId(openOverlays[i]));
         }
@@ -120,7 +120,7 @@ public static class UIToolingService
         AppendWindowSnapshot(artifact, snapshot.OverlayWindow, 1);
 
         artifact.AppendLine("windows:");
-        for (int i = 0; i < snapshot.Windows.Count; i++)
+        for (var i = 0; i < snapshot.Windows.Count; i++)
         {
             AppendWindowSnapshot(artifact, snapshot.Windows[i], 1);
         }
@@ -147,21 +147,21 @@ public static class UIToolingService
         }
 
         List<UIInputReplayStepResult> results = new(frames.Count);
-        for (int i = 0; i < frames.Count; i++)
+        for (var i = 0; i < frames.Count; i++)
         {
-            UIInputReplayFrame frame = frames[i] ?? throw new ArgumentException("Replay frame entries cannot be null.", nameof(frames));
+            var frame = frames[i] ?? throw new ArgumentException("Replay frame entries cannot be null.", nameof(frames));
             setRuntimeUpdateArgs(frame.UpdateArgs);
             desktop.Runtime.Input.Update(frame.UpdateArgs);
             desktop.Update();
 
-            IReadOnlyList<InputActionEvent> actions = frame.Actions ?? Array.Empty<InputActionEvent>();
-            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
+            var actions = frame.Actions ?? Array.Empty<InputActionEvent>();
+            for (var actionIndex = 0; actionIndex < actions.Count; actionIndex++)
             {
                 desktop.TryHandleInputAction(actions[actionIndex]);
             }
 
-            UIDesktopDiagnosticSnapshot snapshot = CaptureDesktopSnapshot(desktop);
-            string artifact = RenderDesktopSnapshot(snapshot);
+            var snapshot = CaptureDesktopSnapshot(desktop);
+            var artifact = RenderDesktopSnapshot(snapshot);
 
             if (!string.IsNullOrWhiteSpace(frame.ExpectedFocusedElementDiagnosticId))
             {
@@ -191,24 +191,24 @@ public static class UIToolingService
 
     private static UIVisualTreeSnapshot CreateSnapshot(MGElement element, int depth)
     {
-        MGWindow window = element.SelfOrParentWindow ?? throw new InvalidOperationException(
+        var window = element.SelfOrParentWindow ?? throw new InvalidOperationException(
             $"Unable to capture a visual tree snapshot for an element that is not attached to a {nameof(MGWindow)}.");
-        VisualState visualState = element.VisualState;
+        var visualState = element.VisualState;
 
         List<UIVisualTreeSnapshot> children = new();
-        IReadOnlyList<MGElement> visualChildren = element.GetVisualTreeChildren(true, true);
-        for (int i = 0; i < visualChildren.Count; i++)
+        var visualChildren = element.GetVisualTreeChildren(true, true);
+        for (var i = 0; i < visualChildren.Count; i++)
         {
             children.Add(CreateSnapshot(visualChildren[i], depth + 1));
         }
 
         Dictionary<string, string> templateParts = new(StringComparer.Ordinal);
-        foreach (KeyValuePair<string, MGElement> templatePart in element.TemplateParts)
+        foreach (var templatePart in element.TemplateParts)
         {
             templateParts[templatePart.Key] = templatePart.Value?.GetType().Name ?? nameof(MGElement);
         }
 
-        MGResources effectiveResourceScope = element.GetResources();
+        var effectiveResourceScope = element.GetResources();
 
         return new(
             GetStableDiagnosticId(element),
@@ -247,7 +247,7 @@ public static class UIToolingService
     /// example a scope injected by hand, or a <see cref="UIResourceScope.Template"/> scope owned by nothing walkable from this element).</summary>
     private static string FindResourceScopeOwnerDiagnosticId(MGElement element, MGResources effectiveScope)
     {
-        for (MGElement current = element; current != null; current = current.Parent ?? current.ParentWindow)
+        for (var current = element; current != null; current = current.Parent ?? current.ParentWindow)
         {
             if (ReferenceEquals(current.LocalResources, effectiveScope))
             {
@@ -255,7 +255,7 @@ public static class UIToolingService
             }
         }
 
-        MGDesktop desktop = element.GetDesktop();
+        var desktop = element.GetDesktop();
         if (desktop != null && ReferenceEquals(desktop.Resources, effectiveScope))
         {
             return GetStableDiagnosticId(desktop);
@@ -315,8 +315,8 @@ public static class UIToolingService
             return false;
         }
 
-        string clrPath = MGUI.Core.UI.XAML.Element.MapBindingTargetPath(propertyPath.Trim());
-        return UIPilotPropertyResolver.TryResolve(element, clrPath, out MGElement owner, out UIPilotProperty pilot, out UIValueSlot slot)
+        var clrPath = MGUI.Core.UI.XAML.Element.MapBindingTargetPath(propertyPath.Trim());
+        return UIPilotPropertyResolver.TryResolve(element, clrPath, out var owner, out var pilot, out var slot)
                && owner.TryGetResolvedValueSource(pilot, slot, out source);
     }
 
@@ -333,16 +333,16 @@ public static class UIToolingService
             throw new ArgumentNullException(nameof(element));
         }
 
-        string diagnosticId = GetStableDiagnosticId(element);
+        var diagnosticId = GetStableDiagnosticId(element);
 
         Dictionary<string, string> templateParts = new(StringComparer.Ordinal);
-        foreach (KeyValuePair<string, MGElement> templatePart in element.TemplateParts)
+        foreach (var templatePart in element.TemplateParts)
         {
             templateParts[templatePart.Key] = templatePart.Value?.GetType().Name ?? nameof(MGElement);
         }
 
-        VisualState visualState = element.VisualState;
-        MGResources effectiveResourceScope = element.GetResources();
+        var visualState = element.VisualState;
+        var effectiveResourceScope = element.GetResources();
         UIValueOriginView[] valueOrigins =
         {
             CaptureValueOrigin(element, "Background"),
@@ -386,7 +386,7 @@ public static class UIToolingService
         artifact.AppendLine($"template: {view.AppliedControlTemplate ?? "<none>"} error={view.LastControlTemplateError ?? "<none>"}");
 
         List<string> templateParts = new();
-        foreach (KeyValuePair<string, string> templatePart in view.TemplateParts)
+        foreach (var templatePart in view.TemplateParts)
         {
             templateParts.Add($"{templatePart.Key}={templatePart.Value}");
         }
@@ -396,11 +396,11 @@ public static class UIToolingService
         artifact.AppendLine();
 
         artifact.AppendLine("values:");
-        foreach (UIValueOriginView origin in view.ValueOrigins)
+        foreach (var origin in view.ValueOrigins)
         {
             AppendIndent(artifact, 1);
             artifact.AppendLine($"{origin.PropertyPath} = {origin.EffectiveValue ?? "<none>"} <- {(origin.IsResolved ? FormatValueSource(origin.Source) : "<not resolved>")}");
-            foreach (UIResolvedContribution contribution in origin.Contributions)
+            foreach (var contribution in origin.Contributions)
             {
                 AppendIndent(artifact, 2);
                 artifact.AppendLine($"{FormatValueSource(contribution.Source)} = {contribution.Value?.ToString() ?? "<null>"}");
@@ -411,11 +411,11 @@ public static class UIToolingService
         {
             artifact.AppendLine();
             artifact.AppendLine("animations:");
-            foreach (UIAnimationDebugView animation in view.Animations)
+            foreach (var animation in view.Animations)
             {
                 AppendIndent(artifact, 1);
-                string progress = animation.Progress.HasValue ? " " + animation.Progress.Value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "";
-                string name = string.IsNullOrEmpty(animation.Name) ? "" : " '" + animation.Name + "'";
+                var progress = animation.Progress.HasValue ? " " + animation.Progress.Value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "";
+                var name = string.IsNullOrEmpty(animation.Name) ? "" : " '" + animation.Name + "'";
                 artifact.AppendLine(animation.Kind + " " + animation.Path + ": " + animation.State + progress + name);
             }
         }
@@ -426,24 +426,24 @@ public static class UIToolingService
     /// <summary>The element's active and held animations and its transitions (ADR-0006, S8), empty when the element never animated.</summary>
     private static IReadOnlyList<UIAnimationDebugView> CaptureAnimations(MGElement element)
     {
-        UI.Animation.UIElementAnimationSlot slot = element.AnimationSlotOrNull;
+        var slot = element.AnimationSlotOrNull;
         if (slot == null)
         {
             return Array.Empty<UIAnimationDebugView>();
         }
 
         List<UIAnimationDebugView> views = new();
-        foreach (UI.Animation.UIAnimation animation in slot.Animations.Active)
+        foreach (var animation in slot.Animations.Active)
         {
             views.Add(new UIAnimationDebugView("animation", animation.TargetKey, animation.State.ToString(), animation.Progress, animation.Name));
         }
 
-        foreach (UI.Animation.UIAnimation animation in slot.Animations.Held)
+        foreach (var animation in slot.Animations.Held)
         {
             views.Add(new UIAnimationDebugView("held", animation.TargetKey, animation.State.ToString(), animation.Progress, animation.Name));
         }
 
-        foreach (UI.Animation.UITransition transition in slot.Transitions)
+        foreach (var transition in slot.Transitions)
         {
             views.Add(new UIAnimationDebugView("transition", transition.Property, transition.IsRunning ? "running" : "idle", transition.RunningProgress, null));
         }
@@ -453,11 +453,11 @@ public static class UIToolingService
 
     private static UIValueOriginView CaptureValueOrigin(MGElement element, string propertyPath)
     {
-        bool isResolved = TryGetResolvedValueSource(element, propertyPath, out UIValueResolutionSource source);
+        var isResolved = TryGetResolvedValueSource(element, propertyPath, out var source);
 
         IReadOnlyList<UIResolvedContribution> contributions = Array.Empty<UIResolvedContribution>();
-        string clrPath = MGUI.Core.UI.XAML.Element.MapBindingTargetPath(propertyPath);
-        if (UIPilotPropertyResolver.TryResolve(element, clrPath, out MGElement owner, out UIPilotProperty pilot, out UIValueSlot slot))
+        var clrPath = MGUI.Core.UI.XAML.Element.MapBindingTargetPath(propertyPath);
+        if (UIPilotPropertyResolver.TryResolve(element, clrPath, out var owner, out var pilot, out var slot))
         {
             contributions = owner.EnumerateResolvedContributions(pilot, slot);
         }
@@ -467,7 +467,7 @@ public static class UIToolingService
 
     private static string DescribeEffectiveValue(MGElement element, string propertyPath)
     {
-        MGBorder border = element as MGBorder ?? element.GetBorder();
+        var border = element as MGBorder ?? element.GetBorder();
         object value = propertyPath switch
         {
             "Background" => element.BackgroundBrush?.NormalValue,
@@ -501,15 +501,15 @@ public static class UIToolingService
     private static UIWindowDiagnosticSnapshot CreateWindowSnapshot(MGWindow window, bool isOverlayWindow)
     {
         List<UIWindowDiagnosticSnapshot> nestedWindows = new();
-        IReadOnlyList<MGWindow> nestedChildren = window.NestedWindows;
-        for (int i = 0; i < nestedChildren.Count; i++)
+        var nestedChildren = window.NestedWindows;
+        for (var i = 0; i < nestedChildren.Count; i++)
         {
             nestedWindows.Add(CreateWindowSnapshot(nestedChildren[i], false));
         }
 
         List<UIWindowDiagnosticSnapshot> modalWindows = new();
-        IReadOnlyList<MGWindow> modalChildren = window.ModalWindows;
-        for (int i = 0; i < modalChildren.Count; i++)
+        var modalChildren = window.ModalWindows;
+        for (var i = 0; i < modalChildren.Count; i++)
         {
             modalWindows.Add(CreateWindowSnapshot(modalChildren[i], false));
         }
@@ -532,14 +532,14 @@ public static class UIToolingService
     private static UIInputDiagnosticSnapshot CaptureInputSnapshot(InputTracker inputTracker)
     {
         List<string> pressedKeys = new();
-        Keys[] currentKeys = inputTracker.Keyboard.CurrentState.GetPressedKeys();
-        for (int i = 0; i < currentKeys.Length; i++)
+        var currentKeys = inputTracker.Keyboard.CurrentState.GetPressedKeys();
+        for (var i = 0; i < currentKeys.Length; i++)
         {
             pressedKeys.Add(currentKeys[i].ToString());
         }
 
         List<string> triggeredButtons = new();
-        foreach (KeyValuePair<GamePadButton, bool> triggeredButton in inputTracker.GamePad.CurrentTriggeredButtons)
+        foreach (var triggeredButton in inputTracker.GamePad.CurrentTriggeredButtons)
         {
             if (triggeredButton.Value)
             {
@@ -573,7 +573,7 @@ public static class UIToolingService
             return;
         }
 
-        for (int i = 0; i < values.Count; i++)
+        for (var i = 0; i < values.Count; i++)
         {
             if (i > 0)
             {
@@ -605,7 +605,7 @@ public static class UIToolingService
         {
             AppendIndent(artifact, indent + 1);
             artifact.AppendLine("modal-windows:");
-            for (int i = 0; i < window.ModalWindows.Count; i++)
+            for (var i = 0; i < window.ModalWindows.Count; i++)
             {
                 AppendWindowSnapshot(artifact, window.ModalWindows[i], indent + 2);
             }
@@ -615,7 +615,7 @@ public static class UIToolingService
         {
             AppendIndent(artifact, indent + 1);
             artifact.AppendLine("nested-windows:");
-            for (int i = 0; i < window.NestedWindows.Count; i++)
+            for (var i = 0; i < window.NestedWindows.Count; i++)
             {
                 AppendWindowSnapshot(artifact, window.NestedWindows[i], indent + 2);
             }
@@ -627,7 +627,7 @@ public static class UIToolingService
         AppendIndent(artifact, indent);
         artifact.AppendLine($"{snapshot.DiagnosticId} [{snapshot.ElementType}] visible={snapshot.IsEffectivelyVisible} visibility={snapshot.Visibility} hitTest={snapshot.IsHitTestVisible} mouse={snapshot.CanReceiveMouseInput} keyboard={snapshot.CanReceiveKeyboardInput} focus={snapshot.HasKeyboardFocus} hover={snapshot.IsHovered} clipped={snapshot.RecentDrawWasClipped} primary={snapshot.PrimaryVisualState} secondary={snapshot.SecondaryVisualState} scope={snapshot.ResourceScope} scopeOwner={snapshot.ResourceScopeOwnerDiagnosticId ?? "<none>"} localScope={snapshot.HasLocalResourceScope}");
 
-        for (int i = 0; i < snapshot.Children.Count; i++)
+        for (var i = 0; i < snapshot.Children.Count; i++)
         {
             AppendVisualTreeSnapshot(artifact, snapshot.Children[i], indent + 1);
         }
@@ -635,7 +635,7 @@ public static class UIToolingService
 
     private static void AppendIndent(StringBuilder artifact, int indent)
     {
-        for (int i = 0; i < indent; i++)
+        for (var i = 0; i < indent; i++)
         {
             artifact.Append("  ");
         }
@@ -675,13 +675,13 @@ public static class UIToolingService
             return "overlay-window";
         }
 
-        string typeToken = GetElementTypeToken(window);
+        var typeToken = GetElementTypeToken(window);
         if (!string.IsNullOrWhiteSpace(window.Name))
         {
             return $"{typeToken}:{NormalizeIdentifierToken(window.Name)}";
         }
 
-        int ordinal = GetRootWindowOrdinal(window);
+        var ordinal = GetRootWindowOrdinal(window);
         return ordinal >= 0
             ? $"{typeToken}[{ordinal}]"
             : $"{typeToken}:detached";
@@ -689,13 +689,13 @@ public static class UIToolingService
 
     private static string CreateChildSegment(MGElement parent, MGElement child)
     {
-        string typeToken = GetElementTypeToken(child);
+        var typeToken = GetElementTypeToken(child);
         if (!string.IsNullOrWhiteSpace(child.Name))
         {
             return $"{typeToken}:{NormalizeIdentifierToken(child.Name)}";
         }
 
-        if (TryGetTemplatePartName(parent, child, out string templatePartName))
+        if (TryGetTemplatePartName(parent, child, out var templatePartName))
         {
             return $"part:{NormalizeIdentifierToken(templatePartName)}";
         }
@@ -705,7 +705,7 @@ public static class UIToolingService
 
     private static bool TryGetTemplatePartName(MGElement parent, MGElement child, out string templatePartName)
     {
-        foreach (KeyValuePair<string, MGElement> templatePart in parent.TemplateParts)
+        foreach (var templatePart in parent.TemplateParts)
         {
             if (ReferenceEquals(templatePart.Value, child) && !string.IsNullOrWhiteSpace(templatePart.Key))
             {
@@ -720,10 +720,10 @@ public static class UIToolingService
 
     private static int GetRootWindowOrdinal(MGWindow window)
     {
-        int ordinal = 0;
-        for (int i = 0; i < window.Desktop.Windows.Count; i++)
+        var ordinal = 0;
+        for (var i = 0; i < window.Desktop.Windows.Count; i++)
         {
-            MGWindow candidate = window.Desktop.Windows[i];
+            var candidate = window.Desktop.Windows[i];
             if (ReferenceEquals(candidate, window))
             {
                 return ordinal;
@@ -740,11 +740,11 @@ public static class UIToolingService
 
     private static int GetSiblingTypeOrdinal(MGElement parent, MGElement child)
     {
-        int ordinal = 0;
-        IReadOnlyList<MGElement> siblings = parent.GetVisualTreeChildren(true, true);
-        for (int i = 0; i < siblings.Count; i++)
+        var ordinal = 0;
+        var siblings = parent.GetVisualTreeChildren(true, true);
+        for (var i = 0; i < siblings.Count; i++)
         {
-            MGElement sibling = siblings[i];
+            var sibling = siblings[i];
             if (ReferenceEquals(sibling, child))
             {
                 return ordinal;
@@ -770,8 +770,8 @@ public static class UIToolingService
         }
 
         StringBuilder token = new(value.Length);
-        bool lastWasSeparator = false;
-        foreach (char c in value.Trim())
+        var lastWasSeparator = false;
+        foreach (var c in value.Trim())
         {
             if (char.IsLetterOrDigit(c))
             {

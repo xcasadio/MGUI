@@ -138,7 +138,7 @@ public class MGTextLogView : MGListBox<MGTextLogEntry>
 
     public void AppendEntry(MGTextLogEntry Entry)
     {
-        bool WasScrolledToBottom = AutoScrollToBottom && ScrollViewer.VerticalOffset.IsAlmostEqual(ScrollViewer.MaxVerticalOffset);
+        var WasScrolledToBottom = AutoScrollToBottom && ScrollViewer.VerticalOffset.IsAlmostEqual(ScrollViewer.MaxVerticalOffset);
         Entries.Add(Entry);
         ValidateMaxEntries();
         if (WasScrolledToBottom)

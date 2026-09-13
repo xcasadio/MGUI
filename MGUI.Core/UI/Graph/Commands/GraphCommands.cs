@@ -47,8 +47,8 @@ public sealed class DeleteNodeCommand : IGraphCommand
         }
 
         DeletedEdges.Clear();
-        List<GraphEdgeModel> edges = document.GetEdgesForNode(NodeId);
-        for (int i = 0; i < edges.Count; i++)
+        var edges = document.GetEdgesForNode(NodeId);
+        for (var i = 0; i < edges.Count; i++)
         {
             DeletedEdges.Add(edges[i]);
         }
@@ -64,7 +64,7 @@ public sealed class DeleteNodeCommand : IGraphCommand
         }
 
         document.AddNode(DeletedNode);
-        for (int i = 0; i < DeletedEdges.Count; i++)
+        for (var i = 0; i < DeletedEdges.Count; i++)
         {
             document.AddEdge(DeletedEdges[i], validate: false);
         }
@@ -93,7 +93,7 @@ public sealed class MoveNodeCommand : IGraphCommand
 
     private bool SetPosition(GraphDocument document, Vector2 position)
     {
-        GraphNodeModel node = document?.TryGetNode(NodeId);
+        var node = document?.TryGetNode(NodeId);
         if (node == null)
         {
             return false;
@@ -128,19 +128,19 @@ public sealed class MoveNodesCommand : IGraphCommand
             return false;
         }
 
-        bool appliedAny = false;
-        bool changed = false;
-        for (int moveIndex = 0; moveIndex < Moves.Count; moveIndex++)
+        var appliedAny = false;
+        var changed = false;
+        for (var moveIndex = 0; moveIndex < Moves.Count; moveIndex++)
         {
-            GraphNodeMove move = Moves[moveIndex];
-            GraphNodeModel node = document.TryGetNode(move.NodeId);
+            var move = Moves[moveIndex];
+            var node = document.TryGetNode(move.NodeId);
             if (node == null)
             {
                 continue;
             }
 
             appliedAny = true;
-            Vector2 next = useNewPositions ? move.NewPosition : move.OldPosition;
+            var next = useNewPositions ? move.NewPosition : move.OldPosition;
             if (node.Position != next)
             {
                 node.Position = next;
@@ -175,8 +175,8 @@ public sealed class GraphBatchCommand : IGraphCommand
             return false;
         }
 
-        bool executedAny = false;
-        for (int commandIndex = 0; commandIndex < Commands.Count; commandIndex++)
+        var executedAny = false;
+        for (var commandIndex = 0; commandIndex < Commands.Count; commandIndex++)
         {
             executedAny |= Commands[commandIndex].Execute(document);
         }
@@ -191,8 +191,8 @@ public sealed class GraphBatchCommand : IGraphCommand
             return false;
         }
 
-        bool undoneAny = false;
-        for (int commandIndex = Commands.Count - 1; commandIndex >= 0; commandIndex--)
+        var undoneAny = false;
+        for (var commandIndex = Commands.Count - 1; commandIndex >= 0; commandIndex--)
         {
             undoneAny |= Commands[commandIndex].Undo(document);
         }
@@ -221,7 +221,7 @@ public sealed class ResizeNodeCommand : IGraphCommand
 
     private bool SetSize(GraphDocument document, Vector2? size)
     {
-        GraphNodeModel node = document?.TryGetNode(NodeId);
+        var node = document?.TryGetNode(NodeId);
         if (node == null)
         {
             return false;
@@ -359,7 +359,7 @@ public sealed class MoveCommentCommand : IGraphCommand
 
     private bool SetBounds(GraphDocument document, Rectangle bounds)
     {
-        GraphCommentModel comment = document?.TryGetComment(CommentId);
+        var comment = document?.TryGetComment(CommentId);
         if (comment == null)
         {
             return false;
@@ -391,7 +391,7 @@ public sealed class ResizeCommentCommand : IGraphCommand
 
     private bool SetBounds(GraphDocument document, Rectangle bounds)
     {
-        GraphCommentModel comment = document?.TryGetComment(CommentId);
+        var comment = document?.TryGetComment(CommentId);
         if (comment == null)
         {
             return false;
@@ -431,7 +431,7 @@ public sealed class EditCommentCommand : IGraphCommand
 
     private bool Apply(GraphDocument document, string title, string text, Rectangle bounds)
     {
-        GraphCommentModel comment = document?.TryGetComment(CommentId);
+        var comment = document?.TryGetComment(CommentId);
         if (comment == null)
         {
             return false;

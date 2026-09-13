@@ -38,16 +38,16 @@ internal static class MGAdornerGeometryHelper
             throw new ArgumentException($"Destination must contain at least {ResizeHandleCount} slots.", nameof(destination));
         }
 
-        int size = Math.Max(1, handleSize);
-        int half = size / 2;
+        var size = Math.Max(1, handleSize);
+        var half = size / 2;
 
-        int left = targetBounds.Left - half;
-        int centerX = targetBounds.Left + (targetBounds.Width / 2) - half;
-        int right = targetBounds.Right - half;
+        var left = targetBounds.Left - half;
+        var centerX = targetBounds.Left + (targetBounds.Width / 2) - half;
+        var right = targetBounds.Right - half;
 
-        int top = targetBounds.Top - half;
-        int centerY = targetBounds.Top + (targetBounds.Height / 2) - half;
-        int bottom = targetBounds.Bottom - half;
+        var top = targetBounds.Top - half;
+        var centerY = targetBounds.Top + (targetBounds.Height / 2) - half;
+        var bottom = targetBounds.Bottom - half;
 
         destination[0] = new(left, top, size, size);
         destination[1] = new(centerX, top, size, size);

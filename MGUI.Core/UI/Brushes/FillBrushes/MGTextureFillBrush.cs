@@ -33,7 +33,7 @@ public readonly struct MGTextureFillBrush : IFillBrush
             throw new ArgumentNullException(nameof(SourceName));
         }
 
-        if (!Desktop.Resources.TryGetTexture(SourceName, out MGTextureData Source))
+        if (!Desktop.Resources.TryGetTexture(SourceName, out var Source))
         {
             throw new InvalidOperationException($"No Texture was found with the name '{SourceName}' in {nameof(MGResources)}.{nameof(MGResources.Textures)}.");
         }
@@ -63,24 +63,24 @@ public readonly struct MGTextureFillBrush : IFillBrush
     {
         if (DA.Opacity > 0 && !DA.Opacity.IsAlmostZero())
         {
-            Color drawColor = Color * DA.Opacity * Source.Opacity;
+            var drawColor = Color * DA.Opacity * Source.Opacity;
 
             if (Tile)
             {
                 // Draw the texture at its natural size, tiling it to fill the bounds
-                int tileW = UnstretchedWidth;
-                int tileH = UnstretchedHeight;
+                var tileW = UnstretchedWidth;
+                var tileH = UnstretchedHeight;
                 if (tileW > 0 && tileH > 0)
                 {
-                    Rectangle fullSrc = Source.SourceRect ?? new Rectangle(0, 0, Source.Image.Width, Source.Image.Height);
-                    for (int y = Bounds.Top; y < Bounds.Bottom; y += tileH)
+                    var fullSrc = Source.SourceRect ?? new Rectangle(0, 0, Source.Image.Width, Source.Image.Height);
+                    for (var y = Bounds.Top; y < Bounds.Bottom; y += tileH)
                     {
-                        for (int x = Bounds.Left; x < Bounds.Right; x += tileW)
+                        for (var x = Bounds.Left; x < Bounds.Right; x += tileW)
                         {
-                            int drawW = Math.Min(tileW, Bounds.Right - x);
-                            int drawH = Math.Min(tileH, Bounds.Bottom - y);
+                            var drawW = Math.Min(tileW, Bounds.Right - x);
+                            var drawH = Math.Min(tileH, Bounds.Bottom - y);
                             Rectangle dest = new(x, y, drawW, drawH);
-                            Rectangle src = drawW < tileW || drawH < tileH
+                            var src = drawW < tileW || drawH < tileH
                                 ? new Rectangle(fullSrc.X, fullSrc.Y, Math.Min(drawW, fullSrc.Width), Math.Min(drawH, fullSrc.Height))
                                 : fullSrc;
                             DA.Context.DrawTextureTo(Source.Image, src, dest.GetTranslated(DA.Offset), drawColor);
@@ -90,7 +90,7 @@ public readonly struct MGTextureFillBrush : IFillBrush
                 return;
             }
 
-            Rectangle Destination = GetStretchedDestination(Bounds);
+            var Destination = GetStretchedDestination(Bounds);
             DA.Context.DrawTextureTo(Source.Image, Source.SourceRect, Destination.GetTranslated(DA.Offset), drawColor);
         }
     }
@@ -99,25 +99,25 @@ public readonly struct MGTextureFillBrush : IFillBrush
     /// Shared by the rectangle path and the rounded path so both agree on placement.</summary>
     private Rectangle GetStretchedDestination(Rectangle Bounds)
     {
-        double AspectRatio = UnstretchedAspectRatio;
+        var AspectRatio = UnstretchedAspectRatio;
         if (Stretch == Stretch.None)
         {
             return MGElement.ApplyAlignment(Bounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(UnstretchedWidth, UnstretchedHeight));
         }
         else if (Stretch == Stretch.Uniform)
         {
-            int AvailableWidth = Bounds.Width;
-            int AvailableHeight = Bounds.Height;
-            int ConsumedWidth = Math.Min(AvailableWidth, GetWidthByAspectRatio(AvailableHeight, AspectRatio));
-            int ConsumedHeight = Math.Min(AvailableHeight, GetHeightByAspectRatio(AvailableWidth, AspectRatio));
+            var AvailableWidth = Bounds.Width;
+            var AvailableHeight = Bounds.Height;
+            var ConsumedWidth = Math.Min(AvailableWidth, GetWidthByAspectRatio(AvailableHeight, AspectRatio));
+            var ConsumedHeight = Math.Min(AvailableHeight, GetHeightByAspectRatio(AvailableWidth, AspectRatio));
             return MGElement.ApplyAlignment(Bounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(ConsumedWidth, ConsumedHeight));
         }
         else if (Stretch == Stretch.UniformToFill)
         {
-            int AvailableWidth = Bounds.Width;
-            int AvailableHeight = Bounds.Height;
-            int ConsumedWidth = Math.Max(AvailableWidth, GetWidthByAspectRatio(AvailableHeight, AspectRatio));
-            int ConsumedHeight = Math.Max(AvailableHeight, GetHeightByAspectRatio(AvailableWidth, AspectRatio));
+            var AvailableWidth = Bounds.Width;
+            var AvailableHeight = Bounds.Height;
+            var ConsumedWidth = Math.Max(AvailableWidth, GetWidthByAspectRatio(AvailableHeight, AspectRatio));
+            var ConsumedHeight = Math.Max(AvailableHeight, GetHeightByAspectRatio(AvailableWidth, AspectRatio));
             return MGElement.ApplyAlignment(Bounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(ConsumedWidth, ConsumedHeight));
         }
         else if (Stretch == Stretch.Fill)
@@ -154,34 +154,34 @@ public readonly struct MGTextureFillBrush : IFillBrush
             return;
         }
 
-        IUIImageResource image = Source.Image;
+        var image = Source.Image;
         if (image == null || image.IsDisposed)
         {
             return;
         }
 
-        Rectangle bounds = Shape.OuterBounds;
-        Color drawColor = Color * DA.Opacity * Source.Opacity;
-        Vector2 origin = DA.Offset.ToVector2();
-        Rectangle fullSource = Source.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
-        IReadOnlyList<Vector2> vertices = Geometry.Vertices;
+        var bounds = Shape.OuterBounds;
+        var drawColor = Color * DA.Opacity * Source.Opacity;
+        var origin = DA.Offset.ToVector2();
+        var fullSource = Source.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
+        var vertices = Geometry.Vertices;
 
         if (Tile)
         {
-            int tileW = UnstretchedWidth;
-            int tileH = UnstretchedHeight;
+            var tileW = UnstretchedWidth;
+            var tileH = UnstretchedHeight;
             if (tileW <= 0 || tileH <= 0)
             {
                 return;
             }
 
-            bool isWholeTexture = fullSource.X == 0 && fullSource.Y == 0 && fullSource.Width == image.Width && fullSource.Height == image.Height;
+            var isWholeTexture = fullSource.X == 0 && fullSource.Y == 0 && fullSource.Width == image.Width && fullSource.Height == image.Height;
             if (isWholeTexture)
             {
-                Vector2[] tileUVs = new Vector2[vertices.Count];
-                for (int i = 0; i < tileUVs.Length; i++)
+                var tileUVs = new Vector2[vertices.Count];
+                for (var i = 0; i < tileUVs.Length; i++)
                 {
-                    Vector2 vertex = vertices[i];
+                    var vertex = vertices[i];
                     tileUVs[i] = new Vector2((vertex.X - bounds.Left) / tileW, (vertex.Y - bounds.Top) / tileH);
                 }
 
@@ -199,24 +199,24 @@ public readonly struct MGTextureFillBrush : IFillBrush
             return;
         }
 
-        Rectangle destination = GetStretchedDestination(bounds);
+        var destination = GetStretchedDestination(bounds);
         if (destination.Width <= 0 || destination.Height <= 0)
         {
             return;
         }
 
-        float inverseImageWidth = 1f / image.Width;
-        float inverseImageHeight = 1f / image.Height;
-        Vector2[] uvs = new Vector2[vertices.Count];
-        for (int i = 0; i < uvs.Length; i++)
+        var inverseImageWidth = 1f / image.Width;
+        var inverseImageHeight = 1f / image.Height;
+        var uvs = new Vector2[vertices.Count];
+        for (var i = 0; i < uvs.Length; i++)
         {
-            Vector2 vertex = vertices[i];
-            float u = (vertex.X - destination.Left) / destination.Width;
-            float v = (vertex.Y - destination.Top) / destination.Height;
+            var vertex = vertices[i];
+            var u = (vertex.X - destination.Left) / destination.Width;
+            var v = (vertex.Y - destination.Top) / destination.Height;
             uvs[i] = new Vector2((fullSource.X + u * fullSource.Width) * inverseImageWidth, (fullSource.Y + v * fullSource.Height) * inverseImageHeight);
         }
 
-        bool destinationCoversBounds = destination.Left <= bounds.Left && destination.Top <= bounds.Top && destination.Right >= bounds.Right && destination.Bottom >= bounds.Bottom;
+        var destinationCoversBounds = destination.Left <= bounds.Left && destination.Top <= bounds.Top && destination.Right >= bounds.Right && destination.Bottom >= bounds.Bottom;
         if (destinationCoversBounds)
         {
             DA.Context.FillTexturedRoundedRectangle(origin, Geometry, image, uvs, drawColor);
@@ -225,8 +225,8 @@ public readonly struct MGTextureFillBrush : IFillBrush
 
         //  Stretch.Uniform / Stretch.None: only the destination rectangle is painted, like the rectangle path. The clip is consumed in screen space
         //  (see MGRatingControl); Element is null only for unit tests that draw the brush without an element, hence the translated fallback.
-        Rectangle clipLayout = Rectangle.Intersect(destination, bounds);
-        Rectangle clipScreen = Element != null
+        var clipLayout = Rectangle.Intersect(destination, bounds);
+        var clipScreen = Element != null
             ? Element.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, clipLayout)
             : clipLayout.GetTranslated(DA.Offset);
         using (DA.Context.PushRectangleClip(clipScreen, true))
@@ -246,14 +246,14 @@ public readonly struct MGTextureFillBrush : IFillBrush
     private void DrawTiledAtlasSubRectangle(ElementDrawArgs DA, MGBoxGeometry Geometry, IUIImageResource image, Rectangle bounds, Rectangle fullSource,
         int tileW, int tileH, Vector2 origin, Color drawColor)
     {
-        IReadOnlyList<Vector2> outerContour = Geometry.OuterContour;
+        var outerContour = Geometry.OuterContour;
         if (outerContour.Count < 3)
         {
             return;
         }
 
-        float inverseImageWidth = 1f / image.Width;
-        float inverseImageHeight = 1f / image.Height;
+        var inverseImageWidth = 1f / image.Width;
+        var inverseImageHeight = 1f / image.Height;
 
         List<Vector2> quadPolygon = new(4);
         List<Vector2> clipped = new(8);
@@ -273,14 +273,14 @@ public readonly struct MGTextureFillBrush : IFillBrush
             }
         }
 
-        for (int y = bounds.Top; y < bounds.Bottom; y += tileH)
+        for (var y = bounds.Top; y < bounds.Bottom; y += tileH)
         {
-            for (int x = bounds.Left; x < bounds.Right; x += tileW)
+            for (var x = bounds.Left; x < bounds.Right; x += tileW)
             {
-                int drawW = Math.Min(tileW, bounds.Right - x);
-                int drawH = Math.Min(tileH, bounds.Bottom - y);
+                var drawW = Math.Min(tileW, bounds.Right - x);
+                var drawH = Math.Min(tileH, bounds.Bottom - y);
                 Rectangle dest = new(x, y, drawW, drawH);
-                Rectangle src = drawW < tileW || drawH < tileH
+                var src = drawW < tileW || drawH < tileH
                     ? new Rectangle(fullSource.X, fullSource.Y, Math.Min(drawW, fullSource.Width), Math.Min(drawH, fullSource.Height))
                     : fullSource;
 
@@ -304,8 +304,8 @@ public readonly struct MGTextureFillBrush : IFillBrush
                 Vector2 uvTopLeft = new(src.Left * inverseImageWidth, src.Top * inverseImageHeight);
                 Vector2 uvBottomRight = new(src.Right * inverseImageWidth, src.Bottom * inverseImageHeight);
 
-                int baseIndex = batchVertices.Count;
-                foreach (Vector2 vertex in clipped)
+                var baseIndex = batchVertices.Count;
+                foreach (var vertex in clipped)
                 {
                     batchVertices.Add(vertex);
                     batchUVs.Add(MGConvexPolygonClipper.InterpolateRectUV(vertex, dest, uvTopLeft, uvBottomRight));

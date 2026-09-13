@@ -34,7 +34,7 @@ public sealed class MGColorTextInputModel
     public bool TrySetHexText(string text)
     {
         HexText = text ?? string.Empty;
-        if (!ColorParser.TryParse(HexText, HexFormat, out ColorValue parsed))
+        if (!ColorParser.TryParse(HexText, HexFormat, out var parsed))
         {
             HasValidationError = true;
             return false;
@@ -46,10 +46,10 @@ public sealed class MGColorTextInputModel
 
     public bool TrySetRgbByteText(string red, string green, string blue, string alpha)
     {
-        if (!TryParseByteComponent(red, out float r)
-            || !TryParseByteComponent(green, out float g)
-            || !TryParseByteComponent(blue, out float b)
-            || !TryParseOptionalByteComponent(alpha, Value.A, out float a))
+        if (!TryParseByteComponent(red, out var r)
+            || !TryParseByteComponent(green, out var g)
+            || !TryParseByteComponent(blue, out var b)
+            || !TryParseOptionalByteComponent(alpha, Value.A, out var a))
         {
             HasValidationError = true;
             return false;
@@ -61,10 +61,10 @@ public sealed class MGColorTextInputModel
 
     public bool TrySetRgbFloatText(string red, string green, string blue, string alpha)
     {
-        if (!TryParseFloatComponent(red, out float r)
-            || !TryParseFloatComponent(green, out float g)
-            || !TryParseFloatComponent(blue, out float b)
-            || !TryParseOptionalFloatComponent(alpha, Value.A, out float a))
+        if (!TryParseFloatComponent(red, out var r)
+            || !TryParseFloatComponent(green, out var g)
+            || !TryParseFloatComponent(blue, out var b)
+            || !TryParseOptionalFloatComponent(alpha, Value.A, out var a))
         {
             HasValidationError = true;
             return false;
@@ -76,10 +76,10 @@ public sealed class MGColorTextInputModel
 
     public bool TrySetHsvText(string hue, string saturation, string value, string alpha)
     {
-        if (!TryParseFloatComponent(hue, out float h)
-            || !TryParseFloatComponent(saturation, out float s)
-            || !TryParseFloatComponent(value, out float v)
-            || !TryParseOptionalFloatComponent(alpha, Value.A, out float a))
+        if (!TryParseFloatComponent(hue, out var h)
+            || !TryParseFloatComponent(saturation, out var s)
+            || !TryParseFloatComponent(value, out var v)
+            || !TryParseOptionalFloatComponent(alpha, Value.A, out var a))
         {
             HasValidationError = true;
             return false;
@@ -97,7 +97,7 @@ public sealed class MGColorTextInputModel
 
     private void SetValue(ColorValue value, bool raiseEvent)
     {
-        ColorValue previous = Value;
+        var previous = Value;
         Value = value;
         HasValidationError = false;
         RefreshText();
@@ -115,7 +115,7 @@ public sealed class MGColorTextInputModel
         BlueText = ToByteText(Value.B);
         AlphaText = ToFloatText(Value.A);
 
-        HsvColor hsv = ColorSpaceConverter.RgbToHsv(Value);
+        var hsv = ColorSpaceConverter.RgbToHsv(Value);
         HueText = ToFloatText(hsv.H);
         SaturationText = ToFloatText(hsv.S);
         ValueText = ToFloatText(hsv.V);
@@ -130,7 +130,7 @@ public sealed class MGColorTextInputModel
     private static bool TryParseByteComponent(string text, out float value)
     {
         value = 0f;
-        if (!float.TryParse(text?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed))
+        if (!float.TryParse(text?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
         {
             return false;
         }

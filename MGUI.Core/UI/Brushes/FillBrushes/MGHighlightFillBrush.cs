@@ -164,7 +164,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 
 				if (FocusedElements != null)
 				{
-					foreach (MGElement Element in FocusedElements)
+					foreach (var Element in FocusedElements)
 					{
 						Element.OnLayoutBoundsChanged -= HandleLayoutBoundsChanged;
 					}
@@ -176,7 +176,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 
 				if (FocusedElements != null)
 				{
-					foreach (MGElement Element in FocusedElements)
+					foreach (var Element in FocusedElements)
 					{
 						Element.OnLayoutBoundsChanged += HandleLayoutBoundsChanged;
 					}
@@ -239,8 +239,8 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			return;
 		}
 
-		Vector2 Offset = DA.Offset.ToVector2();
-		List<Rectangle> FocusedRects = GetFocusedRects();
+		var Offset = DA.Offset.ToVector2();
+		var FocusedRects = GetFocusedRects();
 
 		if (CanFillFocusedRegion)
 		{
@@ -249,7 +249,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			//(since drawing a transparent color overtop of the same spot twice in a row results in a different color)
 			//We could union the rectangles that intersect one another, then decompose the polygon into a set of non-overlapping rectangles, but I'm too lazy to come up with that algorithm
 
-			foreach (Rectangle r in FocusedRects)
+			foreach (var r in FocusedRects)
 			{
 				DA.DT.FillRectangle(Offset, r, FocusedColor.Value);
 			}
@@ -257,10 +257,10 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 
 		if (CanFillUnfocusedRegion)
 		{
-			List<Rectangle> UnfocusedRegion = GetOrComputeUnfocusedRegion(Bounds, FocusedRects);
+			var UnfocusedRegion = GetOrComputeUnfocusedRegion(Bounds, FocusedRects);
 			if (UnfocusedRegion.Any())
 			{
-				foreach (Rectangle r in UnfocusedRegion)
+				foreach (var r in UnfocusedRegion)
 				{
 					DA.DT.FillRectangle(Offset, r, UnfocusedColor.Value);
 				}
@@ -281,9 +281,9 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			return;
 		}
 
-		Vector2 Offset = DA.Offset.ToVector2();
-		IReadOnlyList<Vector2> OuterContour = Geometry.OuterContour;
-		List<Rectangle> FocusedRects = GetFocusedRects();
+		var Offset = DA.Offset.ToVector2();
+		var OuterContour = Geometry.OuterContour;
+		var FocusedRects = GetFocusedRects();
 
 		List<Vector2> QuadPolygon = new(4);
 		List<Vector2> Clipped = new(8);
@@ -291,7 +291,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 
 		if (CanFillFocusedRegion)
 		{
-			foreach (Rectangle r in FocusedRects)
+			foreach (var r in FocusedRects)
 			{
 				FillClippedRectangle(DA.DT, Offset, r, OuterContour, FocusedColor.Value, QuadPolygon, Clipped, Scratch);
 			}
@@ -299,8 +299,8 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 
 		if (CanFillUnfocusedRegion)
 		{
-			List<Rectangle> UnfocusedRegion = GetOrComputeUnfocusedRegion(Shape.OuterBounds, FocusedRects);
-			foreach (Rectangle r in UnfocusedRegion)
+			var UnfocusedRegion = GetOrComputeUnfocusedRegion(Shape.OuterBounds, FocusedRects);
+			foreach (var r in UnfocusedRegion)
 			{
 				FillClippedRectangle(DA.DT, Offset, r, OuterContour, UnfocusedColor.Value, QuadPolygon, Clipped, Scratch);
 			}
@@ -340,7 +340,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			}
 		}
 
-		List<Rectangle> UnfocusedRegion = Subtract(Bounds, FocusedRects);
+		var UnfocusedRegion = Subtract(Bounds, FocusedRects);
 
 		CachedUnfocusedRegions.Add((Bounds, UnfocusedRegion));
 		if (CachedUnfocusedRegions.Count > MaxCachedUnfocusedRegions)
@@ -370,7 +370,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			return;
 		}
 
-		for (int i = 1; i + 1 < clipped.Count; i++)
+		for (var i = 1; i + 1 < clipped.Count; i++)
 		{
 			DT.FillTriangle(origin, clipped[0], color, clipped[i], color, clipped[i + 1], color);
 		}
@@ -395,15 +395,15 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 	{
 		//  Keep dividing the result set by subtracting out the next rectangle in the subtractions list until all subtractions have been applied
 		//  Yes, this is inefficient but who cares, the subtractions list will probably always be very small
-		List<Rectangle> Result = new List<Rectangle>() { Bounds };
-		List<Rectangle> RemainingSubtractions = Subtractions.ToList();
+		var Result = new List<Rectangle>() { Bounds };
+		var RemainingSubtractions = Subtractions.ToList();
 		while (RemainingSubtractions.Any())
 		{
-			Rectangle CurrentSubtraction = RemainingSubtractions[0];
+			var CurrentSubtraction = RemainingSubtractions[0];
 			RemainingSubtractions.RemoveAt(0);
 
 			List<Rectangle> Tmp = new();
-			foreach (Rectangle Rect in Result)
+			foreach (var Rect in Result)
 			{
 				Tmp.AddRange(Subtract(Rect, CurrentSubtraction));
 			}

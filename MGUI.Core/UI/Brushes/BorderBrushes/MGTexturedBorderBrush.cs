@@ -78,7 +78,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
 {
     private static UIDrawFlip ToDrawFlip(SpriteEffects effects)
     {
-        UIDrawFlip result = UIDrawFlip.None;
+        var result = UIDrawFlip.None;
 
         if ((effects & SpriteEffects.FlipHorizontally) != 0)
         {
@@ -130,18 +130,18 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
     {
         IUIDrawContext drawContext = DA.DT;
-        float opacity = DA.Opacity * this.Opacity;
-        IUIImageResource edgeImage = EdgeTexture.Image;
-        IUIImageResource cornerImage = CornerTexture.Image;
+        var opacity = DA.Opacity * this.Opacity;
+        var edgeImage = EdgeTexture.Image;
+        var cornerImage = CornerTexture.Image;
 
         if (edgeImage?.IsDisposed == false)
         {
             Bounds = Bounds.GetTranslated(DA.Offset);
 
-            EdgeTransforms edgeTransforms = Transforms.EdgeTransforms;
-            Color edgeColor = this.EdgeColor * opacity * EdgeTexture.Opacity;
-            int sourceWidth = EdgeTexture.RenderSize.Width;
-            int sourceHeight = EdgeTexture.RenderSize.Height;
+            var edgeTransforms = Transforms.EdgeTransforms;
+            var edgeColor = this.EdgeColor * opacity * EdgeTexture.Opacity;
+            var sourceWidth = EdgeTexture.RenderSize.Width;
+            var sourceHeight = EdgeTexture.RenderSize.Height;
             Vector2 origin = new(sourceWidth / 2f, sourceHeight / 2f);
             const float scaleOffset = 0.0001f;
 
@@ -152,7 +152,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
             }
             else
             {
-                Rectangle rotatedLeftBounds = leftBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.LeftRotation));
+                var rotatedLeftBounds = leftBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.LeftRotation));
                 Vector2 scale = new(Math.Abs(rotatedLeftBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedLeftBounds.Height) / (float)sourceHeight + scaleOffset);
                 drawContext.DrawTextureAt(edgeImage, EdgeTexture.SourceRect, leftBounds.Center.ToVector2(), edgeColor, origin, edgeTransforms.LeftRotation, scale.X, scale.Y, 0, ToDrawFlip(edgeTransforms.LeftReflections));
             }
@@ -164,7 +164,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
             }
             else
             {
-                Rectangle rotatedTopBounds = topBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.TopRotation));
+                var rotatedTopBounds = topBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.TopRotation));
                 Vector2 scale = new(Math.Abs(rotatedTopBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedTopBounds.Height) / (float)sourceHeight + scaleOffset);
                 drawContext.DrawTextureAt(edgeImage, EdgeTexture.SourceRect, topBounds.Center.ToVector2(), edgeColor, origin, edgeTransforms.TopRotation, scale.X, scale.Y, 0, ToDrawFlip(edgeTransforms.TopReflections));
             }
@@ -176,7 +176,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
             }
             else
             {
-                Rectangle rotatedRightBounds = rightBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.RightRotation));
+                var rotatedRightBounds = rightBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.RightRotation));
                 Vector2 scale = new(Math.Abs(rotatedRightBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedRightBounds.Height) / (float)sourceHeight + scaleOffset);
                 drawContext.DrawTextureAt(edgeImage, EdgeTexture.SourceRect, rightBounds.Center.ToVector2(), edgeColor, origin, edgeTransforms.RightRotation, scale.X, scale.Y, 0, ToDrawFlip(edgeTransforms.RightReflections));
             }
@@ -188,7 +188,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
             }
             else
             {
-                Rectangle rotatedBottomBounds = bottomBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.BottomRotation));
+                var rotatedBottomBounds = bottomBounds.CreateTransformed(Matrix.CreateRotationZ(edgeTransforms.BottomRotation));
                 Vector2 scale = new(Math.Abs(rotatedBottomBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedBottomBounds.Height) / (float)sourceHeight + scaleOffset);
                 drawContext.DrawTextureAt(edgeImage, EdgeTexture.SourceRect, bottomBounds.Center.ToVector2(), edgeColor, origin, edgeTransforms.BottomRotation, scale.X, scale.Y, 0, ToDrawFlip(edgeTransforms.BottomReflections));
             }
@@ -196,25 +196,25 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
 
         if (cornerImage?.IsDisposed == false)
         {
-            CornerTransforms cornerTransforms = Transforms.CornerTransforms;
-            Color cornerColor = this.CornerColor * opacity * CornerTexture.Opacity;
-            int sourceWidth = CornerTexture.RenderSize.Width;
-            int sourceHeight = CornerTexture.RenderSize.Height;
+            var cornerTransforms = Transforms.CornerTransforms;
+            var cornerColor = this.CornerColor * opacity * CornerTexture.Opacity;
+            var sourceWidth = CornerTexture.RenderSize.Width;
+            var sourceHeight = CornerTexture.RenderSize.Height;
             Vector2 origin = new(sourceWidth / 2f, sourceHeight / 2f);
-            bool isUniformThickness = BT.Sides().All(x => x == BT.Left);
+            var isUniformThickness = BT.Sides().All(x => x == BT.Left);
 
             if (isUniformThickness)
             {
-                Rectangle topLeftBounds = new Rectangle(Bounds.Left, Bounds.Top, BT.Left, BT.Top).GetTranslated(BT.Left / 2, BT.Top / 2);
+                var topLeftBounds = new Rectangle(Bounds.Left, Bounds.Top, BT.Left, BT.Top).GetTranslated(BT.Left / 2, BT.Top / 2);
                 drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, topLeftBounds, cornerColor, origin, cornerTransforms.TopLeftRotation, 0, ToDrawFlip(cornerTransforms.TopLeftReflections));
 
-                Rectangle topRightBounds = new Rectangle(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top).GetTranslated(BT.Right / 2, BT.Top / 2);
+                var topRightBounds = new Rectangle(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top).GetTranslated(BT.Right / 2, BT.Top / 2);
                 drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, topRightBounds, cornerColor, origin, cornerTransforms.TopRightRotation, 0, ToDrawFlip(cornerTransforms.TopRightReflections));
 
-                Rectangle bottomRightBounds = new Rectangle(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom).GetTranslated(BT.Right / 2, BT.Bottom / 2);
+                var bottomRightBounds = new Rectangle(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom).GetTranslated(BT.Right / 2, BT.Bottom / 2);
                 drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, bottomRightBounds, cornerColor, origin, cornerTransforms.BottomRightRotation, 0, ToDrawFlip(cornerTransforms.BottomRightReflections));
 
-                Rectangle bottomLeftBounds = new Rectangle(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom).GetTranslated(BT.Left / 2, BT.Bottom / 2);
+                var bottomLeftBounds = new Rectangle(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom).GetTranslated(BT.Left / 2, BT.Bottom / 2);
                 drawContext.DrawTextureTo(cornerImage, CornerTexture.SourceRect, bottomLeftBounds, cornerColor, origin, cornerTransforms.BottomLeftRotation, 0, ToDrawFlip(cornerTransforms.BottomLeftReflections));
             }
             else
@@ -228,7 +228,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
                 }
                 else
                 {
-                    Rectangle rotatedTopLeftBounds = topLeftBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.TopLeftRotation));
+                    var rotatedTopLeftBounds = topLeftBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.TopLeftRotation));
                     Vector2 scale = new(Math.Abs(rotatedTopLeftBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedTopLeftBounds.Height) / (float)sourceHeight + scaleOffset);
                     drawContext.DrawTextureAt(cornerImage, CornerTexture.SourceRect, topLeftBounds.Center.ToVector2(), cornerColor, origin, cornerTransforms.TopLeftRotation, scale.X, scale.Y, 0, ToDrawFlip(cornerTransforms.TopLeftReflections));
                 }
@@ -240,7 +240,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
                 }
                 else
                 {
-                    Rectangle rotatedTopRightBounds = topRightBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.TopRightRotation));
+                    var rotatedTopRightBounds = topRightBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.TopRightRotation));
                     Vector2 scale = new(Math.Abs(rotatedTopRightBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedTopRightBounds.Height) / (float)sourceHeight + scaleOffset);
                     drawContext.DrawTextureAt(cornerImage, CornerTexture.SourceRect, topRightBounds.Center.ToVector2(), cornerColor, origin, cornerTransforms.TopRightRotation, scale.X, scale.Y, 0, ToDrawFlip(cornerTransforms.TopRightReflections));
                 }
@@ -252,7 +252,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
                 }
                 else
                 {
-                    Rectangle rotatedBottomRightBounds = bottomRightBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.BottomRightRotation));
+                    var rotatedBottomRightBounds = bottomRightBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.BottomRightRotation));
                     Vector2 scale = new(Math.Abs(rotatedBottomRightBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedBottomRightBounds.Height) / (float)sourceHeight + scaleOffset);
                     drawContext.DrawTextureAt(cornerImage, CornerTexture.SourceRect, bottomRightBounds.Center.ToVector2(), cornerColor, origin, cornerTransforms.BottomRightRotation, scale.X, scale.Y, 0, ToDrawFlip(cornerTransforms.BottomRightReflections));
                 }
@@ -264,7 +264,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
                 }
                 else
                 {
-                    Rectangle rotatedBottomLeftBounds = bottomLeftBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.BottomLeftRotation));
+                    var rotatedBottomLeftBounds = bottomLeftBounds.CreateTransformed(Matrix.CreateRotationZ(cornerTransforms.BottomLeftRotation));
                     Vector2 scale = new(Math.Abs(rotatedBottomLeftBounds.Width) / (float)sourceWidth + scaleOffset, Math.Abs(rotatedBottomLeftBounds.Height) / (float)sourceHeight + scaleOffset);
                     drawContext.DrawTextureAt(cornerImage, CornerTexture.SourceRect, bottomLeftBounds.Center.ToVector2(), cornerColor, origin, cornerTransforms.BottomLeftRotation, scale.X, scale.Y, 0, ToDrawFlip(cornerTransforms.BottomLeftReflections));
                 }
@@ -285,7 +285,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
     /// path or when it has no ring mesh (a border thickness consuming the whole box leaves no inner contour, see MGBoxGeometryBuilder.BuildBorderRingIndices).</summary>
     public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        Thickness thickness = Shape.NormalizedBorderThickness;
+        var thickness = Shape.NormalizedBorderThickness;
         if (Geometry.UsesRectangleFastPath || !Geometry.HasBorderRingMesh || thickness.IsEmpty())
         {
             //  Rectangle fast path (identical legacy rendering), or documented fallback when the ring mesh is empty (see Docs/drawing-architecture.md).
@@ -293,28 +293,28 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
             return;
         }
 
-        IUIImageResource edgeImage = EdgeTexture.Image;
-        IUIImageResource cornerImage = CornerTexture.Image;
-        bool drawEdges = edgeImage?.IsDisposed == false;
-        bool drawCorners = cornerImage?.IsDisposed == false;
+        var edgeImage = EdgeTexture.Image;
+        var cornerImage = CornerTexture.Image;
+        var drawEdges = edgeImage?.IsDisposed == false;
+        var drawCorners = cornerImage?.IsDisposed == false;
         if (!drawEdges && !drawCorners)
         {
             return;
         }
 
-        float opacity = DA.Opacity * this.Opacity;
-        Rectangle bounds = Shape.OuterBounds;
-        IReadOnlyList<Vector2> vertices = Geometry.Vertices;
-        IReadOnlyList<int> ringIndices = Geometry.BorderRingIndices;
-        int outerCount = Geometry.OuterContourVertexCount;
-        int quadCount = ringIndices.Count / 6;
+        var opacity = DA.Opacity * this.Opacity;
+        var bounds = Shape.OuterBounds;
+        var vertices = Geometry.Vertices;
+        var ringIndices = Geometry.BorderRingIndices;
+        var outerCount = Geometry.OuterContourVertexCount;
+        var quadCount = ringIndices.Count / 6;
         if (outerCount < 2 || quadCount == 0)
         {
             return;
         }
 
-        MGCornerRadius radius = Shape.NormalizedCornerRadius;
-        Vector2 origin = DA.Offset.ToVector2();
+        var radius = Shape.NormalizedCornerRadius;
+        var origin = DA.Offset.ToVector2();
         List<Vector2> quadPolygon = new(4);
         List<Vector2> clipped = new(8);
         List<Vector2> scratch = new(8);
@@ -324,8 +324,8 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
 
         if (drawCorners)
         {
-            Color cornerColor = this.CornerColor * opacity * CornerTexture.Opacity;
-            CornerTransforms corners = Transforms.CornerTransforms;
+            var cornerColor = this.CornerColor * opacity * CornerTexture.Opacity;
+            var corners = Transforms.CornerTransforms;
             //  Same corner blocks as the rectangle path (see Draw(..., Rectangle, Thickness)); the ring is clipped against them.
             //  The part of the ring that lies deeper than the thickness inside a corner square belongs to no layout rectangle:
             //  it is painted with the corner texture too (clamped coordinates), so the ring never shows a hole.
@@ -345,8 +345,8 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
 
         if (drawEdges)
         {
-            Color edgeColor = this.EdgeColor * opacity * EdgeTexture.Opacity;
-            EdgeTransforms edges = Transforms.EdgeTransforms;
+            var edgeColor = this.EdgeColor * opacity * EdgeTexture.Opacity;
+            var edges = Transforms.EdgeTransforms;
             //  Same edge rectangles as the rectangle path: they run between the corner blocks, and the arcs cut through them.
             EmitRegion(DA, new RectangleF(bounds.Left + thickness.Left, bounds.Top, bounds.Width - thickness.Width, thickness.Top), RectangleF.Empty,
                 edges.TopRotation, edges.TopReflections, EdgeTexture, edgeImage, edgeColor);
@@ -371,12 +371,12 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
             regionVertices.Clear();
             regionUVs.Clear();
             regionIndices.Clear();
-            bool hasDeeperZone = deeperRect.Width > 0 && deeperRect.Height > 0;
+            var hasDeeperZone = deeperRect.Width > 0 && deeperRect.Height > 0;
 
-            for (int quad = 0; quad < quadCount; quad++)
+            for (var quad = 0; quad < quadCount; quad++)
             {
                 //  Ring quad i = outer i, outer i+1, inner i+1, inner i (BuildBorderRingIndices emits (o, o2, i2) then (i2, i, o)).
-                int first = quad * 6;
+                var first = quad * 6;
                 quadPolygon.Clear();
                 quadPolygon.Add(vertices[ringIndices[first]]);
                 quadPolygon.Add(vertices[ringIndices[first + 1]]);
@@ -405,8 +405,8 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
                     return;
                 }
 
-                int baseIndex = regionVertices.Count;
-                foreach (Vector2 vertex in clipped)
+                var baseIndex = regionVertices.Count;
+                foreach (var vertex in clipped)
                 {
                     regionVertices.Add(vertex);
                     regionUVs.Add(GetTextureCoordinate(vertex, layoutRect, rotation, reflections, textureData, image));
@@ -419,11 +419,11 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
 
     private static float SignedArea(List<Vector2> polygon)
     {
-        float area = 0f;
-        for (int i = 0; i < polygon.Count; i++)
+        var area = 0f;
+        for (var i = 0; i < polygon.Count; i++)
         {
-            Vector2 a = polygon[i];
-            Vector2 b = polygon[(i + 1) % polygon.Count];
+            var a = polygon[i];
+            var b = polygon[(i + 1) % polygon.Count];
             area += a.X * b.Y - b.X * a.Y;
         }
 
@@ -444,13 +444,13 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
         }
         else
         {
-            RectangleF rotated = regionRect.CreateTransformedF(Matrix.CreateRotationZ(rotation));
-            float fittedWidth = Math.Abs(rotated.Width) > 0 ? Math.Abs(rotated.Width) : regionRect.Width;
-            float fittedHeight = Math.Abs(rotated.Height) > 0 ? Math.Abs(rotated.Height) : regionRect.Height;
+            var rotated = regionRect.CreateTransformedF(Matrix.CreateRotationZ(rotation));
+            var fittedWidth = Math.Abs(rotated.Width) > 0 ? Math.Abs(rotated.Width) : regionRect.Width;
+            var fittedHeight = Math.Abs(rotated.Height) > 0 ? Math.Abs(rotated.Height) : regionRect.Height;
             Vector2 center = new(regionRect.Center.X, regionRect.Center.Y);
-            Vector2 delta = vertex - center;
-            float cos = (float)Math.Cos(rotation);
-            float sin = (float)Math.Sin(rotation);
+            var delta = vertex - center;
+            var cos = (float)Math.Cos(rotation);
+            var sin = (float)Math.Sin(rotation);
             //  Undo the sprite rotation to find where the vertex falls inside the fitted, unrotated sprite.
             Vector2 unrotated = new(delta.X * cos + delta.Y * sin, -delta.X * sin + delta.Y * cos);
             local = new Vector2(
@@ -471,7 +471,7 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
         local.X = Math.Clamp(local.X, 0f, 1f);
         local.Y = Math.Clamp(local.Y, 0f, 1f);
 
-        Rectangle source = textureData.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
+        var source = textureData.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
         return new Vector2((source.X + local.X * source.Width) / image.Width, (source.Y + local.Y * source.Height) / image.Height);
     }
 

@@ -21,14 +21,14 @@ internal static class UIResourceReferenceApplicator
         }
 
         Resources ??= HostElement?.GetResources();
-        if (Resources == null || !TryResolveTarget(TargetObject, Config.TargetPath, out object PropertyOwner, out PropertyInfo Property))
+        if (Resources == null || !TryResolveTarget(TargetObject, Config.TargetPath, out var PropertyOwner, out var Property))
         {
             return false;
         }
 
-        bool HasPilot = UIPilotPropertyResolver.TryResolve(TargetObject, Config.TargetPath, out MGElement PilotOwner, out UIPilotProperty Pilot, out UIValueSlot Slot);
+        var HasPilot = UIPilotPropertyResolver.TryResolve(TargetObject, Config.TargetPath, out var PilotOwner, out var Pilot, out var Slot);
 
-        if (!TryResolveResourceValue(HostElement, Resources, Config.ResourceName, Property.PropertyType, out object ResolvedValue))
+        if (!TryResolveResourceValue(HostElement, Resources, Config.ResourceName, Property.PropertyType, out var ResolvedValue))
         {
             // ADR-0005/S8: the resource no longer resolves (removed, or never added). A dynamic reference that
             // previously won a pilot's contribution must give that contribution up so the next-highest-precedence
@@ -45,7 +45,7 @@ internal static class UIResourceReferenceApplicator
         {
             if (HasPilot)
             {
-                UIValueResolutionSource Source = Config.IsDynamic
+                var Source = Config.IsDynamic
                     ? UIValueResolutionSource.DynamicResource(UIPilotPropertyResolver.KindOf(Pilot), Config.ResourceName)
                     : UIValueResolutionSource.LocalValue(UIPilotPropertyResolver.KindOf(Pilot), Config.ResourceName);
                 if (UIPilotPropertyResolver.TrySetTagged(PilotOwner, Pilot, Slot, ResolvedValue, Source))
@@ -84,7 +84,7 @@ internal static class UIResourceReferenceApplicator
 
         if (HostElement != null)
         {
-            UIDynamicResourceSubscriptions Subscriptions = GetOrCreateSubscriptions(HostElement);
+            var Subscriptions = GetOrCreateSubscriptions(HostElement);
             Subscriptions.TryRegister(TargetObject, Config, Resources);
         }
         else
@@ -103,7 +103,7 @@ internal static class UIResourceReferenceApplicator
 
     private static UIDynamicResourceSubscriptions GetOrCreateSubscriptions(MGElement HostElement)
     {
-        if (!HostElement.Metadata.TryGetValue(DynamicResourceSubscriptionsMetadataKey, out object Existing))
+        if (!HostElement.Metadata.TryGetValue(DynamicResourceSubscriptionsMetadataKey, out var Existing))
         {
             Existing = new UIDynamicResourceSubscriptions(HostElement);
             HostElement.Metadata.Add(DynamicResourceSubscriptionsMetadataKey, Existing);
@@ -117,15 +117,15 @@ internal static class UIResourceReferenceApplicator
         PropertyOwner = RootObject;
         Property = null;
 
-        string[] Segments = TargetPath.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        var Segments = TargetPath.Split('.', StringSplitOptions.RemoveEmptyEntries);
         if (!Segments.Any())
         {
             return false;
         }
 
-        for (int i = 0; i < Segments.Length; i++)
+        for (var i = 0; i < Segments.Length; i++)
         {
-            PropertyInfo CurrentProperty = PropertyOwner?.GetType().GetProperty(Segments[i], BindingFlags.Instance | BindingFlags.Public);
+            var CurrentProperty = PropertyOwner?.GetType().GetProperty(Segments[i], BindingFlags.Instance | BindingFlags.Public);
             if (CurrentProperty == null)
             {
                 PropertyOwner = null;
@@ -150,7 +150,7 @@ internal static class UIResourceReferenceApplicator
 
     private static bool TryResolveResourceValue(MGElement HostElement, MGResources Resources, string ResourceName, Type TargetType, out object Result)
     {
-        if (!Resources.TryGetStaticResource(ResourceName, out object RawValue))
+        if (!Resources.TryGetStaticResource(ResourceName, out var RawValue))
         {
             Result = null;
             return false;
@@ -167,8 +167,8 @@ internal static class UIResourceReferenceApplicator
             return null;
         }
 
-        Type ActualTargetType = Nullable.GetUnderlyingType(TargetType) ?? TargetType;
-        Type SourceType = Value.GetType();
+        var ActualTargetType = Nullable.GetUnderlyingType(TargetType) ?? TargetType;
+        var SourceType = Value.GetType();
         if (SourceType.IsAssignableTo(ActualTargetType))
         {
             return Value;
@@ -201,19 +201,19 @@ internal static class UIResourceReferenceApplicator
 
         if (HostElement != null && Value is Element XamlElement && typeof(MGElement).IsAssignableFrom(ActualTargetType))
         {
-            MethodInfo ToElementMethod = typeof(Element).GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            var ToElementMethod = typeof(Element).GetMethods(BindingFlags.Instance | BindingFlags.Public)
                 .First(x => x.Name == nameof(Element.ToElement) && x.IsGenericMethodDefinition && x.GetParameters().Length == 3)
                 .MakeGenericMethod(ActualTargetType);
             return ToElementMethod.Invoke(XamlElement, new object[] { HostElement.SelfOrParentWindow, HostElement, null });
         }
 
-        TypeConverter TargetConverter = TypeDescriptor.GetConverter(ActualTargetType);
+        var TargetConverter = TypeDescriptor.GetConverter(ActualTargetType);
         if (TargetConverter?.CanConvertFrom(SourceType) == true)
         {
             return TargetConverter.ConvertFrom(null, CultureInfo.CurrentCulture, Value);
         }
 
-        TypeConverter SourceConverter = TypeDescriptor.GetConverter(SourceType);
+        var SourceConverter = TypeDescriptor.GetConverter(SourceType);
         if (SourceConverter?.CanConvertTo(ActualTargetType) == true)
         {
             return SourceConverter.ConvertTo(null, CultureInfo.CurrentCulture, Value, ActualTargetType);

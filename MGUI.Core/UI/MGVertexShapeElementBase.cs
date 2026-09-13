@@ -22,7 +22,7 @@ public abstract class MGVertexShapeElementBase : MGShapeElementBase
     public override Thickness MeasureSelfOverride(Size availableSize, out Thickness sharedSize)
     {
         sharedSize = new Thickness(0);
-        Size desiredSize = MGVectorShapeHelper.GetDesiredSize(GeometrySize, HasVisibleStroke ? StrokeThickness : 0f);
+        var desiredSize = MGVectorShapeHelper.GetDesiredSize(GeometrySize, HasVisibleStroke ? StrokeThickness : 0f);
         return new Thickness(desiredSize.Width, desiredSize.Height, 0, 0);
     }
 }

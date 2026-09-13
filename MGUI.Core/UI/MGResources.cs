@@ -82,7 +82,7 @@ public class MGResources
     {
         if (!ReferenceEquals(this, Parent))
         {
-            MGTheme PreviousTheme = _DefaultTheme == null ? this.Parent?.DefaultTheme : null;
+            var PreviousTheme = _DefaultTheme == null ? this.Parent?.DefaultTheme : null;
 
             if (this.Parent != null)
             {
@@ -102,7 +102,7 @@ public class MGResources
 
             if (_DefaultTheme == null)
             {
-                MGTheme CurrentTheme = this.Parent?.DefaultTheme;
+                var CurrentTheme = this.Parent?.DefaultTheme;
                 if (!ReferenceEquals(PreviousTheme, CurrentTheme) && PreviousTheme != null && CurrentTheme != null)
                 {
                     OnDefaultThemeChanged?.Invoke(this, (PreviousTheme, CurrentTheme));
@@ -142,7 +142,7 @@ public class MGResources
 
         public void OnParentDefaultThemeChanged(object sender, (MGTheme PreviousTheme, MGTheme Theme) e)
         {
-            if (Child.TryGetTarget(out MGResources Target))
+            if (Child.TryGetTarget(out var Target))
             {
                 Target.Parent_OnDefaultThemeChanged(sender, e);
             }
@@ -155,7 +155,7 @@ public class MGResources
 
         public void OnParentStaticResourceLookupChanged(object sender, string ResourceName)
         {
-            if (Child.TryGetTarget(out MGResources Target))
+            if (Child.TryGetTarget(out var Target))
             {
                 Target.Parent_OnStaticResourceLookupChanged(ResourceName);
             }
@@ -169,7 +169,7 @@ public class MGResources
 
     public IEnumerable<MGResources> EnumerateSelfAndAncestors()
     {
-        for (MGResources Current = this; Current != null; Current = Current.Parent)
+        for (var Current = this; Current != null; Current = Current.Parent)
         {
             yield return Current;
         }
@@ -188,7 +188,7 @@ public class MGResources
 
     public bool RemoveTexture(string Name)
     {
-        if (_Textures.TryGetValue(Name, out MGTextureData Data))
+        if (_Textures.TryGetValue(Name, out var Data))
         {
             _Textures.Remove(Name);
             OnTextureRemoved?.Invoke(this, (Name, Data));
@@ -219,7 +219,7 @@ public class MGResources
 
     public bool TryLoadImage(string Name, string AssetName)
     {
-        if (AssetProvider == null || !AssetProvider.TryLoadImage(AssetName, out IUIImageResource Image))
+        if (AssetProvider == null || !AssetProvider.TryLoadImage(AssetName, out var Image))
         {
             return false;
         }
@@ -233,9 +233,9 @@ public class MGResources
 
     internal (int? Width, int? Height) GetTextureDimensions(string Name)
     {
-        if (TryGetTexture(Name, out MGTextureData Texture))
+        if (TryGetTexture(Name, out var Texture))
         {
-            Size Size = Texture.RenderSize;
+            var Size = Texture.RenderSize;
             return (Size.Width, Size.Height);
         }
         else
@@ -250,7 +250,7 @@ public class MGResources
         => TryDrawTexture(DT, TextureData, TargetBounds.TopLeft(), TargetBounds.Width, TargetBounds.Height, Opacity, Color);
     public bool TryDrawTexture(IUIDrawContext DT, string Name, Point Position, int? Width, int? Height, float Opacity = 1.0f, Color? Color = null)
     {
-        if (TryGetTexture(Name, out MGTextureData TextureData))
+        if (TryGetTexture(Name, out var TextureData))
         {
             return TryDrawTexture(DT, TextureData, Position, Width, Height, Opacity, Color);
         }
@@ -263,8 +263,8 @@ public class MGResources
     {
         if (TextureData != null)
         {
-            int ActualWidth = Width ?? TextureData.Value.RenderSize.Width;
-            int ActualHeight = Height ?? TextureData.Value.RenderSize.Height;
+            var ActualWidth = Width ?? TextureData.Value.RenderSize.Width;
+            var ActualHeight = Height ?? TextureData.Value.RenderSize.Height;
             Rectangle Destination = new(Position.X, Position.Y, ActualWidth, ActualHeight);
 
             TextureData.Value.Draw(DT, Destination, Color, Opacity);
@@ -301,7 +301,7 @@ public class MGResources
 
     public bool RemoveComand(string Name)
     {
-        if (_Commands.TryGetValue(Name, out Action<MGElement> Command))
+        if (_Commands.TryGetValue(Name, out var Command))
         {
             _Commands.Remove(Name);
             OnCommandRemoved?.Invoke(this, (Name, Command));
@@ -382,7 +382,7 @@ public class MGResources
 
     public bool RemoveTheme(string Name)
     {
-        if (_Themes.TryGetValue(Name, out MGTheme Theme))
+        if (_Themes.TryGetValue(Name, out var Theme))
         {
             _Themes.Remove(Name);
             OnThemeRemoved?.Invoke(this, (Name, Theme));
@@ -416,13 +416,13 @@ public class MGResources
     {
         if (!string.IsNullOrEmpty(Name))
         {
-            if (_Themes.TryGetValue(Name, out MGTheme Result))
+            if (_Themes.TryGetValue(Name, out var Result))
             {
                 return Result;
             }
             else if (Parent != null)
             {
-                MGTheme ParentTheme = Parent.GetThemeOrDefault(Name, null, WarnIfNotFound: false);
+                var ParentTheme = Parent.GetThemeOrDefault(Name, null, WarnIfNotFound: false);
                 if (ParentTheme != null)
                 {
                     return ParentTheme;
@@ -471,11 +471,11 @@ public class MGResources
                 throw new ArgumentNullException(nameof(DefaultTheme));
             }
 
-            MGTheme PreviousTheme = DefaultTheme;
+            var PreviousTheme = DefaultTheme;
             if (!ReferenceEquals(_DefaultTheme, value))
             {
                 _DefaultTheme = value;
-                MGTheme CurrentTheme = DefaultTheme;
+                var CurrentTheme = DefaultTheme;
                 if (!ReferenceEquals(PreviousTheme, CurrentTheme))
                 {
                     OnDefaultThemeChanged?.Invoke(this, (PreviousTheme, CurrentTheme));
@@ -488,9 +488,9 @@ public class MGResources
     {
         if (_DefaultTheme != null)
         {
-            MGTheme PreviousTheme = DefaultTheme;
+            var PreviousTheme = DefaultTheme;
             _DefaultTheme = null;
-            MGTheme CurrentTheme = DefaultTheme;
+            var CurrentTheme = DefaultTheme;
             if (!ReferenceEquals(PreviousTheme, CurrentTheme))
             {
                 OnDefaultThemeChanged?.Invoke(this, (PreviousTheme, CurrentTheme));
@@ -529,16 +529,16 @@ public class MGResources
             throw new InvalidOperationException("Implicit styles must not have a Name.");
         }
 
-        MGElementType Type = Style.TargetType;
-        if (!_ImplicitStyles.TryGetValue(Type, out Style Existing))
+        var Type = Style.TargetType;
+        if (!_ImplicitStyles.TryGetValue(Type, out var Existing))
         {
             _ImplicitStyles.Add(Type, Style);
         }
         else
         {
-            foreach (Setter Setter in Style.Setters)
+            foreach (var Setter in Style.Setters)
             {
-                int ExistingIndex = Existing.Setters.FindIndex(s => s.Property == Setter.Property);
+                var ExistingIndex = Existing.Setters.FindIndex(s => s.Property == Setter.Property);
                 if (ExistingIndex >= 0)
                 {
                     Existing.Setters[ExistingIndex] = Setter;
@@ -550,9 +550,9 @@ public class MGResources
             }
 
             //  ADR-0007, decision 5: transitions merge per path, visual states per name (the new style wins)
-            foreach (MGUI.Core.UI.XAML.Transition Transition in Style.Transitions)
+            foreach (var Transition in Style.Transitions)
             {
-                int ExistingIndex = Existing.Transitions.FindIndex(t => string.Equals(t.Property, Transition.Property, StringComparison.OrdinalIgnoreCase));
+                var ExistingIndex = Existing.Transitions.FindIndex(t => string.Equals(t.Property, Transition.Property, StringComparison.OrdinalIgnoreCase));
                 if (ExistingIndex >= 0)
                 {
                     Existing.Transitions[ExistingIndex] = Transition;
@@ -563,9 +563,9 @@ public class MGResources
                 }
             }
 
-            foreach (MGUI.Core.UI.XAML.VisualStateDefinition State in Style.VisualStates)
+            foreach (var State in Style.VisualStates)
             {
-                int ExistingIndex = Existing.VisualStates.FindIndex(s => string.Equals(s.Name, State.Name, StringComparison.OrdinalIgnoreCase));
+                var ExistingIndex = Existing.VisualStates.FindIndex(s => string.Equals(s.Name, State.Name, StringComparison.OrdinalIgnoreCase));
                 if (ExistingIndex >= 0)
                 {
                     Existing.VisualStates[ExistingIndex] = State;
@@ -607,8 +607,8 @@ public class MGResources
 
     public IReadOnlyDictionary<MGElementType, Style> GetMergedImplicitStyles()
     {
-        Dictionary<MGElementType, Style> Result = Parent?.GetMergedImplicitStyles().ToDictionary(x => x.Key, x => x.Value) ?? new();
-        foreach (KeyValuePair<MGElementType, Style> KVP in _ImplicitStyles)
+        var Result = Parent?.GetMergedImplicitStyles().ToDictionary(x => x.Key, x => x.Value) ?? new();
+        foreach (var KVP in _ImplicitStyles)
         {
             Result[KVP.Key] = KVP.Value;
         }
@@ -624,7 +624,7 @@ public class MGResources
 
     public bool RemoveStyle(string Name)
     {
-        if (_Styles.TryGetValue(Name, out Style Style))
+        if (_Styles.TryGetValue(Name, out var Style))
         {
             _Styles.Remove(Name);
             OnStyleRemoved?.Invoke(this, (Name, Style));
@@ -655,7 +655,7 @@ public class MGResources
 
     public void SetStaticResource(string Name, object Value)
     {
-        if (_StaticResources.TryGetValue(Name, out object PreviousValue))
+        if (_StaticResources.TryGetValue(Name, out var PreviousValue))
         {
             _StaticResources[Name] = Value;
             OnStaticResourceChanged?.Invoke(this, (Name, PreviousValue, Value));
@@ -672,7 +672,7 @@ public class MGResources
 
     public bool RemoveStaticResource(string Name)
     {
-        if (_StaticResources.TryGetValue(Name, out object Value))
+        if (_StaticResources.TryGetValue(Name, out var Value))
         {
             _StaticResources.Remove(Name);
             OnStaticResourceRemoved?.Invoke(this, (Name, Value));
@@ -732,7 +732,7 @@ public class MGResources
 
     public bool RemoveControlTemplate(string Name)
     {
-        if (_ControlTemplates.TryGetValue(Name, out MGControlTemplate Template))
+        if (_ControlTemplates.TryGetValue(Name, out var Template))
         {
             _ControlTemplates.Remove(Name);
             OnControlTemplateRemoved?.Invoke(this, (Name, Template));
@@ -776,7 +776,7 @@ public class MGResources
 
     public bool RemoveElementTemplate(string Name)
     {
-        if (_ElementTemplates.TryGetValue(Name, out MGElementTemplate Template))
+        if (_ElementTemplates.TryGetValue(Name, out var Template))
         {
             _ElementTemplates.Remove(Name);
             OnElementTemplateRemoved?.Invoke(this, (Name, Template));

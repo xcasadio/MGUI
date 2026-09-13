@@ -176,7 +176,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
 
     private Rectangle GetAccentBounds()
     {
-        Rectangle accentBounds = LayoutBounds;
+        var accentBounds = LayoutBounds;
         if (ParentSplitContainer?.Orientation == Orientation.Horizontal)
         {
             accentBounds.X -= 1;
@@ -204,7 +204,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
                 ? HoverBrush
                 : NormalBrush, UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
 
-        bool showAccent = IsHovered || IsDragging;
+        var showAccent = IsHovered || IsDragging;
         AccentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
         AccentElement.SetBackgroundSlot(UIValueSlot.Normal, new MGSolidFillBrush(IsDragging ? PressedOverlayColor : HoverOverlayColor), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
 
@@ -236,7 +236,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
         if (IsDragging)
         {
             // Check if left mouse button is still pressed
-            bool isStillPressed = ParentWindow.Desktop.InputTracker.Mouse.CurrentState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+            var isStillPressed = ParentWindow.Desktop.InputTracker.Mouse.CurrentState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed;
                 
             if (!isStillPressed)
             {
@@ -260,37 +260,37 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
             }
 
             // Get current mouse position
-            Point currentMousePosition = ParentWindow.Desktop.InputTracker.Mouse.CurrentPosition;
+            var currentMousePosition = ParentWindow.Desktop.InputTracker.Mouse.CurrentPosition;
 
             // Calculate delta in pixels
-            Point delta = new Point(
+            var delta = new Point(
                 currentMousePosition.X - _dragStartMousePosition.X,
                 currentMousePosition.Y - _dragStartMousePosition.Y
             );
 
             // Get container bounds
-            Rectangle containerBounds = ParentSplitContainer.LayoutBounds;
+            var containerBounds = ParentSplitContainer.LayoutBounds;
                 
             // Calculate new ratio based on orientation
-            float newRatio = _dragStartRatio;
+            var newRatio = _dragStartRatio;
                 
             if (ParentSplitContainer.Orientation == Orientation.Horizontal)
             {
                 // Horizontal split: drag left/right
-                int availableWidth = containerBounds.Width - ParentSplitContainer.SplitterThickness;
+                var availableWidth = containerBounds.Width - ParentSplitContainer.SplitterThickness;
                 if (availableWidth > 0)
                 {
-                    float deltaRatio = (float)delta.X / availableWidth;
+                    var deltaRatio = (float)delta.X / availableWidth;
                     newRatio = _dragStartRatio + deltaRatio;
                 }
             }
             else
             {
                 // Vertical split: drag up/down
-                int availableHeight = containerBounds.Height - ParentSplitContainer.SplitterThickness;
+                var availableHeight = containerBounds.Height - ParentSplitContainer.SplitterThickness;
                 if (availableHeight > 0)
                 {
-                    float deltaRatio = (float)delta.Y / availableHeight;
+                    var deltaRatio = (float)delta.Y / availableHeight;
                     newRatio = _dragStartRatio + deltaRatio;
                 }
             }
@@ -314,12 +314,12 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
             return ratio;
         }
 
-        Rectangle bounds = ParentSplitContainer.LayoutBounds;
-        int splitterThickness = ParentSplitContainer.SplitterThickness;
-        int minFirstSize = ParentSplitContainer.MinFirstSize;
-        int minSecondSize = ParentSplitContainer.MinSecondSize;
+        var bounds = ParentSplitContainer.LayoutBounds;
+        var splitterThickness = ParentSplitContainer.SplitterThickness;
+        var minFirstSize = ParentSplitContainer.MinFirstSize;
+        var minSecondSize = ParentSplitContainer.MinSecondSize;
 
-        int availableSize = (ParentSplitContainer.Orientation == Orientation.Horizontal)
+        var availableSize = (ParentSplitContainer.Orientation == Orientation.Horizontal)
             ? bounds.Width - splitterThickness
             : bounds.Height - splitterThickness;
 
@@ -338,7 +338,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
         // Splitter bar size depends on parent container orientation
         if (ParentSplitContainer != null)
         {
-            int thickness = ParentSplitContainer.SplitterThickness;
+            var thickness = ParentSplitContainer.SplitterThickness;
             if (ParentSplitContainer.Orientation == Orientation.Horizontal)
             {
                 // Vertical bar for horizontal split

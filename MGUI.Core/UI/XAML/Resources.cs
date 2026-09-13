@@ -25,10 +25,10 @@ public abstract class ResourceReferenceExtension : MarkupExtension
 
     public override object ProvideValue(IServiceProvider Provider)
     {
-        IProvideValueTarget ProvideValueTarget = Provider as IProvideValueTarget ?? Provider?.GetService(typeof(IProvideValueTarget)) as IProvideValueTarget;
+        var ProvideValueTarget = Provider as IProvideValueTarget ?? Provider?.GetService(typeof(IProvideValueTarget)) as IProvideValueTarget;
 
-        object RawTargetObject = ProvideValueTarget?.TargetObject;
-        object RawTargetProperty = ProvideValueTarget?.TargetProperty;
+        var RawTargetObject = ProvideValueTarget?.TargetObject;
+        var RawTargetProperty = ProvideValueTarget?.TargetProperty;
         if (RawTargetObject == null || RawTargetProperty == null)
         {
             RawTargetObject = Provider?.GetType().GetProperty(nameof(IProvideValueTarget.TargetObject))?.GetValue(Provider);

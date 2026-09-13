@@ -17,10 +17,10 @@ public static class MGColorEnginePresets
     public static MGColorPalette CreatePalette(string name = "Engine Presets", MGColorPresetCategory? category = null)
     {
         MGColorPalette palette = new(name);
-        IEnumerable<MGColorPreset> presets = category.HasValue ? Defaults.Where(x => x.Category == category.Value) : Defaults;
-        foreach (MGColorPreset preset in presets)
+        var presets = category.HasValue ? Defaults.Where(x => x.Category == category.Value) : Defaults;
+        foreach (var preset in presets)
         {
-            MGColorSwatch swatch = palette.AddSwatch(preset.Name, preset.Value);
+            var swatch = palette.AddSwatch(preset.Name, preset.Value);
             swatch.Metadata["Category"] = preset.Category.ToString();
             swatch.Metadata["ColorSpace"] = preset.Value.ColorSpace.ToString();
             swatch.Metadata["IsHdr"] = preset.Value.IsHdr.ToString();

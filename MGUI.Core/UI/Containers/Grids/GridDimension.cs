@@ -15,11 +15,11 @@ public readonly record struct ConstrainedGridLength(GridLength Length, int? MinS
 
     public static ConstrainedGridLength Parse(string Value)
     {
-        Match Match = AnchoredParser.Match(Value);
-        GridLength Length = GridLength.Parse(Match.Groups["Length"].Value);
-        string MinSizeString = Match.Groups["MinSize"].Value;
+        var Match = AnchoredParser.Match(Value);
+        var Length = GridLength.Parse(Match.Groups["Length"].Value);
+        var MinSizeString = Match.Groups["MinSize"].Value;
         int? MinSize = MinSizeString == "" ? null : int.Parse(MinSizeString);
-        string MaxSizeString = Match.Groups["MaxSize"].Value;
+        var MaxSizeString = Match.Groups["MaxSize"].Value;
         int? MaxSize = MaxSizeString == "" ? null : int.Parse(MaxSizeString);
         return new(Length, MinSize, MaxSize);
     }
@@ -35,8 +35,8 @@ public readonly record struct ConstrainedGridLength(GridLength Length, int? MinS
     {
         if (!string.IsNullOrEmpty(CommaSeparatedValues))
         {
-            MatchCollection Matches = UnanchoredParser.Matches(CommaSeparatedValues);
-            foreach (Match Match in Matches.Cast<Match>())
+            var Matches = UnanchoredParser.Matches(CommaSeparatedValues);
+            foreach (var Match in Matches.Cast<Match>())
             {
                 yield return Parse(Match.Value);
             }
@@ -58,7 +58,7 @@ public abstract class GridDimensionDefinition : ViewModelBase
         {
             if (_Length != value)
             {
-                GridLength Previous = Length;
+                var Previous = Length;
                 _Length = value;
                 NPC(nameof(Length));
                 LengthChanged?.Invoke(this, new(Previous, Length));

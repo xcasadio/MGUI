@@ -88,7 +88,7 @@ public class MGColorPreview : MGElement
         get => _previewWidth;
         set
         {
-            int actual = Math.Max(0, value);
+            var actual = Math.Max(0, value);
             if (_previewWidth != actual)
             {
                 _previewWidth = actual;
@@ -105,7 +105,7 @@ public class MGColorPreview : MGElement
         get => _previewHeight;
         set
         {
-            int actual = Math.Max(0, value);
+            var actual = Math.Max(0, value);
             if (_previewHeight != actual)
             {
                 _previewHeight = actual;
@@ -151,22 +151,22 @@ public class MGColorPreview : MGElement
 
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(PreviewWidth, PreviewHeight));
+        var bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(PreviewWidth, PreviewHeight));
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             return;
         }
 
-        Rectangle contentBounds = GetContentBounds(bounds, BorderThickness);
+        var contentBounds = GetContentBounds(bounds, BorderThickness);
         if (ShowCheckerboard)
         {
             DrawCheckerboard(DA, contentBounds);
         }
 
-        Rectangle transparentBounds = GetTransparentComparisonBounds(contentBounds, ShowOpaqueComparison);
+        var transparentBounds = GetTransparentComparisonBounds(contentBounds, ShowOpaqueComparison);
         DrawValuePair(DA, transparentBounds, PreviousValue, CurrentValue, ShowPrevious, false);
 
-        Rectangle opaqueBounds = GetOpaqueComparisonBounds(contentBounds, ShowOpaqueComparison);
+        var opaqueBounds = GetOpaqueComparisonBounds(contentBounds, ShowOpaqueComparison);
         if (!opaqueBounds.IsEmpty)
         {
             DrawValuePair(DA, opaqueBounds, PreviousValue, CurrentValue, ShowPrevious, true);
@@ -177,9 +177,9 @@ public class MGColorPreview : MGElement
 
     internal static Rectangle GetContentBounds(Rectangle bounds, int borderThickness)
     {
-        int thickness = Math.Max(0, borderThickness);
-        int width = Math.Max(0, bounds.Width - thickness * 2);
-        int height = Math.Max(0, bounds.Height - thickness * 2);
+        var thickness = Math.Max(0, borderThickness);
+        var width = Math.Max(0, bounds.Width - thickness * 2);
+        var height = Math.Max(0, bounds.Height - thickness * 2);
         return new Rectangle(bounds.X + thickness, bounds.Y + thickness, width, height);
     }
 
@@ -193,7 +193,7 @@ public class MGColorPreview : MGElement
             return bounds;
         }
 
-        int previousWidth = bounds.Width / 2;
+        var previousWidth = bounds.Width / 2;
         return new Rectangle(bounds.X + previousWidth, bounds.Y, bounds.Width - previousWidth, bounds.Height);
     }
 
@@ -207,7 +207,7 @@ public class MGColorPreview : MGElement
             return Rectangle.Empty;
         }
 
-        int transparentHeight = bounds.Height / 2;
+        var transparentHeight = bounds.Height / 2;
         return new Rectangle(bounds.X, bounds.Y + transparentHeight, bounds.Width, bounds.Height - transparentHeight);
     }
 
@@ -218,7 +218,7 @@ public class MGColorPreview : MGElement
             return;
         }
 
-        Rectangle previousBounds = GetPreviousValueBounds(bounds, showPrevious);
+        var previousBounds = GetPreviousValueBounds(bounds, showPrevious);
         if (!previousBounds.IsEmpty)
         {
             DrawColor(DA, previousBounds, previousValue, forceOpaque);
@@ -234,21 +234,21 @@ public class MGColorPreview : MGElement
             return;
         }
 
-        ColorValue actual = forceOpaque ? value.WithAlpha(1f) : value;
+        var actual = forceOpaque ? value.WithAlpha(1f) : value;
         DA.DT.FillRectangle(DA.Offset.ToVector2(), bounds, actual.ToXnaColor() * DA.Opacity);
     }
 
     private void DrawCheckerboard(ElementDrawArgs DA, Rectangle bounds)
     {
-        int cellSize = Math.Max(1, CheckerboardCellSize);
-        for (int y = bounds.Top; y < bounds.Bottom; y += cellSize)
+        var cellSize = Math.Max(1, CheckerboardCellSize);
+        for (var y = bounds.Top; y < bounds.Bottom; y += cellSize)
         {
-            int height = Math.Min(cellSize, bounds.Bottom - y);
-            for (int x = bounds.Left; x < bounds.Right; x += cellSize)
+            var height = Math.Min(cellSize, bounds.Bottom - y);
+            for (var x = bounds.Left; x < bounds.Right; x += cellSize)
             {
-                int width = Math.Min(cellSize, bounds.Right - x);
-                bool light = ((x - bounds.Left) / cellSize + (y - bounds.Top) / cellSize) % 2 == 0;
-                Color color = (light ? CheckerboardLightColor : CheckerboardDarkColor) * DA.Opacity;
+                var width = Math.Min(cellSize, bounds.Right - x);
+                var light = ((x - bounds.Left) / cellSize + (y - bounds.Top) / cellSize) % 2 == 0;
+                var color = (light ? CheckerboardLightColor : CheckerboardDarkColor) * DA.Opacity;
                 DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(x, y, width, height), color);
             }
         }
@@ -256,13 +256,13 @@ public class MGColorPreview : MGElement
 
     private void DrawBorder(ElementDrawArgs DA, Rectangle bounds)
     {
-        int thickness = Math.Max(0, BorderThickness);
+        var thickness = Math.Max(0, BorderThickness);
         if (thickness <= 0)
         {
             return;
         }
 
-        Color color = BorderColor * DA.Opacity;
+        var color = BorderColor * DA.Opacity;
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Y, bounds.Width, thickness), color);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Bottom - thickness, bounds.Width, thickness), color);
         DA.DT.FillRectangle(DA.Offset.ToVector2(), new Rectangle(bounds.X, bounds.Y, thickness, bounds.Height), color);

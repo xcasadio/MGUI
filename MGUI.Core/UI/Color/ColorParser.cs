@@ -15,7 +15,7 @@ public static class ColorParser
             return false;
         }
 
-        string trimmed = text.Trim();
+        var trimmed = text.Trim();
         if (trimmed.StartsWith("#", StringComparison.Ordinal))
         {
             return TryParseHex(trimmed, eightDigitHexFormat, out value);
@@ -52,7 +52,7 @@ public static class ColorParser
             return false;
         }
 
-        string hex = text.Substring(1);
+        var hex = text.Substring(1);
         return hex.Length switch
         {
             3 => TryParseRgbHex(hex, false, ColorValueFormat.HexRgb, out value),
@@ -73,21 +73,21 @@ public static class ColorParser
 
         if (hex.Length is 3 or 4)
         {
-            if (!TryParseNibble(hex[0], out byte c0)
-                || !TryParseNibble(hex[1], out byte c1)
-                || !TryParseNibble(hex[2], out byte c2)
+            if (!TryParseNibble(hex[0], out var c0)
+                || !TryParseNibble(hex[1], out var c1)
+                || !TryParseNibble(hex[2], out var c2)
                 || (shortAlpha && !TryParseNibble(hex[3], out _)))
             {
                 return false;
             }
 
-            byte r = ExpandNibble(c0);
-            byte g = ExpandNibble(c1);
-            byte b = ExpandNibble(c2);
-            byte a = byte.MaxValue;
+            var r = ExpandNibble(c0);
+            var g = ExpandNibble(c1);
+            var b = ExpandNibble(c2);
+            var a = byte.MaxValue;
             if (shortAlpha)
             {
-                _ = TryParseNibble(hex[3], out byte alphaNibble);
+                _ = TryParseNibble(hex[3], out var alphaNibble);
                 a = ExpandNibble(alphaNibble);
             }
 
@@ -95,7 +95,7 @@ public static class ColorParser
             return true;
         }
 
-        if (hex.Length == 6 && TryParseByte(hex, 0, out byte r6) && TryParseByte(hex, 2, out byte g6) && TryParseByte(hex, 4, out byte b6))
+        if (hex.Length == 6 && TryParseByte(hex, 0, out var r6) && TryParseByte(hex, 2, out var g6) && TryParseByte(hex, 4, out var b6))
         {
             value = FromBytes(r6, g6, b6, byte.MaxValue);
             return true;
@@ -103,10 +103,10 @@ public static class ColorParser
 
         if (hex.Length == 8)
         {
-            if (!TryParseByte(hex, 0, out byte c0)
-                || !TryParseByte(hex, 2, out byte c1)
-                || !TryParseByte(hex, 4, out byte c2)
-                || !TryParseByte(hex, 6, out byte c3))
+            if (!TryParseByte(hex, 0, out var c0)
+                || !TryParseByte(hex, 2, out var c1)
+                || !TryParseByte(hex, 4, out var c2)
+                || !TryParseByte(hex, 6, out var c3))
             {
                 return false;
             }
@@ -130,16 +130,16 @@ public static class ColorParser
     private static bool TryParseFunction(string text, string name, int expectedCount, out ColorValue value)
     {
         value = default;
-        if (!TryGetArguments(text, name, expectedCount, out float[] components))
+        if (!TryGetArguments(text, name, expectedCount, out var components))
         {
             return false;
         }
 
-        bool byteBased = components[0] > 1f || components[1] > 1f || components[2] > 1f;
-        float r = byteBased ? components[0] / 255f : components[0];
-        float g = byteBased ? components[1] / 255f : components[1];
-        float b = byteBased ? components[2] / 255f : components[2];
-        float a = 1f;
+        var byteBased = components[0] > 1f || components[1] > 1f || components[2] > 1f;
+        var r = byteBased ? components[0] / 255f : components[0];
+        var g = byteBased ? components[1] / 255f : components[1];
+        var b = byteBased ? components[2] / 255f : components[2];
+        var a = 1f;
         if (expectedCount == 4)
         {
             a = components[3] > 1f ? components[3] / 255f : components[3];
@@ -152,12 +152,12 @@ public static class ColorParser
     private static bool TryParseVector(string text, string name, int expectedCount, out ColorValue value)
     {
         value = default;
-        if (!TryGetArguments(text, name, expectedCount, out float[] components))
+        if (!TryGetArguments(text, name, expectedCount, out var components))
         {
             return false;
         }
 
-        float a = expectedCount == 4 ? components[3] : 1f;
+        var a = expectedCount == 4 ? components[3] : 1f;
         value = new ColorValue(components[0], components[1], components[2], a);
         return true;
     }
@@ -170,21 +170,21 @@ public static class ColorParser
             return false;
         }
 
-        int open = text.IndexOf('(');
-        int close = text.LastIndexOf(')');
+        var open = text.IndexOf('(');
+        var close = text.LastIndexOf(')');
         if (open != name.Length || close <= open || close != text.Length - 1)
         {
             return false;
         }
 
-        string[] parts = text.Substring(open + 1, close - open - 1).Split(',');
+        var parts = text.Substring(open + 1, close - open - 1).Split(',');
         if (parts.Length != expectedCount)
         {
             return false;
         }
 
         components = new float[expectedCount];
-        for (int i = 0; i < parts.Length; i++)
+        for (var i = 0; i < parts.Length; i++)
         {
             if (!float.TryParse(parts[i].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out components[i]))
             {
@@ -217,7 +217,7 @@ public static class ColorParser
     private static bool TryParseNibble(char c, out byte value)
     {
         value = 0;
-        int digit = c switch
+        var digit = c switch
         {
             >= '0' and <= '9' => c - '0',
             >= 'a' and <= 'f' => c - 'a' + 10,

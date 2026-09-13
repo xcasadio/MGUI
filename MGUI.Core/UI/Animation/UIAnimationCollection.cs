@@ -27,7 +27,7 @@ public sealed class UIAnimationCollection
             throw new ArgumentNullException(nameof(animation));
         }
 
-        UIAnimationManager manager = Manager ?? throw new InvalidOperationException(
+        var manager = Manager ?? throw new InvalidOperationException(
             $"The element has no desktop: an animation is ticked by the {nameof(UIAnimationManager)} of the desktop of its window.");
         manager.Start(Owner, animation);
     }

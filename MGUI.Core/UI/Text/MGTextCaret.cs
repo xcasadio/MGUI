@@ -51,7 +51,7 @@ public class MGTextCaret
                 }
                 else
                 {
-                    Point Offset = e.NewValue.TopLeft() - e.PreviousValue.TopLeft();
+                    var Offset = e.NewValue.TopLeft() - e.PreviousValue.TopLeft();
                     Position = Position.Value.Translate(Offset);
                 }
             }
@@ -67,12 +67,12 @@ public class MGTextCaret
     public bool MoveToOriginalCharacterIndexOrLeft(int CharIndex, bool LeftSide)
     {
         //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to original index or left: {CharIndex} (Left={LeftSide})");
-        int FirstIndex = TextRenderInfo.GetFirstChar().IndexInOriginalText;
-        int CurrentIndex = CharIndex;
+        var FirstIndex = TextRenderInfo.GetFirstChar().IndexInOriginalText;
+        var CurrentIndex = CharIndex;
 
         while (true)
         {
-            if (TextRenderInfo.TryGetCharAtOriginalIndex(CurrentIndex, out CharRenderInfo CharInfo))
+            if (TextRenderInfo.TryGetCharAtOriginalIndex(CurrentIndex, out var CharInfo))
             {
                 return MoveToCharacter(CharInfo, CurrentIndex == CharIndex ? LeftSide : false);
             }
@@ -93,12 +93,12 @@ public class MGTextCaret
     public bool MoveToOriginalCharacterIndexOrRight(int CharIndex, bool LeftSide)
     {
         //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to original index or right: {CharIndex} (Left={LeftSide})");
-        int LastIndex = TextRenderInfo.GetLastChar().IndexInOriginalText;
-        int CurrentIndex = CharIndex;
+        var LastIndex = TextRenderInfo.GetLastChar().IndexInOriginalText;
+        var CurrentIndex = CharIndex;
 
         while (true)
         {
-            if (TextRenderInfo.TryGetCharAtOriginalIndex(CurrentIndex, out CharRenderInfo CharInfo))
+            if (TextRenderInfo.TryGetCharAtOriginalIndex(CurrentIndex, out var CharInfo))
             {
                 return MoveToCharacter(CharInfo, CurrentIndex == CharIndex ? LeftSide : true);
             }
@@ -119,7 +119,7 @@ public class MGTextCaret
     public bool MoveToOriginalCharacterIndexOrEnd(int CharIndex, bool LeftSide)
     {
         //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to original index or end: {CharIndex} (Left={LeftSide})");
-        if (TextRenderInfo.TryGetCharAtOriginalIndex(CharIndex, out CharRenderInfo CharInfo))
+        if (TextRenderInfo.TryGetCharAtOriginalIndex(CharIndex, out var CharInfo))
         {
             return MoveToCharacter(CharInfo, LeftSide);
         }
@@ -135,12 +135,12 @@ public class MGTextCaret
     public bool MoveToParsedCharacterIndexOrLeft(int CharIndex, bool LeftSide)
     {
         //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to parsed index or left: {CharIndex} (Left={LeftSide})");
-        int FirstIndex = TextRenderInfo.GetFirstChar().IndexInParsedText;
-        int CurrentIndex = CharIndex;
+        var FirstIndex = TextRenderInfo.GetFirstChar().IndexInParsedText;
+        var CurrentIndex = CharIndex;
 
         while (true)
         {
-            if (TextRenderInfo.TryGetCharAtParsedIndex(CurrentIndex, out CharRenderInfo CharInfo))
+            if (TextRenderInfo.TryGetCharAtParsedIndex(CurrentIndex, out var CharInfo))
             {
                 return MoveToCharacter(CharInfo, CurrentIndex == CharIndex ? LeftSide : false);
             }
@@ -161,12 +161,12 @@ public class MGTextCaret
     public bool MoveToParsedCharacterIndexOrRight(int CharIndex, bool LeftSide)
     {
         //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to parsed index or right: {CharIndex} (Left={LeftSide})");
-        int LastIndex = TextRenderInfo.GetLastChar().IndexInParsedText;
-        int CurrentIndex = CharIndex;
+        var LastIndex = TextRenderInfo.GetLastChar().IndexInParsedText;
+        var CurrentIndex = CharIndex;
 
         while (true)
         {
-            if (TextRenderInfo.TryGetCharAtParsedIndex(CurrentIndex, out CharRenderInfo CharInfo))
+            if (TextRenderInfo.TryGetCharAtParsedIndex(CurrentIndex, out var CharInfo))
             {
                 return MoveToCharacter(CharInfo, CurrentIndex == CharIndex ? LeftSide : true);
             }
@@ -187,7 +187,7 @@ public class MGTextCaret
     public bool MoveToParsedCharacterIndexOrEnd(int CharIndex, bool LeftSide)
     {
         //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to parsed index or end: {CharIndex} (Left={LeftSide})");
-        if (TextRenderInfo.TryGetCharAtParsedIndex(CharIndex, out CharRenderInfo CharInfo))
+        if (TextRenderInfo.TryGetCharAtParsedIndex(CharIndex, out var CharInfo))
         {
             return MoveToCharacter(CharInfo, LeftSide);
         }
@@ -200,9 +200,9 @@ public class MGTextCaret
     public bool MoveToApproximateScreenPosition(Vector2 ScreenPosition)
     {
         //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to screen position: {ScreenPosition}");
-        if (TextRenderInfo.TryGetCharAtScreenPosition(ScreenPosition, out CharRenderInfo CharInfo))
+        if (TextRenderInfo.TryGetCharAtScreenPosition(ScreenPosition, out var CharInfo))
         {
-            bool IsLeftEdge = ScreenPosition.X <= CharInfo.CenterX || !CharInfo.Line.HasCharacters || CharInfo.Line.Source == null;
+            var IsLeftEdge = ScreenPosition.X <= CharInfo.CenterX || !CharInfo.Line.HasCharacters || CharInfo.Line.Source == null;
             if (!IsLeftEdge)
             {
                 IsLeftEdge = CharInfo.Line.Source?.Runs.All(x => x is MGTextRunText r && string.IsNullOrEmpty(r.Text)) != false;
@@ -241,8 +241,8 @@ public class MGTextCaret
             return false;
         }
 
-        int DesiredIndex = Position.Value.IndexInParsedText - Amount;
-        if (TextRenderInfo.TryGetCharAtParsedIndex(DesiredIndex, out CharRenderInfo CharInfo))
+        var DesiredIndex = Position.Value.IndexInParsedText - Amount;
+        if (TextRenderInfo.TryGetCharAtParsedIndex(DesiredIndex, out var CharInfo))
         {
             return MoveToCharacter(CharInfo, true);
         }
@@ -260,8 +260,8 @@ public class MGTextCaret
             return false;
         }
 
-        int DesiredIndex = Position.Value.IndexInParsedText + Amount - 1;
-        if (TextRenderInfo.TryGetCharAtParsedIndex(DesiredIndex, out CharRenderInfo CharInfo))
+        var DesiredIndex = Position.Value.IndexInParsedText + Amount - 1;
+        if (TextRenderInfo.TryGetCharAtParsedIndex(DesiredIndex, out var CharInfo))
         {
             return MoveToCharacter(CharInfo, false);
         }
@@ -286,8 +286,8 @@ public class MGTextCaret
         else
         {
             float LineHeight = Position.Value.Bounds.Height;
-            Vector2 CurrentScreenPosition = Position.Value.Bounds.TopLeft().ToVector2() + new Vector2(0, LineHeight / 2);
-            Vector2 DesiredScreenPosition = CurrentScreenPosition - new Vector2(0, LineHeight) * Amount;
+            var CurrentScreenPosition = Position.Value.Bounds.TopLeft().ToVector2() + new Vector2(0, LineHeight / 2);
+            var DesiredScreenPosition = CurrentScreenPosition - new Vector2(0, LineHeight) * Amount;
             return MoveToApproximateScreenPosition(DesiredScreenPosition);
         }
     }
@@ -306,8 +306,8 @@ public class MGTextCaret
         else
         {
             float LineHeight = Position.Value.Bounds.Height;
-            Vector2 CurrentScreenPosition = Position.Value.Bounds.TopLeft().ToVector2() + new Vector2(0, LineHeight / 2);
-            Vector2 DesiredScreenPosition = CurrentScreenPosition + new Vector2(0, LineHeight) * Amount;
+            var CurrentScreenPosition = Position.Value.Bounds.TopLeft().ToVector2() + new Vector2(0, LineHeight / 2);
+            var DesiredScreenPosition = CurrentScreenPosition + new Vector2(0, LineHeight) * Amount;
             return MoveToApproximateScreenPosition(DesiredScreenPosition);
         }
     }
@@ -319,7 +319,7 @@ public class MGTextCaret
             return false;
         }
 
-        LineRenderInfo Line = TextRenderInfo.Lines.FirstOrDefault(x => x.LineIndex == Position.Value.LineIndex);
+        var Line = TextRenderInfo.Lines.FirstOrDefault(x => x.LineIndex == Position.Value.LineIndex);
         return MoveToStartOfLine(Line);
     }
 
@@ -330,7 +330,7 @@ public class MGTextCaret
             return false;
         }
 
-        CharRenderInfo First = Line.Characters.First();
+        var First = Line.Characters.First();
         return MoveToCharacter(First, true);
     }
 
@@ -341,7 +341,7 @@ public class MGTextCaret
             return false;
         }
 
-        LineRenderInfo Line = TextRenderInfo.Lines.FirstOrDefault(x => x.LineIndex == Position.Value.LineIndex);
+        var Line = TextRenderInfo.Lines.FirstOrDefault(x => x.LineIndex == Position.Value.LineIndex);
         return MoveToEndOfLine(Line);
     }
 
@@ -352,7 +352,7 @@ public class MGTextCaret
             return false;
         }
 
-        CharRenderInfo Last = Line.LastCharacter;
+        var Last = Line.LastCharacter;
         return MoveToCharacter(Last, false);
     }
     #endregion Navigation
@@ -361,7 +361,7 @@ public class MGTextCaret
     {
         if (HasPosition && TextBox.GetDesktop().FocusedKeyboardHandler == TextBox)
         {
-            double SecondsShown = DateTime.Now.Subtract(Position.Value.InitialShowTime).TotalSeconds;
+            var SecondsShown = DateTime.Now.Subtract(Position.Value.InitialShowTime).TotalSeconds;
             if ((int)(SecondsShown / BlinkRate.TotalSeconds) % 2 == 0)
             {
                 switch (TextBox.TextEntryMode)
@@ -369,8 +369,8 @@ public class MGTextCaret
                     case TextEntryMode.Insert:
                         float CursorPaddingY = 2;
                         Vector2 CursorPadding = new(0, CursorPaddingY);
-                        Vector2 PaddedTop = Position.Value.Bounds.TopLeft().ToVector2() - CursorPadding;
-                        Vector2 PaddedBottom = Position.Value.Bounds.BottomLeft().ToVector2() + CursorPadding;
+                        var PaddedTop = Position.Value.Bounds.TopLeft().ToVector2() - CursorPadding;
+                        var PaddedBottom = Position.Value.Bounds.BottomLeft().ToVector2() + CursorPadding;
                         float CursorThickness = 1;
                         DA.DT.StrokeLineSegment(DA.Offset.ToVector2(), PaddedTop, PaddedBottom, Color * DA.Opacity, CursorThickness);
                         break;

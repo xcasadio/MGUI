@@ -47,7 +47,7 @@ public class MGImage : MGElement
         {
             if (_SourceName != value)
             {
-                MGResources Resources = GetResources();
+                var Resources = GetResources();
                 if (SourceName != null)
                 {
                     Resources.OnTextureAdded -= Resources_OnTextureAddedRemoved;
@@ -98,7 +98,7 @@ public class MGImage : MGElement
         {
             _ActualSource = Source;
         }
-        else if (GetResources().TryGetTexture(SourceName, out MGTextureData Texture))
+        else if (GetResources().TryGetTexture(SourceName, out var Texture))
         {
             _ActualSource = Texture;
         }
@@ -118,7 +118,7 @@ public class MGImage : MGElement
         {
             if (ActualSource != value)
             {
-                Size? PreviousSize = ActualSource?.RenderSize;
+                var PreviousSize = ActualSource?.RenderSize;
                 _ActualSource = value;
                 NPC(nameof(ActualSource));
                 if (ActualSource?.RenderSize != PreviousSize)
@@ -253,18 +253,18 @@ public class MGImage : MGElement
     {
         SharedSize = new(0);
 
-        int AvailableWidth = AvailableSize.Width;
-        int AvailableHeight = AvailableSize.Height;
+        var AvailableWidth = AvailableSize.Width;
+        var AvailableHeight = AvailableSize.Height;
 
         //  If Width or Height is arbitrarily large, this element is being measured within a ScrollViewer.
         //  That means we can't just request the AvailableSize, or we'd end up with infinitely-sized content inside the ScrollViewer.
-        bool IsPseudoInfiniteWidth = AvailableWidth >= 1000000;
-        bool IsPseduoInfiniteHeight = AvailableHeight >= 1000000;
+        var IsPseudoInfiniteWidth = AvailableWidth >= 1000000;
+        var IsPseduoInfiniteHeight = AvailableHeight >= 1000000;
 
         int Width;
         int Height;
 
-        double AspectRatio = UnstretchedAspectRatio;
+        var AspectRatio = UnstretchedAspectRatio;
         if (Stretch == Stretch.None)
         {
             Width = UnstretchedWidth;
@@ -361,8 +361,8 @@ public class MGImage : MGElement
             return;
         }
 
-        Rectangle PaddedBounds = LayoutBounds.GetCompressed(Padding);
-        double AspectRatio = UnstretchedAspectRatio;
+        var PaddedBounds = LayoutBounds.GetCompressed(Padding);
+        var AspectRatio = UnstretchedAspectRatio;
 
         Rectangle Bounds;
         if (Stretch == Stretch.None)
@@ -371,18 +371,18 @@ public class MGImage : MGElement
         }
         else if (Stretch == Stretch.Uniform)
         {
-            int AvailableWidth = PaddedBounds.Width;
-            int AvailableHeight = PaddedBounds.Height;
-            int ConsumedWidth = Math.Min(AvailableWidth, GetWidthByAspectRatio(AvailableHeight, AspectRatio));
-            int ConsumedHeight = Math.Min(AvailableHeight, GetHeightByAspectRatio(AvailableWidth, AspectRatio));
+            var AvailableWidth = PaddedBounds.Width;
+            var AvailableHeight = PaddedBounds.Height;
+            var ConsumedWidth = Math.Min(AvailableWidth, GetWidthByAspectRatio(AvailableHeight, AspectRatio));
+            var ConsumedHeight = Math.Min(AvailableHeight, GetHeightByAspectRatio(AvailableWidth, AspectRatio));
             Bounds = ApplyAlignment(PaddedBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(ConsumedWidth, ConsumedHeight));
         }
         else if (Stretch == Stretch.UniformToFill)
         {
-            int AvailableWidth = PaddedBounds.Width;
-            int AvailableHeight = PaddedBounds.Height;
-            int ConsumedWidth = Math.Max(AvailableWidth, GetWidthByAspectRatio(AvailableHeight, AspectRatio));
-            int ConsumedHeight = Math.Max(AvailableHeight, GetHeightByAspectRatio(AvailableWidth, AspectRatio));
+            var AvailableWidth = PaddedBounds.Width;
+            var AvailableHeight = PaddedBounds.Height;
+            var ConsumedWidth = Math.Max(AvailableWidth, GetWidthByAspectRatio(AvailableHeight, AspectRatio));
+            var ConsumedHeight = Math.Max(AvailableHeight, GetHeightByAspectRatio(AvailableWidth, AspectRatio));
             Bounds = ApplyAlignment(PaddedBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(ConsumedWidth, ConsumedHeight));
         }
         else if (Stretch == Stretch.Fill)
@@ -394,15 +394,15 @@ public class MGImage : MGElement
             throw new NotImplementedException($"Unrecognized {nameof(Stretch)}: {Stretch}");
         }
 
-        Rectangle destinationBounds = Bounds.GetTranslated(DA.Offset);
-        bool isDownscaling = destinationBounds.Width < UnstretchedWidth || destinationBounds.Height < UnstretchedHeight;
-        bool shouldUseLinearFiltering = UseLinearFilteringWhenDownscaling
-                                        && isDownscaling
-                                        && (DA.Context.CurrentSettings.SamplerType == SamplerType.PointClamp || DA.Context.CurrentSettings.SamplerType == SamplerType.PointWrap);
+        var destinationBounds = Bounds.GetTranslated(DA.Offset);
+        var isDownscaling = destinationBounds.Width < UnstretchedWidth || destinationBounds.Height < UnstretchedHeight;
+        var shouldUseLinearFiltering = UseLinearFilteringWhenDownscaling
+                                       && isDownscaling
+                                       && (DA.Context.CurrentSettings.SamplerType == SamplerType.PointClamp || DA.Context.CurrentSettings.SamplerType == SamplerType.PointWrap);
 
         if (shouldUseLinearFiltering)
         {
-            DrawSettings previousSettings = DA.Context.CurrentSettings;
+            var previousSettings = DA.Context.CurrentSettings;
             DA.Context.SetDrawSettings(GetLinearFilteringSettings(previousSettings));
             try
             {

@@ -54,7 +54,7 @@ public class MGMenuBarItem : MGSingleContentHost
         {
             if (_ContentWrapper != value)
             {
-                MGButton Previous = ContentWrapper;
+                var Previous = ContentWrapper;
                 _ContentWrapper = value;
 
                 if (Previous != null)
@@ -132,15 +132,15 @@ public class MGMenuBarItem : MGSingleContentHost
             return;
         }
 
-        VisualState ownerState = VisualState;
-        VisualState wrapperState = ContentWrapper.VisualState;
-        bool isPressed = ownerState.IsPressed || wrapperState.IsPressed;
-        bool isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered || Submenu?.IsContextMenuOpen == true;
+        var ownerState = VisualState;
+        var wrapperState = ContentWrapper.VisualState;
+        var isPressed = ownerState.IsPressed || wrapperState.IsPressed;
+        var isHighlighted = ownerState.IsPressedOrHovered || wrapperState.IsPressedOrHovered || Submenu?.IsContextMenuOpen == true;
         ContentWrapper.IsSelected = isHighlighted;
         ContentWrapper.SpoofIsHoveredWhileDrawingBackground = isHighlighted && !isPressed;
         ContentWrapper.SpoofIsPressedWhileDrawingBackground = isPressed;
 
-        MGBorder wrapperBorder = ContentWrapper.GetBorder();
+        var wrapperBorder = ContentWrapper.GetBorder();
         if (wrapperBorder != null)
         {
             wrapperBorder.IsSelected = isHighlighted;
@@ -217,7 +217,7 @@ public class MGMenuBarItem : MGSingleContentHost
 
         if (CurrentTheme != null && ContentWrapper != null)
         {
-            VisualStateFillBrush background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);
+            var background = CurrentTheme.GetBackgroundBrush(MGElementType.MenuBarItem);
             Color? textForeground = CurrentTheme.TextBlockFallbackForeground.GetValue(true).NormalValue;
             ContentWrapper.SetBackground(background, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             ContentWrapper.SetDefaultTextForegroundAll(textForeground, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
@@ -236,7 +236,7 @@ public class MGMenuBarItem : MGSingleContentHost
             return;
         }
 
-        Rectangle ScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds);
+        var ScreenBounds = ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, LayoutBounds);
         Point AnchorPoint = new(ScreenBounds.Left, ScreenBounds.Bottom);
         Submenu.TryOpenContextMenu(AnchorPoint);
     }
@@ -284,7 +284,7 @@ public class MGMenuBar : MGSingleContentHost
             return -1;
         }
 
-        int normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+        var normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
         return action switch
         {
             UINavigationAction.MoveLeft => Math.Max(0, normalizedIndex - 1),
@@ -374,7 +374,7 @@ public class MGMenuBar : MGSingleContentHost
         Button.SetMargin(new Thickness(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
         Button.HorizontalContentAlignment = HorizontalAlignment.Center;
         Button.VerticalContentAlignment = VerticalAlignment.Center;
-        VisualStateFillBrush background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);
+        var background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);
         Color? textForeground = GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue;
         // ADR-0005: MGMenuBarItem.OnThemeChanged re-writes these same elements' Background IN PLACE at Theme(20)
         // precedence; tagging this factory write LocalValue(90) would outrank and freeze it against later theme
@@ -447,7 +447,7 @@ public class MGMenuBar : MGSingleContentHost
     {
         if (ActiveItem != null)
         {
-            MGMenuBarItem Prev = ActiveItem;
+            var Prev = ActiveItem;
             ActiveItem = null;
             IsMenuActive = false;
             Prev.CloseSubmenu();
@@ -523,7 +523,7 @@ public class MGMenuBar : MGSingleContentHost
                     {
                         if (e.NewItems != null)
                         {
-                            int Index = e.NewStartingIndex;
+                            var Index = e.NewStartingIndex;
                             foreach (MGMenuBarItem Item in e.NewItems)
                             {
                                 ItemsPanel.TryInsertChild(Index, Item);
@@ -567,7 +567,7 @@ public class MGMenuBar : MGSingleContentHost
 
         if (action == UINavigationAction.Submit)
         {
-            MGMenuBarItem targetItem = ActiveItem ?? _Items.FirstOrDefault();
+            var targetItem = ActiveItem ?? _Items.FirstOrDefault();
             if (targetItem?.Submenu != null)
             {
                 OpenItem(targetItem);
@@ -582,8 +582,8 @@ public class MGMenuBar : MGSingleContentHost
             return false;
         }
 
-        int currentIndex = Math.Max(0, _Items.IndexOf(ActiveItem));
-        int nextIndex = GetAdjacentItemIndex(currentIndex, _Items.Count, action);
+        var currentIndex = Math.Max(0, _Items.IndexOf(ActiveItem));
+        var nextIndex = GetAdjacentItemIndex(currentIndex, _Items.Count, action);
         if (nextIndex < 0)
         {
             return false;

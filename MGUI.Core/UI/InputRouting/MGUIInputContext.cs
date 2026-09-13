@@ -20,7 +20,7 @@ public class MGUIInputContext : IInputContext
     {
         if (actionEvent.Action.IsUIAction())
         {
-            bool handled = Desktop.TryHandleInputAction(actionEvent);
+            var handled = Desktop.TryHandleInputAction(actionEvent);
             result = InputCaptureResult.Handled(Name, handled ? "Handled by MGDesktop" : "Reserved for UI routing");
             return true;
         }

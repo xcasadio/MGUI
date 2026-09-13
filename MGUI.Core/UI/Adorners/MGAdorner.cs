@@ -78,7 +78,7 @@ public abstract class MGAdorner : MGElement
     {
         if (TargetBoundsOverride.HasValue)
         {
-            Rectangle candidate = MGAdornerGeometryHelper.ResolveTargetBounds(TargetBoundsOverride.Value, TargetMargin);
+            var candidate = MGAdornerGeometryHelper.ResolveTargetBounds(TargetBoundsOverride.Value, TargetMargin);
             if (candidate.Width > 0 && candidate.Height > 0)
             {
                 bounds = candidate;
@@ -86,10 +86,10 @@ public abstract class MGAdorner : MGElement
             }
         }
 
-        MGElement target = TargetElement;
+        var target = TargetElement;
         if (target != null && target.Visibility == Visibility.Visible)
         {
-            Rectangle candidate = MGAdornerGeometryHelper.ResolveTargetBounds(target.ActualLayoutBounds, TargetMargin);
+            var candidate = MGAdornerGeometryHelper.ResolveTargetBounds(target.ActualLayoutBounds, TargetMargin);
             if (candidate.Width > 0 && candidate.Height > 0)
             {
                 bounds = candidate;
@@ -103,9 +103,9 @@ public abstract class MGAdorner : MGElement
 
     internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
-        if (ClipToTargetBounds && TryGetAdornedBounds(out Rectangle adornedBounds))
+        if (ClipToTargetBounds && TryGetAdornedBounds(out var adornedBounds))
         {
-            Rectangle clipBounds = TransformClipBounds(DA, adornedBounds);
+            var clipBounds = TransformClipBounds(DA, adornedBounds);
             return CreateRectangleClipDefinition(clipBounds, $"{GetType().Name}.Self");
         }
 

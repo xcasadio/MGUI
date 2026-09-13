@@ -40,7 +40,7 @@ public class HeaderedContentPresenter : SingleContentHost
     protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGHeaderedContentPresenter(Window, null, null);
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGHeaderedContentPresenter ContentPresenter = Element as MGHeaderedContentPresenter;
+        var ContentPresenter = Element as MGHeaderedContentPresenter;
 
         if (Header != null)
         {
@@ -62,7 +62,7 @@ public class HeaderedContentPresenter : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -92,8 +92,8 @@ public class ContextualContentPresenter : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGWindow Window = Element.SelfOrParentWindow;
-        MGContextualContentPresenter ContextualContentPresenter = Element as MGContextualContentPresenter;
+        var Window = Element.SelfOrParentWindow;
+        var ContextualContentPresenter = Element as MGContextualContentPresenter;
 
         if (TrueContent != null)
         {
@@ -152,9 +152,9 @@ public class Border : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGBorder Border = Element as MGBorder;
+        var Border = Element as MGBorder;
 
         if (BorderBrush != null)
         {
@@ -238,9 +238,9 @@ public class Button : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGButton Button = Element as MGButton;
+        var Button = Element as MGButton;
         Border.ApplySettings(Button, Button.BorderComponent.Element, false);
 
         if (CommandName != null)
@@ -268,7 +268,7 @@ public class Button : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Child in base.GetChildren())
+        foreach (var Child in base.GetChildren())
         {
             yield return Child;
         }
@@ -316,7 +316,7 @@ public class ChatBox : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGChatBox ChatBox = Element as MGChatBox;
+        var ChatBox = Element as MGChatBox;
         Border.ApplySettings(ChatBox, ChatBox.BorderComponent.Element, false);
         CurrentUserTextBlock.ApplySettings(ChatBox, ChatBox.CurrentUserTextBlock, false);
         InputTextBox.ApplySettings(ChatBox, ChatBox.InputTextBox, false);
@@ -378,7 +378,7 @@ public class CheckBox : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGCheckBox CheckBox = Element as MGCheckBox;
+        var CheckBox = Element as MGCheckBox;
         Button.ApplySettings(CheckBox, CheckBox.ButtonComponent.Element, true);
 
         if (CheckBoxComponentSize.HasValue)
@@ -431,7 +431,7 @@ public class CheckBox : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -512,21 +512,21 @@ public class ComboBox : MultiContentHost
 
     protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
     {
-        Type GenericType = typeof(MGComboBox<>).MakeGenericType(new Type[] { ItemType });
-        object Element = Activator.CreateInstance(GenericType, new object[] { Window });
+        var GenericType = typeof(MGComboBox<>).MakeGenericType(new Type[] { ItemType });
+        var Element = Activator.CreateInstance(GenericType, new object[] { Window });
         return Element as MGElement;
     }
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        Type GenericType = typeof(MGComboBox<>).MakeGenericType(new Type[] { ItemType });
-        MethodInfo Method = GenericType.GetMethod(nameof(MGComboBox<object>.LoadSettings), BindingFlags.Instance | BindingFlags.NonPublic);
+        var GenericType = typeof(MGComboBox<>).MakeGenericType(new Type[] { ItemType });
+        var Method = GenericType.GetMethod(nameof(MGComboBox<object>.LoadSettings), BindingFlags.Instance | BindingFlags.NonPublic);
         Method.Invoke(Element, new object[] { this, IncludeContent });
     }
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -586,9 +586,9 @@ public class Expander : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGExpander Expander = Element as MGExpander;
+        var Expander = Element as MGExpander;
         ExpanderToggleButton.ApplySettings(Expander, Expander.ExpanderToggleButton, true);
         HeadersPanel.ApplySettings(Expander, Expander.HeadersPanelComponent.Element, false);
 
@@ -664,7 +664,7 @@ public class Expander : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -740,7 +740,7 @@ public class GridColorPicker : Element
     {
         get
         {
-            List<string> Values = !string.IsNullOrEmpty(CommaSeparatedColors) ? CommaSeparatedColors.Split(',').ToList() : Colors;
+            var Values = !string.IsNullOrEmpty(CommaSeparatedColors) ? CommaSeparatedColors.Split(',').ToList() : Colors;
             return Values.Select(x => ColorStringConverter.ParseColor(x).ToXNAColor()).ToList();
         }
     }
@@ -796,9 +796,9 @@ public class GridColorPicker : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGGridColorPicker ColorPicker = Element as MGGridColorPicker;
+        var ColorPicker = Element as MGGridColorPicker;
 
         Border.ApplySettings(ColorPicker, ColorPicker.BorderComponent.Element, false);
         SelectedColorPresenter.ApplySettings(ColorPicker, ColorPicker.SelectedColorPresenter, false);
@@ -936,13 +936,13 @@ public class ColorField : Element
 
     protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
     {
-        ColorPickerOptions options = CreateOptions();
+        var options = CreateOptions();
         return new MGColorField(Window, Value?.ToColorValue(), options);
     }
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGColorField field = Element as MGColorField;
+        var field = Element as MGColorField;
         if (Value.HasValue) field.Value = Value.Value.ToColorValue();
         if (DefaultValue.HasValue) field.DefaultValue = DefaultValue.Value.ToColorValue();
         if (AllowNull.HasValue) field.AllowNull = AllowNull.Value;
@@ -1055,7 +1055,7 @@ public class ColorPicker : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGColorPicker picker = Element as MGColorPicker;
+        var picker = Element as MGColorPicker;
         if (Value.HasValue) picker.Value = Value.Value.ToColorValue();
         if (PreviousValue.HasValue) picker.PreviousValue = PreviousValue.Value.ToColorValue();
         if (ShowAlpha.HasValue) picker.ShowAlpha = ShowAlpha.Value;
@@ -1109,7 +1109,7 @@ public class ColorPreview : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGColorPreview preview = Element as MGColorPreview;
+        var preview = Element as MGColorPreview;
         if (CurrentValue.HasValue) preview.CurrentValue = CurrentValue.Value.ToColorValue();
         if (PreviousValue.HasValue) preview.PreviousValue = PreviousValue.Value.ToColorValue();
         if (ShowPrevious.HasValue) preview.ShowPrevious = ShowPrevious.Value;
@@ -1143,7 +1143,7 @@ public class ColorPaletteView : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGColorPaletteView paletteView = Element as MGColorPaletteView;
+        var paletteView = Element as MGColorPaletteView;
         paletteView.Palette = BuildPalette();
         if (Columns.HasValue) paletteView.Columns = Columns.Value;
         if (SwatchSize.HasValue) paletteView.SwatchSize = SwatchSize.Value;
@@ -1158,9 +1158,9 @@ public class ColorPaletteView : Element
         MGColorPalette palette = new(PaletteName ?? "Palette");
         if (!string.IsNullOrWhiteSpace(CommaSeparatedColors))
         {
-            foreach (string item in CommaSeparatedColors.Split(','))
+            foreach (var item in CommaSeparatedColors.Split(','))
             {
-                if (ColorParser.TryParse(item.Trim(), out ColorValue value))
+                if (ColorParser.TryParse(item.Trim(), out var value))
                 {
                     palette.AddSwatch(value.ToHex(ColorValueFormat.HexRgba), value);
                 }
@@ -1201,9 +1201,9 @@ public class GroupBox : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGGroupBox GroupBox = Element as MGGroupBox;
+        var GroupBox = Element as MGGroupBox;
 
         Expander.ApplySettings(GroupBox, GroupBox.Expander, true);
         OuterHeaderPresenter.ApplySettings(GroupBox, GroupBox.OuterHeaderPresenter, false);
@@ -1244,7 +1244,7 @@ public class GroupBox : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -1279,7 +1279,7 @@ public class Image : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGImage Image = Element as MGImage;
+        var Image = Element as MGImage;
 
         if (TextureColor.HasValue)
         {
@@ -1336,7 +1336,7 @@ public class InputConsumer : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGInputConsumer InputConsumer = Element as MGInputConsumer;
+        var InputConsumer = Element as MGInputConsumer;
 
         if (HandlesMousePresses.HasValue)
         {
@@ -1378,9 +1378,9 @@ public class OverlayHost : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGOverlayHost Host = Element as MGOverlayHost;
+        var Host = Element as MGOverlayHost;
 
         if (OverlayBackground != null)
         {
@@ -1394,7 +1394,7 @@ public class OverlayHost : SingleContentHost
 
         if (IncludeContent)
         {
-            foreach (Overlay Child in Overlays)
+            foreach (var Child in Overlays)
             {
                 _ = Child.ToElement<MGOverlay>(Host.ParentWindow, Host);
             }
@@ -1405,12 +1405,12 @@ public class OverlayHost : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Child in base.GetChildren())
+        foreach (var Child in base.GetChildren())
         {
             yield return Child;
         }
 
-        foreach (Overlay Overlay in Overlays)
+        foreach (var Overlay in Overlays)
         {
             yield return Overlay;
         }
@@ -1470,8 +1470,8 @@ public class Overlay : SingleContentHost
     {
         if (Parent is MGOverlayHost OverlayHost)
         {
-            MGElement ContentElement = Content?.ToElement<MGElement>(Window, null);
-            MGOverlay Overlay = OverlayHost.AddOverlay(ContentElement);
+            var ContentElement = Content?.ToElement<MGElement>(Window, null);
+            var Overlay = OverlayHost.AddOverlay(ContentElement);
             return Overlay;
         }
         else
@@ -1482,7 +1482,7 @@ public class Overlay : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGOverlay Overlay = Element as MGOverlay;
+        var Overlay = Element as MGOverlay;
 
         Border.ApplySettings(Overlay, Overlay.BorderComponent.Element, false);
         CloseButton.ApplySettings(Parent, Overlay.CloseButtonComponent.Element, true);
@@ -1507,7 +1507,7 @@ public class Overlay : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -1528,7 +1528,7 @@ public class PasswordBox : TextBox
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGPasswordBox PasswordBox = Element as MGPasswordBox;
+        var PasswordBox = Element as MGPasswordBox;
 
         if (PasswordCharacter.HasValue)
         {
@@ -1570,7 +1570,7 @@ public class PropertyGrid : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGPropertyGrid propertyGrid = Element as MGPropertyGrid;
+        var propertyGrid = Element as MGPropertyGrid;
         Border.ApplySettings(propertyGrid, propertyGrid.OuterBorder, false);
 
         if (LabelColumnWidth.HasValue)
@@ -1609,7 +1609,7 @@ public class GraphView : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGGraphView graphView = Element as MGGraphView;
+        var graphView = Element as MGGraphView;
 
         if (ShowGrid.HasValue)
         {
@@ -1660,7 +1660,7 @@ public class GraphNode : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGGraphNode graphNode = Element as MGGraphNode;
+        var graphNode = Element as MGGraphNode;
 
         if (NodeId.HasValue)
         {
@@ -1712,7 +1712,7 @@ public class GraphPort : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGGraphPort graphPort = Element as MGGraphPort;
+        var graphPort = Element as MGGraphPort;
 
         if (PortId.HasValue)
         {
@@ -1762,7 +1762,7 @@ public class GraphCommentBox : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGGraphCommentBox commentBox = Element as MGGraphCommentBox;
+        var commentBox = Element as MGGraphCommentBox;
 
         if (Title != null)
         {
@@ -1844,9 +1844,9 @@ public class ProgressBar : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGProgressBar ProgressBar = Element as MGProgressBar;
+        var ProgressBar = Element as MGProgressBar;
         Border.ApplySettings(Parent, ProgressBar.BorderComponent.Element, false);
         (ValueTextBlock ?? new()).ApplySettings(Parent, ProgressBar.ValueComponent.Element, false);
 
@@ -2004,9 +2004,9 @@ public class ProgressButton : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGProgressButton ProgressButton = Element as MGProgressButton;
+        var ProgressButton = Element as MGProgressButton;
         Border.ApplySettings(ProgressButton, ProgressButton.BorderComponent.Element, false);
 
         if (ActionWhenProcessing.HasValue)
@@ -2109,7 +2109,7 @@ public class ProgressButton : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Child in base.GetChildren())
+        foreach (var Child in base.GetChildren())
         {
             yield return Child;
         }
@@ -2168,7 +2168,7 @@ public class RadioButton : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGRadioButton RadioButton = Element as MGRadioButton;
+        var RadioButton = Element as MGRadioButton;
         Button.ApplySettings(Parent, RadioButton.ButtonComponent.Element, false);
 
         if (BubbleComponentSize.HasValue)
@@ -2216,7 +2216,7 @@ public class RadioButton : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -2276,7 +2276,7 @@ public class RatingControl : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGRatingControl RatingControl = Element as MGRatingControl;
+        var RatingControl = Element as MGRatingControl;
 
         if (ItemShape.HasValue)
         {
@@ -2385,9 +2385,9 @@ public class Rectangle : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGRectangle Rectangle = Element as MGRectangle;
+        var Rectangle = Element as MGRectangle;
 
         if (Stroke.HasValue)
         {
@@ -2452,7 +2452,7 @@ public class ResizeGrip : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGResizeGrip ResizeGrip = Element as MGResizeGrip;
+        var ResizeGrip = Element as MGResizeGrip;
 
         if (Foreground.HasValue)
         {
@@ -2507,9 +2507,9 @@ public class ScrollViewer : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGScrollViewer ScrollViewer = Element as MGScrollViewer;
+        var ScrollViewer = Element as MGScrollViewer;
 
         if (VerticalScrollBarVisibility.HasValue)
         {
@@ -2585,7 +2585,7 @@ public class Separator : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGSeparator Separator = Element as MGSeparator;
+        var Separator = Element as MGSeparator;
 
         if (Orientation.HasValue)
         {
@@ -2666,9 +2666,9 @@ public class Slider : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGSlider Slider = Element as MGSlider;
+        var Slider = Element as MGSlider;
 
         if (Minimum.HasValue || MaxHeight.HasValue)
         {
@@ -2844,7 +2844,7 @@ public class Spoiler : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGSpoiler Spoiler = Element as MGSpoiler;
+        var Spoiler = Element as MGSpoiler;
         Button.ApplySettings(Parent, Spoiler.ButtonComponent.Element, false);
 
         if (UnspoiledText != null)
@@ -2867,7 +2867,7 @@ public class Spoiler : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -2919,7 +2919,7 @@ public class Stopwatch : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGStopwatch StopWatch = Element as MGStopwatch;
+        var StopWatch = Element as MGStopwatch;
         Border.ApplySettings(Parent, StopWatch.BorderComponent.Element, false);
         Value.ApplySettings(Parent, StopWatch.ValueComponent.Element, false);
 
@@ -3005,9 +3005,9 @@ public class TabControl : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGTabControl TabControl = Element as MGTabControl;
+        var TabControl = Element as MGTabControl;
         Border.ApplySettings(Parent, TabControl.BorderComponent.Element, false);
         HeadersPanel.ApplySettings(TabControl, TabControl.HeadersPanelElement, false);
 
@@ -3066,7 +3066,7 @@ public class TabControl : Element
 
         if (IncludeContent)
         {
-            foreach (TabItem Child in Tabs)
+            foreach (var Child in Tabs)
             {
                 _ = Child.ToElement<MGTabItem>(TabControl.ParentWindow, TabControl);
             }
@@ -3078,7 +3078,7 @@ public class TabControl : Element
         yield return Border;
         yield return HeadersPanel;
 
-        foreach (TabItem Tab in Tabs)
+        foreach (var Tab in Tabs)
         {
             yield return Tab;
         }
@@ -3111,8 +3111,8 @@ public class TabItem : SingleContentHost
     {
         if (Parent is MGTabControl TabControl)
         {
-            MGElement HeaderElement = Header?.ToElement<MGElement>(Window, null);
-            MGElement ContentElement = Content?.ToElement<MGElement>(Window, null);
+            var HeaderElement = Header?.ToElement<MGElement>(Window, null);
+            var ContentElement = Content?.ToElement<MGElement>(Window, null);
             return TabControl.AddTab(HeaderElement, ContentElement);
         }
         else
@@ -3123,7 +3123,7 @@ public class TabItem : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGTabItem TabItem = Element as MGTabItem;
+        var TabItem = Element as MGTabItem;
 
         if (IsTabSelected.HasValue)
         {
@@ -3135,7 +3135,7 @@ public class TabItem : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -3199,7 +3199,7 @@ public class TextBlock : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGTextBlock TextBlock = Element as MGTextBlock;
+        var TextBlock = Element as MGTextBlock;
 
         if (FontFamily != null || FontSize.HasValue)
         {
@@ -3387,7 +3387,7 @@ public class TextBox : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGTextBox TextBox = Element as MGTextBox;
+        var TextBox = Element as MGTextBox;
         Border.ApplySettings(Parent, TextBox.BorderComponent.Element, false);
         TextBlock.ApplySettings(Parent, TextBox.TextBlockComponent.Element, false);
         Placeholder.ApplySettings(Parent, TextBox.PlaceholderTextBlockComponent.Element, false);
@@ -3541,7 +3541,7 @@ public class RichTextBox : TextBox
     {
         base.ApplyDerivedSettings(Parent, Element, IncludeContent);
 
-        MGRichTextBox richTextBox = Element as MGRichTextBox;
+        var richTextBox = Element as MGRichTextBox;
         if (TabSize.HasValue)
         {
             richTextBox.TabSize = TabSize.Value;
@@ -3584,7 +3584,7 @@ public class NumericUpDown : TextBox
     {
         base.ApplyDerivedSettings(Parent, Element, IncludeContent);
 
-        MGNumericUpDown numericUpDown = Element as MGNumericUpDown;
+        var numericUpDown = Element as MGNumericUpDown;
 
         IncreaseButton.ApplySettings(numericUpDown, numericUpDown.IncreaseButtonElement, false);
         DecreaseButton.ApplySettings(numericUpDown, numericUpDown.DecreaseButtonElement, false);
@@ -3622,7 +3622,7 @@ public class NumericUpDown : TextBox
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element child in base.GetChildren())
+        foreach (var child in base.GetChildren())
         {
             yield return child;
         }
@@ -3682,7 +3682,7 @@ public class Timer : Element
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGTimer Timer = Element as MGTimer;
+        var Timer = Element as MGTimer;
         Border.ApplySettings(Parent, Timer.BorderComponent.Element, false);
         Value.ApplySettings(Parent, Timer.ValueComponent.Element, false);
 
@@ -3767,9 +3767,9 @@ public class ToggleButton : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGDesktop Desktop = Element.GetDesktop();
+        var Desktop = Element.GetDesktop();
 
-        MGToggleButton ToggleButton = Element as MGToggleButton;
+        var ToggleButton = Element as MGToggleButton;
         Border.ApplySettings(Parent, ToggleButton.BorderComponent.Element, false);
 
         if (CheckedBackgroundBrush != null)
@@ -3792,7 +3792,7 @@ public class ToggleButton : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -3833,7 +3833,7 @@ public class ToolTip : Window
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGToolTip ToolTip = Element as MGToolTip;
+        var ToolTip = Element as MGToolTip;
 
         if (ShowOnDisabled.HasValue)
         {
@@ -3909,7 +3909,7 @@ public class TreeView : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGTreeView TreeView = Element as MGTreeView;
+        var TreeView = Element as MGTreeView;
         Border.ApplySettings(TreeView, TreeView.OuterBorder, false);
 
         if (IndentSize.HasValue)
@@ -3930,11 +3930,11 @@ public class TreeView : MultiContentHost
         // Add TreeViewItems
         if (IncludeContent)
         {
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
                 if (Child is TreeViewItem treeViewItem)
                 {
-                    MGTreeViewItem item = treeViewItem.ToElement<MGTreeViewItem>(TreeView.SelfOrParentWindow, TreeView);
+                    var item = treeViewItem.ToElement<MGTreeViewItem>(TreeView.SelfOrParentWindow, TreeView);
                     TreeView.AddItem(item);
                 }
             }
@@ -3943,7 +3943,7 @@ public class TreeView : MultiContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -3980,7 +3980,7 @@ public class TreeViewItem : MultiContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGTreeViewItem TreeViewItem = Element as MGTreeViewItem;
+        var TreeViewItem = Element as MGTreeViewItem;
 
         if (!string.IsNullOrEmpty(Header))
         {
@@ -3995,11 +3995,11 @@ public class TreeViewItem : MultiContentHost
         // Add child TreeViewItems
         if (IncludeContent)
         {
-            foreach (Element Child in Children)
+            foreach (var Child in Children)
             {
                 if (Child is TreeViewItem childTreeViewItem)
                 {
-                    MGTreeViewItem childItem = childTreeViewItem.ToElement<MGTreeViewItem>(TreeViewItem.SelfOrParentWindow, TreeViewItem);
+                    var childItem = childTreeViewItem.ToElement<MGTreeViewItem>(TreeViewItem.SelfOrParentWindow, TreeViewItem);
                     TreeViewItem.AddItem(childItem);
                 }
             }
@@ -4008,7 +4008,7 @@ public class TreeViewItem : MultiContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -4099,11 +4099,11 @@ public class Window : SingleContentHost
     {
         //  Without a ThemeName, a nested window (such as the PART_DropdownWindow of a XAML ComboBox template) keeps no theme of its own:
         //  its Window scope inherits the parent window's scope and follows that scope's theme changes.
-        MGTheme Theme = string.IsNullOrEmpty(ThemeName) ? null : Window.GetResources().GetThemeOrDefault(ThemeName, Window.Theme);
-        int WindowWidth = Math.Clamp(Width ?? 0, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
-        int WindowHeight = Math.Clamp(Height ?? 0, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
+        var Theme = string.IsNullOrEmpty(ThemeName) ? null : Window.GetResources().GetThemeOrDefault(ThemeName, Window.Theme);
+        var WindowWidth = Math.Clamp(Width ?? 0, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
+        var WindowHeight = Math.Clamp(Height ?? 0, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
         MGWindow Instance = new(Window, Left ?? 0, Top ?? 0, WindowWidth, WindowHeight, Theme);
-        foreach (Window Nested in NestedWindows)
+        foreach (var Nested in NestedWindows)
         {
             Instance.AddNestedWindow(Nested.ToElement<MGWindow>(Window, Window));
         }
@@ -4113,11 +4113,11 @@ public class Window : SingleContentHost
 
     public MGWindow ToElement(MGDesktop Desktop)
     {
-        MGResources Resources = Desktop.Resources;
-        MGTheme Theme = Resources.GetThemeOrDefault(ThemeName);
+        var Resources = Desktop.Resources;
+        var Theme = Resources.GetThemeOrDefault(ThemeName);
 
-        int WindowWidth = Math.Clamp(Width ?? 0, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
-        int WindowHeight = Math.Clamp(Height ?? 0, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
+        var WindowWidth = Math.Clamp(Width ?? 0, MinWidth ?? 0, MaxWidth ?? int.MaxValue);
+        var WindowHeight = Math.Clamp(Height ?? 0, MinHeight ?? 0, MaxHeight ?? int.MaxValue);
         MGWindow Window = new(Desktop, Left ?? 0, Top ?? 0, WindowWidth, WindowHeight, Theme);
         ApplySettings(null, Window, true);
         ProcessBindings(Window, true, null);
@@ -4127,7 +4127,7 @@ public class Window : SingleContentHost
 
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGWindow Window = Element as MGWindow;
+        var Window = Element as MGWindow;
         if (Window.ResizeGripComponent?.Element != null)
         {
             ResizeGrip.ApplySettings(Window, Window.ResizeGripComponent.Element, false);
@@ -4180,15 +4180,15 @@ public class Window : SingleContentHost
 
         if (TitleBar.Children.Any() && Window.TitleBarComponent?.Element != null)
         {
-            MGDockPanel TitleBarDP = Window.TitleBarComponent.Element;
+            var TitleBarDP = Window.TitleBarComponent.Element;
             using (TitleBarDP.AllowChangingContentTemporarily())
             {
-                foreach (MGElement Child in TitleBarDP.Children)
+                foreach (var Child in TitleBarDP.Children)
                 {
                     Child.Visibility = UI.Visibility.Collapsed;
                 }
 
-                foreach (Element Child in TitleBar.Children)
+                foreach (var Child in TitleBar.Children)
                 {
                     TitleBarDP.TryAddChild(Child.ToElement<MGElement>(Window, TitleBarDP), Child.Dock);
                 }
@@ -4263,7 +4263,7 @@ public class Window : SingleContentHost
 
     protected internal override IEnumerable<Element> GetChildren()
     {
-        foreach (Element Element in base.GetChildren())
+        foreach (var Element in base.GetChildren())
         {
             yield return Element;
         }
@@ -4276,7 +4276,7 @@ public class Window : SingleContentHost
             yield return ModalWindow;
         }
 
-        foreach (Window Window in NestedWindows)
+        foreach (var Window in NestedWindows)
         {
             yield return Window;
         }
@@ -4296,7 +4296,7 @@ public class XAMLDesigner : Element
     protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
     protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
     {
-        MGXAMLDesigner Designer = Element as MGXAMLDesigner;
+        var Designer = Element as MGXAMLDesigner;
 
     }
 }

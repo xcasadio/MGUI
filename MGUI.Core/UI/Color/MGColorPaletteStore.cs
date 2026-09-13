@@ -38,7 +38,7 @@ public sealed class MGColorPaletteStore
 
     public bool TryImportProjectPalette(string json, out MGColorPalette palette, out System.Collections.Generic.IReadOnlyList<string> diagnostics)
     {
-        bool success = MGColorPaletteSerializer.TryFromJson(json, out palette, out diagnostics);
+        var success = MGColorPaletteSerializer.TryFromJson(json, out palette, out diagnostics);
         if (success && palette != null)
         {
             ProjectPalettes.Add(palette);

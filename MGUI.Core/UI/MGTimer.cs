@@ -88,8 +88,8 @@ public class MGTimer : MGElement
             return;
         }
 
-        string RemainingDurationDisplayString = RemainingDurationToString(RemainingDuration);
-        string ValueDisplayString = ValueDisplayFormat.Replace($"{{{{{nameof(RemainingDuration)}}}}}", RemainingDurationDisplayString);
+        var RemainingDurationDisplayString = RemainingDurationToString(RemainingDuration);
+        var ValueDisplayString = ValueDisplayFormat.Replace($"{{{{{nameof(RemainingDuration)}}}}}", RemainingDurationDisplayString);
 
         ValueElement.SetText(ValueDisplayString, ForceLayoutRefresh ? MGTextInvalidationMode.RelayoutParent : MGTextInvalidationMode.ReflowLocal);
     }
@@ -123,10 +123,10 @@ public class MGTimer : MGElement
         get => _RemainingDuration;
         set
         {
-            TimeSpan ActualValue = AllowsNegativeDuration || RemainingDuration.TotalSeconds >= 0 ? value : TimeSpan.Zero;
+            var ActualValue = AllowsNegativeDuration || RemainingDuration.TotalSeconds >= 0 ? value : TimeSpan.Zero;
             if (_RemainingDuration != ActualValue)
             {
-                TimeSpan Previous = RemainingDuration;
+                var Previous = RemainingDuration;
                 _RemainingDuration = ActualValue;
                 UpdateDisplayedValue(false);
                 NPC(nameof(RemainingDuration));
@@ -239,7 +239,7 @@ public class MGTimer : MGElement
 
     private void ApplyThresholdEffects(double ElapsedSeconds)
     {
-        MGTimerThresholdEffect Active = ThresholdEffects
+        var Active = ThresholdEffects
             .Where(e => RemainingDuration <= e.Threshold)
             .OrderBy(e => e.Threshold)
             .FirstOrDefault();

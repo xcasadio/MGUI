@@ -69,7 +69,7 @@ public class MGRichTextBox : MGTextBox
         get => _tabSize;
         set
         {
-            int actualValue = Math.Max(1, value);
+            var actualValue = Math.Max(1, value);
             if (_tabSize != actualValue)
             {
                 _tabSize = actualValue;
@@ -97,7 +97,7 @@ public class MGRichTextBox : MGTextBox
         get => Caret.HasPosition ? MGTextEditingInputHelpers.NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, Text.Length) : Text.Length;
         set
         {
-            int actualValue = MGTextEditingInputHelpers.NormalizeEditableCaretIndex(value, Text.Length);
+            var actualValue = MGTextEditingInputHelpers.NormalizeEditableCaretIndex(value, Text.Length);
             if (Text.Length > 0)
             {
                 Caret.MoveToOriginalCharacterIndexOrEnd(actualValue, true);
@@ -113,7 +113,7 @@ public class MGRichTextBox : MGTextBox
         {
             if (CurrentSelection.HasValue)
             {
-                TextSelection selection = CurrentSelection.Value;
+                var selection = CurrentSelection.Value;
                 return new MGTextSelectionState(selection.Index1, selection.Index2).Clamp(Text.Length);
             }
 
@@ -121,7 +121,7 @@ public class MGRichTextBox : MGTextBox
         }
         set
         {
-            MGTextSelectionState actualValue = value.Clamp(Text.Length);
+            var actualValue = value.Clamp(Text.Length);
             CurrentSelection = actualValue.HasSelection ? new TextSelection(actualValue.AnchorIndex, actualValue.ActiveIndex) : null;
             CaretIndex = actualValue.CaretIndex;
             NPC(nameof(SelectionState));
@@ -162,9 +162,9 @@ public class MGRichTextBox : MGTextBox
         _styledSpans.Clear();
         if (spans != null)
         {
-            foreach (MGStyledTextSpan span in spans)
+            foreach (var span in spans)
             {
-                MGStyledTextSpan clampedSpan = span.Clamp(Text.Length);
+                var clampedSpan = span.Clamp(Text.Length);
                 if (!clampedSpan.IsEmpty)
                 {
                     _styledSpans.Add(clampedSpan);
@@ -194,7 +194,7 @@ public class MGRichTextBox : MGTextBox
     public MGTextEditResult ApplyTextEdit(MGTextRange range, string text)
     {
         MGTextBuffer previewBuffer = new(Text);
-        MGTextEditResult editResult = previewBuffer.ApplyEdit(range, text);
+        var editResult = previewBuffer.ApplyEdit(range, text);
         SetText(previewBuffer.Text);
         SelectionState = MGTextSelectionState.EmptyAt(editResult.CaretIndexAfterEdit);
         return editResult;
@@ -208,7 +208,7 @@ public class MGRichTextBox : MGTextBox
             return MGRichTextCompletionResult.Empty;
         }
 
-        MGRichTextCompletionContext context = MGRichTextCompletionService.CreateContext(Text, CaretIndex, trigger, triggerCharacter, TextBuffer.Version);
+        var context = MGRichTextCompletionService.CreateContext(Text, CaretIndex, trigger, triggerCharacter, TextBuffer.Version);
         return CompletionProvider.GetCompletions(context);
     }
 
@@ -223,7 +223,7 @@ public class MGRichTextBox : MGTextBox
 
     public bool AcceptSelectedCompletion()
     {
-        if (!CompletionPopup.TryAcceptSelected(out MGRichTextCompletionAcceptance acceptance))
+        if (!CompletionPopup.TryAcceptSelected(out var acceptance))
         {
             return false;
         }
@@ -240,7 +240,7 @@ public class MGRichTextBox : MGTextBox
             return false;
         }
 
-        MGRichTextCompletionAcceptance acceptance = MGRichTextCompletionService.CreateAcceptance(item, replacementRange);
+        var acceptance = MGRichTextCompletionService.CreateAcceptance(item, replacementRange);
         ApplyTextEdit(acceptance.ReplacementRange, acceptance.InsertText);
         SelectionState = MGTextSelectionState.EmptyAt(acceptance.NewCaretIndex);
         return true;
@@ -248,8 +248,8 @@ public class MGRichTextBox : MGTextBox
 
     protected override bool SetText(string Value, bool ExecuteEvenIfSameValue, bool SuppressLayoutChanged)
     {
-        string normalizedValue = MGTextBuffer.NormalizeLineEndings(Value);
-        bool changed = base.SetText(normalizedValue, ExecuteEvenIfSameValue, SuppressLayoutChanged);
+        var normalizedValue = MGTextBuffer.NormalizeLineEndings(Value);
+        var changed = base.SetText(normalizedValue, ExecuteEvenIfSameValue, SuppressLayoutChanged);
         if (TextBuffer != null && (changed || TextBuffer.Text != Text))
         {
             TextBuffer.SetText(Text);
@@ -280,7 +280,7 @@ public class MGRichTextBox : MGTextBox
             return;
         }
 
-        MGRichTextHighlightResult result = SyntaxHighlighter.Highlight(new MGRichTextHighlightContext(Text, TextBuffer.Version, SyntaxPalette));
+        var result = SyntaxHighlighter.Highlight(new MGRichTextHighlightContext(Text, TextBuffer.Version, SyntaxPalette));
         if (result.Version == TextBuffer.Version)
         {
             SetStyledSpans(result.Spans);
@@ -303,13 +303,13 @@ public class MGRichTextBox : MGTextBox
 
     internal static IReadOnlyList<MGTextRun> BuildStyledTextRuns(string text, IEnumerable<MGStyledTextSpan> spans, MGTextRange? selectionRange, Color? selectionBackground)
     {
-        string sourceText = text ?? string.Empty;
+        var sourceText = text ?? string.Empty;
         List<MGStyledTextSpan> orderedSpans = new();
         if (spans != null)
         {
-            foreach (MGStyledTextSpan span in spans)
+            foreach (var span in spans)
             {
-                MGStyledTextSpan clampedSpan = span.Clamp(sourceText.Length);
+                var clampedSpan = span.Clamp(sourceText.Length);
                 if (!clampedSpan.IsEmpty)
                 {
                     orderedSpans.Add(clampedSpan);
@@ -320,24 +320,24 @@ public class MGRichTextBox : MGTextBox
         SortStyledSpans(orderedSpans);
 
         List<MGTextRun> runs = new();
-        List<StyledTextSegment> segments = BuildStyledTextSegments(sourceText.Length, orderedSpans);
-        MGTextRange actualSelection = selectionRange.GetValueOrDefault().Clamp(sourceText.Length);
-        bool hasSelection = selectionRange.HasValue && selectionBackground.HasValue && !actualSelection.IsEmpty;
+        var segments = BuildStyledTextSegments(sourceText.Length, orderedSpans);
+        var actualSelection = selectionRange.GetValueOrDefault().Clamp(sourceText.Length);
+        var hasSelection = selectionRange.HasValue && selectionBackground.HasValue && !actualSelection.IsEmpty;
 
-        for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++)
+        for (var segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++)
         {
-            StyledTextSegment segment = segments[segmentIndex];
+            var segment = segments[segmentIndex];
             if (!hasSelection || segment.EndIndex <= actualSelection.StartIndex || segment.StartIndex >= actualSelection.EndIndex)
             {
                 AddTextRun(runs, sourceText, segment.StartIndex, segment.EndIndex, segment.Style);
                 continue;
             }
 
-            int selectedStartIndex = Math.Max(segment.StartIndex, actualSelection.StartIndex);
-            int selectedEndIndex = Math.Min(segment.EndIndex, actualSelection.EndIndex);
+            var selectedStartIndex = Math.Max(segment.StartIndex, actualSelection.StartIndex);
+            var selectedEndIndex = Math.Min(segment.EndIndex, actualSelection.EndIndex);
             AddTextRun(runs, sourceText, segment.StartIndex, selectedStartIndex, segment.Style);
 
-            MGRichTextStyle selectedStyle = new MGRichTextStyle(Background: selectionBackground.Value).MergeOver(segment.Style);
+            var selectedStyle = new MGRichTextStyle(Background: selectionBackground.Value).MergeOver(segment.Style);
             AddTextRun(runs, sourceText, selectedStartIndex, selectedEndIndex, selectedStyle);
             AddTextRun(runs, sourceText, selectedEndIndex, segment.EndIndex, segment.Style);
         }
@@ -348,12 +348,12 @@ public class MGRichTextBox : MGTextBox
     private static List<StyledTextSegment> BuildStyledTextSegments(int textLength, IReadOnlyList<MGStyledTextSpan> orderedSpans)
     {
         List<StyledTextSegment> segments = new();
-        int cursor = 0;
-        for (int spanIndex = 0; spanIndex < orderedSpans.Count; spanIndex++)
+        var cursor = 0;
+        for (var spanIndex = 0; spanIndex < orderedSpans.Count; spanIndex++)
         {
-            MGStyledTextSpan span = orderedSpans[spanIndex];
-            int spanStartIndex = Math.Max(cursor, span.Range.StartIndex);
-            int spanEndIndex = Math.Max(spanStartIndex, span.Range.EndIndex);
+            var span = orderedSpans[spanIndex];
+            var spanStartIndex = Math.Max(cursor, span.Range.StartIndex);
+            var spanEndIndex = Math.Max(spanStartIndex, span.Range.EndIndex);
 
             AddStyledTextSegment(segments, cursor, spanStartIndex, MGRichTextStyle.Default);
             AddStyledTextSegment(segments, spanStartIndex, spanEndIndex, span.Style);
@@ -374,7 +374,7 @@ public class MGRichTextBox : MGTextBox
 
     private void RebuildStyledTextRuns(bool silent = false)
     {
-        MGTextRange? selectionRange = GetSelectionRange();
+        var selectionRange = GetSelectionRange();
         if (_styledSpans.Count == 0 && !selectionRange.HasValue && SyntaxHighlighter == null)
         {
             TextBlockComponent.Element.ClearTextRuns(silent);
@@ -397,7 +397,7 @@ public class MGRichTextBox : MGTextBox
 
     private Color GetCurrentSelectionBackground()
     {
-        bool hasFocus = GetDesktop().FocusedKeyboardHandler == this;
+        var hasFocus = GetDesktop().FocusedKeyboardHandler == this;
         return hasFocus ? FocusedSelectionBackgroundColor : UnfocusedSelectionBackgroundColor;
     }
 
@@ -405,7 +405,7 @@ public class MGRichTextBox : MGTextBox
     {
         spans.Sort((left, right) =>
         {
-            int startComparison = left.Range.StartIndex.CompareTo(right.Range.StartIndex);
+            var startComparison = left.Range.StartIndex.CompareTo(right.Range.StartIndex);
             return startComparison != 0 ? startComparison : left.Range.EndIndex.CompareTo(right.Range.EndIndex);
         });
     }
@@ -417,11 +417,11 @@ public class MGRichTextBox : MGTextBox
             return;
         }
 
-        MGTextRunConfig runConfig = ToTextRunConfig(style);
-        int textStartIndex = startIndex;
-        for (int index = startIndex; index < endIndex; index++)
+        var runConfig = ToTextRunConfig(style);
+        var textStartIndex = startIndex;
+        for (var index = startIndex; index < endIndex; index++)
         {
-            char value = text[index];
+            var value = text[index];
             if (value != '\r' && value != '\n')
             {
                 continue;
@@ -429,7 +429,7 @@ public class MGRichTextBox : MGTextBox
 
             AddTextRunSegment(runs, text, textStartIndex, index, runConfig);
 
-            int lineBreakCharacterCount = 1;
+            var lineBreakCharacterCount = 1;
             if (value == '\r' && index + 1 < endIndex && text[index + 1] == '\n')
             {
                 lineBreakCharacterCount = 2;
@@ -455,8 +455,8 @@ public class MGRichTextBox : MGTextBox
 
     private static MGTextRunConfig ToTextRunConfig(MGRichTextStyle style)
     {
-        MGTextRunUnderlineConfig underline = style.IsUnderlined ? new MGTextRunUnderlineConfig(true) : default;
-        MGTextRunBackgroundConfig background = style.Background.HasValue
+        var underline = style.IsUnderlined ? new MGTextRunUnderlineConfig(true) : default;
+        var background = style.Background.HasValue
             ? new MGTextRunBackgroundConfig(style.Background.Value.AsFillBrush())
             : default;
 

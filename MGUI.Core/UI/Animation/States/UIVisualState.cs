@@ -63,7 +63,7 @@ public sealed class UIVisualState : IEnumerable<UIVisualStateSetter>
             throw new ArgumentNullException(nameof(setter));
         }
 
-        int existing = _Setters.FindIndex(x => string.Equals(x.Path, setter.Path, StringComparison.OrdinalIgnoreCase));
+        var existing = _Setters.FindIndex(x => string.Equals(x.Path, setter.Path, StringComparison.OrdinalIgnoreCase));
         if (existing >= 0)
         {
             _Setters[existing] = setter;
@@ -79,7 +79,7 @@ public sealed class UIVisualState : IEnumerable<UIVisualStateSetter>
     /// <summary>True when the state has a setter for <paramref name="path"/>.</summary>
     public bool HasPath(string path)
     {
-        for (int i = 0; i < _Setters.Count; i++)
+        for (var i = 0; i < _Setters.Count; i++)
         {
             if (string.Equals(_Setters[i].Path, path, StringComparison.OrdinalIgnoreCase))
             {
@@ -108,7 +108,7 @@ public sealed class UIVisualStateSetter
             throw new ArgumentException("A setter needs a target path.", nameof(path));
         }
 
-        Type valueType = UIAnimationTargets.GetValueType(path) ?? throw new ArgumentException(
+        var valueType = UIAnimationTargets.GetValueType(path) ?? throw new ArgumentException(
             $"Unknown animation target '{path}'. Registered paths: {string.Join(", ", UIAnimationTargets.Paths)}.", nameof(path));
         Path = path;
         Value = value;
@@ -129,7 +129,7 @@ internal abstract class UIVisualStateApplier
 {
     public static UIVisualStateApplier Create(Type valueType, string path, object value)
     {
-        Type applierType = typeof(UIVisualStateApplier<>).MakeGenericType(valueType);
+        var applierType = typeof(UIVisualStateApplier<>).MakeGenericType(valueType);
         try
         {
             return (UIVisualStateApplier)Activator.CreateInstance(applierType, path, value);
@@ -209,7 +209,7 @@ internal sealed class UIVisualStateApplier<T> : UIVisualStateApplier
 
     public override void Restore(MGElement element, Dictionary<string, object> bases)
     {
-        if (!bases.TryGetValue(_Path, out object baseValue))
+        if (!bases.TryGetValue(_Path, out var baseValue))
         {
             return;
         }

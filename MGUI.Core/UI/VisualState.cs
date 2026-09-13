@@ -270,7 +270,7 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
         get => _OverlayOpacity;
         set
         {
-            float clamped = float.IsNaN(value) ? 1f : Math.Clamp(value, 0f, 1f);
+            var clamped = float.IsNaN(value) ? 1f : Math.Clamp(value, 0f, 1f);
             if (_OverlayOpacity != clamped)
             {
                 _OverlayOpacity = clamped;
@@ -366,8 +366,8 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
     /// <summary>Draws the fill overlay of <paramref name="State"/> (Hovered / Pressed) with <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> applied; nothing for <see cref="SecondaryVisualState.None"/> or an opacity of 0.</summary>
     public void DrawFillOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, Rectangle Bounds)
     {
-        MGSolidFillBrush? overlay = GetFillOverlay(State);
-        float opacity = OverlayOpacity;
+        var overlay = GetFillOverlay(State);
+        var opacity = OverlayOpacity;
         if (overlay == null || opacity <= 0f)
             return;
         overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Bounds);
@@ -376,8 +376,8 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
     /// <summary>Rounded variant of <see cref="DrawFillOverlay(ElementDrawArgs, SecondaryVisualState, MGElement, Rectangle)"/>.</summary>
     public void DrawFillOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        MGSolidFillBrush? overlay = GetFillOverlay(State);
-        float opacity = OverlayOpacity;
+        var overlay = GetFillOverlay(State);
+        var opacity = OverlayOpacity;
         if (overlay == null || opacity <= 0f)
             return;
         overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Shape, Geometry);
@@ -386,8 +386,8 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
     /// <summary>Draws the border overlay of <paramref name="State"/> with <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> applied.</summary>
     public void DrawBorderOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, Rectangle Bounds, MonoGame.Extended.Thickness BorderThickness)
     {
-        MGUniformBorderBrush? overlay = GetBorderOverlay(State);
-        float opacity = OverlayOpacity;
+        var overlay = GetBorderOverlay(State);
+        var opacity = OverlayOpacity;
         if (overlay == null || opacity <= 0f)
             return;
         overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Bounds, BorderThickness);
@@ -396,8 +396,8 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
     /// <summary>Rounded variant of <see cref="DrawBorderOverlay(ElementDrawArgs, SecondaryVisualState, MGElement, Rectangle, MonoGame.Extended.Thickness)"/>.</summary>
     public void DrawBorderOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
     {
-        MGUniformBorderBrush? overlay = GetBorderOverlay(State);
-        float opacity = OverlayOpacity;
+        var overlay = GetBorderOverlay(State);
+        var opacity = OverlayOpacity;
         if (overlay == null || opacity <= 0f)
             return;
         overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Shape, Geometry);
@@ -413,10 +413,10 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
     /// The solid hover/pressed overlays are stateless and are not ticked.</summary>
     public void Update(UpdateBaseArgs UA)
     {
-        IFillBrush normal = NormalValue;
-        IFillBrush selected = SelectedValue;
-        IFillBrush focused = FocusedValue;
-        IFillBrush disabled = DisabledValue;
+        var normal = NormalValue;
+        var selected = SelectedValue;
+        var focused = FocusedValue;
+        var disabled = DisabledValue;
 
         PaintLifecycle.Update(normal, UA);
 
