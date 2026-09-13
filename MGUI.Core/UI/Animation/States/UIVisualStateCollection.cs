@@ -31,7 +31,9 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
     /// <summary>The state named <paramref name="name"/> (case-insensitive), or null.</summary>
     public UIVisualState this[string name] => _States.Find(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Adds a state, replacing the one of the same name; the current state is re-resolved on the next frame.</summary>
+    /// <summary>Adds a state, replacing the one of the same name. Backlog task 9 (U9): replacing the state that is current restores its old setters
+    /// and immediately re-applies the new ones (instead of leaving the element with the old values until the next state change), so a hot style
+    /// refresh shows a changed current state's new values at once.</summary>
     public void Add(UIVisualState state)
     {
         if (state == null)
@@ -40,18 +42,24 @@ public sealed class UIVisualStateCollection : IEnumerable<UIVisualState>
         }
 
         var existing = _States.FindIndex(x => string.Equals(x.Name, state.Name, StringComparison.OrdinalIgnoreCase));
+        var wasCurrent = existing >= 0 && string.Equals(Current, state.Name, StringComparison.OrdinalIgnoreCase);
+        if (wasCurrent)
+        {
+            Apply(null);
+        }
+
         if (existing >= 0)
         {
-            if (string.Equals(Current, state.Name, StringComparison.OrdinalIgnoreCase))
-            {
-                Apply(null);
-            }
-
             _States[existing] = state;
         }
         else
         {
             _States.Add(state);
+        }
+
+        if (wasCurrent)
+        {
+            Apply(state.Name);
         }
     }
 

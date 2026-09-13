@@ -1,4 +1,6 @@
-﻿using MGUI.Core.UI.DataBinding;
+﻿using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.States;
+using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Styling;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -291,11 +293,14 @@ public abstract class Element : XAMLBindableBase
     [Category("Appearance")]
     public List<VisualStateDefinition> VisualStates { get; set; } = new();
 
-    /// <summary>The transitions the applied styles give this element (implicit styles, then named styles, in order), null when none; see <see cref="ProcessStyles(MGResources)"/>.</summary>
-    internal List<Transition> StyleTransitions { get; private set; }
+    /// <summary>The transitions the applied styles give this element (implicit styles, then named styles, in order) with the style kind that
+    /// declared each one (backlog task 9, U9: carried onto <see cref="UITransition.Provenance"/> so <see cref="MGElement.RefreshStyles"/> can tell a
+    /// style-owned transition from the element's own), null when none; see <see cref="ProcessStyles(MGResources)"/>.</summary>
+    internal List<(Transition Dto, UIValueSourceKind Kind)> StyleTransitions { get; private set; }
 
-    /// <summary>The visual states the applied styles give this element, null when none; see <see cref="ProcessStyles(MGResources)"/>.</summary>
-    internal List<VisualStateDefinition> StyleVisualStates { get; private set; }
+    /// <summary>The visual states the applied styles give this element, with the style kind that declared each one (backlog task 9, U9: carried onto
+    /// <see cref="UIVisualState.Provenance"/>), null when none; see <see cref="ProcessStyles(MGResources)"/>.</summary>
+    internal List<(VisualStateDefinition Dto, UIValueSourceKind Kind)> StyleVisualStates { get; private set; }
 
     /// <summary>Used by <see cref="DockPanel"/>'s children</summary>
     [Category("Attached")]
@@ -615,9 +620,9 @@ public abstract class Element : XAMLBindableBase
             //  when it attaches. The styles' come first, the element's own win per state name or transition path (the collections replace by key).
             if (StyleVisualStates != null)
             {
-                foreach (var State in StyleVisualStates)
+                foreach (var (State, Kind) in StyleVisualStates)
                 {
-                    Element.VisualStates.Add(State.ToVisualState());
+                    Element.VisualStates.Add(State.ToVisualState(Kind));
                 }
             }
 
@@ -628,9 +633,9 @@ public abstract class Element : XAMLBindableBase
 
             if (StyleTransitions != null)
             {
-                foreach (var Transition in StyleTransitions)
+                foreach (var (Transition, Kind) in StyleTransitions)
                 {
-                    Element.Transitions.Add(Transition.ToTransition());
+                    Element.Transitions.Add(Transition.ToTransition(Kind));
                 }
             }
 
@@ -1110,7 +1115,7 @@ public abstract class Element : XAMLBindableBase
             {
                 foreach (var Style in ImplicitAnimatedStyles)
                 {
-                    CollectStyleAnimation(Style);
+                    CollectStyleAnimation(Style, UIValueSourceKind.ImplicitStyle);
                 }
             }
 
@@ -1162,14 +1167,21 @@ public abstract class Element : XAMLBindableBase
                 //  Transitions and visual states of the named styles, after the implicit ones: the last style wins per path or name
                 foreach (var Style in ExplicitStyles)
                 {
-                    CollectStyleAnimation(Style);
+                    CollectStyleAnimation(Style, UIValueSourceKind.ExplicitStyle);
                 }
             }
         }
 
         //  Backlog task 10: keep what this pass resolved for the elements this definition creates (see MGElement.RefreshStyles)
+        //  Backlog task 9 (U9): this definition's own transition paths and visual state names, so a later refresh never touches them (element wins).
+        var OwnTransitionPaths = Transitions.Count > 0
+            ? new HashSet<string>(Transitions.Select(x => x.Property), StringComparer.OrdinalIgnoreCase)
+            : null;
+        var OwnVisualStateNames = VisualStates.Count > 0
+            ? new HashSet<string>(VisualStates.Select(x => x.Name), StringComparer.OrdinalIgnoreCase)
+            : null;
         StyleScope = new ElementStyleScope(GetType(), ElementType, StyleNames, IsStyleable, UsesResourceStyles, InlineStyles,
-            ModifiedPropertyNames.Count > 0 ? ModifiedPropertyNames : null);
+            ModifiedPropertyNames.Count > 0 ? ModifiedPropertyNames : null, OwnTransitionPaths, OwnVisualStateNames);
 
         //  Recursively process all children
         foreach (var Child in GetChildren())
@@ -1225,17 +1237,27 @@ public abstract class Element : XAMLBindableBase
         }
     }
 
-    /// <summary>Keeps the transitions and visual states of an applied style for <see cref="ApplyBaseSettings"/> (ADR-0007, decision 5).</summary>
-    private void CollectStyleAnimation(Style Style)
+    /// <summary>Keeps the transitions and visual states of an applied style, tagged with <paramref name="Kind"/> (backlog task 9, U9: carried onto
+    /// <see cref="UITransition.Provenance"/>/<see cref="UIVisualState.Provenance"/> in <see cref="ApplyBaseSettings"/>), for <see cref="ApplyBaseSettings"/>
+    /// (ADR-0007, decision 5).</summary>
+    private void CollectStyleAnimation(Style Style, UIValueSourceKind Kind)
     {
         if (Style.Transitions.Count > 0)
         {
-            (StyleTransitions ??= new()).AddRange(Style.Transitions);
+            var List = StyleTransitions ??= new();
+            foreach (var Transition in Style.Transitions)
+            {
+                List.Add((Transition, Kind));
+            }
         }
 
         if (Style.VisualStates.Count > 0)
         {
-            (StyleVisualStates ??= new()).AddRange(Style.VisualStates);
+            var List = StyleVisualStates ??= new();
+            foreach (var State in Style.VisualStates)
+            {
+                List.Add((State, Kind));
+            }
         }
     }
 

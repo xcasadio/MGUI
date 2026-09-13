@@ -51,6 +51,18 @@ public sealed class UIVisualState : IEnumerable<UIVisualStateSetter>
 
     public string Name { get; }
 
+    /// <summary>Backlog task 9 (U9): which style declared this state (<see cref="UIValueSourceKind.ImplicitStyle"/> or
+    /// <see cref="UIValueSourceKind.ExplicitStyle"/>), null when the element declared it itself (<c>&lt;Element.VisualStates&gt;</c>) or code added it
+    /// directly: <see cref="MGElement.RefreshStyles"/> never replaces or removes a null-provenance state, so the element and the application always
+    /// win over a style. Set by <see cref="MGUI.Core.UI.XAML.VisualStateDefinition.ToVisualState(UIValueSourceKind?)"/>.</summary>
+    public UIValueSourceKind? Provenance { get; internal set; }
+
+    /// <summary>Backlog task 9 (U9): deterministic text of the declaration that produced this state (name, <see cref="OverridesLocalValue"/>, then each
+    /// setter path and formatted value in declaration order), built by <see cref="MGUI.Core.UI.XAML.VisualStateDefinition"/>. Null when
+    /// <see cref="Provenance"/> is null. <see cref="MGElement.RefreshStyles"/> compares it to the new declaration's own signature to tell an unchanged
+    /// style from a changed one, replacing only on a difference.</summary>
+    public string Signature { get; internal set; }
+
     /// <summary>
     /// ADR-0008, decision 4. Default false. When true, this state's pilot setters are written at
     /// <see cref="UIValuePrecedence.VisualStateOverride"/> (95, <see cref="UIValueSourceKind.VisualState"/> unchanged) instead of the ordinary

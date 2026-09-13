@@ -1,3 +1,5 @@
+using MGUI.Core.UI.Animation;
+
 namespace MGUI.Core.UI.Styling;
 
 /// <summary>Why <see cref="MGElement.RefreshStyles"/> did not apply a style setter.</summary>
@@ -23,12 +25,17 @@ public readonly record struct UIStyleRefreshSkip(MGElement Element, string Name,
 /// <summary>The outcome of <see cref="MGElement.RefreshStyles"/>.</summary>
 public sealed class UIStyleRefreshResult
 {
-    internal UIStyleRefreshResult(int VisitedElements, int StyledElements, int WrittenValues, int ClearedValues, IReadOnlyList<UIStyleRefreshSkip> Skipped)
+    internal UIStyleRefreshResult(int VisitedElements, int StyledElements, int WrittenValues, int ClearedValues,
+        int WrittenTransitions, int ClearedTransitions, int WrittenVisualStates, int ClearedVisualStates, IReadOnlyList<UIStyleRefreshSkip> Skipped)
     {
         this.VisitedElements = VisitedElements;
         this.StyledElements = StyledElements;
         this.WrittenValues = WrittenValues;
         this.ClearedValues = ClearedValues;
+        this.WrittenTransitions = WrittenTransitions;
+        this.ClearedTransitions = ClearedTransitions;
+        this.WrittenVisualStates = WrittenVisualStates;
+        this.ClearedVisualStates = ClearedVisualStates;
         this.Skipped = Skipped ?? Array.Empty<UIStyleRefreshSkip>();
     }
 
@@ -44,6 +51,21 @@ public sealed class UIStyleRefreshResult
 
     /// <summary>The style contributions removed because no style sets their property any more.</summary>
     public int ClearedValues { get; }
+
+    /// <summary>Backlog task 9 (U9): the style-owned transitions added or replaced by this refresh (a new style transition, or an existing one whose
+    /// declaration changed); zero when nothing changed.</summary>
+    public int WrittenTransitions { get; }
+
+    /// <summary>Backlog task 9 (U9): the style-owned transitions removed because no style sets their path any more (the in-flight value, if any, is
+    /// kept; see <see cref="UITransitionCollection.Remove(string)"/>).</summary>
+    public int ClearedTransitions { get; }
+
+    /// <summary>Backlog task 9 (U9): the style-owned named visual states added or replaced by this refresh; zero when nothing changed.</summary>
+    public int WrittenVisualStates { get; }
+
+    /// <summary>Backlog task 9 (U9): the style-owned named visual states removed because no style declares their name any more (the base is restored
+    /// at once if the removed state was current).</summary>
+    public int ClearedVisualStates { get; }
 
     /// <summary>The setters and style names that were not applied.</summary>
     public IReadOnlyList<UIStyleRefreshSkip> Skipped { get; }

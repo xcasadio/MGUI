@@ -1,3 +1,5 @@
+using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.States;
 using MGUI.Core.UI.Styling;
 using System.Collections.Concurrent;
 using System.ComponentModel;
@@ -128,6 +130,10 @@ internal static class ElementStyleRefresher
     private static PropertyInfo GetDefinitionProperty(Type DefinitionType, string PropertyName)
         => DefinitionProperties.GetOrAdd((DefinitionType, PropertyName), key => key.DefinitionType.GetProperty(key.PropertyName, BindingFlags.Public | BindingFlags.Instance));
 
+    /// <summary>Ordinal-ignore-case, like <see cref="Animation.UITransitionCollection"/> and <see cref="Animation.States.UIVisualStateCollection"/>: the
+    /// default for an element with no style-owned transition or visual state (backlog task 9, U9).</summary>
+    private static readonly HashSet<string> NoNames = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>The state of one refresh: counters, skipped setters, and the merged implicit styles of each resource scope met.</summary>
     private sealed class RefreshPass
     {
@@ -136,6 +142,10 @@ internal static class ElementStyleRefresher
         public int StyledElements;
         public int WrittenValues;
         public int ClearedValues;
+        public int WrittenTransitions;
+        public int ClearedTransitions;
+        public int WrittenVisualStates;
+        public int ClearedVisualStates;
         public readonly List<UIStyleRefreshSkip> Skipped = new();
 
         public IReadOnlyDictionary<MGElementType, Style> GetImplicitStyles(MGResources Resources)
@@ -167,7 +177,8 @@ internal static class ElementStyleRefresher
             }
         }
 
-        return new UIStyleRefreshResult(Visited.Count, Pass.StyledElements, Pass.WrittenValues, Pass.ClearedValues, Pass.Skipped);
+        return new UIStyleRefreshResult(Visited.Count, Pass.StyledElements, Pass.WrittenValues, Pass.ClearedValues,
+            Pass.WrittenTransitions, Pass.ClearedTransitions, Pass.WrittenVisualStates, Pass.ClearedVisualStates, Pass.Skipped);
     }
 
     private static void RefreshElement(MGElement Element, ElementStyleScope Scope, RefreshPass Pass)
@@ -282,6 +293,192 @@ internal static class ElementStyleRefresher
         }
 
         Element.RefreshedStyleProperties = StyledProperties ?? NoProperties;
+
+        // Backlog task 9 (U9): hot refresh of the style-owned transitions and visual states (ADR-0008, decision 9). Kept out of the setter pass above.
+        if (Scope.IsStyleable)
+        {
+            RefreshStyleAnimations(Element, Scope, Pass);
+        }
+    }
+
+    /// <summary>Backlog task 9 (U9): re-transfers the current style transitions and visual states onto <paramref name="Element"/>, resolved the same
+    /// way and in the same order as the setter pass above (resource-scope implicit style, then inline implicit styles, then named styles in order),
+    /// the last one winning per path or name. A style-owned entry (<see cref="UITransition.Provenance"/>/<see cref="UIVisualState.Provenance"/> not
+    /// null) is added when missing, replaced when its <see cref="UITransition.Signature"/>/<see cref="UIVisualState.Signature"/> changed, left alone
+    /// when unchanged, and removed when no style declares its path or name any more. A path or name of the element's own declarations
+    /// (<see cref="ElementStyleScope.OwnTransitionPaths"/>/<see cref="ElementStyleScope.OwnVisualStateNames"/>) or of anything added directly by code
+    /// (null provenance) is never touched: the element and the application always win over a style.</summary>
+    private static void RefreshStyleAnimations(MGElement Element, ElementStyleScope Scope, RefreshPass Pass)
+    {
+        Dictionary<string, (Transition Dto, UIValueSourceKind Kind)> StyleTransitions = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, (VisualStateDefinition Dto, UIValueSourceKind Kind)> StyleStates = new(StringComparer.OrdinalIgnoreCase);
+
+        var Resources = Element.GetResources();
+        if (Scope.UsesResourceStyles && Pass.GetImplicitStyles(Resources).TryGetValue(Scope.ElementType, out var ResourceStyle))
+        {
+            CollectAnimationSetters(ResourceStyle, UIValueSourceKind.ImplicitStyle, StyleTransitions, StyleStates);
+        }
+
+        foreach (var InlineStyle in Scope.InlineStyles)
+        {
+            if (InlineStyle.Name == null && InlineStyle.TargetType == Scope.ElementType)
+            {
+                CollectAnimationSetters(InlineStyle, UIValueSourceKind.ImplicitStyle, StyleTransitions, StyleStates);
+            }
+        }
+
+        if (Scope.StyleNames != null)
+        {
+            foreach (var StyleName in Scope.StyleNames.Split(','))
+            {
+                var NamedStyle = FindNamedStyle(Scope, Resources, StyleName);
+                if (NamedStyle != null && NamedStyle.TargetType == Scope.ElementType)
+                {
+                    CollectAnimationSetters(NamedStyle, UIValueSourceKind.ExplicitStyle, StyleTransitions, StyleStates);
+                }
+            }
+        }
+
+        // Peeking at the animation slot (rather than the public Transitions/VisualStates getters) avoids allocating one for an element that has
+        // neither a current style transition/state nor an existing one.
+        var Slot = Element.AnimationSlotOrNull;
+        var ExistingTransitions = Slot?.Transitions;
+        var ExistingStates = Slot?.VisualStatesOrNull;
+
+        if (ExistingTransitions != null)
+        {
+            foreach (var Existing in ExistingTransitions.ToList())
+            {
+                if (Existing.Provenance.HasValue && !StyleTransitions.ContainsKey(Existing.Property))
+                {
+                    Element.Transitions.Remove(Existing);
+                    Pass.ClearedTransitions++;
+                }
+            }
+        }
+
+        foreach (var Entry in StyleTransitions)
+        {
+            if (Scope.OwnTransitionPaths != null && Scope.OwnTransitionPaths.Contains(Entry.Key))
+            {
+                continue;
+            }
+
+            var Existing = ExistingTransitions?[Entry.Key];
+            if (Existing == null)
+            {
+                Element.Transitions.Add(Entry.Value.Dto.ToTransition(Entry.Value.Kind));
+                Pass.WrittenTransitions++;
+            }
+            else if (Existing.Provenance.HasValue)
+            {
+                var Candidate = Entry.Value.Dto.ToTransition(Entry.Value.Kind);
+                if (Existing.Signature != Candidate.Signature)
+                {
+                    Element.Transitions.Add(Candidate);
+                    Pass.WrittenTransitions++;
+                }
+            }
+            // Existing.Provenance is null: the element or code declared this path directly, and always wins over a style.
+        }
+
+        if (ExistingStates != null)
+        {
+            foreach (var Existing in ExistingStates.ToList())
+            {
+                if (Existing.Provenance.HasValue && !StyleStates.ContainsKey(Existing.Name))
+                {
+                    Element.VisualStates.Remove(Existing.Name);
+                    Pass.ClearedVisualStates++;
+                }
+            }
+        }
+
+        foreach (var Entry in StyleStates)
+        {
+            if (Scope.OwnVisualStateNames != null && Scope.OwnVisualStateNames.Contains(Entry.Key))
+            {
+                continue;
+            }
+
+            var Existing = ExistingStates?[Entry.Key];
+            if (Existing == null)
+            {
+                Element.VisualStates.Add(Entry.Value.Dto.ToVisualState(Entry.Value.Kind));
+                Pass.WrittenVisualStates++;
+            }
+            else if (Existing.Provenance.HasValue)
+            {
+                var Candidate = Entry.Value.Dto.ToVisualState(Entry.Value.Kind);
+                if (Existing.Signature != Candidate.Signature)
+                {
+                    // UIVisualStateCollection.Add restores then re-applies immediately when the replaced state is current (U9 fix).
+                    Element.VisualStates.Add(Candidate);
+                    Pass.WrittenVisualStates++;
+                }
+            }
+            // Existing.Provenance is null: the element or code declared this name directly, and always wins over a style.
+        }
+
+        Element.RefreshedStyleTransitionPaths = BuildOwnedNames(Element.AnimationSlotOrNull?.Transitions);
+        Element.RefreshedStyleVisualStateNames = BuildOwnedNames(Element.AnimationSlotOrNull?.VisualStatesOrNull);
+    }
+
+    /// <summary>The paths (or names) of <paramref name="Entries"/> whose <see cref="UITransition.Provenance"/>/<see cref="UIVisualState.Provenance"/>
+    /// is not null: what the last refresh left style-owned on the element, for <see cref="MGElement.RefreshedStyleTransitionPaths"/>/
+    /// <see cref="MGElement.RefreshedStyleVisualStateNames"/> (diagnostics; mirrors <see cref="MGElement.RefreshedStyleProperties"/>).</summary>
+    private static HashSet<string> BuildOwnedNames(IEnumerable<UITransition> Entries)
+    {
+        if (Entries == null)
+        {
+            return NoNames;
+        }
+
+        HashSet<string> Result = null;
+        foreach (var Entry in Entries)
+        {
+            if (Entry.Provenance.HasValue)
+            {
+                (Result ??= new(StringComparer.OrdinalIgnoreCase)).Add(Entry.Property);
+            }
+        }
+
+        return Result ?? NoNames;
+    }
+
+    private static HashSet<string> BuildOwnedNames(IEnumerable<UIVisualState> Entries)
+    {
+        if (Entries == null)
+        {
+            return NoNames;
+        }
+
+        HashSet<string> Result = null;
+        foreach (var Entry in Entries)
+        {
+            if (Entry.Provenance.HasValue)
+            {
+                (Result ??= new(StringComparer.OrdinalIgnoreCase)).Add(Entry.Name);
+            }
+        }
+
+        return Result ?? NoNames;
+    }
+
+    /// <summary>Backlog task 9 (U9): collects the transitions and visual states of one style, by path and by name, the last one added winning (as
+    /// <see cref="Element.CollectStyleAnimation"/> does at parse time), tagged with <paramref name="Kind"/>.</summary>
+    private static void CollectAnimationSetters(Style Style, UIValueSourceKind Kind,
+        Dictionary<string, (Transition Dto, UIValueSourceKind Kind)> Transitions, Dictionary<string, (VisualStateDefinition Dto, UIValueSourceKind Kind)> States)
+    {
+        foreach (var Transition in Style.Transitions)
+        {
+            Transitions[Transition.Property] = (Transition, Kind);
+        }
+
+        foreach (var State in Style.VisualStates)
+        {
+            States[State.Name] = (State, Kind);
+        }
     }
 
     private static void CollectSetters(Style Style, Dictionary<string, object> Values)

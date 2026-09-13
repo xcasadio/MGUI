@@ -1508,6 +1508,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// first refresh (the properties styled by the parse, <see cref="XAML.ElementStyleScope.StyledPropertyNames"/>, apply until then).</summary>
     internal HashSet<string> RefreshedStyleProperties { get; set; }
 
+    /// <summary>Backlog task 9 (U9): the transition paths this element's <see cref="Transitions"/> holds under a style's provenance after the last
+    /// <see cref="RefreshStyles"/>, null before the first refresh. Diagnostics only; mirrors <see cref="RefreshedStyleProperties"/>.</summary>
+    internal IReadOnlyCollection<string> RefreshedStyleTransitionPaths { get; set; }
+
+    /// <summary>Backlog task 9 (U9): the visual state names this element's <see cref="VisualStates"/> holds under a style's provenance after the last
+    /// <see cref="RefreshStyles"/>, null before the first refresh. Diagnostics only; mirrors <see cref="RefreshedStyleProperties"/>.</summary>
+    internal IReadOnlyCollection<string> RefreshedStyleVisualStateNames { get; set; }
+
     /// <summary>Re-applies the implicit and named styles to this element and its visual subtree without reparsing the XAML: a style added to, replaced in
     /// or removed from a resource scope (<see cref="MGResources.AddImplicitStyle"/>, <see cref="MGResources.AddStyle"/>, <see cref="MGResources.RemoveStyle"/>,
     /// including a scope created by <see cref="EnsureResourceScope"/>) reaches the elements created from XAML, resolved against their current resource
@@ -1515,7 +1523,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// Only the properties tracked by the resolved value store are refreshed: margin, padding, minimum height, backgrounds, text foregrounds, border brush
     /// and thickness. A local value, a binding, a XAML attribute or a template value keeps outranking the style, a property that no style sets any more
     /// gives its style value up, and the layout is invalidated only when an effective layout value changes. Other setters are left untouched and
-    /// reported in <see cref="UIStyleRefreshResult.Skipped"/>. The cost is bounded to this subtree.</summary>
+    /// reported in <see cref="UIStyleRefreshResult.Skipped"/>.<para/>
+    /// Backlog task 9 (U9): the style-owned transitions and named visual states of a styleable element (provenance <see cref="Styling.UIValueSourceKind.ImplicitStyle"/>/
+    /// <see cref="Styling.UIValueSourceKind.ExplicitStyle"/>) are re-transferred the same way: a new style transition or state is added, a changed one is
+    /// replaced (a replaced current state re-applies its new setters at once; a replaced running transition stops, keeping its current value, like any
+    /// other <see cref="Animation.UITransitionCollection.Add"/>), and one no style sets any more is removed (a removed transition keeps the in-flight
+    /// value; a removed current state restores its base at once). The element's own <c>&lt;Element.Transitions&gt;</c>/<c>&lt;Element.VisualStates&gt;</c>
+    /// and anything added directly by code (null provenance) are never touched. Two refreshes without change touch nothing and never restart a running
+    /// transition. The cost is bounded to this subtree.</summary>
     public UIStyleRefreshResult RefreshStyles() => XAML.ElementStyleRefresher.Refresh(this);
 
     #region Background container pilot (ADR-0005/S5)

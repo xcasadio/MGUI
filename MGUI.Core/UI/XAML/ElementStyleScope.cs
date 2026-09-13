@@ -1,3 +1,6 @@
+using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.States;
+
 namespace MGUI.Core.UI.XAML;
 
 /// <summary>Backlog task 10: what <see cref="Element.ProcessStyles(MGResources)"/> resolved for one XAML definition, kept by the elements that
@@ -6,7 +9,8 @@ namespace MGUI.Core.UI.XAML;
 internal sealed class ElementStyleScope
 {
     public ElementStyleScope(Type DefinitionType, MGElementType ElementType, string StyleNames, bool IsStyleable, bool UsesResourceStyles,
-        IReadOnlyList<Style> InlineStyles, IReadOnlyCollection<string> StyledPropertyNames)
+        IReadOnlyList<Style> InlineStyles, IReadOnlyCollection<string> StyledPropertyNames,
+        IReadOnlyCollection<string> OwnTransitionPaths, IReadOnlyCollection<string> OwnVisualStateNames)
     {
         this.DefinitionType = DefinitionType ?? throw new ArgumentNullException(nameof(DefinitionType));
         this.ElementType = ElementType;
@@ -15,6 +19,8 @@ internal sealed class ElementStyleScope
         this.UsesResourceStyles = UsesResourceStyles;
         this.InlineStyles = InlineStyles ?? Array.Empty<Style>();
         this.StyledPropertyNames = StyledPropertyNames;
+        this.OwnTransitionPaths = OwnTransitionPaths;
+        this.OwnVisualStateNames = OwnVisualStateNames;
     }
 
     /// <summary>The XAML definition type, which decides the properties a setter can reach (a <see cref="TextBlock"/>'s foreground, a border facade).</summary>
@@ -38,4 +44,14 @@ internal sealed class ElementStyleScope
 
     /// <summary>The properties that the parse styled on this definition itself (not the ones an owner's border facade forwarded to it), null when none.</summary>
     public IReadOnlyCollection<string> StyledPropertyNames { get; }
+
+    /// <summary>Backlog task 9 (U9): the paths of this definition's own <c>&lt;Element.Transitions&gt;</c>, ordinal-ignore-case like
+    /// <see cref="UITransitionCollection"/>, null when it declares none. <see cref="MGElement.RefreshStyles"/> never touches a transition on one of
+    /// these paths, even when a style declares the same path: the element's own declaration always wins.</summary>
+    public IReadOnlyCollection<string> OwnTransitionPaths { get; }
+
+    /// <summary>Backlog task 9 (U9): the names of this definition's own <c>&lt;Element.VisualStates&gt;</c>, ordinal-ignore-case like
+    /// <see cref="UIVisualStateCollection"/>, null when it declares none. <see cref="MGElement.RefreshStyles"/> never touches a state of one of these
+    /// names, even when a style declares the same name: the element's own declaration always wins.</summary>
+    public IReadOnlyCollection<string> OwnVisualStateNames { get; }
 }

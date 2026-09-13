@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework;
 using MGUI.Core.UI.Animation;
 using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Brushes.FillBrushes;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.XAML;
 
@@ -92,8 +93,13 @@ public class Transition
         }
     }
 
-    /// <summary>Builds the runtime transition.</summary>
-    public UITransition ToTransition()
+    /// <summary>Builds the runtime transition, declared by the element itself or added by code (<see cref="UITransition.Provenance"/> stays null).</summary>
+    public UITransition ToTransition() => ToTransition(null);
+
+    /// <summary>Builds the runtime transition, tagging it with the style that declared it (<paramref name="provenance"/>) so
+    /// <see cref="MGElement.RefreshStyles"/> (U9) can tell it apart from an element or code declaration and, on a later refresh, tell an unchanged
+    /// declaration from a changed one through <see cref="UITransition.Signature"/>.</summary>
+    public UITransition ToTransition(UIValueSourceKind? provenance)
     {
         if (string.IsNullOrWhiteSpace(_property))
         {
@@ -108,8 +114,20 @@ public class Transition
             UIEasing.TryGet(_easing, out easing);
         }
 
-        return UITransition.Create(_property, duration, delay, easing);
+        var transition = UITransition.Create(_property, duration, delay, easing);
+        transition.Provenance = provenance;
+        transition.Signature = provenance.HasValue ? BuildSignature(_property, duration, delay, easing) : null;
+        return transition;
     }
+
+    /// <summary>Backlog task 9 (U9): deterministic text of this declaration for <see cref="UITransition.Signature"/> (path, duration, delay, easing
+    /// identity): a refresh compares it to the currently attached transition's own signature to tell "same declaration" from "changed". The easing
+    /// component is its own identity, not its CLR type: every built-in named easing (<c>CubicOut</c>, <c>BounceIn</c>, ...) is the same private
+    /// <c>UIEasing.DelegateEasing</c> class, and every CSS curve is the same <see cref="UICubicBezierEasing"/> class, so <c>GetType().Name</c> is
+    /// constant across all of them and would make the signature blind to an easing-only change. Both classes override <see cref="object.ToString"/>
+    /// to their identity (the delegate's registered name, the bezier's canonical <c>cubic-bezier(...)</c> form), which is what distinguishes them.</summary>
+    private static string BuildSignature(string property, TimeSpan duration, TimeSpan delay, IUIEasingFunction easing)
+        => $"{property}|{duration.Ticks}|{delay.Ticks}|{easing?.ToString() ?? "Linear"}";
 }
 
 /// <summary>
@@ -144,8 +162,14 @@ public class VisualStateDefinition
     /// local value and a local binding, never over an animation); works the same declared on an element's own state or on a style's.</summary>
     public bool OverridesLocalValue { get; set; }
 
-    /// <summary>Builds the runtime state (a new instance each call: a style shares one definition between its elements).</summary>
-    public UIVisualState ToVisualState()
+    /// <summary>Builds the runtime state (a new instance each call: a style shares one definition between its elements), declared by the element
+    /// itself or added by code (<see cref="UIVisualState.Provenance"/> stays null).</summary>
+    public UIVisualState ToVisualState() => ToVisualState(null);
+
+    /// <summary>Builds the runtime state, tagging it with the style that declared it (<paramref name="provenance"/>) so
+    /// <see cref="MGElement.RefreshStyles"/> (U9) can tell it apart from an element or code declaration and, on a later refresh, tell an unchanged
+    /// declaration from a changed one through <see cref="UIVisualState.Signature"/>.</summary>
+    public UIVisualState ToVisualState(UIValueSourceKind? provenance)
     {
         if (string.IsNullOrWhiteSpace(Name))
         {
@@ -159,7 +183,24 @@ public class VisualStateDefinition
         }
 
         state.OverridesLocalValue = OverridesLocalValue;
+        state.Provenance = provenance;
+        state.Signature = provenance.HasValue ? BuildSignature() : null;
         return state;
+    }
+
+    /// <summary>Backlog task 9 (U9): deterministic text of this declaration for <see cref="UIVisualState.Signature"/> (name,
+    /// <see cref="OverridesLocalValue"/>, then each setter path and formatted value in declaration order): a refresh compares it to the currently
+    /// attached state's own signature to tell "same declaration" from "changed".</summary>
+    private string BuildSignature()
+    {
+        var builder = new System.Text.StringBuilder();
+        builder.Append(Name).Append('|').Append(OverridesLocalValue);
+        foreach (var setter in Setters)
+        {
+            builder.Append('|').Append(setter.Property).Append('=').Append(Convert.ToString(setter.Value, CultureInfo.InvariantCulture));
+        }
+
+        return builder.ToString();
     }
 }
 

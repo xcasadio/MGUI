@@ -1,7 +1,10 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
+using MGUI.Core.Tooling;
 using MGUI.Core.UI;
+using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.States;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.DataBinding;
@@ -15,13 +18,16 @@ using MonoGame.Extended;
 using MGUIXamlParser = MGUI.Core.UI.XAML.XAMLParser;
 using XamlSetter = MGUI.Core.UI.XAML.Setter;
 using XamlStyle = MGUI.Core.UI.XAML.Style;
+using XamlTransition = MGUI.Core.UI.XAML.Transition;
+using XamlVisualState = MGUI.Core.UI.XAML.VisualStateDefinition;
 
 namespace MGUI.Tests.Architecture;
 
 /// <summary>
 /// Backlog task 10 (styling-theme-tasks.md), scenario <c>SCN-THEME-001</c>: <see cref="MGElement.RefreshStyles"/> re-applies the implicit and named styles
 /// of the resource scopes to a subtree loaded from XAML without reparsing it, keeps the scoping of the parse, never overwrites a XAML attribute, a local
-/// value or a binding, and stays within the refreshed subtree.
+/// value or a binding, and stays within the refreshed subtree.<para/>
+/// Slice U9 (animation-v3-tasks.md), ADR-0008 decision 9: the same refresh also re-transfers the style-owned transitions and named visual states.
 /// </summary>
 public class StyleRefreshTests
 {
@@ -267,6 +273,282 @@ public class StyleRefreshTests
         Assert.Equal(3, first.WrittenValues);
         Assert.Equal(3, second.WrittenValues);
         Assert.Equal(0, second.ClearedValues);
+    }
+
+    // --- U9: hot refresh of style transitions and visual states (ADR-0008, decision 9) ---
+
+    [Fact]
+    public void AnImplicitStyleTransition_AddedAfterLoad_IsWrittenAndAnimates()
+    {
+        Harness harness = Harness.Create();
+        MGWindow window = harness.Load(@"<Border Name=""P"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        Assert.Null(p.Transitions["Opacity"]);
+
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms"));
+        UIStyleRefreshResult result = window.RefreshStyles();
+
+        Assert.Equal(1, result.WrittenTransitions);
+        Assert.Equal(0, result.ClearedTransitions);
+        UITransition opacity = p.Transitions["Opacity"];
+        Assert.NotNull(opacity);
+        Assert.Equal(UIValueSourceKind.ImplicitStyle, opacity.Provenance);
+        Assert.Contains("Opacity", p.RefreshedStyleTransitionPaths);
+
+        float initial = p.Opacity;
+        p.Opacity = 0.2f;
+        Assert.True(opacity.IsRunning);
+        harness.Frame(2);
+        Assert.True(p.Opacity > 0.2f && p.Opacity < initial, $"expected an interpolated value, got {p.Opacity}");
+        for (int frame = 3; frame <= 14; frame++)
+        {
+            harness.Frame(frame);
+        }
+        Assert.False(opacity.IsRunning);
+        Assert.Equal(0.2f, p.Opacity, 3);
+    }
+
+    [Fact]
+    public void AnImplicitStyleTransition_Removed_KeepsInFlightValue_AndNextChangeIsImmediate()
+    {
+        Harness harness = Harness.Create();
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms"));
+        MGWindow window = harness.Load(@"<Border Name=""P"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        Assert.NotNull(p.Transitions["Opacity"]);
+
+        p.Opacity = 0.2f;
+        harness.Frame(2);
+        harness.Frame(3);
+        Assert.True(p.Transitions["Opacity"].IsRunning);
+        float valueDuringRun = p.Opacity;
+
+        harness.Desktop.Resources.RemoveImplicitStyle(MGElementType.Border);
+        UIStyleRefreshResult result = window.RefreshStyles();
+
+        Assert.Equal(0, result.WrittenTransitions);
+        Assert.Equal(1, result.ClearedTransitions);
+        Assert.Null(p.Transitions["Opacity"]);
+        Assert.Equal(valueDuringRun, p.Opacity, 4);
+
+        // No transition left on the path any more: the next change is immediate.
+        p.Opacity = 0.5f;
+        Assert.Equal(0.5f, p.Opacity, 4);
+    }
+
+    [Fact]
+    public void ANamedStyleVisualState_ReplacedWhileCurrent_AppliesNewValues_AndRestoresOnLeave()
+    {
+        Harness harness = Harness.Create();
+        harness.Desktop.Resources.AddStyle("Accent", NamedVisualStateStyle("Accent", MGElementType.Border, UIVisualStateNames.Disabled, ("Opacity", "0.4")));
+        MGWindow window = harness.Load(@"<Border Name=""P"" StyleNames=""Accent"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        float baseOpacity = p.Opacity;
+
+        p.IsEnabled = false;
+        harness.Frame(2);
+        Assert.Equal(UIVisualStateNames.Disabled, p.CurrentVisualStateName);
+        Assert.Equal(0.4f, p.Opacity, 4);
+
+        // Replace the current state's setters: the new values show immediately, not at the next state change.
+        harness.Desktop.Resources.RemoveStyle("Accent");
+        harness.Desktop.Resources.AddStyle("Accent", NamedVisualStateStyle("Accent", MGElementType.Border, UIVisualStateNames.Disabled, ("Opacity", "0.6")));
+        UIStyleRefreshResult replaced = window.RefreshStyles();
+
+        Assert.Equal(1, replaced.WrittenVisualStates);
+        Assert.Equal(0, replaced.ClearedVisualStates);
+        Assert.Equal(0.6f, p.Opacity, 4);
+
+        // Remove the style entirely while its state is current: the base is restored at once.
+        harness.Desktop.Resources.RemoveStyle("Accent");
+        UIStyleRefreshResult removed = window.RefreshStyles();
+
+        Assert.Equal(0, removed.WrittenVisualStates);
+        Assert.Equal(1, removed.ClearedVisualStates);
+        Assert.Equal(baseOpacity, p.Opacity, 4);
+        Assert.Null(p.CurrentVisualStateName);
+    }
+
+    [Fact]
+    public void ElementOwnDeclarations_AreNeverTouchedByARefresh()
+    {
+        Harness harness = Harness.Create();
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "50ms"));
+        MGWindow window = harness.Load(
+            @"<Border Name=""P""><Border.Transitions><Transition Property=""Opacity"" Duration=""1"" /></Border.Transitions></Border>");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        UITransition own = p.Transitions["Opacity"];
+        Assert.Null(own.Provenance);
+        Assert.Equal(TimeSpan.FromSeconds(1), own.Duration);
+
+        UIStyleRefreshResult result = window.RefreshStyles();
+
+        Assert.Equal(0, result.WrittenTransitions);
+        Assert.Equal(0, result.ClearedTransitions);
+        Assert.Same(own, p.Transitions["Opacity"]);
+        Assert.Null(p.Transitions["Opacity"].Provenance);
+        Assert.Equal(TimeSpan.FromSeconds(1), p.Transitions["Opacity"].Duration);
+    }
+
+    [Fact]
+    public void ATransitionAddedByCode_IsNotReplacedByARefresh()
+    {
+        Harness harness = Harness.Create();
+        MGWindow window = harness.Load(@"<Border Name=""P"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        UITransition code = UITransition.Create("Opacity", TimeSpan.FromSeconds(2));
+        p.Transitions.Add(code);
+        Assert.Null(code.Provenance);
+
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "50ms"));
+        UIStyleRefreshResult result = window.RefreshStyles();
+
+        Assert.Equal(0, result.WrittenTransitions);
+        Assert.Same(code, p.Transitions["Opacity"]);
+        Assert.Null(p.Transitions["Opacity"].Provenance);
+        Assert.Equal(TimeSpan.FromSeconds(2), p.Transitions["Opacity"].Duration);
+    }
+
+    [Fact]
+    public void TwoConsecutiveRefreshesWithoutChange_CountersAreZero_AndARunningTransitionIsNotRestarted()
+    {
+        Harness harness = Harness.Create();
+        MGWindow window = harness.Load(@"<Border Name=""P"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms"));
+        UIStyleRefreshResult first = window.RefreshStyles();
+        Assert.Equal(1, first.WrittenTransitions);
+
+        UITransition opacity = p.Transitions["Opacity"];
+        p.Opacity = 0.2f;
+        harness.Frame(2);
+        harness.Frame(3);
+        float? progressBefore = opacity.RunningProgress;
+        Assert.True(progressBefore is > 0f and < 1f, $"expected a running interpolation, got {progressBefore}");
+
+        UIStyleRefreshResult second = window.RefreshStyles();
+
+        Assert.Equal(0, second.WrittenTransitions);
+        Assert.Equal(0, second.ClearedTransitions);
+        Assert.Equal(0, second.WrittenVisualStates);
+        Assert.Equal(0, second.ClearedVisualStates);
+        Assert.Same(opacity, p.Transitions["Opacity"]);
+        Assert.True(opacity.IsRunning);
+
+        harness.Frame(4);
+        Assert.True(opacity.RunningProgress > progressBefore, "a running style transition must not restart across a no-op refresh");
+    }
+
+    [Fact]
+    public void ADesktopImplicitStyleMergedTransition_IsTakenIntoAccountByARefresh()
+    {
+        Harness harness = Harness.Create();
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "100ms"));
+        MGWindow window = harness.Load(@"<Border Name=""P"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        Assert.Equal(TimeSpan.FromMilliseconds(100), p.Transitions["Opacity"].Duration);
+
+        // AddImplicitStyle merges a transition by path into the existing style entry for the same element type.
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "300ms"));
+        UIStyleRefreshResult result = window.RefreshStyles();
+
+        Assert.Equal(1, result.WrittenTransitions);
+        Assert.Equal(TimeSpan.FromMilliseconds(300), p.Transitions["Opacity"].Duration);
+        Assert.Equal(UIValueSourceKind.ImplicitStyle, p.Transitions["Opacity"].Provenance);
+    }
+
+    [Fact]
+    public void AnImplicitStyleTransition_EasingOnlyChange_IsWrittenWithTheNewCurve()
+    {
+        Harness harness = Harness.Create();
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms", "CubicOut"));
+        MGWindow window = harness.Load(@"<Border Name=""P"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        UITransition original = p.Transitions["Opacity"];
+        Assert.Same(MGUI.Core.UI.Animation.Easing.UIEasing.CubicOut, original.Easing);
+
+        // Duration and delay stay the same: only the easing curve changes.
+        harness.Desktop.Resources.RemoveImplicitStyle(MGElementType.Border);
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms", "BounceOut"));
+        UIStyleRefreshResult result = window.RefreshStyles();
+
+        Assert.Equal(1, result.WrittenTransitions);
+        Assert.Equal(0, result.ClearedTransitions);
+        UITransition replaced = p.Transitions["Opacity"];
+        Assert.NotSame(original, replaced);
+        Assert.Same(MGUI.Core.UI.Animation.Easing.UIEasing.BounceOut, replaced.Easing);
+
+        // Two different CSS curves of the same duration/delay must also be told apart.
+        harness.Desktop.Resources.RemoveImplicitStyle(MGElementType.Border);
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms", "cubic-bezier(0.1,0,0.2,1)"));
+        window.RefreshStyles();
+        harness.Desktop.Resources.RemoveImplicitStyle(MGElementType.Border);
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms", "cubic-bezier(0.9,0,0.9,1)"));
+        UIStyleRefreshResult bezierResult = window.RefreshStyles();
+        Assert.Equal(1, bezierResult.WrittenTransitions);
+
+        // A no-op refresh with the exact same easing must not replace or restart anything.
+        UIStyleRefreshResult noOp = window.RefreshStyles();
+        Assert.Equal(0, noOp.WrittenTransitions);
+        Assert.Equal(0, noOp.ClearedTransitions);
+        Assert.Same(p.Transitions["Opacity"], p.Transitions["Opacity"]);
+    }
+
+    [Fact]
+    public void AnImplicitStyleTransition_NoEasingThenExplicitLinear_IsNotTreatedAsAChange()
+    {
+        Harness harness = Harness.Create();
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms"));
+        MGWindow window = harness.Load(@"<Border Name=""P"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        UITransition original = p.Transitions["Opacity"];
+        Assert.Null(original.Easing);
+
+        // Same effective curve (Linear is the implicit default): must not be seen as a changed declaration.
+        harness.Desktop.Resources.RemoveImplicitStyle(MGElementType.Border);
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "160ms", "Linear"));
+        UIStyleRefreshResult result = window.RefreshStyles();
+
+        Assert.Equal(0, result.WrittenTransitions);
+        Assert.Equal(0, result.ClearedTransitions);
+        Assert.Same(original, p.Transitions["Opacity"]);
+    }
+
+    [Fact]
+    public void RefreshedStyleNames_ReflectTheLastRefresh_AndTheDebugViewListsTheTransition()
+    {
+        Harness harness = Harness.Create();
+        MGWindow window = harness.Load(@"<Border Name=""P"" />");
+        MGBorder p = window.GetElementByName<MGBorder>("P");
+        Assert.Null(p.RefreshedStyleTransitionPaths);
+
+        harness.Desktop.Resources.AddImplicitStyle(TransitionStyle(MGElementType.Border, "Opacity", "80ms"));
+        window.RefreshStyles();
+
+        Assert.Contains("Opacity", p.RefreshedStyleTransitionPaths);
+        Assert.Empty(p.RefreshedStyleVisualStateNames);
+
+        UIElementDebugView view = UIToolingService.CaptureElementDebugView(p);
+        Assert.Contains(view.Animations, a => a.Kind == "transition" && a.Path == "Opacity");
+
+        harness.Desktop.Resources.RemoveImplicitStyle(MGElementType.Border);
+        window.RefreshStyles();
+        Assert.Empty(p.RefreshedStyleTransitionPaths);
+    }
+
+    private static XamlStyle TransitionStyle(MGElementType targetType, string property, string duration, string easing = null)
+        => new() { TargetType = targetType, Transitions = { new XamlTransition { Property = property, Duration = duration, Easing = easing } } };
+
+    private static XamlStyle NamedVisualStateStyle(string name, MGElementType targetType, string stateName, params (string Property, string Value)[] setters)
+    {
+        XamlVisualState state = new() { Name = stateName };
+        foreach (var setter in setters)
+        {
+            state.Setters.Add(new XamlSetter { Property = setter.Property, Value = setter.Value });
+        }
+
+        return new XamlStyle { TargetType = targetType, Name = name, VisualStates = { state } };
     }
 
     private static void AssertPaddingOutranksTheStyle(MGElement element, Thickness expected, UIValueSourceKind winnerKind)

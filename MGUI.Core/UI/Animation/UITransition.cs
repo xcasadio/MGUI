@@ -1,5 +1,6 @@
 using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Animation.Interpolation;
+using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Animation;
 
@@ -36,6 +37,17 @@ public abstract class UITransition
 
     /// <summary>The element this transition is attached to, null until it is added to a <see cref="UITransitionCollection"/>.</summary>
     public MGElement Owner { get; private set; }
+
+    /// <summary>Backlog task 9 (U9): which style declared this transition (<see cref="MGUI.Core.UI.Styling.UIValueSourceKind.ImplicitStyle"/> or
+    /// <see cref="MGUI.Core.UI.Styling.UIValueSourceKind.ExplicitStyle"/>), null when the element declared it itself
+    /// (<c>&lt;Element.Transitions&gt;</c>) or code added it directly: <see cref="MGElement.RefreshStyles"/> never replaces or removes a null-provenance
+    /// transition, so the element and the application always win over a style. Set by <see cref="MGUI.Core.UI.XAML.Transition.ToTransition(MGUI.Core.UI.Styling.UIValueSourceKind?)"/>.</summary>
+    public UIValueSourceKind? Provenance { get; internal set; }
+
+    /// <summary>Backlog task 9 (U9): deterministic text of the declaration that produced this transition (property, duration, delay, easing), built by
+    /// <see cref="MGUI.Core.UI.XAML.Transition"/>. Null when <see cref="Provenance"/> is null. <see cref="MGElement.RefreshStyles"/> compares it to the
+    /// new declaration's own signature to tell an unchanged style from a changed one, replacing only on a difference.</summary>
+    public string Signature { get; internal set; }
 
     /// <summary>True while the transition is interpolating.</summary>
     public abstract bool IsRunning { get; }
