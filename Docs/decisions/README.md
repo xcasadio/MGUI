@@ -21,3 +21,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0005 | Per-element resolved value store for seven pilot properties | Accepted | 2026-09-07 |
 | ADR-0006 | Animation system: render-only transform, desktop-owned engine and value model | Accepted | 2026-09-12 |
 | ADR-0007 | Animation V2: composition, keyframes, named visual states and style integration | Accepted | 2026-09-12 |
+| ADR-0008 | Animation V3: editor readiness, remaining pilot limits and ad hoc migrations | Proposed | 2026-09-13 |
