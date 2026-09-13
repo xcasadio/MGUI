@@ -17,6 +17,12 @@ public interface IUIAnimationTarget<T>
     /// <summary>True when the target writes through the resolved value store (a pilot property).</summary>
     bool IsStoreBacked { get; }
 
+    /// <summary>The concrete <see cref="MGElement"/> type this target requires, or null when any element is accepted (the default). Non-null
+    /// is exactly the type a target's own runtime cast enforces (see its <c>Require</c> helper, if any): declaring a type this target does not
+    /// itself enforce, or null while it casts, is a bug in the target, not a relaxation of the check. <see cref="UIAnimationTargets.GetOwnerType"/>
+    /// exposes this per path for an editor to filter without trial and error (ADR-0008, decision 2).</summary>
+    Type RequiredOwnerType => null;
+
     /// <summary>The current effective value: the animated value while an animation runs, the base value otherwise.</summary>
     T GetValue(MGElement element);
 

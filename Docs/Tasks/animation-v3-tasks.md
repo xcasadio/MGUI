@@ -88,7 +88,7 @@ Travail attendu :
 
 Commit recommande : `animation: add cubic Bezier easings`
 
-### ⚪ U2. Applicabilite des cibles
+### ✅ U2. Applicabilite des cibles
 
 But : `IUIAnimationTarget<T>.RequiredOwnerType`, `UIAnimationTargets.GetOwnerType`.
 
@@ -100,6 +100,8 @@ Travail attendu :
 - `UIToolingService` : la debug view d'un element peut lister les chemins applicables (`ApplicablePaths`, optionnel, sans allocation par frame : calcule a la capture).
 - Docs : table des cibles avec une colonne « Element requis ».
 - Tests `MGUI.Tests/Animation/TargetApplicabilityTests.cs` : chaque chemin framework rend le type attendu ou null, chemin inconnu rend null sans exception, un filtre `Paths.Where(GetOwnerType is null or assignable)` sur un `MGButton` exclut `Foreground` et `ProgressButton.Value`.
+
+**Statut** (13 septembre 2026, livre) : `Type RequiredOwnerType => null` ajoute a `IUIAnimationTarget<T>` (membre d'interface par defaut) ; le registre `UIAnimationTargets` garde desormais un `Entry(Target, ValueType, OwnerType)` renseigne a l'enregistrement (`Register<T>` lit `target.RequiredOwnerType`), plus de reflexion dans `GetValueType` ; `GetOwnerType(path)` (null pour chemin inconnu ou element libre) et `IsApplicable(path, element)` ajoutes, memes garanties que `GetValueType` (insensible a la casse, jamais d'exception, chemin/element null accepte). Deux cibles seulement renseignent un type : `ForegroundTarget` (`MGTextBlock`) et `ProgressButtonValueTarget` (`MGProgressButton`) — celles dont le `Require` interne caste reellement. `BorderBrushTarget` reste a `null` : son `RequireBorder` appelle `element.GetBorder()`, une facade virtuelle que la plupart des elements a bordure (bouton, fenetre, ListBox, ComboBox...) redefinissent pour renvoyer leur propre `MGBorder` interne — ce n'est pas un cast strict vers `MGBorder`, donc n'importe quel element possedant une bordure accepte ce chemin, conformement a la consigne du brief. `UIElementDebugView.ApplicablePaths` est une propriete `init` (pas un parametre positionnel du record, pour ne rien casser d'existant) calculee uniquement dans `CaptureElementDebugView`, triee ordinal. Nuance de test : d'autres classes de tests (`AnimationManagerTests`, `TransitionTests`) enregistrent des cibles jetables sous un prefixe `Test.` directement dans le registre statique partage, qui ne les retire jamais ; `TargetApplicabilityTests` filtre ce prefixe pour ne comparer que l'ensemble ferme des cibles framework. Suite complete 0 echec (2099 tests). Revue independante (verifier) : CONFIRMED, trois constats P4 consultatifs : `ApplicablePaths` entre dans l'egalite synthetisee du record `UIElementDebugView` (tableau compare par reference, aucun consommateur ne compare deux captures) ; `IsApplicable` rend faux pour un element nul (choix defensif non documente dans le resume XML) ; le filtre `Test.` de la garde de couverture laisserait passer une future cible framework prefixee ainsi.
 
 Commit recommande : `animation: expose the owner type of the animation targets`
 

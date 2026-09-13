@@ -170,6 +170,7 @@ public static class UIBuiltInAnimationTargets
     {
         public string Path => Paths.ProgressButtonValue;
         public bool IsStoreBacked => false;
+        public Type RequiredOwnerType => typeof(MGProgressButton);
         public float GetValue(MGElement element) => Require(element).Value;
         public void SetValue(MGElement element, float value, string animationName) => Require(element).ApplyAnimatedValue(value);
         public void RestoreBaseValue(MGElement element, float baseValue) => Require(element).ApplyAnimatedValue(baseValue);

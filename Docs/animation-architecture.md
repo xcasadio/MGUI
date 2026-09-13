@@ -100,27 +100,29 @@ Valeurs en chaines invariantes : `Single` / `Double` / `Int32` en nombre, `Vecto
 
 ## Cibles
 
-`IUIAnimationTarget<T>` (`Path`, `IsStoreBacked`, `GetValue`, `SetValue(element, value, nom)`, `RestoreBaseValue(element, base)`) et le registre ferme `UIAnimationTargets` (`Register`, `TryGet`, `Resolve`, `GetValueType`, `Paths`), chemins insensibles a la casse. `UIDelegateAnimationTarget<T>` pour une propriete applicative.
+`IUIAnimationTarget<T>` (`Path`, `IsStoreBacked`, `RequiredOwnerType`, `GetValue`, `SetValue(element, value, nom)`, `RestoreBaseValue(element, base)`) et le registre ferme `UIAnimationTargets` (`Register`, `TryGet`, `Resolve`, `GetValueType`, `GetOwnerType`, `IsApplicable`, `Paths`), chemins insensibles a la casse. `UIDelegateAnimationTarget<T>` pour une propriete applicative.
+
+Applicabilite (ADR-0008, decision 2) : `RequiredOwnerType` (membre d'interface par defaut, null = n'importe quel `MGElement`) est renseigne uniquement par les cibles dont l'implementation caste reellement vers un type concret (leur helper `Require`) ; declarer un type qu'une cible n'impose pas dans son propre code serait un bug de la cible, pas un assouplissement. `UIAnimationTargets.GetOwnerType(path)` lit ce type au moment de l'enregistrement (aucune reflexion par appel) ; `IsApplicable(path, element)` combine chemin connu et type compatible, false sans exception pour un chemin inconnu. `BorderBrush` resout sa bordure par `MGElement.GetBorder()`, une facade que la plupart des elements a bordure redefinissent (pas un cast strict vers `MGBorder`) : son `RequiredOwnerType` reste donc null, n'importe quel element possedant une bordure accepte ce chemin.
 
 Cibles framework (`Targets/UIBuiltInAnimationTargets.cs`, `Targets/UIColorAnimationTargets.cs`) :
 
-| Chemin | Type | Famille | Restauration |
-| --- | --- | --- | --- |
-| `Opacity` | float | simple | valeur de base gardee par le moteur |
-| `RenderTransform.Translation`, `.Scale`, `.Origin` | Vector2 | simple | idem |
-| `RenderTransform.Rotation` | float (degres) | simple | idem |
-| `RenderScale` | float | override de l'echelle d'etat | efface l'override (retour a l'echelle de l'etat courant) |
-| `Margin`, `Padding` | Thickness | pilote (layout, couteux) | retrait de la contribution `Animation` |
-| `MinHeight` | int? | pilote (layout) | idem |
-| `Background`, `Background.Selected`, `.Disabled`, `.Focused` | Color | pilote (slot du fond, brush unie seulement) | retrait, puis reecriture de la base sous la source du conteneur si le slot n'avait aucune autre contribution |
-| `Foreground` (`MGTextBlock`) | Color | pilote | idem |
-| `TextForeground` | Color | pilote (`DefaultTextForeground.Normal`) | idem |
-| `BorderBrush` | Color | pilote (bordure `GetBorder()`, uniforme et unie) | idem |
-| `Background.Overlay` | float | simple (`VisualStateFillBrush.OverlayOpacity`, valeur sous-jacente 1 si survole ou presse, 0 sinon) | valeur de base gardee par le moteur |
-| `PreferredWidth`, `PreferredHeight` | int? | simple (layout, couteux) | idem |
-| `Background.Gradient` | `UIGradientColors` (4 coins) | pilote (slot Normal, `MGGradientFillBrush` seulement) | retrait, puis base sous la source du conteneur |
-| `Background.DiagonalGradient` | `UIDiagonalGradientColors` (2 couleurs + coin) | pilote (slot Normal, `MGDiagonalGradientFillBrush` seulement) | idem |
-| `ProgressButton.Value` | float | simple, non observable (`MGProgressButton` seulement, refus explicite ailleurs ; ecrit par `ApplyAnimatedValue`) | valeur de base gardee par le moteur ; le run de `Duration` garde la valeur courante |
+| Chemin | Type | Element requis | Famille | Restauration |
+| --- | --- | --- | --- | --- |
+| `Opacity` | float | - | simple | valeur de base gardee par le moteur |
+| `RenderTransform.Translation`, `.Scale`, `.Origin` | Vector2 | - | simple | idem |
+| `RenderTransform.Rotation` | float (degres) | - | simple | idem |
+| `RenderScale` | float | - | override de l'echelle d'etat | efface l'override (retour a l'echelle de l'etat courant) |
+| `Margin`, `Padding` | Thickness | - | pilote (layout, couteux) | retrait de la contribution `Animation` |
+| `MinHeight` | int? | - | pilote (layout) | idem |
+| `Background`, `Background.Selected`, `.Disabled`, `.Focused` | Color | - | pilote (slot du fond, brush unie seulement) | retrait, puis reecriture de la base sous la source du conteneur si le slot n'avait aucune autre contribution |
+| `Foreground` | Color | `MGTextBlock` | pilote | idem |
+| `TextForeground` | Color | - | pilote (`DefaultTextForeground.Normal`) | idem |
+| `BorderBrush` | Color | - (bordure requise, tout element via `GetBorder()`) | pilote (bordure `GetBorder()`, uniforme et unie) | idem |
+| `Background.Overlay` | float | - | simple (`VisualStateFillBrush.OverlayOpacity`, valeur sous-jacente 1 si survole ou presse, 0 sinon) | valeur de base gardee par le moteur |
+| `PreferredWidth`, `PreferredHeight` | int? | - | simple (layout, couteux) | idem |
+| `Background.Gradient` | `UIGradientColors` (4 coins) | - | pilote (slot Normal, `MGGradientFillBrush` seulement) | retrait, puis base sous la source du conteneur |
+| `Background.DiagonalGradient` | `UIDiagonalGradientColors` (2 couleurs + coin) | - | pilote (slot Normal, `MGDiagonalGradientFillBrush` seulement) | idem |
+| `ProgressButton.Value` | float | `MGProgressButton` | simple, non observable (refus explicite ailleurs ; ecrit par `ApplyAnimatedValue`) | valeur de base gardee par le moteur ; le run de `Duration` garde la valeur courante |
 
 Base et valeur animee : pour un pilote, la valeur effective est le gagnant du store, `Animation` (100) etant la plus forte ; a la fin ou a l'annulation avec restauration, la contribution est retiree et la meilleure source suivante reprend (`UIToolingService.TryGetResolvedValueSource` rapporte `Animation` pendant l'animation). `HoldEnd` sur un pilote garde la contribution (`IsHeld`) jusqu'a la prochaine animation du meme chemin ou `Animations.Clear()`, et masque une ecriture locale posee entre-temps ; sur une propriete simple, la valeur finale reste simplement la valeur CLR et une ecriture locale ulterieure l'emporte (asymetrie assumee).
 
@@ -216,7 +218,7 @@ element.Animate("Opacity", 0f, 1f, 0.2).Then("RenderTransform.Rotation", 0f, 90f
 
 ## Diagnostics
 
-`UIToolingService.CaptureElementDebugView(element)` liste les animations actives et retenues de l'element et ses transitions (chemin, etat, progression, nom) et donne l'etat visuel nomme courant (`VisualStateName`, T8) ; `RenderElementDebugView` les rend sous `animations:` et `transitions:`, et `named=` sur la ligne `visual-state:`. `UIPerformanceProbe` expose la phase `Animations` du desktop.
+`UIToolingService.CaptureElementDebugView(element)` liste les animations actives et retenues de l'element et ses transitions (chemin, etat, progression, nom) et donne l'etat visuel nomme courant (`VisualStateName`, T8) ; `RenderElementDebugView` les rend sous `animations:` et `transitions:`, et `named=` sur la ligne `visual-state:`. `UIElementDebugView.ApplicablePaths` (U2, ADR-0008 decision 2) liste, triee, les chemins d'animation que cet element accepte (`UIAnimationTargets.Paths` filtre par `IsApplicable`) : calcule uniquement a la capture, aucun cout par frame, un editeur peut donc proposer a l'utilisateur les seuls chemins valides pour l'element selectionne. `UIPerformanceProbe` expose la phase `Animations` du desktop.
 
 ## Cout
 

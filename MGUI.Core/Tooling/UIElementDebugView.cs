@@ -22,7 +22,12 @@ public record UIElementDebugView(
     IReadOnlyDictionary<string, string> TemplateParts,
     string LastControlTemplateError,
     IReadOnlyList<UIValueOriginView> ValueOrigins,
-    IReadOnlyList<UIAnimationDebugView> Animations);
+    IReadOnlyList<UIAnimationDebugView> Animations)
+{
+    /// <summary>The animation target paths this element accepts (<see cref="MGUI.Core.UI.Animation.UIAnimationTargets.IsApplicable(string, MGUI.Core.UI.MGElement)"/>), sorted ordinal,
+    /// computed once at capture time (ADR-0008, decision 2): an editor can list them without trial and error and without any per-frame cost.</summary>
+    public IReadOnlyList<string> ApplicablePaths { get; init; } = Array.Empty<string>();
+}
 
 /// <summary>One animation or transition of an element, for the debug view (ADR-0006, S8).</summary>
 /// <param name="Kind"><c>animation</c>, <c>held</c> (a completed animation still holding its store contribution) or <c>transition</c>.</param>

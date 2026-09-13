@@ -116,6 +116,8 @@ public static class UIColorAnimationTargets
 
         public bool IsStoreBacked => true;
 
+        public Type RequiredOwnerType => typeof(MGTextBlock);
+
         public Color GetValue(MGElement element) => Require(element).Foreground.NormalValue ?? Require(element).ActualForeground;
 
         public Color GetUnderlyingValue(MGElement element) => GetValue(element);

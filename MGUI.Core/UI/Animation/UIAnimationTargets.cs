@@ -11,7 +11,10 @@ namespace MGUI.Core.UI.Animation;
 /// </summary>
 public static class UIAnimationTargets
 {
-    private static readonly ConcurrentDictionary<string, object> Registry = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>One registered target with what is known about it at registration time, so a lookup never needs reflection.</summary>
+    private sealed record Entry(object Target, Type ValueType, Type OwnerType);
+
+    private static readonly ConcurrentDictionary<string, Entry> Registry = new(StringComparer.OrdinalIgnoreCase);
 
     static UIAnimationTargets()
     {
@@ -31,7 +34,7 @@ public static class UIAnimationTargets
             throw new ArgumentException("A target path is required.", nameof(target));
         }
 
-        Registry[target.Path] = target;
+        Registry[target.Path] = new Entry(target, typeof(T), target.RequiredOwnerType);
     }
 
     /// <summary>True if a target is registered under <paramref name="path"/>, whatever its value type.</summary>
@@ -42,23 +45,34 @@ public static class UIAnimationTargets
 
     /// <summary>The value type of the target registered under <paramref name="path"/>, or null when the path is unknown.</summary>
     public static Type GetValueType(string path)
+        => path != null && Registry.TryGetValue(path, out var entry) ? entry.ValueType : null;
+
+    /// <summary>The element type required by the target registered under <paramref name="path"/> (<see cref="IUIAnimationTarget{T}.RequiredOwnerType"/>),
+    /// null when the path accepts any element, and null when the path is unknown (use <see cref="IsRegistered"/> to tell the two apart).
+    /// Case-insensitive, like every other lookup here; never throws.</summary>
+    public static Type GetOwnerType(string path)
+        => path != null && Registry.TryGetValue(path, out var entry) ? entry.OwnerType : null;
+
+    /// <summary>True when <paramref name="element"/> may be animated on <paramref name="path"/>: the path is registered and its owner type
+    /// (<see cref="GetOwnerType"/>) is either null (any element) or an ancestor of <paramref name="element"/>'s type. False, without throwing,
+    /// for an unknown path. Allocation-free; used by the tooling debug view and directly testable.</summary>
+    public static bool IsApplicable(string path, MGElement element)
     {
-        if (path != null && Registry.TryGetValue(path, out var target))
+        if (path == null || element == null || !Registry.TryGetValue(path, out var entry))
         {
-            var targetInterface = target.GetType().GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IUIAnimationTarget<>));
-            return targetInterface.GetGenericArguments()[0];
+            return false;
         }
 
-        return null;
+        return entry.OwnerType == null || entry.OwnerType.IsInstanceOfType(element);
     }
 
     /// <summary>Retrieves the target registered under <paramref name="path"/> for <typeparamref name="T"/>, or false when the path is unknown.</summary>
     /// <exception cref="InvalidOperationException">The path is registered for another value type.</exception>
     public static bool TryGet<T>(string path, out IUIAnimationTarget<T> target)
     {
-        if (path != null && Registry.TryGetValue(path, out var registered))
+        if (path != null && Registry.TryGetValue(path, out var entry))
         {
-            if (registered is IUIAnimationTarget<T> typed)
+            if (entry.Target is IUIAnimationTarget<T> typed)
             {
                 target = typed;
                 return true;

@@ -352,6 +352,11 @@ public static class UIToolingService
             CaptureValueOrigin(element, "Padding"),
         };
 
+        var applicablePaths = UI.Animation.UIAnimationTargets.Paths
+            .Where(path => UI.Animation.UIAnimationTargets.IsApplicable(path, element))
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+
         return new(
             diagnosticId,
             element.Name,
@@ -366,7 +371,10 @@ public static class UIToolingService
             templateParts,
             element.LastControlTemplateError,
             valueOrigins,
-            CaptureAnimations(element));
+            CaptureAnimations(element))
+        {
+            ApplicablePaths = applicablePaths,
+        };
     }
 
     /// <summary>Renders <paramref name="view"/> as a readable text artifact: one line per section, then one line per value origin
