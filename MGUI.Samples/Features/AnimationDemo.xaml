@@ -1,6 +1,6 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        Left="80" Top="60" Width="1080" Height="600"
-        TitleText="SCN-ANIM-001 / SCN-ANIM-002 Animation Demo" Padding="12">
+        Left="80" Top="60" Width="1500" Height="600"
+        TitleText="SCN-ANIM-001 / SCN-ANIM-002 / SCN-ANIM-003 Animation Demo" Padding="12">
     <!-- V2 (SCN-ANIM-002): every Button of this window gets a hover-scale transition from an implicit style -->
     <Window.Styles>
         <Style TargetType="Button">
@@ -25,7 +25,8 @@
             <TextBlock Name="ActiveCountText" Text="Active animations: 0" VerticalAlignment="Center" Margin="12,0,0,0" />
         </StackPanel>
 
-        <Grid ColumnLengths="*,*" ColumnSpacing="12">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid ColumnLengths="*,*,*" ColumnSpacing="12">
             <!-- V1 -->
             <StackPanel GridColumn="0" Spacing="10">
                 <Grid ColumnLengths="*,*" ColumnSpacing="10">
@@ -145,6 +146,124 @@
                     </StackPanel>
                 </Border>
             </StackPanel>
+
+            <!-- V3 (SCN-ANIM-003): Bezier easings in XAML, OverridesLocalValue, toggle Checked slot, keyframe clip JSON, preview+Seek, storyboard save/load, clock-driven typewriter and highlight brush -->
+            <StackPanel GridColumn="2" Spacing="10">
+                <TextBlock Text="Animation system V3" FontSize="16" IsBold="True" Foreground="White" />
+
+                <!-- Bezier easing literal on a XAML Transition -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Bezier easing (XAML literal, back curve)" IsBold="True" Foreground="White" />
+                        <Button Name="V3BezierButton" Content="Slide (bezier)" MinHeight="36">
+                            <Button.Transitions>
+                                <Transition Property="RenderTransform.Translation" Duration="0.5" Easing="cubic-bezier(0.68,-0.55,0.27,1.55)" />
+                            </Button.Transitions>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- OverridesLocalValue: a state that wins over a local value versus one that does not -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="OverridesLocalValue (Hover vs a local Background)" IsBold="True" Foreground="White" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Overriding: wins on hover" FontSize="11" Foreground="#C9D2DC" />
+                                <Button Name="V3OverridingPanel" Content="Hover me" MinWidth="130" MinHeight="36" Background="#3D6C9E">
+                                    <Button.VisualStates>
+                                        <VisualStateDefinition Name="Hover" OverridesLocalValue="True">
+                                            <Setter Property="Background" Value="#27AE60" />
+                                        </VisualStateDefinition>
+                                    </Button.VisualStates>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Plain: local value wins" FontSize="11" Foreground="#C9D2DC" />
+                                <Button Name="V3PlainPanel" Content="Hover me" MinWidth="130" MinHeight="36" Background="#3D6C9E">
+                                    <Button.VisualStates>
+                                        <VisualStateDefinition Name="Hover">
+                                            <Setter Property="Background" Value="#27AE60" />
+                                        </VisualStateDefinition>
+                                    </Button.VisualStates>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Toggle Checked slot: CheckedBackgroundBrush is code-only (set in the constructor) -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Toggle Checked slot (CheckedBackgroundBrush, code-set)" IsBold="True" Foreground="White" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <ToggleButton Name="V3CheckedToggle" Content="Checked brush" MinWidth="130" MinHeight="36" />
+                            <ToggleButton Name="V3PlainToggle" Content="No checked brush" MinWidth="130" MinHeight="36" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Keyframe clip: an embedded JSON clip (Opacity, RenderTransform.Scale, Background) played by UIKeyFrameClipSerializer.Deserialize -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Keyframe clip (embedded JSON, three tracks)" IsBold="True" Foreground="White" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Name="V3PlayClip" Content="Play clip" />
+                            <Border Name="V3ClipTarget" Width="90" Height="50" Background="#000000" CornerRadius="6" Opacity="0">
+                                <Border.RenderTransform>
+                                    <RenderTransform Origin="0.5,0.5" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Preview and Seek: a dedicated target, never live, driven by a slider -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Preview and Seek (slider-driven, never a live animation)" IsBold="True" Foreground="White" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Border Name="V3PreviewTarget" Width="90" Height="50" Background="#000000" CornerRadius="6" Opacity="0">
+                                <Border.RenderTransform>
+                                    <RenderTransform Origin="0.5,0.5" />
+                                </Border.RenderTransform>
+                            </Border>
+                            <StackPanel Spacing="4" HorizontalAlignment="Stretch">
+                                <Slider Name="V3SeekSlider" Minimum="0" Maximum="100" Value="0" />
+                                <Button Name="V3DetachPreview" Content="Detach" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Storyboard save / load through UIAnimationSerializer -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Storyboard save / load (JSON)" IsBold="True" Foreground="White" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Name="V3SaveStoryboard" Content="Save" />
+                            <Button Name="V3LoadStoryboard" Content="Load + play" />
+                        </StackPanel>
+                        <TextBox Name="V3StoryboardJson" IsReadonly="True" AcceptsReturn="True" MinHeight="60" WrapText="True" FontSize="10" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Clock-driven typewriter reveal and highlight brush -->
+                <Border Padding="10" Background="#1F2933" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Typewriter reveal, highlight brush and TimeScale (engine clock)" IsBold="True" Foreground="White" WrapText="True" />
+                        <TextBlock Name="V3Typewriter" Text="This text reveals itself over the desktop's animation clock." WrapText="True" Foreground="#C9D2DC" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ToggleButton Name="V3PauseClock" Content="Pause clock" />
+                            <Button Name="V3ReplayText" Content="Replay" />
+                        </StackPanel>
+                        <Border Name="V3Highlight" Width="130" Height="30" Background="#1F2933" BorderThickness="2" CornerRadius="4" />
+                        <TextBlock Text="TimeScale (also drives the highlight brush's speed)" FontSize="11" Foreground="#C9D2DC" WrapText="True" />
+                        <Slider Name="V3TimeScale" Minimum="0.25" Maximum="3" Value="1" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </Grid>
+        </ScrollViewer>
     </DockPanel>
 </Window>

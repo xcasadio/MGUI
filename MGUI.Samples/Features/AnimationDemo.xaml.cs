@@ -6,9 +6,12 @@ using MGUI.Core.UI.Animation.Composition;
 using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Animation.KeyFrames;
 using MGUI.Core.UI.Animation.Targets;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
 using MonoGame.Extended;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MGUI.Samples.Features
 {
@@ -21,6 +24,10 @@ namespace MGUI.Samples.Features
         private int _colorIndex;
         private MGWindow _popup;
         private MGBorder _popupRoot;
+
+        /// <summary>The V3 preview instance (U7): attached once, in <see cref="WireV3"/>, to the dedicated <c>V3PreviewTarget</c> element,
+        /// driven by <c>V3SeekSlider</c> and ended by <c>V3DetachPreview</c>. Never registered with the live <see cref="UIAnimationManager"/>.</summary>
+        private UIStoryboard _V3PreviewAnimation;
 
         public AnimationDemoSample(ContentManager content, MGDesktop desktop)
             : base(content, desktop, "Features", "AnimationDemo.xaml")
@@ -116,6 +123,7 @@ namespace MGUI.Samples.Features
             Window.GetElementByName<MGButton>("NormalSpeedButton").AddCommandHandler((btn, e) => Desktop.Animations.Clock.TimeScale = 1f);
 
             WireV2();
+            WireV3();
 
             MGTextBlock stateText = Window.GetElementByName<MGTextBlock>("StateText");
             MGToggleButton stateToggle = Window.GetElementByName<MGToggleButton>("StateToggle");
@@ -161,6 +169,80 @@ namespace MGUI.Samples.Features
                 Desktop.Resources.DefaultTheme = theme;
                 themeButton.SetContent(theme.Animation.Enabled ? "Theme animation: on" : "Theme animation: off");
             });
+        }
+
+        /// <summary>SCN-ANIM-003: Bezier easings in XAML, a visual state that overrides a local value, the toggle Checked slot, a keyframe clip
+        /// played from embedded JSON, a preview driven by Seek, storyboard save/load, and the clock-driven typewriter/highlight brush.</summary>
+        private void WireV3()
+        {
+            //  U1: the button's own Transition (declared in XAML with a "cubic-bezier(...)" literal) interpolates every local write to
+            //  RenderTransform.Translation with a back curve; the click handler here only supplies the local writes to interpolate.
+            MGButton bezierButton = Window.GetElementByName<MGButton>("V3BezierButton");
+            bool bezierSlideOut = false;
+            bezierButton.AddCommandHandler((btn, e) =>
+            {
+                bezierSlideOut = !bezierSlideOut;
+                btn.RenderTransform.Translation = new Vector2(bezierSlideOut ? 60f : 0f, 0f);
+            });
+
+            //  U4: V3OverridingPanel/V3PlainPanel are declared entirely in XAML (a local Background attribute plus a Hover
+            //  VisualStateDefinition, one with OverridesLocalValue="True"); nothing to wire from code.
+
+            //  U5: CheckedBackgroundBrush is code-only (ADR-0008 decision 5/U5) -- set here so the checked look differs from the theme's
+            //  Selected look. V3PlainToggle is left without one, so it falls back to VisualStateBrush<T>.SelectedValue when checked.
+            Window.GetElementByName<MGToggleButton>("V3CheckedToggle").CheckedBackgroundBrush = new MGSolidFillBrush(new Color(0xE6, 0x7E, 0x22));
+
+            //  U6: an embedded JSON clip (three tracks: Opacity, RenderTransform.Scale, Background) deserialised into a fresh UIStoryboard
+            //  and started on its own target every click (UIKeyFrameClipSerializer.Deserialize allocates a new, unowned storyboard each call).
+            MGBorder clipTarget = Window.GetElementByName<MGBorder>("V3ClipTarget");
+            Window.GetElementByName<MGButton>("V3PlayClip").AddCommandHandler((btn, e) =>
+                clipTarget.Animations.Start(UIKeyFrameClipSerializer.Deserialize(AnimationDemoV3Assets.ClipJson)));
+
+            //  U7: the same clip, attached once as a preview (never started for real, never registered with the manager) on a target that
+            //  is never touched by a live animation -- the coexistence limit documented in Docs/animation-architecture.md, "Preview et seek".
+            MGBorder previewTarget = Window.GetElementByName<MGBorder>("V3PreviewTarget");
+            _V3PreviewAnimation = UIAnimationPreview.Attach(previewTarget, UIKeyFrameClipSerializer.Deserialize(AnimationDemoV3Assets.ClipJson));
+            TimeSpan previewDuration = TimeSpan.FromSeconds(1);
+            Window.GetElementByName<MGSlider>("V3SeekSlider").ValueChanged += (sender, e) =>
+                _V3PreviewAnimation.Seek(TimeSpan.FromTicks((long)(previewDuration.Ticks * (e.NewValue / 100f))));
+            Window.GetElementByName<MGButton>("V3DetachPreview").AddCommandHandler((btn, e) => UIAnimationPreview.Detach(_V3PreviewAnimation));
+
+            //  U8: save the demo's own small V3 storyboard (built fresh, never started, so its nodes have no Owner) to JSON with
+            //  UIAnimationSerializer.Serialize, then rebuild and play it from the JSON text with Deserialize. namedElements is the small
+            //  name -> element dictionary a resolveElement delegate needs whenever a serialised node names an element other than the one
+            //  it is played on (none of them do here, since every node's Owner is unset, but the wiring is the same either way).
+            Dictionary<string, MGElement> namedElements = new() { ["V3ClipTarget"] = clipTarget };
+            MGTextBox storyboardJson = Window.GetElementByName<MGTextBox>("V3StoryboardJson");
+            Window.GetElementByName<MGButton>("V3SaveStoryboard").AddCommandHandler((btn, e) =>
+            {
+                UIStoryboard storyboard = new UIStoryboard
+                {
+                    new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity) { From = 0f, To = 1f, Duration = TimeSpan.FromMilliseconds(300), Easing = UIEasing.QuadOut, Name = "v3-save-fade" },
+                    new UIPropertyAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformScale) { From = new Vector2(0.85f), To = Vector2.One, Duration = TimeSpan.FromMilliseconds(300), Easing = UIEasing.BackOut, Name = "v3-save-scale" },
+                }.Named("v3-save");
+                storyboardJson.Text = UIAnimationSerializer.Serialize(storyboard, element => namedElements.FirstOrDefault(kv => kv.Value == element).Key);
+            });
+            Window.GetElementByName<MGButton>("V3LoadStoryboard").AddCommandHandler((btn, e) =>
+            {
+                if (!string.IsNullOrEmpty(storyboardJson.Text))
+                {
+                    clipTarget.Animations.Start(UIAnimationSerializer.Deserialize(storyboardJson.Text, name => namedElements.TryGetValue(name, out MGElement element) ? element : null));
+                }
+            });
+
+            //  U10: the typewriter reveal (TextCharactersPerSecond set from code) and the highlight brush both follow
+            //  Desktop.Animations.Clock (pause and TimeScale) since U10; TextProgress = 0 replays a completed or in-progress reveal (the U10 fix round).
+            //  Set from code, not from a XAML attribute (SamplePath's own strict-mode load, in MGUI.Tests, has no code-behind and must not
+            //  start any animation by itself: MGUI.Tests/Animation/AnimationDemoSampleTests.cs pins Desktop.Animations.ActiveCount == 0 there).
+            MGTextBlock typewriter = Window.GetElementByName<MGTextBlock>("V3Typewriter");
+            typewriter.TextCharactersPerSecond = 12;
+            MGToggleButton pauseClockToggle = Window.GetElementByName<MGToggleButton>("V3PauseClock");
+            pauseClockToggle.OnCheckStateChanged += (sender, e) => Desktop.Animations.Clock.IsPaused = pauseClockToggle.IsChecked;
+            Window.GetElementByName<MGButton>("V3ReplayText").AddCommandHandler((btn, e) => typewriter.TextProgress = 0);
+
+            MGBorder highlight = Window.GetElementByName<MGBorder>("V3Highlight");
+            highlight.BorderBrush = new MGHighlightBorderBrush(highlight.BorderBrush, new Color(0xF1, 0xC4, 0x0F), HighlightAnimation.Progress, highlight);
+            Window.GetElementByName<MGSlider>("V3TimeScale").ValueChanged += (sender, e) => Desktop.Animations.Clock.TimeScale = e.NewValue;
         }
 
         /// <summary>A keyframe pop of the scale: 0.8 -> 1.1 (BackOut) -> 1.0 (QuadOut) over 400 ms.</summary>
