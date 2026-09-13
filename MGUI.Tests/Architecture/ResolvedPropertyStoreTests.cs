@@ -227,6 +227,58 @@ public class ResolvedPropertyStoreTests
     }
 
     [Fact]
+    public void TryGetWinnerExcluding_Skips_The_Excluded_Kind_And_Returns_The_Next_Contribution()
+    {
+        UIResolvedPropertyStore store = new();
+        store.Set(UIPilotProperty.Margin, UIValueSlot.Whole, 1, UIValueResolutionSource.Theme(UIInvalidationKind.None), EqualityComparer<int>.Default, out _, out _);
+        store.Set(UIPilotProperty.Margin, UIValueSlot.Whole, 2, UIValueResolutionSource.LocalValue(UIInvalidationKind.None), EqualityComparer<int>.Default, out _, out _);
+        store.Set(UIPilotProperty.Margin, UIValueSlot.Whole, 3, UIValueResolutionSource.Animation(UIInvalidationKind.None), EqualityComparer<int>.Default, out _, out _);
+
+        bool found = store.TryGetWinnerExcluding(UIPilotProperty.Margin, UIValueSlot.Whole, UIValueSourceKind.Animation, out UIResolvedValue<int> value);
+
+        Assert.True(found);
+        Assert.Equal(2, value.Value);
+        Assert.Equal(UIValueSourceKind.LocalValue, value.Source.Kind);
+    }
+
+    [Fact]
+    public void TryGetWinnerExcluding_A_Kind_That_Is_Not_The_Winner_Still_Yields_The_Actual_Winner()
+    {
+        UIResolvedPropertyStore store = new();
+        store.Set(UIPilotProperty.Margin, UIValueSlot.Whole, 1, UIValueResolutionSource.Theme(UIInvalidationKind.None), EqualityComparer<int>.Default, out _, out _);
+        store.Set(UIPilotProperty.Margin, UIValueSlot.Whole, 2, UIValueResolutionSource.LocalValue(UIInvalidationKind.None), EqualityComparer<int>.Default, out _, out _);
+
+        bool found = store.TryGetWinnerExcluding(UIPilotProperty.Margin, UIValueSlot.Whole, UIValueSourceKind.Animation, out UIResolvedValue<int> value);
+
+        Assert.True(found);
+        Assert.Equal(2, value.Value);
+        Assert.Equal(UIValueSourceKind.LocalValue, value.Source.Kind);
+    }
+
+    [Fact]
+    public void TryGetWinnerExcluding_The_Only_Contribution_Yields_False()
+    {
+        UIResolvedPropertyStore store = new();
+        store.Set(UIPilotProperty.Margin, UIValueSlot.Whole, 3, UIValueResolutionSource.Animation(UIInvalidationKind.None), EqualityComparer<int>.Default, out _, out _);
+
+        bool found = store.TryGetWinnerExcluding(UIPilotProperty.Margin, UIValueSlot.Whole, UIValueSourceKind.Animation, out UIResolvedValue<int> value);
+
+        Assert.False(found);
+        Assert.False(value.IsSet);
+    }
+
+    [Fact]
+    public void TryGetWinnerExcluding_An_Empty_Entry_Yields_False()
+    {
+        UIResolvedPropertyStore store = new();
+
+        bool found = store.TryGetWinnerExcluding(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out UIResolvedValue<int> value);
+
+        Assert.False(found);
+        Assert.False(value.IsSet);
+    }
+
+    [Fact]
     public void HasInvalidation_Requires_All_Flags_HasAnyInvalidation_Requires_One()
     {
         UIResolvedValue<int> resolved = new(1, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));

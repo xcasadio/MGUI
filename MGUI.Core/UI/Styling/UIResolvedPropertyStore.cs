@@ -247,6 +247,34 @@ internal sealed class UIResolvedPropertyStore
     }
 
     /// <summary>
+    /// Reads the winner for (<paramref name="property"/>, <paramref name="slot"/>) that would apply if
+    /// <paramref name="excluded"/>'s contribution did not exist (U3): the first contribution in the
+    /// precedence-sorted list whose kind is not <paramref name="excluded"/>, whether or not
+    /// <paramref name="excluded"/> is itself the actual current winner. Same false-and-Unset shape as
+    /// <see cref="TryGetWinner{T}"/> for an entry that was never written, that has since been emptied, or
+    /// whose only remaining contribution is the excluded kind.
+    /// </summary>
+    public bool TryGetWinnerExcluding<T>(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind excluded, out UIResolvedValue<T> value)
+    {
+        var index = IndexOf(property, slot);
+        var entry = GetExistingEntry<T>(property, slot, index);
+        if (entry != null)
+        {
+            for (var i = 0; i < entry.Kinds.Count; i++)
+            {
+                if (entry.Kinds[i] != excluded)
+                {
+                    value = entry.Contributions[i];
+                    return true;
+                }
+            }
+        }
+
+        value = UIResolvedValue<T>.Unset(UIInvalidationKind.None);
+        return false;
+    }
+
+    /// <summary>
     /// Reads the specific contribution of <paramref name="kind"/> for (<paramref name="property"/>,
     /// <paramref name="slot"/>), regardless of whether it is the current winner.
     /// </summary>

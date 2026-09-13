@@ -24,6 +24,14 @@ public interface IUIStoreBackedAnimationTarget<T> : IUIAnimationTarget<T>
     /// still holds the slot, so the run restores it at its end. Returns true when the slot rests (no animation in flight) and the base is consumed.
     /// </summary>
     bool ClearContribution(MGElement element, UIValueResolutionSource source, T baseValue);
+
+    /// <summary>
+    /// U3: reads the winner for the pilot slot this target writes as if this target's own <see cref="UIValueSourceKind.Animation"/>
+    /// contribution did not exist -- a <see cref="UITransition{T}"/> uses this (falling back to <see cref="IUIObservableAnimationTarget{T}.GetUnderlyingValue"/>
+    /// when it returns false) to retarget immediately when a local write or a named-state exit changes the value below the run, instead of only
+    /// seeing it once the run ends. False when nothing but the target's own Animation contribution is recorded for that slot.
+    /// </summary>
+    bool TryGetValueBelowAnimation(MGElement element, out T value);
 }
 
 /// <summary>The slot bookkeeping shared by the store-backed targets (see <see cref="IUIStoreBackedAnimationTarget{T}.ClearContribution"/>).</summary>

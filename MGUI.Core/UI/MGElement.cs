@@ -1268,6 +1268,47 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// For <see cref="UIPilotProperty.BorderBrush"/> and <see cref="UIPilotProperty.BorderThickness"/> on an element
     /// that is not itself an <see cref="MGBorder"/>, this delegates to <see cref="GetBorder"/> (false when there is none).</summary>
     internal virtual bool TryGetResolvedPilotValue<T>(UIPilotProperty property, UIValueSlot slot, out UIResolvedValue<T> value)
+        => TryGetResolvedPilotValueCore(property, slot, null, out value);
+
+    /// <summary>U3: reads the winner for (<paramref name="property"/>, <paramref name="slot"/>) that would apply if
+    /// <paramref name="excluded"/>'s contribution did not exist -- used by a transition on a store-backed target to
+    /// retarget to the value below its own <see cref="UIValueSourceKind.Animation"/> contribution. Exactly the same
+    /// delegation and dormancy handling as <see cref="TryGetResolvedPilotValue{T}"/> (both call
+    /// <see cref="TryGetResolvedPilotValueCore{T}"/>), so the two can never diverge. False (with <paramref name="value"/>
+    /// left <c>default</c>) when nothing but <paramref name="excluded"/> is left, or when nothing was ever written.</summary>
+    internal bool TryGetResolvedPilotValueExcluding<T>(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind excluded, out T value)
+    {
+        if (TryGetResolvedPilotValueCore<T>(property, slot, excluded, out var resolved) && resolved.IsSet)
+        {
+            value = resolved.Value;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>Shared body of <see cref="TryGetResolvedPilotValue{T}"/> (<paramref name="excluded"/> null) and
+    /// <see cref="TryGetResolvedPilotValueExcluding{T}"/> (<paramref name="excluded"/> set), so the two read paths
+    /// cannot diverge.</summary>
+    /// <summary>Reads the store winner for (<paramref name="property"/>, <paramref name="slot"/>) on <see cref="_resolvedValues"/>,
+    /// or the winner excluding <paramref name="excluded"/>'s contribution when it is set (U3); false when
+    /// <see cref="_resolvedValues"/> is null. Shared by every store read inside <see cref="TryGetResolvedPilotValueCore{T}"/>
+    /// and the two sub-slot dormancy helpers so a plain out-var ternary is never needed (definite assignment).</summary>
+    private bool TryGetStoreWinner<T>(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind? excluded, out UIResolvedValue<T> winner)
+    {
+        if (_resolvedValues == null)
+        {
+            winner = UIResolvedValue<T>.Unset();
+            return false;
+        }
+
+        return excluded.HasValue
+            ? _resolvedValues.TryGetWinnerExcluding(property, slot, excluded.Value, out winner)
+            : _resolvedValues.TryGetWinner(property, slot, out winner);
+    }
+
+    private bool TryGetResolvedPilotValueCore<T>(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind? excluded, out UIResolvedValue<T> value)
     {
         if ((property == UIPilotProperty.BorderBrush || property == UIPilotProperty.BorderThickness) && !(this is MGBorder))
         {
@@ -1277,7 +1318,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 value = UIResolvedValue<T>.Unset();
                 return false;
             }
-            return border.TryGetResolvedPilotValue(property, slot, out value);
+            return border.TryGetResolvedPilotValueCore(property, slot, excluded, out value);
         }
 
         // ADR-0005/S5: a Background sub-slot (Normal/Selected/Disabled/Focused/FocusedColor) can be dormant --
@@ -1286,22 +1327,17 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         // of truth, attributed to whichever source won the Whole slot.
         if (property == UIPilotProperty.Background && slot != UIValueSlot.Whole)
         {
-            return TryGetResolvedBackgroundSubSlotValue(slot, out value);
+            return TryGetResolvedBackgroundSubSlotValue(slot, excluded, out value);
         }
 
         // ADR-0005/S6: same dormancy rule as Background's R6, applied to the DefaultTextForeground container's
         // four Color? sub-slots (Normal/Selected/Disabled/Focused -- this container has no FocusedColor slot).
         if (property == UIPilotProperty.DefaultTextForeground && slot != UIValueSlot.Whole)
         {
-            return TryGetResolvedDefaultTextForegroundSubSlotValue(slot, out value);
+            return TryGetResolvedDefaultTextForegroundSubSlotValue(slot, excluded, out value);
         }
 
-        if (_resolvedValues == null)
-        {
-            value = UIResolvedValue<T>.Unset();
-            return false;
-        }
-        return _resolvedValues.TryGetWinner(property, slot, out value);
+        return TryGetStoreWinner(property, slot, excluded, out value);
     }
 
     /// <summary>Removes the contribution of <paramref name="kind"/> for (<paramref name="property"/>, <paramref name="slot"/>).
@@ -1726,18 +1762,23 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// (precedence at least the current Whole winner's), returns it directly -- it is also the physical value.
     /// Otherwise, when this element holds a container and the store has a Whole winner, returns the container's
     /// current physical sub-field value, attributed to the Whole winner's source (the container itself carries
-    /// the value in that case). Returns false when neither is available.</summary>
-    private bool TryGetResolvedBackgroundSubSlotValue<T>(UIValueSlot slot, out UIResolvedValue<T> value)
+    /// the value in that case). Returns false when neither is available. <paramref name="excluded"/> (U3) reads
+    /// both the sub-slot's own winner and the Whole winner as if that kind's contribution did not exist -- and
+    /// (fix round 1) skips the physical fallback entirely when the sub-slot still carries a recorded contribution
+    /// of the excluded kind: the physical field is that contribution's own doing (e.g. a running transition's
+    /// in-flight write), not the container's construction-time value, so it must not be surfaced as "below" it.</summary>
+    private bool TryGetResolvedBackgroundSubSlotValue<T>(UIValueSlot slot, UIValueSourceKind? excluded, out UIResolvedValue<T> value)
     {
-        if (_resolvedValues != null && _resolvedValues.TryGetWinner<T>(UIPilotProperty.Background, slot, out var winner)
-                                    && winner.IsSet && IsBackgroundSubSlotApplicable(winner.Source.Precedence))
+        if (TryGetStoreWinner<T>(UIPilotProperty.Background, slot, excluded, out var winner)
+            && winner.IsSet && IsBackgroundSubSlotApplicable(winner.Source.Precedence))
         {
             value = winner;
             return true;
         }
 
-        if (_backgroundBrush != null && _resolvedValues != null
-                                     && _resolvedValues.TryGetWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, out var whole) && whole.IsSet)
+        if (_backgroundBrush != null
+            && !(excluded.HasValue && TryGetResolvedContribution<T>(UIPilotProperty.Background, slot, excluded.Value, out _))
+            && TryGetStoreWinner<VisualStateFillBrush>(UIPilotProperty.Background, UIValueSlot.Whole, excluded, out var whole) && whole.IsSet)
         {
             object physical = slot switch
             {
@@ -1978,18 +2019,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         return false;
     }
 
-    /// <summary>R6: reads a DefaultTextForeground sub-slot for diagnostics. See <see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>.</summary>
-    private bool TryGetResolvedDefaultTextForegroundSubSlotValue<T>(UIValueSlot slot, out UIResolvedValue<T> value)
+    /// <summary>R6: reads a DefaultTextForeground sub-slot for diagnostics. See <see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>
+    /// for <paramref name="excluded"/> (U3), including the fix-round-1 skip of the physical fallback when the excluded
+    /// kind still carries a recorded contribution for this sub-slot.</summary>
+    private bool TryGetResolvedDefaultTextForegroundSubSlotValue<T>(UIValueSlot slot, UIValueSourceKind? excluded, out UIResolvedValue<T> value)
     {
-        if (_resolvedValues != null && _resolvedValues.TryGetWinner<T>(UIPilotProperty.DefaultTextForeground, slot, out var winner)
-                                    && winner.IsSet && IsDefaultTextForegroundSubSlotApplicable(winner.Source.Precedence))
+        if (TryGetStoreWinner<T>(UIPilotProperty.DefaultTextForeground, slot, excluded, out var winner)
+            && winner.IsSet && IsDefaultTextForegroundSubSlotApplicable(winner.Source.Precedence))
         {
             value = winner;
             return true;
         }
 
-        if (_defaultTextForeground != null && _resolvedValues != null
-                                           && _resolvedValues.TryGetWinner<VisualStateSetting<Color?>>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, out var whole) && whole.IsSet)
+        if (_defaultTextForeground != null
+            && !(excluded.HasValue && TryGetResolvedContribution<T>(UIPilotProperty.DefaultTextForeground, slot, excluded.Value, out _))
+            && TryGetStoreWinner<VisualStateSetting<Color?>>(UIPilotProperty.DefaultTextForeground, UIValueSlot.Whole, excluded, out var whole) && whole.IsSet)
         {
             object physical = slot switch
             {

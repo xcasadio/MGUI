@@ -194,11 +194,25 @@ internal sealed class UIVisualStateApplier<T> : UIVisualStateApplier
         _Target.SetValue(element, _Value, "visualstate:" + stateName);
     }
 
-    /// <summary>The value the path rests at before the state writes it. A transition mid-run holds the property at an in-flight value (a plain
-    /// property is written directly, a pilot's physical value is the animated one), so the base is read from the transition, which keeps the value
-    /// it heads to; otherwise from the target.</summary>
+    /// <summary>The value the path rests at before the state writes it.<para/>
+    /// U3 simplification: for a store-backed target, the base is the winner below its own <see cref="UIValueSourceKind.Animation"/>
+    /// contribution (<see cref="IUIStoreBackedAnimationTarget{T}.TryGetValueBelowAnimation"/>), which stays correct even mid-run
+    /// (a transition's ticks only ever touch the Animation contribution).<para/>
+    /// Fix round 1: <c>TryGetValueBelowAnimation</c> can legitimately come back false for a store target too -- when the
+    /// sub-slot's ONLY contribution is the transition's own Animation entry (e.g. the run was started by a Whole-container
+    /// swap rather than a slot-level write), there is nothing non-Animation recorded to read "below" it. That configuration
+    /// is exactly the one a running transition already tracks via its own <see cref="UITransition{T}.SettledValue"/>
+    /// (the value it is heading to), so the transition check below is kept as a fallback for every target kind, store-backed
+    /// included, instead of being restricted to plain targets.<para/>
+    /// A plain (non-store) target has no store to read below at all: its physical value IS the animated one while a transition
+    /// mid-run holds it at an in-flight value, so the base always comes from the transition for those targets.</summary>
     private T CaptureBase(MGElement element)
     {
+        if (_StoreTarget != null && _StoreTarget.TryGetValueBelowAnimation(element, out var belowAnimation))
+        {
+            return belowAnimation;
+        }
+
         if (element.Transitions[_Path] is UITransition<T> transition)
         {
             return transition.SettledValue;

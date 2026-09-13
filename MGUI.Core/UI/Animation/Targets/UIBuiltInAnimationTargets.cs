@@ -188,6 +188,8 @@ public static class UIBuiltInAnimationTargets
         public void SetValue(MGElement element, Thickness value, UIValueResolutionSource source) => element.SetMargin(value, source);
         public bool ClearContribution(MGElement element, UIValueResolutionSource source, Thickness baseValue)
             => UIStoreBackedTargets.Restore(element, UIPilotProperty.Margin, UIValueSlot.Whole, source, s => element.SetMargin(baseValue, s));
+        public bool TryGetValueBelowAnimation(MGElement element, out Thickness value)
+            => element.TryGetResolvedPilotValueExcluding(UIPilotProperty.Margin, UIValueSlot.Whole, UIValueSourceKind.Animation, out value);
         public Thickness GetValue(MGElement element) => element.Margin;
         public Thickness GetUnderlyingValue(MGElement element) => element.Margin;
         public void SetValue(MGElement element, Thickness value, string animationName) => element.SetMargin(value, AnimationSource(UIPilotProperty.Margin, animationName));
@@ -204,6 +206,8 @@ public static class UIBuiltInAnimationTargets
         public void SetValue(MGElement element, Thickness value, UIValueResolutionSource source) => element.SetPadding(value, source);
         public bool ClearContribution(MGElement element, UIValueResolutionSource source, Thickness baseValue)
             => UIStoreBackedTargets.Restore(element, UIPilotProperty.Padding, UIValueSlot.Whole, source, s => element.SetPadding(baseValue, s));
+        public bool TryGetValueBelowAnimation(MGElement element, out Thickness value)
+            => element.TryGetResolvedPilotValueExcluding(UIPilotProperty.Padding, UIValueSlot.Whole, UIValueSourceKind.Animation, out value);
         public Thickness GetValue(MGElement element) => element.Padding;
         public Thickness GetUnderlyingValue(MGElement element) => element.Padding;
         public void SetValue(MGElement element, Thickness value, string animationName) => element.SetPadding(value, AnimationSource(UIPilotProperty.Padding, animationName));
@@ -220,6 +224,8 @@ public static class UIBuiltInAnimationTargets
         public void SetValue(MGElement element, int? value, UIValueResolutionSource source) => element.SetMinHeight(value, source);
         public bool ClearContribution(MGElement element, UIValueResolutionSource source, int? baseValue)
             => UIStoreBackedTargets.Restore(element, UIPilotProperty.MinHeight, UIValueSlot.Whole, source, s => element.SetMinHeight(baseValue, s));
+        public bool TryGetValueBelowAnimation(MGElement element, out int? value)
+            => element.TryGetResolvedPilotValueExcluding(UIPilotProperty.MinHeight, UIValueSlot.Whole, UIValueSourceKind.Animation, out value);
         public int? GetValue(MGElement element) => element.MinHeight;
         public int? GetUnderlyingValue(MGElement element) => element.MinHeight;
         public void SetValue(MGElement element, int? value, string animationName) => element.SetMinHeight(value, AnimationSource(UIPilotProperty.MinHeight, animationName));

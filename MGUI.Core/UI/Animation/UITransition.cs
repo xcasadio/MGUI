@@ -107,6 +107,7 @@ public sealed class UITransition<T> : UITransition
 {
     private readonly string _Property;
     private IUIObservableAnimationTarget<T> _Target;
+    private IUIStoreBackedAnimationTarget<T> _StoreTarget;
     private IDisposable _Subscription;
     private bool _HasSettledValue;
     private readonly EqualityComparer<T> _Comparer = EqualityComparer<T>.Default;
@@ -150,6 +151,7 @@ public sealed class UITransition<T> : UITransition
         var target = UIAnimationTargets.Resolve<T>(_Property);
         _Target = target as IUIObservableAnimationTarget<T> ?? throw new InvalidOperationException(
             $"The animation target '{_Property}' ({target.GetType().Name}) is not observable: it cannot be used in a transition, only in an explicit animation.");
+        _StoreTarget = _Target as IUIStoreBackedAnimationTarget<T>;
         SettledValue = _Target.GetUnderlyingValue(Owner);
         _HasSettledValue = true;
         _Subscription = _Target.Subscribe(Owner, HandleChanged);
@@ -172,7 +174,20 @@ public sealed class UITransition<T> : UITransition
             return;
         }
 
-        var underlying = _Target.GetUnderlyingValue(Owner);
+        var ownRunActive = Animation != null && Animation.IsActive;
+        // An explicit animation (not our own run) currently owns the path: its physical value is the one to follow
+        // (see the branch below), never the value below it -- only our own run's Animation contribution is ever
+        // read through, per ADR-0006's conflict rule (a transition stays quiet while a foreign animation is active).
+        var foreignAnimationOwnsPath = !ownRunActive && Owner.Animations.IsAnimating(_Property);
+
+        // U3: for a store-backed target, while OUR OWN run is active, the value it must settle to is the winner
+        // below its Animation contribution, not the physical (animated) value GetUnderlyingValue would read -- that
+        // is what lets a local write or a named-state exit retarget the run immediately instead of being shadowed
+        // until it ends. Per-tick writes only touch the Animation contribution, never this one, so reading below it
+        // is stable across ticks (the self-write guard below still holds).
+        var underlying = _StoreTarget != null && !foreignAnimationOwnsPath && _StoreTarget.TryGetValueBelowAnimation(Owner, out var belowAnimation)
+            ? belowAnimation
+            : _Target.GetUnderlyingValue(Owner);
 
         if (Owner.Parent == null && !Owner.IsWindow)
         {
@@ -182,7 +197,7 @@ public sealed class UITransition<T> : UITransition
             return;
         }
 
-        if (Animation != null && Animation.IsActive)
+        if (ownRunActive)
         {
             // Our own tick, or the value we are heading to: nothing new.
             if (_Comparer.Equals(underlying, Animation.CurrentValue) || _Comparer.Equals(underlying, Animation.To))
@@ -190,25 +205,25 @@ public sealed class UITransition<T> : UITransition
                 return;
             }
         }
-        else if (Owner.Animations.IsAnimating(_Property))
+        else if (foreignAnimationOwnsPath)
         {
             // An explicit animation owns the path: stay quiet, but follow its values so the next transition starts from where it left the property.
             SettledValue = underlying;
             return;
         }
 
-        if (_HasSettledValue && _Comparer.Equals(underlying, SettledValue) && !(Animation != null && Animation.IsActive))
+        if (_HasSettledValue && _Comparer.Equals(underlying, SettledValue) && !(ownRunActive))
         {
             return;
         }
 
-        var from = Animation != null && Animation.IsActive ? Animation.CurrentValue : (_HasSettledValue ? SettledValue : underlying);
+        var from = ownRunActive ? Animation.CurrentValue : (_HasSettledValue ? SettledValue : underlying);
         SettledValue = underlying;
         _HasSettledValue = true;
 
         if (Duration <= TimeSpan.Zero && Delay <= TimeSpan.Zero)
         {
-            if (Animation != null && Animation.IsActive)
+            if (ownRunActive)
             {
                 Animation.CancelCore(UIAnimationCancelBehavior.KeepCurrent);
             }

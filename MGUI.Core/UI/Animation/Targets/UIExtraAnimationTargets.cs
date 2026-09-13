@@ -107,6 +107,19 @@ public static class UIExtraAnimationTargets
         public bool ClearContribution(MGElement element, UIValueResolutionSource source, UIGradientColors baseValue)
             => UIStoreBackedTargets.Restore(element, UIPilotProperty.Background, UIValueSlot.Normal, source, s => SetValue(element, baseValue, s));
 
+        public bool TryGetValueBelowAnimation(MGElement element, out UIGradientColors value)
+        {
+            if (element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var brush)
+                && brush is MGGradientFillBrush gradient)
+            {
+                value = new UIGradientColors(gradient.TopLeftColor, gradient.TopRightColor, gradient.BottomRightColor, gradient.BottomLeftColor);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
         public UIGradientColors GetValue(MGElement element)
         {
             var brush = element.BackgroundBrush?.NormalValue;
@@ -141,6 +154,19 @@ public static class UIExtraAnimationTargets
             => element.SetBackgroundSlot(UIValueSlot.Normal, new MGDiagonalGradientFillBrush(value.Color1, value.Color2, value.Color1Position), source);
         public bool ClearContribution(MGElement element, UIValueResolutionSource source, UIDiagonalGradientColors baseValue)
             => UIStoreBackedTargets.Restore(element, UIPilotProperty.Background, UIValueSlot.Normal, source, s => SetValue(element, baseValue, s));
+
+        public bool TryGetValueBelowAnimation(MGElement element, out UIDiagonalGradientColors value)
+        {
+            if (element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var brush)
+                && brush is MGDiagonalGradientFillBrush gradient)
+            {
+                value = new UIDiagonalGradientColors(gradient.Color1, gradient.Color2, gradient.Color1Position);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
 
         public UIDiagonalGradientColors GetValue(MGElement element)
         {

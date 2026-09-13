@@ -141,21 +141,35 @@ public class VisualStatesTests
         toggle.VisualStates.Add(new UIVisualState(UIVisualStateNames.Checked) { { UIColorAnimationTargets.Paths.Background, Color.White } });
         scene.Mouse = Away;
         scene.Frames(2);
-        toggle.Transitions.Add(new UITransition<Color>(UIColorAnimationTargets.Paths.Background, TimeSpan.FromMilliseconds(160)));
+        UITransition<Color> transition = new(UIColorAnimationTargets.Paths.Background, TimeSpan.FromMilliseconds(160));
+        toggle.Transitions.Add(transition);
 
         toggle.IsChecked = true;
         scene.Frames(6);
-        Assert.Equal(Color.Lerp(Color.Black, Color.White, 0.5f), Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color);
+        Color midRun = Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color;
+        Assert.Equal(Color.Lerp(Color.Black, Color.White, 0.5f), midRun);
 
-        // Unchecked while the run holds the pilot: the write is not seen until the run ends (known limit), then the run back to black starts.
+        // U3: unchecked while the run holds the pilot -- the base recorded by the state exit (Theme, black) is picked up
+        // as soon as the running interpolation ticks again (animations tick at the head of the frame, ADR-0006 decision 7,
+        // one tick before the state exit itself is processed within the same frame), so the retarget lands two frames
+        // after the exit, not once the whole run has finished: SettledValue already reports black, and the drawn colour
+        // has neither jumped to white nor back to black, still sitting between the two.
         toggle.IsChecked = false;
-        scene.Frames(5);
-        // The run reached white at its end, saw the recorded base and started back: the new run is not advanced on the tick that creates it.
-        Assert.Equal(Color.White, Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color);
-        Assert.True(toggle.Transitions[UIColorAnimationTargets.Paths.Background].IsRunning);
-        scene.Frames(10);
+        scene.Frames(2);
+        Assert.Null(toggle.CurrentVisualStateName);
+        Assert.Equal(Color.Black, transition.SettledValue);
+        Assert.True(transition.IsRunning);
+        Color justRetargeted = Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color;
+        Assert.InRange(justRetargeted.R, (byte)1, (byte)254);
+
+        // The very next frame already moves toward black (no jump, no lingering at the retarget's start value).
+        scene.Frames(1);
+        Color afterOneMoreFrame = Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color;
+        Assert.True(afterOneMoreFrame.R < justRetargeted.R, $"{afterOneMoreFrame} should be closer to black than {justRetargeted}");
+
+        scene.Frames(20);
         Assert.Equal(Color.Black, Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color);
-        Assert.False(toggle.Transitions[UIColorAnimationTargets.Paths.Background].IsRunning);
+        Assert.False(transition.IsRunning);
 
         // Re-entering and leaving again, after the run: the base is still the theme colour, not an in-flight or state value.
         toggle.IsChecked = true;
@@ -164,6 +178,51 @@ public class VisualStatesTests
         toggle.IsChecked = false;
         scene.Frames(12);
         Assert.Equal(Color.Black, Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color);
+    }
+
+    [Fact]
+    public void EnteringAStateMidTransitionStartedByAWholeContainerSwap_ComesBackToTheSwappedInColour()
+    {
+        // Fix round 1 (U3 regression): the transition run here is started by a Whole-slot container swap (a theme
+        // change), not by a slot-level write, so when the Checked state is entered mid-run the Normal sub-slot's ONLY
+        // contribution is the transition's own Animation entry -- there is nothing non-Animation to read "below" it.
+        // CaptureBase must not surface the in-flight animated value as the base in that configuration.
+        AnimationTestScene scene = AnimationTestScene.Build();
+        MGToggleButton toggle = new(scene.Window);
+        scene.Panel.TryAddChild(toggle);
+        toggle.SetBackground(new VisualStateFillBrush(new MGSolidFillBrush(Color.Black)), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+        toggle.VisualStates.Add(new UIVisualState(UIVisualStateNames.Checked) { { UIColorAnimationTargets.Paths.Background, Color.Red } });
+        scene.Mouse = Away;
+        scene.Frames(2);
+        UITransition<Color> transition = new(UIColorAnimationTargets.Paths.Background, TimeSpan.FromMilliseconds(160));
+        toggle.Transitions.Add(transition);
+
+        // The Whole swap (not a state, not a slot-level write) starts the run: the Normal sub-slot carries no
+        // contribution of its own yet, only the transition's Animation entry once ticking begins.
+        toggle.SetBackground(new VisualStateFillBrush(new MGSolidFillBrush(Color.White)), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
+        scene.Frames(6);
+        Color midRun = Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color;
+        Assert.NotEqual(Color.Black, midRun);
+        Assert.NotEqual(Color.White, midRun);
+
+        // Entering Checked records a Red contribution at VisualState precedence (70), but the run's own Animation
+        // contribution (100) still outranks it, so the state stays dormant behind the run -- the physical value
+        // keeps following the interpolation, untouched by the state entry. What matters here is the BASE captured
+        // by Apply() at this moment (bases[_Path]), not the physical value, which is why it is not asserted here.
+        toggle.IsChecked = true;
+        scene.Frames(6);
+        Color stillAnimating = Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color;
+        Assert.NotEqual(Color.Red, stillAnimating);
+
+        // Exiting the state while the run still holds the pilot: Restore() writes the captured base back under the
+        // container's own (Theme) source, dormant beneath the still-running Animation contribution. Once the run
+        // ends and clears its Animation contribution, that restored base becomes the winner -- it must be White
+        // (the value the Whole swap headed to), never the in-flight value CaptureBase saw when Checked was entered.
+        toggle.IsChecked = false;
+        scene.Frames(30);
+        Assert.Null(toggle.CurrentVisualStateName);
+        Assert.False(transition.IsRunning);
+        Assert.Equal(Color.White, Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color);
     }
 
     [Fact]
