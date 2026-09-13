@@ -1,7 +1,6 @@
 ﻿using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Core.UI.Data_Binding;
+using MGUI.Core.UI.Brushes.FillBrushes;
+using MGUI.Core.UI.DataBinding;
 using MGUI.Shared.Assets;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -13,6 +12,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.DataBinding;
 
 namespace MGUI.Samples.Features
 {

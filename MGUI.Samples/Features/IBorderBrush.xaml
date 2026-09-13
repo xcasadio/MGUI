@@ -1,4 +1,5 @@
 ﻿<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
         Left="440" Top="20" MinHeight="0" Width="800" Height="800" TitleText="IBorderBrush" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
@@ -480,9 +481,9 @@
 
                         <DockPanel>
                             <StackPanel Orientation="Vertical" Margin="0,0,8,0" Spacing="2" Dock="Left" VerticalAlignment="Center">
-                                <CheckBox IsChecked="{MGBinding HighlightBorderSampleIsEnabled, Mode=TwoWay}" Content="IsEnabled" />
-                                <CheckBox IsChecked="{MGBinding HighlightBorderSampleStopOnClick, Mode=TwoWay}" Content="StopOnClick" />
-                                <CheckBox IsChecked="{MGBinding HighlightBorderSampleStopOnMouseOver, Mode=TwoWay}" Content="StopOnMouseOver" />
+                                <CheckBox IsChecked="{dataBinding:MGBinding HighlightBorderSampleIsEnabled, Mode=TwoWay}" Content="IsEnabled" />
+                                <CheckBox IsChecked="{dataBinding:MGBinding HighlightBorderSampleStopOnClick, Mode=TwoWay}" Content="StopOnClick" />
+                                <CheckBox IsChecked="{dataBinding:MGBinding HighlightBorderSampleStopOnMouseOver, Mode=TwoWay}" Content="StopOnMouseOver" />
                             </StackPanel>
 
                             <Button Name="HighlightBorderSampleButton" StyleNames="SampleButtonStyle" BorderThickness="6" HorizontalAlignment="Left" MinWidth="200">

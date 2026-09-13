@@ -2,7 +2,7 @@ using System.ComponentModel;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Adorners;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Shared.Rendering.Clipping;
 using MGUI.Core.UI.Styling;
 

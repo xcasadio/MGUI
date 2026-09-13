@@ -1,5 +1,5 @@
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework;
 

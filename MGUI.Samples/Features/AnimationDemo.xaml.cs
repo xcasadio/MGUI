@@ -6,7 +6,7 @@ using MGUI.Core.UI.Animation.Composition;
 using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Animation.KeyFrames;
 using MGUI.Core.UI.Animation.Targets;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
 using MonoGame.Extended;
 

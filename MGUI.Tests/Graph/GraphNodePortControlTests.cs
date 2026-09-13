@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Reflection;
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Graph;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;

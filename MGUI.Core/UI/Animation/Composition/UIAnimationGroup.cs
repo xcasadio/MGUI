@@ -18,8 +18,6 @@ public abstract class UIAnimationGroup : UIAnimation
 
     private readonly List<UIAnimation> _Children = new();
     private readonly string _Key;
-    private int _Finished;
-    private int _Started;
     private bool _IsDriving;
 
     protected UIAnimationGroup()
@@ -54,10 +52,10 @@ public abstract class UIAnimationGroup : UIAnimation
     }
 
     /// <summary>Number of children that have finished (completed or cancelled) during the current iteration.</summary>
-    protected int FinishedChildren => _Finished;
+    protected int FinishedChildren { get; private set; }
 
     /// <summary>Number of children started during the current iteration.</summary>
-    protected int StartedChildren => _Started;
+    protected int StartedChildren { get; private set; }
 
     protected internal sealed override bool IsStoreBacked => false;
 
@@ -78,8 +76,8 @@ public abstract class UIAnimationGroup : UIAnimation
         }
 
         Duration = ComputeDuration();
-        _Finished = 0;
-        _Started = 0;
+        FinishedChildren = 0;
+        StartedChildren = 0;
     }
 
     /// <summary>Called by the base <see cref="UIAnimation"/> at every tick with the raw progress of the group's own timeline; the group
@@ -131,7 +129,7 @@ public abstract class UIAnimationGroup : UIAnimation
     protected void StartChild(UIAnimation child)
     {
         MGElement owner = child.Owner ?? Owner ?? throw new InvalidOperationException("The group has no owner.");
-        _Started++;
+        StartedChildren++;
         child.Completed += HandleChildFinished;
         child.Cancelled += HandleChildFinished;
         owner.Animations.Start(child);
@@ -142,7 +140,7 @@ public abstract class UIAnimationGroup : UIAnimation
         UIAnimation child = (UIAnimation)sender;
         child.Completed -= HandleChildFinished;
         child.Cancelled -= HandleChildFinished;
-        _Finished++;
+        FinishedChildren++;
         OnChildFinished(child);
     }
 

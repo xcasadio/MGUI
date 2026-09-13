@@ -3,7 +3,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Animation;
 using MGUI.Core.UI.Animation.States;
 using MGUI.Core.UI.Animation.Targets;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
 using Microsoft.Xna.Framework;
 

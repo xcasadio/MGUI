@@ -2,7 +2,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Animation;
 using MGUI.Core.UI.Animation.Interpolation;
 using MGUI.Core.UI.Animation.Targets;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Tests.Graph;
 using Microsoft.Xna.Framework;
 

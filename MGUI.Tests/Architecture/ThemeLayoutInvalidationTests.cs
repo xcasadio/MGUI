@@ -5,8 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Styling;
@@ -16,6 +15,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using Xunit;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Tests.Architecture;
 

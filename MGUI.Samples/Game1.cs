@@ -1,7 +1,7 @@
 ﻿using FontStashSharp;
 using MGUI.Core.Tooling;
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.FontStashSharp;
 using MGUI.Backend.MonoGame;
 using MGUI.Shared.Helpers;

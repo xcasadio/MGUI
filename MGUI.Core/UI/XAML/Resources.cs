@@ -1,6 +1,7 @@
-using MGUI.Core.UI.Data_Binding;
+using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Styling;
 using System.Reflection;
+using MGUI.Core.UI.DataBinding;
 
 #if UseWPF
 using System.Windows.Markup;

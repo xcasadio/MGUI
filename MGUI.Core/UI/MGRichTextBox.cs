@@ -1,4 +1,4 @@
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.Text;
 using MGUI.Core.UI.TextEditing;

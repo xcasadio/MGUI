@@ -4,8 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Rendering;
@@ -13,6 +11,8 @@ using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Shapes;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.Tooling;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI;
 
@@ -325,33 +325,31 @@ public class MGWindow : MGSingleContentHost
 
     public bool IsWindowScaled => !Scale.IsAlmostEqual(1.0f);
 
-    private Matrix _UnscaledScreenSpaceToScaledScreenSpace;
     /// <summary>A <see cref="Matrix"/> that converts coordinates that haven't accounted for <see cref="Scale"/> to coordinates that have.<para/>
     /// If <see cref="Scale"/> is 1.0f, this value is <see cref="Matrix.Identity"/><para/>
     /// See also: <see cref="ScaledScreenSpaceToUnscaledScreenSpace"/></summary>
-    protected internal Matrix UnscaledScreenSpaceToScaledScreenSpace { get => _UnscaledScreenSpaceToScaledScreenSpace; }
+    protected internal Matrix UnscaledScreenSpaceToScaledScreenSpace { get; private set; }
 
-    private Matrix _ScaledScreenSpaceToUnscaledScreenSpace;
     /// <summary>A <see cref="Matrix"/> that converts coordinates in screen space to coordinates that haven't accounted for <see cref="Scale"/>.<para/>
     /// If <see cref="Scale"/> is 1.0f, this value is <see cref="Matrix.Identity"/><para/>
     /// See also: <see cref="UnscaledScreenSpaceToScaledScreenSpace"/></summary>
-    protected internal Matrix ScaledScreenSpaceToUnscaledScreenSpace { get => _ScaledScreenSpaceToUnscaledScreenSpace; }
+    protected internal Matrix ScaledScreenSpaceToUnscaledScreenSpace { get; private set; }
 
     private void UpdateScaleTransforms()
     {
         if (IsWindowScaled)
         {
             Vector2 ScaleOrigin = TopLeft.ToVector2(); //TopLeft.ToVector2() + new Vector2(WindowWidth / 2, WindowHeight / 2); // Center of window
-            _UnscaledScreenSpaceToScaledScreenSpace =
+            UnscaledScreenSpaceToScaledScreenSpace =
                 Matrix.CreateTranslation(new Vector3(-ScaleOrigin, 0)) *
                 Matrix.CreateScale(Scale) *
                 Matrix.CreateTranslation(new Vector3(ScaleOrigin, 0));
-            _ScaledScreenSpaceToUnscaledScreenSpace = Matrix.Invert(UnscaledScreenSpaceToScaledScreenSpace);
+            ScaledScreenSpaceToUnscaledScreenSpace = Matrix.Invert(UnscaledScreenSpaceToScaledScreenSpace);
         }
         else
         {
-            _UnscaledScreenSpaceToScaledScreenSpace = Matrix.Identity;
-            _ScaledScreenSpaceToUnscaledScreenSpace = Matrix.Identity;
+            UnscaledScreenSpaceToScaledScreenSpace = Matrix.Identity;
+            ScaledScreenSpaceToUnscaledScreenSpace = Matrix.Identity;
         }
     }
 

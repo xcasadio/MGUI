@@ -1,11 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Containers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
-using MGUI.Core.UI.Data_Binding;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.DataBinding;
+using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Graph;
 using MGUI.Core.UI.Styling;
 

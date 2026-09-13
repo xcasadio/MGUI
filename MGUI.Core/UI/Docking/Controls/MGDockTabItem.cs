@@ -1,6 +1,6 @@
+using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Input.Mouse;
@@ -186,8 +186,7 @@ public class MGDockTabItem : MGElement
     /// <see cref="MGDockTabGroup"/> for overflow detection.
     /// Defaults to <see cref="MinTabWidth"/> until the first measurement pass.
     /// </summary>
-    internal int LastMeasuredWidth => _lastMeasuredWidth;
-    private int _lastMeasuredWidth = 80; // matches default MinTabWidth
+    internal int LastMeasuredWidth { get; private set; } = 80;
 
     /// <summary>
     /// Event raised when the tab is clicked.
@@ -720,7 +719,7 @@ public class MGDockTabItem : MGElement
         int pinWidth   = (Panel?.CanAutoHide == true) ? ButtonSize : 0;
 
         int totalWidth = Math.Max(MinTabWidth, titleWidth + pinWidth + closeWidth);
-        _lastMeasuredWidth = totalWidth; // expose desired width for overflow detection in MGDockTabGroup
+        LastMeasuredWidth = totalWidth; // expose desired width for overflow detection in MGDockTabGroup
         return new Thickness(totalWidth, TabHeight, 0, 0);
     }
 

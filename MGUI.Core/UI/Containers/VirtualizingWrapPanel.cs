@@ -1,8 +1,8 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Helpers;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 
 namespace MGUI.Core.UI.Containers;
 
@@ -221,12 +221,11 @@ public class VirtualizingWrapPanel : MGMultiContentHost
 
     private int _cachedFirstNeeded = -1;
     private int _cachedLastNeeded = -1;
-    private int _cachedColumns = -1;
 
     public int FirstRealizedIndex { get; private set; } = -1;
     public int LastRealizedIndex { get; private set; } = -1;
 
-    public int CurrentColumnCount => _cachedColumns;
+    public int CurrentColumnCount { get; private set; } = -1;
 
     public bool HasAttachedScrollViewer => _parentScrollViewer != null;
 
@@ -333,12 +332,12 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             viewportHeight,
             BufferRows);
 
-        bool rangeChanged = range.FirstIndex != _cachedFirstNeeded || range.LastIndex != _cachedLastNeeded || columns != _cachedColumns;
+        bool rangeChanged = range.FirstIndex != _cachedFirstNeeded || range.LastIndex != _cachedLastNeeded || columns != CurrentColumnCount;
         if (rangeChanged)
         {
             _cachedFirstNeeded = range.FirstIndex;
             _cachedLastNeeded = range.LastIndex;
-            _cachedColumns = columns;
+            CurrentColumnCount = columns;
 
             if (_realizedItems.Count > 0)
             {
@@ -471,6 +470,6 @@ public class VirtualizingWrapPanel : MGMultiContentHost
         LastRealizedIndex = -1;
         _cachedFirstNeeded = -1;
         _cachedLastNeeded = -1;
-        _cachedColumns = -1;
+        CurrentColumnCount = -1;
     }
 }

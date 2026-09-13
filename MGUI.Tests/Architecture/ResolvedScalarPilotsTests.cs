@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Graph;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Rendering;

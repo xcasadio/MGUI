@@ -26,12 +26,12 @@ public class MGColorPicker : MGElement
         Temperature,
     }
 
-    private DragTarget ActiveDragTarget = DragTarget.None;
-    private KeyboardNavigationTarget ActiveKeyboardTarget = KeyboardNavigationTarget.SaturationValue;
-    private IColorPickService _ColorPickService = UnsupportedColorPickService.Instance;
-    private Color[] HueSliderCache;
-    private int HueSliderCacheLength;
-    private ColorSpaceMode HueSliderCacheColorSpace;
+    private DragTarget _activeDragTarget = DragTarget.None;
+    private KeyboardNavigationTarget _activeKeyboardTarget = KeyboardNavigationTarget.SaturationValue;
+    private IColorPickService _colorPickService = UnsupportedColorPickService.Instance;
+    private Color[] _hueSliderCache;
+    private int _hueSliderCacheLength;
+    private ColorSpaceMode _hueSliderCacheColorSpace;
     private Color[] TemperatureSliderCache;
     private int TemperatureSliderCacheLength;
     private float TemperatureSliderCacheMinKelvin;
@@ -48,30 +48,30 @@ public class MGColorPicker : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ColorValue _PreviousValue;
+    private ColorValue _previousValue;
     public ColorValue PreviousValue
     {
-        get => _PreviousValue;
+        get => _previousValue;
         set
         {
-            if (_PreviousValue != value)
+            if (_previousValue != value)
             {
-                _PreviousValue = value;
+                _previousValue = value;
                 NPC(nameof(PreviousValue));
             }
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _ShowAlpha;
+    private bool _showAlpha;
     public bool ShowAlpha
     {
-        get => _ShowAlpha;
+        get => _showAlpha;
         set
         {
-            if (_ShowAlpha != value)
+            if (_showAlpha != value)
             {
-                _ShowAlpha = value;
+                _showAlpha = value;
                 LayoutChanged(this, true);
                 NPC(nameof(ShowAlpha));
             }
@@ -79,15 +79,15 @@ public class MGColorPicker : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _ShowTextInput;
+    private bool _showTextInput;
     public bool ShowTextInput
     {
-        get => _ShowTextInput;
+        get => _showTextInput;
         set
         {
-            if (_ShowTextInput != value)
+            if (_showTextInput != value)
             {
-                _ShowTextInput = value;
+                _showTextInput = value;
                 LayoutChanged(this, true);
                 NPC(nameof(ShowTextInput));
             }
@@ -95,30 +95,30 @@ public class MGColorPicker : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ColorPickerMode _PickerMode;
+    private ColorPickerMode _pickerMode;
     public ColorPickerMode PickerMode
     {
-        get => _PickerMode;
+        get => _pickerMode;
         set
         {
-            if (_PickerMode != value)
+            if (_pickerMode != value)
             {
-                _PickerMode = value;
+                _pickerMode = value;
                 NPC(nameof(PickerMode));
             }
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ColorValueFormat _DisplayFormat;
+    private ColorValueFormat _displayFormat;
     public ColorValueFormat DisplayFormat
     {
-        get => _DisplayFormat;
+        get => _displayFormat;
         set
         {
-            if (_DisplayFormat != value)
+            if (_displayFormat != value)
             {
-                _DisplayFormat = value;
+                _displayFormat = value;
                 TextInput.HexFormat = value;
                 TextInput.SetValue(Value);
                 NPC(nameof(DisplayFormat));
@@ -127,16 +127,16 @@ public class MGColorPicker : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _SaturationValueSize;
+    private int _saturationValueSize;
     public int SaturationValueSize
     {
-        get => _SaturationValueSize;
+        get => _saturationValueSize;
         set
         {
             int actual = Math.Max(0, value);
-            if (_SaturationValueSize != actual)
+            if (_saturationValueSize != actual)
             {
-                _SaturationValueSize = actual;
+                _saturationValueSize = actual;
                 LayoutChanged(this, true);
                 NPC(nameof(SaturationValueSize));
             }
@@ -144,16 +144,16 @@ public class MGColorPicker : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _SliderThickness;
+    private int _sliderThickness;
     public int SliderThickness
     {
-        get => _SliderThickness;
+        get => _sliderThickness;
         set
         {
             int actual = Math.Max(0, value);
-            if (_SliderThickness != actual)
+            if (_sliderThickness != actual)
             {
-                _SliderThickness = actual;
+                _sliderThickness = actual;
                 LayoutChanged(this, true);
                 NPC(nameof(SliderThickness));
             }
@@ -161,16 +161,16 @@ public class MGColorPicker : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _PreviewWidth;
+    private int _previewWidth;
     public int PreviewWidth
     {
-        get => _PreviewWidth;
+        get => _previewWidth;
         set
         {
             int actual = Math.Max(0, value);
-            if (_PreviewWidth != actual)
+            if (_previewWidth != actual)
             {
-                _PreviewWidth = actual;
+                _previewWidth = actual;
                 LayoutChanged(this, true);
                 NPC(nameof(PreviewWidth));
             }
@@ -178,16 +178,16 @@ public class MGColorPicker : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _PreviewHeight;
+    private int _previewHeight;
     public int PreviewHeight
     {
-        get => _PreviewHeight;
+        get => _previewHeight;
         set
         {
             int actual = Math.Max(0, value);
-            if (_PreviewHeight != actual)
+            if (_previewHeight != actual)
             {
-                _PreviewHeight = actual;
+                _previewHeight = actual;
                 LayoutChanged(this, true);
                 NPC(nameof(PreviewHeight));
             }
@@ -256,15 +256,15 @@ public class MGColorPicker : MGElement
     public bool IsDisplayDifferentFromStorage => Model.IsDisplayDifferentFromStorage;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _IsHdr;
+    private bool _isHdr;
     public bool IsHdr
     {
-        get => _IsHdr;
+        get => _isHdr;
         set
         {
-            if (_IsHdr != value)
+            if (_isHdr != value)
             {
-                _IsHdr = value;
+                _isHdr = value;
                 Model.Constraints.AllowHdr = value;
                 if (value)
                 {
@@ -306,15 +306,15 @@ public class MGColorPicker : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _ShowEyeDropper;
+    private bool _showEyeDropper;
     public bool ShowEyeDropper
     {
-        get => _ShowEyeDropper;
+        get => _showEyeDropper;
         set
         {
-            if (_ShowEyeDropper != value)
+            if (_showEyeDropper != value)
             {
-                _ShowEyeDropper = value;
+                _showEyeDropper = value;
                 NPC(nameof(ShowEyeDropper));
             }
         }
@@ -322,20 +322,20 @@ public class MGColorPicker : MGElement
 
     public IColorPickService ColorPickService
     {
-        get => _ColorPickService;
+        get => _colorPickService;
         set
         {
             IColorPickService actual = value ?? UnsupportedColorPickService.Instance;
-            if (ReferenceEquals(_ColorPickService, actual))
+            if (ReferenceEquals(_colorPickService, actual))
             {
                 return;
             }
 
-            _ColorPickService.ColorPicked -= OnColorPicked;
-            _ColorPickService.ColorPickCancelled -= OnColorPickCancelled;
-            _ColorPickService = actual;
-            _ColorPickService.ColorPicked += OnColorPicked;
-            _ColorPickService.ColorPickCancelled += OnColorPickCancelled;
+            _colorPickService.ColorPicked -= OnColorPicked;
+            _colorPickService.ColorPickCancelled -= OnColorPickCancelled;
+            _colorPickService = actual;
+            _colorPickService.ColorPicked += OnColorPicked;
+            _colorPickService.ColorPickCancelled += OnColorPickCancelled;
             NPC(nameof(ColorPickService));
             NPC(nameof(IsEyeDropperAvailable));
         }
@@ -453,13 +453,13 @@ public class MGColorPicker : MGElement
             {
                 if (e.IsLMB)
                 {
-                    ActiveDragTarget = HitTest(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position));
+                    _activeDragTarget = HitTest(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position));
                     e.SetHandledBy(this, false);
                 }
             };
             MouseHandler.Dragged += (sender, e) =>
             {
-                if (e.IsLMB && ActiveDragTarget != DragTarget.None)
+                if (e.IsLMB && _activeDragTarget != DragTarget.None)
                 {
                     SetValueFromScreenPosition(e.Position, true);
                 }
@@ -473,7 +473,7 @@ public class MGColorPicker : MGElement
                         CommitEdit();
                     }
 
-                    ActiveDragTarget = DragTarget.None;
+                    _activeDragTarget = DragTarget.None;
                 }
             };
         }
@@ -483,11 +483,11 @@ public class MGColorPicker : MGElement
     {
         if (action is UINavigationAction.MoveNext or UINavigationAction.MovePrevious)
         {
-            ActiveKeyboardTarget = GetNextKeyboardNavigationTarget(ActiveKeyboardTarget, ShowAlpha, ShowIntensity, ShowTemperature, action);
+            _activeKeyboardTarget = GetNextKeyboardNavigationTarget(_activeKeyboardTarget, ShowAlpha, ShowIntensity, ShowTemperature, action);
             return true;
         }
 
-        if (TryApplyKeyboardNavigation(action, ActiveKeyboardTarget, ShowAlpha, ShowIntensity, ShowTemperature))
+        if (TryApplyKeyboardNavigation(action, _activeKeyboardTarget, ShowAlpha, ShowIntensity, ShowTemperature))
         {
             return true;
         }
@@ -534,18 +534,18 @@ public class MGColorPicker : MGElement
         };
     }
 
-    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness sharedSize)
     {
-        SharedSize = new(0);
+        sharedSize = new(0);
         int spacing = Math.Max(0, ControlSpacing);
         int width = SaturationValueSize + spacing + SliderThickness + spacing + PreviewWidth;
         int height = SaturationValueSize + (ShowAlpha ? spacing + SliderThickness : 0) + (ShowIntensity ? spacing + SliderThickness : 0) + (ShowTemperature ? spacing + SliderThickness : 0) + (ShowTextInput ? spacing + TextInputHeight : 0);
         return new(width, height, 0, 0);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
+        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             return;
@@ -929,34 +929,34 @@ public class MGColorPicker : MGElement
     private void SetValueFromScreenPosition(Point screenPosition, bool useActiveTarget)
     {
         Point layoutPoint = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, screenPosition);
-        DragTarget target = useActiveTarget && ActiveDragTarget != DragTarget.None ? ActiveDragTarget : HitTest(layoutPoint);
+        DragTarget target = useActiveTarget && _activeDragTarget != DragTarget.None ? _activeDragTarget : HitTest(layoutPoint);
         Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
         switch (target)
         {
             case DragTarget.SaturationValue:
                 (float saturation, float value) = GetSaturationValueFromPoint(layoutPoint, GetSaturationValueBounds(bounds));
                 Model.SetSaturationValue(saturation, value);
-                ActiveDragTarget = DragTarget.SaturationValue;
+                _activeDragTarget = DragTarget.SaturationValue;
                 break;
             case DragTarget.Hue:
                 float huePercent = MGColorSlider.GetPercentFromPoint(layoutPoint, GetHueSliderBounds(bounds), Orientation.Vertical);
                 Model.SetHue(huePercent * 360f);
-                ActiveDragTarget = DragTarget.Hue;
+                _activeDragTarget = DragTarget.Hue;
                 break;
             case DragTarget.Alpha:
                 float alpha = MGColorSlider.GetPercentFromPoint(layoutPoint, GetAlphaSliderBounds(bounds), Orientation.Horizontal);
                 Model.SetAlpha(alpha);
-                ActiveDragTarget = DragTarget.Alpha;
+                _activeDragTarget = DragTarget.Alpha;
                 break;
             case DragTarget.Intensity:
                 float percent = MGColorSlider.GetPercentFromPoint(layoutPoint, GetIntensitySliderBounds(bounds), Orientation.Horizontal);
                 Model.SetIntensity(GetIntensityFromPercent(percent));
-                ActiveDragTarget = DragTarget.Intensity;
+                _activeDragTarget = DragTarget.Intensity;
                 break;
             case DragTarget.Temperature:
                 float kelvinPercent = MGColorSlider.GetPercentFromPoint(layoutPoint, GetTemperatureSliderBounds(bounds), Orientation.Horizontal);
                 Model.SetTemperatureKelvin(MGColorSlider.GetValueFromPercent(kelvinPercent, MinKelvin, MaxKelvin), MinKelvin, MaxKelvin);
-                ActiveDragTarget = DragTarget.Temperature;
+                _activeDragTarget = DragTarget.Temperature;
                 break;
         }
     }
@@ -1080,19 +1080,19 @@ public class MGColorPicker : MGElement
     private Color[] GetHueSliderCache(int length)
     {
         int actualLength = Math.Max(0, length);
-        if (HueSliderCache == null || HueSliderCacheLength != actualLength || HueSliderCacheColorSpace != Value.ColorSpace)
+        if (_hueSliderCache == null || _hueSliderCacheLength != actualLength || _hueSliderCacheColorSpace != Value.ColorSpace)
         {
-            HueSliderCacheLength = actualLength;
-            HueSliderCacheColorSpace = Value.ColorSpace;
-            HueSliderCache = new Color[actualLength];
-            for (int index = 0; index < HueSliderCache.Length; index++)
+            _hueSliderCacheLength = actualLength;
+            _hueSliderCacheColorSpace = Value.ColorSpace;
+            _hueSliderCache = new Color[actualLength];
+            for (int index = 0; index < _hueSliderCache.Length; index++)
             {
-                float percent = HueSliderCache.Length <= 1 ? 0f : index / (float)(HueSliderCache.Length - 1);
-                HueSliderCache[index] = MGColorSlider.GetGradientColor(ColorSliderChannel.Hue, percent, Value).ToXnaColor();
+                float percent = _hueSliderCache.Length <= 1 ? 0f : index / (float)(_hueSliderCache.Length - 1);
+                _hueSliderCache[index] = MGColorSlider.GetGradientColor(ColorSliderChannel.Hue, percent, Value).ToXnaColor();
             }
         }
 
-        return HueSliderCache;
+        return _hueSliderCache;
     }
 
     private Color[] GetTemperatureSliderCache(int length)

@@ -1,9 +1,9 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Shared.Input.Keyboard;
 using System.Collections.ObjectModel;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI;

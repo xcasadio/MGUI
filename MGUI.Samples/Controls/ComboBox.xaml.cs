@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using KnownColor = System.Drawing.KnownColor;
 using DrawingColor = System.Drawing.Color;
 using System.Reflection;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Samples.Controls
 {

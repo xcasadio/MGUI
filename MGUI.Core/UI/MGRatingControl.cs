@@ -118,22 +118,19 @@ public class MGRatingControl : MGElement
     }
 
     #region Value
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private float _Minimum;
+
     /// <summary>The inclusive minimum that <see cref="Value"/> can be set to.<para/>
     /// To set this value, use <see cref="SetRange(float, float)"/><para/>
     /// Default value: 0<br/>
     /// Recommended value: 0, 0.5f, or 1.</summary>
-    public float Minimum { get => _Minimum; }
+    public float Minimum { get; private set; }
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private float _Maximum;
     /// <summary>The inclusive maximum that <see cref="Value"/> can be set to.<para/>
     /// To set this value, use <see cref="SetRange(float, float)"/><para/>
     /// Default value: 5<br/>
     /// Recommended value: 5 or 10<br/>
     /// Max value: 100</summary>
-    public float Maximum { get => _Maximum; }
+    public float Maximum { get; private set; }
 
     public int NumItems => (int)Math.Ceiling(Maximum);
 
@@ -148,8 +145,8 @@ public class MGRatingControl : MGElement
                 throw new ArgumentException($"{nameof(MGSlider)}.{nameof(Minimum)} cannot be greater than {nameof(MGSlider)}.{nameof(Maximum)}");
             }
 
-            _Minimum = Minimum;
-            _Maximum = Maximum;
+            this.Minimum = Minimum;
+            this.Maximum = Maximum;
             _ = SetValue(Value);
 
             if (PreviousMaximum != Maximum)
@@ -166,18 +163,17 @@ public class MGRatingControl : MGElement
     /// <summary>Convenience property that simply returns: <see cref="Maximum"/> - <see cref="Minimum"/></summary>
     public float Interval => Maximum - Minimum;
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private float _Value;
     /// <summary>The current value that this <see cref="MGRatingControl"/> is set to.<para/>
     /// To set this value, use <see cref="SetValue(float)"/></summary>
-    public float Value { get => _Value; }
+    public float Value { get; private set; }
+
     /// <summary>See also: <see cref="GetActualValue(float)"/></summary>
     public float SetValue(float DesiredValue)
     {
         float ActualValue = GetActualValue(DesiredValue);
         if (Value != ActualValue)
         {
-            _Value = ActualValue;
+            Value = ActualValue;
             NPC(nameof(Value));
         }
         return ActualValue;

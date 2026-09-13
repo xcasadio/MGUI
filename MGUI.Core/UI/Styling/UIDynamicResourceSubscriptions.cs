@@ -24,8 +24,7 @@ internal sealed class UIDynamicResourceSubscriptions
     private readonly Dictionary<SubscriptionKey, SubscriptionEntry> Entries = new();
     private bool IsParentChangeHooked;
 
-    private MGResources _AttachedScope;
-    internal MGResources AttachedScope => _AttachedScope;
+    internal MGResources AttachedScope { get; private set; }
 
     public UIDynamicResourceSubscriptions(MGElement HostElement)
     {
@@ -94,23 +93,23 @@ internal sealed class UIDynamicResourceSubscriptions
 
     private void AttachTo(MGResources Scope)
     {
-        if (Scope == null || ReferenceEquals(_AttachedScope, Scope))
+        if (Scope == null || ReferenceEquals(AttachedScope, Scope))
         {
             return;
         }
 
         Detach();
-        _AttachedScope = Scope;
-        _AttachedScope.OnStaticResourceLookupChanged += HandleResourceLookupChanged;
+        AttachedScope = Scope;
+        AttachedScope.OnStaticResourceLookupChanged += HandleResourceLookupChanged;
     }
 
     /// <summary>Detaches from the currently attached scope, if any. Safe to call repeatedly.</summary>
     public void Detach()
     {
-        if (_AttachedScope != null)
+        if (AttachedScope != null)
         {
-            _AttachedScope.OnStaticResourceLookupChanged -= HandleResourceLookupChanged;
-            _AttachedScope = null;
+            AttachedScope.OnStaticResourceLookupChanged -= HandleResourceLookupChanged;
+            AttachedScope = null;
         }
     }
 
@@ -130,7 +129,7 @@ internal sealed class UIDynamicResourceSubscriptions
 
     private void HandleResourceLookupChanged(object sender, string ResourceName)
     {
-        if (_AttachedScope == null)
+        if (AttachedScope == null)
         {
             return;
         }
@@ -139,7 +138,7 @@ internal sealed class UIDynamicResourceSubscriptions
         {
             if (string.Equals(Entry.Config.ResourceName, ResourceName, StringComparison.Ordinal))
             {
-                _ = UIResourceReferenceApplicator.Apply(HostElement, Entry.TargetObject, Entry.Config, _AttachedScope);
+                _ = UIResourceReferenceApplicator.Apply(HostElement, Entry.TargetObject, Entry.Config, AttachedScope);
             }
         }
     }

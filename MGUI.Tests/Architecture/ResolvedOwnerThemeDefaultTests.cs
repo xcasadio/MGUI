@@ -1,6 +1,7 @@
 using System;
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
@@ -75,7 +76,7 @@ public class ResolvedOwnerThemeDefaultTests
         Assert.True(propertyGrid.OuterBorder.TryGetResolvedPilotValue(UIPilotProperty.BorderThickness, UIValueSlot.Whole, out UIResolvedValue<Thickness> borderThickness));
         Assert.Equal(UIValueSourceKind.Theme, borderThickness.Source.Kind);
         Assert.Equal(propertyGrid.GetTheme().PropertyGrid.BorderThickness, borderThickness.Value);
-        Assert.True(propertyGrid.OuterBorder.TryGetResolvedPilotValue(UIPilotProperty.BorderBrush, UIValueSlot.Whole, out UIResolvedValue<MGUI.Core.UI.Brushes.Border_Brushes.IBorderBrush> borderBrush));
+        Assert.True(propertyGrid.OuterBorder.TryGetResolvedPilotValue(UIPilotProperty.BorderBrush, UIValueSlot.Whole, out UIResolvedValue<IBorderBrush> borderBrush));
         Assert.Equal(UIValueSourceKind.Theme, borderBrush.Source.Kind);
 
         // The grid's own Padding is written on the owner directly and is Theme as well.

@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:controls="clr-namespace:MGUI.Samples.Controls;assembly=MGUI.Samples"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
         Left="520" Top="40" Width="860" Height="840" TitleText="Native Dark Theme Preview" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
@@ -98,7 +99,7 @@
                             </ListViewColumn.Header>
                             <ListViewColumn.CellTemplate>
                                 <ContentTemplate>
-                                    <TextBlock HorizontalAlignment="Center" Text="{MGBinding Path=Id, Mode=OneTime, FallbackValue='&lt;Id&gt;'}" />
+                                    <TextBlock HorizontalAlignment="Center" Text="{dataBinding:MGBinding Path=Id, Mode=OneTime, FallbackValue='&lt;Id&gt;'}" />
                                 </ContentTemplate>
                             </ListViewColumn.CellTemplate>
                         </ListViewColumn>

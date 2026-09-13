@@ -1,8 +1,8 @@
-﻿using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Core.UI.XAML;
+﻿using MGUI.Core.UI.XAML;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Text.RegularExpressions;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using Thickness = MonoGame.Extended.Thickness;
 
 namespace MGUI.Core.UI.Text;

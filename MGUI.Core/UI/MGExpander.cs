@@ -4,8 +4,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI;
@@ -62,7 +62,7 @@ public class MGExpander : MGSingleContentHost
         }
     }
 
-    /// <summary>Contains the <see cref="Brushes.Fill_Brushes.IFillBrush"/>es to use when drawing the background of the button part of this <see cref="MGExpander"/>'s header.</summary>
+    /// <summary>Contains the <see cref="Brushes.FillBrushes.IFillBrush"/>es to use when drawing the background of the button part of this <see cref="MGExpander"/>'s header.</summary>
     public VisualStateFillBrush ExpanderButtonBackgroundBrush
     {
         get => ExpanderToggleButton.BackgroundBrush;

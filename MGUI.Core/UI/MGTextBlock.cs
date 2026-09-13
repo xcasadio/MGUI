@@ -8,10 +8,10 @@ using MonoGame.Extended;
 using MGUI.Shared.Text;
 using MGUI.Shared.Text.Engines;
 using MGUI.Shared.Rendering;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Core.UI.Responsive;
 using MGUI.Core.UI.Styling;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI;
 

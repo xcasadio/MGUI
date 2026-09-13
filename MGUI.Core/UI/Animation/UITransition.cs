@@ -108,8 +108,6 @@ public sealed class UITransition<T> : UITransition
     private readonly string _Property;
     private IUIObservableAnimationTarget<T> _Target;
     private IDisposable _Subscription;
-    private UIPropertyAnimation<T> _Animation;
-    private T _SettledValue;
     private bool _HasSettledValue;
     private readonly EqualityComparer<T> _Comparer = EqualityComparer<T>.Default;
 
@@ -135,24 +133,24 @@ public sealed class UITransition<T> : UITransition
     /// <summary>The interpolator. Null means the one registered for <typeparamref name="T"/>.</summary>
     public IUIInterpolator<T> Interpolator { get; set; }
 
-    public override bool IsRunning => _Animation != null && _Animation.IsActive;
+    public override bool IsRunning => Animation != null && Animation.IsActive;
 
     public override Type ValueType => typeof(T);
 
-    public override float? RunningProgress => IsRunning ? _Animation.Progress : null;
+    public override float? RunningProgress => IsRunning ? Animation.Progress : null;
 
     /// <summary>The running interpolation, or the last one; null before the first change.</summary>
-    public UIPropertyAnimation<T> Animation => _Animation;
+    public UIPropertyAnimation<T> Animation { get; private set; }
 
     /// <summary>The value the transition last settled on (initially the value read when it was attached).</summary>
-    public T SettledValue => _SettledValue;
+    public T SettledValue { get; private set; }
 
     protected override void OnAttached()
     {
         IUIAnimationTarget<T> target = UIAnimationTargets.Resolve<T>(_Property);
         _Target = target as IUIObservableAnimationTarget<T> ?? throw new InvalidOperationException(
             $"The animation target '{_Property}' ({target.GetType().Name}) is not observable: it cannot be used in a transition, only in an explicit animation.");
-        _SettledValue = _Target.GetUnderlyingValue(Owner);
+        SettledValue = _Target.GetUnderlyingValue(Owner);
         _HasSettledValue = true;
         _Subscription = _Target.Subscribe(Owner, HandleChanged);
     }
@@ -161,9 +159,9 @@ public sealed class UITransition<T> : UITransition
     {
         _Subscription?.Dispose();
         _Subscription = null;
-        if (_Animation != null && _Animation.IsActive)
+        if (Animation != null && Animation.IsActive)
         {
-            _Animation.CancelCore(UIAnimationCancelBehavior.KeepCurrent);
+            Animation.CancelCore(UIAnimationCancelBehavior.KeepCurrent);
         }
     }
 
@@ -179,15 +177,15 @@ public sealed class UITransition<T> : UITransition
         if (Owner.Parent == null && !Owner.IsWindow)
         {
             // An element outside the tree (not yet attached, or detached) is not animated: follow the value silently.
-            _SettledValue = underlying;
+            SettledValue = underlying;
             _HasSettledValue = true;
             return;
         }
 
-        if (_Animation != null && _Animation.IsActive)
+        if (Animation != null && Animation.IsActive)
         {
             // Our own tick, or the value we are heading to: nothing new.
-            if (_Comparer.Equals(underlying, _Animation.CurrentValue) || _Comparer.Equals(underlying, _Animation.To))
+            if (_Comparer.Equals(underlying, Animation.CurrentValue) || _Comparer.Equals(underlying, Animation.To))
             {
                 return;
             }
@@ -195,30 +193,30 @@ public sealed class UITransition<T> : UITransition
         else if (Owner.Animations.IsAnimating(_Property))
         {
             // An explicit animation owns the path: stay quiet, but follow its values so the next transition starts from where it left the property.
-            _SettledValue = underlying;
+            SettledValue = underlying;
             return;
         }
 
-        if (_HasSettledValue && _Comparer.Equals(underlying, _SettledValue) && !(_Animation != null && _Animation.IsActive))
+        if (_HasSettledValue && _Comparer.Equals(underlying, SettledValue) && !(Animation != null && Animation.IsActive))
         {
             return;
         }
 
-        T from = _Animation != null && _Animation.IsActive ? _Animation.CurrentValue : (_HasSettledValue ? _SettledValue : underlying);
-        _SettledValue = underlying;
+        T from = Animation != null && Animation.IsActive ? Animation.CurrentValue : (_HasSettledValue ? SettledValue : underlying);
+        SettledValue = underlying;
         _HasSettledValue = true;
 
         if (Duration <= TimeSpan.Zero && Delay <= TimeSpan.Zero)
         {
-            if (_Animation != null && _Animation.IsActive)
+            if (Animation != null && Animation.IsActive)
             {
-                _Animation.CancelCore(UIAnimationCancelBehavior.KeepCurrent);
+                Animation.CancelCore(UIAnimationCancelBehavior.KeepCurrent);
             }
 
             return;
         }
 
-        _Animation = new UIPropertyAnimation<T>
+        Animation = new UIPropertyAnimation<T>
         {
             Target = _Target,
             From = from,
@@ -237,6 +235,6 @@ public sealed class UITransition<T> : UITransition
             InheritsBaseValue = false,
             Name = "transition:" + _Property,
         };
-        Owner.Animations.Start(_Animation);
+        Owner.Animations.Start(Animation);
     }
 }

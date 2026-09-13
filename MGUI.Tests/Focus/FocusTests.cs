@@ -1,4 +1,5 @@
 using System.IO;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Tests.Focus;
 
@@ -861,9 +862,9 @@ public class FocusTests
     [Fact]
     public void ApplyExplicitBackground_PreservesFocusedUnderlay()
     {
-        var selectedBrush = new MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush(Microsoft.Xna.Framework.Color.Yellow);
-        var originalFocusedBrush = new MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush(Microsoft.Xna.Framework.Color.Blue);
-        var explicitBrush = new MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush(Microsoft.Xna.Framework.Color.Transparent);
+        var selectedBrush = new MGSolidFillBrush(Microsoft.Xna.Framework.Color.Yellow);
+        var originalFocusedBrush = new MGSolidFillBrush(Microsoft.Xna.Framework.Color.Blue);
+        var explicitBrush = new MGSolidFillBrush(Microsoft.Xna.Framework.Color.Transparent);
         var brush = new MGUI.Core.UI.VisualStateFillBrush(
             null,
             selectedBrush,
@@ -884,12 +885,12 @@ public class FocusTests
 
         MGUI.Core.UI.XAML.Element.ApplyExplicitBackground(element, explicitBrush);
 
-        Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.NormalValue);
-        Assert.Equal(Microsoft.Xna.Framework.Color.Transparent, ((MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush)brush.NormalValue).Color);
-        Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.FocusedValue);
-        Assert.Equal(Microsoft.Xna.Framework.Color.Transparent, ((MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush)brush.FocusedValue).Color);
-        Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush.SelectedValue);
-        Assert.Equal(Microsoft.Xna.Framework.Color.Yellow, ((MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush)brush.SelectedValue).Color);
+        Assert.IsType<MGSolidFillBrush>(brush.NormalValue);
+        Assert.Equal(Microsoft.Xna.Framework.Color.Transparent, ((MGSolidFillBrush)brush.NormalValue).Color);
+        Assert.IsType<MGSolidFillBrush>(brush.FocusedValue);
+        Assert.Equal(Microsoft.Xna.Framework.Color.Transparent, ((MGSolidFillBrush)brush.FocusedValue).Color);
+        Assert.IsType<MGSolidFillBrush>(brush.SelectedValue);
+        Assert.Equal(Microsoft.Xna.Framework.Color.Yellow, ((MGSolidFillBrush)brush.SelectedValue).Color);
     }
 
     [Fact]

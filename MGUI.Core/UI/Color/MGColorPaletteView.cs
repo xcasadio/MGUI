@@ -8,15 +8,15 @@ namespace MGUI.Core.UI;
 public class MGColorPaletteView : MGElement
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private MGColorPalette _Palette;
+    private MGColorPalette _palette;
     public MGColorPalette Palette
     {
-        get => _Palette;
+        get => _palette;
         set
         {
-            if (!ReferenceEquals(_Palette, value))
+            if (!ReferenceEquals(_palette, value))
             {
-                _Palette = value;
+                _palette = value;
                 SelectedSwatch = null;
                 LayoutChanged(this, true);
                 NPC(nameof(Palette));
@@ -79,9 +79,9 @@ public class MGColorPaletteView : MGElement
         return true;
     }
 
-    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness sharedSize)
     {
-        SharedSize = new(0);
+        sharedSize = new(0);
         int count = Palette?.Swatches.Count ?? 0;
         int columns = Math.Max(1, Columns);
         int rows = count == 0 ? 0 : (int)Math.Ceiling(count / (double)columns);
@@ -90,9 +90,9 @@ public class MGColorPaletteView : MGElement
         return new(width, height, 0, 0);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
+        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, GetDesiredSize());
         for (int index = 0; index < (Palette?.Swatches.Count ?? 0); index++)
         {
             Rectangle swatchBounds = GetSwatchBounds(bounds, index, Columns, SwatchSize, Spacing, BorderThickness);

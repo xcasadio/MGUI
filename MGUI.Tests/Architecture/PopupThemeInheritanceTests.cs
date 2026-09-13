@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;

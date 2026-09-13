@@ -1,11 +1,11 @@
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using System.Collections.Generic;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 
 namespace MGUI.Tests.Architecture;
 

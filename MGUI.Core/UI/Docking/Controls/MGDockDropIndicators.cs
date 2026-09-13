@@ -230,7 +230,6 @@ public class MGDockDropIndicators : MGElement
 
     // ── Host-edge indicator state ────────────────────────────────────────────
 
-    private bool       _hostEdgeVisible;
     private Rectangle  _hostBounds;
 
     // The four small indicator squares pinned to each edge of the host
@@ -244,7 +243,7 @@ public class MGDockDropIndicators : MGElement
     /// <summary>
     /// Whether the host-edge indicators are currently visible.
     /// </summary>
-    public bool HostEdgeVisible => _hostEdgeVisible;
+    public bool HostEdgeVisible { get; private set; }
 
     public MGDockDropIndicators(MGWindow parentWindow) : base(parentWindow, MGElementType.Custom)
     {
@@ -370,7 +369,7 @@ public class MGDockDropIndicators : MGElement
             _hostBounds = hostBounds;
             CalculateHostEdgePositions();
         }
-        _hostEdgeVisible = true;
+        HostEdgeVisible = true;
         _hostEdgeActiveZone = DockZone.None;
         SyncZoneVisuals();
     }
@@ -381,7 +380,7 @@ public class MGDockDropIndicators : MGElement
     /// </summary>
     public void HideHostEdge()
     {
-        _hostEdgeVisible = false;
+        HostEdgeVisible = false;
         _hostEdgeActiveZone = DockZone.None;
         SyncZoneVisuals();
     }
@@ -398,7 +397,7 @@ public class MGDockDropIndicators : MGElement
     /// </summary>
     public DockZone GetHostEdgeZoneAtPosition(Point screenPosition)
     {
-        if (!_hostEdgeVisible)
+        if (!HostEdgeVisible)
         {
             return DockZone.None;
         }
@@ -619,10 +618,10 @@ public class MGDockDropIndicators : MGElement
         SyncZoneElement(BottomZoneElement, _bottomZoneRect, IsVisible, ActiveZone == DockZone.Bottom, _disabledZones.Contains(DockZone.Bottom));
         SyncZoneElement(CenterZoneElement, _centerZoneRect, IsVisible, ActiveZone == DockZone.Center, _disabledZones.Contains(DockZone.Center));
 
-        SyncZoneElement(HostLeftZoneElement, _hostLeftZoneRect, _hostEdgeVisible, _hostEdgeActiveZone == DockZone.Left, false);
-        SyncZoneElement(HostRightZoneElement, _hostRightZoneRect, _hostEdgeVisible, _hostEdgeActiveZone == DockZone.Right, false);
-        SyncZoneElement(HostTopZoneElement, _hostTopZoneRect, _hostEdgeVisible, _hostEdgeActiveZone == DockZone.Top, false);
-        SyncZoneElement(HostBottomZoneElement, _hostBottomZoneRect, _hostEdgeVisible, _hostEdgeActiveZone == DockZone.Bottom, false);
+        SyncZoneElement(HostLeftZoneElement, _hostLeftZoneRect, HostEdgeVisible, _hostEdgeActiveZone == DockZone.Left, false);
+        SyncZoneElement(HostRightZoneElement, _hostRightZoneRect, HostEdgeVisible, _hostEdgeActiveZone == DockZone.Right, false);
+        SyncZoneElement(HostTopZoneElement, _hostTopZoneRect, HostEdgeVisible, _hostEdgeActiveZone == DockZone.Top, false);
+        SyncZoneElement(HostBottomZoneElement, _hostBottomZoneRect, HostEdgeVisible, _hostEdgeActiveZone == DockZone.Bottom, false);
     }
 
     private void SyncZoneElement(MGDockDropZoneIndicator element, Rectangle bounds, bool isVisible, bool isActive, bool isDisabled)

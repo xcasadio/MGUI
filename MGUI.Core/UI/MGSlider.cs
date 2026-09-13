@@ -1,10 +1,10 @@
 ﻿using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MonoGame.Extended;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Styling;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI;
 

@@ -14,8 +14,6 @@ namespace MGUI.Core.UI.Animation;
 public abstract class UIAnimation<T> : UIAnimation
 {
     private T _From;
-    private T _StartValue;
-    private T _BaseValue;
     private bool _HasBaseValue;
     private IUIInterpolator<T> _ActiveInterpolator;
 
@@ -53,31 +51,31 @@ public abstract class UIAnimation<T> : UIAnimation
     public T CurrentValue { get; protected set; }
 
     /// <summary>The start value of the current run (<see cref="From"/>, or the value read at start).</summary>
-    public T StartValue => _StartValue;
+    public T StartValue { get; private set; }
 
     /// <summary>The base value the run restores (read at start or inherited from a replaced animation).</summary>
-    public T BaseValue => _BaseValue;
+    public T BaseValue { get; private set; }
 
-    protected internal override object BaseValueBoxed => _HasBaseValue ? _BaseValue : null;
+    protected internal override object BaseValueBoxed => _HasBaseValue ? BaseValue : null;
 
     protected internal override void OnStarting(object inheritedBase)
     {
         _ActiveInterpolator = Interpolator ?? UIInterpolators.Get<T>();
         T current = ReadCurrentValue();
-        _StartValue = HasFrom ? _From : current;
-        _BaseValue = inheritedBase is T inherited ? inherited : current;
+        StartValue = HasFrom ? _From : current;
+        BaseValue = inheritedBase is T inherited ? inherited : current;
         _HasBaseValue = true;
-        CurrentValue = _StartValue;
+        CurrentValue = StartValue;
     }
 
     protected internal override void ApplyProgress(float progress)
     {
         float eased = (Easing ?? UIEasing.Linear).Ease(progress);
-        CurrentValue = _ActiveInterpolator.Lerp(_StartValue, To, eased);
+        CurrentValue = _ActiveInterpolator.Lerp(StartValue, To, eased);
         WriteValue(CurrentValue);
     }
 
-    protected internal override void OnRestoreBaseValue() => RestoreBaseValueCore(_BaseValue);
+    protected internal override void OnRestoreBaseValue() => RestoreBaseValueCore(BaseValue);
 
     protected internal override void OnReleaseHold() => ReleaseHoldCore();
 

@@ -2,26 +2,26 @@ namespace MGUI.Core.UI;
 
 public sealed class MGColorPickerModel
 {
-    private ColorValue _Value;
-    private ColorValue _CommittedValue;
-    private ColorValue _EditStartValue;
-    private HsvColor _HsvValue;
-    private ColorSpaceMode _DisplayColorSpace = ColorSpaceMode.Srgb;
+    private ColorValue _editStartValue;
+    private ColorSpaceMode _displayColorSpace = ColorSpaceMode.Srgb;
 
-    public ColorValue Value => _Value;
-    public ColorValue CommittedValue => _CommittedValue;
-    public HsvColor HsvValue => _HsvValue;
+    public ColorValue Value { get; private set; }
+
+    public ColorValue CommittedValue { get; private set; }
+
+    public HsvColor HsvValue { get; private set; }
+
     public ColorValue DisplayValue => GetDisplayValue();
     public ColorSpaceMode StorageColorSpace => Value.ColorSpace;
     public float? TemperatureKelvin { get; private set; }
     public ColorSpaceMode DisplayColorSpace
     {
-        get => _DisplayColorSpace;
+        get => _displayColorSpace;
         set
         {
-            if (_DisplayColorSpace != value)
+            if (_displayColorSpace != value)
             {
-                _DisplayColorSpace = value;
+                _displayColorSpace = value;
                 RefreshDisplayState();
             }
         }
@@ -81,10 +81,10 @@ public sealed class MGColorPickerModel
             EditTransaction.Cancel();
         }
 
-        ColorValue previous = _CommittedValue;
+        ColorValue previous = CommittedValue;
         ColorValue actual = ApplyValue(value);
-        _CommittedValue = actual;
-        _EditStartValue = actual;
+        CommittedValue = actual;
+        _editStartValue = actual;
         IsEditing = false;
 
         if (previous != actual)
@@ -143,9 +143,9 @@ public sealed class MGColorPickerModel
             return;
         }
 
-        _EditStartValue = _CommittedValue;
+        _editStartValue = CommittedValue;
         IsEditing = true;
-        EditTransaction.Begin(_EditStartValue);
+        EditTransaction.Begin(_editStartValue);
         EditStarted?.Invoke(this, EventArgs.Empty);
     }
 
@@ -156,7 +156,7 @@ public sealed class MGColorPickerModel
             BeginEdit();
         }
 
-        ColorValue previousPreview = _Value;
+        ColorValue previousPreview = Value;
         ColorValue actual = ApplyValue(value);
         if (previousPreview == actual)
         {
@@ -164,11 +164,11 @@ public sealed class MGColorPickerModel
         }
 
         EditTransaction.Preview(actual);
-        ValueChanging?.Invoke(this, new ColorValueChangingEventArgs(_EditStartValue, actual));
+        ValueChanging?.Invoke(this, new ColorValueChangingEventArgs(_editStartValue, actual));
         if (CommitMode == ColorEditCommitMode.Live)
         {
-            ColorValue previousCommit = _CommittedValue;
-            _CommittedValue = actual;
+            ColorValue previousCommit = CommittedValue;
+            CommittedValue = actual;
             ValueChanged?.Invoke(this, new ColorValueChangedEventArgs(previousCommit, actual));
         }
     }
@@ -195,18 +195,18 @@ public sealed class MGColorPickerModel
             return false;
         }
 
-        ColorValue previousCommit = _CommittedValue;
-        ColorValue finalValue = _Value;
+        ColorValue previousCommit = CommittedValue;
+        ColorValue finalValue = Value;
         if (CommitMode != ColorEditCommitMode.Live && previousCommit != finalValue)
         {
-            _CommittedValue = finalValue;
+            CommittedValue = finalValue;
             ValueChanged?.Invoke(this, new ColorValueChangedEventArgs(previousCommit, finalValue));
         }
 
         IsEditing = false;
         EditTransaction.Commit(finalValue);
-        EditCommitted?.Invoke(this, new ColorValueChangedEventArgs(_EditStartValue, finalValue));
-        _EditStartValue = finalValue;
+        EditCommitted?.Invoke(this, new ColorValueChangedEventArgs(_editStartValue, finalValue));
+        _editStartValue = finalValue;
         return true;
     }
 
@@ -217,12 +217,12 @@ public sealed class MGColorPickerModel
             return false;
         }
 
-        ColorValue currentValue = _Value;
-        ApplyValue(_EditStartValue);
-        if (CommitMode == ColorEditCommitMode.Live && currentValue != _EditStartValue)
+        ColorValue currentValue = Value;
+        ApplyValue(_editStartValue);
+        if (CommitMode == ColorEditCommitMode.Live && currentValue != _editStartValue)
         {
-            _CommittedValue = _EditStartValue;
-            ValueChanged?.Invoke(this, new ColorValueChangedEventArgs(currentValue, _EditStartValue));
+            CommittedValue = _editStartValue;
+            ValueChanged?.Invoke(this, new ColorValueChangedEventArgs(currentValue, _editStartValue));
         }
 
         IsEditing = false;
@@ -233,10 +233,10 @@ public sealed class MGColorPickerModel
 
     private void SetValue(ColorValue value, bool raiseEvent)
     {
-        ColorValue previous = _Value;
+        ColorValue previous = Value;
         ColorValue actual = ApplyValue(value);
-        _CommittedValue = actual;
-        _EditStartValue = actual;
+        CommittedValue = actual;
+        _editStartValue = actual;
 
         if (raiseEvent && previous != actual)
         {
@@ -247,7 +247,7 @@ public sealed class MGColorPickerModel
     private ColorValue ApplyValue(ColorValue value)
     {
         ColorValue actual = Constraints.Apply(value);
-        _Value = actual;
+        Value = actual;
         RefreshDisplayState();
         return actual;
     }
@@ -255,7 +255,7 @@ public sealed class MGColorPickerModel
     private void RefreshDisplayState()
     {
         ColorValue displayValue = GetDisplayValue();
-        _HsvValue = ColorSpaceConverter.RgbToHsv(displayValue);
+        HsvValue = ColorSpaceConverter.RgbToHsv(displayValue);
         TextInput.SetValue(displayValue);
     }
 }

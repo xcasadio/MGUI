@@ -4,8 +4,8 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI;
@@ -496,7 +496,7 @@ public class MGTabControl : MGHeaderedContentPresenter
             return;
         }
 
-        _SelectedTab = null;
+        SelectedTab = null;
         HeadersPanelElement?.InvalidateLayoutTree();
         LayoutChanged(this, true);
 
@@ -532,10 +532,8 @@ public class MGTabControl : MGHeaderedContentPresenter
         return Tab;
     }
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private MGTabItem _SelectedTab;
-    public MGTabItem SelectedTab { get => _SelectedTab; }
-    public int SelectedTabIndex => _SelectedTab == null ? -1 : _Tabs.IndexOf(_SelectedTab);
+    public MGTabItem SelectedTab { get; private set; }
+    public int SelectedTabIndex => SelectedTab == null ? -1 : _Tabs.IndexOf(SelectedTab);
 
     /// <summary>Invoked just before <see cref="SelectedTab"/> changes to another tab. Argument value is the new tab being selected. This event allows cancellation.<para/>
     /// Not raised when the selected tab is removed and no other tab takes over the selection (see <see cref="RemoveTab(MGTabItem)"/>):
@@ -564,7 +562,7 @@ public class MGTabControl : MGHeaderedContentPresenter
             }
 
             MGTabItem Previous = SelectedTab;
-            _SelectedTab = Tab;
+            SelectedTab = Tab;
 
             UpdateHeaderWrapper(Previous);
             UpdateHeaderWrapper(SelectedTab);
@@ -575,7 +573,7 @@ public class MGTabControl : MGHeaderedContentPresenter
             NPC(nameof(SelectedTab));
             NPC(nameof(SelectedTabIndex));
             Previous?.NPC(nameof(MGTabItem.IsTabSelected));
-            _SelectedTab?.NPC(nameof(MGTabItem.IsTabSelected));
+            SelectedTab?.NPC(nameof(MGTabItem.IsTabSelected));
             SelectedTabChanged?.Invoke(this, new(Previous, SelectedTab));
             return true;
         }

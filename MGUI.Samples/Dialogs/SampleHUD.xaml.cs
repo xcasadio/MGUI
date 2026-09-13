@@ -1,4 +1,4 @@
-﻿using MGUI.Core.UI.Brushes.Fill_Brushes;
+﻿using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Backend.MonoGame;
 using MGUI.Core.UI;
 using Microsoft.Xna.Framework.Content;

@@ -1,11 +1,11 @@
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.XAML;
 using Microsoft.Xna.Framework;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI.Styling;
 

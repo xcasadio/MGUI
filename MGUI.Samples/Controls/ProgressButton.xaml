@@ -1,4 +1,5 @@
 ﻿<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
         Left="440" Top="20" MinHeight="0" Width="560" SizeToContent="Height" TitleText="ProgressButton" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
@@ -236,25 +237,25 @@
                         </Grid.Styles>
 
                         <!-- Wood -->
-                        <TextBlock Row="0" Column="0" VerticalAlignment="Center" Text="{MGBinding Path=WoodQty, Mode=OneWay, StringFormat='{}{0}x'}" />
+                        <TextBlock Row="0" Column="0" VerticalAlignment="Center" Text="{dataBinding:MGBinding Path=WoodQty, Mode=OneWay, StringFormat='{}{0}x'}" />
                         <ProgressButton Name="WoodBtn" Row="0" Column="1" Background="Peru" ProgressBarForeground="Sienna" Content="Gather Wood" TextForeground="Black" Duration="00:00:01" />
                         
                         <!-- Huts -->
-                        <TextBlock Row="0" Column="2" VerticalAlignment="Center" Text="{MGBinding Path=HutQty, Mode=OneWay, StringFormat='{}{0}x'}" />
+                        <TextBlock Row="0" Column="2" VerticalAlignment="Center" Text="{dataBinding:MGBinding Path=HutQty, Mode=OneWay, StringFormat='{}{0}x'}" />
                         <!-- This progress button is only enabled when player has at least 3 wood. 
                         The progress bar is only visible when unpaused, so that the ProgressBarBackground only gets rendered when it is processing.
                         Thus, the gray disabled background is only seen if (!CanBuildHut && !IsPaused) -->
                         <ProgressButton Name="HutBtn" Row="0" Column="3" Background="SandyBrown" ProgressBarForeground="Chocolate" ProgressBarBackground="SandyBrown" HideWhenPaused="True" 
                                         TextForeground="Black" DisabledTextForeground="Black" Content="Build Hut" Duration="00:00:05"
-                                        IsEnabled="{MGBinding Path=CanBuildHut, Mode=OneWay}" DisabledBackground="Gray * 0.5" />
+                                        IsEnabled="{dataBinding:MGBinding Path=CanBuildHut, Mode=OneWay}" DisabledBackground="Gray * 0.5" />
 
                         <!-- Stone -->
-                        <TextBlock Row="1" Column="0" VerticalAlignment="Center" Text="{MGBinding Path=StoneQty, Mode=OneWay, StringFormat='{}{0}x'}" />
+                        <TextBlock Row="1" Column="0" VerticalAlignment="Center" Text="{dataBinding:MGBinding Path=StoneQty, Mode=OneWay, StringFormat='{}{0}x'}" />
                         <ProgressButton Name="StoneBtn" Row="1" Column="1" Background="LightGray" ProgressBarForeground="Gray" Content="Gather Stone" TextForeground="Black" Duration="00:00:01.3" />
-                        <TextBlock Row="1" Column="2" VerticalAlignment="Center" Text="{MGBinding Path=QuarryQty, Mode=OneWay, StringFormat='{}{0}x'}" />
+                        <TextBlock Row="1" Column="2" VerticalAlignment="Center" Text="{dataBinding:MGBinding Path=QuarryQty, Mode=OneWay, StringFormat='{}{0}x'}" />
                         <ProgressButton Name="QuarryBtn" Row="1" Column="3" Background="AliceBlue" ProgressBarForeground="CadetBlue" ProgressBarBackground="AliceBlue" HideWhenPaused="True" 
                                         TextForeground="Black" DisabledTextForeground="Black" Content="Build Quarry" Duration="00:00:07"
-                                        IsEnabled="{MGBinding Path=CanBuildQuarry, Mode=OneWay}" DisabledBackground="Gray * 0.5" />
+                                        IsEnabled="{dataBinding:MGBinding Path=CanBuildQuarry, Mode=OneWay}" DisabledBackground="Gray * 0.5" />
                     </Grid>
                     <TextBlock Text="[c=SandyBrown]Huts[/c] require 2x [c=Peru]Wood[/c]. [c=AliceBlue]Quarries[/c] require 3x [c=LightGray]Stone[/c]" />
                 </StackPanel>

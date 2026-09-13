@@ -2,7 +2,7 @@ using MGUI.Core.Tooling;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Animation;
 using MGUI.Core.UI.Animation.Targets;
-using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;

@@ -1,6 +1,4 @@
-﻿using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Core.UI.Containers;
+﻿using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Text;
 using MGUI.Core.UI.XAML;
@@ -8,6 +6,8 @@ using MGUI.Core.Tooling;
 using Microsoft.Xna.Framework;
 using System.Reflection;
 using System.Text;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 #if WINDOWS

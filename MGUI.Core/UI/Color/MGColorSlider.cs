@@ -9,15 +9,15 @@ namespace MGUI.Core.UI;
 public class MGColorSlider : MGElement
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ColorSliderChannel _Channel;
+    private ColorSliderChannel _channel;
     public ColorSliderChannel Channel
     {
-        get => _Channel;
+        get => _channel;
         set
         {
-            if (_Channel != value)
+            if (_channel != value)
             {
-                _Channel = value;
+                _channel = value;
                 ApplyDefaultRangeForChannel(value);
                 NPC(nameof(Channel));
             }
@@ -25,54 +25,54 @@ public class MGColorSlider : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ColorValue _BaseColor;
+    private ColorValue _baseColor;
     public ColorValue BaseColor
     {
-        get => _BaseColor;
+        get => _baseColor;
         set
         {
-            if (_BaseColor != value)
+            if (_baseColor != value)
             {
-                _BaseColor = value;
+                _baseColor = value;
                 NPC(nameof(BaseColor));
             }
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private float _Minimum;
+    private float _minimum;
     public float Minimum
     {
-        get => _Minimum;
+        get => _minimum;
         set => SetRange(value, Maximum);
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private float _Maximum;
+    private float _maximum;
     public float Maximum
     {
-        get => _Maximum;
+        get => _maximum;
         set => SetRange(Minimum, value);
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private float _Value;
+    private float _value;
     public float Value
     {
-        get => _Value;
+        get => _value;
         set => SetValue(value);
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private Orientation _Orientation;
+    private Orientation _orientation;
     public Orientation Orientation
     {
-        get => _Orientation;
+        get => _orientation;
         set
         {
-            if (_Orientation != value)
+            if (_orientation != value)
             {
-                _Orientation = value;
+                _orientation = value;
                 LayoutChanged(this, true);
                 NPC(nameof(Orientation));
             }
@@ -80,16 +80,16 @@ public class MGColorSlider : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _SliderWidth;
+    private int _sliderWidth;
     public int SliderWidth
     {
-        get => _SliderWidth;
+        get => _sliderWidth;
         set
         {
             int actual = Math.Max(0, value);
-            if (_SliderWidth != actual)
+            if (_sliderWidth != actual)
             {
-                _SliderWidth = actual;
+                _sliderWidth = actual;
                 LayoutChanged(this, true);
                 NPC(nameof(SliderWidth));
             }
@@ -97,16 +97,16 @@ public class MGColorSlider : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _SliderHeight;
+    private int _sliderHeight;
     public int SliderHeight
     {
-        get => _SliderHeight;
+        get => _sliderHeight;
         set
         {
             int actual = Math.Max(0, value);
-            if (_SliderHeight != actual)
+            if (_sliderHeight != actual)
             {
-                _SliderHeight = actual;
+                _sliderHeight = actual;
                 LayoutChanged(this, true);
                 NPC(nameof(SliderHeight));
             }
@@ -194,15 +194,15 @@ public class MGColorSlider : MGElement
             throw new ArgumentException($"{nameof(Minimum)} cannot be greater than {nameof(Maximum)}.");
         }
 
-        bool minimumChanged = _Minimum != minimum;
-        bool maximumChanged = _Maximum != maximum;
+        bool minimumChanged = _minimum != minimum;
+        bool maximumChanged = _maximum != maximum;
         if (!minimumChanged && !maximumChanged)
         {
             return;
         }
 
-        _Minimum = minimum;
-        _Maximum = maximum;
+        _minimum = minimum;
+        _maximum = maximum;
         _ = SetValue(Value);
         if (minimumChanged)
         {
@@ -218,12 +218,12 @@ public class MGColorSlider : MGElement
     public float SetValue(float desiredValue)
     {
         float actual = Math.Clamp(desiredValue, Minimum, Maximum);
-        if (!_Value.Equals(actual))
+        if (!_value.Equals(actual))
         {
-            float previous = _Value;
-            _Value = actual;
+            float previous = _value;
+            _value = actual;
             NPC(nameof(Value));
-            ValueChanged?.Invoke(this, new EventArgs<float>(previous, _Value));
+            ValueChanged?.Invoke(this, new EventArgs<float>(previous, _value));
         }
 
         return actual;
@@ -249,15 +249,15 @@ public class MGColorSlider : MGElement
         };
     }
 
-    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness sharedSize)
     {
-        SharedSize = new(0);
+        sharedSize = new(0);
         return new(SliderWidth, SliderHeight, 0, 0);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(SliderWidth, SliderHeight));
+        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(SliderWidth, SliderHeight));
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             return;
@@ -318,15 +318,15 @@ public class MGColorSlider : MGElement
     {
         if (channel == ColorSliderChannel.Hue)
         {
-            _Minimum = 0f;
-            _Maximum = 360f;
-            _Value = Math.Clamp(_Value, _Minimum, _Maximum);
+            _minimum = 0f;
+            _maximum = 360f;
+            _value = Math.Clamp(_value, _minimum, _maximum);
         }
         else
         {
-            _Minimum = 0f;
-            _Maximum = 1f;
-            _Value = Math.Clamp(_Value, _Minimum, _Maximum);
+            _minimum = 0f;
+            _maximum = 1f;
+            _value = Math.Clamp(_value, _minimum, _maximum);
         }
 
         NPC(nameof(Minimum));

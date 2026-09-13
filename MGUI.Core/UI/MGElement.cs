@@ -10,23 +10,24 @@ using System.Diagnostics;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.ObjectModel;
 using MGUI.Core.UI.Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Rendering;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Input;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
-using MGUI.Core.UI.Data_Binding;
+using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Styling;
 using System.ComponentModel;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.DragDrop;
 using MGUI.Core.UI.Shapes;
 using MGUI.Core.UI.Responsive;
 using MGUI.Core.Tooling;
 using MGUI.Shared.Rendering.Clipping;
 using System.Threading;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
+using MGUI.Core.UI.DataBinding;
 
 namespace MGUI.Core.UI;
 
@@ -106,9 +107,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     public MGDesktop GetDesktop() => SelfOrParentWindow.Desktop;
     /// <summary>Resolves the effective theme from the current resource scope.</summary>
     public MGTheme GetTheme() => GetResources().DefaultTheme;
-    private MGResources _localResources;
-    public MGResources LocalResources => _localResources;
-    public MGResources GetResources() => _localResources ?? GetInheritedResources();
+
+    public MGResources LocalResources { get; private set; }
+
+    public MGResources GetResources() => LocalResources ?? GetInheritedResources();
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private readonly Dictionary<string, MGElement> _templateParts = new(StringComparer.Ordinal);
@@ -684,17 +686,17 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     public MGResources EnsureResourceScope(UIResourceScope Scope = UIResourceScope.Subtree)
     {
-        if (_localResources == null)
+        if (LocalResources == null)
         {
-            _localResources = new(GetInheritedResources(), Scope);
-            _localResources.OnDefaultThemeChanged += (_, e) => NotifyThemeChanged(e.PreviousTheme, e.Theme);
+            LocalResources = new(GetInheritedResources(), Scope);
+            LocalResources.OnDefaultThemeChanged += (_, e) => NotifyThemeChanged(e.PreviousTheme, e.Theme);
         }
         else
         {
-            _localResources.SetParent(GetInheritedResources());
+            LocalResources.SetParent(GetInheritedResources());
         }
 
-        return _localResources;
+        return LocalResources;
     }
 
     internal void NotifyThemeChanged(MGTheme PreviousTheme, MGTheme currentTheme)
@@ -914,17 +916,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public bool IsWindow => WindowElementTypes.Contains(ElementType);
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private MGElement _parent;
-    public MGElement Parent { get => _parent; }
+    public MGElement Parent { get; private set; }
+
     protected internal void SetParent(MGElement Value)
     {
-        if (_parent != Value)
+        if (Parent != Value)
         {
             MGElement Previous = Parent;
-            _parent = Value;
+            Parent = Value;
             Interlocked.Increment(ref _treeTopologyGeneration);
-            _localResources?.SetParent(GetInheritedResources());
+            LocalResources?.SetParent(GetInheritedResources());
             InvalidateLayoutTree();
             NPC(nameof(Parent));
             OnParentChanged?.Invoke(this, new(Previous, Parent));
@@ -3829,8 +3830,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Animation.UIRenderTransform _renderTransform;
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _isRenderTransformActive;
+
     /// <summary>The render-only transform of this element (translation, scale, rotation, origin; ADR-0006): applied when the element is drawn,
     /// inverted by the hit-test, never consulted by the layout. Allocated on first access, so an element that never reads this property costs nothing.<para/>
     /// Semantics of NoesisGUI and WPF: relative origin with (0, 0) = top-left by default, rotation in degrees. Not honoured on an <see cref="MGWindow"/>
@@ -3851,14 +3851,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>True while <see cref="RenderTransform"/> has been accessed and is not the identity (never true for an <see cref="MGWindow"/>).</summary>
-    internal bool HasActiveRenderTransform => _isRenderTransformActive;
+    internal bool HasActiveRenderTransform { get; private set; }
 
     private void HandleRenderTransformPropertyChanged(object sender, PropertyChangedEventArgs e)
     {
         bool IsActive = !IsWindow && !_renderTransform.IsIdentity;
-        if (IsActive != _isRenderTransformActive)
+        if (IsActive != HasActiveRenderTransform)
         {
-            _isRenderTransformActive = IsActive;
+            HasActiveRenderTransform = IsActive;
             SelfOrParentWindow?.Desktop?.AdjustActiveRenderTransformCount(IsActive ? 1 : -1);
         }
 
@@ -3925,7 +3925,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     internal bool TryGetRenderTransformMatrix(Rectangle UnscaledBounds, out Matrix transform)
     {
         bool HasStateScale = TryGetEffectiveStateScale(out float StateScale) && Math.Abs(StateScale - 1.0f) > Animation.UIRenderTransform.IdentityEpsilon;
-        bool HasTransform = _isRenderTransformActive;
+        bool HasTransform = HasActiveRenderTransform;
         if (!HasStateScale && !HasTransform)
         {
             transform = Matrix.Identity;
@@ -3979,7 +3979,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <summary>Applies the inverse of this element's own render transform, if any, to a position in unscaled screen space.</summary>
     private void TryApplyInverseRenderTransform(ref Vector2 UnscaledPosition)
     {
-        if (!_isRenderTransformActive && !_renderScale.HasValue && _animationSlot?.StateScaleOverride == null)
+        if (!HasActiveRenderTransform && !_renderScale.HasValue && _animationSlot?.StateScaleOverride == null)
         {
             return;
         }

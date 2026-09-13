@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Rendering.Clipping;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI;
 

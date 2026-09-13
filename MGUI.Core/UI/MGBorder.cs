@@ -2,9 +2,9 @@
 using MGUI.Shared.Helpers;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Rendering.Clipping;
 using MGUI.Core.UI.Styling;
@@ -14,10 +14,10 @@ namespace MGUI.Core.UI;
 public class MGBorder : MGSingleContentHost
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private IBorderBrush _BorderBrush;
+    private IBorderBrush _borderBrush;
     public IBorderBrush BorderBrush
     {
-        get => _BorderBrush;
+        get => _borderBrush;
         set => SetBorderBrush(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
     }
 
@@ -33,10 +33,10 @@ public class MGBorder : MGSingleContentHost
 
     private void ApplyBorderBrushEffective(IBorderBrush value)
     {
-        if (_BorderBrush != value)
+        if (_borderBrush != value)
         {
             IBorderBrush Previous = BorderBrush;
-            _BorderBrush = value;
+            _borderBrush = value;
             NPC(nameof(BorderBrush));
             OnBorderBrushChanged?.Invoke(this, new(Previous, BorderBrush));
         }
@@ -45,10 +45,10 @@ public class MGBorder : MGSingleContentHost
     public event EventHandler<EventArgs<IBorderBrush>> OnBorderBrushChanged;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private Thickness _BorderThickness;
+    private Thickness _borderThickness;
     public Thickness BorderThickness
     {
-        get => _BorderThickness;
+        get => _borderThickness;
         set => SetBorderThickness(value, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
     }
 
@@ -63,10 +63,10 @@ public class MGBorder : MGSingleContentHost
 
     private void ApplyBorderThicknessEffective(Thickness value)
     {
-        if (!_BorderThickness.Equals(value))
+        if (!_borderThickness.Equals(value))
         {
             Thickness Previous = BorderThickness;
-            _BorderThickness = value;
+            _borderThickness = value;
             LayoutChanged(this, true);
             NPC(nameof(BorderThickness));
             OnBorderThicknessChanged?.Invoke(this, new(Previous, BorderThickness));
@@ -97,16 +97,16 @@ public class MGBorder : MGSingleContentHost
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private MGCornerRadius _CornerRadius;
+    private MGCornerRadius _cornerRadius;
     public MGCornerRadius CornerRadius
     {
-        get => _CornerRadius;
+        get => _cornerRadius;
         set
         {
-            if (!_CornerRadius.Equals(value))
+            if (!_cornerRadius.Equals(value))
             {
                 MGCornerRadius previous = CornerRadius;
-                _CornerRadius = value;
+                _cornerRadius = value;
                 LayoutChanged(this, true);
                 NPC(nameof(CornerRadius));
                 OnCornerRadiusChanged?.Invoke(this, new(previous, CornerRadius));
@@ -117,19 +117,19 @@ public class MGBorder : MGSingleContentHost
     public event EventHandler<EventArgs<MGCornerRadius>> OnCornerRadiusChanged;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _IsShapeAwareHitTestEnabled;
+    private bool _isShapeAwareHitTestEnabled;
     /// <summary>If true and <see cref="CornerRadius"/> is not zero, mouse hit testing follows the rounded silhouette of this border
     /// (<see cref="MGBoxShape.Contains(Vector2)"/>) instead of its rectangular bounds, so the rounded-off corners no longer react to the mouse.<para/>
     /// Opt-in: the default value is false, which keeps the framework-wide rectangular hit test. Controls that embed an <see cref="MGBorder"/>
     /// are not affected unless this flag is set on that border.</summary>
     public bool IsShapeAwareHitTestEnabled
     {
-        get => _IsShapeAwareHitTestEnabled;
+        get => _isShapeAwareHitTestEnabled;
         set
         {
-            if (_IsShapeAwareHitTestEnabled != value)
+            if (_isShapeAwareHitTestEnabled != value)
             {
-                _IsShapeAwareHitTestEnabled = value;
+                _isShapeAwareHitTestEnabled = value;
                 NPC(nameof(IsShapeAwareHitTestEnabled));
             }
         }
@@ -140,23 +140,23 @@ public class MGBorder : MGSingleContentHost
     public MGBorder(MGWindow Window)
         : this(Window, new(1), MGUniformBorderBrush.Black) { }
 
-    public MGBorder(MGWindow Window, Thickness BorderThickness, IFillBrush BorderBrush)
-        : this(Window, BorderThickness, BorderBrush == null ? null : new MGUniformBorderBrush(BorderBrush)) { }
+    public MGBorder(MGWindow Window, Thickness borderThickness, IFillBrush borderBrush)
+        : this(Window, borderThickness, borderBrush == null ? null : new MGUniformBorderBrush(borderBrush)) { }
 
-    public MGBorder(MGWindow Window, Thickness BorderThickness, IBorderBrush BorderBrush)
+    public MGBorder(MGWindow Window, Thickness borderThickness, IBorderBrush borderBrush)
         : base(Window, MGElementType.Border)
     {
         using (BeginInitializing())
         {
-            SetBorderBrush(BorderBrush, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
-            SetBorderThickness(BorderThickness, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            SetBorderBrush(borderBrush, UIValueResolutionSource.Default(UIInvalidationKind.Draw));
+            SetBorderThickness(borderThickness, UIValueResolutionSource.Default(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             this.CornerRadius = MGCornerRadius.Zero;
         }
     }
 
-    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness sharedSize)
     {
-        SharedSize = new(0);
+        sharedSize = new(0);
         return BorderThickness;
     }
 
@@ -185,14 +185,14 @@ public class MGBorder : MGSingleContentHost
         return CreateBoxShape(LayoutBounds).Contains(layoutPoint);
     }
 
-    public override void DrawBackground(ElementDrawArgs DA, Rectangle LayoutBounds)
+    public override void DrawBackground(ElementDrawArgs DA, Rectangle layoutBounds)
     {
         if (!DrawBackgroundAndOverlay)
         {
             return;
         }
 
-        if (TryGetRoundedBackgroundShapeAndGeometry(LayoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, true))
+        if (TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out MGBoxShape backgroundShape, out MGBoxGeometry backgroundGeometry, true))
         {
             BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundShape, backgroundGeometry);
 
@@ -201,16 +201,16 @@ public class MGBorder : MGSingleContentHost
             return;
         }
 
-        Rectangle backgroundBounds = LayoutBounds.GetCompressed(BorderThickness).GetCompressed(BackgroundRenderPadding);
+        Rectangle backgroundBounds = layoutBounds.GetCompressed(BorderThickness).GetCompressed(BackgroundRenderPadding);
         BackgroundBrush.GetUnderlay(DA.VisualState.Primary)?.Draw(DA, this, backgroundBounds);
 
         SecondaryVisualState secondaryState = DA.VisualState.GetSecondaryState(SpoofIsPressedWhileDrawingBackground, SpoofIsHoveredWhileDrawingBackground);
         BackgroundBrush.DrawFillOverlay(DA, secondaryState, this, backgroundBounds);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        MGBoxShape boxShape = CreateBoxShape(LayoutBounds);
+        MGBoxShape boxShape = CreateBoxShape(layoutBounds);
         MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(boxShape);
         BorderBrush?.Draw(DA, this, boxShape, geometry);
 

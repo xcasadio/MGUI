@@ -1,5 +1,5 @@
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Graph;
@@ -45,7 +45,6 @@ public class MGGraphView : MGSingleContentHost
     private bool _IsDraggingNodes;
     private bool _IsDraggingComments;
     private bool _IsResizingComment;
-    private bool _IsSelectingRectangle;
     private Guid _PressedNodeId;
     private Guid _PressedCommentId;
     private bool _PressedCommentResizeHandle;
@@ -95,7 +94,8 @@ public class MGGraphView : MGSingleContentHost
     public bool AllowPan { get; set; } = true;
     public bool SnapToGrid { get; set; }
     public float FramePadding { get; set; } = 32.0f;
-    public bool IsSelectionRectangleActive => _IsSelectingRectangle;
+    public bool IsSelectionRectangleActive { get; private set; }
+
     public RectangleF SelectionRectangleViewportBounds => CreateRectangle(_PointerPressViewportPoint, _CurrentSelectionViewportPoint);
     internal bool IsCommentEditorOpen => _ActiveCommentEditor != null;
     internal Guid EditingCommentId => _ActiveCommentEditor?.CommentId ?? Guid.Empty;
@@ -1663,7 +1663,7 @@ public class MGGraphView : MGSingleContentHost
         _IsDraggingNodes = false;
         _IsDraggingComments = false;
         _IsResizingComment = false;
-        _IsSelectingRectangle = false;
+        IsSelectionRectangleActive = false;
         _PressedNodeId = Guid.Empty;
         _PressedCommentId = Guid.Empty;
         _PressedCommentResizeHandle = false;
@@ -1750,7 +1750,7 @@ public class MGGraphView : MGSingleContentHost
                 }
                 else
                 {
-                    _IsSelectingRectangle = true;
+                    IsSelectionRectangleActive = true;
                     _CurrentSelectionViewportPoint = GetViewportPoint(e.Position);
                 }
             }
@@ -1784,7 +1784,7 @@ public class MGGraphView : MGSingleContentHost
                 UpdateCommentResize(GetViewportPoint(e.Position));
             }
 
-            else if (_IsSelectingRectangle && e.IsLMB)
+            else if (IsSelectionRectangleActive && e.IsLMB)
             {
                 _CurrentSelectionViewportPoint = GetViewportPoint(e.Position);
             }
@@ -1984,7 +1984,7 @@ public class MGGraphView : MGSingleContentHost
         {
             CommitCommentResize();
         }
-        else if (_IsSelectingRectangle)
+        else if (IsSelectionRectangleActive)
         {
             _CurrentSelectionViewportPoint = GetViewportPoint(screenPosition);
             RectangleF viewportRectangle = SelectionRectangleViewportBounds;
@@ -2000,7 +2000,7 @@ public class MGGraphView : MGSingleContentHost
         _IsDraggingNodes = false;
         _IsDraggingComments = false;
         _IsResizingComment = false;
-        _IsSelectingRectangle = false;
+        IsSelectionRectangleActive = false;
         _NodeDragStartPositions.Clear();
         _CommentDragStartBounds.Clear();
     }
@@ -3373,7 +3373,6 @@ public class MGGraphCommentBox : MGSingleContentHost
     private string _Text = string.Empty;
     private Guid _CommentId;
     private bool _HasCapturedZoomMetrics;
-    private bool _IsEditing;
     private int _BaseBodyFontSize;
     private Thickness _BaseOuterPadding;
 
@@ -3381,7 +3380,7 @@ public class MGGraphCommentBox : MGSingleContentHost
     public MGTextBox TitleTextBox { get; private set; }
     public MGTextBox BodyTextBox { get; private set; }
     public GraphCommentModel Model { get; }
-    public bool IsEditing => _IsEditing;
+    public bool IsEditing { get; private set; }
 
     public Guid CommentId
     {
@@ -3424,7 +3423,7 @@ public class MGGraphCommentBox : MGSingleContentHost
             if (_Text != next)
             {
                 _Text = next;
-                if (!_IsEditing && BodyTextBox != null && BodyTextBox.Text != _Text)
+                if (!IsEditing && BodyTextBox != null && BodyTextBox.Text != _Text)
                 {
                     BodyTextBox.SetText(_Text, SuppressLayoutChanged: true);
                 }
@@ -3529,15 +3528,15 @@ public class MGGraphCommentBox : MGSingleContentHost
             return;
         }
 
-        textBox.IsReadonly = !_IsEditing;
-        textBox.IsHitTestVisible = _IsEditing;
-        textBox.AllowsTextSelection = _IsEditing;
+        textBox.IsReadonly = !IsEditing;
+        textBox.IsHitTestVisible = IsEditing;
+        textBox.AllowsTextSelection = IsEditing;
     }
 
     internal void BeginEdit()
     {
         SyncEditorText(BodyTextBox, Text);
-        _IsEditing = true;
+        IsEditing = true;
         ApplyEditingState();
     }
 
@@ -3552,7 +3551,7 @@ public class MGGraphCommentBox : MGSingleContentHost
             SyncEditorText(BodyTextBox, Text);
         }
 
-        _IsEditing = false;
+        IsEditing = false;
         ApplyEditingState();
     }
 

@@ -1,5 +1,4 @@
 ﻿using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -9,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Samples.Controls
 {

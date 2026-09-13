@@ -1,0 +1,23 @@
+﻿using System.ComponentModel;
+
+namespace MGUI.Core.UI.DataBinding;
+
+/// <summary>Helper class that executes the given handler logic when a specific named property on the target object changes.</summary>
+internal class PropertyNameHandler
+{
+    public readonly PropertyNameListener Listener;
+    private readonly PropertyChangedEventHandler Handler;
+
+    public PropertyNameHandler(INotifyPropertyChanged Source, string PropertyName, Action<object, PropertyChangedEventArgs> Handler)
+    {
+        Listener = new(Source, PropertyName);
+        this.Handler = new(Handler);
+        Listener.PropertyChanged += this.Handler;
+    }
+
+    public void Detach()
+    {
+        Listener.PropertyChanged -= Handler;
+        Listener.Detach();
+    }
+}

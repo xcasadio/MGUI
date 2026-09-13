@@ -1,0 +1,19 @@
+﻿using MGUI.Core.UI.Brushes.FillBrushes;
+using Microsoft.Xna.Framework;
+using MonoGame.Extended;
+using MGUI.Shared.Rendering;
+using MGUI.Core.UI.Shapes;
+
+namespace MGUI.Core.UI.Brushes.BorderBrushes;
+
+/// <summary>See also:<br/><see cref="MGUniformBorderBrush"/><br/><see cref="MGDockedBorderBrush"/><br/><see cref="MGBandedBorderBrush"/><br/><see cref="MGTexturedBorderBrush"/><br/><see cref="MGHighlightBorderBrush"/><br/><see cref="MGCompositedFillBrush"/></summary>
+public interface IBorderBrush : ICloneable
+{
+    public void Update(UpdateBaseArgs UA) { }
+    public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT);
+    public void Draw(ElementDrawArgs DA, MGElement Element, MGBoxShape Shape, MGBoxGeometry Geometry)
+        => Draw(DA, Element, Shape.OuterBounds, Shape.NormalizedBorderThickness);
+
+    public IBorderBrush Copy();
+    object ICloneable.Clone() => Copy();
+}

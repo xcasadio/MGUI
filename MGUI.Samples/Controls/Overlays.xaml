@@ -1,4 +1,5 @@
 ﻿<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
         Left="440" Top="20" MinHeight="0" Width="550" Height="800" TitleText="Overlays" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
@@ -55,7 +56,7 @@
                         </OverlayHost>
                     </Border>
                     <Spacer Height="3" />
-                    <CheckBox Content="Show overlay" IsChecked="{MGBinding ElementName=Overlay1, Path=IsOpen, Mode=TwoWay}" />
+                    <CheckBox Content="Show overlay" IsChecked="{dataBinding:MGBinding ElementName=Overlay1, Path=IsOpen, Mode=TwoWay}" />
                     <TextBlock FontSize="9" Text="Note: Overlays do not have a [c=Turquoise]Background[/c] by default. You may wish to apply a [c=Turquoise]Background[/c] to either the [c=Turquoise]MGOverlay[/c] or to its Content. The above overlay uses a [c=Yellow]Yellow[/c] [c=Turquoise]Background[/c]." />
                 </StackPanel>
             </DockPanel>
@@ -143,23 +144,23 @@ Pellentesque ultricies erat ac viverra posuere. Nunc nunc neque, tincidunt et te
                     
                     <!-- Controls to modify IsOpen/ZIndex in the above overlays -->
                     <Grid RowLengths="auto,auto" ColumnLengths="*,*" RowSpacing="2" ColumnSpacing="12">
-                        <CheckBox Row="0" Column="0" Content="Show EULA" IsChecked="{MGBinding ElementName=Overlay_EULA, Path=IsOpen, Mode=TwoWay}" />
+                        <CheckBox Row="0" Column="0" Content="Show EULA" IsChecked="{dataBinding:MGBinding ElementName=Overlay_EULA, Path=IsOpen, Mode=TwoWay}" />
                         <HeaderedContentPresenter Row="1" Column="0" HeaderPosition="Left" Header="ZIndex:" Spacing="5">
                             <Slider Minimum="0" Maximum="3" MinWidth="50" TickFrequency="1" TickWidth="2" ThumbWidth="8" DrawTicks="True" UseDiscreteValues="True" DiscreteValueInterval="1"
-                                    Value="{MGBinding ElementName=Overlay_EULA, Path=ZIndex, Mode=TwoWay}" />
+                                    Value="{dataBinding:MGBinding ElementName=Overlay_EULA, Path=ZIndex, Mode=TwoWay}" />
                         </HeaderedContentPresenter>
 
-                        <CheckBox Row="0" Column="1" Content="Show Login" IsChecked="{MGBinding ElementName=Overlay_Login, Path=IsOpen, Mode=TwoWay}" />
+                        <CheckBox Row="0" Column="1" Content="Show Login" IsChecked="{dataBinding:MGBinding ElementName=Overlay_Login, Path=IsOpen, Mode=TwoWay}" />
                         <HeaderedContentPresenter Row="1" Column="1" HeaderPosition="Left" Header="ZIndex:" Spacing="5">
                             <Slider Minimum="0" Maximum="3" MinWidth="50" TickFrequency="1" TickWidth="2" ThumbWidth="8" DrawTicks="True" UseDiscreteValues="True" DiscreteValueInterval="1"
-                                    Value="{MGBinding ElementName=Overlay_Login, Path=ZIndex, Mode=TwoWay}" />
+                                    Value="{dataBinding:MGBinding ElementName=Overlay_Login, Path=ZIndex, Mode=TwoWay}" />
                         </HeaderedContentPresenter>
                     </Grid>
 
                     <Spacer Height="3" />
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <TextBlock Text="The active overlay is:" />
-                        <TextBlock IsBold="True" AllowsInlineFormatting="False" Text="{MGBinding ElementName=ZIndexSample, Path=ActiveOverlay.Name, FallbackValue=None, Mode=OneWay}" />
+                        <TextBlock IsBold="True" AllowsInlineFormatting="False" Text="{dataBinding:MGBinding ElementName=ZIndexSample, Path=ActiveOverlay.Name, FallbackValue=None, Mode=OneWay}" />
                     </StackPanel>
                 </StackPanel>
             </DockPanel>
@@ -181,7 +182,7 @@ Pellentesque ultricies erat ac viverra posuere. Nunc nunc neque, tincidunt et te
                                 <Overlay Name="Overlay2" Background="Purple" Content="(Overlay content)" IsOpen="True" />
                             </OverlayHost.Overlays>
                         </OverlayHost>
-                        <CheckBox IsChecked="{MGBinding ElementName=Overlay2, Path=IsOpen, Mode=TwoWay}" Content="Show overlay" />
+                        <CheckBox IsChecked="{dataBinding:MGBinding ElementName=Overlay2, Path=IsOpen, Mode=TwoWay}" Content="Show overlay" />
                     </StackPanel>
 
                     <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="2" Width="230">
@@ -193,7 +194,7 @@ Pellentesque ultricies erat ac viverra posuere. Nunc nunc neque, tincidunt et te
                                 <Overlay Name="Overlay3" Background="Purple" Content="(Overlay content)" IsOpen="True" />
                             </OverlayHost.Overlays>
                         </OverlayHost>
-                        <CheckBox IsChecked="{MGBinding ElementName=Overlay3, Path=IsOpen, Mode=TwoWay}" Content="Show overlay" />
+                        <CheckBox IsChecked="{dataBinding:MGBinding ElementName=Overlay3, Path=IsOpen, Mode=TwoWay}" Content="Show overlay" />
                     </StackPanel>
                 </StackPanel>
 
@@ -216,7 +217,7 @@ Pellentesque ultricies erat ac viverra posuere. Nunc nunc neque, tincidunt et te
                                 <Overlay Name="Overlay4" ShowCloseButton="True" Background="Purple" Content="(Overlay content)" IsOpen="True" Padding="5,20,5,15" />
                             </OverlayHost.Overlays>
                         </OverlayHost>
-                        <CheckBox IsChecked="{MGBinding ElementName=Overlay4, Path=IsOpen, Mode=TwoWay}" Content="Show overlay" />
+                        <CheckBox IsChecked="{dataBinding:MGBinding ElementName=Overlay4, Path=IsOpen, Mode=TwoWay}" Content="Show overlay" />
                     </StackPanel>
 
                     <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="2" Width="230">
@@ -232,7 +233,7 @@ Pellentesque ultricies erat ac viverra posuere. Nunc nunc neque, tincidunt et te
                                 </Overlay>
                             </OverlayHost.Overlays>
                         </OverlayHost>
-                        <CheckBox IsChecked="{MGBinding ElementName=Overlay5, Path=IsOpen, Mode=TwoWay}" Content="Show overlay" />
+                        <CheckBox IsChecked="{dataBinding:MGBinding ElementName=Overlay5, Path=IsOpen, Mode=TwoWay}" Content="Show overlay" />
                     </StackPanel>
                 </StackPanel>
             </DockPanel>
@@ -243,7 +244,7 @@ Pellentesque ultricies erat ac viverra posuere. Nunc nunc neque, tincidunt et te
                     If you want to draw an overlay overtop of the entire game window (such as when showing a tutorial or a MessageBox), add your overlay to [c=Turquoise]MGDesktop.OverlayHost[/c]
                 </TextBlock>
                 <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="2">
-                    <ToggleButton IsChecked="{MGBinding Path=DesktopOverlay.IsOpen, Mode=TwoWay}" Content="Show desktop overlay" HorizontalAlignment="Left" />
+                    <ToggleButton IsChecked="{dataBinding:MGBinding Path=DesktopOverlay.IsOpen, Mode=TwoWay}" Content="Show desktop overlay" HorizontalAlignment="Left" />
                 </StackPanel>
             </DockPanel>
             <Separator/>

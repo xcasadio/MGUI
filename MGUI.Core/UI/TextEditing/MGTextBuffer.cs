@@ -3,17 +3,17 @@ namespace MGUI.Core.UI.TextEditing;
 public sealed class MGTextBuffer
 {
     private readonly List<int> _lineStarts = new() { 0 };
-    private string _text = string.Empty;
 
-    public string Text => _text;
-    public int Length => _text.Length;
+    public string Text { get; private set; } = string.Empty;
+
+    public int Length => Text.Length;
     public int Version { get; private set; }
     public int LineCount => _lineStarts.Count;
     public IReadOnlyList<int> LineStarts => _lineStarts;
 
     public MGTextBuffer(string text = null)
     {
-        _text = NormalizeLineEndings(text);
+        Text = NormalizeLineEndings(text);
         RebuildLineStarts();
     }
 
@@ -30,12 +30,12 @@ public sealed class MGTextBuffer
     public bool SetText(string text)
     {
         string normalizedText = NormalizeLineEndings(text);
-        if (_text == normalizedText)
+        if (Text == normalizedText)
         {
             return false;
         }
 
-        _text = normalizedText;
+        Text = normalizedText;
         Version++;
         RebuildLineStarts();
         return true;
@@ -58,11 +58,11 @@ public sealed class MGTextBuffer
         MGTextRange removedRange = NormalizeRange(range);
         string insertionText = NormalizeLineEndings(text);
         string removedText = GetText(removedRange);
-        string nextText = _text.Remove(removedRange.StartIndex, removedRange.Length).Insert(removedRange.StartIndex, insertionText);
+        string nextText = Text.Remove(removedRange.StartIndex, removedRange.Length).Insert(removedRange.StartIndex, insertionText);
 
-        if (nextText != _text)
+        if (nextText != Text)
         {
-            _text = nextText;
+            Text = nextText;
             Version++;
             RebuildLineStarts();
         }
@@ -74,11 +74,11 @@ public sealed class MGTextBuffer
     public string GetText(MGTextRange range)
     {
         MGTextRange actualRange = NormalizeRange(range);
-        return _text.Substring(actualRange.StartIndex, actualRange.Length);
+        return Text.Substring(actualRange.StartIndex, actualRange.Length);
     }
 
     public MGTextBufferSnapshot CreateSnapshot()
-        => new(_text, Version, _lineStarts);
+        => new(Text, Version, _lineStarts);
 
     public bool RestoreSnapshot(MGTextBufferSnapshot snapshot)
     {
@@ -155,7 +155,7 @@ public sealed class MGTextBuffer
     {
         int lineStartIndex = GetLineStartIndex(lineIndex);
         int lineLength = GetLineLength(lineIndex);
-        return _text.Substring(lineStartIndex, lineLength);
+        return Text.Substring(lineStartIndex, lineLength);
     }
 
     public int GetVisualColumn(MGTextPosition position, int tabSize)
@@ -168,7 +168,7 @@ public sealed class MGTextBuffer
 
         for (int column = 0; column < targetColumn; column++)
         {
-            char character = _text[lineStartIndex + column];
+            char character = Text[lineStartIndex + column];
             visualColumn += character == '\t' ? actualTabSize - (visualColumn % actualTabSize) : 1;
         }
 
@@ -231,9 +231,9 @@ public sealed class MGTextBuffer
         _lineStarts.Clear();
         _lineStarts.Add(0);
 
-        for (int index = 0; index < _text.Length; index++)
+        for (int index = 0; index < Text.Length; index++)
         {
-            if (_text[index] == '\n')
+            if (Text[index] == '\n')
             {
                 _lineStarts.Add(index + 1);
             }

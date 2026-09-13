@@ -1,11 +1,11 @@
 using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Brushes;
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Shared.Rendering;
 using MGUI.Core.UI.Shapes;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI;
 

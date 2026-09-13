@@ -1,4 +1,4 @@
-using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Tests.Architecture;

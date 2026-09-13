@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Helpers;
@@ -8,6 +7,7 @@ using MGUI.Shared.Input.Keyboard;
 using MonoGame.Extended;
 using System.ComponentModel;
 using System.Globalization;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 
 namespace MGUI.Core.UI;
 
@@ -27,7 +27,6 @@ public class MGPropertyGrid : MGSingleContentHost
     }
 
     private object _SelectedObject;
-    private Type _SelectedObjectType;
     private readonly List<PropertyGridCategoryView> _CategoryViews;
     private IReadOnlyList<MGPropertyGridDescriptor> _Descriptors;
     private readonly Dictionary<string, bool> _CategoryCollapsedStates;
@@ -50,8 +49,8 @@ public class MGPropertyGrid : MGSingleContentHost
 
             _SelectedObject = value;
             Type newType = value?.GetType();
-            bool typeChanged = _SelectedObjectType != newType;
-            _SelectedObjectType = newType;
+            bool typeChanged = SelectedObjectType != newType;
+            SelectedObjectType = newType;
 
             NPC(nameof(SelectedObject));
             NPC(nameof(SelectedObjectType));
@@ -72,7 +71,7 @@ public class MGPropertyGrid : MGSingleContentHost
         }
     }
 
-    public Type SelectedObjectType => _SelectedObjectType;
+    public Type SelectedObjectType { get; private set; }
 
     public int LabelColumnWidth
     {

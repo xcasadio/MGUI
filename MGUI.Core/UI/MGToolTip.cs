@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using System.ComponentModel;
 using System.Diagnostics;
-using MGUI.Core.UI.Data_Binding.Converters;
+using MGUI.Core.UI.DataBinding.Converters;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI;

@@ -1,9 +1,10 @@
-﻿using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Globalization;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using XNAColor = Microsoft.Xna.Framework.Color;
-using MGUI.Core.UI.Data_Binding;
+using MGUI.Core.UI.DataBinding;
+using MGUI.Core.UI.DataBinding;
 
 #if UseWPF
 using System.Windows.Markup;

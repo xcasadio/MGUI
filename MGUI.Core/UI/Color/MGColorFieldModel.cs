@@ -2,25 +2,25 @@ namespace MGUI.Core.UI;
 
 public sealed class MGColorFieldModel
 {
-    private ColorValue? _Value;
-    private ColorValue? _DefaultValue;
-    private bool _AllowNull;
-    private bool _IsMixed;
+    private ColorValue? _defaultValue;
+    private bool _allowNull;
+    private bool _isMixed;
 
-    public ColorValue? Value => _Value;
+    public ColorValue? Value { get; private set; }
+
     public ColorValue? DefaultValue
     {
-        get => _DefaultValue;
-        set => _DefaultValue = value;
+        get => _defaultValue;
+        set => _defaultValue = value;
     }
 
     public bool AllowNull
     {
-        get => _AllowNull;
+        get => _allowNull;
         set
         {
-            _AllowNull = value;
-            if (!_AllowNull && _Value == null)
+            _allowNull = value;
+            if (!_allowNull && Value == null)
             {
                 SetValue(DefaultValue ?? new ColorValue(0f, 0f, 0f, 1f));
             }
@@ -29,8 +29,8 @@ public sealed class MGColorFieldModel
 
     public bool IsMixed
     {
-        get => _IsMixed;
-        set => _IsMixed = value;
+        get => _isMixed;
+        set => _isMixed = value;
     }
 
     public bool IsReadOnly { get; set; }
@@ -44,8 +44,8 @@ public sealed class MGColorFieldModel
 
     public MGColorFieldModel(ColorValue? value)
     {
-        _AllowNull = value == null;
-        _Value = value;
+        _allowNull = value == null;
+        Value = value;
     }
 
     public bool TrySetValue(ColorValue? value)
@@ -66,12 +66,12 @@ public sealed class MGColorFieldModel
 
     public void SetMixedValue(ColorValue? displayedValue = null)
     {
-        _Value = displayedValue;
-        _IsMixed = true;
+        Value = displayedValue;
+        _isMixed = true;
     }
 
     public void ClearMixedValue()
-        => _IsMixed = false;
+        => _isMixed = false;
 
     public void SetValueFromSource(ColorValue? value)
         => SetValue(value);
@@ -99,13 +99,13 @@ public sealed class MGColorFieldModel
 
     private void SetValue(ColorValue? value)
     {
-        ColorValue? previous = _Value;
-        bool wasMixed = _IsMixed;
-        _Value = value;
-        _IsMixed = false;
-        if (wasMixed || previous != _Value)
+        ColorValue? previous = Value;
+        bool wasMixed = _isMixed;
+        Value = value;
+        _isMixed = false;
+        if (wasMixed || previous != Value)
         {
-            ValueChanged?.Invoke(this, new ColorFieldValueChangedEventArgs(previous, _Value));
+            ValueChanged?.Invoke(this, new ColorFieldValueChangedEventArgs(previous, Value));
         }
     }
 }

@@ -2,10 +2,10 @@
 using MGUI.Shared.Helpers;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Shared.Input.Mouse;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI;

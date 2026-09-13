@@ -11,10 +11,10 @@ public class MGColorField : MGElement
 {
     public MGColorFieldModel Model { get; }
     public MGColorPickerPopup Popup { get; }
-    private IColorPickService _ColorPickService = UnsupportedColorPickService.Instance;
+    private IColorPickService _colorPickService = UnsupportedColorPickService.Instance;
     private const int TextStripPadding = 4;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private string _CachedDisplayText = string.Empty;
+    private string _cachedDisplayText = string.Empty;
 
     public ColorValue? Value
     {
@@ -79,15 +79,15 @@ public class MGColorField : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _ShowTextInput;
+    private bool _showTextInput;
     public bool ShowTextInput
     {
-        get => _ShowTextInput;
+        get => _showTextInput;
         set
         {
-            if (_ShowTextInput != value)
+            if (_showTextInput != value)
             {
-                _ShowTextInput = value;
+                _showTextInput = value;
                 LayoutChanged(this, true);
                 NPC(nameof(ShowTextInput));
             }
@@ -95,15 +95,15 @@ public class MGColorField : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool? _ShowFieldTextInputOverride;
+    private bool? _showFieldTextInputOverride;
     public bool ShowFieldTextInput
     {
-        get => _ShowFieldTextInputOverride ?? ShowTextInput;
+        get => _showFieldTextInputOverride ?? ShowTextInput;
         set
         {
-            if (_ShowFieldTextInputOverride != value)
+            if (_showFieldTextInputOverride != value)
             {
-                _ShowFieldTextInputOverride = value;
+                _showFieldTextInputOverride = value;
                 LayoutChanged(this, true);
                 NPC(nameof(ShowFieldTextInput));
             }
@@ -111,15 +111,15 @@ public class MGColorField : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _ShowAlpha;
+    private bool _showAlpha;
     public bool ShowAlpha
     {
-        get => _ShowAlpha;
+        get => _showAlpha;
         set
         {
-            if (_ShowAlpha != value)
+            if (_showAlpha != value)
             {
-                _ShowAlpha = value;
+                _showAlpha = value;
                 NPC(nameof(ShowAlpha));
             }
         }
@@ -128,20 +128,20 @@ public class MGColorField : MGElement
     public bool ShowEyeDropper { get; set; }
     public IColorPickService ColorPickService
     {
-        get => _ColorPickService;
+        get => _colorPickService;
         set
         {
             IColorPickService actual = value ?? UnsupportedColorPickService.Instance;
-            if (ReferenceEquals(_ColorPickService, actual))
+            if (ReferenceEquals(_colorPickService, actual))
             {
                 return;
             }
 
-            _ColorPickService.ColorPicked -= OnColorPicked;
-            _ColorPickService.ColorPickCancelled -= OnColorPickCancelled;
-            _ColorPickService = actual;
-            _ColorPickService.ColorPicked += OnColorPicked;
-            _ColorPickService.ColorPickCancelled += OnColorPickCancelled;
+            _colorPickService.ColorPicked -= OnColorPicked;
+            _colorPickService.ColorPickCancelled -= OnColorPickCancelled;
+            _colorPickService = actual;
+            _colorPickService.ColorPicked += OnColorPicked;
+            _colorPickService.ColorPickCancelled += OnColorPickCancelled;
             Popup.Picker.ColorPickService = actual;
             NPC(nameof(ColorPickService));
             NPC(nameof(IsEyeDropperAvailable));
@@ -151,15 +151,15 @@ public class MGColorField : MGElement
     public bool IsEyeDropperAvailable => ShowEyeDropper && ColorPickService.IsSupported;
     public bool IsHdr { get; set; }
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ColorValueFormat _DisplayFormat = ColorValueFormat.HexRgba;
+    private ColorValueFormat _displayFormat = ColorValueFormat.HexRgba;
     public ColorValueFormat DisplayFormat
     {
-        get => _DisplayFormat;
+        get => _displayFormat;
         set
         {
-            if (_DisplayFormat != value)
+            if (_displayFormat != value)
             {
-                _DisplayFormat = value;
+                _displayFormat = value;
                 RefreshDisplayText();
                 NPC(nameof(DisplayFormat));
             }
@@ -229,15 +229,15 @@ public class MGColorField : MGElement
         RefreshDisplayText();
     }
 
-    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness sharedSize)
     {
-        SharedSize = new(0);
+        sharedSize = new(0);
         return new(FieldWidth, FieldHeight, 0, 0);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(FieldWidth, FieldHeight));
+        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(FieldWidth, FieldHeight));
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             return;
@@ -283,7 +283,7 @@ public class MGColorField : MGElement
     }
 
     public string GetDisplayText()
-        => _CachedDisplayText;
+        => _cachedDisplayText;
 
     public bool ResetToDefault()
         => Model.ResetToDefault();
@@ -403,7 +403,7 @@ public class MGColorField : MGElement
 
     private void DrawTextStripValue(ElementDrawArgs DA, Rectangle bounds)
     {
-        if (string.IsNullOrEmpty(_CachedDisplayText) || bounds.Width <= TextStripPadding * 2 || bounds.Height <= 0)
+        if (string.IsNullOrEmpty(_cachedDisplayText) || bounds.Width <= TextStripPadding * 2 || bounds.Height <= 0)
         {
             return;
         }
@@ -432,12 +432,12 @@ public class MGColorField : MGElement
         float visualY = bounds.Y + Math.Max(0f, (bounds.Height - textHeight) / 2f);
         Vector2 drawPosition = new Vector2(visualX, visualY) + (resolved.DrawOrigin * drawScale) + DA.Offset.ToVector2();
         Color foreground = GetTheme().TextBlockFallbackForeground.GetValue(false).GetValue(VisualState.Primary);
-        DA.DT.DrawTextViaEngine(resolved, _CachedDisplayText, drawPosition, foreground * DA.Opacity, resolved.DrawOrigin, drawScale);
+        DA.DT.DrawTextViaEngine(resolved, _cachedDisplayText, drawPosition, foreground * DA.Opacity, resolved.DrawOrigin, drawScale);
     }
 
     private void RefreshDisplayText()
     {
-        _CachedDisplayText = Model.GetDisplayText(DisplayFormat);
+        _cachedDisplayText = Model.GetDisplayText(DisplayFormat);
     }
 
     private void DrawResetButton(ElementDrawArgs DA, Rectangle bounds)

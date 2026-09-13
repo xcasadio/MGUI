@@ -7,91 +7,91 @@ namespace MGUI.Core.UI;
 public class MGColorPreview : MGElement
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ColorValue _CurrentValue;
+    private ColorValue _currentValue;
     public ColorValue CurrentValue
     {
-        get => _CurrentValue;
+        get => _currentValue;
         set
         {
-            if (_CurrentValue != value)
+            if (_currentValue != value)
             {
-                _CurrentValue = value;
+                _currentValue = value;
                 NPC(nameof(CurrentValue));
             }
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private ColorValue _PreviousValue;
+    private ColorValue _previousValue;
     public ColorValue PreviousValue
     {
-        get => _PreviousValue;
+        get => _previousValue;
         set
         {
-            if (_PreviousValue != value)
+            if (_previousValue != value)
             {
-                _PreviousValue = value;
+                _previousValue = value;
                 NPC(nameof(PreviousValue));
             }
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _ShowPrevious;
+    private bool _showPrevious;
     public bool ShowPrevious
     {
-        get => _ShowPrevious;
+        get => _showPrevious;
         set
         {
-            if (_ShowPrevious != value)
+            if (_showPrevious != value)
             {
-                _ShowPrevious = value;
+                _showPrevious = value;
                 NPC(nameof(ShowPrevious));
             }
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _ShowCheckerboard;
+    private bool _showCheckerboard;
     public bool ShowCheckerboard
     {
-        get => _ShowCheckerboard;
+        get => _showCheckerboard;
         set
         {
-            if (_ShowCheckerboard != value)
+            if (_showCheckerboard != value)
             {
-                _ShowCheckerboard = value;
+                _showCheckerboard = value;
                 NPC(nameof(ShowCheckerboard));
             }
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _ShowOpaqueComparison;
+    private bool _showOpaqueComparison;
     public bool ShowOpaqueComparison
     {
-        get => _ShowOpaqueComparison;
+        get => _showOpaqueComparison;
         set
         {
-            if (_ShowOpaqueComparison != value)
+            if (_showOpaqueComparison != value)
             {
-                _ShowOpaqueComparison = value;
+                _showOpaqueComparison = value;
                 NPC(nameof(ShowOpaqueComparison));
             }
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _PreviewWidth;
+    private int _previewWidth;
     public int PreviewWidth
     {
-        get => _PreviewWidth;
+        get => _previewWidth;
         set
         {
             int actual = Math.Max(0, value);
-            if (_PreviewWidth != actual)
+            if (_previewWidth != actual)
             {
-                _PreviewWidth = actual;
+                _previewWidth = actual;
                 LayoutChanged(this, true);
                 NPC(nameof(PreviewWidth));
             }
@@ -99,16 +99,16 @@ public class MGColorPreview : MGElement
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private int _PreviewHeight;
+    private int _previewHeight;
     public int PreviewHeight
     {
-        get => _PreviewHeight;
+        get => _previewHeight;
         set
         {
             int actual = Math.Max(0, value);
-            if (_PreviewHeight != actual)
+            if (_previewHeight != actual)
             {
-                _PreviewHeight = actual;
+                _previewHeight = actual;
                 LayoutChanged(this, true);
                 NPC(nameof(PreviewHeight));
             }
@@ -143,15 +143,15 @@ public class MGColorPreview : MGElement
         }
     }
 
-    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
+    public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness sharedSize)
     {
-        SharedSize = new(0);
+        sharedSize = new(0);
         return new(PreviewWidth, PreviewHeight, 0, 0);
     }
 
-    public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
+    public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
-        Rectangle bounds = ApplyAlignment(LayoutBounds, HorizontalAlignment, VerticalAlignment, new Size(PreviewWidth, PreviewHeight));
+        Rectangle bounds = ApplyAlignment(layoutBounds, HorizontalAlignment, VerticalAlignment, new Size(PreviewWidth, PreviewHeight));
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             return;

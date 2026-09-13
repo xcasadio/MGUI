@@ -1,5 +1,3 @@
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.XAML;
 using Microsoft.Xna.Framework;
@@ -8,6 +6,8 @@ using MGUI.Shared.Input.Keyboard;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using Thickness = MonoGame.Extended.Thickness;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
 using MGUI.Shared.Helpers;
@@ -256,9 +256,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
                 // When virtualizing, update the VSP item count.
                 // _logicalItemsList takes precedence over InternalItems (InternalItems is null in the recycling path).
-                if (IsVirtualizing && _virtualizingPanel != null)
+                if (IsVirtualizing && VirtualizingPanel != null)
                 {
-                    _virtualizingPanel.TotalItemCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
+                    VirtualizingPanel.TotalItemCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
                 }
 
                 ClearSelection();
@@ -286,9 +286,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         if (IsVirtualizing)
         {
             // When virtualizing, only keep the VSP total count in sync; the VSP manages its own children
-            if (_virtualizingPanel != null)
+            if (VirtualizingPanel != null)
             {
-                _virtualizingPanel.TotalItemCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
+                VirtualizingPanel.TotalItemCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
             }
 
             HashSet<MGListBoxItem<TItemType>> virtualRemoved = new();
@@ -503,7 +503,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                         if (ScrollViewer != null && !wasVirtualizing)
                         {
                             using (ScrollViewer.AllowChangingContentTemporarily())
-                                ScrollViewer.SetContent(_virtualizingPanel);
+                                ScrollViewer.SetContent(VirtualizingPanel);
                         }
                     }
                     else
@@ -585,7 +585,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     /// bounded by the viewport, not by the item count.</summary>
     private void HandleVirtualizedItemsSourceChanged(NotifyCollectionChangedEventArgs e)
     {
-        if (_virtualizingPanel == null)
+        if (VirtualizingPanel == null)
         {
             return;
         }
@@ -597,7 +597,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             _logicalItemsList = ItemsSource as IList<TItemType> ?? ItemsSource?.ToList();
         }
 
-        int previousCount = _virtualizingPanel.TotalItemCount;
+        int previousCount = VirtualizingPanel.TotalItemCount;
         int newCount = _logicalItemsList?.Count ?? 0;
 
         int firstAffectedIndex;
@@ -631,14 +631,14 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         bool selectionItemsRemoved = firstAffectedIndex >= 0 && indexDelta != 0
                                                              && ShiftSelectedIndices(firstAffectedIndex, indexDelta, newCount);
 
-        _virtualizingPanel.TotalItemCount = newCount;
+        VirtualizingPanel.TotalItemCount = newCount;
         EnsureUniformItemHeightMeasured(previousCount, newCount);
 
         //  Realized elements are keyed by logical index. Those at or after the change point now map to different
         //  data, so they must be regenerated; those before it are still valid.
-        if (firstAffectedIndex < 0 || _virtualizingPanel.LastRealizedIndex >= firstAffectedIndex)
+        if (firstAffectedIndex < 0 || VirtualizingPanel.LastRealizedIndex >= firstAffectedIndex)
         {
-            _virtualizingPanel.InvalidateData();
+            VirtualizingPanel.InvalidateData();
 
             //  The realized wrappers backing SelectedItems were just recycled. Fall back to the same representation
             //  the virtualized path already uses for off-screen selection: _selectedIndices is the authority, and
@@ -722,9 +722,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     /// so measure again once the first real item arrives. Cheap on later calls: the result is cached.</summary>
     private void EnsureUniformItemHeightMeasured(int previousCount, int newCount)
     {
-        if (previousCount == 0 && newCount > 0 && _virtualizingPanel != null)
+        if (previousCount == 0 && newCount > 0 && VirtualizingPanel != null)
         {
-            _virtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
+            VirtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
         }
     }
 
@@ -1093,7 +1093,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         Vector2 unscaledPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPos.ToVector2());
 
         // Select the actual items panel (regular or virtualizing)
-        MGElement activePanel = IsVirtualizing ? (MGElement)_virtualizingPanel : ItemsPanel;
+        MGElement activePanel = IsVirtualizing ? (MGElement)VirtualizingPanel : ItemsPanel;
 
         // Quick reject: mouse must be within the active panel's visible area
         if (activePanel == null || activePanel.ActualLayoutBounds.IsEmpty || !activePanel.ActualLayoutBounds.ContainsInclusive(unscaledPos))
@@ -1103,9 +1103,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
         // Fast path: O(1) for uniform-height items
         int uniformH = 0;
-        if (IsVirtualizing && _virtualizingPanel != null && _virtualizingPanel.UniformItemHeight > 0)
+        if (IsVirtualizing && VirtualizingPanel != null && VirtualizingPanel.UniformItemHeight > 0)
         {
-            uniformH = _virtualizingPanel.UniformItemHeight;
+            uniformH = VirtualizingPanel.UniformItemHeight;
         }
         else if (!IsVirtualizing && InternalItems?.Count >= 1)
         {
@@ -1221,7 +1221,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         ItemsPanel.ManagedParent = this;
         ItemsPanel.CanChangeContent = false;
 
-        MGElement activeItemsHost = IsVirtualizing && _virtualizingPanel != null ? _virtualizingPanel : ItemsPanel;
+        MGElement activeItemsHost = IsVirtualizing && VirtualizingPanel != null ? VirtualizingPanel : ItemsPanel;
         using (TitleBorder.AllowChangingContentTemporarily())
         {
             TitleBorder.SetContent(TitlePresenter);
@@ -1254,10 +1254,10 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 }
             }
         }
-        else if (IsVirtualizing && _virtualizingPanel != null)
+        else if (IsVirtualizing && VirtualizingPanel != null)
         {
             SyncVirtualizedItemsPanelChrome();
-            _virtualizingPanel.InvalidateData();
+            VirtualizingPanel.InvalidateData();
         }
 
         if (_Header != null)
@@ -1297,8 +1297,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             return;
         }
 
-        int itemHeight = _virtualizingPanel?.UniformItemHeight > 0 ? _virtualizingPanel.UniformItemHeight : MeasureNaturalItemHeight();
-        float contentTop = (_virtualizingPanel as MGElement)?.LayoutBounds.Top ?? ItemsPanel.LayoutBounds.Top;
+        int itemHeight = VirtualizingPanel?.UniformItemHeight > 0 ? VirtualizingPanel.UniformItemHeight : MeasureNaturalItemHeight();
+        float contentTop = (VirtualizingPanel as MGElement)?.LayoutBounds.Top ?? ItemsPanel.LayoutBounds.Top;
         float newOffset = GetVisibleVerticalOffsetForIndex(ScrollViewer.VerticalOffset, contentTop, ScrollViewer.ContentViewport.Height,
             ScrollViewer.MaxVerticalOffset, FocusedIndex, itemHeight);
 
@@ -1338,11 +1338,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     /// only the ~<see cref="VirtualizingStackPanel.BufferCount"/> visible items exist as live <see cref="MGElement"/>s.</summary>
     public bool IsVirtualizing { get; private set; }
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private VirtualizingStackPanel _virtualizingPanel;
-
     /// <summary>The <see cref="VirtualizingStackPanel"/> used when <see cref="IsVirtualizing"/> is true. Null otherwise.</summary>
-    public VirtualizingStackPanel VirtualizingPanel => _virtualizingPanel;
+    public VirtualizingStackPanel VirtualizingPanel { get; private set; }
 
     /// <summary>Raw data list used in virtualised mode — allows O(1) index access
     /// without allocating <see cref="MGListBoxItem{TItemType}"/> wrappers per data entry.</summary>
@@ -1368,24 +1365,24 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     /// <summary>Creates the <see cref="VirtualizingStackPanel"/> if needed and configures its generator and recycler callbacks.</summary>
     private void ConfigureVirtualizingPanel()
     {
-        if (_virtualizingPanel == null)
+        if (VirtualizingPanel == null)
         {
-            _virtualizingPanel = new VirtualizingStackPanel(SelfOrParentWindow);
-            _virtualizingPanel.VerticalAlignment = VerticalAlignment.Top;
+            VirtualizingPanel = new VirtualizingStackPanel(SelfOrParentWindow);
+            VirtualizingPanel.VerticalAlignment = VerticalAlignment.Top;
         }
 
         SyncVirtualizedItemsPanelChrome();
 
         int totalCount = _logicalItemsList?.Count ?? InternalItems?.Count ?? 0;
-        _virtualizingPanel.TotalItemCount = totalCount;
-        _virtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
-        _virtualizingPanel.ItemGenerator = (idx) =>
+        VirtualizingPanel.TotalItemCount = totalCount;
+        VirtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
+        VirtualizingPanel.ItemGenerator = (idx) =>
         {
             MGListBoxItem<TItemType> item;
 
             // Try to reuse a recycled wrapper from the pool
             if (_logicalItemsList != null &&
-                _virtualizingPanel.TryDequeueRecycledElement(out MGElement recycledEl) &&
+                VirtualizingPanel.TryDequeueRecycledElement(out MGElement recycledEl) &&
                 recycledEl is MGBorder recycledCp &&
                 _contentPresToItem.TryGetValue(recycledCp, out MGListBoxItem<TItemType> recycledItem))
             {
@@ -1409,7 +1406,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             item.ContentPresenter.IsSelected = _selectedIndices.Contains(idx);
             return item.ContentPresenter;
         };
-        _virtualizingPanel.ItemRecycler = (idx, element) =>
+        VirtualizingPanel.ItemRecycler = (idx, element) =>
         {
             _realizedItems.Remove(idx);
             // Clear transient visual states so the recycled element is clean for its next use
@@ -1424,19 +1421,19 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         // Without this, if the visible range [firstNeeded..lastNeeded] happens to be identical
         // to the cached range from the previous source, the VirtualizingStackPanel skips
         // re-realization entirely and keeps showing the old items — breaking filter switches.
-        _virtualizingPanel.InvalidateData();
+        VirtualizingPanel.InvalidateData();
     }
 
     private void SyncVirtualizedItemsPanelChrome()
     {
-        if (_virtualizingPanel == null)
+        if (VirtualizingPanel == null)
         {
             return;
         }
 
         // ADR-0005/S2 decision: owner mirroring chrome onto its internal virtualization proxy = LocalValue.
-        _virtualizingPanel.SetBorderThicknessTagged(ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-        _virtualizingPanel.SetBorderBrushTagged(ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
+        VirtualizingPanel.SetBorderThicknessTagged(ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+        VirtualizingPanel.SetBorderBrushTagged(ItemsPanel?.BorderBrush ?? MGControlTemplateCatalog.CreateDefaultListBoxItemBorderBrush(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
     }
 
     /// <summary>Estimates the pixel height of individual items for the <see cref="VirtualizingStackPanel"/>.<br/>
@@ -1471,9 +1468,9 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
     {
         _cachedNaturalItemHeight = -1;
 
-        if (IsVirtualizing && _virtualizingPanel != null)
+        if (IsVirtualizing && VirtualizingPanel != null)
         {
-            _virtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
+            VirtualizingPanel.UniformItemHeight = GetOrMeasureNaturalItemHeight();
         }
     }
 

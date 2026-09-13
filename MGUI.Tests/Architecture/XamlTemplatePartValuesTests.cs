@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Rendering;

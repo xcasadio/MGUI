@@ -1,5 +1,6 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        xmlns:Converters="clr-namespace:MGUI.Core.UI.Data_Binding.Converters;assembly=MGUI.Core"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
+        xmlns:converters="clr-namespace:MGUI.Core.UI.DataBinding.Converters;assembly=MGUI.Core"
         Left="440" Top="20" MinHeight="0" Width="740" Height="800" TitleText="Bindings" Padding="10">
     <Window.Styles>
         <Style TargetType="TextBlock">
@@ -126,7 +127,7 @@ public class MyDataContext
                     <Spacer Height="5" />
                     <Border HorizontalAlignment="Left" Background="White * 0.15" BorderBrush="Black * 0.5" BorderThickness="1" Padding="4,2">
                         <TextBlock Text="Hover me! This [c=Turquoise]TextBlock[/c]'s [c=Turquoise]ToolTip[/c] is bound directly to the [c=Turquoise]Text[/c] property on itself."
-                                   ToolTip="{MGBinding DataContextResolver=Self, Path=Text}" />
+                                   ToolTip="{dataBinding:MGBinding DataContextResolver=Self, Path=Text}" />
                     </Border>
                     <Spacer Height="5" />
 
@@ -210,7 +211,7 @@ public class MyDataContext
                             <TextBlock Text="Result:" VerticalAlignment="Center" />
                             <Border Background="White * 0.1" Padding="4,2" HorizontalAlignment="Left" BorderThickness="0">
                                 <CheckBox Name="CheckBox1" IsChecked="True">
-                                    <TextBlock Text="{MGBinding ElementName=CheckBox1, Path=IsChecked}" />
+                                    <TextBlock Text="{dataBinding:MGBinding ElementName=CheckBox1, Path=IsChecked}" />
                                 </CheckBox>
                             </Border>
                         </StackPanel>
@@ -259,7 +260,7 @@ public class MyDataContext
                             To specify a converter in XAML, you must map the namespace (that the converter is defined in) to a prefix using: xmlns:SomePrefix="{Path to namespace}"
                         </TextBlock>
                         <TextBox Background="rgb(12,16,82)" IsReadonly="True"
-                                 Text='&lt;StackPanel Orientation="Vertical"\n                         xmlns:Converters="clr-namespace:MGUI.Core.UI.Data_Binding.Converters;assembly=MGUI.Core"&gt;\n    &lt;CheckBox Name="SampleCheckBox" Content="This CheckBox displays additional text below it when checked" /&gt;\n    &lt;TextBlock Text="The CheckBox is checked" Visibility="{MGBinding ElementName=SampleCheckBox, Path=IsChecked, Converter={Converters:BoolToVisibilityConverter}}" /&gt;\n&lt;/StackPanel&gt;'>
+                                 Text='&lt;StackPanel Orientation="Vertical"\n                         xmlns:Converters="clr-namespace:MGUI.Core.UI.DataBinding.Converters;assembly=MGUI.Core"&gt;\n    &lt;CheckBox Name="SampleCheckBox" Content="This CheckBox displays additional text below it when checked" /&gt;\n    &lt;TextBlock Text="The CheckBox is checked" Visibility="{MGBinding ElementName=SampleCheckBox, Path=IsChecked, Converter={Converters:BoolToVisibilityConverter}}" /&gt;\n&lt;/StackPanel&gt;'>
                             <TextBox.TextBlock>
                                 <TextBlock FontSize="9" IsShadowed="True" ShadowColor="Black * 0.35" />
                             </TextBox.TextBlock>
@@ -268,15 +269,15 @@ public class MyDataContext
                             <TextBlock VerticalAlignment="Center" Text="Result:" IsBold="True" Dock="Left" Margin="0,0,5,0" />
                             <StackPanel Orientation="Vertical" Padding="4" Background="White * 0.1">
                                 <CheckBox Name="SampleCheckBox" Content="This CheckBox displays additional text below it when checked" />
-                                <TextBlock Text="The CheckBox is checked" Visibility="{MGBinding ElementName=SampleCheckBox, Path=IsChecked, Converter={Converters:BoolToVisibilityConverter}}" />
+                                <TextBlock Text="The CheckBox is checked" Visibility="{dataBinding:MGBinding ElementName=SampleCheckBox, Path=IsChecked, Converter={converters:BoolToVisibilityConverter}}" />
                             </StackPanel>
                         </DockPanel>
                         <TextBlock xml:space="preserve">The [c=Turquoise]StackPanel[/c] defines the XML namespace and maps it to the prefix [c=Yellow]Converters[/c]:
-[c=Yellow]xmlns:Converters="clr-namespace:MGUI.Core.UI.Data_Binding.Converters;assembly=MGUI.Core"[/c]
+[c=Yellow]xmlns:Converters="clr-namespace:MGUI.Core.UI.DataBinding.Converters;assembly=MGUI.Core"[/c]
 The Converter is specified using:
 [c=Yellow]Converter={Converters:BoolToVisibilityConverter}[/c]</TextBlock>
                         <TextBlock>
-                            MGUI has a few built in converters in the namespace: [c=Turquoise]MGUI.Core.UI.Data_Binding.Converters[/c].
+                            MGUI has a few built in converters in the namespace: [c=Turquoise]MGUI.Core.UI.DataBinding.Converters[/c].
                             If you want to use your own converter, create a class that implements [c=Turquoise]IValueConverter[/c].
                         </TextBlock>
                     </StackPanel>
@@ -292,7 +293,7 @@ The Converter is specified using:
                                 <TextBlock IsBold="True" Text="Without StringFormat:" />
                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                     <Slider Name="Slider1" Width="300" Minimum="0" Maximum="5" DrawTicks="True" TickFrequency="1" Value="2.566" />
-                                    <TextBlock VerticalAlignment="Center" Text="{MGBinding ElementName=Slider1, Path=Value}" />
+                                    <TextBlock VerticalAlignment="Center" Text="{dataBinding:MGBinding ElementName=Slider1, Path=Value}" />
                                 </StackPanel>
                             </StackPanel>
 
@@ -300,7 +301,7 @@ The Converter is specified using:
                                 <TextBlock IsBold="True" Text="With StringFormat to only show 1 decimal place:" />
                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                     <Slider Name="Slider2" Width="300" Minimum="0" Maximum="5" DrawTicks="True" TickFrequency="1" Value="2.566" />
-                                    <TextBlock VerticalAlignment="Center" Text="{MGBinding ElementName=Slider2, Path=Value, StringFormat={}{0:0.0}}" />
+                                    <TextBlock VerticalAlignment="Center" Text="{dataBinding:MGBinding ElementName=Slider2, Path=Value, StringFormat={}{0:0.0}}" />
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
@@ -319,7 +320,7 @@ The Converter is specified using:
                 <StackPanel Orientation="Vertical" Spacing="2" Padding="4">
                     <TextBlock>
                         Bindings are usually defined in XAML, but you can also create them with c# code via:
-                        [c=Turquoise]MGUI.Core.UI.Data_Binding.DataBindingManager.AddBinding[/c](...)
+                        [c=Turquoise]MGUI.Core.UI.DataBinding.DataBindingManager.AddBinding[/c](...)
                     </TextBlock>
                     <TextBlock Text="TODO: more documentation coming soon..." />
                     <!--TODO: Details about the MGBindingConfig etc -->
@@ -458,7 +459,7 @@ The Converter is specified using:
                         <Spacer Height="5" />
                         <DockPanel>
                             <TextBlock Dock="Right" Margin="5,0,0,0" VerticalAlignment="Center" MinWidth="40" IsBold="True" TextAlignment="Center"
-                                       Text="{MGBinding ElementName=Slider3, Path=Value, Mode=OneWay}" />
+                                       Text="{dataBinding:MGBinding ElementName=Slider3, Path=Value, Mode=OneWay}" />
                             <Slider Name="Slider3" Minimum="0" Maximum="10" UseDiscreteValues="True" DiscreteValueInterval="0.25" DrawTicks="True" TickFrequency="1" Value="5" />
                         </DockPanel>
                     </StackPanel>
@@ -475,7 +476,7 @@ The Converter is specified using:
                         <TextBlock Text="Select your favorite programming language:" HorizontalAlignment="Center" FontSize="12" />
                         <RadioButton Name="RadioButtonC#" GroupName="Group1" Content="C#" IsChecked="True" />
                         <TextBlock Margin="20,0,0,0" FontSize="8"
-                                   Visibility="{MGBinding ElementName=RadioButtonC#, Path=IsChecked, Mode=OneWay, Converter={Converters:BoolToVisibilityConverter TrueVisibility=Visible, FalseVisibility=Collapsed}}">
+                                   Visibility="{dataBinding:MGBinding ElementName=RadioButtonC#, Path=IsChecked, Mode=OneWay, Converter={converters:BoolToVisibilityConverter TrueVisibility=Visible, FalseVisibility=Collapsed}}">
                             <TextBlock.Text>
                                 C# is a general-purpose high-level programming language supporting multiple paradigms. 
                                 C# encompasses static typing, strong typing, lexically scoped, imperative, declarative, functional, generic, 
@@ -484,7 +485,7 @@ The Converter is specified using:
                         </TextBlock>
                         <RadioButton Name="RadioButtonJavaScript" GroupName="Group1" Content="JavaScript" IsChecked="False" />
                         <TextBlock Margin="20,0,0,0" FontSize="8"
-                                   Visibility="{MGBinding ElementName=RadioButtonJavaScript, Path=IsChecked, Mode=OneWay, Converter={Converters:BoolToVisibilityConverter TrueVisibility=Visible, FalseVisibility=Collapsed}}">
+                                   Visibility="{dataBinding:MGBinding ElementName=RadioButtonJavaScript, Path=IsChecked, Mode=OneWay, Converter={converters:BoolToVisibilityConverter TrueVisibility=Visible, FalseVisibility=Collapsed}}">
                             <TextBlock.Text>
                                 JavaScript is a high-level, often just-in-time compiled language that conforms to the ECMAScript standard.
                                 It has dynamic typing, prototype-based object-orientation, and first-class functions. 
@@ -493,7 +494,7 @@ The Converter is specified using:
                         </TextBlock>
                         <RadioButton Name="RadioButtonBrainfuck" GroupName="Group1" Content="Brainfuck" IsChecked="False" />
                         <TextBlock Margin="20,0,0,0" FontSize="8"
-                                   Visibility="{MGBinding ElementName=RadioButtonBrainfuck, Path=IsChecked, Mode=OneWay, Converter={Converters:BoolToVisibilityConverter TrueVisibility=Visible, FalseVisibility=Collapsed}}">
+                                   Visibility="{dataBinding:MGBinding ElementName=RadioButtonBrainfuck, Path=IsChecked, Mode=OneWay, Converter={converters:BoolToVisibilityConverter TrueVisibility=Visible, FalseVisibility=Collapsed}}">
                             <TextBlock.Text>
                                 Brainfuck is an esoteric programming language notable for its extreme minimalism.
                                 The language consists of only eight simple commands, a data pointer and an instruction pointer. 
@@ -513,7 +514,7 @@ The Converter is specified using:
                         <Spacer Height="3" />
                         <Border BorderThickness="0" Background="White * 0.15" HorizontalAlignment="Left" Padding="4,2">
                             <TextBlock Text="My [c=Turquoise]ToolTip[/c] is bound to this [c=Turquoise]Text[/c] value."
-                                       ToolTip="{MGBinding DataContextResolver=Self, Path=Text}" />
+                                       ToolTip="{dataBinding:MGBinding DataContextResolver=Self, Path=Text}" />
                         </Border>
                     </StackPanel>
 

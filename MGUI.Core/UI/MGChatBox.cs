@@ -2,11 +2,11 @@ using MGUI.Core.UI.Containers;
 using MonoGame.Extended;
 using MGUI.Shared.Helpers;
 using System.Collections.ObjectModel;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using System.Collections.Specialized;
 using Microsoft.Xna.Framework.Input;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI;

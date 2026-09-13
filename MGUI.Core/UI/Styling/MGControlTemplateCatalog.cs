@@ -1,7 +1,7 @@
 using System.Reflection;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using Microsoft.Xna.Framework;
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Core.UI.Docking.Controls;

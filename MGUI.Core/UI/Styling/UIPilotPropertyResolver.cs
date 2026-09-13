@@ -1,12 +1,13 @@
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
+using MGUI.Core.UI.DataBinding;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 
 namespace MGUI.Core.UI.Styling;
 
 /// <summary>ADR-0005/S8: maps a dotted CLR path rooted at an <see cref="MGElement"/> (the same shape used by
-/// <see cref="Styling.UIResourceReferenceConfig.TargetPath"/> and <see cref="Data_Binding.BindingConfig.TargetPath"/>,
+/// <see cref="Styling.UIResourceReferenceConfig.TargetPath"/> and <see cref="BindingConfig.TargetPath"/>,
 /// already passed through <c>XAML.Element.BindingPathMappings</c>) onto one of the eight <see cref="UIPilotProperty"/>
 /// keys plus a <see cref="UIValueSlot"/>, so a dynamic resource or a data binding targeting a pilot property can be
 /// recorded as a tagged contribution (<see cref="UIValueSourceKind.DynamicResource"/> / <see cref="UIValueSourceKind.LocalBinding"/>)

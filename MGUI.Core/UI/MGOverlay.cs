@@ -1,10 +1,10 @@
-﻿using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Core.UI.Containers;
+﻿using MGUI.Core.UI.Containers;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI;
@@ -155,21 +155,19 @@ public class MGOverlayHost : MGSingleContentHost
         }
     }
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private MGOverlay _ActiveOverlay;
     /// <summary>The currently active overlay, or <see langword="null" /> if no overlays are open.<br/>
     /// If multiple overlays are open, this is the overlay with the highest <see cref="MGOverlay.ZIndex"/> value.<para/>
     /// This value is automatically derived from the <see cref="OpenOverlays"/>.<br/>
     /// To change this value, use:<br/><see cref="TryOpen(MGOverlay)"/><br/><see cref="TryClose(MGOverlay)"/><para/>
     /// See also: <see cref="OnActiveOverlayChanged"/></summary>
-    public MGOverlay ActiveOverlay => _ActiveOverlay;
+    public MGOverlay ActiveOverlay { get; private set; }
 
     private void SetActiveOverlay(MGOverlay Value)
     {
-        if (_ActiveOverlay != Value)
+        if (ActiveOverlay != Value)
         {
-            MGOverlay PreviousValue = _ActiveOverlay;
-            _ActiveOverlay = Value;
+            MGOverlay PreviousValue = ActiveOverlay;
+            ActiveOverlay = Value;
             NPC(nameof(ActiveOverlay));
             ActiveOverlayPresenter.SetContent(ActiveOverlay);
             ActiveOverlayPresenter.Visibility = ActiveOverlay == null ? Visibility.Collapsed : Visibility.Visible;

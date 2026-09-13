@@ -1,8 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using MonoGame.Extended;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using System.Diagnostics;
-using MGUI.Core.UI.Brushes.Border_Brushes;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Shapes;
 
 namespace MGUI.Core.UI;

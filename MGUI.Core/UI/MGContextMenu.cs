@@ -1,12 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Shared.Helpers;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Containers;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI;
@@ -246,7 +247,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
         Button.VerticalAlignment = VerticalAlignment.Stretch;
 
         Button.SetBorderThicknessTagged(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-        VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush)null);
+        VisualStateFillBrush background = GetTheme().ContextMenuItem.HeaderBackground?.Copy() ?? new((IFillBrush)null);
         Button.SetBackground(background, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
         Button.GetBorder().SetBackground(background?.Copy(), UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
         Button.SetDefaultTextForegroundAll(GetTheme().TextBlockFallbackForeground.GetValue(true).NormalValue, UIValueResolutionSource.LocalValue(UIInvalidationKind.Draw));
@@ -454,10 +455,9 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     public event EventHandler<EventArgs<Size>> HeaderSizeChanged;
 
     #region Nested Menu
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private MGContextMenu _ActiveContextMenu;
+
     /// <summary>The currently open nested <see cref="MGContextMenu"/>.</summary>
-    public MGContextMenu ActiveContextMenu { get => _ActiveContextMenu; }
+    public MGContextMenu ActiveContextMenu { get; private set; }
 
     /// <returns>True if there was no <see cref="ActiveContextMenu"/> or it was successfully closed, false otherwise.</returns>
     public bool TryCloseActiveContextMenu()
@@ -471,7 +471,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
 
             MGContextMenu Previous = ActiveContextMenu;
             ActiveContextMenu.InvokeContextMenuClosing();
-            _ActiveContextMenu = null;
+            ActiveContextMenu = null;
             NPC(nameof(ActiveContextMenu));
             Previous.InvokeContextMenuClosed();
             SubmenuClosed?.Invoke(this, Previous);
@@ -514,7 +514,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
                 return false;
             }
 
-            _ActiveContextMenu = Menu;
+            ActiveContextMenu = Menu;
 
             Menu.Scale = Scale;
 

@@ -3,7 +3,7 @@ using MGUI.Shared.Helpers;
 using System.Globalization;
 using ColorTranslator = System.Drawing.ColorTranslator;
 using System.Text;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework.Graphics;
 using MGUI.Core.UI.XAML;
 using Thickness = MonoGame.Extended.Thickness;

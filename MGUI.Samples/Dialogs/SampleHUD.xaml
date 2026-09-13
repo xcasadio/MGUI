@@ -1,7 +1,8 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:MGUI.Samples.Dialogs;assembly=MGUI.Samples"
-        xmlns:Converters="clr-namespace:MGUI.Core.UI.Data_Binding.Converters;assembly=MGUI.Core"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
+        xmlns:converters="clr-namespace:MGUI.Core.UI.DataBinding.Converters;assembly=MGUI.Core"
         Left="0" Top="0" SizeToContent="WidthAndHeight" WindowStyle="None" AllowsClickThrough="True" IsTopmost="True">
     <Grid RowLengths="*" ColumnLengths="*">
         
@@ -43,7 +44,7 @@
             
             <!-- HP -->
             <OverlayPanel>
-                <ProgressBar Maximum="{MGBinding Path=MaxHP}" Value="{MGBinding Path=CurrentHP}" Width="{MGBinding Path=HPBarWidth}">
+                <ProgressBar Maximum="{dataBinding:MGBinding Path=MaxHP}" Value="{dataBinding:MGBinding Path=CurrentHP}" Width="{dataBinding:MGBinding Path=HPBarWidth}">
                     <ProgressBar.CompletedBrush>
                         <GradientFillBrush TopLeftColor="rgb(200,34,6)" BottomLeftColor="rgb(200,34,6)" TopRightColor="rgb(222,44,12)" BottomRightColor="rgb(222,44,12)" />
                     </ProgressBar.CompletedBrush>
@@ -53,7 +54,7 @@
             
             <!-- MP -->
             <OverlayPanel>
-                <ProgressBar Maximum="{MGBinding Path=MaxMP}" Value="{MGBinding Path=CurrentMP}" Width="{MGBinding Path=MPBarWidth}">
+                <ProgressBar Maximum="{dataBinding:MGBinding Path=MaxMP}" Value="{dataBinding:MGBinding Path=CurrentMP}" Width="{dataBinding:MGBinding Path=MPBarWidth}">
                     <ProgressBar.CompletedBrush>
                         <GradientFillBrush TopLeftColor="rgb(25,47,208)" BottomLeftColor="rgb(25,47,208)" TopRightColor="rgb(58,77,240)" BottomRightColor="rgb(58,77,240)" />
                     </ProgressBar.CompletedBrush>
@@ -63,7 +64,7 @@
             
             <!-- Stamina -->
             <OverlayPanel>
-                <ProgressBar Maximum="{MGBinding Path=MaxStamina}" Value="{MGBinding Path=CurrentStamina}" Width="{MGBinding Path=StaminaBarWidth}">
+                <ProgressBar Maximum="{dataBinding:MGBinding Path=MaxStamina}" Value="{dataBinding:MGBinding Path=CurrentStamina}" Width="{dataBinding:MGBinding Path=StaminaBarWidth}">
                     <ProgressBar.CompletedBrush>
                         <GradientFillBrush TopLeftColor="rgb(27,168,23)" BottomLeftColor="rgb(27,168,23)" TopRightColor="rgb(33,205,30)" BottomRightColor="rgb(33,205,30)" />
                     </ProgressBar.CompletedBrush>
@@ -72,7 +73,7 @@
             </OverlayPanel>
             
             <!-- XP -->
-            <ProgressBar Maximum="{MGBinding Path=NextLevelXP}" Value="{MGBinding Path=CurrentXP}" HorizontalAlignment="Stretch" ShowValue="False" Size="4" BorderThickness="0" Background="Transparent">
+            <ProgressBar Maximum="{dataBinding:MGBinding Path=NextLevelXP}" Value="{dataBinding:MGBinding Path=CurrentXP}" HorizontalAlignment="Stretch" ShowValue="False" Size="4" BorderThickness="0" Background="Transparent">
                 <ProgressBar.CompletedBrush>
                     <GradientFillBrush TopLeftColor="rgb(230,220,20)" BottomLeftColor="rgb(230,220,20)" TopRightColor="rgb(240,230,40)" BottomRightColor="rgb(240,230,40)" />
                 </ProgressBar.CompletedBrush>
@@ -110,7 +111,7 @@
                     <ListBox.ItemTemplate>
                         <ContentTemplate>
                             <StackPanel Orientation="Horizontal" Spacing="5" 
-                                        ToolTip="{MGBinding Path=Description, Mode=OneWay, Converter={Converters:StringToToolTipConverter ShowDelay='0:00:00.065', FontSize=9, IsBold=True}}">
+                                        ToolTip="{dataBinding:MGBinding Path=Description, Mode=OneWay, Converter={converters:StringToToolTipConverter ShowDelay='0:00:00.065', FontSize=9, IsBold=True}}">
                                 <StackPanel.Styles>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Foreground" Value="rgb(240,180,60)" />
@@ -119,15 +120,15 @@
                                     </Style>
                                 </StackPanel.Styles>
 
-                                <Image VerticalAlignment="Center" Width="16" Height="16" Source="{MGBinding Path=Icon, Mode=OneTime}" />
+                                <Image VerticalAlignment="Center" Width="16" Height="16" Source="{dataBinding:MGBinding Path=Icon, Mode=OneTime}" />
                                 <Timer VerticalAlignment="Center" ValueDisplayFormat="{}{{RemainingDuration}}" RemainingDurationStringFormat="m\:ss"
-                                       RemainingDuration="{MGBinding Path=RemainingDuration, Mode=TwoWay}" Background="Transparent" BorderThickness="0" IsPaused="False" MinWidth="40"
+                                       RemainingDuration="{dataBinding:MGBinding Path=RemainingDuration, Mode=TwoWay}" Background="Transparent" BorderThickness="0" IsPaused="False" MinWidth="40"
                                        HorizontalContentAlignment="Right">
                                     <Timer.Value>
                                         <TextBlock IsBold="True" FontSize="9" />
                                     </Timer.Value>
                                 </Timer>
-                                <TextBlock VerticalAlignment="Center" IsBold="True" FontSize="9" Text="{MGBinding Path=Name}" />
+                                <TextBlock VerticalAlignment="Center" IsBold="True" FontSize="9" Text="{dataBinding:MGBinding Path=Name}" />
                             </StackPanel>
                         </ContentTemplate>
                     </ListBox.ItemTemplate>
@@ -138,7 +139,7 @@
         <!-- ToolBar -->
         <InputConsumer HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="24">
             <Border BorderBrush="Black" BorderThickness="2">
-                <UniformGrid Name="UniformGrid_ToolBar" Rows="1" Columns="{MGBinding ToolBar.NumSlots, Mode=OneWay}" CellSize="64,64"
+                <UniformGrid Name="UniformGrid_ToolBar" Rows="1" Columns="{dataBinding:MGBinding ToolBar.NumSlots, Mode=OneWay}" CellSize="64,64"
                          SelectionMode="Cell" SelectedBackground="Yellow * 0.15f">
                     <UniformGrid.CellBackground>
                         <BorderedFillBrush BorderThickness="3" PadFillBoundsByBorderThickness="True" FillBrush="rgb(140,140,140) * 0.8">

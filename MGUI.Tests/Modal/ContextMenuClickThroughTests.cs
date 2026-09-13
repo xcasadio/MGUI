@@ -1,7 +1,8 @@
+using MGUI.Core.UI.Brushes.BorderBrushes;
+
 namespace MGUI.Tests.Modal;
 
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Containers.Grids;
 using MGUI.Tests.Graph;

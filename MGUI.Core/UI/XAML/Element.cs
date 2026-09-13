@@ -1,11 +1,12 @@
-﻿using MGUI.Core.UI.Data_Binding;
-using MGUI.Core.UI.Data_Binding.Converters;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
+﻿using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Styling;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using MGUI.Core.UI.Brushes.FillBrushes;
+using MGUI.Core.UI.DataBinding;
+using MGUI.Core.UI.DataBinding.Converters;
 using XNAColor = Microsoft.Xna.Framework.Color;
 using MGUI.Core.UI.Responsive;
 
@@ -852,7 +853,7 @@ public abstract class Element : XAMLBindableBase
 
                     foreach (string Path in BindingPaths)
                     {
-                        object Target = DataBinding.ResolvePath(Element, Path.Split('.'));
+                        object Target = DataBinding.DataBinding.ResolvePath(Element, Path.Split('.'));
                         if (Target != null && Target is XAMLBindableBase BindableTarget && BindableTarget.Bindings?.Any() == true)
                         {
                             foreach (BindingConfig Binding in BindableTarget.Bindings)

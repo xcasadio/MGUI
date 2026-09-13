@@ -1,8 +1,8 @@
 using MGUI.Core.UI.Animation.Easing;
-using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 using Microsoft.Xna.Framework;
 using System.Reflection;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI.XAML;
 

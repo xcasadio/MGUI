@@ -69,17 +69,16 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
         }
     }
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private MGElement _Host;
     /// <summary>To set this value, use <see cref="TrySetHost(MGElement)"/>. This value cannot be modified if <see cref="MGElement.IsComponent"/> is true.<para/>
     /// See also: <see cref="ActualHost"/>, which accounts for <see cref="MGElement.IsComponent"/></summary>
-    public MGElement Host { get => _Host; }
+    public MGElement Host { get; private set; }
+
     public MGElement ActualHost => IsComponent ? Parent : Host;
 
     /// <returns>True if <see cref="Host"/> was set to the new value. False if unable to change the value, or if the new value was the same as the current value.</returns>
     public bool TrySetHost(MGElement Value)
     {
-        if (!IsComponent && _Host != Value)
+        if (!IsComponent && Host != Value)
         {
             if (Host != null)
             {
@@ -88,7 +87,7 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
                 Host.OnEndingDraw -= Host_EndingDraw;
             }
 
-            _Host = Value;
+            Host = Value;
             SetParent(Host);
             NPC(nameof(Host));
             NPC(nameof(ActualHost));

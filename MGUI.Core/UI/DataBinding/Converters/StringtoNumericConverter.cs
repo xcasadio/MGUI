@@ -1,0 +1,40 @@
+﻿using System.Globalization;
+using System.Windows.Data;
+#if UseWPF
+using System.Windows.Markup;
+
+#else
+using Portable.Xaml.Markup;
+#endif
+
+namespace MGUI.Core.UI.DataBinding.Converters;
+
+public class StringToNumericConverter : MarkupExtension, IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is string StringValue)
+        {
+            return System.Convert.ChangeType(StringValue, targetType, culture);
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is IConvertible TypedValue)
+        {
+            return TypedValue.ToString(culture);
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    private static readonly StringToNumericConverter Instance = new();
+    public override object ProvideValue(IServiceProvider serviceProvider) => Instance;
+}

@@ -1,4 +1,3 @@
-using MGUI.Core.UI.Brushes.Fill_Brushes;
 #if UseWPF
 using System.Windows.Markup;
 #else
@@ -10,6 +9,7 @@ using System.Globalization;
 using Microsoft.Xna.Framework;
 using MGUI.Core.UI.Animation;
 using MGUI.Core.UI.Animation.Easing;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI.XAML;
 

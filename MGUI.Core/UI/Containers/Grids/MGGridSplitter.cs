@@ -1,11 +1,11 @@
-﻿using MGUI.Core.UI.Brushes.Border_Brushes;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.Shared.Helpers;
+﻿using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using System.Collections.ObjectModel;
 using MGUI.Shared.Input.Mouse;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI.Containers.Grids;
 

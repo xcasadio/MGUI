@@ -1,5 +1,6 @@
 ﻿<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
         Left="440" Top="20" Width="450" Height="430"
         ThemeName="Debug1_Theme"
         TitleText="[ToolTip=Test2][Action=Debug1_TestAction][img=SkullAndCrossbones 16x16][/Action][/ToolTip] [b]Window [ToolTip=Test1]Title[/ToolTip] Text[/b]">
@@ -149,7 +150,7 @@
                             <Border BorderBrush="Black" BorderThickness="2" Background="Blue">
                                 <StackPanel Orientation="Vertical">
                                     <TextBlock Text="This is content that doesn't exist in the scope of the overlay above it" />
-                                    <CheckBox IsChecked="{MGBinding Path=Overlay1.IsOpen, Mode=TwoWay}" Content="Is overlay open" />
+                                    <CheckBox IsChecked="{dataBinding:MGBinding Path=Overlay1.IsOpen, Mode=TwoWay}" Content="Is overlay open" />
                                     <ProgressButton Content="Hello World" HorizontalAlignment="Center" Duration="00:00:02" 
                                                     ProgressBarMargin="1" ProgressBarSize="6" ProgressBarBorderThickness="3" ActionOnCompleted="Reset" ActionWhenProcessing="ResetAndResume"
                                                     ProgressBarAlignment="RightOrBottom" />

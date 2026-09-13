@@ -3,27 +3,26 @@ namespace MGUI.Core.UI.TextEditing;
 internal sealed class MGTextUndoStack<T>
 {
     private readonly List<T> _items;
-    private int _limit;
 
     public int Count => _items.Count;
-    public int Limit => _limit;
+    public int Limit { get; private set; }
 
     public MGTextUndoStack(int limit)
     {
         ValidateLimit(limit);
-        _limit = limit;
+        Limit = limit;
         _items = new List<T>(limit);
     }
 
     public void SetLimit(int limit)
     {
         ValidateLimit(limit);
-        if (_limit == limit)
+        if (Limit == limit)
         {
             return;
         }
 
-        _limit = limit;
+        Limit = limit;
         TrimToLimit();
     }
 
@@ -33,7 +32,7 @@ internal sealed class MGTextUndoStack<T>
 
     public void Push(T item)
     {
-        if (_items.Count == _limit)
+        if (_items.Count == Limit)
         {
             _items.RemoveAt(0);
         }
@@ -72,7 +71,7 @@ internal sealed class MGTextUndoStack<T>
 
     private void TrimToLimit()
     {
-        int overflow = _items.Count - _limit;
+        int overflow = _items.Count - Limit;
         if (overflow > 0)
         {
             _items.RemoveRange(0, overflow);

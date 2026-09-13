@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MGUI.Core.UI;
+using MGUI.Core.UI.Brushes.BorderBrushes;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Docking.DockLayout;
@@ -158,8 +160,8 @@ public class EditorCompactPresetTests
 
     private static Color SolidColor(MGUI.Core.UI.VisualStateFillBrush brush) => SolidColor(brush.NormalValue);
 
-    private static Color SolidColor(MGUI.Core.UI.Brushes.Fill_Brushes.IFillBrush brush)
-        => Assert.IsType<MGUI.Core.UI.Brushes.Fill_Brushes.MGSolidFillBrush>(brush).Color;
+    private static Color SolidColor(IFillBrush brush)
+        => Assert.IsType<MGSolidFillBrush>(brush).Color;
 
     /// <summary>Every control whose density the preset drives, shown together under the harness window.</summary>
     private sealed record Scene(MGComboBox<string> ComboBox, MGListBox<string> ListBox, MGListBox<string> VirtualizedListBox, MGTextBlock TextBlock, MGTextBox TextBox,
@@ -247,8 +249,8 @@ public class EditorCompactPresetTests
 
         Assert.Equal(theme.ToolTip.Padding, scene.ToolTip.Padding);
         Assert.Equal(theme.ToolTip.BorderThickness, scene.ToolTip.BorderThickness);
-        Assert.Equal(SolidColor(Assert.IsType<MGUI.Core.UI.Brushes.Border_Brushes.MGUniformBorderBrush>(theme.ToolTip.BorderBrush).Brush),
-            SolidColor(Assert.IsType<MGUI.Core.UI.Brushes.Border_Brushes.MGUniformBorderBrush>(scene.ToolTip.BorderBrush).Brush));
+        Assert.Equal(SolidColor(Assert.IsType<MGUniformBorderBrush>(theme.ToolTip.BorderBrush).Brush),
+            SolidColor(Assert.IsType<MGUniformBorderBrush>(scene.ToolTip.BorderBrush).Brush));
         Assert.Equal(theme.ToolTip.MinWidth, scene.ToolTip.MinWidth);
         Assert.Equal(theme.ToolTip.MinHeight, scene.ToolTip.MinHeight);
 

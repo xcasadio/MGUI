@@ -6,8 +6,8 @@ using ColorTranslator = System.Drawing.ColorTranslator;
 using System.Text.RegularExpressions;
 using Microsoft.Xna.Framework.Input;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MonoGame.Extended;
-using MGUI.Core.UI.Brushes.Border_Brushes;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.TextEditing;
 using MGUI.Shared.Input.Keyboard;
@@ -215,18 +215,17 @@ public class MGTextBox : MGElement, ITextEntryHost
     public event EventHandler<EventArgs<string>> TextChanged;
 
     #region Formmated Text
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private string _FormattedText;
-    public string FormattedText { get => _FormattedText; }
+
+    public string FormattedText { get; private set; }
 
     /// <param name="Silent">If true, <see cref="MGTextBlock"/> will not invoke its LayoutChanged event.<para/>
     /// This value should only be trued when changing the markdown of the text, but not the actual rendered text itself.<br/>
     /// For example, changing the foreground color of the text does not affect its layout.</param>
     private void SetFormattedText(string Value, bool Silent)
     {
-        if (_FormattedText != Value)
+        if (FormattedText != Value)
         {
-            _FormattedText = Value;
+            FormattedText = Value;
             TextBlockElement.SetText(FormattedText, Silent || HasStableTextFootprint);
             NPC(nameof(FormattedText));
         }

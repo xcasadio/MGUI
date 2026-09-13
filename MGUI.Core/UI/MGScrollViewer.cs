@@ -307,10 +307,8 @@ public class MGScrollViewer : MGSingleContentHost
 
     public event EventHandler<EventArgs<float>> MaxVerticalOffsetChanged;
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private bool _IsScrollToBottomQueued;
     /// <summary>True if a <see cref="QueueScrollToBottom"/> request is waiting for the next layout pass.</summary>
-    public bool IsScrollToBottomQueued => _IsScrollToBottomQueued;
+    public bool IsScrollToBottomQueued { get; private set; }
 
     /// <summary>Attempts to immediately invoke <see cref="ScrollToBottom"/> if <see cref="MGElement.IsLayoutValid"/> is true.<br/>
     /// Else flags the request, and <see cref="ScrollToBottom"/> is invoked during the next layout pass, right after
@@ -325,7 +323,7 @@ public class MGScrollViewer : MGSingleContentHost
         }
         else
         {
-            _IsScrollToBottomQueued = true;
+            IsScrollToBottomQueued = true;
         }
     }
 
@@ -539,9 +537,9 @@ public class MGScrollViewer : MGSingleContentHost
         //  Honor a deferred QueueScrollToBottom now that MaxVerticalOffset reflects the new content size.
         //  This is the deterministic completion point: it also fires when the new MaxVerticalOffset happens to
         //  be unchanged, which an approach based on MaxVerticalOffsetChanged would miss.
-        if (_IsScrollToBottomQueued)
+        if (IsScrollToBottomQueued)
         {
-            _IsScrollToBottomQueued = false;
+            IsScrollToBottomQueued = false;
             ScrollToBottom();
         }
     }
