@@ -37,6 +37,8 @@ public sealed class UISequenceAnimation : UIAnimationGroup, IEnumerable<UIAnimat
     /// <summary>The time offset, on the sequence's timeline, at which the child at <paramref name="index"/> starts.</summary>
     public TimeSpan GetStartOffset(int index) => _StartOffsets[index];
 
+    protected override TimeSpan GetChildOffset(int index) => GetStartOffset(index);
+
     protected override TimeSpan ComputeDuration()
     {
         _StartOffsets.Clear();

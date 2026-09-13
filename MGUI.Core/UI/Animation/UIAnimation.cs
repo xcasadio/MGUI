@@ -88,6 +88,12 @@ public abstract class UIAnimation
 
     internal UIAnimationManager Manager { get; private set; }
 
+    /// <summary>True once <see cref="BeginPreview"/> has begun this instance (<see cref="UIAnimationPreview.Attach{TAnimation}"/>, S3/V3;
+    /// U7): a preview is never registered with a <see cref="UIAnimationManager"/> (<see cref="Manager"/> stays null) and is the only kind
+    /// of instance <see cref="Seek"/> accepts. Cleared by <see cref="Begin"/>, so an instance that is later started for real through
+    /// <see cref="UIAnimationCollection.Start"/> stops being a preview.</summary>
+    internal bool IsPreview { get; private set; }
+
     /// <summary>The (owner, path) key under which the manager registered this animation, null when it is not registered; lets a restart on
     /// another owner or path clean its previous entry up (review finding, S3).</summary>
     internal (MGElement Owner, string Path)? RegisteredKey { get; set; }
@@ -196,6 +202,7 @@ public abstract class UIAnimation
         Iteration = 0;
         IsReversing = false;
         IsHeld = false;
+        IsPreview = false;
 
         OnStarting(inheritedBase);
 
@@ -209,6 +216,42 @@ public abstract class UIAnimation
         Started?.Invoke(this, EventArgs.Empty);
         ApplyProgress(0f);
         Updated?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Called by <see cref="UIAnimationPreview.Attach{TAnimation}"/>: begins this instance as a preview, without a manager
+    /// (<see cref="Manager"/> stays null) and forced straight to <see cref="UIAnimationState.Running"/> (a preview has no
+    /// <see cref="UIAnimationState.Delayed"/> state of its own: <see cref="Seek"/> treats the delay purely through its maths, decision
+    /// recorded in Docs/Tasks/animation-v3-tasks.md U7). Raises no event and writes no value: the caller seeks to the initial pose right
+    /// after (<see cref="UIAnimationPreview.Attach{TAnimation}"/> calls <c>Seek(TimeSpan.Zero)</c>).<para/>
+    /// <see cref="OnPreviewAttached"/> runs before <see cref="OnStarting"/> (fix round 1, U7): a <see cref="Composition.UIAnimationGroup"/>
+    /// computes its own <see cref="Duration"/> from its children's <see cref="Duration"/> inside <see cref="OnStarting"/>
+    /// (<see cref="Composition.UIAnimationGroup.ComputeDuration"/> reading <see cref="Composition.UIAnimationGroup.LengthOf"/>), and a
+    /// child that is itself a group only has a real <see cref="Duration"/> once its own <see cref="OnStarting"/> has run -- which
+    /// <see cref="OnPreviewAttached"/> triggers recursively through <see cref="BeginPreview"/> on every descendant. Computing duration
+    /// first (the previous order) always saw a nested group child's <see cref="Duration"/> at zero, so a storyboard or sequence containing
+    /// a nested group previewed with its own total length clamped to zero and every <see cref="Seek"/> pinned at the initial pose.<para/>
+    /// <see cref="IsPreview"/> and <see cref="State"/> are set only after both hooks return successfully (fix round 1, U7; the same pattern
+    /// as <see cref="Begin"/>, which sets <see cref="State"/> only after <see cref="OnStarting"/>): a hook that throws (an invalid
+    /// <see cref="Composition.UIAnimationGroup"/> configuration, or a group whose child has no owner and no root) leaves this instance at
+    /// its original <see cref="UIAnimationState.Stopped"/> and <see cref="IsPreview"/> false, so a corrected retry can attach it again,
+    /// instead of stranding it as a half-attached preview that reports <see cref="UIAnimationState.Running"/> forever.</summary>
+    internal void BeginPreview(MGElement owner)
+    {
+        Owner = owner;
+        OwnerWindow = owner.DisplayingWindow ?? owner.SelfOrParentWindow;
+        Manager = null;
+        Elapsed = TimeSpan.Zero;
+        IterationElapsed = TimeSpan.Zero;
+        Progress = 0f;
+        Iteration = 0;
+        IsReversing = false;
+        IsHeld = false;
+
+        OnPreviewAttached(owner);
+        OnStarting(null);
+
+        IsPreview = true;
+        State = UIAnimationState.Running;
     }
 
     /// <summary>Advances by one scaled frame. Called by the manager.</summary>
@@ -232,35 +275,18 @@ public abstract class UIAnimation
             Started?.Invoke(this, EventArgs.Empty);
         }
 
-        var passTicks = Duration.Ticks;
-        if (passTicks <= 0)
+        var completed = ComputeProgress(Elapsed - Delay, out var iteration, out var reversing, out var iterationElapsed, out var progress);
+        if (completed)
         {
-            Complete(AutoReverse ? 0f : 1f);
+            Complete(progress);
             return;
         }
 
-        var localTicks = Math.Max(0L, (Elapsed - Delay).Ticks);
-        var iterationTicks = AutoReverse ? passTicks * 2 : passTicks;
-        var iteration = localTicks / iterationTicks;
-        if (!RepeatForever && iteration > RepeatCount)
-        {
-            Complete(AutoReverse ? 0f : 1f);
-            return;
-        }
-
-        var withinIteration = localTicks - iteration * iterationTicks;
-        IterationElapsed = TimeSpan.FromTicks(withinIteration);
-        var progress = (float)((double)withinIteration / passTicks);
-        var reversing = false;
-        if (AutoReverse && progress > 1f)
-        {
-            progress = 2f - progress;
-            reversing = true;
-        }
+        IterationElapsed = iterationElapsed;
 
         if (iteration != Iteration)
         {
-            Iteration = (int)Math.Min(iteration, int.MaxValue);
+            Iteration = iteration;
             IsReversing = false;
             Repeated?.Invoke(this, EventArgs.Empty);
         }
@@ -277,6 +303,125 @@ public abstract class UIAnimation
         Progress = progress;
         ApplyProgress(progress);
         Updated?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Positions a preview instance (<see cref="IsPreview"/>) at <paramref name="elapsed"/> since it began, forward or backward,
+    /// clamped to [0, the animation's total length] (<see cref="Delay"/> plus every repeated pass; unbounded with
+    /// <see cref="RepeatForever"/>): writes the value for that instant (<see cref="OnSeek"/>) with no event, no state change, and never
+    /// reaching <see cref="UIAnimationState.Completed"/> (a preview past its end holds the final pose -- 1, or 0 after an even number of
+    /// <see cref="AutoReverse"/> passes -- until <see cref="Cancel"/>; U7 design pass, Docs/Tasks/animation-v3-tasks.md). Within the delay,
+    /// the pose is progress 0 (<see cref="UIAnimation{T}.From"/> or the start value), so a scrubber shows the initial pose. A composite
+    /// (<see cref="Composition.UIAnimationGroup"/>) positions every child the same way, at its own elapsed time relative to its offset.
+    /// Zero allocation.</summary>
+    /// <exception cref="InvalidOperationException">This instance is not an active preview: it was never attached with
+    /// <see cref="UIAnimationPreview.Attach{TAnimation}"/>, it is registered with a live <see cref="UIAnimationManager"/>, or its preview
+    /// was already ended with <see cref="Cancel"/>.</exception>
+    public void Seek(TimeSpan elapsed)
+    {
+        if (!IsPreview || !IsActive)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(Seek)} is reserved to a preview instance attached with {nameof(UIAnimationPreview)}.{nameof(UIAnimationPreview.Attach)}, " +
+                $"while it is still active: this instance is {(IsPreview ? "no longer active (cancelled)" : State == UIAnimationState.Stopped ? "not attached" : "registered with a live manager")}.");
+        }
+
+        if (elapsed < TimeSpan.Zero)
+        {
+            elapsed = TimeSpan.Zero;
+        }
+
+        var maxElapsed = TotalLength();
+        if (elapsed > maxElapsed)
+        {
+            elapsed = maxElapsed;
+        }
+
+        Elapsed = elapsed;
+
+        if (elapsed < Delay)
+        {
+            Iteration = 0;
+            IsReversing = false;
+            IterationElapsed = TimeSpan.Zero;
+            Progress = 0f;
+            OnSeek(0f);
+            return;
+        }
+
+        ComputeProgress(elapsed - Delay, out var iteration, out var reversing, out var iterationElapsed, out var progress);
+        Iteration = iteration;
+        IsReversing = reversing;
+        IterationElapsed = iterationElapsed;
+        Progress = progress;
+        OnSeek(progress);
+    }
+
+    /// <summary>The maths shared by <see cref="Advance"/> (incremental, tick-based) and <see cref="Seek"/> (absolute): resolves
+    /// <paramref name="elapsedSinceDelay"/> (<see cref="Elapsed"/> minus <see cref="Delay"/>, clamped to non-negative) into the raw
+    /// iteration index, reversing flag, in-iteration elapsed time and eased-free progress. Returns true once
+    /// <paramref name="elapsedSinceDelay"/> reaches or passes the animation's total length (ignored by <see cref="RepeatForever"/>): the
+    /// out values then describe the canonical held pose of the last iteration's own end (its forward end for a plain pass, the tail of
+    /// its backward leg with <see cref="AutoReverse"/>) rather than a value depending on how far past the end
+    /// <paramref name="elapsedSinceDelay"/> reaches -- <see cref="Advance"/> ignores them in that case (it calls <see cref="Complete"/>
+    /// instead, leaving <see cref="Iteration"/> and <see cref="IsReversing"/> at whatever the previous real tick left them, unchanged
+    /// since before this extraction); <see cref="Seek"/> uses them as the frozen pose past the end.</summary>
+    private bool ComputeProgress(TimeSpan elapsedSinceDelay, out int iteration, out bool reversing, out TimeSpan iterationElapsed, out float progress)
+    {
+        var passTicks = Duration.Ticks;
+        if (passTicks <= 0)
+        {
+            iteration = 0;
+            reversing = false;
+            iterationElapsed = TimeSpan.Zero;
+            progress = AutoReverse ? 0f : 1f;
+            return true;
+        }
+
+        var localTicks = Math.Max(0L, elapsedSinceDelay.Ticks);
+        var iterationTicks = AutoReverse ? passTicks * 2 : passTicks;
+        var iterationIndex = localTicks / iterationTicks;
+        if (!RepeatForever && iterationIndex > RepeatCount)
+        {
+            iteration = RepeatCount;
+            iterationElapsed = TimeSpan.FromTicks(iterationTicks);
+            reversing = AutoReverse;
+            progress = AutoReverse ? 0f : 1f;
+            return true;
+        }
+
+        var withinIteration = localTicks - iterationIndex * iterationTicks;
+        iterationElapsed = TimeSpan.FromTicks(withinIteration);
+        progress = (float)((double)withinIteration / passTicks);
+        reversing = false;
+        if (AutoReverse && progress > 1f)
+        {
+            progress = 2f - progress;
+            reversing = true;
+        }
+
+        iteration = (int)Math.Min(iterationIndex, int.MaxValue);
+        return false;
+    }
+
+    /// <summary>The full length of this animation's own timeline: <see cref="Delay"/> plus every pass (<see cref="AutoReverse"/> doubling
+    /// each one) of every iteration (<see cref="RepeatCount"/> plus the first); <see cref="TimeSpan.MaxValue"/> with
+    /// <see cref="RepeatForever"/>, matching <see cref="Composition.UIAnimationGroup.LengthOf"/>'s formula for a child.</summary>
+    private TimeSpan TotalLength()
+    {
+        if (RepeatForever)
+        {
+            return TimeSpan.MaxValue;
+        }
+
+        var passTicks = Duration.Ticks;
+        if (passTicks <= 0)
+        {
+            return Delay;
+        }
+
+        var pass = passTicks * (AutoReverse ? 2 : 1);
+        var total = Delay.Ticks + pass * (RepeatCount + 1L);
+        return total >= TimeSpan.MaxValue.Ticks ? TimeSpan.MaxValue : TimeSpan.FromTicks(total);
     }
 
     private void Complete(float finalProgress)
@@ -318,6 +463,16 @@ public abstract class UIAnimation
 
     /// <summary>Writes the value for the given raw progress (easing is applied here).</summary>
     protected internal abstract void ApplyProgress(float progress);
+
+    /// <summary>Writes the value (or positions the children) for the given raw progress during a <see cref="Seek"/>. Default: the same as
+    /// <see cref="ApplyProgress"/> (a leaf animation seeks exactly like it ticks); overridden by <see cref="Composition.UIAnimationGroup"/>
+    /// to position each child by elapsed time instead of starting it.</summary>
+    protected internal virtual void OnSeek(float progress) => ApplyProgress(progress);
+
+    /// <summary>Called once, right after <see cref="BeginPreview"/> binds <see cref="Owner"/>, before any value is written. Default: a
+    /// no-op (a leaf animation has nothing to attach); overridden by <see cref="Composition.UIAnimationGroup"/> to begin every child as a
+    /// preview too, recursively, on <c>child.Owner ?? root</c>.</summary>
+    protected internal virtual void OnPreviewAttached(MGElement root) { }
 
     /// <summary>Restores the base value (see <see cref="IUIAnimationTarget{T}.RestoreBaseValue"/>).</summary>
     protected internal abstract void OnRestoreBaseValue();

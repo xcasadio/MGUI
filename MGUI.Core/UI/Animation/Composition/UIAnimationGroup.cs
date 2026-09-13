@@ -84,6 +84,13 @@ public abstract class UIAnimationGroup : UIAnimation
     /// starts the children that are due (<see cref="StartDueChildren"/>) and completes when the base timeline ends.</summary>
     protected internal sealed override void ApplyProgress(float progress)
     {
+        if (IsPreview)
+        {
+            // A preview is never ticked by the manager (Begin never calls ApplyProgress for one, see BeginPreview): reached only if a
+            // caller mis-drives a preview instance directly, in which case starting children through the manager would be wrong anyway.
+            return;
+        }
+
         if (_IsDriving)
         {
             return;
@@ -97,6 +104,44 @@ public abstract class UIAnimationGroup : UIAnimation
         finally
         {
             _IsDriving = false;
+        }
+    }
+
+    /// <summary>Preview seek (U7): positions every child at its own elapsed time on the group's timeline (<see cref="UIAnimation.IterationElapsed"/>,
+    /// already set by the base <see cref="UIAnimation.Seek"/> before this runs), relative to its offset (<see cref="GetChildOffset"/>, zero for
+    /// a storyboard, <see cref="UISequenceAnimation.GetStartOffset"/> for a sequence); a child before its offset seeks to zero (its initial
+    /// pose). Never starts a child through <see cref="StartChild"/> and never touches <see cref="StartedChildren"/> / <see cref="FinishedChildren"/>:
+    /// a preview group's children were attached as previews once, by <see cref="OnPreviewAttached"/>.</summary>
+    protected internal sealed override void OnSeek(float progress)
+    {
+        var timeline = IterationElapsed;
+        for (var i = 0; i < _Children.Count; i++)
+        {
+            var offset = GetChildOffset(i);
+            var childElapsed = timeline - offset;
+            if (childElapsed < TimeSpan.Zero)
+            {
+                childElapsed = TimeSpan.Zero;
+            }
+
+            _Children[i].Seek(childElapsed);
+        }
+    }
+
+    /// <summary>The time offset, on the group's own timeline, at which the child at <paramref name="index"/> starts. Zero for a storyboard
+    /// (every child starts with the group); overridden by <see cref="UISequenceAnimation"/>.</summary>
+    protected virtual TimeSpan GetChildOffset(int index) => TimeSpan.Zero;
+
+    /// <summary>Preview attach (U7): begins every child as a preview too, recursively (a child that is itself a group attaches its own
+    /// children the same way through its own override), on <c>child.Owner ?? root</c> -- never through <see cref="StartChild"/>, so a
+    /// preview child is never registered with a manager and never raises <see cref="UIAnimation.Started"/>/<see cref="UIAnimation.Updated"/>.</summary>
+    protected internal sealed override void OnPreviewAttached(MGElement root)
+    {
+        for (var i = 0; i < _Children.Count; i++)
+        {
+            var child = _Children[i];
+            var owner = child.Owner ?? root ?? throw new InvalidOperationException("The group has no owner.");
+            child.BeginPreview(owner);
         }
     }
 
