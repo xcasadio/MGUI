@@ -173,6 +173,14 @@ public static class UIKeyFrameClipSerializer
         }
 
         var track = animation.Track ?? throw new InvalidOperationException($"Track {index} ('{animation.Property}') has no {nameof(UIKeyFrameAnimation<T>.Track)}.");
+        if (track.Count == 0)
+        {
+            // U6 P3 (Docs/Tasks/animation-v3-tasks.md, "Revue finale"), closed here (U8): an empty track used to serialize as "frames": [],
+            // which Deserialize then refused ("has no frames") -- refuse it here instead, at the point that actually knows the offending
+            // track's index and path, matching the wording style of every other refusal in this method.
+            throw new InvalidOperationException($"Track {index} ('{animation.Property}') has no frames.");
+        }
+
         return new UIKeyFrameClipTrackDto
         {
             Property = animation.Property,

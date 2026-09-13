@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,6 +19,29 @@ namespace MGUI.Core.UI.Animation.KeyFrames;
 public static class UIKeyFrameSerializer
 {
     public const int CurrentVersion = 1;
+
+    /// <summary>Extension point for a value type outside the closed built-in set (U8, ADR-0008 decision 8): registers the
+    /// <see cref="Format{T}"/> / <see cref="Parse{T}"/> pair an application target's value type needs, shared by
+    /// <see cref="UIKeyFrameClipSerializer"/>, <see cref="UIAnimationSerializer"/> and this class' own <see cref="Serialize{T}"/> /
+    /// <see cref="Deserialize{T}"/>. Thread-safe (<see cref="ConcurrentDictionary{TKey,TValue}"/>, the same shape as
+    /// <see cref="Interpolation.UIInterpolators.Register{T}"/>); the last registration for a type wins.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="format"/> or <paramref name="parse"/> is null.</exception>
+    public static void RegisterValueFormat<T>(Func<T, string> format, Func<string, T> parse)
+    {
+        if (format == null)
+        {
+            throw new ArgumentNullException(nameof(format));
+        }
+
+        if (parse == null)
+        {
+            throw new ArgumentNullException(nameof(parse));
+        }
+
+        ValueFormats[typeof(T)] = (format, parse);
+    }
+
+    private static readonly ConcurrentDictionary<Type, (Delegate Format, Delegate Parse)> ValueFormats = new();
 
     /// <summary>Shared with <see cref="UIKeyFrameClipSerializer"/> so both documents use the same JSON conventions.</summary>
     internal static readonly JsonSerializerOptions JsonOptions = new()
@@ -90,9 +114,11 @@ public static class UIKeyFrameSerializer
     internal static bool IsSupported(Type type)
         => type == typeof(float) || type == typeof(double) || type == typeof(int)
            || type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4)
-           || type == typeof(Color) || type == typeof(Thickness);
+           || type == typeof(Color) || type == typeof(Thickness) || ValueFormats.ContainsKey(type);
 
-    /// <summary>Formats one value as the invariant string stored in the JSON (ADR-0008: shared with <see cref="UIKeyFrameClipSerializer"/>).</summary>
+    /// <summary>Formats one value as the invariant string stored in the JSON (ADR-0008: shared with <see cref="UIKeyFrameClipSerializer"/>
+    /// and <see cref="UIAnimationSerializer"/>). A type outside the built-in set falls back to a <see cref="RegisterValueFormat{T}"/>
+    /// registration; neither built-in nor registered throws <see cref="NotSupportedException"/> naming the type and that method.</summary>
     internal static string Format<T>(T value) => value switch
     {
         float f => f.ToString("R", CultureInfo.InvariantCulture),
@@ -103,10 +129,24 @@ public static class UIKeyFrameSerializer
         Vector4 v => Join(v.X, v.Y, v.Z, v.W),
         Color c => $"#{c.R:X2}{c.G:X2}{c.B:X2}{c.A:X2}",
         Thickness t => string.Join(",", new[] { t.Left, t.Top, t.Right, t.Bottom }.Select(x => x.ToString(CultureInfo.InvariantCulture))),
-        _ => throw new NotSupportedException($"Key frame values of type '{typeof(T).Name}' cannot be serialized. Supported: Single, Double, Int32, Vector2, Vector3, Vector4, Color, Thickness."),
+        _ => FormatViaRegistry(value),
     };
 
-    /// <summary>Parses one value from its invariant string form (ADR-0008: shared with <see cref="UIKeyFrameClipSerializer"/>).</summary>
+    private static string FormatViaRegistry<T>(T value)
+    {
+        if (ValueFormats.TryGetValue(typeof(T), out var entry))
+        {
+            return ((Func<T, string>)entry.Format)(value);
+        }
+
+        throw new NotSupportedException(
+            $"Key frame values of type '{typeof(T).Name}' cannot be serialized. Supported: Single, Double, Int32, Vector2, Vector3, Vector4, Color, " +
+            $"Thickness, or a type registered with {nameof(UIKeyFrameSerializer)}.{nameof(RegisterValueFormat)}<{typeof(T).Name}>(...).");
+    }
+
+    /// <summary>Parses one value from its invariant string form (ADR-0008: shared with <see cref="UIKeyFrameClipSerializer"/> and
+    /// <see cref="UIAnimationSerializer"/>). A type outside the built-in set falls back to a <see cref="RegisterValueFormat{T}"/>
+    /// registration; neither built-in nor registered throws <see cref="NotSupportedException"/> naming the type and that method.</summary>
     internal static T Parse<T>(string text)
     {
         if (text == null)
@@ -124,9 +164,21 @@ public static class UIKeyFrameSerializer
         else if (type == typeof(Vector4)) { var p = Floats(text, 4); value = new Vector4(p[0], p[1], p[2], p[3]); }
         else if (type == typeof(Color)) value = ParseColor(text);
         else if (type == typeof(Thickness)) { var p = Ints(text, 4); value = new Thickness(p[0], p[1], p[2], p[3]); }
-        else throw new NotSupportedException($"Key frame values of type '{type.Name}' cannot be deserialized.");
+        else return ParseViaRegistry<T>(text);
 
         return (T)value;
+    }
+
+    private static T ParseViaRegistry<T>(string text)
+    {
+        if (ValueFormats.TryGetValue(typeof(T), out var entry))
+        {
+            return ((Func<string, T>)entry.Parse)(text);
+        }
+
+        throw new NotSupportedException(
+            $"Key frame values of type '{typeof(T).Name}' cannot be deserialized. Register one with " +
+            $"{nameof(UIKeyFrameSerializer)}.{nameof(RegisterValueFormat)}<{typeof(T).Name}>(...).");
     }
 
     private static string Join(params float[] values) => string.Join(",", values.Select(x => x.ToString("R", CultureInfo.InvariantCulture)));

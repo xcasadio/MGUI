@@ -145,6 +145,23 @@ public abstract class UIAnimationGroup : UIAnimation
         }
     }
 
+    /// <summary>U8 fix (ADR-0008): rolls back every child this group's <see cref="OnPreviewAttached"/> already began as a preview
+    /// (<see cref="UIAnimation.IsPreview"/>) when the group's own <see cref="UIAnimation.BeginPreview"/> fails afterwards (an invalid
+    /// <see cref="UIAnimation.AutoReverse"/> or <see cref="UIAnimation.FillBehavior"/> caught by <see cref="OnStarting"/>) -- recursively,
+    /// since a child that is itself a group rolls its own children back the same way through its own override. A child never reached by
+    /// the failed <see cref="OnPreviewAttached"/> loop (still not a preview) is left untouched.</summary>
+    protected internal sealed override void OnPreviewAttachFailed()
+    {
+        for (var i = 0; i < _Children.Count; i++)
+        {
+            var child = _Children[i];
+            if (child.IsPreview)
+            {
+                child.RollbackFailedPreviewAttach();
+            }
+        }
+    }
+
     // A group holds no value of its own: cancelling it, whatever its cancel behaviour, cancels the children still running, each according to its own.
     protected internal sealed override void OnRestoreBaseValue() => CancelChildren();
 

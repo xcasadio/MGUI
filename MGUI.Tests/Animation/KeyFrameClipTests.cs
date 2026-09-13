@@ -317,6 +317,23 @@ public class KeyFrameClipTests
     }
 
     [Fact]
+    public void Serialize_RejectsAChildWithAnEmptyTrack_AsInvalidOperationException()
+    {
+        // U6 P3 ("Revue finale"), closed here (U8): Serialize used to accept a child with an empty Track and produce "frames": [], which
+        // Deserialize then refused right back ("has no frames") -- SerializeTrack<T> now refuses it up front, naming the track.
+        TimeSpan duration = TimeSpan.FromMilliseconds(100);
+        UIStoryboard storyboard = new()
+        {
+            new UIKeyFrameAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity) { Duration = duration, Track = new UIKeyFrameTrack<float>() },
+        };
+        storyboard.Duration = duration;
+
+        var ex = Assert.Throws<InvalidOperationException>(() => UIKeyFrameClipSerializer.Serialize(storyboard));
+        Assert.Contains("Track 0", ex.Message);
+        Assert.Contains("frames", ex.Message);
+    }
+
+    [Fact]
     public void Deserialized_TracksWithTheSamePath_StartInFileOrder_AndTheLastOneWins()
     {
         // Not refused: the engine's existing conflict rule (one active animation per owner and path) applies deterministically, since the

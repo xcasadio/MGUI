@@ -267,6 +267,66 @@ public class SeekTests
     }
 
     [Fact]
+    public void Storyboard_ChildPresetOnAnotherElement_PreviewsThere_WithoutStartThenCancel()
+    {
+        // U8 (ADR-0008 decision 8): UIAnimation.PresetOwner replaces the Start-then-Cancel idiom CompositionTests used to bind a child to a
+        // second element before this slice (start it for real, then Cancel it, leaving Owner set but State at Cancelled).
+        AnimationTestScene scene = AnimationTestScene.Build();
+        UIPropertyAnimation<float> fadeOnTop = Fade(0f, 1f, 200);
+        UIPropertyAnimation<float> spinOnBottom = Spin(90f, 200);
+        spinOnBottom.PresetOwner(scene.Bottom);
+        UIStoryboard storyboard = new() { fadeOnTop, spinOnBottom };
+
+        UIAnimationPreview.Attach(scene.Top, storyboard);
+        Assert.Same(scene.Top, fadeOnTop.Owner);
+        Assert.Same(scene.Bottom, spinOnBottom.Owner);
+
+        storyboard.Seek(TimeSpan.FromMilliseconds(100));
+        Assert.Equal(0.5f, scene.Top.Opacity, Tolerance);
+        Assert.Equal(45f, scene.Bottom.RenderTransform.Rotation, Tolerance);
+
+        Assert.Equal(0, scene.Desktop.Animations.ActiveCount);
+    }
+
+    [Fact]
+    public void PresetOwner_WhileActive_Throws()
+    {
+        AnimationTestScene scene = AnimationTestScene.Build();
+        UIPropertyAnimation<float> live = Fade(0f, 1f, 200);
+        scene.Top.Animations.Start(live);
+
+        Assert.Throws<InvalidOperationException>(() => live.PresetOwner(scene.Bottom));
+    }
+
+    [Fact]
+    public void Attach_FailedGroupValidation_RollsBackChildrenAlreadyAttachedAsPreviews_AndACorrectedRetrySucceeds()
+    {
+        // U8 fix, closing the P3 recorded in Docs/Tasks/animation-v3-tasks.md U7's "Revue finale": OnPreviewAttached had already begun
+        // both children as previews (Running, IsPreview) by the time OnStarting's AutoReverse check threw and the group itself fell back
+        // to Stopped; nothing used to roll the children back, so they stayed stuck reporting Running/preview forever.
+        AnimationTestScene scene = AnimationTestScene.Build();
+        UIPropertyAnimation<float> fade = Fade(0f, 1f, 200);
+        UIPropertyAnimation<float> spin = Spin(90f, 200);
+        UIStoryboard invalid = new() { fade, spin };
+        invalid.AutoReverse = true;
+
+        Assert.Throws<ArgumentException>(() => UIAnimationPreview.Attach(scene.Top, invalid));
+
+        Assert.Equal(UIAnimationState.Stopped, invalid.State);
+        Assert.False(invalid.IsActive);
+        Assert.Equal(UIAnimationState.Stopped, fade.State);
+        Assert.False(fade.IsPreview);
+        Assert.Equal(UIAnimationState.Stopped, spin.State);
+        Assert.False(spin.IsPreview);
+
+        invalid.AutoReverse = false;
+        UIAnimationPreview.Attach(scene.Top, invalid);
+        Assert.Equal(UIAnimationState.Running, invalid.State);
+        Assert.Equal(UIAnimationState.Running, fade.State);
+        Assert.Equal(UIAnimationState.Running, spin.State);
+    }
+
+    [Fact]
     public void Seek_OnALiveAnimation_Throws()
     {
         AnimationTestScene scene = AnimationTestScene.Build();

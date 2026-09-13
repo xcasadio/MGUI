@@ -83,6 +83,26 @@ public abstract class UIAnimation
     /// <summary>The element that started this animation, null until then.</summary>
     public MGElement Owner { get; private set; }
 
+    /// <summary>Presets <see cref="Owner"/> before this instance ever starts (U8, ADR-0008 decision 8): lets a <see cref="Composition.UIAnimationGroup"/>
+    /// child destined for another element be positioned there without the Start-then-Cancel idiom <c>CompositionTests</c> used before this
+    /// (start it for real on the other element, then <see cref="Cancel"/> it, leaving <see cref="Owner"/> set but <see cref="State"/> at
+    /// <see cref="UIAnimationState.Cancelled"/>) -- used by <see cref="KeyFrames.UIAnimationSerializer.Deserialize"/> and directly by an
+    /// application composing a tree by hand. Both <see cref="Composition.UIAnimationGroup.StartChild"/> and
+    /// <see cref="Composition.UIAnimationGroup.OnPreviewAttached"/> already read <c>child.Owner ?? root</c>, so presetting here is enough
+    /// for both live playback and a preview attach.</summary>
+    /// <exception cref="InvalidOperationException">This instance is not <see cref="UIAnimationState.Stopped"/>: preset the owner only
+    /// before the animation starts.</exception>
+    internal void PresetOwner(MGElement owner)
+    {
+        if (State != UIAnimationState.Stopped)
+        {
+            throw new InvalidOperationException(
+                $"{GetType().Name} cannot preset its owner while its state is {State}: preset the owner only before the animation starts.");
+        }
+
+        Owner = owner;
+    }
+
     /// <summary>The window that displayed <see cref="Owner"/> when the animation started: closing it cancels the animation.</summary>
     internal MGWindow OwnerWindow { get; private set; }
 
@@ -234,7 +254,13 @@ public abstract class UIAnimation
     /// as <see cref="Begin"/>, which sets <see cref="State"/> only after <see cref="OnStarting"/>): a hook that throws (an invalid
     /// <see cref="Composition.UIAnimationGroup"/> configuration, or a group whose child has no owner and no root) leaves this instance at
     /// its original <see cref="UIAnimationState.Stopped"/> and <see cref="IsPreview"/> false, so a corrected retry can attach it again,
-    /// instead of stranding it as a half-attached preview that reports <see cref="UIAnimationState.Running"/> forever.</summary>
+    /// instead of stranding it as a half-attached preview that reports <see cref="UIAnimationState.Running"/> forever.<para/>
+    /// U8 fix (ADR-0008, closing the P3 recorded in Docs/Tasks/animation-v3-tasks.md U7's "Revue finale"): that same throw used to leave
+    /// every CHILD that <see cref="OnPreviewAttached"/> had already begun stuck at <see cref="UIAnimationState.Running"/>/<see cref="IsPreview"/>
+    /// forever too, since nothing rolled them back when the group's own <see cref="OnStarting"/> failed afterwards. Both hooks now run
+    /// inside a try/catch that calls <see cref="RollbackFailedPreviewAttach"/> on a throw, before rethrowing: safe with no value to
+    /// restore, since <see cref="OnPreviewAttached"/> writes nothing by itself (only the caller's <see cref="Seek"/> right after a
+    /// successful <see cref="BeginPreview"/> ever does).</summary>
     internal void BeginPreview(MGElement owner)
     {
         Owner = owner;
@@ -247,11 +273,45 @@ public abstract class UIAnimation
         IsReversing = false;
         IsHeld = false;
 
-        OnPreviewAttached(owner);
-        OnStarting(null);
+        try
+        {
+            OnPreviewAttached(owner);
+            OnStarting(null);
+        }
+        catch
+        {
+            RollbackFailedPreviewAttach();
+            throw;
+        }
 
         IsPreview = true;
         State = UIAnimationState.Running;
+    }
+
+    /// <summary>Called on this instance when its own <see cref="OnPreviewAttached"/> or <see cref="OnStarting"/> throws inside
+    /// <see cref="BeginPreview"/>, walking every descendant already attached as a preview (<see cref="IsPreview"/>) back to
+    /// <see cref="UIAnimationState.Stopped"/> (U8, ADR-0008 decision 8). Default: a no-op (a leaf animation has no children to roll back);
+    /// sealed-overridden by <see cref="Composition.UIAnimationGroup"/> to roll back every one of its own children that made it into a
+    /// preview before the failure, recursively (a child that is itself a group rolls its own children back the same way).</summary>
+    protected internal virtual void OnPreviewAttachFailed() { }
+
+    /// <summary>Resets this instance -- and, through <see cref="OnPreviewAttachFailed"/>, every descendant already attached as a preview --
+    /// back to <see cref="UIAnimationState.Stopped"/> and non-preview, without raising <see cref="Cancelled"/> (a failed attach was never a
+    /// real run to cancel, and nothing was ever written for it to undo: see <see cref="BeginPreview"/>'s doc).</summary>
+    internal void RollbackFailedPreviewAttach()
+    {
+        OnPreviewAttachFailed();
+
+        OwnerWindow = null;
+        Manager = null;
+        Elapsed = TimeSpan.Zero;
+        IterationElapsed = TimeSpan.Zero;
+        Progress = 0f;
+        Iteration = 0;
+        IsReversing = false;
+        IsHeld = false;
+        IsPreview = false;
+        State = UIAnimationState.Stopped;
     }
 
     /// <summary>Advances by one scaled frame. Called by the manager.</summary>
