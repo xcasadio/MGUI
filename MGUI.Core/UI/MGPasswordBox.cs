@@ -25,7 +25,7 @@ public class MGPasswordBox : MGTextBox
 					_ = base.SetText(ReplaceNormalCharactersWith(Text, PasswordCharacter));
 				}
 
-				NPC(nameof(PasswordCharacter));
+				NotifyPropertyChanged(nameof(PasswordCharacter));
 			}
 		}
 	}
@@ -35,7 +35,7 @@ public class MGPasswordBox : MGTextBox
 	{
 		_Password?.Dispose();
 		_Password = Value.AsSecureString();
-		NPC(nameof(Password));
+		NotifyPropertyChanged(nameof(Password));
 	}
 
 	protected override bool SetText(string Value, bool ExecuteEvenIfSameValue, bool SuppressLayoutChanged)
@@ -47,7 +47,7 @@ public class MGPasswordBox : MGTextBox
 			//Debug.WriteLine($"{nameof(MGPasswordBox)}: Password changed from: \"{Password}\" to \"{Temp?.AsPlainString()}\"");
 			_Password?.Dispose();
 			_Password = Temp;
-			NPC(nameof(Password));
+			NotifyPropertyChanged(nameof(Password));
 			PasswordChanged?.Invoke(this, EventArgs.Empty);
 			return true;
 		}

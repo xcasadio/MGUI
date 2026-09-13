@@ -19,7 +19,7 @@ public class MGColorSlider : MGElement
             {
                 _channel = value;
                 ApplyDefaultRangeForChannel(value);
-                NPC(nameof(Channel));
+                NotifyPropertyChanged(nameof(Channel));
             }
         }
     }
@@ -34,7 +34,7 @@ public class MGColorSlider : MGElement
             if (_baseColor != value)
             {
                 _baseColor = value;
-                NPC(nameof(BaseColor));
+                NotifyPropertyChanged(nameof(BaseColor));
             }
         }
     }
@@ -74,7 +74,7 @@ public class MGColorSlider : MGElement
             {
                 _orientation = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
+                NotifyPropertyChanged(nameof(Orientation));
             }
         }
     }
@@ -91,7 +91,7 @@ public class MGColorSlider : MGElement
             {
                 _sliderWidth = actual;
                 LayoutChanged(this, true);
-                NPC(nameof(SliderWidth));
+                NotifyPropertyChanged(nameof(SliderWidth));
             }
         }
     }
@@ -108,7 +108,7 @@ public class MGColorSlider : MGElement
             {
                 _sliderHeight = actual;
                 LayoutChanged(this, true);
-                NPC(nameof(SliderHeight));
+                NotifyPropertyChanged(nameof(SliderHeight));
             }
         }
     }
@@ -206,12 +206,12 @@ public class MGColorSlider : MGElement
         _ = SetValue(Value);
         if (minimumChanged)
         {
-            NPC(nameof(Minimum));
+            NotifyPropertyChanged(nameof(Minimum));
         }
 
         if (maximumChanged)
         {
-            NPC(nameof(Maximum));
+            NotifyPropertyChanged(nameof(Maximum));
         }
     }
 
@@ -222,7 +222,7 @@ public class MGColorSlider : MGElement
         {
             var previous = _value;
             _value = actual;
-            NPC(nameof(Value));
+            NotifyPropertyChanged(nameof(Value));
             ValueChanged?.Invoke(this, new EventArgs<float>(previous, _value));
         }
 
@@ -329,9 +329,9 @@ public class MGColorSlider : MGElement
             _value = Math.Clamp(_value, _minimum, _maximum);
         }
 
-        NPC(nameof(Minimum));
-        NPC(nameof(Maximum));
-        NPC(nameof(Value));
+        NotifyPropertyChanged(nameof(Minimum));
+        NotifyPropertyChanged(nameof(Maximum));
+        NotifyPropertyChanged(nameof(Value));
     }
 
     private bool TryAdjustValue(float delta)

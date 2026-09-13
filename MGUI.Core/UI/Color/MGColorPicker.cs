@@ -57,7 +57,7 @@ public class MGColorPicker : MGElement
             if (_previousValue != value)
             {
                 _previousValue = value;
-                NPC(nameof(PreviousValue));
+                NotifyPropertyChanged(nameof(PreviousValue));
             }
         }
     }
@@ -73,7 +73,7 @@ public class MGColorPicker : MGElement
             {
                 _showAlpha = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ShowAlpha));
+                NotifyPropertyChanged(nameof(ShowAlpha));
             }
         }
     }
@@ -89,7 +89,7 @@ public class MGColorPicker : MGElement
             {
                 _showTextInput = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ShowTextInput));
+                NotifyPropertyChanged(nameof(ShowTextInput));
             }
         }
     }
@@ -104,7 +104,7 @@ public class MGColorPicker : MGElement
             if (_pickerMode != value)
             {
                 _pickerMode = value;
-                NPC(nameof(PickerMode));
+                NotifyPropertyChanged(nameof(PickerMode));
             }
         }
     }
@@ -121,7 +121,7 @@ public class MGColorPicker : MGElement
                 _displayFormat = value;
                 TextInput.HexFormat = value;
                 TextInput.SetValue(Value);
-                NPC(nameof(DisplayFormat));
+                NotifyPropertyChanged(nameof(DisplayFormat));
             }
         }
     }
@@ -138,7 +138,7 @@ public class MGColorPicker : MGElement
             {
                 _saturationValueSize = actual;
                 LayoutChanged(this, true);
-                NPC(nameof(SaturationValueSize));
+                NotifyPropertyChanged(nameof(SaturationValueSize));
             }
         }
     }
@@ -155,7 +155,7 @@ public class MGColorPicker : MGElement
             {
                 _sliderThickness = actual;
                 LayoutChanged(this, true);
-                NPC(nameof(SliderThickness));
+                NotifyPropertyChanged(nameof(SliderThickness));
             }
         }
     }
@@ -172,7 +172,7 @@ public class MGColorPicker : MGElement
             {
                 _previewWidth = actual;
                 LayoutChanged(this, true);
-                NPC(nameof(PreviewWidth));
+                NotifyPropertyChanged(nameof(PreviewWidth));
             }
         }
     }
@@ -189,7 +189,7 @@ public class MGColorPicker : MGElement
             {
                 _previewHeight = actual;
                 LayoutChanged(this, true);
-                NPC(nameof(PreviewHeight));
+                NotifyPropertyChanged(nameof(PreviewHeight));
             }
         }
     }
@@ -204,7 +204,7 @@ public class MGColorPicker : MGElement
             if (Model.CommitMode != value)
             {
                 Model.CommitMode = value;
-                NPC(nameof(CommitMode));
+                NotifyPropertyChanged(nameof(CommitMode));
             }
         }
     }
@@ -217,9 +217,9 @@ public class MGColorPicker : MGElement
             if (Model.DisplayColorSpace != value)
             {
                 Model.DisplayColorSpace = value;
-                NPC(nameof(DisplayColorSpace));
-                NPC(nameof(DisplayAsSrgb));
-                NPC(nameof(IsDisplayDifferentFromStorage));
+                NotifyPropertyChanged(nameof(DisplayColorSpace));
+                NotifyPropertyChanged(nameof(DisplayAsSrgb));
+                NotifyPropertyChanged(nameof(IsDisplayDifferentFromStorage));
             }
         }
     }
@@ -232,8 +232,8 @@ public class MGColorPicker : MGElement
             if (Model.StoreAsLinear != value)
             {
                 Model.StoreAsLinear = value;
-                NPC(nameof(StoreAsLinear));
-                NPC(nameof(IsDisplayDifferentFromStorage));
+                NotifyPropertyChanged(nameof(StoreAsLinear));
+                NotifyPropertyChanged(nameof(IsDisplayDifferentFromStorage));
             }
         }
     }
@@ -246,9 +246,9 @@ public class MGColorPicker : MGElement
             if (Model.DisplayAsSrgb != value)
             {
                 Model.DisplayAsSrgb = value;
-                NPC(nameof(DisplayAsSrgb));
-                NPC(nameof(DisplayColorSpace));
-                NPC(nameof(IsDisplayDifferentFromStorage));
+                NotifyPropertyChanged(nameof(DisplayAsSrgb));
+                NotifyPropertyChanged(nameof(DisplayColorSpace));
+                NotifyPropertyChanged(nameof(IsDisplayDifferentFromStorage));
             }
         }
     }
@@ -271,7 +271,7 @@ public class MGColorPicker : MGElement
                     Model.Constraints.MaxChannelValue = Math.Max(Model.Constraints.MaxChannelValue, MaxIntensity);
                 }
 
-                NPC(nameof(IsHdr));
+                NotifyPropertyChanged(nameof(IsHdr));
             }
         }
     }
@@ -315,7 +315,7 @@ public class MGColorPicker : MGElement
             if (_showEyeDropper != value)
             {
                 _showEyeDropper = value;
-                NPC(nameof(ShowEyeDropper));
+                NotifyPropertyChanged(nameof(ShowEyeDropper));
             }
         }
     }
@@ -336,8 +336,8 @@ public class MGColorPicker : MGElement
             _colorPickService = actual;
             _colorPickService.ColorPicked += OnColorPicked;
             _colorPickService.ColorPickCancelled += OnColorPickCancelled;
-            NPC(nameof(ColorPickService));
-            NPC(nameof(IsEyeDropperAvailable));
+            NotifyPropertyChanged(nameof(ColorPickService));
+            NotifyPropertyChanged(nameof(IsEyeDropperAvailable));
         }
     }
 
@@ -413,12 +413,12 @@ public class MGColorPicker : MGElement
 
             Model.ValueChanging += (sender, e) =>
             {
-                NPC(nameof(Value));
+                NotifyPropertyChanged(nameof(Value));
                 ValueChanging?.Invoke(this, e);
             };
             Model.ValueChanged += (sender, e) =>
             {
-                NPC(nameof(Value));
+                NotifyPropertyChanged(nameof(Value));
                 if (!Model.IsEditing)
                 {
                     PreviousValue = e.NewValue;

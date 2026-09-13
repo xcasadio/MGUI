@@ -26,7 +26,7 @@ public class MGTextLogView : MGListBox<MGTextLogEntry>
             {
                 _TimestampFormat = value;
                 RefreshItemTemplate();
-                NPC(nameof(TimestampFormat));
+                NotifyPropertyChanged(nameof(TimestampFormat));
             }
         }
     }
@@ -42,7 +42,7 @@ public class MGTextLogView : MGListBox<MGTextLogEntry>
             {
                 _ShowTimestamps = value;
                 RefreshItemTemplate();
-                NPC(nameof(ShowTimestamps));
+                NotifyPropertyChanged(nameof(ShowTimestamps));
             }
         }
     }
@@ -58,7 +58,7 @@ public class MGTextLogView : MGListBox<MGTextLogEntry>
             {
                 _AllowsInlineFormatting = value;
                 RefreshItemTemplate();
-                NPC(nameof(AllowsInlineFormatting));
+                NotifyPropertyChanged(nameof(AllowsInlineFormatting));
             }
         }
     }
@@ -73,7 +73,7 @@ public class MGTextLogView : MGListBox<MGTextLogEntry>
             if (_AutoScrollToBottom != value)
             {
                 _AutoScrollToBottom = value;
-                NPC(nameof(AutoScrollToBottom));
+                NotifyPropertyChanged(nameof(AutoScrollToBottom));
             }
         }
     }
@@ -94,7 +94,7 @@ public class MGTextLogView : MGListBox<MGTextLogEntry>
             {
                 _MaxEntries = value;
                 ValidateMaxEntries();
-                NPC(nameof(MaxEntries));
+                NotifyPropertyChanged(nameof(MaxEntries));
             }
         }
     }

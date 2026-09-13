@@ -58,8 +58,8 @@ public class MGTabControl : MGHeaderedContentPresenter
             //_Content?.SetParent(this);
             //InvokeContentAdded(_Content);
             LayoutChanged(this, true);
-            NPC(nameof(Content));
-            NPC(nameof(HasContent));
+            NotifyPropertyChanged(nameof(Content));
+            NotifyPropertyChanged(nameof(HasContent));
         }
     }
 
@@ -161,7 +161,7 @@ public class MGTabControl : MGHeaderedContentPresenter
             if (HeadersPanelElement.BackgroundBrush != value)
             {
                 HeadersPanelElement.BackgroundBrush = value;
-                NPC(nameof(HeaderAreaBackground));
+                NotifyPropertyChanged(nameof(HeaderAreaBackground));
             }
         }
     }
@@ -210,7 +210,7 @@ public class MGTabControl : MGHeaderedContentPresenter
                         UpdateHeaderWrapper(Tab);
                     }
                 }
-                NPC(nameof(SelectedTabHeaderTemplate));
+                NotifyPropertyChanged(nameof(SelectedTabHeaderTemplate));
             }
         }
     }
@@ -235,7 +235,7 @@ public class MGTabControl : MGHeaderedContentPresenter
                         UpdateHeaderWrapper(Tab);
                     }
                 }
-                NPC(nameof(UnselectedTabHeaderTemplate));
+                NotifyPropertyChanged(nameof(UnselectedTabHeaderTemplate));
             }
         }
     }
@@ -257,7 +257,7 @@ public class MGTabControl : MGHeaderedContentPresenter
                         UpdateHeaderWrapper(tab);
                     }
                 }
-                NPC(nameof(SelectedTabHeaderControlTemplateName));
+                NotifyPropertyChanged(nameof(SelectedTabHeaderControlTemplateName));
             }
         }
     }
@@ -279,7 +279,7 @@ public class MGTabControl : MGHeaderedContentPresenter
                         UpdateHeaderWrapper(tab);
                     }
                 }
-                NPC(nameof(UnselectedTabHeaderControlTemplateName));
+                NotifyPropertyChanged(nameof(UnselectedTabHeaderControlTemplateName));
             }
         }
     }
@@ -419,9 +419,9 @@ public class MGTabControl : MGHeaderedContentPresenter
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
         }
 
         using (HeaderPresenter.AllowChangingContentTemporarily())
@@ -501,9 +501,9 @@ public class MGTabControl : MGHeaderedContentPresenter
         LayoutChanged(this, true);
 
         SetContent(null as MGElement);
-        NPC(nameof(SelectedTab));
-        NPC(nameof(SelectedTabIndex));
-        Previous.NPC(nameof(MGTabItem.IsTabSelected));
+        NotifyPropertyChanged(nameof(SelectedTab));
+        NotifyPropertyChanged(nameof(SelectedTabIndex));
+        Previous.NotifyPropertyChanged(nameof(MGTabItem.IsTabSelected));
         SelectedTabChanged?.Invoke(this, new(Previous, null));
     }
 
@@ -570,10 +570,10 @@ public class MGTabControl : MGHeaderedContentPresenter
             LayoutChanged(this, true);
 
             SetContent(SelectedTab);
-            NPC(nameof(SelectedTab));
-            NPC(nameof(SelectedTabIndex));
-            Previous?.NPC(nameof(MGTabItem.IsTabSelected));
-            SelectedTab?.NPC(nameof(MGTabItem.IsTabSelected));
+            NotifyPropertyChanged(nameof(SelectedTab));
+            NotifyPropertyChanged(nameof(SelectedTabIndex));
+            Previous?.NotifyPropertyChanged(nameof(MGTabItem.IsTabSelected));
+            SelectedTab?.NotifyPropertyChanged(nameof(MGTabItem.IsTabSelected));
             SelectedTabChanged?.Invoke(this, new(Previous, SelectedTab));
             return true;
         }

@@ -31,7 +31,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             {
                 _AutoWidthFromContent = value;
                 LayoutChanged(this, true);
-                NPC(nameof(AutoWidthFromContent));
+                NotifyPropertyChanged(nameof(AutoWidthFromContent));
             }
         }
     }
@@ -135,7 +135,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             if (DropdownArrowElement.Margin.Left != value)
             {
                 DropdownArrowElement.SetMargin(DropdownArrowElement.Margin.ChangeLeft(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                NPC(nameof(DropdownArrowLeftMargin));
+                NotifyPropertyChanged(nameof(DropdownArrowLeftMargin));
             }
         }
     }
@@ -150,7 +150,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             if (DropdownArrowElement.Margin.Right != value)
             {
                 DropdownArrowElement.SetMargin(DropdownArrowElement.Margin.ChangeRight(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                NPC(nameof(DropdownArrowRightMargin));
+                NotifyPropertyChanged(nameof(DropdownArrowRightMargin));
             }
         }
     }
@@ -255,9 +255,9 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     }
                 }
 
-                NPC(nameof(SelectedTemplatedItem));
-                NPC(nameof(SelectedItem));
-                NPC(nameof(SelectedIndex));
+                NotifyPropertyChanged(nameof(SelectedTemplatedItem));
+                NotifyPropertyChanged(nameof(SelectedItem));
+                NotifyPropertyChanged(nameof(SelectedIndex));
 
                 SelectedItemChanged?.Invoke(this, new(
                     PreviousSelection == null ? default(TItemType) : PreviousSelection.SourceData,
@@ -307,7 +307,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             {
                 var Previous = HoveredItem;
                 _HoveredItem = value;
-                NPC(nameof(HoveredItem));
+                NotifyPropertyChanged(nameof(HoveredItem));
                 HoveredItemChanged?.Invoke(this, new(Previous, HoveredItem));
             }
         }
@@ -360,7 +360,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     TemplatedItems = new ObservableCollection<TemplatedElement<TItemType, MGButton>>(Values);
                 }
 
-                NPC(nameof(ItemsSource));
+                NotifyPropertyChanged(nameof(ItemsSource));
             }
         }
     }
@@ -450,7 +450,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     }
                 }
 
-                NPC(nameof(DropdownItemControlTemplateName));
+                NotifyPropertyChanged(nameof(DropdownItemControlTemplateName));
             }
         }
     }
@@ -498,7 +498,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     TemplatedItems = new ObservableCollection<TemplatedElement<TItemType, MGButton>>(Values);
                 }
 
-                NPC(nameof(DropdownItemTemplate));
+                NotifyPropertyChanged(nameof(DropdownItemTemplate));
             }
         }
     }
@@ -519,7 +519,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             {
                 _SelectedItemTemplate = value;
                 UpdateSelectedContent();
-                NPC(nameof(SelectedItemTemplate));
+                NotifyPropertyChanged(nameof(SelectedItemTemplate));
             }
         }
     }
@@ -655,7 +655,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     SetNavigationTarget(null);
                 }
 
-                NPC(nameof(IsDropdownOpen));
+                NotifyPropertyChanged(nameof(IsDropdownOpen));
                 DropdownOpened?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -677,7 +677,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
             if (_DropdownArrowColor != value)
             {
                 _DropdownArrowColor = value;
-                NPC(nameof(DropdownArrowColor));
+                NotifyPropertyChanged(nameof(DropdownArrowColor));
             }
         }
     }
@@ -711,9 +711,9 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
         }
 
         var needsDropdownArrowHandlers = DropdownArrowComponent == null || !ReferenceEquals(DropdownArrowComponent.Element, DropdownArrowElement);
@@ -802,7 +802,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                 {
                     DropdownHeaderPresenter.SetContent(DropdownHeader);
                 }
-                NPC(nameof(DropdownHeader));
+                NotifyPropertyChanged(nameof(DropdownHeader));
             }
         }
     }
@@ -824,7 +824,7 @@ public class MGComboBox<TItemType> : MGSingleContentHost, INavigationTargetVisib
                 {
                     DropdownFooterPresenter.SetContent(DropdownFooter);
                 }
-                NPC(nameof(DropdownFooter));
+                NotifyPropertyChanged(nameof(DropdownFooter));
             }
         }
     }

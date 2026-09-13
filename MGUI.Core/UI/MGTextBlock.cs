@@ -28,7 +28,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 _AutoWidthFromContent = value;
                 InvokeLayoutChanged();
-                NPC(nameof(AutoWidthFromContent));
+                NotifyPropertyChanged(nameof(AutoWidthFromContent));
             }
         }
     }
@@ -66,7 +66,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 _UseResponsiveTextScale = value;
                 RefreshTextEngine();
-                NPC(nameof(UseResponsiveTextScale));
+                NotifyPropertyChanged(nameof(UseResponsiveTextScale));
             }
         }
     }
@@ -134,12 +134,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
             if (PreviousFontFamily != this.FontFamily)
             {
-                NPC(nameof(FontFamily));
+                NotifyPropertyChanged(nameof(FontFamily));
             }
 
             if (PreviousFontSize != this.FontSize)
             {
-                NPC(nameof(FontSize));
+                NotifyPropertyChanged(nameof(FontSize));
             }
 
             return true;
@@ -188,7 +188,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             _ = TrySetFont(UsesThemeFontFamily ? CurrentDefaultFontFamily : FontFamily, UsesThemeFontSize ? CurrentDefaultFontSize : FontSize);
         }
 
-        NPC(nameof(ActualForeground));
+        NotifyPropertyChanged(nameof(ActualForeground));
     }
 
     /// <summary>
@@ -224,7 +224,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
                     UpdateRuns();
                     InvokeLayoutChanged();
                 }
-                NPC(nameof(IsBold));
+                NotifyPropertyChanged(nameof(IsBold));
             }
         }
     }
@@ -244,7 +244,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
                     UpdateRuns();
                     InvokeLayoutChanged();
                 }
-                NPC(nameof(IsItalic));
+                NotifyPropertyChanged(nameof(IsItalic));
             }
         }
     }
@@ -264,7 +264,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
                     UpdateRuns();
                     UpdateLines();
                 }
-                NPC(nameof(IsUnderlined));
+                NotifyPropertyChanged(nameof(IsUnderlined));
             }
         }
     }
@@ -292,7 +292,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
                     UpdateRuns();
                     UpdateLines();
                 }
-                NPC(nameof(IsShadowed));
+                NotifyPropertyChanged(nameof(IsShadowed));
             }
         }
     }
@@ -317,7 +317,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
                     UpdateRuns();
                     UpdateLines();
                 }
-                NPC(nameof(ShadowOffset));
+                NotifyPropertyChanged(nameof(ShadowOffset));
             }
         }
     }
@@ -339,7 +339,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
                     UpdateRuns();
                     UpdateLines();
                 }
-                NPC(nameof(ShadowColor));
+                NotifyPropertyChanged(nameof(ShadowColor));
             }
         }
     }
@@ -470,8 +470,8 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_Foreground != null)
                 _Foreground.PropertyChanged += HandleForegroundContainerPropertyChanged;
 
-            NPC(nameof(Foreground));
-            NPC(nameof(ActualForeground));
+            NotifyPropertyChanged(nameof(Foreground));
+            NotifyPropertyChanged(nameof(ActualForeground));
 
             ReapplyForegroundSubSlots();
         }
@@ -681,7 +681,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_TextProgress != value)
             {
                 _TextProgress = value;
-                NPC(nameof(TextProgress));
+                NotifyPropertyChanged(nameof(TextProgress));
             }
         }
     }
@@ -701,7 +701,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_TextCharactersPerSecond != value)
             {
                 _TextCharactersPerSecond = value;
-                NPC(nameof(TextCharactersPerSecond));
+                NotifyPropertyChanged(nameof(TextCharactersPerSecond));
                 TextProgress = TextCharactersPerSecond.HasValue ? 0.0 : null;
             }
         }
@@ -722,7 +722,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
                 _AllowsInlineFormatting = value;
                 UpdateRuns();
                 InvokeLayoutChanged();
-                NPC(nameof(AllowsInlineFormatting));
+                NotifyPropertyChanged(nameof(AllowsInlineFormatting));
             }
         }
     }
@@ -739,7 +739,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (!ReferenceEquals(_ExplicitRuns, value))
             {
                 _ExplicitRuns = value;
-                NPC(nameof(ExplicitRuns));
+                NotifyPropertyChanged(nameof(ExplicitRuns));
             }
         }
     }
@@ -763,7 +763,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_HasStableTextFootprint != value)
             {
                 _HasStableTextFootprint = value;
-                NPC(nameof(HasStableTextFootprint));
+                NotifyPropertyChanged(nameof(HasStableTextFootprint));
             }
         }
     }
@@ -797,7 +797,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
             ApplyTextMutation(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
 
-            NPC(nameof(Text));
+            NotifyPropertyChanged(nameof(Text));
         }
     }
 
@@ -1050,7 +1050,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
         IsTrackingMouseClicks = Runs.Any(x => x.HasAction);
         AreLinesDirty = true;
 
-        NPC(nameof(Runs));
+        NotifyPropertyChanged(nameof(Runs));
         NumCharacters = Runs.Where(x => x is MGTextRunText).Cast<MGTextRunText>().Sum(x => x.Text.Length);
     }
 
@@ -1071,7 +1071,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
         Lines = MGTextLine.ParseLines(this, LineParseWidth, WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
         LastLineParseWidth = LineParseWidth;
         AreLinesDirty = false;
-        NPC(nameof(Lines));
+        NotifyPropertyChanged(nameof(Lines));
     }
 
     private int GetTextLineParseWidth()
@@ -1124,7 +1124,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 _WrapText = value;
                 InvokeLayoutChanged();
-                NPC(nameof(WrapText));
+                NotifyPropertyChanged(nameof(WrapText));
             }
         }
     }
@@ -1141,7 +1141,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 _LinePadding = value;
                 InvokeLayoutChanged();
-                NPC(nameof(LinePadding));
+                NotifyPropertyChanged(nameof(LinePadding));
             }
         }
     }
@@ -1160,7 +1160,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 _MinLines = value;
                 InvokeLayoutChanged();
-                NPC(nameof(MinLines));
+                NotifyPropertyChanged(nameof(MinLines));
             }
         }
     }
@@ -1180,7 +1180,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 _MaxLines = value;
                 InvokeLayoutChanged();
-                NPC(nameof(MaxLines));
+                NotifyPropertyChanged(nameof(MaxLines));
             }
         }
     }
@@ -1195,7 +1195,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_TextAlignment != value)
             {
                 _TextAlignment = value;
-                NPC(nameof(TextAlignment));
+                NotifyPropertyChanged(nameof(TextAlignment));
             }
         }
     }

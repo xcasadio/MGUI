@@ -43,7 +43,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			if (_IsEnabled != value)
 			{
 				_IsEnabled = value;
-				NPC(nameof(IsEnabled));
+				NotifyPropertyChanged(nameof(IsEnabled));
 			}
 		}
 	}
@@ -61,7 +61,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			if (_FillFocusedRegion != value)
 			{
 				_FillFocusedRegion = value;
-				NPC(nameof(FillFocusedRegion));
+				NotifyPropertyChanged(nameof(FillFocusedRegion));
 			}
 		}
 	}
@@ -79,7 +79,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			if (_FocusedColor != value)
 			{
 				_FocusedColor = value;
-				NPC(nameof(FocusedColor));
+				NotifyPropertyChanged(nameof(FocusedColor));
 			}
 		}
 	}
@@ -98,7 +98,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			if (_FillUnfocusedRegion != value)
 			{
 				_FillUnfocusedRegion = value;
-				NPC(nameof(FillUnfocusedRegion));
+				NotifyPropertyChanged(nameof(FillUnfocusedRegion));
 			}
 		}
 	}
@@ -116,7 +116,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			if (_UnfocusedColor != value)
 			{
 				_UnfocusedColor = value;
-				NPC(nameof(UnfocusedColor));
+				NotifyPropertyChanged(nameof(UnfocusedColor));
 			}
 		}
 	}
@@ -140,7 +140,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			if (_FocusedBounds != value)
 			{
 				_FocusedBounds = value;
-				NPC(nameof(FocusedBounds));
+				NotifyPropertyChanged(nameof(FocusedBounds));
 				CachedUnfocusedRegions.Clear();
 			}
 		}
@@ -171,8 +171,8 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 				}
 
 				_FocusedElements = value;
-				NPC(nameof(FocusedElements));
-				NPC(nameof(FocusedElement));
+				NotifyPropertyChanged(nameof(FocusedElements));
+				NotifyPropertyChanged(nameof(FocusedElement));
 
 				if (FocusedElements != null)
 				{
@@ -199,7 +199,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 			if (_FocusedElementPadding != value)
 			{
 				_FocusedElementPadding = value;
-				NPC(nameof(FocusedElementPadding));
+				NotifyPropertyChanged(nameof(FocusedElementPadding));
 				CachedUnfocusedRegions.Clear();
 			}
 		}

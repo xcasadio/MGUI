@@ -23,7 +23,7 @@ public class MGToolTip : MGWindow
             if (_ShowOnDisabled != value)
             {
                 _ShowOnDisabled = value;
-                NPC(nameof(ShowOnDisabled));
+                NotifyPropertyChanged(nameof(ShowOnDisabled));
             }
         }
     }
@@ -40,7 +40,7 @@ public class MGToolTip : MGWindow
             if (_DrawOffset != value)
             {
                 _DrawOffset = value;
-                NPC(nameof(DrawOffset));
+                NotifyPropertyChanged(nameof(DrawOffset));
             }
         }
     }
@@ -58,8 +58,8 @@ public class MGToolTip : MGWindow
             if (_ShowDelayOverride != value)
             {
                 _ShowDelayOverride = value;
-                NPC(nameof(ShowDelayOverride));
-                NPC(nameof(ActualShowDelay));
+                NotifyPropertyChanged(nameof(ShowDelayOverride));
+                NotifyPropertyChanged(nameof(ActualShowDelay));
             }
         }
     }

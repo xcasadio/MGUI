@@ -20,7 +20,7 @@ public class MGRectangle : MGElement
             {
                 _Width = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Width));
+                NotifyPropertyChanged(nameof(Width));
             }
         }
     }
@@ -36,7 +36,7 @@ public class MGRectangle : MGElement
             {
                 _Height = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Height));
+                NotifyPropertyChanged(nameof(Height));
             }
         }
     }
@@ -53,7 +53,7 @@ public class MGRectangle : MGElement
             if (_Stroke != value)
             {
                 _Stroke = value;
-                NPC(nameof(Stroke));
+                NotifyPropertyChanged(nameof(Stroke));
             }
         }
     }
@@ -70,7 +70,7 @@ public class MGRectangle : MGElement
             if (_StrokeThickness != value)
             {
                 _StrokeThickness = value;
-                NPC(nameof(StrokeThickness));
+                NotifyPropertyChanged(nameof(StrokeThickness));
             }
         }
     }
@@ -87,7 +87,7 @@ public class MGRectangle : MGElement
             if (_Fill != value)
             {
                 _Fill = value;
-                NPC(nameof(Fill));
+                NotifyPropertyChanged(nameof(Fill));
             }
         }
     }
@@ -103,7 +103,7 @@ public class MGRectangle : MGElement
             {
                 _CornerRadius = value;
                 LayoutChanged(this, true);
-                NPC(nameof(CornerRadius));
+                NotifyPropertyChanged(nameof(CornerRadius));
             }
         }
     }

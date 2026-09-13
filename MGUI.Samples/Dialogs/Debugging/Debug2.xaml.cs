@@ -26,7 +26,7 @@ namespace MGUI.Samples.Dialogs.Debugging
                 if (_TestColor != value)
                 {
                     _TestColor = value;
-                    NPC(nameof(TestColor));
+                    NotifyPropertyChanged(nameof(TestColor));
                 }
             }
         }

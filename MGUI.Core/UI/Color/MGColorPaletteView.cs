@@ -19,7 +19,7 @@ public class MGColorPaletteView : MGElement
                 _palette = value;
                 SelectedSwatch = null;
                 LayoutChanged(this, true);
-                NPC(nameof(Palette));
+                NotifyPropertyChanged(nameof(Palette));
             }
         }
     }
@@ -75,7 +75,7 @@ public class MGColorPaletteView : MGElement
         FocusedSwatchIndex = Palette.Swatches.IndexOf(swatch);
         ApplyToTargetPicker(swatch.Value);
         SwatchSelected?.Invoke(this, new ColorSwatchSelectedEventArgs(swatch));
-        NPC(nameof(SelectedSwatch));
+        NotifyPropertyChanged(nameof(SelectedSwatch));
         return true;
     }
 
@@ -132,7 +132,7 @@ public class MGColorPaletteView : MGElement
         }
 
         FocusedSwatchIndex = nextIndex;
-        NPC(nameof(FocusedSwatchIndex));
+        NotifyPropertyChanged(nameof(FocusedSwatchIndex));
         return true;
     }
 

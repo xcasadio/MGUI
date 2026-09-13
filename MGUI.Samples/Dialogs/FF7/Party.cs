@@ -34,8 +34,6 @@ namespace MGUI.Samples.Dialogs.FF7
     {
         public event PropertyChangedEventHandler PropertyChanged;
         public virtual void NotifyPropertyChanged(string szPropertyName) { PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(szPropertyName)); }
-        /// <summary>Notify Property Changed for the given <paramref name="szPropertyName"/></summary>
-        public void NPC(string szPropertyName) { NotifyPropertyChanged(szPropertyName); }
 
         public Party Party { get; }
         public string Name { get; }
@@ -55,7 +53,7 @@ namespace MGUI.Samples.Dialogs.FF7
                     _XP = Value;
                     Level = ExperienceTable.GetLevel(XP);
                     XPChanged?.Invoke(this, new(Previous, XP));
-                    NPC(nameof(XP));
+                    NotifyPropertyChanged(nameof(XP));
                 }
             }
         }
@@ -75,9 +73,9 @@ namespace MGUI.Samples.Dialogs.FF7
                     CurrentLevelXP = ExperienceTable.GetXP(Level);
                     NextLevelXP = ExperienceTable.GetXP(Math.Min(ExperienceTable.MaxLevel, Level + 1));
                     LevelChanged?.Invoke(this, new(Previous, Level));
-                    NPC(nameof(Level));
-                    NPC(nameof(CurrentLevelXP));
-                    NPC(nameof(NextLevelXP));
+                    NotifyPropertyChanged(nameof(Level));
+                    NotifyPropertyChanged(nameof(CurrentLevelXP));
+                    NotifyPropertyChanged(nameof(NextLevelXP));
                 }
             }
         }
@@ -100,7 +98,7 @@ namespace MGUI.Samples.Dialogs.FF7
                     int Previous = MaxHP;
                     _MaxHP = value;
                     MaxHPChanged?.Invoke(this, new(Previous, MaxHP));
-                    NPC(nameof(MaxHP));
+                    NotifyPropertyChanged(nameof(MaxHP));
                 }
             }
         }
@@ -118,7 +116,7 @@ namespace MGUI.Samples.Dialogs.FF7
                     int Previous = CurrentHP;
                     _CurrentHP = value;
                     HPChanged?.Invoke(this, new(Previous, CurrentHP));
-                    NPC(nameof(CurrentHP));
+                    NotifyPropertyChanged(nameof(CurrentHP));
                 }
             }
         }
@@ -136,7 +134,7 @@ namespace MGUI.Samples.Dialogs.FF7
                     int Previous = MaxMP;
                     _MaxMP = value;
                     MaxMPChanged?.Invoke(this, new(Previous, MaxMP));
-                    NPC(nameof(MaxMP));
+                    NotifyPropertyChanged(nameof(MaxMP));
                 }
             }
         }
@@ -154,7 +152,7 @@ namespace MGUI.Samples.Dialogs.FF7
                     int Previous = CurrentMP;
                     _CurrentMP = value;
                     MPChanged?.Invoke(this, new(Previous, CurrentMP));
-                    NPC(nameof(CurrentMP));
+                    NotifyPropertyChanged(nameof(CurrentMP));
                 }
             }
         }

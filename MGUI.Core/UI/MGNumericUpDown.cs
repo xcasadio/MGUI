@@ -97,7 +97,7 @@ public class MGNumericUpDown : MGTextBox
                 return;
             }
 
-            NPC(nameof(Minimum));
+            NotifyPropertyChanged(nameof(Minimum));
             HandleModelValueMutation(previousValue, true);
         }
     }
@@ -113,7 +113,7 @@ public class MGNumericUpDown : MGTextBox
                 return;
             }
 
-            NPC(nameof(Maximum));
+            NotifyPropertyChanged(nameof(Maximum));
             HandleModelValueMutation(previousValue, true);
         }
     }
@@ -131,7 +131,7 @@ public class MGNumericUpDown : MGTextBox
         {
             if (Model.SetIncrement(value))
             {
-                NPC(nameof(Increment));
+                NotifyPropertyChanged(nameof(Increment));
                 UpdateSpinnerState();
             }
         }
@@ -148,7 +148,7 @@ public class MGNumericUpDown : MGTextBox
                 return;
             }
 
-            NPC(nameof(DecimalPlaces));
+            NotifyPropertyChanged(nameof(DecimalPlaces));
             HandleModelValueMutation(previousValue, true);
         }
     }
@@ -160,7 +160,7 @@ public class MGNumericUpDown : MGTextBox
         {
             if (Model.SetFormatString(value))
             {
-                NPC(nameof(FormatString));
+                NotifyPropertyChanged(nameof(FormatString));
                 SyncTextFromValue();
             }
         }
@@ -302,7 +302,7 @@ public class MGNumericUpDown : MGTextBox
 
         if (!previousValue.Equals(Value))
         {
-            NPC(nameof(Value));
+            NotifyPropertyChanged(nameof(Value));
             ValueChanged?.Invoke(this, new(previousValue, Value));
         }
     }

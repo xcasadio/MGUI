@@ -57,7 +57,7 @@ public class MGProgressBar : MGElement
                 _ShowValue = value;
                 ValueElement.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
                 UpdateDisplayedValue(true);
-                NPC(nameof(ShowValue));
+                NotifyPropertyChanged(nameof(ShowValue));
             }
         }
     }
@@ -85,7 +85,7 @@ public class MGProgressBar : MGElement
             {
                 _ValueDisplayFormat = value;
                 UpdateDisplayedValue(true);
-                NPC(nameof(ValueDisplayFormat));
+                NotifyPropertyChanged(nameof(ValueDisplayFormat));
             }
         }
     }
@@ -105,7 +105,7 @@ public class MGProgressBar : MGElement
             {
                 _NumberFormat = value;
                 UpdateDisplayedValue(true);
-                NPC(nameof(NumberFormat));
+                NotifyPropertyChanged(nameof(NumberFormat));
             }
         }
     }
@@ -153,9 +153,9 @@ public class MGProgressBar : MGElement
             {
                 _Minimum = value;
                 UpdateDisplayedValue(true);
-                NPC(nameof(Minimum));
-                NPC(nameof(ActualValue));
-                NPC(nameof(ValuePercent));
+                NotifyPropertyChanged(nameof(Minimum));
+                NotifyPropertyChanged(nameof(ActualValue));
+                NotifyPropertyChanged(nameof(ValuePercent));
             }
         }
     }
@@ -171,9 +171,9 @@ public class MGProgressBar : MGElement
             {
                 _Maximum = value;
                 UpdateDisplayedValue(true);
-                NPC(nameof(Maximum));
-                NPC(nameof(ActualValue));
-                NPC(nameof(ValuePercent));
+                NotifyPropertyChanged(nameof(Maximum));
+                NotifyPropertyChanged(nameof(ActualValue));
+                NotifyPropertyChanged(nameof(ValuePercent));
             }
         }
     }
@@ -189,9 +189,9 @@ public class MGProgressBar : MGElement
             {
                 _Value = value;
                 UpdateDisplayedValue(false);
-                NPC(nameof(Value));
-                NPC(nameof(ActualValue));
-                NPC(nameof(ValuePercent));
+                NotifyPropertyChanged(nameof(Value));
+                NotifyPropertyChanged(nameof(ActualValue));
+                NotifyPropertyChanged(nameof(ValuePercent));
             }
         }
     }
@@ -216,7 +216,7 @@ public class MGProgressBar : MGElement
             {
                 _Size = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Size));
+                NotifyPropertyChanged(nameof(Size));
             }
         }
     }
@@ -232,7 +232,7 @@ public class MGProgressBar : MGElement
             if (_CompletedBrush != value)
             {
                 _CompletedBrush = value;
-                NPC(nameof(CompletedBrush));
+                NotifyPropertyChanged(nameof(CompletedBrush));
             }
         }
     }
@@ -248,7 +248,7 @@ public class MGProgressBar : MGElement
             if (_IncompleteBrush != value)
             {
                 _IncompleteBrush = value;
-                NPC(nameof(IncompleteBrush));
+                NotifyPropertyChanged(nameof(IncompleteBrush));
             }
         }
     }
@@ -268,9 +268,9 @@ public class MGProgressBar : MGElement
             {
                 _Orientation = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
-                NPC(nameof(IsHorizontal));
-                NPC(nameof(IsVertical));
+                NotifyPropertyChanged(nameof(Orientation));
+                NotifyPropertyChanged(nameof(IsHorizontal));
+                NotifyPropertyChanged(nameof(IsVertical));
             }
         }
     }
@@ -295,7 +295,7 @@ public class MGProgressBar : MGElement
             if (_IsReversed != value)
             {
                 _IsReversed = value;
-                NPC(nameof(IsReversed));
+                NotifyPropertyChanged(nameof(IsReversed));
             }
         }
     }
@@ -311,9 +311,9 @@ public class MGProgressBar : MGElement
             BorderElement = new(Window);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             NumberFormat = "0.0";
 

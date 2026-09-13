@@ -138,7 +138,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                     TextBlockElement.HasStableTextFootprint = value;
                 }
 
-                NPC(nameof(HasStableTextFootprint));
+                NotifyPropertyChanged(nameof(HasStableTextFootprint));
             }
         }
     }
@@ -179,7 +179,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             var Previous = Text;
 
             _Text = Value;
-            NPC(nameof(Text));
+            NotifyPropertyChanged(nameof(Text));
 
             if (!IsExecutingUndoRedo)
             {
@@ -227,7 +227,7 @@ public class MGTextBox : MGElement, ITextEntryHost
         {
             FormattedText = Value;
             TextBlockElement.SetText(FormattedText, Silent || HasStableTextFootprint);
-            NPC(nameof(FormattedText));
+            NotifyPropertyChanged(nameof(FormattedText));
         }
     }
 
@@ -344,7 +344,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _PlaceholderText = value;
                 SyncPlaceholderTextPart();
-                NPC(nameof(PlaceholderText));
+                NotifyPropertyChanged(nameof(PlaceholderText));
             }
         }
     }
@@ -384,7 +384,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             if (TextBlockElement.MinLines != value)
             {
                 TextBlockElement.MinLines = value;
-                NPC(nameof(MinLines));
+                NotifyPropertyChanged(nameof(MinLines));
             }
         }
     }
@@ -401,7 +401,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             if (TextBlockElement.MaxLines != value)
             {
                 TextBlockElement.MaxLines = value;
-                NPC(nameof(MaxLines));
+                NotifyPropertyChanged(nameof(MaxLines));
             }
         }
     }
@@ -414,7 +414,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             if (TextBlockElement.WrapText != value)
             {
                 TextBlockElement.WrapText = value;
-                NPC(nameof(WrapText));
+                NotifyPropertyChanged(nameof(WrapText));
             }
         }
     }
@@ -440,7 +440,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                     SetText(GetTextBackingField().Substring(0, CharacterLimit.Value));
                 }
                 UpdateCharacterCountText();
-                NPC(nameof(CharacterLimit));
+                NotifyPropertyChanged(nameof(CharacterLimit));
                 OnCharacterLimitChanged?.Invoke(this, new(Previous, CharacterLimit));
             }
         }
@@ -467,7 +467,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                 _ShowCharacterCount = value;
                 SyncCharacterCountVisibility();
 
-                NPC(nameof(ShowCharacterCount));
+                NotifyPropertyChanged(nameof(ShowCharacterCount));
             }
         }
     }
@@ -507,7 +507,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                     UpdateCharacterCountText();
                 }
 
-                NPC(nameof(LimitedCharacterCountFormatString));
+                NotifyPropertyChanged(nameof(LimitedCharacterCountFormatString));
             }
         }
     }
@@ -533,7 +533,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                     UpdateCharacterCountText();
                 }
 
-                NPC(nameof(LimitlessCharacterCountFormatString));
+                NotifyPropertyChanged(nameof(LimitlessCharacterCountFormatString));
             }
         }
     }
@@ -578,7 +578,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             if (_AllowsTextSelection != value)
             {
                 _AllowsTextSelection = value;
-                NPC(nameof(AllowsTextSelection));
+                NotifyPropertyChanged(nameof(AllowsTextSelection));
                 if (!AllowsTextSelection)
                 {
                     CurrentSelection = null;
@@ -619,7 +619,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                 UpdateFormattedText(true);
                 //if (CurrentSelection.HasValue)
                 //    CurrentCursorPosition = null;
-                NPC(nameof(CurrentSelection));
+                NotifyPropertyChanged(nameof(CurrentSelection));
                 SelectionChanged?.Invoke(this, new(Previous, CurrentSelection));
             }
         }
@@ -671,7 +671,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _FocusedSelectionForegroundColor = value;
                 FocusedSelectionForegroundColorString = ColorTranslator.ToHtml(FocusedSelectionForegroundColor.AsDrawingColor());
-                NPC(nameof(FocusedSelectionForegroundColor));
+                NotifyPropertyChanged(nameof(FocusedSelectionForegroundColor));
             }
         }
     }
@@ -708,7 +708,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _FocusedSelectedBackgroundColor = value;
                 FocusedSelectionBackgroundColorString = ColorTranslator.ToHtml(FocusedSelectionBackgroundColor.AsDrawingColor());
-                NPC(nameof(FocusedSelectionBackgroundColor));
+                NotifyPropertyChanged(nameof(FocusedSelectionBackgroundColor));
             }
         }
     }
@@ -747,7 +747,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _UnfocusedSelectionForegroundColor = value;
                 UnfocusedSelectionForegroundColorString = ColorTranslator.ToHtml(UnfocusedSelectionForegroundColor.AsDrawingColor());
-                NPC(nameof(UnfocusedSelectionForegroundColor));
+                NotifyPropertyChanged(nameof(UnfocusedSelectionForegroundColor));
             }
         }
     }
@@ -784,7 +784,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _UnfocusedSelectionBackgroundColor = value;
                 UnfocusedSelectionBackgroundColorString = ColorTranslator.ToHtml(UnfocusedSelectionBackgroundColor.AsDrawingColor());
-                NPC(nameof(UnfocusedSelectionBackgroundColor));
+                NotifyPropertyChanged(nameof(UnfocusedSelectionBackgroundColor));
             }
         }
     }
@@ -855,7 +855,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                 _UndoRedoHistorySize = value;
                 UndoStack.SetLimit(UndoRedoHistorySize);
                 RedoStack.SetLimit(UndoRedoHistorySize);
-                NPC(nameof(UndoRedoHistorySize));
+                NotifyPropertyChanged(nameof(UndoRedoHistorySize));
             }
         }
     }
@@ -949,7 +949,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                     CurrentSelection = null;
                 }
 
-                NPC(nameof(IsReadonly));
+                NotifyPropertyChanged(nameof(IsReadonly));
                 ReadonlyChanged?.Invoke(this, IsReadonly);
             }
         }
@@ -970,7 +970,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             if (_AcceptsReturn != value)
             {
                 _AcceptsReturn = value;
-                NPC(nameof(AcceptsReturn));
+                NotifyPropertyChanged(nameof(AcceptsReturn));
             }
         }
     }
@@ -987,7 +987,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             if (_AcceptsTab != value)
             {
                 _AcceptsTab = value;
-                NPC(nameof(AcceptsTab));
+                NotifyPropertyChanged(nameof(AcceptsTab));
             }
         }
     }
@@ -1007,7 +1007,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _IsHeldKeyRepeated = value;
                 SyncKeyboardRepeatPolicy();
-                NPC(nameof(IsHeldKeyRepeated));
+                NotifyPropertyChanged(nameof(IsHeldKeyRepeated));
             }
         }
     }
@@ -1025,7 +1025,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _InitialKeyRepeatDelay = value;
                 SyncKeyboardRepeatPolicy();
-                NPC(nameof(InitialKeyRepeatDelay));
+                NotifyPropertyChanged(nameof(InitialKeyRepeatDelay));
             }
         }
     }
@@ -1043,7 +1043,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _KeyRepeatInterval = value;
                 SyncKeyboardRepeatPolicy();
-                NPC(nameof(KeyRepeatInterval));
+                NotifyPropertyChanged(nameof(KeyRepeatInterval));
             }
         }
     }
@@ -1058,7 +1058,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             if (_TextEntryMode != value)
             {
                 _TextEntryMode = value;
-                NPC(nameof(TextEntryMode));
+                NotifyPropertyChanged(nameof(TextEntryMode));
             }
         }
     }
@@ -1086,7 +1086,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             {
                 _IsUserResizable = value;
                 SyncResizeGripVisibility();
-                NPC(nameof(IsUserResizable));
+                NotifyPropertyChanged(nameof(IsUserResizable));
             }
             else
             {
@@ -1298,9 +1298,9 @@ public class MGTextBox : MGElement, ITextEntryHost
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
         }
 
         EnsureComponentBinding(() => ResizeGripComponent, value => ResizeGripComponent = value, ResizeGripElement, MGComponentBase.Create);
@@ -1404,7 +1404,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                     ClipToBounds = false;
                     LayoutChanged(this, true);
                 }
-                NPC(nameof(EnableScrolling));
+                NotifyPropertyChanged(nameof(EnableScrolling));
             }
         }
     }

@@ -53,7 +53,7 @@ public class VirtualizingStackPanel : MGMultiContentHost
             {
                 _totalItemCount = Math.Max(0, value);
                 LayoutChanged(this, true);
-                NPC(nameof(TotalItemCount));
+                NotifyPropertyChanged(nameof(TotalItemCount));
             }
         }
     }
@@ -73,7 +73,7 @@ public class VirtualizingStackPanel : MGMultiContentHost
                 // Recycle all currently realized items so they will be re-laid-out with the new height
                 RecycleAllItems();
                 LayoutChanged(this, true);
-                NPC(nameof(UniformItemHeight));
+                NotifyPropertyChanged(nameof(UniformItemHeight));
             }
         }
     }
@@ -207,7 +207,7 @@ public class VirtualizingStackPanel : MGMultiContentHost
             BorderElement = new MGBorder(window);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             VerticalAlignment = VerticalAlignment.Top;
             CanChangeContent = false;

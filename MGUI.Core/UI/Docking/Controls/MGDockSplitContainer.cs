@@ -23,7 +23,7 @@ public class MGDockSplitContainer : MGElement
             {
                 _orientation = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
+                NotifyPropertyChanged(nameof(Orientation));
             }
         }
     }
@@ -52,7 +52,7 @@ public class MGDockSplitContainer : MGElement
                 }
 
                 LayoutChanged(this, true);
-                NPC(nameof(FirstChild));
+                NotifyPropertyChanged(nameof(FirstChild));
             }
         }
     }
@@ -81,7 +81,7 @@ public class MGDockSplitContainer : MGElement
                 }
 
                 LayoutChanged(this, true);
-                NPC(nameof(SecondChild));
+                NotifyPropertyChanged(nameof(SecondChild));
             }
         }
     }
@@ -101,7 +101,7 @@ public class MGDockSplitContainer : MGElement
             {
                 _splitRatio = clamped;
                 LayoutChanged(this, true);
-                NPC(nameof(SplitRatio));
+                NotifyPropertyChanged(nameof(SplitRatio));
             }
         }
     }
@@ -120,7 +120,7 @@ public class MGDockSplitContainer : MGElement
             {
                 _minFirstSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(MinFirstSize));
+                NotifyPropertyChanged(nameof(MinFirstSize));
             }
         }
     }
@@ -139,7 +139,7 @@ public class MGDockSplitContainer : MGElement
             {
                 _minSecondSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(MinSecondSize));
+                NotifyPropertyChanged(nameof(MinSecondSize));
             }
         }
     }
@@ -158,7 +158,7 @@ public class MGDockSplitContainer : MGElement
             {
                 _splitterThickness = value;
                 LayoutChanged(this, true);
-                NPC(nameof(SplitterThickness));
+                NotifyPropertyChanged(nameof(SplitterThickness));
             }
         }
     }
@@ -223,7 +223,7 @@ public class MGDockSplitContainer : MGElement
         {
             _splitRatio = newRatio;
             LayoutChanged(this, true);
-            NPC(nameof(SplitRatio));
+            NotifyPropertyChanged(nameof(SplitRatio));
             SplitRatioChanged?.Invoke(this, newRatio);
         }
     }

@@ -38,7 +38,7 @@ namespace MGUI.Samples
                 if (_IsVisible != value)
                 {
                     _IsVisible = value;
-                    NPC(nameof(IsVisible));
+                    NotifyPropertyChanged(nameof(IsVisible));
 
                     if (IsVisible)
                     {
@@ -126,19 +126,17 @@ namespace MGUI.Samples
     {
         public event PropertyChangedEventHandler PropertyChanged;
         public virtual void NotifyPropertyChanged(string PropertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
-        /// <summary>Notify Property Changed for the given <paramref name="PropertyName"/></summary>
-        public void NPC(string PropertyName) => NotifyPropertyChanged(PropertyName);
 
-        private string _TestString;
+        private string _testString;
         public string TestString
         {
-            get => _TestString;
+            get => _testString;
             set
             {
-                if (_TestString != value)
+                if (_testString != value)
                 {
-                    _TestString = value;
-                    NPC(nameof(TestString));
+                    _testString = value;
+                    NotifyPropertyChanged(nameof(TestString));
                 }
             }
         }

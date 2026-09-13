@@ -49,7 +49,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
             if (BackgroundBrush.SelectedValue != value)
             {
                 BackgroundBrush.SelectedValue = value;
-                NPC(nameof(CheckedBackgroundBrush));
+                NotifyPropertyChanged(nameof(CheckedBackgroundBrush));
             }
         }
     }
@@ -64,7 +64,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
             if (DefaultTextForeground.SelectedValue != value)
             {
                 DefaultTextForeground.SelectedValue = value;
-                NPC(nameof(CheckedTextForeground));
+                NotifyPropertyChanged(nameof(CheckedTextForeground));
             }
         }
     }
@@ -82,7 +82,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
             {
                 var Previous = IsChecked;
                 _IsChecked = value;
-                NPC(nameof(IsChecked));
+                NotifyPropertyChanged(nameof(IsChecked));
                 OnCheckStateChanged?.Invoke(this, new(Previous, IsChecked));
 
                 IsSelected = IsChecked;
@@ -118,9 +118,9 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
             BorderElement = new(Window, BorderThickness, BorderBrush);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             HorizontalContentAlignment = HorizontalAlignment.Center;
             VerticalContentAlignment = VerticalAlignment.Center;

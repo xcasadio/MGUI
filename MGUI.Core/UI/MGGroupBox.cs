@@ -75,8 +75,8 @@ public class MGGroupBox : MGSingleContentHost
             if (IsExpandable != value)
             {
                 Expander.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-                NPC(nameof(IsExpandable));
-                NPC(nameof(HasHeaderContent));
+                NotifyPropertyChanged(nameof(IsExpandable));
+                NotifyPropertyChanged(nameof(HasHeaderContent));
             }
         }
     }
@@ -96,8 +96,8 @@ public class MGGroupBox : MGSingleContentHost
                 {
                     HeaderPresenter.SetContent(Header);
                 }
-                NPC(nameof(Header));
-                NPC(nameof(HasHeaderContent));
+                NotifyPropertyChanged(nameof(Header));
+                NotifyPropertyChanged(nameof(HasHeaderContent));
             }
         }
     }
@@ -116,7 +116,7 @@ public class MGGroupBox : MGSingleContentHost
             {
                 _HeaderHorizontalMargin = value;
                 LayoutChanged(this, true);
-                NPC(nameof(HeaderHorizontalMargin));
+                NotifyPropertyChanged(nameof(HeaderHorizontalMargin));
             }
         }
     }
@@ -133,7 +133,7 @@ public class MGGroupBox : MGSingleContentHost
             {
                 _HeaderHorizontalPadding = value;
                 LayoutChanged(this, true);
-                NPC(nameof(HeaderHorizontalPadding));
+                NotifyPropertyChanged(nameof(HeaderHorizontalPadding));
             }
         }
     }
@@ -149,9 +149,9 @@ public class MGGroupBox : MGSingleContentHost
             BorderElement = new(Window, new Thickness(2), MGUniformBorderBrush.Black);
             BorderElement.SetParent(this);
             BorderElement.ManagedParent = this;
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             Expander = new(Window);
             Expander.SetMargin(new(0, 0, 5, 0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));

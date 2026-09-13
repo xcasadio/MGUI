@@ -111,7 +111,7 @@ public class MGTimer : MGElement
             {
                 _ValueDisplayFormat = value;
                 UpdateDisplayedValue(true);
-                NPC(nameof(ValueDisplayFormat));
+                NotifyPropertyChanged(nameof(ValueDisplayFormat));
             }
         }
     }
@@ -129,7 +129,7 @@ public class MGTimer : MGElement
                 var Previous = RemainingDuration;
                 _RemainingDuration = ActualValue;
                 UpdateDisplayedValue(false);
-                NPC(nameof(RemainingDuration));
+                NotifyPropertyChanged(nameof(RemainingDuration));
                 RemainingDurationChanged?.Invoke(this, new(Previous, RemainingDuration));
 
                 if (RemainingDuration.TotalSeconds <= 0)
@@ -162,7 +162,7 @@ public class MGTimer : MGElement
             if (_TimeScale != value)
             {
                 _TimeScale = value;
-                NPC(nameof(TimeScale));
+                NotifyPropertyChanged(nameof(TimeScale));
             }
         }
     }
@@ -183,7 +183,7 @@ public class MGTimer : MGElement
             {
                 _RemainingDurationToString = value;
                 UpdateDisplayedValue(true);
-                NPC(nameof(RemainingDurationToString));
+                NotifyPropertyChanged(nameof(RemainingDurationToString));
             }
         }
     }
@@ -199,7 +199,7 @@ public class MGTimer : MGElement
             if (_IsPaused != value)
             {
                 _IsPaused = value;
-                NPC(nameof(IsPaused));
+                NotifyPropertyChanged(nameof(IsPaused));
                 if (IsPaused)
                 {
                     Paused?.Invoke(this, EventArgs.Empty);
@@ -298,9 +298,9 @@ public class MGTimer : MGElement
             BorderElement = new(Window);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             ValueElement = new(Window, "", Color.White, GetTheme().FontSettings.MediumFontSize)
             {

@@ -76,16 +76,16 @@ public class MGSlider : MGElement
 
             if (MinimumChanged)
             {
-                NPC(nameof(Minimum));
+                NotifyPropertyChanged(nameof(Minimum));
             }
 
             if (MaximumChanged)
             {
-                NPC(nameof(Maximum));
+                NotifyPropertyChanged(nameof(Maximum));
             }
 
-            NPC(nameof(Interval));
-            NPC(nameof(CanDrawTickMarks));
+            NotifyPropertyChanged(nameof(Interval));
+            NotifyPropertyChanged(nameof(CanDrawTickMarks));
 
             IntervalChanged?.Invoke(this, new(new(PreviousMin, PreviousMax), new(this.Minimum, this.Maximum)));
         }
@@ -110,7 +110,7 @@ public class MGSlider : MGElement
         {
             var Previous = Value;
             _Value = ActualValue;
-            NPC(nameof(Value));
+            NotifyPropertyChanged(nameof(Value));
             ValueChanged?.Invoke(this, new(Previous, Value));
         }
         return ActualValue;
@@ -155,7 +155,7 @@ public class MGSlider : MGElement
                     _ = SetValue(Value);
                 }
 
-                NPC(nameof(UseDiscreteValues));
+                NotifyPropertyChanged(nameof(UseDiscreteValues));
             }
         }
     }
@@ -176,7 +176,7 @@ public class MGSlider : MGElement
                     _ = SetValue(Value);
                 }
 
-                NPC(nameof(DiscreteValueInterval));
+                NotifyPropertyChanged(nameof(DiscreteValueInterval));
             }
         }
     }
@@ -193,7 +193,7 @@ public class MGSlider : MGElement
             if (_IsHoveringNumberLine != value)
             {
                 _IsHoveringNumberLine = value;
-                NPC(nameof(IsHoveringNumberLine));
+                NotifyPropertyChanged(nameof(IsHoveringNumberLine));
             }
         }
     }
@@ -210,7 +210,7 @@ public class MGSlider : MGElement
             {
                 _NumberLineSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(NumberLineSize));
+                NotifyPropertyChanged(nameof(NumberLineSize));
             }
         }
     }
@@ -225,7 +225,7 @@ public class MGSlider : MGElement
             if (!_NumberLineBorderThickness.Equals(value))
             {
                 _NumberLineBorderThickness = value;
-                NPC(nameof(NumberLineBorderThickness));
+                NotifyPropertyChanged(nameof(NumberLineBorderThickness));
             }
         }
     }
@@ -240,7 +240,7 @@ public class MGSlider : MGElement
             if (_NumberLineBorderBrush != value)
             {
                 _NumberLineBorderBrush = value;
-                NPC(nameof(NumberLineBorderBrush));
+                NotifyPropertyChanged(nameof(NumberLineBorderBrush));
             }
         }
     }
@@ -255,8 +255,8 @@ public class MGSlider : MGElement
             if (_NumberLineFillBrush != value)
             {
                 _NumberLineFillBrush = value;
-                NPC(nameof(NumberLineFillBrush));
-                NPC(nameof(ActualNumberLineFillBrush));
+                NotifyPropertyChanged(nameof(NumberLineFillBrush));
+                NotifyPropertyChanged(nameof(ActualNumberLineFillBrush));
             }
         }
     }
@@ -282,8 +282,8 @@ public class MGSlider : MGElement
             if (_TickFrequency != value)
             {
                 _TickFrequency = value;
-                NPC(nameof(TickFrequency));
-                NPC(nameof(CanDrawTickMarks));
+                NotifyPropertyChanged(nameof(TickFrequency));
+                NotifyPropertyChanged(nameof(CanDrawTickMarks));
             }
         }
     }
@@ -302,8 +302,8 @@ public class MGSlider : MGElement
             {
                 _DrawTicks = value;
                 LayoutChanged(this, true);
-                NPC(nameof(DrawTicks));
-                NPC(nameof(CanDrawTickMarks));
+                NotifyPropertyChanged(nameof(DrawTicks));
+                NotifyPropertyChanged(nameof(CanDrawTickMarks));
             }
         }
     }
@@ -329,8 +329,8 @@ public class MGSlider : MGElement
                     LayoutChanged(this, true);
                 }
 
-                NPC(nameof(TickWidth));
-                NPC(nameof(ActualTickWidth));
+                NotifyPropertyChanged(nameof(TickWidth));
+                NotifyPropertyChanged(nameof(ActualTickWidth));
             }
         }
     }
@@ -353,8 +353,8 @@ public class MGSlider : MGElement
                     LayoutChanged(this, true);
                 }
 
-                NPC(nameof(TickHeight));
-                NPC(nameof(ActualTickHeight));
+                NotifyPropertyChanged(nameof(TickHeight));
+                NotifyPropertyChanged(nameof(ActualTickHeight));
             }
         }
     }
@@ -377,7 +377,7 @@ public class MGSlider : MGElement
             if (!_TickBorderThickness.Equals(value))
             {
                 _TickBorderThickness = value;
-                NPC(nameof(TickBorderThickness));
+                NotifyPropertyChanged(nameof(TickBorderThickness));
             }
         }
     }
@@ -392,7 +392,7 @@ public class MGSlider : MGElement
             if (_TickBorderBrush != value)
             {
                 _TickBorderBrush = value;
-                NPC(nameof(TickBorderBrush));
+                NotifyPropertyChanged(nameof(TickBorderBrush));
             }
         }
     }
@@ -407,8 +407,8 @@ public class MGSlider : MGElement
             if (_TickFillBrush != value)
             {
                 _TickFillBrush = value;
-                NPC(nameof(TickFillBrush));
-                NPC(nameof(ActualTickFillBrush));
+                NotifyPropertyChanged(nameof(TickFillBrush));
+                NotifyPropertyChanged(nameof(ActualTickFillBrush));
             }
         }
     }
@@ -441,8 +441,8 @@ public class MGSlider : MGElement
             {
                 _ThumbWidth = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ThumbWidth));
-                NPC(nameof(ActualThumbWidth));
+                NotifyPropertyChanged(nameof(ThumbWidth));
+                NotifyPropertyChanged(nameof(ActualThumbWidth));
             }
         }
     }
@@ -461,8 +461,8 @@ public class MGSlider : MGElement
             {
                 _ThumbHeight = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ThumbHeight));
-                NPC(nameof(ActualThumbHeight));
+                NotifyPropertyChanged(nameof(ThumbHeight));
+                NotifyPropertyChanged(nameof(ActualThumbHeight));
             }
         }
     }
@@ -480,7 +480,7 @@ public class MGSlider : MGElement
             if (!_ThumbBorderThickness.Equals(value))
             {
                 _ThumbBorderThickness = value;
-                NPC(nameof(ThumbBorderThickness));
+                NotifyPropertyChanged(nameof(ThumbBorderThickness));
             }
         }
     }
@@ -495,7 +495,7 @@ public class MGSlider : MGElement
             if (_ThumbBorderBrush != value)
             {
                 _ThumbBorderBrush = value;
-                NPC(nameof(ThumbBorderBrush));
+                NotifyPropertyChanged(nameof(ThumbBorderBrush));
             }
         }
     }
@@ -510,8 +510,8 @@ public class MGSlider : MGElement
             if (_ThumbFillBrush != value)
             {
                 _ThumbFillBrush = value;
-                NPC(nameof(ThumbFillBrush));
-                NPC(nameof(ActualThumbFillBrush));
+                NotifyPropertyChanged(nameof(ThumbFillBrush));
+                NotifyPropertyChanged(nameof(ActualThumbFillBrush));
             }
         }
     }
@@ -531,13 +531,13 @@ public class MGSlider : MGElement
             {
                 _Orientation = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
-                NPC(nameof(IsHorizontal));
-                NPC(nameof(IsVertical));
-                NPC(nameof(ActualTickWidth));
-                NPC(nameof(ActualTickHeight));
-                NPC(nameof(ActualThumbWidth));
-                NPC(nameof(ActualThumbHeight));
+                NotifyPropertyChanged(nameof(Orientation));
+                NotifyPropertyChanged(nameof(IsHorizontal));
+                NotifyPropertyChanged(nameof(IsVertical));
+                NotifyPropertyChanged(nameof(ActualTickWidth));
+                NotifyPropertyChanged(nameof(ActualTickHeight));
+                NotifyPropertyChanged(nameof(ActualThumbWidth));
+                NotifyPropertyChanged(nameof(ActualThumbHeight));
             }
         }
     }
@@ -560,7 +560,7 @@ public class MGSlider : MGElement
             if (_FocusBrush != value)
             {
                 _FocusBrush = value;
-                NPC(nameof(FocusBrush));
+                NotifyPropertyChanged(nameof(FocusBrush));
             }
         }
     }
@@ -577,10 +577,10 @@ public class MGSlider : MGElement
             if (_Foreground != value)
             {
                 _Foreground = value;
-                NPC(nameof(Foreground));
-                NPC(nameof(ActualNumberLineFillBrush));
-                NPC(nameof(ActualTickFillBrush));
-                NPC(nameof(ActualThumbFillBrush));
+                NotifyPropertyChanged(nameof(Foreground));
+                NotifyPropertyChanged(nameof(ActualNumberLineFillBrush));
+                NotifyPropertyChanged(nameof(ActualTickFillBrush));
+                NotifyPropertyChanged(nameof(ActualThumbFillBrush));
             }
         }
     }
@@ -597,7 +597,7 @@ public class MGSlider : MGElement
             if (_AcceptsMouseScrollWheel != value)
             {
                 _AcceptsMouseScrollWheel = value;
-                NPC(nameof(AcceptsMouseScrollWheel));
+                NotifyPropertyChanged(nameof(AcceptsMouseScrollWheel));
             }
         }
     }
@@ -622,7 +622,7 @@ public class MGSlider : MGElement
                 _ShowValueLabel = value;
                 ValueLabelElement.Visibility = ShowValueLabel ? Visibility.Visible : Visibility.Collapsed;
                 UpdateValueLabelText();
-                NPC(nameof(ShowValueLabel));
+                NotifyPropertyChanged(nameof(ShowValueLabel));
             }
         }
     }
@@ -642,7 +642,7 @@ public class MGSlider : MGElement
             {
                 _ValueLabelFormat = value;
                 UpdateValueLabelText();
-                NPC(nameof(ValueLabelFormat));
+                NotifyPropertyChanged(nameof(ValueLabelFormat));
             }
         }
     }

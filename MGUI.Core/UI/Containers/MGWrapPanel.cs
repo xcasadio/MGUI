@@ -45,7 +45,7 @@ public class MGWrapPanel : MGMultiContentHost
             {
                 _Orientation = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
+                NotifyPropertyChanged(nameof(Orientation));
             }
         }
     }
@@ -60,7 +60,7 @@ public class MGWrapPanel : MGMultiContentHost
             {
                 _Spacing = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Spacing));
+                NotifyPropertyChanged(nameof(Spacing));
             }
         }
     }
@@ -142,9 +142,9 @@ public class MGWrapPanel : MGMultiContentHost
             BorderElement = new(window, 0, null as IFillBrush);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (_, _) => NPC(nameof(BorderBrush));
-            BorderElement.OnBorderThicknessChanged += (_, _) => NPC(nameof(BorderThickness));
-            BorderElement.OnCornerRadiusChanged += (_, _) => NPC(nameof(CornerRadius));
+            BorderElement.OnBorderBrushChanged += (_, _) => NotifyPropertyChanged(nameof(BorderBrush));
+            BorderElement.OnBorderThicknessChanged += (_, _) => NotifyPropertyChanged(nameof(BorderThickness));
+            BorderElement.OnCornerRadiusChanged += (_, _) => NotifyPropertyChanged(nameof(CornerRadius));
 
             Orientation = orientation;
             Spacing = 0;

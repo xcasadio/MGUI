@@ -39,8 +39,8 @@ namespace MGUI.Samples.Dialogs
                 if (_MaxHP != value)
                 {
                     _MaxHP = value;
-                    NPC(nameof(MaxHP));
-                    NPC(nameof(HPBarWidth));
+                    NotifyPropertyChanged(nameof(MaxHP));
+                    NotifyPropertyChanged(nameof(HPBarWidth));
                 }
             }
         }
@@ -54,7 +54,7 @@ namespace MGUI.Samples.Dialogs
                 if (_CurrentHP != value)
                 {
                     _CurrentHP = value;
-                    NPC(nameof(CurrentHP));
+                    NotifyPropertyChanged(nameof(CurrentHP));
                 }
             }
         }
@@ -70,8 +70,8 @@ namespace MGUI.Samples.Dialogs
                 if (_MaxMP != value)
                 {
                     _MaxMP = value;
-                    NPC(nameof(MaxMP));
-                    NPC(nameof(MPBarWidth));
+                    NotifyPropertyChanged(nameof(MaxMP));
+                    NotifyPropertyChanged(nameof(MPBarWidth));
                 }
             }
         }
@@ -85,7 +85,7 @@ namespace MGUI.Samples.Dialogs
                 if (_CurrentMP != value)
                 {
                     _CurrentMP = value;
-                    NPC(nameof(CurrentMP));
+                    NotifyPropertyChanged(nameof(CurrentMP));
                 }
             }
         }
@@ -101,8 +101,8 @@ namespace MGUI.Samples.Dialogs
                 if (_MaxStamina != value)
                 {
                     _MaxStamina = value;
-                    NPC(nameof(MaxStamina));
-                    NPC(nameof(StaminaBarWidth));
+                    NotifyPropertyChanged(nameof(MaxStamina));
+                    NotifyPropertyChanged(nameof(StaminaBarWidth));
                 }
             }
         }
@@ -116,7 +116,7 @@ namespace MGUI.Samples.Dialogs
                 if (_CurrentStamina != value)
                 {
                     _CurrentStamina = value;
-                    NPC(nameof(CurrentStamina));
+                    NotifyPropertyChanged(nameof(CurrentStamina));
                 }
             }
         }
@@ -130,7 +130,7 @@ namespace MGUI.Samples.Dialogs
                 if (_NextLevelXP != value)
                 {
                     _NextLevelXP = value;
-                    NPC(nameof(NextLevelXP));
+                    NotifyPropertyChanged(nameof(NextLevelXP));
                 }
             }
         }
@@ -144,7 +144,7 @@ namespace MGUI.Samples.Dialogs
                 if (_CurrentXP != value)
                 {
                     _CurrentXP = value;
-                    NPC(nameof(CurrentXP));
+                    NotifyPropertyChanged(nameof(CurrentXP));
                 }
             }
         }
@@ -369,7 +369,7 @@ namespace MGUI.Samples.Dialogs
                 {
                     TimeSpan Previous = _RemainingDuration;
                     _RemainingDuration = value;
-                    NPC(nameof(RemainingDuration));
+                    NotifyPropertyChanged(nameof(RemainingDuration));
                     if (Previous > TimeSpan.Zero && RemainingDuration <= TimeSpan.Zero)
                     {
                         OnExpired?.Invoke(this, this);
@@ -410,9 +410,9 @@ namespace MGUI.Samples.Dialogs
                 {
                     ToolBarSlot Previous = SelectedSlot;
                     _SelectedSlot = value;
-                    NPC(nameof(SelectedSlot));
-                    Previous?.NPC(nameof(ToolBarSlot.IsSelected));
-                    SelectedSlot?.NPC(nameof(ToolBarSlot.IsSelected));
+                    NotifyPropertyChanged(nameof(SelectedSlot));
+                    Previous?.NotifyPropertyChanged(nameof(ToolBarSlot.IsSelected));
+                    SelectedSlot?.NotifyPropertyChanged(nameof(ToolBarSlot.IsSelected));
                 }
             }
         }
@@ -454,7 +454,7 @@ namespace MGUI.Samples.Dialogs
                 if (_Item != value)
                 {
                     _Item = value;
-                    NPC(nameof(Item));
+                    NotifyPropertyChanged(nameof(Item));
                 }
             }
         }
@@ -484,7 +484,7 @@ namespace MGUI.Samples.Dialogs
                 if (_Quantity != value)
                 {
                     _Quantity = value;
-                    NPC(nameof(Quantity));
+                    NotifyPropertyChanged(nameof(Quantity));
                 }
             }
         }

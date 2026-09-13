@@ -71,7 +71,7 @@ public class VisualStateSetting<TDataType> : ViewModelBase
             if (!EqualityComparer.Equals(_DisabledValue, value))
             {
                 _DisabledValue = value;
-                NPC(nameof(DisabledValue));
+                NotifyPropertyChanged(nameof(DisabledValue));
             }
         }
     }
@@ -86,7 +86,7 @@ public class VisualStateSetting<TDataType> : ViewModelBase
             if (!EqualityComparer.Equals(_SelectedValue, value))
             {
                 _SelectedValue = value;
-                NPC(nameof(SelectedValue));
+                NotifyPropertyChanged(nameof(SelectedValue));
             }
         }
     }
@@ -101,7 +101,7 @@ public class VisualStateSetting<TDataType> : ViewModelBase
             if (!EqualityComparer.Equals(_FocusedValue, value))
             {
                 _FocusedValue = value;
-                NPC(nameof(FocusedValue));
+                NotifyPropertyChanged(nameof(FocusedValue));
             }
         }
     }
@@ -116,7 +116,7 @@ public class VisualStateSetting<TDataType> : ViewModelBase
             if (!EqualityComparer.Equals(_NormalValue, value))
             {
                 _NormalValue = value;
-                NPC(nameof(NormalValue));
+                NotifyPropertyChanged(nameof(NormalValue));
             }
         }
     }
@@ -179,9 +179,9 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
                 _HoveredColor = value;
                 UpdateFocusedOverlay();
                 UpdatePressedOverlay();
-                NPC(nameof(FocusedColor));
-                NPC(nameof(HoveredColorOverlay));
-                NPC(nameof(PressedColorOverlay));
+                NotifyPropertyChanged(nameof(FocusedColor));
+                NotifyPropertyChanged(nameof(HoveredColorOverlay));
+                NotifyPropertyChanged(nameof(PressedColorOverlay));
             }
         }
     }
@@ -199,7 +199,7 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
             {
                 _PressedModifier = value;
                 UpdatePressedOverlay();
-                NPC(nameof(PressedModifier));
+                NotifyPropertyChanged(nameof(PressedModifier));
             }
         }
     }
@@ -215,7 +215,7 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
             {
                 _PressedModifierType = value;
                 UpdatePressedOverlay();
-                NPC(nameof(PressedModifierType));
+                NotifyPropertyChanged(nameof(PressedModifierType));
             }
         }
     }
@@ -232,9 +232,9 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
             HoveredFillOverlay = SolidFillBrushes.Transparent;
             HoveredBorderOverlay = MGUniformBorderBrush.Transparent;
         }
-        NPC(nameof(HoveredColorOverlay));
-        NPC(nameof(HoveredFillOverlay));
-        NPC(nameof(HoveredBorderOverlay));
+        NotifyPropertyChanged(nameof(HoveredColorOverlay));
+        NotifyPropertyChanged(nameof(HoveredFillOverlay));
+        NotifyPropertyChanged(nameof(HoveredBorderOverlay));
     }
 
     private void UpdatePressedOverlay()
@@ -256,9 +256,9 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
             PressedFillOverlay = SolidFillBrushes.Transparent;
             PressedBorderOverlay = MGUniformBorderBrush.Transparent;
         }
-        NPC(nameof(PressedColorOverlay));
-        NPC(nameof(PressedFillOverlay));
-        NPC(nameof(PressedBorderOverlay));
+        NotifyPropertyChanged(nameof(PressedColorOverlay));
+        NotifyPropertyChanged(nameof(PressedFillOverlay));
+        NotifyPropertyChanged(nameof(PressedBorderOverlay));
     }
 
     private float _OverlayOpacity = 1f;
@@ -274,7 +274,7 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
             if (_OverlayOpacity != clamped)
             {
                 _OverlayOpacity = clamped;
-                NPC(nameof(OverlayOpacity));
+                NotifyPropertyChanged(nameof(OverlayOpacity));
             }
         }
     }

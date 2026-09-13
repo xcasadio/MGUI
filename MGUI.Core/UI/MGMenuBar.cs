@@ -78,7 +78,7 @@ public class MGMenuBarItem : MGSingleContentHost
                 using (AllowChangingContentTemporarily())
                     SetContent(ContentWrapper);
 
-                NPC(nameof(ContentWrapper));
+                NotifyPropertyChanged(nameof(ContentWrapper));
                 OnContentWrapperChanged();
                 RefreshVisualStateProjection();
             }
@@ -189,7 +189,7 @@ public class MGMenuBarItem : MGSingleContentHost
                     _Submenu.ContextMenuClosed += Submenu_Closed;
                 }
 
-                NPC(nameof(Submenu));
+                NotifyPropertyChanged(nameof(Submenu));
             }
         }
     }
@@ -261,9 +261,9 @@ public class MGMenuBarItem : MGSingleContentHost
             BorderElement = new(SelfOrParentWindow, new Thickness(0), MGUniformBorderBrush.Black);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => NPC(nameof(BorderBrush));
-            BorderElement.OnBorderThicknessChanged += (sender, e) => NPC(nameof(BorderThickness));
-            BorderElement.OnCornerRadiusChanged += (sender, e) => NPC(nameof(CornerRadius));
+            BorderElement.OnBorderBrushChanged += (sender, e) => NotifyPropertyChanged(nameof(BorderBrush));
+            BorderElement.OnBorderThicknessChanged += (sender, e) => NotifyPropertyChanged(nameof(BorderThickness));
+            BorderElement.OnCornerRadiusChanged += (sender, e) => NotifyPropertyChanged(nameof(CornerRadius));
 
             CanChangeContent = false;
 
@@ -361,7 +361,7 @@ public class MGMenuBar : MGSingleContentHost
             if (_ButtonWrapperTemplate != value)
             {
                 _ButtonWrapperTemplate = value;
-                NPC(nameof(ButtonWrapperTemplate));
+                NotifyPropertyChanged(nameof(ButtonWrapperTemplate));
             }
         }
     }
@@ -398,7 +398,7 @@ public class MGMenuBar : MGSingleContentHost
             if (_IsMenuActive != value)
             {
                 _IsMenuActive = value;
-                NPC(nameof(IsMenuActive));
+                NotifyPropertyChanged(nameof(IsMenuActive));
             }
         }
     }
@@ -414,7 +414,7 @@ public class MGMenuBar : MGSingleContentHost
             if (_ActiveItem != value)
             {
                 _ActiveItem = value;
-                NPC(nameof(ActiveItem));
+                NotifyPropertyChanged(nameof(ActiveItem));
             }
         }
     }
@@ -494,9 +494,9 @@ public class MGMenuBar : MGSingleContentHost
             BorderElement = new(Window, new Thickness(0, 0, 0, 1), MGUniformBorderBrush.Black);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => NPC(nameof(BorderBrush));
-            BorderElement.OnBorderThicknessChanged += (sender, e) => NPC(nameof(BorderThickness));
-            BorderElement.OnCornerRadiusChanged += (sender, e) => NPC(nameof(CornerRadius));
+            BorderElement.OnBorderBrushChanged += (sender, e) => NotifyPropertyChanged(nameof(BorderBrush));
+            BorderElement.OnBorderThicknessChanged += (sender, e) => NotifyPropertyChanged(nameof(BorderThickness));
+            BorderElement.OnCornerRadiusChanged += (sender, e) => NotifyPropertyChanged(nameof(CornerRadius));
 
             ButtonWrapperTemplate = CreateDefaultBarButton;
 

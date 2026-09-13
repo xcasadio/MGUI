@@ -32,7 +32,7 @@ public class MGRichTextBox : MGTextBox
             {
                 _syntaxHighlighter = value;
                 RefreshSyntaxHighlighting();
-                NPC(nameof(SyntaxHighlighter));
+                NotifyPropertyChanged(nameof(SyntaxHighlighter));
             }
         }
     }
@@ -46,7 +46,7 @@ public class MGRichTextBox : MGTextBox
             {
                 _syntaxPalette = value;
                 RefreshSyntaxHighlighting();
-                NPC(nameof(SyntaxPalette));
+                NotifyPropertyChanged(nameof(SyntaxPalette));
             }
         }
     }
@@ -59,7 +59,7 @@ public class MGRichTextBox : MGTextBox
             if (!ReferenceEquals(_completionProvider, value))
             {
                 _completionProvider = value;
-                NPC(nameof(CompletionProvider));
+                NotifyPropertyChanged(nameof(CompletionProvider));
             }
         }
     }
@@ -73,7 +73,7 @@ public class MGRichTextBox : MGTextBox
             if (_tabSize != actualValue)
             {
                 _tabSize = actualValue;
-                NPC(nameof(TabSize));
+                NotifyPropertyChanged(nameof(TabSize));
             }
         }
     }
@@ -87,7 +87,7 @@ public class MGRichTextBox : MGTextBox
             {
                 _showLineNumbers = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ShowLineNumbers));
+                NotifyPropertyChanged(nameof(ShowLineNumbers));
             }
         }
     }
@@ -103,7 +103,7 @@ public class MGRichTextBox : MGTextBox
                 Caret.MoveToOriginalCharacterIndexOrEnd(actualValue, true);
             }
 
-            NPC(nameof(CaretIndex));
+            NotifyPropertyChanged(nameof(CaretIndex));
         }
     }
 
@@ -124,7 +124,7 @@ public class MGRichTextBox : MGTextBox
             var actualValue = value.Clamp(Text.Length);
             CurrentSelection = actualValue.HasSelection ? new TextSelection(actualValue.AnchorIndex, actualValue.ActiveIndex) : null;
             CaretIndex = actualValue.CaretIndex;
-            NPC(nameof(SelectionState));
+            NotifyPropertyChanged(nameof(SelectionState));
         }
     }
 
@@ -174,8 +174,8 @@ public class MGRichTextBox : MGTextBox
 
         SortStyledSpans(_styledSpans);
         RebuildStyledTextRuns();
-        NPC(nameof(StyledSpans));
-        NPC(nameof(HasStyledSpans));
+        NotifyPropertyChanged(nameof(StyledSpans));
+        NotifyPropertyChanged(nameof(HasStyledSpans));
     }
 
     public void ClearStyledSpans()
@@ -187,8 +187,8 @@ public class MGRichTextBox : MGTextBox
 
         _styledSpans.Clear();
         RebuildStyledTextRuns();
-        NPC(nameof(StyledSpans));
-        NPC(nameof(HasStyledSpans));
+        NotifyPropertyChanged(nameof(StyledSpans));
+        NotifyPropertyChanged(nameof(HasStyledSpans));
     }
 
     public MGTextEditResult ApplyTextEdit(MGTextRange range, string text)
@@ -253,7 +253,7 @@ public class MGRichTextBox : MGTextBox
         if (TextBuffer != null && (changed || TextBuffer.Text != Text))
         {
             TextBuffer.SetText(Text);
-            NPC(nameof(TextBuffer));
+            NotifyPropertyChanged(nameof(TextBuffer));
         }
 
         if (SyntaxHighlighter != null)

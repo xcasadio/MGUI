@@ -14,7 +14,7 @@ public class MGResizeHandlesAdorner : MGAdorner
             if (_outlineColor != value)
             {
                 _outlineColor = value;
-                NPC(nameof(OutlineColor));
+                NotifyPropertyChanged(nameof(OutlineColor));
             }
         }
     }
@@ -29,7 +29,7 @@ public class MGResizeHandlesAdorner : MGAdorner
             if (_outlineThickness != clamped)
             {
                 _outlineThickness = clamped;
-                NPC(nameof(OutlineThickness));
+                NotifyPropertyChanged(nameof(OutlineThickness));
             }
         }
     }
@@ -43,7 +43,7 @@ public class MGResizeHandlesAdorner : MGAdorner
             if (_handleFillColor != value)
             {
                 _handleFillColor = value;
-                NPC(nameof(HandleFillColor));
+                NotifyPropertyChanged(nameof(HandleFillColor));
             }
         }
     }
@@ -57,7 +57,7 @@ public class MGResizeHandlesAdorner : MGAdorner
             if (_handleBorderColor != value)
             {
                 _handleBorderColor = value;
-                NPC(nameof(HandleBorderColor));
+                NotifyPropertyChanged(nameof(HandleBorderColor));
             }
         }
     }
@@ -72,7 +72,7 @@ public class MGResizeHandlesAdorner : MGAdorner
             if (_handleBorderThickness != clamped)
             {
                 _handleBorderThickness = clamped;
-                NPC(nameof(HandleBorderThickness));
+                NotifyPropertyChanged(nameof(HandleBorderThickness));
             }
         }
     }
@@ -87,7 +87,7 @@ public class MGResizeHandlesAdorner : MGAdorner
             if (_handleSize != clamped)
             {
                 _handleSize = clamped;
-                NPC(nameof(HandleSize));
+                NotifyPropertyChanged(nameof(HandleSize));
             }
         }
     }

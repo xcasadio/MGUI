@@ -69,7 +69,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             }
         }
 
-        NPC(nameof(ActiveModalWindows));
+        NotifyPropertyChanged(nameof(ActiveModalWindows));
     }
 
     internal void UnregisterModalWindow(MGWindow modalWindow)
@@ -81,7 +81,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
         if (ModalStackEntries.RemoveAll(x => x.Modal == modalWindow) > 0)
         {
-            NPC(nameof(ActiveModalWindows));
+            NotifyPropertyChanged(nameof(ActiveModalWindows));
         }
     }
 
@@ -369,7 +369,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             if (_ActiveInputMode != value)
             {
                 _ActiveInputMode = value;
-                NPC(nameof(ActiveInputMode));
+                NotifyPropertyChanged(nameof(ActiveInputMode));
             }
         }
     }
@@ -675,7 +675,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                 }
 
                 State.ActiveToolTip = value;
-                NPC(nameof(ActiveToolTip));
+                NotifyPropertyChanged(nameof(ActiveToolTip));
 
                 if (ActiveToolTip != null)
                 {
@@ -716,7 +716,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             if (_ToolTipShowDelay != value)
             {
                 _ToolTipShowDelay = value;
-                NPC(nameof(ToolTipShowDelay));
+                NotifyPropertyChanged(nameof(ToolTipShowDelay));
             }
         }
     }
@@ -754,7 +754,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             ActiveContextMenu.InvokeContextMenuClosing();
 
             State.ActiveContextMenu = null;
-            NPC(nameof(ActiveContextMenu));
+            NotifyPropertyChanged(nameof(ActiveContextMenu));
 
             Previous.InvokeContextMenuClosed();
             ContextMenuClosed?.Invoke(this, Previous);
@@ -822,7 +822,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             Menu.TopLeft = Position;
             _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
 
-            NPC(nameof(ActiveContextMenu));
+            NotifyPropertyChanged(nameof(ActiveContextMenu));
             ActiveContextMenu.InvokeContextMenuOpened();
             ContextMenuOpened?.Invoke(this, Menu);
 
@@ -975,7 +975,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                     EnsureFocusedElementVisible(FocusedKeyboardHandler);
                 }
 
-                NPC(nameof(FocusedKeyboardHandler));
+                NotifyPropertyChanged(nameof(FocusedKeyboardHandler));
                 Previous?.OnKeyboardFocusChanged(false);
                 FocusedKeyboardHandler?.OnKeyboardFocusChanged(true);
                 FocusedKeyboardHandlerChanged?.Invoke(this, new(Previous, FocusedKeyboardHandler));
@@ -983,7 +983,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                 var NewActiveWindow = ActiveWindow;
                 if (PreviousActiveWindow != NewActiveWindow)
                 {
-                    NPC(nameof(ActiveWindow));
+                    NotifyPropertyChanged(nameof(ActiveWindow));
                     ActiveWindowChanged?.Invoke(this, new(PreviousActiveWindow, NewActiveWindow));
                 }
             }
@@ -1101,7 +1101,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             {
                 var previous = _ResponsiveSettings;
                 _ResponsiveSettings = value;
-                NPC(nameof(ResponsiveSettings));
+                NotifyPropertyChanged(nameof(ResponsiveSettings));
                 RecalculateResponsiveMetrics(true);
             }
         }
@@ -1117,7 +1117,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             if (!_EffectiveDpiScale.Equals(actualValue))
             {
                 _EffectiveDpiScale = actualValue;
-                NPC(nameof(EffectiveDpiScale));
+                NotifyPropertyChanged(nameof(EffectiveDpiScale));
                 RecalculateResponsiveMetrics(true);
             }
         }
@@ -1133,7 +1133,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             {
                 var previous = _ResponsiveMetrics;
                 _ResponsiveMetrics = value;
-                NPC(nameof(ResponsiveMetrics));
+                NotifyPropertyChanged(nameof(ResponsiveMetrics));
                 ResponsiveMetricsChanged?.Invoke(this, new(previous, _ResponsiveMetrics));
             }
         }

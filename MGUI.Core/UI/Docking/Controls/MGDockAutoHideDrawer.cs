@@ -48,7 +48,7 @@ public class MGDockAutoHideDrawer : MGElement
             {
                 _headerHeight = value;
                 LayoutChanged(this, true);
-                NPC(nameof(HeaderHeight));
+                NotifyPropertyChanged(nameof(HeaderHeight));
             }
         }
     }
@@ -65,7 +65,7 @@ public class MGDockAutoHideDrawer : MGElement
             {
                 _headerButtonSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(HeaderButtonSize));
+                NotifyPropertyChanged(nameof(HeaderButtonSize));
             }
         }
     }
@@ -93,7 +93,7 @@ public class MGDockAutoHideDrawer : MGElement
             {
                 _activePanel = value;
                 RefreshContent();
-                NPC(nameof(ActivePanel));
+                NotifyPropertyChanged(nameof(ActivePanel));
             }
         }
     }
@@ -119,7 +119,7 @@ public class MGDockAutoHideDrawer : MGElement
             {
                 _headerTextColor = value;
                 _titleLabel?.SetDefaultTextForegroundSlot(UIValueSlot.Normal, value, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
-                NPC(nameof(HeaderTextColor));
+                NotifyPropertyChanged(nameof(HeaderTextColor));
             }
         }
     }
@@ -134,7 +134,7 @@ public class MGDockAutoHideDrawer : MGElement
             {
                 _iconColor = value;
                 ApplyThemeVisuals();
-                NPC(nameof(IconColor));
+                NotifyPropertyChanged(nameof(IconColor));
             }
         }
     }
@@ -149,7 +149,7 @@ public class MGDockAutoHideDrawer : MGElement
             {
                 _borderColor = value;
                 ApplyThemeVisuals();
-                NPC(nameof(BorderColor));
+                NotifyPropertyChanged(nameof(BorderColor));
             }
         }
     }
@@ -164,7 +164,7 @@ public class MGDockAutoHideDrawer : MGElement
             {
                 _resizeGripColor = value;
                 ApplyThemeVisuals();
-                NPC(nameof(ResizeGripColor));
+                NotifyPropertyChanged(nameof(ResizeGripColor));
             }
         }
     }

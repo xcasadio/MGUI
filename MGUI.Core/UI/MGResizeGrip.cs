@@ -21,7 +21,7 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
             if (_Foreground != value)
             {
                 _Foreground = value;
-                NPC(nameof(Foreground));
+                NotifyPropertyChanged(nameof(Foreground));
             }
         }
     }
@@ -44,8 +44,8 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
             {
                 _MaxDots = value;
                 LayoutChanged(this, true);
-                NPC(nameof(MaxDots));
-                NPC(nameof(Size));
+                NotifyPropertyChanged(nameof(MaxDots));
+                NotifyPropertyChanged(nameof(Size));
             }
         }
     }
@@ -63,8 +63,8 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
             {
                 _Spacing = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Spacing));
-                NPC(nameof(MaxDots));
+                NotifyPropertyChanged(nameof(Spacing));
+                NotifyPropertyChanged(nameof(MaxDots));
             }
         }
     }
@@ -89,8 +89,8 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
 
             Host = Value;
             SetParent(Host);
-            NPC(nameof(Host));
-            NPC(nameof(ActualHost));
+            NotifyPropertyChanged(nameof(Host));
+            NotifyPropertyChanged(nameof(ActualHost));
 
             if (Host != null)
             {
@@ -139,7 +139,7 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
     public bool AllowHorizontalResize
     {
         get => _AllowHorizontalResize;
-        set { if (_AllowHorizontalResize != value) { _AllowHorizontalResize = value; NPC(nameof(AllowHorizontalResize)); } }
+        set { if (_AllowHorizontalResize != value) { _AllowHorizontalResize = value; NotifyPropertyChanged(nameof(AllowHorizontalResize)); } }
     }
 
     private bool _AllowVerticalResize = true;
@@ -149,7 +149,7 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
     public bool AllowVerticalResize
     {
         get => _AllowVerticalResize;
-        set { if (_AllowVerticalResize != value) { _AllowVerticalResize = value; NPC(nameof(AllowVerticalResize)); } }
+        set { if (_AllowVerticalResize != value) { _AllowVerticalResize = value; NotifyPropertyChanged(nameof(AllowVerticalResize)); } }
     }
 
     /// <summary>Creates a <see cref="MGResizeGrip"/> that will be attached to the given <paramref name="HostElement"/></summary>
@@ -183,7 +183,7 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
 
             MaxDots = 4;
             Spacing = 3;
-            OnMarginChanged += (sender, e) => { NPC(nameof(Size)); };
+            OnMarginChanged += (sender, e) => { NotifyPropertyChanged(nameof(Size)); };
 
             MouseHandler.DragStartCondition = DragStartCondition.MousePressed;
             MouseHandler.DragStart += (sender, e) =>

@@ -17,7 +17,7 @@ public abstract class MGShapeElementBase : MGElement
             if (_Stroke != value)
             {
                 _Stroke = value;
-                NPC(nameof(Stroke));
+                NotifyPropertyChanged(nameof(Stroke));
             }
         }
     }
@@ -38,7 +38,7 @@ public abstract class MGShapeElementBase : MGElement
                     LayoutChanged(this, true);
                 }
 
-                NPC(nameof(StrokeThickness));
+                NotifyPropertyChanged(nameof(StrokeThickness));
             }
         }
     }
@@ -55,7 +55,7 @@ public abstract class MGShapeElementBase : MGElement
             {
                 _Fill = value;
                 SetFillBrushCore(value.AsFillBrush(), updateLegacyColor: false);
-                NPC(nameof(Fill));
+                NotifyPropertyChanged(nameof(Fill));
             }
         }
     }
@@ -136,16 +136,16 @@ public abstract class MGShapeElementBase : MGElement
         if (updateLegacyColor && actualValue is MGSolidFillBrush solidFill && _Fill != solidFill.Color)
         {
             _Fill = solidFill.Color;
-            NPC(nameof(Fill));
+            NotifyPropertyChanged(nameof(Fill));
         }
         else if (fillBrushChanged)
         {
-            NPC(nameof(Fill));
+            NotifyPropertyChanged(nameof(Fill));
         }
 
         if (fillBrushChanged)
         {
-            NPC(nameof(FillBrush));
+            NotifyPropertyChanged(nameof(FillBrush));
         }
     }
 }

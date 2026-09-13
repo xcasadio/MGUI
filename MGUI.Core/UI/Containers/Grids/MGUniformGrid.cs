@@ -78,7 +78,7 @@ public class MGUniformGrid : MGMultiContentHost
                     }
                 }
                 LayoutChanged(this, true);
-                NPC(nameof(Rows));
+                NotifyPropertyChanged(nameof(Rows));
             }
         }
     }
@@ -103,7 +103,7 @@ public class MGUniformGrid : MGMultiContentHost
                     }
                 }
                 LayoutChanged(this, true);
-                NPC(nameof(Columns));
+                NotifyPropertyChanged(nameof(Columns));
             }
         }
     }
@@ -125,7 +125,7 @@ public class MGUniformGrid : MGMultiContentHost
             {
                 _CellSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(CellSize));
+                NotifyPropertyChanged(nameof(CellSize));
             }
         }
     }
@@ -142,7 +142,7 @@ public class MGUniformGrid : MGMultiContentHost
             {
                 _HeaderRowHeight = value;
                 LayoutChanged(this, true);
-                NPC(nameof(HeaderRowHeight));
+                NotifyPropertyChanged(nameof(HeaderRowHeight));
             }
         }
     }
@@ -159,7 +159,7 @@ public class MGUniformGrid : MGMultiContentHost
             {
                 _HeaderColumnWidth = value;
                 LayoutChanged(this, true);
-                NPC(nameof(HeaderColumnWidth));
+                NotifyPropertyChanged(nameof(HeaderColumnWidth));
             }
         }
     }
@@ -415,9 +415,9 @@ public class MGUniformGrid : MGMultiContentHost
             {
                 _SelectionMode = value;
                 CurrentSelection = HasSelection ? CurrentSelection.Value with { SelectionMode = SelectionMode } : CurrentSelection;
-                NPC(nameof(SelectionMode));
-                NPC(nameof(CurrentSelection));
-                NPC(nameof(HasSelection));
+                NotifyPropertyChanged(nameof(SelectionMode));
+                NotifyPropertyChanged(nameof(CurrentSelection));
+                NotifyPropertyChanged(nameof(HasSelection));
             }
         }
     }
@@ -432,7 +432,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_CanDeselectByClickingSelectedCell != value)
             {
                 _CanDeselectByClickingSelectedCell = value;
-                NPC(nameof(CanDeselectByClickingSelectedCell));
+                NotifyPropertyChanged(nameof(CanDeselectByClickingSelectedCell));
             }
         }
     }
@@ -449,7 +449,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_CurrentSelection != value)
             {
                 _CurrentSelection = value;
-                NPC(nameof(CurrentSelection));
+                NotifyPropertyChanged(nameof(CurrentSelection));
                 SelectionChanged?.Invoke(this, CurrentSelection);
             }
         }
@@ -527,7 +527,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_SelectionBackground != value)
             {
                 _SelectionBackground = value;
-                NPC(nameof(SelectionBackground));
+                NotifyPropertyChanged(nameof(SelectionBackground));
             }
         }
     }
@@ -542,7 +542,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_SelectionOverlay != value)
             {
                 _SelectionOverlay = value;
-                NPC(nameof(SelectionOverlay));
+                NotifyPropertyChanged(nameof(SelectionOverlay));
             }
         }
     }
@@ -560,7 +560,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_GridLineIntersectionHandling != value)
             {
                 _GridLineIntersectionHandling = value;
-                NPC(nameof(GridLineIntersectionHandling));
+                NotifyPropertyChanged(nameof(GridLineIntersectionHandling));
             }
         }
     }
@@ -577,7 +577,7 @@ public class MGUniformGrid : MGMultiContentHost
             {
                 _GridLinesVisibility = value;
                 CheckIfOuterPaddingChanged();
-                NPC(nameof(GridLinesVisibility));
+                NotifyPropertyChanged(nameof(GridLinesVisibility));
             }
         }
     }
@@ -597,7 +597,7 @@ public class MGUniformGrid : MGMultiContentHost
             {
                 _GridLineMargin = value;
                 CheckIfOuterPaddingChanged();
-                NPC(nameof(GridLineMargin));
+                NotifyPropertyChanged(nameof(GridLineMargin));
             }
         }
     }
@@ -612,7 +612,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_HorizontalGridLineBrush != value)
             {
                 _HorizontalGridLineBrush = value;
-                NPC(nameof(HorizontalGridLineBrush));
+                NotifyPropertyChanged(nameof(HorizontalGridLineBrush));
             }
         }
     }
@@ -627,7 +627,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_VerticalGridLineBrush != value)
             {
                 _VerticalGridLineBrush = value;
-                NPC(nameof(VerticalGridLineBrush));
+                NotifyPropertyChanged(nameof(VerticalGridLineBrush));
             }
         }
     }
@@ -663,7 +663,7 @@ public class MGUniformGrid : MGMultiContentHost
             {
                 _RowSpacing = value;
                 LayoutChanged(this, true);
-                NPC(nameof(RowSpacing));
+                NotifyPropertyChanged(nameof(RowSpacing));
             }
         }
     }
@@ -682,7 +682,7 @@ public class MGUniformGrid : MGMultiContentHost
             {
                 _ColumnSpacing = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ColumnSpacing));
+                NotifyPropertyChanged(nameof(ColumnSpacing));
             }
         }
     }
@@ -710,7 +710,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_CellBackground != value)
             {
                 _CellBackground = value;
-                NPC(nameof(CellBackground));
+                NotifyPropertyChanged(nameof(CellBackground));
             }
         }
     }
@@ -727,7 +727,7 @@ public class MGUniformGrid : MGMultiContentHost
             if (_DrawEmptyCells != value)
             {
                 _DrawEmptyCells = value;
-                NPC(nameof(DrawEmptyCells));
+                NotifyPropertyChanged(nameof(DrawEmptyCells));
             }
         }
     }

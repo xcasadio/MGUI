@@ -27,7 +27,7 @@ public class MGGuideAdorner : MGAdorner
             if (_axis != value)
             {
                 _axis = value;
-                NPC(nameof(Axis));
+                NotifyPropertyChanged(nameof(Axis));
             }
         }
     }
@@ -41,7 +41,7 @@ public class MGGuideAdorner : MGAdorner
             if (_alignment != value)
             {
                 _alignment = value;
-                NPC(nameof(Alignment));
+                NotifyPropertyChanged(nameof(Alignment));
             }
         }
     }
@@ -55,7 +55,7 @@ public class MGGuideAdorner : MGAdorner
             if (_positionOverride != value)
             {
                 _positionOverride = value;
-                NPC(nameof(PositionOverride));
+                NotifyPropertyChanged(nameof(PositionOverride));
             }
         }
     }
@@ -69,7 +69,7 @@ public class MGGuideAdorner : MGAdorner
             if (_guideColor != value)
             {
                 _guideColor = value;
-                NPC(nameof(GuideColor));
+                NotifyPropertyChanged(nameof(GuideColor));
             }
         }
     }
@@ -84,7 +84,7 @@ public class MGGuideAdorner : MGAdorner
             if (_guideThickness != clamped)
             {
                 _guideThickness = clamped;
-                NPC(nameof(GuideThickness));
+                NotifyPropertyChanged(nameof(GuideThickness));
             }
         }
     }

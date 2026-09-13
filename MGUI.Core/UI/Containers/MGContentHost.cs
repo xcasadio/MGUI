@@ -35,7 +35,7 @@ public abstract class MGContentHost : MGElement
             if (_CanChangeContent != value)
             {
                 _CanChangeContent = value;
-                NPC(nameof(CanChangeContent));
+                NotifyPropertyChanged(nameof(CanChangeContent));
             }
         }
     }
@@ -239,8 +239,8 @@ public abstract class MGMultiContentHost : MGContentHost
                 }
 
                 OnContentStructureChanged();
-                NPC(nameof(HasContent));
-                NPC(nameof(HasMultipleChildren));
+                NotifyPropertyChanged(nameof(HasContent));
+                NotifyPropertyChanged(nameof(HasMultipleChildren));
             };
         }
     }
@@ -277,8 +277,8 @@ public abstract class MGSingleContentHost : MGContentHost
                 InvokeContentAdded(_Content);
             }
             OnContentStructureChanged();
-            NPC(nameof(Content));
-            NPC(nameof(HasContent));
+            NotifyPropertyChanged(nameof(Content));
+            NotifyPropertyChanged(nameof(HasContent));
         }
     }
 
@@ -400,8 +400,8 @@ public class MGContentPresenter : MGSingleContentHost
                 }
             }
             OnContentStructureChanged();
-            NPC(nameof(Content));
-            NPC(nameof(HasContent));
+            NotifyPropertyChanged(nameof(Content));
+            NotifyPropertyChanged(nameof(HasContent));
         }
     }
 
@@ -433,7 +433,7 @@ public class MGHeaderedContentPresenter : MGSingleContentHost
                 }
 
                 HeaderPresenter.SetContent(value);
-                NPC(nameof(Header));
+                NotifyPropertyChanged(nameof(Header));
 
                 HeaderChanged?.Invoke(this, new(Previous, Header));
             }
@@ -509,7 +509,7 @@ public class MGHeaderedContentPresenter : MGSingleContentHost
 
             UpdateHeaderMargin();
             LayoutChanged(this, true);
-            NPC(nameof(HeaderPosition));
+            NotifyPropertyChanged(nameof(HeaderPosition));
 
             HeaderPositionChanged?.Invoke(this, new(Previous, HeaderPosition));
         }
@@ -534,7 +534,7 @@ public class MGHeaderedContentPresenter : MGSingleContentHost
             {
                 _Spacing = value;
                 UpdateHeaderMargin();
-                NPC(nameof(Spacing));
+                NotifyPropertyChanged(nameof(Spacing));
             }
         }
     }

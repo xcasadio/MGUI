@@ -39,7 +39,7 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
             {
                 _isPreviewVisible = value;
                 SyncPreviewVisibility();
-                NPC(nameof(IsPreviewVisible));
+                NotifyPropertyChanged(nameof(IsPreviewVisible));
             }
         }
     }
@@ -56,7 +56,7 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
             {
                 TargetBoundsOverride = value;
                 SyncPreviewVisibility();
-                NPC(nameof(PreviewBounds));
+                NotifyPropertyChanged(nameof(PreviewBounds));
             }
         }
     }
@@ -73,7 +73,7 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
             if (FillColor != value)
             {
                 FillColor = value;
-                NPC(nameof(PreviewColor));
+                NotifyPropertyChanged(nameof(PreviewColor));
             }
         }
     }
@@ -90,7 +90,7 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
             if (BorderColor != value)
             {
                 BorderColor = value;
-                NPC(nameof(PreviewBorderColor));
+                NotifyPropertyChanged(nameof(PreviewBorderColor));
             }
         }
     }
@@ -107,7 +107,7 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
             if (BorderThickness != value)
             {
                 BorderThickness = value;
-                NPC(nameof(PreviewBorderThickness));
+                NotifyPropertyChanged(nameof(PreviewBorderThickness));
             }
         }
     }

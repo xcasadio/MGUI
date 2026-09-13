@@ -31,7 +31,7 @@ public class MGExpander : MGSingleContentHost
             {
                 ExpanderToggleButton.PreferredWidth = value;
                 ExpanderToggleButton.PreferredHeight = value;
-                NPC(nameof(ExpanderButtonSize));
+                NotifyPropertyChanged(nameof(ExpanderButtonSize));
             }
         }
     }
@@ -44,7 +44,7 @@ public class MGExpander : MGSingleContentHost
             if (ExpanderToggleButton.BorderBrush != value)
             {
                 ExpanderToggleButton.BorderBrush = value;
-                NPC(nameof(ExpanderButtonBorderBrush));
+                NotifyPropertyChanged(nameof(ExpanderButtonBorderBrush));
             }
         }
     }
@@ -57,7 +57,7 @@ public class MGExpander : MGSingleContentHost
             if (!ExpanderToggleButton.BorderThickness.Equals(value))
             {
                 ExpanderToggleButton.BorderThickness = value;
-                NPC(nameof(ExpanderButtonBorderThickness));
+                NotifyPropertyChanged(nameof(ExpanderButtonBorderThickness));
             }
         }
     }
@@ -71,7 +71,7 @@ public class MGExpander : MGSingleContentHost
             if (ExpanderToggleButton.BackgroundBrush != value)
             {
                 ExpanderToggleButton.BackgroundBrush = value;
-                NPC(nameof(ExpanderButtonBackgroundBrush));
+                NotifyPropertyChanged(nameof(ExpanderButtonBackgroundBrush));
             }
         }
     }
@@ -93,7 +93,7 @@ public class MGExpander : MGSingleContentHost
                 {
                     ExpanderArrowElement.Color = value;
                 }
-                NPC(nameof(ExpanderDropdownArrowColor));
+                NotifyPropertyChanged(nameof(ExpanderDropdownArrowColor));
             }
         }
     }
@@ -111,7 +111,7 @@ public class MGExpander : MGSingleContentHost
             if (_ExpanderDropdownArrowSize != value)
             {
                 _ExpanderDropdownArrowSize = value;
-                NPC(nameof(ExpanderDropdownArrowSize));
+                NotifyPropertyChanged(nameof(ExpanderDropdownArrowSize));
             }
         }
     }
@@ -127,7 +127,7 @@ public class MGExpander : MGSingleContentHost
             if (HeadersPanelElement.Spacing != value)
             {
                 HeadersPanelElement.Spacing = value;
-                NPC(nameof(HeaderSpacingWidth));
+                NotifyPropertyChanged(nameof(HeaderSpacingWidth));
             }
         }
     }
@@ -160,9 +160,9 @@ public class MGExpander : MGSingleContentHost
                     }
                 }
 
-                NPC(nameof(Header));
-                NPC(nameof(HeaderVerticalAlignment));
-                NPC(nameof(HasHeader));
+                NotifyPropertyChanged(nameof(Header));
+                NotifyPropertyChanged(nameof(HeaderVerticalAlignment));
+                NotifyPropertyChanged(nameof(HasHeader));
             }
         }
     }
@@ -181,7 +181,7 @@ public class MGExpander : MGSingleContentHost
             if (value.HasValue && Header != null)
             {
                 Header.VerticalAlignment = value.Value;
-                NPC(nameof(HeaderVerticalAlignment));
+                NotifyPropertyChanged(nameof(HeaderVerticalAlignment));
             }
         }
     }
@@ -227,8 +227,8 @@ public class MGExpander : MGSingleContentHost
                 {
                     ExpanderArrowElement.Direction = IsExpanded ? UITriangleArrowDirection.Up : UITriangleArrowDirection.Down;
                 }
-                NPC(nameof(IsExpanded));
-                NPC(nameof(IsCollapsed));
+                NotifyPropertyChanged(nameof(IsExpanded));
+                NotifyPropertyChanged(nameof(IsCollapsed));
 
                 foreach (var Item in BoundItems)
                 {
@@ -282,7 +282,7 @@ public class MGExpander : MGSingleContentHost
             if (_ExpandedVisibility != value)
             {
                 _ExpandedVisibility = value;
-                NPC(nameof(ExpandedVisibility));
+                NotifyPropertyChanged(nameof(ExpandedVisibility));
             }
         }
     }
@@ -299,7 +299,7 @@ public class MGExpander : MGSingleContentHost
             if (_CollapsedVisibility != value)
             {
                 _CollapsedVisibility = value;
-                NPC(nameof(CollapsedVisibility));
+                NotifyPropertyChanged(nameof(CollapsedVisibility));
             }
         }
     }
@@ -327,7 +327,7 @@ public class MGExpander : MGSingleContentHost
             if (HeadersPanelElement.Margin.Bottom != value)
             {
                 HeadersPanelElement.SetMargin(HeadersPanelElement.Margin.ChangeBottom(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                NPC(nameof(HeaderBottomMargin));
+                NotifyPropertyChanged(nameof(HeaderBottomMargin));
             }
         }
     }

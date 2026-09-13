@@ -16,7 +16,7 @@ public class MGPolyline : MGVertexShapeElementBase
         {
             _Points = value == null ? Array.Empty<Vector2>() : new List<Vector2>(value).ToArray();
             RebuildGeometry();
-            NPC(nameof(Points));
+            NotifyPropertyChanged(nameof(Points));
         }
     }
 

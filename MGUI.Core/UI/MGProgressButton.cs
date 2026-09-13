@@ -113,7 +113,7 @@ public class MGProgressButton : MGSingleContentHost
             if (_ActionWhenPaused != value)
             {
                 _ActionWhenPaused = value;
-                NPC(nameof(ActionWhenPaused));
+                NotifyPropertyChanged(nameof(ActionWhenPaused));
             }
         }
     }
@@ -130,7 +130,7 @@ public class MGProgressButton : MGSingleContentHost
             if (_ActionWhenProcessing != value)
             {
                 _ActionWhenProcessing = value;
-                NPC(nameof(ActionWhenProcessing));
+                NotifyPropertyChanged(nameof(ActionWhenProcessing));
             }
         }
     }
@@ -148,7 +148,7 @@ public class MGProgressButton : MGSingleContentHost
             if (_ActionWhenCompleted != value)
             {
                 _ActionWhenCompleted = value;
-                NPC(nameof(ActionWhenCompleted));
+                NotifyPropertyChanged(nameof(ActionWhenCompleted));
             }
         }
     }
@@ -167,7 +167,7 @@ public class MGProgressButton : MGSingleContentHost
             if (_ActionOnCompleted != value)
             {
                 _ActionOnCompleted = value;
-                NPC(nameof(ActionOnCompleted));
+                NotifyPropertyChanged(nameof(ActionOnCompleted));
             }
         }
     }
@@ -199,8 +199,8 @@ public class MGProgressButton : MGSingleContentHost
             if (_HideWhenPaused != value)
             {
                 _HideWhenPaused = value;
-                NPC(nameof(HideWhenPaused));
-                NPC(nameof(IsProgressBarVisible));
+                NotifyPropertyChanged(nameof(HideWhenPaused));
+                NotifyPropertyChanged(nameof(IsProgressBarVisible));
                 if (IsPaused)
                 {
                     LayoutChanged(this, true);
@@ -220,8 +220,8 @@ public class MGProgressButton : MGSingleContentHost
             if (_IsPaused != value)
             {
                 _IsPaused = value;
-                NPC(nameof(IsPaused));
-                NPC(nameof(IsProgressBarVisible));
+                NotifyPropertyChanged(nameof(IsPaused));
+                NotifyPropertyChanged(nameof(IsProgressBarVisible));
                 if (IsPaused)
                 {
                     OnPaused?.Invoke(this, EventArgs.Empty);
@@ -260,9 +260,9 @@ public class MGProgressButton : MGSingleContentHost
             if (_Minimum != value)
             {
                 _Minimum = value;
-                NPC(nameof(Minimum));
-                NPC(nameof(ActualValue));
-                NPC(nameof(ValuePercent));
+                NotifyPropertyChanged(nameof(Minimum));
+                NotifyPropertyChanged(nameof(ActualValue));
+                NotifyPropertyChanged(nameof(ValuePercent));
                 SyncDurationAnimation();
             }
         }
@@ -279,9 +279,9 @@ public class MGProgressButton : MGSingleContentHost
             if (_Maximum != value)
             {
                 _Maximum = value;
-                NPC(nameof(Maximum));
-                NPC(nameof(ActualValue));
-                NPC(nameof(ValuePercent));
+                NotifyPropertyChanged(nameof(Maximum));
+                NotifyPropertyChanged(nameof(ActualValue));
+                NotifyPropertyChanged(nameof(ValuePercent));
                 SyncDurationAnimation();
             }
         }
@@ -300,9 +300,9 @@ public class MGProgressButton : MGSingleContentHost
                 var WasCompleted = IsCompleted;
                 var Previous = Value;
                 _Value = value;
-                NPC(nameof(Value));
-                NPC(nameof(ActualValue));
-                NPC(nameof(ValuePercent));
+                NotifyPropertyChanged(nameof(Value));
+                NotifyPropertyChanged(nameof(ActualValue));
+                NotifyPropertyChanged(nameof(ValuePercent));
                 OnProgressChanged?.Invoke(this, new EventArgs<double>(Previous, Value));
 
                 if (!WasCompleted && IsCompleted)
@@ -453,8 +453,8 @@ public class MGProgressButton : MGSingleContentHost
             if (_Duration != value)
             {
                 _Duration = value;
-                NPC(nameof(Duration));
-                NPC(nameof(RemainingDuration));
+                NotifyPropertyChanged(nameof(Duration));
+                NotifyPropertyChanged(nameof(RemainingDuration));
                 SyncDurationAnimation();
             }
         }
@@ -501,9 +501,9 @@ public class MGProgressButton : MGSingleContentHost
             {
                 _Orientation = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
-                NPC(nameof(IsHorizontal));
-                NPC(nameof(IsVertical));
+                NotifyPropertyChanged(nameof(Orientation));
+                NotifyPropertyChanged(nameof(IsHorizontal));
+                NotifyPropertyChanged(nameof(IsVertical));
             }
         }
     }
@@ -529,7 +529,7 @@ public class MGProgressButton : MGSingleContentHost
             if (_IsReversed != value)
             {
                 _IsReversed = value;
-                NPC(nameof(IsReversed));
+                NotifyPropertyChanged(nameof(IsReversed));
             }
         }
     }
@@ -547,7 +547,7 @@ public class MGProgressButton : MGSingleContentHost
             {
                 _ProgressBarAlignment = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ProgressBarAlignment));
+                NotifyPropertyChanged(nameof(ProgressBarAlignment));
             }
         }
     }
@@ -569,7 +569,7 @@ public class MGProgressButton : MGSingleContentHost
             {
                 _ProgressBarSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ProgressBarSize));
+                NotifyPropertyChanged(nameof(ProgressBarSize));
             }
         }
     }
@@ -587,7 +587,7 @@ public class MGProgressButton : MGSingleContentHost
             {
                 _ProgressBarMargin = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ProgressBarMargin));
+                NotifyPropertyChanged(nameof(ProgressBarMargin));
             }
         }
     }
@@ -657,7 +657,7 @@ public class MGProgressButton : MGSingleContentHost
             if (!_ProgressBarBorderThickness.Equals(value))
             {
                 _ProgressBarBorderThickness = value;
-                NPC(nameof(ProgressBarBorderThickness));
+                NotifyPropertyChanged(nameof(ProgressBarBorderThickness));
             }
         }
     }
@@ -675,7 +675,7 @@ public class MGProgressButton : MGSingleContentHost
             if (_ProgressBarBorderBrush != value)
             {
                 _ProgressBarBorderBrush = value;
-                NPC(nameof(ProgressBarBorderBrush));
+                NotifyPropertyChanged(nameof(ProgressBarBorderBrush));
             }
         }
     }
@@ -695,7 +695,7 @@ public class MGProgressButton : MGSingleContentHost
             if (_ProgressBarBackground != value)
             {
                 _ProgressBarBackground = value;
-                NPC(nameof(ProgressBarBackground));
+                NotifyPropertyChanged(nameof(ProgressBarBackground));
             }
         }
     }
@@ -713,7 +713,7 @@ public class MGProgressButton : MGSingleContentHost
             if (_ProgressBarForeground != value)
             {
                 _ProgressBarForeground = value;
-                NPC(nameof(ProgressBarForeground));
+                NotifyPropertyChanged(nameof(ProgressBarForeground));
             }
         }
     }
@@ -732,9 +732,9 @@ public class MGProgressButton : MGSingleContentHost
             BorderElement = new(Window, BorderThickness, BorderBrush);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             HorizontalContentAlignment = HorizontalAlignment.Center;
             VerticalContentAlignment = VerticalAlignment.Center;

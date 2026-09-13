@@ -14,7 +14,7 @@ public class MGBoundsAdorner : MGAdorner
             if (_fillColor != value)
             {
                 _fillColor = value;
-                NPC(nameof(FillColor));
+                NotifyPropertyChanged(nameof(FillColor));
             }
         }
     }
@@ -28,7 +28,7 @@ public class MGBoundsAdorner : MGAdorner
             if (_borderColor != value)
             {
                 _borderColor = value;
-                NPC(nameof(BorderColor));
+                NotifyPropertyChanged(nameof(BorderColor));
             }
         }
     }
@@ -43,7 +43,7 @@ public class MGBoundsAdorner : MGAdorner
             if (_borderThickness != clamped)
             {
                 _borderThickness = clamped;
-                NPC(nameof(BorderThickness));
+                NotifyPropertyChanged(nameof(BorderThickness));
             }
         }
     }

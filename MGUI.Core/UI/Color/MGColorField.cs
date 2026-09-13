@@ -22,7 +22,7 @@ public class MGColorField : MGElement
         set
         {
             _ = Model.TrySetValue(value);
-            NPC(nameof(Value));
+            NotifyPropertyChanged(nameof(Value));
         }
     }
 
@@ -34,7 +34,7 @@ public class MGColorField : MGElement
             if (Model.DefaultValue != value)
             {
                 Model.DefaultValue = value;
-                NPC(nameof(DefaultValue));
+                NotifyPropertyChanged(nameof(DefaultValue));
             }
         }
     }
@@ -47,7 +47,7 @@ public class MGColorField : MGElement
             if (Model.AllowNull != value)
             {
                 Model.AllowNull = value;
-                NPC(nameof(AllowNull));
+                NotifyPropertyChanged(nameof(AllowNull));
             }
         }
     }
@@ -60,7 +60,7 @@ public class MGColorField : MGElement
             if (Model.IsMixed != value)
             {
                 Model.IsMixed = value;
-                NPC(nameof(IsMixed));
+                NotifyPropertyChanged(nameof(IsMixed));
             }
         }
     }
@@ -73,7 +73,7 @@ public class MGColorField : MGElement
             if (Model.IsReadOnly != value)
             {
                 Model.IsReadOnly = value;
-                NPC(nameof(IsReadOnly));
+                NotifyPropertyChanged(nameof(IsReadOnly));
             }
         }
     }
@@ -89,7 +89,7 @@ public class MGColorField : MGElement
             {
                 _showTextInput = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ShowTextInput));
+                NotifyPropertyChanged(nameof(ShowTextInput));
             }
         }
     }
@@ -105,7 +105,7 @@ public class MGColorField : MGElement
             {
                 _showFieldTextInputOverride = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ShowFieldTextInput));
+                NotifyPropertyChanged(nameof(ShowFieldTextInput));
             }
         }
     }
@@ -120,7 +120,7 @@ public class MGColorField : MGElement
             if (_showAlpha != value)
             {
                 _showAlpha = value;
-                NPC(nameof(ShowAlpha));
+                NotifyPropertyChanged(nameof(ShowAlpha));
             }
         }
     }
@@ -143,8 +143,8 @@ public class MGColorField : MGElement
             _colorPickService.ColorPicked += OnColorPicked;
             _colorPickService.ColorPickCancelled += OnColorPickCancelled;
             Popup.Picker.ColorPickService = actual;
-            NPC(nameof(ColorPickService));
-            NPC(nameof(IsEyeDropperAvailable));
+            NotifyPropertyChanged(nameof(ColorPickService));
+            NotifyPropertyChanged(nameof(IsEyeDropperAvailable));
         }
     }
 
@@ -161,7 +161,7 @@ public class MGColorField : MGElement
             {
                 _displayFormat = value;
                 RefreshDisplayText();
-                NPC(nameof(DisplayFormat));
+                NotifyPropertyChanged(nameof(DisplayFormat));
             }
         }
     }
@@ -217,7 +217,7 @@ public class MGColorField : MGElement
             Model.ValueChanged += (sender, e) =>
             {
                 RefreshDisplayText();
-                NPC(nameof(Value));
+                NotifyPropertyChanged(nameof(Value));
                 ValueChanged?.Invoke(this, e);
             };
             Popup.EditCommitted += (sender, e) => _ = Model.TrySetValue(e.NewValue);
@@ -292,15 +292,15 @@ public class MGColorField : MGElement
     {
         Model.SetMixedValue(displayedValue);
         RefreshDisplayText();
-        NPC(nameof(Value));
-        NPC(nameof(IsMixed));
+        NotifyPropertyChanged(nameof(Value));
+        NotifyPropertyChanged(nameof(IsMixed));
     }
 
     public void ClearMixedValue()
     {
         Model.ClearMixedValue();
         RefreshDisplayText();
-        NPC(nameof(IsMixed));
+        NotifyPropertyChanged(nameof(IsMixed));
     }
 
     public bool OpenPopup()

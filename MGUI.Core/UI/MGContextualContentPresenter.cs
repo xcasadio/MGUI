@@ -20,7 +20,7 @@ public class MGContextualContentPresenter : MGSingleContentHost
             if (_Value != value)
             {
                 _Value = value;
-                NPC(nameof(Value));
+                NotifyPropertyChanged(nameof(Value));
                 OnValueChanged?.Invoke(this, Value);
                 UpdateDisplayedContent();
             }
@@ -51,8 +51,8 @@ public class MGContextualContentPresenter : MGSingleContentHost
                     UpdateDisplayedContent();
                 }
 
-                NPC(nameof(TrueContent));
-                NPC(nameof(CurrentContent));
+                NotifyPropertyChanged(nameof(TrueContent));
+                NotifyPropertyChanged(nameof(CurrentContent));
             }
         }
     }
@@ -77,8 +77,8 @@ public class MGContextualContentPresenter : MGSingleContentHost
                     UpdateDisplayedContent();
                 }
 
-                NPC(nameof(FalseContent));
-                NPC(nameof(CurrentContent));
+                NotifyPropertyChanged(nameof(FalseContent));
+                NotifyPropertyChanged(nameof(CurrentContent));
             }
         }
     }

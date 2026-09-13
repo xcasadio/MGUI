@@ -202,7 +202,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     InternalRowItems = new ObservableCollection<MGListViewItem<TItemType>>(Values);
                 }
 
-                NPC(nameof(ItemsSource));
+                NotifyPropertyChanged(nameof(ItemsSource));
             }
         }
     }
@@ -302,7 +302,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
             {
                 _RowHeight = value;
                 RowLength = RowHeight.HasValue ? GridLength.CreatePixelLength(RowHeight.Value) : GridLength.Auto;
-                NPC(nameof(RowHeight));
+                NotifyPropertyChanged(nameof(RowHeight));
             }
         }
     }
@@ -326,7 +326,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
                     }
                 }
 
-                NPC(nameof(RowLength));
+                NotifyPropertyChanged(nameof(RowLength));
             }
         }
     }
@@ -354,7 +354,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
             if (SelectionMode != value)
             {
                 DataGrid.SelectionMode = value;
-                NPC(nameof(SelectionMode));
+                NotifyPropertyChanged(nameof(SelectionMode));
             }
         }
     }
@@ -529,7 +529,7 @@ public class MGListView<TItemType> : MGSingleContentHost, INavigationTargetVisib
         {
             var count = RowItems?.Count ?? 0;
             var clamped = count == 0 ? -1 : Math.Clamp(value, 0, count - 1);
-            if (_FocusedRowIndex != clamped) { _FocusedRowIndex = clamped; NPC(nameof(FocusedRowIndex)); }
+            if (_FocusedRowIndex != clamped) { _FocusedRowIndex = clamped; NotifyPropertyChanged(nameof(FocusedRowIndex)); }
         }
     }
     #endregion FocusedRowIndex
@@ -762,9 +762,9 @@ public class ListViewColumnWidth : ViewModelBase
         {
             Length = GridLength.CreatePixelLength(value);
             WidthChanged?.Invoke(this, EventArgs.Empty);
-            NPC(nameof(WidthPixels));
-            NPC(nameof(WidthWeight));
-            NPC(nameof(Length));
+            NotifyPropertyChanged(nameof(WidthPixels));
+            NotifyPropertyChanged(nameof(WidthWeight));
+            NotifyPropertyChanged(nameof(Length));
         }
     }
 
@@ -776,9 +776,9 @@ public class ListViewColumnWidth : ViewModelBase
         {
             Length = GridLength.CreateWeightedLength(value);
             WidthChanged?.Invoke(this, EventArgs.Empty);
-            NPC(nameof(WidthWeight));
-            NPC(nameof(WidthPixels));
-            NPC(nameof(Length));
+            NotifyPropertyChanged(nameof(WidthWeight));
+            NotifyPropertyChanged(nameof(WidthPixels));
+            NotifyPropertyChanged(nameof(Length));
         }
     }
 
@@ -897,7 +897,7 @@ public class MGListViewColumn<TItemType> : ViewModelBase
                 // Re-subscribe to new header if sortable
                 RefreshSortClickSubscription();
 
-                NPC(nameof(Header));
+                NotifyPropertyChanged(nameof(Header));
             }
         }
     }
@@ -914,7 +914,7 @@ public class MGListViewColumn<TItemType> : ViewModelBase
             {
                 _CellTemplate = value;
                 RefreshColumnContent();
-                NPC(nameof(CellTemplate));
+                NotifyPropertyChanged(nameof(CellTemplate));
             }
         }
     }
@@ -978,7 +978,7 @@ public class MGListViewColumn<TItemType> : ViewModelBase
             {
                 _IsSortable = value;
                 RefreshSortClickSubscription();
-                NPC(nameof(IsSortable));
+                NotifyPropertyChanged(nameof(IsSortable));
             }
         }
     }
@@ -992,7 +992,7 @@ public class MGListViewColumn<TItemType> : ViewModelBase
     public SortDirection? CurrentSortDirection
     {
         get => _CurrentSortDirection;
-        private set { if (_CurrentSortDirection != value) { _CurrentSortDirection = value; NPC(nameof(CurrentSortDirection)); } }
+        private set { if (_CurrentSortDirection != value) { _CurrentSortDirection = value; NotifyPropertyChanged(nameof(CurrentSortDirection)); } }
     }
 
     internal void SetSortDirection(SortDirection? direction) => CurrentSortDirection = direction;

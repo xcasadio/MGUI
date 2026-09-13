@@ -27,7 +27,7 @@ namespace MGUI.Shared.Rendering
                 if (IsVisible != value)
                 {
                     _IsVisible = value;
-                    AutoNPC();
+                    NotifyPropertyChanged();
                 }
             }
         }
@@ -44,7 +44,7 @@ namespace MGUI.Shared.Rendering
             {
                 Rectangle Previous = ScreenViewport;
                 _ScreenViewport = Value;
-                NPC(nameof(ScreenViewport));
+                NotifyPropertyChanged(nameof(ScreenViewport));
                 BeforeNotify?.Invoke();
                 if (NotifyChanged)
                 {

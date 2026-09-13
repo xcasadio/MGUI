@@ -112,7 +112,7 @@ public class MGGraphView : MGSingleContentHost
             if (_GridLineBrush != value)
             {
                 _GridLineBrush = value;
-                NPC(nameof(GridLineBrush));
+                NotifyPropertyChanged(nameof(GridLineBrush));
             }
         }
     }
@@ -125,7 +125,7 @@ public class MGGraphView : MGSingleContentHost
             if (_MajorGridLineBrush != value)
             {
                 _MajorGridLineBrush = value;
-                NPC(nameof(MajorGridLineBrush));
+                NotifyPropertyChanged(nameof(MajorGridLineBrush));
             }
         }
     }
@@ -138,7 +138,7 @@ public class MGGraphView : MGSingleContentHost
             if (_EdgeBrush != value)
             {
                 _EdgeBrush = value;
-                NPC(nameof(EdgeBrush));
+                NotifyPropertyChanged(nameof(EdgeBrush));
             }
         }
     }
@@ -152,7 +152,7 @@ public class MGGraphView : MGSingleContentHost
             if (!_EdgeThickness.Equals(next))
             {
                 _EdgeThickness = next;
-                NPC(nameof(EdgeThickness));
+                NotifyPropertyChanged(nameof(EdgeThickness));
             }
         }
     }
@@ -166,7 +166,7 @@ public class MGGraphView : MGSingleContentHost
             if (_MajorGridLineFrequency != next)
             {
                 _MajorGridLineFrequency = next;
-                NPC(nameof(MajorGridLineFrequency));
+                NotifyPropertyChanged(nameof(MajorGridLineFrequency));
             }
         }
     }
@@ -187,7 +187,7 @@ public class MGGraphView : MGSingleContentHost
                 _Document = next;
                 _Document.GraphChanged += OnDocumentGraphChanged;
                 SynchronizeDocument();
-                NPC(nameof(Document));
+                NotifyPropertyChanged(nameof(Document));
             }
         }
     }
@@ -2649,7 +2649,7 @@ public class MGGraphNode : MGSingleContentHost
             if (_NodeId != value)
             {
                 _NodeId = value;
-                NPC(nameof(NodeId));
+                NotifyPropertyChanged(nameof(NodeId));
             }
         }
     }
@@ -2668,7 +2668,7 @@ public class MGGraphNode : MGSingleContentHost
                     HeaderTextBlock.Text = _Title;
                 }
 
-                NPC(nameof(Title));
+                NotifyPropertyChanged(nameof(Title));
             }
         }
     }
@@ -2681,7 +2681,7 @@ public class MGGraphNode : MGSingleContentHost
             if (_HasError != value)
             {
                 _HasError = value;
-                NPC(nameof(HasError));
+                NotifyPropertyChanged(nameof(HasError));
             }
         }
     }
@@ -2694,7 +2694,7 @@ public class MGGraphNode : MGSingleContentHost
             if (_HasWarning != value)
             {
                 _HasWarning = value;
-                NPC(nameof(HasWarning));
+                NotifyPropertyChanged(nameof(HasWarning));
             }
         }
     }
@@ -2709,7 +2709,7 @@ public class MGGraphNode : MGSingleContentHost
                 _IsCollapsed = value;
                 UpdateCollapsedVisualState();
                 LayoutChanged(this, true);
-                NPC(nameof(IsCollapsed));
+                NotifyPropertyChanged(nameof(IsCollapsed));
             }
         }
     }
@@ -2894,7 +2894,7 @@ public class MGGraphPort : MGSingleContentHost
             if (_PortId != value)
             {
                 _PortId = value;
-                NPC(nameof(PortId));
+                NotifyPropertyChanged(nameof(PortId));
             }
         }
     }
@@ -2908,7 +2908,7 @@ public class MGGraphPort : MGSingleContentHost
             {
                 _Direction = value;
                 RefreshConnectorVisual();
-                NPC(nameof(Direction));
+                NotifyPropertyChanged(nameof(Direction));
             }
         }
     }
@@ -2922,7 +2922,7 @@ public class MGGraphPort : MGSingleContentHost
             {
                 _ValueType = value;
                 RefreshConnectorVisual();
-                NPC(nameof(ValueType));
+                NotifyPropertyChanged(nameof(ValueType));
             }
         }
     }
@@ -2935,7 +2935,7 @@ public class MGGraphPort : MGSingleContentHost
             if (_IsConnected != value)
             {
                 _IsConnected = value;
-                NPC(nameof(IsConnected));
+                NotifyPropertyChanged(nameof(IsConnected));
             }
         }
     }
@@ -2948,7 +2948,7 @@ public class MGGraphPort : MGSingleContentHost
             if (_IsRequired != value)
             {
                 _IsRequired = value;
-                NPC(nameof(IsRequired));
+                NotifyPropertyChanged(nameof(IsRequired));
             }
         }
     }
@@ -2961,7 +2961,7 @@ public class MGGraphPort : MGSingleContentHost
             if (_IsConnectionDragSource != value)
             {
                 _IsConnectionDragSource = value;
-                NPC(nameof(IsConnectionDragSource));
+                NotifyPropertyChanged(nameof(IsConnectionDragSource));
             }
         }
     }
@@ -2974,7 +2974,7 @@ public class MGGraphPort : MGSingleContentHost
             if (_IsConnectionDragTarget != value)
             {
                 _IsConnectionDragTarget = value;
-                NPC(nameof(IsConnectionDragTarget));
+                NotifyPropertyChanged(nameof(IsConnectionDragTarget));
             }
         }
     }
@@ -2987,7 +2987,7 @@ public class MGGraphPort : MGSingleContentHost
             if (_IsConnectionCompatible != value)
             {
                 _IsConnectionCompatible = value;
-                NPC(nameof(IsConnectionCompatible));
+                NotifyPropertyChanged(nameof(IsConnectionCompatible));
             }
         }
     }
@@ -3006,7 +3006,7 @@ public class MGGraphPort : MGSingleContentHost
                     Label.Text = _PortName;
                 }
 
-                NPC(nameof(PortName));
+                NotifyPropertyChanged(nameof(PortName));
             }
         }
     }
@@ -3390,7 +3390,7 @@ public class MGGraphCommentBox : MGSingleContentHost
             if (_CommentId != value)
             {
                 _CommentId = value;
-                NPC(nameof(CommentId));
+                NotifyPropertyChanged(nameof(CommentId));
             }
         }
     }
@@ -3409,7 +3409,7 @@ public class MGGraphCommentBox : MGSingleContentHost
                     TitleTextBox.SetText(_Title, SuppressLayoutChanged: true);
                 }
 
-                NPC(nameof(Title));
+                NotifyPropertyChanged(nameof(Title));
             }
         }
     }
@@ -3428,7 +3428,7 @@ public class MGGraphCommentBox : MGSingleContentHost
                     BodyTextBox.SetText(_Text, SuppressLayoutChanged: true);
                 }
 
-                NPC(nameof(Text));
+                NotifyPropertyChanged(nameof(Text));
             }
         }
     }

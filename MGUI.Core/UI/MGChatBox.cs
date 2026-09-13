@@ -60,7 +60,7 @@ public class MGChatBox : MGElement
             {
                 var Previous = TimestampFormat;
                 _TimestampFormat = value;
-                NPC(nameof(TimestampFormat));
+                NotifyPropertyChanged(nameof(TimestampFormat));
                 TimestampFormatChanged?.Invoke(this, new(Previous, TimestampFormat));
             }
         }
@@ -93,7 +93,7 @@ public class MGChatBox : MGElement
                     MessagesContainer.ItemTemplate = item => new MGChatBoxMessage(ParentWindow, this, item);
                 }
 
-                NPC(nameof(AllowsMessageInlineFormatting));
+                NotifyPropertyChanged(nameof(AllowsMessageInlineFormatting));
             }
         }
     }
@@ -124,7 +124,7 @@ public class MGChatBox : MGElement
             {
                 _MaxMessages = value;
                 ValidateNumMessages();
-                NPC(nameof(MaxMessages));
+                NotifyPropertyChanged(nameof(MaxMessages));
             }
         }
     }
@@ -140,7 +140,7 @@ public class MGChatBox : MGElement
             BorderElement = new(ParentWindow, new(1), MGUniformBorderBrush.Black);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             MGDockPanel DockPanel = new(ParentWindow);
             MainContent = new(DockPanel, false, false, true, true, false, false, true,
@@ -158,7 +158,7 @@ public class MGChatBox : MGElement
             InputTextBox = new(ParentWindow, MaxMessageLength);
             InputTextBox.AcceptsReturn = false;
             InputTextBox.ManagedParent = this;
-            InputTextBox.OnCharacterLimitChanged += (sender, e) => { NPC(nameof(MaxMessageLength)); };
+            InputTextBox.OnCharacterLimitChanged += (sender, e) => { NotifyPropertyChanged(nameof(MaxMessageLength)); };
             InputTextBox.KeyboardHandler.Pressed += (sender, e) =>
             {
                 if (e.Key == Keys.Enter)

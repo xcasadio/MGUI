@@ -127,7 +127,7 @@ public class ResolvedScalarPilotsTests
         harness.Show(element);
 
         // LayoutChanged (raised identically before and after S2) also flips IsLayoutValid, which is itself a
-        // notified property; the pilot-specific baseline from the plan counts only the setter's own NPC(...)
+        // notified property; the pilot-specific baseline from the plan counts only the setter's own NotifyPropertyChanged(...)
         // calls, so IsLayoutValid is excluded here.
         List<string> marginNpc = new();
         int onMarginChangedCount = 0;

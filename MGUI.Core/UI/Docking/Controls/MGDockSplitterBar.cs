@@ -36,7 +36,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
             {
                 _isDragging = value;
                 SyncVisualParts();
-                NPC(nameof(IsDragging));
+                NotifyPropertyChanged(nameof(IsDragging));
             }
         }
     }
@@ -56,7 +56,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
             {
                 _normalBrush = value;
                 SyncVisualParts();
-                NPC(nameof(NormalBrush));
+                NotifyPropertyChanged(nameof(NormalBrush));
             }
         }
     }
@@ -74,7 +74,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
             {
                 _hoverBrush = value;
                 SyncVisualParts();
-                NPC(nameof(HoverBrush));
+                NotifyPropertyChanged(nameof(HoverBrush));
             }
         }
     }
@@ -92,7 +92,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
             {
                 _pressedBrush = value;
                 SyncVisualParts();
-                NPC(nameof(PressedBrush));
+                NotifyPropertyChanged(nameof(PressedBrush));
             }
         }
     }

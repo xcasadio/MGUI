@@ -28,7 +28,7 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushFocusCheckBox != value)
                 {
                     _HighlightBrushFocusCheckBox = value;
-                    NPC(nameof(HighlightBrushFocusCheckBox));
+                    NotifyPropertyChanged(nameof(HighlightBrushFocusCheckBox));
                     UpdateHighlightBrushFocusedElements();
                 }
             }
@@ -44,7 +44,7 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushFocusButton != value)
                 {
                     _HighlightBrushFocusButton = value;
-                    NPC(nameof(HighlightBrushFocusButton));
+                    NotifyPropertyChanged(nameof(HighlightBrushFocusButton));
                     UpdateHighlightBrushFocusedElements();
                 }
             }
@@ -60,7 +60,7 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushFocusRadioButtons != value)
                 {
                     _HighlightBrushFocusRadioButtons = value;
-                    NPC(nameof(HighlightBrushFocusRadioButtons));
+                    NotifyPropertyChanged(nameof(HighlightBrushFocusRadioButtons));
                     UpdateHighlightBrushFocusedElements();
                 }
             }
@@ -76,7 +76,7 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushFocusedElements != value)
                 {
                     _HighlightBrushFocusedElements = value;
-                    NPC(nameof(HighlightBrushFocusedElements));
+                    NotifyPropertyChanged(nameof(HighlightBrushFocusedElements));
                 }
             }
         }
@@ -112,8 +112,8 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushFocusedColor != value)
                 {
                     _HighlightBrushFocusedColor = value;
-                    NPC(nameof(HighlightBrushFocusedColor));
-                    NPC(nameof(HighlightBrushActualFocusedColor));
+                    NotifyPropertyChanged(nameof(HighlightBrushFocusedColor));
+                    NotifyPropertyChanged(nameof(HighlightBrushActualFocusedColor));
                 }
             }
         }
@@ -128,8 +128,8 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushFocusedColorOpacity != value)
                 {
                     _HighlightBrushFocusedColorOpacity = value;
-                    NPC(nameof(HighlightBrushFocusedColorOpacity));
-                    NPC(nameof(HighlightBrushActualFocusedColor));
+                    NotifyPropertyChanged(nameof(HighlightBrushFocusedColorOpacity));
+                    NotifyPropertyChanged(nameof(HighlightBrushActualFocusedColor));
                 }
             }
         }
@@ -146,8 +146,8 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushUnfocusedColor != value)
                 {
                     _HighlightBrushUnfocusedColor = value;
-                    NPC(nameof(HighlightBrushUnfocusedColor));
-                    NPC(nameof(HighlightBrushActualUnfocusedColor));
+                    NotifyPropertyChanged(nameof(HighlightBrushUnfocusedColor));
+                    NotifyPropertyChanged(nameof(HighlightBrushActualUnfocusedColor));
                 }
             }
         }
@@ -162,8 +162,8 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushUnfocusedColorOpacity != value)
                 {
                     _HighlightBrushUnfocusedColorOpacity = value;
-                    NPC(nameof(HighlightBrushUnfocusedColorOpacity));
-                    NPC(nameof(HighlightBrushActualUnfocusedColor));
+                    NotifyPropertyChanged(nameof(HighlightBrushUnfocusedColorOpacity));
+                    NotifyPropertyChanged(nameof(HighlightBrushActualUnfocusedColor));
                 }
             }
         }
@@ -180,7 +180,7 @@ namespace MGUI.Samples.Features
                 if (_HighlightBrushFocusedElementPadding != value)
                 {
                     _HighlightBrushFocusedElementPadding = value;
-                    NPC(nameof(HighlightBrushFocusedElementPadding));
+                    NotifyPropertyChanged(nameof(HighlightBrushFocusedElementPadding));
                 }
             }
         }
@@ -199,9 +199,9 @@ namespace MGUI.Samples.Features
                 if (_NineSliceSourceName != value)
                 {
                     _NineSliceSourceName = value;
-                    NPC(nameof(NineSliceSourceName));
-                    NPC(nameof(NineSlicePlaceholderTextMargin));
-                    NPC(nameof(NineSlicePlaceholderTextColor));
+                    NotifyPropertyChanged(nameof(NineSliceSourceName));
+                    NotifyPropertyChanged(nameof(NineSlicePlaceholderTextMargin));
+                    NotifyPropertyChanged(nameof(NineSlicePlaceholderTextColor));
                     UpdateNineSliceBrush();
                 }
             }
@@ -217,7 +217,7 @@ namespace MGUI.Samples.Features
                 if (_NineSliceSourceSample1 != value)
                 {
                     _NineSliceSourceSample1 = value;
-                    NPC(nameof(NineSliceSourceSample1));
+                    NotifyPropertyChanged(nameof(NineSliceSourceSample1));
                     NineSliceSourceName = "Samples_9SliceTexture1";
                 }
             }
@@ -233,7 +233,7 @@ namespace MGUI.Samples.Features
                 if (_NineSliceSourceSample2 != value)
                 {
                     _NineSliceSourceSample2 = value;
-                    NPC(nameof(NineSliceSourceSample2));
+                    NotifyPropertyChanged(nameof(NineSliceSourceSample2));
                     NineSliceSourceName = "Samples_9SliceTexture2";
                 }
             }
@@ -249,7 +249,7 @@ namespace MGUI.Samples.Features
                 if (_NineSliceSourceSample3 != value)
                 {
                     _NineSliceSourceSample3 = value;
-                    NPC(nameof(NineSliceSourceSample3));
+                    NotifyPropertyChanged(nameof(NineSliceSourceSample3));
                     NineSliceSourceName = "Samples_9SliceTexture3";
                 }
             }
@@ -265,8 +265,8 @@ namespace MGUI.Samples.Features
                 if (_NineSliceTargetMargin != value)
                 {
                     _NineSliceTargetMargin = value;
-                    NPC(nameof(NineSliceTargetMargin));
-                    NPC(nameof(NineSlicePlaceholderTextMargin));
+                    NotifyPropertyChanged(nameof(NineSliceTargetMargin));
+                    NotifyPropertyChanged(nameof(NineSlicePlaceholderTextMargin));
                     UpdateNineSliceBrush();
                 }
             }

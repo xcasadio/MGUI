@@ -133,7 +133,7 @@ public class MGScrollViewer : MGSingleContentHost
             if (_AllowClickDragScrolling != value)
             {
                 _AllowClickDragScrolling = value;
-                NPC(nameof(AllowClickDragScrolling));
+                NotifyPropertyChanged(nameof(AllowClickDragScrolling));
             }
         }
     }
@@ -157,8 +157,8 @@ public class MGScrollViewer : MGSingleContentHost
             {
                 _VSBVisibility = value;
                 LayoutChanged(this, true);
-                NPC(nameof(VSBVisibility));
-                NPC(nameof(VerticalScrollBarVisibility));
+                NotifyPropertyChanged(nameof(VSBVisibility));
+                NotifyPropertyChanged(nameof(VerticalScrollBarVisibility));
             }
         }
     }
@@ -181,8 +181,8 @@ public class MGScrollViewer : MGSingleContentHost
             {
                 _HSBVisibility = value;
                 LayoutChanged(this, true);
-                NPC(nameof(HSBVisibility));
-                NPC(nameof(HorizontalScrollBarVisibility));
+                NotifyPropertyChanged(nameof(HSBVisibility));
+                NotifyPropertyChanged(nameof(HorizontalScrollBarVisibility));
             }
         }
     }
@@ -206,7 +206,7 @@ public class MGScrollViewer : MGSingleContentHost
             if (_ContentViewport != value)
             {
                 _ContentViewport = value;
-                NPC(nameof(ContentViewport));
+                NotifyPropertyChanged(nameof(ContentViewport));
             }
         }
     }
@@ -222,8 +222,8 @@ public class MGScrollViewer : MGSingleContentHost
             {
                 var Previous = VSBBounds;
                 _VSBBounds = value;
-                NPC(nameof(VSBBounds));
-                NPC(nameof(PaddedVSBBounds));
+                NotifyPropertyChanged(nameof(VSBBounds));
+                NotifyPropertyChanged(nameof(PaddedVSBBounds));
                 VerticalScrollBarBoundsChanged?.Invoke(Previous, VSBBounds);
             }
         }
@@ -244,8 +244,8 @@ public class MGScrollViewer : MGSingleContentHost
             {
                 var Previous = HSBBounds;
                 _HSBBounds = value;
-                NPC(nameof(HSBBounds));
-                NPC(nameof(PaddedHSBBounds));
+                NotifyPropertyChanged(nameof(HSBBounds));
+                NotifyPropertyChanged(nameof(PaddedHSBBounds));
                 HorizontalScrollBarBoundsChanged?.Invoke(Previous, HSBBounds);
             }
         }
@@ -277,7 +277,7 @@ public class MGScrollViewer : MGSingleContentHost
                 var Previous = VerticalOffset;
                 _VerticalOffset = ClampedValue;
                 ParentWindow.InvalidatePressedAndHoveredElements = true;
-                NPC(nameof(VerticalOffset));
+                NotifyPropertyChanged(nameof(VerticalOffset));
                 VerticalOffsetChanged?.Invoke(this, new(Previous, VerticalOffset));
                 OffsetChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -299,7 +299,7 @@ public class MGScrollViewer : MGSingleContentHost
                 var Previous = MaxVerticalOffset;
                 _MaxVerticalOffset = value;
                 VerticalOffset = Math.Clamp(VerticalOffset, 0, MaxVerticalOffset);
-                NPC(nameof(MaxVerticalOffset));
+                NotifyPropertyChanged(nameof(MaxVerticalOffset));
                 MaxVerticalOffsetChanged?.Invoke(this, new(Previous, MaxVerticalOffset));
             }
         }
@@ -344,7 +344,7 @@ public class MGScrollViewer : MGSingleContentHost
                 var Previous = HorizontalOffset;
                 _HorizontalOffset = ClampedValue;
                 ParentWindow.InvalidatePressedAndHoveredElements = true;
-                NPC(nameof(HorizontalOffset));
+                NotifyPropertyChanged(nameof(HorizontalOffset));
                 HorizontalOffsetChanged?.Invoke(this, new(Previous, HorizontalOffset));
                 OffsetChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -364,7 +364,7 @@ public class MGScrollViewer : MGSingleContentHost
             {
                 var Previous = MaxHorizontalOffset;
                 _MaxHorizontalOffset = value;
-                NPC(nameof(MaxHorizontalOffset));
+                NotifyPropertyChanged(nameof(MaxHorizontalOffset));
                 HorizontalOffset = Math.Clamp(HorizontalOffset, 0, MaxHorizontalOffset);
                 MaxHorizontalOffsetChanged?.Invoke(this, new(Previous, MaxHorizontalOffset));
             }
@@ -410,7 +410,7 @@ public class MGScrollViewer : MGSingleContentHost
             if (_ScrollBarOuterBrush != value)
             {
                 _ScrollBarOuterBrush = value;
-                NPC(nameof(ScrollBarOuterBrush));
+                NotifyPropertyChanged(nameof(ScrollBarOuterBrush));
             }
         }
     }
@@ -428,7 +428,7 @@ public class MGScrollViewer : MGSingleContentHost
             if (_ScrollBarInnerBrush != value)
             {
                 _ScrollBarInnerBrush = value;
-                NPC(nameof(ScrollBarInnerBrush));
+                NotifyPropertyChanged(nameof(ScrollBarInnerBrush));
             }
         }
     }

@@ -45,7 +45,7 @@ public class MGStackPanel : MGMultiContentHost
             {
                 _Orientation = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
+                NotifyPropertyChanged(nameof(Orientation));
             }
         }
     }
@@ -60,7 +60,7 @@ public class MGStackPanel : MGMultiContentHost
             {
                 _FlowDirection = value;
                 LayoutChanged(this, true);
-                NPC(nameof(FlowDirection));
+                NotifyPropertyChanged(nameof(FlowDirection));
             }
         }
     }*/
@@ -78,7 +78,7 @@ public class MGStackPanel : MGMultiContentHost
             {
                 _Spacing = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Spacing));
+                NotifyPropertyChanged(nameof(Spacing));
             }
         }
     }
@@ -171,9 +171,9 @@ public class MGStackPanel : MGMultiContentHost
             BorderElement = new(Window, 0, null as IFillBrush);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             this.Orientation = Orientation;
             //this.FlowDirection = FlowDirection.LeftToRight;

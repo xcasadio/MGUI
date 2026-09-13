@@ -49,7 +49,7 @@ public class MGDockTabGroup : MGElement
 
                 RebuildTabHeaders();
                 UpdateActiveContent();
-                NPC(nameof(GroupNode));
+                NotifyPropertyChanged(nameof(GroupNode));
             }
         }
     }
@@ -90,7 +90,7 @@ public class MGDockTabGroup : MGElement
             {
                 _isMaximized = value;
                 UpdateMaximizeButtonLabel();
-                NPC(nameof(IsMaximized));
+                NotifyPropertyChanged(nameof(IsMaximized));
             }
         }
     }
@@ -114,7 +114,7 @@ public class MGDockTabGroup : MGElement
             if (_isActiveGroup != value)
             {
                 _isActiveGroup = value;
-                NPC(nameof(IsActiveGroup));
+                NotifyPropertyChanged(nameof(IsActiveGroup));
             }
         }
     }
@@ -133,7 +133,7 @@ public class MGDockTabGroup : MGElement
             {
                 _iconColor = value;
                 SyncHeaderVisuals();
-                NPC(nameof(IconColor));
+                NotifyPropertyChanged(nameof(IconColor));
             }
         }
     }
@@ -153,7 +153,7 @@ public class MGDockTabGroup : MGElement
                 _compactButtonHoverColor = value;
                 ApplyCompactButtonHoverColor(_dropdownBtn);
                 ApplyCompactButtonHoverColor(_maximizeBtn);
-                NPC(nameof(CompactButtonHoverColor));
+                NotifyPropertyChanged(nameof(CompactButtonHoverColor));
             }
         }
     }
@@ -186,7 +186,7 @@ public class MGDockTabGroup : MGElement
                 }
 
                 LayoutChanged(this, true);
-                NPC(nameof(TabHeaderHeight));
+                NotifyPropertyChanged(nameof(TabHeaderHeight));
             }
         }
     }

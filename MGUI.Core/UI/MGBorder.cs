@@ -37,7 +37,7 @@ public class MGBorder : MGSingleContentHost
         {
             IBorderBrush Previous = BorderBrush;
             _borderBrush = value;
-            NPC(nameof(BorderBrush));
+            NotifyPropertyChanged(nameof(BorderBrush));
             OnBorderBrushChanged?.Invoke(this, new(Previous, BorderBrush));
         }
     }
@@ -68,7 +68,7 @@ public class MGBorder : MGSingleContentHost
             Thickness Previous = BorderThickness;
             _borderThickness = value;
             LayoutChanged(this, true);
-            NPC(nameof(BorderThickness));
+            NotifyPropertyChanged(nameof(BorderThickness));
             OnBorderThicknessChanged?.Invoke(this, new(Previous, BorderThickness));
         }
     }
@@ -108,7 +108,7 @@ public class MGBorder : MGSingleContentHost
                 MGCornerRadius previous = CornerRadius;
                 _cornerRadius = value;
                 LayoutChanged(this, true);
-                NPC(nameof(CornerRadius));
+                NotifyPropertyChanged(nameof(CornerRadius));
                 OnCornerRadiusChanged?.Invoke(this, new(previous, CornerRadius));
             }
         }
@@ -130,7 +130,7 @@ public class MGBorder : MGSingleContentHost
             if (_isShapeAwareHitTestEnabled != value)
             {
                 _isShapeAwareHitTestEnabled = value;
-                NPC(nameof(IsShapeAwareHitTestEnabled));
+                NotifyPropertyChanged(nameof(IsShapeAwareHitTestEnabled));
             }
         }
     }

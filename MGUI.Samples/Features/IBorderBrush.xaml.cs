@@ -42,7 +42,7 @@ namespace MGUI.Samples.Features
                 if (_HighlightBorderSampleIsEnabled != value)
                 {
                     _HighlightBorderSampleIsEnabled = value;
-                    NPC(nameof(HighlightBorderSampleIsEnabled));
+                    NotifyPropertyChanged(nameof(HighlightBorderSampleIsEnabled));
                 }
             }
         }
@@ -57,7 +57,7 @@ namespace MGUI.Samples.Features
                 if (_HighlightBorderSampleStopOnClick != value)
                 {
                     _HighlightBorderSampleStopOnClick = value;
-                    NPC(nameof(HighlightBorderSampleStopOnClick));
+                    NotifyPropertyChanged(nameof(HighlightBorderSampleStopOnClick));
                 }
             }
         }
@@ -72,7 +72,7 @@ namespace MGUI.Samples.Features
                 if (_HighlightBorderSampleStopOnMouseOver != value)
                 {
                     _HighlightBorderSampleStopOnMouseOver = value;
-                    NPC(nameof(HighlightBorderSampleStopOnMouseOver));
+                    NotifyPropertyChanged(nameof(HighlightBorderSampleStopOnMouseOver));
                 }
             }
         }

@@ -15,7 +15,7 @@ public abstract class MGAdorner : MGElement
             if (_targetElement != value)
             {
                 _targetElement = value;
-                NPC(nameof(TargetElement));
+                NotifyPropertyChanged(nameof(TargetElement));
             }
         }
     }
@@ -29,7 +29,7 @@ public abstract class MGAdorner : MGElement
             if (_targetBoundsOverride != value)
             {
                 _targetBoundsOverride = value;
-                NPC(nameof(TargetBoundsOverride));
+                NotifyPropertyChanged(nameof(TargetBoundsOverride));
             }
         }
     }
@@ -43,7 +43,7 @@ public abstract class MGAdorner : MGElement
             if (!_targetMargin.Equals(value))
             {
                 _targetMargin = value;
-                NPC(nameof(TargetMargin));
+                NotifyPropertyChanged(nameof(TargetMargin));
             }
         }
     }
@@ -57,7 +57,7 @@ public abstract class MGAdorner : MGElement
             if (_clipToTargetBounds != value)
             {
                 _clipToTargetBounds = value;
-                NPC(nameof(ClipToTargetBounds));
+                NotifyPropertyChanged(nameof(ClipToTargetBounds));
             }
         }
     }

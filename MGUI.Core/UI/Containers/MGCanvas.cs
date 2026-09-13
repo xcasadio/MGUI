@@ -131,9 +131,9 @@ public class MGCanvas : MGMultiContentHost
             BorderElement = new(window, 0, null as IFillBrush);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (_, _) => NPC(nameof(BorderBrush));
-            BorderElement.OnBorderThicknessChanged += (_, _) => NPC(nameof(BorderThickness));
-            BorderElement.OnCornerRadiusChanged += (_, _) => NPC(nameof(CornerRadius));
+            BorderElement.OnBorderBrushChanged += (_, _) => NotifyPropertyChanged(nameof(BorderBrush));
+            BorderElement.OnBorderThicknessChanged += (_, _) => NotifyPropertyChanged(nameof(BorderThickness));
+            BorderElement.OnCornerRadiusChanged += (_, _) => NotifyPropertyChanged(nameof(CornerRadius));
         }
     }
 

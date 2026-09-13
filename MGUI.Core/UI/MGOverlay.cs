@@ -62,7 +62,7 @@ public class MGOverlayHost : MGSingleContentHost
             if (WasOpen)
             {
                 Overlay.InvokeOnClosed();
-                Overlay.NPC(nameof(MGOverlay.IsOpen));
+                Overlay.NotifyPropertyChanged(nameof(MGOverlay.IsOpen));
                 UpdateActiveOverlay();
             }
 
@@ -111,7 +111,7 @@ public class MGOverlayHost : MGSingleContentHost
 
         _OpenOverlays.Add(Overlay);
         Overlay.InvokeOnOpened();
-        Overlay.NPC(nameof(MGOverlay.IsOpen));
+        Overlay.NotifyPropertyChanged(nameof(MGOverlay.IsOpen));
 
         UpdateActiveOverlay();
         return true;
@@ -133,7 +133,7 @@ public class MGOverlayHost : MGSingleContentHost
 
         _OpenOverlays.Remove(Overlay);
         Overlay.InvokeOnClosed();
-        Overlay.NPC(nameof(MGOverlay.IsOpen));
+        Overlay.NotifyPropertyChanged(nameof(MGOverlay.IsOpen));
 
         UpdateActiveOverlay();
         return true;
@@ -150,7 +150,7 @@ public class MGOverlayHost : MGSingleContentHost
             if (_IsModal != value)
             {
                 _IsModal = value;
-                NPC(nameof(IsModal));
+                NotifyPropertyChanged(nameof(IsModal));
             }
         }
     }
@@ -168,7 +168,7 @@ public class MGOverlayHost : MGSingleContentHost
         {
             var PreviousValue = ActiveOverlay;
             ActiveOverlay = Value;
-            NPC(nameof(ActiveOverlay));
+            NotifyPropertyChanged(nameof(ActiveOverlay));
             ActiveOverlayPresenter.SetContent(ActiveOverlay);
             ActiveOverlayPresenter.Visibility = ActiveOverlay == null ? Visibility.Collapsed : Visibility.Visible;
             //LayoutChanged(this, true);
@@ -337,7 +337,7 @@ public class MGOverlayHost : MGSingleContentHost
             if (_OverlayBackground != value)
             {
                 _OverlayBackground = value;
-                NPC(nameof(OverlayBackground));
+                NotifyPropertyChanged(nameof(OverlayBackground));
             }
         }
     }
@@ -440,7 +440,7 @@ public class MGOverlay : MGSingleContentHost
             if (_ZIndex != value)
             {
                 _ZIndex = value;
-                NPC(nameof(ZIndex));
+                NotifyPropertyChanged(nameof(ZIndex));
                 OnZIndexChanged?.Invoke(this, ZIndex);
             }
         }
@@ -517,9 +517,9 @@ public class MGOverlay : MGSingleContentHost
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
         }
 
         EnsureComponentBinding(() => CloseButtonComponent, value => CloseButtonComponent = value, CloseButton,
@@ -543,7 +543,7 @@ public class MGOverlay : MGSingleContentHost
                 {
                     CloseButton.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
                 }
-                NPC(nameof(ShowCloseButton));
+                NotifyPropertyChanged(nameof(ShowCloseButton));
             }
             else if (CloseButton != null)
             {

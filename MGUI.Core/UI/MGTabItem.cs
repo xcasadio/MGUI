@@ -24,7 +24,7 @@ public class MGTabItem : MGSingleContentHost
             {
                 var Previous = Header;
                 _Header = value;
-                NPC(nameof(Header));
+                NotifyPropertyChanged(nameof(Header));
                 HeaderChanged?.Invoke(this, new(Previous, Header));
                 LayoutChanged(this, true);
             }

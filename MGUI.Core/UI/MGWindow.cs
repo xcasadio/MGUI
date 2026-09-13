@@ -102,8 +102,8 @@ public class MGWindow : MGSingleContentHost
             if (_Left != value)
             {
                 _Left = value;
-                NPC(nameof(Left));
-                NPC(nameof(TopLeft));
+                NotifyPropertyChanged(nameof(Left));
+                NotifyPropertyChanged(nameof(TopLeft));
             }
         }
     }
@@ -118,8 +118,8 @@ public class MGWindow : MGSingleContentHost
             if (_Top != value)
             {
                 _Top = value;
-                NPC(nameof(Top));
-                NPC(nameof(TopLeft));
+                NotifyPropertyChanged(nameof(Top));
+                NotifyPropertyChanged(nameof(TopLeft));
             }
         }
     }
@@ -142,7 +142,7 @@ public class MGWindow : MGSingleContentHost
                 LayoutChanged(this, true);
                 UpdateScaleTransforms();
                 RecentSizeToContentSettings = null;
-                NPC(nameof(WindowWidth));
+                NotifyPropertyChanged(nameof(WindowWidth));
             }
         }
     }
@@ -161,7 +161,7 @@ public class MGWindow : MGSingleContentHost
                 LayoutChanged(this, true);
                 UpdateScaleTransforms();
                 RecentSizeToContentSettings = null;
-                NPC(nameof(WindowHeight));
+                NotifyPropertyChanged(nameof(WindowHeight));
             }
         }
     }
@@ -313,8 +313,8 @@ public class MGWindow : MGSingleContentHost
 #if NEVER
                     UpdateRenderTarget();
 #endif
-                NPC(nameof(Scale));
-                NPC(nameof(IsWindowScaled));
+                NotifyPropertyChanged(nameof(Scale));
+                NotifyPropertyChanged(nameof(IsWindowScaled));
                 ScaleChanged?.Invoke(this, new(Previous, Scale));
             }
         }
@@ -376,7 +376,7 @@ public class MGWindow : MGSingleContentHost
                 {
                     ResizeGripElement.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
                 }
-                NPC(nameof(IsUserResizable));
+                NotifyPropertyChanged(nameof(IsUserResizable));
             }
             else
             {
@@ -491,25 +491,25 @@ public class MGWindow : MGSingleContentHost
         foreach (var removedModal in previousModalWindows.Where(x => !currentModalWindows.Contains(x)))
         {
             Desktop.NotifyWindowClosed(removedModal);
-            removedModal.NPC(nameof(IsModalWindow));
+            removedModal.NotifyPropertyChanged(nameof(IsModalWindow));
         }
 
         foreach (var addedModal in currentModalWindows.Where(x => !previousModalWindows.Contains(x)))
         {
             Desktop.NotifyWindowOpened(addedModal);
-            addedModal.NPC(nameof(IsModalWindow));
+            addedModal.NotifyPropertyChanged(nameof(IsModalWindow));
         }
 
         Desktop.SyncModalStack(this, currentModalWindows);
 
-        NPC(nameof(ModalWindows));
-        NPC(nameof(ModalWindow));
-        NPC(nameof(HasModalWindow));
+        NotifyPropertyChanged(nameof(ModalWindows));
+        NotifyPropertyChanged(nameof(ModalWindow));
+        NotifyPropertyChanged(nameof(HasModalWindow));
 
         if (!ReferenceEquals(previousTopModal, currentTopModal))
         {
-            previousTopModal?.NPC(nameof(IsModalWindow));
-            currentTopModal?.NPC(nameof(IsModalWindow));
+            previousTopModal?.NotifyPropertyChanged(nameof(IsModalWindow));
+            currentTopModal?.NotifyPropertyChanged(nameof(IsModalWindow));
         }
     }
     /// <summary>True if a modal window is being displayed overtop of this window.</summary>
@@ -637,7 +637,7 @@ public class MGWindow : MGSingleContentHost
                 {
                     TitleBarTextBlockElement.Text = value;
                 }
-                NPC(nameof(TitleText));
+                NotifyPropertyChanged(nameof(TitleText));
             }
         }
     }
@@ -661,7 +661,7 @@ public class MGWindow : MGSingleContentHost
                     TitleBarElement.Visibility = ActualValue;
                 }
                 RefreshTitleBarLayoutParticipation();
-                NPC(nameof(IsTitleBarVisible));
+                NotifyPropertyChanged(nameof(IsTitleBarVisible));
             }
             else
             {
@@ -702,7 +702,7 @@ public class MGWindow : MGSingleContentHost
                 {
                     CloseButtonElement.Visibility = ActualValue;
                 }
-                NPC(nameof(IsCloseButtonVisible));
+                NotifyPropertyChanged(nameof(IsCloseButtonVisible));
             }
             else
             {
@@ -724,7 +724,7 @@ public class MGWindow : MGSingleContentHost
             if (_CanCloseWindow != value)
             {
                 _CanCloseWindow = value;
-                NPC(nameof(CanCloseWindow));
+                NotifyPropertyChanged(nameof(CanCloseWindow));
             }
         }
     }
@@ -741,9 +741,9 @@ public class MGWindow : MGSingleContentHost
         EnsureComponentBinding(() => BorderComponent, value => BorderComponent = value, BorderElement, MGComponentBase.Create);
         if (needsBorderNotifications)
         {
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
         }
 
         EnsureComponentBinding(() => TitleBarComponent, value => TitleBarComponent = value, TitleBarElement,
@@ -894,7 +894,7 @@ public class MGWindow : MGSingleContentHost
             if (_AllowsClickThrough != value)
             {
                 _AllowsClickThrough = value;
-                NPC(nameof(AllowsClickThrough));
+                NotifyPropertyChanged(nameof(AllowsClickThrough));
             }
         }
     }
@@ -920,7 +920,7 @@ public class MGWindow : MGSingleContentHost
             if (_ActivatesOnClick != value)
             {
                 _ActivatesOnClick = value;
-                NPC(nameof(ActivatesOnClick));
+                NotifyPropertyChanged(nameof(ActivatesOnClick));
             }
         }
     }
@@ -937,7 +937,7 @@ public class MGWindow : MGSingleContentHost
             if (_IsDraggable != value)
             {
                 _IsDraggable = value;
-                NPC(nameof(IsDraggable));
+                NotifyPropertyChanged(nameof(IsDraggable));
             }
         }
     }
@@ -955,7 +955,7 @@ public class MGWindow : MGSingleContentHost
             if (_CollapseOnTitleBarDoubleClick != value)
             {
                 _CollapseOnTitleBarDoubleClick = value;
-                NPC(nameof(CollapseOnTitleBarDoubleClick));
+                NotifyPropertyChanged(nameof(CollapseOnTitleBarDoubleClick));
             }
         }
     }
@@ -1016,7 +1016,7 @@ public class MGWindow : MGSingleContentHost
                 WindowHeight = _ExpandedWindowHeight;
             }
 
-            NPC(nameof(IsCollapsed));
+            NotifyPropertyChanged(nameof(IsCollapsed));
         }
     }
 
@@ -1041,7 +1041,7 @@ public class MGWindow : MGSingleContentHost
             LayoutChanged(this, true);
             UpdateScaleTransforms();
             RecentSizeToContentSettings = null;
-            NPC(nameof(WindowHeight));
+            NotifyPropertyChanged(nameof(WindowHeight));
         }
 
         return true;
@@ -1099,7 +1099,7 @@ public class MGWindow : MGSingleContentHost
                 {
                     Resources.DefaultTheme = value;
                 }
-                NPC(nameof(Theme));
+                NotifyPropertyChanged(nameof(Theme));
             }
         }
     }
@@ -1119,7 +1119,7 @@ public class MGWindow : MGSingleContentHost
             if (_IsTopmost != value)
             {
                 _IsTopmost = value;
-                NPC(nameof(IsTopmost));
+                NotifyPropertyChanged(nameof(IsTopmost));
             }
         }
     }
@@ -1140,7 +1140,7 @@ public class MGWindow : MGSingleContentHost
             if (_PressedElement != value)
             {
                 _PressedElement = value;
-                NPC(nameof(PressedElement));
+                NotifyPropertyChanged(nameof(PressedElement));
             }
         }
     }
@@ -1159,7 +1159,7 @@ public class MGWindow : MGSingleContentHost
             if (_HoveredElement != value)
             {
                 _HoveredElement = value;
-                NPC(nameof(HoveredElement));
+                NotifyPropertyChanged(nameof(HoveredElement));
             }
         }
     }
@@ -1306,9 +1306,9 @@ public class MGWindow : MGSingleContentHost
             if (_WindowDataContext != value)
             {
                 _WindowDataContext = value;
-                NPC(nameof(WindowDataContext));
-                NPC(nameof(DataContextOverride));
-                NPC(nameof(DataContext));
+                NotifyPropertyChanged(nameof(WindowDataContext));
+                NotifyPropertyChanged(nameof(DataContextOverride));
+                NotifyPropertyChanged(nameof(DataContext));
                 WindowDataContextChanged?.Invoke(this, WindowDataContext);
                 InvokeDataContextChanged();
                 //  Changing the DataContext may have changed the sizes of elements on this window, so attempt to resize the window to its contents
@@ -1687,9 +1687,9 @@ public class MGWindow : MGSingleContentHost
                 {
                     if (_WindowDataContext == null)
                     {
-                        NPC(nameof(WindowDataContext));
-                        NPC(nameof(DataContextOverride));
-                        NPC(nameof(DataContext));
+                        NotifyPropertyChanged(nameof(WindowDataContext));
+                        NotifyPropertyChanged(nameof(DataContextOverride));
+                        NotifyPropertyChanged(nameof(DataContext));
                         WindowDataContextChanged?.Invoke(this, WindowDataContext);
                         RevalidateSizeToContent(false);
                     }
@@ -2047,7 +2047,7 @@ public class MGWindow : MGSingleContentHost
                     default: throw new NotImplementedException($"Unrecognized {nameof(WindowStyle)}: {value}");
                 }
 
-                NPC(nameof(WindowStyle));
+                NotifyPropertyChanged(nameof(WindowStyle));
             }
         }
     }

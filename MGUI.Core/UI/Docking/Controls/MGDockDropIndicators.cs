@@ -141,7 +141,7 @@ public class MGDockDropIndicators : MGElement
                 CalculateIndicatorPositions();
                 CalculateHostEdgePositions();
                 LayoutChanged(this, true);
-                NPC(nameof(ZoneSize));
+                NotifyPropertyChanged(nameof(ZoneSize));
             }
         }
     }
@@ -188,7 +188,7 @@ public class MGDockDropIndicators : MGElement
             if (_isVisible != value)
             {
                 _isVisible = value;
-                NPC(nameof(IsVisible));
+                NotifyPropertyChanged(nameof(IsVisible));
             }
         }
     }
@@ -206,7 +206,7 @@ public class MGDockDropIndicators : MGElement
             {
                 _targetBounds = value;
                 CalculateIndicatorPositions();
-                NPC(nameof(TargetBounds));
+                NotifyPropertyChanged(nameof(TargetBounds));
             }
         }
     }
@@ -223,7 +223,7 @@ public class MGDockDropIndicators : MGElement
             if (_activeZone != value)
             {
                 _activeZone = value;
-                NPC(nameof(ActiveZone));
+                NotifyPropertyChanged(nameof(ActiveZone));
             }
         }
     }

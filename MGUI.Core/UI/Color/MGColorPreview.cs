@@ -16,7 +16,7 @@ public class MGColorPreview : MGElement
             if (_currentValue != value)
             {
                 _currentValue = value;
-                NPC(nameof(CurrentValue));
+                NotifyPropertyChanged(nameof(CurrentValue));
             }
         }
     }
@@ -31,7 +31,7 @@ public class MGColorPreview : MGElement
             if (_previousValue != value)
             {
                 _previousValue = value;
-                NPC(nameof(PreviousValue));
+                NotifyPropertyChanged(nameof(PreviousValue));
             }
         }
     }
@@ -46,7 +46,7 @@ public class MGColorPreview : MGElement
             if (_showPrevious != value)
             {
                 _showPrevious = value;
-                NPC(nameof(ShowPrevious));
+                NotifyPropertyChanged(nameof(ShowPrevious));
             }
         }
     }
@@ -61,7 +61,7 @@ public class MGColorPreview : MGElement
             if (_showCheckerboard != value)
             {
                 _showCheckerboard = value;
-                NPC(nameof(ShowCheckerboard));
+                NotifyPropertyChanged(nameof(ShowCheckerboard));
             }
         }
     }
@@ -76,7 +76,7 @@ public class MGColorPreview : MGElement
             if (_showOpaqueComparison != value)
             {
                 _showOpaqueComparison = value;
-                NPC(nameof(ShowOpaqueComparison));
+                NotifyPropertyChanged(nameof(ShowOpaqueComparison));
             }
         }
     }
@@ -93,7 +93,7 @@ public class MGColorPreview : MGElement
             {
                 _previewWidth = actual;
                 LayoutChanged(this, true);
-                NPC(nameof(PreviewWidth));
+                NotifyPropertyChanged(nameof(PreviewWidth));
             }
         }
     }
@@ -110,7 +110,7 @@ public class MGColorPreview : MGElement
             {
                 _previewHeight = actual;
                 LayoutChanged(this, true);
-                NPC(nameof(PreviewHeight));
+                NotifyPropertyChanged(nameof(PreviewHeight));
             }
         }
     }

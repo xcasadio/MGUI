@@ -34,7 +34,7 @@ public class MGDockTabItem : MGElement
             {
                 _panel = value;
                 UpdateVisuals();
-                NPC(nameof(Panel));
+                NotifyPropertyChanged(nameof(Panel));
             }
         }
     }
@@ -52,7 +52,7 @@ public class MGDockTabItem : MGElement
             {
                 _isActive = value;
                 UpdateVisuals();
-                NPC(nameof(IsActive));
+                NotifyPropertyChanged(nameof(IsActive));
             }
         }
     }
@@ -69,7 +69,7 @@ public class MGDockTabItem : MGElement
             if (_normalBrush != value)
             {
                 _normalBrush = value;
-                NPC(nameof(NormalBrush));
+                NotifyPropertyChanged(nameof(NormalBrush));
             }
         }
     }
@@ -86,7 +86,7 @@ public class MGDockTabItem : MGElement
             if (_hoverBrush != value)
             {
                 _hoverBrush = value;
-                NPC(nameof(HoverBrush));
+                NotifyPropertyChanged(nameof(HoverBrush));
             }
         }
     }
@@ -103,7 +103,7 @@ public class MGDockTabItem : MGElement
             if (_activeBrush != value)
             {
                 _activeBrush = value;
-                NPC(nameof(ActiveBrush));
+                NotifyPropertyChanged(nameof(ActiveBrush));
             }
         }
     }
@@ -139,7 +139,7 @@ public class MGDockTabItem : MGElement
             {
                 _buttonSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ButtonSize));
+                NotifyPropertyChanged(nameof(ButtonSize));
             }
         }
     }
@@ -157,7 +157,7 @@ public class MGDockTabItem : MGElement
             {
                 _tabHeight = value;
                 LayoutChanged(this, true);
-                NPC(nameof(TabHeight));
+                NotifyPropertyChanged(nameof(TabHeight));
             }
         }
     }
@@ -175,7 +175,7 @@ public class MGDockTabItem : MGElement
             {
                 _minTabWidth = value;
                 LayoutChanged(this, true);
-                NPC(nameof(MinTabWidth));
+                NotifyPropertyChanged(nameof(MinTabWidth));
             }
         }
     }

@@ -21,7 +21,7 @@ public class MGCheckStateIcon : MGElement
             if (_CheckState != value)
             {
                 _CheckState = value;
-                NPC(nameof(CheckState));
+                NotifyPropertyChanged(nameof(CheckState));
             }
         }
     }
@@ -35,7 +35,7 @@ public class MGCheckStateIcon : MGElement
             if (_MarkColor != value)
             {
                 _MarkColor = value;
-                NPC(nameof(MarkColor));
+                NotifyPropertyChanged(nameof(MarkColor));
             }
         }
     }
@@ -49,7 +49,7 @@ public class MGCheckStateIcon : MGElement
             if (_IsShadowed != value)
             {
                 _IsShadowed = value;
-                NPC(nameof(IsShadowed));
+                NotifyPropertyChanged(nameof(IsShadowed));
             }
         }
     }
@@ -63,7 +63,7 @@ public class MGCheckStateIcon : MGElement
             if (_ShadowColor != value)
             {
                 _ShadowColor = value;
-                NPC(nameof(ShadowColor));
+                NotifyPropertyChanged(nameof(ShadowColor));
             }
         }
     }
@@ -77,7 +77,7 @@ public class MGCheckStateIcon : MGElement
             if (_ShadowOffset != value)
             {
                 _ShadowOffset = value;
-                NPC(nameof(ShadowOffset));
+                NotifyPropertyChanged(nameof(ShadowOffset));
             }
         }
     }
@@ -91,7 +91,7 @@ public class MGCheckStateIcon : MGElement
             if (_CheckedFillColor != value)
             {
                 _CheckedFillColor = value;
-                NPC(nameof(CheckedFillColor));
+                NotifyPropertyChanged(nameof(CheckedFillColor));
             }
         }
     }
@@ -105,7 +105,7 @@ public class MGCheckStateIcon : MGElement
             if (_CheckedIndicatorStyle != value)
             {
                 _CheckedIndicatorStyle = value;
-                NPC(nameof(CheckedIndicatorStyle));
+                NotifyPropertyChanged(nameof(CheckedIndicatorStyle));
             }
         }
     }
@@ -119,7 +119,7 @@ public class MGCheckStateIcon : MGElement
             if (_IndeterminateFillColor != value)
             {
                 _IndeterminateFillColor = value;
-                NPC(nameof(IndeterminateFillColor));
+                NotifyPropertyChanged(nameof(IndeterminateFillColor));
             }
         }
     }
@@ -205,7 +205,7 @@ public class MGRadioIndicatorIcon : MGElement
             if (_BorderColor != value)
             {
                 _BorderColor = value;
-                NPC(nameof(BorderColor));
+                NotifyPropertyChanged(nameof(BorderColor));
             }
         }
     }
@@ -219,7 +219,7 @@ public class MGRadioIndicatorIcon : MGElement
             if (_BorderThickness != value)
             {
                 _BorderThickness = value;
-                NPC(nameof(BorderThickness));
+                NotifyPropertyChanged(nameof(BorderThickness));
             }
         }
     }
@@ -233,7 +233,7 @@ public class MGRadioIndicatorIcon : MGElement
             if (_Background != value)
             {
                 _Background = value;
-                NPC(nameof(Background));
+                NotifyPropertyChanged(nameof(Background));
             }
         }
     }
@@ -247,7 +247,7 @@ public class MGRadioIndicatorIcon : MGElement
             if (_CheckedColor != value)
             {
                 _CheckedColor = value;
-                NPC(nameof(CheckedColor));
+                NotifyPropertyChanged(nameof(CheckedColor));
             }
         }
     }
@@ -261,7 +261,7 @@ public class MGRadioIndicatorIcon : MGElement
             if (_IsChecked != value)
             {
                 _IsChecked = value;
-                NPC(nameof(IsChecked));
+                NotifyPropertyChanged(nameof(IsChecked));
             }
         }
     }
@@ -308,7 +308,7 @@ public class MGRadioBulletIcon : MGElement
             if (_IsChecked != value)
             {
                 _IsChecked = value;
-                NPC(nameof(IsChecked));
+                NotifyPropertyChanged(nameof(IsChecked));
             }
         }
     }
@@ -322,7 +322,7 @@ public class MGRadioBulletIcon : MGElement
             if (_RingColor != value)
             {
                 _RingColor = value;
-                NPC(nameof(RingColor));
+                NotifyPropertyChanged(nameof(RingColor));
             }
         }
     }
@@ -336,7 +336,7 @@ public class MGRadioBulletIcon : MGElement
             if (_FillColor != value)
             {
                 _FillColor = value;
-                NPC(nameof(FillColor));
+                NotifyPropertyChanged(nameof(FillColor));
             }
         }
     }
@@ -364,7 +364,7 @@ public class MGTriangleArrowIcon : MGElement
             if (_Color != value)
             {
                 _Color = value;
-                NPC(nameof(Color));
+                NotifyPropertyChanged(nameof(Color));
             }
         }
     }
@@ -378,7 +378,7 @@ public class MGTriangleArrowIcon : MGElement
             if (_Direction != value)
             {
                 _Direction = value;
-                NPC(nameof(Direction));
+                NotifyPropertyChanged(nameof(Direction));
             }
         }
     }
@@ -406,7 +406,7 @@ public class MGGripDotsIcon : MGElement
             if (_IsVertical != value)
             {
                 _IsVertical = value;
-                NPC(nameof(IsVertical));
+                NotifyPropertyChanged(nameof(IsVertical));
             }
         }
     }
@@ -420,7 +420,7 @@ public class MGGripDotsIcon : MGElement
             if (_DotColor != value)
             {
                 _DotColor = value;
-                NPC(nameof(DotColor));
+                NotifyPropertyChanged(nameof(DotColor));
             }
         }
     }
@@ -452,7 +452,7 @@ public class MGCloseIcon : MGElement
             if (_Color != value)
             {
                 _Color = value;
-                NPC(nameof(Color));
+                NotifyPropertyChanged(nameof(Color));
             }
         }
     }
@@ -487,7 +487,7 @@ public class MGDockPinIcon : MGElement
             if (_Color != value)
             {
                 _Color = value;
-                NPC(nameof(Color));
+                NotifyPropertyChanged(nameof(Color));
             }
         }
     }
@@ -501,7 +501,7 @@ public class MGDockPinIcon : MGElement
             if (_IsPinned != value)
             {
                 _IsPinned = value;
-                NPC(nameof(IsPinned));
+                NotifyPropertyChanged(nameof(IsPinned));
             }
         }
     }
@@ -538,7 +538,7 @@ public class MGEllipsisIcon : MGElement
             if (_Color != value)
             {
                 _Color = value;
-                NPC(nameof(Color));
+                NotifyPropertyChanged(nameof(Color));
             }
         }
     }
@@ -566,7 +566,7 @@ public class MGWindowStateIcon : MGElement
             if (_Color != value)
             {
                 _Color = value;
-                NPC(nameof(Color));
+                NotifyPropertyChanged(nameof(Color));
             }
         }
     }
@@ -580,7 +580,7 @@ public class MGWindowStateIcon : MGElement
             if (_IsRestoredState != value)
             {
                 _IsRestoredState = value;
-                NPC(nameof(IsRestoredState));
+                NotifyPropertyChanged(nameof(IsRestoredState));
             }
         }
     }

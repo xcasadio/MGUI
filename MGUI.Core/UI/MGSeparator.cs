@@ -24,7 +24,7 @@ public class MGSeparator : MGElement
                 // still override that initial margin; only a later change to Orientation forces LocalValue here.
                 SetMargin(AutoMargin, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
+                NotifyPropertyChanged(nameof(Orientation));
             }
         }
     }
@@ -40,7 +40,7 @@ public class MGSeparator : MGElement
             {
                 _Size = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Size));
+                NotifyPropertyChanged(nameof(Size));
             }
         }
     }

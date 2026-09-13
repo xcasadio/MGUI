@@ -31,7 +31,7 @@ namespace MGUI.Samples.Features
                 if (_IsVisible != value)
                 {
                     _IsVisible = value;
-                    NPC(nameof(IsVisible));
+                    NotifyPropertyChanged(nameof(IsVisible));
 
                     if (IsVisible)
                     {

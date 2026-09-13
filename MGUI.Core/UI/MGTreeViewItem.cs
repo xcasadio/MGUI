@@ -83,7 +83,7 @@ public class MGTreeViewItem : MGSingleContentHost
             {
                 _Header = value;
                 UpdateHeaderContent();
-                NPC(nameof(Header));
+                NotifyPropertyChanged(nameof(Header));
             }
         }
     }
@@ -125,7 +125,7 @@ public class MGTreeViewItem : MGSingleContentHost
             if (_Level != value)
             {
                 _Level = value;
-                NPC(nameof(Level));
+                NotifyPropertyChanged(nameof(Level));
             }
         }
     }
@@ -152,7 +152,7 @@ public class MGTreeViewItem : MGSingleContentHost
                 _IsExpanded = value;
                 SetExpanderButtonState(value);
                 UpdateChildrenVisibility();
-                NPC(nameof(IsExpanded));
+                NotifyPropertyChanged(nameof(IsExpanded));
             }
         }
     }
@@ -183,7 +183,7 @@ public class MGTreeViewItem : MGSingleContentHost
             if (_HeaderTemplate != value)
             {
                 _HeaderTemplate = value;
-                NPC(nameof(HeaderTemplate));
+                NotifyPropertyChanged(nameof(HeaderTemplate));
             }
         }
     }

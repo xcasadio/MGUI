@@ -25,7 +25,7 @@ public sealed class UIRenderTransform : INotifyPropertyChanged
     /// <summary>Raised by every setter that changes a component, with cached event args so an animated transform allocates nothing per tick.</summary>
     public event PropertyChangedEventHandler PropertyChanged;
 
-    private void NPC(PropertyChangedEventArgs args) => PropertyChanged?.Invoke(this, args);
+    private void NotifyPropertyChanged(PropertyChangedEventArgs args) => PropertyChanged?.Invoke(this, args);
 
     private Vector2 _Translation;
     /// <summary>Offset in unscaled layout pixels, applied after the scale and the rotation. Default: <see cref="Vector2.Zero"/>.</summary>
@@ -37,7 +37,7 @@ public sealed class UIRenderTransform : INotifyPropertyChanged
             if (_Translation != value)
             {
                 _Translation = value;
-                NPC(TranslationChangedArgs);
+                NotifyPropertyChanged(TranslationChangedArgs);
             }
         }
     }
@@ -52,7 +52,7 @@ public sealed class UIRenderTransform : INotifyPropertyChanged
             if (_Scale != value)
             {
                 _Scale = value;
-                NPC(ScaleChangedArgs);
+                NotifyPropertyChanged(ScaleChangedArgs);
             }
         }
     }
@@ -67,7 +67,7 @@ public sealed class UIRenderTransform : INotifyPropertyChanged
             if (_Rotation != value)
             {
                 _Rotation = value;
-                NPC(RotationChangedArgs);
+                NotifyPropertyChanged(RotationChangedArgs);
             }
         }
     }
@@ -83,7 +83,7 @@ public sealed class UIRenderTransform : INotifyPropertyChanged
             if (_Origin != value)
             {
                 _Origin = value;
-                NPC(OriginChangedArgs);
+                NotifyPropertyChanged(OriginChangedArgs);
             }
         }
     }

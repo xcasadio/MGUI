@@ -23,8 +23,8 @@ namespace MGUI.Samples.Controls
                 if (_WoodQty != value)
                 {
                     _WoodQty = value;
-                    NPC(nameof(WoodQty));
-                    NPC(nameof(CanBuildHut));
+                    NotifyPropertyChanged(nameof(WoodQty));
+                    NotifyPropertyChanged(nameof(CanBuildHut));
                 }
             }
         }
@@ -38,7 +38,7 @@ namespace MGUI.Samples.Controls
                 if (_HutQty != value)
                 {
                     _HutQty = value;
-                    NPC(nameof(HutQty));
+                    NotifyPropertyChanged(nameof(HutQty));
                 }
             }
         }
@@ -55,8 +55,8 @@ namespace MGUI.Samples.Controls
                 if (_StoneQty != value)
                 {
                     _StoneQty = value;
-                    NPC(nameof(StoneQty));
-                    NPC(nameof(CanBuildQuarry));
+                    NotifyPropertyChanged(nameof(StoneQty));
+                    NotifyPropertyChanged(nameof(CanBuildQuarry));
                 }
             }
         }
@@ -70,7 +70,7 @@ namespace MGUI.Samples.Controls
                 if (_QuarryQty != value)
                 {
                     _QuarryQty = value;
-                    NPC(nameof(QuarryQty));
+                    NotifyPropertyChanged(nameof(QuarryQty));
                 }
             }
         }

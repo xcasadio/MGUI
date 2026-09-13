@@ -98,7 +98,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (OuterBorderBrush != value)
             {
                 OuterBorder.BorderBrush = value;
-                NPC(nameof(OuterBorderBrush));
+                NotifyPropertyChanged(nameof(OuterBorderBrush));
             }
         }
     }
@@ -111,7 +111,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (!OuterBorderThickness.Equals(value))
             {
                 OuterBorder.BorderThickness = value;
-                NPC(nameof(OuterBorderThickness));
+                NotifyPropertyChanged(nameof(OuterBorderThickness));
             }
         }
     }
@@ -133,7 +133,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (InnerBorderBrush != value)
             {
                 InnerBorder.BorderBrush = value;
-                NPC(nameof(InnerBorderBrush));
+                NotifyPropertyChanged(nameof(InnerBorderBrush));
             }
         }
     }
@@ -146,7 +146,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (!InnerBorderThickness.Equals(value))
             {
                 InnerBorder.BorderThickness = value;
-                NPC(nameof(InnerBorderThickness));
+                NotifyPropertyChanged(nameof(InnerBorderThickness));
             }
         }
     }
@@ -169,7 +169,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (TitleBorder.BorderBrush != value)
             {
                 TitleBorder.BorderBrush = value;
-                NPC(nameof(TitleBorderBrush));
+                NotifyPropertyChanged(nameof(TitleBorderBrush));
             }
         }
     }
@@ -182,7 +182,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (!TitleBorder.BorderThickness.Equals(value))
             {
                 TitleBorder.BorderThickness = value;
-                NPC(nameof(TitleBorderThickness));
+                NotifyPropertyChanged(nameof(TitleBorderThickness));
             }
         }
     }
@@ -205,7 +205,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         if (TitleBorder != null && IsTitleVisible != value)
         {
             TitleBorder.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-            NPC(nameof(IsTitleVisible));
+            NotifyPropertyChanged(nameof(IsTitleVisible));
         }
     }
     #endregion Title
@@ -264,7 +264,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 ClearSelection();
                 RefreshRowBackgrounds();
 
-                NPC(nameof(ListBoxItems));
+                NotifyPropertyChanged(nameof(ListBoxItems));
             }
         }
     }
@@ -439,8 +439,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                         this.InternalItems = new ObservableCollection<MGListBoxItem<TItemType>>(Values);
                     }
 
-                    NPC(nameof(ItemsSource));
-                    NPC(nameof(BindableItemsSource));
+                    NotifyPropertyChanged(nameof(ItemsSource));
+                    NotifyPropertyChanged(nameof(BindableItemsSource));
                 }
             }
         }
@@ -520,7 +520,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     }
                 }
 
-                NPC(nameof(ItemsSource));
+                NotifyPropertyChanged(nameof(ItemsSource));
             }
         }
     }
@@ -646,8 +646,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (_SelectedItems?.Count > 0)
             {
                 _SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
-                NPC(nameof(SelectedItems));
-                NPC(nameof(SelectedValue));
+                NotifyPropertyChanged(nameof(SelectedItems));
+                NotifyPropertyChanged(nameof(SelectedValue));
             }
         }
 
@@ -710,8 +710,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
         if (anyChange)
         {
-            NPC(nameof(SelectedIndices));
-            NPC(nameof(SelectedDataItems));
+            NotifyPropertyChanged(nameof(SelectedIndices));
+            NotifyPropertyChanged(nameof(SelectedDataItems));
         }
 
         return itemsRemoved;
@@ -760,7 +760,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (_CanDeselectByClickingSelectedItem != value)
             {
                 _CanDeselectByClickingSelectedItem = value;
-                NPC(nameof(CanDeselectByClickingSelectedItem));
+                NotifyPropertyChanged(nameof(CanDeselectByClickingSelectedItem));
             }
         }
     }
@@ -776,7 +776,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             {
                 _SelectionMode = value;
                 ClearSelection();
-                NPC(nameof(SelectionMode));
+                NotifyPropertyChanged(nameof(SelectionMode));
             }
         }
     }
@@ -793,7 +793,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (_SelectionSourceItem != value)
             {
                 _SelectionSourceItem = value;
-                NPC(nameof(SelectionSourceItem));
+                NotifyPropertyChanged(nameof(SelectionSourceItem));
             }
         }
     }
@@ -878,10 +878,10 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     }
                 }
 
-                NPC(nameof(SelectedItems));
-                NPC(nameof(SelectedValue));
-                NPC(nameof(SelectedDataItems));
-                NPC(nameof(SelectedIndices));
+                NotifyPropertyChanged(nameof(SelectedItems));
+                NotifyPropertyChanged(nameof(SelectedValue));
+                NotifyPropertyChanged(nameof(SelectedDataItems));
+                NotifyPropertyChanged(nameof(SelectedIndices));
                 SelectionChanged?.Invoke(this, SelectedItems);
             }
         }
@@ -929,10 +929,10 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                         _selectedIndices.Clear();
                         _selectedIndices.Add(i);
                         _SelectedItems = new List<MGListBoxItem<TItemType>>().AsReadOnly();
-                        NPC(nameof(SelectedItems));
-                        NPC(nameof(SelectedValue));
-                        NPC(nameof(SelectedDataItems));
-                        NPC(nameof(SelectedIndices));
+                        NotifyPropertyChanged(nameof(SelectedItems));
+                        NotifyPropertyChanged(nameof(SelectedValue));
+                        NotifyPropertyChanged(nameof(SelectedDataItems));
+                        NotifyPropertyChanged(nameof(SelectedIndices));
                         SelectionChanged?.Invoke(this, _SelectedItems);
                     }
                     return;
@@ -992,10 +992,10 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 }
 
                 _SelectedItems = _realizedItems.Values.ToList().AsReadOnly();
-                NPC(nameof(SelectedItems));
-                NPC(nameof(SelectedValue));
-                NPC(nameof(SelectedDataItems));
-                NPC(nameof(SelectedIndices));
+                NotifyPropertyChanged(nameof(SelectedItems));
+                NotifyPropertyChanged(nameof(SelectedValue));
+                NotifyPropertyChanged(nameof(SelectedDataItems));
+                NotifyPropertyChanged(nameof(SelectedIndices));
                 SelectionChanged?.Invoke(this, _SelectedItems);
             }
         }
@@ -1029,7 +1029,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         {
             var count = IsVirtualizing ? (_logicalItemsList?.Count ?? 0) : (InternalItems?.Count ?? 0);
             var clamped = count == 0 ? -1 : Math.Clamp(value, 0, count - 1);
-            if (_FocusedIndex != clamped) { _FocusedIndex = clamped; NPC(nameof(FocusedIndex)); }
+            if (_FocusedIndex != clamped) { _FocusedIndex = clamped; NotifyPropertyChanged(nameof(FocusedIndex)); }
         }
     }
     #endregion FocusedIndex
@@ -1192,8 +1192,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
         EnsureComponentBinding(() => OuterBorderComponent, value => OuterBorderComponent = value, OuterBorder, MGComponentBase.Create);
         if (needsOuterBorderNotifications)
         {
-            OuterBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(OuterBorderBrush)); };
-            OuterBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(OuterBorderThickness)); };
+            OuterBorder.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(OuterBorderBrush)); };
+            OuterBorder.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(OuterBorderThickness)); };
         }
 
         var needsTitleNotifications = TitleComponent == null || !ReferenceEquals(TitleComponent.Element, TitleBorder);
@@ -1202,8 +1202,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Top, ComponentSize.Size)));
         if (needsTitleNotifications)
         {
-            TitleBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(TitleBorderBrush)); };
-            TitleBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(TitleBorderThickness)); };
+            TitleBorder.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(TitleBorderBrush)); };
+            TitleBorder.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(TitleBorderThickness)); };
         }
 
         var needsInnerBorderNotifications = InnerBorderComponent == null || !ReferenceEquals(InnerBorderComponent.Element, InnerBorder);
@@ -1212,8 +1212,8 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                 (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Stretch, VerticalAlignment.Stretch, ComponentSize.Size)));
         if (needsInnerBorderNotifications)
         {
-            InnerBorder.OnBorderBrushChanged += (sender, e) => { NPC(nameof(InnerBorderBrush)); };
-            InnerBorder.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(InnerBorderThickness)); };
+            InnerBorder.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(InnerBorderBrush)); };
+            InnerBorder.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(InnerBorderThickness)); };
         }
 
         TitleBorder.CanChangeContent = false;
@@ -1325,7 +1325,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             if (_VirtualizationMode != value)
             {
                 _VirtualizationMode = value;
-                NPC(nameof(VirtualizationMode));
+                NotifyPropertyChanged(nameof(VirtualizationMode));
             }
         }
     }
@@ -1582,7 +1582,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     SetIsTitleVisible(Header != null, true);
                 }
 
-                NPC(nameof(Header));
+                NotifyPropertyChanged(nameof(Header));
             }
         }
     }
@@ -1608,7 +1608,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     item.RefreshContent();
                 }
 
-                NPC(nameof(ItemTemplate));
+                NotifyPropertyChanged(nameof(ItemTemplate));
                 ItemTemplateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -1639,7 +1639,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
                     item.RefreshContainerStyle();
                 }
 
-                NPC(nameof(ItemContainerStyle));
+                NotifyPropertyChanged(nameof(ItemContainerStyle));
                 ItemContainerStyleChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -1659,7 +1659,7 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
             {
                 _AlternatingRowBackgrounds = value;
                 RefreshRowBackgrounds();
-                NPC(nameof(AlternatingRowBackgrounds));
+                NotifyPropertyChanged(nameof(AlternatingRowBackgrounds));
             }
         }
     }
@@ -2112,7 +2112,7 @@ public class MGListBoxItem<TItemType> : ViewModelBase
                 {
                     ContentPresenter.SetContent(Content);
                 }
-                NPC(nameof(Content));
+                NotifyPropertyChanged(nameof(Content));
             }
         }
     }

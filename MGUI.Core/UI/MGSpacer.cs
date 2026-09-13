@@ -18,7 +18,7 @@ public class MGSpacer : MGElement
             {
                 _Width = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Width));
+                NotifyPropertyChanged(nameof(Width));
             }
         }
     }
@@ -34,7 +34,7 @@ public class MGSpacer : MGElement
             {
                 _Height = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Height));
+                NotifyPropertyChanged(nameof(Height));
             }
         }
     }

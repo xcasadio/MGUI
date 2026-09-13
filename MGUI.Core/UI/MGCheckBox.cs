@@ -54,7 +54,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                 ButtonElement.PreferredWidth = ButtonSize.Width;
                 ButtonElement.PreferredHeight = ButtonSize.Height;
 
-                NPC(nameof(CheckBoxComponentSize));
+                NotifyPropertyChanged(nameof(CheckBoxComponentSize));
             }
         }
     }
@@ -70,7 +70,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
             if (ButtonElement.Margin.Right != value)
             {
                 ButtonElement.SetMargin(ButtonElement.Margin.ChangeRight(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                NPC(nameof(SpacingWidth));
+                NotifyPropertyChanged(nameof(SpacingWidth));
             }
         }
     }
@@ -92,7 +92,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     CheckStateIcon.MarkColor = value;
                 }
-                NPC(nameof(CheckMarkColor));
+                NotifyPropertyChanged(nameof(CheckMarkColor));
             }
         }
     }
@@ -112,7 +112,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                     CheckStateIcon.CheckedIndicatorStyle = value;
                 }
 
-                NPC(nameof(CheckedIndicatorStyle));
+                NotifyPropertyChanged(nameof(CheckedIndicatorStyle));
             }
         }
     }
@@ -134,7 +134,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     CheckStateIcon.IsShadowed = value;
                 }
-                NPC(nameof(IsCheckMarkShadowed));
+                NotifyPropertyChanged(nameof(IsCheckMarkShadowed));
             }
         }
     }
@@ -153,7 +153,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     CheckStateIcon.ShadowColor = value;
                 }
-                NPC(nameof(CheckMarkShadowColor));
+                NotifyPropertyChanged(nameof(CheckMarkShadowColor));
             }
         }
     }
@@ -172,7 +172,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     CheckStateIcon.ShadowOffset = value;
                 }
-                NPC(nameof(CheckMarkShadowOffset));
+                NotifyPropertyChanged(nameof(CheckMarkShadowOffset));
             }
         }
     }
@@ -194,7 +194,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                     IsChecked = false;
                 }
 
-                NPC(nameof(IsThreeState));
+                NotifyPropertyChanged(nameof(IsThreeState));
             }
         }
     }
@@ -220,7 +220,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     CheckStateIcon.CheckState = value;
                 }
-                NPC(nameof(IsChecked));
+                NotifyPropertyChanged(nameof(IsChecked));
                 OnCheckStateChanged?.Invoke(this, new(Previous, IsChecked));
 
                 if (IsChecked.HasValue)
@@ -250,7 +250,7 @@ public class MGCheckBox : MGSingleContentHost, Animation.States.IUICheckable
             if (_IsReadonly != value)
             {
                 _IsReadonly = value;
-                NPC(nameof(IsReadonly));
+                NotifyPropertyChanged(nameof(IsReadonly));
             }
         }
     }

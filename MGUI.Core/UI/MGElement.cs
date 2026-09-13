@@ -144,7 +144,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _controlTemplate = value;
                 ApplyControlTemplate(false);
-                NPC(nameof(ControlTemplate));
+                NotifyPropertyChanged(nameof(ControlTemplate));
             }
         }
     }
@@ -160,7 +160,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _controlTemplateName = value;
                 ApplyControlTemplate(false);
-                NPC(nameof(ControlTemplateName));
+                NotifyPropertyChanged(nameof(ControlTemplateName));
             }
         }
     }
@@ -176,7 +176,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _defaultControlTemplateName = value;
                 ApplyControlTemplate(false);
-                NPC(nameof(DefaultControlTemplateName));
+                NotifyPropertyChanged(nameof(DefaultControlTemplateName));
             }
         }
     }
@@ -899,8 +899,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_dataContextOverride != value)
             {
                 _dataContextOverride = value;
-                NPC(nameof(DataContextOverride));
-                NPC(nameof(DataContext));
+                NotifyPropertyChanged(nameof(DataContextOverride));
+                NotifyPropertyChanged(nameof(DataContext));
                 InvokeDataContextChanged();
             }
         }
@@ -927,7 +927,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             Interlocked.Increment(ref _treeTopologyGeneration);
             LocalResources?.SetParent(GetInheritedResources());
             InvalidateLayoutTree();
-            NPC(nameof(Parent));
+            NotifyPropertyChanged(nameof(Parent));
             OnParentChanged?.Invoke(this, new(Previous, Parent));
         }
     }
@@ -947,8 +947,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_managedParent != value)
             {
                 _managedParent = value;
-                NPC(nameof(ManagedParent));
-                NPC(nameof(IsManagedElement));
+                NotifyPropertyChanged(nameof(ManagedParent));
+                NotifyPropertyChanged(nameof(IsManagedElement));
             }
         }
     }
@@ -968,8 +968,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_componentParent != value)
             {
                 _componentParent = value;
-                NPC(nameof(ComponentParent));
-                NPC(nameof(IsComponent));
+                NotifyPropertyChanged(nameof(ComponentParent));
+                NotifyPropertyChanged(nameof(IsComponent));
             }
         }
     }
@@ -1129,7 +1129,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 var Previous = Name;
                 _name = value;
-                NPC(nameof(Name));
+                NotifyPropertyChanged(nameof(Name));
                 OnNameChanged?.Invoke(this, new(Previous, Name));
             }
         }
@@ -1149,8 +1149,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _useResponsiveLayout = value;
                 LayoutChanged(this, true);
-                NPC(nameof(UseResponsiveLayout));
-                NPC(nameof(IsResponsiveLayoutEnabled));
+                NotifyPropertyChanged(nameof(UseResponsiveLayout));
+                NotifyPropertyChanged(nameof(IsResponsiveLayoutEnabled));
             }
         }
     }
@@ -1168,7 +1168,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _scaleSpacingWithResponsive = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ScaleSpacingWithResponsive));
+                NotifyPropertyChanged(nameof(ScaleSpacingWithResponsive));
             }
         }
     }
@@ -1184,7 +1184,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _scaleDimensionsWithResponsive = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ScaleDimensionsWithResponsive));
+                NotifyPropertyChanged(nameof(ScaleDimensionsWithResponsive));
             }
         }
     }
@@ -1200,7 +1200,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _responsiveAnchor = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ResponsiveAnchor));
+                NotifyPropertyChanged(nameof(ResponsiveAnchor));
             }
         }
     }
@@ -1628,9 +1628,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_backgroundBrush != null)
                 _backgroundBrush.PropertyChanged += HandleBackgroundBrushContainerPropertyChanged;
 
-            NPC(nameof(BackgroundBrush));
-            NPC(nameof(BackgroundUnderlay));
-            NPC(nameof(BackgroundOverlay));
+            NotifyPropertyChanged(nameof(BackgroundBrush));
+            NotifyPropertyChanged(nameof(BackgroundUnderlay));
+            NotifyPropertyChanged(nameof(BackgroundOverlay));
 
             ReapplyBackgroundSubSlots();
         }
@@ -1904,8 +1904,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_defaultTextForeground != null)
                 _defaultTextForeground.PropertyChanged += HandleDefaultTextForegroundContainerPropertyChanged;
 
-            NPC(nameof(DefaultTextForeground));
-            NPC(nameof(CurrentDefaultTextForeground));
+            NotifyPropertyChanged(nameof(DefaultTextForeground));
+            NotifyPropertyChanged(nameof(CurrentDefaultTextForeground));
 
             ReapplyDefaultTextForegroundSubSlots();
         }
@@ -2060,17 +2060,17 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             var Previous = Margin;
             _margin = value;
             LayoutChanged(this, true);
-            NPC(nameof(Margin));
-            NPC(nameof(HorizontalMargin));
-            NPC(nameof(VerticalMargin));
-            NPC(nameof(MarginSize));
-            NPC(nameof(HorizontalMarginAndPadding));
-            NPC(nameof(VerticalMarginAndPadding));
-            NPC(nameof(MarginAndPaddingSize));
-            NPC(nameof(MinSizeIncludingMargin));
-            NPC(nameof(MaxSizeIncludingMargin));
-            NPC(nameof(ActualPreferredWidth));
-            NPC(nameof(ActualPreferredHeight));
+            NotifyPropertyChanged(nameof(Margin));
+            NotifyPropertyChanged(nameof(HorizontalMargin));
+            NotifyPropertyChanged(nameof(VerticalMargin));
+            NotifyPropertyChanged(nameof(MarginSize));
+            NotifyPropertyChanged(nameof(HorizontalMarginAndPadding));
+            NotifyPropertyChanged(nameof(VerticalMarginAndPadding));
+            NotifyPropertyChanged(nameof(MarginAndPaddingSize));
+            NotifyPropertyChanged(nameof(MinSizeIncludingMargin));
+            NotifyPropertyChanged(nameof(MaxSizeIncludingMargin));
+            NotifyPropertyChanged(nameof(ActualPreferredWidth));
+            NotifyPropertyChanged(nameof(ActualPreferredHeight));
             OnMarginChanged?.Invoke(this, new(Previous, Margin));
         }
     }
@@ -2100,13 +2100,13 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             _padding = value;
             LayoutChanged(this, true);
-            NPC(nameof(Padding));
-            NPC(nameof(HorizontalPadding));
-            NPC(nameof(VerticalPadding));
-            NPC(nameof(PaddingSize));
-            NPC(nameof(HorizontalMarginAndPadding));
-            NPC(nameof(VerticalMarginAndPadding));
-            NPC(nameof(MarginAndPaddingSize));
+            NotifyPropertyChanged(nameof(Padding));
+            NotifyPropertyChanged(nameof(HorizontalPadding));
+            NotifyPropertyChanged(nameof(VerticalPadding));
+            NotifyPropertyChanged(nameof(PaddingSize));
+            NotifyPropertyChanged(nameof(HorizontalMarginAndPadding));
+            NotifyPropertyChanged(nameof(VerticalMarginAndPadding));
+            NotifyPropertyChanged(nameof(MarginAndPaddingSize));
         }
     }
 
@@ -2182,7 +2182,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 var Previous = HorizontalAlignment;
                 _horizontalAlignment = value;
-                NPC(nameof(HorizontalAlignment));
+                NotifyPropertyChanged(nameof(HorizontalAlignment));
                 OnHorizontalAlignmentChanged?.Invoke(this, new(Previous, HorizontalAlignment));
                 LayoutChanged(this, true);
             }
@@ -2202,7 +2202,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 var Previous = VerticalAlignment;
                 _verticalAlignment = value;
-                NPC(nameof(VerticalAlignment));
+                NotifyPropertyChanged(nameof(VerticalAlignment));
                 OnVerticalAlignmentChanged?.Invoke(this, new(Previous, VerticalAlignment));
                 LayoutChanged(this, true);
             }
@@ -2222,7 +2222,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _horizontalContentAlignment = value;
                 LayoutChanged(this, true);
-                NPC(nameof(HorizontalContentAlignment));
+                NotifyPropertyChanged(nameof(HorizontalContentAlignment));
             }
         }
     }
@@ -2238,7 +2238,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _verticalContentAlignment = value;
                 LayoutChanged(this, true);
-                NPC(nameof(VerticalContentAlignment));
+                NotifyPropertyChanged(nameof(VerticalContentAlignment));
             }
         }
     }
@@ -2258,9 +2258,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _minWidth = value;
                 LayoutChanged(this, true);
-                NPC(nameof(MinWidth));
-                NPC(nameof(MinSize));
-                NPC(nameof(MinSizeIncludingMargin));
+                NotifyPropertyChanged(nameof(MinWidth));
+                NotifyPropertyChanged(nameof(MinSize));
+                NotifyPropertyChanged(nameof(MinSizeIncludingMargin));
             }
         }
     }
@@ -2289,9 +2289,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             _minHeight = value;
             LayoutChanged(this, true);
-            NPC(nameof(MinHeight));
-            NPC(nameof(MinSize));
-            NPC(nameof(MinSizeIncludingMargin));
+            NotifyPropertyChanged(nameof(MinHeight));
+            NotifyPropertyChanged(nameof(MinSize));
+            NotifyPropertyChanged(nameof(MinSizeIncludingMargin));
         }
     }
 
@@ -2307,8 +2307,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _maxWidth = value;
                 LayoutChanged(this, true);
-                NPC(nameof(MaxWidth));
-                NPC(nameof(MaxSizeIncludingMargin));
+                NotifyPropertyChanged(nameof(MaxWidth));
+                NotifyPropertyChanged(nameof(MaxSizeIncludingMargin));
             }
         }
     }
@@ -2325,8 +2325,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _maxHeight = value;
                 LayoutChanged(this, true);
-                NPC(nameof(MaxHeight));
-                NPC(nameof(MaxSizeIncludingMargin));
+                NotifyPropertyChanged(nameof(MaxHeight));
+                NotifyPropertyChanged(nameof(MaxSizeIncludingMargin));
             }
         }
     }
@@ -2375,8 +2375,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
                 _preferredWidth = value;
                 LayoutChanged(this, true);
-                NPC(nameof(PreferredWidth));
-                NPC(nameof(ActualPreferredWidth));
+                NotifyPropertyChanged(nameof(PreferredWidth));
+                NotifyPropertyChanged(nameof(ActualPreferredWidth));
             }
         }
     }
@@ -2401,8 +2401,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
                 _preferredHeight = value;
                 LayoutChanged(this, true);
-                NPC(nameof(PreferredHeight));
-                NPC(nameof(ActualPreferredHeight));
+                NotifyPropertyChanged(nameof(PreferredHeight));
+                NotifyPropertyChanged(nameof(ActualPreferredHeight));
             }
         }
     }
@@ -2427,7 +2427,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 var Previous = ToolTip;
                 _toolTip = value;
-                NPC(nameof(ToolTip));
+                NotifyPropertyChanged(nameof(ToolTip));
                 ToolTipChanged?.Invoke(this, new(Previous, ToolTip));
             }
         }
@@ -2451,7 +2451,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 var Previous = ContextMenu;
                 _contextMenu = value;
                 SyncContextMenuRmbHandler();
-                NPC(nameof(ContextMenu));
+                NotifyPropertyChanged(nameof(ContextMenu));
                 ContextMenuChanged?.Invoke(this, new(Previous, ContextMenu));
             }
         }
@@ -2741,7 +2741,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_canHandleInputsWhileHidden != value)
             {
                 _canHandleInputsWhileHidden = value;
-                NPC(nameof(CanHandleInputsWhileHidden));
+                NotifyPropertyChanged(nameof(CanHandleInputsWhileHidden));
             }
         }
     }
@@ -2759,7 +2759,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _isHitTestVisible = value;
                 _inputStateDirty = true;
-                NPC(nameof(IsHitTestVisible));
+                NotifyPropertyChanged(nameof(IsHitTestVisible));
             }
         }
     }
@@ -2784,7 +2784,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 var Previous = VisualState;
                 _visualState = value;
-                NPC(nameof(VisualState));
+                NotifyPropertyChanged(nameof(VisualState));
                 VisualStateChanged?.Invoke(this, new(Previous, VisualState));
             }
         }
@@ -2805,7 +2805,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_tabIndex != value)
             {
                 _tabIndex = value;
-                NPC(nameof(TabIndex));
+                NotifyPropertyChanged(nameof(TabIndex));
             }
         }
     }
@@ -2868,7 +2868,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 _isSelected = value;
                 InvalidateLayoutTree();
                 LayoutChanged(this, true);
-                NPC(nameof(IsSelected));
+                NotifyPropertyChanged(nameof(IsSelected));
             }
         }
     }
@@ -2887,7 +2887,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _isEnabled = value;
                 _inputStateDirty = true;
-                NPC(nameof(IsEnabled));
+                NotifyPropertyChanged(nameof(IsEnabled));
             }
         }
     }
@@ -2908,7 +2908,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (!BackgroundRenderPadding.Equals(value))
             {
                 _backgroundRenderPadding = value;
-                NPC(nameof(BackgroundRenderPadding));
+                NotifyPropertyChanged(nameof(BackgroundRenderPadding));
             }
         }
     }
@@ -2959,7 +2959,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_overlayBrush != value)
             {
                 _overlayBrush = value;
-                NPC(nameof(OverlayBrush));
+                NotifyPropertyChanged(nameof(OverlayBrush));
             }
         }
     }
@@ -2981,8 +2981,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     LayoutChanged(this, true);
                 }
 
-                NPC(nameof(Visibility));
-                NPC(nameof(IsVisibilityCollapsed));
+                NotifyPropertyChanged(nameof(Visibility));
+                NotifyPropertyChanged(nameof(IsVisibilityCollapsed));
             }
         }
     }
@@ -3001,7 +3001,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_opacity != value)
             {
                 _opacity = value;
-                NPC(nameof(Opacity));
+                NotifyPropertyChanged(nameof(Opacity));
             }
         }
     }
@@ -3019,7 +3019,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_tag != value)
             {
                 _tag = value;
-                NPC(nameof(Tag));
+                NotifyPropertyChanged(nameof(Tag));
             }
         }
     }
@@ -3145,7 +3145,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 if (DataContextOverride == null)
                 {
-                    NPC(nameof(DataContext));
+                    NotifyPropertyChanged(nameof(DataContext));
                     InvokeDataContextChanged();
                 }
             };
@@ -3317,7 +3317,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_clipToBounds != value)
             {
                 _clipToBounds = value;
-                NPC(nameof(ClipToBounds));
+                NotifyPropertyChanged(nameof(ClipToBounds));
             }
         }
     }
@@ -3338,7 +3338,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_origin != value)
             {
                 _origin = value;
-                NPC(nameof(Origin));
+                NotifyPropertyChanged(nameof(Origin));
             }
         }
     }
@@ -3373,7 +3373,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 var Previous = ActualLayoutBounds;
                 _actualLayoutBounds = value;
-                NPC(nameof(ActualLayoutBounds));
+                NotifyPropertyChanged(nameof(ActualLayoutBounds));
                 OnActualLayoutBoundsChanged?.Invoke(this, new(Previous, ActualLayoutBounds));
             }
         }
@@ -3411,9 +3411,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_layoutBounds != value)
             {
                 _layoutBounds = value;
-                NPC(nameof(LayoutBounds));
-                NPC(nameof(ActualWidth));
-                NPC(nameof(ActualHeight));
+                NotifyPropertyChanged(nameof(LayoutBounds));
+                NotifyPropertyChanged(nameof(ActualWidth));
+                NotifyPropertyChanged(nameof(ActualHeight));
             }
         }
     }
@@ -3800,7 +3800,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     SelfOrParentWindow?.Desktop?.AdjustActiveRenderTransformCount(value.HasValue ? 1 : -1);
                 }
                 InvalidateHoverForRenderTransformChange();
-                NPC(nameof(RenderScale));
+                NotifyPropertyChanged(nameof(RenderScale));
             }
 
         }
@@ -3864,7 +3864,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         InvalidateHoverForRenderTransformChange();
 
-        NPC(nameof(RenderTransform));
+        NotifyPropertyChanged(nameof(RenderTransform));
     }
 
     /// <summary>The state-driven scale of <see cref="RenderScale"/> for the current <see cref="VisualState"/>, ignoring the animated override
@@ -4006,7 +4006,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 _recentDrawWasClipped = value;
                 _inputStateDirty = true;
-                NPC(nameof(RecentDrawWasClipped));
+                NotifyPropertyChanged(nameof(RecentDrawWasClipped));
             }
         }
     }
@@ -4372,7 +4372,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (_isLayoutValid != value)
             {
                 _isLayoutValid = value;
-                NPC(nameof(IsLayoutValid));
+                NotifyPropertyChanged(nameof(IsLayoutValid));
             }
         }
     }

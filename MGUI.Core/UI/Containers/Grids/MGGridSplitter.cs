@@ -53,7 +53,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             {
                 _Size = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Size));
+                NotifyPropertyChanged(nameof(Size));
             }
         }
     }
@@ -75,7 +75,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             if (_TickSize != value)
             {
                 _TickSize = value;
-                NPC(nameof(TickSize));
+                NotifyPropertyChanged(nameof(TickSize));
             }
         }
     }
@@ -91,7 +91,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             if (_Foreground != value)
             {
                 _Foreground = value;
-                NPC(nameof(Foreground));
+                NotifyPropertyChanged(nameof(Foreground));
             }
         }
     }
@@ -108,7 +108,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             if (_IsDragging != value)
             {
                 _IsDragging = value;
-                NPC(nameof(IsDragging));
+                NotifyPropertyChanged(nameof(IsDragging));
             }
         }
     }
@@ -249,9 +249,9 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
             BorderElement = new(ParentWindow, new(0), MGUniformBorderBrush.Black);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             var Theme = GetTheme();
 
@@ -262,7 +262,7 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
 
             Foreground = GetTheme().GridSplitterForeground.GetValue(true);
 
-            OnLayoutUpdated += (sender, e) => { NPC(nameof(Orientation)); };
+            OnLayoutUpdated += (sender, e) => { NotifyPropertyChanged(nameof(Orientation)); };
 
             MouseHandler.DragStart += (sender, e) =>
             {

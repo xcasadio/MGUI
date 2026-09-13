@@ -52,8 +52,8 @@ public class MGPropertyGrid : MGSingleContentHost
             var typeChanged = SelectedObjectType != newType;
             SelectedObjectType = newType;
 
-            NPC(nameof(SelectedObject));
-            NPC(nameof(SelectedObjectType));
+            NotifyPropertyChanged(nameof(SelectedObject));
+            NotifyPropertyChanged(nameof(SelectedObjectType));
 
             if (CategoriesPanel == null)
             {
@@ -91,7 +91,7 @@ public class MGPropertyGrid : MGSingleContentHost
                     }
                 }
 
-                NPC(nameof(LabelColumnWidth));
+                NotifyPropertyChanged(nameof(LabelColumnWidth));
             }
         }
     }

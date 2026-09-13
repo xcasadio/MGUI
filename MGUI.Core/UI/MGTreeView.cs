@@ -79,7 +79,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
                     ScrollViewer.VerticalScrollBarVisibility = value;
                 }
 
-                NPC(nameof(VerticalScrollBarVisibility));
+                NotifyPropertyChanged(nameof(VerticalScrollBarVisibility));
             }
         }
     }
@@ -100,7 +100,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
                     ScrollViewer.HorizontalScrollBarVisibility = value;
                 }
 
-                NPC(nameof(HorizontalScrollBarVisibility));
+                NotifyPropertyChanged(nameof(HorizontalScrollBarVisibility));
             }
         }
     }
@@ -126,7 +126,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             if (_SelectedItem != value)
             {
                 _SelectedItem = value;
-                NPC(nameof(SelectedItem));
+                NotifyPropertyChanged(nameof(SelectedItem));
             }
         }
     }
@@ -146,7 +146,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
                 {
                     RegisterItemRecursive(item);
                 }
-                NPC(nameof(IndentSize));
+                NotifyPropertyChanged(nameof(IndentSize));
             }
         }
     }
@@ -163,7 +163,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             {
                 _SelectionBackgroundBrush = value;
                 SelectedItem?.RefreshSelectionVisual();
-                NPC(nameof(SelectionBackgroundBrush));
+                NotifyPropertyChanged(nameof(SelectionBackgroundBrush));
             }
         }
     }
@@ -180,7 +180,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             {
                 _SelectionForeground = value;
                 SelectedItem?.RefreshSelectionVisual();
-                NPC(nameof(SelectionForeground));
+                NotifyPropertyChanged(nameof(SelectionForeground));
             }
         }
     }
@@ -226,7 +226,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
                 }
 
                 GenerateItemsFromSource();
-                NPC(nameof(ItemsSource));
+                NotifyPropertyChanged(nameof(ItemsSource));
             }
         }
     }
@@ -271,7 +271,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             if (_ChildrenPropertyName != value)
             {
                 _ChildrenPropertyName = value;
-                NPC(nameof(ChildrenPropertyName));
+                NotifyPropertyChanged(nameof(ChildrenPropertyName));
             }
         }
     }
@@ -763,7 +763,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
         }
 
         SelectionChanged?.Invoke(this, item);
-        NPC(nameof(SelectedItem));
+        NotifyPropertyChanged(nameof(SelectedItem));
     }
 
     /// <summary>

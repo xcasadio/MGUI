@@ -94,7 +94,7 @@ public class MGRatingControl : MGElement
             {
                 _ItemSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ItemSize));
+                NotifyPropertyChanged(nameof(ItemSize));
             }
         }
     }
@@ -112,7 +112,7 @@ public class MGRatingControl : MGElement
             {
                 _Spacing = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Spacing));
+                NotifyPropertyChanged(nameof(Spacing));
             }
         }
     }
@@ -154,9 +154,9 @@ public class MGRatingControl : MGElement
                 LayoutChanged(this, true);
             }
 
-            NPC(nameof(Minimum));
-            NPC(nameof(Maximum));
-            NPC(nameof(Interval));
+            NotifyPropertyChanged(nameof(Minimum));
+            NotifyPropertyChanged(nameof(Maximum));
+            NotifyPropertyChanged(nameof(Interval));
         }
     }
 
@@ -174,7 +174,7 @@ public class MGRatingControl : MGElement
         if (Value != ActualValue)
         {
             Value = ActualValue;
-            NPC(nameof(Value));
+            NotifyPropertyChanged(nameof(Value));
         }
         return ActualValue;
     }
@@ -216,7 +216,7 @@ public class MGRatingControl : MGElement
                     _ = SetValue(Value);
                 }
 
-                NPC(nameof(UseDiscreteValues));
+                NotifyPropertyChanged(nameof(UseDiscreteValues));
             }
         }
     }
@@ -237,7 +237,7 @@ public class MGRatingControl : MGElement
                     _ = SetValue(Value);
                 }
 
-                NPC(nameof(DiscreteValueInterval));
+                NotifyPropertyChanged(nameof(DiscreteValueInterval));
             }
         }
     }
@@ -254,7 +254,7 @@ public class MGRatingControl : MGElement
             if (_UnfilledShapeStrokeThickness != value)
             {
                 _UnfilledShapeStrokeThickness = value;
-                NPC(nameof(UnfilledShapeStrokeThickness));
+                NotifyPropertyChanged(nameof(UnfilledShapeStrokeThickness));
             }
         }
     }
@@ -269,7 +269,7 @@ public class MGRatingControl : MGElement
             if (_UnfilledShapeStrokeColor != value)
             {
                 _UnfilledShapeStrokeColor = value;
-                NPC(nameof(UnfilledShapeStrokeColor));
+                NotifyPropertyChanged(nameof(UnfilledShapeStrokeColor));
             }
         }
     }
@@ -284,7 +284,7 @@ public class MGRatingControl : MGElement
             if (_UnfilledShapeFillColor != value)
             {
                 _UnfilledShapeFillColor = value;
-                NPC(nameof(UnfilledShapeFillColor));
+                NotifyPropertyChanged(nameof(UnfilledShapeFillColor));
             }
         }
     }
@@ -299,7 +299,7 @@ public class MGRatingControl : MGElement
             if (_FilledShapeStrokeThickness != value)
             {
                 _FilledShapeStrokeThickness = value;
-                NPC(nameof(FilledShapeStrokeThickness));
+                NotifyPropertyChanged(nameof(FilledShapeStrokeThickness));
             }
         }
     }
@@ -314,7 +314,7 @@ public class MGRatingControl : MGElement
             if (_FilledShapeStrokeColor != value)
             {
                 _FilledShapeStrokeColor = value;
-                NPC(nameof(FilledShapeStrokeColor));
+                NotifyPropertyChanged(nameof(FilledShapeStrokeColor));
             }
         }
     }
@@ -329,7 +329,7 @@ public class MGRatingControl : MGElement
             if (_FilledShapeFillColor != value)
             {
                 _FilledShapeFillColor = value;
-                NPC(nameof(FilledShapeFillColor));
+                NotifyPropertyChanged(nameof(FilledShapeFillColor));
             }
         }
     }
@@ -344,7 +344,7 @@ public class MGRatingControl : MGElement
             if (_PreviewShapeStrokeThickness != value)
             {
                 _PreviewShapeStrokeThickness = value;
-                NPC(nameof(PreviewShapeStrokeThickness));
+                NotifyPropertyChanged(nameof(PreviewShapeStrokeThickness));
             }
         }
     }
@@ -359,7 +359,7 @@ public class MGRatingControl : MGElement
             if (_PreviewShapeStrokeColor != value)
             {
                 _PreviewShapeStrokeColor = value;
-                NPC(nameof(PreviewShapeStrokeColor));
+                NotifyPropertyChanged(nameof(PreviewShapeStrokeColor));
             }
         }
     }
@@ -376,7 +376,7 @@ public class MGRatingControl : MGElement
             if (_PreviewShapeFillColor != value)
             {
                 _PreviewShapeFillColor = value;
-                NPC(nameof(PreviewShapeFillColor));
+                NotifyPropertyChanged(nameof(PreviewShapeFillColor));
             }
         }
     }
@@ -394,7 +394,7 @@ public class MGRatingControl : MGElement
             if (PreviewValue != ActualValue)
             {
                 _PreviewValue = ActualValue;
-                NPC(nameof(PreviewValue));
+                NotifyPropertyChanged(nameof(PreviewValue));
             }
         }
     }
@@ -412,7 +412,7 @@ public class MGRatingControl : MGElement
             {
                 _IsReadonly = value;
                 PreviewValue = null;
-                NPC(nameof(IsReadonly));
+                NotifyPropertyChanged(nameof(IsReadonly));
             }
         }
     }
@@ -430,7 +430,7 @@ public class MGRatingControl : MGElement
             {
                 _Orientation = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Orientation));
+                NotifyPropertyChanged(nameof(Orientation));
             }
         }
     }

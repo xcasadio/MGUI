@@ -23,7 +23,7 @@ namespace MGUI.Samples.Controls
                 if (_TextBlock1Text != value)
                 {
                     _TextBlock1Text = value;
-                    NPC(nameof(TextBlock1Text));
+                    NotifyPropertyChanged(nameof(TextBlock1Text));
                 }
             }
         }
@@ -37,7 +37,7 @@ namespace MGUI.Samples.Controls
                 if (_HeightInches != value)
                 {
                     _HeightInches = value;
-                    NPC(nameof(HeightInches));
+                    NotifyPropertyChanged(nameof(HeightInches));
                 }
             }
         }

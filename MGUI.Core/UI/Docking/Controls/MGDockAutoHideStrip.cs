@@ -34,7 +34,7 @@ public class MGDockAutoHideStrip : MGElement
             {
                 _stripThickness = value;
                 LayoutChanged(this, true);
-                NPC(nameof(StripThickness));
+                NotifyPropertyChanged(nameof(StripThickness));
             }
         }
     }
@@ -55,7 +55,7 @@ public class MGDockAutoHideStrip : MGElement
             {
                 _side = value;
                 SyncSeparatorVisuals();
-                NPC(nameof(Side));
+                NotifyPropertyChanged(nameof(Side));
             }
         }
     }

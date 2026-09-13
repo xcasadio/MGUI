@@ -48,7 +48,7 @@ public class MGDockHost : MGSingleContentHost
                 // Re-sync node subscriptions (OnTabGroupPropertyChanged etc.)
                 SyncNodeSubscriptions();
 
-                NPC(nameof(LayoutModel));
+                NotifyPropertyChanged(nameof(LayoutModel));
                 RebuildVisualTree();
             }
         }
@@ -192,8 +192,8 @@ public class MGDockHost : MGSingleContentHost
             if (_currentDrag != value)
             {
                 _currentDrag = value;
-                NPC(nameof(CurrentDrag));
-                NPC(nameof(IsDragging));
+                NotifyPropertyChanged(nameof(CurrentDrag));
+                NotifyPropertyChanged(nameof(IsDragging));
             }
         }
     }
@@ -229,7 +229,7 @@ public class MGDockHost : MGSingleContentHost
             if (_dragThreshold != value)
             {
                 _dragThreshold = value;
-                NPC(nameof(DragThreshold));
+                NotifyPropertyChanged(nameof(DragThreshold));
             }
         }
     }
@@ -250,7 +250,7 @@ public class MGDockHost : MGSingleContentHost
             if (_activeDockable != value)
             {
                 _activeDockable = value;
-                NPC(nameof(ActiveDockable));
+                NotifyPropertyChanged(nameof(ActiveDockable));
                 RefreshActiveGroupHighlight();
             }
         }
@@ -287,7 +287,7 @@ public class MGDockHost : MGSingleContentHost
             if (Math.Abs(_uiScale - clamped) > 1e-6f)
             {
                 _uiScale = clamped;
-                NPC(nameof(UIScale));
+                NotifyPropertyChanged(nameof(UIScale));
             }
         }
     }
@@ -1531,7 +1531,7 @@ public class MGDockHost : MGSingleContentHost
                 }
 
                 LayoutChanged(this, true);
-                NPC(nameof(AutoHideStripThickness));
+                NotifyPropertyChanged(nameof(AutoHideStripThickness));
             }
         }
     }
@@ -2382,7 +2382,7 @@ public class MGDockHost : MGSingleContentHost
             if (_currentDropTarget != value)
             {
                 _currentDropTarget = value;
-                NPC(nameof(CurrentDropTarget));
+                NotifyPropertyChanged(nameof(CurrentDropTarget));
             }
         }
     }

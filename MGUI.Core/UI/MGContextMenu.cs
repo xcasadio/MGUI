@@ -91,7 +91,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             if (_CanContextMenuOpen != value)
             {
                 _CanContextMenuOpen = value;
-                NPC(nameof(CanContextMenuOpen));
+                NotifyPropertyChanged(nameof(CanContextMenuOpen));
             }
         }
     }
@@ -143,14 +143,14 @@ public class MGContextMenu : MGWindow, IContextMenuHost
         GetDesktop().PushFocusScope(this, GetDesktop().FocusedKeyboardHandler);
         var initialFocusTarget = Items.FirstOrDefault(x => x.HandlesInput && x.Visibility == Visibility.Visible && x.DerivedIsEnabled && x.DerivedIsHitTestVisible);
         initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);
-        NPC(nameof(IsContextMenuOpen));
+        NotifyPropertyChanged(nameof(IsContextMenuOpen));
         ContextMenuOpened?.Invoke(this, EventArgs.Empty);
     }
     internal void InvokeContextMenuClosing() => ContextMenuClosing?.Invoke(this, EventArgs.Empty);
     internal void InvokeContextMenuClosed()
     {
         GetDesktop().PopFocusScope(this);
-        NPC(nameof(IsContextMenuOpen));
+        NotifyPropertyChanged(nameof(IsContextMenuOpen));
         ContextMenuClosed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -189,7 +189,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             if (_StaysOpenOnItemSelected != value)
             {
                 _StaysOpenOnItemSelected = value;
-                NPC(nameof(StaysOpenOnItemSelected));
+                NotifyPropertyChanged(nameof(StaysOpenOnItemSelected));
             }
         }
     }
@@ -207,7 +207,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             if (_StaysOpenOnItemToggled != value)
             {
                 _StaysOpenOnItemToggled = value;
-                NPC(nameof(StaysOpenOnItemToggled));
+                NotifyPropertyChanged(nameof(StaysOpenOnItemToggled));
             }
         }
     }
@@ -228,7 +228,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             if (_AutoCloseThreshold != value)
             {
                 _AutoCloseThreshold = value;
-                NPC(nameof(AutoCloseThreshold));
+                NotifyPropertyChanged(nameof(AutoCloseThreshold));
             }
         }
     }
@@ -267,7 +267,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             if (_ButtonWrapperTemplate != value)
             {
                 _ButtonWrapperTemplate = value;
-                NPC(nameof(ButtonWrapperTemplate));
+                NotifyPropertyChanged(nameof(ButtonWrapperTemplate));
                 ButtonWrapperTemplateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -446,7 +446,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             {
                 var Previous = HeaderSize;
                 _HeaderSize = value;
-                NPC(nameof(HeaderSize));
+                NotifyPropertyChanged(nameof(HeaderSize));
                 HeaderSizeChanged?.Invoke(this, new(Previous, HeaderSize));
             }
         }
@@ -472,7 +472,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             var Previous = ActiveContextMenu;
             ActiveContextMenu.InvokeContextMenuClosing();
             ActiveContextMenu = null;
-            NPC(nameof(ActiveContextMenu));
+            NotifyPropertyChanged(nameof(ActiveContextMenu));
             Previous.InvokeContextMenuClosed();
             SubmenuClosed?.Invoke(this, Previous);
         }
@@ -527,7 +527,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             Menu.TopLeft = Position;
             _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
 
-            NPC(nameof(ActiveContextMenu));
+            NotifyPropertyChanged(nameof(ActiveContextMenu));
             ActiveContextMenu.InvokeContextMenuOpened();
             SubmenuOpened?.Invoke(this, Menu);
             return true;

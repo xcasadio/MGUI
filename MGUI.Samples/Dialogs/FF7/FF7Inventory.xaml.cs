@@ -21,8 +21,6 @@ namespace MGUI.Samples.Dialogs.FF7
     {
         public event PropertyChangedEventHandler PropertyChanged;
         public virtual void NotifyPropertyChanged(string szPropertyName) { PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(szPropertyName)); }
-        /// <summary>Notify Property Changed for the given <paramref name="szPropertyName"/></summary>
-        public void NPC(string szPropertyName) { NotifyPropertyChanged(szPropertyName); }
 
         public FF7Inventory Inventory { get; }
         public Item Item { get; }
@@ -40,7 +38,7 @@ namespace MGUI.Samples.Dialogs.FF7
                     int Previous = Quantity;
                     _Quantity = value;
                     QuantityChanged?.Invoke(this, new(Previous, Quantity));
-                    NPC(nameof(Quantity));
+                    NotifyPropertyChanged(nameof(Quantity));
                 }
             }
         }
@@ -122,7 +120,7 @@ namespace MGUI.Samples.Dialogs.FF7
                 if (_SelectedItem != value)
                 {
                     _SelectedItem = value;
-                    NPC(nameof(SelectedItem));
+                    NotifyPropertyChanged(nameof(SelectedItem));
 
                     if (SelectedItem == null)
                     {
@@ -148,8 +146,8 @@ namespace MGUI.Samples.Dialogs.FF7
                 if (_DragDropLabelText != value)
                 {
                     _DragDropLabelText = value;
-                    NPC(nameof(DragDropLabelText));
-                    NPC(nameof(HasDragDropText));
+                    NotifyPropertyChanged(nameof(DragDropLabelText));
+                    NotifyPropertyChanged(nameof(HasDragDropText));
                 }
             }
         }

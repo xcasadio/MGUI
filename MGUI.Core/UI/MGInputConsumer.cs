@@ -17,7 +17,7 @@ public class MGInputConsumer : MGSingleContentHost
             if (_HandlesMousePresses != value)
             {
                 _HandlesMousePresses = value;
-                NPC(nameof(HandlesMousePresses));
+                NotifyPropertyChanged(nameof(HandlesMousePresses));
             }
         }
     }
@@ -32,7 +32,7 @@ public class MGInputConsumer : MGSingleContentHost
             if (_HandlesMouseReleases != value)
             {
                 _HandlesMouseReleases = value;
-                NPC(nameof(HandlesMouseReleases));
+                NotifyPropertyChanged(nameof(HandlesMouseReleases));
             }
         }
     }
@@ -47,7 +47,7 @@ public class MGInputConsumer : MGSingleContentHost
             if (_HandlesMouseDrags != value)
             {
                 _HandlesMouseDrags = value;
-                NPC(nameof(HandlesMouseDrags));
+                NotifyPropertyChanged(nameof(HandlesMouseDrags));
             }
         }
     }
@@ -62,7 +62,7 @@ public class MGInputConsumer : MGSingleContentHost
             if (_HandlesMouseScroll != value)
             {
                 _HandlesMouseScroll = value;
-                NPC(nameof(HandlesMouseScroll));
+                NotifyPropertyChanged(nameof(HandlesMouseScroll));
             }
         }
     }

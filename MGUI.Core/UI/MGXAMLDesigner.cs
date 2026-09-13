@@ -195,7 +195,7 @@ public class MGXAMLDesigner : MGElement
                 }
 
                 RefreshParsedContent();
-                NPC(nameof(FromFilePath));
+                NotifyPropertyChanged(nameof(FromFilePath));
             }
         }
     }

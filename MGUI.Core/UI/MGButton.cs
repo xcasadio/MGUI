@@ -22,7 +22,7 @@ public class MGButton : MGSingleContentHost
             {
                 _autoWidthFromContent = value;
                 LayoutChanged(this, true);
-                NPC(nameof(AutoWidthFromContent));
+                NotifyPropertyChanged(nameof(AutoWidthFromContent));
             }
         }
     }
@@ -68,7 +68,7 @@ public class MGButton : MGSingleContentHost
             if (_commandName != value)
             {
                 _commandName = value;
-                NPC(nameof(CommandName));
+                NotifyPropertyChanged(nameof(CommandName));
             }
         }
     }
@@ -88,7 +88,7 @@ public class MGButton : MGSingleContentHost
             if (_command != value)
             {
                 _command = value;
-                NPC(nameof(Command));
+                NotifyPropertyChanged(nameof(Command));
             }
         }
     }
@@ -107,7 +107,7 @@ public class MGButton : MGSingleContentHost
             if (_isRepeatButton != value)
             {
                 _isRepeatButton = value;
-                NPC(nameof(IsRepeatButton));
+                NotifyPropertyChanged(nameof(IsRepeatButton));
             }
         }
     }
@@ -128,7 +128,7 @@ public class MGButton : MGSingleContentHost
             if (_initialRepeatInterval != value)
             {
                 _initialRepeatInterval = value;
-                NPC(nameof(InitialRepeatInterval));
+                NotifyPropertyChanged(nameof(InitialRepeatInterval));
             }
         }
     }
@@ -149,7 +149,7 @@ public class MGButton : MGSingleContentHost
             if (_repeatInterval != value)
             {
                 _repeatInterval = value;
-                NPC(nameof(RepeatInterval));
+                NotifyPropertyChanged(nameof(RepeatInterval));
             }
         }
     }
@@ -182,9 +182,9 @@ public class MGButton : MGSingleContentHost
             BorderElement = new(Window, borderThickness, borderBrush);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(borderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(borderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(borderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(borderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             HorizontalContentAlignment = HorizontalAlignment.Center;
             VerticalContentAlignment = VerticalAlignment.Center;

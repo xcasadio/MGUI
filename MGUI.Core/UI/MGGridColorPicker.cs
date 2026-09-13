@@ -323,8 +323,8 @@ public class MGGridColorPicker : MGElement
             if (_Columns != value)
             {
                 _Columns = value;
-                NPC(nameof(Columns));
-                NPC(nameof(Rows));
+                NotifyPropertyChanged(nameof(Columns));
+                NotifyPropertyChanged(nameof(Rows));
                 LayoutChanged(this, true);
             }
         }
@@ -345,8 +345,8 @@ public class MGGridColorPicker : MGElement
             if (_Colors != value)
             {
                 _Colors = value;
-                NPC(nameof(Colors));
-                NPC(nameof(Rows));
+                NotifyPropertyChanged(nameof(Colors));
+                NotifyPropertyChanged(nameof(Rows));
                 LayoutChanged(this, true);
                 HoveredColorIndex = null;
                 SelectedColorIndexes = new List<int>();
@@ -377,7 +377,7 @@ public class MGGridColorPicker : MGElement
             if (_ColorSize != value)
             {
                 _ColorSize = value;
-                NPC(nameof(ColorSize));
+                NotifyPropertyChanged(nameof(ColorSize));
                 LayoutChanged(this, true);
             }
         }
@@ -395,7 +395,7 @@ public class MGGridColorPicker : MGElement
             if (_RowSpacing != value)
             {
                 _RowSpacing = value;
-                NPC(nameof(RowSpacing));
+                NotifyPropertyChanged(nameof(RowSpacing));
                 LayoutChanged(this, true);
             }
         }
@@ -413,7 +413,7 @@ public class MGGridColorPicker : MGElement
             if (_ColumnSpacing != value)
             {
                 _ColumnSpacing = value;
-                NPC(nameof(ColumnSpacing));
+                NotifyPropertyChanged(nameof(ColumnSpacing));
                 LayoutChanged(this, true);
             }
         }
@@ -432,7 +432,7 @@ public class MGGridColorPicker : MGElement
             if (_SelectedColorBorderBrush != value)
             {
                 _SelectedColorBorderBrush = value;
-                NPC(nameof(SelectedColorBorderBrush));
+                NotifyPropertyChanged(nameof(SelectedColorBorderBrush));
             }
         }
     }
@@ -449,7 +449,7 @@ public class MGGridColorPicker : MGElement
             if (!_SelectedColorBorderThickness.Equals(value))
             {
                 _SelectedColorBorderThickness = value;
-                NPC(nameof(SelectedColorBorderThickness));
+                NotifyPropertyChanged(nameof(SelectedColorBorderThickness));
             }
         }
     }
@@ -466,7 +466,7 @@ public class MGGridColorPicker : MGElement
             if (_UnselectedColorBorderBrush != value)
             {
                 _UnselectedColorBorderBrush = value;
-                NPC(nameof(UnselectedColorBorderBrush));
+                NotifyPropertyChanged(nameof(UnselectedColorBorderBrush));
             }
         }
     }
@@ -483,7 +483,7 @@ public class MGGridColorPicker : MGElement
             if (!_UnselectedColorBorderThickness.Equals(value))
             {
                 _UnselectedColorBorderThickness = value;
-                NPC(nameof(UnselectedColorBorderThickness));
+                NotifyPropertyChanged(nameof(UnselectedColorBorderThickness));
             }
         }
     }
@@ -522,8 +522,8 @@ public class MGGridColorPicker : MGElement
             if (_HoveredColorIndex != value)
             {
                 _HoveredColorIndex = value;
-                NPC(nameof(HoveredColorIndex));
-                NPC(nameof(HoveredColor));
+                NotifyPropertyChanged(nameof(HoveredColorIndex));
+                NotifyPropertyChanged(nameof(HoveredColor));
             }
         }
     }
@@ -541,7 +541,7 @@ public class MGGridColorPicker : MGElement
             if (_HoveredColorOverlay != value)
             {
                 _HoveredColorOverlay = value;
-                NPC(nameof(HoveredColorOverlay));
+                NotifyPropertyChanged(nameof(HoveredColorOverlay));
             }
         }
     }
@@ -559,7 +559,7 @@ public class MGGridColorPicker : MGElement
             if (_SelectedColorOverlay != value)
             {
                 _SelectedColorOverlay = value;
-                NPC(nameof(SelectedColorOverlay));
+                NotifyPropertyChanged(nameof(SelectedColorOverlay));
             }
         }
     }
@@ -587,9 +587,9 @@ public class MGGridColorPicker : MGElement
                     _SelectedColorIndexes = value ?? new List<int>();
                 }
 
-                NPC(nameof(SelectedColorIndexes));
-                NPC(nameof(SelectedColor));
-                NPC(nameof(SelectedColors));
+                NotifyPropertyChanged(nameof(SelectedColorIndexes));
+                NotifyPropertyChanged(nameof(SelectedColor));
+                NotifyPropertyChanged(nameof(SelectedColors));
 
                 RefreshSelectedColorLabelVisibility();
                 if (IsSelectedColorLabelVisible)
@@ -632,7 +632,7 @@ public class MGGridColorPicker : MGElement
             if (_ShowSelectedColorLabel != value)
             {
                 _ShowSelectedColorLabel = value;
-                NPC(nameof(ShowSelectedColorLabel));
+                NotifyPropertyChanged(nameof(ShowSelectedColorLabel));
                 RefreshSelectedColorLabelVisibility();
             }
         }
@@ -649,7 +649,7 @@ public class MGGridColorPicker : MGElement
             if (_AllowMultiSelect != value)
             {
                 _AllowMultiSelect = value;
-                NPC(nameof(AllowMultiSelect));
+                NotifyPropertyChanged(nameof(AllowMultiSelect));
                 if (!AllowMultiSelect && SelectedColorIndexes.Count > 1)
                 {
                     SelectedColorIndexes = SelectedColorIndexes.Take(1).ToList();
@@ -689,9 +689,9 @@ public class MGGridColorPicker : MGElement
             BorderElement = new(Window, 0, null as IFillBrush);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnBorderBrushChanged += (sender, e) => { NPC(nameof(BorderBrush)); };
-            BorderElement.OnBorderThicknessChanged += (sender, e) => { NPC(nameof(BorderThickness)); };
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnBorderBrushChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderBrush)); };
+            BorderElement.OnBorderThicknessChanged += (sender, e) => { NotifyPropertyChanged(nameof(BorderThickness)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             SelectedColorLabel = new(Window, "Selected Color:")
             {

@@ -21,7 +21,7 @@ public class MGEllipse : MGShapeElementBase
                 _width = actualValue;
                 _geometryDirty = true;
                 LayoutChanged(this, true);
-                NPC(nameof(Width));
+                NotifyPropertyChanged(nameof(Width));
             }
         }
     }
@@ -39,7 +39,7 @@ public class MGEllipse : MGShapeElementBase
                 _height = actualValue;
                 _geometryDirty = true;
                 LayoutChanged(this, true);
-                NPC(nameof(Height));
+                NotifyPropertyChanged(nameof(Height));
             }
         }
     }
@@ -56,7 +56,7 @@ public class MGEllipse : MGShapeElementBase
             {
                 _segmentCount = actualValue;
                 _geometryDirty = true;
-                NPC(nameof(SegmentCount));
+                NotifyPropertyChanged(nameof(SegmentCount));
             }
         }
     }

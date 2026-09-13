@@ -31,7 +31,7 @@ public class MGPathLite : MGVertexShapeElementBase
         {
             _Commands = value == null ? Array.Empty<MGPathLiteCommand>() : new List<MGPathLiteCommand>(value).ToArray();
             RebuildGeometry();
-            NPC(nameof(Commands));
+            NotifyPropertyChanged(nameof(Commands));
         }
     }
 

@@ -60,7 +60,7 @@ public abstract class GridDimensionDefinition : ViewModelBase
             {
                 var Previous = Length;
                 _Length = value;
-                NPC(nameof(Length));
+                NotifyPropertyChanged(nameof(Length));
                 LengthChanged?.Invoke(this, new(Previous, Length));
                 InvokeDimensionsChanged();
             }
@@ -102,8 +102,8 @@ public class ColumnDefinition : GridDimensionDefinition
 
         InvokeDimensionsChanged();
 
-        NPC(nameof(MinWidth));
-        NPC(nameof(MaxWidth));
+        NotifyPropertyChanged(nameof(MinWidth));
+        NotifyPropertyChanged(nameof(MaxWidth));
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -116,7 +116,7 @@ public class ColumnDefinition : GridDimensionDefinition
             if (_Left != value)
             {
                 _Left = value;
-                NPC(nameof(Left));
+                NotifyPropertyChanged(nameof(Left));
             }
         }
     }
@@ -131,7 +131,7 @@ public class ColumnDefinition : GridDimensionDefinition
             if (_Width != value)
             {
                 _Width = value;
-                NPC(nameof(Width));
+                NotifyPropertyChanged(nameof(Width));
             }
         }
     }
@@ -167,8 +167,8 @@ public class RowDefinition : GridDimensionDefinition
 
         InvokeDimensionsChanged();
 
-        NPC(nameof(MinHeight));
-        NPC(nameof(MaxHeight));
+        NotifyPropertyChanged(nameof(MinHeight));
+        NotifyPropertyChanged(nameof(MaxHeight));
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -181,7 +181,7 @@ public class RowDefinition : GridDimensionDefinition
             if (_Top != value)
             {
                 _Top = value;
-                NPC(nameof(Top));
+                NotifyPropertyChanged(nameof(Top));
             }
         }
     }
@@ -196,7 +196,7 @@ public class RowDefinition : GridDimensionDefinition
             if (_Height != value)
             {
                 _Height = value;
-                NPC(nameof(Height));
+                NotifyPropertyChanged(nameof(Height));
             }
         }
     }

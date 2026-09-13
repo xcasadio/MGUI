@@ -19,7 +19,7 @@ public class MGLine : MGVertexShapeElementBase
             {
                 _StartPoint = value;
                 RebuildGeometry();
-                NPC(nameof(StartPoint));
+                NotifyPropertyChanged(nameof(StartPoint));
             }
         }
     }
@@ -35,7 +35,7 @@ public class MGLine : MGVertexShapeElementBase
             {
                 _EndPoint = value;
                 RebuildGeometry();
-                NPC(nameof(EndPoint));
+                NotifyPropertyChanged(nameof(EndPoint));
             }
         }
     }

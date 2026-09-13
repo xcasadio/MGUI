@@ -68,7 +68,7 @@ public abstract class MGContextMenuItem : MGSingleContentHost
             if (_CommandId != value)
             {
                 _CommandId = value;
-                NPC(nameof(CommandId));
+                NotifyPropertyChanged(nameof(CommandId));
             }
         }
     }
@@ -98,7 +98,7 @@ public abstract class MGContextMenuItem : MGSingleContentHost
             if (_ComputeIsVisible != value)
             {
                 _ComputeIsVisible = value;
-                NPC(nameof(ComputeIsVisible));
+                NotifyPropertyChanged(nameof(ComputeIsVisible));
             }
         }
     }
@@ -173,7 +173,7 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
                     SetContent(ContentWrapper);
                 }
 
-                NPC(nameof(ContentWrapper));
+                NotifyPropertyChanged(nameof(ContentWrapper));
                 RefreshVisualStateProjection();
                 OnContentWrapperChanged();
             }
@@ -240,7 +240,7 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
 
                 RefreshVisualStateProjection();
 
-                NPC(nameof(MenuItemContent));
+                NotifyPropertyChanged(nameof(MenuItemContent));
             }
         }
     }
@@ -297,7 +297,7 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
                 SubmenuArrowElement.Visibility = Submenu == null ? Visibility.Collapsed : Visibility.Visible;
                 ApplyProjectedHighlightState();
 
-                NPC(nameof(Submenu));
+                NotifyPropertyChanged(nameof(Submenu));
             }
         }
     }
@@ -353,7 +353,7 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
                         ? Visibility.Collapsed
                         : Visibility.Visible;
                 }
-                NPC(nameof(ShortcutText));
+                NotifyPropertyChanged(nameof(ShortcutText));
             }
         }
     }
@@ -514,7 +514,7 @@ public class MGContextMenuButton : MGWrappedContextMenuItem
                     HeaderPresenter.SetContent(Icon);
                 }
 
-                NPC(nameof(Icon));
+                NotifyPropertyChanged(nameof(Icon));
             }
         }
     }
@@ -540,7 +540,7 @@ public class MGContextMenuButton : MGWrappedContextMenuItem
             if (_Action != value)
             {
                 _Action = value;
-                NPC(nameof(Action));
+                NotifyPropertyChanged(nameof(Action));
             }
         }
     }
@@ -581,7 +581,7 @@ public class MGContextMenuToggle : MGWrappedContextMenuItem
                 {
                     ToggleIconElement.CheckState = value;
                 }
-                NPC(nameof(IsChecked));
+                NotifyPropertyChanged(nameof(IsChecked));
                 OnToggled?.Invoke(this, IsChecked);
             }
         }
@@ -629,7 +629,7 @@ public class MGContextMenuSeparator : MGContextMenuItem
             if (SeparatorElement.Size != value)
             {
                 SeparatorElement.Size = value;
-                NPC(nameof(Height));
+                NotifyPropertyChanged(nameof(Height));
             }
         }
     }
@@ -669,7 +669,7 @@ public class MGContextMenuRadioButton : MGWrappedContextMenuItem
                 {
                     RadioIconElement.IsChecked = value;
                 }
-                NPC(nameof(IsChecked));
+                NotifyPropertyChanged(nameof(IsChecked));
                 OnToggled?.Invoke(this, IsChecked);
             }
         }
@@ -688,7 +688,7 @@ public class MGContextMenuRadioButton : MGWrappedContextMenuItem
             {
                 string Previous = _GroupName;
                 _GroupName = value;
-                NPC(nameof(GroupName));
+                NotifyPropertyChanged(nameof(GroupName));
                 Menu.OnRadioButtonGroupNameChanged(this, Previous, _GroupName);
             }
         }

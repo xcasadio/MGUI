@@ -144,7 +144,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             {
                 _totalItemCount = clamped;
                 LayoutChanged(this, true);
-                NPC(nameof(TotalItemCount));
+                NotifyPropertyChanged(nameof(TotalItemCount));
             }
         }
     }
@@ -162,7 +162,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
                 _itemWidth = clamped;
                 RecycleAllItems();
                 LayoutChanged(this, true);
-                NPC(nameof(ItemWidth));
+                NotifyPropertyChanged(nameof(ItemWidth));
             }
         }
     }
@@ -180,7 +180,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
                 _itemHeight = clamped;
                 RecycleAllItems();
                 LayoutChanged(this, true);
-                NPC(nameof(ItemHeight));
+                NotifyPropertyChanged(nameof(ItemHeight));
             }
         }
     }
@@ -197,7 +197,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             {
                 _spacing = clamped;
                 LayoutChanged(this, true);
-                NPC(nameof(Spacing));
+                NotifyPropertyChanged(nameof(Spacing));
             }
         }
     }
@@ -243,7 +243,7 @@ public class VirtualizingWrapPanel : MGMultiContentHost
             BorderElement = new MGBorder(window);
             BorderComponent = MGComponentBase.Create(BorderElement);
             AddComponent(BorderComponent);
-            BorderElement.OnCornerRadiusChanged += (sender, e) => { NPC(nameof(CornerRadius)); };
+            BorderElement.OnCornerRadiusChanged += (sender, e) => { NotifyPropertyChanged(nameof(CornerRadius)); };
 
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Top;

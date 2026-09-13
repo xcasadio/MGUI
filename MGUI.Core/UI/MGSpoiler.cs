@@ -24,7 +24,7 @@ public class MGSpoiler : MGSingleContentHost
             if (ButtonElement.BorderBrush != value)
             {
                 ButtonElement.BorderBrush = value;
-                NPC(nameof(UnspoiledBorderBrush));
+                NotifyPropertyChanged(nameof(UnspoiledBorderBrush));
             }
         }
     }
@@ -37,7 +37,7 @@ public class MGSpoiler : MGSingleContentHost
             if (!ButtonElement.BorderThickness.Equals(value))
             {
                 ButtonElement.BorderThickness = value;
-                NPC(nameof(UnspoiledBorderThickness));
+                NotifyPropertyChanged(nameof(UnspoiledBorderThickness));
             }
         }
     }
@@ -51,7 +51,7 @@ public class MGSpoiler : MGSingleContentHost
             if (ButtonElement.BackgroundBrush != value)
             {
                 ButtonElement.BackgroundBrush = value;
-                NPC(nameof(UnspoiledBackgroundBrush));
+                NotifyPropertyChanged(nameof(UnspoiledBackgroundBrush));
             }
         }
     }
@@ -75,7 +75,7 @@ public class MGSpoiler : MGSingleContentHost
             if (TextElement.Text != value)
             {
                 TextElement.Text = value;
-                NPC(nameof(UnspoiledText));
+                NotifyPropertyChanged(nameof(UnspoiledText));
             }
         }
     }
@@ -88,7 +88,7 @@ public class MGSpoiler : MGSingleContentHost
             if (TextElement.TextAlignment != value)
             {
                 TextElement.TextAlignment = value;
-                NPC(nameof(UnspoiledTextAlignment));
+                NotifyPropertyChanged(nameof(UnspoiledTextAlignment));
             }
         }
     }
@@ -121,7 +121,7 @@ public class MGSpoiler : MGSingleContentHost
                 IsFocusable = !IsRevealed;
                 UpdateContentVisibility();
 
-                NPC(nameof(IsRevealed));
+                NotifyPropertyChanged(nameof(IsRevealed));
                 if (IsRevealed)
                 {
                     OnRevealed?.Invoke(this, EventArgs.Empty);

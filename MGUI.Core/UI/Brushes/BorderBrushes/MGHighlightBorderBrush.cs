@@ -43,7 +43,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_Underlay != value)
 			{
 				_Underlay = value;
-				NPC(nameof(Underlay));
+				NotifyPropertyChanged(nameof(Underlay));
 			}
 		}
 	}
@@ -59,7 +59,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_HighlightColor != value)
 			{
 				_HighlightColor = value;
-				NPC(nameof(HighlightColor));
+				NotifyPropertyChanged(nameof(HighlightColor));
 				HighlightFillBrush = HighlightColor.AsFillBrush();
 				HighlightBorderBrush = new MGUniformBorderBrush(HighlightFillBrush);
 			}
@@ -87,7 +87,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_AnimationType != value)
 			{
 				_AnimationType = value;
-				NPC(nameof(AnimationType));
+				NotifyPropertyChanged(nameof(AnimationType));
 			}
 		}
 	}
@@ -107,8 +107,8 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_AnimationProgress != value)
 			{
 				_AnimationProgress = value;
-				NPC(nameof(AnimationProgress));
-				NPC(nameof(ActualAnimationProgress));
+				NotifyPropertyChanged(nameof(AnimationProgress));
+				NotifyPropertyChanged(nameof(ActualAnimationProgress));
 
 				if (AnimationProgress < 0.0)
 				{
@@ -141,7 +141,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_PulseFadeDuration != value)
 			{
 				_PulseFadeDuration = value;
-				NPC(nameof(PulseFadeDuration));
+				NotifyPropertyChanged(nameof(PulseFadeDuration));
 			}
 		}
 	}
@@ -163,7 +163,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_PulseDelay != value)
 			{
 				_PulseDelay = value;
-				NPC(nameof(PulseDelay));
+				NotifyPropertyChanged(nameof(PulseDelay));
 			}
 		}
 	}
@@ -189,7 +189,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_FlashShowDuration != value)
 			{
 				_FlashShowDuration = value;
-				NPC(nameof(FlashShowDuration));
+				NotifyPropertyChanged(nameof(FlashShowDuration));
 			}
 		}
 	}
@@ -211,7 +211,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_FlashHideDuration != value)
 			{
 				_FlashHideDuration = value;
-				NPC(nameof(FlashHideDuration));
+				NotifyPropertyChanged(nameof(FlashHideDuration));
 			}
 		}
 	}
@@ -234,7 +234,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_ProgressFlowDirection != value)
 			{
 				_ProgressFlowDirection = value;
-				NPC(nameof(ProgressFlowDirection));
+				NotifyPropertyChanged(nameof(ProgressFlowDirection));
 			}
 		}
 	}
@@ -256,7 +256,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_ProgressDuration != value)
 			{
 				_ProgressDuration = value;
-				NPC(nameof(ProgressDuration));
+				NotifyPropertyChanged(nameof(ProgressDuration));
 			}
 		}
 	}
@@ -278,7 +278,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_ProgressSize != value)
 			{
 				_ProgressSize = value;
-				NPC(nameof(ProgressSize));
+				NotifyPropertyChanged(nameof(ProgressSize));
 			}
 		}
 	}
@@ -301,7 +301,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_ScanOrientation != value)
 			{
 				_ScanOrientation = value;
-				NPC(nameof(ScanOrientation));
+				NotifyPropertyChanged(nameof(ScanOrientation));
 			}
 		}
 	}
@@ -321,7 +321,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_ScanIsReversed != value)
 			{
 				_ScanIsReversed = value;
-				NPC(nameof(ScanIsReversed));
+				NotifyPropertyChanged(nameof(ScanIsReversed));
 			}
 		}
 	}
@@ -343,7 +343,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_ScanDuration != value)
 			{
 				_ScanDuration = value;
-				NPC(nameof(ScanDuration));
+				NotifyPropertyChanged(nameof(ScanDuration));
 			}
 		}
 	}
@@ -367,7 +367,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_ScanSize != value)
 			{
 				_ScanSize = value;
-				NPC(nameof(ScanSize));
+				NotifyPropertyChanged(nameof(ScanSize));
 			}
 		}
 	}
@@ -385,7 +385,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_IsEnabled != value)
 			{
 				_IsEnabled = value;
-				NPC(nameof(IsEnabled));
+				NotifyPropertyChanged(nameof(IsEnabled));
 			}
 		}
 	}
@@ -401,7 +401,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_Target != value)
 			{
 				_Target = value;
-				NPC(nameof(Target));
+				NotifyPropertyChanged(nameof(Target));
 			}
 		}
 	}
@@ -417,7 +417,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_StopOnMouseOver != value)
 			{
 				_StopOnMouseOver = value;
-				NPC(nameof(StopOnMouseOver));
+				NotifyPropertyChanged(nameof(StopOnMouseOver));
 			}
 		}
 	}
@@ -434,7 +434,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 			if (_StopOnClick != value)
 			{
 				_StopOnClick = value;
-				NPC(nameof(StopOnClick));
+				NotifyPropertyChanged(nameof(StopOnClick));
 			}
 		}
 	}

@@ -646,7 +646,7 @@ public class MGGrid : MGMultiContentHost
             {
                 _SelectionMode = value;
                 CurrentSelection = HasSelection ? CurrentSelection.Value with { SelectionMode = SelectionMode } : CurrentSelection;
-                NPC(nameof(SelectionMode));
+                NotifyPropertyChanged(nameof(SelectionMode));
             }
         }
     }
@@ -661,7 +661,7 @@ public class MGGrid : MGMultiContentHost
             if (_CanDeselectByClickingSelectedCell != value)
             {
                 _CanDeselectByClickingSelectedCell = value;
-                NPC(nameof(CanDeselectByClickingSelectedCell));
+                NotifyPropertyChanged(nameof(CanDeselectByClickingSelectedCell));
             }
         }
     }
@@ -678,8 +678,8 @@ public class MGGrid : MGMultiContentHost
             if (_CurrentSelection != value)
             {
                 _CurrentSelection = value;
-                NPC(nameof(CurrentSelection));
-                NPC(nameof(HasSelection));
+                NotifyPropertyChanged(nameof(CurrentSelection));
+                NotifyPropertyChanged(nameof(HasSelection));
                 SelectionChanged?.Invoke(this, CurrentSelection);
             }
         }
@@ -759,7 +759,7 @@ public class MGGrid : MGMultiContentHost
             if (_SelectionBackground != value)
             {
                 _SelectionBackground = value;
-                NPC(nameof(SelectionBackground));
+                NotifyPropertyChanged(nameof(SelectionBackground));
             }
         }
     }
@@ -774,7 +774,7 @@ public class MGGrid : MGMultiContentHost
             if (_SelectionOverlay != value)
             {
                 _SelectionOverlay = value;
-                NPC(nameof(SelectionOverlay));
+                NotifyPropertyChanged(nameof(SelectionOverlay));
             }
         }
     }
@@ -792,7 +792,7 @@ public class MGGrid : MGMultiContentHost
             if (_GridLineIntersectionHandling != value)
             {
                 _GridLineIntersectionHandling = value;
-                NPC(nameof(GridLineIntersectionHandling));
+                NotifyPropertyChanged(nameof(GridLineIntersectionHandling));
             }
         }
     }
@@ -809,7 +809,7 @@ public class MGGrid : MGMultiContentHost
             {
                 _GridLinesVisibility = value;
                 CheckIfOuterPaddingChanged();
-                NPC(nameof(GridLinesVisibility));
+                NotifyPropertyChanged(nameof(GridLinesVisibility));
             }
         }
     }
@@ -829,7 +829,7 @@ public class MGGrid : MGMultiContentHost
             {
                 _GridLineMargin = value;
                 CheckIfOuterPaddingChanged();
-                NPC(nameof(GridLineMargin));
+                NotifyPropertyChanged(nameof(GridLineMargin));
             }
         }
     }
@@ -844,7 +844,7 @@ public class MGGrid : MGMultiContentHost
             if (_HorizontalGridLineBrush != value)
             {
                 _HorizontalGridLineBrush = value;
-                NPC(nameof(HorizontalGridLineBrush));
+                NotifyPropertyChanged(nameof(HorizontalGridLineBrush));
             }
         }
     }
@@ -859,7 +859,7 @@ public class MGGrid : MGMultiContentHost
             if (_VerticalGridLineBrush != value)
             {
                 _VerticalGridLineBrush = value;
-                NPC(nameof(VerticalGridLineBrush));
+                NotifyPropertyChanged(nameof(VerticalGridLineBrush));
             }
         }
     }
@@ -895,7 +895,7 @@ public class MGGrid : MGMultiContentHost
             {
                 _RowSpacing = value;
                 LayoutChanged(this, true);
-                NPC(nameof(RowSpacing));
+                NotifyPropertyChanged(nameof(RowSpacing));
             }
         }
     }
@@ -914,7 +914,7 @@ public class MGGrid : MGMultiContentHost
             {
                 _ColumnSpacing = value;
                 LayoutChanged(this, true);
-                NPC(nameof(ColumnSpacing));
+                NotifyPropertyChanged(nameof(ColumnSpacing));
             }
         }
     }

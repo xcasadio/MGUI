@@ -54,7 +54,7 @@ public class MGImage : MGElement
                     Resources.OnTextureRemoved -= Resources_OnTextureAddedRemoved;
                 }
                 _SourceName = value;
-                NPC(nameof(SourceName));
+                NotifyPropertyChanged(nameof(SourceName));
                 if (SourceName != null)
                 {
                     Resources.OnTextureAdded += Resources_OnTextureAddedRemoved;
@@ -86,7 +86,7 @@ public class MGImage : MGElement
             if (_Source != value)
             {
                 _Source = value;
-                NPC(nameof(Source));
+                NotifyPropertyChanged(nameof(Source));
                 UpdateActualSource();
             }
         }
@@ -120,7 +120,7 @@ public class MGImage : MGElement
             {
                 var PreviousSize = ActualSource?.RenderSize;
                 _ActualSource = value;
-                NPC(nameof(ActualSource));
+                NotifyPropertyChanged(nameof(ActualSource));
                 if (ActualSource?.RenderSize != PreviousSize)
                 {
                     LayoutChanged(this, true);
@@ -140,7 +140,7 @@ public class MGImage : MGElement
             if (_TextureColor != value)
             {
                 _TextureColor = value;
-                NPC(nameof(TextureColor));
+                NotifyPropertyChanged(nameof(TextureColor));
             }
         }
     }
@@ -162,7 +162,7 @@ public class MGImage : MGElement
             if (_UseLinearFilteringWhenDownscaling != value)
             {
                 _UseLinearFilteringWhenDownscaling = value;
-                NPC(nameof(UseLinearFilteringWhenDownscaling));
+                NotifyPropertyChanged(nameof(UseLinearFilteringWhenDownscaling));
             }
         }
     }
@@ -190,7 +190,7 @@ public class MGImage : MGElement
             if (_Stretch != value)
             {
                 _Stretch = value;
-                NPC(nameof(Stretch));
+                NotifyPropertyChanged(nameof(Stretch));
                 LayoutChanged(this, true);
             }
         }
@@ -207,7 +207,7 @@ public class MGImage : MGElement
             if (_StretchDirection != value)
             {
                 _StretchDirection = value;
-                NPC(nameof(StretchDirection));
+                NotifyPropertyChanged(nameof(StretchDirection));
                 LayoutChanged(this, true);
             }
         }

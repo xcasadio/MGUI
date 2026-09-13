@@ -17,7 +17,7 @@ public class MGRotatedTextLabel : MGElement
             {
                 _text = value;
                 LayoutChanged(this, true);
-                NPC(nameof(Text));
+                NotifyPropertyChanged(nameof(Text));
             }
         }
     }
@@ -32,7 +32,7 @@ public class MGRotatedTextLabel : MGElement
             {
                 _fontSize = value;
                 LayoutChanged(this, true);
-                NPC(nameof(FontSize));
+                NotifyPropertyChanged(nameof(FontSize));
             }
         }
     }
@@ -46,7 +46,7 @@ public class MGRotatedTextLabel : MGElement
             if (_textColor != value)
             {
                 _textColor = value;
-                NPC(nameof(TextColor));
+                NotifyPropertyChanged(nameof(TextColor));
             }
         }
     }
@@ -60,7 +60,7 @@ public class MGRotatedTextLabel : MGElement
             if (_rotationRadians != value)
             {
                 _rotationRadians = value;
-                NPC(nameof(RotationRadians));
+                NotifyPropertyChanged(nameof(RotationRadians));
             }
         }
     }

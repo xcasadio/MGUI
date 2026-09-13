@@ -29,8 +29,8 @@ public class MGRadioButtonGroup : ViewModelBase
             if (_AllowUnchecking != value)
             {
                 _AllowUnchecking = value;
-                NPC(nameof(AllowUnchecking));
-                NPC(nameof(ActualAllowUnchecking));
+                NotifyPropertyChanged(nameof(AllowUnchecking));
+                NotifyPropertyChanged(nameof(ActualAllowUnchecking));
             }
         }
     }
@@ -54,8 +54,8 @@ public class MGRadioButtonGroup : ViewModelBase
                     CheckedItem ??= _RadioButtons.FirstOrDefault();
                 }
 
-                NPC(nameof(AllowNullCheckedItem));
-                NPC(nameof(ActualAllowUnchecking));
+                NotifyPropertyChanged(nameof(AllowNullCheckedItem));
+                NotifyPropertyChanged(nameof(ActualAllowUnchecking));
             }
         }
     }
@@ -72,11 +72,11 @@ public class MGRadioButtonGroup : ViewModelBase
             {
                 var Previous = CheckedItem;
                 _CheckedItem = Value;
-                Previous?.NPC(nameof(MGRadioButton.IsChecked));
-                CheckedItem?.NPC(nameof(MGRadioButton.IsChecked));
+                Previous?.NotifyPropertyChanged(nameof(MGRadioButton.IsChecked));
+                CheckedItem?.NotifyPropertyChanged(nameof(MGRadioButton.IsChecked));
                 Previous?.HandleCheckStateChanged();
                 CheckedItem?.HandleCheckStateChanged();
-                NPC(nameof(CheckedItem));
+                NotifyPropertyChanged(nameof(CheckedItem));
                 CheckedItemChanged?.Invoke(this, new EventArgs<MGRadioButton>(Previous, CheckedItem));
             }
         }
@@ -160,7 +160,7 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
                 ButtonElement.PreferredHeight = ButtonSize.Height;
                 IndicatorElement.PreferredWidth = ButtonSize.Width;
                 IndicatorElement.PreferredHeight = ButtonSize.Height;
-                NPC(nameof(BubbleComponentSize));
+                NotifyPropertyChanged(nameof(BubbleComponentSize));
             }
         }
     }
@@ -180,7 +180,7 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     IndicatorElement.BorderColor = value;
                 }
-                NPC(nameof(BubbleComponentBorderColor));
+                NotifyPropertyChanged(nameof(BubbleComponentBorderColor));
             }
         }
     }
@@ -202,7 +202,7 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     IndicatorElement.BorderThickness = value;
                 }
-                NPC(nameof(BubbleComponentBorderThickness));
+                NotifyPropertyChanged(nameof(BubbleComponentBorderThickness));
             }
         }
     }
@@ -222,7 +222,7 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     IndicatorElement.Background = value;
                 }
-                NPC(nameof(BubbleComponentBackground));
+                NotifyPropertyChanged(nameof(BubbleComponentBackground));
             }
         }
     }
@@ -244,7 +244,7 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
                 {
                     IndicatorElement.CheckedColor = value;
                 }
-                NPC(nameof(BubbleCheckedColor));
+                NotifyPropertyChanged(nameof(BubbleCheckedColor));
             }
         }
     }
@@ -260,7 +260,7 @@ public class MGRadioButton : MGSingleContentHost, Animation.States.IUICheckable
             if (SpacingWidth != value)
             {
                 ButtonElement.SetMargin(ButtonElement.Margin.ChangeRight(value), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-                NPC(nameof(SpacingWidth));
+                NotifyPropertyChanged(nameof(SpacingWidth));
             }
         }
     }

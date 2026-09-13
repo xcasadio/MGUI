@@ -24,7 +24,7 @@ public class MGDockPanel : MGMultiContentHost
             {
                 _LastChildFill = value;
                 LayoutChanged(this, true);
-                NPC(nameof(LastChildFill));
+                NotifyPropertyChanged(nameof(LastChildFill));
             }
         }
     }
