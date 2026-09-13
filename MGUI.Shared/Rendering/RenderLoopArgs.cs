@@ -37,6 +37,15 @@ namespace MGUI.Shared.Rendering
         /// via a <see langword="with"/> expression once per frame.</summary>
         public IPaintUpdateRegistry PaintRegistry { get; init; }
 
+        /// <summary>The animation clock's delta for this frame (U10), already scaled by <c>TimeScale</c> and zero while the clock is
+        /// paused: what a stateful paint (<see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGHighlightBorderBrush"/>) advances by instead of
+        /// <see cref="FrameElapsed"/>, so it follows the same pause/speed as the engine's animations. Not part of the positional
+        /// constructor, same reason as <see cref="PaintRegistry"/>; defaults to <see langword="null"/> (a host that does not provide it,
+        /// or builds its own <see cref="UpdateBaseArgs"/>, keeps the wall-clock <see cref="FrameElapsed"/> behaviour). Set by
+        /// <see cref="MGUI.Core.UI.MGDesktop.Update"/> via the same <see langword="with"/> expression as <see cref="PaintRegistry"/>,
+        /// after <c>Animations.Update</c> advances the clock for the frame.</summary>
+        public TimeSpan? AnimationDeltaTime { get; init; }
+
         public UpdateBaseArgs GetTranslated(int MouseXOffset, int MouseYOffset)
         {
             MouseState MS = MouseState;

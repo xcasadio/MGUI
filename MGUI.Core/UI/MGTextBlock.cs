@@ -12,6 +12,9 @@ using MGUI.Shared.Input.Mouse;
 using MGUI.Core.UI.Responsive;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.Brushes.FillBrushes;
+using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.Easing;
+using MGUI.Core.UI.Animation.Targets;
 
 namespace MGUI.Core.UI;
 
@@ -673,7 +676,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// If <see langword="null"/>, all <see cref="Text"/> will be drawn.<para/>
     /// Min value: 0.0 (0%)<br/>Max value: 1.0 (100%)<para/>
     /// Default value: <see langword="null"/><para/>
-    /// See also: <see cref="TextCharactersPerSecond"/></summary>
+    /// See also: <see cref="TextCharactersPerSecond"/><para/>
+    /// U10: while <see cref="TextCharactersPerSecond"/> drives the reveal, the value is written by an animation engine run on
+    /// <c>TextBlock.TextProgress</c> (<see cref="ApplyAnimatedTextProgress"/>). A direct write here (application code, not the run
+    /// itself) seeks that reveal instead of cancelling it for good: 0 replays it from the start, a fraction below 1 continues the
+    /// reveal from that point (remaining duration retargeted, no backward jump), <see langword="null"/> shows the whole text and
+    /// stops the run, 1 holds the text complete and stops the run.</summary>
     public double? TextProgress
     {
         get => _TextProgress;
@@ -683,6 +691,11 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 _TextProgress = value;
                 NotifyPropertyChanged(nameof(TextProgress));
+
+                if (!_IsApplyingAnimatedTextProgress)
+                {
+                    SyncTextProgressAnimation();
+                }
             }
         }
     }
@@ -693,7 +706,13 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// If not <see langword="null"/>, this will automatically update <see cref="TextProgress"/>.<br/>
     /// This property is typically used to make text appear slowly over time, such as to mimic an NPC speaking. (Note: People typically speak at a rate of about 17 CPS)<para/>
     /// Default value: <see langword="null"/><para/>
-    /// See also: <see cref="TextProgress"/></summary>
+    /// See also: <see cref="TextProgress"/><para/>
+    /// U10: the reveal runs on the animation engine (<see cref="SyncTextProgressAnimation"/>), following <see cref="MGDesktop.Animations"/>'
+    /// clock (pause and <c>TimeScale</c> apply). Setting a null or non-positive speed cancels the run and shows the whole text (as before);
+    /// enabling a speed for the first time (from a null speed) starts the reveal at 0; changing an already-active speed keeps the current
+    /// progress and just retargets the remaining duration (no jump, no restart). A speed change after the reveal has completed
+    /// (<see cref="TextProgress"/> already 1) keeps it at 1: it does not restart the reveal. Replay it with <see cref="TextProgress"/>
+    /// set to 0, or with a <see cref="Text"/> change.</summary>
     public double? TextCharactersPerSecond
     {
         get => _TextCharactersPerSecond;
@@ -701,11 +720,117 @@ public class MGTextBlock : MGElement, ITextMeasurer
         {
             if (_TextCharactersPerSecond != value)
             {
+                var HadValue = _TextCharactersPerSecond.HasValue;
                 _TextCharactersPerSecond = value;
                 NotifyPropertyChanged(nameof(TextCharactersPerSecond));
-                TextProgress = TextCharactersPerSecond.HasValue ? 0.0 : null;
+
+                if (!value.HasValue || value.Value <= 0)
+                {
+                    TextProgress = null;
+                }
+                else if (!HadValue)
+                {
+                    TextProgress = 0.0;
+                }
+                //  else: a speed change while already revealing keeps the current progress; SyncTextProgressAnimation retargets the
+                //  remaining duration from where it is (no jump).
+
+                SyncTextProgressAnimation();
             }
         }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TextRevealRun _TextRevealAnimation;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _IsApplyingAnimatedTextProgress;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _IsTextRevealSyncPending;
+
+    /// <summary>The name of the animation that <see cref="TextCharactersPerSecond"/> runs on <c>TextBlock.TextProgress</c> (U10;
+    /// visible in the element debug view).</summary>
+    internal const string TextRevealAnimationName = "TextBlock.TextReveal";
+
+    /// <summary>The run behind the typewriter reveal (U10): a forced restore (element detached, window closed,
+    /// <see cref="UIAnimationCollection.Clear"/>) keeps the current progress like a pause does; real progress is never rewound.</summary>
+    private sealed class TextRevealRun : UIPropertyAnimation<double>
+    {
+        public TextRevealRun()
+            : base(UIBuiltInAnimationTargets.Paths.TextBlockTextProgress) { }
+
+        protected internal override void OnRestoreBaseValue() { }
+    }
+
+    /// <summary>Writes <see cref="TextProgress"/> on behalf of the reveal animation (U10): such a write never cancels or retargets the
+    /// run that is currently writing it.</summary>
+    internal void ApplyAnimatedTextProgress(double progress)
+    {
+        _IsApplyingAnimatedTextProgress = true;
+        try
+        {
+            TextProgress = progress;
+        }
+        finally
+        {
+            _IsApplyingAnimatedTextProgress = false;
+        }
+    }
+
+    private void CancelTextRevealAnimation()
+    {
+        if (_TextRevealAnimation != null && _TextRevealAnimation.IsActive)
+        {
+            _TextRevealAnimation.Cancel();
+        }
+    }
+
+    /// <summary>Starts, retargets or cancels the run that drives <see cref="TextProgress"/> from its current value to 1.0 over the
+    /// remaining share of the reveal (U10: engine replaces the per-frame increment previously done in <see cref="UpdateSelf"/>).
+    /// Linear, the end value stays at 1.0 (whole text drawn), a replaced or cancelled run keeps the current progress. Also the seek
+    /// entry point for a direct <see cref="TextProgress"/> write: a value of 0 replays the reveal, a fraction below 1 continues it
+    /// from there. Nothing runs (cancels instead) while the text block is outside a tree, while it has no characters, while
+    /// <see cref="TextCharactersPerSecond"/> is null or non-positive, or while <see cref="TextProgress"/> is <see langword="null"/>
+    /// or already at/above 1.0 (whole text shown, or reveal held complete).</summary>
+    private void SyncTextProgressAnimation()
+    {
+        if (_IsApplyingAnimatedTextProgress)
+        {
+            _IsTextRevealSyncPending = true;
+            return;
+        }
+
+        var Speed = TextCharactersPerSecond;
+        var Progress = TextProgress;
+        var ShouldRun = Parent != null && Speed is double S && S > 0.0 && NumCharacters > 0 && Progress is double P && P < 1.0;
+        if (!ShouldRun)
+        {
+            CancelTextRevealAnimation();
+            return;
+        }
+
+        if (GetDesktop()?.Animations == null)
+        {
+            // No desktop yet: UpdateSelf resolves the pending sync on the first frame.
+            _IsTextRevealSyncPending = true;
+            return;
+        }
+
+        var From = Progress.Value;
+        var RemainingCharacters = (1.0 - From) * NumCharacters;
+        var RemainingSeconds = RemainingCharacters / Speed.Value;
+        _IsTextRevealSyncPending = false;
+        _TextRevealAnimation = new TextRevealRun
+        {
+            From = From,
+            To = 1.0,
+            Duration = TimeSpan.FromSeconds(RemainingSeconds),
+            Easing = UIEasing.Linear,
+            Name = TextRevealAnimationName,
+            FillBehavior = UIAnimationFillBehavior.HoldEnd,
+            CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
+            InheritsBaseValue = false,
+        };
+        Animations.Start(_TextRevealAnimation);
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -799,6 +924,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
             ApplyTextMutation(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
 
             NotifyPropertyChanged(nameof(Text));
+
+            //  U10: an actual Text change restarts the reveal at 0 with the new length (ApplyTextMutation already refreshed
+            //  NumCharacters via UpdateRuns); setting the identical string does not reach this branch, so it never restarts.
+            if (TextCharactersPerSecond.HasValue)
+            {
+                TextProgress = 0.0;
+            }
+            SyncTextProgressAnimation();
         }
     }
 
@@ -1232,6 +1365,16 @@ public class MGTextBlock : MGElement, ITextMeasurer
             TextProgress = null;
             TextCharactersPerSecond = null;
 
+            //  U10: the reveal run only exists while the text block is in a tree (a detached element is not updated); joining a
+            //  tree with a pending reveal (re)starts it, mirroring MGProgressButton's Duration run.
+            OnParentChanged += (sender, e) =>
+            {
+                if (e.NewValue != null)
+                {
+                    SyncTextProgressAnimation();
+                }
+            };
+
             OnLayoutUpdated += (sender, e) => { UpdateLines(); };
         }
     }
@@ -1383,19 +1526,20 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     public override void UpdateSelf(ElementUpdateArgs UA)
     {
+        //  U10: the reveal run is driven by the animation engine (SyncTextProgressAnimation); a sync requested before a desktop was
+        //  reachable, or from inside the run's own write, is resolved here, after this frame's manager tick (same pattern as
+        //  MGProgressButton.SyncDurationAnimation).
+        if (_IsTextRevealSyncPending)
+        {
+            _IsTextRevealSyncPending = false;
+            SyncTextProgressAnimation();
+        }
+
         base.UpdateSelf(UA);
 
         if (ActionBounds.Any())
         {
             ActionBounds.Clear();
-        }
-
-        //  Update TextProgress (makes the Text appear slowly over time instead of all at once)
-        if (TextCharactersPerSecond.HasValue && NumCharacters > 0 && (!TextProgress.HasValue || TextProgress.Value < 1.0))
-        {
-            var ElapsedCharacters = UA.BA.FrameElapsed.TotalSeconds * TextCharactersPerSecond.Value;
-            var ElapsedProgress = ElapsedCharacters / NumCharacters;
-            TextProgress = TextProgress.HasValue ? TextProgress.Value + ElapsedProgress : ElapsedProgress;
         }
     }
 

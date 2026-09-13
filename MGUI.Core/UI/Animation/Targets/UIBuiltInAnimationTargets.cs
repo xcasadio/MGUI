@@ -31,6 +31,9 @@ public static class UIBuiltInAnimationTargets
         public const string MinHeight = "MinHeight";
         /// <summary>The value of an <see cref="MGProgressButton"/> (T6): what <see cref="MGProgressButton.Duration"/> drives; any other element is refused.</summary>
         public const string ProgressButtonValue = "ProgressButton.Value";
+        /// <summary>The typewriter reveal progress of an <see cref="MGTextBlock"/> (U10): what <see cref="MGTextBlock.TextCharactersPerSecond"/> drives;
+        /// any other element is refused.</summary>
+        public const string TextBlockTextProgress = "TextBlock.TextProgress";
     }
 
     private static bool _Registered;
@@ -57,6 +60,7 @@ public static class UIBuiltInAnimationTargets
             UIAnimationTargets.Register(new PaddingTarget());
             UIAnimationTargets.Register(new MinHeightTarget());
             UIAnimationTargets.Register(new ProgressButtonValueTarget());
+            UIAnimationTargets.Register(new TextBlockTextProgressTarget());
             UIColorAnimationTargets.RegisterAll();
             UIExtraAnimationTargets.RegisterAll();
         }
@@ -178,6 +182,24 @@ public static class UIBuiltInAnimationTargets
         private static MGProgressButton Require(MGElement element)
             => element as MGProgressButton ?? throw new InvalidOperationException(
                 $"'{Paths.ProgressButtonValue}' animates the value of an {nameof(MGProgressButton)}; {element.GetType().Name} has none.");
+    }
+
+    /// <summary><c>TextBlock.TextProgress</c> (U10): a plain target over <see cref="MGTextBlock.TextProgress"/> driving the typewriter reveal
+    /// that <see cref="MGTextBlock.TextCharactersPerSecond"/> configures; the writes go through <see cref="MGTextBlock.ApplyAnimatedTextProgress"/>
+    /// so the text block does not retarget its own reveal run on them. Not observable: a transition on this path would compete with the reveal
+    /// run, so it is refused. Refused on any other element.</summary>
+    private sealed class TextBlockTextProgressTarget : IUIAnimationTarget<double>
+    {
+        public string Path => Paths.TextBlockTextProgress;
+        public bool IsStoreBacked => false;
+        public Type RequiredOwnerType => typeof(MGTextBlock);
+        public double GetValue(MGElement element) => Require(element).TextProgress ?? 1.0;
+        public void SetValue(MGElement element, double value, string animationName) => Require(element).ApplyAnimatedTextProgress(value);
+        public void RestoreBaseValue(MGElement element, double baseValue) => Require(element).ApplyAnimatedTextProgress(baseValue);
+
+        private static MGTextBlock Require(MGElement element)
+            => element as MGTextBlock ?? throw new InvalidOperationException(
+                $"'{Paths.TextBlockTextProgress}' animates the text reveal of an {nameof(MGTextBlock)}; {element.GetType().Name} has none.");
     }
 
     private sealed class MarginTarget : IUIObservableAnimationTarget<Thickness>, IUIStoreBackedAnimationTarget<Thickness>

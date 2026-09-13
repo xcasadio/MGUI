@@ -34,6 +34,7 @@ public class TargetApplicabilityTests
         [UIBuiltInAnimationTargets.Paths.Padding] = null,
         [UIBuiltInAnimationTargets.Paths.MinHeight] = null,
         [UIBuiltInAnimationTargets.Paths.ProgressButtonValue] = typeof(MGProgressButton),
+        [UIBuiltInAnimationTargets.Paths.TextBlockTextProgress] = typeof(MGTextBlock),
         [UIColorAnimationTargets.Paths.Background] = null,
         [UIColorAnimationTargets.Paths.BackgroundSelected] = null,
         [UIColorAnimationTargets.Paths.BackgroundDisabled] = null,

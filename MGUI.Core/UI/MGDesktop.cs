@@ -1386,7 +1386,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         //  One Update() call == one frame == one reset of the paint dedup registry, so a stateful paint shared by
         //  reference across several slots/elements is ticked exactly once this frame regardless of how many places reference it.
         PaintUpdateRegistry.Clear();
-        var BA = Runtime.UpdateArgs with { PaintRegistry = PaintUpdateRegistry };
+        var BA = Runtime.UpdateArgs with { PaintRegistry = PaintUpdateRegistry, AnimationDeltaTime = Animations.Clock.DeltaTime };
 
         using (UIPerformanceProbe.BeginDesktopPhase("InputModeAndFocus"))
         {

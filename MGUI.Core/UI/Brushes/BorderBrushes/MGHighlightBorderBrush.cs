@@ -496,7 +496,10 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 				_ => throw new NotImplementedException($"Unrecognized {nameof(HighlightAnimation)}: {AnimationType}")
 			};
 
-			var ElapsedPercent = UA.FrameElapsed / CycleDuration;
+			//  U10: follows MGDesktop.Animations.Clock (scaled, zero while paused) when the host provides it; a host that builds its
+			//  own UpdateBaseArgs (AnimationDeltaTime null) keeps the previous wall-clock FrameElapsed behaviour.
+			var Delta = UA.AnimationDeltaTime ?? UA.FrameElapsed;
+			var ElapsedPercent = Delta / CycleDuration;
 			AnimationProgress += ElapsedPercent;
 		}
 	}
