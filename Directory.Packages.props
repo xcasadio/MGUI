@@ -10,7 +10,7 @@
     <PackageVersion Include="MonoGame.Extended.Content.Pipeline" Version="6.1.1" />
     <PackageVersion Include="Portable.Xaml" Version="0.26.*" />
     <PackageVersion Include="Prism.Core" Version="8.*" />
-    <PackageVersion Include="FontStashSharp.MonoGame" Version="1.*" />
+    <PackageVersion Include="FontStashSharp.MonoGame" Version="1.5.7" />
     <PackageVersion Include="Microsoft.VisualStudio.VsixColorCompiler" Version="17.*" />
     <PackageVersion Include="SpriteFontPlus" Version="0.*" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
