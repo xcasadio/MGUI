@@ -37,6 +37,8 @@ public sealed class UIVisualState : IEnumerable<UIVisualStateSetter>
 {
     private readonly List<UIVisualStateSetter> _Setters = new();
 
+    private bool _OverridesLocalValue;
+
     public UIVisualState(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -48,6 +50,27 @@ public sealed class UIVisualState : IEnumerable<UIVisualStateSetter>
     }
 
     public string Name { get; }
+
+    /// <summary>
+    /// ADR-0008, decision 4. Default false. When true, this state's pilot setters are written at
+    /// <see cref="UIValuePrecedence.VisualStateOverride"/> (95, <see cref="UIValueSourceKind.VisualState"/> unchanged) instead of the ordinary
+    /// <see cref="UIValuePrecedence.VisualState"/> (70): the state then wins over a <see cref="UIValueSourceKind.LocalValue"/> or
+    /// <see cref="UIValueSourceKind.LocalBinding"/> write, but never over a running <see cref="UIValueSourceKind.Animation"/>. Applies to every
+    /// setter of the state (per-state granularity, not per-setter). Only meaningful for a store-backed (pilot) setter: a setter on a plain
+    /// property (no store to write into) still writes straight through the target as before, flag or not.
+    /// </summary>
+    public bool OverridesLocalValue
+    {
+        get => _OverridesLocalValue;
+        set
+        {
+            _OverridesLocalValue = value;
+            for (var i = 0; i < _Setters.Count; i++)
+            {
+                _Setters[i].Applier.OverridesLocalValue = value;
+            }
+        }
+    }
 
     /// <summary>The setters, in the order they were added; a second setter for a path replaces the first.</summary>
     public IReadOnlyList<UIVisualStateSetter> Setters => _Setters;
@@ -62,6 +85,8 @@ public sealed class UIVisualState : IEnumerable<UIVisualStateSetter>
         {
             throw new ArgumentNullException(nameof(setter));
         }
+
+        setter.Applier.OverridesLocalValue = _OverridesLocalValue;
 
         var existing = _Setters.FindIndex(x => string.Equals(x.Path, setter.Path, StringComparison.OrdinalIgnoreCase));
         if (existing >= 0)
@@ -140,6 +165,10 @@ internal abstract class UIVisualStateApplier
         }
     }
 
+    /// <summary>ADR-0008, decision 4: set by the owning <see cref="UIVisualState.OverridesLocalValue"/> (propagated on <see cref="UIVisualState.Add(UIVisualStateSetter)"/>
+    /// and on every later change of the flag); ignored by a plain (non pilot-backed) setter, which always writes straight through its target.</summary>
+    internal bool OverridesLocalValue { get; set; }
+
     /// <summary>Writes the setter's value on <paramref name="element"/> for the state <paramref name="stateName"/>.</summary>
     public abstract void Apply(MGElement element, string stateName, Dictionary<string, object> bases);
 
@@ -156,6 +185,7 @@ internal sealed class UIVisualStateApplier<T> : UIVisualStateApplier
     private readonly IUIObservableAnimationTarget<T> _Observable;
     private string _LastStateName;
     private UIValueResolutionSource _LastSource;
+    private bool _LastOverrides;
 
     public UIVisualStateApplier(string path, object value)
     {
@@ -181,10 +211,13 @@ internal sealed class UIVisualStateApplier<T> : UIVisualStateApplier
 
         if (_StoreTarget != null)
         {
-            if (!ReferenceEquals(stateName, _LastStateName))
+            if (!ReferenceEquals(stateName, _LastStateName) || OverridesLocalValue != _LastOverrides)
             {
                 _LastStateName = stateName;
-                _LastSource = UIValueResolutionSource.VisualState(UIPilotPropertyResolver.KindOf(_StoreTarget.Pilot), "visualstate:" + stateName);
+                _LastOverrides = OverridesLocalValue;
+                var precedence = OverridesLocalValue ? UIValuePrecedence.VisualStateOverride : UIValuePrecedence.VisualState;
+                _LastSource = new UIValueResolutionSource(
+                    UIValueSourceKind.VisualState, precedence, UIPilotPropertyResolver.KindOf(_StoreTarget.Pilot), "visualstate:" + stateName);
             }
 
             _StoreTarget.SetValue(element, _Value, _LastSource);

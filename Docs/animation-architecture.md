@@ -144,6 +144,8 @@ Base : la base d'un chemin est memorisee a la premiere ecriture d'un etat (une s
 
 Limites : une valeur locale (90) l'emporte sur un setter d'etat nomme sur un pilote (precedence ADR-0005 : l'etat est enregistre mais dormant, `ALocalValue_ShadowsANamedStateOnAPilot`) ; les etats sont donc faits pour des fonds venant du theme, d'un style ou d'un template. Un setter ajoute ou remplace n'est reapplique qu'au prochain changement de nom (pas de refresh a chaud, sauf remplacement de l'etat courant qui le restaure d'abord). L'echelle d'etat `RenderScale` de V1 et les etats nommes coexistent : ils ecrivent des chemins differents. `Checked` se lit sur `IUICheckable.IsChecked == true` (une case indeterminee n'est pas cochee).
 
+`UIVisualState.OverridesLocalValue` (U4, ADR-0008 decision 4) : leve la limite ci-dessus quand on le demande explicitement. Par defaut faux (inchange). Mis a vrai, tous les setters de CET etat (granularite par etat, pas par setter) sont ecrits au palier `UIValuePrecedence.VisualStateOverride` (95, genre `VisualState` inchange) au lieu du palier ordinaire (70) : l'etat l'emporte alors sur une `LocalValue` (90) et sur une `LocalBinding` (80), mais jamais sur une `Animation` (100) qui garde la main pendant sa duree et rend la couleur de l'etat des qu'elle se termine (`RestoreBaseValue`) ou qu'on la vide (`Clear`). Le drapeau ne change rien pour un setter sur une propriete simple (aucun store en dessous a l'entree) : il ecrit toujours a travers la cible comme avant. En XAML, `VisualStateDefinition.OverridesLocalValue` (defaut faux) transfere le drapeau, sur un etat de l'element comme sur un etat de style. Diagnostic : `UIToolingService`/`TryGetResolvedValueSource` rapporte le palier 95 sans changement de code (la precedence est deja portee par `UIValueResolutionSource`).
+
 ## XAML
 
 DTO `MGUI.Core/UI/XAML/Animation.cs` :
@@ -177,6 +179,8 @@ Etats visuels nommes (`VisualStateDefinition`, T5) :
 ```
 
 Le `Setter` est celui des styles ; `Property` est un chemin de cible et `Value` est converti par le type de la cible a l'ajout du setter (float, int, vecteur `x,y` ou nombre unique, couleur, epaisseur) : chemin inconnu, valeur invalide ou cible sans forme XAML (les gradients) sont des diagnostics du loader qui nomment le chemin et la valeur.
+
+`VisualStateDefinition.OverridesLocalValue` (U4, defaut faux) transfere `UIVisualState.OverridesLocalValue` (voir plus haut) : `<VisualStateDefinition Name="Checked" OverridesLocalValue="True">...` fait gagner cet etat sur une valeur locale et une liaison locale, jamais sur une animation. Marche pareil dans `<Element.VisualStates>` et dans `<Style.VisualStates>`.
 
 ## Styles et themes
 

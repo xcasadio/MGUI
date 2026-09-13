@@ -55,16 +55,17 @@ Le pipeline repose sur cinq couches:
 `UIValuePrecedence` (MGUI.Core/UI/Styling/UIValuePrecedence.cs), du plus fort au plus faible:
 
 1. `Animation` (100)
-2. `LocalValue` (90)
-3. `LocalBinding` (80)
-4. `VisualState` (70)
-5. `Template` (60)
-6. `ExplicitStyle` (50)
-7. `ImplicitStyle` (40)
-8. `DynamicResource` (30)
-9. `Theme` (20)
-10. `Inherited` (10)
-11. `DefaultValue` (0)
+2. `VisualStateOverride` (95) -- un etat nomme declare avec `OverridesLocalValue` (U4, ADR-0008 decision 4) ; genre toujours `VisualState`
+3. `LocalValue` (90)
+4. `LocalBinding` (80)
+5. `VisualState` (70)
+6. `Template` (60)
+7. `ExplicitStyle` (50)
+8. `ImplicitStyle` (40)
+9. `DynamicResource` (30)
+10. `Theme` (20)
+11. `Inherited` (10)
+12. `DefaultValue` (0)
 
 ### Ou vit la precedence reelle
 

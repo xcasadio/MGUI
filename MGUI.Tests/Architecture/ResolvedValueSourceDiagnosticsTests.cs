@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using MGUI.Core.UI;
+using MGUI.Core.UI.Animation.States;
+using MGUI.Core.UI.Animation.Targets;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Styling;
@@ -302,6 +304,27 @@ public class ResolvedValueSourceDiagnosticsTests
         Assert.True(directWindow.TryGetResolvedValueSource(UIPilotProperty.Padding, UIValueSlot.Whole, out UIValueResolutionSource directSource));
         Assert.Equal(UIValueSourceKind.LocalValue, directSource.Kind);
         Assert.Equal(new Thickness(7), directWindow.Padding);
+    }
+
+    /// <summary>(8) U4 (ADR-0008, decision 4): the diagnostic read reports <see cref="UIValuePrecedence.VisualStateOverride"/> (95) for an
+    /// overriding named state, distinct from the ordinary <see cref="UIValuePrecedence.VisualState"/> (70) it would otherwise report.</summary>
+    [Fact]
+    public void TryGetResolvedValueSource_Reports_VisualStateOverride_ForAnOverridingNamedState()
+    {
+        Harness harness = Harness.Create();
+        MGToggleButton toggle = new(harness.Window);
+        harness.Show(toggle);
+
+        UIVisualState checkedState = new(UIVisualStateNames.Checked) { { UIColorAnimationTargets.Paths.Background, Color.Green } };
+        checkedState.OverridesLocalValue = true;
+        toggle.VisualStates.Add(checkedState);
+
+        toggle.IsChecked = true;
+        harness.Frame(2, Point.Zero);
+
+        Assert.True(toggle.TryGetResolvedValueSource(UIPilotProperty.Background, UIValueSlot.Normal, out UIValueResolutionSource source));
+        Assert.Equal(UIValueSourceKind.VisualState, source.Kind);
+        Assert.Equal(UIValuePrecedence.VisualStateOverride, source.Precedence);
     }
 
     private readonly record struct Harness(GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window)

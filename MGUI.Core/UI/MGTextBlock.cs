@@ -385,13 +385,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     /// <summary>Tagged write of one <see cref="Color"/>? sub-slot (<see cref="UIValueSlot.Normal"/>,
     /// <see cref="UIValueSlot.Selected"/>, <see cref="UIValueSlot.Disabled"/> or <see cref="UIValueSlot.Focused"/>) (R3).
-    /// This container has no <see cref="UIValueSlot.FocusedColor"/> sub-slot.</summary>
+    /// This container has no <see cref="UIValueSlot.FocusedColor"/> sub-slot. See <see cref="MGElement.SetBackgroundSlot"/>
+    /// (fix round 2: gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
     internal void SetForegroundSlot(UIValueSlot slot, Color? value, UIValueResolutionSource source)
     {
         ValidateForegroundSlot(slot);
 
-        ResolvedValues.Set(UIPilotProperty.Foreground, slot, value, source, EqualityComparer<Color?>.Default, out _, out var effective);
-        if (effective.Source.Kind == source.Kind && IsForegroundSubSlotApplicable(effective.Source.Precedence))
+        ResolvedValues.Set(UIPilotProperty.Foreground, slot, value, source, EqualityComparer<Color?>.Default, out var effectiveChanged, out var effective);
+        if ((effectiveChanged || effective.Source.Kind == source.Kind) && IsForegroundSubSlotApplicable(effective.Source.Precedence))
             ApplyForegroundSlotPhysical(slot, effective.Value);
     }
 

@@ -1544,24 +1544,38 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     /// <summary>Tagged write of one <see cref="VisualStateFillBrush"/> brush sub-slot (<see cref="UIValueSlot.Normal"/>,
     /// <see cref="UIValueSlot.Selected"/>, <see cref="UIValueSlot.Disabled"/> or <see cref="UIValueSlot.Focused"/>) (R3):
-    /// records the contribution, then -- only if it is the slot's winner AND its precedence is at least the current
-    /// Whole winner's precedence -- writes the sub-field on the container this element currently holds, under
+    /// records the contribution, then -- only if the WINNER actually changed (<paramref name="value"/> is now the
+    /// applicable value where it was not before) AND its precedence is at least the current Whole winner's precedence
+    /// -- writes the sub-field on the container this element currently holds, under
     /// <see cref="_suppressBackgroundContainerNotify"/>. A contribution below the container's own precedence is
-    /// recorded but stays dormant (see <see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>).</summary>
+    /// recorded but stays dormant (see <see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>).<para/>
+    /// Fix round 1 (U4): gating on <c>effectiveChanged</c> rather than "this call's own kind is the winner" matters
+    /// once a kind's precedence can vary (<see cref="UIValueSourceKind.VisualState"/>, plain vs
+    /// <see cref="UIValuePrecedence.VisualStateOverride"/>): a state leaving an overriding precedence for the plain one
+    /// on the same path replaces its OWN contribution via <see cref="UIResolvedPropertyStore.Set{T}"/>, which can hand
+    /// the win to a DIFFERENT, already-recorded kind (e.g. a local value shadowed under the override) -- that change
+    /// must still reach the physical field even though the writer's own kind is not the new winner.<para/>
+    /// Fix round 2 (U4): <c>effectiveChanged</c> alone is NOT a strict superset of the old kind-match gate -- when the
+    /// current winner rewrites its own, value-equal, contribution (e.g. a settled animation or a re-applied state
+    /// writing the same colour again), <c>effectiveChanged</c> is false and a stale value written earlier by an
+    /// untagged facade call to this same sub-slot (at a lower precedence, recorded but never physically applied)
+    /// stays on the physical field. The OR re-adds the old gate as a fallback so the winner always gets to re-sync
+    /// the physical field to its own current value even when that value did not just change.</summary>
     internal void SetBackgroundSlot(UIValueSlot slot, IFillBrush value, UIValueResolutionSource source)
     {
         ValidateBackgroundBrushSlot(slot);
 
-        ResolvedValues.Set(UIPilotProperty.Background, slot, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out UIResolvedValue<IFillBrush> effective);
-        if (effective.Source.Kind == source.Kind && IsBackgroundSubSlotApplicable(effective.Source.Precedence))
+        ResolvedValues.Set(UIPilotProperty.Background, slot, value, source, System.Collections.Generic.ReferenceEqualityComparer.Instance, out var effectiveChanged, out UIResolvedValue<IFillBrush> effective);
+        if ((effectiveChanged || effective.Source.Kind == source.Kind) && IsBackgroundSubSlotApplicable(effective.Source.Precedence))
             ApplyBackgroundBrushSlotPhysical(slot, effective.Value);
     }
 
-    /// <summary>Tagged write of the container's <see cref="UIValueSlot.FocusedColor"/> sub-slot. See <see cref="SetBackgroundSlot"/>.</summary>
+    /// <summary>Tagged write of the container's <see cref="UIValueSlot.FocusedColor"/> sub-slot. See <see cref="SetBackgroundSlot"/>
+    /// (fix round 2: gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
     internal void SetBackgroundFocusedColor(Color? value, UIValueResolutionSource source)
     {
-        ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.FocusedColor, value, source, EqualityComparer<Color?>.Default, out _, out var effective);
-        if (effective.Source.Kind == source.Kind && IsBackgroundSubSlotApplicable(effective.Source.Precedence))
+        ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.FocusedColor, value, source, EqualityComparer<Color?>.Default, out var effectiveChanged, out var effective);
+        if ((effectiveChanged || effective.Source.Kind == source.Kind) && IsBackgroundSubSlotApplicable(effective.Source.Precedence))
             ApplyBackgroundFocusedColorPhysical(effective.Value);
     }
 
@@ -1858,13 +1872,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     /// <summary>Tagged write of one <see cref="Color"/>? sub-slot (<see cref="UIValueSlot.Normal"/>,
     /// <see cref="UIValueSlot.Selected"/>, <see cref="UIValueSlot.Disabled"/> or <see cref="UIValueSlot.Focused"/>) (R3).
-    /// See <see cref="SetBackgroundSlot"/> -- this container has no <see cref="UIValueSlot.FocusedColor"/> sub-slot.</summary>
+    /// See <see cref="SetBackgroundSlot"/> -- this container has no <see cref="UIValueSlot.FocusedColor"/> sub-slot
+    /// (fix round 2: gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
     internal void SetDefaultTextForegroundSlot(UIValueSlot slot, Color? value, UIValueResolutionSource source)
     {
         ValidateDefaultTextForegroundSlot(slot);
 
-        ResolvedValues.Set(UIPilotProperty.DefaultTextForeground, slot, value, source, EqualityComparer<Color?>.Default, out _, out var effective);
-        if (effective.Source.Kind == source.Kind && IsDefaultTextForegroundSubSlotApplicable(effective.Source.Precedence))
+        ResolvedValues.Set(UIPilotProperty.DefaultTextForeground, slot, value, source, EqualityComparer<Color?>.Default, out var effectiveChanged, out var effective);
+        if ((effectiveChanged || effective.Source.Kind == source.Kind) && IsDefaultTextForegroundSubSlotApplicable(effective.Source.Precedence))
             ApplyDefaultTextForegroundSlotPhysical(slot, effective.Value);
     }
 

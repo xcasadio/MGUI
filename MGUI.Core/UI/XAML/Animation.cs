@@ -140,6 +140,10 @@ public class VisualStateDefinition
 
     public VisualStateSetterCollection Setters { get; } = new();
 
+    /// <summary>ADR-0008, decision 4: default false. See <see cref="UIVisualState.OverridesLocalValue"/> for what setting it does (wins over a
+    /// local value and a local binding, never over an animation); works the same declared on an element's own state or on a style's.</summary>
+    public bool OverridesLocalValue { get; set; }
+
     /// <summary>Builds the runtime state (a new instance each call: a style shares one definition between its elements).</summary>
     public UIVisualState ToVisualState()
     {
@@ -154,6 +158,7 @@ public class VisualStateDefinition
             state.Add(setter.Property, setter.Value);
         }
 
+        state.OverridesLocalValue = OverridesLocalValue;
         return state;
     }
 }

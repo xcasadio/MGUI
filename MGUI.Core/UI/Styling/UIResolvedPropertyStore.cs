@@ -125,13 +125,18 @@ internal sealed class UIResolvedPropertyStore
 
     /// <summary>
     /// Records (or replaces) the contribution of <paramref name="source"/>.Kind for (<paramref name="property"/>,
-    /// <paramref name="slot"/>). Equal precedence (the same kind written twice) replaces the previous
-    /// contribution: last writer wins among equals. <paramref name="effective"/> is always the
-    /// highest-precedence set contribution after the write; <paramref name="effectiveChanged"/> is true
-    /// only when that effective VALUE actually changed (per <paramref name="comparer"/>) — writing the
-    /// same value from a lower source, or the current effective value again from a higher source, both
-    /// report false. The entry is typed by its first <see cref="Set{T}"/> call; a later call with a
-    /// different <c>T</c> on the same (property, slot) throws <see cref="InvalidOperationException"/>.
+    /// <paramref name="slot"/>). Equal precedence (the same kind written twice at the same precedence) replaces
+    /// the previous contribution in place: last writer wins among equals. A kind written again at a DIFFERENT
+    /// precedence than its current contribution (U4: <see cref="UIValueSourceKind.VisualState"/> can land at
+    /// <see cref="UIValuePrecedence.VisualState"/> or <see cref="UIValuePrecedence.VisualStateOverride"/> depending
+    /// on the state's flag) is removed from its old slot and re-inserted at the position its new precedence sorts
+    /// to, so the list stays precedence-sorted instead of the stale slot silently outranking or being outranked by
+    /// neighbours it no longer belongs next to. <paramref name="effective"/> is always the highest-precedence set
+    /// contribution after the write; <paramref name="effectiveChanged"/> is true only when that effective VALUE
+    /// actually changed (per <paramref name="comparer"/>) — writing the same value from a lower source, or the
+    /// current effective value again from a higher source, both report false. The entry is typed by its first
+    /// <see cref="Set{T}"/> call; a later call with a different <c>T</c> on the same (property, slot) throws
+    /// <see cref="InvalidOperationException"/>.
     /// </summary>
     /// <returns>True when this call added a brand new contribution kind to the entry; false when it
     /// replaced an existing contribution of the same kind.</returns>
@@ -150,7 +155,21 @@ internal sealed class UIResolvedPropertyStore
         bool added;
         if (existingIndex >= 0)
         {
-            entry.Contributions[existingIndex] = contribution;
+            if (entry.Contributions[existingIndex].Source.Precedence == source.Precedence)
+            {
+                entry.Contributions[existingIndex] = contribution;
+            }
+            else
+            {
+                // The same kind is now writing at a different precedence than its existing contribution
+                // (U4 fix round 1): an in-place overwrite would keep the contribution at its old, now
+                // wrong, sorted position. Remove it and re-insert at the position the new precedence sorts to.
+                entry.Contributions.RemoveAt(existingIndex);
+                entry.Kinds.RemoveAt(existingIndex);
+                var insertAt = FindInsertionIndex(entry.Contributions, source.Precedence);
+                entry.Contributions.Insert(insertAt, contribution);
+                entry.Kinds.Insert(insertAt, source.Kind);
+            }
             added = false;
         }
         else
