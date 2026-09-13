@@ -19,7 +19,8 @@ public static class UIKeyFrameSerializer
 {
     public const int CurrentVersion = 1;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    /// <summary>Shared with <see cref="UIKeyFrameClipSerializer"/> so both documents use the same JSON conventions.</summary>
+    internal static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -84,7 +85,15 @@ public static class UIKeyFrameSerializer
 
     private static string TypeName<T>() => typeof(T).Name;
 
-    private static string Format<T>(T value) => value switch
+    /// <summary>True when <paramref name="type"/> is one of the value types <see cref="Format{T}"/> / <see cref="Parse{T}"/> support.
+    /// Shared with <see cref="UIKeyFrameClipSerializer"/> so it can refuse an unsupported track type before parsing it.</summary>
+    internal static bool IsSupported(Type type)
+        => type == typeof(float) || type == typeof(double) || type == typeof(int)
+           || type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4)
+           || type == typeof(Color) || type == typeof(Thickness);
+
+    /// <summary>Formats one value as the invariant string stored in the JSON (ADR-0008: shared with <see cref="UIKeyFrameClipSerializer"/>).</summary>
+    internal static string Format<T>(T value) => value switch
     {
         float f => f.ToString("R", CultureInfo.InvariantCulture),
         double d => d.ToString("R", CultureInfo.InvariantCulture),
@@ -97,7 +106,8 @@ public static class UIKeyFrameSerializer
         _ => throw new NotSupportedException($"Key frame values of type '{typeof(T).Name}' cannot be serialized. Supported: Single, Double, Int32, Vector2, Vector3, Vector4, Color, Thickness."),
     };
 
-    private static T Parse<T>(string text)
+    /// <summary>Parses one value from its invariant string form (ADR-0008: shared with <see cref="UIKeyFrameClipSerializer"/>).</summary>
+    internal static T Parse<T>(string text)
     {
         if (text == null)
         {

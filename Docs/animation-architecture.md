@@ -98,6 +98,26 @@ Format JSON (`UIKeyFrameSerializer`, `Serialize` / `Deserialize<T>` / `ReadValue
 
 Valeurs en chaines invariantes : `Single` / `Double` / `Int32` en nombre, `Vector2` / `Vector3` / `Vector4` en `x,y[,z[,w]]`, `Color` en `#RRGGBBAA`, `Thickness` en `l,t,r,b` ; type ou version inconnus refuses explicitement, le type du JSON doit correspondre au `T` demande.
 
+### Clip multi-pistes
+
+`UIKeyFrameClipSerializer` (`KeyFrames/UIKeyFrameClipSerializer.cs`, ADR-0008 decision 6) serialise un `UIStoryboard` compose uniquement de `UIKeyFrameAnimation<T>` (une piste par chemin anime) pour un seul element : `UIKeyFrameClipDto { Version, Duration, Tracks[] { Property, ValueType, Frames[] } }`, `Format` / `Parse` (et les options JSON) partages avec `UIKeyFrameSerializer`. La duree du clip fait autorite : chaque piste doit la partager exactement (pas de delai, pas de repetition, pas d'aller-retour) ; a la serialisation, la duree du clip est celle du storyboard (`Duration` public de `UIAnimation`, deja calculee s'il a ete joue) ou, a defaut (storyboard construit mais jamais joue), la plus longue piste.
+
+```json
+{
+  "version": 1,
+  "duration": "00:00:01",
+  "tracks": [
+    { "property": "Opacity", "valueType": "Single", "frames": [ { "offset": 0, "value": "0" }, { "offset": 1, "value": "1" } ] },
+    { "property": "RenderTransform.Scale", "valueType": "Vector2", "frames": [ { "offset": 0, "value": "0.8,0.8" }, { "offset": 1, "value": "1,1" } ] },
+    { "property": "Background", "valueType": "Color", "frames": [ { "offset": 0, "value": "#00000000" }, { "offset": 1, "value": "#FF0000FF" } ] }
+  ]
+}
+```
+
+`Deserialize` refuse explicitement : version inconnue, chemin inconnu de `UIAnimationTargets` (le message liste les chemins connus, tries), `valueType` ne correspondant pas au type attendu par la cible ou non supporte par `Format` / `Parse` (ex. `MinHeight`, dont la cible est `int?`), un clip sans piste ou une piste sans cadre, des cadres invalides (`UIKeyFrameTrack<T>.Validate`, dernier cadre pas a l'offset 1). Deux pistes sur le meme chemin ne sont pas refusees a la deserialisation : la regle de conflit existante du moteur (une animation active par proprietaire et par chemin) s'applique de facon deterministe, puisque le storyboard demarre ses enfants dans l'ordre du fichier et que la derniere piste declaree l'emporte.
+
+Le storyboard retourne par `Deserialize` n'a pas de proprietaire : on le joue avec `element.Animations.Start(UIKeyFrameClipSerializer.Deserialize(json))`, un clip par element (reponse de l'auteur, question 4). Le remap temporel d'un composite (rejouer le clip plus vite ou plus lentement que sa duree d'origine) est explicitement hors perimetre de cette tranche.
+
 ## Cibles
 
 `IUIAnimationTarget<T>` (`Path`, `IsStoreBacked`, `RequiredOwnerType`, `GetValue`, `SetValue(element, value, nom)`, `RestoreBaseValue(element, base)`) et le registre ferme `UIAnimationTargets` (`Register`, `TryGet`, `Resolve`, `GetValueType`, `GetOwnerType`, `IsApplicable`, `Paths`), chemins insensibles a la casse. `UIDelegateAnimationTarget<T>` pour une propriete applicative.
