@@ -171,6 +171,19 @@ public class KeyFrameTests
     }
 
     [Fact]
+    public void Serializer_RoundTrips_ABezierEasingLiteral()
+    {
+        // U1: a Bezier literal is stored verbatim, not resolved at serialization time (Docs/Tasks/animation-v3-tasks.md).
+        UIKeyFrameTrack<float> track = new() { { 0f, 0f }, { 1f, 1f, "cubic-bezier(0.42,0,1,1)" } };
+
+        string json = UIKeyFrameSerializer.Serialize(track);
+        UIKeyFrameTrack<float> restored = UIKeyFrameSerializer.Deserialize<float>(json);
+
+        Assert.Equal("cubic-bezier(0.42,0,1,1)", restored.Frames[1].Easing);
+        Assert.IsType<UICubicBezierEasing>(restored.Frames[1].ResolveEasing());
+    }
+
+    [Fact]
     public void Serializer_RejectsUnknownVersion_TypeMismatch_AndUnsupportedTypes()
     {
         string json = UIKeyFrameSerializer.Serialize(new UIKeyFrameTrack<float> { { 1f, 1f } });

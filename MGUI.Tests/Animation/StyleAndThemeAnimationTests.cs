@@ -259,6 +259,21 @@ public class StyleAndThemeAnimationTests
     }
 
     [Fact]
+    public void AThemeDefinition_AcceptsABezierEasingLiteral_ForHoverEasing()
+    {
+        // U1: a theme's HoverEasing accepts cubic-bezier(...) through the same string field (ADR-0008 decision 1).
+        MGTheme theme = ThemeDefinitionBuilder.Build(new ThemeDefinition
+        {
+            Name = "BezierHover",
+            Animation = new ThemeAnimationSettingsDefinition { HoverEasing = "cubic-bezier(0.42,0,1,1)", Enabled = true },
+        }, "Arial");
+
+        Assert.Equal("cubic-bezier(0.42,0,1,1)", theme.Animation.HoverEasing);
+        Assert.True(UIEasing.TryGet(theme.Animation.HoverEasing, out IUIEasingFunction easing));
+        Assert.IsType<UICubicBezierEasing>(easing);
+    }
+
+    [Fact]
     public void AThemeDefinition_DeclaresTheAnimationGroup_AndValidatesIt()
     {
         MGTheme theme = ThemeDefinitionBuilder.Build(new ThemeDefinition

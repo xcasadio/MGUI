@@ -51,6 +51,22 @@ public class XamlAnimationTests
     }
 
     [Fact]
+    public void Transition_AcceptsABezierEasingLiteral()
+    {
+        // U1: cubic-bezier(...) is accepted through the same Easing attribute without any DTO change (ADR-0008 decision 1).
+        MGWindow window = Load(
+            "<Button Name=\"B\" Content=\"Hi\">" +
+            "<Button.Transitions>" +
+            "<Transition Property=\"Opacity\" Duration=\"0.2\" Easing=\"cubic-bezier(0.42,0,1,1)\" />" +
+            "</Button.Transitions>" +
+            "</Button>");
+
+        MGButton button = window.GetElementByName<MGButton>("B");
+        UITransition opacity = button.Transitions["Opacity"];
+        Assert.IsType<UICubicBezierEasing>(opacity.Easing);
+    }
+
+    [Fact]
     public void DeclaredTransition_InterpolatesALaterWrite()
     {
         MGWindow window = Load(

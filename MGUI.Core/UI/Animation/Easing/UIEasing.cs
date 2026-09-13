@@ -76,7 +76,10 @@ public static class UIEasing
         }
     }
 
-    /// <summary>The registered names, built-ins first in declaration order, then application registrations.</summary>
+    /// <summary>
+    /// The registered names, built-ins first in declaration order, then application registrations, then every distinct
+    /// Bezier literal resolved so far by <see cref="TryGet"/> (one entry per literal spelling, not per curve: see its doc).
+    /// </summary>
     public static IReadOnlyCollection<string> Names => Registry.Keys.ToArray();
 
     /// <summary>Registers (or replaces) a named easing function, for <see cref="TryGet"/> and the XAML layer.</summary>
@@ -95,11 +98,30 @@ public static class UIEasing
         Registry[name] = function;
     }
 
-    /// <summary>Retrieves an easing function by name (case-insensitive), or false when the name is unknown.</summary>
+    /// <summary>
+    /// Retrieves an easing function by name (case-insensitive): a registered name first, then a Bezier literal
+    /// (<see cref="UICubicBezierEasing.TryParse"/>, e.g. <c>cubic-bezier(0.42,0,1,1)</c> or <c>bezier:0.42,0,1,1</c>). A
+    /// literal that parses is cached in the registry under the exact (trimmed) text the caller passed, not its canonical
+    /// form, so <c>cubic-bezier(0.42,0,1,1)</c> and <c>cubic-bezier(0.42, 0, 1, 1)</c> are two distinct cache entries with
+    /// equal curves; two lookups of the same literal return the same instance even under concurrency. Returns false, never
+    /// throws, when the name is null, unknown and not a valid Bezier literal.
+    /// </summary>
     public static bool TryGet(string name, out IUIEasingFunction function)
     {
-        if (name != null && Registry.TryGetValue(name, out function))
+        if (name == null)
         {
+            function = null;
+            return false;
+        }
+
+        if (Registry.TryGetValue(name, out function))
+        {
+            return true;
+        }
+
+        if (UICubicBezierEasing.TryParse(name, out var bezier))
+        {
+            function = Registry.GetOrAdd(name.Trim(), bezier);
             return true;
         }
 

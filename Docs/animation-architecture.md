@@ -64,7 +64,17 @@ Appartenance (`UIAnimationCollection`, `element.Animations`) : `Start`, `Count`,
 
 Interpolation (`Interpolation/`) : `IUIInterpolator<T>`, registre `UIInterpolators` (float, double, int, `int?` a bascule a mi-parcours, Vector2/3/4, Color, Rectangle, `MonoGame.Extended.Thickness` arrondi away-from-zero ; `Register<T>` pour un type applicatif). Seul `Color` borne le progres dans [0, 1] : les autres laissent passer le depassement des easings Back et Elastic.
 
-Easing (`Easing/`) : `IUIEasingFunction`, `UIEasing` (dix-neuf fonctions : Linear, Quad/Cubic/Sine/Back/Bounce/Elastic In/Out/InOut ; `TryGet(nom)` insensible a la casse pour le XAML ; `Register`).
+Easing (`Easing/`) : `IUIEasingFunction`, `UIEasing` (dix-neuf fonctions : Linear, Quad/Cubic/Sine/Back/Bounce/Elastic In/Out/InOut ; `TryGet(nom)` insensible a la casse pour le XAML ; `Register`). Voir « Easings » ci-dessous pour les courbes de Bezier.
+
+## Easings
+
+`IUIEasingFunction.Ease(float)` (sans etat, sans allocation) est resolu par nom via `UIEasing.TryGet`, utilise par les transitions XAML, le groupe d'animation du theme, le JSON de keyframes et l'API fluente.
+
+- Registre : dix-neuf fonctions integrees (Linear, Quad/Cubic/Sine/Back/Bounce/Elastic In/Out/InOut), insensibles a la casse ; `UIEasing.Register(nom, fonction)` ajoute ou remplace une fonction applicative ; `UIEasing.Names` enumere toutes les cles courantes.
+- Bezier cubique (`UICubicBezierEasing`, ADR-0008 decision 1, Docs/Tasks/animation-v3-tasks.md U1) : quatre flottants `X1`, `Y1`, `X2`, `Y2` (semantique CSS `cubic-bezier`) ; `X1` et `X2` sont bornes a [0, 1] a la construction (`ArgumentOutOfRangeException` sinon, comme toute valeur non finie) ; `Y1` / `Y2` sont libres, un depassement de [0, 1] est autorise (comme `BackOut`). `Ease` resout x(u) = t par Newton-Raphson (jusqu'a 8 iterations, tolerance 1e-6) avec repli par bissection (jusqu'a 32 iterations) quand la derivee est proche de zero, puis rend y(u) ; aucune allocation.
+- Syntaxe textuelle acceptee par `UICubicBezierEasing.TryParse` (et par `UIEasing.TryGet` en repli) : la forme canonique `cubic-bezier(x1,y1,x2,y2)` (prefixe insensible a la casse) et la forme courte `bezier:x1,y1,x2,y2` ; les espaces autour de chaque nombre et a l'interieur des parentheses sont tolerees. `ToString()` rend toujours la forme canonique, sans espace, en culture invariante. Aucun preset CSS nomme (`ease`, `ease-in`...) n'est fourni : l'appelant ecrit le litteral.
+- Resolution et cache : `UIEasing.TryGet(nom)` cherche d'abord dans le registre, puis tente `UICubicBezierEasing.TryParse` sur un echec ; un litteral qui se parse est insere dans le registre sous le texte exact (apres `Trim`) que l'appelant a fourni, pas sous sa forme canonique — deux lookups du meme litteral rendent la meme instance (utile pour `Assert.Same` et pour eviter de reconstruire la courbe a chaque frame), mais `cubic-bezier(0.42,0,1,1)` et `cubic-bezier(0.42, 0, 1, 1)` restent deux entrees distinctes de courbes identiques. `Names` continue d'enumerer les cles : les dix-neuf built-ins restent un sous-ensemble garanti, le reste croit avec l'usage.
+- Consequence pour un editeur de courbes en direct : chaque glisser de poignee qui change `x1..y2` produit un nouveau litteral et donc une nouvelle entree de registre qui ne sera jamais retiree (le registre n'a pas de politique d'eviction). Un editeur qui pousse des valeurs en continu doit soit quantifier les points de controle (par exemple a deux decimales) avant de composer le litteral, soit construire un `UICubicBezierEasing` directement et l'assigner a `Easing` (`UITransition<T>.Easing`, `UIAnimation<T>.Easing`) sans passer par la chaine et donc sans toucher au registre.
 
 ## Composition
 
