@@ -12,22 +12,35 @@ namespace MGUI.Shared.Helpers
     public static class RectangleUtils
     {
         /// <summary>Coordinates are INCLUSIVE</summary>
-        public static Rectangle GetRectangle(int MinX, int MaxX, int MinY, int MaxY) => new(MinX, MinY, MaxX - MinX + 1, MaxY - MinY + 1);
-        /// <summary>Coordinates are INCLUSIVE</summary>
-        public static Rectangle GetRectangle(float MinX, float MaxX, float MinY, float MaxY) => new((int)MinX, (int)MinY, (int)(MaxX - MinX + 1), (int)(MaxY - MinY + 1));
-        /// <summary>Coordinates are INCLUSIVE</summary>
-        public static Rectangle GetRectangle(Vector2 Min, Vector2 Max) => new((int)Min.X, (int)Min.Y, (int)(Max.X - Min.X + 1), (int)(Max.Y - Min.Y + 1));
-        /// <summary>Coordinates are INCLUSIVE</summary>
-        public static Rectangle GetRectangle(Point Min, Point Max) => new(Min.X, Min.Y, (Max.X - Min.X + 1), (Max.Y - Min.Y + 1));
+        public static Rectangle GetRectangle(int MinX, int MaxX, int MinY, int MaxY) =>
+            new(MinX, MinY, MaxX - MinX + 1, MaxY - MinY + 1);
 
         /// <summary>Coordinates are INCLUSIVE</summary>
-        public static RectangleF GetRectangleF(int MinX, int MaxX, int MinY, int MaxY) => new(MinX, MinY, MaxX - MinX + 1, MaxY - MinY + 1);
-        /// <summary>Coordinates are INCLUSIVE</summary>
-        public static RectangleF GetRectangleF(float MinX, float MaxX, float MinY, float MaxY) => new(MinX, MinY, MaxX - MinX + 1, MaxY - MinY + 1);
-        /// <summary>Coordinates are INCLUSIVE</summary>
-        public static RectangleF GetRectangleF(Vector2 Min, Vector2 Max) => new(Min.X, Min.Y, Max.X - Min.X + 1, Max.Y - Min.Y + 1);
+        public static Rectangle GetRectangle(float MinX, float MaxX, float MinY, float MaxY) =>
+            new((int)MinX, (int)MinY, (int)(MaxX - MinX + 1), (int)(MaxY - MinY + 1));
 
-        public static Rectangle CreateTransformed(this Rectangle @this, Matrix Transform) => (Rectangle)@this.CreateTransformedF(Transform);
+        /// <summary>Coordinates are INCLUSIVE</summary>
+        public static Rectangle GetRectangle(Vector2 Min, Vector2 Max) => new((int)Min.X, (int)Min.Y,
+            (int)(Max.X - Min.X + 1), (int)(Max.Y - Min.Y + 1));
+
+        /// <summary>Coordinates are INCLUSIVE</summary>
+        public static Rectangle GetRectangle(Point Min, Point Max) =>
+            new(Min.X, Min.Y, (Max.X - Min.X + 1), (Max.Y - Min.Y + 1));
+
+        /// <summary>Coordinates are INCLUSIVE</summary>
+        public static RectangleF GetRectangleF(int MinX, int MaxX, int MinY, int MaxY) =>
+            new(MinX, MinY, MaxX - MinX + 1, MaxY - MinY + 1);
+
+        /// <summary>Coordinates are INCLUSIVE</summary>
+        public static RectangleF GetRectangleF(float MinX, float MaxX, float MinY, float MaxY) =>
+            new(MinX, MinY, MaxX - MinX + 1, MaxY - MinY + 1);
+
+        /// <summary>Coordinates are INCLUSIVE</summary>
+        public static RectangleF GetRectangleF(Vector2 Min, Vector2 Max) =>
+            new(Min.X, Min.Y, Max.X - Min.X + 1, Max.Y - Min.Y + 1);
+
+        public static Rectangle CreateTransformed(this Rectangle @this, Matrix Transform) =>
+            (Rectangle)@this.CreateTransformedF(Transform);
 
         public static RectangleF CreateTransformedF(this Rectangle @this, Matrix Transform)
         {
@@ -66,6 +79,7 @@ namespace MGUI.Shared.Helpers
         [DebuggerStepThrough]
         public static bool ContainsInclusive(this Rectangle @this, Point point)
             => ContainsInclusive(@this, point.ToVector2());
+
         [DebuggerStepThrough]
         public static bool ContainsInclusive(this Rectangle @this, Vector2 point)
             => point.X >= @this.Left && point.X <= @this.Right && point.Y >= @this.Top && point.Y <= @this.Bottom;
@@ -73,6 +87,7 @@ namespace MGUI.Shared.Helpers
         [DebuggerStepThrough]
         public static bool ContainsInclusive(this RectangleF @this, Point point)
             => ContainsInclusive(@this, point.ToVector2());
+
         [DebuggerStepThrough]
         public static bool ContainsInclusive(this RectangleF @this, Vector2 point)
             => point.X >= @this.Left && point.X <= @this.Right && point.Y >= @this.Top && point.Y <= @this.Bottom;
@@ -83,7 +98,8 @@ namespace MGUI.Shared.Helpers
         /// <summary>Returns a <see cref="Rectangle"/> that fully encloses the given <see cref="RectangleF"/></summary>
         [DebuggerStepThrough]
         public static Rectangle RoundUp(this RectangleF @this)
-            => new Rectangle((int)@this.Left, (int)@this.Top, (int)Math.Ceiling(@this.Right) - (int)(@this.Left), (int)Math.Ceiling(@this.Bottom) - (int)(@this.Top));
+            => new Rectangle((int)@this.Left, (int)@this.Top, (int)Math.Ceiling(@this.Right) - (int)(@this.Left),
+                (int)Math.Ceiling(@this.Bottom) - (int)(@this.Top));
 
         [DebuggerStepThrough]
         public static Rectangle TranslatedCopy(this Rectangle @this, Point Amount)
@@ -173,19 +189,25 @@ namespace MGUI.Shared.Helpers
 
         [DebuggerStepThrough]
         public static Point TopLeft(this Rectangle @this) => new(@this.Left, @this.Top);
+
         [DebuggerStepThrough]
         public static Point TopRight(this Rectangle @this) => new(@this.Right, @this.Top);
+
         [DebuggerStepThrough]
         public static Point BottomLeft(this Rectangle @this) => new(@this.Left, @this.Bottom);
+
         [DebuggerStepThrough]
         public static Point BottomRight(this Rectangle @this) => new(@this.Right, @this.Bottom);
 
         [DebuggerStepThrough]
         public static Vector2 TopLeft(this RectangleF @this) => new(@this.Left, @this.Top);
+
         [DebuggerStepThrough]
         public static Vector2 TopRight(this RectangleF @this) => new(@this.Right, @this.Top);
+
         [DebuggerStepThrough]
         public static Vector2 BottomLeft(this RectangleF @this) => new(@this.Left, @this.Bottom);
+
         [DebuggerStepThrough]
         public static Vector2 BottomRight(this RectangleF @this) => new(@this.Right, @this.Bottom);
 
@@ -224,14 +246,15 @@ namespace MGUI.Shared.Helpers
 
         public static RectangleF GetScaledFromCenter(this RectangleF @this, float ScaleFactor)
         {
-            Point2 Center = @this.Center;
-            return new(Center.X - (Center.X - @this.X) * ScaleFactor, Center.Y - (Center.Y - @this.Y) * ScaleFactor, 
+            var Center = @this.Center;
+            return new(Center.X - (Center.X - @this.X) * ScaleFactor, Center.Y - (Center.Y - @this.Y) * ScaleFactor,
                 @this.Width * ScaleFactor, @this.Height * ScaleFactor);
         }
 
         [DebuggerStepThrough]
         public static Rectangle GetTranslated(this Rectangle @this, Point Offset)
             => new(@this.X + Offset.X, @this.Y + Offset.Y, @this.Width, @this.Height);
+
         [DebuggerStepThrough]
         public static Rectangle GetTranslated(this Rectangle @this, int X, int Y)
             => new(@this.X + X, @this.Y + Y, @this.Width, @this.Height);
@@ -244,7 +267,8 @@ namespace MGUI.Shared.Helpers
         /// <summary>Returns a new <see cref="Rectangle"/> that is expanded on each side by the given <paramref name="Amount"/></summary>
         [DebuggerStepThrough]
         public static Rectangle GetExpanded(this Rectangle @this, Thickness Amount)
-            => new(@this.Left - Amount.Left, @this.Top - Amount.Top, @this.Width + Amount.Width, @this.Height + Amount.Height);
+            => new(@this.Left - Amount.Left, @this.Top - Amount.Top, @this.Width + Amount.Width,
+                @this.Height + Amount.Height);
 
         /// <summary>Returns a new <see cref="Rectangle"/> that is compressed on all sides by the given <paramref name="Amount"/></summary>
         [DebuggerStepThrough]
@@ -254,7 +278,8 @@ namespace MGUI.Shared.Helpers
         /// <summary>Returns a new <see cref="Rectangle"/> that is compressed on each side by the given <paramref name="Amount"/></summary>
         [DebuggerStepThrough]
         public static Rectangle GetCompressed(this Rectangle @this, Thickness Amount)
-            => new(@this.Left + Amount.Left, @this.Top + Amount.Top, @this.Width - Amount.Width, @this.Height - Amount.Height);
+            => new(@this.Left + Amount.Left, @this.Top + Amount.Top, @this.Width - Amount.Width,
+                @this.Height - Amount.Height);
 
         public static Rectangle GetScaledFromCenter(this Rectangle @this, float ScaleFactor)
         {
@@ -278,7 +303,8 @@ namespace MGUI.Shared.Helpers
         /// <summary>Returns a new <see cref="RectangleF"/> that is expanded on each side by the given <paramref name="Amount"/></summary>
         [DebuggerStepThrough]
         public static RectangleF GetExpanded(this RectangleF @this, Thickness Amount)
-            => new(@this.Left - Amount.Left, @this.Top - Amount.Top, @this.Width + Amount.Width, @this.Height + Amount.Height);
+            => new(@this.Left - Amount.Left, @this.Top - Amount.Top, @this.Width + Amount.Width,
+                @this.Height + Amount.Height);
 
         /// <summary>Returns a new <see cref="RectangleF"/> that is compressed on all sides by the given <paramref name="Amount"/></summary>
         [DebuggerStepThrough]
@@ -288,6 +314,7 @@ namespace MGUI.Shared.Helpers
         /// <summary>Returns a new <see cref="RectangleF"/> that is compressed on each side by the given <paramref name="Amount"/></summary>
         [DebuggerStepThrough]
         public static RectangleF GetCompressed(this RectangleF @this, Thickness Amount)
-            => new(@this.Left + Amount.Left, @this.Top + Amount.Top, @this.Width - Amount.Width, @this.Height - Amount.Height);
+            => new(@this.Left + Amount.Left, @this.Top + Amount.Top, @this.Width - Amount.Width,
+                @this.Height - Amount.Height);
     }
 }

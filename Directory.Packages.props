@@ -4,18 +4,18 @@
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="MonoGame.Content.Builder.Task" Version="3.8.4.1" />
-    <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.4.1" />
-    <PackageVersion Include="MonoGame.Extended" Version="3.8.*" />
-    <PackageVersion Include="MonoGame.Extended.Content.Pipeline" Version="3.8.*" />
+    <PackageVersion Include="MonoGame.Content.Builder.Task" Version="3.8.5.1" />
+    <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+    <PackageVersion Include="MonoGame.Extended" Version="6.1.1" />
+    <PackageVersion Include="MonoGame.Extended.Content.Pipeline" Version="6.1.1" />
     <PackageVersion Include="Portable.Xaml" Version="0.26.*" />
     <PackageVersion Include="Prism.Core" Version="8.*" />
     <PackageVersion Include="FontStashSharp.MonoGame" Version="1.*" />
     <PackageVersion Include="Microsoft.VisualStudio.VsixColorCompiler" Version="17.*" />
     <PackageVersion Include="SpriteFontPlus" Version="0.*" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
     <PackageVersion Include="xunit" Version="2.9.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
   </ItemGroup>
 </Project>

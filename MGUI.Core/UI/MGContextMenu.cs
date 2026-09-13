@@ -475,12 +475,9 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             NPC(nameof(ActiveContextMenu));
             Previous.InvokeContextMenuClosed();
             SubmenuClosed?.Invoke(this, Previous);
-            return true;
         }
-        else
-        {
-            return true;
-        }
+
+        return true;
     }
 
     /// <returns>True if the <paramref name="Menu"/> was already opened, or was successfully opened.<br/>
@@ -842,7 +839,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             {
                 if (IsContextMenuOpen && !IsSubmenu && !IsHoveringSubmenu(5) && AutoCloseThreshold.HasValue)
                 {
-                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition);
+                    var LayoutSpacePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.CurrentPosition.ToVector2());
                     if (((RectangleF)LayoutBounds).SquaredDistanceTo(LayoutSpacePosition) >= AutoCloseThreshold.Value * AutoCloseThreshold.Value)
                     {
                         TryCloseContextMenu();
