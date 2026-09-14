@@ -1,0 +1,179 @@
+# Taches systeme d'animation (V4) : brushes animables
+
+## Objectif
+
+Passer les brushes de MGUI au modele NoesisGUI / WPF « Freezable », selon l'ADR-0009 (`Docs/decisions/0009-animation-v4-freezable-brushes.md`, statut Proposed jusqu'a l'approbation de ce plan) : une brush est un objet de donnees mutable et notifiant, qui peut etre gele (immuable, partageable sans copie : themes, ressources, palette statique) ; l'animation vit dans le moteur, jamais dans la brush ; la valeur animee d'un element est un clone possede par le run, cree une fois au demarrage et mute sans allocation par tick ; `MGHighlightBorderBrush` perd son accumulateur de temps et devient une configuration dont la progression est un run du moteur par element (demarrage automatique, debrayable par `AutoStart`) ; `UpdateBaseArgs.AnimationDeltaTime` disparait ; en fin de programme, les quatre fichiers de taches d'animation sont supprimes et les references aux tranches passees sont retirees du code.
+
+Contraintes non negociables : celles de la V1 a la V3 (pas de dependency property system, store ADR-0005 pour les pilotes, zero cout pour un element qui n'anime rien, tokens interdits de `RenderingBoundaryArchitectureTests`, renderer neutre, une ADR par decision) ; aucune API publique existante n'est renommee (les noms `Copy`, `AnimationProgress`, `IsEnabled`, `Target`... restent) ; les tests existants (`MGUI.Tests/Animation/*`, `Architecture/*`, `Drawing/*`, `Integration/*`) restent verts sans modification sauf ajout ou re-ecriture explicitement listee dans une tache ; une brush gelee ne peut jamais etre modifiee (exception explicite) ; un element dont aucune brush n'est animee ne paie ni abonnement ni allocation supplementaire.
+
+Hors programme : animation par chemin de propriete generique dans une brush a la WPF (`(Background).(SolidColorBrush.Color)`) ; le registre ferme de cibles par chemin reste (les chemins existants gardent leur nom, une seule cible nouvelle : `BorderBrush.Highlight.Progress`) ; les brushes texturees et nine-slice restent non interpolables ; les composites (`MGCompositedBorderBrush`, `MGBandedBorderBrush`, `Underlay` d'une surbrillance) ne sont pas fouilles par l'hote de surbrillance ; les chronometres hors moteur (`MGTimer`, `MGStopWatch`, tooltip, caret, bouton a repetition) restent tels quels ; les points ouverts de l'ADR-0008 ne sont pas repris ici.
+
+## Historique du fichier
+
+- 14 septembre 2026 : creation apres deux discoveries en lecture seule a HEAD `23cab97` (types de brushes et partage ; sites d'animation des brushes ; brush de surbrillance et horloge ; docs et plans ; usages des dix structs ; gardes d'egalite ; notification et partage) et les reponses de l'auteur aux quatre questions ci-dessous. Aucune tache commencee.
+
+## Contexte : faits verifies le 14 septembre 2026 (HEAD `23cab97`, lecture seule)
+
+- Dix brushes de valeur sont des `readonly struct` : fills `MGSolidFillBrush` (`Brushes/FillBrushes/MGSolidFillBrush.cs:15`, une `Color`, palette statique `SolidFillBrushes` de 147 instances `:58-205`), `MGGradientFillBrush` (`MGGradientFillBrush.cs:9`, quatre coins), `MGDiagonalGradientFillBrush` (`:86`), `MGTextureFillBrush` (`MGTextureFillBrush.cs:12`), `MGNineSliceFillBrush` (`MGNineSliceFillBrush.cs:12`), `MGProgressBarGradientBrush` (`MGProgressBarGradientBrush.cs:8`, lit `ProgressBar.ValuePercent` au dessin) ; bordures `MGUniformBorderBrush` (`BorderBrushes/MGUniformBorderBrush.cs:12`, un `IFillBrush` interne), `MGDockedBorderBrush` (`:12`, quatre cotes, cache `IsSolidColorsOnly` calcule au constructeur `:19`, sept tests `is MGSolidFillBrush` `:77-203`), `MGBandedBorderBrush` (`:20`), `MGTexturedBorderBrush` (`:77`). Classes mutables sans gel : `MGCompositedFillBrush`, `MGPaddedFillBrush`, `MGBorderedFillBrush`, `MGCompositedBorderBrush` (composites, `Copy()` recursif), `MGHighlightFillBrush` (`XAMLBindableBase`, cache `CachedUnfocusedRegions` `:215`), `MGHighlightBorderBrush` (`ViewModelBase`). Tous exposent `Copy()` (nouvelle instance) ; aucun `IEquatable`, aucun `GetHashCode`, aucune brush cle de dictionnaire, aucune expression `with`, aucun `default(MGXxxBrush)`.
+- Sites de construction (`new X(`) : `MGSolidFillBrush` 169 sites dans 41 fichiers (core 45, samples 28, tests 95) ; `MGUniformBorderBrush` 13 ; les huit autres de 3 a 10 chacune. Casts et tests de type : 21 fichiers pour `MGSolidFillBrush` (`MGDockedBorderBrush`, `UIColorAnimationTargets.RequireSolid` `:55`, `MGUniformBorderBrush` `:77`), 2 pour `MGGradientFillBrush` (`UIExtraAnimationTargets.cs:113,126`). Aucun test n'asserte l'egalite de valeur d'une brush entiere ; `FillBrushLifecycleTests.cs:61` et `ResolvedOwnerThemeDefaultTests.cs:102,126` assertent une identite par reference (`Assert.Same`).
+- Cibles d'animation qui produisent une brush : `BackgroundSlotTarget` (`Targets/UIColorAnimationTargets.cs:64-123`, `new MGSolidFillBrush(value)` par tick `:101` vers `SetBackgroundSlot`), `BorderBrushTarget` (`:214-268`, `new MGUniformBorderBrush(new MGSolidFillBrush(value))` par tick `:240`), `BackgroundGradientTarget` et `BackgroundDiagonalGradientTarget` (`Targets/UIExtraAnimationTargets.cs:100-146, 148-194`, nouvelle brush par tick) ; cout documente « accepte » (`UIColorAnimationTargets.cs:12-15`) et mesure : 104 octets par tick pour une transition de couleur (`KeyFrameClipTests.cs:363-370` evite `Background` pour cette raison). `ForegroundTarget` et `TextForegroundTarget` ecrivent des `Color?` (pas des brushes). `BackgroundOverlayTarget` mute `OverlayOpacity` du conteneur (non store).
+- Store et gardes : `SetBackground` (`MGElement.cs:1555`), `SetBackgroundSlot` (`:1583`), les quatre ecritures de `HandleBackgroundBrushContainerPropertyChanged` (`:1859-1868`), `ClearPilotSource` (`:1640-1660`), `MGBorder.SetBorderBrush` (`MGBorder.cs:29,86`) et `MGTextBlock.SetForeground` (`MGTextBlock.cs:384,447`) comparent par `ReferenceEqualityComparer.Instance` (onze sites). En revanche `VisualStateSetting<T>` (`VisualState.cs:62,71,86,101,116`) garde ses setters par `EqualityComparer<T>.Default` (egalite de valeur des structs boxees aujourd'hui) et `MGControlTemplate.ApplyTemplateValueCore` (`Styling/MGControlTemplate.cs:178,185,196`, cinq surcharges `ApplyThemeDefault` / `ApplyOwnerThemeDefault` `:101-151`) compare « valeur courante == valeur par defaut precedente » avec `EqualityComparer<T>.Default` quand aucun comparateur n'est passe (aucun site brush n'en passe). `UITransition<T>._Comparer` (`UITransition.cs:125,215,227`) n'est jamais instancie avec un type brush (les transitions de couleur portent des `Color`).
+- Partage : `MGTheme` (78 proprietes de brush, `_Backgrounds` par `MGElementType` `:366-393`) ; `ThemeManagedGetter.GetValue(true)` clone a chaque lecture (`MGTheme.cs:15-22`) ; `MGTheme.Copy()` (`:683`) puis `ApplyFrom` recopie 49 brushes (`:722-922`) ; `ThemeDefinitionBuilder.Build` (`:14-64`) construit une instance par champ de theme. Copies par element : `MGTreeViewItem.cs:562-563`, `MGDockAutoHideStrip.cs:192`, `MGContextMenu.cs:250`, `MGPropertyGrid.cs:646`, `MGGraphControls.cs:2832`. `VisualStateFillBrush` (conteneur par element, quatre slots + `CheckedValue`) copie chaque slot par `Copy()` (`VisualState.cs:413-422, 507`). `UIResourceReferenceApplicator` (`Styling/UIResourceReferenceApplicator.cs:31-60,153`) pose une `StaticResource` par reference sans copie : deux elements qui referencent la meme ressource partagent l'instance. Les DTO XAML (`XAML/Brushes.cs:145-523`) creent une instance neuve a chaque `ToFillBrush` / `ToBorderBrush`. `MGResources` ne stocke aucune brush en propre (ressources statiques generiques).
+- Notification : aucun element n'observe une brush aujourd'hui ; l'invalidation passe par les proprietes d'element (`SetBackground`, setters `BorderBrush`, `OnBorderBrushChanged` relaye par les conteneurs) et par le conteneur `VisualStateFillBrush` (`MGElement.cs:1689,1694,1851`). `ViewModelBase` (`MGUI.Shared/Helpers/ViewModelBase.cs:11-26`) cache les `PropertyChangedEventArgs` par nom (aucune allocation par notification).
+- Cycle de vie des paints : `MGElement.Update` (`MGElement.cs:3703-3730`) tick `GetBorderBrushes()` (`:3285`), `GetVisualStateFillBrushes()` (`:3311`), `GetFillBrushes()` (`:3301`), quinze controles les redefinissent ; `PaintLifecycle.Update` (`Brushes/PaintLifecycle.cs:26-50`) deduplique par reference via `PaintUpdateRegistry` (`:11-18`, `IPaintUpdateRegistry` dans `MGUI.Shared`) cree a chaque frame par `MGDesktop.Update` (`MGDesktop.cs:1389`).
+- Surbrillance : `MGHighlightBorderBrush` (`BorderBrushes/MGHighlightBorderBrush.cs:33-1146`) : `AnimationProgress` accumulateur non borne (`:96-119`, partie decimale utilisee par `ActualAnimationProgress` `:122-124`, negatif refuse), `Update` (`:475-505`) transfere a `Underlay`, applique `StopOnMouseOver` / `StopOnClick` en posant `IsEnabled = false` sur la brush quand `Target` est survole ou presse (`:481-486`), puis accumule `(UA.AnimationDeltaTime ?? UA.FrameElapsed) / CycleDuration` (`:499-503`) ; `CycleDuration` derive de `AnimationType` (`Pulse`, `Flash`, `Progress`, `Scan`, `:72-374`) ; `Draw` rectangle (`:519-852`) et anneau (`:854-1123`) lisent `ActualAnimationProgress` ; `Copy()` (`:1125-1146`) copie l'etat dont la progression, partage `Underlay` par reference ; `Target` optionnel (`:396-407`, resolu par le DTO XAML `XAML/Brushes.cs:556` a partir de l'element). Instanciations : `MGUI.Samples/Features/IBorderBrush.xaml.cs:109` (instance prise sur un bouton, bindings `IsEnabled` / `StopOnClick` / `StopOnMouseOver` `:112-120`), `MGUI.Samples/Features/AnimationDemo.xaml.cs:243-244` (V3Highlight) ; aucun theme integre n'en declare. `UpdateBaseArgs.AnimationDeltaTime` (`MGUI.Shared/Rendering/RenderLoopArgs.cs:47`, pose `MGDesktop.cs:1389`) n'a que ce consommateur ; tests `MGUI.Tests/Animation/HighlightBorderBrushClockTests.cs` (13 tests) et `HighlightBorderBrushRingAnimationTests`.
+- Docs : `Docs/animation-architecture.md` (343 lignes) comporte une vingtaine de marqueurs historiques (V1/V2/V3, U1-U11, T5-T8, « fix round », « avant/apres ») ; `Docs/drawing-architecture.md:76-96` decrit le cycle de vie des paints (immuabilite par conception, `MGHighlightBorderBrush.Update` qui « fait tourner son animation ») ; `Docs/styling-theme-architecture.md:55-82, 210-216` (pile de precedence, brushes d'etat visuel) ; `Docs/scenario-validation-index.md:30-32, 46-48` (`SCN-ANIM-001..003` renvoient aux trois fichiers de taches) ; 37 fichiers de code, de tests et de samples citent un fichier de taches ou un numero de tranche en commentaire. Les trois fichiers de taches existants sont entierement clos (V1 8 tranches, V2 9, V3 U0-U11).
+
+## Reponses de l'auteur (14 septembre 2026, ADR-0009)
+
+1. Perimetre : brushes mutables a la Noesis (les dix brushes de valeur deviennent des classes gelables animables par propriete), pas seulement la surbrillance, pas seulement un objet anime par element au-dessus de structs conservees.
+2. Demarrage du run de surbrillance : les deux, automatique par defaut cote element, `AutoStart = false` sur la brush pour piloter a la main.
+3. `UpdateBaseArgs.AnimationDeltaTime` : supprime (un hote lit `Desktop.Animations.Clock.DeltaTime`).
+4. Nettoyage final : tout nettoyer (les quatre fichiers de taches, l'index des scenarios redirige vers les ADR, les commentaires de code et de tests).
+
+## Decisions de conception derivees (session principale, contestables avant W1)
+
+- Contrat gelable : `IUIFreezable` (`IsFrozen`, `CanFreeze`, `Freeze()`) porte par `IFillBrush` et `IBorderBrush` comme membres d'interface a implementation par defaut (`IsFrozen => true`, `Freeze()` sans effet) pour que rien ne casse pendant la migration ; `UIFreezableBrush` (classe de base abstraite, derive de `ViewModelBase`) fournit `IsFrozen`, `Freeze()` (gele recursivement ses enfants par le hook `OnFreeze`), `ThrowIfFrozen()` appele par chaque setter avant d'ecrire et de notifier, et le contrat de `Copy()` : copie profonde NON gelee (l'equivalent de `Clone` WPF ; `Copy` garde son nom). Une brush gelee ne notifie jamais (elle ne change plus) ; une brush non gelee notifie par `PropertyChanged` sans allocation (args caches de `ViewModelBase`).
+- Egalite : par reference pour toute brush classe (comme WPF), aucun `Equals` / `GetHashCode` redefini. Les gardes qui reposent aujourd'hui sur l'egalite de valeur des structs boxees passent par un helper explicite `UIBrushEquality.ValueEquals(a, b)` (virtuel `ValueEquals` par type, comparaison champ a champ, recursive pour les composites, `false` entre types differents) : `VisualStateSetting<T>` quand `T` est `IFillBrush` / `IBorderBrush`, `MGControlTemplate.ApplyTemplateValueCore` pour un defaut de template de type brush ou conteneur de brushes. Les onze sites du store restent par reference.
+- Politique de gel : sont gelees les brushes d'un theme (a la fin de `ThemeDefinitionBuilder.Build` et dans chaque setter de `MGTheme` qui recoit une brush), la palette `SolidFillBrushes`, une brush enregistree comme ressource statique (`MGResources.AddStaticResource` quand la valeur est une brush) ; `ThemeManagedGetter.GetValue` rend l'instance gelee sans la cloner (le conteneur `VisualStateFillBrush`, lui, reste copie par element et ses slots partagent les brushes gelees) ; `MGTheme.Copy()` partage les brushes gelees au lieu de les recopier. Une brush inline XAML (`ToFillBrush` / `ToBorderBrush` du DTO) et une brush creee par code restent non gelees et appartiennent a l'element qui les recoit ; `Copy()` d'une brush gelee rend une copie non gelee.
+- Clone a l'animation (regle unique, quelle que soit la brush de base) : la valeur animee d'un pilote brush vit dans la contribution `Animation` (100) du store, comme aujourd'hui, mais c'est UN objet cree au demarrage du run (`Copy()` de la brush effective sous l'animation, ou une brush neuve du bon type si la base n'est pas du type attendu, refus explicite inchange) et mute par le run a chaque tick (`Color`, coins du gradient, `AnimationProgress`...) sans aucune ecriture du store ni allocation par tick ; la restauration retire la contribution et la base (gelee ou non) reapparait intacte. Une brush non gelee possedee par l'element n'est donc jamais mutee en place par une animation : MGUI ne reproduit pas la particularite Noesis « une brush partagee non gelee anime tous ses elements » (le store remplace la couche de valeur animee des dependency properties). Le conteneur `VisualStateFillBrush` s'abonne au `PropertyChanged` d'une brush de slot non gelee (donc au clone anime) pour invalider le dessin ; il ne s'abonne jamais a une brush gelee.
+- Surbrillance : `MGHighlightBorderBrush` devient une configuration gelable ; `AnimationProgress` (nom conserve) est la progression courante dans [0, 1) posee par le run (ou par l'application quand aucun run ne tourne), `ActualAnimationProgress` reste un alias qui borne la valeur ; `Update` ne fait plus que transferer a `Underlay` ; `CycleDuration` devient public en lecture ; `AutoStart` (defaut vrai) ; `Target` reste, obsolete et sans effet (le DTO XAML continue de l'accepter). Cible `BorderBrush.Highlight.Progress` (double, simple, non observable comme `ProgressButton.Value`, `RequiredOwnerType` nul, refus explicite si la bordure effective de l'element n'est pas une `MGHighlightBorderBrush`) qui ecrit sur le clone anime de la bordure (clone a l'animation ci-dessus). Hote cote element (`MGElement`, emplacement d'animation) : quand la bordure effective de l'element est une `MGHighlightBorderBrush` avec `AutoStart` et `IsEnabled` vrais, l'element demarre au rattachement (et au changement de bordure, et quand `IsEnabled` ou la duree de cycle change sur une brush non gelee) un run `RepeatForever` lineaire de 0 a 1 sur `BorderBrush.Highlight.Progress`, de duree `CycleDuration`, nomme `BorderBrush.Highlight` ; il l'annule (`KeepCurrent`) au detachement, au changement de bordure, quand `IsEnabled` passe a faux. `StopOnMouseOver` / `StopOnClick` sont appliques par l'element sur SON clone (le clone passe `IsEnabled = false`, le run est annule en gardant la pose), jamais sur la brush de base ; `MGElement.ResumeBorderHighlight()` (public) relance le run. Deux elements qui partagent une brush de surbrillance gelee ont chacun leur cycle (alignes s'ils sont rattaches a la meme frame). `MGDesktop.Update` ne pose plus `AnimationDeltaTime` et `UpdateBaseArgs` perd la propriete.
+- Composites et caches : `Freeze()` d'un composite gele ses enfants ; `Copy()` d'un composite copie ses enfants (copies non gelees) ; `MGDockedBorderBrush.IsSolidColorsOnly` est recalcule au changement d'un cote ; `MGHighlightFillBrush` garde son cache et le vide sur chaque setter comme aujourd'hui.
+- Cout : zero allocation par tick pour toute animation, y compris les couleurs et gradients de fond et de bordure (les tests de zero allocation couvrent desormais `Background`) ; une transition attachee ou un run sur une brush non gelee coute un abonnement `PropertyChanged` ; un element sans brush animee ni brush inline non gelee n'a aucun abonnement.
+- Nettoyage final : la derniere tache supprime `Docs/Tasks/animation-tasks.md`, `animation-v2-tasks.md`, `animation-v3-tasks.md` et ce fichier ; `Docs/scenario-validation-index.md` rattache `SCN-ANIM-001..004` a `Docs/animation-architecture.md` et aux ADR-0006 a 0009 ; les commentaires de code, de tests et de samples qui citent un fichier de taches ou une tranche (`U1`..`U11`, `T1`..`T9`, `S1`..`S9`, `W1`..`W8`, « fix round », `V1`/`V2`/`V3`/`V4` comme marqueur de livraison) sont reecrits en description du comportement ou supprimes, sans changement de code ; les marqueurs « (cible V4) » de `Docs/animation-architecture.md` sont retires ; l'historique complet reste dans les ADR.
+
+## Consignes de travail pour l'agent IA
+
+- Executer les tranches dans l'ordre ; une tranche = un commit sur `develop` ; mettre a jour le statut dans ce fichier dans le meme commit (icones ⏳ Todo, 🚧 In progress, 🧪 Needs testing, ✅ Done, ⚠️ Blocked ; une seule tache en 🚧 a la fois, jamais en fin de session).
+- Blocage : marquer ⚠️, ecrire la question dans « Points ouverts » ci-dessous, s'arreter.
+- Pas de refactor hors perimetre ; aucun renommage d'API publique ; aucune nouvelle dependance.
+- Code lu et modifie par symbole avec Serena (`find_symbol`, `find_referencing_symbols`, `replace_symbol_body`) quand le fichier est gros ; jamais de reecriture entiere d'un fichier existant par PowerShell, perl ou sed (BOM et tirets cadratins ont deja ete corrompus ainsi) ; verifier `git diff | grep -c $'\xef\xbf\xbd'` = 0 avant de rendre.
+- Tests sur le comportement observable (harnais headless, frames explicites, dessin capture quand il existe) ; zero allocation par tick pour tout run ; aucun abonnement ni slot pour un element sans brush animee.
+- Chaque tranche modifiant `MGElement`, `VisualState.cs`, `MGDesktop`, le store, `MGControlTemplate`, `MGTheme`, `ThemeDefinitionBuilder`, `MGResources`, `UpdateBaseArgs`, une cible d'animation, une brush ou un controle est a risque : verification independante par un `verifier` frais, constats consignes dans le statut de la tranche.
+- Toute decision prise en cours de tranche est ajoutee a l'ADR-0009 au moment ou elle est prise.
+- Ne jamais lancer `MGUI.Samples` depuis un agent ; le construire a chaque tranche ; les tests GPU reels (`MGUI.Tests/Integration`) tournent sur la machine de l'auteur.
+- Docs en francais sans accents ; `Docs/animation-architecture.md` decrit l'etat final (pas d'historique) : chaque tranche y retire les marqueurs « (cible V4) » de ce qu'elle livre.
+
+## Validation minimale
+
+- `dotnet build MGUI.Shared/MGUI.Shared.csproj` ; `dotnet build MGUI.Core/MGUI.Core.csproj`
+- `dotnet test MGUI.Tests/MGUI.Tests.csproj --filter "FullyQualifiedName~Animation|FullyQualifiedName~Brush|FullyQualifiedName~Drawing|FullyQualifiedName~Architecture|FullyQualifiedName~Theme"`
+- suite complete `dotnet test MGUI.Tests/MGUI.Tests.csproj` (0 echec ; 2249 tests a `23cab97`)
+- `dotnet build MGUI.Samples/MGUI.Samples.csproj` (verrous MSB302x : `-t:Compile`)
+- a partir de W7, scenario `SCN-ANIM-004` (colonne V4 du sample) a valider a la main par l'auteur.
+
+## Points ouverts
+
+(aucun)
+
+## Taches
+
+### ⏳ W1. Contrat gelable et egalite de valeur
+
+But : `IUIFreezable`, `UIFreezableBrush`, `UIBrushEquality.ValueEquals`, sans convertir encore aucune brush.
+
+Etat actuel : voir « Contexte », premier et quatrieme points.
+
+Travail attendu :
+
+- `MGUI.Core/UI/Brushes/IUIFreezable.cs` (`IsFrozen`, `CanFreeze`, `Freeze()`), membres par defaut sur `IFillBrush` et `IBorderBrush` (`IsFrozen => true`, `CanFreeze => true`, `Freeze()` vide, `ValueEquals(other) => Equals(other)`) ; `MGUI.Core/UI/Brushes/UIFreezableBrush.cs` (abstraite, `ViewModelBase`, `IsFrozen`, `Freeze()` + hook `OnFreeze`, `ThrowIfFrozen()`, helper `SetProperty<T>(ref field, value, name)` qui verifie le gel, compare, ecrit et notifie) ; `MGUI.Core/UI/Brushes/UIBrushEquality.cs` (`ValueEquals` pour `IFillBrush`, `IBorderBrush`, `VisualStateFillBrush`, `VisualStateSetting<T>` de brush).
+- `VisualStateSetting<T>` : les setters de slot comparent par `UIBrushEquality` quand `T` est une brush (comparateur choisi une fois par type, aucun cout par frame) ; `MGControlTemplate.ApplyTemplateValueCore` : comparateur de valeur pour un defaut de type brush ou conteneur de brushes (les cinq surcharges passent le bon comparateur sans changer leur signature).
+- Docs : `Docs/animation-architecture.md`, section « Brushes animables » (contrat, egalite) ; `Docs/drawing-architecture.md` « Cycle de vie des paints » (une brush est gelable, `Copy` rend une copie non gelee).
+- Tests `MGUI.Tests/Drawing/FreezableBrushTests.cs` (nouveau) : une classe de test derivant de `UIFreezableBrush` : setter avant gel notifie une fois sans allocation, apres gel leve `InvalidOperationException`, `Freeze` idempotent, `CanFreeze` faux propage, `Copy` d'une gelee est non gelee ; `UIBrushEquality` : memes valeurs vrai, types differents faux, composites recursifs ; `ThemeRefreshRegressionTests` et `ControlTemplateInfrastructureTests` verts (gardes de template inchangees en comportement, prouve par une mutation temporaire du comparateur).
+
+Commit recommande : `brushes: add the freezable contract and the value-equality helper`
+
+### ⏳ W2. Brushes de fond de valeur en classes gelables
+
+But : `MGSolidFillBrush`, `MGGradientFillBrush`, `MGDiagonalGradientFillBrush` deviennent des classes `UIFreezableBrush` a proprietes settables notifiantes ; palette `SolidFillBrushes` gelee.
+
+Etat actuel : voir « Contexte » (structs, 169 sites de construction, casts de `MGDockedBorderBrush`, `RequireSolid`).
+
+Travail attendu :
+
+- Conversion des trois structs (constructeurs et `Copy()` conserves, `Color` / quatre coins / `Color1`, `Color2`, `Color1Position` settables avec `ThrowIfFrozen`, `ValueEquals`, `Draw` inchange) ; `SolidFillBrushes` : instances gelees ; tout site qui recevait une struct par valeur et pourrait recevoir `null` (champs prives types `MGSolidFillBrush` comme les overlays de `VisualStateFillBrush`) garde par null ; `MGDockedBorderBrush` et `RequireSolid` continuent de tester le type.
+- Tests : `FreezableBrushTests` etendus (gel de la palette, setters des trois brushes, `Copy`) ; toute la suite verte sans modification ; test de non-regression sur les gardes : un fond de template recree avec la meme couleur est toujours « egal au defaut precedent » (`ThemeRefreshRegressionTests`, ajout d'un cas explicite brush).
+- Docs : « Brushes animables » (liste des brushes gelables).
+
+Commit recommande : `brushes: turn the solid and gradient fill brushes into freezable classes`
+
+### ⏳ W3. Autres brushes de valeur et composites
+
+But : `MGTextureFillBrush`, `MGNineSliceFillBrush`, `MGProgressBarGradientBrush`, `MGUniformBorderBrush`, `MGDockedBorderBrush`, `MGBandedBorderBrush`, `MGTexturedBorderBrush` en classes gelables ; propagation du gel dans les composites.
+
+Travail attendu :
+
+- Conversion des sept structs (memes regles que W2 ; `MGDockedBorderBrush.IsSolidColorsOnly` recalcule quand un cote change ; `MGBandedBorderBrush.Bands` reste en lecture seule mais ses brushes de bande sont gelees avec elle) ; `MGCompositedFillBrush`, `MGPaddedFillBrush`, `MGBorderedFillBrush`, `MGCompositedBorderBrush`, `MGHighlightFillBrush`, `MGHighlightBorderBrush` derivent de `UIFreezableBrush` (ou implementent le contrat) : `Freeze` gele les enfants, `Copy` copie les enfants, `CanFreeze` faux si un enfant ne peut pas l'etre ; `VisualStateFillBrush` : `Freeze` / `IsFrozen` sur ses slots, `Copy` partage les slots geles et copie les autres.
+- Tests : `FreezableBrushTests` (gel recursif, `CanFreeze`, `Copy` profonde, cache `IsSolidColorsOnly`), `TexturedPaintProjectionTests` et `FillBrushLifecycleTests` verts sans modification.
+- Docs : « Brushes animables », `Docs/drawing-architecture.md` (composites).
+
+Commit recommande : `brushes: turn the remaining value brushes into freezable classes`
+
+### ⏳ W4. Politique de gel et notification
+
+But : themes, ressources et palette geles et partages ; brushes inline et de code possedees par l'element ; invalidation par notification pour les brushes non gelees.
+
+Etat actuel : voir « Contexte », cinquieme et sixieme points.
+
+Travail attendu :
+
+- `ThemeDefinitionBuilder.Build` gele les brushes du theme produit ; les setters de `MGTheme` gelent la brush recue (une brush non gelee passee a un theme est gelee sur place, documente) ; `ThemeManagedGetter.GetValue` rend l'instance gelee (le conteneur `VisualStateFillBrush` reste copie) ; `MGTheme.Copy()` partage les brushes gelees ; `MGResources.AddStaticResource` gele une valeur brush ; `UIResourceReferenceApplicator` inchange (partage par reference desormais sur).
+- Notification : `VisualStateFillBrush` s'abonne au `PropertyChanged` d'un slot non gele (desabonnement au remplacement, jamais pour une brush gelee) et relaye vers l'element (invalidation du dessin) ; `MGBorder` idem pour une `BorderBrush` non gelee ; aucun abonnement pour un element dont toutes les brushes sont gelees.
+- Tests `MGUI.Tests/Drawing/BrushFreezingPolicyTests.cs` (nouveau) : un theme construit a toutes ses brushes gelees ; deux elements du meme type partagent l'instance gelee du theme ; `MGTheme.Copy` partage ; une brush inline XAML est non gelee et propre a l'element ; muter une brush inline repeint l'element (capture de dessin) ; une `StaticResource` brush est gelee et partagee ; nombre d'abonnements nul pour un element sur brushes gelees ; `ResolvedOwnerThemeDefaultTests` et `ThemeRefreshRegressionTests` verts.
+- Docs : `Docs/styling-theme-architecture.md` (themes et ressources geles), `Docs/drawing-architecture.md`, « Brushes animables ».
+
+Commit recommande : `brushes: freeze theme, resource and palette brushes and notify from unfrozen ones`
+
+### ⏳ W5. Clone a l'animation dans les cibles brush
+
+But : les cibles `Background`, `Background.Selected` / `.Disabled` / `.Focused`, `Background.Gradient`, `Background.DiagonalGradient` et `BorderBrush` creent un clone au demarrage du run et le mutent sans allocation.
+
+Etat actuel : voir « Contexte », troisieme point.
+
+Travail attendu :
+
+- `IUIStoreBackedAnimationTarget<T>` (ou une interface dediee `IUIBrushAnimationTarget`) gagne un hook de demarrage de run (`BeginRun(element)` / `EndRun`) appele par `UIPropertyAnimation<T>.OnStarting` et par la restauration : le clone (copie de la brush effective sous l'animation, ou brush neuve du type attendu) est ecrit une fois dans la contribution `Animation` ; `SetValue` par tick mute le clone ; `TryGetValueBelowAnimation`, `Restore`, `RestoreAnimation`, transitions, etats nommes et refresh de styles inchanges en comportement.
+- Tests : `TransitionTests`, `VisualStatesTests`, `ColorTargetsTests`, `OverlayAndExtraTargetsTests`, `KeyFrameClipTests` verts sans modification ; nouveaux tests dans `MGUI.Tests/Animation/BrushAnimationTargetsTests.cs` : zero allocation par tick pour `Background`, `BorderBrush`, `Background.Gradient` (apres warm-up) ; la base gelee n'est jamais mutee (meme reference et meme couleur avant / apres) ; la restauration rend la base ; deux elements qui partagent une brush gelee animent chacun leur clone ; un `Copy` du conteneur pendant un run ne capture pas le clone.
+- Docs : « Cibles » (aucune allocation par tick), « Brushes animables » (clone a l'animation), « Cout ».
+
+Commit recommande : `animation: clone the animated brush once per run and mutate it per tick`
+
+### ⏳ W6. Surbrillance sur le moteur
+
+But : `MGHighlightBorderBrush` configuration gelable, cible `BorderBrush.Highlight.Progress`, hote cote element, `AnimationDeltaTime` supprime.
+
+Etat actuel : voir « Contexte », septieme point.
+
+Travail attendu :
+
+- Passe de conception d'abord (consignee dans le statut) : cycle de vie de l'hote (rattachement, changement de bordure, `IsEnabled`, `AutoStart`, duree de cycle, `StopOnMouseOver` / `StopOnClick`, `ResumeBorderHighlight`), interaction avec une transition ou une animation explicite sur `BorderBrush` (regle de conflit du manager : une animation de couleur sur `BorderBrush` remplace le run de surbrillance, documente), preview (`UIAnimationPreview` sur la cible), serialisation (`UIAnimationSerializer` : `Double`, deja supporte).
+- `MGHighlightBorderBrush` : `Update` ne cumule plus ; `AnimationProgress` settable dans [0, 1) (`ThrowIfFrozen`), `ActualAnimationProgress` alias ; `CycleDuration` public ; `AutoStart` ; `Target` obsolete sans effet ; `Copy` ne copie plus la progression courante d'un clone anime (elle appartient au run).
+- Cible `BorderBrush.Highlight.Progress` dans `Targets/UIBuiltInAnimationTargets.cs` ; hote dans `MGElement` (emplacement d'animation, aucun cout pour un element sans surbrillance) ; `UpdateBaseArgs.AnimationDeltaTime` et la ligne de `MGDesktop.Update` supprimees.
+- Samples : `IBorderBrush.xaml.cs` (bindings sur la brush de l'element, `StopOnClick` / `StopOnMouseOver` toujours demontres) et `AnimationDemo.xaml.cs` (V3Highlight) adaptes ; `HighlightBorderBrushClockTests` remplace par `MGUI.Tests/Animation/HighlightBorderBrushEngineTests.cs` : demarrage automatique au rattachement, cycle exact (`Pulse`, `Flash`, `Progress`, `Scan`), pause et `TimeScale` du desktop, `AutoStart = false` immobile puis pilote par `Animate("BorderBrush.Highlight.Progress", ...)`, `StopOnMouseOver` sur le clone seulement (la brush gelee garde `IsEnabled`), `ResumeBorderHighlight`, detachement et rattachement, deux elements sur la meme brush gelee, zero allocation par tick, `Seek` d'une preview ; `HighlightBorderBrushRingAnimationTests` vert sans modification.
+- Docs : « Brushes animables » (surbrillance), « Cibles », « Chronometres hors moteur », `Docs/drawing-architecture.md` (« `MGHighlightBorderBrush.Update` fait tourner son animation » disparait).
+
+Commit recommande : `animation: drive the highlight border brush with an engine run per element`
+
+### ⏳ W7. Sample, scenario, documentation et ADR
+
+But : colonne V4 du sample (`SCN-ANIM-004`), ADR-0009 Accepted, docs finales.
+
+Travail attendu :
+
+- `MGUI.Samples/Features/AnimationDemo.xaml(.cs)` : colonne V4 : une brush de theme gelee partagee par deux boutons dont un seul anime son fond (l'autre reste intact), une brush inline mutee par code (`Color` en direct), une surbrillance a demarrage automatique et une a `AutoStart = false` pilotee par un bouton, une preview `Seek` sur `BorderBrush.Highlight.Progress`, un compteur d'allocations par tick affiche a zero ; `Docs/scenario-validation-index.md` : `SCN-ANIM-004` ; `AnimationDemoSampleTests` : section V4 (les comptes V1-V3 epingles inchanges).
+- ADR-0009 : statut Accepted, « Decisions taken during delivery » completee ; `Docs/animation-architecture.md`, `Docs/drawing-architecture.md`, `Docs/styling-theme-architecture.md` relus en entier : aucun marqueur « (cible V4) » restant sur ce que W1-W6 ont livre.
+
+Commit recommande : `animation: add the V4 sample, scenario and documentation`
+
+### ⏳ W8. Nettoyage final
+
+But : supprimer les fichiers de taches d'animation et les references aux tranches passees.
+
+Travail attendu :
+
+- Supprimer `Docs/Tasks/animation-tasks.md`, `Docs/Tasks/animation-v2-tasks.md`, `Docs/Tasks/animation-v3-tasks.md` et `Docs/Tasks/animation-v4-tasks.md` (ce fichier, dans le meme commit ; l'ADR-0009 « Decisions taken during delivery » note la cloture du programme et ce commit).
+- `Docs/scenario-validation-index.md` : `SCN-ANIM-001..004` rattaches a `Docs/animation-architecture.md` et aux ADR-0006 a 0009, plus aucun renvoi a `Tasks/animation-*.md` ; `Docs/animation-architecture.md`, `Docs/drawing-architecture.md`, `Docs/styling-theme-architecture.md` : plus aucun renvoi a ces fichiers ni aucun marqueur « (cible V4) ».
+- Commentaires de code, de tests et de samples (37 fichiers a `23cab97`, liste a regenerer par `rg "animation-(v2-|v3-|v4-)?tasks\.md|\b(U[0-9]{1,2}|T[1-9]|S[1-9]|W[1-8])\b.*(ADR|tranche|slice|fix round)|fix round" MGUI.Core MGUI.Shared MGUI.Samples MGUI.Tests`) : reecrire chaque commentaire en description du comportement (sans numero de tranche ni fichier de taches) ou le supprimer ; aucun changement de code (diff limite aux commentaires, verifie par un build identique et la suite complete verte) ; `ResolvedPilotWriteSitesTests.AllowedLines` decale si des lignes de commentaire disparaissent avant une ecriture indexee.
+- Edition mecanique par `mech-executor` avec la liste exacte des fichiers ; verification par `verifier` que le diff ne contient que des commentaires, des docs et les suppressions de fichiers.
+
+Commit recommande : `docs: close the animation programs and drop their task files`
